@@ -21,6 +21,7 @@ import {
   Bell,
   User
 } from "lucide-react";
+import { Link } from "wouter";
 
 interface DetectedElement {
   id: string;
@@ -187,9 +188,11 @@ export default function DashboardPage() {
             <Button variant="ghost" size="icon">
               <Bell className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon">
-              <Settings className="h-4 w-4" />
-            </Button>
+            <Link href="/settings">
+              <Button variant="ghost" size="icon">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </Link>
             <div className="flex items-center space-x-2">
               <User className="h-6 w-6 text-gray-600" />
               <span className="text-sm font-medium text-gray-700">{user?.username}</span>
