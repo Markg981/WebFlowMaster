@@ -7,7 +7,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { DragDropProvider } from "@/components/drag-drop-provider";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
-import DashboardPage from "@/pages/dashboard-page";
+import DashboardPage from "@/pages/dashboard-page-new";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {

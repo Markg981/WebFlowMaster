@@ -72,23 +72,31 @@ export default function DashboardPage() {
   const { user, logoutMutation } = useAuth();
   const [currentUrl, setCurrentUrl] = useState("https://github.com");
   const [detectedElements, setDetectedElements] = useState<DetectedElement[]>([]);
-  const [testSequence, setTestSequence] = useState<TestStep[]>([]);
+  const [testSequence, setTestSequence] = useState<DragDropTestStep[]>([]);
   const [highlightedElement, setHighlightedElement] = useState<string | null>(null);
   const [websiteLoaded, setWebsiteLoaded] = useState(false);
+  const [websiteScreenshot, setWebsiteScreenshot] = useState<string | null>(null);
 
   const loadWebsiteMutation = useMutation({
     mutationFn: async (url: string) => {
       const res = await apiRequest("POST", "/api/load-website", { url });
       return res.json();
     },
-    onSuccess: () => {
-      setWebsiteLoaded(true);
-      toast({
-        title: "Website loaded",
-        description: "Website loaded successfully in preview",
-      });
+    onSuccess: (data) => {
+      if (data.success) {
+        setWebsiteLoaded(true);
+        setWebsiteScreenshot(data.screenshot);
+        toast({
+          title: "Website loaded",
+          description: "Website loaded successfully in preview",
+        });
+      } else {
+        throw new Error(data.error || "Failed to load website");
+      }
     },
     onError: (error: Error) => {
+      setWebsiteLoaded(false);
+      setWebsiteScreenshot(null);
       toast({
         title: "Failed to load website",
         description: error.message,
@@ -277,19 +285,7 @@ export default function DashboardPage() {
           <ScrollArea className="h-full">
             <div className="space-y-2">
               {availableActions.map((action) => (
-                <Card 
-                  key={action.id}
-                  className="p-3 cursor-move hover:border-accent hover:bg-orange-50 transition-colors border-dashed"
-                  draggable
-                >
-                  <div className="flex items-center space-x-3">
-                    {renderActionIcon(action.icon)}
-                    <div>
-                      <div className="font-medium text-gray-900 text-sm">{action.name}</div>
-                      <div className="text-xs text-gray-500">{action.description}</div>
-                    </div>
-                  </div>
-                </Card>
+                <DraggableAction key={action.id} action={action} />
               ))}
             </div>
           </ScrollArea>
@@ -311,84 +307,34 @@ export default function DashboardPage() {
             </div>
             
             <div className="flex-1 border-2 border-gray-300 rounded-lg overflow-hidden relative bg-white">
-              {websiteLoaded ? (
-                <div className="w-full h-full overflow-auto bg-white">
-                  {/* GitHub homepage mockup */}
-                  <div className="bg-gray-900 text-white p-4 border-b border-gray-700">
-                    <div className="flex items-center justify-between max-w-6xl mx-auto">
-                      <div className="flex items-center space-x-4">
-                        <TestTube className="h-6 w-6" />
-                        <span className="font-bold text-xl">GitHub</span>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <Input
-                          placeholder="Search GitHub"
-                          className="px-3 py-1 bg-gray-800 border-gray-600 text-white"
-                          data-element-id="search-input"
-                          style={{
-                            outline: highlightedElement === "search-input" ? "2px solid #f44336" : "none",
-                            outlineOffset: highlightedElement === "search-input" ? "2px" : "0"
-                          }}
-                        />
-                        <Button 
-                          size="sm" 
-                          className="bg-blue-600 hover:bg-blue-700"
-                          data-element-id="sign-in-btn"
-                          style={{
-                            outline: highlightedElement === "sign-in-btn" ? "2px solid #f44336" : "none",
-                            outlineOffset: highlightedElement === "sign-in-btn" ? "2px" : "0"
-                          }}
-                        >
-                          Sign in
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-b from-purple-900 to-gray-900 text-white p-12">
-                    <div className="max-w-4xl mx-auto text-center">
-                      <h1 
-                        className="text-5xl font-bold mb-6"
-                        data-element-id="hero-title"
-                        style={{
-                          outline: highlightedElement === "hero-title" ? "2px solid #f44336" : "none",
-                          outlineOffset: highlightedElement === "hero-title" ? "2px" : "0"
-                        }}
-                      >
-                        Let's build from here
-                      </h1>
-                      <p className="text-xl text-gray-300 mb-8">The world's leading AI-powered developer platform.</p>
-                      <div className="flex justify-center space-x-4">
-                        <Button 
-                          className="px-8 py-3 bg-green-600 hover:bg-green-700"
-                          data-element-id="start-free-btn"
-                          style={{
-                            outline: highlightedElement === "start-free-btn" ? "2px solid #f44336" : "none",
-                            outlineOffset: highlightedElement === "start-free-btn" ? "2px" : "0"
-                          }}
-                        >
-                          Start for free
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          className="px-8 py-3 border-gray-400 text-white hover:bg-gray-800"
-                          data-element-id="enterprise-btn"
-                          style={{
-                            outline: highlightedElement === "enterprise-btn" ? "2px solid #f44336" : "none",
-                            outlineOffset: highlightedElement === "enterprise-btn" ? "2px" : "0"
-                          }}
-                        >
-                          Start enterprise trial
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+              {websiteLoaded && websiteScreenshot ? (
+                <div className="w-full h-full overflow-auto bg-white relative">
+                  <img 
+                    src={websiteScreenshot} 
+                    alt="Website screenshot"
+                    className="w-full h-auto object-contain"
+                    style={{ minHeight: '100%' }}
+                  />
+                  {/* Element highlighting overlay */}
+                  {highlightedElement && (
+                    <div 
+                      className="absolute border-2 border-red-500 bg-red-500 bg-opacity-20 pointer-events-none"
+                      style={{
+                        // This would be positioned based on element.boundingBox if available
+                        top: '50px',
+                        left: '50px',
+                        width: '200px',
+                        height: '40px'
+                      }}
+                    />
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500">
                   <div className="text-center">
                     <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>Load a website to see the preview</p>
+                    <p className="text-sm mt-2">Real website screenshots will appear here</p>
                   </div>
                 </div>
               )}
