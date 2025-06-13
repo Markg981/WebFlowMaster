@@ -1,0 +1,127 @@
+Voglio che mi aiuti a progettare e sviluppare un'applicazione web completa, full-stack, con le seguenti caratteristiche molto precise:
+
+Obiettivo generale:
+Creare un’applicazione per la realizzazione ed esecuzione di test automatici su pagine web di qualsiasi tipo. L’app dovrà integrare strumenti come Playwright e Omniparser V2 per il riconoscimento automatico degli elementi presenti sulle pagine.
+
+Stack tecnologico suggerito:
+Frontend: Angular (preferito), React o VueJS (accetto proposte)
+
+Backend: .NET 8 o Node.js (preferito)
+
+Database: PostgreSQL o SQLite (accetto proposte)
+
+Automatizzazione Test: Playwright
+
+Parsing elementi DOM: Omniparser V2
+
+Autenticazione: JWT o OAuth2
+
+API: REST o GraphQL
+
+Deployment: Docker
+
+Moduli e funzionalità richieste:
+1️⃣ Pagina di Login
+Autenticazione utente.
+
+Supporto sessione con token JWT.
+
+Sicurezza CSRF / CORS.
+
+Validazione credenziali.
+
+Opzionale: possibilità di gestire ruoli utenti.
+
+2️⃣ Pagina "Crea Test"
+Un campo URL in cui l'utente può inserire il sito da testare.
+
+Il caricamento della pagina avverrà lato backend per evitare problemi di CORS Origin.
+
+La pagina caricata deve essere mostrata in anteprima al centro della pagina e in maniera predominante, per consentire la chiara visualizzazione da parte dell'utente.
+
+3️⃣ Individuazione degli elementi
+Un pulsante “Rileva Elementi” che:
+
+Invia il contenuto della pagina al backend.
+
+Il backend utilizza Omniparser V2 per numerare e classificare tutti gli oggetti DOM.
+
+Il backend utilizza anche Playwright per affinare l'individuazione e i dettagli degli elementi.
+
+Gli elementi rilevati vengono mostrati in una sezione laterale ("Elementi rilevati").
+
+Gli elementi devono essere presentati in forma di lista drag & drop, pronti per essere usati nella creazione del test.
+
+4️⃣ Evidenziazione visiva degli elementi
+Quando l'utente passa con il mouse sopra un elemento della lista, tale elemento deve essere evidenziato nella pagina web caricata:
+
+Evidenziazione con un bordo rosso.
+
+Sincronizzazione tra lista e visualizzazione.
+
+5️⃣ Sezione Azioni standard
+Un elenco drag & drop di azioni disponibili (es. click, insert text, wait, scroll, assert ecc).
+
+Ogni azione potrà essere trascinata e associata a uno degli elementi rilevati.
+
+6️⃣ Composizione del Test
+Combinazione visuale drag & drop di azioni su elementi per costruire il test.
+
+Visualizzazione sequenziale del flusso del test creato.
+
+7️⃣ Esecuzione di prova del Test
+Pulsante “Esegui Test”.
+
+Esecuzione automatica del test tramite Playwright.
+
+Durante l’esecuzione, il frontend deve visualizzare passo-passo cosa sta accadendo:
+
+Evidenziazione del componente attivo.
+
+Simulazione visiva della sequenza delle azioni nella preview del sito.
+
+8️⃣ Salvataggio Test
+Alla fine, il test può essere salvato sul DB.
+
+Archiviazione di:
+
+URL testato
+
+Sequenza delle azioni
+
+Identificatori degli elementi DOM
+
+Altri metadati
+
+9️⃣ Pagina di Impostazioni
+Possibilità per l’utente di configurare:
+
+Tema chiaro/scuro.
+
+URL predefinito per il campo URL della pagina "Crea Test".
+
+Eventuali preferenze per Playwright (browser headless, tempo di attesa ecc.).
+
+Considerazioni tecniche:
+Massima attenzione a CORS e sicurezza.
+
+Utilizzo sandbox per il rendering della pagina caricata (es. iframe proxy lato server).
+
+Supporto multibrowser (Chromium, Firefox, Webkit).
+
+Infrastruttura scalabile (possibilità di esecuzione multipla dei test in parallelo).
+
+Output richiesto:
+Per favore, fornisci:
+
+Proposta di architettura generale (schema dei moduli).
+
+Scelta dello stack suggerito.
+
+Diagramma di flusso delle funzionalità.
+
+Descrizione delle librerie o framework suggeriti.
+
+Eventuali criticità e proposte per la loro gestione.
+
+Nota importante: voglio una soluzione realistica, scalabile e fattibile tecnicamente.
