@@ -4,6 +4,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertTestSchema, insertTestRunSchema } from "@shared/schema";
 import { z } from "zod";
+import { playwrightService } from "./playwright-service";
 
 export function registerRoutes(app: Express): Server {
   // Setup authentication routes
@@ -21,9 +22,9 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "URL is required" });
       }
 
-      // In a real implementation, you would use a headless browser or secure proxy
-      // For now, return success with the URL
-      res.json({ success: true, url, loaded: true });
+      // Use Playwright to load the website
+      const result = await playwrightService.loadWebsite(url);
+      res.json(result);
     } catch (error) {
       console.error("Error loading website:", error);
       res.status(500).json({ error: "Failed to load website" });
