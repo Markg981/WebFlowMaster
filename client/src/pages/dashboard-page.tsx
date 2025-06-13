@@ -10,6 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
+import { DraggableAction } from "@/components/draggable-action";
+import { DraggableElement } from "@/components/draggable-element";
+import { TestSequenceBuilder } from "@/components/test-sequence-builder";
+import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
 import { 
   TestTube, 
   Globe, 
@@ -36,6 +40,12 @@ interface DetectedElement {
   text: string;
   tag: string;
   attributes: Record<string, string>;
+  boundingBox?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 
 interface TestAction {
@@ -46,12 +56,7 @@ interface TestAction {
   description: string;
 }
 
-interface TestStep {
-  id: string;
-  action: TestAction;
-  element?: DetectedElement;
-  value?: string;
-}
+
 
 const availableActions: TestAction[] = [
   { id: "click", type: "click", name: "Click Element", icon: "mouse-pointer", description: "Simulate a mouse click" },

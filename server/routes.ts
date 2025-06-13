@@ -43,51 +43,9 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "URL is required" });
       }
 
-      // Mock detected elements - in real implementation, use Playwright + Omniparser
-      const mockElements = [
-        {
-          id: "search-input",
-          type: "input",
-          selector: 'input[placeholder="Search GitHub"]',
-          text: "",
-          tag: "input",
-          attributes: { placeholder: "Search GitHub", type: "text" }
-        },
-        {
-          id: "sign-in-btn",
-          type: "button",
-          selector: "button.bg-blue-600",
-          text: "Sign in",
-          tag: "button",
-          attributes: { class: "bg-blue-600" }
-        },
-        {
-          id: "hero-title",
-          type: "heading",
-          selector: "h1.text-5xl",
-          text: "Let's build from here",
-          tag: "h1",
-          attributes: { class: "text-5xl font-bold" }
-        },
-        {
-          id: "start-free-btn",
-          type: "button",
-          selector: "button.bg-green-600",
-          text: "Start for free",
-          tag: "button",
-          attributes: { class: "bg-green-600" }
-        },
-        {
-          id: "enterprise-btn",
-          type: "button",
-          selector: "button.border",
-          text: "Start enterprise trial",
-          tag: "button",
-          attributes: { class: "border" }
-        }
-      ];
-
-      res.json({ elements: mockElements });
+      // Use Playwright to detect elements
+      const elements = await playwrightService.detectElements(url);
+      res.json({ elements });
     } catch (error) {
       console.error("Error detecting elements:", error);
       res.status(500).json({ error: "Failed to detect elements" });
