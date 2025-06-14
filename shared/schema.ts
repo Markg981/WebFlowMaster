@@ -1,34 +1,34 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
-import { relations } from "drizzle-orm";
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { createInsertSchema } from 'drizzle-zod';
+import { z } from 'zod';
+import { relations, sql } from 'drizzle-orm';
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
 
-export const tests = pgTable("tests", {
-  id: serial("id").primaryKey(),
+export const tests = sqliteTable("tests", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   url: text("url").notNull(),
-  sequence: jsonb("sequence").notNull(), // Array of test steps
-  elements: jsonb("elements").notNull(), // Detected DOM elements
+  sequence: text("sequence", { mode: 'json' }).notNull(), // Array of test steps
+  elements: text("elements", { mode: 'json' }).notNull(), // Detected DOM elements
   status: text("status").notNull().default("draft"), // draft, saved, executing, completed
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
 
-export const testRuns = pgTable("test_runs", {
-  id: serial("id").primaryKey(),
+export const testRuns = sqliteTable("test_runs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   testId: integer("test_id").notNull().references(() => tests.id),
   status: text("status").notNull(), // running, completed, failed
-  results: jsonb("results"), // Execution results and logs
-  startedAt: timestamp("started_at").defaultNow().notNull(),
-  completedAt: timestamp("completed_at"),
+  results: text("results", { mode: 'json' }), // Execution results and logs
+  startedAt: text("started_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  completedAt: text("completed_at"),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({
