@@ -82,16 +82,17 @@ export class PlaywrightService {
   async detectElements(url: string): Promise<DetectedElement[]> {
     try {
       await this.initialize();
-      if (!this.context) throw new Error('Browser context not initialized');
+      if (!this.browser) throw new Error('Browser not initialized');
 
-      const page = await this.context.newPage();
+      const page = await this.browser.newPage();
+      await page.setViewport({ width: 1280, height: 720 });
       await page.goto(url, { 
         waitUntil: 'domcontentloaded', 
         timeout: 30000 
       });
 
       // Wait for page to be interactive
-      await page.waitForLoadState('networkidle', { timeout: 10000 });
+      await page.waitForTimeout(2000);
 
       // Detect interactive elements
       const elements = await page.evaluate(() => {
