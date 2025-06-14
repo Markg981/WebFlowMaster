@@ -2,10 +2,10 @@ import { users, tests, testRuns, type User, type InsertUser, type Test, type Ins
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import session from "express-session";
-import connectPg from "connect-pg-simple";
-import { pool } from "./db";
+// import connectPg from "connect-pg-simple";
+// import { pool } from "./db"; // Removed as pool is not available with SQLite
 
-const PostgresSessionStore = connectPg(session);
+// const PostgresSessionStore = connectPg(session); // PostgreSQL specific
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -22,17 +22,17 @@ export interface IStorage {
   getTestRuns(testId: number): Promise<TestRun[]>;
   updateTestRun(id: number, testRun: Partial<InsertTestRun>): Promise<TestRun | undefined>;
   
-  sessionStore: session.SessionStore;
+  // sessionStore: session.SessionStore; // Commented out for now
 }
 
 export class DatabaseStorage implements IStorage {
-  public sessionStore: session.SessionStore;
+  // public sessionStore: session.SessionStore; // Commented out for now
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({ 
-      pool, 
-      createTableIfMissing: true 
-    });
+    // this.sessionStore = new PostgresSessionStore({ // PostgreSQL specific
+    //   pool,
+    //   createTableIfMissing: true
+    // });
   }
 
   async getUser(id: number): Promise<User | undefined> {
