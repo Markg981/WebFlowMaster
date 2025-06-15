@@ -1,7 +1,7 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
-import { relations, sql } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm'; // Reverted: Removed one and many
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -31,8 +31,12 @@ export const testRuns = sqliteTable("test_runs", {
   completedAt: text("completed_at"),
 });
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({ // Added 'one' to destructuring
   tests: many(tests),
+  userSettings: one(userSettings, {
+    fields: [users.id],
+    references: [userSettings.userId],
+  }),
 }));
 
 export const testsRelations = relations(tests, ({ one, many }) => ({
@@ -47,6 +51,23 @@ export const testRunsRelations = relations(testRuns, ({ one }) => ({
   test: one(tests, {
     fields: [testRuns.testId],
     references: [tests.id],
+  }),
+}));
+
+export const userSettings = sqliteTable("user_settings", {
+  userId: integer("user_id").primaryKey().references(() => users.id),
+  theme: text("theme").default('light').notNull(),
+  defaultTestUrl: text("default_test_url"),
+  playwrightBrowser: text("playwright_browser").default('chromium').notNull(),
+  playwrightHeadless: integer("playwright_headless", { mode: 'boolean' }).default(true).notNull(),
+  playwrightDefaultTimeout: integer("playwright_default_timeout").default(30000).notNull(),
+  playwrightWaitTime: integer("playwright_wait_time").default(1000).notNull(),
+});
+
+export const userSettingsRelations = relations(userSettings, ({ one }) => ({
+  user: one(users, {
+    fields: [userSettings.userId],
+    references: [users.id],
   }),
 }));
 
@@ -73,3 +94,5 @@ export type InsertTest = z.infer<typeof insertTestSchema>;
 export type Test = typeof tests.$inferSelect;
 export type InsertTestRun = z.infer<typeof insertTestRunSchema>;
 export type TestRun = typeof testRuns.$inferSelect;
+export type UserSettings = typeof userSettings.$inferSelect;
+export type InsertUserSettings = typeof userSettings.$inferInsert;

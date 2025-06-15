@@ -40,26 +40,26 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex">
+    <div className="min-h-screen bg-background text-foreground flex"> {/* Changed gradient to bg-background */}
       {/* Left side - Auth forms */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4">
-              <TestTube className="h-8 w-8 text-white" />
+              <TestTube className="h-8 w-8 text-primary-foreground" /> {/* Changed text-white to text-primary-foreground */}
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">WebTest Platform</h1>
-            <p className="text-gray-600 mt-2">Automated Web Testing Made Simple</p>
+            <h1 className="text-2xl font-bold text-foreground">WebTest Platform</h1> {/* Changed text-gray-900 to text-foreground */}
+            <p className="text-muted-foreground mt-2">Automated Web Testing Made Simple</p> {/* Changed text-gray-600 to text-muted-foreground */}
           </div>
 
-          <Card>
-            <CardHeader>
+          <Card> {/* Card component from ui/ is already theme-aware */}
+            <CardHeader> {/* Card components from ui/ are already theme-aware */}
               <CardTitle>Welcome</CardTitle>
               <CardDescription>
                 Sign in to your account or create a new one to get started
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent> {/* Card components from ui/ are already theme-aware */}
               <Tabs defaultValue="login" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="login">Sign In</TabsTrigger>
@@ -175,9 +175,10 @@ export default function AuthPage() {
       </div>
 
       {/* Right side - Hero section */}
-      <div className="flex-1 bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center p-8 text-white">
+      {/* This section uses primary color for background, so text should be primary-foreground for contrast */}
+      <div className="flex-1 bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center p-8 text-primary-foreground">
         <div className="max-w-md text-center">
-          <TestTube className="h-20 w-20 mx-auto mb-6 opacity-90" />
+          <TestTube className="h-20 w-20 mx-auto mb-6 opacity-90" /> {/* Icon color will be inherited (primary-foreground) */}
           <h2 className="text-3xl font-bold mb-4">Automate Your Web Testing</h2>
           <p className="text-lg opacity-90 mb-6">
             Create, execute, and manage automated web tests with our intuitive drag-and-drop interface. 
@@ -185,19 +186,19 @@ export default function AuthPage() {
           </p>
           <div className="space-y-3 text-left">
             <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
+              <div className="w-2 h-2 bg-primary-foreground rounded-full"></div> {/* Changed bg-white to bg-primary-foreground */}
               <span>Visual element detection</span>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
+              <div className="w-2 h-2 bg-primary-foreground rounded-full"></div> {/* Changed bg-white to bg-primary-foreground */}
               <span>Drag-and-drop test building</span>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
+              <div className="w-2 h-2 bg-primary-foreground rounded-full"></div> {/* Changed bg-white to bg-primary-foreground */}
               <span>Real-time test execution</span>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
+              <div className="w-2 h-2 bg-primary-foreground rounded-full"></div> {/* Changed bg-white to bg-primary-foreground */}
               <span>Comprehensive reporting</span>
             </div>
           </div>

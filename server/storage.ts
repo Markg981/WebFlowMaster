@@ -1,4 +1,4 @@
-import { users, tests, testRuns, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun } from "@shared/schema";
+import { users, tests, testRuns, userSettings, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import session from "express-session";
@@ -21,6 +21,9 @@ export interface IStorage {
   createTestRun(testRun: InsertTestRun): Promise<TestRun>;
   getTestRuns(testId: number): Promise<TestRun[]>;
   updateTestRun(id: number, testRun: Partial<InsertTestRun>): Promise<TestRun | undefined>;
+
+  getUserSettings(userId: number): Promise<UserSettings | undefined>;
+  upsertUserSettings(userId: number, settingsData: Partial<Omit<InsertUserSettings, 'userId'>>): Promise<UserSettings>;
   
   // sessionStore: session.SessionStore; // Commented out for now
 }
@@ -103,6 +106,25 @@ export class DatabaseStorage implements IStorage {
       .where(eq(testRuns.id, id))
       .returning();
     return updatedTestRun || undefined;
+  }
+
+  async getUserSettings(userId: number): Promise<UserSettings | undefined> {
+    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, userId)).limit(1);
+    return settings || undefined;
+  }
+
+  async upsertUserSettings(userId: number, settingsData: Partial<Omit<InsertUserSettings, 'userId'>>): Promise<UserSettings> {
+    // Ensure that userId from the path is used, and settingsData does not accidentally override it for the row identity.
+    // For the 'set' part of onConflictDoUpdate, we use settingsData which should not contain userId.
+    const [result] = await db
+      .insert(userSettings)
+      .values({ userId, ...settingsData })
+      .onConflictDoUpdate({
+        target: userSettings.userId,
+        set: settingsData, // Drizzle will ignore userId in `set` if it's part of the target
+      })
+      .returning();
+    return result;
   }
 }
 
