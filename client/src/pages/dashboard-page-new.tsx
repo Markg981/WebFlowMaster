@@ -374,14 +374,15 @@ export default function DashboardPage() {
     saveTestMutation.mutate();
   };
 
-  const executeTestMutation = useMutation({
+  // This mutation is for executing saved tests by ID (currently not used by the main execute button)
+  const executeSavedTestMutation = useMutation({
     mutationFn: async (testId: string) => {
       const res = await apiRequest("POST", `/api/tests/${testId}/execute`);
       const result = await res.json();
       if (!res.ok) {
-        throw new Error(result.error || "Failed to execute test");
+        throw new Error(result.error || "Failed to execute test for saved test");
       }
-      return result; // Expected: { success: boolean; testRun: { id: string, results: { steps: StepResult[] } } }
+      return result;
     },
     onSuccess: (data) => {
       if (data.success && data.testRun?.results?.steps?.length) {
@@ -389,32 +390,55 @@ export default function DashboardPage() {
         setCurrentPlaybackStepIndex(0);
         setIsExecutingPlayback(true);
         if (data.testRun.results.steps[0]?.screenshot) {
-          setWebsiteScreenshot(data.testRun.results.steps[0].screenshot); // Show first step screenshot
+          setWebsiteScreenshot(data.testRun.results.steps[0].screenshot);
         }
-        toast({
-          title: "Test Execution Started",
-          description: "Playing back results...",
-        });
+        toast({ title: "Saved Test Execution Started", description: "Playing back results..." });
       } else {
         setIsExecutingPlayback(false);
         setCurrentPlaybackStepIndex(null);
         setPlaybackSteps([]);
-        toast({
-          title: "Execution Failed",
-          description: data.error || "No steps returned or execution failed.",
-          variant: "destructive",
-        });
+        toast({ title: "Execution Failed", description: data.error || "No steps returned or execution failed.", variant: "destructive" });
       }
     },
     onError: (error: Error) => {
       setIsExecutingPlayback(false);
       setCurrentPlaybackStepIndex(null);
       setPlaybackSteps([]);
-      toast({
-        title: "Execution Request Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Saved Test Execution Request Failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const executeDirectTestMutation = useMutation({
+    mutationFn: async (payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string }) => {
+      const res = await apiRequest("POST", "/api/execute-test-direct", payload);
+      // The backend for /api/execute-test-direct should directly return { success: boolean; steps?: StepResult[]; error?: string; duration?: number }
+      const result = await res.json();
+      if (!res.ok) { // Check if HTTP response itself is not OK
+        throw new Error(result.error || "Failed to execute direct test. HTTP error.");
+      }
+      return result; // This is the data structure: { success, steps, error, duration }
+    },
+    onSuccess: (data) => { // data is { success, steps, error, duration }
+      if (data.success && data.steps?.length) {
+        setPlaybackSteps(data.steps);
+        setCurrentPlaybackStepIndex(0);
+        setIsExecutingPlayback(true);
+        if (data.steps[0]?.screenshot) {
+          setWebsiteScreenshot(data.steps[0].screenshot);
+        }
+        toast({ title: "Direct Test Execution Started", description: "Playing back results..." });
+      } else {
+        setIsExecutingPlayback(false);
+        setCurrentPlaybackStepIndex(null);
+        setPlaybackSteps([]);
+        toast({ title: "Execution Failed", description: data.error || "No steps returned or direct execution failed.", variant: "destructive" });
+      }
+    },
+    onError: (error: Error) => {
+      setIsExecutingPlayback(false);
+      setCurrentPlaybackStepIndex(null);
+      setPlaybackSteps([]);
+      toast({ title: "Direct Execution Request Failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -461,32 +485,14 @@ export default function DashboardPage() {
       return;
     }
 
-    if (currentSavedTestId) {
-      executeTestMutation.mutate(currentSavedTestId);
-    } else {
-      // Test not saved yet, save it first then execute
-      const payloadToSave = {
-        name: testName || `Test for ${currentUrl || "Untitled Test"}`,
-        url: currentUrl,
-        sequence: testSequence,
-        elements: detectedElements, // Added elements here
-        status: "draft" // Or "active" if executing means it's more than a draft
-      };
-      saveTestMutation.mutate(payloadToSave, {
-        onSuccess: (savedTestData) => {
-          setCurrentSavedTestId(savedTestData.id); // Ensure this ID is set
-          setTestName(savedTestData.name);
-          executeTestMutation.mutate(savedTestData.id);
-        },
-        onError: (error) => {
-          toast({
-            title: "Save Failed Before Execution",
-            description: `Could not save the test: ${error.message}. Execution aborted.`,
-            variant: "destructive",
-          });
-        }
-      });
-    }
+    // Directly prepare payload for direct execution
+    const payload = {
+      url: currentUrl,
+      sequence: testSequence,
+      elements: detectedElements,
+      name: testName || `Adhoc Test for ${currentUrl || "Untitled"}`
+    };
+    executeDirectTestMutation.mutate(payload);
   };
 
   const handleClearSequence = () => {
@@ -610,7 +616,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-2"> {/* Reduced mb */}
                 <h3 className="text-lg font-semibold text-card-foreground">Website Preview</h3>
                 <div className="flex items-center space-x-2">
-                  {executeTestMutation.isPending && (
+                  {(executeDirectTestMutation.isPending || executeSavedTestMutation.isPending) && (
                     <Badge variant="outline" className="text-info border-info">
                       <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                       Executing...
@@ -622,7 +628,7 @@ export default function DashboardPage() {
                       Playback
                     </Badge>
                   )}
-                  {websiteLoaded && !isExecutingPlayback && !executeTestMutation.isPending && (
+                  {websiteLoaded && !isExecutingPlayback && !executeDirectTestMutation.isPending && !executeSavedTestMutation.isPending && (
                     <Badge variant="secondary" className="bg-success text-success-foreground">
                       <CheckCircle className="h-3 w-3 mr-1" />
                       Loaded
@@ -713,8 +719,8 @@ export default function DashboardPage() {
             onExecuteTest={handleExecuteTest}
             onSaveTest={handleSaveTest}
             onClearSequence={handleClearSequence}
-            isExecuting={executeTestMutation.isPending || isExecutingPlayback || saveTestMutation.isPending}
-            isSaving={saveTestMutation.isPending && !executeTestMutation.isPending && !isExecutingPlayback} // Only show saving if not also executing
+            isExecuting={executeDirectTestMutation.isPending || isExecutingPlayback}
+            isSaving={saveTestMutation.isPending && !executeDirectTestMutation.isPending && !isExecutingPlayback}
           />
         </div>
       </div>

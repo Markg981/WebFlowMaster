@@ -50,6 +50,14 @@ interface StepResult {
   details: string;
 }
 
+// Interface for the ad-hoc sequence payload
+interface AdhocSequencePayload {
+  url: string;
+  sequence: TestStep[];
+  elements: DetectedElement[]; // Currently for context, not actively used in loop logic by default
+  name?: string;
+}
+
 
 export class PlaywrightService {
   // Removing shared browser instance to allow per-execution settings
@@ -108,6 +116,170 @@ export class PlaywrightService {
       if (browser) {
         await browser.close();
       }
+    }
+  }
+
+  async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number }> {
+    const startTime = Date.now();
+    let browser: Browser | null = null;
+    let context: BrowserContext | null = null;
+    let page: Page | null = null;
+    const stepResults: StepResult[] = [];
+    let overallSuccess = true;
+    const testName = payload.name || "Ad-hoc Test"; // Use provided name or a default
+
+    try {
+      // User settings are still relevant for browser configuration
+      const userSettings = await storage.getUserSettings(userId);
+      const browserType = userSettings?.playwrightBrowser || DEFAULT_BROWSER;
+      const headlessMode = userSettings?.playwrightHeadless !== undefined ? userSettings.playwrightHeadless : DEFAULT_HEADLESS;
+      const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
+
+      console.log(`Executing ad-hoc test "${testName}" for user ${userId} with browser: ${browserType}, headless: ${headlessMode}, timeout: ${pageTimeout}`);
+
+      const browserEngine = playwright[browserType];
+      browser = await browserEngine.launch({ headless: headlessMode });
+      const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      context = await browser.newContext({ userAgent });
+      page = await context.newPage();
+      page.setDefaultTimeout(pageTimeout);
+      await page.setViewportSize({ width: 1280, height: 720 });
+
+      if (payload.url) {
+        try {
+          await page.goto(payload.url, { waitUntil: 'domcontentloaded' });
+          const screenshotBuffer = await page.screenshot({ type: 'png' });
+          const screenshot = screenshotBuffer.toString('base64');
+          stepResults.push({
+            name: 'Load Page',
+            type: 'navigation',
+            status: 'passed',
+            screenshot: `data:image/png;base64,${screenshot}`,
+            details: `Successfully navigated to ${payload.url}`,
+          });
+        } catch (e: any) {
+          overallSuccess = false;
+          const errorScreenshotBuffer = await page?.screenshot({ type: 'png' }).catch(() => null);
+          const errorScreenshot = errorScreenshotBuffer?.toString('base64');
+          stepResults.push({
+            name: 'Load Page',
+            type: 'navigation',
+            status: 'failed',
+            error: e.message,
+            screenshot: errorScreenshot ? `data:image/png;base64,${errorScreenshot}` : undefined,
+            details: `Failed to navigate to ${payload.url}`,
+          });
+          const duration = Date.now() - startTime;
+          return { success: false, steps: stepResults, error: e.message, duration };
+        }
+      } else {
+        stepResults.push({
+          name: 'Initial State',
+          type: 'setup',
+          status: 'passed',
+          details: 'No initial URL provided for ad-hoc sequence.',
+        });
+      }
+
+      if (overallSuccess && payload.sequence && Array.isArray(payload.sequence)) {
+        for (const step of payload.sequence) { // No need to cast if payload.sequence is already TestStep[]
+          let stepStatus: 'passed' | 'failed' = 'passed';
+          let stepError: string | undefined;
+          let stepScreenshot: string | undefined;
+          const actionType = step.action?.type;
+          const actionName = step.action?.name || 'Unnamed Action';
+
+          try {
+            if (!actionType) throw new Error('Step action type is missing.');
+            if (!page) throw new Error('Page is not available.');
+
+            console.log(`Executing ad-hoc step: ${actionName} (Type: ${actionType})`);
+
+            switch (actionType) {
+              case 'click':
+                if (!step.targetElement?.selector) throw new Error('Selector missing for click action.');
+                await page.click(step.targetElement.selector);
+                break;
+              case 'input':
+                if (!step.targetElement?.selector) throw new Error('Selector missing for input action.');
+                if (typeof step.value !== 'string') throw new Error('Value missing for input action.');
+                await page.fill(step.targetElement.selector, step.value);
+                break;
+              case 'wait':
+                if (typeof step.value !== 'string' || isNaN(parseInt(step.value))) throw new Error('Invalid or missing value for wait action.');
+                await page.waitForTimeout(parseInt(step.value));
+                break;
+              case 'scroll':
+                if (step.targetElement?.selector) {
+                  await page.locator(step.targetElement.selector).scrollIntoViewIfNeeded();
+                } else {
+                  await page.evaluate(() => window.scrollBy(0, 200));
+                }
+                break;
+              case 'assert':
+                console.log('Ad-hoc Assertion step encountered (not implemented yet).');
+                break;
+              case 'hover':
+                if (!step.targetElement?.selector) throw new Error('Selector missing for hover action.');
+                await page.hover(step.targetElement.selector);
+                break;
+              case 'select':
+                 console.log('Ad-hoc Select action step encountered (not implemented yet). Value: ' + step.value);
+                break;
+              default:
+                throw new Error(`Unsupported action type: ${actionType}`);
+            }
+
+            const screenshotBuffer = await page.screenshot({ type: 'png' });
+            stepScreenshot = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
+
+          } catch (e: any) {
+            stepStatus = 'failed';
+            stepError = e.message;
+            overallSuccess = false;
+            console.error(`Error in ad-hoc step "${actionName}": ${e.message}`);
+            if (page) {
+              try {
+                const errorScreenshotBuffer = await page.screenshot({ type: 'png' });
+                stepScreenshot = `data:image/png;base64,${errorScreenshotBuffer.toString('base64')}`;
+              } catch (screenError: any) {
+                console.error('Failed to take screenshot on error during ad-hoc execution:', screenError.message);
+              }
+            }
+          }
+
+          stepResults.push({
+            name: actionName,
+            type: actionType || 'unknown',
+            selector: step.targetElement?.selector,
+            value: step.value,
+            status: stepStatus,
+            screenshot: stepScreenshot,
+            error: stepError,
+            details: stepStatus === 'passed' ? 'Action executed successfully.' : `Action failed: ${stepError}`,
+          });
+
+          if (!overallSuccess) break;
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      console.log(`Ad-hoc test "${testName}" completed. Success: ${overallSuccess}, Duration: ${duration}ms`);
+      return { success: overallSuccess, steps: stepResults, duration };
+
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      console.error(`Critical error executing ad-hoc test "${testName}" for user ${userId}:`, error);
+      return {
+        success: false,
+        steps: stepResults,
+        error: error.message || 'Unknown critical error during ad-hoc execution',
+        duration
+      };
+    } finally {
+      if (page) await page.close().catch(e => console.error("Error closing page (adhoc):", e));
+      if (context) await context.close().catch(e => console.error("Error closing context (adhoc):", e));
+      if (browser) await browser.close().catch(e => console.error("Error closing browser (adhoc):", e));
     }
   }
 
