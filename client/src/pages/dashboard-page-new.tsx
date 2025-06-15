@@ -84,7 +84,6 @@ const availableActions: TestAction[] = [
 
 export default function DashboardPage() {
   const { user, logoutMutation } = useAuth();
-  const { user, logoutMutation } = useAuth();
   // Initial URL state. "https://github.com" is a placeholder that can be overwritten.
   const [currentUrl, setCurrentUrl] = useState("https://github.com");
   const [detectedElements, setDetectedElements] = useState<DetectedElement[]>([]);

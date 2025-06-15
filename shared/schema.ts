@@ -1,7 +1,7 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
-import { relations, sql } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm'; // Reverted: Removed one and many
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -31,7 +31,7 @@ export const testRuns = sqliteTable("test_runs", {
   completedAt: text("completed_at"),
 });
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({ // Added 'one' to destructuring
   tests: many(tests),
   userSettings: one(userSettings, {
     fields: [users.id],
