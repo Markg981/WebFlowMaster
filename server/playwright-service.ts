@@ -46,7 +46,7 @@ export class PlaywrightService {
       const page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
       
-      await page.setViewport({ width: 1280, height: 720 });
+      await page.setViewportSize({ width: 1280, height: 720 }); // Changed here
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
       
       await page.goto(url, { 
@@ -97,7 +97,7 @@ export class PlaywrightService {
       const page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
 
-      await page.setViewport({ width: 1280, height: 720 });
+      await page.setViewportSize({ width: 1280, height: 720 }); // Changed here
       await page.goto(url, { 
         waitUntil: 'domcontentloaded',
       });
@@ -203,6 +203,9 @@ export class PlaywrightService {
       const context = await browser.newContext();
       const page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
+
+      // It's good practice to set viewport for test execution too.
+      await page.setViewportSize({ width: 1280, height: 720 }); // Added here for consistency
 
       // Example: Navigate to the test URL
       if (test.url) {
