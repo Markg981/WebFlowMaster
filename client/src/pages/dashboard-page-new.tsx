@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,9 +19,35 @@ import {
   CheckCircle, 
   Settings,
   Bell,
-  User
+  User,
+  Loader2
 } from "lucide-react";
 import { Link } from "wouter";
+
+// Assuming UserSettings type and fetchSettings function are accessible
+// For example, they could be moved to a shared file like 'src/lib/api.ts'
+// For this patch, we'll define a simplified version if not directly importable.
+
+interface UserSettings {
+  theme: "light" | "dark";
+  defaultTestUrl: string | null;
+  playwrightBrowser: "chromium" | "firefox" | "webkit";
+  playwrightHeadless: boolean;
+  playwrightDefaultTimeout: number;
+  playwrightWaitTime: number;
+}
+
+const fetchSettings = async (): Promise<UserSettings> => {
+  const response = await fetch("/api/settings");
+  if (!response.ok) {
+    // Consider more specific error handling or a generic error
+    const errorText = await response.text();
+    console.error("Fetch settings error:", errorText);
+    throw new Error("Failed to fetch settings");
+  }
+  return response.json();
+};
+
 
 interface DetectedElement {
   id: string;
@@ -58,12 +84,54 @@ const availableActions: TestAction[] = [
 
 export default function DashboardPage() {
   const { user, logoutMutation } = useAuth();
+  const { user, logoutMutation } = useAuth();
+  // Initial URL state. "https://github.com" is a placeholder that can be overwritten.
   const [currentUrl, setCurrentUrl] = useState("https://github.com");
   const [detectedElements, setDetectedElements] = useState<DetectedElement[]>([]);
   const [testSequence, setTestSequence] = useState<DragDropTestStep[]>([]);
   const [highlightedElement, setHighlightedElement] = useState<string | null>(null);
   const [websiteLoaded, setWebsiteLoaded] = useState(false);
   const [websiteScreenshot, setWebsiteScreenshot] = useState<string | null>(null);
+  const [isInitialUrlPrefilled, setIsInitialUrlPrefilled] = useState(false);
+
+
+  // Fetch user settings
+  const {
+    data: settingsData,
+    isLoading: isLoadingUserSettings,
+    // isError: isErrorUserSettings, // Can be used for UI feedback if needed
+    // error: userSettingsError // Can be used for UI feedback if needed
+  } = useQuery<UserSettings, Error>({
+    queryKey: ["settings"], // Same key as in SettingsPage for caching
+    queryFn: fetchSettings,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+
+  // Effect to pre-fill URL from user settings
+  useEffect(() => {
+    if (settingsData?.defaultTestUrl && !isInitialUrlPrefilled) {
+      // Only pre-fill if currentUrl is the initial hardcoded one or empty,
+      // and defaultTestUrl is actually set.
+      if (currentUrl === "https://github.com" || currentUrl === "") {
+        setCurrentUrl(settingsData.defaultTestUrl);
+      }
+      setIsInitialUrlPrefilled(true); // Ensure this runs only once after settings load
+    }
+    // If settingsData is not yet available, or defaultTestUrl is null,
+    // we don't change currentUrl unless it's to clear the initial hardcoded value
+    // if no default is provided from settings.
+    else if (settingsData && settingsData.defaultTestUrl === null && currentUrl === "https://github.com" && !isInitialUrlPrefilled) {
+      setCurrentUrl(""); // Clear initial placeholder if no default is set in settings
+      setIsInitialUrlPrefilled(true);
+    }
+    // If settings have loaded, and there's no defaultTestUrl, and the user hasn't changed the URL,
+    // then clear the placeholder. This handles the case where the initial placeholder should be removed.
+    else if (settingsData && !settingsData.defaultTestUrl && currentUrl === "https://github.com" && !isInitialUrlPrefilled ) {
+        setCurrentUrl("");
+        setIsInitialUrlPrefilled(true);
+    }
+
+  }, [settingsData, currentUrl, isInitialUrlPrefilled]);
 
   const loadWebsiteMutation = useMutation({
     mutationFn: async (url: string) => {
@@ -167,35 +235,35 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
               <TestTube className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold text-gray-900">WebTest Platform</h1>
+              <h1 className="text-xl font-bold text-card-foreground">WebTest Platform</h1>
             </div>
             
             <nav className="hidden md:flex space-x-6">
               <span className="text-primary font-medium border-b-2 border-primary pb-2">Create Test</span>
-              <span className="text-gray-600 hover:text-gray-900 pb-2 cursor-pointer">My Tests</span>
-              <span className="text-gray-600 hover:text-gray-900 pb-2 cursor-pointer">Reports</span>
+              <span className="text-muted-foreground hover:text-foreground pb-2 cursor-pointer">My Tests</span>
+              <span className="text-muted-foreground hover:text-foreground pb-2 cursor-pointer">Reports</span>
             </nav>
           </div>
           
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" aria-label="Notifications">
               <Bell className="h-4 w-4" />
             </Button>
-            <Link href="/settings">
+            <Link href="/settings" aria-label="Settings">
               <Button variant="ghost" size="icon">
                 <Settings className="h-4 w-4" />
               </Button>
             </Link>
             <div className="flex items-center space-x-2">
-              <User className="h-6 w-6 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">{user?.username}</span>
+              <User className="h-6 w-6 text-muted-foreground" />
+              <span className="text-sm font-medium text-foreground">{user?.username}</span>
             </div>
             <Button 
               variant="outline" 
@@ -210,31 +278,40 @@ export default function DashboardPage() {
       </header>
 
       {/* URL Input Section */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center space-x-4">
           <div className="flex-1">
-            <Label className="block text-sm font-medium text-gray-700 mb-2">Website URL to Test</Label>
+            <Label htmlFor="urlInput" className="block text-sm font-medium text-card-foreground mb-2">Website URL to Test</Label>
             <div className="flex space-x-3">
               <Input
+                id="urlInput"
                 type="url"
                 className="flex-1"
                 placeholder="https://example.com"
                 value={currentUrl}
                 onChange={(e) => setCurrentUrl(e.target.value)}
               />
-              <Button 
+              <Button
                 onClick={handleLoadWebsite}
-                disabled={loadWebsiteMutation.isPending}
+                disabled={loadWebsiteMutation.isPending || isLoadingUserSettings}
               >
-                <Globe className="h-4 w-4 mr-2" />
+                {loadWebsiteMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Globe className="h-4 w-4 mr-2" />
+                )}
                 {loadWebsiteMutation.isPending ? "Loading..." : "Load Website"}
               </Button>
-              <Button 
+              <Button
                 onClick={handleDetectElements}
-                disabled={detectElementsMutation.isPending || !websiteLoaded}
+                disabled={detectElementsMutation.isPending || !websiteLoaded || isLoadingUserSettings}
                 variant="secondary"
               >
-                <Search className="h-4 w-4 mr-2" />
+                {detectElementsMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4 mr-2" />
+                )}
                 {detectElementsMutation.isPending ? "Detecting..." : "Detect Elements"}
               </Button>
             </div>
@@ -245,10 +322,10 @@ export default function DashboardPage() {
       {/* Main Content Area - Two-level layout */}
       <div className="flex-1 flex flex-col">
         {/* Top section: Actions, Preview, Elements (60% of viewport) */}
-        <div className="flex h-[60vh] border-b border-gray-200">
+        <div className="flex h-[60vh] border-b border-border">
           {/* Left Sidebar - Actions */}
-          <div className="w-80 bg-white border-r border-gray-200 p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Actions</h3>
+          <div className="w-80 bg-card border-r border-border p-4">
+            <h3 className="text-lg font-semibold text-card-foreground mb-4">Available Actions</h3>
             
             <ScrollArea className="h-full">
               <div className="space-y-2">
@@ -260,13 +337,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Center - Website Preview (Prominent and well-visible) */}
-          <div className="flex-1 bg-white border-r border-gray-200 p-4">
+          <div className="flex-1 bg-card border-r border-border p-4">
             <div className="h-full flex flex-col">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Website Preview</h3>
+                <h3 className="text-lg font-semibold text-card-foreground">Website Preview</h3>
                 <div className="flex items-center space-x-2">
                   {websiteLoaded && (
-                    <Badge variant="secondary" className="bg-success text-white">
+                    <Badge variant="secondary" className="bg-success text-primary-foreground"> {/* Assuming success acts like a primary button bg */}
                       <CheckCircle className="h-3 w-3 mr-1" />
                       Loaded
                     </Badge>
@@ -274,9 +351,9 @@ export default function DashboardPage() {
                 </div>
               </div>
               
-              <div className="flex-1 border-2 border-gray-300 rounded-lg overflow-hidden relative bg-white">
+              <div className="flex-1 border-2 border-border rounded-lg overflow-hidden relative bg-muted"> {/* Changed bg-white to bg-muted for slight contrast */}
                 {websiteLoaded && websiteScreenshot ? (
-                  <div className="w-full h-full overflow-auto bg-white relative">
+                  <div className="w-full h-full overflow-auto bg-muted relative"> {/* Changed bg-white to bg-muted */}
                     <img 
                       src={websiteScreenshot} 
                       alt="Website screenshot"
@@ -286,7 +363,7 @@ export default function DashboardPage() {
                     {/* Element highlighting overlay based on real boundingBox data */}
                     {highlightedElement && detectedElements.find(el => el.id === highlightedElement)?.boundingBox && (
                       <div 
-                        className="absolute border-2 border-red-500 bg-red-500 bg-opacity-20 pointer-events-none"
+                        className="absolute border-2 border-destructive bg-destructive/20 pointer-events-none" /* Used destructive theme color */
                         style={{
                           top: `${detectedElements.find(el => el.id === highlightedElement)?.boundingBox?.y}px`,
                           left: `${detectedElements.find(el => el.id === highlightedElement)?.boundingBox?.x}px`,
@@ -297,7 +374,7 @@ export default function DashboardPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
                     <div className="text-center">
                       <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>Load a website to see the preview</p>
@@ -310,9 +387,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Sidebar - Detected Elements */}
-          <div className="w-80 bg-white p-4">
+          <div className="w-80 bg-card p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Detected Elements</h3>
+              <h3 className="text-lg font-semibold text-card-foreground">Detected Elements</h3>
               <Badge variant="secondary">{detectedElements.length} found</Badge>
             </div>
             
@@ -327,7 +404,7 @@ export default function DashboardPage() {
                 ))}
                 
                 {detectedElements.length === 0 && (
-                  <div className="flex items-center justify-center h-32 text-gray-500">
+                  <div className="flex items-center justify-center h-32 text-muted-foreground">
                     <div className="text-center">
                       <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
                       <p className="text-sm">No elements detected yet</p>
@@ -341,7 +418,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Bottom section: Test Sequence Builder (40% of viewport) */}
-        <div className="h-[40vh] bg-white p-6">
+        <div className="h-[40vh] bg-card p-6"> {/* Changed bg-white to bg-card */}
           <TestSequenceBuilder
             testSequence={testSequence}
             onUpdateSequence={setTestSequence}

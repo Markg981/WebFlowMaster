@@ -2,9 +2,22 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertTestSchema, insertTestRunSchema } from "@shared/schema";
+import { insertTestSchema, insertTestRunSchema, userSettings } from "@shared/schema";
 import { z } from "zod";
+import { createInsertSchema } from 'drizzle-zod';
 import { playwrightService } from "./playwright-service";
+
+// Zod schema for validating POST /api/settings request body
+const userSettingsBodySchema = createInsertSchema(userSettings, {
+  // Override default Zod types if needed, e.g. for stricter validation
+  playwrightHeadless: z.boolean().optional(),
+  playwrightDefaultTimeout: z.number().int().positive().optional(),
+  playwrightWaitTime: z.number().int().positive().optional(),
+  theme: z.string().optional(),
+  defaultTestUrl: z.string().url().or(z.literal('')).optional().nullable(),
+  playwrightBrowser: z.enum(['chromium', 'firefox', 'webkit']).optional(),
+}).omit({ userId: true });
+
 
 export function registerRoutes(app: Express): Server {
   // Setup authentication routes
@@ -140,20 +153,90 @@ export function registerRoutes(app: Express): Server {
         results: null
       });
 
-      // In real implementation, execute with Playwright
-      // For now, simulate execution
-      setTimeout(async () => {
-        await storage.updateTestRun(testRun.id, {
-          status: "completed",
-          results: { success: true, steps: test.sequence },
-          completedAt: new Date()
-        });
-      }, 3000);
+      // Execute the test using PlaywrightService
+      const executionResult = await playwrightService.executeTestSequence(test, req.user!.id);
 
-      res.json({ testRun, message: "Test execution started" });
+      // Update test run record with results
+      const updatedTestRun = await storage.updateTestRun(testRun.id, {
+        status: executionResult.success ? "completed" : "failed",
+        results: {
+          success: executionResult.success,
+          steps: executionResult.steps,
+          error: executionResult.error,
+          duration: executionResult.duration,
+         },
+        completedAt: new Date(),
+      });
+
+      res.json({
+        testRun: updatedTestRun || { ...testRun, status: executionResult.success ? "completed" : "failed" }, // Fallback if updateTestRun returns undefined
+        message: executionResult.success ? "Test execution completed" : "Test execution failed"
+      });
     } catch (error) {
-      console.error("Error executing test:", error);
+      // Ensure testRun status is updated to 'failed' if an error occurs before/during execution call that's not caught by executeTestSequence
+      // This part might be tricky if testRun.id is not available or if the error is within storage calls themselves.
+      // For now, focusing on errors from playwrightService call or general route errors.
+      if (req.body.testRunId) { // Assuming testRunId might be passed or available if created before error
+         await storage.updateTestRun(req.body.testRunId, {
+            status: "failed",
+            results: { success: false, error: error instanceof Error ? error.message : "Unknown error during setup" },
+            completedAt: new Date(),
+        });
+      }
+      console.error("Error executing test route:", error);
       res.status(500).json({ error: "Failed to execute test" });
+    }
+  });
+
+  // User settings endpoints
+  app.get("/api/settings", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const userId = req.user.id;
+      const settings = await storage.getUserSettings(userId);
+
+      // Return actual settings or the specified defaults if none found or partial
+      const responseSettings = {
+        theme: settings?.theme || 'light',
+        defaultTestUrl: settings?.defaultTestUrl || '', // API returns empty string for null
+        playwrightBrowser: settings?.playwrightBrowser || 'chromium',
+        playwrightHeadless: settings?.playwrightHeadless !== undefined ? Boolean(settings.playwrightHeadless) : true,
+        playwrightDefaultTimeout: settings?.playwrightDefaultTimeout || 30000,
+        playwrightWaitTime: settings?.playwrightWaitTime || 1000,
+      };
+      res.json(responseSettings);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const userId = req.user.id;
+
+      const validatedData = userSettingsBodySchema.parse(req.body);
+
+      // Prepare data for upsert, ensuring userId is included
+      const settingsData = { ...validatedData, userId };
+
+      const savedSettings = await storage.upsertUserSettings(userId, settingsData);
+      // Ensure boolean conversion for response
+      if (savedSettings.playwrightHeadless !== undefined) {
+        savedSettings.playwrightHeadless = Boolean(savedSettings.playwrightHeadless);
+      }
+      res.json(savedSettings);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid settings data", details: error.errors });
+      }
+      console.error("Error saving settings:", error);
+      res.status(500).json({ error: "Failed to save settings" });
     }
   });
 
