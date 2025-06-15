@@ -2,6 +2,7 @@ import { useDrop } from "react-dnd";
 import { Card } from "@/components/ui/card"; // Keep for overall structure if needed, or remove if steps are Cards
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label"; // Added Label import
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
