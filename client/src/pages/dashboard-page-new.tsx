@@ -222,8 +222,8 @@ export default function DashboardPage() {
 
     const { x, y, width, height } = elementToHighlight.boundingBox;
 
-    const finalScaledX = Math.round((x * scale) + offsetX);
-    const finalScaledY = Math.round((y * scale) + offsetY);
+    const finalScaledX = Math.round(x * scale); // Removed offsetX
+    const finalScaledY = Math.round(y * scale); // Removed offsetY
     const finalScaledWidth = Math.round(width * scale);
     const finalScaledHeight = Math.round(height * scale);
 
