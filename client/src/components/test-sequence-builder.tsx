@@ -108,7 +108,7 @@ export function TestSequenceBuilder({
       </div>
 
       <div
-        ref={dropContainer} {/* Corrected ref variable */}
+        ref={dropContainer}
         className={`flex-1 border-2 border-dashed rounded-lg p-4 transition-colors ${
           isOverContainer /* Corrected state variable for hover */
             ? "border-primary bg-primary/5" 
