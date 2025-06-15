@@ -1,7 +1,9 @@
 import { Switch, Route } from "wouter";
-import { useEffect, useState } from "react"; // Added useEffect and useState
+// Removed useEffect, useState from here as App might not need them directly after refactor
+// Kept queryClient and QueryClientProvider for App structure
+// Removed useQuery from here as it's moved to ThemeLoader
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider, useQuery } from "@tanstack/react-query"; // Added useQuery
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -11,7 +13,30 @@ import AuthPage from "@/pages/auth-page";
 import DashboardPage from "@/pages/dashboard-page-new";
 import SettingsPage from "@/pages/settings-page";
 import { ProtectedRoute } from "./lib/protected-route";
-import { UserSettings, fetchSettings } from "./lib/settings"; // Import from shared file
+// Imports for ThemeLoader
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { UserSettings, fetchSettings } from './lib/settings';
+
+const ThemeLoader = () => {
+  const { data: settingsData } = useQuery<UserSettings, Error>({
+    queryKey: ["userSettingsApp"],
+    queryFn: fetchSettings,
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    if (settingsData) {
+      if (settingsData.theme === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    }
+  }, [settingsData]);
+
+  return null; // This component does not render anything
+};
 
 function Router() {
   return (
@@ -25,27 +50,13 @@ function Router() {
 }
 
 function App() {
-  const { data: settingsData, isLoading: isLoadingSettings, isError: isErrorSettings } = useQuery<UserSettings, Error>({
-    queryKey: ["userSettingsApp"], // Use a unique queryKey
-    queryFn: fetchSettings,
-    staleTime: Infinity, // Theme settings are unlikely to change frequently
-  });
-
-  useEffect(() => {
-    if (settingsData) {
-      if (settingsData.theme === "dark") {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-    }
-  }, [settingsData]);
-
+  // Theme loading logic is now in ThemeLoader
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
           <DragDropProvider>
+            <ThemeLoader /> {/* Added ThemeLoader here */}
             <Toaster />
             <Router />
           </DragDropProvider>
