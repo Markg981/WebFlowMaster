@@ -11,7 +11,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 const dbUrl = process.env.DATABASE_URL;
-const migrationsFolder = path.resolve(process.cwd(), 'drizzle'); // Ensures absolute path
+const migrationsFolder = path.resolve(process.cwd(), 'migrations'); // Changed to 'migrations'
 
 console.log(`Connecting to SQLite database at: ${dbUrl}`);
 const sqlite = new Database(dbUrl);
