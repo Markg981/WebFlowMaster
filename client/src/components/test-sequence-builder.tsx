@@ -108,15 +108,15 @@ export function TestSequenceBuilder({
       </div>
 
       <div
-        ref={drop}
+        ref={dropContainer} {/* Corrected ref variable */}
         className={`flex-1 border-2 border-dashed rounded-lg p-4 transition-colors ${
-          isOver 
+          isOverContainer /* Corrected state variable for hover */
             ? "border-primary bg-primary/5" 
-            : "border-gray-300 bg-gray-50"
+            : "border-border bg-muted/20" /* Use theme-aware colors */
         }`}
       >
         {testSequence.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-gray-500">
+          <div className="h-full flex items-center justify-center text-muted-foreground"> {/* Use theme-aware color */}
             <div className="text-center">
               <Plus className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="text-lg font-medium">Drop actions here to build your test</p>
