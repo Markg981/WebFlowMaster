@@ -152,27 +152,35 @@ export class PlaywrightService {
         ];
 
         const detectedElements: any[] = [];
+        let globalElementCounter = 0; // Initialize global counter
         
         interactiveSelectors.forEach(selector => {
           const elements = document.querySelectorAll(selector);
-          elements.forEach((element, index) => {
+          elements.forEach((element, index) => { // 'index' here is local to current 'selector' results
             const rect = element.getBoundingClientRect();
             
             if (rect.width > 0 && rect.height > 0 && rect.top >= 0) {
               const tagName = element.tagName.toLowerCase();
               const text = element.textContent?.trim() || '';
               const placeholder = element.getAttribute('placeholder') || '';
+              // Use globalElementCounter in displayText if a truly unique placeholder is needed,
+              // but for now, existing logic for displayText is fine.
               const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
 
               let uniqueSelector = selector;
+              // Prioritize ID, then a combination of tag and a unique class if available
               if (element.id) {
                 uniqueSelector = `#${element.id}`;
               } else if (element.className && typeof element.className === 'string') {
-                const classes = element.className.split(' ').filter(c => c.length > 0);
+                const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')') ); // Filter out complex/dynamic classes
                 if (classes.length > 0) {
                   uniqueSelector = `${tagName}.${classes[0]}`;
+                  // To make it more robust, one might try to find a more unique selector,
+                  // but this is a reasonable default.
                 }
               }
+              // Fallback to just tag name if no better selector found, though this is very generic.
+              // Or could use a more complex selector generation strategy here.
 
               let elementType = 'element';
               if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
@@ -188,10 +196,10 @@ export class PlaywrightService {
               });
 
               detectedElements.push({
-                id: `elem-${tagName}-${index}-${Date.now()}`,
+                id: `elem-${tagName}-${globalElementCounter++}`, // Use global counter for unique ID
                 type: elementType,
                 selector: uniqueSelector,
-                text: displayText.substring(0, 100),
+                text: displayText.substring(0, 100), // Keep text substring
                 tag: tagName,
                 attributes,
                 boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) }

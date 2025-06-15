@@ -320,11 +320,12 @@ export default function DashboardPage() {
   });
 
   const saveTestMutation = useMutation({
-    mutationFn: async (payload?: { name?: string; url?: string; sequence?: DragDropTestStep[]; status?: string }) => {
+    mutationFn: async (payload?: { name?: string; url?: string; sequence?: DragDropTestStep[]; elements?: DetectedElement[]; status?: string }) => {
       const testData = payload || {
         name: testName || `Test for ${currentUrl || "Untitled"}`,
         url: currentUrl,
         sequence: testSequence,
+        elements: detectedElements, // Added elements here
         status: "draft", // Default status or make it configurable
       };
       const res = await apiRequest("POST", "/api/tests", testData);
@@ -468,6 +469,7 @@ export default function DashboardPage() {
         name: testName || `Test for ${currentUrl || "Untitled Test"}`,
         url: currentUrl,
         sequence: testSequence,
+        elements: detectedElements, // Added elements here
         status: "draft" // Or "active" if executing means it's more than a draft
       };
       saveTestMutation.mutate(payloadToSave, {
