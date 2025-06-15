@@ -8,21 +8,48 @@ const DEFAULT_HEADLESS = true;
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 const DEFAULT_WAIT_TIME = 1000; // 1 second (could be for navigation or specific waits)
 
+// Define interfaces for TestStep and StepResult based on the requirements
+interface TestAction {
+  id: string;
+  type: string;
+  name: string;
+  icon: string;
+  description: string;
+}
 
-export interface DetectedElement {
+export interface DetectedElement { // Exporting if it's used elsewhere, or keep private
   id: string;
   type: string;
   selector: string;
   text: string;
   tag: string;
   attributes: Record<string, string>;
-  boundingBox: {
+  boundingBox?: { // Optional as per original description
     x: number;
     y: number;
     width: number;
     height: number;
   };
 }
+
+interface TestStep {
+  id: string;
+  action: TestAction;
+  targetElement?: DetectedElement;
+  value?: string;
+}
+
+interface StepResult {
+  name: string;
+  type: string;
+  selector?: string;
+  value?: string;
+  status: 'passed' | 'failed';
+  screenshot?: string;
+  error?: string;
+  details: string;
+}
+
 
 export class PlaywrightService {
   // Removing shared browser instance to allow per-execution settings
@@ -188,65 +215,179 @@ export class PlaywrightService {
     }
   }
 
-  async executeTestSequence(test: Test, userId: number): Promise<{ success: boolean; steps?: any[]; error?: string; duration?: number }> {
+  async executeTestSequence(test: Test, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number }> {
     const startTime = Date.now();
     let browser: Browser | null = null;
+    let context: BrowserContext | null = null;
+    let page: Page | null = null;
+    const stepResults: StepResult[] = [];
+    let overallSuccess = true;
+
     try {
       const userSettings = await storage.getUserSettings(userId);
-
       const browserType = userSettings?.playwrightBrowser || DEFAULT_BROWSER;
       const headlessMode = userSettings?.playwrightHeadless !== undefined ? userSettings.playwrightHeadless : DEFAULT_HEADLESS;
       const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
-      // const navigationWaitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME; // For specific waits or navigation
 
       console.log(`Executing test "${test.name}" for user ${userId} with browser: ${browserType}, headless: ${headlessMode}, timeout: ${pageTimeout}`);
 
       const browserEngine = playwright[browserType];
       browser = await browserEngine.launch({ headless: headlessMode });
-      const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; // Standardized UA
-      const context = await browser.newContext({ userAgent });
-      const page = await context.newPage();
+      const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      context = await browser.newContext({ userAgent });
+      page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
+      await page.setViewportSize({ width: 1280, height: 720 });
 
-      // It's good practice to set viewport for test execution too.
-      await page.setViewportSize({ width: 1280, height: 720 }); // Added here for consistency
-
-      // Example: Navigate to the test URL
       if (test.url) {
-        await page.goto(test.url, { waitUntil: 'domcontentloaded' });
+        try {
+          await page.goto(test.url, { waitUntil: 'domcontentloaded' });
+          const screenshotBuffer = await page.screenshot({ type: 'png' });
+          const screenshot = screenshotBuffer.toString('base64');
+          stepResults.push({
+            name: 'Load Page',
+            type: 'navigation',
+            status: 'passed',
+            screenshot: `data:image/png;base64,${screenshot}`,
+            details: `Successfully navigated to ${test.url}`,
+          });
+        } catch (e: any) {
+          overallSuccess = false;
+          const errorScreenshotBuffer = await page?.screenshot({ type: 'png' }).catch(() => null);
+          const errorScreenshot = errorScreenshotBuffer?.toString('base64');
+          stepResults.push({
+            name: 'Load Page',
+            type: 'navigation',
+            status: 'failed',
+            error: e.message,
+            screenshot: errorScreenshot ? `data:image/png;base64,${errorScreenshot}` : undefined,
+            details: `Failed to navigate to ${test.url}`,
+          });
+          // Stop execution if navigation fails
+          const duration = Date.now() - startTime;
+          return { success: false, steps: stepResults, error: e.message, duration };
+        }
+      } else {
+        // No URL provided, add a neutral initial step
+        stepResults.push({
+          name: 'Initial State',
+          type: 'setup',
+          status: 'passed',
+          details: 'No initial URL provided.',
+          // Optionally take a screenshot of the blank page if desired
+          // const screenshotBuffer = await page.screenshot({ type: 'png' });
+          // screenshot: `data:image/png;base64,${screenshotBuffer.toString('base64')}`,
+        });
       }
 
-      const results: any[] = [];
-      if (test.sequence && Array.isArray(test.sequence)) {
-        for (const step of test.sequence as any[]) { // Assuming sequence is an array of steps
-          // Placeholder for actual step execution logic
-          // Example:
-          // if (step.action === 'click') {
-          //   await page.click(step.selector);
-          // } else if (step.action === 'type') {
-          //   await page.fill(step.selector, step.text);
-          // } // ... etc.
-          console.log(`Executing step: ${step.type} - ${step.name} (Selector: ${step.selectorValue})`);
-          // Simulate step execution for now
-          await page.waitForTimeout(100); // Small delay per step
-          results.push({ name: step.name, status: 'passed', details: `Action ${step.type} on ${step.selectorValue} completed` });
+      if (overallSuccess && test.sequence && Array.isArray(test.sequence)) {
+        for (const step of test.sequence as TestStep[]) {
+          let stepStatus: 'passed' | 'failed' = 'passed';
+          let stepError: string | undefined;
+          let stepScreenshot: string | undefined;
+          const actionType = step.action?.type;
+          const actionName = step.action?.name || 'Unnamed Action';
+
+          try {
+            if (!actionType) {
+              throw new Error('Step action type is missing.');
+            }
+            if (!page) { // Should not happen if navigation succeeded or no URL
+                throw new Error('Page is not available.');
+            }
+
+            console.log(`Executing step: ${actionName} (Type: ${actionType})`);
+
+            switch (actionType) {
+              case 'click':
+                if (!step.targetElement?.selector) throw new Error('Selector missing for click action.');
+                await page.click(step.targetElement.selector);
+                break;
+              case 'input':
+                if (!step.targetElement?.selector) throw new Error('Selector missing for input action.');
+                if (typeof step.value !== 'string') throw new Error('Value missing for input action.');
+                await page.fill(step.targetElement.selector, step.value);
+                break;
+              case 'wait':
+                if (typeof step.value !== 'string' || isNaN(parseInt(step.value))) throw new Error('Invalid or missing value for wait action.');
+                await page.waitForTimeout(parseInt(step.value));
+                break;
+              case 'scroll':
+                if (step.targetElement?.selector) {
+                  await page.locator(step.targetElement.selector).scrollIntoViewIfNeeded();
+                } else {
+                  await page.evaluate(() => window.scrollBy(0, 200)); // Scroll window down by 200px
+                }
+                break;
+              case 'assert':
+                console.log('Assertion step encountered (not implemented yet).');
+                // Actual assertion logic to be added later.
+                break;
+              case 'hover':
+                if (!step.targetElement?.selector) throw new Error('Selector missing for hover action.');
+                await page.hover(step.targetElement.selector);
+                break;
+              case 'select':
+                 console.log('Select action step encountered (not implemented yet). Value: ' + step.value);
+                // Placeholder for select action
+                break;
+              default:
+                throw new Error(`Unsupported action type: ${actionType}`);
+            }
+
+            const screenshotBuffer = await page.screenshot({ type: 'png' });
+            stepScreenshot = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
+
+          } catch (e: any) {
+            stepStatus = 'failed';
+            stepError = e.message;
+            overallSuccess = false;
+            console.error(`Error in step "${actionName}": ${e.message}`);
+            if (page) {
+              try {
+                const errorScreenshotBuffer = await page.screenshot({ type: 'png' });
+                stepScreenshot = `data:image/png;base64,${errorScreenshotBuffer.toString('base64')}`;
+              } catch (screenError: any) {
+                console.error('Failed to take screenshot on error:', screenError.message);
+              }
+            }
+          }
+
+          stepResults.push({
+            name: actionName,
+            type: actionType || 'unknown',
+            selector: step.targetElement?.selector,
+            value: step.value,
+            status: stepStatus,
+            screenshot: stepScreenshot,
+            error: stepError,
+            details: stepStatus === 'passed' ? 'Action executed successfully.' : `Action failed: ${stepError}`,
+          });
+
+          if (!overallSuccess) {
+            break; // Stop sequence on first failure
+          }
         }
       }
 
-      await page.close();
-      await context.close();
       const duration = Date.now() - startTime;
-      console.log(`Test "${test.name}" completed in ${duration}ms`);
-      return { success: true, steps: results, duration };
+      console.log(`Test "${test.name}" completed. Success: ${overallSuccess}, Duration: ${duration}ms`);
+      return { success: overallSuccess, steps: stepResults, duration };
 
-    } catch (error) {
+    } catch (error: any) { // Catch errors like browser launch failure
       const duration = Date.now() - startTime;
-      console.error(`Error executing test "${test.name}" for user ${userId}:`, error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error', duration };
+      console.error(`Critical error executing test "${test.name}" for user ${userId}:`, error);
+      // Ensure even critical errors have a somewhat consistent return structure
+      return {
+        success: false,
+        steps: stepResults, // Include any steps that might have run before critical failure
+        error: error.message || 'Unknown critical error',
+        duration
+      };
     } finally {
-      if (browser) {
-        await browser.close();
-      }
+      if (page) await page.close().catch(e => console.error("Error closing page:", e));
+      if (context) await context.close().catch(e => console.error("Error closing context:", e));
+      if (browser) await browser.close().catch(e => console.error("Error closing browser:", e));
     }
   }
 

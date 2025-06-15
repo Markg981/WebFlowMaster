@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from "react"; // Added useRef, useMemo
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, QueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,16 +13,31 @@ import { DraggableElement } from "@/components/draggable-element";
 import { TestSequenceBuilder } from "@/components/test-sequence-builder";
 import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
 import { 
-  TestTube, 
-  Globe, 
-  Search, 
-  CheckCircle, 
+  TestTube,
+  Globe,
+  Search,
+  CheckCircle,
   Settings,
   Bell,
   User,
-  Loader2
+  Loader2,
+  Play,
+  Pause,
+  StopCircle,
 } from "lucide-react";
 import { Link } from "wouter";
+
+// Client-side StepResult interface matching backend
+interface StepResult {
+  name: string;
+  type: string;
+  selector?: string;
+  value?: string;
+  status: 'passed' | 'failed';
+  screenshot?: string;
+  error?: string;
+  details: string;
+}
 
 // Assuming UserSettings type and fetchSettings function are accessible
 // For example, they could be moved to a shared file like 'src/lib/api.ts'
@@ -40,7 +55,6 @@ interface UserSettings {
 const fetchSettings = async (): Promise<UserSettings> => {
   const response = await fetch("/api/settings");
   if (!response.ok) {
-    // Consider more specific error handling or a generic error
     const errorText = await response.text();
     console.error("Fetch settings error:", errorText);
     throw new Error("Failed to fetch settings");
@@ -90,8 +104,16 @@ export default function DashboardPage() {
   const [testSequence, setTestSequence] = useState<DragDropTestStep[]>([]);
   const [highlightedElement, setHighlightedElement] = useState<string | null>(null);
   const [websiteLoaded, setWebsiteLoaded] = useState(false);
-  const [websiteScreenshot, setWebsiteScreenshot] = useState<string | null>(null);
+  const [websiteScreenshot, setWebsiteScreenshot] = useState<string | null>(null); // This will now also be used for playback
   const [isInitialUrlPrefilled, setIsInitialUrlPrefilled] = useState(false);
+
+  // States for test execution playback
+  const [isExecutingPlayback, setIsExecutingPlayback] = useState(false);
+  const [currentPlaybackStepIndex, setCurrentPlaybackStepIndex] = useState<number | null>(null);
+  const [playbackSteps, setPlaybackSteps] = useState<StepResult[]>([]);
+  const [currentSavedTestId, setCurrentSavedTestId] = useState<string | null>(null); // To store ID of saved/loaded test
+  const [testName, setTestName] = useState<string>(""); // To store test name
+
 
   const imageRef = useRef<HTMLImageElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null); // Ref for the div that provides dimensions for scaling
@@ -298,21 +320,27 @@ export default function DashboardPage() {
   });
 
   const saveTestMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/tests", {
-        name: `Test for ${currentUrl}`,
+    mutationFn: async (payload?: { name?: string; url?: string; sequence?: DragDropTestStep[]; status?: string }) => {
+      const testData = payload || {
+        name: testName || `Test for ${currentUrl || "Untitled"}`,
         url: currentUrl,
         sequence: testSequence,
-        elements: detectedElements,
-        status: "saved"
-      });
-      return res.json();
+        status: "draft", // Default status or make it configurable
+      };
+      const res = await apiRequest("POST", "/api/tests", testData);
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || "Failed to save test");
+      }
+      return result; // Assuming backend returns the saved test object including its ID
     },
-    onSuccess: () => {
+    onSuccess: (data) => { // data should be the saved test object
       toast({
         title: "Test saved",
-        description: "Your test has been saved successfully",
+        description: "Your test has been saved successfully.",
       });
+      setCurrentSavedTestId(data.id); // Store the ID of the saved test
+      setTestName(data.name); // Update test name state
     },
     onError: (error: Error) => {
       toast({
@@ -343,6 +371,120 @@ export default function DashboardPage() {
       return;
     }
     saveTestMutation.mutate();
+  };
+
+  const executeTestMutation = useMutation({
+    mutationFn: async (testId: string) => {
+      const res = await apiRequest("POST", `/api/tests/${testId}/execute`);
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || "Failed to execute test");
+      }
+      return result; // Expected: { success: boolean; testRun: { id: string, results: { steps: StepResult[] } } }
+    },
+    onSuccess: (data) => {
+      if (data.success && data.testRun?.results?.steps?.length) {
+        setPlaybackSteps(data.testRun.results.steps);
+        setCurrentPlaybackStepIndex(0);
+        setIsExecutingPlayback(true);
+        if (data.testRun.results.steps[0]?.screenshot) {
+          setWebsiteScreenshot(data.testRun.results.steps[0].screenshot); // Show first step screenshot
+        }
+        toast({
+          title: "Test Execution Started",
+          description: "Playing back results...",
+        });
+      } else {
+        setIsExecutingPlayback(false);
+        setCurrentPlaybackStepIndex(null);
+        setPlaybackSteps([]);
+        toast({
+          title: "Execution Failed",
+          description: data.error || "No steps returned or execution failed.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: Error) => {
+      setIsExecutingPlayback(false);
+      setCurrentPlaybackStepIndex(null);
+      setPlaybackSteps([]);
+      toast({
+        title: "Execution Request Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Playback logic using useEffect
+  useEffect(() => {
+    if (!isExecutingPlayback || !playbackSteps.length || currentPlaybackStepIndex === null) {
+      return;
+    }
+
+    const stepIndex = currentPlaybackStepIndex;
+
+    if (stepIndex >= 0 && stepIndex < playbackSteps.length) {
+      const currentStep = playbackSteps[stepIndex];
+      if (currentStep.screenshot) {
+        setWebsiteScreenshot(currentStep.screenshot);
+      }
+      // Optionally, update other UI elements with currentStep.name, currentStep.details, etc.
+
+      const timer = setTimeout(() => {
+        setCurrentPlaybackStepIndex(prevIndex => (prevIndex !== null ? prevIndex + 1 : null));
+      }, 1500); // 1.5 seconds delay
+
+      return () => clearTimeout(timer);
+    } else if (stepIndex >= playbackSteps.length) {
+      // Playback finished
+      setIsExecutingPlayback(false);
+      setCurrentPlaybackStepIndex(null);
+      // setPlaybackSteps([]); // Keep steps for review until next execution? Or clear.
+      toast({
+        title: "Playback Complete",
+        description: "Finished playing back all test steps.",
+      });
+      // Optionally, restore the original website screenshot if available
+      // if (loadWebsiteMutation.data?.screenshot) {
+      //   setWebsiteScreenshot(loadWebsiteMutation.data.screenshot);
+      // }
+    }
+  }, [isExecutingPlayback, currentPlaybackStepIndex, playbackSteps]);
+
+
+  const handleExecuteTest = () => {
+    if (testSequence.length === 0) {
+      toast({ title: "Empty Sequence", description: "Please add steps to your test sequence.", variant: "destructive" });
+      return;
+    }
+
+    if (currentSavedTestId) {
+      executeTestMutation.mutate(currentSavedTestId);
+    } else {
+      // Test not saved yet, save it first then execute
+      const payloadToSave = {
+        name: testName || `Test for ${currentUrl || "Untitled Test"}`,
+        url: currentUrl,
+        sequence: testSequence,
+        status: "draft" // Or "active" if executing means it's more than a draft
+      };
+      saveTestMutation.mutate(payloadToSave, {
+        onSuccess: (savedTestData) => {
+          setCurrentSavedTestId(savedTestData.id); // Ensure this ID is set
+          setTestName(savedTestData.name);
+          executeTestMutation.mutate(savedTestData.id);
+        },
+        onError: (error) => {
+          toast({
+            title: "Save Failed Before Execution",
+            description: `Could not save the test: ${error.message}. Execution aborted.`,
+            variant: "destructive",
+          });
+        }
+      });
+    }
   };
 
   const handleClearSequence = () => {
@@ -395,8 +537,17 @@ export default function DashboardPage() {
       {/* URL Input Section */}
       <div className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center space-x-4">
-          <div className="flex-1">
-            <Label htmlFor="urlInput" className="block text-sm font-medium text-card-foreground mb-2">Website URL to Test</Label>
+          <div className="flex-grow">
+            <Label htmlFor="testNameInput" className="block text-sm font-medium text-card-foreground mb-1">Test Name</Label>
+            <Input
+              id="testNameInput"
+              type="text"
+              placeholder="Enter test name (e.g., Login Flow)"
+              value={testName}
+              onChange={(e) => setTestName(e.target.value)}
+              className="mb-3"
+            />
+            <Label htmlFor="urlInput" className="block text-sm font-medium text-card-foreground mb-1">Website URL to Test</Label>
             <div className="flex space-x-3">
               <Input
                 id="urlInput"
@@ -454,34 +605,49 @@ export default function DashboardPage() {
           {/* Center - Website Preview (Prominent and well-visible) */}
           <div className="flex-1 bg-card border-r border-border p-4">
             <div className="h-full flex flex-col">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-2"> {/* Reduced mb */}
                 <h3 className="text-lg font-semibold text-card-foreground">Website Preview</h3>
                 <div className="flex items-center space-x-2">
-                  {websiteLoaded && (
-                    <Badge variant="secondary" className="bg-success text-primary-foreground"> {/* Assuming success acts like a primary button bg */}
+                  {executeTestMutation.isPending && (
+                    <Badge variant="outline" className="text-info border-info">
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Executing...
+                    </Badge>
+                  )}
+                  {isExecutingPlayback && (
+                     <Badge variant="outline" className="text-primary border-primary">
+                      <Play className="h-3 w-3 mr-1" />
+                      Playback
+                    </Badge>
+                  )}
+                  {websiteLoaded && !isExecutingPlayback && !executeTestMutation.isPending && (
+                    <Badge variant="secondary" className="bg-success text-success-foreground">
                       <CheckCircle className="h-3 w-3 mr-1" />
                       Loaded
                     </Badge>
                   )}
                 </div>
               </div>
+              {/* Playback Status Text */}
+              {isExecutingPlayback && currentPlaybackStepIndex !== null && playbackSteps.length > 0 && playbackSteps[currentPlaybackStepIndex] && (
+                <div className="mb-2 text-sm text-muted-foreground text-center p-1 bg-muted rounded-md">
+                  Step {currentPlaybackStepIndex + 1}/{playbackSteps.length}: {playbackSteps[currentPlaybackStepIndex].name} - {playbackSteps[currentPlaybackStepIndex].details}
+                  {playbackSteps[currentPlaybackStepIndex].status === 'failed' && <span className="text-destructive ml-2">(Failed: {playbackSteps[currentPlaybackStepIndex].error})</span>}
+                </div>
+              )}
               
               {/* This is the container whose dimensions are used for scaling calculations */}
               <div ref={imageContainerRef} className="flex-1 border-2 border-border rounded-lg overflow-hidden relative bg-muted flex items-center justify-center">
-                {websiteLoaded && websiteScreenshot ? (
-                  // This inner div helps ensure the image itself is centered if using max-w/h,
-                  // but highlights are positioned relative to imageContainerRef.
-                  <div className="relative"> {/* Container for image and highlights, ensures highlights are on top */}
+                {(websiteLoaded || isExecutingPlayback) && websiteScreenshot ? (
+                  <div className="relative">
                     <img 
                       ref={imageRef}
                       src={websiteScreenshot} 
-                      alt="Website screenshot"
-                      className="block max-w-full max-h-full object-contain" // `block` helps if parent is flex
-                      // The actual rendered size of this image will be less than or equal to
-                      // imageContainerRef's dimensions, due to object-contain.
+                      alt={isExecutingPlayback ? "Test step screenshot" : "Website screenshot"}
+                      className="block max-w-full max-h-full object-contain"
                     />
-                    {/* Element highlighting overlay using scaled coordinates */}
-                    {scaledHighlightedBoundingBox && (
+                    {/* Element highlighting overlay - shown only when NOT in playback mode to avoid confusion */}
+                    {!isExecutingPlayback && scaledHighlightedBoundingBox && (
                       <div 
                         className="absolute border-2 border-destructive bg-destructive/20 pointer-events-none"
                         style={{
@@ -498,7 +664,7 @@ export default function DashboardPage() {
                     <div className="text-center">
                       <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>Load a website to see the preview</p>
-                      <p className="text-sm mt-2">Real website screenshots will appear here</p>
+                      <p className="text-sm mt-2">Screenshots from website loading or test playback will appear here.</p>
                     </div>
                   </div>
                 )}
@@ -542,16 +708,11 @@ export default function DashboardPage() {
           <TestSequenceBuilder
             testSequence={testSequence}
             onUpdateSequence={setTestSequence}
-            onExecuteTest={() => {
-              toast({
-                title: "Test execution",
-                description: "Test execution feature will be implemented with real Playwright automation",
-              });
-            }}
+            onExecuteTest={handleExecuteTest}
             onSaveTest={handleSaveTest}
             onClearSequence={handleClearSequence}
-            isExecuting={false}
-            isSaving={saveTestMutation.isPending}
+            isExecuting={executeTestMutation.isPending || isExecutingPlayback || saveTestMutation.isPending}
+            isSaving={saveTestMutation.isPending && !executeTestMutation.isPending && !isExecutingPlayback} // Only show saving if not also executing
           />
         </div>
       </div>
