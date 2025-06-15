@@ -42,12 +42,13 @@ export class PlaywrightService {
 
       const browserEngine = playwright[browserType];
       browser = await browserEngine.launch({ headless: headlessMode });
-      const context = await browser.newContext();
+      const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; // Standardized UA
+      const context = await browser.newContext({ userAgent });
       const page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
       
-      await page.setViewportSize({ width: 1280, height: 720 }); // Changed here
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+      await page.setViewportSize({ width: 1280, height: 720 });
+      // Removed page.setUserAgent, as it's set on context
       
       await page.goto(url, { 
         waitUntil: 'domcontentloaded', 
@@ -93,11 +94,13 @@ export class PlaywrightService {
 
       const browserEngine = playwright[browserType];
       browser = await browserEngine.launch({ headless: headlessMode });
-      const context = await browser.newContext();
+      const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; // Standardized UA
+      const context = await browser.newContext({ userAgent });
       const page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
 
-      await page.setViewportSize({ width: 1280, height: 720 }); // Changed here
+      await page.setViewportSize({ width: 1280, height: 720 });
+      // No page.setUserAgent was here, context now has it.
       await page.goto(url, { 
         waitUntil: 'domcontentloaded',
       });
@@ -200,7 +203,8 @@ export class PlaywrightService {
 
       const browserEngine = playwright[browserType];
       browser = await browserEngine.launch({ headless: headlessMode });
-      const context = await browser.newContext();
+      const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; // Standardized UA
+      const context = await browser.newContext({ userAgent });
       const page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
 
