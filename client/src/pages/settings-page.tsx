@@ -24,30 +24,9 @@ import {
   Loader2, // For loading state
 } from "lucide-react";
 import { Link } from "wouter";
-
-// Define TypeScript type for settings
-interface UserSettings {
-  theme: "light" | "dark";
-  defaultTestUrl: string | null;
-  playwrightBrowser: "chromium" | "firefox" | "webkit";
-  playwrightHeadless: boolean;
-  playwrightDefaultTimeout: number;
-  playwrightWaitTime: number;
-}
+import { UserSettings, fetchSettings } from "../lib/settings"; // Import from shared file
 
 // API interaction functions
-const fetchSettings = async (): Promise<UserSettings> => {
-  const response = await fetch("/api/settings");
-  if (!response.ok) {
-    throw new Error("Failed to fetch settings");
-  }
-  const data = await response.json();
-  // The backend GET /api/settings returns defaultTestUrl as '' for null/undefined
-  // and playwrightHeadless as boolean.
-  // The UserSettings type matches this backend GET response structure.
-  return data;
-};
-
 const saveSettings = async (settings: Partial<UserSettings>): Promise<UserSettings> => {
   const response = await fetch("/api/settings", {
     method: "POST",
