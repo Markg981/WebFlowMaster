@@ -1,5 +1,6 @@
-import { useDrag } from "react-dnd";
+import { useDrag, useDrop } from "react-dnd"; // Added useDrop
 import { Card } from "@/components/ui/card";
+import type { DetectedElement } from "../drag-drop-provider"; // Import DetectedElement
 import { 
   MousePointer, 
   Keyboard, 
@@ -19,17 +20,37 @@ interface TestAction {
 }
 
 interface DraggableActionProps {
-  action: TestAction;
+  action: TestAction; // This is the definition of the action (e.g. 'click', 'type')
+  stepId: string; // This is the unique ID of this action step in the sequence
+  onDropElement: (stepId: string, element: DetectedElement) => void;
+  targetElement?: DetectedElement; // Optional: To display info about the associated element
 }
 
-export function DraggableAction({ action }: DraggableActionProps) {
-  const [{ isDragging }, drag] = useDrag(() => ({
+export function DraggableAction({ action, stepId, onDropElement, targetElement }: DraggableActionProps) {
+  const [{ isDragging: isActionDragging }, drag, dragPreview] = useDrag(() => ({
     type: "action",
     item: { id: action.id, type: "action", data: action },
     collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
+      isDragging: !!monitor.isDragging(), // Standard isDragging for the action itself
     }),
   }));
+
+  // Setup useDrop to accept "element" types
+  const [{ isOver, canDrop }, drop] = useDrop(() => ({
+    accept: "element", // Accepts items of type "element"
+    drop: (item: { id: string; type: string; data: DetectedElement }, monitor) => {
+      if (monitor.didDrop()) {
+        return;
+      }
+      // When an element is dropped on this action, call onDropElement with this action's stepId and the element data
+      console.log('[DraggableAction drop] Dropped element:', item.data, 'on step:', stepId, 'action:', action.name);
+      onDropElement(stepId, item.data);
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+      canDrop: !!monitor.canDrop(),
+    }),
+  }), [action, stepId, onDropElement]); // Added stepId to dependencies
 
   const renderActionIcon = (iconName: string) => {
     const iconProps = { className: "h-4 w-4" };
@@ -46,19 +67,32 @@ export function DraggableAction({ action }: DraggableActionProps) {
   };
 
   return (
-    <Card 
-      ref={drag}
-      className={`p-3 cursor-move hover:border-accent hover:bg-orange-50 transition-colors border-dashed ${
-        isDragging ? "opacity-50" : ""
-      }`}
-    >
-      <div className="flex items-center space-x-3">
-        {renderActionIcon(action.icon)}
-        <div>
-          <div className="font-medium text-gray-900 text-sm">{action.name}</div>
-          <div className="text-xs text-gray-500">{action.description}</div>
+    <div ref={(node) => drag(drop(node))} className="mb-2"> {/* Attach both drag and drop refs */}
+      <Card
+        // The refs are now on the wrapper div, Card does not need them directly unless it forwards refs.
+        // If Card is a simple div, we can apply refs directly to it. For now, wrapper is safer.
+        className={`p-3 cursor-move hover:border-accent hover:bg-orange-50 transition-colors border-dashed ${
+          isActionDragging ? "opacity-50" : "" // Use renamed isDragging state
+        } ${isOver && canDrop ? "bg-green-100 border-green-500" : ""} ${ // Visual feedback for drop target
+          !canDrop && isOver ? "bg-red-100 border-red-500" : "" // Visual feedback if cannot drop (e.g. wrong item type)
+        }`}
+      >
+        <div className="flex items-center space-x-3">
+          {renderActionIcon(action.icon)}
+          <div>
+            <div className="font-medium text-gray-900 text-sm">{action.name}</div>
+            <div className="text-xs text-gray-500">{action.description}</div>
+            {/* Display info about the target element if it exists */}
+            {targetElement && (
+              <div className="mt-1 pt-1 border-t border-gray-200">
+                <p className="text-xs text-blue-600 truncate" title={targetElement.selector}>
+                  Target: {targetElement.text || targetElement.selector}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 }
