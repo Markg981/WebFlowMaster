@@ -1,22 +1,22 @@
 import express, { type Express } from "express";
 import fs from "fs";
-import path from "path";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+import logger from "./logger"; // Import Winston logger
+
+// Get the file path of the current module once at module load time.
+const currentModuleFilePath = fileURLToPath(import.meta.url);
 
 const viteLogger = createLogger();
 
 export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  console.log(`${formattedTime} [${source}] ${message}`);
+  // The original function included a timestamp, but our Winston logger automatically adds one.
+  // We'll include the 'source' in the message.
+  logger.info(`[${source}] ${message}`);
 }
 
 export async function setupVite(app: Express, server: Server) {
@@ -45,8 +45,10 @@ export async function setupVite(app: Express, server: Server) {
     const url = req.originalUrl;
 
     try {
+      // Derive __dirname from the module-level file path
+      const __dirname_setup = dirname(currentModuleFilePath);
       const clientTemplate = path.resolve(
-        import.meta.dirname,
+        __dirname_setup, // Use __dirname derived from module-level constant
         "..",
         "client",
         "index.html",
@@ -68,7 +70,10 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  // Derive __dirname from the module-level file path
+  const __dirname_static = dirname(currentModuleFilePath);
+  // Assuming 'public' should be at the project root
+  const distPath = path.resolve(__dirname_static, "..", "public");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
@@ -80,6 +85,7 @@ export function serveStatic(app: Express) {
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
+    // For consistency, resolve distPath again or use it directly
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
