@@ -17,12 +17,15 @@ import { ProtectedRoute } from "./lib/protected-route";
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { UserSettings, fetchSettings } from './lib/settings';
+import { useAuth } from './hooks/use-auth'; // Import useAuth
 
 const ThemeLoader = () => {
+  const { user } = useAuth(); // Call useAuth
   const { data: settingsData } = useQuery<UserSettings, Error>({
-    queryKey: ["userSettingsApp"],
+    queryKey: ["userSettingsApp", user?.id], // Add user?.id to queryKey
     queryFn: fetchSettings,
     staleTime: Infinity,
+    enabled: !!user, // Only fetch if user is authenticated
   });
 
   useEffect(() => {
@@ -54,9 +57,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <ThemeLoader /> {/* Moved ThemeLoader to be a direct child of AuthProvider */}
         <TooltipProvider>
           <DragDropProvider>
-            <ThemeLoader /> {/* Added ThemeLoader here */}
             <Toaster />
             <Router />
           </DragDropProvider>
