@@ -18,6 +18,14 @@ const userSettingsBodySchema = createInsertSchema(userSettings, {
   playwrightBrowser: z.enum(['chromium', 'firefox', 'webkit']).optional(),
 }).omit({ userId: true });
 
+// Zod schema for POST /api/execute-test-direct
+const executeDirectTestSchema = z.object({
+  url: z.string().url({ message: "Invalid URL format" }),
+  sequence: z.array(z.any(), { message: "Sequence must be an array" }),
+  elements: z.array(z.any(), { message: "Elements must be an array" }),
+  name: z.string().optional(),
+});
+
 
 export function registerRoutes(app: Express): Server {
   // Setup authentication routes
@@ -239,6 +247,36 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ error: "Failed to save settings" });
     }
   });
+
+  // New route for direct test execution
+  app.post("/api/execute-test-direct", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const validatedData = executeDirectTestSchema.parse(req.body);
+      const userId = req.user.id;
+
+      // Call the actual service method
+      const executionResult = await playwrightService.executeAdhocSequence(validatedData, userId);
+
+      // The executionResult from executeAdhocSequence is expected to be:
+      // { success: boolean; steps?: StepResult[]; error?: string; duration?: number }
+      // This is directly what the client expects for playback of an ad-hoc execution.
+      res.json(executionResult);
+
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request payload", details: error.errors });
+      }
+      console.error("Error in /api/execute-test-direct:", error);
+      // General error, assuming it might come from the (future) service call
+      const errorMessage = error instanceof Error ? error.message : "Unknown error during direct test execution";
+      res.status(500).json({ error: "Failed to execute test directly", details: errorMessage });
+    }
+  });
+
 
   const httpServer = createServer(app);
   return httpServer;
