@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import logger from "./logger"; // Import Winston logger
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertTestSchema, insertTestRunSchema, userSettings } from "@shared/schema";
@@ -47,7 +48,7 @@ export function registerRoutes(app: Express): Server {
       const result = await playwrightService.loadWebsite(url);
       res.json(result);
     } catch (error) {
-      console.error("Error loading website:", error);
+      logger.error("Error loading website:", { error });
       res.status(500).json({ error: "Failed to load website" });
     }
   });
@@ -68,7 +69,7 @@ export function registerRoutes(app: Express): Server {
       const elements = await playwrightService.detectElements(url);
       res.json({ elements });
     } catch (error) {
-      console.error("Error detecting elements:", error);
+      logger.error("Error detecting elements:", { error });
       res.status(500).json({ error: "Failed to detect elements" });
     }
   });
@@ -83,7 +84,7 @@ export function registerRoutes(app: Express): Server {
       const tests = await storage.getTestsByUser(req.user!.id);
       res.json(tests);
     } catch (error) {
-      console.error("Error fetching tests:", error);
+      logger.error("Error fetching tests:", { error });
       res.status(500).json({ error: "Failed to fetch tests" });
     }
   });
@@ -105,7 +106,7 @@ export function registerRoutes(app: Express): Server {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid test data", details: error.errors });
       }
-      console.error("Error creating test:", error);
+      logger.error("Error creating test:", { error });
       res.status(500).json({ error: "Failed to create test" });
     }
   });
@@ -135,7 +136,7 @@ export function registerRoutes(app: Express): Server {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid test data", details: error.errors });
       }
-      console.error("Error updating test:", error);
+      logger.error("Error updating test:", { error });
       res.status(500).json({ error: "Failed to update test" });
     }
   });
@@ -191,7 +192,7 @@ export function registerRoutes(app: Express): Server {
             completedAt: new Date(),
         });
       }
-      console.error("Error executing test route:", error);
+      logger.error("Error executing test route:", { error });
       res.status(500).json({ error: "Failed to execute test" });
     }
   });
@@ -216,7 +217,7 @@ export function registerRoutes(app: Express): Server {
       };
       res.json(responseSettings);
     } catch (error) {
-      console.error("Error fetching settings:", error);
+      logger.error("Error fetching settings:", { error });
       res.status(500).json({ error: "Failed to fetch settings" });
     }
   });
@@ -243,7 +244,7 @@ export function registerRoutes(app: Express): Server {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid settings data", details: error.errors });
       }
-      console.error("Error saving settings:", error);
+      logger.error("Error saving settings:", { error });
       res.status(500).json({ error: "Failed to save settings" });
     }
   });
@@ -270,7 +271,7 @@ export function registerRoutes(app: Express): Server {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid request payload", details: error.errors });
       }
-      console.error("Error in /api/execute-test-direct:", error);
+      logger.error("Error in /api/execute-test-direct:", { error });
       // General error, assuming it might come from the (future) service call
       const errorMessage = error instanceof Error ? error.message : "Unknown error during direct test execution";
       res.status(500).json({ error: "Failed to execute test directly", details: errorMessage });
@@ -281,3 +282,5 @@ export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
   return httpServer;
 }
+
+// Removed the separate delay function as it's inlined above now for simplicity.
