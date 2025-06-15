@@ -1,4 +1,4 @@
-# WebTest Platform - replit.md
+# WebTest Platform - Readme.md
 
 ## Overview
 
