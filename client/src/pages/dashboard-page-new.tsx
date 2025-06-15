@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react"; // Added useRef, useMemo
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -93,6 +93,15 @@ export default function DashboardPage() {
   const [websiteScreenshot, setWebsiteScreenshot] = useState<string | null>(null);
   const [isInitialUrlPrefilled, setIsInitialUrlPrefilled] = useState(false);
 
+  const imageRef = useRef<HTMLImageElement>(null);
+  const imageContainerRef = useRef<HTMLDivElement>(null); // Ref for the div that provides dimensions for scaling
+  const [imageRenderDimensions, setImageRenderDimensions] = useState<{
+    renderedWidth: number; // Width of the container where image is rendered (imageContainerRef.clientWidth)
+    renderedHeight: number; // Height of the container where image is rendered (imageContainerRef.clientHeight)
+    naturalWidth: number;
+    naturalHeight: number;
+  } | null>(null);
+
 
   // Fetch user settings
   const {
@@ -130,10 +139,100 @@ export default function DashboardPage() {
         setIsInitialUrlPrefilled(true);
     }
 
-  }, [settingsData, currentUrl, isInitialUrlPrefilled]);
+  }, [settingsData, currentUrl, isInitialUrlPrefilled]); // Removed setCurrentUrl and setIsInitialUrlPrefilled from deps as they are setters
+
+  // Effect to capture image dimensions and observe container resize
+  useEffect(() => {
+    const imgElement = imageRef.current;
+    const container = imageContainerRef.current;
+
+    const updateDimensions = () => {
+      if (imgElement && imgElement.complete && imgElement.naturalWidth > 0 && container) {
+        setImageRenderDimensions({
+          renderedWidth: container.clientWidth,
+          renderedHeight: container.clientHeight,
+          naturalWidth: imgElement.naturalWidth,
+          naturalHeight: imgElement.naturalHeight,
+        });
+      } else {
+        // Reset if image or container not ready, or natural dimensions are zero
+        setImageRenderDimensions(null);
+      }
+    };
+
+    if (imgElement) {
+      imgElement.addEventListener('load', updateDimensions);
+      // If image is already loaded (e.g. from cache), update dimensions
+      if (imgElement.complete && imgElement.naturalWidth > 0) {
+        updateDimensions();
+      }
+    }
+
+    let resizeObserver: ResizeObserver | undefined;
+    if (container) {
+      // Initial dimension update in case image is already loaded and container is ready
+      updateDimensions();
+      resizeObserver = new ResizeObserver(updateDimensions); // Re-calculate on container resize
+      resizeObserver.observe(container);
+    }
+
+    return () => {
+      if (imgElement) {
+        imgElement.removeEventListener('load', updateDimensions);
+      }
+      if (resizeObserver && container) {
+        resizeObserver.unobserve(container);
+      }
+    };
+  }, [websiteScreenshot]); // Re-run when the image src changes
+
+  // Calculate scaled bounding box for the highlighted element
+  const scaledHighlightedBoundingBox = useMemo(() => {
+    if (!highlightedElement || !imageRenderDimensions || !detectedElements ||
+        imageRenderDimensions.naturalWidth === 0 || imageRenderDimensions.naturalHeight === 0 ||
+        imageRenderDimensions.renderedWidth === 0 || imageRenderDimensions.renderedHeight === 0) {
+      return null;
+    }
+
+    const elementToHighlight = detectedElements.find(el => el.id === highlightedElement);
+    if (!elementToHighlight?.boundingBox) return null;
+
+    const {
+      naturalWidth,
+      naturalHeight,
+      renderedWidth: containerWidth, // Renamed for clarity within this scope
+      renderedHeight: containerHeight // Renamed for clarity
+    } = imageRenderDimensions;
+
+    const imgAspectRatio = naturalWidth / naturalHeight;
+    const containerAspectRatio = containerWidth / containerHeight;
+
+    let visibleImgWidth, visibleImgHeight;
+    if (imgAspectRatio > containerAspectRatio) { // Image is wider than container (letterboxed)
+      visibleImgWidth = containerWidth;
+      visibleImgHeight = containerWidth / imgAspectRatio;
+    } else { // Image is taller than container (pillarboxed)
+      visibleImgHeight = containerHeight;
+      visibleImgWidth = containerHeight * imgAspectRatio;
+    }
+
+    const scale = visibleImgWidth / naturalWidth;
+    const offsetX = (containerWidth - visibleImgWidth) / 2;
+    const offsetY = (containerHeight - visibleImgHeight) / 2;
+
+    const { x, y, width, height } = elementToHighlight.boundingBox;
+    return {
+      top: Math.round((y * scale) + offsetY),
+      left: Math.round((x * scale) + offsetX),
+      width: Math.round(width * scale),
+      height: Math.round(height * scale),
+    };
+  }, [highlightedElement, imageRenderDimensions, detectedElements]);
+
 
   const loadWebsiteMutation = useMutation({
     mutationFn: async (url: string) => {
+      setImageRenderDimensions(null); // Reset dimensions when new site is loaded
       const res = await apiRequest("POST", "/api/load-website", { url });
       return res.json();
     },
@@ -350,24 +449,29 @@ export default function DashboardPage() {
                 </div>
               </div>
               
-              <div className="flex-1 border-2 border-border rounded-lg overflow-hidden relative bg-muted"> {/* Changed bg-white to bg-muted for slight contrast */}
+              {/* This is the container whose dimensions are used for scaling calculations */}
+              <div ref={imageContainerRef} className="flex-1 border-2 border-border rounded-lg overflow-hidden relative bg-muted flex items-center justify-center">
                 {websiteLoaded && websiteScreenshot ? (
-                  <div className="w-full h-full overflow-auto bg-muted relative"> {/* Changed bg-white to bg-muted */}
+                  // This inner div helps ensure the image itself is centered if using max-w/h,
+                  // but highlights are positioned relative to imageContainerRef.
+                  <div className="relative"> {/* Container for image and highlights, ensures highlights are on top */}
                     <img 
+                      ref={imageRef}
                       src={websiteScreenshot} 
                       alt="Website screenshot"
-                      className="w-full h-auto object-contain"
-                      style={{ minHeight: '100%' }}
+                      className="block max-w-full max-h-full object-contain" // `block` helps if parent is flex
+                      // The actual rendered size of this image will be less than or equal to
+                      // imageContainerRef's dimensions, due to object-contain.
                     />
-                    {/* Element highlighting overlay based on real boundingBox data */}
-                    {highlightedElement && detectedElements.find(el => el.id === highlightedElement)?.boundingBox && (
+                    {/* Element highlighting overlay using scaled coordinates */}
+                    {scaledHighlightedBoundingBox && (
                       <div 
-                        className="absolute border-2 border-destructive bg-destructive/20 pointer-events-none" /* Used destructive theme color */
+                        className="absolute border-2 border-destructive bg-destructive/20 pointer-events-none"
                         style={{
-                          top: `${detectedElements.find(el => el.id === highlightedElement)?.boundingBox?.y}px`,
-                          left: `${detectedElements.find(el => el.id === highlightedElement)?.boundingBox?.x}px`,
-                          width: `${detectedElements.find(el => el.id === highlightedElement)?.boundingBox?.width}px`,
-                          height: `${detectedElements.find(el => el.id === highlightedElement)?.boundingBox?.height}px`
+                          top: `${scaledHighlightedBoundingBox.top}px`,
+                          left: `${scaledHighlightedBoundingBox.left}px`,
+                          width: `${scaledHighlightedBoundingBox.width}px`,
+                          height: `${scaledHighlightedBoundingBox.height}px`,
                         }}
                       />
                     )}
