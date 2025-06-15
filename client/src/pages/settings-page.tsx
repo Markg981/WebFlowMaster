@@ -24,7 +24,7 @@ import {
   Loader2, // For loading state
 } from "lucide-react";
 import { Link } from "wouter";
-import { UserSettings, fetchSettings } from "../../lib/settings"; // Import from shared file
+import { UserSettings, fetchSettings } from "../lib/settings"; // Import from shared file
 
 // API interaction functions
 const saveSettings = async (settings: Partial<UserSettings>): Promise<UserSettings> => {
