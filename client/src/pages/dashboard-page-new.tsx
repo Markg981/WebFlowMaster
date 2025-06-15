@@ -221,11 +221,28 @@ export default function DashboardPage() {
     const offsetY = (containerHeight - visibleImgHeight) / 2;
 
     const { x, y, width, height } = elementToHighlight.boundingBox;
+
+    const finalScaledX = Math.round((x * scale) + offsetX);
+    const finalScaledY = Math.round((y * scale) + offsetY);
+    const finalScaledWidth = Math.round(width * scale);
+    const finalScaledHeight = Math.round(height * scale);
+
+    console.log("[Highlight Debug] Element ID:", elementToHighlight.id);
+    console.log("[Highlight Debug] Original BBox:", { x, y, width, height });
+    console.log("[Highlight Debug] Natural Dims (Img):", { naturalWidth, naturalHeight });
+    console.log("[Highlight Debug] Rendered Dims (Container):", { renderedWidth: containerWidth, renderedHeight: containerHeight });
+    console.log("[Highlight Debug] Img Aspect Ratio:", imgAspectRatio);
+    console.log("[Highlight Debug] Container Aspect Ratio:", containerAspectRatio);
+    console.log("[Highlight Debug] Visible Img Dims:", { visibleImgWidth, visibleImgHeight });
+    console.log("[Highlight Debug] Scale Factor:", scale);
+    console.log("[Highlight Debug] Offsets:", { offsetX, offsetY });
+    console.log("[Highlight Debug] Final Scaled BBox:", { top: finalScaledY, left: finalScaledX, width: finalScaledWidth, height: finalScaledHeight });
+
     return {
-      top: Math.round((y * scale) + offsetY),
-      left: Math.round((x * scale) + offsetX),
-      width: Math.round(width * scale),
-      height: Math.round(height * scale),
+      top: finalScaledY,
+      left: finalScaledX,
+      width: finalScaledWidth,
+      height: finalScaledHeight,
     };
   }, [highlightedElement, imageRenderDimensions, detectedElements]);
 
