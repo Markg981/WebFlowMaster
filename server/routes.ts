@@ -3,7 +3,13 @@ import { createServer, type Server } from "http";
 import logger from "./logger"; // Import Winston logger
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertTestSchema, insertTestRunSchema, userSettings } from "@shared/schema";
+import {
+  insertTestSchema,
+  insertTestRunSchema,
+  userSettings,
+  AdhocTestStepSchema, // Import new schema for ad-hoc test steps
+  AdhocDetectedElementSchema // Import new schema for ad-hoc detected elements
+} from "@shared/schema";
 import { z } from "zod";
 import { createInsertSchema } from 'drizzle-zod';
 import { playwrightService } from "./playwright-service";
@@ -21,10 +27,10 @@ const userSettingsBodySchema = createInsertSchema(userSettings, {
 
 // Zod schema for POST /api/execute-test-direct
 const executeDirectTestSchema = z.object({
-  url: z.string().url({ message: "Invalid URL format" }),
-  sequence: z.array(z.any(), { message: "Sequence must be an array" }),
-  elements: z.array(z.any(), { message: "Elements must be an array" }),
-  name: z.string().optional(),
+  url: z.string().url({ message: "Invalid URL format" }).min(1, {message: "URL cannot be empty"}),
+  sequence: z.array(AdhocTestStepSchema).min(1, { message: "Sequence must contain at least one step" }),
+  elements: z.array(AdhocDetectedElementSchema), // Can be an empty array if no elements are pre-supplied
+  name: z.string().optional().default("Ad-hoc Test"), // Provide a default name
 });
 
 
@@ -256,25 +262,58 @@ export function registerRoutes(app: Express): Server {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const validatedData = executeDirectTestSchema.parse(req.body);
+      // Using safeParse to handle validation explicitly
+      const parseResult = executeDirectTestSchema.safeParse(req.body);
+
+      if (!parseResult.success) {
+        console.error("BEGIN INVALID PAYLOAD FOR /api/execute-test-direct ---");
+        console.error("Payload:", JSON.stringify(req.body, null, 2));
+        console.error("Validation Errors:", JSON.stringify(parseResult.error.flatten(), null, 2));
+        console.error("END INVALID PAYLOAD ---");
+        return res.status(400).json({
+          error: "Invalid request payload",
+          details: parseResult.error.flatten(),
+          detectedElements: []
+        });
+      }
+
+      const validatedData = parseResult.data; // Use validated data from safeParse
       const userId = req.user.id;
 
       // Call the actual service method
       const executionResult = await playwrightService.executeAdhocSequence(validatedData, userId);
 
-      // The executionResult from executeAdhocSequence is expected to be:
-      // { success: boolean; steps?: StepResult[]; error?: string; duration?: number }
-      // This is directly what the client expects for playback of an ad-hoc execution.
-      res.json(executionResult);
+      if (executionResult.success) {
+        res.status(200).json({
+          success: true,
+          steps: executionResult.steps,
+          duration: executionResult.duration,
+          detectedElements: executionResult.detectedElements
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: executionResult.error,
+          steps: executionResult.steps,
+          duration: executionResult.duration,
+          detectedElements: executionResult.detectedElements
+        });
+      }
 
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid request payload", details: error.errors });
-      }
-      logger.error("Error in /api/execute-test-direct:", { error });
-      // General error, assuming it might come from the (future) service call
+      // This catch block now handles errors other than Zod validation,
+      // as Zod errors are handled by safeParse.
+      logger.error("Error in /api/execute-test-direct (non-validation):", {
+        message: error instanceof Error ? error.message : "Unknown error",
+        error
+      });
       const errorMessage = error instanceof Error ? error.message : "Unknown error during direct test execution";
-      res.status(500).json({ error: "Failed to execute test directly", details: errorMessage });
+      res.status(500).json({
+        success: false,
+        error: "Failed to execute test directly",
+        details: errorMessage,
+        detectedElements: []
+      });
     }
   });
 

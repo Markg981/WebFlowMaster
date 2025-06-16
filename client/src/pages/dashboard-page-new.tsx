@@ -26,6 +26,61 @@ import {
   StopCircle,
 } from "lucide-react";
 import { Link } from "wouter";
+import debounceFromLodash from 'lodash/debounce'; // Attempt to import lodash.debounce
+
+// Fallback simple debounce function definition (if lodash is not used/available)
+function simpleDebounce<F extends (...args: any[]) => void>(func: F, waitFor: number): F & { cancel: () => void } {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const debouncedFunc = (...args: Parameters<F>): void => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), waitFor);
+  };
+  (debouncedFunc as any).cancel = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+  };
+  return debouncedFunc as F & { cancel: () => void };
+}
+
+// Helper function to check if a test step is complete enough for real-time execution
+// Placed outside the component as it doesn't rely on component state/props directly.
+// Assumes DragDropTestStep structure has action.type, targetElement, and value.
+function isTestStepComplete(step: DragDropTestStep): boolean {
+  if (!step || !step.action || !step.action.type) {
+    return false; // Invalid step structure
+  }
+
+  const actionType = step.action.type; // Assuming action.type holds the string like 'input', 'click'
+
+  switch (actionType) {
+    case 'input':
+      // Requires a target element and a non-empty value
+      return !!step.targetElement && !!step.value && step.value.trim() !== "";
+    case 'select':
+      // Requires a target element and a non-empty value
+      return !!step.targetElement && !!step.value && step.value.trim() !== "";
+    case 'click':
+    case 'hover':
+    case 'assert': // Basic check for assert, might need more specifics depending on assertion types
+      // Require a target element
+      return !!step.targetElement;
+    case 'wait':
+      // Requires a non-empty value (server-side validates if it's numeric)
+      return !!step.value && step.value.trim() !== "";
+    case 'scroll':
+      // Assuming 'scroll' without targetElement means scroll window, which is always "complete"
+      // If scroll can target an element and that's a common case, this might need:
+      // return step.targetElement ? true : true; // Or more specific checks if target scroll needs validation
+      return true;
+    default:
+      // For actions not explicitly listed, default to false.
+      // This ensures any new action type must be explicitly considered here for completeness.
+      return false;
+  }
+}
+
 
 // Client-side StepResult interface matching backend
 interface StepResult {
@@ -418,7 +473,7 @@ export default function DashboardPage() {
       }
       return result; // This is the data structure: { success, steps, error, duration }
     },
-    onSuccess: (data) => { // data is { success, steps, error, duration }
+    onSuccess: (data) => { // data is { success, steps, error, duration, detectedElements }
       if (data.success && data.steps?.length) {
         setPlaybackSteps(data.steps);
         setCurrentPlaybackStepIndex(0);
@@ -426,11 +481,23 @@ export default function DashboardPage() {
         if (data.steps[0]?.screenshot) {
           setWebsiteScreenshot(data.steps[0].screenshot);
         }
+        // New part: Update detected elements
+        if (data.detectedElements) {
+          setDetectedElements(data.detectedElements);
+        } else {
+          setDetectedElements([]);
+        }
         toast({ title: "Direct Test Execution Started", description: "Playing back results..." });
       } else {
         setIsExecutingPlayback(false);
         setCurrentPlaybackStepIndex(null);
         setPlaybackSteps([]);
+        // Potentially also set detectedElements to empty array here if applicable
+        if (data.detectedElements) { // Even on failure, backend might send elements
+          setDetectedElements(data.detectedElements);
+        } else {
+          setDetectedElements([]);
+        }
         toast({ title: "Execution Failed", description: data.error || "No steps returned or direct execution failed.", variant: "destructive" });
       }
     },
@@ -438,6 +505,7 @@ export default function DashboardPage() {
       setIsExecutingPlayback(false);
       setCurrentPlaybackStepIndex(null);
       setPlaybackSteps([]);
+      setDetectedElements([]); // Clear elements on error
       toast({ title: "Direct Execution Request Failed", description: error.message, variant: "destructive" });
     },
   });
@@ -497,6 +565,71 @@ export default function DashboardPage() {
 
   const handleClearSequence = () => {
     setTestSequence([]);
+    // Optionally, when the sequence is cleared, you might want to re-fetch initial elements
+    // if (currentUrl && websiteLoaded) {
+    //   handleDetectElements();
+    // } else {
+    //   setDetectedElements([]);
+    // }
+    // For now, just clearing the sequence state. The handleSequenceUpdated will manage effects.
+  };
+
+  // New function to handle sequence updates and trigger real-time execution
+
+  const debouncedExecuteMutation = useMemo(() => {
+    const actualDebounce = typeof debounceFromLodash === 'function' ? debounceFromLodash : simpleDebounce;
+    return actualDebounce((payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string }) => {
+      // Condition for execution is checked here, inside the debounced function,
+      // to ensure it's evaluated at the moment of potential execution, not when debouncing starts.
+      if (!executeDirectTestMutation.isPending && !isExecutingPlayback) {
+        executeDirectTestMutation.mutate(payload);
+      }
+    }, 750); // 750ms debounce delay
+  }, [executeDirectTestMutation.isPending, isExecutingPlayback, executeDirectTestMutation.mutate]); // Add dependencies for the mutation status
+
+  const handleSequenceUpdated = (newSequence: DragDropTestStep[]) => {
+    setTestSequence(newSequence);
+
+    const allStepsComplete = newSequence.every(isTestStepComplete);
+
+    if (newSequence.length > 0 && allStepsComplete && currentUrl && websiteLoaded) {
+      // Conditions for debounced execution (isPending, isExecutingPlayback) are checked inside debouncedExecuteMutation
+      const payload = {
+        url: currentUrl,
+        sequence: newSequence,
+        elements: detectedElements, // Pass current elements as context
+        name: testName || `Realtime Preview for ${currentUrl || "Untitled"}`
+      };
+      debouncedExecuteMutation(payload);
+    } else if (newSequence.length === 0) {
+      // If sequence is cleared, cancel any pending debounced execution
+      if (typeof debouncedExecuteMutation.cancel === 'function') {
+        debouncedExecuteMutation.cancel();
+      }
+      // Also, if sequence is cleared, and a URL is loaded, re-detect elements for the base page.
+      // This resets the element list to the state of the page before any actions.
+      if (currentUrl && websiteLoaded) {
+        // handleDetectElements(); // This would fetch fresh elements.
+        // For now, let's clear detected elements or leave them as is.
+        // setDetectedElements([]);
+      }
+       // If the sequence is empty, ensure playback stops and clears.
+      setIsExecutingPlayback(false);
+      setCurrentPlaybackStepIndex(null);
+      setPlaybackSteps([]);
+      // Potentially clear the screenshot or revert to initial loaded screenshot
+      // if (loadWebsiteMutation.data?.screenshot) {
+      //  setWebsiteScreenshot(loadWebsiteMutation.data.screenshot);
+      // }
+    } else if (newSequence.length > 0 && !allStepsComplete) {
+      // Sequence is not empty but not all steps are complete.
+      // Cancel any pending debounced execution because the current sequence isn't fully valid for preview.
+      if (typeof debouncedExecuteMutation.cancel === 'function') {
+        debouncedExecuteMutation.cancel();
+      }
+      console.log("Real-time execution skipped: Not all test steps are complete.");
+      // Optionally, provide feedback to the user here (e.g., via a toast or UI indicator)
+    }
   };
 
   return (
@@ -715,7 +848,7 @@ export default function DashboardPage() {
         <div className="h-[40vh] bg-card p-6"> {/* Changed bg-white to bg-card */}
           <TestSequenceBuilder
             testSequence={testSequence}
-            onUpdateSequence={setTestSequence}
+            onUpdateSequence={handleSequenceUpdated}
             onExecuteTest={handleExecuteTest}
             onSaveTest={handleSaveTest}
             onClearSequence={handleClearSequence}
