@@ -275,7 +275,8 @@ export default function SettingsPage() {
                 <SelectContent>
                   <SelectItem value="en">{t('settings.languageSettings.english')}</SelectItem>
                   <SelectItem value="it">{t('settings.languageSettings.italian')}</SelectItem>
-                  {/* Add more languages here as needed */}
+                  <SelectItem value="fr">{t('settings.languageSettings.french')}</SelectItem> {/* New */}
+                  <SelectItem value="de">{t('settings.languageSettings.german')}</SelectItem> {/* New */}
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">

@@ -1,11 +1,11 @@
 {
-  "greeting": "Hello",
+  "greeting": "Hello", // Keep other placeholders for now
   "settings": {
-    "title": "Settings",
-    "language": "Language",
-    "english": "English",
-    "italian": "Italian",
-    "toast": {
+    "title": "Einstellungen", // Translated
+    "language": "Language", // Placeholder
+    "english": "English", // Placeholder
+    "italian": "Italian", // Placeholder
+    "toast": { // Placeholders
       "savedTitle": "Settings saved",
       "savedDescription": "Your preferences have been updated successfully.",
       "errorTitle": "Error saving settings",
@@ -13,24 +13,24 @@
       "resetTitle": "Settings reset",
       "resetDescription": "Local form has been reset. Fetched settings may differ."
     },
-    "appearance": {
+    "appearance": { // Placeholders
       "title": "Appearance",
       "description": "Customize the look and feel of the application.",
       "darkModeLabel": "Dark Mode",
       "darkModeDescription": "Switch between light and dark themes."
     },
     "languageSettings": {
-      "title": "Language & Region",
-      "description": "Choose your preferred language for the application.",
-      "selectLabel": "Application Language",
-      "selectPlaceholder": "Select language",
-      "english": "English (US)",
-      "italian": "Italiano (Italia)",
-          "french": "Français (France)", // New
-          "german": "Deutsch (Deutschland)", // New
-      "selectHint": "This will change the language of the user interface."
+      "title": "Sprache & Region",
+      "description": "Wählen Sie Ihre bevorzugte Sprache für die Anwendung.",
+      "selectLabel": "Anwendungssprache",
+      "selectPlaceholder": "Sprache auswählen",
+      "english": "Englisch (USA)",
+      "italian": "Italienisch (Italien)",
+      "french": "Französisch (Frankreich)",
+      "german": "Deutsch (Deutschland)",
+      "selectHint": "Dies ändert die Sprache der Benutzeroberfläche."
     },
-    "buttons": {
+    "buttons": { // Placeholders
       "resetForm": "Reset Form",
       "cancel": "Cancel",
       "saveSettings": "Save Settings",
