@@ -1,5 +1,5 @@
 {
-  "greeting": "Hello", // Keep other placeholders for now
+  "greeting": "Hello",
   "settings": {
     "title": "Einstellungen", // Translated
     "language": "Language", // Placeholder
