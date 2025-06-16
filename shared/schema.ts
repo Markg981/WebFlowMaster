@@ -101,7 +101,17 @@ export type InsertUserSettings = typeof userSettings.$inferInsert;
 
 // Mirrors TestAction interface in server/playwright-service.ts
 export const AdhocTestActionSchema = z.object({
-  id: z.enum(['click', 'input', 'wait', 'scroll', 'assert', 'hover', 'select']), // Action type
+  id: z.enum([
+    'click',
+    'input',
+    'wait',
+    'scroll',
+    'assert',
+    'hover',
+    'select',
+    'assertTextContains',
+    'assertElementCount'
+  ]), // Action type
   type: z.string(), // Typically same as id, or could be a category.
   name: z.string(), // User-friendly name
   icon: z.string(),
@@ -133,20 +143,20 @@ export const AdhocTestStepSchema = z.object({
   targetElement: AdhocDetectedElementSchema.optional(),
   value: z.string().optional().nullable(), // Value for actions like input, wait duration etc.
 }).refine(data => { // Ensure targetElement is present for actions that require it
-  if (['click', 'input', 'hover', 'select', 'assert'].includes(data.action.id) && !data.targetElement) {
+  if (['click', 'input', 'hover', 'select', 'assert', 'assertTextContains', 'assertElementCount'].includes(data.action.id) && !data.targetElement) {
     return false;
   }
   return true;
 }, {
-  message: "targetElement is required for actions like click, input, hover, select, assert",
+  message: "targetElement is required for actions like click, input, hover, select, assert, assertTextContains, assertElementCount",
   path: ['targetElement'], // Path of the error
 }).refine(data => { // Ensure value is present for actions that require it
-  if (['input', 'wait', 'select'].includes(data.action.id) && (data.value === undefined || data.value === null || data.value.trim() === '')) {
+  if (['input', 'wait', 'select', 'assertTextContains', 'assertElementCount'].includes(data.action.id) && (data.value === undefined || data.value === null || data.value.trim() === '')) {
     return false;
   }
   return true;
 }, {
-  message: "A non-empty value is required for input, wait, and select actions",
+  message: "A non-empty value is required for input, wait, select, assertTextContains, and assertElementCount actions",
   path: ['value'],
 }).refine(data => { // Ensure wait value is a number
   if (data.action.id === 'wait') {

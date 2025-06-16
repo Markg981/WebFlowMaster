@@ -17,6 +17,22 @@ interface TestAction {
   description: string;
 }
 
+// Helper function to parse assertElementCount value
+function parseAssertionValue(value: string): { operator: string; count: number } | null {
+  const match = value.match(/^(==|>=|<=|>|<|!=)?\s*(\d+)$/);
+  if (!match) {
+    // Try to parse just a number, defaulting to '=='
+    const singleNumberMatch = value.match(/^\s*(\d+)\s*$/);
+    if (singleNumberMatch) {
+      return { operator: '==', count: parseInt(singleNumberMatch[1], 10) };
+    }
+    return null;
+  }
+  const operator = match[1] || '=='; // Default to '==' if only number is present
+  const count = parseInt(match[2], 10);
+  return { operator, count };
+}
+
 export interface DetectedElement { // Exporting if it's used elsewhere, or keep private
   id: string;
   type: string;
@@ -245,16 +261,16 @@ export class PlaywrightService {
           let stepStatus: 'passed' | 'failed' = 'passed';
           let stepError: string | undefined;
           let stepScreenshot: string | undefined;
-          const actionType = step.action?.type;
+          const actionId = step.action?.id; // Changed from actionType to actionId
           const actionName = step.action?.name || 'Unnamed Action';
 
           try {
-            if (!actionType) throw new Error('Step action type is missing.');
+            if (!actionId) throw new Error('Step action ID is missing.'); // Changed message
             if (!page) throw new Error('Page is not available.');
 
-            console.log(`Executing ad-hoc step: ${actionName} (Type: ${actionType})`);
+            console.log(`Executing ad-hoc step: ${actionName} (ID: ${actionId})`); // Changed log
 
-            switch (actionType) {
+            switch (actionId) { // Changed from actionType to actionId
               case 'click':
                 if (!step.targetElement?.selector) throw new Error('Selector missing for click action.');
                 await page.click(step.targetElement.selector);
@@ -275,18 +291,94 @@ export class PlaywrightService {
                   await page.evaluate(() => window.scrollBy(0, 200));
                 }
                 break;
-              case 'assert':
-                console.log('Ad-hoc Assertion step encountered (not implemented yet).');
+              case 'assert': // This is the generic assert, may need specific handling or be deprecated
+                console.warn(`Generic 'assert' action encountered. Consider using specific assertions.`);
+                // For now, let's assume it needs a target and passes if element exists
+                if (!step.targetElement?.selector) {
+                  stepStatus = 'failed';
+                  stepError = 'Selector missing for generic assert action.';
+                } else {
+                  const elementToAssert = await page.locator(step.targetElement.selector).count();
+                  if (elementToAssert === 0) {
+                    stepStatus = 'failed';
+                    stepError = `Assertion Failed: Element "${step.targetElement.selector}" not found.`;
+                  }
+                }
+                break;
+              case 'assertTextContains':
+                if (!step.targetElement?.selector) {
+                  stepStatus = 'failed';
+                  stepError = "Selector missing for assertTextContains action.";
+                  break;
+                }
+                if (typeof step.value !== 'string' || step.value.trim() === '') {
+                  stepStatus = 'failed';
+                  stepError = "Expected text (value) missing or empty for assertTextContains action.";
+                  break;
+                }
+                const elementForText = page.locator(step.targetElement.selector);
+                const actualText = await elementForText.textContent();
+                if (actualText === null || !actualText.includes(step.value)) {
+                  stepStatus = 'failed';
+                  stepError = `Assertion Failed: Element "${step.targetElement.selector}" did not contain text "${step.value}". Actual: "${actualText === null ? 'null' : actualText}".`;
+                }
+                break;
+              case 'assertElementCount':
+                if (!step.targetElement?.selector) {
+                  stepStatus = 'failed';
+                  stepError = "Selector missing for assertElementCount action.";
+                  break;
+                }
+                if (typeof step.value !== 'string' || step.value.trim() === '') {
+                  stepStatus = 'failed';
+                  stepError = "Expected count (value) missing or empty for assertElementCount action.";
+                  break;
+                }
+                const parsedAssertion = parseAssertionValue(step.value);
+                if (!parsedAssertion) {
+                  stepStatus = 'failed';
+                  stepError = `Invalid format for assertElementCount value: "${step.value}". Expected format like "==5", ">=2", or "3".`;
+                  break;
+                }
+                const elementsToCount = page.locator(step.targetElement.selector);
+                const actualCount = await elementsToCount.count();
+                let countMatch = false;
+                switch (parsedAssertion.operator) {
+                  case '==': countMatch = actualCount === parsedAssertion.count; break;
+                  case '>=': countMatch = actualCount >= parsedAssertion.count; break;
+                  case '<=': countMatch = actualCount <= parsedAssertion.count; break;
+                  case '>': countMatch = actualCount > parsedAssertion.count; break;
+                  case '<': countMatch = actualCount < parsedAssertion.count; break;
+                  case '!=': countMatch = actualCount !== parsedAssertion.count; break;
+                  default: // Should not happen due to parsing
+                    stepStatus = 'failed';
+                    stepError = `Unknown operator "${parsedAssertion.operator}" for assertElementCount.`;
+                    break;
+                }
+                if (!countMatch && stepStatus === 'passed') { // ensure stepStatus hasn't been set to failed by operator check
+                  stepStatus = 'failed';
+                  stepError = `Assertion Failed: Element count for selector "${step.targetElement.selector}" did not match. Expected ${parsedAssertion.operator} ${parsedAssertion.count}, Actual: ${actualCount}.`;
+                }
                 break;
               case 'hover':
                 if (!step.targetElement?.selector) throw new Error('Selector missing for hover action.');
                 await page.hover(step.targetElement.selector);
                 break;
-              case 'select':
-                 console.log('Ad-hoc Select action step encountered (not implemented yet). Value: ' + step.value);
+              case 'select': // Basic select by value, if the target is a <select> element
+                if (!step.targetElement?.selector) {
+                     stepStatus = 'failed';
+                     stepError = "Selector missing for select action.";
+                     break;
+                }
+                if (typeof step.value !== 'string' || step.value.trim() === '') {
+                    stepStatus = 'failed';
+                    stepError = "Value missing for select action (expected option value).";
+                    break;
+                }
+                await page.selectOption(step.targetElement.selector, step.value);
                 break;
               default:
-                throw new Error(`Unsupported action type: ${actionType}`);
+                throw new Error(`Unsupported action ID: ${actionId}`); // Changed message
             }
 
             const screenshotBuffer = await page.screenshot({ type: 'png' });
@@ -295,7 +387,7 @@ export class PlaywrightService {
           } catch (e: any) {
             stepStatus = 'failed';
             stepError = e.message;
-            overallSuccess = false;
+            overallSuccess = false; // Ensure overallSuccess is set on failure
             console.error(`Error in ad-hoc step "${actionName}": ${e.message}`);
             if (page) {
               try {
@@ -306,10 +398,14 @@ export class PlaywrightService {
               }
             }
           }
+          // If an assertion failed, overallSuccess should be false.
+          if (stepStatus === 'failed') {
+            overallSuccess = false;
+          }
 
           stepResults.push({
             name: actionName,
-            type: actionType || 'unknown',
+            type: actionId || 'unknown', // Changed from actionType
             selector: step.targetElement?.selector,
             value: step.value,
             status: stepStatus,
@@ -644,20 +740,20 @@ export class PlaywrightService {
           let stepStatus: 'passed' | 'failed' = 'passed';
           let stepError: string | undefined;
           let stepScreenshot: string | undefined;
-          const actionType = step.action?.type;
+          const actionId = step.action?.id; // Changed from actionType to actionId
           const actionName = step.action?.name || 'Unnamed Action';
 
           try {
-            if (!actionType) {
-              throw new Error('Step action type is missing.');
+            if (!actionId) { // Changed from actionType
+              throw new Error('Step action ID is missing.'); // Changed message
             }
             if (!page) { // Should not happen if navigation succeeded or no URL
                 throw new Error('Page is not available.');
             }
 
-            console.log(`Executing step: ${actionName} (Type: ${actionType})`);
+            console.log(`Executing step: ${actionName} (ID: ${actionId})`); // Changed log
 
-            switch (actionType) {
+            switch (actionId) { // Changed from actionType to actionId
               case 'click':
                 if (!step.targetElement?.selector) throw new Error('Selector missing for click action.');
                 await page.click(step.targetElement.selector);
@@ -678,20 +774,93 @@ export class PlaywrightService {
                   await page.evaluate(() => window.scrollBy(0, 200)); // Scroll window down by 200px
                 }
                 break;
-              case 'assert':
-                console.log('Assertion step encountered (not implemented yet).');
-                // Actual assertion logic to be added later.
+              case 'assert': // Generic assert, same logic as adhoc
+                console.warn(`Generic 'assert' action encountered in test sequence. Consider using specific assertions.`);
+                if (!step.targetElement?.selector) {
+                  stepStatus = 'failed';
+                  stepError = 'Selector missing for generic assert action.';
+                } else {
+                  const elementToAssert = await page.locator(step.targetElement.selector).count();
+                  if (elementToAssert === 0) {
+                    stepStatus = 'failed';
+                    stepError = `Assertion Failed: Element "${step.targetElement.selector}" not found.`;
+                  }
+                }
+                break;
+              case 'assertTextContains':
+                if (!step.targetElement?.selector) {
+                  stepStatus = 'failed';
+                  stepError = "Selector missing for assertTextContains action.";
+                  break;
+                }
+                if (typeof step.value !== 'string' || step.value.trim() === '') {
+                  stepStatus = 'failed';
+                  stepError = "Expected text (value) missing or empty for assertTextContains action.";
+                  break;
+                }
+                const elementForText = page.locator(step.targetElement.selector);
+                const actualText = await elementForText.textContent();
+                if (actualText === null || !actualText.includes(step.value)) {
+                  stepStatus = 'failed';
+                  stepError = `Assertion Failed: Element "${step.targetElement.selector}" did not contain text "${step.value}". Actual: "${actualText === null ? 'null' : actualText}".`;
+                }
+                break;
+              case 'assertElementCount':
+                if (!step.targetElement?.selector) {
+                  stepStatus = 'failed';
+                  stepError = "Selector missing for assertElementCount action.";
+                  break;
+                }
+                if (typeof step.value !== 'string' || step.value.trim() === '') {
+                  stepStatus = 'failed';
+                  stepError = "Expected count (value) missing or empty for assertElementCount action.";
+                  break;
+                }
+                const parsedAssertion = parseAssertionValue(step.value);
+                if (!parsedAssertion) {
+                  stepStatus = 'failed';
+                  stepError = `Invalid format for assertElementCount value: "${step.value}". Expected format like "==5", ">=2", or "3".`;
+                  break;
+                }
+                const elementsToCount = page.locator(step.targetElement.selector);
+                const actualCount = await elementsToCount.count();
+                let countMatch = false;
+                switch (parsedAssertion.operator) {
+                  case '==': countMatch = actualCount === parsedAssertion.count; break;
+                  case '>=': countMatch = actualCount >= parsedAssertion.count; break;
+                  case '<=': countMatch = actualCount <= parsedAssertion.count; break;
+                  case '>': countMatch = actualCount > parsedAssertion.count; break;
+                  case '<': countMatch = actualCount < parsedAssertion.count; break;
+                  case '!=': countMatch = actualCount !== parsedAssertion.count; break;
+                   default: // Should not happen
+                    stepStatus = 'failed';
+                    stepError = `Unknown operator "${parsedAssertion.operator}" for assertElementCount.`;
+                    break;
+                }
+                 if (!countMatch && stepStatus === 'passed') {
+                  stepStatus = 'failed';
+                  stepError = `Assertion Failed: Element count for selector "${step.targetElement.selector}" did not match. Expected ${parsedAssertion.operator} ${parsedAssertion.count}, Actual: ${actualCount}.`;
+                }
                 break;
               case 'hover':
                 if (!step.targetElement?.selector) throw new Error('Selector missing for hover action.');
                 await page.hover(step.targetElement.selector);
                 break;
-              case 'select':
-                 console.log('Select action step encountered (not implemented yet). Value: ' + step.value);
-                // Placeholder for select action
+              case 'select': // Basic select by value
+                 if (!step.targetElement?.selector) {
+                     stepStatus = 'failed';
+                     stepError = "Selector missing for select action.";
+                     break;
+                }
+                if (typeof step.value !== 'string' || step.value.trim() === '') {
+                    stepStatus = 'failed';
+                    stepError = "Value missing for select action (expected option value).";
+                    break;
+                }
+                await page.selectOption(step.targetElement.selector, step.value);
                 break;
               default:
-                throw new Error(`Unsupported action type: ${actionType}`);
+                throw new Error(`Unsupported action ID: ${actionId}`); // Changed message
             }
 
             const screenshotBuffer = await page.screenshot({ type: 'png' });
@@ -700,7 +869,7 @@ export class PlaywrightService {
           } catch (e: any) {
             stepStatus = 'failed';
             stepError = e.message;
-            overallSuccess = false;
+            overallSuccess = false; // Ensure overallSuccess is set
             console.error(`Error in step "${actionName}": ${e.message}`);
             if (page) {
               try {
@@ -711,10 +880,14 @@ export class PlaywrightService {
               }
             }
           }
+          // If an assertion failed, overallSuccess should be false.
+          if (stepStatus === 'failed') {
+            overallSuccess = false;
+          }
 
           stepResults.push({
             name: actionName,
-            type: actionType || 'unknown',
+            type: actionId || 'unknown', // Changed from actionType
             selector: step.targetElement?.selector,
             value: step.value,
             status: stepStatus,
