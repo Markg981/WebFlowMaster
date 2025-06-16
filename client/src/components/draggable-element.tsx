@@ -33,7 +33,7 @@ export function DraggableElement({ element, onHover }: DraggableElementProps) {
   }));
 
   const renderElementIcon = (type: string) => {
-    const iconProps = { className: "h-4 w-4 text-gray-500" };
+    const iconProps = { className: "h-4 w-4 text-muted-foreground" };
     switch (type) {
       case "input":
       case "text":
@@ -44,7 +44,7 @@ export function DraggableElement({ element, onHover }: DraggableElementProps) {
       case "link":
         return <MousePointer {...iconProps} />;
       case "heading":
-        return <span className="text-gray-500 font-bold text-sm">H</span>;
+        return <span className="text-muted-foreground font-bold text-sm">H</span>;
       default:
         return <MousePointer {...iconProps} />;
     }
@@ -57,17 +57,17 @@ export function DraggableElement({ element, onHover }: DraggableElementProps) {
       case "password":
       case "email":
       case "textarea":
-        return "bg-blue-100 text-blue-800";
+        return "bg-primary text-primary-foreground";
       case "button":
-        return "bg-green-100 text-green-800";
+        return "bg-success text-primary-foreground";
       case "link":
-        return "bg-purple-100 text-purple-800";
+        return "bg-accent text-accent-foreground";
       case "heading":
-        return "bg-gray-100 text-gray-800";
+        return "bg-secondary text-secondary-foreground";
       case "select":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-secondary text-secondary-foreground";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-secondary text-secondary-foreground";
     }
   };
 
@@ -87,12 +87,12 @@ export function DraggableElement({ element, onHover }: DraggableElementProps) {
             <Badge variant="secondary" className={`text-xs ${getTypeColor(element.type)}`}>
               {element.type}
             </Badge>
-            <span className="text-xs text-gray-400">{element.tag}</span>
+            <span className="text-xs text-muted-foreground">{element.tag}</span>
           </div>
-          <div className="font-medium text-gray-900 text-sm truncate">
+          <div className="font-medium text-foreground text-sm truncate">
             {element.text || element.attributes.placeholder || element.attributes.alt || `${element.tag} element`}
           </div>
-          <div className="text-xs text-gray-500 truncate">
+          <div className="text-xs text-muted-foreground truncate">
             {element.selector}
           </div>
         </div>

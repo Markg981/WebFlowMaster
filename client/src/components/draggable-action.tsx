@@ -80,12 +80,12 @@ export function DraggableAction({ action, stepId, onDropElement, targetElement }
         <div className="flex items-center space-x-3">
           {renderActionIcon(action.icon)}
           <div>
-            <div className="font-medium text-gray-900 text-sm">{action.name}</div>
-            <div className="text-xs text-gray-500">{action.description}</div>
+            <div className="font-medium text-foreground text-sm">{action.name}</div>
+            <div className="text-xs text-muted-foreground">{action.description}</div>
             {/* Display info about the target element if it exists */}
             {targetElement && (
               <div className="mt-1 pt-1 border-t border-gray-200">
-                <p className="text-xs text-blue-600 truncate" title={targetElement.selector}>
+                <p className="text-xs text-primary truncate" title={targetElement.selector}>
                   Target: {targetElement.text || targetElement.selector}
                 </p>
               </div>
