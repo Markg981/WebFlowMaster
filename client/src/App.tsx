@@ -18,8 +18,9 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { UserSettings, fetchSettings } from './lib/settings';
 import { useAuth } from './hooks/use-auth'; // Import useAuth
+import i18n from './i18n'; // <-- Import i18n instance
 
-const ThemeLoader = () => {
+const SettingsEffectLoader = () => { // Renamed to be more generic as it handles theme and language
   const { user } = useAuth(); // Call useAuth
   const { data: settingsData } = useQuery<UserSettings, Error>({
     queryKey: ["userSettingsApp", user?.id], // Add user?.id to queryKey
@@ -30,10 +31,23 @@ const ThemeLoader = () => {
 
   useEffect(() => {
     if (settingsData) {
+      // Theme handling
       if (settingsData.theme === "dark") {
         document.documentElement.classList.add("dark");
       } else {
         document.documentElement.classList.remove("dark");
+      }
+
+      // Language handling
+      if (settingsData.language && i18n.language !== settingsData.language) {
+        i18n.changeLanguage(settingsData.language).catch(err => {
+            console.error("Error changing language in App.tsx:", err);
+        });
+      } else if (!settingsData.language && i18n.language !== 'en') {
+        // Fallback if language is not set in settings, ensure it's 'en' or your default
+        i18n.changeLanguage('en').catch(err => {
+            console.error("Error changing language to fallback 'en' in App.tsx:", err);
+        });
       }
     }
   }, [settingsData]);
@@ -57,7 +71,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ThemeLoader /> {/* Moved ThemeLoader to be a direct child of AuthProvider */}
+        <SettingsEffectLoader /> {/* Use the renamed/updated component */}
         <TooltipProvider>
           <DragDropProvider>
             <Toaster />

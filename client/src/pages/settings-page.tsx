@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
+import { useTranslation } from 'react-i18next';
 import { 
   TestTube,
   Moon,
@@ -41,6 +42,7 @@ const saveSettings = async (settings: Partial<UserSettings>): Promise<UserSettin
 };
 
 export default function SettingsPage() {
+  const { t } = useTranslation(); // Initialize useTranslation
   const { user, logoutMutation } = useAuth();
   const queryClient = useQueryClient();
 
@@ -51,6 +53,7 @@ export default function SettingsPage() {
   const [headless, setHeadless] = useState(true);
   const [defaultTimeout, setDefaultTimeout] = useState("30000");
   const [waitTime, setWaitTime] = useState("1000");
+  const [language, setLanguage] = useState("en"); // Add language state, default to 'en'
 
   // Fetch settings using useQuery
   const {
@@ -72,6 +75,7 @@ export default function SettingsPage() {
       setHeadless(settingsData.playwrightHeadless);
       setDefaultTimeout(String(settingsData.playwrightDefaultTimeout));
       setWaitTime(String(settingsData.playwrightWaitTime));
+      setLanguage(settingsData.language || "en"); // Initialize language
     }
   }, [settingsData]);
 
@@ -96,14 +100,14 @@ export default function SettingsPage() {
       queryClient.setQueryData(["settings"], savedData); // Update cache immediately
       // queryClient.invalidateQueries({ queryKey: ["settings"] }); // Or invalidate and refetch
       toast({
-        title: "Settings saved",
-        description: "Your preferences have been updated successfully.",
+        title: t('settings.toast.savedTitle'), // Example of using t function
+        description: t('settings.toast.savedDescription'),
       });
     },
     onError: (error) => {
       toast({
-        title: "Error saving settings",
-        description: error.message || "An unexpected error occurred.",
+        title: t('settings.toast.errorTitle'),
+        description: error.message || t('settings.toast.errorDescription'),
         variant: "destructive",
       });
     },
@@ -117,6 +121,7 @@ export default function SettingsPage() {
       playwrightHeadless: headless,
       playwrightDefaultTimeout: parseInt(defaultTimeout, 10),
       playwrightWaitTime: parseInt(waitTime, 10),
+      language: language, // Add language to settings being saved
     };
 
     // Validate numeric inputs
@@ -141,13 +146,14 @@ export default function SettingsPage() {
     setHeadless(true); // Default for GET
     setDefaultTimeout("30000"); // Default for GET
     setWaitTime("1000"); // Default for GET
+    setLanguage("en"); // Reset language to English
     setEmailNotifications(true); // These are not part of user_settings table
     setTestCompletionNotifications(true);
     setErrorNotifications(true);
     
     toast({
-      title: "Settings reset",
-      description: "Local form has been reset. Fetched settings may differ.",
+      title: t('settings.toast.resetTitle'),
+      description: t('settings.toast.resetDescription'),
     });
   };
 
@@ -219,17 +225,17 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Sun className="h-5 w-5" />
-              <span>Appearance</span>
+              <span>{t('settings.appearance.title')}</span>
             </CardTitle>
             <CardDescription>
-              Customize the look and feel of the application
+              {t('settings.appearance.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-sm font-medium">Dark Mode</Label>
-                <p className="text-sm text-muted-foreground">Switch between light and dark themes</p>
+                <Label className="text-sm font-medium">{t('settings.appearance.darkModeLabel')}</Label>
+                <p className="text-sm text-muted-foreground">{t('settings.appearance.darkModeDescription')}</p>
               </div>
               <div className="flex items-center space-x-2">
                 <Sun className="h-4 w-4" />
@@ -240,6 +246,41 @@ export default function SettingsPage() {
                 />
                 <Moon className="h-4 w-4" />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Language Settings Card - NEW */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Globe className="h-5 w-5" /> {/* Using Globe icon, same as Default Config for now */}
+              <span>{t('settings.languageSettings.title')}</span>
+            </CardTitle>
+            <CardDescription>
+              {t('settings.languageSettings.description')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="language-select">{t('settings.languageSettings.selectLabel')}</Label>
+              <Select
+                value={language}
+                onValueChange={(value: string) => setLanguage(value)}
+                disabled={mutation.isPending || isLoadingSettings}
+              >
+                <SelectTrigger id="language-select">
+                  <SelectValue placeholder={t('settings.languageSettings.selectPlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">{t('settings.languageSettings.english')}</SelectItem>
+                  <SelectItem value="it">{t('settings.languageSettings.italian')}</SelectItem>
+                  {/* Add more languages here as needed */}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                {t('settings.languageSettings.selectHint')}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -436,13 +477,13 @@ export default function SettingsPage() {
             onClick={handleResetSettings}
             disabled={mutation.isPending || isLoadingSettings}
           >
-            Reset Form
+            {t('settings.buttons.resetForm')}
           </Button>
           
           <div className="flex space-x-3">
             <Link href="/">
               <Button variant="ghost" disabled={mutation.isPending || isLoadingSettings}>
-                Cancel
+                {t('settings.buttons.cancel')}
               </Button>
             </Link>
             <Button
@@ -454,7 +495,7 @@ export default function SettingsPage() {
               ) : (
                 <Save className="h-4 w-4 mr-2" />
               )}
-              Save Settings
+              {mutation.isPending ? t('settings.buttons.saving') : t('settings.buttons.saveSettings')}
             </Button>
           </div>
         </div>

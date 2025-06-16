@@ -6,6 +6,7 @@ export interface UserSettings {
   playwrightHeadless: boolean;
   playwrightDefaultTimeout: number;
   playwrightWaitTime: number;
+  language?: string; // Add language preference (e.g., "en", "it")
 }
 
 export const fetchSettings = async (): Promise<UserSettings> => {
@@ -17,5 +18,10 @@ export const fetchSettings = async (): Promise<UserSettings> => {
   // especially for fields like defaultTestUrl which might be '' from backend
   // and needs to be handled if your type expects `string | null`.
   // The current UserSettings type is fine with how settings-page.tsx handles it.
-  return response.json();
+  const settings = await response.json();
+  // Ensure language has a default value if not present
+  if (!settings.language) {
+    settings.language = "en"; // Default to English
+  }
+  return settings;
 };
