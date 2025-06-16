@@ -133,22 +133,40 @@ interface DetectedElement {
   };
 }
 
-interface TestAction {
+// Exporting TestAction interface for use in other components
+export interface TestAction {
   id: string;
-  type: string;
+  type: string; // This 'type' can be same as 'id' or a broader category like 'assertion'
   name: string;
   icon: string;
   description: string;
 }
 
-const availableActions: TestAction[] = [
+// Exporting availableActions for use in TestSequenceBuilder and potentially other components
+export const availableActions: TestAction[] = [
   { id: "click", type: "click", name: "Click Element", icon: "mouse-pointer", description: "Simulate a mouse click" },
   { id: "input", type: "input", name: "Input Text", icon: "keyboard", description: "Type text into field" },
   { id: "wait", type: "wait", name: "Wait", icon: "clock", description: "Pause execution" },
   { id: "scroll", type: "scroll", name: "Scroll", icon: "scroll", description: "Scroll page or element" },
-  { id: "assert", type: "assert", name: "Assert", icon: "check-circle", description: "Verify element or text" },
+  // General 'assert' might be kept for simple assertions or removed if specific ones cover all cases
+  // For now, specific assertions are preferred. The generic 'assert' might be removed later.
+  // { id: "assert", type: "assert", name: "Assert Element", icon: "check-circle", description: "Verify element properties" },
   { id: "hover", type: "hover", name: "Hover", icon: "hand", description: "Hover over element" },
   { id: "select", type: "select", name: "Select Option", icon: "chevron-down", description: "Choose dropdown option" },
+  {
+    id: "assertTextContains",
+    type: "assertTextContains", // Or "assertion" if grouping by broader type
+    name: "Assert Text Contains",
+    icon: "CheckSquare", // Using CheckSquare from lucide-react (ensure it's imported if not already)
+    description: "Checks if an element contains specific text."
+  },
+  {
+    id: "assertElementCount",
+    type: "assertElementCount", // Or "assertion"
+    name: "Assert Element Count",
+    icon: "ListChecks", // Using ListChecks from lucide-react (ensure it's imported if not already)
+    description: "Checks how many elements match a selector."
+  },
 ];
 
 export default function DashboardPage() {
