@@ -26,8 +26,8 @@
       "selectPlaceholder": "Seleziona lingua",
       "english": "Inglese (Stati Uniti)",
       "italian": "Italiano (Italia)",
-          "french": "Francese (Francia)", // New
-          "german": "Tedesco (Germania)", // New
+      "french": "Francese (Francia)",
+      "german": "Tedesco (Germania)",
       "selectHint": "Questo cambierà la lingua dell'interfaccia utente."
     },
     "buttons": {
