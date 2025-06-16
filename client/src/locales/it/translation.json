@@ -1,0 +1,84 @@
+{
+  "greeting": "Ciao",
+  "settings": {
+    "title": "Impostazioni",
+    "language": "Lingua",
+    "english": "Inglese",
+    "italian": "Italiano",
+    "toast": {
+      "savedTitle": "Impostazioni salvate",
+      "savedDescription": "Le tue preferenze sono state aggiornate con successo.",
+      "errorTitle": "Errore nel salvataggio",
+      "errorDescription": "Si è verificato un errore imprevisto.",
+      "resetTitle": "Impostazioni resettate",
+      "resetDescription": "Il modulo locale è stato resettato. Le impostazioni recuperate potrebbero differire."
+    },
+    "appearance": {
+      "title": "Aspetto",
+      "description": "Personalizza l'aspetto dell'applicazione.",
+      "darkModeLabel": "Modalità Scura",
+      "darkModeDescription": "Passa dal tema chiaro a quello scuro."
+    },
+    "languageSettings": {
+      "title": "Lingua e Regione",
+      "description": "Scegli la tua lingua preferita per l'applicazione.",
+      "selectLabel": "Lingua Applicazione",
+      "selectPlaceholder": "Seleziona lingua",
+      "english": "Inglese (Stati Uniti)",
+      "italian": "Italiano (Italia)",
+      "french": "Francese (Francia)",
+      "german": "Tedesco (Germania)",
+      "selectHint": "Questo cambierà la lingua dell'interfaccia utente."
+    },
+    "buttons": {
+      "resetForm": "Resetta Modulo",
+      "cancel": "Annulla",
+      "saveSettings": "Salva Impostazioni",
+      "saving": "Salvataggio..."
+    }
+  },
+  "dashboard": {
+    "title": "Cruscotto"
+  },
+  "dashboardPage": {
+    "headerTitle": "Piattaforma WebTest",
+    "navCreateTest": "Crea Test",
+    "navMyTests": "I Miei Test",
+    "navReports": "Rapporti",
+    "signOutButton": "Esci",
+    "urlInputLabel": "URL del sito web da testare",
+    "loadWebsiteButton": "Carica Sito Web",
+    "loadingWebsiteButton": "Caricamento...",
+    "detectElementsButton": "Rileva Elementi",
+    "detectingElementsButton": "Rilevamento...",
+    "availableActionsTitle": "Azioni Disponibili",
+    "websitePreviewTitle": "Anteprima Sito Web",
+    "previewLoadedBadge": "Caricato",
+    "previewLoadPrompt": "Carica un sito web per vedere l'anteprima",
+    "previewScreenshotHint": "Le schermate reali del sito web appariranno qui",
+    "detectedElementsTitle": "Elementi Rilevati",
+    "elementsFoundBadge": "{{count}} trovati",
+    "noElementsDetected": "Nessun elemento rilevato ancora",
+    "detectElementsPrompt": "Clicca su \"Rileva Elementi\" per scansionare il sito web caricato",
+    "testSequenceTitle": "Sequenza di Test",
+    "executeTestButton": "Esegui Test",
+    "executingTestButton": "Esecuzione...",
+    "saveTestButton": "Salva Test",
+    "savingTestButton": "Salvataggio...",
+    "clearSequenceButton": "Pulisci",
+    "dropActionsPrompt": "Trascina le azioni qui per costruire il tuo test",
+    "dropActionsHint": "Trascina le azioni dalla barra laterale sinistra, quindi aggiungi elementi per completare ogni passaggio",
+    "toast": {
+      "websiteLoadedTitle": "Sito Web Caricato",
+      "websiteLoadedDesc": "Il sito web è stato caricato con successo.",
+      "websiteLoadErrorTitle": "Errore nel Caricamento del Sito Web",
+      "elementsDetectedTitle": "Elementi Rilevati",
+      "elementsDetectedDesc": "{{count}} elementi trovati sulla pagina.",
+      "elementsDetectErrorTitle": "Errore nel Rilevamento degli Elementi",
+      "defaultTestName": "Test per {{url}}",
+      "testSavedTitle": "Test Salvato",
+      "testSavedDesc": "La tua sequenza di test è stata salvata.",
+      "testSaveErrorTitle": "Errore nel Salvataggio del Test"
+    }
+  }
+}

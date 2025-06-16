@@ -1,0 +1,84 @@
+{
+  "greeting": "Hello",
+  "settings": {
+    "title": "Einstellungen",
+    "language": "Language",
+    "english": "English",
+    "italian": "Italian",
+    "toast": {
+      "savedTitle": "Settings saved",
+      "savedDescription": "Your preferences have been updated successfully.",
+      "errorTitle": "Error saving settings",
+      "errorDescription": "An unexpected error occurred.",
+      "resetTitle": "Settings reset",
+      "resetDescription": "Local form has been reset. Fetched settings may differ."
+    },
+    "appearance": {
+      "title": "Appearance",
+      "description": "Customize the look and feel of the application.",
+      "darkModeLabel": "Dark Mode",
+      "darkModeDescription": "Switch between light and dark themes."
+    },
+    "languageSettings": {
+      "title": "Sprache & Region",
+      "description": "Wählen Sie Ihre bevorzugte Sprache für die Anwendung.",
+      "selectLabel": "Anwendungssprache",
+      "selectPlaceholder": "Sprache auswählen",
+      "english": "Englisch (USA)",
+      "italian": "Italienisch (Italien)",
+      "french": "Französisch (Frankreich)",
+      "german": "Deutsch (Deutschland)",
+      "selectHint": "Dies ändert die Sprache der Benutzeroberfläche."
+    },
+    "buttons": {
+      "resetForm": "Reset Form",
+      "cancel": "Cancel",
+      "saveSettings": "Save Settings",
+      "saving": "Saving..."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard"
+  },
+  "dashboardPage": {
+    "headerTitle": "WebTest Platform",
+    "navCreateTest": "Create Test",
+    "navMyTests": "My Tests",
+    "navReports": "Reports",
+    "signOutButton": "Sign Out",
+    "urlInputLabel": "Website URL to Test",
+    "loadWebsiteButton": "Load Website",
+    "loadingWebsiteButton": "Loading...",
+    "detectElementsButton": "Detect Elements",
+    "detectingElementsButton": "Detecting...",
+    "availableActionsTitle": "Available Actions",
+    "websitePreviewTitle": "Website Preview",
+    "previewLoadedBadge": "Loaded",
+    "previewLoadPrompt": "Load a website to see the preview",
+    "previewScreenshotHint": "Real website screenshots will appear here",
+    "detectedElementsTitle": "Detected Elements",
+    "elementsFoundBadge": "{{count}} found",
+    "noElementsDetected": "No elements detected yet",
+    "detectElementsPrompt": "Click \"Detect Elements\" to scan the loaded website",
+    "testSequenceTitle": "Test Sequence",
+    "executeTestButton": "Execute Test",
+    "executingTestButton": "Executing...",
+    "saveTestButton": "Save Test",
+    "savingTestButton": "Saving...",
+    "clearSequenceButton": "Clear",
+    "dropActionsPrompt": "Drop actions here to build your test",
+    "dropActionsHint": "Drag actions from the left sidebar, then add elements to complete each step",
+    "toast": {
+      "websiteLoadedTitle": "Website Loaded",
+      "websiteLoadedDesc": "The website has been loaded successfully.",
+      "websiteLoadErrorTitle": "Error Loading Website",
+      "elementsDetectedTitle": "Elements Detected",
+      "elementsDetectedDesc": "{{count}} elements found on the page.",
+      "elementsDetectErrorTitle": "Error Detecting Elements",
+      "defaultTestName": "Test for {{url}}",
+      "testSavedTitle": "Test Saved",
+      "testSavedDesc": "Your test sequence has been saved.",
+      "testSaveErrorTitle": "Error Saving Test"
+    }
+  }
+}
