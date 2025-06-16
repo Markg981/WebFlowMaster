@@ -119,7 +119,7 @@ export class PlaywrightService {
     }
   }
 
-  async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number }> {
+  async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detectedElements?: DetectedElement[] }> {
     const startTime = Date.now();
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
@@ -170,7 +170,66 @@ export class PlaywrightService {
             details: `Failed to navigate to ${payload.url}`,
           });
           const duration = Date.now() - startTime;
-          return { success: false, steps: stepResults, error: e.message, duration };
+          // Element detection even on navigation failure, if page exists
+          let finalDetectedElementsNavFail: DetectedElement[] = [];
+          if (page) {
+            try {
+              finalDetectedElementsNavFail = await page.evaluate(() => {
+                const interactiveSelectors = [
+                  'input:not([type="hidden"])', 'button', 'a[href]', 'select',
+                  'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])',
+                  'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form',
+                  '[data-testid]', '[data-test]'
+                ];
+                const detectedElementsEval: any[] = [];
+                let globalElementCounter = 0;
+                interactiveSelectors.forEach(selector => {
+                    document.querySelectorAll(selector).forEach((element, index) => {
+                        const rect = element.getBoundingClientRect();
+                        if (rect.width > 0 && rect.height > 0 && rect.top >= 0) {
+                            const tagName = element.tagName.toLowerCase();
+                            const text = element.textContent?.trim() || '';
+                            const placeholder = element.getAttribute('placeholder') || '';
+                            const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
+                            let uniqueSelector = selector;
+                            if (element.id) { uniqueSelector = `#${element.id}`; }
+                            else if (element.className && typeof element.className === 'string') {
+                              const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')') );
+                              if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`;
+                            }
+
+                            let elementType = 'element';
+                            if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
+                            else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
+                            else if (tagName === 'a') elementType = 'link';
+                            else if (tagName.match(/h[1-6]/)) elementType = 'heading';
+                            else if (tagName === 'select') elementType = 'select';
+                            else if (tagName === 'textarea') elementType = 'textarea';
+
+                            const attributes: Record<string, string> = {};
+                            Array.from(element.attributes).forEach(attr => {
+                                attributes[attr.name] = attr.value;
+                            });
+
+                            detectedElementsEval.push({
+                                id: `elem-${tagName}-${globalElementCounter++}`,
+                                type: elementType,
+                                selector: uniqueSelector,
+                                text: displayText.substring(0, 100),
+                                tag: tagName,
+                                attributes,
+                                boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) }
+                            });
+                        }
+                    });
+                });
+                return detectedElementsEval.slice(0, 50);
+              });
+            } catch (detectionError) {
+              console.error('Error detecting elements within executeAdhocSequence (navigation fail):', detectionError);
+            }
+          }
+          return { success: false, steps: stepResults, error: e.message, duration, detectedElements: finalDetectedElementsNavFail };
         }
       } else {
         stepResults.push({
@@ -265,18 +324,138 @@ export class PlaywrightService {
 
       const duration = Date.now() - startTime;
       console.log(`Ad-hoc test "${testName}" completed. Success: ${overallSuccess}, Duration: ${duration}ms`);
-      return { success: overallSuccess, steps: stepResults, duration };
+
+      let finalDetectedElements: DetectedElement[] = [];
+      if (page) {
+          try {
+              finalDetectedElements = await page.evaluate(() => {
+                  const interactiveSelectors = [
+                    'input:not([type="hidden"])', 'button', 'a[href]', 'select',
+                    'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])',
+                    'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form',
+                    '[data-testid]', '[data-test]'
+                  ];
+                  const detectedElementsEval: any[] = [];
+                  let globalElementCounter = 0;
+                  interactiveSelectors.forEach(selector => {
+                      document.querySelectorAll(selector).forEach((element, index) => {
+                          const rect = element.getBoundingClientRect();
+                          if (rect.width > 0 && rect.height > 0 && rect.top >= 0) {
+                              const tagName = element.tagName.toLowerCase();
+                              const text = element.textContent?.trim() || '';
+                              const placeholder = element.getAttribute('placeholder') || '';
+                              const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
+                              let uniqueSelector = selector;
+                              if (element.id) { uniqueSelector = `#${element.id}`; }
+                              else if (element.className && typeof element.className === 'string') {
+                                const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')') );
+                                if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`;
+                              }
+
+                              let elementType = 'element';
+                              if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
+                              else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
+                              else if (tagName === 'a') elementType = 'link';
+                              else if (tagName.match(/h[1-6]/)) elementType = 'heading';
+                              else if (tagName === 'select') elementType = 'select';
+                              else if (tagName === 'textarea') elementType = 'textarea';
+
+                              const attributes: Record<string, string> = {};
+                              Array.from(element.attributes).forEach(attr => {
+                                  attributes[attr.name] = attr.value;
+                              });
+
+                              detectedElementsEval.push({
+                                  id: `elem-${tagName}-${globalElementCounter++}`,
+                                  type: elementType,
+                                  selector: uniqueSelector,
+                                  text: displayText.substring(0, 100),
+                                  tag: tagName,
+                                  attributes,
+                                  boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) }
+                              });
+                          }
+                      });
+                  });
+                  return detectedElementsEval.slice(0, 50);
+              });
+          } catch (detectionError) {
+              console.error('Error detecting elements within executeAdhocSequence (try block):', detectionError);
+          }
+      }
+      return { success: overallSuccess, steps: stepResults, duration, detectedElements: finalDetectedElements };
 
     } catch (error: any) {
       const duration = Date.now() - startTime;
       console.error(`Critical error executing ad-hoc test "${testName}" for user ${userId}:`, error);
+      // Attempt to capture elements even in critical error, if page object exists
+      let finalDetectedElementsCriticalError: DetectedElement[] = [];
+      if (page) {
+        try {
+          finalDetectedElementsCriticalError = await page.evaluate(() => {
+            const interactiveSelectors = [
+              'input:not([type="hidden"])', 'button', 'a[href]', 'select',
+              'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])',
+              'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form',
+              '[data-testid]', '[data-test]'
+            ];
+            const detectedElementsEval: any[] = [];
+            let globalElementCounter = 0;
+            interactiveSelectors.forEach(selector => {
+                document.querySelectorAll(selector).forEach((element, index) => {
+                    const rect = element.getBoundingClientRect();
+                    if (rect.width > 0 && rect.height > 0 && rect.top >= 0) {
+                        const tagName = element.tagName.toLowerCase();
+                        const text = element.textContent?.trim() || '';
+                        const placeholder = element.getAttribute('placeholder') || '';
+                        const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
+                        let uniqueSelector = selector;
+                        if (element.id) { uniqueSelector = `#${element.id}`; }
+                        else if (element.className && typeof element.className === 'string') {
+                          const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')') );
+                          if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`;
+                        }
+
+                        let elementType = 'element';
+                        if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
+                        else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
+                        else if (tagName === 'a') elementType = 'link';
+                        else if (tagName.match(/h[1-6]/)) elementType = 'heading';
+                        else if (tagName === 'select') elementType = 'select';
+                        else if (tagName === 'textarea') elementType = 'textarea';
+
+                        const attributes: Record<string, string> = {};
+                        Array.from(element.attributes).forEach(attr => {
+                            attributes[attr.name] = attr.value;
+                        });
+
+                        detectedElementsEval.push({
+                            id: `elem-${tagName}-${globalElementCounter++}`,
+                            type: elementType,
+                            selector: uniqueSelector,
+                            text: displayText.substring(0, 100),
+                            tag: tagName,
+                            attributes,
+                            boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) }
+                        });
+                    }
+                });
+            });
+            return detectedElementsEval.slice(0, 50);
+          });
+        } catch (detectionError) {
+          console.error('Error detecting elements within executeAdhocSequence (catch block):', detectionError);
+        }
+      }
       return {
         success: false,
         steps: stepResults,
         error: error.message || 'Unknown critical error during ad-hoc execution',
-        duration
+        duration,
+        detectedElements: finalDetectedElementsCriticalError
       };
     } finally {
+      // Element detection should happen before page.close()
       if (page) await page.close().catch(e => console.error("Error closing page (adhoc):", e));
       if (context) await context.close().catch(e => console.error("Error closing context (adhoc):", e));
       if (browser) await browser.close().catch(e => console.error("Error closing browser (adhoc):", e));

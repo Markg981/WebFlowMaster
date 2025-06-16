@@ -263,18 +263,44 @@ export function registerRoutes(app: Express): Server {
       const executionResult = await playwrightService.executeAdhocSequence(validatedData, userId);
 
       // The executionResult from executeAdhocSequence is expected to be:
-      // { success: boolean; steps?: StepResult[]; error?: string; duration?: number }
-      // This is directly what the client expects for playback of an ad-hoc execution.
-      res.json(executionResult);
+      // executionResult now includes detectedElements:
+      // { success: boolean; steps?: StepResult[]; error?: string; duration?: number; detectedElements?: DetectedElement[] }
+
+      if (executionResult.success) {
+        res.status(200).json({
+          success: true,
+          steps: executionResult.steps,
+          duration: executionResult.duration,
+          detectedElements: executionResult.detectedElements
+        });
+      } else {
+        // Send 400 or another appropriate error code based on the nature of 'executionResult.error'
+        // For simplicity, using 400 for any controlled failure from the service.
+        res.status(400).json({
+          success: false,
+          error: executionResult.error,
+          steps: executionResult.steps,
+          duration: executionResult.duration,
+          detectedElements: executionResult.detectedElements
+        });
+      }
 
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid request payload", details: error.errors });
+        return res.status(400).json({
+          error: "Invalid request payload",
+          details: error.errors,
+          detectedElements: [] // Default for this error type
+        });
       }
       logger.error("Error in /api/execute-test-direct:", { error });
-      // General error, assuming it might come from the (future) service call
       const errorMessage = error instanceof Error ? error.message : "Unknown error during direct test execution";
-      res.status(500).json({ error: "Failed to execute test directly", details: errorMessage });
+      res.status(500).json({
+        success: false,
+        error: "Failed to execute test directly",
+        details: errorMessage,
+        detectedElements: [] // Default for critical server errors
+      });
     }
   });
 

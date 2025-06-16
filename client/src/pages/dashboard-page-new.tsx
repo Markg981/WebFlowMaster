@@ -418,7 +418,7 @@ export default function DashboardPage() {
       }
       return result; // This is the data structure: { success, steps, error, duration }
     },
-    onSuccess: (data) => { // data is { success, steps, error, duration }
+    onSuccess: (data) => { // data is { success, steps, error, duration, detectedElements }
       if (data.success && data.steps?.length) {
         setPlaybackSteps(data.steps);
         setCurrentPlaybackStepIndex(0);
@@ -426,11 +426,23 @@ export default function DashboardPage() {
         if (data.steps[0]?.screenshot) {
           setWebsiteScreenshot(data.steps[0].screenshot);
         }
+        // New part: Update detected elements
+        if (data.detectedElements) {
+          setDetectedElements(data.detectedElements);
+        } else {
+          setDetectedElements([]);
+        }
         toast({ title: "Direct Test Execution Started", description: "Playing back results..." });
       } else {
         setIsExecutingPlayback(false);
         setCurrentPlaybackStepIndex(null);
         setPlaybackSteps([]);
+        // Potentially also set detectedElements to empty array here if applicable
+        if (data.detectedElements) { // Even on failure, backend might send elements
+          setDetectedElements(data.detectedElements);
+        } else {
+          setDetectedElements([]);
+        }
         toast({ title: "Execution Failed", description: data.error || "No steps returned or direct execution failed.", variant: "destructive" });
       }
     },
@@ -438,6 +450,7 @@ export default function DashboardPage() {
       setIsExecutingPlayback(false);
       setCurrentPlaybackStepIndex(null);
       setPlaybackSteps([]);
+      setDetectedElements([]); // Clear elements on error
       toast({ title: "Direct Execution Request Failed", description: error.message, variant: "destructive" });
     },
   });
@@ -497,6 +510,48 @@ export default function DashboardPage() {
 
   const handleClearSequence = () => {
     setTestSequence([]);
+    // Optionally, when the sequence is cleared, you might want to re-fetch initial elements
+    // if (currentUrl && websiteLoaded) {
+    //   handleDetectElements();
+    // } else {
+    //   setDetectedElements([]);
+    // }
+    // For now, just clearing the sequence state. The handleSequenceUpdated will manage effects.
+  };
+
+  // New function to handle sequence updates and trigger real-time execution
+  const handleSequenceUpdated = (newSequence: DragDropTestStep[]) => {
+    setTestSequence(newSequence);
+
+    // Condition for real-time execution
+    // Only execute if not already executing a direct test or a playback
+    if (newSequence.length > 0 && currentUrl && websiteLoaded && !executeDirectTestMutation.isPending && !isExecutingPlayback) {
+      const payload = {
+        url: currentUrl,
+        sequence: newSequence,
+        elements: detectedElements, // Pass current elements as context
+        name: testName || `Realtime Preview for ${currentUrl || "Untitled"}`
+      };
+      // Consider adding a debounce here if updates are too frequent
+      executeDirectTestMutation.mutate(payload);
+    } else if (newSequence.length === 0) {
+      // If sequence is cleared, and a URL is loaded, re-detect elements for the base page.
+      // This resets the element list to the state of the page before any actions.
+      if (currentUrl && websiteLoaded) {
+        // handleDetectElements(); // This would fetch fresh elements
+        // For now, let's clear detected elements or leave them as is,
+        // depending on desired UX. Clearing them might be cleaner.
+        // setDetectedElements([]); // Or rely on the next successful execution to populate.
+      }
+       // If the sequence is empty, ensure playback stops and clears.
+      setIsExecutingPlayback(false);
+      setCurrentPlaybackStepIndex(null);
+      setPlaybackSteps([]);
+      // Potentially clear the screenshot or revert to initial loaded screenshot
+      // if (loadWebsiteMutation.data?.screenshot) {
+      //  setWebsiteScreenshot(loadWebsiteMutation.data.screenshot);
+      // }
+    }
   };
 
   return (
@@ -715,7 +770,7 @@ export default function DashboardPage() {
         <div className="h-[40vh] bg-card p-6"> {/* Changed bg-white to bg-card */}
           <TestSequenceBuilder
             testSequence={testSequence}
-            onUpdateSequence={setTestSequence}
+            onUpdateSequence={handleSequenceUpdated}
             onExecuteTest={handleExecuteTest}
             onSaveTest={handleSaveTest}
             onClearSequence={handleClearSequence}
