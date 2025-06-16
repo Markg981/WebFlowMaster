@@ -26,6 +26,23 @@ import {
   StopCircle,
 } from "lucide-react";
 import { Link } from "wouter";
+import debounceFromLodash from 'lodash/debounce'; // Attempt to import lodash.debounce
+
+// Fallback simple debounce function definition (if lodash is not used/available)
+function simpleDebounce<F extends (...args: any[]) => void>(func: F, waitFor: number): F & { cancel: () => void } {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const debouncedFunc = (...args: Parameters<F>): void => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), waitFor);
+  };
+  (debouncedFunc as any).cancel = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+  };
+  return debouncedFunc as F & { cancel: () => void };
+}
 
 // Client-side StepResult interface matching backend
 interface StepResult {
@@ -520,28 +537,42 @@ export default function DashboardPage() {
   };
 
   // New function to handle sequence updates and trigger real-time execution
+
+  const debouncedExecuteMutation = useMemo(() => {
+    const actualDebounce = typeof debounceFromLodash === 'function' ? debounceFromLodash : simpleDebounce;
+    return actualDebounce((payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string }) => {
+      // Condition for execution is checked here, inside the debounced function,
+      // to ensure it's evaluated at the moment of potential execution, not when debouncing starts.
+      if (!executeDirectTestMutation.isPending && !isExecutingPlayback) {
+        executeDirectTestMutation.mutate(payload);
+      }
+    }, 750); // 750ms debounce delay
+  }, [executeDirectTestMutation.isPending, isExecutingPlayback, executeDirectTestMutation.mutate]); // Add dependencies for the mutation status
+
   const handleSequenceUpdated = (newSequence: DragDropTestStep[]) => {
     setTestSequence(newSequence);
 
     // Condition for real-time execution
-    // Only execute if not already executing a direct test or a playback
-    if (newSequence.length > 0 && currentUrl && websiteLoaded && !executeDirectTestMutation.isPending && !isExecutingPlayback) {
+    if (newSequence.length > 0 && currentUrl && websiteLoaded) {
       const payload = {
         url: currentUrl,
         sequence: newSequence,
         elements: detectedElements, // Pass current elements as context
         name: testName || `Realtime Preview for ${currentUrl || "Untitled"}`
       };
-      // Consider adding a debounce here if updates are too frequent
-      executeDirectTestMutation.mutate(payload);
+      // Call the debounced mutation. The check for isPending/isExecutingPlayback is inside debouncedExecuteMutation.
+      debouncedExecuteMutation(payload);
     } else if (newSequence.length === 0) {
-      // If sequence is cleared, and a URL is loaded, re-detect elements for the base page.
+      // If sequence is cleared, cancel any pending debounced execution
+      if (typeof debouncedExecuteMutation.cancel === 'function') {
+        debouncedExecuteMutation.cancel();
+      }
+      // Also, if sequence is cleared, and a URL is loaded, re-detect elements for the base page.
       // This resets the element list to the state of the page before any actions.
       if (currentUrl && websiteLoaded) {
-        // handleDetectElements(); // This would fetch fresh elements
-        // For now, let's clear detected elements or leave them as is,
-        // depending on desired UX. Clearing them might be cleaner.
-        // setDetectedElements([]); // Or rely on the next successful execution to populate.
+        // handleDetectElements(); // This would fetch fresh elements.
+        // For now, let's clear detected elements or leave them as is.
+        // setDetectedElements([]);
       }
        // If the sequence is empty, ensure playback stops and clears.
       setIsExecutingPlayback(false);

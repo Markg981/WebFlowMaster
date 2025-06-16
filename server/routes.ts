@@ -3,7 +3,13 @@ import { createServer, type Server } from "http";
 import logger from "./logger"; // Import Winston logger
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertTestSchema, insertTestRunSchema, userSettings } from "@shared/schema";
+import {
+  insertTestSchema,
+  insertTestRunSchema,
+  userSettings,
+  AdhocTestStepSchema, // Import new schema for ad-hoc test steps
+  AdhocDetectedElementSchema // Import new schema for ad-hoc detected elements
+} from "@shared/schema";
 import { z } from "zod";
 import { createInsertSchema } from 'drizzle-zod';
 import { playwrightService } from "./playwright-service";
@@ -21,10 +27,10 @@ const userSettingsBodySchema = createInsertSchema(userSettings, {
 
 // Zod schema for POST /api/execute-test-direct
 const executeDirectTestSchema = z.object({
-  url: z.string().url({ message: "Invalid URL format" }),
-  sequence: z.array(z.any(), { message: "Sequence must be an array" }),
-  elements: z.array(z.any(), { message: "Elements must be an array" }),
-  name: z.string().optional(),
+  url: z.string().url({ message: "Invalid URL format" }).min(1, {message: "URL cannot be empty"}),
+  sequence: z.array(AdhocTestStepSchema).min(1, { message: "Sequence must contain at least one step" }),
+  elements: z.array(AdhocDetectedElementSchema), // Can be an empty array if no elements are pre-supplied
+  name: z.string().optional().default("Ad-hoc Test"), // Provide a default name
 });
 
 
@@ -287,19 +293,27 @@ export function registerRoutes(app: Express): Server {
 
     } catch (error) {
       if (error instanceof z.ZodError) {
+        // Log the actual request body that caused the validation error
+        logger.error("Invalid payload for /api/execute-test-direct: ", {
+          body: JSON.stringify(req.body, null, 2),
+          errors: error.flatten()
+        });
         return res.status(400).json({
           error: "Invalid request payload",
-          details: error.errors,
-          detectedElements: [] // Default for this error type
+          details: error.flatten(), // Using flatten for a more structured error response
+          detectedElements: []
         });
       }
-      logger.error("Error in /api/execute-test-direct:", { error });
+      logger.error("Error in /api/execute-test-direct:", {
+        message: error instanceof Error ? error.message : "Unknown error",
+        error // include the full error object for more details if available
+      });
       const errorMessage = error instanceof Error ? error.message : "Unknown error during direct test execution";
       res.status(500).json({
         success: false,
         error: "Failed to execute test directly",
-        details: errorMessage,
-        detectedElements: [] // Default for critical server errors
+        details: errorMessage, // Keep it as details
+        detectedElements: []
       });
     }
   });

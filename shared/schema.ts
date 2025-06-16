@@ -96,3 +96,65 @@ export type InsertTestRun = z.infer<typeof insertTestRunSchema>;
 export type TestRun = typeof testRuns.$inferSelect;
 export type UserSettings = typeof userSettings.$inferSelect;
 export type InsertUserSettings = typeof userSettings.$inferInsert;
+
+// Schemas for Adhoc Execution Payload Validation
+
+// Mirrors TestAction interface in server/playwright-service.ts
+export const AdhocTestActionSchema = z.object({
+  id: z.enum(['click', 'input', 'wait', 'scroll', 'assert', 'hover', 'select']), // Action type
+  type: z.string(), // Typically same as id, or could be a category.
+  name: z.string(), // User-friendly name
+  icon: z.string(),
+  description: z.string(),
+});
+export type AdhocTestAction = z.infer<typeof AdhocTestActionSchema>;
+
+// Mirrors DetectedElement interface in server/playwright-service.ts
+export const AdhocDetectedElementSchema = z.object({
+  id: z.string(), // Client-generated unique ID for the element
+  type: z.string(), // e.g., 'button', 'input', 'link'
+  selector: z.string(),
+  text: z.string().optional().nullable(), // Text content, can be empty
+  tag: z.string(),
+  attributes: z.record(z.string()), // Record<string, string>
+  boundingBox: z.object({
+    x: z.number(),
+    y: z.number(),
+    width: z.number(),
+    height: z.number(),
+  }).optional(),
+});
+export type AdhocDetectedElement = z.infer<typeof AdhocDetectedElementSchema>;
+
+// Mirrors TestStep interface in server/playwright-service.ts for ad-hoc execution
+export const AdhocTestStepSchema = z.object({
+  id: z.string(), // Client-side unique ID for this step instance
+  action: AdhocTestActionSchema,
+  targetElement: AdhocDetectedElementSchema.optional(),
+  value: z.string().optional().nullable(), // Value for actions like input, wait duration etc.
+}).refine(data => { // Ensure targetElement is present for actions that require it
+  if (['click', 'input', 'hover', 'select', 'assert'].includes(data.action.id) && !data.targetElement) {
+    return false;
+  }
+  return true;
+}, {
+  message: "targetElement is required for actions like click, input, hover, select, assert",
+  path: ['targetElement'], // Path of the error
+}).refine(data => { // Ensure value is present for actions that require it
+  if (['input', 'wait', 'select'].includes(data.action.id) && (data.value === undefined || data.value === null || data.value.trim() === '')) {
+    return false;
+  }
+  return true;
+}, {
+  message: "A non-empty value is required for input, wait, and select actions",
+  path: ['value'],
+}).refine(data => { // Ensure wait value is a number
+  if (data.action.id === 'wait') {
+    return !isNaN(Number(data.value));
+  }
+  return true;
+}, {
+  message: "For 'wait' action, value must be a number (e.g., '1000' for 1 second)",
+  path: ['value'],
+});
+export type AdhocTestStep = z.infer<typeof AdhocTestStepSchema>;
