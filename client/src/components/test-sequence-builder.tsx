@@ -281,25 +281,8 @@ export function TestSequenceBuilder({
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              ))}
-            </div>
-                        className="text-sm h-9"
-                      />
-                    </div>
-                  )}
-
-                  {/* Remove Step Button */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeStep(step.id)}
-                    className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 mt-2" // Keep margin for alignment
-                    aria-label="Remove step"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                ); // Closes the return statement of the map callback
+              })}
             </div>
           </ScrollArea>
         )}
