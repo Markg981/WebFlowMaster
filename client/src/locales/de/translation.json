@@ -1,11 +1,11 @@
 {
   "greeting": "Hello",
   "settings": {
-    "title": "Einstellungen", // Translated
-    "language": "Language", // Placeholder
-    "english": "English", // Placeholder
-    "italian": "Italian", // Placeholder
-    "toast": { // Placeholders
+    "title": "Einstellungen",
+    "language": "Language",
+    "english": "English",
+    "italian": "Italian",
+    "toast": {
       "savedTitle": "Settings saved",
       "savedDescription": "Your preferences have been updated successfully.",
       "errorTitle": "Error saving settings",
@@ -13,7 +13,7 @@
       "resetTitle": "Settings reset",
       "resetDescription": "Local form has been reset. Fetched settings may differ."
     },
-    "appearance": { // Placeholders
+    "appearance": {
       "title": "Appearance",
       "description": "Customize the look and feel of the application.",
       "darkModeLabel": "Dark Mode",
@@ -30,7 +30,7 @@
       "german": "Deutsch (Deutschland)",
       "selectHint": "Dies ändert die Sprache der Benutzeroberfläche."
     },
-    "buttons": { // Placeholders
+    "buttons": {
       "resetForm": "Reset Form",
       "cancel": "Cancel",
       "saveSettings": "Save Settings",
