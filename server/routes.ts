@@ -262,15 +262,26 @@ export function registerRoutes(app: Express): Server {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const validatedData = executeDirectTestSchema.parse(req.body);
+      // Using safeParse to handle validation explicitly
+      const parseResult = executeDirectTestSchema.safeParse(req.body);
+
+      if (!parseResult.success) {
+        console.error("BEGIN INVALID PAYLOAD FOR /api/execute-test-direct ---");
+        console.error("Payload:", JSON.stringify(req.body, null, 2));
+        console.error("Validation Errors:", JSON.stringify(parseResult.error.flatten(), null, 2));
+        console.error("END INVALID PAYLOAD ---");
+        return res.status(400).json({
+          error: "Invalid request payload",
+          details: parseResult.error.flatten(),
+          detectedElements: []
+        });
+      }
+
+      const validatedData = parseResult.data; // Use validated data from safeParse
       const userId = req.user.id;
 
       // Call the actual service method
       const executionResult = await playwrightService.executeAdhocSequence(validatedData, userId);
-
-      // The executionResult from executeAdhocSequence is expected to be:
-      // executionResult now includes detectedElements:
-      // { success: boolean; steps?: StepResult[]; error?: string; duration?: number; detectedElements?: DetectedElement[] }
 
       if (executionResult.success) {
         res.status(200).json({
@@ -280,8 +291,6 @@ export function registerRoutes(app: Express): Server {
           detectedElements: executionResult.detectedElements
         });
       } else {
-        // Send 400 or another appropriate error code based on the nature of 'executionResult.error'
-        // For simplicity, using 400 for any controlled failure from the service.
         res.status(400).json({
           success: false,
           error: executionResult.error,
@@ -292,27 +301,17 @@ export function registerRoutes(app: Express): Server {
       }
 
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        // Log the actual request body that caused the validation error
-        logger.error("Invalid payload for /api/execute-test-direct: ", {
-          body: JSON.stringify(req.body, null, 2),
-          errors: error.flatten()
-        });
-        return res.status(400).json({
-          error: "Invalid request payload",
-          details: error.flatten(), // Using flatten for a more structured error response
-          detectedElements: []
-        });
-      }
-      logger.error("Error in /api/execute-test-direct:", {
+      // This catch block now handles errors other than Zod validation,
+      // as Zod errors are handled by safeParse.
+      logger.error("Error in /api/execute-test-direct (non-validation):", {
         message: error instanceof Error ? error.message : "Unknown error",
-        error // include the full error object for more details if available
+        error
       });
       const errorMessage = error instanceof Error ? error.message : "Unknown error during direct test execution";
       res.status(500).json({
         success: false,
         error: "Failed to execute test directly",
-        details: errorMessage, // Keep it as details
+        details: errorMessage,
         detectedElements: []
       });
     }
