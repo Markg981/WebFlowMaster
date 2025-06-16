@@ -44,6 +44,44 @@ function simpleDebounce<F extends (...args: any[]) => void>(func: F, waitFor: nu
   return debouncedFunc as F & { cancel: () => void };
 }
 
+// Helper function to check if a test step is complete enough for real-time execution
+// Placed outside the component as it doesn't rely on component state/props directly.
+// Assumes DragDropTestStep structure has action.type, targetElement, and value.
+function isTestStepComplete(step: DragDropTestStep): boolean {
+  if (!step || !step.action || !step.action.type) {
+    return false; // Invalid step structure
+  }
+
+  const actionType = step.action.type; // Assuming action.type holds the string like 'input', 'click'
+
+  switch (actionType) {
+    case 'input':
+      // Requires a target element and a non-empty value
+      return !!step.targetElement && !!step.value && step.value.trim() !== "";
+    case 'select':
+      // Requires a target element and a non-empty value
+      return !!step.targetElement && !!step.value && step.value.trim() !== "";
+    case 'click':
+    case 'hover':
+    case 'assert': // Basic check for assert, might need more specifics depending on assertion types
+      // Require a target element
+      return !!step.targetElement;
+    case 'wait':
+      // Requires a non-empty value (server-side validates if it's numeric)
+      return !!step.value && step.value.trim() !== "";
+    case 'scroll':
+      // Assuming 'scroll' without targetElement means scroll window, which is always "complete"
+      // If scroll can target an element and that's a common case, this might need:
+      // return step.targetElement ? true : true; // Or more specific checks if target scroll needs validation
+      return true;
+    default:
+      // For actions not explicitly listed, default to false.
+      // This ensures any new action type must be explicitly considered here for completeness.
+      return false;
+  }
+}
+
+
 // Client-side StepResult interface matching backend
 interface StepResult {
   name: string;
@@ -552,15 +590,16 @@ export default function DashboardPage() {
   const handleSequenceUpdated = (newSequence: DragDropTestStep[]) => {
     setTestSequence(newSequence);
 
-    // Condition for real-time execution
-    if (newSequence.length > 0 && currentUrl && websiteLoaded) {
+    const allStepsComplete = newSequence.every(isTestStepComplete);
+
+    if (newSequence.length > 0 && allStepsComplete && currentUrl && websiteLoaded) {
+      // Conditions for debounced execution (isPending, isExecutingPlayback) are checked inside debouncedExecuteMutation
       const payload = {
         url: currentUrl,
         sequence: newSequence,
         elements: detectedElements, // Pass current elements as context
         name: testName || `Realtime Preview for ${currentUrl || "Untitled"}`
       };
-      // Call the debounced mutation. The check for isPending/isExecutingPlayback is inside debouncedExecuteMutation.
       debouncedExecuteMutation(payload);
     } else if (newSequence.length === 0) {
       // If sequence is cleared, cancel any pending debounced execution
@@ -582,6 +621,14 @@ export default function DashboardPage() {
       // if (loadWebsiteMutation.data?.screenshot) {
       //  setWebsiteScreenshot(loadWebsiteMutation.data.screenshot);
       // }
+    } else if (newSequence.length > 0 && !allStepsComplete) {
+      // Sequence is not empty but not all steps are complete.
+      // Cancel any pending debounced execution because the current sequence isn't fully valid for preview.
+      if (typeof debouncedExecuteMutation.cancel === 'function') {
+        debouncedExecuteMutation.cancel();
+      }
+      console.log("Real-time execution skipped: Not all test steps are complete.");
+      // Optionally, provide feedback to the user here (e.g., via a toast or UI indicator)
     }
   };
 
