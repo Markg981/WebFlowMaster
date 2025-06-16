@@ -58,11 +58,11 @@ export function TestSequenceBuilder({
   // Main drop target for adding NEW actions to the sequence
   const [{ isOver: isOverContainer }, dropContainer] = useDrop(() => ({
     accept: "action", // Only accepts new actions now
-    drop: (item: { action: TestAction /* Directly use TestAction type */ }) => {
+    drop: (item: { id: string; type: string; data: TestAction }) => {
       // Create new test step with action
       const newStep: TestStep = {
         id: `step-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, // More robust ID
-        action: item.action, // item.action is the TestAction object
+        action: item.data, // Changed from item.action to item.data
         // targetElement will be added by dropping an element onto the DraggableAction for this step
         value: ""
       };
@@ -179,89 +179,110 @@ export function TestSequenceBuilder({
         ) : (
           <ScrollArea className="h-full">
             <div className="space-y-3">
-              {testSequence.map((step, index) => (
-                <div
-                  key={step.id}
-                  className={`flex items-start space-x-2 bg-card p-2 rounded-lg shadow transition-all ${
-                    isReassociatingElementForStepId === step.id ? 'ring-2 ring-offset-2 ring-primary' : ''
-                  }`}
-                >
-                  {/* Step Number */}
-                  <div className="flex-shrink-0 mt-3 ml-1">
-                    <div className={`w-6 h-6 text-xs ${
-                        needsTargetElement(step.action.id) && !step.targetElement ? "bg-destructive" : // Use action.id
-                        step.targetElement ? "bg-green-600" : "bg-primary"
-                      } text-primary-foreground rounded-full flex items-center justify-center font-medium`}>
-                      {index + 1}
+              {testSequence.map((step, index) => {
+                const actionId = step.action?.id; // Use optional chaining
+
+                return (
+                  <div
+                    key={step.id}
+                    className={`flex items-start space-x-2 bg-card p-2 rounded-lg shadow transition-all ${
+                      isReassociatingElementForStepId === step.id ? 'ring-2 ring-offset-2 ring-primary' : ''
+                    }`}
+                  >
+                    {/* Step Number */}
+                    <div className="flex-shrink-0 mt-3 ml-1">
+                      <div className={`w-6 h-6 text-xs ${
+                          actionId && needsTargetElement(actionId) && !step.targetElement ? "bg-destructive" :
+                          step.targetElement ? "bg-green-600" : "bg-primary"
+                        } text-primary-foreground rounded-full flex items-center justify-center font-medium`}>
+                        {index + 1}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Action Type Dropdown and Re-associate Button */}
-                  <div className="flex flex-col space-y-1 items-start" style={{width: "180px"}}>
-                    <Select
-                      value={step.action.id} // This should be correct as action.id is the unique identifier
-                      onValueChange={(newActionId) => handleUpdateActionType(step.id, newActionId)}
-                    >
-                      <SelectTrigger className="w-full h-9 text-xs">
-                        <SelectValue placeholder="Change action" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableActions.map(action => (
-                          <SelectItem key={action.id} value={action.id} className="text-xs">
-                            {action.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {needsTargetElement(step.action.id) && ( // Use action.id
-                      <Button
-                        variant="outline"
-                        size="xs" // Assuming a smaller size, might need to define in Button component
-                        onClick={() => setReassociatingElementForStepId(step.id)}
-                        className="text-xs h-7" // Custom height if size="xs" not available
+                    {/* Action Type Dropdown and Re-associate Button */}
+                    <div className="flex flex-col space-y-1 items-start" style={{width: "180px"}}>
+                      <Select
+                        value={actionId || ''} // Provide a fallback if actionId is undefined
+                        onValueChange={(newActionId) => handleUpdateActionType(step.id, newActionId)}
                       >
-                        <RefreshCw className="h-3 w-3 mr-1" />
-                        {step.targetElement ? 'Change Element' : 'Set Element'}
-                      </Button>
-                    )}
-                  </div>
+                        <SelectTrigger className="w-full h-9 text-xs">
+                          <SelectValue placeholder="Change action" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableActions.map(action => (
+                            <SelectItem key={action.id} value={action.id} className="text-xs">
+                              {action.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {actionId && needsTargetElement(actionId) && (
+                        <Button
+                          variant="outline"
+                          size="xs" // Assuming a smaller size, might need to define in Button component
+                          onClick={() => setReassociatingElementForStepId(step.id)}
+                          className="text-xs h-7" // Custom height if size="xs" not available
+                        >
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          {step.targetElement ? 'Change Element' : 'Set Element'}
+                        </Button>
+                      )}
+                    </div>
 
-                  {/* DraggableAction as the representation of the action part of the step (or target drop zone) */}
-                  {/* This now primarily serves as the drop zone when re-associating */}
-                  <div className="flex-1">
-                    <DraggableAction
-                      action={step.action}
-                      stepId={step.id}
-                      onDropElement={handleAssociateElementToAction}
-                      targetElement={step.targetElement}
-                      isDropZoneActive={isReassociatingElementForStepId === step.id} // Prop to highlight if it's the active drop zone
-                    />
-                  </div>
+                    {/* DraggableAction as the representation of the action part of the step (or target drop zone) */}
+                    {/* This now primarily serves as the drop zone when re-associating */}
+                    <div className="flex-1">
+                      <DraggableAction
+                        action={step.action} // Pass the whole action object
+                        stepId={step.id}
+                        onDropElement={handleAssociateElementToAction}
+                        targetElement={step.targetElement}
+                        isDropZoneActive={isReassociatingElementForStepId === step.id} // Prop to highlight if it's the active drop zone
+                      />
+                    </div>
 
-                  {/* Value Input */}
-                  {needsValue(step.action.id) && ( // Use action.id
-                    <div className="flex-1 min-w-0 ml-2 mt-0.5"> {/* Adjusted margin */}
-                       <Label htmlFor={`step-value-${step.id}`} className="text-xs text-muted-foreground">
-                        {step.action.id === "input" ? "Text to input" :
-                         step.action.id === "select" ? "Option value" :
-                         step.action.id === "wait" ? "Time (ms)" :
-                         step.action.id === "assertTextContains" ? "Expected text" :
-                         step.action.id === "assertElementCount" ? "Count (e.g. ==1)" :
-                         step.action.id === "assert" ? "Expected value" : "Value"}
-                      </Label>
-                      <Input
-                        id={`step-value-${step.id}`}
-                        placeholder={
-                          step.action.id === "input" ? "Enter text..." :
-                          step.action.id === "select" ? "Enter option value..." :
-                          step.action.id === "wait" ? "e.g., 1000" :
-                          step.action.id === "assertTextContains" ? "Text the element should contain..." :
-                          step.action.id === "assertElementCount" ? "e.g., '==1', '>=5', '<3'" :
-                          step.action.id === "assert" ? "Expected text or attribute value..." :
-                          "Value..."
-                        }
-                        value={step.value || ""}
-                        onChange={(e) => updateStepValue(step.id, e.target.value)}
+                    {/* Value Input */}
+                    {actionId && needsValue(actionId) && (
+                      <div className="flex-1 min-w-0 ml-2 mt-0.5"> {/* Adjusted margin */}
+                         <Label htmlFor={`step-value-${step.id}`} className="text-xs text-muted-foreground">
+                          {actionId === "input" ? "Text to input" :
+                           actionId === "select" ? "Option value" :
+                           actionId === "wait" ? "Time (ms)" :
+                           actionId === "assertTextContains" ? "Expected text" :
+                           actionId === "assertElementCount" ? "Count (e.g. ==1)" :
+                           actionId === "assert" ? "Expected value" : "Value"}
+                        </Label>
+                        <Input
+                          id={`step-value-${step.id}`}
+                          placeholder={
+                            actionId === "input" ? "Enter text..." :
+                            actionId === "select" ? "Enter option value..." :
+                            actionId === "wait" ? "e.g., 1000" :
+                            actionId === "assertTextContains" ? "Text the element should contain..." :
+                            actionId === "assertElementCount" ? "e.g., '==1', '>=5', '<3'" :
+                            actionId === "assert" ? "Expected text or attribute value..." :
+                            "Value..."
+                          }
+                          value={step.value || ""}
+                          onChange={(e) => updateStepValue(step.id, e.target.value)}
+                        className="text-sm h-9"
+                      />
+                    </div>
+                  )}
+
+                  {/* Remove Step Button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeStep(step.id)}
+                    className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 mt-2" // Keep margin for alignment
+                    aria-label="Remove step"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
                         className="text-sm h-9"
                       />
                     </div>
