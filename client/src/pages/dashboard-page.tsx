@@ -244,9 +244,9 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Back to Dashboard Button + URL Input Section */}
-      <div className="px-6 pt-4 bg-white border-b border-gray-200"> {/* Combined container for button and URL input for shared background and padding */}
-        <div className="mb-4"> {/* Spacing for the button */}
+      {/* Back to Dashboard Button Section */}
+      <div className="px-6 pt-4 bg-white border-b border-gray-200">
+        <div className="mb-4">
           <Link href="/dashboard">
             <Button variant="outline" size="sm">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -254,9 +254,15 @@ export default function DashboardPage() {
             </Button>
           </Link>
         </div>
-        {/* URL Input Section (original structure mostly preserved) */}
-        <div className="pb-4"> {/* Added pb-4 to keep original spacing below URL input */}
-          <div className="flex items-center space-x-4">
+      </div>
+
+      {/* URL Input Section */}
+      {/* Original class was: "bg-white border-b border-gray-200 px-6 py-4" */}
+      {/* Since the button div above now has border-b, this one might not need it if they are visually separate sections. */}
+      {/* However, the prompt implies adding the button *before* the URL section, suggesting two distinct sections. */}
+      {/* Let's assume the URL section should retain its original styling for now, including top padding. */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center space-x-4"> {/* This div was missing in the original prompt's "URL input" description but is needed */}
             <div className="flex-1">
             <Label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboardPage.urlInputLabel')}</Label>
             <div className="flex space-x-3">
