@@ -106,6 +106,10 @@ export const insertTestSchema = createInsertSchema(tests).omit({
   updatedAt: true,
 });
 
+export const insertProjectSchema = createInsertSchema(projects, {
+  name: z.string().min(1, "Project name cannot be empty"),
+}).pick({ name: true });
+
 export const insertTestRunSchema = createInsertSchema(testRuns).omit({
   id: true,
   startedAt: true,
