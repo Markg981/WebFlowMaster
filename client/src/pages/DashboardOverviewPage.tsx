@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'wouter';
-import KpiPanel from '../../components/dashboard/KpiPanel';
+import KpiPanel from '@/components/dashboard/KpiPanel';
 import TestStatusPieChart from '../../components/dashboard/TestStatusPieChart';
 import TestTrendBarChart from '../../components/dashboard/TestTrendBarChart';
 import TestSchedulingsTable from '../../components/dashboard/TestSchedulingsTable';
