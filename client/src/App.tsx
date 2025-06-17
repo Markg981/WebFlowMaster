@@ -11,6 +11,7 @@ import { DragDropProvider } from "@/components/drag-drop-provider";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import DashboardPage from "@/pages/dashboard-page-new";
+import DashboardOverviewPage from "@/pages/DashboardOverviewPage"; // Added import
 import SettingsPage from "@/pages/settings-page";
 import { ProtectedRoute } from "./lib/protected-route";
 // Imports for ThemeLoader
@@ -59,6 +60,8 @@ function Router() {
   return (
     <Switch>
       <ProtectedRoute path="/" component={DashboardPage} />
+      {/* Assuming /dashboard should also be a protected route, like / and /settings */}
+      <ProtectedRoute path="/dashboard" component={DashboardOverviewPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
