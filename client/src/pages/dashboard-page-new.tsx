@@ -33,6 +33,7 @@ import {
   Pause,
   StopCircle,
   ArrowLeft, // Add this if not present
+  XCircle, // Added for test result display
 } from "lucide-react";
 import { Link } from "wouter";
 import debounceFromLodash from 'lodash/debounce'; // Attempt to import lodash.debounce
@@ -218,6 +219,7 @@ export default function DashboardPage() {
   const [currentSavedTestId, setCurrentSavedTestId] = useState<string | null>(null); // To store ID of saved/loaded test
   const [testName, setTestName] = useState<string>(""); // To store test name
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [lastTestOverallResult, setLastTestOverallResult] = useState<boolean | null>(null);
 
 
   const imageRef = useRef<HTMLImageElement>(null);
@@ -824,6 +826,7 @@ export default function DashboardPage() {
     },
     onSuccess: (data) => { // data is { success, steps, error, duration, detectedElements }
       if (data.success && data.steps?.length) {
+        setLastTestOverallResult(data.success); // Store overall test result
         setPlaybackSteps(data.steps);
         setCurrentPlaybackStepIndex(0);
         setIsExecutingPlayback(true);
@@ -847,7 +850,8 @@ export default function DashboardPage() {
         } else {
           setDetectedElements([]);
         }
-        toast({ title: "Execution Failed", description: data.error || "No steps returned or direct execution failed.", variant: "destructive" });
+        setLastTestOverallResult(false); // Set overall result to failed
+        toast({ title: "Test Failed", description: data.error || "No steps returned or direct execution failed.", variant: "destructive" });
       }
     },
     onError: (error: Error) => {
@@ -855,7 +859,8 @@ export default function DashboardPage() {
       setCurrentPlaybackStepIndex(null);
       setPlaybackSteps([]);
       setDetectedElements([]); // Clear elements on error
-      toast({ title: "Direct Execution Request Failed", description: error.message, variant: "destructive" });
+      setLastTestOverallResult(false); // Set overall result to failed
+      toast({ title: "Test Failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -884,10 +889,25 @@ export default function DashboardPage() {
       setIsExecutingPlayback(false);
       setCurrentPlaybackStepIndex(null);
       // setPlaybackSteps([]); // Keep steps for review until next execution? Or clear.
-      toast({
-        title: "Playback Complete",
-        description: "Finished playing back all test steps.",
-      });
+      if (lastTestOverallResult === true) {
+        toast({
+          title: "Test Passed",
+          description: "All steps executed successfully.",
+        });
+      } else if (lastTestOverallResult === false) {
+        toast({
+          title: "Test Failed",
+          description: "Some steps failed during execution.",
+          variant: "destructive",
+        });
+      } else {
+        // This case should ideally not be reached if lastTestOverallResult is always set before playback
+        toast({
+          title: "Playback Complete",
+          description: "Finished playing back all test steps. Test result unknown.",
+          variant: "default", // Or "warning"
+        });
+      }
       // Optionally, restore the original website screenshot if available
       // if (loadWebsiteMutation.data?.screenshot) {
       //   setWebsiteScreenshot(loadWebsiteMutation.data.screenshot);
@@ -897,6 +917,7 @@ export default function DashboardPage() {
 
 
   const handleExecuteTest = () => {
+    setLastTestOverallResult(null); // Reset overall result before new execution
     if (testSequence.length === 0) {
       toast({ title: "Empty Sequence", description: "Please add steps to your test sequence.", variant: "destructive" });
       return;
@@ -914,6 +935,7 @@ export default function DashboardPage() {
 
   const handleClearSequence = () => {
     setTestSequence([]);
+    setLastTestOverallResult(null); // Reset overall result
     // Optionally, when the sequence is cleared, you might want to re-fetch initial elements
     // if (currentUrl && websiteLoaded) {
     //   handleDetectElements();
@@ -1043,7 +1065,15 @@ export default function DashboardPage() {
                 className="flex-1"
                 placeholder="https://example.com"
                 value={currentUrl}
-                onChange={(e) => setCurrentUrl(e.target.value)}
+                onChange={(e) => {
+                  setCurrentUrl(e.target.value);
+                  setLastTestOverallResult(null); // Reset on URL change
+                  setWebsiteLoaded(false); // Also reset website loaded status
+                  setWebsiteScreenshot(null);
+                  setDetectedElements([]);
+                  setPlaybackSteps([]); // Clear previous playback steps
+                  setIsExecutingPlayback(false); // Stop any ongoing playback
+                }}
                 disabled={isRecording || startRecordingMutation.isPending}
               />
               <Button
@@ -1115,6 +1145,28 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Overall Test Result Display */}
+      {lastTestOverallResult !== null && (
+        <div className="px-6 py-4">
+          {lastTestOverallResult === true && (
+            <div className="p-3 rounded-md bg-green-100 border border-green-300 text-green-700">
+              <div className="flex items-center">
+                <CheckCircle className="h-5 w-5 mr-2" />
+                <span className="font-semibold">Test Result: Passed</span>
+              </div>
+            </div>
+          )}
+          {lastTestOverallResult === false && (
+            <div className="p-3 rounded-md bg-red-100 border border-red-300 text-red-700">
+              <div className="flex items-center">
+                <XCircle className="h-5 w-5 mr-2" />
+                <span className="font-semibold">Test Result: Failed</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Main Content Area - Two-level layout */}
       <div className="flex-1 flex flex-col">
@@ -1264,6 +1316,7 @@ export default function DashboardPage() {
             isExecuting={executeDirectTestMutation.isPending || isExecutingPlayback}
             isSaving={saveTestMutation.isPending && !executeDirectTestMutation.isPending && !isExecutingPlayback}
             isRecordingActive={isRecording} // Pass the isRecording state
+            lastTestOutcome={lastTestOverallResult} // Pass the test outcome state
           />
         </div>
       </div>
