@@ -18,7 +18,7 @@ import {
 import { availableActions, TestAction } from "@/pages/dashboard-page-new";
 import { TestStep, DetectedElement } from "@/components/drag-drop-provider"; // TestAction removed from here
 import { DraggableAction } from "./draggable-action"; // Import DraggableAction
-import { Trash2, Settings, Plus, Link2, RefreshCw } from "lucide-react"; // Added Link2 for element icon, RefreshCw as an option
+import { Trash2, Settings, Plus, Link2, RefreshCw, CheckCircle2, XCircle } from "lucide-react"; // Added Link2 for element icon, RefreshCw as an option
 // Icons for actions are now rendered by DraggableAction, so they might not be needed here directly
 // unless used for other UI elements. Keeping them for now.
 // Specific action icons (MousePointer, Keyboard, etc.) might not be needed if DraggableAction handles icon display
@@ -43,6 +43,7 @@ interface TestSequenceBuilderProps {
   isExecuting?: boolean;
   isSaving?: boolean;
   isRecordingActive?: boolean; // New prop
+  lastTestOutcome?: boolean | null; // New prop for test outcome
 }
 
 export function TestSequenceBuilder({
@@ -54,6 +55,7 @@ export function TestSequenceBuilder({
   isExecuting = false,
   isSaving = false,
   isRecordingActive = false, // Default value for the new prop
+  lastTestOutcome = null, // Default value for the new prop
 }: TestSequenceBuilderProps) {
   const [isReassociatingElementForStepId, setReassociatingElementForStepId] = useState<string | null>(null);
 
@@ -311,7 +313,13 @@ export function TestSequenceBuilder({
 
       {/* Action Buttons */}
       <Separator className="my-4" /> {/* Separator component from ui/ is theme-aware */}
-      <div className="flex space-x-3">
+      <div className="flex items-center space-x-3"> {/* Added items-center for vertical alignment */}
+        {lastTestOutcome === true && (
+          <CheckCircle2 className="mr-2 h-5 w-5 text-green-500" />
+        )}
+        {lastTestOutcome === false && (
+          <XCircle className="mr-2 h-5 w-5 text-red-500" />
+        )}
         <Button
           onClick={onExecuteTest}
           disabled={testSequence.length === 0 || isExecuting}
