@@ -114,22 +114,42 @@ const ApiTesterPage: React.FC = () => {
     }
   }, [url, queryParams]);
 
-  const saveToHistoryMutation = useMutation<ApiTestHistoryEntry, Error, InsertApiTestHistoryEntry>(
-    async (historyEntry) => {
-        const payload: InsertApiTestHistoryEntry = {
-            ...historyEntry,
-            queryParams: historyEntry.queryParams ? JSON.stringify(historyEntry.queryParams) : null,
-            requestHeaders: historyEntry.requestHeaders ? JSON.stringify(historyEntry.requestHeaders) : null,
-            responseHeaders: historyEntry.responseHeaders ? JSON.stringify(historyEntry.responseHeaders) : null,
-            responseBody: historyEntry.responseBody ? (typeof historyEntry.responseBody === 'string' ? historyEntry.responseBody : JSON.stringify(historyEntry.responseBody)) : null,
-        };
-        return (await apiRequest('POST', '/api/api-test-history', payload)).json();
+  const saveToHistoryMutation = useMutation<
+    ApiTestHistoryEntry,
+    Error,
+    InsertApiTestHistoryEntry
+  >({ // Ensure this is an object literal for the options
+    mutationFn: async (historyEntry: InsertApiTestHistoryEntry) => {
+      const payloadForBackend: InsertApiTestHistoryEntry = {
+          method: historyEntry.method,
+          url: historyEntry.url,
+          queryParams: historyEntry.queryParams,
+          requestHeaders: historyEntry.requestHeaders,
+          requestBody: historyEntry.requestBody,
+          responseStatus: historyEntry.responseStatus,
+          responseHeaders: historyEntry.responseHeaders,
+          responseBody: historyEntry.responseBody,
+          durationMs: historyEntry.durationMs,
+      };
+      // userId, id, createdAt are omitted as they are handled by backend/DB.
+      // The InsertApiTestHistoryEntry type should reflect this.
+      const response = await apiRequest('POST', '/api/api-test-history', payloadForBackend);
+      return response.json();
     },
-    {
-      onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['apiTestHistory'] }); },
-      onError: (error) => { toast({ title: "Failed to save to history", description: error.message, variant: "destructive", duration: 3000 }); }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['apiTestHistory'] });
+      // toast({ title: "Saved to history", duration: 2000 }); // Optional: subtle success toast
+    },
+    onError: (error: Error) => {
+      console.error("Failed to save to history:", error);
+      toast({
+        title: "Error Saving History",
+        description: error.message,
+        variant: "destructive",
+        duration: 3000,
+      });
     }
-  );
+  });
 
   const apiProxyMutation = useMutation<
     ProxyResponse,
