@@ -19,6 +19,7 @@ import { DraggableAction } from "@/components/draggable-action";
 import { DraggableElement } from "@/components/draggable-element";
 import { TestSequenceBuilder } from "@/components/test-sequence-builder";
 import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
+import SaveTestModal from "@/components/SaveTestModal"; // Import the modal
 import { 
   TestTube,
   Globe,
@@ -216,6 +217,7 @@ export default function DashboardPage() {
   const [playbackSteps, setPlaybackSteps] = useState<StepResult[]>([]);
   const [currentSavedTestId, setCurrentSavedTestId] = useState<string | null>(null); // To store ID of saved/loaded test
   const [testName, setTestName] = useState<string>(""); // To store test name
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
 
 
   const imageRef = useRef<HTMLImageElement>(null);
@@ -474,7 +476,28 @@ export default function DashboardPage() {
       });
       return;
     }
-    saveTestMutation.mutate();
+    // saveTestMutation.mutate(); // This will be moved to the modal
+    handleOpenSaveModal();
+  };
+
+  const handleOpenSaveModal = () => {
+    setIsSaveModalOpen(true);
+  };
+
+  const handleCloseSaveModal = () => {
+    setIsSaveModalOpen(false);
+  };
+
+  const handleConfirmSaveTest = (newName: string) => {
+    setTestName(newName); // Update the main page's testName state
+    saveTestMutation.mutate({
+      name: newName,
+      url: currentUrl,
+      sequence: testSequence,
+      elements: detectedElements,
+      status: "draft", // Or any default status
+    });
+    handleCloseSaveModal(); // Close the modal after saving
   };
 
   const startRecordingMutation = useMutation({
@@ -1012,15 +1035,6 @@ export default function DashboardPage() {
       <div className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center space-x-4">
           <div className="flex-grow">
-            <Label htmlFor="testNameInput" className="block text-sm font-medium text-card-foreground mb-1">Test Name</Label>
-            <Input
-              id="testNameInput"
-              type="text"
-              placeholder="Enter test name (e.g., Login Flow)"
-              value={testName}
-              onChange={(e) => setTestName(e.target.value)}
-              className="mb-3"
-            />
             <Label htmlFor="urlInput" className="block text-sm font-medium text-card-foreground mb-1">Website URL to Test</Label>
             <div className="flex space-x-3">
               <Input
@@ -1253,6 +1267,12 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+      <SaveTestModal
+        isOpen={isSaveModalOpen}
+        onClose={handleCloseSaveModal}
+        onSave={handleConfirmSaveTest}
+        initialTestName={testName}
+      />
     </div>
   );
 }
