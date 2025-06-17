@@ -30,10 +30,11 @@ import {
   Trash2,
   Settings,
   Bell,
-  User
+  User,
+  ArrowLeft // Added ArrowLeft import
 } from "lucide-react";
 import { useTranslation } from 'react-i18next';
-import { Link, useRoute } from 'wouter'; // Added wouter imports
+import { Link, useRoute } from 'wouter';
 
 interface DetectedElement {
   id: string;
@@ -217,22 +218,7 @@ export default function DashboardPage() {
               <TestTube className="h-6 w-6 text-primary" />
               <h1 className="text-xl font-bold text-gray-900">{t('dashboardPage.headerTitle')}</h1>
             </div>
-            
-            <nav className="hidden md:flex space-x-6">
-              {/* Dashboard Link */}
-              <Link href='/dashboard'>
-                <a className={`pb-2 text-sm ${isDashboardActive ? 'text-primary font-semibold border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-                  {t('nav.dashboard')}
-                </a>
-              </Link>
-              {/* Create Test Link (this page) */}
-              <Link href='/'>
-                <a className={`pb-2 text-sm ${isCreateTestActive ? 'text-primary font-semibold border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-                  {t('nav.createTest')}
-                </a>
-              </Link>
-              {/* My Tests and Reports are removed as per instruction */}
-            </nav>
+            {/* Removed nav block */}
           </div>
           
           <div className="flex items-center space-x-4">
@@ -258,10 +244,20 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* URL Input Section */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center space-x-4">
-          <div className="flex-1">
+      {/* Back to Dashboard Button + URL Input Section */}
+      <div className="px-6 pt-4 bg-white border-b border-gray-200"> {/* Combined container for button and URL input for shared background and padding */}
+        <div className="mb-4"> {/* Spacing for the button */}
+          <Link href="/dashboard">
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              {t('nav.backToDashboard')}
+            </Button>
+          </Link>
+        </div>
+        {/* URL Input Section (original structure mostly preserved) */}
+        <div className="pb-4"> {/* Added pb-4 to keep original spacing below URL input */}
+          <div className="flex items-center space-x-4">
+            <div className="flex-1">
             <Label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboardPage.urlInputLabel')}</Label>
             <div className="flex space-x-3">
               <Input

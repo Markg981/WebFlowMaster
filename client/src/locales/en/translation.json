@@ -47,7 +47,8 @@
     "suites": "Suites",
     "schedulazioni": "Schedulings",
     "reports": "Reports",
-    "settings": "Settings"
+    "settings": "Settings",
+    "backToDashboard": "Back to Dashboard"
   },
   "dashboardPage": {
     "headerTitle": "WebTest Platform",
