@@ -40,6 +40,16 @@
   "dashboard": {
     "title": "Dashboard"
   },
+  "nav": {
+    "dashboard": "Dashboard",
+    "createTest": "Create Test",
+    "tests": "Tests",
+    "suites": "Suites",
+    "schedulazioni": "Schedulings",
+    "reports": "Reports",
+    "settings": "Settings",
+    "backToDashboard": "Back to Dashboard"
+  },
   "dashboardPage": {
     "headerTitle": "WebTest Platform",
     "navCreateTest": "Create Test",
