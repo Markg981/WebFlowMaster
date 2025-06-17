@@ -12,6 +12,7 @@ import AuthPage from "@/pages/auth-page";
 import DashboardPage from "@/pages/dashboard-page-new"; // This is the "Create Test" page
 import DashboardOverviewPage from "@/pages/DashboardOverviewPage";
 import SettingsPage from "@/pages/settings-page";
+import ApiTesterPage from "@/pages/ApiTesterPage"; // Import the new page
 import { ProtectedRoute } from "./lib/protected-route";
 // Imports for ThemeLoader
 import { useEffect } from 'react'; // useEffect already imported
@@ -75,6 +76,7 @@ function Router() {
     <Switch>
       <Route path="/" component={RootRedirector} /> {/* Handles root path redirection */}
       <ProtectedRoute path="/dashboard/create-test" component={DashboardPage} />
+  <ProtectedRoute path="/dashboard/api-tester" component={ApiTesterPage} /> {/* Add new route */}
       <ProtectedRoute path="/dashboard" component={DashboardOverviewPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
       <Route path="/auth" component={AuthPage} />

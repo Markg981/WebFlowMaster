@@ -44,7 +44,8 @@
     "dashboard": "Dashboard",
     "createTest": "Crea Test",
     "tests": "Test",
-    "suites": "Suite",
+    "suites": "Suite di Test",
+    "apiTester": "Tester API"
     "schedulazioni": "Schedulazioni",
     "reports": "Report",
     "settings": "Impostazioni",

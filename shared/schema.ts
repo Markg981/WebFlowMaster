@@ -50,6 +50,36 @@ export const testRuns = sqliteTable("test_runs", {
   completedAt: text("completed_at"),
 });
 
+export const apiTestHistory = sqliteTable("api_test_history", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  method: text("method").notNull(),
+  url: text("url").notNull(),
+  queryParams: text("query_params", { mode: 'json' }),
+  requestHeaders: text("request_headers", { mode: 'json' }),
+  requestBody: text("request_body"),
+  responseStatus: integer("response_status"),
+  responseHeaders: text("response_headers", { mode: 'json' }),
+  responseBody: text("response_body"),
+  durationMs: integer("duration_ms"),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+export const apiTests = sqliteTable("api_tests", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
+  name: text("name").notNull(),
+  method: text("method").notNull(),
+  url: text("url").notNull(),
+  queryParams: text("query_params", { mode: 'json' }),
+  requestHeaders: text("request_headers", { mode: 'json' }),
+  requestBody: text("request_body"),
+  assertions: text("assertions", { mode: 'json' }),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
 // Relation Definitions
 export const usersRelations = relations(users, ({ many, one }) => ({
   userSettings: one(userSettings, {
@@ -58,6 +88,8 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   }),
   projects: many(projects),
   tests: many(tests), // user can have tests not associated with a project
+  apiTestHistory: many(apiTestHistory),
+  apiTests: many(apiTests),
 }));
 
 export const userSettingsRelations = relations(userSettings, ({ one }) => ({
@@ -73,6 +105,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     references: [users.id],
   }),
   tests: many(tests),
+  apiTests: many(apiTests),
 }));
 
 export const testsRelations = relations(tests, ({ one, many }) => ({
@@ -91,6 +124,24 @@ export const testRunsRelations = relations(testRuns, ({ one }) => ({
   test: one(tests, {
     fields: [testRuns.testId],
     references: [tests.id],
+  }),
+}));
+
+export const apiTestHistoryRelations = relations(apiTestHistory, ({ one }) => ({
+  user: one(users, {
+      fields: [apiTestHistory.userId],
+      references: [users.id],
+  }),
+}));
+
+export const apiTestsRelations = relations(apiTests, ({ one, many }) => ({
+  user: one(users, {
+      fields: [apiTests.userId],
+      references: [users.id],
+  }),
+  project: one(projects, {
+      fields: [apiTests.projectId],
+      references: [projects.id],
   }),
 }));
 
@@ -128,7 +179,67 @@ export type InsertUserSettings = typeof userSettings.$inferInsert;
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = typeof projects.$inferInsert;
 
+// --- Assertion Schemas ---
+export const AssertionSourceSchema = z.enum(['status_code', 'header', 'body_json_path', 'body_text', 'response_time']);
+export const AssertionComparisonSchema = z.enum([
+  'equals', 'not_equals',
+  'contains', 'not_contains',
+  'exists', 'not_exists',
+  'is_empty', 'is_not_empty',
+  'greater_than', 'less_than',
+  'greater_than_or_equals', 'less_than_or_equals',
+  'matches_regex', 'not_matches_regex'
+]);
+
+export const AssertionSchema = z.object({
+  id: z.string().uuid().describe("Client-generated unique ID for the assertion row"),
+  source: AssertionSourceSchema,
+  property: z.string().optional().describe("e.g., Header name, JSONPath expression, or empty for status_code/body_text"),
+  comparison: AssertionComparisonSchema,
+  targetValue: z.string().optional().describe("Expected value; regex for matches_regex"),
+  enabled: z.boolean().default(true),
+});
+export type Assertion = z.infer<typeof AssertionSchema>;
+
+// --- Insert/Update Schemas for API Tests & History ---
+export const insertApiTestHistorySchema = createInsertSchema(apiTestHistory, {
+  // Define any specific Zod types for fields if needed, e.g., for JSON fields
+  // Omit fields that are auto-generated or should not be set directly by client
+}).omit({ id: true, createdAt: true, userId: true }); // userId will be from session
+
+export const insertApiTestSchema = createInsertSchema(apiTests, {
+  name: z.string().min(1, "Test name cannot be empty"),
+  method: z.string().min(1, "HTTP method is required"),
+  url: z.string().url("Invalid URL format"),
+  // queryParams, requestHeaders, requestBody, assertions are handled by .extend() or directly on apiTests schema
+}).omit({
+  id: true, createdAt: true, updatedAt: true, userId: true, projectId: true,
+  // Explicitly omit text fields that store JSON and will be handled by .extend with Zod array/object types
+  queryParams: true, requestHeaders: true, requestBody: true, assertions: true
+}).extend({
+  queryParams: z.record(z.string().or(z.array(z.string()))).optional().nullable(),
+  requestHeaders: z.record(z.string()).optional().nullable(),
+  requestBody: z.any().optional().nullable(), // Keep as any for flexibility, will be stringified
+  assertions: z.array(AssertionSchema).optional().nullable()
+});
+
+export const updateApiTestSchema = insertApiTestSchema.partial().extend({
+  // Ensure even in partial updates, these fields are validated against their Zod types if provided
+  queryParams: z.record(z.string().or(z.array(z.string()))).optional().nullable(),
+  requestHeaders: z.record(z.string()).optional().nullable(),
+  requestBody: z.any().optional().nullable(),
+  assertions: z.array(AssertionSchema).optional().nullable()
+});
+
+
+export type ApiTestHistoryEntry = typeof apiTestHistory.$inferSelect;
+export type InsertApiTestHistoryEntry = typeof apiTestHistory.$inferInsert;
+export type ApiTest = typeof apiTests.$inferSelect;
+export type InsertApiTest = typeof apiTests.$inferInsert;
+
 // Schemas for Adhoc Execution Payload Validation
+// Make sure this section remains *after* all table schema, relations, Zod insert schemas, and type exports
+
 export const AdhocTestActionSchema = z.object({
   id: z.enum([
     'click',
