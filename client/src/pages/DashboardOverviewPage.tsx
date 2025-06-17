@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button'; // Added Button import
 import {
   Home, PlusSquare, ListChecksIcon as TestsIcon, LibrarySquare as SuitesIcon,
-  CalendarClock, FileTextIcon as ReportsIcon, Settings as SettingsIcon,
+  CalendarClock, FileTextIcon as ReportsIcon, Settings as SettingsIcon, Network, // Added Network icon
   PanelLeftClose, PanelRightClose, UserCircle, TestTube // Added TestTube
 } from 'lucide-react';
 import KpiPanel from '@/components/dashboard/KpiPanel';
@@ -22,6 +22,7 @@ const DashboardOverviewPage: React.FC = () => {
 
   const [isDashboardActive] = useRoute('/dashboard');
   const [isCreateTestActive] = useRoute('/dashboard/create-test'); // Changed path
+  const [isApiTesterActive] = useRoute('/dashboard/api-tester'); // For the new API Tester link
   const [isSettingsActive] = useRoute('/settings');
   // Placeholder active states for other links - assuming false for now
   const isTestsActive = false;
@@ -71,6 +72,14 @@ const DashboardOverviewPage: React.FC = () => {
                   <a title={t('nav.dashboard')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isDashboardActive ? activeLinkStyle : inactiveLinkStyle}`}>
                     <Home className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
                     {!isSidebarCollapsed && <span>{t('nav.dashboard')}</span>}
+                  </a>
+                </Link>
+              </li>
+              <li>
+                <Link href="/dashboard/api-tester">
+                  <a title={t('nav.apiTester', 'API Tester')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isApiTesterActive ? activeLinkStyle : inactiveLinkStyle}`}>
+                    <Network className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
+                    {!isSidebarCollapsed && <span>{t('nav.apiTester', 'API Tester')}</span>}
                   </a>
                 </Link>
               </li>
