@@ -238,20 +238,20 @@ const ApiTesterPage: React.FC = () => {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [currentTestToEdit, setCurrentTestToEdit] = useState<ApiTest | null>(null);
 
-  const { data: historyData, isLoading: isLoadingHistory } = useQuery<{items: ApiTestHistoryEntry[], totalItems: number, totalPages: number}>(
-    ['apiTestHistory'],
-    async () => (await apiRequest('GET', '/api/api-test-history?limit=50')).json(),
-    { staleTime: 1 * 60 * 1000 }
-  );
+  const { data: historyData, isLoading: isLoadingHistory } = useQuery({ // V5 Syntax
+    queryKey: ['apiTestHistory'],
+    queryFn: async () => (await apiRequest('GET', '/api/api-test-history?limit=50')).json(),
+    staleTime: 1 * 60 * 1000
+  });
 
-  const { data: savedTestsData, isLoading: isLoadingSavedTests } = useQuery<ApiTest[]>(
-    ['apiTests'],
-    async () => (await apiRequest('GET', '/api/api-tests')).json(),
-    { staleTime: 5 * 60 * 1000 }
-  );
+  const { data: savedTestsData, isLoading: isLoadingSavedTests } = useQuery({ // V5 Syntax
+    queryKey: ['apiTests'],
+    queryFn: async () => (await apiRequest('GET', '/api/api-tests')).json(),
+    staleTime: 5 * 60 * 1000
+  });
 
-  const saveApiTestMutation = useMutation<ApiTest, Error, {name: string, projectId?: number | null} & Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt'>>(
-      async (testData) => {
+  const saveApiTestMutation = useMutation<ApiTest, Error, {name: string, projectId?: number | null} & Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt'>>({
+      mutationFn: async (testData) => {
           const endpoint = currentTestToEdit ? `/api/api-tests/${currentTestToEdit.id}` : '/api/api-tests';
           const httpMethod = currentTestToEdit ? 'PUT' : 'POST';
           const payload = { ...testData,
@@ -261,28 +261,26 @@ const ApiTesterPage: React.FC = () => {
           };
           return (await apiRequest(httpMethod, endpoint, payload)).json();
       },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ['apiTests'] });
-          setIsSaveModalOpen(false); setCurrentTestToEdit(null);
-          toast({ title: currentTestToEdit ? 'Test Updated Successfully' : 'Test Saved Successfully' });
-        },
-        onError: (error) => { toast({ title: 'Save Test Failed', description: error.message, variant: 'destructive' });}
-      }
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['apiTests'] });
+        setIsSaveModalOpen(false); setCurrentTestToEdit(null);
+        toast({ title: currentTestToEdit ? 'Test Updated Successfully' : 'Test Saved Successfully' });
+      },
+      onError: (error) => { toast({ title: 'Save Test Failed', description: error.message, variant: 'destructive' });}
+    }
   );
 
-  const deleteApiTestMutation = useMutation<void, Error, number>(
-      async (testId) => {
+  const deleteApiTestMutation = useMutation<void, Error, number>({
+      mutationFn: async (testId) => {
           const res = await apiRequest('DELETE', `/api/api-tests/${testId}`);
           if (!res.ok && res.status !== 204) {
             const errorData = await res.json().catch(() => ({ message: "Delete failed with status " + res.status }));
             throw new Error(errorData.error || "Failed to delete test");
           }
       },
-      {
-          onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['apiTests'] }); toast({ title: 'Test Deleted Successfully' }); },
-          onError: (error) => { toast({ title: 'Delete Test Failed', description: error.message, variant: 'destructive' });}
-      }
+      onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['apiTests'] }); toast({ title: 'Test Deleted Successfully' }); },
+      onError: (error) => { toast({ title: 'Delete Test Failed', description: error.message, variant: 'destructive' });}
+    }
   );
 
   const handleLoadHistoryItem = (item: ApiTestHistoryEntry) => {
@@ -431,7 +429,7 @@ const ApiTesterPage: React.FC = () => {
                 onLoadTest={handleLoadSavedTest}
                 onEditTest={(test) => handleOpenSaveModal(test)}
                 onDeleteTest={handleDeleteSavedTest}
-                onExportTest={handleExportTest} // Added from prev subtask
+                onExportTest={handleExportTest}
                 onOpenSaveModal={() => handleOpenSaveModal()}
                 isLoading={isLoadingSavedTests}
                 isDeletingTestId={deleteApiTestMutation.variables}
@@ -585,3 +583,5 @@ const ApiTesterPage: React.FC = () => {
 };
 
 export default ApiTesterPage;
+
+[end of client/src/pages/ApiTesterPage.tsx]
