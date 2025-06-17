@@ -1,11 +1,11 @@
 import React from 'react';
 import { Link } from 'wouter';
 import KpiPanel from '@/components/dashboard/KpiPanel';
-import TestStatusPieChart from '../../components/dashboard/TestStatusPieChart';
-import TestTrendBarChart from '../../components/dashboard/TestTrendBarChart';
-import TestSchedulingsTable from '../../components/dashboard/TestSchedulingsTable';
-import QuickAccessReports from '../../components/dashboard/QuickAccessReports';
-import RunTestNowButton from '../../components/dashboard/RunTestNowButton'; // Import Run Test Now Button
+import TestStatusPieChart from '@/components/dashboard/TestStatusPieChart';
+import TestTrendBarChart from '@/components/dashboard/TestTrendBarChart';
+import TestSchedulingsTable from '@/components/dashboard/TestSchedulingsTable';
+import QuickAccessReports from '@/components/dashboard/QuickAccessReports';
+import RunTestNowButton from '@/components/dashboard/RunTestNowButton';
 
 const DashboardOverviewPage: React.FC = () => {
   return (
