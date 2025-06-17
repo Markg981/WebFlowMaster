@@ -583,5 +583,3 @@ const ApiTesterPage: React.FC = () => {
 };
 
 export default ApiTesterPage;
-
-[end of client/src/pages/ApiTesterPage.tsx]
