@@ -4,10 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button'; // Added Button import
 import {
-  Home, PlusSquare, ListChecksIcon as TestsIcon, LibrarySquare as SuitesIcon, // Renamed ListChecks to avoid conflict
-  CalendarClock, FileTextIcon as ReportsIcon, Settings as SettingsIcon, // Renamed FileText
-  PanelLeftClose, PanelRightClose, UserCircle // Added UserCircle for collapsed user info
-} from 'lucide-react'; // Added icons
+  Home, PlusSquare, ListChecksIcon as TestsIcon, LibrarySquare as SuitesIcon,
+  CalendarClock, FileTextIcon as ReportsIcon, Settings as SettingsIcon,
+  PanelLeftClose, PanelRightClose, UserCircle, TestTube // Added TestTube
+} from 'lucide-react';
 import KpiPanel from '@/components/dashboard/KpiPanel';
 import TestStatusPieChart from '@/components/dashboard/TestStatusPieChart';
 import TestTrendBarChart from '@/components/dashboard/TestTrendBarChart';
@@ -44,20 +44,27 @@ const DashboardOverviewPage: React.FC = () => {
           isSidebarCollapsed ? 'w-20 p-2' : 'w-64 p-4'
         }`}
       >
-        <div>
-          <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} mb-4`}>
-            {!isSidebarCollapsed && <h2 className="text-xl font-semibold px-3">Navigation</h2>}
-            {/* Collapse button for larger screens, always visible if sidebar is not for mobile toggle */}
+        <div> {/* This div wraps the header and nav, separate from user info at the bottom */}
+          {/* Sidebar Header: Logo, Title (when expanded), and Collapse Button */}
+          <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} p-1 mb-2 h-12`}> {/* Fixed height for header */}
+            <div className="flex items-center">
+              <TestTube className={`h-7 w-7 text-primary transition-all duration-300 ${isSidebarCollapsed ? 'ml-0' : 'mr-2'}`} />
+              {!isSidebarCollapsed && (
+                <span className="font-semibold text-lg whitespace-nowrap">WebTest Platform</span>
+              )}
+            </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className={isSidebarCollapsed ? 'self-center' : ''}
+              className="focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" // Added focus styling
             >
-              {isSidebarCollapsed ? <PanelRightClose /> : <PanelLeftClose />}
+              {isSidebarCollapsed ? <PanelRightClose size={20} /> : <PanelLeftClose size={20} />}
             </Button>
           </div>
-          <nav>
+
+          {/* Navigation Links */}
+          <nav className={isSidebarCollapsed ? "mt-2" : "mt-0"}> {/* Adjust margin based on collapse state */}
             <ul className="space-y-1">
               <li>
                 <Link href="/dashboard">
