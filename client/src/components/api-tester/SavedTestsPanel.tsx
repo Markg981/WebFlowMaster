@@ -4,14 +4,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit2, Trash2, PlayCircle, PlusCircle } from 'lucide-react'; // Added Edit2, PlayCircle
+import { Edit2, Trash2, PlayCircle, PlusCircle, Download } from 'lucide-react'; // Added Download icon
 
 interface SavedTestsPanelProps {
   savedTests: ApiTest[];
   onLoadTest: (test: ApiTest) => void;
-  onEditTest: (test: ApiTest) => void; // To open modal with pre-filled data
+  onEditTest: (test: ApiTest) => void;
   onDeleteTest: (testId: number) => void;
-  onOpenSaveModal: () => void; // To open modal for new test
+  onExportTest: (test: ApiTest) => void; // New prop for export
+  onOpenSaveModal: () => void;
   isLoading?: boolean;
   isDeletingTestId?: number | null;
 }
@@ -21,6 +22,7 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
   onLoadTest,
   onEditTest,
   onDeleteTest,
+  onExportTest, // Destructure new prop
   onOpenSaveModal,
   isLoading,
   isDeletingTestId,
@@ -74,6 +76,15 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
                       disabled={isLoading || !!isDeletingTestId}
                     >
                       <Edit2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onExportTest(test)} // Call onExportTest
+                      title="Export Test"
+                      disabled={isLoading || !!isDeletingTestId}
+                    >
+                      <Download className="h-4 w-4 text-sky-500" />
                     </Button>
                     <Button
                       variant="ghost"
