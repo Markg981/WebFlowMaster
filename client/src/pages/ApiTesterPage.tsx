@@ -368,6 +368,47 @@ const ApiTesterPage: React.FC = () => {
     }
   };
 
+  const handleExportTest = (test: ApiTest) => {
+    const {
+      id: testId, userId, projectId: testProjectId, createdAt, updatedAt,
+      ...exportData
+    } = test;
+
+    const parseJsonField = (field: any) => {
+      if (typeof field === 'string') {
+        try { return JSON.parse(field); } catch (e) { return field; }
+      }
+      return field;
+    };
+
+    const exportedTestObject = {
+      name: exportData.name,
+      url: exportData.url,
+      method: exportData.method,
+      queryParams: parseJsonField(exportData.queryParams),
+      requestHeaders: parseJsonField(exportData.requestHeaders),
+      requestBody: exportData.requestBody,
+      assertions: parseJsonField(exportData.assertions),
+    };
+
+    const jsonString = JSON.stringify(exportedTestObject, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = href;
+    const filename = `${(exportData.name || 'api_test').replace(/[\/:*?"<>|]/g, '_').replace(/\s+/g, '_')}.json`;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(href);
+
+    toast({
+      title: "Test Exported",
+      description: `${filename} has been downloaded.`,
+    });
+  };
+
   useEffect(() => {
     if (currentTestToEdit && isSaveModalOpen) { /* Future logic if needed */ }
   }, [currentTestToEdit, isSaveModalOpen]);
