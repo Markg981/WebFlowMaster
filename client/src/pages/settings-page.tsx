@@ -23,9 +23,20 @@ import {
   Save,
   ArrowLeft,
   Loader2, // For loading state
+  ListTree, // Added for Project Management
+  Trash2,   // Added for Project Management
+  PlusCircle, // Added for Project Management
 } from "lucide-react";
 import { Link } from "wouter";
 import { UserSettings, fetchSettings } from "../lib/settings"; // Import from shared file
+
+// Define Project type locally if not importable from shared
+interface Project {
+  id: number;
+  name: string;
+  userId: number;
+  createdAt: string;
+}
 
 // API interaction functions
 const saveSettings = async (settings: Partial<UserSettings>): Promise<UserSettings> => {
@@ -41,10 +52,110 @@ const saveSettings = async (settings: Partial<UserSettings>): Promise<UserSettin
   return response.json();
 };
 
+// API functions for Project Management
+const fetchProjects = async (): Promise<Project[]> => {
+  const response = await fetch("/api/projects");
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to fetch projects");
+  }
+  return response.json();
+};
+
+const createProject = async (projectName: string): Promise<Project> => {
+  const response = await fetch("/api/projects", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: projectName }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to create project");
+  }
+  return response.json();
+};
+
+const deleteProject = async (projectId: number): Promise<void> => {
+  const response = await fetch(`/api/projects/${projectId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok && response.status !== 204) { // 204 is a success status with no content
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to delete project");
+  }
+  // For 204, response.json() would error, so we don't parse it.
+  if (response.status === 204) return;
+  // If not 204 but still ok (e.g. 200 with content, though not expected for DELETE), parse it.
+  // This case should ideally not happen for a DELETE returning 204.
+  if (response.ok) return response.json();
+};
+
+
 export default function SettingsPage() {
   const { t } = useTranslation(); // Initialize useTranslation
   const { user, logoutMutation } = useAuth();
   const queryClient = useQueryClient();
+
+  // Project Management State
+  const [newProjectName, setNewProjectName] = useState("");
+
+  // Query for fetching projects
+  const {
+    data: projectsData,
+    isLoading: isLoadingProjects,
+    isError: isErrorProjects,
+    error: projectsError
+  } = useQuery<Project[], Error>({
+    queryKey: ["projects"],
+    queryFn: fetchProjects,
+  });
+
+  // Mutation for creating a project
+  const createProjectMutation = useMutation<Project, Error, string>({
+    mutationFn: createProject,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast({ title: "Project Created", description: "The new project has been created successfully." });
+      setNewProjectName(""); // Clear input field
+    },
+    onError: (error) => {
+      toast({
+        title: "Error Creating Project",
+        description: error.message || "An unknown error occurred.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for deleting a project
+  const deleteProjectMutation = useMutation<void, Error, number>({
+    mutationFn: deleteProject,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast({ title: "Project Deleted", description: "The project has been deleted successfully." });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error Deleting Project",
+        description: error.message || "An unknown error occurred.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateProject = () => {
+    if (newProjectName.trim() === "") {
+      toast({ title: "Project name cannot be empty", variant: "destructive" });
+      return;
+    }
+    createProjectMutation.mutate(newProjectName.trim());
+  };
+
+  const handleDeleteProject = (projectId: number) => {
+    if (window.confirm("Are you sure you want to delete this project? This will also remove it from any associated tests.")) {
+      deleteProjectMutation.mutate(projectId);
+    }
+  };
 
   // Local state for form elements
   const [darkMode, setDarkMode] = useState(false); // true for dark, false for light
@@ -254,7 +365,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Globe className="h-5 w-5" /> {/* Using Globe icon, same as Default Config for now */}
+              <Globe className="h-5 w-5" />
               <span>{t('settings.languageSettings.title')}</span>
             </CardTitle>
             <CardDescription>
@@ -282,6 +393,82 @@ export default function SettingsPage() {
               <p className="text-sm text-muted-foreground">
                 {t('settings.languageSettings.selectHint')}
               </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Project Management Card - NEW */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <ListTree className="h-5 w-5" />
+              <span>Project Management</span>
+            </CardTitle>
+            <CardDescription>
+              Create and manage your projects. Assigning tests to projects can help organize your work.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Create Project Section */}
+            <div className="space-y-2">
+              <Label htmlFor="new-project-name">New Project Name</Label>
+              <div className="flex space-x-2">
+                <Input
+                  id="new-project-name"
+                  placeholder="Enter project name"
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  disabled={createProjectMutation.isPending}
+                />
+                <Button
+                  onClick={handleCreateProject}
+                  disabled={createProjectMutation.isPending || newProjectName.trim() === ""}
+                >
+                  {createProjectMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                  )}
+                  Create Project
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Project List Section */}
+            <div className="space-y-2">
+              <h3 className="text-md font-medium">Existing Projects</h3>
+              {isLoadingProjects ? (
+                <div className="flex items-center space-x-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Loading projects...</span>
+                </div>
+              ) : isErrorProjects ? (
+                <p className="text-red-600">Error loading projects: {projectsError?.message}</p>
+              ) : projectsData && projectsData.length > 0 ? (
+                <ul className="space-y-2">
+                  {projectsData.map((project) => (
+                    <li key={project.id} className="flex items-center justify-between p-2 border rounded-md">
+                      <span className="text-sm">{project.name}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteProject(project.id)}
+                        disabled={deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id}
+                      >
+                        {deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        )}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">No projects found. Create one above!</p>
+              )}
             </div>
           </CardContent>
         </Card>

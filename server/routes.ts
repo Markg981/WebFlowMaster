@@ -7,11 +7,16 @@ import {
   insertTestSchema,
   insertTestRunSchema,
   userSettings,
+  projects, // Added projects table
+  insertProjectSchema, // Added insertProjectSchema
+  tests, // Added tests table
   AdhocTestStepSchema, // Import new schema for ad-hoc test steps
   AdhocDetectedElementSchema // Import new schema for ad-hoc detected elements
 } from "@shared/schema";
 import { z } from "zod";
 import { createInsertSchema } from 'drizzle-zod';
+import { db } from "./db"; // Added db import
+import { eq, and } from "drizzle-orm"; // Added eq and and_ (using and as per drizzle-orm)
 import { playwrightService } from "./playwright-service";
 
 // Zod schema for validating POST /api/settings request body
@@ -74,6 +79,21 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Project management endpoints
+  app.get("/api/projects", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const userId = req.user.id;
+      const userProjects = await db.select().from(projects).where(eq(projects.userId, userId));
+      res.json(userProjects);
+    } catch (error) {
+      logger.error("Error fetching projects:", { error });
+      res.status(500).json({ error: "Failed to fetch projects" });
+    }
+  });
+
   // Element detection endpoint
   app.post("/api/detect-elements", async (req, res) => {
     try {
@@ -92,6 +112,90 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       logger.error("Error detecting elements:", { error });
       res.status(500).json({ error: "Failed to detect elements" });
+    }
+  });
+
+  app.post("/api/projects", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const userId = req.user.id;
+
+      const projectSchema = insertProjectSchema.pick({ name: true });
+      const validatedData = projectSchema.parse(req.body);
+
+      const newProject = await db
+        .insert(projects)
+        .values({
+          name: validatedData.name,
+          userId: userId,
+        })
+        .returning(); // Get the created project back
+
+      if (newProject.length === 0) {
+        // Should not happen with SQLite returning but good practice
+        return res.status(500).json({ error: "Failed to create project due to database error" });
+      }
+
+      res.status(201).json(newProject[0]);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid project data", details: error.errors });
+      }
+      logger.error("Error creating project:", { error });
+      res.status(500).json({ error: "Failed to create project" });
+    }
+  });
+
+  app.delete("/api/projects/:projectId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const userId = req.user.id;
+      const projectIdParam = req.params.projectId;
+
+      // Validate projectId is a number
+      const projectId = parseInt(projectIdParam, 10);
+      if (isNaN(projectId)) {
+        return res.status(400).json({ error: "Invalid project ID format." });
+      }
+
+      // Check if the project exists and belongs to the user
+      const projectToDelete = await db
+        .select()
+        .from(projects)
+        .where(and(eq(projects.id, projectId), eq(projects.userId, userId)))
+        .limit(1);
+
+      if (projectToDelete.length === 0) {
+        return res.status(404).json({ error: "Project not found or you do not have permission to delete it." });
+      }
+
+      // Update associated tests: set projectId to null
+      // Only update tests that belong to this project AND this user
+      await db
+        .update(tests)
+        .set({ projectId: null })
+        .where(and(eq(tests.projectId, projectId), eq(tests.userId, userId)));
+
+      // Delete the project
+      const deleteResult = await db
+        .delete(projects)
+        .where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
+
+      if (deleteResult.rowCount === 0) {
+        // This case should ideally not be reached if the initial check passed
+        // and no concurrent modification happened.
+        logger.warn(`Project ${projectId} was not found for deletion after tests update, possibly already deleted.`);
+        return res.status(404).json({ error: "Project not found, possibly already deleted." });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      logger.error(`Error deleting project ${req.params.projectId}:`, { error });
+      res.status(500).json({ error: "Failed to delete project" });
     }
   });
 
