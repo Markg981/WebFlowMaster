@@ -59,7 +59,7 @@ const SettingsEffectLoader = () => { // Renamed to be more generic as it handles
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={DashboardPage} />
+      <ProtectedRoute path="/dashboard/create-test" component={DashboardPage} /> {/* Changed path */}
       {/* Assuming /dashboard should also be a protected route, like / and /settings */}
       <ProtectedRoute path="/dashboard" component={DashboardOverviewPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />

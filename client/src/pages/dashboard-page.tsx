@@ -28,10 +28,10 @@ import {
   Play, 
   Save, 
   Trash2,
-  Settings,
-  Bell,
-  User,
-  ArrowLeft // Added ArrowLeft import
+  Settings, // Already present, good
+  Bell,     // Already present, good
+  User,     // Already present, good
+  ArrowLeft
 } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 import { Link, useRoute } from 'wouter';
@@ -59,8 +59,6 @@ interface TestAction {
   description: string;
 }
 
-
-
 const availableActions: TestAction[] = [
   { id: "click", type: "click", name: "Click Element", icon: "mouse-pointer", description: "Simulate a mouse click" },
   { id: "input", type: "input", name: "Input Text", icon: "keyboard", description: "Type text into field" },
@@ -72,9 +70,9 @@ const availableActions: TestAction[] = [
 ];
 
 export default function DashboardPage() {
-  const { t } = useTranslation(); // Initialize useTranslation
-  const [isDashboardActive] = useRoute('/dashboard');
-  const [isCreateTestActive] = useRoute('/'); // This page is for "Create Test"
+  const { t } = useTranslation();
+  // const [isDashboardActive] = useRoute('/dashboard'); // Not used in this page's header nav anymore
+  // const [isCreateTestActive] = useRoute('/'); // Not used in this page's header nav anymore
   const { user, logoutMutation } = useAuth();
   const [currentUrl, setCurrentUrl] = useState("https://github.com");
   const [detectedElements, setDetectedElements] = useState<DetectedElement[]>([]);
@@ -135,10 +133,9 @@ export default function DashboardPage() {
   const saveTestMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/tests", {
-        name: t('dashboardPage.toast.defaultTestName', {url: currentUrl}), // Example for test name
+        name: t('dashboardPage.toast.defaultTestName', {url: currentUrl}),
         url: currentUrl,
         sequence: testSequence,
-        // elements: detectedElements, // This might be large, consider if it needs to be saved this way
         status: "saved"
       });
       return res.json();
@@ -216,21 +213,22 @@ export default function DashboardPage() {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
               <TestTube className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold text-gray-900">{t('dashboardPage.headerTitle')}</h1>
+              {/* Title as per prompt, not using t() here based on instruction for "exact JSX" */}
+              <h1 className="text-xl font-bold text-gray-900">Web Automation Platform</h1>
             </div>
-            {/* Removed nav block */}
           </div>
-          
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => console.log('Bell clicked')}>
               <Bell className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon">
-              <Settings className="h-4 w-4" />
-            </Button>
+            <Link href="/settings">
+              <Button variant="ghost" size="icon">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </Link>
             <div className="flex items-center space-x-2">
               <User className="h-6 w-6 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">{user?.username}</span>
+              <span className="text-sm font-medium text-gray-700">{user?.username || 'User'}</span>
             </div>
             <Button 
               variant="outline" 
@@ -257,12 +255,8 @@ export default function DashboardPage() {
       </div>
 
       {/* URL Input Section */}
-      {/* Original class was: "bg-white border-b border-gray-200 px-6 py-4" */}
-      {/* Since the button div above now has border-b, this one might not need it if they are visually separate sections. */}
-      {/* However, the prompt implies adding the button *before* the URL section, suggesting two distinct sections. */}
-      {/* Let's assume the URL section should retain its original styling for now, including top padding. */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center space-x-4"> {/* This div was missing in the original prompt's "URL input" description but is needed */}
+          <div className="flex items-center space-x-4">
             <div className="flex-1">
             <Label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboardPage.urlInputLabel')}</Label>
             <div className="flex space-x-3">
@@ -332,12 +326,10 @@ export default function DashboardPage() {
                     className="w-full h-auto object-contain"
                     style={{ minHeight: '100%' }}
                   />
-                  {/* Element highlighting overlay */}
                   {highlightedElement && (
                     <div 
                       className="absolute border-2 border-red-500 bg-red-500 bg-opacity-20 pointer-events-none"
                       style={{
-                        // This would be positioned based on element.boundingBox if available
                         top: '50px',
                         left: '50px',
                         width: '200px',
@@ -400,36 +392,16 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom Panel - Test Sequence Builder */}
-      {/* The TestSequenceBuilder component itself would need to be refactored to use useTranslation if its internal text needs translation */}
-      {/* For this PoC, we are focusing on DashboardPage.tsx text. */}
-      {/* The props passed to TestSequenceBuilder might contain translatable text in the future. */}
-      <div className="bg-white border-t border-gray-200 p-4" style={{ height: "auto" }}> {/* Adjusted height */}
+      <div className="bg-white border-t border-gray-200 p-4" style={{ height: "auto" }}>
          <TestSequenceBuilder
             testSequence={testSequence}
             onUpdateSequence={setTestSequence}
             onExecuteTest={() => console.log("Execute test from dashboard")}
             onSaveTest={handleSaveTest}
             onClearSequence={handleClearSequence}
-            isExecuting={false} // Placeholder
+            isExecuting={false}
             isSaving={saveTestMutation.isPending}
-            // Pass translated strings for TestSequenceBuilder if it supports them
-            // For example:
-            // executeButtonText={t('dashboardPage.executeTestButton')}
-            // savingButtonText={t('dashboardPage.savingTestButton')}
-            // saveButtonText={t('dashboardPage.saveTestButton')}
-            // clearButtonText={t('dashboardPage.clearSequenceButton')}
-            // dropActionsPromptText={t('dashboardPage.dropActionsPrompt')}
-            // dropActionsHintText={t('dashboardPage.dropActionsHint')}
-            // titleText={t('dashboardPage.testSequenceTitle')}
          />
-      </div>
-    </div>
-  );
-}
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

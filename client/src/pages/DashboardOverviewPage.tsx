@@ -21,7 +21,7 @@ const DashboardOverviewPage: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const [isDashboardActive] = useRoute('/dashboard');
-  const [isCreateTestActive] = useRoute('/');
+  const [isCreateTestActive] = useRoute('/dashboard/create-test'); // Changed path
   const [isSettingsActive] = useRoute('/settings');
   // Placeholder active states for other links - assuming false for now
   const isTestsActive = false;
@@ -75,7 +75,7 @@ const DashboardOverviewPage: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/">
+                <Link href="/dashboard/create-test"> {/* Changed href */}
                   <a title={t('nav.createTest')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isCreateTestActive ? activeLinkStyle : inactiveLinkStyle}`}>
                     <PlusSquare className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
                     {!isSidebarCollapsed && <span>{t('nav.createTest')}</span>}
