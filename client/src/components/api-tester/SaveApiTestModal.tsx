@@ -50,11 +50,12 @@ export const SaveApiTestModal: React.FC<SaveApiTestModalProps> = ({
     }
   }, [isOpen, initialTestName, initialProjectId]);
 
-  const { data: projectsData } = useQuery<Project[]>(
-    ['projects'],
-    async () => (await apiRequest('GET', '/api/projects')).json(),
-    { enabled: isOpen } // Only fetch when the modal is open
-  );
+  const { data: projectsData, isLoading: isLoadingProjects } = useQuery<Project[], Error>({
+    queryKey: ['projects'],
+    queryFn: async () => (await apiRequest('GET', '/api/projects')).json(),
+    enabled: isOpen, // Only fetch when the modal is open
+    staleTime: 5 * 60 * 1000, // Example: 5 minutes stale time
+  });
 
   const handleSubmit = () => {
     if (testName.trim()) {
@@ -87,7 +88,7 @@ export const SaveApiTestModal: React.FC<SaveApiTestModalProps> = ({
             <Select
               value={selectedProjectId?.toString() || ''}
               onValueChange={(value) => setSelectedProjectId(value ? parseInt(value) : null)}
-              disabled={isLoading || !projectsData}
+              disabled={isLoading || isLoadingProjects || !projectsData}
             >
               <SelectTrigger id="testProject">
                 <SelectValue placeholder="Select a project" />
