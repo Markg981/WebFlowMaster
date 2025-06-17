@@ -33,6 +33,21 @@ const executeDirectTestSchema = z.object({
   name: z.string().optional().default("Ad-hoc Test"), // Provide a default name
 });
 
+// Zod schema for POST /api/start-recording
+const startRecordingSchema = z.object({
+  url: z.string().url({ message: "Invalid URL format" }).min(1, {message: "URL cannot be empty"}),
+});
+
+// Zod schema for POST /api/stop-recording
+const stopRecordingSchema = z.object({
+  sessionId: z.string().min(1, {message: "Session ID cannot be empty"}),
+});
+
+// Zod schema for GET /api/get-recorded-actions
+const getRecordedActionsSchema = z.object({
+  sessionId: z.string().min(1, {message: "Session ID cannot be empty"}),
+});
+
 
 export function registerRoutes(app: Express): Server {
   // Setup authentication routes
@@ -317,6 +332,88 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Recording API Endpoints
+  app.post("/api/start-recording", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+      const parseResult = startRecordingSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ success: false, error: "Invalid request payload", details: parseResult.error.flatten() });
+      }
+      const { url } = parseResult.data;
+      const userId = req.user.id;
+
+      const result = await playwrightService.startRecordingSession(url, userId);
+      if (result.success) {
+        res.status(200).json({ success: true, sessionId: result.sessionId });
+      } else {
+        res.status(500).json({ success: false, error: result.error || "Failed to start recording session" });
+      }
+    } catch (error) {
+      logger.error("Error in /api/start-recording:", { error });
+      const errorMessage = error instanceof Error ? error.message : "Unknown server error";
+      res.status(500).json({ success: false, error: "Server error starting recording session", details: errorMessage });
+    }
+  });
+
+  app.post("/api/stop-recording", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+      const parseResult = stopRecordingSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ success: false, error: "Invalid request payload", details: parseResult.error.flatten() });
+      }
+      const { sessionId } = parseResult.data;
+      const userId = req.user.id; // For validation within the service
+
+      const result = await playwrightService.stopRecordingSession(sessionId, userId);
+      if (result.success) {
+        // Transform RecordedAction to match frontend's DragDropTestStep structure if necessary
+        // For now, assuming direct compatibility or frontend handles transformation.
+        // The frontend expects DragDropTestStep[], while backend provides RecordedAction[]
+        // This transformation is NOT done here yet. Placeholder for future.
+        res.status(200).json({ success: true, sequence: result.actions });
+      } else {
+        res.status(500).json({ success: false, error: result.error || "Failed to stop recording session" });
+      }
+    } catch (error) {
+      logger.error("Error in /api/stop-recording:", { error });
+      const errorMessage = error instanceof Error ? error.message : "Unknown server error";
+      res.status(500).json({ success: false, error: "Server error stopping recording session", details: errorMessage });
+    }
+  });
+
+  app.get("/api/get-recorded-actions", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+      // Validate query parameters
+      const parseResult = getRecordedActionsSchema.safeParse(req.query);
+      if (!parseResult.success) {
+        return res.status(400).json({ success: false, error: "Invalid query parameters", details: parseResult.error.flatten() });
+      }
+      const { sessionId } = parseResult.data;
+      const userId = req.user.id; // For validation
+
+      const result = await playwrightService.getRecordedActions(sessionId, userId);
+      if (result.success) {
+         // Transform RecordedAction to match frontend's DragDropTestStep structure if necessary
+        // As above, this transformation is NOT done here yet.
+        res.status(200).json({ success: true, sequence: result.actions });
+      } else {
+        res.status(404).json({ success: false, error: result.error || "Failed to get recorded actions or session not found" });
+      }
+    } catch (error) {
+      logger.error("Error in /api/get-recorded-actions:", { error });
+      const errorMessage = error instanceof Error ? error.message : "Unknown server error";
+      res.status(500).json({ success: false, error: "Server error getting recorded actions", details: errorMessage });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

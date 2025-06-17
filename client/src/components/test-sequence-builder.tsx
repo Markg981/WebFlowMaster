@@ -42,6 +42,7 @@ interface TestSequenceBuilderProps {
   onClearSequence: () => void;
   isExecuting?: boolean;
   isSaving?: boolean;
+  isRecordingActive?: boolean; // New prop
 }
 
 export function TestSequenceBuilder({
@@ -51,14 +52,17 @@ export function TestSequenceBuilder({
   onSaveTest,
   onClearSequence,
   isExecuting = false,
-  isSaving = false
+  isSaving = false,
+  isRecordingActive = false, // Default value for the new prop
 }: TestSequenceBuilderProps) {
   const [isReassociatingElementForStepId, setReassociatingElementForStepId] = useState<string | null>(null);
 
   // Main drop target for adding NEW actions to the sequence
-  const [{ isOver: isOverContainer }, dropContainer] = useDrop(() => ({
+  const [{ isOver: isOverContainer, canDrop: canDropIntoContainer }, dropContainer] = useDrop(() => ({
     accept: "action", // Only accepts new actions now
+    canDrop: () => !isRecordingActive, // Prevent drop if recording is active
     drop: (item: { id: string; type: string; data: TestAction }) => {
+      if (isRecordingActive) return; // Double check, though canDrop should prevent this
       // Create new test step with action
       const newStep: TestStep = {
         id: `step-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, // More robust ID
@@ -70,8 +74,9 @@ export function TestSequenceBuilder({
     },
     collect: (monitor) => ({
       isOver: !!monitor.isOver(),
+      canDrop: !!monitor.canDrop(),
     }),
-  }), [testSequence, onUpdateSequence]);
+  }), [testSequence, onUpdateSequence, isRecordingActive]);
 
   const handleAssociateElementToAction = (stepId: string, droppedElement: DetectedElement) => {
     console.log('[TestSequenceBuilder] Associating element', droppedElement, 'to step:', stepId);
@@ -152,7 +157,7 @@ export function TestSequenceBuilder({
             variant="outline"
             size="sm"
             onClick={onClearSequence}
-            disabled={testSequence.length === 0}
+            disabled={testSequence.length === 0 || isRecordingActive}
           >
             <Trash2 className="h-4 w-4 mr-1" />
             Clear
@@ -163,17 +168,29 @@ export function TestSequenceBuilder({
       <div
         ref={dropContainer}
         className={`flex-1 border-2 border-dashed rounded-lg p-4 transition-colors ${
-          isOverContainer /* Corrected state variable for hover */
-            ? "border-primary bg-primary/5" 
-            : "border-border bg-muted/20" /* Use theme-aware colors */
+          isOverContainer && canDropIntoContainer && !isRecordingActive
+            ? "border-primary bg-primary/5"
+            : isRecordingActive
+            ? "border-border bg-muted/50 cursor-not-allowed" // Indicate recording active and no drop
+            : "border-border bg-muted/20"
         }`}
       >
         {testSequence.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-muted-foreground"> {/* Use theme-aware color */}
+          <div className="h-full flex items-center justify-center text-muted-foreground">
             <div className="text-center">
-              <Plus className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">Drop actions here to build your test</p>
-              <p className="text-sm">Drag actions from the left sidebar, then add elements to complete each step</p>
+              {isRecordingActive ? (
+                <>
+                  <RefreshCw className="h-12 w-12 mx-auto mb-4 opacity-50 animate-spin" />
+                  <p className="text-lg font-medium">Recording in progress...</p>
+                  <p className="text-sm">Recorded actions will appear here.</p>
+                </>
+              ) : (
+                <>
+                  <Plus className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">Drop actions here to build your test</p>
+                  <p className="text-sm">Drag actions from the left sidebar, then add elements to complete each step</p>
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -202,8 +219,9 @@ export function TestSequenceBuilder({
                     {/* Action Type Dropdown and Re-associate Button */}
                     <div className="flex flex-col space-y-1 items-start" style={{width: "180px"}}>
                       <Select
-                        value={actionId || ''} // Provide a fallback if actionId is undefined
+                        value={actionId || ''}
                         onValueChange={(newActionId) => handleUpdateActionType(step.id, newActionId)}
+                        disabled={isRecordingActive} // Disable during recording
                       >
                         <SelectTrigger className="w-full h-9 text-xs">
                           <SelectValue placeholder="Change action" />
@@ -219,9 +237,10 @@ export function TestSequenceBuilder({
                       {actionId && needsTargetElement(actionId) && (
                         <Button
                           variant="outline"
-                          size="xs" // Assuming a smaller size, might need to define in Button component
-                          onClick={() => setReassociatingElementForStepId(step.id)}
-                          className="text-xs h-7" // Custom height if size="xs" not available
+                          size="xs"
+                          onClick={() => !isRecordingActive && setReassociatingElementForStepId(step.id)} // Prevent click if recording
+                          className="text-xs h-7"
+                          disabled={isRecordingActive} // Disable during recording
                         >
                           <RefreshCw className="h-3 w-3 mr-1" />
                           {step.targetElement ? 'Change Element' : 'Set Element'}
@@ -230,14 +249,14 @@ export function TestSequenceBuilder({
                     </div>
 
                     {/* DraggableAction as the representation of the action part of the step (or target drop zone) */}
-                    {/* This now primarily serves as the drop zone when re-associating */}
                     <div className="flex-1">
                       <DraggableAction
-                        action={step.action} // Pass the whole action object
+                        action={step.action}
                         stepId={step.id}
-                        onDropElement={handleAssociateElementToAction}
+                        onDropElement={handleAssociateElementToAction} // Drop logic for elements is still handled by DraggableAction
                         targetElement={step.targetElement}
-                        isDropZoneActive={isReassociatingElementForStepId === step.id} // Prop to highlight if it's the active drop zone
+                        isDropZoneActive={isReassociatingElementForStepId === step.id && !isRecordingActive} // Only active if not recording
+                        isRecordingActive={isRecordingActive} // Pass down for internal control if needed
                       />
                     </div>
 
@@ -265,18 +284,20 @@ export function TestSequenceBuilder({
                           }
                           value={step.value || ""}
                           onChange={(e) => updateStepValue(step.id, e.target.value)}
-                        className="text-sm h-9"
-                      />
-                    </div>
-                  )}
+                          className="text-sm h-9"
+                          readOnly={isRecordingActive} // Make read-only during recording
+                        />
+                      </div>
+                    )}
 
                   {/* Remove Step Button */}
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => removeStep(step.id)}
-                    className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 mt-2" // Keep margin for alignment
+                    onClick={() => !isRecordingActive && removeStep(step.id)} // Prevent click if recording
+                    className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 mt-2"
                     aria-label="Remove step"
+                    disabled={isRecordingActive} // Disable during recording
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
