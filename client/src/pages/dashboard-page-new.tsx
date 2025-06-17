@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { DraggableAction } from "@/components/draggable-action";
 import { DraggableElement } from "@/components/draggable-element";
@@ -28,6 +35,21 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import debounceFromLodash from 'lodash/debounce'; // Attempt to import lodash.debounce
+
+// Interface for actions received from backend recording service
+interface BackendRecordedAction {
+  type: 'click' | 'input' | 'select' | 'navigate' | 'keypress' | 'assertion';
+  selector?: string;
+  value?: string;
+  timestamp: number;
+  url?: string;
+  key?: string;
+  targetTag?: string;
+  targetId?: string;
+  targetClass?: string;
+  targetText?: string;
+  // assertType and assertValue are for assertion actions, map them if you have assertion TestActions
+}
 
 // Fallback simple debounce function definition (if lodash is not used/available)
 function simpleDebounce<F extends (...args: any[]) => void>(func: F, waitFor: number): F & { cancel: () => void } {
@@ -176,10 +198,17 @@ export default function DashboardPage() {
   const [currentUrl, setCurrentUrl] = useState("https://github.com");
   const [detectedElements, setDetectedElements] = useState<DetectedElement[]>([]);
   const [testSequence, setTestSequence] = useState<DragDropTestStep[]>([]);
+  const [creationMode, setCreationMode] = useState<"manual" | "record">(
+    "manual"
+  );
   const [highlightedElement, setHighlightedElement] = useState<string | null>(null);
   const [websiteLoaded, setWebsiteLoaded] = useState(false);
   const [websiteScreenshot, setWebsiteScreenshot] = useState<string | null>(null); // This will now also be used for playback
   const [isInitialUrlPrefilled, setIsInitialUrlPrefilled] = useState(false);
+
+  // States for recording
+  const [isRecording, setIsRecording] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   // States for test execution playback
   const [isExecutingPlayback, setIsExecutingPlayback] = useState(false);
@@ -447,6 +476,284 @@ export default function DashboardPage() {
     }
     saveTestMutation.mutate();
   };
+
+  const startRecordingMutation = useMutation({
+    mutationFn: async (payload: { url: string }) => {
+      const res = await apiRequest("POST", "/api/start-recording", payload);
+      // Assuming the backend returns { success: boolean, sessionId?: string, error?: string }
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || "Failed to start recording session.");
+      }
+      return result; // Expected: { success: true, sessionId: "some-session-id" }
+    },
+    onSuccess: (data) => {
+      setSessionId(data.sessionId);
+      setIsRecording(true);
+      toast({
+        title: "Registrazione Avviata",
+        description: "Interagisci con la nuova finestra del browser che è stata aperta per registrare le tue azioni.",
+        duration: 7000,
+      });
+      // Polling will be started by useEffect based on isRecording and sessionId
+    },
+    onError: (error: Error) => {
+      setIsRecording(false); // Revert state on error
+      // Button states will be managed based on isRecording and mutation pending state
+      toast({
+        title: "Failed to Start Recording",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleStartRecording = async () => {
+    if (!currentUrl || !websiteLoaded) {
+      toast({
+        title: "Cannot Start Recording",
+        description: "Please load a website before starting to record a test.",
+        variant: "warning",
+      });
+      return;
+    }
+    // Optimistically set isRecording to true to disable button immediately,
+    // but rely on onSuccess/onError for actual session ID and final state.
+    // setIsRecording(true); // This is handled by the mutation's lifecycle now.
+    startRecordingMutation.mutate({ url: currentUrl });
+  };
+
+  const stopRecordingMutation = useMutation({
+    mutationFn: async (payload: { sessionId: string | null }) => {
+      if (!payload.sessionId) {
+        throw new Error("No active recording session to stop.");
+      }
+      const res = await apiRequest("POST", "/api/stop-recording", payload);
+      // Backend returns { success: boolean, sequence?: BackendRecordedAction[], error?: string }
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || "Failed to stop recording session.");
+      }
+      return result; // Expected { success: true, sequence: BackendRecordedAction[] }
+    },
+    onSuccess: (data: { sequence?: BackendRecordedAction[] }) => {
+      if (data.sequence) {
+        const newTestSequence: DragDropTestStep[] = data.sequence.map((recordedAction, index) => {
+          const correspondingAction = availableActions.find(a => a.id === recordedAction.type);
+
+          if (!correspondingAction) {
+            console.warn(`No available action found for recorded type: ${recordedAction.type}. Skipping.`);
+            return null;
+          }
+
+          let targetElementPlaceholder: DetectedElement | undefined = undefined;
+          if (recordedAction.selector) {
+            targetElementPlaceholder = {
+              id: `recorded-elem-${Date.now()}-${index}`,
+              selector: recordedAction.selector,
+              type: recordedAction.targetTag || 'element',
+              text: recordedAction.targetText || recordedAction.selector,
+              tag: recordedAction.targetTag || 'unknown',
+              attributes: {},
+            };
+          }
+
+          return {
+            id: `step-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 7)}`,
+            action: correspondingAction,
+            targetElement: targetElementPlaceholder,
+            value: recordedAction.value || "",
+          };
+        }).filter(step => step !== null && step.action !== undefined) as DragDropTestStep[];
+
+        setTestSequence(newTestSequence);
+        toast({
+          title: "Recording Stopped",
+          description: `Test sequence updated with ${newTestSequence.length} recorded actions.`,
+        });
+      } else {
+        setTestSequence([]);
+        toast({
+          title: "Recording Stopped",
+          description: "No actions were recorded or returned.",
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Stop Recording",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    // The malformed onSettled and duplicate onError that followed have been removed.
+    onSettled: () => {
+      // This block executes after onSuccess or onError
+      setIsRecording(false);
+      setSessionId(null);
+      // Button states are managed by isRecording and mutation pending states
+    },
+  });
+
+  const handleStopRecording = async () => {
+    if (!sessionId) {
+      toast({
+        title: "Error",
+        description: "No recording session is active.",
+        variant: "destructive",
+      });
+      // Ensure states are reset even if sessionId was somehow null
+      setIsRecording(false);
+      setSessionId(null);
+      return;
+    }
+    stopRecordingMutation.mutate({ sessionId });
+  };
+
+  // Function to fetch recorded actions (not a useQuery hook, but a helper for polling)
+  const fetchRecordedActions = async (currentSessionId: string | null): Promise<DragDropTestStep[]> => {
+    if (!currentSessionId) {
+      return [];
+    }
+    try {
+      const res = await apiRequest("GET", `/api/get-recorded-actions?sessionId=${currentSessionId}`);
+
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => "Errore sconosciuto dal server.");
+        console.warn(`Polling: API request failed with status ${res.status}. Session might have ended. Error: ${errorText}`);
+        if (isRecording && sessionId === currentSessionId) {
+          toast({
+            title: "Errore di Rete o Server",
+            description: `Impossibile aggiornare le azioni (errore ${res.status}). La sessione potrebbe essere terminata.`,
+            variant: "warning",
+            duration: 7000,
+          });
+          // Consider stopping if error is 404, indicating session truly not found
+          if (res.status === 404) {
+            setIsRecording(false);
+            setSessionId(null);
+          }
+        }
+        return testSequence; // Return current sequence to avoid clearing UI on temporary network issues
+      }
+
+      const result: {
+        success: boolean,
+        sequence?: BackendRecordedAction[],
+        error?: string,
+        sessionEnded?: boolean
+      } = await res.json();
+
+      if (!result.success) {
+        if (result.sessionEnded) {
+          if (isRecording && sessionId === currentSessionId) {
+            toast({
+              title: "Sessione di Registrazione Terminata",
+              description: result.error || "La finestra di registrazione è stata chiusa o la sessione è scaduta.",
+              variant: "info",
+              duration: 7000,
+            });
+            setIsRecording(false);
+            setSessionId(null);
+            // If backend sends last batch of actions with sessionEnded=true, process them:
+            if (result.sequence && result.sequence.length > 0) {
+              const lastActions = result.sequence.map( (recordedAction, index) => {
+                const correspondingAction = availableActions.find(a => a.id === recordedAction.type);
+                if (!correspondingAction) return null;
+                let targetElementPlaceholder: DetectedElement | undefined = undefined;
+                if (recordedAction.selector) {
+                  targetElementPlaceholder = {
+                    id: `polled-elem-${Date.now()}-${index}`, selector: recordedAction.selector,
+                    type: recordedAction.targetTag || 'element', text: recordedAction.targetText || recordedAction.selector,
+                    tag: recordedAction.targetTag || 'unknown', attributes: {},
+                  };
+                }
+                return {
+                  id: `polled-step-${Date.now()}-${index}`, action: correspondingAction,
+                  targetElement: targetElementPlaceholder, value: recordedAction.value || "",
+                };
+              }).filter(step => step !== null) as DragDropTestStep[];
+              return lastActions; // Return the final set of actions
+            }
+          }
+        } else {
+          if (isRecording && sessionId === currentSessionId) {
+            toast({
+              title: "Problema con la Sessione di Registrazione",
+              description: result.error || "Si è verificato un errore recuperando le azioni.",
+              variant: "warning",
+              duration: 7000,
+            });
+            // For non-session-ending errors, you might choose not to stop recording immediately
+            // unless the error is persistent or critical.
+          }
+        }
+        return testSequence; // Return current sequence to avoid clearing UI on non-fatal errors
+      }
+
+      // result.success === true
+      if (result.sequence) {
+        const newTestSequence: DragDropTestStep[] = result.sequence.map((recordedAction, index) => {
+          const correspondingAction = availableActions.find(a => a.id === recordedAction.type);
+          if (!correspondingAction) {
+            console.warn(`Polling: No available action for type: ${recordedAction.type}`);
+            return null;
+          }
+
+          let targetElementPlaceholder: DetectedElement | undefined = undefined;
+          if (recordedAction.selector) {
+            targetElementPlaceholder = {
+              id: `polled-elem-${Date.now()}-${index}`,
+              selector: recordedAction.selector,
+              type: recordedAction.targetTag || 'element',
+              text: recordedAction.targetText || recordedAction.selector,
+              tag: recordedAction.targetTag || 'unknown',
+              attributes: {},
+            };
+          }
+          return {
+            id: `polled-step-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 7)}`,
+            action: correspondingAction,
+            targetElement: targetElementPlaceholder,
+            value: recordedAction.value || "",
+          };
+        }).filter(step => step !== null && step.action !== undefined) as DragDropTestStep[];
+        return newTestSequence;
+      }
+      return [];
+    } catch (error) {
+      console.error("Polling: Error fetching recorded actions:", error);
+      return [];
+    }
+  };
+
+  // useEffect for polling recorded actions
+  useEffect(() => {
+    let pollingIntervalId: NodeJS.Timeout | null = null;
+
+    if (isRecording && sessionId) {
+      pollingIntervalId = setInterval(async () => {
+        // console.log(`Polling for actions with sessionId: ${sessionId}`);
+        const actionsFromPolling = await fetchRecordedActions(sessionId);
+
+        if (actionsFromPolling.length > 0 || testSequence.length > 0) {
+          if (JSON.stringify(actionsFromPolling) !== JSON.stringify(testSequence)) {
+            setTestSequence(actionsFromPolling);
+          }
+        }
+      }, 3000);
+    } else {
+      if (pollingIntervalId) {
+        clearInterval(pollingIntervalId);
+      }
+    }
+
+    return () => {
+      if (pollingIntervalId) {
+        clearInterval(pollingIntervalId);
+      }
+    };
+  }, [isRecording, sessionId, testSequence]); // testSequence is now a dep for comparison
 
   // This mutation is for executing saved tests by ID (currently not used by the main execute button)
   const executeSavedTestMutation = useMutation({
@@ -723,10 +1030,11 @@ export default function DashboardPage() {
                 placeholder="https://example.com"
                 value={currentUrl}
                 onChange={(e) => setCurrentUrl(e.target.value)}
+                disabled={isRecording || startRecordingMutation.isPending}
               />
               <Button
                 onClick={handleLoadWebsite}
-                disabled={loadWebsiteMutation.isPending || isLoadingUserSettings}
+                disabled={loadWebsiteMutation.isPending || isLoadingUserSettings || isRecording || startRecordingMutation.isPending}
               >
                 {loadWebsiteMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -735,19 +1043,61 @@ export default function DashboardPage() {
                 )}
                 {loadWebsiteMutation.isPending ? "Loading..." : "Load Website"}
               </Button>
-              <Button
-                onClick={handleDetectElements}
-                disabled={detectElementsMutation.isPending || !websiteLoaded || isLoadingUserSettings}
-                variant="secondary"
-              >
-                {detectElementsMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4 mr-2" />
-                )}
-                {detectElementsMutation.isPending ? "Detecting..." : "Detect Elements"}
-              </Button>
+              {creationMode === 'manual' && (
+                <Button
+                  onClick={handleDetectElements}
+                  disabled={detectElementsMutation.isPending || !websiteLoaded || isLoadingUserSettings}
+                  variant="secondary"
+                >
+                  {detectElementsMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4 mr-2" />
+                  )}
+                  {detectElementsMutation.isPending ? "Detecting..." : "Detect Elements"}
+                </Button>
+              )}
             </div>
+            <div className="mt-4">
+              <Label htmlFor="creationModeSelect" className="block text-sm font-medium text-card-foreground mb-1">Modalità di Creazione Test</Label>
+              <Select value={creationMode} onValueChange={(value: "manual" | "record") => setCreationMode(value)}>
+                <SelectTrigger id="creationModeSelect" className="w-[280px]">
+                  <SelectValue placeholder="Seleziona modalità" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manual">Crea test manuale (drag & drop)</SelectItem>
+                  <SelectItem value="record">Registra azioni utente (auto-record)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {creationMode === 'record' && (
+              <div className="mt-4 flex space-x-3">
+                <Button
+                  onClick={handleStartRecording}
+                  variant="outline"
+                  disabled={isRecording || startRecordingMutation.isPending || !websiteLoaded}
+                >
+                  {startRecordingMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4 mr-2" />
+                  )}
+                  {startRecordingMutation.isPending ? "Starting..." : "Inizia registrazione"}
+                </Button>
+                <Button
+                  onClick={handleStopRecording}
+                  variant="outline"
+                  disabled={!isRecording || stopRecordingMutation.isPending}
+                >
+                  {stopRecordingMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <StopCircle className="h-4 w-4 mr-2" />
+                  )}
+                  {stopRecordingMutation.isPending ? "Stopping..." : "Termina registrazione"}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -757,17 +1107,19 @@ export default function DashboardPage() {
         {/* Top section: Actions, Preview, Elements (60% of viewport) */}
         <div className="flex h-[60vh] border-b border-border">
           {/* Left Sidebar - Actions */}
-          <div className="w-80 bg-card border-r border-border p-4">
-            <h3 className="text-lg font-semibold text-card-foreground mb-4">Available Actions</h3>
-            
-            <ScrollArea className="h-full">
-              <div className="space-y-2">
-                {availableActions.map((action) => (
-                  <DraggableAction key={action.id} action={action} />
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
+          {creationMode === 'manual' && (
+            <div className="w-80 bg-card border-r border-border p-4">
+              <h3 className="text-lg font-semibold text-card-foreground mb-4">Available Actions</h3>
+
+              <ScrollArea className="h-full">
+                <div className="space-y-2">
+                  {availableActions.map((action) => (
+                    <DraggableAction key={action.id} action={action} />
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
 
           {/* Center - Website Preview (Prominent and well-visible) */}
           <div className="flex-1 bg-card border-r border-border p-4">
@@ -805,7 +1157,20 @@ export default function DashboardPage() {
               
               {/* This is the container whose dimensions are used for scaling calculations */}
               <div ref={imageContainerRef} className="flex-1 border-2 border-border rounded-lg overflow-hidden relative bg-muted flex items-center justify-center">
-                {(websiteLoaded || isExecutingPlayback) && websiteScreenshot ? (
+                {creationMode === 'record' && isRecording ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <div className="text-center p-4">
+                      <Play className="h-12 w-12 mx-auto mb-4 opacity-70 text-primary" />
+                      <p className="text-lg font-semibold text-foreground">Registrazione in corso...</p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Utilizza la finestra del browser separata che si è aperta per interagire con il sito.
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Le azioni registrate appariranno nella sezione "Test Sequence" qui sotto.
+                      </p>
+                    </div>
+                  </div>
+                ) : (websiteLoaded || isExecutingPlayback) && websiteScreenshot ? (
                   <div className="relative">
                     <img 
                       ref={imageRef}
@@ -840,9 +1205,10 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Sidebar - Detected Elements */}
-          <div className="w-80 bg-card p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-card-foreground">Detected Elements</h3>
+          {creationMode === 'manual' && (
+            <div className="w-80 bg-card p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-card-foreground">Detected Elements</h3>
               <Badge variant="secondary">{detectedElements.length} found</Badge>
             </div>
             
@@ -867,7 +1233,10 @@ export default function DashboardPage() {
                 )}
               </div>
             </ScrollArea>
-          </div>
+            </div>
+          )}
+          {/* If creationMode is 'record', the Detected Elements sidebar might be hidden or replaced */}
+          {/* For now, it's just hidden. Future tasks might define what shows here in 'record' mode. */}
         </div>
 
         {/* Bottom section: Test Sequence Builder (40% of viewport) */}
@@ -880,6 +1249,7 @@ export default function DashboardPage() {
             onClearSequence={handleClearSequence}
             isExecuting={executeDirectTestMutation.isPending || isExecutingPlayback}
             isSaving={saveTestMutation.isPending && !executeDirectTestMutation.isPending && !isExecutingPlayback}
+            isRecordingActive={isRecording} // Pass the isRecording state
           />
         </div>
       </div>

@@ -1,4 +1,6 @@
 import playwright, { Browser, Page, BrowserContext, ChromiumBrowser, FirefoxBrowser, WebKitBrowser } from 'playwright';
+import { v4 as uuidv4 } from 'uuid'; // For generating session IDs
+import logger from './logger'; // Corrected import path, assuming logger.ts is in the same directory
 import { storage } from './storage'; // To fetch user settings
 import type { Test, UserSettings } from '@shared/schema'; // Import Test and UserSettings type
 
@@ -74,8 +76,226 @@ interface AdhocSequencePayload {
   name?: string;
 }
 
+// Interface for recorded actions
+export interface RecordedAction { // Exporting to be potentially used by routes.ts if strict typing is desired there
+  type: 'click' | 'input' | 'select' | 'navigate' | 'keypress' | 'assertion'; // Added keypress, assertion
+  selector?: string; // Optional for actions like navigate or generic assertions
+  value?: string;
+  timestamp: number;
+  url?: string; // URL at the time of action
+  key?: string; // For keypress events
+  targetTag?: string; // HTML tag of the target element (e.g., 'input', 'button')
+  targetId?: string; // ID of the target element
+  targetClass?: string; // Classes of the target element
+  targetText?: string; // Inner text or value of the element, truncated
+  assertType?: string; // e.g., 'containsText', 'elementCount'
+  assertValue?: string; // e.g., the text to contain, or '==5'
+}
+
+interface ActiveSession {
+  page: Page;
+  browser: Browser;
+  context: BrowserContext;
+  actions: RecordedAction[];
+  userId?: number; // Store the user ID associated with the session
+  targetUrl: string; // The initial URL the recording started on
+}
+
+const RECORDER_SCRIPT = `
+(function() {
+  if (window.hasInjectedWebTestRecorderScript) {
+    console.log('WebTest Recorder script already injected. Skipping.');
+    return;
+  }
+  window.hasInjectedWebTestRecorderScript = true;
+  console.log('Injecting WebTest Recorder Script...');
+
+  function generateSelector(el) {
+    try {
+      if (!el || !(el instanceof Element)) {
+        return null; // Not a valid element
+      }
+
+      // 1. ID
+      if (el.id) {
+        // Check if ID is unique enough. Some frameworks generate dynamic IDs.
+        // A simple check: if document.querySelectorAll for this ID returns only this element.
+        if (document.querySelectorAll('#' + CSS.escape(el.id)).length === 1) {
+          return '#' + CSS.escape(el.id);
+        }
+      }
+
+      // 2. Data-testid or data-test
+      const testId = el.getAttribute('data-testid');
+      if (testId) {
+        return \`[data-testid="\${testId}"]\`;
+      }
+      const testAttr = el.getAttribute('data-test');
+      if (testAttr) {
+        return \`[data-test="\${testAttr}"]\`;
+      }
+
+      // 3. Name attribute (common for form elements)
+      const nameAttr = el.getAttribute('name');
+      if (nameAttr) {
+         // Check if unique enough with tag and name
+        const tagName = el.tagName.toLowerCase();
+        if (document.querySelectorAll(\`\${tagName}[name="\${nameAttr}"]\`).length === 1) {
+           return \`\${tagName}[name="\${nameAttr}"]\`;
+        }
+      }
+
+      // 4. Tag + Class combination (simplified)
+      //    Avoid overly generic tags like div/span without specific classes.
+      //    Focus on more interactive tags or those with distinctive classes.
+      const tagName = el.tagName.toLowerCase();
+      let classSelector = '';
+      if (el.classList && el.classList.length > 0) {
+        // Filter out common, non-descriptive, or dynamically generated classes if possible
+        const significantClasses = Array.from(el.classList)
+          .filter(cls => cls && !cls.startsWith('ng-') && !cls.includes(':') && !cls.includes('(') && !cls.includes('active')); // Basic filtering
+        if (significantClasses.length > 0) {
+          classSelector = '.' + significantClasses.join('.');
+        }
+      }
+
+      if (classSelector && !['div', 'span', 'p', 'li'].includes(tagName) ) { // Avoid for very generic tags unless classes are very specific
+         const combinedSelector = tagName + classSelector;
+         if (document.querySelectorAll(combinedSelector).length === 1) {
+            return combinedSelector;
+         }
+      }
+
+      // Fallback: A more robust XPath-like or unique attribute selector would be better here.
+      // For this version, we'll keep it simple. If no good selector is found, we might not record the action
+      // or use a very basic tagName selector if absolutely necessary (but it's often not unique).
+      // A truly robust solution often involves traversing up the DOM tree.
+      // console.warn('Could not generate a high-quality unique selector for:', el);
+
+      // Basic path (less ideal, but a fallback)
+      let path = '';
+      let currentElement = el;
+      while (currentElement && currentElement.parentElement && currentElement.tagName.toLowerCase() !== 'body') {
+        const tagName = currentElement.tagName.toLowerCase();
+        let siblingIndex = 1;
+        let sibling = currentElement.previousElementSibling;
+        while (sibling) {
+          if (sibling.tagName === currentElement.tagName) {
+            siblingIndex++;
+          }
+          sibling = sibling.previousElementSibling;
+        }
+        const segment = \`\${tagName}:nth-of-type(\${siblingIndex})\`; // nth-of-type is often more stable than nth-child
+        path = '>' + segment + path;
+        currentElement = currentElement.parentElement;
+      }
+      return path ? 'body ' + path.substring(1) : tagName; // if path is empty, just return tagName (e.g. for body itself or direct child)
+
+    } catch (e) {
+      console.error('Error in generateSelector:', e);
+      return null; // Fallback if selector generation itself fails
+    }
+  }
+
+  function getElementDetails(el) {
+    if (!el || !(el instanceof Element)) return {};
+    let textContent = el.innerText || el.textContent || '';
+    if (el.value) { // For input elements, value might be more relevant than innerText
+      textContent = el.value;
+    }
+    return {
+      targetTag: el.tagName.toLowerCase(),
+      targetId: el.id,
+      targetClass: el.className,
+      targetText: textContent.substring(0, 100).trim(), // Get some text, truncate, and trim
+    };
+  }
+
+  document.addEventListener('click', function(event) {
+    try {
+      const el = event.target;
+      if (!el || !(el instanceof Element) || el.closest('[data-webtest-platform-ignore="true"]')) {
+        // Example: Ignore clicks on elements with a specific attribute if we add UI for that
+        return;
+      }
+
+      // Prevent clicks on the test runner's own UI if it were part of the page
+      // if (el.closest('#webtest-runner-ui')) return;
+
+      const selector = generateSelector(el);
+      if (!selector) {
+        console.warn('No selector generated for click on:', el);
+        return;
+      }
+
+      const action = {
+        type: 'click',
+        selector: selector,
+        timestamp: Date.now(),
+        url: window.location.href,
+        ...getElementDetails(el)
+      };
+      console.log('Recorded click:', action);
+      window.sendActionToBackend(action);
+    } catch (e) {
+      console.error('Error recording click:', e);
+    }
+  }, true); // Use capture phase to catch events early
+
+
+  document.addEventListener('change', function(event) { // Handles input, textarea, select
+    try {
+      const el = event.target;
+      if (!el || !(el instanceof Element) || !['input', 'textarea', 'select'].includes(el.tagName.toLowerCase())) {
+        return;
+      }
+      // Ignore hidden inputs or other specific types if needed
+      if (el.type === 'hidden' || el.closest('[data-webtest-platform-ignore="true"]')) {
+        return;
+      }
+
+      const selector = generateSelector(el);
+      if (!selector) {
+        console.warn('No selector generated for change on:', el);
+        return;
+      }
+
+      const actionType = el.tagName.toLowerCase() === 'select' ? 'select' : 'input';
+      let value = el.value;
+
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        value = el.checked ? 'true' : 'false';
+      }
+
+
+      const action = {
+        type: actionType,
+        selector: selector,
+        value: value,
+        timestamp: Date.now(),
+        url: window.location.href,
+        ...getElementDetails(el)
+      };
+      console.log('Recorded change/input:', action);
+      window.sendActionToBackend(action);
+    } catch (e) {
+      console.error('Error recording change/input:', e);
+    }
+  }, true); // Use capture phase
+
+  // You could add more listeners here, e.g., for 'keypress' or specific focus/blur events if needed.
+  // For 'keypress', you might want to record individual key presses, especially for special keys.
+  // For navigations, the backend can infer them by observing URL changes between actions,
+  // or you could try to listen for 'popstate' or 'hashchange' and beforeunload.
+
+  console.log('WebTest Recorder Script Injected and Initialized.');
+})();
+`;
+
 
 export class PlaywrightService {
+  private activeSessions: Map<string, ActiveSession> = new Map();
+
   // Removing shared browser instance to allow per-execution settings
   // private browser: Browser | null = null;
   // private context: BrowserContext | null = null;
@@ -133,6 +353,171 @@ export class PlaywrightService {
         await browser.close();
       }
     }
+  }
+
+  async startRecordingSession(url: string, userId?: number): Promise<{ success: boolean, sessionId?: string, error?: string }> {
+    const sessionId = uuidv4();
+    let browser: Browser | null = null;
+    try {
+      // Use user settings for browser configuration if available
+      const userSettings = userId ? await storage.getUserSettings(userId) : undefined;
+      const browserType = userSettings?.playwrightBrowser || DEFAULT_BROWSER;
+      // Force headless to false for interactive recording sessions
+      const effectiveHeadlessMode = false;
+      const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
+      const specificWaitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME;
+
+      logger.info(`Starting recording session ${sessionId} for URL: ${url} with browser: ${browserType}, headless: ${effectiveHeadlessMode}`);
+
+      const browserEngine = playwright[browserType];
+      browser = await browserEngine.launch({ headless: effectiveHeadlessMode });
+      const context = await browser.newContext({
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        viewport: { width: 1280, height: 720 } // Consistent viewport
+      });
+      const page = await context.newPage();
+      page.setDefaultTimeout(pageTimeout);
+
+      await page.goto(url, { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(specificWaitTime); // Use specific wait time
+
+      // Bring the page to the front to make it visible to the user
+      await page.bringToFront();
+
+      // Expose a function to the page for the client-side recorder script to send actions
+      await page.exposeFunction('sendActionToBackend', (action: RecordedAction) => {
+        const session = this.activeSessions.get(sessionId);
+        if (session) {
+          // Backend should always set/override the timestamp for security and consistency
+          action.timestamp = Date.now();
+          // Ensure URL is also captured from backend perspective if needed, though client sends it
+          action.url = action.url || session.page.url(); // Fallback to current page URL if client didn't send
+
+          session.actions.push(action);
+          // logger.debug(`Action received for session ${sessionId}: ${action.type} on ${action.selector || action.url}`);
+        } else {
+          // logger.warn(`Action received for non-existent or ended session: ${sessionId}`);
+        }
+      });
+
+      // Inject the recorder script
+      await page.addScriptTag({ content: RECORDER_SCRIPT });
+
+      const sessionData: ActiveSession = {
+        browser,
+        context,
+        page,
+        actions: [],
+        userId, // Capture userId in sessionData for the 'close' handler
+        targetUrl: url,
+      };
+
+      // Add listener for page close event
+      page.on('close', async () => {
+        logger.info(`Playwright page closed by user for session ${sessionId}.`);
+        // Check if the session is still considered active by the service
+        if (this.activeSessions.has(sessionId)) {
+          logger.info(`Session ${sessionId} is still in activeSessions. Attempting to stop and cleanup.`);
+          // Use sessionData.userId from the closure, or fetch from this.activeSessions.get(sessionId)?.userId
+          await this.stopRecordingSession(sessionId, sessionData.userId);
+        } else {
+          logger.info(`Session ${sessionId} was already stopped or cleaned up. No further action needed from page.on('close').`);
+        }
+      });
+
+      // Now, store the session data in the map
+      this.activeSessions.set(sessionId, sessionData);
+
+      // Initial action indicating navigation/start
+      const initialAction: RecordedAction = {
+        type: 'navigate',
+        url: page.url(), // Use the page's current URL after navigation
+        timestamp: Date.now(),
+        value: 'Recording session started'
+      };
+      // Add initial action directly to sessionData.actions as it's now the source of truth before being set in map
+      sessionData.actions.push(initialAction);
+
+
+      logger.info(`Recording session ${sessionId} started for URL: ${url} by user: ${userId || 'anonymous'}`);
+      return { success: true, sessionId };
+
+    } catch (error: any) {
+      logger.error(`Error starting recording session ${sessionId} for URL ${url}:`, error);
+      if (browser) {
+        await browser.close().catch(err => logger.error('Failed to close browser during startRecording error handling:', err));
+      }
+      // Clean up from activeSessions if partially added before error
+      if (this.activeSessions.has(sessionId)) {
+          this.activeSessions.delete(sessionId);
+      }
+      return { success: false, error: error.message || 'Unknown error starting recording session' };
+    }
+    // Note: Browser is not closed here, it's kept open for the session. It will be closed in stopRecordingSession.
+  }
+
+  async stopRecordingSession(sessionId: string, userId?: number): Promise<{ success: boolean, actions?: RecordedAction[], error?: string }> {
+    const session = this.activeSessions.get(sessionId);
+
+    if (!session) {
+      logger.info(`Attempted to stop session ${sessionId}, but it was not found in activeSessions. It might have been already stopped (e.g., by page close handler or explicit stop call).`);
+      return { success: false, error: "Recording session not found or already stopped." };
+    }
+
+    // Optional: Validate userId if the session should be user-specific
+    if (userId && session.userId && session.userId !== userId) {
+      logger.warn(`User ID mismatch attempting to stop session ${sessionId}. Request by ${userId}, session owned by ${session.userId}`);
+      return { success: false, error: "Unauthorized to stop this recording session." };
+    }
+
+    try {
+      // Add a final action indicating end of recording (optional)
+      const finalAction: RecordedAction = {
+        type: 'navigate', // or a custom 'recordingEnd' type
+        url: session.page.url(),
+        timestamp: Date.now(),
+        value: 'Recording session stopped'
+      };
+      session.actions.push(finalAction);
+
+      // Close Playwright resources
+      await session.page.close();
+      await session.context.close();
+      await session.browser.close();
+
+      // Retrieve actions before deleting the session
+      const recordedActions = session.actions;
+      this.activeSessions.delete(sessionId);
+
+      logger.info(`Recording session ${sessionId} stopped. Actions recorded: ${recordedActions.length}`);
+      return { success: true, actions: recordedActions };
+
+    } catch (error: any) {
+      logger.error(`Error stopping recording session ${sessionId}:`, error);
+      // Attempt to clean up even if there's an error during close
+      this.activeSessions.delete(sessionId);
+      return { success: false, error: error.message || 'Unknown error stopping recording session' };
+    }
+  }
+
+  async getRecordedActions(sessionId: string, userId?: number): Promise<{ success: boolean, actions?: RecordedAction[], error?: string }> {
+    const session = this.activeSessions.get(sessionId);
+
+    if (!session) {
+      return { success: false, error: "Recording session not found or already stopped." };
+    }
+
+    // Optional: Validate userId if the session should be user-specific
+    if (userId && session.userId && session.userId !== userId) {
+      logger.warn(`User ID mismatch attempting to get actions for session ${sessionId}. Request by ${userId}, session owned by ${session.userId}`);
+      return { success: false, error: "Unauthorized to access this recording session." };
+    }
+
+    // Return a copy of the actions array to prevent external modification if needed,
+    // though for polling, direct reference might be fine and more performant.
+    // For safety, let's return a copy.
+    logger.debug(`Retrieved ${session.actions.length} actions for session ${sessionId}`);
+    return { success: true, actions: [...session.actions] };
   }
 
   async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detectedElements?: DetectedElement[] }> {
