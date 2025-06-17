@@ -585,18 +585,7 @@ export default function DashboardPage() {
         variant: "destructive",
       });
     },
-    onSettled: () => {
-      setIsRecording(false);
-      setSessionId(null);
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to Stop Recording",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+    // The malformed onSettled and duplicate onError that followed have been removed.
     onSettled: () => {
       // This block executes after onSuccess or onError
       setIsRecording(false);
