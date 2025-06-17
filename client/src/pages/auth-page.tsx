@@ -19,7 +19,7 @@ export default function AuthPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate("/");
+      navigate("/dashboard"); // Changed navigation target
     }
   }, [user, navigate]);
 

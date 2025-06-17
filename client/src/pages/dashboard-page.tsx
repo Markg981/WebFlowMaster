@@ -33,6 +33,7 @@ import {
   User
 } from "lucide-react";
 import { useTranslation } from 'react-i18next';
+import { Link, useRoute } from 'wouter'; // Added wouter imports
 
 interface DetectedElement {
   id: string;
@@ -71,6 +72,8 @@ const availableActions: TestAction[] = [
 
 export default function DashboardPage() {
   const { t } = useTranslation(); // Initialize useTranslation
+  const [isDashboardActive] = useRoute('/dashboard');
+  const [isCreateTestActive] = useRoute('/'); // This page is for "Create Test"
   const { user, logoutMutation } = useAuth();
   const [currentUrl, setCurrentUrl] = useState("https://github.com");
   const [detectedElements, setDetectedElements] = useState<DetectedElement[]>([]);
@@ -216,9 +219,19 @@ export default function DashboardPage() {
             </div>
             
             <nav className="hidden md:flex space-x-6">
-              <span className="text-primary font-medium border-b-2 border-primary pb-2">{t('dashboardPage.navCreateTest')}</span>
-              <span className="text-gray-600 hover:text-gray-900 pb-2 cursor-pointer">{t('dashboardPage.navMyTests')}</span>
-              <span className="text-gray-600 hover:text-gray-900 pb-2 cursor-pointer">{t('dashboardPage.navReports')}</span>
+              {/* Dashboard Link */}
+              <Link href='/dashboard'>
+                <a className={`pb-2 text-sm ${isDashboardActive ? 'text-primary font-semibold border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+                  {t('nav.dashboard')}
+                </a>
+              </Link>
+              {/* Create Test Link (this page) */}
+              <Link href='/'>
+                <a className={`pb-2 text-sm ${isCreateTestActive ? 'text-primary font-semibold border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+                  {t('nav.createTest')}
+                </a>
+              </Link>
+              {/* My Tests and Reports are removed as per instruction */}
             </nav>
           </div>
           

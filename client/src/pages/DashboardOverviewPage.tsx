@@ -1,5 +1,6 @@
 import React from 'react';
-import { Link } from 'wouter';
+import { Link, useRoute } from 'wouter'; // Added useRoute
+import { useTranslation } from 'react-i18next'; // Added useTranslation
 import KpiPanel from '@/components/dashboard/KpiPanel';
 import TestStatusPieChart from '@/components/dashboard/TestStatusPieChart';
 import TestTrendBarChart from '@/components/dashboard/TestTrendBarChart';
@@ -8,18 +9,57 @@ import QuickAccessReports from '@/components/dashboard/QuickAccessReports';
 import RunTestNowButton from '@/components/dashboard/RunTestNowButton';
 
 const DashboardOverviewPage: React.FC = () => {
+  const { t } = useTranslation();
+  const [isDashboardActive] = useRoute('/dashboard');
+  // For other links, we can add useRoute if they have actual pages later
+  // For now, they will use a consistent non-active style.
+
+  const linkBaseStyle = "block py-2 px-3 rounded-md text-sm font-medium";
+  const activeLinkStyle = "bg-primary/10 text-primary"; // Adjusted active style for better visibility with bg-card
+  const inactiveLinkStyle = "text-foreground hover:bg-muted hover:text-foreground"; // text-foreground for better contrast on bg-card
+
   return (
     <div className="flex h-screen bg-background text-foreground">
       {/* Sidebar */}
-      <aside className="w-64 bg-card text-card-foreground p-4 space-y-4 border-r border-border shrink-0"> {/* Added shrink-0 to prevent sidebar from shrinking */}
-        <h2 className="text-xl font-semibold">Navigation</h2>
+      <aside className="w-64 bg-card text-card-foreground p-4 space-y-4 border-r border-border shrink-0">
+        <h2 className="text-xl font-semibold px-3">Navigation</h2> {/* Added padding to align with links */}
         <nav>
-          <ul className="space-y-2">
-            <li><Link href="/dashboard" className="hover:text-primary hover:underline">Dashboard</Link></li>
-            <li><Link href="/tests" className="hover:text-primary hover:underline">Tests</Link></li>
-            <li><Link href="/suites" className="hover:text-primary hover:underline">Suites</Link></li>
-            <li><Link href="/schedulazioni" className="hover:text-primary hover:underline">Schedulazioni</Link></li>
-            <li><Link href="/reports" className="hover:text-primary hover:underline">Report</Link></li>
+          <ul className="space-y-1"> {/* Reduced space-y slightly */}
+            <li>
+              <Link href="/dashboard">
+                <a className={`${linkBaseStyle} ${isDashboardActive ? activeLinkStyle : inactiveLinkStyle}`}>
+                  {t('nav.dashboard')}
+                </a>
+              </Link>
+            </li>
+            <li>
+              <Link href="#/tests"> {/* Placeholder href */}
+                <a className={`${linkBaseStyle} ${inactiveLinkStyle}`}>
+                  {t('nav.tests')}
+                </a>
+              </Link>
+            </li>
+            <li>
+              <Link href="#/suites"> {/* Placeholder href */}
+                <a className={`${linkBaseStyle} ${inactiveLinkStyle}`}>
+                  {t('nav.suites')}
+                </a>
+              </Link>
+            </li>
+            <li>
+              <Link href="#/schedulazioni"> {/* Placeholder href */}
+                <a className={`${linkBaseStyle} ${inactiveLinkStyle}`}>
+                  {t('nav.schedulazioni')}
+                </a>
+              </Link>
+            </li>
+            <li>
+              <Link href="#/reports"> {/* Placeholder href */}
+                <a className={`${linkBaseStyle} ${inactiveLinkStyle}`}>
+                  {t('nav.reports')}
+                </a>
+              </Link>
+            </li>
           </ul>
         </nav>
       </aside>

@@ -40,6 +40,14 @@
   "dashboard": {
     "title": "Cruscotto"
   },
+  "nav": {
+    "dashboard": "Dashboard",
+    "createTest": "Crea Test",
+    "tests": "Test",
+    "suites": "Suite",
+    "schedulazioni": "Schedulazioni",
+    "reports": "Report"
+  },
   "dashboardPage": {
     "headerTitle": "Piattaforma WebTest",
     "navCreateTest": "Crea Test",

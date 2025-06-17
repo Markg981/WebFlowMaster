@@ -1,23 +1,23 @@
 {
-  "greeting": "Hello",
+  "greeting": "Bonjour",
   "settings": {
     "title": "Paramètres",
-    "language": "Language",
-    "english": "English",
-    "italian": "Italian",
+    "language": "Langue",
+    "english": "Anglais",
+    "italian": "Italien",
     "toast": {
-      "savedTitle": "Settings saved",
-      "savedDescription": "Your preferences have been updated successfully.",
-      "errorTitle": "Error saving settings",
-      "errorDescription": "An unexpected error occurred.",
-      "resetTitle": "Settings reset",
-      "resetDescription": "Local form has been reset. Fetched settings may differ."
+      "savedTitle": "Paramètres enregistrés",
+      "savedDescription": "Vos préférences ont été mises à jour avec succès.",
+      "errorTitle": "Erreur lors de l'enregistrement des paramètres",
+      "errorDescription": "Une erreur inattendue s'est produite.",
+      "resetTitle": "Paramètres réinitialisés",
+      "resetDescription": "Le formulaire local a été réinitialisé. Les paramètres récupérés peuvent différer."
     },
     "appearance": {
-      "title": "Appearance",
-      "description": "Customize the look and feel of the application.",
-      "darkModeLabel": "Dark Mode",
-      "darkModeDescription": "Switch between light and dark themes."
+      "title": "Apparence",
+      "description": "Personnalisez l'apparence de l'application.",
+      "darkModeLabel": "Mode Sombre",
+      "darkModeDescription": "Basculez entre les thèmes clair et sombre."
     },
     "languageSettings": {
       "title": "Langue et région",
@@ -31,54 +31,62 @@
       "selectHint": "Cela changera la langue de l'interface utilisateur."
     },
     "buttons": {
-      "resetForm": "Reset Form",
-      "cancel": "Cancel",
-      "saveSettings": "Save Settings",
-      "saving": "Saving..."
+      "resetForm": "Réinitialiser le formulaire",
+      "cancel": "Annuler",
+      "saveSettings": "Enregistrer les paramètres",
+      "saving": "Enregistrement..."
     }
   },
   "dashboard": {
-    "title": "Dashboard"
+    "title": "Tableau de bord"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "createTest": "Créer un Test",
+    "tests": "Tests",
+    "suites": "Suites",
+    "schedulazioni": "Planifications",
+    "reports": "Rapports"
   },
   "dashboardPage": {
-    "headerTitle": "WebTest Platform",
-    "navCreateTest": "Create Test",
-    "navMyTests": "My Tests",
-    "navReports": "Reports",
-    "signOutButton": "Sign Out",
-    "urlInputLabel": "Website URL to Test",
-    "loadWebsiteButton": "Load Website",
-    "loadingWebsiteButton": "Loading...",
-    "detectElementsButton": "Detect Elements",
-    "detectingElementsButton": "Detecting...",
-    "availableActionsTitle": "Available Actions",
-    "websitePreviewTitle": "Website Preview",
-    "previewLoadedBadge": "Loaded",
-    "previewLoadPrompt": "Load a website to see the preview",
-    "previewScreenshotHint": "Real website screenshots will appear here",
-    "detectedElementsTitle": "Detected Elements",
-    "elementsFoundBadge": "{{count}} found",
-    "noElementsDetected": "No elements detected yet",
-    "detectElementsPrompt": "Click \"Detect Elements\" to scan the loaded website",
-    "testSequenceTitle": "Test Sequence",
-    "executeTestButton": "Execute Test",
-    "executingTestButton": "Executing...",
-    "saveTestButton": "Save Test",
-    "savingTestButton": "Saving...",
-    "clearSequenceButton": "Clear",
-    "dropActionsPrompt": "Drop actions here to build your test",
-    "dropActionsHint": "Drag actions from the left sidebar, then add elements to complete each step",
+    "headerTitle": "Plateforme WebTest",
+    "navCreateTest": "Créer un Test",
+    "navMyTests": "Mes Tests",
+    "navReports": "Rapports",
+    "signOutButton": "Se déconnecter",
+    "urlInputLabel": "URL du site Web à tester",
+    "loadWebsiteButton": "Charger le site Web",
+    "loadingWebsiteButton": "Chargement...",
+    "detectElementsButton": "Détecter les éléments",
+    "detectingElementsButton": "Détection...",
+    "availableActionsTitle": "Actions disponibles",
+    "websitePreviewTitle": "Aperçu du site Web",
+    "previewLoadedBadge": "Chargé",
+    "previewLoadPrompt": "Chargez un site Web pour voir l'aperçu",
+    "previewScreenshotHint": "Les captures d'écran réelles du site Web apparaîtront ici",
+    "detectedElementsTitle": "Éléments détectés",
+    "elementsFoundBadge": "{{count}} trouvé(s)",
+    "noElementsDetected": "Aucun élément détecté pour le moment",
+    "detectElementsPrompt": "Cliquez sur \"Détecter les éléments\" pour analyser le site Web chargé",
+    "testSequenceTitle": "Séquence de test",
+    "executeTestButton": "Exécuter le test",
+    "executingTestButton": "Exécution...",
+    "saveTestButton": "Enregistrer le test",
+    "savingTestButton": "Enregistrement...",
+    "clearSequenceButton": "Effacer",
+    "dropActionsPrompt": "Déposez les actions ici pour construire votre test",
+    "dropActionsHint": "Faites glisser les actions depuis la barre latérale gauche, puis ajoutez des éléments pour compléter chaque étape",
     "toast": {
-      "websiteLoadedTitle": "Website Loaded",
-      "websiteLoadedDesc": "The website has been loaded successfully.",
-      "websiteLoadErrorTitle": "Error Loading Website",
-      "elementsDetectedTitle": "Elements Detected",
-      "elementsDetectedDesc": "{{count}} elements found on the page.",
-      "elementsDetectErrorTitle": "Error Detecting Elements",
-      "defaultTestName": "Test for {{url}}",
-      "testSavedTitle": "Test Saved",
-      "testSavedDesc": "Your test sequence has been saved.",
-      "testSaveErrorTitle": "Error Saving Test"
+      "websiteLoadedTitle": "Site Web chargé",
+      "websiteLoadedDesc": "Le site Web a été chargé avec succès.",
+      "websiteLoadErrorTitle": "Erreur lors du chargement du site Web",
+      "elementsDetectedTitle": "Éléments détectés",
+      "elementsDetectedDesc": "{{count}} éléments trouvés sur la page.",
+      "elementsDetectErrorTitle": "Erreur lors de la détection des éléments",
+      "defaultTestName": "Test pour {{url}}",
+      "testSavedTitle": "Test enregistré",
+      "testSavedDesc": "Votre séquence de test a été enregistrée.",
+      "testSaveErrorTitle": "Erreur lors de l'enregistrement du test"
     }
   }
 }
