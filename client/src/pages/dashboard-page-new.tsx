@@ -24,6 +24,7 @@ import {
   Play,
   Pause,
   StopCircle,
+  ArrowLeft, // Add this if not present
 } from "lucide-react";
 import { Link } from "wouter";
 import debounceFromLodash from 'lodash/debounce'; // Attempt to import lodash.debounce
@@ -661,11 +662,6 @@ export default function DashboardPage() {
               <h1 className="text-xl font-bold text-card-foreground">WebTest Platform</h1>
             </div>
             
-            <nav className="hidden md:flex space-x-6">
-              <span className="text-primary font-medium border-b-2 border-primary pb-2">Create Test</span>
-              <span className="text-muted-foreground hover:text-foreground pb-2 cursor-pointer">My Tests</span>
-              <span className="text-muted-foreground hover:text-foreground pb-2 cursor-pointer">Reports</span>
-            </nav>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -692,6 +688,18 @@ export default function DashboardPage() {
           </div>
         </div>
       </header>
+
+      {/* Back to Dashboard Button Section */}
+      <div className="px-6 pt-4 bg-card border-b border-border">
+        <div className="mb-4">
+          <Link href="/dashboard">
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back To Dashboard
+            </Button>
+          </Link>
+        </div>
+      </div>
 
       {/* URL Input Section */}
       <div className="bg-card border-b border-border px-6 py-4">
