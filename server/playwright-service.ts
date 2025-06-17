@@ -362,21 +362,27 @@ export class PlaywrightService {
       // Use user settings for browser configuration if available
       const userSettings = userId ? await storage.getUserSettings(userId) : undefined;
       const browserType = userSettings?.playwrightBrowser || DEFAULT_BROWSER;
-      const headlessMode = userSettings?.playwrightHeadless !== undefined ? userSettings.playwrightHeadless : DEFAULT_HEADLESS;
+      // Force headless to false for interactive recording sessions
+      const effectiveHeadlessMode = false;
       const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
+      const specificWaitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME;
+
+      logger.info(`Starting recording session ${sessionId} for URL: ${url} with browser: ${browserType}, headless: ${effectiveHeadlessMode}`);
 
       const browserEngine = playwright[browserType];
-      browser = await browserEngine.launch({ headless: headlessMode });
+      browser = await browserEngine.launch({ headless: effectiveHeadlessMode });
       const context = await browser.newContext({
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        // Potentially add viewport settings from userSettings if available
-        viewport: { width: 1280, height: 720 }
+        viewport: { width: 1280, height: 720 } // Consistent viewport
       });
       const page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
 
       await page.goto(url, { waitUntil: 'domcontentloaded' });
-      await page.waitForTimeout(userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME);
+      await page.waitForTimeout(specificWaitTime); // Use specific wait time
+
+      // Bring the page to the front to make it visible to the user
+      await page.bringToFront();
 
       // Expose a function to the page for the client-side recorder script to send actions
       await page.exposeFunction('sendActionToBackend', (action: RecordedAction) => {
@@ -397,24 +403,40 @@ export class PlaywrightService {
       // Inject the recorder script
       await page.addScriptTag({ content: RECORDER_SCRIPT });
 
-      // Store the session details
-      this.activeSessions.set(sessionId, {
+      const sessionData: ActiveSession = {
         browser,
         context,
         page,
         actions: [],
-        userId,
+        userId, // Capture userId in sessionData for the 'close' handler
         targetUrl: url,
+      };
+
+      // Add listener for page close event
+      page.on('close', async () => {
+        logger.info(`Playwright page closed by user for session ${sessionId}.`);
+        // Check if the session is still considered active by the service
+        if (this.activeSessions.has(sessionId)) {
+          logger.info(`Session ${sessionId} is still in activeSessions. Attempting to stop and cleanup.`);
+          // Use sessionData.userId from the closure, or fetch from this.activeSessions.get(sessionId)?.userId
+          await this.stopRecordingSession(sessionId, sessionData.userId);
+        } else {
+          logger.info(`Session ${sessionId} was already stopped or cleaned up. No further action needed from page.on('close').`);
+        }
       });
+
+      // Now, store the session data in the map
+      this.activeSessions.set(sessionId, sessionData);
 
       // Initial action indicating navigation/start
       const initialAction: RecordedAction = {
         type: 'navigate',
-        url: page.url(),
+        url: page.url(), // Use the page's current URL after navigation
         timestamp: Date.now(),
         value: 'Recording session started'
       };
-      this.activeSessions.get(sessionId)?.actions.push(initialAction);
+      // Add initial action directly to sessionData.actions as it's now the source of truth before being set in map
+      sessionData.actions.push(initialAction);
 
 
       logger.info(`Recording session ${sessionId} started for URL: ${url} by user: ${userId || 'anonymous'}`);
@@ -438,7 +460,8 @@ export class PlaywrightService {
     const session = this.activeSessions.get(sessionId);
 
     if (!session) {
-      return { success: false, error: "Recording session not found." };
+      logger.info(`Attempted to stop session ${sessionId}, but it was not found in activeSessions. It might have been already stopped (e.g., by page close handler or explicit stop call).`);
+      return { success: false, error: "Recording session not found or already stopped." };
     }
 
     // Optional: Validate userId if the session should be user-specific
@@ -481,7 +504,7 @@ export class PlaywrightService {
     const session = this.activeSessions.get(sessionId);
 
     if (!session) {
-      return { success: false, error: "Recording session not found." };
+      return { success: false, error: "Recording session not found or already stopped." };
     }
 
     // Optional: Validate userId if the session should be user-specific

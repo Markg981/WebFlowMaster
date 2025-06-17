@@ -401,17 +401,44 @@ export function registerRoutes(app: Express): Server {
       const userId = req.user.id; // For validation
 
       const result = await playwrightService.getRecordedActions(sessionId, userId);
-      if (result.success) {
-         // Transform RecordedAction to match frontend's DragDropTestStep structure if necessary
-        // As above, this transformation is NOT done here yet.
-        res.status(200).json({ success: true, sequence: result.actions });
-      } else {
-        res.status(404).json({ success: false, error: result.error || "Failed to get recorded actions or session not found" });
+
+      if (!result.success) {
+        // Check specifically for the "session not found" error from the service
+        if (result.error === "Recording session not found or already stopped.") {
+          logger.warn(`Attempt to get actions for non-existent or ended session ${sessionId} by user ${userId}.`);
+          return res.status(200).json({ // Respond with 200 OK but indicate session status in the body
+            success: false,
+            error: result.error,
+            sessionEnded: true,
+            sequence: [] // Provide an empty sequence
+          });
+        }
+        // For other types of errors from getRecordedActions (e.g., unexpected internal errors)
+        logger.error(`Error fetching actions for session ${sessionId} (user ${userId}): ${result.error}`);
+        return res.status(500).json({
+          success: false,
+          error: result.error || "Server error while trying to get recorded actions",
+          sessionEnded: false // Session might still exist but another error occurred
+        });
       }
+
+      // Success: session is active, and actions are retrieved
+      res.status(200).json({
+        success: true,
+        sequence: result.actions,
+        sessionEnded: false // Session is active
+      });
+
     } catch (error) {
-      logger.error("Error in /api/get-recorded-actions:", { error });
+      logger.error("Critical error in /api/get-recorded-actions route:", { error });
       const errorMessage = error instanceof Error ? error.message : "Unknown server error";
-      res.status(500).json({ success: false, error: "Server error getting recorded actions", details: errorMessage });
+      // Ensure sessionEnded is part of the response for consistency, defaulting to false for unexpected errors
+      res.status(500).json({
+        success: false,
+        error: "Server error in get-recorded-actions route",
+        details: errorMessage,
+        sessionEnded: false
+      });
     }
   });
 

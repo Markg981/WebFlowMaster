@@ -491,8 +491,9 @@ export default function DashboardPage() {
       setSessionId(data.sessionId);
       setIsRecording(true);
       toast({
-        title: "Recording Started",
-        description: "User actions are now being recorded.",
+        title: "Registrazione Avviata",
+        description: "Interagisci con la nuova finestra del browser che è stata aperta per registrare le tue azioni.",
+        duration: 7000,
       });
       // Polling will be started by useEffect based on isRecording and sessionId
     },
@@ -616,12 +617,81 @@ export default function DashboardPage() {
     }
     try {
       const res = await apiRequest("GET", `/api/get-recorded-actions?sessionId=${currentSessionId}`);
-      const result: { success: boolean, sequence?: BackendRecordedAction[], error?: string } = await res.json();
-      if (!res.ok || !result.success) {
-        console.error("Polling: Failed to fetch recorded actions:", result.error || "Unknown error");
-        return [];
+
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => "Errore sconosciuto dal server.");
+        console.warn(`Polling: API request failed with status ${res.status}. Session might have ended. Error: ${errorText}`);
+        if (isRecording && sessionId === currentSessionId) {
+          toast({
+            title: "Errore di Rete o Server",
+            description: `Impossibile aggiornare le azioni (errore ${res.status}). La sessione potrebbe essere terminata.`,
+            variant: "warning",
+            duration: 7000,
+          });
+          // Consider stopping if error is 404, indicating session truly not found
+          if (res.status === 404) {
+            setIsRecording(false);
+            setSessionId(null);
+          }
+        }
+        return testSequence; // Return current sequence to avoid clearing UI on temporary network issues
       }
 
+      const result: {
+        success: boolean,
+        sequence?: BackendRecordedAction[],
+        error?: string,
+        sessionEnded?: boolean
+      } = await res.json();
+
+      if (!result.success) {
+        if (result.sessionEnded) {
+          if (isRecording && sessionId === currentSessionId) {
+            toast({
+              title: "Sessione di Registrazione Terminata",
+              description: result.error || "La finestra di registrazione è stata chiusa o la sessione è scaduta.",
+              variant: "info",
+              duration: 7000,
+            });
+            setIsRecording(false);
+            setSessionId(null);
+            // If backend sends last batch of actions with sessionEnded=true, process them:
+            if (result.sequence && result.sequence.length > 0) {
+              const lastActions = result.sequence.map( (recordedAction, index) => {
+                const correspondingAction = availableActions.find(a => a.id === recordedAction.type);
+                if (!correspondingAction) return null;
+                let targetElementPlaceholder: DetectedElement | undefined = undefined;
+                if (recordedAction.selector) {
+                  targetElementPlaceholder = {
+                    id: `polled-elem-${Date.now()}-${index}`, selector: recordedAction.selector,
+                    type: recordedAction.targetTag || 'element', text: recordedAction.targetText || recordedAction.selector,
+                    tag: recordedAction.targetTag || 'unknown', attributes: {},
+                  };
+                }
+                return {
+                  id: `polled-step-${Date.now()}-${index}`, action: correspondingAction,
+                  targetElement: targetElementPlaceholder, value: recordedAction.value || "",
+                };
+              }).filter(step => step !== null) as DragDropTestStep[];
+              return lastActions; // Return the final set of actions
+            }
+          }
+        } else {
+          if (isRecording && sessionId === currentSessionId) {
+            toast({
+              title: "Problema con la Sessione di Registrazione",
+              description: result.error || "Si è verificato un errore recuperando le azioni.",
+              variant: "warning",
+              duration: 7000,
+            });
+            // For non-session-ending errors, you might choose not to stop recording immediately
+            // unless the error is persistent or critical.
+          }
+        }
+        return testSequence; // Return current sequence to avoid clearing UI on non-fatal errors
+      }
+
+      // result.success === true
       if (result.sequence) {
         const newTestSequence: DragDropTestStep[] = result.sequence.map((recordedAction, index) => {
           const correspondingAction = availableActions.find(a => a.id === recordedAction.type);
@@ -1087,7 +1157,20 @@ export default function DashboardPage() {
               
               {/* This is the container whose dimensions are used for scaling calculations */}
               <div ref={imageContainerRef} className="flex-1 border-2 border-border rounded-lg overflow-hidden relative bg-muted flex items-center justify-center">
-                {(websiteLoaded || isExecutingPlayback) && websiteScreenshot ? (
+                {creationMode === 'record' && isRecording ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <div className="text-center p-4">
+                      <Play className="h-12 w-12 mx-auto mb-4 opacity-70 text-primary" />
+                      <p className="text-lg font-semibold text-foreground">Registrazione in corso...</p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Utilizza la finestra del browser separata che si è aperta per interagire con il sito.
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Le azioni registrate appariranno nella sezione "Test Sequence" qui sotto.
+                      </p>
+                    </div>
+                  </div>
+                ) : (websiteLoaded || isExecutingPlayback) && websiteScreenshot ? (
                   <div className="relative">
                     <img 
                       ref={imageRef}
