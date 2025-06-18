@@ -192,7 +192,8 @@ const TestSuitesPage: React.FC = () => {
           <p>Schedules content goes here.</p>
         </TabsContent>
       </Tabs>
-    </div>
+    </div> {/* End of Content Wrapper */}
+  </div> /* ADDED: This closes the outermost div */
   );
 };
 
