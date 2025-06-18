@@ -212,9 +212,12 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
+              <Link href="/dashboard" className="flex items-center space-x-2 text-primary hover:underline">
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
               <TestTube className="h-6 w-6 text-primary" />
               {/* Title as per prompt, not using t() here based on instruction for "exact JSX" */}
-              <h1 className="text-xl font-bold text-gray-900">Web Automation Platform</h1>
+              <h1 className="text-xl font-bold text-gray-900">Create Web Test</h1>
             </div>
           </div>
           <div className="flex items-center space-x-4">
@@ -241,18 +244,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </header>
-
-      {/* Back to Dashboard Button Section */}
-      <div className="px-6 pt-4 bg-white border-b border-gray-200">
-        <div className="mb-4">
-          <Link href="/dashboard">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              {t('nav.backToDashboard')}
-            </Button>
-          </Link>
-        </div>
-      </div>
 
       {/* URL Input Section */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">

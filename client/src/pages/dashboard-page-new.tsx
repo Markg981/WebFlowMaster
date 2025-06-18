@@ -1008,14 +1008,14 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Link href="/dashboard" aria-label="Back to Dashboard">
-              <Button variant="ghost" size="icon">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Link href="/dashboard" className="flex items-center space-x-2 text-primary hover:underline">
                 <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <PlusSquare className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold text-card-foreground">Create Test</h1>
+              </Link>
+              <TestTube className="h-6 w-6 text-primary" />
+              <h1 className="text-xl font-bold text-card-foreground">Create Web Test</h1>
+            </div>
           </div>
           
           <div className="flex items-center space-x-4">
