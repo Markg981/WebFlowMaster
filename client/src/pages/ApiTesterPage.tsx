@@ -84,10 +84,6 @@ const ApiTesterPage: React.FC = () => {
   const [authType, setAuthType] = useState<AuthType>('none');
   const [authParams, setAuthParams] = useState<AuthParams | undefined>(undefined);
 
-  // Auth state
-  const [authType, setAuthType] = useState<AuthType>('none');
-  const [authParams, setAuthParams] = useState<AuthParams | undefined>(undefined);
-
   // Body type state
   const [selectedBodyType, setSelectedBodyType] = useState<BodyType>('raw');
   const [rawContentType, setRawContentType] = useState<string>('application/json');
@@ -501,31 +497,109 @@ const ApiTesterPage: React.FC = () => {
     setDuration(item.durationMs ?? null);
     setAssertions([]);
     setAssertionResults(null);
+
+    // Reset new auth and body states for history items
+    setAuthType('none');
+    setAuthParams(undefined);
+    setSelectedBodyType('raw'); // Or 'none' if preferred, 'raw' is a common default
+    setRawContentType('application/json');
+    setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
+    setUrlEncodedBody([{ id: uuidv4(), key: '', value: '', enabled: true }]);
+    setGraphqlQuery('');
+    setGraphqlVariables('');
+    setBinaryBodyFile(null);
+
     toast({ title: "Loaded from history", description: `${item.method} ${item.url}`, duration: 2000 });
   };
+
+  const loadTestState = (test: ApiTest) => {
+    setMethod(test.method);
+    setUrl(test.url);
+
+    const parseKeyValuePairs = (jsonStringOrArray: string | KeyValuePair[] | null | undefined, prefix: 'qp' | 'rh'): KeyValuePair[] => {
+      if (!jsonStringOrArray) return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
+      try {
+        const parsed = typeof jsonStringOrArray === 'string' ? JSON.parse(jsonStringOrArray) : jsonStringOrArray;
+        if (Array.isArray(parsed)) {
+          if (parsed.length === 0) return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
+          // Ensure structure matches KeyValuePair (e.g. after loading from DB which might store plain objects)
+          return parsed.map((p: any, i: number) => ({
+            id: p.id || `${prefix}-${Date.now()}-${i}`,
+            key: p.key || '',
+            value: p.value || '',
+            enabled: p.enabled !== undefined ? p.enabled : true,
+          }));
+        } else if (typeof parsed === 'object' && parsed !== null) { // Handle old object format for queryParams
+          return Object.entries(parsed).map(([k, v], i) => ({
+            id: `${prefix}-${Date.now()}-${i}`, key: k, value: Array.isArray(v) ? v.join(',') : String(v), enabled: true
+          }));
+        }
+      } catch (e) { console.error(`Error parsing ${prefix} from saved test:`, e); }
+      return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
+    };
+
+    setQueryParams(parseKeyValuePairs(test.queryParams as any, 'qp'));
+    setRequestHeaders(parseKeyValuePairs(test.requestHeaders as any, 'rh'));
+
+    // Old requestBody is for raw text, primarily.
+    // If selectedBodyType becomes 'raw', this will be its value.
+    setRequestBodyValue(typeof test.requestBody === 'string' ? test.requestBody : '');
+
+    setAssertions(test.assertions ? (typeof test.assertions === 'string' ? JSON.parse(test.assertions) : test.assertions) : []);
+
+    // Load new fields
+    setAuthType(test.authType || 'none');
+    setAuthParams(test.authParams || undefined);
+    setSelectedBodyType(test.bodyType || 'raw');
+    setRawContentType(test.bodyRawContentType || 'application/json');
+    setGraphqlQuery(test.bodyGraphqlQuery || '');
+    setGraphqlVariables(test.bodyGraphqlVariables || '');
+    setBinaryBodyFile(null); // Files cannot be re-loaded from DB, user must re-select
+
+    if (test.bodyFormData) {
+      const loadedFormData = (typeof test.bodyFormData === 'string' ? JSON.parse(test.bodyFormData) : test.bodyFormData) as Array<any>;
+      setFormDataBody(
+        loadedFormData.map(item => ({
+          id: item.id || uuidv4(),
+          key: item.key || '',
+          value: item.type === 'file' ? null : item.value || '', // File objects can't be stored, set to null
+          enabled: item.enabled !== undefined ? item.enabled : true,
+          type: item.type || 'text',
+          // Add fileName and fileType if they exist for file type, to inform the user
+          ...(item.type === 'file' && item.fileName && { fileNamePlaceholder: item.fileName, fileTypePlaceholder: item.fileType }),
+        }))
+      );
+      if (loadedFormData.some(item => item.type === 'file')) {
+        toast({ title: "Form Data Files", description: "File entries need to be re-selected.", variant: "info", duration: 4000});
+      }
+    } else {
+      setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
+    }
+
+    if (test.bodyUrlEncoded) {
+      const loadedUrlEncoded = (typeof test.bodyUrlEncoded === 'string' ? JSON.parse(test.bodyUrlEncoded) : test.bodyUrlEncoded) as Array<any>;
+      setUrlEncodedBody(
+        loadedUrlEncoded.map(item => ({
+          id: item.id || uuidv4(),
+          key: item.key || '',
+          value: item.value || '',
+          enabled: item.enabled !== undefined ? item.enabled : true,
+        }))
+      );
+    } else {
+      setUrlEncodedBody([{ id: uuidv4(), key: '', value: '', enabled: true }]);
+    }
+  };
+
 
   const handleOpenSaveModal = (testToEdit?: ApiTest) => {
       if (testToEdit) {
           setCurrentTestToEdit(testToEdit);
-          setMethod(testToEdit.method); setUrl(testToEdit.url);
-          const parseAndMap = (jsonStringOrArray: string | KeyValuePair[] | null, prefix: 'qp' | 'rh'): KeyValuePair[] => {
-            if (!jsonStringOrArray) return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
-            try {
-                const parsed = typeof jsonStringOrArray === 'string' ? JSON.parse(jsonStringOrArray) : jsonStringOrArray;
-                if (Array.isArray(parsed) && parsed.every(p => typeof p.key === 'string' && typeof p.value === 'string')) {
-                    return parsed.map((p, i) => ({ ...p, id: p.id || `${prefix}-${Date.now()}-${i}`, enabled: p.enabled !== undefined ? p.enabled : true }));
-                } else if (typeof parsed === 'object' && parsed !== null) {
-                    return Object.entries(parsed).map(([k, v], i) => ({id: `${prefix}-${Date.now()}-${i}`, key: k, value: Array.isArray(v) ? v.join(',') : String(v), enabled: true }));
-                }
-            } catch (e) { console.error("Error parsing params/headers from saved test:", e); }
-            return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
-          };
-          setQueryParams(parseAndMap(testToEdit.queryParams as any, 'qp'));
-          setRequestHeaders(parseAndMap(testToEdit.requestHeaders as any, 'rh'));
-          setRequestBodyValue(testToEdit.requestBody || '');
-          setAssertions(testToEdit.assertions ? (typeof testToEdit.assertions === 'string' ? JSON.parse(testToEdit.assertions) : testToEdit.assertions) : []);
+          loadTestState(testToEdit); // Use the common loader
       } else {
           setCurrentTestToEdit(null);
+          // Optionally reset parts of the form if opening for a new test, though current UI state is often desired.
+          // For now, it will save the current UI state as a new test.
       }
       setIsSaveModalOpen(true);
   };
@@ -539,33 +613,47 @@ const ApiTesterPage: React.FC = () => {
           return acc;
         }, {} as Record<string, string | string[]>);
       const currentHeaders = requestHeaders.filter(h => h.enabled && h.key.trim()).reduce((acc, h) => { acc[h.key] = h.value; return acc; }, {} as Record<string, string>);
-      const config = {
-          method, url, queryParams: currentParams, requestHeaders: currentHeaders,
-          requestBody: requestBodyValue, assertions: assertions
+
+      const transformedFormDataBody = formDataBody.map(field => {
+        if (field.type === 'file' && field.value instanceof File) {
+          return {
+            id: field.id,
+            key: field.key,
+            enabled: field.enabled,
+            type: 'file' as 'file', // Ensure literal type
+            fileName: field.value.name,
+            fileType: field.value.type,
+            // value is not sent, backend will handle file through other means or this signals a file was present
+          };
+        }
+        return field; // For text fields, keep as is (value is string)
+      });
+
+      const config: Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt'> = {
+          method, url,
+          queryParams: currentParams,
+          requestHeaders: currentHeaders,
+          // requestBody is the old field, new fields will store specific body types
+          requestBody: selectedBodyType === 'raw' ? requestBodyValue :
+                       selectedBodyType === 'GraphQL' ? JSON.stringify({query: graphqlQuery, variables: graphqlVariables}) : null,
+          assertions: assertions,
+          // New fields
+          authType: authType,
+          authParams: authParams,
+          bodyType: selectedBodyType,
+          bodyRawContentType: selectedBodyType === 'raw' ? rawContentType : undefined,
+          bodyFormData: selectedBodyType === 'form-data' ? transformedFormDataBody : undefined,
+          bodyUrlEncoded: selectedBodyType === 'x-www-form-urlencoded' ? urlEncodedBody : undefined,
+          bodyGraphqlQuery: selectedBodyType === 'GraphQL' ? graphqlQuery : undefined,
+          bodyGraphqlVariables: selectedBodyType === 'GraphQL' ? graphqlVariables : undefined,
       };
       saveApiTestMutation.mutate({ name, projectId, ...config });
   };
 
   const handleLoadSavedTest = (test: ApiTest) => {
-    setMethod(test.method); setUrl(test.url);
-    const parseAndMap = (jsonStringOrArray: string | KeyValuePair[] | null, prefix: 'qp' | 'rh'): KeyValuePair[] => {
-        if (!jsonStringOrArray) return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
-        try {
-            const parsed = typeof jsonStringOrArray === 'string' ? JSON.parse(jsonStringOrArray) : jsonStringOrArray;
-             if (Array.isArray(parsed) && (parsed.length === 0 || typeof parsed[0].key === 'string')) {
-                return parsed.map((p,i)=> ({...p, id: p.id || `${prefix}-${Date.now()}-${i}`}));
-            } else if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-                return Object.entries(parsed).map(([k, v], i) => ({ id: `${prefix}-${Date.now()}-${i}`, key: k, value: Array.isArray(v) ? v.join(',') : String(v), enabled: true }));
-            }
-        } catch (e) { console.error("Error parsing params/headers from saved test on load:", e); }
-        return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
-    };
-    setQueryParams(parseAndMap(test.queryParams as any, 'qp'));
-    setRequestHeaders(parseAndMap(test.requestHeaders as any, 'rh'));
-    setRequestBodyValue(test.requestBody || '');
-    setAssertions(test.assertions ? (typeof test.assertions === 'string' ? JSON.parse(test.assertions) : test.assertions) : []);
+    loadTestState(test);
     setResponseStatus(null); setResponseHeaders(null); setResponseBody(null); setDuration(null); setAssertionResults(null);
-    setCurrentTestToEdit(test);
+    setCurrentTestToEdit(test); // Keep track of the loaded test for "Save Changes" functionality
     toast({ title: "Loaded saved test", description: test.name, duration: 2000 });
   };
 

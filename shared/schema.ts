@@ -76,6 +76,14 @@ export const apiTests = sqliteTable("api_tests", {
   requestHeaders: text("request_headers", { mode: 'json' }),
   requestBody: text("request_body"),
   assertions: text("assertions", { mode: 'json' }),
+  authType: text("auth_type"), // Nullable by default
+  authParams: text("auth_params", { mode: 'json' }), // Nullable
+  bodyType: text("body_type"), // Nullable
+  bodyRawContentType: text("body_raw_content_type"), // Nullable
+  bodyFormData: text("body_form_data", { mode: 'json' }), // Nullable
+  bodyUrlEncoded: text("body_url_encoded", { mode: 'json' }), // Nullable
+  bodyGraphqlQuery: text("body_graphql_query"), // Nullable
+  bodyGraphqlVariables: text("body_graphql_variables"), // Nullable
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
 });
@@ -260,6 +268,41 @@ export const AuthParamsSchema = z.discriminatedUnion("type", [
 ]);
 export type AuthParams = z.infer<typeof AuthParamsSchema>;
 
+// --- API Body Schemas ---
+// Re-define bodyTypes array here or import if it becomes available from a central place
+const bodyTypesArray = ['none', 'form-data', 'x-www-form-urlencoded', 'raw', 'binary', 'GraphQL'] as const;
+export const BodyTypeSchema = z.enum(bodyTypesArray);
+export type BodyType = z.infer<typeof BodyTypeSchema>;
+
+export const KeyValuePairSchema = z.object({
+  id: z.string(),
+  key: z.string(),
+  value: z.string(),
+  enabled: z.boolean(),
+});
+export type KeyValuePair = z.infer<typeof KeyValuePairSchema>;
+
+export const FormDataFieldMetadataSchema = z.union([
+  z.object({
+    id: z.string(),
+    key: z.string(),
+    enabled: z.boolean(),
+    type: z.literal('text'),
+    value: z.string(),
+  }),
+  z.object({
+    id: z.string(),
+    key: z.string(),
+    enabled: z.boolean(),
+    type: z.literal('file'),
+    fileName: z.string(),
+    fileType: z.string(),
+    // value will not be stored directly for files, just metadata
+  }),
+]);
+export type FormDataFieldMetadata = z.infer<typeof FormDataFieldMetadataSchema>;
+
+
 // --- Insert/Update Schemas for API Tests & History ---
 export const insertApiTestHistorySchema = createInsertSchema(apiTestHistory, {
   // Define any specific Zod types for fields if needed, e.g., for JSON fields
@@ -274,20 +317,42 @@ export const insertApiTestSchema = createInsertSchema(apiTests, {
 }).omit({
   id: true, createdAt: true, updatedAt: true, userId: true, projectId: true,
   // Explicitly omit text fields that store JSON and will be handled by .extend with Zod array/object types
-  queryParams: true, requestHeaders: true, requestBody: true, assertions: true
+  queryParams: true, requestHeaders: true, requestBody: true, assertions: true,
+  authParams: true, bodyFormData: true, bodyUrlEncoded: true, // Omit new JSON fields too
 }).extend({
   queryParams: z.record(z.string().or(z.array(z.string()))).optional().nullable(),
   requestHeaders: z.record(z.string()).optional().nullable(),
-  requestBody: z.any().optional().nullable(), // Keep as any for flexibility, will be stringified
-  assertions: z.array(AssertionSchema).optional().nullable()
+  requestBody: z.any().optional().nullable(), // Keep as any for flexibility, will be stringified for old 'requestBody'
+  assertions: z.array(AssertionSchema).optional().nullable(),
+
+  // New fields for structured auth and body
+  authType: AuthTypeSchema.optional().nullable(),
+  authParams: AuthParamsSchema.optional().nullable(), // This is already a Zod schema
+  bodyType: BodyTypeSchema.optional().nullable(),
+  bodyRawContentType: z.string().optional().nullable(),
+  bodyFormData: z.array(FormDataFieldMetadataSchema).optional().nullable(),
+  bodyUrlEncoded: z.array(KeyValuePairSchema).optional().nullable(),
+  bodyGraphqlQuery: z.string().optional().nullable(),
+  bodyGraphqlVariables: z.string().optional().nullable(), // Keep as string, parsed by client/server
 });
 
 export const updateApiTestSchema = insertApiTestSchema.partial().extend({
   // Ensure even in partial updates, these fields are validated against their Zod types if provided
+  // All fields from insertApiTestSchema are already optional due to .partial()
+  // We just need to ensure the .extend() part is also applied if they are provided
   queryParams: z.record(z.string().or(z.array(z.string()))).optional().nullable(),
   requestHeaders: z.record(z.string()).optional().nullable(),
   requestBody: z.any().optional().nullable(),
-  assertions: z.array(AssertionSchema).optional().nullable()
+  assertions: z.array(AssertionSchema).optional().nullable(),
+
+  authType: AuthTypeSchema.optional().nullable(),
+  authParams: AuthParamsSchema.optional().nullable(),
+  bodyType: BodyTypeSchema.optional().nullable(),
+  bodyRawContentType: z.string().optional().nullable(),
+  bodyFormData: z.array(FormDataFieldMetadataSchema).optional().nullable(),
+  bodyUrlEncoded: z.array(KeyValuePairSchema).optional().nullable(),
+  bodyGraphqlQuery: z.string().optional().nullable(),
+  bodyGraphqlVariables: z.string().optional().nullable(),
 });
 
 
