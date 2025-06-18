@@ -34,6 +34,7 @@ import {
   ArrowLeft, // Add this if not present
   XCircle, // Added for test result display
   PlusSquare, // Added for page icon
+  TestTube, // Added this icon
 } from "lucide-react";
 import { Link } from "wouter";
 import debounceFromLodash from 'lodash/debounce'; // Attempt to import lodash.debounce
