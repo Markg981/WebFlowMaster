@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, TestTube, Loader2, PlusCircle, XCircle, History, Save, ListChecks, CheckCircle, XCircle as XCircleIcon, AlertCircle } from 'lucide-react';
@@ -24,11 +25,23 @@ import { HistoryPanel } from '@/components/api-tester/HistoryPanel';
 import { SavedTestsPanel } from '@/components/api-tester/SavedTestsPanel';
 import { SaveApiTestModal } from '@/components/api-tester/SaveApiTestModal';
 import { AssertionEditor } from '@/components/api-tester/AssertionEditor';
-import { ApiTestHistoryEntry, InsertApiTestHistoryEntry, ApiTest, InsertApiTest, Assertion } from '@shared/schema';
+import { AuthorizationPanel } from '@/components/api-tester/AuthorizationPanel';
+import { ApiTestHistoryEntry, InsertApiTestHistoryEntry, ApiTest, InsertApiTest, Assertion, AuthType, AuthParams } from '@shared/schema';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { v4 as uuidv4 } from 'uuid';
 
 const httpMethods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
+const bodyTypes = ['none', 'form-data', 'x-www-form-urlencoded', 'raw', 'binary', 'GraphQL'] as const;
+type BodyType = typeof bodyTypes[number];
+
+const bodyTypeDisplayMap: Record<BodyType, string> = {
+  'none': 'None',
+  'form-data': 'Form Data',
+  'x-www-form-urlencoded': 'x-www-form-urlencoded',
+  'raw': 'Raw (JSON, XML, Text, etc.)',
+  'binary': 'Binary',
+  'GraphQL': 'GraphQL'
+};
 
 interface ProxyResponse {
   success: boolean;
@@ -48,6 +61,15 @@ interface KeyValuePair {
   enabled: boolean;
 }
 
+interface FormDataField {
+  id: string;
+  key: string;
+  value: string | File | null; // File for type 'file', string for type 'text'
+  enabled: boolean;
+  type: 'text' | 'file';
+}
+
+
 const ApiTesterPage: React.FC = () => {
   const { theme } = useTheme();
   const [method, setMethod] = useState<string>(httpMethods[0]);
@@ -57,6 +79,19 @@ const ApiTesterPage: React.FC = () => {
   const [queryParams, setQueryParams] = useState<KeyValuePair[]>([{ id: `qp-${Date.now()}`, key: '', value: '', enabled: true }]);
   const [requestHeaders, setRequestHeaders] = useState<KeyValuePair[]>([{ id: `rh-${Date.now()}`, key: '', value: '', enabled: true }]);
   const [assertions, setAssertions] = useState<Assertion[]>([]);
+
+  // Auth state
+  const [authType, setAuthType] = useState<AuthType>('none');
+  const [authParams, setAuthParams] = useState<AuthParams | undefined>(undefined);
+
+  // Body type state
+  const [selectedBodyType, setSelectedBodyType] = useState<BodyType>('raw');
+  const [rawContentType, setRawContentType] = useState<string>('application/json');
+  const [binaryBodyFile, setBinaryBodyFile] = useState<File | null>(null);
+  const [graphqlQuery, setGraphqlQuery] = useState<string>('');
+  const [graphqlVariables, setGraphqlVariables] = useState<string>('');
+  const [formDataBody, setFormDataBody] = useState<FormDataField[]>([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
+  const [urlEncodedBody, setUrlEncodedBody] = useState<KeyValuePair[]>([{ id: uuidv4(), key: '', value: '', enabled: true }]);
 
   // Response state
   const [responseStatus, setResponseStatus] = useState<number | null>(null);
@@ -91,6 +126,49 @@ const ApiTesterPage: React.FC = () => {
     const setter = type === 'query' ? setQueryParams : setRequestHeaders;
     setter(prev => prev.filter((_, i) => i !== index));
   };
+
+  // FormData KV Management
+  const handleFormDataChange = (index: number, field: keyof FormDataField, newValue: string | boolean | File | null) => {
+    setFormDataBody(prev =>
+      prev.map((item, i) => {
+        if (i === index) {
+          const updatedItem = { ...item, [field]: newValue };
+          // If type changes to 'file', clear value (or set to null). If to 'text', ensure value is string.
+          if (field === 'type') {
+            updatedItem.value = (newValue === 'file') ? null : '';
+          }
+          return updatedItem;
+        }
+        return item;
+      })
+    );
+  };
+
+  const addFormDataField = () => {
+    setFormDataBody(prev => [...prev, { id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
+  };
+
+  const removeFormDataField = (index: number) => {
+    setFormDataBody(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // URLEncoded KV Management
+  const handleUrlEncodedChange = (index: number, field: keyof KeyValuePair, newValue: string | boolean) => {
+    setUrlEncodedBody(prev =>
+      prev.map((item, i) =>
+        i === index ? { ...item, [field]: newValue } : item
+      )
+    );
+  };
+
+  const addUrlEncodedField = () => {
+    setUrlEncodedBody(prev => [...prev, { id: uuidv4(), key: '', value: '', enabled: true }]);
+  };
+
+  const removeUrlEncodedField = (index: number) => {
+    setUrlEncodedBody(prev => prev.filter((_, i) => i !== index));
+  };
+
 
   const effectiveUrl = useMemo(() => {
     try {
@@ -211,25 +289,150 @@ const ApiTesterPage: React.FC = () => {
       toast({ title: "URL Required", description: "Please enter a base URL to send the request.", variant: "destructive" });
       return;
     }
-    const activeQueryParamsInternal = queryParams.filter(p => p.enabled && p.key.trim()).reduce((acc, p) => {
+
+    let processedHeaders = requestHeaders
+      .filter(h => h.enabled && h.key.trim())
+      .reduce((acc, h) => { acc[h.key] = h.value; return acc; }, {} as Record<string, string>);
+
+    let processedQueryParams = queryParams
+      .filter(p => p.enabled && p.key.trim())
+      .reduce((acc, p) => {
         if (acc[p.key]) {
-            if (Array.isArray(acc[p.key])) { (acc[p.key] as string[]).push(p.value); }
-            else { acc[p.key] = [acc[p.key] as string, p.value]; }
+          if (Array.isArray(acc[p.key])) { (acc[p.key] as string[]).push(p.value); }
+          else { acc[p.key] = [acc[p.key] as string, p.value]; }
         } else { acc[p.key] = p.value; }
         return acc;
-    }, {} as Record<string, string | string[]>);
-    const activeHeadersInternal = requestHeaders.filter(h => h.enabled && h.key.trim()).reduce((acc, h) => { acc[h.key] = h.value; return acc; }, {} as Record<string, string>);
-    let parsedBodyInternal: any = requestBodyValue;
-    if ((method !== 'GET' && method !== 'HEAD') && requestBodyValue.trim()) {
-        if (requestBodyValue.trim().startsWith("{") || requestBodyValue.trim().startsWith("[")) {
-            try { parsedBodyInternal = JSON.parse(requestBodyValue); } catch (e) { /* ignore, send as string */ }
-        }
-    } else if (method === 'GET' || method === 'HEAD') {
-        parsedBodyInternal = undefined;
+      }, {} as Record<string, string | string[]>);
+
+    // Apply authentication
+    if (authParams && authParams.type) {
+      switch (authParams.type) {
+        case 'basic':
+          if (authParams.params.username) {
+            const credentials = btoa(`${authParams.params.username}:${authParams.params.password || ''}`);
+            processedHeaders['Authorization'] = `Basic ${credentials}`;
+          }
+          break;
+        case 'bearer':
+          if (authParams.params.token) {
+            processedHeaders['Authorization'] = `Bearer ${authParams.params.token}`;
+          }
+          break;
+        case 'apiKey':
+          if (authParams.params.key && authParams.params.value) {
+            if (authParams.params.addTo === 'header') {
+              processedHeaders[authParams.params.key] = authParams.params.value;
+            } else if (authParams.params.addTo === 'query') {
+              // Add to a copy of processedQueryParams
+              const queryParamsWithApiKey = { ...processedQueryParams };
+              if (queryParamsWithApiKey[authParams.params.key]) {
+                if (Array.isArray(queryParamsWithApiKey[authParams.params.key])) {
+                  (queryParamsWithApiKey[authParams.params.key] as string[]).push(authParams.params.value);
+                } else {
+                  queryParamsWithApiKey[authParams.params.key] = [queryParamsWithApiKey[authParams.params.key] as string, authParams.params.value];
+                }
+              } else {
+                queryParamsWithApiKey[authParams.params.key] = authParams.params.value;
+              }
+              processedQueryParams = queryParamsWithApiKey;
+            }
+          }
+          break;
+        // Other auth types can be added here
+      }
     }
+
+    let finalBody: any = undefined;
+    let finalContentType: string | undefined = undefined;
+
+    if (method !== 'GET' && method !== 'HEAD') {
+      switch (selectedBodyType) {
+        case 'none':
+          finalBody = undefined;
+          finalContentType = undefined;
+          break;
+        case 'form-data':
+          const formData = new FormData();
+          formDataBody.forEach(field => {
+            if (field.enabled && field.key) {
+              if (field.type === 'file' && field.value instanceof File) {
+                formData.append(field.key, field.value);
+              } else if (field.type === 'text') {
+                formData.append(field.key, field.value as string);
+              }
+            }
+          });
+          finalBody = formData;
+          finalContentType = undefined; // Browser will set this with boundary
+          break;
+        case 'x-www-form-urlencoded':
+          const urlSearchParams = new URLSearchParams();
+          urlEncodedBody.forEach(pair => {
+            if (pair.enabled && pair.key) {
+              urlSearchParams.append(pair.key, pair.value);
+            }
+          });
+          finalBody = urlSearchParams.toString();
+          finalContentType = 'application/x-www-form-urlencoded;charset=UTF-8';
+          break;
+        case 'raw':
+          if (requestBodyValue.trim()) {
+            if (rawContentType === 'application/json') {
+              try {
+                finalBody = JSON.parse(requestBodyValue);
+              } catch (e) {
+                finalBody = requestBodyValue; // Send as text if JSON is invalid
+                toast({ title: "Invalid JSON", description: "Request body is not valid JSON. Sending as plain text.", variant: "warning", duration: 3000 });
+              }
+            } else {
+              finalBody = requestBodyValue;
+            }
+          }
+          finalContentType = rawContentType;
+          break;
+        case 'binary':
+          finalBody = binaryBodyFile;
+          finalContentType = binaryBodyFile?.type || 'application/octet-stream';
+          break;
+        case 'GraphQL':
+          const gqlPayload: { query: string, variables?: object } = { query: graphqlQuery };
+          if (graphqlVariables.trim()) {
+            try {
+              gqlPayload.variables = JSON.parse(graphqlVariables);
+            } catch (e) {
+              toast({ title: "Invalid GraphQL Variables", description: "Variables are not valid JSON. Sending query without variables.", variant: "warning", duration: 3000 });
+            }
+          }
+          finalBody = JSON.stringify(gqlPayload);
+          finalContentType = 'application/json';
+          break;
+      }
+    }
+
+    // Update Content-Type header
+    if (finalContentType) {
+      processedHeaders['Content-Type'] = finalContentType;
+    } else {
+      // For FormData, browser sets it, so remove any existing one.
+      // For 'none' or GET/HEAD, also ensure it's not set.
+      delete processedHeaders['Content-Type'];
+      delete processedHeaders['content-type']; // Just in case
+    }
+
+    // Ensure body is undefined for GET/HEAD requests regardless of selectedBodyType
+    if (method === 'GET' || method === 'HEAD') {
+        finalBody = undefined;
+        delete processedHeaders['Content-Type'];
+        delete processedHeaders['content-type'];
+    }
+
     apiProxyMutation.mutate({
-      method, url, queryParams: activeQueryParamsInternal, headers: activeHeadersInternal,
-      body: parsedBodyInternal, assertions: assertions.filter(a => a.enabled),
+      method,
+      url, // Base URL, query params are handled separately
+      queryParams: processedQueryParams,
+      headers: processedHeaders,
+      body: finalBody,
+      assertions: assertions.filter(a => a.enabled),
     });
   };
 
@@ -294,31 +497,109 @@ const ApiTesterPage: React.FC = () => {
     setDuration(item.durationMs ?? null);
     setAssertions([]);
     setAssertionResults(null);
+
+    // Reset new auth and body states for history items
+    setAuthType('none');
+    setAuthParams(undefined);
+    setSelectedBodyType('raw'); // Or 'none' if preferred, 'raw' is a common default
+    setRawContentType('application/json');
+    setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
+    setUrlEncodedBody([{ id: uuidv4(), key: '', value: '', enabled: true }]);
+    setGraphqlQuery('');
+    setGraphqlVariables('');
+    setBinaryBodyFile(null);
+
     toast({ title: "Loaded from history", description: `${item.method} ${item.url}`, duration: 2000 });
   };
+
+  const loadTestState = (test: ApiTest) => {
+    setMethod(test.method);
+    setUrl(test.url);
+
+    const parseKeyValuePairs = (jsonStringOrArray: string | KeyValuePair[] | null | undefined, prefix: 'qp' | 'rh'): KeyValuePair[] => {
+      if (!jsonStringOrArray) return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
+      try {
+        const parsed = typeof jsonStringOrArray === 'string' ? JSON.parse(jsonStringOrArray) : jsonStringOrArray;
+        if (Array.isArray(parsed)) {
+          if (parsed.length === 0) return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
+          // Ensure structure matches KeyValuePair (e.g. after loading from DB which might store plain objects)
+          return parsed.map((p: any, i: number) => ({
+            id: p.id || `${prefix}-${Date.now()}-${i}`,
+            key: p.key || '',
+            value: p.value || '',
+            enabled: p.enabled !== undefined ? p.enabled : true,
+          }));
+        } else if (typeof parsed === 'object' && parsed !== null) { // Handle old object format for queryParams
+          return Object.entries(parsed).map(([k, v], i) => ({
+            id: `${prefix}-${Date.now()}-${i}`, key: k, value: Array.isArray(v) ? v.join(',') : String(v), enabled: true
+          }));
+        }
+      } catch (e) { console.error(`Error parsing ${prefix} from saved test:`, e); }
+      return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
+    };
+
+    setQueryParams(parseKeyValuePairs(test.queryParams as any, 'qp'));
+    setRequestHeaders(parseKeyValuePairs(test.requestHeaders as any, 'rh'));
+
+    // Old requestBody is for raw text, primarily.
+    // If selectedBodyType becomes 'raw', this will be its value.
+    setRequestBodyValue(typeof test.requestBody === 'string' ? test.requestBody : '');
+
+    setAssertions(test.assertions ? (typeof test.assertions === 'string' ? JSON.parse(test.assertions) : test.assertions) : []);
+
+    // Load new fields
+    setAuthType(test.authType || 'none');
+    setAuthParams(test.authParams || undefined);
+    setSelectedBodyType(test.bodyType || 'raw');
+    setRawContentType(test.bodyRawContentType || 'application/json');
+    setGraphqlQuery(test.bodyGraphqlQuery || '');
+    setGraphqlVariables(test.bodyGraphqlVariables || '');
+    setBinaryBodyFile(null); // Files cannot be re-loaded from DB, user must re-select
+
+    if (test.bodyFormData) {
+      const loadedFormData = (typeof test.bodyFormData === 'string' ? JSON.parse(test.bodyFormData) : test.bodyFormData) as Array<any>;
+      setFormDataBody(
+        loadedFormData.map(item => ({
+          id: item.id || uuidv4(),
+          key: item.key || '',
+          value: item.type === 'file' ? null : item.value || '', // File objects can't be stored, set to null
+          enabled: item.enabled !== undefined ? item.enabled : true,
+          type: item.type || 'text',
+          // Add fileName and fileType if they exist for file type, to inform the user
+          ...(item.type === 'file' && item.fileName && { fileNamePlaceholder: item.fileName, fileTypePlaceholder: item.fileType }),
+        }))
+      );
+      if (loadedFormData.some(item => item.type === 'file')) {
+        toast({ title: "Form Data Files", description: "File entries need to be re-selected.", variant: "info", duration: 4000});
+      }
+    } else {
+      setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
+    }
+
+    if (test.bodyUrlEncoded) {
+      const loadedUrlEncoded = (typeof test.bodyUrlEncoded === 'string' ? JSON.parse(test.bodyUrlEncoded) : test.bodyUrlEncoded) as Array<any>;
+      setUrlEncodedBody(
+        loadedUrlEncoded.map(item => ({
+          id: item.id || uuidv4(),
+          key: item.key || '',
+          value: item.value || '',
+          enabled: item.enabled !== undefined ? item.enabled : true,
+        }))
+      );
+    } else {
+      setUrlEncodedBody([{ id: uuidv4(), key: '', value: '', enabled: true }]);
+    }
+  };
+
 
   const handleOpenSaveModal = (testToEdit?: ApiTest) => {
       if (testToEdit) {
           setCurrentTestToEdit(testToEdit);
-          setMethod(testToEdit.method); setUrl(testToEdit.url);
-          const parseAndMap = (jsonStringOrArray: string | KeyValuePair[] | null, prefix: 'qp' | 'rh'): KeyValuePair[] => {
-            if (!jsonStringOrArray) return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
-            try {
-                const parsed = typeof jsonStringOrArray === 'string' ? JSON.parse(jsonStringOrArray) : jsonStringOrArray;
-                if (Array.isArray(parsed) && parsed.every(p => typeof p.key === 'string' && typeof p.value === 'string')) {
-                    return parsed.map((p, i) => ({ ...p, id: p.id || `${prefix}-${Date.now()}-${i}`, enabled: p.enabled !== undefined ? p.enabled : true }));
-                } else if (typeof parsed === 'object' && parsed !== null) {
-                    return Object.entries(parsed).map(([k, v], i) => ({id: `${prefix}-${Date.now()}-${i}`, key: k, value: Array.isArray(v) ? v.join(',') : String(v), enabled: true }));
-                }
-            } catch (e) { console.error("Error parsing params/headers from saved test:", e); }
-            return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
-          };
-          setQueryParams(parseAndMap(testToEdit.queryParams as any, 'qp'));
-          setRequestHeaders(parseAndMap(testToEdit.requestHeaders as any, 'rh'));
-          setRequestBodyValue(testToEdit.requestBody || '');
-          setAssertions(testToEdit.assertions ? (typeof testToEdit.assertions === 'string' ? JSON.parse(testToEdit.assertions) : testToEdit.assertions) : []);
+          loadTestState(testToEdit); // Use the common loader
       } else {
           setCurrentTestToEdit(null);
+          // Optionally reset parts of the form if opening for a new test, though current UI state is often desired.
+          // For now, it will save the current UI state as a new test.
       }
       setIsSaveModalOpen(true);
   };
@@ -332,33 +613,47 @@ const ApiTesterPage: React.FC = () => {
           return acc;
         }, {} as Record<string, string | string[]>);
       const currentHeaders = requestHeaders.filter(h => h.enabled && h.key.trim()).reduce((acc, h) => { acc[h.key] = h.value; return acc; }, {} as Record<string, string>);
-      const config = {
-          method, url, queryParams: currentParams, requestHeaders: currentHeaders,
-          requestBody: requestBodyValue, assertions: assertions
+
+      const transformedFormDataBody = formDataBody.map(field => {
+        if (field.type === 'file' && field.value instanceof File) {
+          return {
+            id: field.id,
+            key: field.key,
+            enabled: field.enabled,
+            type: 'file' as 'file', // Ensure literal type
+            fileName: field.value.name,
+            fileType: field.value.type,
+            // value is not sent, backend will handle file through other means or this signals a file was present
+          };
+        }
+        return field; // For text fields, keep as is (value is string)
+      });
+
+      const config: Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt'> = {
+          method, url,
+          queryParams: currentParams,
+          requestHeaders: currentHeaders,
+          // requestBody is the old field, new fields will store specific body types
+          requestBody: selectedBodyType === 'raw' ? requestBodyValue :
+                       selectedBodyType === 'GraphQL' ? JSON.stringify({query: graphqlQuery, variables: graphqlVariables}) : null,
+          assertions: assertions,
+          // New fields
+          authType: authType,
+          authParams: authParams,
+          bodyType: selectedBodyType,
+          bodyRawContentType: selectedBodyType === 'raw' ? rawContentType : undefined,
+          bodyFormData: selectedBodyType === 'form-data' ? transformedFormDataBody : undefined,
+          bodyUrlEncoded: selectedBodyType === 'x-www-form-urlencoded' ? urlEncodedBody : undefined,
+          bodyGraphqlQuery: selectedBodyType === 'GraphQL' ? graphqlQuery : undefined,
+          bodyGraphqlVariables: selectedBodyType === 'GraphQL' ? graphqlVariables : undefined,
       };
       saveApiTestMutation.mutate({ name, projectId, ...config });
   };
 
   const handleLoadSavedTest = (test: ApiTest) => {
-    setMethod(test.method); setUrl(test.url);
-    const parseAndMap = (jsonStringOrArray: string | KeyValuePair[] | null, prefix: 'qp' | 'rh'): KeyValuePair[] => {
-        if (!jsonStringOrArray) return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
-        try {
-            const parsed = typeof jsonStringOrArray === 'string' ? JSON.parse(jsonStringOrArray) : jsonStringOrArray;
-             if (Array.isArray(parsed) && (parsed.length === 0 || typeof parsed[0].key === 'string')) {
-                return parsed.map((p,i)=> ({...p, id: p.id || `${prefix}-${Date.now()}-${i}`}));
-            } else if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-                return Object.entries(parsed).map(([k, v], i) => ({ id: `${prefix}-${Date.now()}-${i}`, key: k, value: Array.isArray(v) ? v.join(',') : String(v), enabled: true }));
-            }
-        } catch (e) { console.error("Error parsing params/headers from saved test on load:", e); }
-        return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
-    };
-    setQueryParams(parseAndMap(test.queryParams as any, 'qp'));
-    setRequestHeaders(parseAndMap(test.requestHeaders as any, 'rh'));
-    setRequestBodyValue(test.requestBody || '');
-    setAssertions(test.assertions ? (typeof test.assertions === 'string' ? JSON.parse(test.assertions) : test.assertions) : []);
+    loadTestState(test);
     setResponseStatus(null); setResponseHeaders(null); setResponseBody(null); setDuration(null); setAssertionResults(null);
-    setCurrentTestToEdit(test);
+    setCurrentTestToEdit(test); // Keep track of the loaded test for "Save Changes" functionality
     toast({ title: "Loaded saved test", description: test.name, duration: 2000 });
   };
 
@@ -505,8 +800,9 @@ const ApiTesterPage: React.FC = () => {
             </div>
 
             <Tabs defaultValue="body" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="params" disabled={apiProxyMutation.isPending}>Query Params</TabsTrigger>
+                <TabsTrigger value="auth" disabled={apiProxyMutation.isPending}>Authorization</TabsTrigger>
                 <TabsTrigger value="headers" disabled={apiProxyMutation.isPending}>Headers</TabsTrigger>
                 <TabsTrigger value="body" disabled={apiProxyMutation.isPending}>Body</TabsTrigger>
                 <TabsTrigger value="assertions" disabled={apiProxyMutation.isPending}>Assertions</TabsTrigger>
@@ -524,6 +820,17 @@ const ApiTesterPage: React.FC = () => {
                   <Button variant="outline" size="sm" onClick={() => addKeyValuePair('query')} disabled={apiProxyMutation.isPending}><PlusCircle className="mr-2 h-4 w-4" /> Add Param</Button>
                 </div>
               </TabsContent>
+              <TabsContent value="auth">
+                <div className="p-4 border rounded-md min-h-[240px]">
+                  <AuthorizationPanel
+                    authType={authType}
+                    authParams={authParams}
+                    onAuthTypeChange={setAuthType}
+                    onAuthParamsChange={setAuthParams}
+                    disabled={apiProxyMutation.isPending}
+                  />
+                </div>
+              </TabsContent>
               <TabsContent value="headers">
                 <div className="p-4 border rounded-md min-h-[200px] space-y-2">
                   {requestHeaders.map((header, index) => (
@@ -538,14 +845,216 @@ const ApiTesterPage: React.FC = () => {
                 </div>
               </TabsContent>
               <TabsContent value="body">
-                <div className="p-4 border rounded-md min-h-[240px]">
-                  <Label htmlFor="requestBodyEditor">Request Body</Label>
-                  <div className="mt-1 border rounded-md overflow-hidden">
-                    <Editor height="200px" language="json" theme={monacoTheme} value={requestBodyValue} onChange={(value) => setRequestBodyValue(value || '')}
-                      options={{ minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true, tabSize: 2, insertSpaces: true }}
-                      onMount={(editor, monaco) => { editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => { if (!apiProxyMutation.isPending) { handleSendRequest(); } }); }}
-                      className={apiProxyMutation.isPending || method === 'GET' || method === 'HEAD' ? 'opacity-50 cursor-not-allowed' : ''}
-                      readOnly={apiProxyMutation.isPending || method === 'GET' || method === 'HEAD'}/>
+                <div className="p-4 border rounded-md min-h-[240px] space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Body Type</Label>
+                    <RadioGroup
+                      value={selectedBodyType}
+                      onValueChange={(value: string) => setSelectedBodyType(value as BodyType)}
+                      className="flex flex-wrap gap-x-4 gap-y-2"
+                      disabled={apiProxyMutation.isPending}
+                    >
+                      {bodyTypes.map((type) => (
+                        <div key={type} className="flex items-center space-x-2">
+                          <RadioGroupItem value={type} id={`body-type-${type}`} disabled={apiProxyMutation.isPending} />
+                          <Label htmlFor={`body-type-${type}`} className="font-normal">
+                            {bodyTypeDisplayMap[type]}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
+
+                  {/* Dynamically rendered body input area */}
+                  <div className="mt-4">
+                    {selectedBodyType === 'none' && (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        This request does not have a body.
+                      </p>
+                    )}
+
+                    {selectedBodyType === 'raw' && (
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="raw-content-type">Content-Type</Label>
+                          <Select
+                            value={rawContentType}
+                            onValueChange={setRawContentType}
+                            disabled={apiProxyMutation.isPending}
+                          >
+                            <SelectTrigger id="raw-content-type" className="mt-1">
+                              <SelectValue placeholder="Select content type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="application/json">application/json</SelectItem>
+                              <SelectItem value="text/plain">text/plain</SelectItem>
+                              <SelectItem value="application/xml">application/xml</SelectItem>
+                              <SelectItem value="text/html">text/html</SelectItem>
+                              <SelectItem value="application/javascript">application/javascript</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="requestBodyEditorRaw">Body</Label>
+                          <div className="mt-1 border rounded-md overflow-hidden">
+                            <Editor
+                              height="200px"
+                              language={rawContentType.includes('json') ? 'json' : rawContentType.includes('xml') ? 'xml' : rawContentType.includes('html') ? 'html' : 'plaintext'}
+                              theme={monacoTheme}
+                              value={requestBodyValue}
+                              onChange={(value) => setRequestBodyValue(value || '')}
+                              options={{ minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true, tabSize: 2, insertSpaces: true }}
+                              onMount={(editor, monaco) => { editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => { if (!apiProxyMutation.isPending) { handleSendRequest(); } }); }}
+                              className={apiProxyMutation.isPending || method === 'GET' || method === 'HEAD' ? 'opacity-50 cursor-not-allowed' : ''}
+                              readOnly={apiProxyMutation.isPending || method === 'GET' || method === 'HEAD'}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedBodyType === 'binary' && (
+                      <div>
+                        <Label htmlFor="binary-file-input">Upload File</Label>
+                        <Input
+                          id="binary-file-input"
+                          type="file"
+                          onChange={(e) => setBinaryBodyFile(e.target.files ? e.target.files[0] : null)}
+                          className="mt-1"
+                          disabled={apiProxyMutation.isPending}
+                        />
+                        {binaryBodyFile && (
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Selected file: {binaryBodyFile.name} ({Math.round(binaryBodyFile.size / 1024)} KB)
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {selectedBodyType === 'GraphQL' && (
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="graphqlQueryEditor">GraphQL Query</Label>
+                          <div className="mt-1 border rounded-md overflow-hidden">
+                            <Editor
+                              height="150px"
+                              language="graphql"
+                              theme={monacoTheme}
+                              value={graphqlQuery}
+                              onChange={(value) => setGraphqlQuery(value || '')}
+                              options={{ minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true }}
+                              className={apiProxyMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}
+                              readOnly={apiProxyMutation.isPending}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="graphqlVariablesEditor">GraphQL Variables (JSON)</Label>
+                          <div className="mt-1 border rounded-md overflow-hidden">
+                            <Editor
+                              height="100px"
+                              language="json"
+                              theme={monacoTheme}
+                              value={graphqlVariables}
+                              onChange={(value) => setGraphqlVariables(value || '')}
+                              options={{ minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true }}
+                              className={apiProxyMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}
+                              readOnly={apiProxyMutation.isPending}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {selectedBodyType === 'form-data' && (
+                      <div className="space-y-2">
+                        {formDataBody.map((field, index) => (
+                          <div key={field.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`fd-enabled-${field.id}`}
+                              checked={field.enabled}
+                              onCheckedChange={(checked) => handleFormDataChange(index, 'enabled', !!checked)}
+                              disabled={apiProxyMutation.isPending}
+                            />
+                            <Input
+                              placeholder="Key"
+                              value={field.key}
+                              onChange={(e) => handleFormDataChange(index, 'key', e.target.value)}
+                              className="flex-1"
+                              disabled={apiProxyMutation.isPending}
+                            />
+                            <Select
+                              value={field.type}
+                              onValueChange={(type: 'text' | 'file') => handleFormDataChange(index, 'type', type)}
+                              disabled={apiProxyMutation.isPending}
+                            >
+                              <SelectTrigger className="w-[100px]">
+                                <SelectValue placeholder="Type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="text">Text</SelectItem>
+                                <SelectItem value="file">File</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {field.type === 'text' ? (
+                              <Input
+                                placeholder="Value"
+                                value={field.value as string} // Cast because type 'text' implies string value
+                                onChange={(e) => handleFormDataChange(index, 'value', e.target.value)}
+                                className="flex-1"
+                                disabled={apiProxyMutation.isPending}
+                              />
+                            ) : (
+                              <Input
+                                type="file"
+                                onChange={(e) => handleFormDataChange(index, 'value', e.target.files ? e.target.files[0] : null)}
+                                className="flex-1"
+                                disabled={apiProxyMutation.isPending}
+                              />
+                            )}
+                            <Button variant="ghost" size="icon" onClick={() => removeFormDataField(index)} disabled={apiProxyMutation.isPending}>
+                              <XCircle className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        ))}
+                        <Button variant="outline" size="sm" onClick={addFormDataField} disabled={apiProxyMutation.isPending}>
+                          <PlusCircle className="mr-2 h-4 w-4" /> Add Field
+                        </Button>
+                      </div>
+                    )}
+                    {selectedBodyType === 'x-www-form-urlencoded' && (
+                      <div className="space-y-2">
+                        {urlEncodedBody.map((pair, index) => (
+                          <div key={pair.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`ue-enabled-${pair.id}`}
+                              checked={pair.enabled}
+                              onCheckedChange={(checked) => handleUrlEncodedChange(index, 'enabled', !!checked)}
+                              disabled={apiProxyMutation.isPending}
+                            />
+                            <Input
+                              placeholder="Key"
+                              value={pair.key}
+                              onChange={(e) => handleUrlEncodedChange(index, 'key', e.target.value)}
+                              className="flex-1"
+                              disabled={apiProxyMutation.isPending}
+                            />
+                            <Input
+                              placeholder="Value"
+                              value={pair.value}
+                              onChange={(e) => handleUrlEncodedChange(index, 'value', e.target.value)}
+                              className="flex-1"
+                              disabled={apiProxyMutation.isPending}
+                            />
+                            <Button variant="ghost" size="icon" onClick={() => removeUrlEncodedField(index)} disabled={apiProxyMutation.isPending}>
+                              <XCircle className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        ))}
+                        <Button variant="outline" size="sm" onClick={addUrlEncodedField} disabled={apiProxyMutation.isPending}>
+                          <PlusCircle className="mr-2 h-4 w-4" /> Add Param
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </TabsContent>
