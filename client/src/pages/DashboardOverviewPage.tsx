@@ -163,7 +163,7 @@ const DashboardOverviewPage: React.FC = () => {
       </aside>
 
       {/* Main Content Area */}
-      <main className={`flex-1 p-6 overflow-auto transition-all duration-300 ease-in-out ${
+      <main className={`flex-1 py-6 px-4 overflow-auto transition-all duration-300 ease-in-out ${
           isSidebarCollapsed ? 'ml-20' : 'ml-64' // Adjust based on actual final collapsed/expanded widths
       }`}>
         <header className="mb-6">

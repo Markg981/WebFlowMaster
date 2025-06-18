@@ -34,6 +34,7 @@ import {
   StopCircle,
   ArrowLeft, // Add this if not present
   XCircle, // Added for test result display
+  PlusSquare, // Added for page icon
 } from "lucide-react";
 import { Link } from "wouter";
 import debounceFromLodash from 'lodash/debounce'; // Attempt to import lodash.debounce
@@ -1041,16 +1042,16 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Back to Dashboard Button Section */}
-      <div className="px-6 pt-4 bg-card border-b border-border">
-        <div className="mb-4">
-          <Link href="/dashboard">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back To Dashboard
-            </Button>
-          </Link>
-        </div>
+      {/* Header / Title Bar */}
+      <div className="px-6 py-3 bg-card border-b border-border flex items-center space-x-3">
+        <Link href="/dashboard">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back To Dashboard
+          </Button>
+        </Link>
+        <PlusSquare className="h-6 w-6 text-primary" />
+        <h2 className="text-xl font-semibold">Create Test</h2>
       </div>
 
       {/* URL Input Section */}

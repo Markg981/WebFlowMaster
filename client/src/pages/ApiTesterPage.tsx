@@ -13,7 +13,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, TestTube, Loader2, PlusCircle, XCircle, History, Save, ListChecks, CheckCircle, XCircle as XCircleIcon, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Network, Loader2, PlusCircle, XCircle, History, Save, ListChecks, CheckCircle, XCircle as XCircleIcon, AlertCircle } from 'lucide-react';
 import { Link } from 'wouter';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -729,7 +729,7 @@ const ApiTesterPage: React.FC = () => {
             <Link href="/dashboard" className="flex items-center space-x-2 text-primary hover:underline">
                 <ArrowLeft className="h-5 w-5" />
             </Link>
-            <TestTube className="h-6 w-6 text-primary" />
+            <Network className="h-6 w-6 text-primary" />
             <h1 className="text-xl font-bold text-card-foreground">API Tester</h1>
           </div>
           <div className="flex items-center space-x-2">
