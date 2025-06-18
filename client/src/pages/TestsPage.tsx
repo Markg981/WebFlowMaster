@@ -433,9 +433,7 @@ const TestsPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto"> {/* Search, Refresh, Create Button */}
                 <div className="relative w-full sm:w-auto">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search test plans..." // Updated placeholder
+                  {/* The erroneous <Input tag on the next line has been removed */}
                   <Input
                     type="search"
                     placeholder="Search test plans..."
