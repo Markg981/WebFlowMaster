@@ -106,7 +106,7 @@ const TestsPage: React.FC = () => {
     return schedules.filter(schedule =>
       schedule.scheduleName.toLowerCase().includes(scheduleSearchTerm.toLowerCase())
     );
-  }, [scheduleSearchTearm, schedules]);
+  }, [scheduleSearchTerm, schedules]);
 
   const totalPages = Math.ceil(filteredTests.length / itemsPerPage);
   const paginatedTests = filteredTests.slice(
