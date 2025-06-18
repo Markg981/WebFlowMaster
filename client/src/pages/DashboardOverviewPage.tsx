@@ -25,8 +25,8 @@ const DashboardOverviewPage: React.FC = () => {
   const [isApiTesterActive] = useRoute('/dashboard/api-tester'); // For the new API Tester link
   const [isSettingsActive] = useRoute('/settings');
   // Placeholder active states for other links - assuming false for now
-  const isTestsActive = false;
-  const isSuitesActive = false;
+  const isTestsActive = false; // This might need similar update if /tests route is added
+  const [isSuitesActive] = useRoute('/test-suites'); // Updated active state for Test Suites
   const isSchedulazioniActive = false;
   const isReportsActive = false;
 
@@ -100,7 +100,7 @@ const DashboardOverviewPage: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="#/suites">
+                <Link href="/test-suites"> {/* Changed href here */}
                   <a title={t('nav.suites')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSuitesActive ? activeLinkStyle : inactiveLinkStyle}`}>
                     <SuitesIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
                     {!isSidebarCollapsed && <span>{t('nav.suites')}</span>}
