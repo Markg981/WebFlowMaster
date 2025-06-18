@@ -324,8 +324,72 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/tests", async (req, res) => { /* ... existing code ... */ });
   app.put("/api/tests/:id", async (req, res) => { /* ... existing code ... */ });
   app.post("/api/tests/:id/execute", async (req, res) => { /* ... existing code ... */ });
-  app.get("/api/settings", async (req, res) => { /* ... existing code ... */ });
-  app.post("/api/settings", async (req, res) => { /* ... existing code ... */ });
+  app.get("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const settings = await db.select().from(userSettings).where(eq(userSettings.userId, req.user.id)).limit(1);
+
+      if (settings.length > 0) {
+        return res.json(settings[0]);
+      } else {
+        // No settings found, create default settings
+        const defaultSettings = {
+          userId: req.user.id,
+          theme: "light",
+          defaultTestUrl: "",
+          playwrightBrowser: "chromium",
+          playwrightHeadless: true,
+          playwrightDefaultTimeout: 30000,
+          playwrightWaitTime: 1000,
+          language: "en",
+        };
+
+        const newSettings = await db.insert(userSettings).values(defaultSettings).returning();
+        return res.json(newSettings[0]);
+      }
+    } catch (error) {
+      logger.error("Failed to fetch settings:", error);
+      return res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const parseResult = userSettingsBodySchema.safeParse(req.body);
+    if (!parseResult.success) {
+      logger.error("Invalid /api/settings payload:", { errors: parseResult.error.flatten() });
+      return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
+    }
+
+    try {
+      const existingSettings = await db.select().from(userSettings).where(eq(userSettings.userId, req.user.id)).limit(1);
+
+      if (existingSettings.length > 0) {
+        // Update existing settings
+        const updatedSettings = await db.update(userSettings)
+          .set({ ...parseResult.data, updatedAt: sql`datetime('now')` as any })
+          .where(eq(userSettings.userId, req.user.id))
+          .returning();
+        return res.json(updatedSettings[0]);
+      } else {
+        // Insert new settings
+        const newSettings = await db.insert(userSettings)
+          .values({ ...parseResult.data, userId: req.user.id })
+          .returning();
+        return res.json(newSettings[0]);
+      }
+    } catch (error) {
+      logger.error("Failed to save settings:", error);
+      return res.status(500).json({ error: "Failed to save settings" });
+    }
+  });
+
   app.post("/api/execute-test-direct", async (req, res) => { /* ... existing code ... */ });
   app.post("/api/start-recording", async (req, res) => { /* ... existing code ... */ });
   app.post("/api/stop-recording", async (req, res) => { /* ... existing code ... */ });

@@ -21,7 +21,6 @@ import { TestSequenceBuilder } from "@/components/test-sequence-builder";
 import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
 import SaveTestModal from "@/components/SaveTestModal"; // Import the modal
 import { 
-  TestTube,
   Globe,
   Search,
   CheckCircle,
@@ -34,6 +33,7 @@ import {
   StopCircle,
   ArrowLeft, // Add this if not present
   XCircle, // Added for test result display
+  PlusSquare, // Added for page icon
 } from "lucide-react";
 import { Link } from "wouter";
 import debounceFromLodash from 'lodash/debounce'; // Attempt to import lodash.debounce
@@ -1016,7 +1016,6 @@ export default function DashboardPage() {
               <TestTube className="h-6 w-6 text-primary" />
               <h1 className="text-xl font-bold text-card-foreground">Create Web Test</h1>
             </div>
-            
           </div>
           
           <div className="flex items-center space-x-4">
