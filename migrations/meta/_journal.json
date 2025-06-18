@@ -8,6 +8,27 @@
       "when": 1750174973749,
       "tag": "0000_solid_fallen_one",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1750262299354,
+      "tag": "0001_bored_goliath",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1750264427143,
+      "tag": "0002_high_wallop",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1750264525311,
+      "tag": "0003_certain_ultimatum",
+      "breakpoints": true
     }
   ]
 }
