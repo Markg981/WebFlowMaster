@@ -536,7 +536,7 @@ const TestsPage: React.FC = () => {
                 <Button variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200">
                   List View
                 </Button>
-                <Button variant="default" onClick={openCreateModal}> {/* Changed variant to default for primary action */}
+                <Button variant="default" onClick={openCreateScheduleModal}> {/* Corrected onClick handler */}
                   <PlusCircle className="w-4 h-4 mr-2" />
                   Create Schedule
                 </Button>
