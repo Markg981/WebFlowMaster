@@ -201,6 +201,65 @@ export const AssertionSchema = z.object({
 });
 export type Assertion = z.infer<typeof AssertionSchema>;
 
+// --- API Authentication Schemas ---
+export const AuthTypeSchema = z.enum([
+  'inherit', // Inherit auth from parent
+  'none',    // No Auth
+  'basic',   // Basic Auth
+  'bearer',  // Bearer Token
+  'jwtBearer', // JWT Bearer
+  'digest',  // Digest Auth
+  'oauth1',  // OAuth 1.0
+  'oauth2',  // OAuth 2.0
+  'hawk',    // Hawk Authentication
+  'aws',     // AWS Signature
+  'ntlm',    // NTLM Authentication
+  'apiKey',  // API Key
+  'akamai',  // Akamai EdgeGrid
+  'asap',    // ASAP
+]);
+export type AuthType = z.infer<typeof AuthTypeSchema>;
+
+export const BasicAuthParamsSchema = z.object({
+  username: z.string(),
+  password: z.string(),
+});
+export type BasicAuthParams = z.infer<typeof BasicAuthParamsSchema>;
+
+export const BearerTokenAuthParamsSchema = z.object({
+  token: z.string(),
+});
+export type BearerTokenAuthParams = z.infer<typeof BearerTokenAuthParamsSchema>;
+
+export const ApiKeyAuthParamsSchema = z.object({
+  key: z.string(),
+  value: z.string(),
+  addTo: z.enum(['header', 'query']),
+});
+export type ApiKeyAuthParams = z.infer<typeof ApiKeyAuthParamsSchema>;
+
+// Discriminated union for Auth Params
+export const AuthParamsSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal(AuthTypeSchema.enum.basic), params: BasicAuthParamsSchema }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.bearer), params: BearerTokenAuthParamsSchema }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.apiKey), params: ApiKeyAuthParamsSchema }),
+  // TODO: Add other auth types here as their param schemas are defined
+  // For now, include stubs for other types to make the discriminated union comprehensive
+  // These can be refined later.
+  z.object({ type: z.literal(AuthTypeSchema.enum.inherit) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.none) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.jwtBearer) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.digest) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.oauth1) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.oauth2) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.hawk) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.aws) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.ntlm) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.akamai) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.asap) }),
+]);
+export type AuthParams = z.infer<typeof AuthParamsSchema>;
+
 // --- Insert/Update Schemas for API Tests & History ---
 export const insertApiTestHistorySchema = createInsertSchema(apiTestHistory, {
   // Define any specific Zod types for fields if needed, e.g., for JSON fields
