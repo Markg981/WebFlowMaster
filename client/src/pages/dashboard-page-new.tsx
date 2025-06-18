@@ -1010,8 +1010,11 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
+              <Link href="/dashboard" className="flex items-center space-x-2 text-primary hover:underline">
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
               <TestTube className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold text-card-foreground">WebTest Platform</h1>
+              <h1 className="text-xl font-bold text-card-foreground">Create Web Test</h1>
             </div>
             
           </div>
@@ -1040,18 +1043,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </header>
-
-      {/* Back to Dashboard Button Section */}
-      <div className="px-6 pt-4 bg-card border-b border-border">
-        <div className="mb-4">
-          <Link href="/dashboard">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back To Dashboard
-            </Button>
-          </Link>
-        </div>
-      </div>
 
       {/* URL Input Section */}
       <div className="bg-card border-b border-border px-6 py-4">
