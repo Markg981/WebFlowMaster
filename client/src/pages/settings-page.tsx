@@ -296,17 +296,12 @@ export default function SettingsPage() {
       <header className="bg-card border-b border-border px-6 py-4"> {/* Apply dark mode classes */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Link href="/dashboard"> {/* Changed href to /dashboard */}
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                {t('nav.backToDashboard')} {/* Used translation key */}
-              </Button>
+            <Link href="/dashboard">
+              <div className="flex items-center space-x-2 cursor-pointer hover:opacity-80">
+                <Settings className="h-6 w-6 text-primary" />
+                <h1 className="text-xl font-bold">Settings</h1> {/* Apply dark mode classes */}
+              </div>
             </Link>
-            
-            <div className="flex items-center space-x-2">
-              <Settings className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold">Settings</h1> {/* Apply dark mode classes */}
-            </div>
           </div>
           
           <div className="flex items-center space-x-4">
