@@ -187,6 +187,48 @@ export type InsertUserSettings = typeof userSettings.$inferInsert;
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = typeof projects.$inferInsert;
 
+// Schedules Table
+export const schedules = sqliteTable("schedules", {
+  id: text('id').primaryKey(), // Client-generated ID or UUID string
+  scheduleName: text('schedule_name').notNull(),
+  testPlanId: text('test_plan_id'), // Assuming this might link to a future "test_plans" table
+  testPlanName: text('test_plan_name'), // Denormalized for easier display
+  frequency: text('frequency').notNull(), // e.g., "Daily", "Weekly@Monday:09:00", "Hourly", "*/15 * * * *" (cron)
+  nextRunAt: integer('next_run_at', { mode: 'timestamp' }).notNull(), // Store as Unix timestamp (seconds or ms)
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(), // Unix timestamp
+  updatedAt: integer('updated_at', { mode: 'timestamp' }), // Will be updated by application logic
+});
+
+// Relations for Schedules (optional for now, can be added if linking to test_plans or users)
+// export const schedulesRelations = relations(schedules, ({ one, many }) => ({
+//   // Example: user: one(users, { fields: [schedules.userId], references: [users.id] }),
+//   // Example: testPlan: one(testPlans, { fields: [schedules.testPlanId], references: [testPlans.id] }),
+// }));
+
+
+// Zod Schemas for Schedules
+export const insertScheduleSchema = createInsertSchema(schedules, {
+  nextRunAt: z.number().positive().or(z.date()), // Allow number (timestamp) or Date object
+  createdAt: z.number().positive().or(z.date()).optional(),
+  updatedAt: z.number().positive().or(z.date()).optional(),
+}).omit({ createdAt: true, updatedAt: true }); // Handled by DB or application logic
+
+export const updateScheduleSchema = createInsertSchema(schedules, {
+  nextRunAt: z.number().positive().or(z.date()),
+  updatedAt: z.number().positive().or(z.date()).optional(),
+}).pick({ // Only allow updating specific fields
+  scheduleName: true,
+  testPlanId: true,
+  testPlanName: true,
+  frequency: true,
+  nextRunAt: true,
+}).partial(); // All picked fields are optional for updates
+
+// Types for Schedules
+export type Schedule = typeof schedules.$inferSelect;
+export type InsertSchedule = typeof schedules.$inferInsert;
+
+
 // --- Assertion Schemas ---
 export const AssertionSourceSchema = z.enum(['status_code', 'header', 'body_json_path', 'body_text', 'response_time']);
 export const AssertionComparisonSchema = z.enum([
