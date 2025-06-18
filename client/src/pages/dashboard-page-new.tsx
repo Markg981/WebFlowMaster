@@ -21,7 +21,6 @@ import { TestSequenceBuilder } from "@/components/test-sequence-builder";
 import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
 import SaveTestModal from "@/components/SaveTestModal"; // Import the modal
 import { 
-  TestTube,
   Globe,
   Search,
   CheckCircle,
@@ -1009,12 +1008,14 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <TestTube className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold text-card-foreground">WebTest Platform</h1>
-            </div>
-            
+          <div className="flex items-center space-x-3">
+            <Link href="/dashboard" aria-label="Back to Dashboard">
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <PlusSquare className="h-6 w-6 text-primary" />
+            <h1 className="text-xl font-bold text-card-foreground">Create Test</h1>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -1041,18 +1042,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </header>
-
-      {/* Header / Title Bar */}
-      <div className="px-6 py-3 bg-card border-b border-border flex items-center space-x-3">
-        <Link href="/dashboard">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back To Dashboard
-          </Button>
-        </Link>
-        <PlusSquare className="h-6 w-6 text-primary" />
-        <h2 className="text-xl font-semibold">Create Test</h2>
-      </div>
 
       {/* URL Input Section */}
       <div className="bg-card border-b border-border px-6 py-4">
