@@ -362,7 +362,37 @@ export async function registerRoutes(app: Express): Promise<Server> { // Make fu
   });
 
   app.get("/api/projects", async (req, res) => { /* ... existing code ... */ });
-  app.post("/api/detect-elements", async (req, res) => { /* ... existing code ... */ });
+
+  const detectElementsBodySchema = z.object({
+    url: z.string().url({ message: "Invalid URL for element detection" }),
+  });
+  app.post("/api/detect-elements", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) { // Ensure user is authenticated
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+
+    const parseResult = detectElementsBodySchema.safeParse(req.body);
+    if (!parseResult.success) {
+      (resolvedLogger.error || console.error)("SERVER: /api/detect-elements - Invalid request body:", parseResult.error.flatten());
+      return res.status(400).json({ success: false, error: "Invalid request payload", details: parseResult.error.flatten() });
+    }
+    const { url } = parseResult.data;
+    const userId = (req.user as any)?.id as number | undefined;
+
+    (resolvedLogger.info || console.log)(`SERVER: /api/detect-elements route handler reached. URL: ${url}, UserID: ${userId}`);
+
+    try {
+      (resolvedLogger.info || console.log)(`SERVER: /api/detect-elements - Calling playwrightService.detectElements with URL: ${url}`);
+      const elements = await playwrightService.detectElements(url, userId);
+      (resolvedLogger.info || console.log)(`SERVER: /api/detect-elements - playwrightService.detectElements call returned. Element count: ${elements?.length}`);
+
+      res.json({ success: true, elements: elements });
+    } catch (error: any) {
+      (resolvedLogger.error || console.error)("SERVER: /api/detect-elements - Error in route handler:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown internal server error';
+      res.status(500).json({ success: false, error: `Internal server error during element detection: ${errorMessage}` });
+    }
+  });
   app.post("/api/projects", async (req, res) => { /* ... existing code ... */ });
   app.delete("/api/projects/:projectId", async (req, res) => { /* ... existing code ... */ });
   app.get("/api/tests", async (req, res) => { /* ... existing code ... */ });
