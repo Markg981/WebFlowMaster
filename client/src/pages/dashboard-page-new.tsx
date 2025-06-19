@@ -881,7 +881,7 @@ export default function DashboardPage() {
         setCurrentPlaybackStepIndex(0);
         setIsExecutingPlayback(true);
         if (data.steps[0]?.screenshot) {
-          setWebsiteScreenshot(data.steps[0].screenshot);
+          setWebsiteScreenshot(data.steps[data.steps.length - 1].screenshot);
         }
         toast({ title: "Direct Test Execution Started", description: "Playing back results..." });
       } else {
