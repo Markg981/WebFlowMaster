@@ -557,7 +557,7 @@ export class PlaywrightService {
       // User settings are still relevant for browser configuration
       const userSettings = await storage.getUserSettings(userId);
       const browserType = userSettings?.playwrightBrowser || DEFAULT_BROWSER;
-      const headlessMode = userSettings?.playwrightHeadless !== undefined ? userSettings.playwrightHeadless : DEFAULT_HEADLESS;
+      const headlessMode = false; // Always run non-headless for ad-hoc sequence execution (interactive preview)
       const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
 
       console.log(`Executing ad-hoc test "${testName}" for user ${userId} with browser: ${browserType}, headless: ${headlessMode}, timeout: ${pageTimeout}`);
