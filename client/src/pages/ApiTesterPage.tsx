@@ -269,9 +269,10 @@ const ApiTesterPage: React.FC = () => {
       const currentHeadersForHistory = requestHeaders.filter(h => h.enabled && h.key.trim()).reduce((acc, h) => { acc[h.key] = h.value; return acc; }, {} as Record<string, string>);
       const historyEntry: InsertApiTestHistoryEntry = {
           method: variables.method, url: variables.url, queryParams: currentParamsForHistory,
-          requestHeaders: currentHeadersForHistory, requestBody: variables.body as string,
+          requestHeaders: currentHeadersForHistory, requestBody: variables.body as string, // Assuming requestBody is already string or handled appropriately
           responseStatus: data.status, responseHeaders: data.headers,
-          responseBody: data.body, durationMs: data.duration,
+          responseBody: (typeof data.body === 'object' && data.body !== null) ? JSON.stringify(data.body) : data.body,
+          durationMs: data.duration,
       };
       saveToHistoryMutation.mutate(historyEntry);
     },
