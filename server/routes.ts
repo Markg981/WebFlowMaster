@@ -25,7 +25,9 @@ import {
   testPlans,             // Import testPlans table schema
   insertTestPlanSchema,  // Import Zod schema for inserting test plans
   updateTestPlanSchema,  // Import Zod schema for updating test plans
-  selectTestPlanSchema   // Import Zod schema for selecting test plans
+  selectTestPlanSchema,   // Import Zod schema for selecting test plans
+  systemSettings,        // Import systemSettings table schema
+  insertSystemSettingSchema // Import Zod schema for systemSettings
 } from "@shared/schema";
 import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
@@ -850,6 +852,84 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       logger.error(`Error deleting test plan ${testPlanId}:`, error);
       res.status(500).json({ error: "Failed to delete test plan" });
+    }
+  });
+
+  // --- System Settings API Endpoints ---
+
+  // GET /api/system-settings - List all system settings
+  app.get("/api/system-settings", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      // Assuming admin rights might be needed here, or specific user settings vs system settings
+      // For now, just basic auth check
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    try {
+      const settings = await db.select().from(systemSettings);
+      res.json(settings);
+    } catch (error) {
+      logger.error("Error fetching system settings:", error);
+      res.status(500).json({ error: "Failed to fetch system settings" });
+    }
+  });
+
+  // GET /api/system-settings/:key - Get a single system setting by key
+  app.get("/api/system-settings/:key", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const { key } = req.params;
+    try {
+      const result = await db.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
+      if (result.length === 0) {
+        return res.status(404).json({ error: "Setting not found" });
+      }
+      res.json(result[0]);
+    } catch (error) {
+      logger.error(`Error fetching system setting ${key}:`, error);
+      res.status(500).json({ error: "Failed to fetch system setting" });
+    }
+  });
+
+  // POST /api/system-settings - Create or update a system setting (upsert)
+  app.post("/api/system-settings", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      // Potentially restrict this to admin users in a real application
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const parseResult = insertSystemSettingSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      logger.error("Invalid /api/system-settings POST payload:", { errors: parseResult.error.flatten() });
+      return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
+    }
+    try {
+      const { key, value } = parseResult.data;
+
+      // For SQLite, Drizzle's .onConflictDoUpdate().returning() might not return the inserted/updated row directly in all cases.
+      // It's safer to perform the upsert and then select the row.
+      await db.insert(systemSettings)
+        .values({ key, value })
+        .onConflictDoUpdate({
+          target: systemSettings.key,
+          set: { value: value }, // For SQLite, directly set the value. `sql`excluded.value` is more for PostgreSQL.
+        });
+
+      // Fetch the (potentially) updated or newly inserted row
+      const finalResult = await db.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
+
+      if (finalResult.length === 0) {
+         // This case should ideally not be reached if upsert is successful
+         logger.error("System setting upsert failed, no record found post-operation for key:", key);
+         return res.status(500).json({ error: "Failed to create or update system setting, and could not retrieve it." });
+      }
+      // Respond with 201 if it was an insert, 200 if an update.
+      // For simplicity, we'll just return 200/201 with the final state.
+      // Checking if it was an insert or update might require another query or different DB driver behavior.
+      res.status(200).json(finalResult[0]); // Could be 201 if we knew it was an insert
+
+    } catch (error) {
+      logger.error("Error creating/updating system setting:", error);
+      res.status(500).json({ error: "Failed to create or update system setting" });
     }
   });
 

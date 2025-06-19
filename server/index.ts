@@ -2,6 +2,10 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import 'dotenv/config';
+import loggerPromise from './logger'; // Import Winston logger promise
+import { db } from './db'; // Import db instance
+import { systemSettings } from '@shared/schema'; // Import systemSettings table
+import { eq } from 'drizzle-orm'; // Import eq operator
 
 const app = express();
 app.use(express.json());
@@ -38,6 +42,35 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  const logger = await loggerPromise; // Resolve the logger promise
+
+  // Ensure default system settings, including logRetentionDays
+  async function ensureDefaultSystemSettings() {
+    const settingsToEnsure = [
+      { key: 'logRetentionDays', value: process.env.LOG_RETENTION_DAYS || '7' },
+      // Add other default system settings here if needed
+    ];
+
+    for (const settingToEnsure of settingsToEnsure) {
+      try {
+        const existingSetting = await db.select()
+          .from(systemSettings)
+          .where(eq(systemSettings.key, settingToEnsure.key))
+          .limit(1);
+
+        if (existingSetting.length === 0) {
+          await db.insert(systemSettings).values(settingToEnsure);
+          logger.info(`Initialized default system setting: ${settingToEnsure.key}=${settingToEnsure.value}`);
+        }
+      } catch (error) {
+        // Use the resolved logger here, or console.error if logger itself might fail
+        logger.error(`Failed to ensure default system setting for ${settingToEnsure.key}:`, error);
+      }
+    }
+  }
+
+  await ensureDefaultSystemSettings(); // Call during server startup
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -65,6 +98,7 @@ app.use((req, res, next) => {
     port,
     host: "0.0.0.0",
   }, () => {
-    log(`serving on port ${port}`);
+    // Use the resolved logger for consistency, though the custom `log` was used before
+    logger.info(`Server listening on port ${port}`);
   });
 })();

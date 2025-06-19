@@ -26,6 +26,7 @@ import {
   ListTree, // Added for Project Management
   Trash2,   // Added for Project Management
   PlusCircle, // Added for Project Management
+  Archive, // For System Settings Card Icon
 } from "lucide-react";
 import { Link } from "wouter";
 import { UserSettings, fetchSettings } from "../lib/settings"; // Import from shared file
@@ -88,6 +89,32 @@ const deleteProject = async (projectId: number): Promise<void> => {
   // If not 204 but still ok (e.g. 200 with content, though not expected for DELETE), parse it.
   // This case should ideally not happen for a DELETE returning 204.
   if (response.ok) return response.json();
+};
+
+// API functions for System Settings
+const fetchSystemSetting = async (key: string): Promise<{ key: string, value: string } | null> => {
+  const response = await fetch(`/api/system-settings/${key}`);
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null; // Setting not found is not an error for this function's purpose
+    }
+    const errorData = await response.json();
+    throw new Error(errorData.error || `Failed to fetch system setting: ${key}`);
+  }
+  return response.json();
+};
+
+const saveSystemSetting = async (setting: { key: string, value: string }): Promise<{ key: string, value: string }> => {
+  const response = await fetch("/api/system-settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(setting),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Failed to save system setting");
+  }
+  return response.json();
 };
 
 
@@ -165,6 +192,7 @@ export default function SettingsPage() {
   const [defaultTimeout, setDefaultTimeout] = useState("30000");
   const [waitTime, setWaitTime] = useState("1000");
   const [language, setLanguage] = useState("en"); // Add language state, default to 'en'
+  const [logRetentionDays, setLogRetentionDays] = useState<string>("7"); // System setting
 
   // Fetch settings using useQuery
   const {
@@ -177,18 +205,41 @@ export default function SettingsPage() {
     queryFn: fetchSettings,
   });
 
+  // Query for fetching logRetentionDays system setting
+  const {
+    data: logRetentionSettingData,
+    isLoading: isLoadingLogRetentionSetting,
+    isError: isErrorLogRetentionSetting,
+    error: logRetentionSettingError,
+  } = useQuery<{ key: string; value: string } | null, Error>({
+    queryKey: ["systemSetting", "logRetentionDays"],
+    queryFn: () => fetchSystemSetting("logRetentionDays"),
+    // staleTime: Infinity, // This setting is not expected to change often by other users
+  });
+
   // Effect to initialize local state from fetched settings
   useEffect(() => {
     if (settingsData) {
       setDarkMode(settingsData.theme === "dark");
-      setDefaultUrl(settingsData.defaultTestUrl || ""); // API returns '' for null
+      setDefaultUrl(settingsData.defaultTestUrl || "");
       setBrowser(settingsData.playwrightBrowser);
       setHeadless(settingsData.playwrightHeadless);
       setDefaultTimeout(String(settingsData.playwrightDefaultTimeout));
       setWaitTime(String(settingsData.playwrightWaitTime));
-      setLanguage(settingsData.language || "en"); // Initialize language
+      setLanguage(settingsData.language || "en");
     }
   }, [settingsData]);
+
+  useEffect(() => {
+    if (logRetentionSettingData && logRetentionSettingData.value) {
+      setLogRetentionDays(logRetentionSettingData.value);
+    } else if (!isLoadingLogRetentionSetting && logRetentionSettingData === null) {
+      // If not loading and data is explicitly null (404), set default
+      setLogRetentionDays("7");
+    }
+    // If isErrorLogRetentionSetting is true, logRetentionDays will keep its initial '7' or last valid state.
+    // User will see an error in the UI for this specific setting.
+  }, [logRetentionSettingData, isLoadingLogRetentionSetting]);
 
   // Effect to toggle dark mode class on document
   useEffect(() => {
@@ -198,6 +249,11 @@ export default function SettingsPage() {
       document.documentElement.classList.remove("dark");
     }
   }, [darkMode]);
+
+  // Update i18next language
+  useEffect(() => {
+    i18n.changeLanguage(language);
+  }, [language, i18n]); // Added i18n to dependency array
   
   // Notification settings (not part of this subtask's scope for user_settings table)
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -223,6 +279,38 @@ export default function SettingsPage() {
       });
     },
   });
+
+  // Mutation for saving logRetentionDays system setting
+  const saveLogRetentionMutation = useMutation<{ key: string; value: string }, Error, { key: string; value: string }>({
+    mutationFn: saveSystemSetting,
+    onSuccess: (savedSetting) => {
+      queryClient.setQueryData(["systemSetting", savedSetting.key], savedSetting); // Update cache
+      toast({
+        title: t('settings.system.toast.logRetentionSavedTitle'),
+        description: t('settings.system.toast.logRetentionSavedDescription', { days: savedSetting.value }),
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: t('settings.system.toast.logRetentionErrorTitle'),
+        description: error.message || t('settings.toast.errorDescription'), // General error fallback
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveLogRetentionSetting = () => {
+    const days = parseInt(logRetentionDays, 10);
+    if (isNaN(days) || days <= 0) {
+      toast({
+        title: t('settings.system.validation.invalidDaysTitle'),
+        description: t('settings.system.validation.positiveNumberError'),
+        variant: "destructive",
+      });
+      return;
+    }
+    saveLogRetentionMutation.mutate({ key: "logRetentionDays", value: logRetentionDays });
+  };
 
   const handleSaveSettings = () => {
     const settingsToSave: Partial<UserSettings> = {
@@ -347,7 +435,7 @@ export default function SettingsPage() {
                 <Switch
                   checked={darkMode}
                   onCheckedChange={setDarkMode}
-                  disabled={mutation.isPending || isLoadingSettings}
+                  disabled={mutation.isPending || isLoadingSettings || saveLogRetentionMutation.isPending || isLoadingLogRetentionSetting}
                 />
                 <Moon className="h-4 w-4" />
               </div>
@@ -372,7 +460,7 @@ export default function SettingsPage() {
               <Select
                 value={language}
                 onValueChange={(value: string) => setLanguage(value)}
-                disabled={mutation.isPending || isLoadingSettings}
+                disabled={mutation.isPending || isLoadingSettings || saveLogRetentionMutation.isPending || isLoadingLogRetentionSetting}
               >
                 <SelectTrigger id="language-select">
                   <SelectValue placeholder={t('settings.languageSettings.selectPlaceholder')} />
@@ -514,10 +602,10 @@ export default function SettingsPage() {
                 <Select
                   value={browser}
                   onValueChange={(value: "chromium" | "firefox" | "webkit") => setBrowser(value)}
-                  disabled={mutation.isPending || isLoadingSettings}
+                  disabled={mutation.isPending || isLoadingSettings || saveLogRetentionMutation.isPending || isLoadingLogRetentionSetting}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select browser" />
+                  <SelectValue placeholder={t('settings.playwright.browserPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="chromium">Chromium</SelectItem>
@@ -586,7 +674,9 @@ export default function SettingsPage() {
               <Switch
                 checked={emailNotifications}
                 onCheckedChange={setEmailNotifications}
-                disabled={mutation.isPending || isLoadingSettings}
+                disabled={mutation.isPending || isLoadingSettings || saveLogRetentionMutation.isPending || isLoadingLogRetentionSetting}
+                disabled={mutation.isPending || isLoadingSettings || saveLogRetentionMutation.isPending || isLoadingLogRetentionSetting}
+                disabled={mutation.isPending || isLoadingSettings || saveLogRetentionMutation.isPending || isLoadingLogRetentionSetting}
               />
             </div>
             
@@ -618,6 +708,49 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+      {/* System Settings Card - NEW */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Archive className="h-5 w-5" />
+            <span>{t('settings.system.title', 'System Settings')}</span>
+          </CardTitle>
+          <CardDescription>
+            {t('settings.system.description', 'Manage system-wide configurations.')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="logRetentionDays">{t('settings.system.logRetentionLabel', 'Log Retention Period (days)')}</Label>
+            <Input
+              id="logRetentionDays"
+              type="number"
+              value={logRetentionDays}
+              onChange={(e) => setLogRetentionDays(e.target.value)}
+              disabled={saveLogRetentionMutation.isPending || isLoadingLogRetentionSetting}
+              min="1"
+            />
+            <p className="text-sm text-muted-foreground">
+              {t('settings.system.logRetentionDescription', 'Number of days to keep server logs. Older logs are compressed and then deleted.')}
+            </p>
+             {isErrorLogRetentionSetting && (
+              <p className="text-sm text-red-600">{logRetentionSettingError?.message || t('settings.system.fetchError', 'Failed to fetch log retention setting.')}</p>
+            )}
+          </div>
+          <Button
+            onClick={handleSaveLogRetentionSetting}
+            disabled={saveLogRetentionMutation.isPending || isLoadingLogRetentionSetting || (logRetentionSettingData?.value === logRetentionDays && logRetentionSettingData !== null && !isErrorLogRetentionSetting)}
+          >
+            {saveLogRetentionMutation.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            {saveLogRetentionMutation.isPending ? t('settings.buttons.saving', 'Saving...') : t('settings.system.saveButton', 'Save Log Retention')}
+          </Button>
+        </CardContent>
+      </Card>
+
         {/* Account Settings (Scope of this card is not part of user_settings) */}
         <Card>
           <CardHeader>
@@ -645,7 +778,7 @@ export default function SettingsPage() {
               <p className="text-sm text-muted-foreground mb-3">
                 These actions cannot be undone
               </p>
-              <Button variant="destructive" size="sm" disabled={mutation.isPending || isLoadingSettings}>
+              <Button variant="destructive" size="sm" disabled={mutation.isPending || isLoadingSettings || saveLogRetentionMutation.isPending || isLoadingLogRetentionSetting}>
                 Delete Account
               </Button>
             </div>
@@ -657,20 +790,20 @@ export default function SettingsPage() {
           <Button
             variant="outline"
             onClick={handleResetSettings}
-            disabled={mutation.isPending || isLoadingSettings}
+            disabled={mutation.isPending || isLoadingSettings || saveLogRetentionMutation.isPending || isLoadingLogRetentionSetting}
           >
             {t('settings.buttons.resetForm')}
           </Button>
           
           <div className="flex space-x-3">
             <Link href="/">
-              <Button variant="ghost" disabled={mutation.isPending || isLoadingSettings}>
+              <Button variant="ghost" disabled={mutation.isPending || isLoadingSettings || saveLogRetentionMutation.isPending || isLoadingLogRetentionSetting}>
                 {t('settings.buttons.cancel')}
               </Button>
             </Link>
             <Button
               onClick={handleSaveSettings}
-              disabled={mutation.isPending || isLoadingSettings}
+              disabled={mutation.isPending || isLoadingSettings || saveLogRetentionMutation.isPending || isLoadingLogRetentionSetting}
             >
               {mutation.isPending ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
