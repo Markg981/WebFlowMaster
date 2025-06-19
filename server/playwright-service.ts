@@ -118,6 +118,7 @@ interface ActiveSession {
   actions: RecordedAction[];
   userId?: number; // Store the user ID associated with the session
   targetUrl: string; // The initial URL the recording started on
+  pageClosedByEventHandler?: boolean; // Flag to indicate if page was closed by event handler
 }
 
 const RECORDER_SCRIPT = `
@@ -461,12 +462,41 @@ export class PlaywrightService {
 
       resolvedLogger.info("PS:startRecordingSession - Setting up page.on('close') handler...");
       page.on('close', async () => {
-        resolvedLogger.info(`PS:startRecordingSession - page.on('close') triggered for session ${sessionId}.`);
-        if (this.activeSessions.has(sessionId)) {
-          resolvedLogger.info(`PS:startRecordingSession - Session ${sessionId} is active, attempting to stop from page.on('close').`);
-          await this.stopRecordingSession(sessionId, sessionData.userId);
+        resolvedLogger.info(`PS:startRecordingSession - page.on('close') triggered for session ${sessionId}. Page has been closed externally.`);
+        const session = this.activeSessions.get(sessionId);
+        if (session) {
+          session.pageClosedByEventHandler = true;
+          resolvedLogger.info(`PS:startRecordingSession - Session ${sessionId} marked as pageClosedByEventHandler.`);
+
+          // Optionally, try to close other resources if they are open and belong to this session
+          // These checks are important to avoid errors if resources are already closed or were never opened.
+          if (session.page && !session.page.isClosed()) {
+            // Page is already closing/closed, but this ensures our records reflect an attempt if needed.
+            // Typically, directly calling session.page.close() here might be redundant if the 'close' event means it's already done.
+            // However, it's included for thoroughness as per instructions, with a catch.
+            // resolvedLogger.info(`PS: page.on(close) - Attempting to close page for session ${sessionId}, though it should be closing.`);
+            // await session.page.close().catch(e => resolvedLogger.warn(`PS: page.on(close) - Error explicitly closing page for session ${sessionId}: ${e.message}`));
+          }
+          // Check context: Only close if this was the last page.
+          // Note: Playwright might auto-close context if its last page is closed. This is a safeguard.
+          if (session.context && session.context.pages().length === 0) {
+             resolvedLogger.info(`PS: page.on(close) - Context for session ${sessionId} has no more pages, attempting to close context.`);
+             await session.context.close().catch(e => resolvedLogger.warn(`PS: page.on(close) - Error closing context for session ${sessionId}: ${e.message}`));
+          }
+          // Check browser: Only close if this was the last context (implicitly, if context was closed above and browser is still connected).
+          // This logic can be complex. A simpler approach is to let stopRecordingSession handle browser closure.
+          // For now, let's ensure browser is still connected before attempting to close.
+          if (session.browser && session.browser.isConnected() && session.context && session.context.pages().length === 0) {
+            // This condition implies the context was likely closed in the previous step or by Playwright.
+            // Check if there are other contexts in the browser. This is tricky without more state.
+            // A simpler approach: if the browser has no more open contexts (which we can't easily tell without iterating browser.contexts() if available and not empty)
+            // For now, if the primary context of the session is closed (or closing), and the browser is connected, attempt close.
+            // This might be too aggressive if the browser is shared, but sessions here are independent.
+            resolvedLogger.info(`PS: page.on(close) - Browser for session ${sessionId} is connected and context likely closed, attempting to close browser.`);
+            await session.browser.close().catch(e => resolvedLogger.warn(`PS: page.on(close) - Error closing browser for session ${sessionId}: ${e.message}`));
+          }
         } else {
-          resolvedLogger.info(`PS:startRecordingSession - Session ${sessionId} already stopped/cleaned up when page.on('close') triggered.`);
+          resolvedLogger.info(`PS:startRecordingSession - Session ${sessionId} already stopped/cleaned up when page.on('close') triggered (session not found in activeSessions).`);
         }
       });
       resolvedLogger.info("PS:startRecordingSession - page.on('close') handler set up.");
@@ -511,10 +541,11 @@ export class PlaywrightService {
   }
 
   async stopRecordingSession(sessionId: string, userId?: number): Promise<{ success: boolean, actions?: RecordedAction[], error?: string }> {
+    resolvedLogger.info(`PS:stopRecordingSession - Called for session ${sessionId}, UserID: ${userId}`);
     const session = this.activeSessions.get(sessionId);
 
     if (!session) {
-      (resolvedLogger.info || console.log)(`Attempted to stop session ${sessionId}, but it was not found in activeSessions. It might have been already stopped (e.g., by page close handler or explicit stop call).`);
+      resolvedLogger.warn(`PS:stopRecordingSession - Attempted to stop session ${sessionId}, but it was not found in activeSessions. It might have been already stopped or never existed.`);
       return { success: false, error: "Recording session not found or already stopped." };
     }
 
@@ -524,33 +555,94 @@ export class PlaywrightService {
       return { success: false, error: "Unauthorized to stop this recording session." };
     }
 
-    try {
-      // Add a final action indicating end of recording (optional)
-      const finalAction: RecordedAction = {
-        type: 'navigate', // or a custom 'recordingEnd' type
-        url: session.page.url(),
-        timestamp: Date.now(),
-        value: 'Recording session stopped'
-      };
-      session.actions.push(finalAction);
+    if (session.pageClosedByEventHandler) {
+      resolvedLogger.info(`PS:stopRecordingSession - Session ${sessionId} was previously marked as pageClosedByEventHandler. Proceeding to finalize and retrieve actions.`);
+    }
 
-      // Close Playwright resources
-      await session.page.close();
-      await session.context.close();
-      await session.browser.close();
+    try {
+      // Add a final action indicating end of recording, only if page is usable
+      // It's possible the page is already closed here if pageClosedByEventHandler was true
+      if (session.page && !session.page.isClosed()) {
+        const finalAction: RecordedAction = {
+          type: 'navigate', // or a custom 'recordingEnd' type
+          url: session.page.url(), // This could throw if page is already closed.
+          timestamp: Date.now(),
+          value: 'Recording session stopped'
+        };
+        session.actions.push(finalAction);
+      } else {
+        // if page is closed, try to get URL from targetUrl or last known action
+        let lastUrl = session.targetUrl;
+        if (session.actions.length > 0) {
+            const lastRecordedActionWithUrl = session.actions.slice().reverse().find(a => a.url);
+            if (lastRecordedActionWithUrl) {
+                lastUrl = lastRecordedActionWithUrl.url;
+            }
+        }
+        const finalAction: RecordedAction = {
+            type: 'navigate',
+            url: lastUrl, // Fallback URL
+            timestamp: Date.now(),
+            value: 'Recording session stopped (page was already closed)'
+        };
+        session.actions.push(finalAction);
+        resolvedLogger.info(`PS:stopRecordingSession - Page for session ${sessionId} was already closed. Final action URL uses a fallback.`);
+      }
+
+
+      // Close Playwright resources carefully
+      if (session.page && !session.page.isClosed()) {
+        resolvedLogger.info(`PS:stopRecordingSession - Attempting to close page for session ${sessionId}.`);
+        await session.page.close().catch(e => resolvedLogger.warn(`PS:stopRecordingSession - Error closing page resource for session ${sessionId}: ${e.message}`));
+      } else {
+        resolvedLogger.info(`PS:stopRecordingSession - Page for session ${sessionId} was already closed or did not exist.`);
+      }
+
+      if (session.context) {
+        resolvedLogger.info(`PS:stopRecordingSession - Attempting to close context for session ${sessionId}.`);
+        await session.context.close().catch(e => resolvedLogger.warn(`PS:stopRecordingSession - Error closing context resource for session ${sessionId}: ${e.message}`));
+      } else {
+        resolvedLogger.info(`PS:stopRecordingSession - Context for session ${sessionId} did not exist (already closed or never initialized).`);
+      }
+
+      if (session.browser && session.browser.isConnected()) {
+        resolvedLogger.info(`PS:stopRecordingSession - Attempting to close browser for session ${sessionId}.`);
+        await session.browser.close().catch(e => resolvedLogger.warn(`PS:stopRecordingSession - Error closing browser resource for session ${sessionId}: ${e.message}`));
+      } else {
+        resolvedLogger.info(`PS:stopRecordingSession - Browser for session ${sessionId} was already closed, not connected, or did not exist.`);
+      }
 
       // Retrieve actions before deleting the session
       const recordedActions = session.actions;
-      this.activeSessions.delete(sessionId);
 
-      (resolvedLogger.info || console.log)(`Recording session ${sessionId} stopped. Actions recorded: ${recordedActions.length}`);
+      if (recordedActions.length === 0) {
+        resolvedLogger.warn(`PS:stopRecordingSession - Session ${sessionId} is being stopped with an empty action list (0 actions recorded).`);
+      } else if (recordedActions.length === 1 && (recordedActions[0].value === 'Recording session stopped' || recordedActions[0].value === 'Recording session stopped (page was already closed)')) {
+        // Check if the only action is one of the "session stopped" messages.
+        // The initial 'navigate' action with "Recording session started" should mean at least two actions if a stop action is added.
+        if (session.actions.find(action => action.value === 'Recording session started' && action.type === 'navigate')) {
+             // If the start action was also present, and we only have one action now, it must be the stop action.
+             // This case is covered by the specific value check for 'Recording session stopped'.
+             // However, if we only have one action and it's the stop action, it implies no user actions *and* no start action.
+             resolvedLogger.warn(`PS:stopRecordingSession - Session ${sessionId} is being stopped with only the final 'stop' action. No user or initial navigation actions were recorded or persisted.`);
+        } else {
+            // This case implies the list has only one action, and it's the stop action.
+             resolvedLogger.warn(`PS:stopRecordingSession - Session ${sessionId} is being stopped with only the final 'stop' action. No user actions were recorded or persisted.`);
+        }
+      }
+
+      resolvedLogger.info(`PS:stopRecordingSession - Session ${sessionId} finalized. Returning ${recordedActions.length} actions.`);
+      this.activeSessions.delete(sessionId);
+      resolvedLogger.info(`PS:stopRecordingSession - Session ${sessionId} removed from activeSessions.`);
+
       return { success: true, actions: recordedActions };
 
     } catch (error: any) {
-      (resolvedLogger.error || console.error)(`Error stopping recording session ${sessionId}:`, error);
-      // Attempt to clean up even if there's an error during close
+      resolvedLogger.error(`PS:stopRecordingSession - CRITICAL error during stop sequence for session ${sessionId}: ${error.message}`, error);
+      // Attempt to clean up even if there's an error during close by deleting from active sessions.
       this.activeSessions.delete(sessionId);
-      return { success: false, error: error.message || 'Unknown error stopping recording session' };
+      resolvedLogger.info(`PS:stopRecordingSession - Session ${sessionId} removed from activeSessions due to critical error during stop sequence.`);
+      return { success: false, error: error.message || `Unknown error stopping recording session ${sessionId}` };
     }
   }
 
