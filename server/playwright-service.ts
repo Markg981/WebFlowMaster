@@ -968,39 +968,53 @@ export class PlaywrightService {
   }
 
   async detectElements(url: string, userId?: number): Promise<DetectedElement[]> {
-    (resolvedLogger.info || console.log)(`PS:detectElements - Called with URL: ${url}, UserID: ${userId}`);
+    resolvedLogger.info(`PS:detectElements - Called with URL: ${url}, UserID: ${userId}`);
     let browser: Browser | null = null;
+    let context: BrowserContext | null = null;
+    let page: Page | null = null;
+    resolvedLogger.info("PS:detectElements - Initial state: browser, context, page are null.");
+
     try {
+      resolvedLogger.info("PS:detectElements - Inside try block.");
       const userSettings = userId ? await storage.getUserSettings(userId) : undefined;
       const browserType = userSettings?.playwrightBrowser || DEFAULT_BROWSER;
       const headlessMode = userSettings?.playwrightHeadless !== undefined ? userSettings.playwrightHeadless : DEFAULT_HEADLESS;
       const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
 
-      (resolvedLogger.info || console.log)("PS:detectElements - Launching browser...");
+      resolvedLogger.info("PS:detectElements - Attempting to launch browser...");
       const browserEngine = playwright[browserType];
       browser = await browserEngine.launch({ headless: headlessMode });
-      (resolvedLogger.info || console.log)("PS:detectElements - Browser launched.");
-      const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-      (resolvedLogger.info || console.log)("PS:detectElements - Creating new browser context.");
-      const context = await browser.newContext({ userAgent });
-      (resolvedLogger.info || console.log)("PS:detectElements - Browser context created.");
-      (resolvedLogger.info || console.log)("PS:detectElements - Creating new page.");
-      const page = await context.newPage();
-      (resolvedLogger.info || console.log)("PS:detectElements - New page created.");
-      page.setDefaultTimeout(pageTimeout);
+      resolvedLogger.info("PS:detectElements - Browser launched. typeof browser: " + typeof browser);
 
+      const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      resolvedLogger.info("PS:detectElements - Attempting to create new browser context...");
+      context = await browser.newContext({ userAgent });
+      resolvedLogger.info("PS:detectElements - Browser context created. typeof context: " + typeof context);
+
+      resolvedLogger.info("PS:detectElements - Attempting to create new page...");
+      page = await context.newPage();
+      resolvedLogger.info("PS:detectElements - New page created. typeof page: " + typeof page + ", page is null: " + (page === null));
+
+      resolvedLogger.info("PS:detectElements - Setting default timeout...");
+      page.setDefaultTimeout(pageTimeout);
+      resolvedLogger.info("PS:detectElements - Default timeout set.");
+
+      resolvedLogger.info("PS:detectElements - Setting viewport size...");
       await page.setViewportSize({ width: 1280, height: 720 });
-      (resolvedLogger.info || console.log)(`PS:detectElements - Navigating to URL: ${url}`);
+      resolvedLogger.info("PS:detectElements - Viewport size set.");
+
+      resolvedLogger.info(`PS:detectElements - Navigating to URL: ${url}. typeof page: " + typeof page + ", page is null: " + (page === null) + ", page.isClosed(): " + (page ? page.isClosed() : 'N/A')`);
       await page.goto(url, { 
         waitUntil: 'domcontentloaded',
       });
-      (resolvedLogger.info || console.log)("PS:detectElements - Navigation complete.");
-      const waitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME;
-      (resolvedLogger.info || console.log)(`PS:detectElements - Waiting for timeout: ${waitTime}ms`);
-      await page.waitForTimeout(waitTime);
-      (resolvedLogger.info || console.log)("PS:detectElements - Wait for timeout completed.");
+      resolvedLogger.info("PS:detectElements - Navigation complete.");
 
-      (resolvedLogger.info || console.log)("PS:detectElements - Evaluating script in page context to detect elements.");
+      const waitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME;
+      resolvedLogger.info(`PS:detectElements - Waiting for timeout: ${waitTime}ms. typeof page: " + typeof page + ", page is null: " + (page === null) + ", page.isClosed(): " + (page ? page.isClosed() : 'N/A')`);
+      await page.waitForTimeout(waitTime);
+      resolvedLogger.info("PS:detectElements - Wait for timeout completed.");
+
+      resolvedLogger.info("PS:detectElements - Before page.evaluate. typeof page: " + typeof page + ", page is null: " + (page === null) + ", page.isClosed(): " + (page ? page.isClosed() : 'N/A'));
       const elements = await page.evaluate(() => {
         const interactiveSelectors = [
           'input:not([type="hidden"])', 'button', 'a[href]', 'select',
@@ -1060,24 +1074,31 @@ export class PlaywrightService {
         });
         return detectedElements.slice(0, 50);
       });
-      (resolvedLogger.info || console.log)(`PS:detectElements - Element detection script completed. Found ${elements?.length} elements.`);
+      resolvedLogger.info(`PS:detectElements - Element detection script completed. Found ${elements?.length} elements.`);
 
       return elements;
     } catch (error) {
-      (resolvedLogger.error || console.error)("PS:detectElements - Error detecting elements:", error);
+      resolvedLogger.error("PS:detectElements - Error caught. typeof page: " + typeof page + ", page is null: " + (page === null) + ". Error: ", error);
       throw error; // Re-throw to be caught by the route handler
     } finally {
+      resolvedLogger.info("PS:detectElements - Inside finally block.");
+      resolvedLogger.info("PS:detectElements (finally) - State before closing page: typeof page: " + typeof page + ", page is null: " + (page === null) + ", page.isClosed(): " + (page ? page.isClosed() : 'N/A'));
       if (page && !page.isClosed()) {
-        (resolvedLogger.info || console.log)("PS:detectElements (finally) - Closing page.");
-        await page.close().catch(e => (resolvedLogger.error || console.error)("PS:detectElements - Error closing page:", e));
+        resolvedLogger.info("PS:detectElements (finally) - Attempting to close page...");
+        await page.close().catch(e => resolvedLogger.error("PS:detectElements - Error closing page:", e));
+        resolvedLogger.info("PS:detectElements (finally) - Page close attempt finished.");
       }
+      resolvedLogger.info("PS:detectElements (finally) - State before closing context: typeof context: " + typeof context + ", context is null: " + (context === null));
       if (context) {
-        (resolvedLogger.info || console.log)("PS:detectElements (finally) - Closing context.");
-        await context.close().catch(e => (resolvedLogger.error || console.error)("PS:detectElements - Error closing context:", e));
+        resolvedLogger.info("PS:detectElements (finally) - Attempting to close context...");
+        await context.close().catch(e => resolvedLogger.error("PS:detectElements - Error closing context:", e));
+        resolvedLogger.info("PS:detectElements (finally) - Context close attempt finished.");
       }
+      resolvedLogger.info("PS:detectElements (finally) - State before closing browser: typeof browser: " + typeof browser + ", browser is null: " + (browser === null) + ", browser.isConnected(): " + (browser ? browser.isConnected() : 'N/A'));
       if (browser && browser.isConnected()) {
-        (resolvedLogger.info || console.log)("PS:detectElements (finally) - Closing browser.");
-        await browser.close().catch(e => (resolvedLogger.error || console.error)("PS:detectElements - Error closing browser:", e));
+        resolvedLogger.info("PS:detectElements (finally) - Attempting to close browser...");
+        await browser.close().catch(e => resolvedLogger.error("PS:detectElements - Error closing browser:", e));
+        resolvedLogger.info("PS:detectElements (finally) - Browser close attempt finished.");
       }
     }
   }
