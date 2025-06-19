@@ -608,7 +608,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (result.success) {
         res.json({ 
           success: true, 
-          actions: result.actions || [] 
+          sequence: result.actions || [] 
         });
       } else {
         res.status(404).json({ 
