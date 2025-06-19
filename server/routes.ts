@@ -542,9 +542,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  app.post("/api/start-recording", async (req, res) => { /* ... existing code ... */ });
-  app.post("/api/stop-recording", async (req, res) => { /* ... existing code ... */ });
-  app.get("/api/get-recorded-actions", async (req, res) => { /* ... existing code ... */ });
+  // --- Recording API Endpoints ---
+  app.post("/api/start-recording", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    const startRecordingSchema = z.object({
+      url: z.string().url("Invalid URL format")
+    });
+    
+    const parseResult = startRecordingSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ 
+        error: "Invalid request data", 
+        details: parseResult.error.flatten() 
+      });
+    }
+    
+    try {
+      const { url } = parseResult.data;
+      const result = await playwrightService.startRecordingSession(url, req.user.id);
+      
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          sessionId: result.sessionId 
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          error: result.error || "Failed to start recording session" 
+        });
+      }
+    } catch (error: any) {
+      resolvedLogger.error("Error starting recording session:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Internal server error" 
+      });
+    }
+  });
+  
+  app.post("/api/stop-recording", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    const stopRecordingSchema = z.object({
+      sessionId: z.string().min(1, "Session ID is required")
+    });
+    
+    const parseResult = stopRecordingSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ 
+        error: "Invalid request data", 
+        details: parseResult.error.flatten() 
+      });
+    }
+    
+    try {
+      const { sessionId } = parseResult.data;
+      const result = await playwrightService.stopRecordingSession(sessionId, req.user.id);
+      
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          actions: result.actions || [] 
+        });
+      } else {
+        res.status(404).json({ 
+          success: false, 
+          error: result.error || "Recording session not found" 
+        });
+      }
+    } catch (error: any) {
+      resolvedLogger.error("Error stopping recording session:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Internal server error" 
+      });
+    }
+  });
+  
+  app.get("/api/get-recorded-actions", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    const getRecordedActionsSchema = z.object({
+      sessionId: z.string().min(1, "Session ID is required")
+    });
+    
+    const parseResult = getRecordedActionsSchema.safeParse(req.query);
+    if (!parseResult.success) {
+      return res.status(400).json({ 
+        error: "Invalid request data", 
+        details: parseResult.error.flatten() 
+      });
+    }
+    
+    try {
+      const { sessionId } = parseResult.data;
+      const result = await playwrightService.getRecordedActions(sessionId, req.user.id);
+      
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          actions: result.actions || [] 
+        });
+      } else {
+        res.status(404).json({ 
+          success: false, 
+          error: result.error || "Recording session not found" 
+        });
+      }
+    } catch (error: any) {
+      resolvedLogger.error("Error getting recorded actions:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Internal server error" 
+      });
+    }
+  });
 
   // --- API Test History Endpoints ---
   app.post("/api/api-test-history", async (req, res) => {
