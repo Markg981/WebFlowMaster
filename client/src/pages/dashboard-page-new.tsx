@@ -574,10 +574,10 @@ export default function DashboardPage() {
   });
 
   const handleStartRecording = async () => {
-    if (!currentUrl || !websiteLoaded) {
+    if (!currentUrl) { // Removed !websiteLoaded condition
       toast({
         title: "Cannot Start Recording",
-        description: "Please load a website before starting to record a test.",
+        description: "Please enter a website URL to start recording.", // Updated message
         variant: "warning",
       });
       return;
@@ -865,6 +865,13 @@ export default function DashboardPage() {
       return result; // This is the data structure: { success, steps, error, duration }
     },
     onSuccess: (data) => { // data is { success, steps, error, duration, detectedElements }
+      // Always handle detectedElements first
+      if (data.detectedElements) {
+        setDetectedElements(data.detectedElements);
+      } else {
+        setDetectedElements([]);
+      }
+
       if (data.success && data.steps?.length) {
         setLastTestOverallResult(data.success); // Store overall test result
         setPlaybackSteps(data.steps);
@@ -873,25 +880,14 @@ export default function DashboardPage() {
         if (data.steps[0]?.screenshot) {
           setWebsiteScreenshot(data.steps[0].screenshot);
         }
-        // New part: Update detected elements
-        if (data.detectedElements) {
-          setDetectedElements(data.detectedElements);
-        } else {
-          setDetectedElements([]);
-        }
         toast({ title: "Direct Test Execution Started", description: "Playing back results..." });
       } else {
+        // This block handles cases where data.success is false or data.steps is empty
         setIsExecutingPlayback(false);
         setCurrentPlaybackStepIndex(null);
         setPlaybackSteps([]);
-        // Potentially also set detectedElements to empty array here if applicable
-        if (data.detectedElements) { // Even on failure, backend might send elements
-          setDetectedElements(data.detectedElements);
-        } else {
-          setDetectedElements([]);
-        }
-        setLastTestOverallResult(false); // Set overall result to failed
-        toast({ title: "Test Failed", description: data.error || "No steps returned or direct execution failed.", variant: "destructive" });
+        setLastTestOverallResult(data.success !== undefined ? data.success : false); // Set overall result to failed or actual success value
+        toast({ title: data.success ? "Execution Note" : "Test Failed", description: data.error || (data.success ? "No steps to play back." : "Execution failed or no steps returned."), variant: data.success ? "default" : "destructive" });
       }
     },
     onError: (error: Error) => {
@@ -1107,20 +1103,37 @@ export default function DashboardPage() {
                 disabled={isRecording || startRecordingMutation.isPending}
               />
               <Button
-                onClick={handleLoadWebsite}
-                disabled={loadWebsiteMutation.isPending || isLoadingUserSettings || isRecording || startRecordingMutation.isPending}
+                onClick={creationMode === 'record' ? handleStartRecording : handleLoadWebsite}
+                disabled={
+                  isLoadingUserSettings ||
+                  (creationMode === 'manual' ? (loadWebsiteMutation.isPending || isRecording) : (startRecordingMutation.isPending || isRecording))
+                }
               >
-                {loadWebsiteMutation.isPending ? (
+                {creationMode === 'manual' ? (
+                  loadWebsiteMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Globe className="h-4 w-4 mr-2" />
+                  )
+                ) : startRecordingMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
-                  <Globe className="h-4 w-4 mr-2" />
+                  <Play className="h-4 w-4 mr-2" /> // Show Play icon in record mode
                 )}
-                {loadWebsiteMutation.isPending ? "Loading..." : "Load Website"}
+                {creationMode === 'manual'
+                  ? loadWebsiteMutation.isPending
+                    ? "Loading..."
+                    : "Load Website"
+                  : startRecordingMutation.isPending
+                  ? "Starting..."
+                  : isRecording
+                  ? "Recording..." // Indicate if already recording
+                  : "Load & Record"}
               </Button>
               {creationMode === 'manual' && (
                 <Button
                   onClick={handleDetectElements}
-                  disabled={detectElementsMutation.isPending || !websiteLoaded || isLoadingUserSettings}
+                  disabled={detectElementsMutation.isPending || !websiteLoaded || isLoadingUserSettings || isRecording}
                   variant="secondary"
                 >
                   {detectElementsMutation.isPending ? (
@@ -1146,18 +1159,7 @@ export default function DashboardPage() {
             </div>
             {creationMode === 'record' && (
               <div className="mt-4 flex space-x-3">
-                <Button
-                  onClick={handleStartRecording}
-                  variant="outline"
-                  disabled={isRecording || startRecordingMutation.isPending || !websiteLoaded}
-                >
-                  {startRecordingMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Play className="h-4 w-4 mr-2" />
-                  )}
-                  {startRecordingMutation.isPending ? "Starting..." : "Inizia registrazione"}
-                </Button>
+                {/* The "Inizia registrazione" button is removed as per instructions */}
                 <Button
                   onClick={handleStopRecording}
                   variant="outline"
