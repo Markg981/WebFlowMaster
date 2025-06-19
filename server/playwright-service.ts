@@ -1002,10 +1002,63 @@ export class PlaywrightService {
 
       (resolvedLogger.info || console.log)("PS:detectElements - Evaluating script in page context to detect elements.");
       const elements = await page.evaluate(() => {
-        // NOTE: Content of page.evaluate is intentionally kept brief for this diff.
-        // The actual element detection script from the file will be preserved.
-        const interactiveSelectors = [ 'button', 'a' ]; // Simplified for diff
-        return []; // Simplified for diff
+        const interactiveSelectors = [
+          'input:not([type="hidden"])', 'button', 'a[href]', 'select',
+          'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])',
+          'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form',
+          '[data-testid]', '[data-test]'
+        ];
+
+        const detectedElements = []; // Use a local const
+        let globalElementCounter = 0;
+        
+        interactiveSelectors.forEach(selector => {
+          const elements = document.querySelectorAll(selector);
+          elements.forEach((element, index) => {
+            const rect = element.getBoundingClientRect();
+            
+            if (rect.width > 0 && rect.height > 0 && rect.top >= 0) {
+              const tagName = element.tagName.toLowerCase();
+              const text = element.textContent?.trim() || '';
+              const placeholder = element.getAttribute('placeholder') || '';
+              const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
+
+              let uniqueSelector = selector;
+              if (element.id) {
+                uniqueSelector = `#${element.id}`;
+              } else if (element.className && typeof element.className === 'string') {
+                const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')') );
+                if (classes.length > 0) {
+                  uniqueSelector = `${tagName}.${classes[0]}`;
+                }
+              }
+
+              let elementType = 'element';
+              if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
+              else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
+              else if (tagName === 'a') elementType = 'link';
+              else if (tagName.match(/h[1-6]/)) elementType = 'heading';
+              else if (tagName === 'select') elementType = 'select';
+              else if (tagName === 'textarea') elementType = 'textarea';
+
+              const attributes = {}; // Use a local const
+              Array.from(element.attributes).forEach(attr => {
+                attributes[attr.name] = attr.value;
+              });
+
+              detectedElements.push({
+                id: `elem-${tagName}-${globalElementCounter++}`,
+                type: elementType,
+                selector: uniqueSelector,
+                text: displayText.substring(0, 100),
+                tag: tagName,
+                attributes,
+                boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) }
+              });
+            }
+          });
+        });
+        return detectedElements.slice(0, 50);
       });
       (resolvedLogger.info || console.log)(`PS:detectElements - Element detection script completed. Found ${elements?.length} elements.`);
 
@@ -1027,104 +1080,6 @@ export class PlaywrightService {
       if (browser) {
         (resolvedLogger.info || console.log)("PS:detectElements (finally) - Closing browser.");
         await browser.close().catch(e => (resolvedLogger.error || console.error)("PS:detectElements - Error closing browser:", e));
-      }
-    }
-  }
-
-  async executeTestSequence(test: Test, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number }> {
-          'a[href]',
-          'select',
-          'textarea',
-          '[onclick]',
-          '[role="button"]',
-          '[tabindex]:not([tabindex="-1"])',
-          'h1, h2, h3, h4, h5, h6',
-          'img[alt]',
-          'form',
-          '[data-testid]',
-          '[data-test]'
-        ];
-
-        const detectedElements: any[] = [];
-        let globalElementCounter = 0; // Initialize global counter
-        
-        interactiveSelectors.forEach(selector => {
-          const elements = document.querySelectorAll(selector);
-          elements.forEach((element, index) => { // 'index' here is local to current 'selector' results
-            const rect = element.getBoundingClientRect();
-            
-            if (rect.width > 0 && rect.height > 0 && rect.top >= 0) {
-              const tagName = element.tagName.toLowerCase();
-              const text = element.textContent?.trim() || '';
-              const placeholder = element.getAttribute('placeholder') || '';
-              // Use globalElementCounter in displayText if a truly unique placeholder is needed,
-              // but for now, existing logic for displayText is fine.
-              const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
-
-              let uniqueSelector = selector;
-              // Prioritize ID, then a combination of tag and a unique class if available
-              if (element.id) {
-                uniqueSelector = `#${element.id}`;
-              } else if (element.className && typeof element.className === 'string') {
-                const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')') ); // Filter out complex/dynamic classes
-                if (classes.length > 0) {
-                  uniqueSelector = `${tagName}.${classes[0]}`;
-                  // To make it more robust, one might try to find a more unique selector,
-                  // but this is a reasonable default.
-                }
-              }
-              // Fallback to just tag name if no better selector found, though this is very generic.
-              // Or could use a more complex selector generation strategy here.
-
-              let elementType = 'element';
-              if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
-              else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
-              else if (tagName === 'a') elementType = 'link';
-              else if (tagName.match(/h[1-6]/)) elementType = 'heading';
-              else if (tagName === 'select') elementType = 'select';
-              else if (tagName === 'textarea') elementType = 'textarea';
-
-              const attributes: Record<string, string> = {};
-              Array.from(element.attributes).forEach(attr => {
-                attributes[attr.name] = attr.value;
-              });
-
-              detectedElements.push({
-                id: `elem-${tagName}-${globalElementCounter++}`, // Use global counter for unique ID
-                type: elementType,
-                selector: uniqueSelector,
-                text: displayText.substring(0, 100), // Keep text substring
-                tag: tagName,
-                attributes,
-                boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) }
-              });
-            }
-          });
-        });
-        return detectedElements.slice(0, 50);
-      });
-
-      // This is a placeholder for the actual page.evaluate content which is very long
-      // The SEARCH block above uses a simplified version to ensure the diff applies.
-      // The actual complex script for element detection will remain in the file.
-      await page.close();
-      await context.close();
-      return elements;
-    } catch (error) {
-      (resolvedLogger.error || console.error)("PS:detectElements - Error detecting elements:", error);
-      throw error; // Re-throw to allow route handler to catch and send 500
-    } finally {
-      if (page) {
-        (resolvedLogger.info || console.log)("PS:detectElements (finally) - Closing page.");
-        await page.close().catch(e => (resolvedLogger.error || console.error)("PS:detectElements - Error closing page:", e));
-      }
-      if (context) {
-        (resolvedLogger.info || console.log)("PS:detectElements (finally) - Closing context.");
-        await context.close().catch(e => (resolvedLogger.error || console.error)("PS:detectElements - Error closing context:", e));
-      }
-      if (browser) {
-        (resolvedLogger.info || console.log)("PS:detectElements (finally) - Closing browser.");
-        await browser.close().catch(e => (resolvedLogger.error || console.error)("PS:detectElements - Error closing browser (detectElements):", e));
       }
     }
   }
