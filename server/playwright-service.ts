@@ -467,34 +467,7 @@ export class PlaywrightService {
         if (session) {
           session.pageClosedByEventHandler = true;
           resolvedLogger.info(`PS:startRecordingSession - Session ${sessionId} marked as pageClosedByEventHandler.`);
-
-          // Optionally, try to close other resources if they are open and belong to this session
-          // These checks are important to avoid errors if resources are already closed or were never opened.
-          if (session.page && !session.page.isClosed()) {
-            // Page is already closing/closed, but this ensures our records reflect an attempt if needed.
-            // Typically, directly calling session.page.close() here might be redundant if the 'close' event means it's already done.
-            // However, it's included for thoroughness as per instructions, with a catch.
-            // resolvedLogger.info(`PS: page.on(close) - Attempting to close page for session ${sessionId}, though it should be closing.`);
-            // await session.page.close().catch(e => resolvedLogger.warn(`PS: page.on(close) - Error explicitly closing page for session ${sessionId}: ${e.message}`));
-          }
-          // Check context: Only close if this was the last page.
-          // Note: Playwright might auto-close context if its last page is closed. This is a safeguard.
-          if (session.context && session.context.pages().length === 0) {
-             resolvedLogger.info(`PS: page.on(close) - Context for session ${sessionId} has no more pages, attempting to close context.`);
-             await session.context.close().catch(e => resolvedLogger.warn(`PS: page.on(close) - Error closing context for session ${sessionId}: ${e.message}`));
-          }
-          // Check browser: Only close if this was the last context (implicitly, if context was closed above and browser is still connected).
-          // This logic can be complex. A simpler approach is to let stopRecordingSession handle browser closure.
-          // For now, let's ensure browser is still connected before attempting to close.
-          if (session.browser && session.browser.isConnected() && session.context && session.context.pages().length === 0) {
-            // This condition implies the context was likely closed in the previous step or by Playwright.
-            // Check if there are other contexts in the browser. This is tricky without more state.
-            // A simpler approach: if the browser has no more open contexts (which we can't easily tell without iterating browser.contexts() if available and not empty)
-            // For now, if the primary context of the session is closed (or closing), and the browser is connected, attempt close.
-            // This might be too aggressive if the browser is shared, but sessions here are independent.
-            resolvedLogger.info(`PS: page.on(close) - Browser for session ${sessionId} is connected and context likely closed, attempting to close browser.`);
-            await session.browser.close().catch(e => resolvedLogger.warn(`PS: page.on(close) - Error closing browser for session ${sessionId}: ${e.message}`));
-          }
+          // No more resource cleanup attempts here.
         } else {
           resolvedLogger.info(`PS:startRecordingSession - Session ${sessionId} already stopped/cleaned up when page.on('close') triggered (session not found in activeSessions).`);
         }

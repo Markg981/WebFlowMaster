@@ -602,12 +602,13 @@ export default function DashboardPage() {
       return result; // Expected { success: true, sequence: BackendRecordedAction[] }
     },
     onSuccess: (data: { sequence?: BackendRecordedAction[] }) => {
+      console.log("[StopRecording onSuccess] Raw data received:", JSON.stringify(data, null, 2));
       if (data.sequence) {
         const newTestSequence: DragDropTestStep[] = data.sequence.map((recordedAction, index) => {
           const correspondingAction = availableActions.find(a => a.id === recordedAction.type);
 
           if (!correspondingAction) {
-            console.warn(`No available action found for recorded type: ${recordedAction.type}. Skipping.`);
+            console.warn(`[StopRecording onSuccess MAP] No available action found for recorded type: '${recordedAction.type}'. Full action object:`, JSON.stringify(recordedAction, null, 2) ,'. This action will be SKIPPED.');
             return null;
           }
 
@@ -631,12 +632,15 @@ export default function DashboardPage() {
           };
         }).filter(step => step !== null && step.action !== undefined) as DragDropTestStep[];
 
+        console.log("[StopRecording onSuccess] Mapped newTestSequence:", JSON.stringify(newTestSequence, null, 2));
+        console.log("[StopRecording onSuccess] Length of mapped newTestSequence:", newTestSequence.length);
         setTestSequence(newTestSequence);
         toast({
           title: "Recording Stopped",
           description: `Test sequence updated with ${newTestSequence.length} recorded actions.`,
         });
       } else {
+        console.log("[StopRecording onSuccess] data.sequence is missing or empty. Clearing test sequence.");
         setTestSequence([]);
         toast({
           title: "Recording Stopped",
