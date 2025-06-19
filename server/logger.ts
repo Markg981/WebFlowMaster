@@ -1,4 +1,5 @@
 import winston from 'winston';
+import 'winston-daily-rotate-file';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -30,11 +31,12 @@ const logger = winston.createLogger({
         logFormat
       )
     }),
-    new winston.transports.File({
-      filename: path.join(logDir, 'app.log'),
-      maxsize: 5242880, // 5MB
-      maxFiles: 5, // Keep up to 5 log files
-      tailable: true, // When maxFiles is reached, the oldest file will be removed.
+    new winston.transports.DailyRotateFile({
+      filename: path.join(logDir, 'app-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxSize: '20m',
+      maxFiles: process.env.LOG_RETENTION_DAYS ? `${process.env.LOG_RETENTION_DAYS}d` : '7d',
     })
   ],
   exitOnError: false // Do not exit on handled exceptions

@@ -88,6 +88,10 @@ This is a full-stack web application for creating and executing automated tests 
 - **Platform**: Configured for Replit autoscale deployment
 - **Database**: Environment variable DATABASE_URL for connection
 
+### Logging Configuration
+- `LOG_RETENTION_DAYS`: Specifies the number of days to retain log files. Old log files will be compressed and stored. If not set, the default retention period is 7 days.
+  - Example: `LOG_RETENTION_DAYS=14`
+
 ### Database Management
 - **Migrations**: `npm run db:push` applies schema changes
 - **Schema Location**: `./shared/schema.ts` for type sharing
