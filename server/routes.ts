@@ -469,7 +469,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/execute-test-direct", async (req, res) => {
     const userId = (req.user as any)?.id;
-    resolvedLogger.info("ROUTE: /api/execute-test-direct - Handler Reached. UserID: " + userId);
+    // Enhanced Entry Logging
+    resolvedLogger.info({ message: "ROUTE: /api/execute-test-direct - Handler Reached.", userId });
     resolvedLogger.debug({ message: "ROUTE: /api/execute-test-direct - Request body:", body: req.body });
 
     if (!req.isAuthenticated() || !userId) {
@@ -484,39 +485,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     const payload = parseResult.data;
-    let resultFromService;
+    let resultFromService: any; // Keep it flexible to hold partial results in case of error
 
     try {
       resolvedLogger.info("ROUTE: /api/execute-test-direct - About to call playwrightService.executeAdhocSequence.");
       resultFromService = await playwrightService.executeAdhocSequence(payload, userId);
       resolvedLogger.info("ROUTE: /api/execute-test-direct - playwrightService.executeAdhocSequence returned.");
       resolvedLogger.debug({ message: "ROUTE: /api/execute-test-direct - Result from service:", result: resultFromService });
-      res.json(resultFromService);
+
+      // Ensure that even if executeAdhocSequence returns a non-standard error structure, we handle it
+      if (typeof resultFromService?.success === 'boolean') {
+        res.json(resultFromService);
+      } else {
+        // This case implies executeAdhocSequence might have thrown an error that was caught by the outer try-catch
+        // or returned an unexpected structure.
+        resolvedLogger.error("ROUTE: /api/execute-test-direct - Unexpected structure from playwrightService.executeAdhocSequence.", { resultFromService });
+        res.status(500).json({
+          success: false,
+          error: "Internal server error: Unexpected response from test execution service.",
+          steps: [],
+          detectedElements: [],
+          duration: 0
+        });
+      }
     } catch (error: any) {
       resolvedLogger.error(`ROUTE: /api/execute-test-direct - ERROR during playwrightService.executeAdhocSequence call or response sending: ${error.message}`, error.stack);
-      // Ensure a default structure for unexpected errors from the service itself or during response sending
       const responseError = {
         success: false,
         error: "Error executing test sequence: " + error.message,
-        steps: resultFromService?.steps || [], // Include steps if available
-        detectedElements: resultFromService?.detectedElements || [], // Include elements if available
-        duration: resultFromService?.duration || 0, // Include duration if available
+        steps: resultFromService?.steps || [],
+        detectedElements: resultFromService?.detectedElements || [],
+        duration: resultFromService?.duration || 0,
       };
       if (!res.headersSent) {
         res.status(500).json(responseError);
       }
     } finally {
-      resolvedLogger.info({
+      let logData: any = {
         message: "ROUTE: /api/execute-test-direct - Handler complete.",
         userId,
-        testName: payload.name,
-        overallSuccess: resultFromService?.success,
-        stepsReturned: resultFromService?.steps?.length,
-        error: resultFromService?.success ? undefined : resultFromService?.error
-      });
+        testName: payload.name
+      };
+      if (resultFromService) {
+        logData.overallSuccess = resultFromService.success;
+        logData.stepsReturned = resultFromService.steps?.length;
+        logData.error = resultFromService.success ? undefined : resultFromService.error;
+      } else {
+        logData.overallSuccess = false;
+        logData.error = "resultFromService was undefined in finally block";
+      }
+      resolvedLogger.info(logData);
+
       resolvedLogger.debug({
         message: "ROUTE: /api/execute-test-direct - Full response that was/would be sent:",
-        response: resultFromService || "Error response sent in catch block"
+        responseDetails: resultFromService || "Error response sent in catch block or resultFromService was undefined"
       });
     }
   });
