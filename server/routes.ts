@@ -99,7 +99,10 @@ function getValueByPath(obj: any, path: string): any {
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
-  app.post("/api/load-website", async (req, res) => { /* ... existing code ... */ });
+  app.post("/api/load-website", async (req, res) => {
+    console.log("SERVER: /api/load-website route handler reached. Request body:", req.body);
+    /* ... existing code ... */
+});
 
   app.post("/api/proxy-api-request", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {

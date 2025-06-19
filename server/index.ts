@@ -16,6 +16,7 @@ app.use(express.urlencoded({ extended: false }));
 
   // Request logging middleware - MOVED HERE and USES RESOLVED LOGGER
   app.use((req, res, next) => {
+    console.log(`SERVER: Request Logger Middleware: Received ${req.method} ${req.path}`);
     const start = Date.now();
     const path = req.path;
     let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -42,6 +43,7 @@ app.use(express.urlencoded({ extended: false }));
       }
     });
 
+    console.log(`SERVER: Request Logger Middleware: Calling next() for ${req.method} ${req.path}`);
     next();
   });
 
