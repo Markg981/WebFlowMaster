@@ -6,17 +6,17 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
-import logger from "./logger"; // Import Winston logger
+import winston from 'winston'; // Import winston type
 
 // Get the file path of the current module once at module load time.
 const currentModuleFilePath = fileURLToPath(import.meta.url);
 
 const viteLogger = createLogger();
 
-export function log(message: string, source = "express") {
+export function log(loggerInstance: winston.Logger, message: string, source = "express") {
   // The original function included a timestamp, but our Winston logger automatically adds one.
   // We'll include the 'source' in the message.
-  logger.info(`[${source}] ${message}`);
+  loggerInstance.info(`[${source}] ${message}`);
 }
 
 export async function setupVite(app: Express, server: Server) {

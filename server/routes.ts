@@ -25,7 +25,9 @@ import {
   testPlans,             // Import testPlans table schema
   insertTestPlanSchema,  // Import Zod schema for inserting test plans
   updateTestPlanSchema,  // Import Zod schema for updating test plans
-  selectTestPlanSchema   // Import Zod schema for selecting test plans
+  selectTestPlanSchema,   // Import Zod schema for selecting test plans
+  systemSettings,        // Import systemSettings table schema
+  insertSystemSettingSchema // Import Zod schema for systemSettings
 } from "@shared/schema";
 import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
@@ -94,10 +96,44 @@ function getValueByPath(obj: any, path: string): any {
   return current;
 }
 
-export function registerRoutes(app: Express): Server {
+export async function registerRoutes(app: Express): Promise<Server> { // Make function async and return Promise<Server>
+  const resolvedLogger = await logger; // Resolve the logger promise
   setupAuth(app);
 
-  app.post("/api/load-website", async (req, res) => { /* ... existing code ... */ });
+  const loadWebsiteBodySchema = z.object({
+    url: z.string().min(1, { message: "URL cannot be empty" }).url({ message: "Invalid URL format" }),
+  });
+
+  app.post("/api/load-website", async (req, res) => {
+    (resolvedLogger.info || console.log)("SERVER: /api/load-website route handler reached. Request body:", req.body);
+
+    const parseResult = loadWebsiteBodySchema.safeParse(req.body);
+
+    if (!parseResult.success) {
+      (resolvedLogger.error || console.error)("SERVER: /api/load-website - Invalid request body:", parseResult.error.flatten());
+      return res.status(400).json({ success: false, error: 'Invalid request payload', details: parseResult.error.flatten() });
+    }
+
+    const { url } = parseResult.data;
+    const userId = (req.user as any)?.id as number | undefined; // Safely access user ID
+
+    try {
+      (resolvedLogger.info || console.log)(`SERVER: /api/load-website - Calling playwrightService.loadWebsite with URL: ${url}`);
+      const result = await playwrightService.loadWebsite(url, userId);
+      (resolvedLogger.info || console.log)(`SERVER: /api/load-website - playwrightService.loadWebsite call returned. Success: ${result?.success}`);
+
+      if (result.success) {
+        res.json({ success: true, screenshot: result.screenshot, html: result.html });
+      } else {
+        (resolvedLogger.error || console.error)(`SERVER: /api/load-website - playwrightService.loadWebsite failed. Error: ${result.error}`);
+        res.status(500).json({ success: false, error: result.error || 'Failed to load website using Playwright service.' });
+      }
+    } catch (error: any) {
+      (resolvedLogger.error || console.error)("SERVER: /api/load-website - Critical error in route handler:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown internal server error';
+      res.status(500).json({ success: false, error: `Internal server error: ${errorMessage}` });
+    }
+  });
 
   app.post("/api/proxy-api-request", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -106,7 +142,7 @@ export function registerRoutes(app: Express): Server {
 
     const parseResult = proxyApiRequestBodySchema.safeParse(req.body);
     if (!parseResult.success) {
-      logger.error("Invalid /api/proxy-api-request payload:", { errors: parseResult.error.flatten() });
+      resolvedLogger.error("Invalid /api/proxy-api-request payload:", { errors: parseResult.error.flatten() });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
@@ -164,7 +200,7 @@ export function registerRoutes(app: Express): Server {
           responseBodyContent = responseText;
         }
       } catch (parseError) {
-        logger.warn("Failed to parse response body as JSON, falling back to text", { url: targetUrl.toString(), contentType, error: parseError });
+        resolvedLogger.warn("Failed to parse response body as JSON, falling back to text", { url: targetUrl.toString(), contentType, error: parseError });
         responseBodyContent = responseText;
       }
 
@@ -296,7 +332,7 @@ export function registerRoutes(app: Express): Server {
               default: evalError = `Unknown assertion source: ${(assertion as any).source}`;
             }
           } catch (e: any) {
-            logger.error("Error during assertion evaluation:", { assertion, error: e.message });
+            resolvedLogger.error("Error during assertion evaluation:", { assertion, error: e.message });
             evalError = `Evaluation error: ${e.message}`;
           }
           assertionResults.push({ assertion, pass, actualValue, error: evalError });
@@ -311,7 +347,7 @@ export function registerRoutes(app: Express): Server {
     } catch (error: any) {
       if (timeoutId) clearTimeout(timeoutId);
       const duration = Date.now() - startTime;
-      logger.error("Error in /api/proxy-api-request:", {
+      resolvedLogger.error("Error in /api/proxy-api-request:", {
         message: error.message, stack: error.stack, url: baseUrl, method: method, type: error.name, cause: error.cause
       });
       let errorMessage = "Failed to make API request.";
@@ -326,7 +362,37 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.get("/api/projects", async (req, res) => { /* ... existing code ... */ });
-  app.post("/api/detect-elements", async (req, res) => { /* ... existing code ... */ });
+
+  const detectElementsBodySchema = z.object({
+    url: z.string().url({ message: "Invalid URL for element detection" }),
+  });
+  app.post("/api/detect-elements", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) { // Ensure user is authenticated
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+
+    const parseResult = detectElementsBodySchema.safeParse(req.body);
+    if (!parseResult.success) {
+      (resolvedLogger.error || console.error)("SERVER: /api/detect-elements - Invalid request body:", parseResult.error.flatten());
+      return res.status(400).json({ success: false, error: "Invalid request payload", details: parseResult.error.flatten() });
+    }
+    const { url } = parseResult.data;
+    const userId = (req.user as any)?.id as number | undefined;
+
+    (resolvedLogger.info || console.log)(`SERVER: /api/detect-elements route handler reached. URL: ${url}, UserID: ${userId}`);
+
+    try {
+      (resolvedLogger.info || console.log)(`SERVER: /api/detect-elements - Calling playwrightService.detectElements with URL: ${url}`);
+      const elements = await playwrightService.detectElements(url, userId);
+      (resolvedLogger.info || console.log)(`SERVER: /api/detect-elements - playwrightService.detectElements call returned. Element count: ${elements?.length}`);
+
+      res.json({ success: true, elements: elements });
+    } catch (error: any) {
+      (resolvedLogger.error || console.error)("SERVER: /api/detect-elements - Error in route handler:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown internal server error';
+      res.status(500).json({ success: false, error: `Internal server error during element detection: ${errorMessage}` });
+    }
+  });
   app.post("/api/projects", async (req, res) => { /* ... existing code ... */ });
   app.delete("/api/projects/:projectId", async (req, res) => { /* ... existing code ... */ });
   app.get("/api/tests", async (req, res) => { /* ... existing code ... */ });
@@ -360,7 +426,7 @@ export function registerRoutes(app: Express): Server {
         return res.json(newSettings[0]);
       }
     } catch (error) {
-      logger.error("Failed to fetch settings:", error);
+      resolvedLogger.error("Failed to fetch settings:", error);
       return res.status(500).json({ error: "Failed to fetch settings" });
     }
   });
@@ -372,7 +438,7 @@ export function registerRoutes(app: Express): Server {
 
     const parseResult = userSettingsBodySchema.safeParse(req.body);
     if (!parseResult.success) {
-      logger.error("Invalid /api/settings payload:", { errors: parseResult.error.flatten() });
+      resolvedLogger.error("Invalid /api/settings payload:", { errors: parseResult.error.flatten() });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
@@ -394,7 +460,7 @@ export function registerRoutes(app: Express): Server {
         return res.json(newSettings[0]);
       }
     } catch (error) {
-      logger.error("Failed to save settings:", error);
+      resolvedLogger.error("Failed to save settings:", error);
       return res.status(500).json({ error: "Failed to save settings" });
     }
   });
@@ -412,7 +478,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const newHistoryEntry = await db.insert(apiTestHistory).values({ ...parseResult.data, userId: req.user.id }).returning();
       res.status(201).json(newHistoryEntry[0]);
-    } catch (error) { logger.error("Error creating API test history entry:", error); res.status(500).json({ error: "Failed to save API test history" }); }
+    } catch (error) { resolvedLogger.error("Error creating API test history entry:", error); res.status(500).json({ error: "Failed to save API test history" }); }
   });
 
   app.get("/api/api-test-history", async (req, res) => {
@@ -425,7 +491,7 @@ export function registerRoutes(app: Express): Server {
       const totalResult = await db.select({ count: sql`count(*)` }).from(apiTestHistory).where(eq(apiTestHistory.userId, req.user.id));
       const total = totalResult[0]?.count || 0;
       res.json({ items: historyEntries, page, limit, totalItems: Number(total), totalPages: Math.ceil(Number(total) / limit) });
-    } catch (error) { logger.error("Error fetching API test history:", error); res.status(500).json({ error: "Failed to fetch API test history" }); }
+    } catch (error) { resolvedLogger.error("Error fetching API test history:", error); res.status(500).json({ error: "Failed to fetch API test history" }); }
   });
 
   app.delete("/api/api-test-history/:id", async (req, res) => {
@@ -436,7 +502,7 @@ export function registerRoutes(app: Express): Server {
       const result = await db.delete(apiTestHistory).where(and(eq(apiTestHistory.id, id), eq(apiTestHistory.userId, req.user.id))).returning();
       if (result.length === 0) { return res.status(404).json({ error: "History entry not found or not owned by user" }); }
       res.status(204).send();
-    } catch (error) { logger.error(`Error deleting API test history entry ${id}:`, error); res.status(500).json({ error: "Failed to delete history entry" }); }
+    } catch (error) { resolvedLogger.error(`Error deleting API test history entry ${id}:`, error); res.status(500).json({ error: "Failed to delete history entry" }); }
   });
 
   // --- Saved API Tests Endpoints ---
@@ -456,7 +522,7 @@ export function registerRoutes(app: Express): Server {
         }).returning();
       res.status(201).json(newTest[0]);
     } catch (error: any) {
-      logger.error("Error creating API test:", error);
+      resolvedLogger.error("Error creating API test:", error);
       if (error.message && error.message.includes('FOREIGN KEY constraint failed')) { return res.status(400).json({ error: "Invalid project ID or project does not exist." }); }
       res.status(500).json({ error: "Failed to create API test" });
     }
@@ -487,7 +553,7 @@ export function registerRoutes(app: Express): Server {
       if (updatedTest.length === 0) { return res.status(404).json({ error: "Test not found after update attempt" }); }
       res.json(updatedTest[0]);
     } catch (error: any) {
-      logger.error(`Error updating API test ${id}:`, error);
+      resolvedLogger.error(`Error updating API test ${id}:`, error);
       if (error.message && error.message.includes('FOREIGN KEY constraint failed')) { return res.status(400).json({ error: "Invalid project ID or project does not exist." }); }
       res.status(500).json({ error: "Failed to update API test" });
     }
@@ -715,7 +781,7 @@ export function registerRoutes(app: Express): Server {
       const allTestPlans = await db.select().from(testPlans).orderBy(desc(testPlans.createdAt));
       res.json(allTestPlans);
     } catch (error) {
-      logger.error("Error fetching test plans:", error);
+      resolvedLogger.error("Error fetching test plans:", error);
       res.status(500).json({ error: "Failed to fetch test plans" });
     }
   });
@@ -734,7 +800,7 @@ export function registerRoutes(app: Express): Server {
       }
       res.json(result[0]);
     } catch (error) {
-      logger.error(`Error fetching test plan ${testPlanId}:`, error);
+      resolvedLogger.error(`Error fetching test plan ${testPlanId}:`, error);
       res.status(500).json({ error: "Failed to fetch test plan" });
     }
   });
@@ -747,7 +813,7 @@ export function registerRoutes(app: Express): Server {
 
     const parseResult = insertTestPlanSchema.safeParse(req.body);
     if (!parseResult.success) {
-      logger.error("Invalid /api/test-plans POST payload:", { errors: parseResult.error.flatten() });
+      resolvedLogger.error("Invalid /api/test-plans POST payload:", { errors: parseResult.error.flatten() });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
@@ -767,12 +833,12 @@ export function registerRoutes(app: Express): Server {
         .returning();
 
       if (createdPlan.length === 0) {
-        logger.error("Test plan creation failed, no record returned.");
+        resolvedLogger.error("Test plan creation failed, no record returned.");
         return res.status(500).json({ error: "Failed to create test plan." });
       }
       res.status(201).json(createdPlan[0]);
     } catch (error) {
-      logger.error("Error creating test plan:", error);
+      resolvedLogger.error("Error creating test plan:", error);
       res.status(500).json({ error: "Failed to create test plan" });
     }
   });
@@ -786,7 +852,7 @@ export function registerRoutes(app: Express): Server {
 
     const parseResult = updateTestPlanSchema.safeParse(req.body);
     if (!parseResult.success) {
-      logger.error(`Invalid /api/test-plans/${testPlanId} PUT payload:`, { errors: parseResult.error.flatten() });
+      resolvedLogger.error(`Invalid /api/test-plans/${testPlanId} PUT payload:`, { errors: parseResult.error.flatten() });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
@@ -822,7 +888,7 @@ export function registerRoutes(app: Express): Server {
       }
       res.json(updatedPlan[0]);
     } catch (error) {
-      logger.error(`Error updating test plan ${testPlanId}:`, error);
+      resolvedLogger.error(`Error updating test plan ${testPlanId}:`, error);
       res.status(500).json({ error: "Failed to update test plan" });
     }
   });
@@ -848,8 +914,86 @@ export function registerRoutes(app: Express): Server {
       }
       res.status(204).send();
     } catch (error) {
-      logger.error(`Error deleting test plan ${testPlanId}:`, error);
+      resolvedLogger.error(`Error deleting test plan ${testPlanId}:`, error);
       res.status(500).json({ error: "Failed to delete test plan" });
+    }
+  });
+
+  // --- System Settings API Endpoints ---
+
+  // GET /api/system-settings - List all system settings
+  app.get("/api/system-settings", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      // Assuming admin rights might be needed here, or specific user settings vs system settings
+      // For now, just basic auth check
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    try {
+      const settings = await db.select().from(systemSettings);
+      res.json(settings);
+    } catch (error) {
+      resolvedLogger.error("Error fetching system settings:", error);
+      res.status(500).json({ error: "Failed to fetch system settings" });
+    }
+  });
+
+  // GET /api/system-settings/:key - Get a single system setting by key
+  app.get("/api/system-settings/:key", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const { key } = req.params;
+    try {
+      const result = await db.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
+      if (result.length === 0) {
+        return res.status(404).json({ error: "Setting not found" });
+      }
+      res.json(result[0]);
+    } catch (error) {
+      resolvedLogger.error(`Error fetching system setting ${key}:`, error);
+      res.status(500).json({ error: "Failed to fetch system setting" });
+    }
+  });
+
+  // POST /api/system-settings - Create or update a system setting (upsert)
+  app.post("/api/system-settings", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      // Potentially restrict this to admin users in a real application
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const parseResult = insertSystemSettingSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      resolvedLogger.error("Invalid /api/system-settings POST payload:", { errors: parseResult.error.flatten() });
+      return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
+    }
+    try {
+      const { key, value } = parseResult.data;
+
+      // For SQLite, Drizzle's .onConflictDoUpdate().returning() might not return the inserted/updated row directly in all cases.
+      // It's safer to perform the upsert and then select the row.
+      await db.insert(systemSettings)
+        .values({ key, value })
+        .onConflictDoUpdate({
+          target: systemSettings.key,
+          set: { value: value }, // For SQLite, directly set the value. `sql`excluded.value` is more for PostgreSQL.
+        });
+
+      // Fetch the (potentially) updated or newly inserted row
+      const finalResult = await db.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
+
+      if (finalResult.length === 0) {
+         // This case should ideally not be reached if upsert is successful
+         resolvedLogger.error("System setting upsert failed, no record found post-operation for key:", key);
+         return res.status(500).json({ error: "Failed to create or update system setting, and could not retrieve it." });
+      }
+      // Respond with 201 if it was an insert, 200 if an update.
+      // For simplicity, we'll just return 200/201 with the final state.
+      // Checking if it was an insert or update might require another query or different DB driver behavior.
+      res.status(200).json(finalResult[0]); // Could be 201 if we knew it was an insert
+
+    } catch (error) {
+      resolvedLogger.error("Error creating/updating system setting:", error);
+      res.status(500).json({ error: "Failed to create or update system setting" });
     }
   });
 

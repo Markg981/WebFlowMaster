@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
-import { createInsertSchema } from 'drizzle-zod';
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations, sql } from 'drizzle-orm';
 
@@ -86,6 +86,12 @@ export const apiTests = sqliteTable("api_tests", {
   bodyGraphqlVariables: text("body_graphql_variables"), // Nullable
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+});
+
+// System Settings Table
+export const systemSettings = sqliteTable('system_settings', {
+  key: text('key').primaryKey(),
+  value: text('value'),
 });
 
 // Relation Definitions
@@ -186,6 +192,8 @@ export type UserSettings = typeof userSettings.$inferSelect;
 export type InsertUserSettings = typeof userSettings.$inferInsert;
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = typeof projects.$inferInsert;
+export type SystemSetting = typeof systemSettings.$inferSelect;
+export type InsertSystemSetting = typeof systemSettings.$inferInsert;
 
 // Schedules Table
 export const schedules = sqliteTable("schedules", {
@@ -500,3 +508,7 @@ export const AdhocTestStepSchema = z.object({
   path: ['value'],
 });
 export type AdhocTestStep = z.infer<typeof AdhocTestStepSchema>;
+
+// Zod schemas for SystemSettings
+export const insertSystemSettingSchema = createInsertSchema(systemSettings);
+export const selectSystemSettingSchema = createSelectSchema(systemSettings);

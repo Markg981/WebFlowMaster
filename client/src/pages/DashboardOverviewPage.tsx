@@ -67,67 +67,51 @@ const DashboardOverviewPage: React.FC = () => {
           <nav className={isSidebarCollapsed ? "mt-2" : "mt-0"}> {/* Adjust margin based on collapse state */}
             <ul className="space-y-1">
               <li>
-                <Link href="/dashboard">
-                  <a title={t('nav.dashboard')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isDashboardActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                    <Home className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                    {!isSidebarCollapsed && <span>{t('nav.dashboard')}</span>}
-                  </a>
+                <Link href="/dashboard" title={t('nav.dashboard')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isDashboardActive ? activeLinkStyle : inactiveLinkStyle}`}>
+                  <Home className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
+                  {!isSidebarCollapsed && <span>{t('nav.dashboard')}</span>}
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard/api-tester">
-                  <a title={t('nav.apiTester', 'API Tester')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isApiTesterActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                    <Network className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                    {!isSidebarCollapsed && <span>{t('nav.apiTester', 'API Tester')}</span>}
-                  </a>
+                <Link href="/dashboard/api-tester" title={t('nav.apiTester', 'API Tester')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isApiTesterActive ? activeLinkStyle : inactiveLinkStyle}`}>
+                  <Network className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
+                  {!isSidebarCollapsed && <span>{t('nav.apiTester', 'API Tester')}</span>}
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard/create-test"> {/* Changed href */}
-                  <a title={t('nav.createTest')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isCreateTestActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                    <PlusSquare className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                    {!isSidebarCollapsed && <span>{t('nav.createTest')}</span>}
-                  </a>
+                <Link href="/dashboard/create-test" title={t('nav.createTest')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isCreateTestActive ? activeLinkStyle : inactiveLinkStyle}`}>
+                  <PlusSquare className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
+                  {!isSidebarCollapsed && <span>{t('nav.createTest')}</span>}
                 </Link>
               </li>
               <li>
-                <Link href="/tests">
-                  <a title={t('nav.tests')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isTestsActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                    <TestsIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                    {!isSidebarCollapsed && <span>{t('nav.tests')}</span>}
-                  </a>
+                <Link href="/tests" title={t('nav.tests')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isTestsActive ? activeLinkStyle : inactiveLinkStyle}`}>
+                  <TestsIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
+                  {!isSidebarCollapsed && <span>{t('nav.tests')}</span>}
                 </Link>
               </li>
               <li>
-                <Link href="/test-suites"> {/* Changed href here */}
-                  <a title={t('nav.suites')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSuitesActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                    <SuitesIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                    {!isSidebarCollapsed && <span>{t('nav.suites')}</span>}
-                  </a>
+                <Link href="/test-suites" title={t('nav.suites')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSuitesActive ? activeLinkStyle : inactiveLinkStyle}`}>
+                  <SuitesIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
+                  {!isSidebarCollapsed && <span>{t('nav.suites')}</span>}
                 </Link>
               </li>
               <li>
-                <Link href="#/schedulazioni">
-                  <a title={t('nav.schedulazioni')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSchedulazioniActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                    <CalendarClock className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                    {!isSidebarCollapsed && <span>{t('nav.schedulazioni')}</span>}
-                  </a>
+                <Link href="#/schedulazioni" title={t('nav.schedulazioni')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSchedulazioniActive ? activeLinkStyle : inactiveLinkStyle}`}>
+                  <CalendarClock className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
+                  {!isSidebarCollapsed && <span>{t('nav.schedulazioni')}</span>}
                 </Link>
               </li>
               <li>
-                <Link href="#/reports">
-                  <a title={t('nav.reports')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isReportsActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                    <ReportsIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                    {!isSidebarCollapsed && <span>{t('nav.reports')}</span>}
-                  </a>
+                <Link href="#/reports" title={t('nav.reports')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isReportsActive ? activeLinkStyle : inactiveLinkStyle}`}>
+                  <ReportsIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
+                  {!isSidebarCollapsed && <span>{t('nav.reports')}</span>}
                 </Link>
               </li>
               <li>
-                <Link href="/settings">
-                  <a title={t('nav.settings')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSettingsActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                    <SettingsIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                    {!isSidebarCollapsed && <span>{t('nav.settings')}</span>}
-                  </a>
+                <Link href="/settings" title={t('nav.settings')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSettingsActive ? activeLinkStyle : inactiveLinkStyle}`}>
+                  <SettingsIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
+                  {!isSidebarCollapsed && <span>{t('nav.settings')}</span>}
                 </Link>
               </li>
             </ul>

@@ -267,11 +267,33 @@ const ApiTesterPage: React.FC = () => {
         return acc;
       }, {} as Record<string, string | string[]>);
       const currentHeadersForHistory = requestHeaders.filter(h => h.enabled && h.key.trim()).reduce((acc, h) => { acc[h.key] = h.value; return acc; }, {} as Record<string, string>);
+
+      let requestBodyForHistory: string | null;
+      if (variables.body instanceof FormData) {
+        // Convert FormData to a simpler object for history representation if possible, or use a placeholder
+        const formDataEntries: Record<string, string> = {};
+        (variables.body as FormData).forEach((value, key) => {
+          if (typeof value === 'string') {
+            formDataEntries[key] = value;
+          } else {
+            formDataEntries[key] = `[File: ${value.name}]`;
+          }
+        });
+        requestBodyForHistory = JSON.stringify(formDataEntries); // Store a representation
+      } else if (variables.body instanceof File) {
+        requestBodyForHistory = `[Binary File: ${variables.body.name}]`;
+      } else if (typeof variables.body === 'object' && variables.body !== null) {
+        requestBodyForHistory = JSON.stringify(variables.body);
+      } else {
+        requestBodyForHistory = variables.body as string | null; // Already string, or null/undefined
+      }
+
       const historyEntry: InsertApiTestHistoryEntry = {
           method: variables.method, url: variables.url, queryParams: currentParamsForHistory,
-          requestHeaders: currentHeadersForHistory, requestBody: variables.body as string,
+          requestHeaders: currentHeadersForHistory, requestBody: requestBodyForHistory,
           responseStatus: data.status, responseHeaders: data.headers,
-          responseBody: data.body, durationMs: data.duration,
+          responseBody: (typeof data.body === 'object' && data.body !== null) ? JSON.stringify(data.body) : data.body,
+          durationMs: data.duration,
       };
       saveToHistoryMutation.mutate(historyEntry);
     },

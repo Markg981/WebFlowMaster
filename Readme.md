@@ -88,6 +88,17 @@ This is a full-stack web application for creating and executing automated tests 
 - **Platform**: Configured for Replit autoscale deployment
 - **Database**: Environment variable DATABASE_URL for connection
 
+### Logging Configuration
+The log retention period, which determines how long daily log files are kept before being deleted (older files are compressed), can be configured in the application's UI.
+- **Primary Configuration**: Navigate to the **Settings** page, then look for the **System Settings** (or similarly named) card. You will find an input field for "Log Retention Period (days)".
+- **Environment Variable Override**: The `LOG_RETENTION_DAYS` environment variable can still be used. It serves as an override or an initial value before the UI is configured.
+  - Example: `LOG_RETENTION_DAYS=14`
+- **Priority of Settings**:
+  1.  Value set in the UI (stored in the database).
+  2.  `LOG_RETENTION_DAYS` environment variable (if UI setting is not found or invalid).
+  3.  Hardcoded default in the server (currently 7 days, if neither UI nor environment variable is set).
+- **Default Value**: If no specific configuration is made, the system defaults to retaining logs for 7 days.
+
 ### Database Management
 - **Migrations**: `npm run db:push` applies schema changes
 - **Schema Location**: `./shared/schema.ts` for type sharing
