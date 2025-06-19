@@ -35,6 +35,8 @@ import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
 import { eq, and, desc, sql, leftJoin } from "drizzle-orm"; // Added leftJoin
 import { playwrightService } from "./playwright-service";
+import type { Logger as WinstonLogger } from 'winston';
+
 
 // Zod schema for validating POST /api/settings request body
 const userSettingsBodySchema = createInsertSchema(userSettings, {
@@ -96,8 +98,8 @@ function getValueByPath(obj: any, path: string): any {
   return current;
 }
 
-export async function registerRoutes(app: Express): Promise<Server> { // Make function async and return Promise<Server>
-  const resolvedLogger = await logger; // Resolve the logger promise
+export async function registerRoutes(app: Express): Promise<Server> {
+  const resolvedLogger: WinstonLogger = await logger; // Resolve the logger promise
   setupAuth(app);
 
   const loadWebsiteBodySchema = z.object({
@@ -115,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> { // Make fu
     }
 
     const { url } = parseResult.data;
-    const userId = (req.user as any)?.id as number | undefined; // Safely access user ID
+    const userId = (req.user as any)?.id as number | undefined;
 
     try {
       (resolvedLogger.info || console.log)(`SERVER: /api/load-website - Calling playwrightService.loadWebsite with URL: ${url}`);
@@ -465,7 +467,81 @@ export async function registerRoutes(app: Express): Promise<Server> { // Make fu
     }
   });
 
-  app.post("/api/execute-test-direct", async (req, res) => { /* ... existing code ... */ });
+  app.post("/api/execute-test-direct", async (req, res) => {
+    const userId = (req.user as any)?.id;
+    // Enhanced Entry Logging
+    resolvedLogger.info({ message: "ROUTE: /api/execute-test-direct - Handler Reached.", userId });
+    resolvedLogger.debug({ message: "ROUTE: /api/execute-test-direct - Request body:", body: req.body });
+
+    if (!req.isAuthenticated() || !userId) {
+      resolvedLogger.warn("ROUTE: /api/execute-test-direct - Unauthorized access attempt.");
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+
+    const parseResult = executeDirectTestSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      resolvedLogger.error("ROUTE: /api/execute-test-direct - Invalid request payload.", { errors: parseResult.error.flatten() });
+      return res.status(400).json({ success: false, error: "Invalid request payload", details: parseResult.error.flatten() });
+    }
+
+    const payload = parseResult.data;
+    let resultFromService: any; // Keep it flexible to hold partial results in case of error
+
+    try {
+      resolvedLogger.info("ROUTE: /api/execute-test-direct - About to call playwrightService.executeAdhocSequence.");
+      resultFromService = await playwrightService.executeAdhocSequence(payload, userId);
+      resolvedLogger.info("ROUTE: /api/execute-test-direct - playwrightService.executeAdhocSequence returned.");
+      resolvedLogger.debug({ message: "ROUTE: /api/execute-test-direct - Result from service:", result: resultFromService });
+
+      // Ensure that even if executeAdhocSequence returns a non-standard error structure, we handle it
+      if (typeof resultFromService?.success === 'boolean') {
+        res.json(resultFromService);
+      } else {
+        // This case implies executeAdhocSequence might have thrown an error that was caught by the outer try-catch
+        // or returned an unexpected structure.
+        resolvedLogger.error("ROUTE: /api/execute-test-direct - Unexpected structure from playwrightService.executeAdhocSequence.", { resultFromService });
+        res.status(500).json({
+          success: false,
+          error: "Internal server error: Unexpected response from test execution service.",
+          steps: [],
+          detectedElements: [],
+          duration: 0
+        });
+      }
+    } catch (error: any) {
+      resolvedLogger.error(`ROUTE: /api/execute-test-direct - ERROR during playwrightService.executeAdhocSequence call or response sending: ${error.message}`, error.stack);
+      const responseError = {
+        success: false,
+        error: "Error executing test sequence: " + error.message,
+        steps: resultFromService?.steps || [],
+        detectedElements: resultFromService?.detectedElements || [],
+        duration: resultFromService?.duration || 0,
+      };
+      if (!res.headersSent) {
+        res.status(500).json(responseError);
+      }
+    } finally {
+      let logData: any = {
+        message: "ROUTE: /api/execute-test-direct - Handler complete.",
+        userId,
+        testName: payload.name
+      };
+      if (resultFromService) {
+        logData.overallSuccess = resultFromService.success;
+        logData.stepsReturned = resultFromService.steps?.length;
+        logData.error = resultFromService.success ? undefined : resultFromService.error;
+      } else {
+        logData.overallSuccess = false;
+        logData.error = "resultFromService was undefined in finally block";
+      }
+      resolvedLogger.info(logData);
+
+      resolvedLogger.debug({
+        message: "ROUTE: /api/execute-test-direct - Full response that was/would be sent:",
+        responseDetails: resultFromService || "Error response sent in catch block or resultFromService was undefined"
+      });
+    }
+  });
   app.post("/api/start-recording", async (req, res) => { /* ... existing code ... */ });
   app.post("/api/stop-recording", async (req, res) => { /* ... existing code ... */ });
   app.get("/api/get-recorded-actions", async (req, res) => { /* ... existing code ... */ });
@@ -622,7 +698,6 @@ export async function registerRoutes(app: Express): Promise<Server> { // Make fu
 
       // The 'id' field in insertScheduleSchema might need to be explicitly handled if not auto-generated by DB or if client must provide it.
       // Based on previous patterns, client-generated ID was assumed for text PKs.
-      // Let's assume insertScheduleSchema requires 'id' or we generate it here.
       // The subtask for schedule API creation used server-generated UUID for schedules.id.
       // The Zod schema `insertScheduleSchema` should be `omit({id: true})` if server generates ID.
       // Let's re-check the definition of insertScheduleSchema. It is:
@@ -1000,3 +1075,5 @@ export async function registerRoutes(app: Express): Promise<Server> { // Make fu
   const httpServer = createServer(app);
   return httpServer;
 }
+
+[end of server/routes.ts]

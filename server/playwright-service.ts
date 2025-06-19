@@ -401,13 +401,13 @@ export class PlaywrightService {
       const effectiveHeadlessMode = false; // Force headless to false for interactive recording sessions
       const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
       const specificWaitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME;
-      resolvedLogger.info(`PS:startRecordingSession - Effective settings: browserType=${browserType}, effectiveHeadlessMode=${effectiveHeadlessMode}, pageTimeout=${pageTimeout}, specificWaitTime=${specificWaitTime}`);
+      resolvedLogger.info(`PS:startRecordingSession - Effective settings for RECORDING: browserType=${browserType}, headless FORCED TO=${effectiveHeadlessMode}, pageTimeout=${pageTimeout}, specificWaitTime=${specificWaitTime}`);
 
       const browserLaunchOptions = { headless: effectiveHeadlessMode };
       resolvedLogger.info(`PS:startRecordingSession - Attempting to launch browser (type: ${browserType}) for session ${sessionId} with options: ${JSON.stringify(browserLaunchOptions)}`);
       const browserEngine = playwright[browserType];
       browser = await browserEngine.launch(browserLaunchOptions);
-      resolvedLogger.info("PS:startRecordingSession - Browser launched. typeof browser: " + typeof browser + `, browser.isConnected: ${browser?.isConnected()}`);
+      resolvedLogger.info(`PS:startRecordingSession - Browser launched for session ${sessionId}. Browser connected: ${browser?.isConnected()}, Type: ${browser?.browserType?.().name()}`);
 
       const contextOptions = {
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -748,7 +748,7 @@ export class PlaywrightService {
                 if (typeof step.value !== 'string') throw new Error('Value missing for input action.');
                 resolvedLogger.info(`PS:executeAdhocSequence - Attempting to fill: ${step.targetElement.selector} with value: ${step.value}`);
                 await page.fill(step.targetElement.selector, step.value);
-                resolvedLogger.info("PS:executeAdhocSequence - Fill action completed.");
+                resolvedLogger.info(`PS:executeAdhocSequence - Input action: Value "${step.value}" filled into "${step.targetElement.selector}".`);
                 break;
               case 'wait':
                 if (typeof step.value !== 'string' || isNaN(parseInt(step.value))) throw new Error('Invalid or missing value for wait action.');
@@ -861,7 +861,7 @@ export class PlaywrightService {
               default:
                 throw new Error(`Unsupported action ID: ${actionId}`);
             }
-            resolvedLogger.info(`PS:executeAdhocSequence - Step "${actionName}" completed, attempting screenshot.`);
+            resolvedLogger.info(`PS:executeAdhocSequence - Taking screenshot for step: ${actionName} (ID: ${actionId})`);
             const screenshotBuffer = await page.screenshot({ type: 'png' });
             stepScreenshot = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
             resolvedLogger.info("PS:executeAdhocSequence - Step screenshot taken.");

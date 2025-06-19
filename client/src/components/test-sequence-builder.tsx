@@ -322,7 +322,7 @@ export function TestSequenceBuilder({
         )}
         <Button
           onClick={onExecuteTest}
-          disabled={testSequence.length === 0 || isExecuting}
+          disabled={isExecuting}
           className="flex-1"
         >
           {isExecuting ? "Executing..." : "Execute Test"}
