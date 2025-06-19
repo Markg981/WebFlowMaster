@@ -378,10 +378,49 @@ export default function DashboardPage() {
 
 
   const loadWebsiteMutation = useMutation({
-    mutationFn: async (url: string) => {
-      setImageRenderDimensions(null); // Reset dimensions when new site is loaded
-      const res = await apiRequest("POST", "/api/load-website", { url });
-      return res.json();
+    mutationFn: async (passedUrl: string) => { // Renamed 'url' to 'passedUrl'
+      try {
+        setImageRenderDimensions(null); // Reset dimensions when new site is loaded
+
+        const websiteUrl = String(passedUrl || ''); // Ensure it's a string
+        if (!websiteUrl) {
+          // This case should ideally be caught by UI validation before calling mutate
+          console.error("loadWebsiteMutation: Website URL is empty or invalid.");
+          throw new Error("Website URL is empty or invalid.");
+        }
+
+        const payload = { url: websiteUrl };
+        console.log("Attempting to load website with payload:", payload); // Diagnostic log
+
+        const res = await apiRequest("POST", "/api/load-website", payload);
+
+        // Check if response is ok before trying to parse JSON
+        if (!res.ok) {
+          let errorBody = "Unknown error";
+          try {
+            errorBody = await res.text(); // Try to get text first, might not be JSON
+            const parsedError = JSON.parse(errorBody); // Try to parse as JSON
+            if (parsedError && parsedError.error) {
+              errorBody = parsedError.error;
+            }
+          } catch (e) {
+            // If JSON.parse fails or res.text() fails, errorBody remains as is or default
+            console.warn("Could not parse error response as JSON, using text body.", e);
+          }
+          console.error(`Error from /api/load-website: ${res.status} ${res.statusText}`, errorBody);
+          throw new Error(errorBody || `Failed to load website. Status: ${res.status}`);
+        }
+
+        const jsonData = await res.json();
+        console.log("Response from /api/load-website:", jsonData); // Diagnostic log
+        return jsonData;
+
+      } catch (error) {
+        console.error("Critical error directly within loadWebsiteMutation mutationFn:", error);
+        // Re-throw the error so TanStack Query's onError handler can pick it up
+        // and UI state (like isPending) is correctly managed.
+        throw error;
+      }
     },
     onSuccess: (data) => {
       if (data.success) {
