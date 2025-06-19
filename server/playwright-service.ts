@@ -1062,14 +1062,12 @@ export class PlaywrightService {
       });
       (resolvedLogger.info || console.log)(`PS:detectElements - Element detection script completed. Found ${elements?.length} elements.`);
 
-      await page.close();
-      await context.close();
       return elements;
     } catch (error) {
       (resolvedLogger.error || console.error)("PS:detectElements - Error detecting elements:", error);
       throw error; // Re-throw to be caught by the route handler
     } finally {
-      if (page) {
+      if (page && !page.isClosed()) {
         (resolvedLogger.info || console.log)("PS:detectElements (finally) - Closing page.");
         await page.close().catch(e => (resolvedLogger.error || console.error)("PS:detectElements - Error closing page:", e));
       }
@@ -1077,7 +1075,7 @@ export class PlaywrightService {
         (resolvedLogger.info || console.log)("PS:detectElements (finally) - Closing context.");
         await context.close().catch(e => (resolvedLogger.error || console.error)("PS:detectElements - Error closing context:", e));
       }
-      if (browser) {
+      if (browser && browser.isConnected()) {
         (resolvedLogger.info || console.log)("PS:detectElements (finally) - Closing browser.");
         await browser.close().catch(e => (resolvedLogger.error || console.error)("PS:detectElements - Error closing browser:", e));
       }
