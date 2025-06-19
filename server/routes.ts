@@ -934,20 +934,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const updates = parseResult.data;
       if (Object.keys(updates).length === 0) {
-        // Allow PUT for just touching updatedAt if desired, otherwise return 400
-        // For now, require at least one actual field to change beyond just updatedAt
-         if (Object.keys(updates).length === 0) {
-            const existingPlan = await db.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId));
-            if (existingPlan.length === 0) {
-                 return res.status(404).json({ error: "Test plan not found." });
-            }
-            // If only wanting to update `updatedAt`
-            // const touchUpdate = await db.update(testPlans).set({ updatedAt: Math.floor(Date.now() / 1000) }).where(eq(testPlans.id, testPlanId)).returning();
-            // return res.json(touchUpdate[0]);
-             return res.status(400).json({ error: "No update data provided." });
-         }
+        // If no update data is provided, check if the plan exists first.
+        const existingPlan = await db.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId));
+        if (existingPlan.length === 0) {
+            return res.status(404).json({ error: "Test plan not found." });
+        }
+        // If the plan exists but no data was provided for update.
+        return res.status(400).json({ error: "No update data provided." });
       }
 
+      // Proceed with update if updates object is not empty
       const updatedPlan = await db
         .update(testPlans)
         .set({
@@ -1075,5 +1071,3 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   return httpServer;
 }
-
-[end of server/routes.ts]
