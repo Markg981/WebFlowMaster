@@ -770,7 +770,8 @@ export class PlaywrightService {
                 if (typeof step.value !== 'string') throw new Error('Value missing for input action.');
                 resolvedLogger.info(`PS:executeAdhocSequence - Attempting to fill: ${step.targetElement.selector} with value: ${step.value}`);
                 await page.fill(step.targetElement.selector, step.value);
-                resolvedLogger.info("PS:executeAdhocSequence - Fill action completed.");
+                resolvedLogger.info(`PS:executeAdhocSequence - Input action: Value "${step.value}" filled into "${step.targetElement.selector}".`);
+                // "Fill action completed." is removed as the log above is more specific.
                 break;
               case 'wait':
                 if (typeof step.value !== 'string' || isNaN(parseInt(step.value))) throw new Error('Invalid or missing value for wait action.');
@@ -884,8 +885,7 @@ export class PlaywrightService {
                 throw new Error(`Unsupported action ID: ${actionId}`);
             }
             resolvedLogger.info(`PS:executeAdhocSequence - STEP SUCCESS: "${actionName}" (ID: ${actionId}) executed.`);
-
-            resolvedLogger.info(`PS:executeAdhocSequence - Step "${actionName}" completed, attempting screenshot.`);
+            resolvedLogger.info(`PS:executeAdhocSequence - Taking screenshot for step: ${actionName} (ID: ${actionId})`);
             const screenshotBuffer = await page.screenshot({ type: 'png' });
             stepScreenshot = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
             resolvedLogger.info("PS:executeAdhocSequence - Step screenshot taken.");
