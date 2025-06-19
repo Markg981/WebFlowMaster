@@ -380,104 +380,111 @@ export class PlaywrightService {
   }
 
   async startRecordingSession(url: string, userId?: number): Promise<{ success: boolean, sessionId?: string, error?: string }> {
+    resolvedLogger.info(`PS:startRecordingSession - Called with URL: ${url}, UserID: ${userId}`);
     const sessionId = uuidv4();
     let browser: Browser | null = null;
+    let context: BrowserContext | null = null;
+    let page: Page | null = null;
+    resolvedLogger.info("PS:startRecordingSession - Initial state: browser, context, page are null.");
+
     try {
-      // Use user settings for browser configuration if available
+      resolvedLogger.info("PS:startRecordingSession - Inside try block.");
+      resolvedLogger.info("PS:startRecordingSession - Fetching user settings...");
       const userSettings = userId ? await storage.getUserSettings(userId) : undefined;
+      resolvedLogger.info("PS:startRecordingSession - User settings fetched.");
+
       const browserType = userSettings?.playwrightBrowser || DEFAULT_BROWSER;
-      // Force headless to false for interactive recording sessions
-      const effectiveHeadlessMode = false;
+      const effectiveHeadlessMode = false; // Force headless to false for interactive recording sessions
       const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
       const specificWaitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME;
+      resolvedLogger.info(`PS:startRecordingSession - Determined settings: browserType=${browserType}, effectiveHeadlessMode=${effectiveHeadlessMode}, pageTimeout=${pageTimeout}, specificWaitTime=${specificWaitTime}`);
 
-      (resolvedLogger.info || console.log)(`Starting recording session ${sessionId} for URL: ${url} with browser: ${browserType}, headless: ${effectiveHeadlessMode}`);
-
+      resolvedLogger.info(`PS:startRecordingSession - Attempting to launch browser for session ${sessionId}...`);
       const browserEngine = playwright[browserType];
       browser = await browserEngine.launch({ headless: effectiveHeadlessMode });
-      const context = await browser.newContext({
+      resolvedLogger.info("PS:startRecordingSession - Browser launched. typeof browser: " + typeof browser);
+
+      resolvedLogger.info("PS:startRecordingSession - Attempting to create new browser context...");
+      context = await browser.newContext({
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        viewport: { width: 1280, height: 720 } // Consistent viewport
+        viewport: { width: 1280, height: 720 }
       });
-      const page = await context.newPage();
+      resolvedLogger.info("PS:startRecordingSession - Browser context created. typeof context: " + typeof context);
+
+      resolvedLogger.info("PS:startRecordingSession - Attempting to create new page...");
+      page = await context.newPage();
+      resolvedLogger.info("PS:startRecordingSession - New page created. typeof page: " + typeof page + ", page is null: " + (page === null));
+
+      resolvedLogger.info("PS:startRecordingSession - Setting default timeout...");
       page.setDefaultTimeout(pageTimeout);
+      resolvedLogger.info("PS:startRecordingSession - Default timeout set.");
 
+      resolvedLogger.info(`PS:startRecordingSession - Navigating to URL: ${url}. typeof page: " + typeof page + ", page is null: " + (page === null) + ", page.isClosed(): " + (page ? page.isClosed() : 'N/A')`);
       await page.goto(url, { waitUntil: 'domcontentloaded' });
-      await page.waitForTimeout(specificWaitTime); // Use specific wait time
+      resolvedLogger.info("PS:startRecordingSession - Navigation complete.");
 
-      // Bring the page to the front to make it visible to the user
+      resolvedLogger.info(`PS:startRecordingSession - Waiting for timeout: ${specificWaitTime}ms. typeof page: " + typeof page + ", page is null: " + (page === null) + ", page.isClosed(): " + (page ? page.isClosed() : 'N/A')`);
+      await page.waitForTimeout(specificWaitTime);
+      resolvedLogger.info("PS:startRecordingSession - Wait for timeout completed.");
+
+      resolvedLogger.info("PS:startRecordingSession - Bringing page to front...");
       await page.bringToFront();
+      resolvedLogger.info("PS:startRecordingSession - Page brought to front.");
 
-      // Expose a function to the page for the client-side recorder script to send actions
+      resolvedLogger.info("PS:startRecordingSession - Exposing 'sendActionToBackend' function...");
       await page.exposeFunction('sendActionToBackend', (action: RecordedAction) => {
         const session = this.activeSessions.get(sessionId);
         if (session) {
-          // Backend should always set/override the timestamp for security and consistency
           action.timestamp = Date.now();
-          // Ensure URL is also captured from backend perspective if needed, though client sends it
-          action.url = action.url || session.page.url(); // Fallback to current page URL if client didn't send
-
+          action.url = action.url || session.page.url();
           session.actions.push(action);
-          // (resolvedLogger.debug || console.log)(`Action received for session ${sessionId}: ${action.type} on ${action.selector || action.url}`);
-        } else {
-          // (resolvedLogger.warn || console.warn)(`Action received for non-existent or ended session: ${sessionId}`);
         }
       });
+      resolvedLogger.info("PS:startRecordingSession - 'sendActionToBackend' function exposed.");
 
-      // Inject the recorder script
+      resolvedLogger.info("PS:startRecordingSession - Injecting recorder script...");
       await page.addScriptTag({ content: RECORDER_SCRIPT });
+      resolvedLogger.info("PS:startRecordingSession - Recorder script injected.");
 
-      const sessionData: ActiveSession = {
-        browser,
-        context,
-        page,
-        actions: [],
-        userId, // Capture userId in sessionData for the 'close' handler
-        targetUrl: url,
-      };
+      const sessionData: ActiveSession = { browser, context, page, actions: [], userId, targetUrl: url };
+      resolvedLogger.info("PS:startRecordingSession - SessionData created.");
 
-      // Add listener for page close event
+      resolvedLogger.info("PS:startRecordingSession - Setting up page.on('close') handler...");
       page.on('close', async () => {
-        (resolvedLogger.info || console.log)(`Playwright page closed by user for session ${sessionId}.`);
-        // Check if the session is still considered active by the service
+        resolvedLogger.info(`PS:startRecordingSession - page.on('close') triggered for session ${sessionId}.`);
         if (this.activeSessions.has(sessionId)) {
-          (resolvedLogger.info || console.log)(`Session ${sessionId} is still in activeSessions. Attempting to stop and cleanup.`);
-          // Use sessionData.userId from the closure, or fetch from this.activeSessions.get(sessionId)?.userId
+          resolvedLogger.info(`PS:startRecordingSession - Session ${sessionId} is active, attempting to stop.`);
           await this.stopRecordingSession(sessionId, sessionData.userId);
         } else {
-          (resolvedLogger.info || console.log)(`Session ${sessionId} was already stopped or cleaned up. No further action needed from page.on('close').`);
+          resolvedLogger.info(`PS:startRecordingSession - Session ${sessionId} already stopped or cleaned up.`);
         }
       });
+      resolvedLogger.info("PS:startRecordingSession - page.on('close') handler set up.");
 
-      // Now, store the session data in the map
       this.activeSessions.set(sessionId, sessionData);
+      resolvedLogger.info(`PS:startRecordingSession - Session ${sessionId} added to activeSessions.`);
 
-      // Initial action indicating navigation/start
-      const initialAction: RecordedAction = {
-        type: 'navigate',
-        url: page.url(), // Use the page's current URL after navigation
-        timestamp: Date.now(),
-        value: 'Recording session started'
-      };
-      // Add initial action directly to sessionData.actions as it's now the source of truth before being set in map
+      const initialAction: RecordedAction = { type: 'navigate', url: page.url(), timestamp: Date.now(), value: 'Recording session started' };
+      resolvedLogger.info("PS:startRecordingSession - Initial action created:", initialAction);
       sessionData.actions.push(initialAction);
+      resolvedLogger.info("PS:startRecordingSession - Initial action pushed to sessionData.actions.");
 
-
-      (resolvedLogger.info || console.log)(`Recording session ${sessionId} started for URL: ${url} by user: ${userId || 'anonymous'}`);
+      resolvedLogger.info(`PS:startRecordingSession - Recording session ${sessionId} started successfully for URL: ${url} by user: ${userId || 'anonymous'}`);
       return { success: true, sessionId };
 
     } catch (error: any) {
-      (resolvedLogger.error || console.error)(`Error starting recording session ${sessionId} for URL ${url}:`, error);
+      resolvedLogger.error(`PS:startRecordingSession - Error for session ${sessionId}, URL ${url}. typeof browser: ${typeof browser}, typeof context: ${typeof context}, typeof page: ${typeof page}, page is null: ${page === null}. Error: `, error);
       if (browser) {
-        await browser.close().catch(err => (resolvedLogger.error || console.error)('Failed to close browser during startRecording error handling:', err));
+        resolvedLogger.info("PS:startRecordingSession - Attempting to close browser in catch block...");
+        await browser.close().catch(err => resolvedLogger.error('PS:startRecordingSession - Failed to close browser during error handling:', err));
+        resolvedLogger.info("PS:startRecordingSession - Browser close attempt in catch block finished.");
       }
-      // Clean up from activeSessions if partially added before error
       if (this.activeSessions.has(sessionId)) {
-          this.activeSessions.delete(sessionId);
+        this.activeSessions.delete(sessionId);
+        resolvedLogger.info(`PS:startRecordingSession - Session ${sessionId} removed from activeSessions due to error.`);
       }
       return { success: false, error: error.message || 'Unknown error starting recording session' };
     }
-    // Note: Browser is not closed here, it's kept open for the session. It will be closed in stopRecordingSession.
   }
 
   async stopRecordingSession(sessionId: string, userId?: number): Promise<{ success: boolean, actions?: RecordedAction[], error?: string }> {
@@ -545,34 +552,55 @@ export class PlaywrightService {
   }
 
   async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detectedElements?: DetectedElement[] }> {
+    const testName = payload.name || "Ad-hoc Test";
+    resolvedLogger.info(`PS:executeAdhocSequence - Called for test: "${testName}", UserID: ${userId}`);
     const startTime = Date.now();
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
     let page: Page | null = null;
+    resolvedLogger.info("PS:executeAdhocSequence - Initial state: browser, context, page are null.");
     const stepResults: StepResult[] = [];
     let overallSuccess = true;
-    const testName = payload.name || "Ad-hoc Test"; // Use provided name or a default
 
     try {
-      // User settings are still relevant for browser configuration
+      resolvedLogger.info("PS:executeAdhocSequence - Inside try block.");
+      resolvedLogger.info("PS:executeAdhocSequence - Fetching user settings...");
       const userSettings = await storage.getUserSettings(userId);
+      resolvedLogger.info("PS:executeAdhocSequence - User settings fetched.");
+
       const browserType = userSettings?.playwrightBrowser || DEFAULT_BROWSER;
-      const headlessMode = false; // Always run non-headless for ad-hoc sequence execution (interactive preview)
+      const headlessMode = userSettings?.playwrightHeadless !== undefined ? userSettings.playwrightHeadless : DEFAULT_HEADLESS;
       const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
+      resolvedLogger.info(`PS:executeAdhocSequence - Determined settings: browserType=${browserType}, headlessMode=${headlessMode}, pageTimeout=${pageTimeout}`);
 
-      console.log(`Executing ad-hoc test "${testName}" for user ${userId} with browser: ${browserType}, headless: ${headlessMode}, timeout: ${pageTimeout}`);
-
+      resolvedLogger.info("PS:executeAdhocSequence - Attempting to launch browser...");
       const browserEngine = playwright[browserType];
       browser = await browserEngine.launch({ headless: headlessMode });
+      resolvedLogger.info("PS:executeAdhocSequence - Browser launched. typeof browser: " + typeof browser);
+
       const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      resolvedLogger.info("PS:executeAdhocSequence - Attempting to create new browser context...");
       context = await browser.newContext({ userAgent });
+      resolvedLogger.info("PS:executeAdhocSequence - Browser context created. typeof context: " + typeof context);
+
+      resolvedLogger.info("PS:executeAdhocSequence - Attempting to create new page...");
       page = await context.newPage();
+      resolvedLogger.info("PS:executeAdhocSequence - New page created. typeof page: " + typeof page + ", page is null: " + (page === null));
+
+      resolvedLogger.info("PS:executeAdhocSequence - Setting default timeout...");
       page.setDefaultTimeout(pageTimeout);
+      resolvedLogger.info("PS:executeAdhocSequence - Default timeout set.");
+
+      resolvedLogger.info("PS:executeAdhocSequence - Setting viewport size...");
       await page.setViewportSize({ width: 1280, height: 720 });
+      resolvedLogger.info("PS:executeAdhocSequence - Viewport size set.");
 
       if (payload.url) {
+        resolvedLogger.info(`PS:executeAdhocSequence - Navigating to URL: ${payload.url}. typeof page: ${typeof page}, page is null: ${page === null}, page.isClosed(): ${page ? page.isClosed() : 'N/A'}`);
         try {
           await page.goto(payload.url, { waitUntil: 'domcontentloaded' });
+          resolvedLogger.info("PS:executeAdhocSequence - Navigation complete.");
+          resolvedLogger.info("PS:executeAdhocSequence - Attempting screenshot after navigation...");
           const screenshotBuffer = await page.screenshot({ type: 'png' });
           const screenshot = screenshotBuffer.toString('base64');
           stepResults.push({
@@ -595,9 +623,9 @@ export class PlaywrightService {
             details: `Failed to navigate to ${payload.url}`,
           });
           const duration = Date.now() - startTime;
-          // Element detection even on navigation failure, if page exists
           let finalDetectedElementsNavFail: DetectedElement[] = [];
           if (page) {
+            resolvedLogger.info("PS:executeAdhocSequence - Attempting element detection after navigation failure. typeof page: " + typeof page + ", page is null: " + (page === null) + ", page.isClosed(): " + (page ? page.isClosed() : 'N/A'));
             try {
               finalDetectedElementsNavFail = await page.evaluate(() => {
                 const interactiveSelectors = [
@@ -677,36 +705,46 @@ export class PlaywrightService {
             if (!actionId) throw new Error('Step action ID is missing.'); // Changed message
             if (!page) throw new Error('Page is not available.');
 
-            console.log(`Executing ad-hoc step: ${actionName} (ID: ${actionId})`); // Changed log
+            resolvedLogger.info(`PS:executeAdhocSequence - Executing step: ${actionName} (ID: ${actionId}). typeof page: ${typeof page}, page is null: ${page === null}, page.isClosed(): ${page ? page.isClosed() : 'N/A'}`);
 
-            switch (actionId) { // Changed from actionType to actionId
+            switch (actionId) {
               case 'click':
                 if (!step.targetElement?.selector) throw new Error('Selector missing for click action.');
+                resolvedLogger.info(`PS:executeAdhocSequence - Attempting to click: ${step.targetElement.selector}`);
                 await page.click(step.targetElement.selector);
+                resolvedLogger.info("PS:executeAdhocSequence - Click action completed.");
                 break;
               case 'input':
                 if (!step.targetElement?.selector) throw new Error('Selector missing for input action.');
                 if (typeof step.value !== 'string') throw new Error('Value missing for input action.');
+                resolvedLogger.info(`PS:executeAdhocSequence - Attempting to fill: ${step.targetElement.selector} with value: ${step.value}`);
                 await page.fill(step.targetElement.selector, step.value);
+                resolvedLogger.info("PS:executeAdhocSequence - Fill action completed.");
                 break;
               case 'wait':
                 if (typeof step.value !== 'string' || isNaN(parseInt(step.value))) throw new Error('Invalid or missing value for wait action.');
+                resolvedLogger.info(`PS:executeAdhocSequence - Attempting to wait for: ${step.value}ms`);
                 await page.waitForTimeout(parseInt(step.value));
+                resolvedLogger.info("PS:executeAdhocSequence - Wait action completed.");
                 break;
               case 'scroll':
                 if (step.targetElement?.selector) {
+                  resolvedLogger.info(`PS:executeAdhocSequence - Attempting to scroll to selector: ${step.targetElement.selector}`);
                   await page.locator(step.targetElement.selector).scrollIntoViewIfNeeded();
                 } else {
+                  resolvedLogger.info("PS:executeAdhocSequence - Attempting to scroll window by 200px.");
                   await page.evaluate(() => window.scrollBy(0, 200));
                 }
+                resolvedLogger.info("PS:executeAdhocSequence - Scroll action completed.");
                 break;
-              case 'assert': // This is the generic assert, may need specific handling or be deprecated
-                console.warn(`Generic 'assert' action encountered. Consider using specific assertions.`);
+              case 'assert':
+                resolvedLogger.warn(`PS:executeAdhocSequence - Generic 'assert' action encountered. Consider using specific assertions.`);
                 // For now, let's assume it needs a target and passes if element exists
                 if (!step.targetElement?.selector) {
                   stepStatus = 'failed';
                   stepError = 'Selector missing for generic assert action.';
                 } else {
+                  resolvedLogger.info(`PS:executeAdhocSequence - Asserting element exists: ${step.targetElement.selector}`);
                   const elementToAssert = await page.locator(step.targetElement.selector).count();
                   if (elementToAssert === 0) {
                     stepStatus = 'failed';
@@ -725,6 +763,7 @@ export class PlaywrightService {
                   stepError = "Expected text (value) missing or empty for assertTextContains action.";
                   break;
                 }
+                resolvedLogger.info(`PS:executeAdhocSequence - Asserting text in ${step.targetElement.selector} contains: "${step.value}"`);
                 const elementForText = page.locator(step.targetElement.selector);
                 const actualText = await elementForText.textContent();
                 if (actualText === null || !actualText.includes(step.value)) {
@@ -749,6 +788,7 @@ export class PlaywrightService {
                   stepError = `Invalid format for assertElementCount value: "${step.value}". Expected format like "==5", ">=2", or "3".`;
                   break;
                 }
+                resolvedLogger.info(`PS:executeAdhocSequence - Asserting element count for ${step.targetElement.selector} is ${parsedAssertion.operator} ${parsedAssertion.count}`);
                 const elementsToCount = page.locator(step.targetElement.selector);
                 const actualCount = await elementsToCount.count();
                 let countMatch = false;
@@ -759,21 +799,23 @@ export class PlaywrightService {
                   case '>': countMatch = actualCount > parsedAssertion.count; break;
                   case '<': countMatch = actualCount < parsedAssertion.count; break;
                   case '!=': countMatch = actualCount !== parsedAssertion.count; break;
-                  default: // Should not happen due to parsing
+                  default:
                     stepStatus = 'failed';
                     stepError = `Unknown operator "${parsedAssertion.operator}" for assertElementCount.`;
                     break;
                 }
-                if (!countMatch && stepStatus === 'passed') { // ensure stepStatus hasn't been set to failed by operator check
+                if (!countMatch && stepStatus === 'passed') {
                   stepStatus = 'failed';
                   stepError = `Assertion Failed: Element count for selector "${step.targetElement.selector}" did not match. Expected ${parsedAssertion.operator} ${parsedAssertion.count}, Actual: ${actualCount}.`;
                 }
                 break;
               case 'hover':
                 if (!step.targetElement?.selector) throw new Error('Selector missing for hover action.');
+                resolvedLogger.info(`PS:executeAdhocSequence - Attempting to hover over: ${step.targetElement.selector}`);
                 await page.hover(step.targetElement.selector);
+                resolvedLogger.info("PS:executeAdhocSequence - Hover action completed.");
                 break;
-              case 'select': // Basic select by value, if the target is a <select> element
+              case 'select':
                 if (!step.targetElement?.selector) {
                      stepStatus = 'failed';
                      stepError = "Selector missing for select action.";
@@ -784,21 +826,25 @@ export class PlaywrightService {
                     stepError = "Value missing for select action (expected option value).";
                     break;
                 }
+                resolvedLogger.info(`PS:executeAdhocSequence - Attempting to select option: "${step.value}" in selector: ${step.targetElement.selector}`);
                 await page.selectOption(step.targetElement.selector, step.value);
+                resolvedLogger.info("PS:executeAdhocSequence - Select action completed.");
                 break;
               default:
-                throw new Error(`Unsupported action ID: ${actionId}`); // Changed message
+                throw new Error(`Unsupported action ID: ${actionId}`);
             }
-
+            resolvedLogger.info(`PS:executeAdhocSequence - Step "${actionName}" completed, attempting screenshot.`);
             const screenshotBuffer = await page.screenshot({ type: 'png' });
             stepScreenshot = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
+            resolvedLogger.info("PS:executeAdhocSequence - Step screenshot taken.");
 
           } catch (e: any) {
             stepStatus = 'failed';
             stepError = e.message;
-            overallSuccess = false; // Ensure overallSuccess is set on failure
-            console.error(`Error in ad-hoc step "${actionName}": ${e.message}`);
+            overallSuccess = false;
+            resolvedLogger.error(`PS:executeAdhocSequence - Error in step "${actionName}": ${e.message}. typeof page: ${typeof page}, page is null: ${page === null}, page.isClosed(): ${page ? page.isClosed() : 'N/A'}`);
             if (page) {
+              resolvedLogger.info("PS:executeAdhocSequence - Attempting error screenshot...");
               try {
                 const errorScreenshotBuffer = await page.screenshot({ type: 'png' });
                 stepScreenshot = `data:image/png;base64,${errorScreenshotBuffer.toString('base64')}`;
@@ -832,6 +878,7 @@ export class PlaywrightService {
 
       let finalDetectedElements: DetectedElement[] = [];
       if (page) {
+          resolvedLogger.info("PS:executeAdhocSequence - Attempting final element detection. typeof page: " + typeof page + ", page is null: " + (page === null) + ", page.isClosed(): " + (page ? page.isClosed() : 'N/A'));
           try {
               finalDetectedElements = await page.evaluate(() => {
                   const interactiveSelectors = [
@@ -892,10 +939,10 @@ export class PlaywrightService {
 
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      console.error(`Critical error executing ad-hoc test "${testName}" for user ${userId}:`, error);
-      // Attempt to capture elements even in critical error, if page object exists
+      resolvedLogger.error(`PS:executeAdhocSequence - Critical error for test "${testName}", UserID ${userId}. typeof browser: ${typeof browser}, typeof context: ${typeof context}, typeof page: ${typeof page}, page is null: ${page === null}. Error: `, error);
       let finalDetectedElementsCriticalError: DetectedElement[] = [];
       if (page) {
+        resolvedLogger.info("PS:executeAdhocSequence - Attempting element detection after critical error. typeof page: " + typeof page + ", page is null: " + (page === null) + ", page.isClosed(): " + (page ? page.isClosed() : 'N/A'));
         try {
           finalDetectedElementsCriticalError = await page.evaluate(() => {
             const interactiveSelectors = [
@@ -961,9 +1008,25 @@ export class PlaywrightService {
       };
     } finally {
       // Element detection should happen before page.close()
-      if (page) await page.close().catch(e => console.error("Error closing page (adhoc):", e));
-      if (context) await context.close().catch(e => console.error("Error closing context (adhoc):", e));
-      if (browser) await browser.close().catch(e => console.error("Error closing browser (adhoc):", e));
+      resolvedLogger.info("PS:executeAdhocSequence - Inside finally block.");
+      resolvedLogger.info("PS:executeAdhocSequence (finally) - State before closing page: typeof page: " + typeof page + ", page is null: " + (page === null) + ", page.isClosed(): " + (page ? page.isClosed() : 'N/A'));
+      if (page && !page.isClosed()) {
+        resolvedLogger.info("PS:executeAdhocSequence (finally) - Attempting to close page...");
+        await page.close().catch(e => resolvedLogger.error("PS:executeAdhocSequence - Error closing page (adhoc):", e));
+        resolvedLogger.info("PS:executeAdhocSequence (finally) - Page close attempt finished.");
+      }
+      resolvedLogger.info("PS:executeAdhocSequence (finally) - State before closing context: typeof context: " + typeof context + ", context is null: " + (context === null));
+      if (context) {
+        resolvedLogger.info("PS:executeAdhocSequence (finally) - Attempting to close context...");
+        await context.close().catch(e => resolvedLogger.error("PS:executeAdhocSequence - Error closing context (adhoc):", e));
+        resolvedLogger.info("PS:executeAdhocSequence (finally) - Context close attempt finished.");
+      }
+      resolvedLogger.info("PS:executeAdhocSequence (finally) - State before closing browser: typeof browser: " + typeof browser + ", browser is null: " + (browser === null) + ", browser.isConnected(): " + (browser ? browser.isConnected() : 'N/A'));
+      if (browser && browser.isConnected()) {
+        resolvedLogger.info("PS:executeAdhocSequence (finally) - Attempting to close browser...");
+        await browser.close().catch(e => resolvedLogger.error("PS:executeAdhocSequence - Error closing browser (adhoc):", e));
+        resolvedLogger.info("PS:executeAdhocSequence (finally) - Browser close attempt finished.");
+      }
     }
   }
 
