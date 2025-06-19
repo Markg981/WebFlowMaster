@@ -401,13 +401,13 @@ export class PlaywrightService {
       const effectiveHeadlessMode = false; // Force headless to false for interactive recording sessions
       const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
       const specificWaitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME;
-      resolvedLogger.info(`PS:startRecordingSession - Effective settings: browserType=${browserType}, effectiveHeadlessMode=${effectiveHeadlessMode}, pageTimeout=${pageTimeout}, specificWaitTime=${specificWaitTime}`);
+      resolvedLogger.info(`PS:startRecordingSession - Effective settings for RECORDING: browserType=${browserType}, headless FORCED TO=${effectiveHeadlessMode}, pageTimeout=${pageTimeout}, specificWaitTime=${specificWaitTime}`);
 
       const browserLaunchOptions = { headless: effectiveHeadlessMode };
       resolvedLogger.info(`PS:startRecordingSession - Attempting to launch browser (type: ${browserType}) for session ${sessionId} with options: ${JSON.stringify(browserLaunchOptions)}`);
       const browserEngine = playwright[browserType];
       browser = await browserEngine.launch(browserLaunchOptions);
-      resolvedLogger.info("PS:startRecordingSession - Browser launched. typeof browser: " + typeof browser + `, browser.isConnected: ${browser?.isConnected()}`);
+      resolvedLogger.info(`PS:startRecordingSession - Browser launched for session ${sessionId}. Browser connected: ${browser?.isConnected()}, Type: ${browser?.browserType?.().name()}`);
 
       const contextOptions = {
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -479,7 +479,7 @@ export class PlaywrightService {
       sessionData.actions.push(initialAction);
       resolvedLogger.info("PS:startRecordingSession - Initial action pushed to sessionData.actions.");
 
-      resolvedLogger.info(`PS:startRecordingSession - SUCCESS: Session ${sessionId} started for UserID: ${userId || 'anonymous'} on URL: "${url}".`);
+      resolvedLogger.info(`PS:startRecordingSession - Recording session ${sessionId} started successfully for URL: "${url}" by UserID: ${userId || 'anonymous'}`);
       return { success: true, sessionId };
 
     } catch (error: any) {
@@ -490,12 +490,12 @@ export class PlaywrightService {
       else if (page.isClosed()) stage = "page operation on closed page";
       else stage = "page navigation/setup";
 
-      resolvedLogger.error(`PS:startRecordingSession - CRITICAL ERROR during session setup for UserID: ${userId || 'anonymous'}, sessionID "${sessionId}" at stage: ${stage}, URL "${url}". Error message: ${error.message}, Stack: ${error.stack ? error.stack : 'N/A'}. Browser state: ${browser ? 'launched' : 'not launched/failed'}, browser connected: ${browser?.isConnected()}`);
+      resolvedLogger.error(`PS:startRecordingSession - CRITICAL ERROR during session setup for sessionID "${sessionId}" at stage: ${stage}, URL "${url}". Error message: ${error.message}, Stack: ${error.stack ? error.stack : 'N/A'}. Browser state: ${browser ? 'launched' : 'not launched/failed'}, browser connected: ${browser?.isConnected()}`);
 
       if (browser && browser.isConnected()) {
-        resolvedLogger.info(`PS:startRecordingSession - Attempting to close browser in catch block for session ${sessionId}, UserID: ${userId || 'anonymous'}...`);
-        await browser.close().catch(err => resolvedLogger.error(`PS:startRecordingSession - Failed to close browser during error handling for session ${sessionId}, UserID: ${userId || 'anonymous'}:`, err));
-        resolvedLogger.info(`PS:startRecordingSession - Browser close attempt in catch block finished for session ${sessionId}, UserID: ${userId || 'anonymous'}.`);
+        resolvedLogger.info(`PS:startRecordingSession - Attempting to close browser in catch block for session ${sessionId}...`);
+        await browser.close().catch(err => resolvedLogger.error(`PS:startRecordingSession - Failed to close browser during error handling for session ${sessionId}:`, err));
+        resolvedLogger.info(`PS:startRecordingSession - Browser close attempt in catch block finished for session ${sessionId}.`);
       } else if (browser) {
         resolvedLogger.info(`PS:startRecordingSession - Browser exists but is not connected in catch block for session ${sessionId}. No close attempt.`);
       } else {
@@ -512,20 +512,15 @@ export class PlaywrightService {
 
   async stopRecordingSession(sessionId: string, userId?: number): Promise<{ success: boolean, actions?: RecordedAction[], error?: string }> {
     const session = this.activeSessions.get(sessionId);
-    const effectiveUserId = userId || (session ? session.userId : 'unknown');
-
-    resolvedLogger.info(`PS:stopRecordingSession - Called for session: ${sessionId}, UserID: ${effectiveUserId}`);
 
     if (!session) {
-      resolvedLogger.warn(`PS:stopRecordingSession - Session ${sessionId} not found for UserID: ${effectiveUserId}. Might have been already stopped.`);
+      (resolvedLogger.info || console.log)(`Attempted to stop session ${sessionId}, but it was not found in activeSessions. It might have been already stopped (e.g., by page close handler or explicit stop call).`);
       return { success: false, error: "Recording session not found or already stopped." };
     }
 
     // Optional: Validate userId if the session should be user-specific
-    // This check is slightly redundant if effectiveUserId is derived from session.userId when userId is not passed,
-    // but kept for clarity if direct userId is passed for auth.
     if (userId && session.userId && session.userId !== userId) {
-      resolvedLogger.warn(`PS:stopRecordingSession - User ID mismatch for session ${sessionId}. Request by ${userId}, session owned by ${session.userId}.`);
+      (resolvedLogger.warn || console.warn)(`User ID mismatch attempting to stop session ${sessionId}. Request by ${userId}, session owned by ${session.userId}`);
       return { success: false, error: "Unauthorized to stop this recording session." };
     }
 
@@ -548,11 +543,11 @@ export class PlaywrightService {
       const recordedActions = session.actions;
       this.activeSessions.delete(sessionId);
 
-      resolvedLogger.info(`PS:stopRecordingSession - SUCCESS: Session ${sessionId} stopped for UserID: ${effectiveUserId}. Actions recorded: ${recordedActions.length}`);
+      (resolvedLogger.info || console.log)(`Recording session ${sessionId} stopped. Actions recorded: ${recordedActions.length}`);
       return { success: true, actions: recordedActions };
 
     } catch (error: any) {
-      resolvedLogger.error(`PS:stopRecordingSession - ERROR stopping session ${sessionId} for UserID: ${effectiveUserId}: ${error.message}`, error);
+      (resolvedLogger.error || console.error)(`Error stopping recording session ${sessionId}:`, error);
       // Attempt to clean up even if there's an error during close
       this.activeSessions.delete(sessionId);
       return { success: false, error: error.message || 'Unknown error stopping recording session' };
@@ -581,7 +576,7 @@ export class PlaywrightService {
 
   async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detectedElements?: DetectedElement[] }> {
     const testName = payload.name || "Ad-hoc Test";
-    resolvedLogger.info(`PS:executeAdhocSequence - START: Test: "${testName}", UserID: ${userId}, URL: "${payload.url}"`);
+    resolvedLogger.info(`PS:executeAdhocSequence - Called for test: "${testName}", UserID: ${userId}`);
     const startTime = Date.now();
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
@@ -589,61 +584,6 @@ export class PlaywrightService {
     resolvedLogger.info("PS:executeAdhocSequence - Initial state: browser=null, context=null, page=null.");
     const stepResults: StepResult[] = [];
     let overallSuccess = true;
-    let finalDetectedElements: DetectedElement[] = [];
-
-    // Define the element detection function to be used in page.evaluate
-    const elementDetectionScript = () => {
-      const interactiveSelectors = [
-        'input:not([type="hidden"])', 'button', 'a[href]', 'select',
-        'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])',
-        'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form',
-        '[data-testid]', '[data-test]'
-      ];
-      const detectedElementsEval: any[] = [];
-      let globalElementCounter = 0;
-      interactiveSelectors.forEach(selector => {
-          document.querySelectorAll(selector).forEach((element, index) => {
-              const el = element as HTMLElement;
-              const rect = el.getBoundingClientRect();
-              if (rect.width > 0 && rect.height > 0 && rect.top >= 0) {
-                  const tagName = el.tagName.toLowerCase();
-                  const text = el.textContent?.trim() || '';
-                  const placeholder = el.getAttribute('placeholder') || '';
-                  const displayText = text || placeholder || el.getAttribute('alt') || `${tagName}-${index}`;
-                  let uniqueSelector = selector;
-                  if (el.id) { uniqueSelector = `#${el.id}`; }
-                  else if (el.className && typeof el.className === 'string') {
-                    const classes = el.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')') );
-                    if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`;
-                  }
-
-                  let elementType = 'element';
-                  if (tagName === 'input') elementType = el.getAttribute('type') || 'input';
-                  else if (tagName === 'button' || el.getAttribute('role') === 'button') elementType = 'button';
-                  else if (tagName === 'a') elementType = 'link';
-                  else if (tagName.match(/h[1-6]/)) elementType = 'heading';
-                  else if (tagName === 'select') elementType = 'select';
-                  else if (tagName === 'textarea') elementType = 'textarea';
-
-                  const attributes: Record<string, string> = {};
-                  Array.from(el.attributes).forEach(attr => {
-                      attributes[attr.name] = attr.value;
-                  });
-
-                  detectedElementsEval.push({
-                      id: `elem-${tagName}-${globalElementCounter++}`,
-                      type: elementType,
-                      selector: uniqueSelector,
-                      text: displayText.substring(0, 100),
-                      tag: tagName,
-                      attributes,
-                      boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) }
-                  });
-              }
-          });
-      });
-      return detectedElementsEval.slice(0, 50); // Return up to 50 elements
-    };
 
     try {
       resolvedLogger.info("PS:executeAdhocSequence - Inside try block.");
@@ -709,28 +649,66 @@ export class PlaywrightService {
             details: `Failed to navigate to ${payload.url}: ${e.message}`,
           });
           const duration = Date.now() - startTime;
-          // Attempt to detect elements even if navigation fails
+          let finalDetectedElementsNavFail: DetectedElement[] = [];
           if (page && !page.isClosed()) {
-            resolvedLogger.info("PS:executeAdhocSequence - Attempting element detection (due to navigation failure).");
+            resolvedLogger.info("PS:executeAdhocSequence - Attempting element detection (due to navigation failure). Page state: isNull=" + (page === null) + ", isClosed=" + (page ? page.isClosed() : 'N/A'));
             try {
-              finalDetectedElements = await page.evaluate(elementDetectionScript);
+              finalDetectedElementsNavFail = await page.evaluate(() => {
+                const interactiveSelectors = [
+                  'input:not([type="hidden"])', 'button', 'a[href]', 'select',
+                  'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])',
+                  'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form',
+                  '[data-testid]', '[data-test]'
+                ];
+                const detectedElementsEval: any[] = [];
+                let globalElementCounter = 0;
+                interactiveSelectors.forEach(selector => {
+                    document.querySelectorAll(selector).forEach((element, index) => {
+                        const rect = element.getBoundingClientRect();
+                        if (rect.width > 0 && rect.height > 0 && rect.top >= 0) {
+                            const tagName = element.tagName.toLowerCase();
+                            const text = element.textContent?.trim() || '';
+                            const placeholder = element.getAttribute('placeholder') || '';
+                            const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
+                            let uniqueSelector = selector;
+                            if (element.id) { uniqueSelector = `#${element.id}`; }
+                            else if (element.className && typeof element.className === 'string') {
+                              const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')') );
+                              if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`;
+                            }
+
+                            let elementType = 'element';
+                            if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
+                            else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
+                            else if (tagName === 'a') elementType = 'link';
+                            else if (tagName.match(/h[1-6]/)) elementType = 'heading';
+                            else if (tagName === 'select') elementType = 'select';
+                            else if (tagName === 'textarea') elementType = 'textarea';
+
+                            const attributes: Record<string, string> = {};
+                            Array.from(element.attributes).forEach(attr => {
+                                attributes[attr.name] = attr.value;
+                            });
+
+                            detectedElementsEval.push({
+                                id: `elem-${tagName}-${globalElementCounter++}`,
+                                type: elementType,
+                                selector: uniqueSelector,
+                                text: displayText.substring(0, 100),
+                                tag: tagName,
+                                attributes,
+                                boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) }
+                            });
+                        }
+                    });
+                });
+                return detectedElementsEval.slice(0, 50);
+              });
             } catch (detectionError: any) {
               resolvedLogger.error(`PS:executeAdhocSequence - Error during element detection (navigation fail path): ${detectionError.message}`);
-              finalDetectedElements = []; // Ensure it's an empty array on error
             }
-          } else {
-            finalDetectedElements = []; // Ensure it's an empty array if page is not valid
           }
-          return { success: false, steps: stepResults, error: `Initial navigation failed: ${e.message}`, duration, detectedElements: finalDetectedElements };
-        }
-         // Successfully navigated, detect elements
-        if (page && !page.isClosed()) {
-          try {
-            finalDetectedElements = await page.evaluate(elementDetectionScript);
-          } catch (detectionError: any) {
-            resolvedLogger.error(`PS:executeAdhocSequence - Error during element detection after initial navigation: ${detectionError.message}`);
-            // Keep previously detected or empty if this fails
-          }
+          return { success: false, steps: stepResults, error: `Initial navigation failed: ${e.message}`, duration, detectedElements: finalDetectedElementsNavFail };
         }
       } else {
         stepResults.push({
@@ -771,7 +749,6 @@ export class PlaywrightService {
                 resolvedLogger.info(`PS:executeAdhocSequence - Attempting to fill: ${step.targetElement.selector} with value: ${step.value}`);
                 await page.fill(step.targetElement.selector, step.value);
                 resolvedLogger.info(`PS:executeAdhocSequence - Input action: Value "${step.value}" filled into "${step.targetElement.selector}".`);
-                // "Fill action completed." is removed as the log above is more specific.
                 break;
               case 'wait':
                 if (typeof step.value !== 'string' || isNaN(parseInt(step.value))) throw new Error('Invalid or missing value for wait action.');
@@ -884,22 +861,10 @@ export class PlaywrightService {
               default:
                 throw new Error(`Unsupported action ID: ${actionId}`);
             }
-            resolvedLogger.info(`PS:executeAdhocSequence - STEP SUCCESS: "${actionName}" (ID: ${actionId}) executed.`);
             resolvedLogger.info(`PS:executeAdhocSequence - Taking screenshot for step: ${actionName} (ID: ${actionId})`);
             const screenshotBuffer = await page.screenshot({ type: 'png' });
             stepScreenshot = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
             resolvedLogger.info("PS:executeAdhocSequence - Step screenshot taken.");
-
-            // Detect elements after successful step execution (before screenshot of next state, or here)
-            if (page && !page.isClosed()) {
-              try {
-                finalDetectedElements = await page.evaluate(elementDetectionScript);
-                resolvedLogger.info(`PS:executeAdhocSequence - Detected ${finalDetectedElements.length} elements after step "${actionName}".`);
-              } catch (detectionError: any) {
-                resolvedLogger.error(`PS:executeAdhocSequence - Error during element detection after step "${actionName}": ${detectionError.message}`);
-                // Do not clear finalDetectedElements here, keep the last known good list
-              }
-            }
 
           } catch (e: any) {
             stepStatus = 'failed';
@@ -934,26 +899,71 @@ export class PlaywrightService {
 
           if (!overallSuccess) {
             resolvedLogger.info(`PS:executeAdhocSequence - Step "${actionName}" failed. Stopping sequence execution.`);
-            // Element detection would have already run for the failed step or the last successful one.
             break;
           }
         }
       }
 
       const duration = Date.now() - startTime;
-      resolvedLogger.info(`PS:executeAdhocSequence - END: Test "${testName}" for UserID: ${userId}. Overall Success: ${overallSuccess}, Duration: ${duration}ms`);
+      resolvedLogger.info(`PS:executeAdhocSequence - Test "${testName}" completed. Overall Success: ${overallSuccess}, Duration: ${duration}ms`);
 
-      // If the loop finished successfully, or was skipped, ensure final elements are detected
-      // This is particularly for cases where the sequence might be empty or all steps passed.
-      // If a step failed, finalDetectedElements would hold elements from after the last successful step.
-      if (overallSuccess && page && !page.isClosed()) {
-          resolvedLogger.info("PS:executeAdhocSequence - Attempting final element detection (overall success path).");
+      let finalDetectedElements: DetectedElement[] = [];
+      if (page && !page.isClosed()) {
+          resolvedLogger.info("PS:executeAdhocSequence - Attempting final element detection (success path). Page state: isNull=" + (page === null) + ", isClosed=" + (page ? page.isClosed() : 'N/A'));
           try {
-              finalDetectedElements = await page.evaluate(elementDetectionScript);
-              resolvedLogger.info(`PS:executeAdhocSequence - Detected ${finalDetectedElements.length} elements at the end of the sequence.`);
+              finalDetectedElements = await page.evaluate(() => {
+                  const interactiveSelectors = [
+                    'input:not([type="hidden"])', 'button', 'a[href]', 'select',
+                    'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])',
+                    'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form',
+                    '[data-testid]', '[data-test]'
+                  ];
+                  const detectedElementsEval: any[] = [];
+                  let globalElementCounter = 0;
+                  interactiveSelectors.forEach(selector => {
+                      document.querySelectorAll(selector).forEach((element, index) => {
+                          const rect = element.getBoundingClientRect();
+                          if (rect.width > 0 && rect.height > 0 && rect.top >= 0) {
+                              const tagName = element.tagName.toLowerCase();
+                              const text = element.textContent?.trim() || '';
+                              const placeholder = element.getAttribute('placeholder') || '';
+                              const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
+                              let uniqueSelector = selector;
+                              if (element.id) { uniqueSelector = `#${element.id}`; }
+                              else if (element.className && typeof element.className === 'string') {
+                                const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')') );
+                                if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`;
+                              }
+
+                              let elementType = 'element';
+                              if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
+                              else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
+                              else if (tagName === 'a') elementType = 'link';
+                              else if (tagName.match(/h[1-6]/)) elementType = 'heading';
+                              else if (tagName === 'select') elementType = 'select';
+                              else if (tagName === 'textarea') elementType = 'textarea';
+
+                              const attributes: Record<string, string> = {};
+                              Array.from(element.attributes).forEach(attr => {
+                                  attributes[attr.name] = attr.value;
+                              });
+
+                              detectedElementsEval.push({
+                                  id: `elem-${tagName}-${globalElementCounter++}`,
+                                  type: elementType,
+                                  selector: uniqueSelector,
+                                  text: displayText.substring(0, 100),
+                                  tag: tagName,
+                                  attributes,
+                                  boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) }
+                              });
+                          }
+                      });
+                  });
+                  return detectedElementsEval.slice(0, 50);
+              });
           } catch (detectionError: any) {
-              resolvedLogger.error(`PS:executeAdhocSequence - Error during final element detection (overall success path): ${detectionError.message}`);
-              // Keep the last known good list if this fails.
+              resolvedLogger.error(`PS:executeAdhocSequence - Error during final element detection (success path): ${detectionError.message}`);
           }
       }
       return { success: overallSuccess, steps: stepResults, duration, detectedElements: finalDetectedElements };
@@ -961,24 +971,71 @@ export class PlaywrightService {
     } catch (error: any) {
       const duration = Date.now() - startTime;
       resolvedLogger.error(`PS:executeAdhocSequence - CRITICAL ERROR in executeAdhocSequence for test "${testName}", UserID ${userId}. Error: ${error.message}, Stack: ${error.stack ? error.stack : 'N/A'}. Browser: ${browser ? 'exists' : 'null'}, Context: ${context ? 'exists' : 'null'}, Page: ${page ? 'exists' : 'null'}, PageClosed: ${page?.isClosed()}`);
-      // Attempt to detect elements even in critical error, if page is somehow available
+      let finalDetectedElementsCriticalError: DetectedElement[] = [];
       if (page && !page.isClosed()) {
-        resolvedLogger.info("PS:executeAdhocSequence - Attempting element detection after critical error.");
+        resolvedLogger.info("PS:executeAdhocSequence - Attempting element detection after critical error. typeof page: " + typeof page + ", page is null: " + (page === null) + ", page.isClosed(): " + (page ? page.isClosed() : 'N/A'));
         try {
-          finalDetectedElements = await page.evaluate(elementDetectionScript);
+          finalDetectedElementsCriticalError = await page.evaluate(() => {
+            const interactiveSelectors = [
+              'input:not([type="hidden"])', 'button', 'a[href]', 'select',
+              'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])',
+              'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form',
+              '[data-testid]', '[data-test]'
+            ];
+            const detectedElementsEval: any[] = [];
+            let globalElementCounter = 0;
+            interactiveSelectors.forEach(selector => {
+                document.querySelectorAll(selector).forEach((element, index) => {
+                    const rect = element.getBoundingClientRect();
+                    if (rect.width > 0 && rect.height > 0 && rect.top >= 0) {
+                        const tagName = element.tagName.toLowerCase();
+                        const text = element.textContent?.trim() || '';
+                        const placeholder = element.getAttribute('placeholder') || '';
+                        const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
+                        let uniqueSelector = selector;
+                        if (element.id) { uniqueSelector = `#${element.id}`; }
+                        else if (element.className && typeof element.className === 'string') {
+                          const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')') );
+                          if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`;
+                        }
+
+                        let elementType = 'element';
+                        if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
+                        else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
+                        else if (tagName === 'a') elementType = 'link';
+                        else if (tagName.match(/h[1-6]/)) elementType = 'heading';
+                        else if (tagName === 'select') elementType = 'select';
+                        else if (tagName === 'textarea') elementType = 'textarea';
+
+                        const attributes: Record<string, string> = {};
+                        Array.from(element.attributes).forEach(attr => {
+                            attributes[attr.name] = attr.value;
+                        });
+
+                        detectedElementsEval.push({
+                            id: `elem-${tagName}-${globalElementCounter++}`,
+                            type: elementType,
+                            selector: uniqueSelector,
+                            text: displayText.substring(0, 100),
+                            tag: tagName,
+                            attributes,
+                            boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) }
+                        });
+                    }
+                });
+            });
+            return detectedElementsEval.slice(0, 50);
+          });
         } catch (detectionError: any) {
           resolvedLogger.error(`PS:executeAdhocSequence - Error during element detection (critical error path): ${detectionError.message}`);
-          finalDetectedElements = []; // Default to empty on error
         }
-      } else {
-        finalDetectedElements = []; // Default to empty if page is not valid
       }
       return {
         success: false,
         steps: stepResults,
         error: error.message || 'Unknown critical error during ad-hoc execution',
         duration,
-        detectedElements: finalDetectedElements
+        detectedElements: finalDetectedElementsCriticalError
       };
     } finally {
       resolvedLogger.info("PS:executeAdhocSequence - Inside finally block.");

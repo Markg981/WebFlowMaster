@@ -865,6 +865,16 @@ export default function DashboardPage() {
       return result; // This is the data structure: { success, steps, error, duration }
     },
     onSuccess: (data) => { // data is { success, steps, error, duration, detectedElements }
+      // Always handle detectedElements first
+      if (data.detectedElements) {
+        setDetectedElements(data.detectedElements);
+      } else {
+        setDetectedElements([]);
+      }
+      console.log("[DashboardPage] executeDirectTestMutation onSuccess: Received data.steps:", data.steps);
+      console.log("[DashboardPage] executeDirectTestMutation onSuccess: Screenshot for first step:", data.steps?.[0]?.screenshot?.substring(0, 100));
+
+
       if (data.success && data.steps?.length) {
         setLastTestOverallResult(data.success); // Store overall test result
         setPlaybackSteps(data.steps);
@@ -873,25 +883,24 @@ export default function DashboardPage() {
         if (data.steps[0]?.screenshot) {
           setWebsiteScreenshot(data.steps[0].screenshot);
         }
-        // New part: Update detected elements
-        if (data.detectedElements) {
-          setDetectedElements(data.detectedElements);
-        } else {
-          setDetectedElements([]);
-        }
         toast({ title: "Direct Test Execution Started", description: "Playing back results..." });
       } else {
+        // This block handles cases where data.success is false or data.steps is empty
         setIsExecutingPlayback(false);
         setCurrentPlaybackStepIndex(null);
         setPlaybackSteps([]);
-        // Potentially also set detectedElements to empty array here if applicable
-        if (data.detectedElements) { // Even on failure, backend might send elements
-          setDetectedElements(data.detectedElements);
-        } else {
-          setDetectedElements([]);
-        }
-        setLastTestOverallResult(false); // Set overall result to failed
-        toast({ title: "Test Failed", description: data.error || "No steps returned or direct execution failed.", variant: "destructive" });
+        setLastTestOverallResult(data.success !== undefined ? data.success : false); // Set overall result to failed or actual success value
+        toast({ title: data.success ? "Execution Note" : "Test Failed", description: data.error || (data.success ? "No steps to play back." : "Execution failed or no steps returned."), variant: data.success ? "default" : "destructive" });
+      }
+    },
+    onSettled: () => {
+      // This block ensures that regardless of success or error,
+      // if playback isn't supposed to be active, it's turned off.
+      // Note: isExecutingPlayback is true only if data.success and data.steps exist.
+      // If the mutation fails or returns no steps, isExecutingPlayback should be false.
+      // This check is a safeguard.
+      if (!(executeDirectTestMutation.data?.success && executeDirectTestMutation.data?.steps?.length)) {
+        setIsExecutingPlayback(false);
       }
     },
     onError: (error: Error) => {
@@ -915,6 +924,7 @@ export default function DashboardPage() {
     if (stepIndex >= 0 && stepIndex < playbackSteps.length) {
       const currentStep = playbackSteps[stepIndex];
       if (currentStep.screenshot) {
+        console.log("[DashboardPage] Playback: Setting screenshot for step", stepIndex, currentStep.screenshot.substring(0,100));
         setWebsiteScreenshot(currentStep.screenshot);
       }
       // Optionally, update other UI elements with currentStep.name, currentStep.details, etc.
@@ -1002,6 +1012,7 @@ export default function DashboardPage() {
     setTestSequence(newSequence);
 
     const allStepsComplete = newSequence.every(isTestStepComplete);
+    console.log("[DashboardPage] handleSequenceUpdated: allStepsComplete:", allStepsComplete, "for newSequence with length:", newSequence.length);
 
     if (newSequence.length > 0 && allStepsComplete && currentUrl && websiteLoaded) {
       // Conditions for debounced execution (isPending, isExecutingPlayback) are checked inside debouncedExecuteMutation
@@ -1011,6 +1022,7 @@ export default function DashboardPage() {
         elements: detectedElements, // Pass current elements as context
         name: testName || `Realtime Preview for ${currentUrl || "Untitled"}`
       };
+      console.log("[DashboardPage] handleSequenceUpdated: Debouncing execution with payload:", payload);
       debouncedExecuteMutation(payload);
     } else if (newSequence.length === 0) {
       // If sequence is cleared, cancel any pending debounced execution
@@ -1042,6 +1054,8 @@ export default function DashboardPage() {
       // Optionally, provide feedback to the user here (e.g., via a toast or UI indicator)
     }
   };
+
+  console.log("[DashboardPage] executeDirectTestMutation.isPending:", executeDirectTestMutation.isPending, "isExecutingPlayback:", isExecutingPlayback);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
