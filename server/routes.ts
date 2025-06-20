@@ -33,7 +33,7 @@ import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
-import { eq, and, desc, sql, leftJoin } from "drizzle-orm"; // Added leftJoin
+import { eq, and, desc, sql, leftJoin, getTableColumns } from "drizzle-orm"; // Added leftJoin and getTableColumns
 import { playwrightService } from "./playwright-service";
 import type { Logger as WinstonLogger } from 'winston';
 
@@ -714,10 +714,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { projectId, ...testData } = parseResult.data;
       const newTest = await db.insert(apiTests).values({
           ...testData, userId: req.user.id, projectId: projectId,
+          // Stringify JSON fields
           queryParams: testData.queryParams ? JSON.stringify(testData.queryParams) : null,
           requestHeaders: testData.requestHeaders ? JSON.stringify(testData.requestHeaders) : null,
           requestBody: testData.requestBody ? (typeof testData.requestBody === 'string' ? testData.requestBody : JSON.stringify(testData.requestBody)) : null,
           assertions: testData.assertions ? JSON.stringify(testData.assertions) : null,
+          authParams: testData.authParams ? JSON.stringify(testData.authParams) : null,
+          bodyFormData: testData.bodyFormData ? JSON.stringify(testData.bodyFormData) : null,
+          bodyUrlEncoded: testData.bodyUrlEncoded ? JSON.stringify(testData.bodyUrlEncoded) : null,
         }).returning();
       res.status(201).json(newTest[0]);
     } catch (error: any) {
@@ -727,8 +731,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/api-tests", async (req, res) => { /* ... existing code ... */ });
-  app.get("/api/api-tests/:id", async (req, res) => { /* ... existing code ... */ });
+  app.get("/api/api-tests", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id;
+
+    try {
+      const userTestsWithDetails = await db
+        .select({
+          ...getTableColumns(apiTests),
+          creatorUsername: users.username,
+          projectName: projects.name,
+        })
+        .from(apiTests)
+        .leftJoin(users, eq(apiTests.userId, users.id))
+        .leftJoin(projects, eq(apiTests.projectId, projects.id))
+        .where(eq(apiTests.userId, userId))
+        .orderBy(desc(apiTests.updatedAt));
+
+      res.json(userTestsWithDetails);
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: "Error fetching API tests with details",
+        userId,
+        error: error.message,
+        stack: error.stack,
+      });
+      res.status(500).json({ error: "Failed to fetch API tests" });
+    }
+  });
+
+  app.get("/api/api-tests/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id;
+    const testId = parseInt(req.params.id);
+
+    if (isNaN(testId)) {
+      return res.status(400).json({ error: "Invalid test ID format" });
+    }
+
+    try {
+      const result = await db
+        .select({
+          ...getTableColumns(apiTests),
+          creatorUsername: users.username,
+          projectName: projects.name,
+        })
+        .from(apiTests)
+        .leftJoin(users, eq(apiTests.userId, users.id))
+        .leftJoin(projects, eq(apiTests.projectId, projects.id))
+        .where(and(eq(apiTests.id, testId), eq(apiTests.userId, userId)))
+        .limit(1);
+
+      if (result.length === 0) {
+        return res.status(404).json({ error: "API Test not found or not authorized" });
+      }
+      // The result from Drizzle is an array, even with limit(1), so return the first element.
+      res.json(result[0]);
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: `Error fetching API test with ID ${testId}`,
+        userId,
+        testId,
+        error: error.message,
+        stack: error.stack,
+      });
+      res.status(500).json({ error: "Failed to fetch API test" });
+    }
+  });
 
   app.put("/api/api-tests/:id", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) { return res.status(401).json({ error: "Unauthorized" }); }
@@ -743,10 +816,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingTest.length === 0) { return res.status(404).json({ error: "Test not found or not owned by user" }); }
 
       const updatedValues: Partial<typeof apiTests.$inferInsert> = { ...testData, projectId, updatedAt: sql`datetime('now')` as any };
+      // Conditionally stringify JSON fields if they are provided in the payload
       if (testData.queryParams !== undefined) updatedValues.queryParams = testData.queryParams ? JSON.stringify(testData.queryParams) : null;
       if (testData.requestHeaders !== undefined) updatedValues.requestHeaders = testData.requestHeaders ? JSON.stringify(testData.requestHeaders) : null;
       if (testData.requestBody !== undefined) updatedValues.requestBody = testData.requestBody ? (typeof testData.requestBody === 'string' ? testData.requestBody : JSON.stringify(testData.requestBody)) : null;
       if (testData.assertions !== undefined) updatedValues.assertions = testData.assertions ? JSON.stringify(testData.assertions) : null;
+      if (testData.authParams !== undefined) updatedValues.authParams = testData.authParams ? JSON.stringify(testData.authParams) : null;
+      if (testData.bodyFormData !== undefined) updatedValues.bodyFormData = testData.bodyFormData ? JSON.stringify(testData.bodyFormData) : null;
+      if (testData.bodyUrlEncoded !== undefined) updatedValues.bodyUrlEncoded = testData.bodyUrlEncoded ? JSON.stringify(testData.bodyUrlEncoded) : null;
+      // Fields like authType, bodyType, bodyRawContentType, bodyGraphqlQuery, bodyGraphqlVariables are plain text or handled by ...testData
 
       const updatedTest = await db.update(apiTests).set(updatedValues).where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user.id))).returning();
       if (updatedTest.length === 0) { return res.status(404).json({ error: "Test not found after update attempt" }); }
@@ -758,7 +836,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/api-tests/:id", async (req, res) => { /* ... existing code ... */ });
+  app.delete("/api/api-tests/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id;
+    const testId = parseInt(req.params.id);
+
+    if (isNaN(testId)) {
+      return res.status(400).json({ error: "Invalid test ID format" });
+    }
+
+    try {
+      const result = await db
+        .delete(apiTests)
+        .where(and(eq(apiTests.id, testId), eq(apiTests.userId, userId)))
+        .returning(); // .returning() might not be supported on all SQLite drivers for DELETE or might return empty array.
+                      // For DELETE, checking affectedRows is more common if driver supports it, or just assume success if no error.
+
+      // Check if any row was actually deleted. Drizzle's delete().returning() might return the deleted row(s).
+      // If it returns an empty array, it means no row matched the condition (either not found or not authorized).
+      if (result.length === 0) {
+         // To distinguish between not found and not authorized, one might do a select first,
+         // but for a delete operation, simply stating "not found" is often sufficient.
+        return res.status(404).json({ error: "API Test not found or not authorized" });
+      }
+
+      res.status(204).send(); // Successfully deleted, no content to return.
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: `Error deleting API test with ID ${testId}`,
+        userId,
+        testId,
+        error: error.message,
+        stack: error.stack,
+      });
+      res.status(500).json({ error: "Failed to delete API test" });
+    }
+  });
 
   // --- Schedules API Endpoints ---
 

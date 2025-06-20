@@ -569,11 +569,21 @@ const ApiTesterPage: React.FC = () => {
     // If selectedBodyType becomes 'raw', this will be its value.
     setRequestBodyValue(typeof test.requestBody === 'string' ? test.requestBody : '');
 
-    setAssertions(test.assertions ? (typeof test.assertions === 'string' ? JSON.parse(test.assertions) : test.assertions) : []);
+    try {
+      setAssertions(test.assertions ? (typeof test.assertions === 'string' ? JSON.parse(test.assertions) : test.assertions) : []);
+    } catch (e) {
+      console.error("Error parsing assertions from saved test:", e);
+      setAssertions([]);
+    }
 
     // Load new fields
     setAuthType(test.authType || 'none');
-    setAuthParams(test.authParams || undefined);
+    try {
+      setAuthParams(test.authParams ? (typeof test.authParams === 'string' ? JSON.parse(test.authParams) : test.authParams) : undefined);
+    } catch (e) {
+      console.error("Error parsing authParams from saved test:", e);
+      setAuthParams(undefined);
+    }
     setSelectedBodyType(test.bodyType || 'raw');
     setRawContentType(test.bodyRawContentType || 'application/json');
     setGraphqlQuery(test.bodyGraphqlQuery || '');
@@ -581,9 +591,34 @@ const ApiTesterPage: React.FC = () => {
     setBinaryBodyFile(null); // Files cannot be re-loaded from DB, user must re-select
 
     if (test.bodyFormData) {
-      const loadedFormData = (typeof test.bodyFormData === 'string' ? JSON.parse(test.bodyFormData) : test.bodyFormData) as Array<any>;
-      setFormDataBody(
-        loadedFormData.map(item => ({
+      try {
+        const loadedFormData = (typeof test.bodyFormData === 'string' ? JSON.parse(test.bodyFormData) : test.bodyFormData) as Array<any>;
+        setFormDataBody(
+          loadedFormData.map(item => ({
+            id: item.id || uuidv4(),
+            key: item.key || '',
+            value: item.type === 'file' ? null : item.value || '', // File objects can't be stored, set to null
+            enabled: item.enabled !== undefined ? item.enabled : true,
+            type: item.type || 'text',
+            // Add fileName and fileType if they exist for file type, to inform the user
+            ...(item.type === 'file' && item.fileName && { fileNamePlaceholder: item.fileName, fileTypePlaceholder: item.fileType }),
+          }))
+        );
+        if (loadedFormData.some(item => item.type === 'file')) {
+          toast({ title: "Form Data Files", description: "File entries need to be re-selected.", variant: "info", duration: 4000});
+        }
+      } catch (e) {
+        console.error("Error parsing bodyFormData from saved test:", e);
+        setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
+      }
+    } else {
+      setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
+    }
+
+    if (test.bodyUrlEncoded) {
+      const loadedUrlEncoded = (typeof test.bodyUrlEncoded === 'string' ? JSON.parse(test.bodyUrlEncoded) : test.bodyUrlEncoded) as Array<any>;
+      setUrlEncodedBody(
+        loadedUrlEncoded.map(item => ({
           id: item.id || uuidv4(),
           key: item.key || '',
           value: item.type === 'file' ? null : item.value || '', // File objects can't be stored, set to null
@@ -601,15 +636,20 @@ const ApiTesterPage: React.FC = () => {
     }
 
     if (test.bodyUrlEncoded) {
-      const loadedUrlEncoded = (typeof test.bodyUrlEncoded === 'string' ? JSON.parse(test.bodyUrlEncoded) : test.bodyUrlEncoded) as Array<any>;
-      setUrlEncodedBody(
-        loadedUrlEncoded.map(item => ({
-          id: item.id || uuidv4(),
-          key: item.key || '',
-          value: item.value || '',
-          enabled: item.enabled !== undefined ? item.enabled : true,
-        }))
-      );
+      try {
+        const loadedUrlEncoded = (typeof test.bodyUrlEncoded === 'string' ? JSON.parse(test.bodyUrlEncoded) : test.bodyUrlEncoded) as Array<any>;
+        setUrlEncodedBody(
+          loadedUrlEncoded.map(item => ({
+            id: item.id || uuidv4(),
+            key: item.key || '',
+            value: item.value || '',
+            enabled: item.enabled !== undefined ? item.enabled : true,
+          }))
+        );
+      } catch (e) {
+        console.error("Error parsing bodyUrlEncoded from saved test:", e);
+        setUrlEncodedBody([{ id: uuidv4(), key: '', value: '', enabled: true }]);
+      }
     } else {
       setUrlEncodedBody([{ id: uuidv4(), key: '', value: '', enabled: true }]);
     }
@@ -731,6 +771,41 @@ const ApiTesterPage: React.FC = () => {
   useEffect(() => {
     if (currentTestToEdit && isSaveModalOpen) { /* Future logic if needed */ }
   }, [currentTestToEdit, isSaveModalOpen]);
+
+  // Effect to load test data if testId is present in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const testId = params.get('testId');
+
+    if (testId) {
+      const fetchAndLoadTest = async (id: string) => {
+        try {
+          const response = await apiRequest('GET', `/api/api-tests/${id}`);
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: `Test not found or error fetching test ${id}` }));
+            throw new Error(errorData.error || errorData.message);
+          }
+          const testData: ApiTest = await response.json();
+          loadTestState(testData);
+          setCurrentTestToEdit(testData); // Important for "Save Changes" functionality
+          toast({
+            title: t('apiTesterPage.notifications.testLoaded.title', 'Test Loaded'),
+            description: t('apiTesterPage.notifications.testLoaded.description', `Successfully loaded test: ${testData.name}`),
+          });
+        } catch (error: any) {
+          console.error("Failed to load test:", error);
+          toast({
+            title: t('apiTesterPage.notifications.loadFailed.title', 'Load Failed'),
+            description: error.message || t('apiTesterPage.notifications.loadFailed.description', `Failed to load test with ID: ${id}`),
+            variant: 'destructive',
+          });
+          // Optionally, clear the URL parameter or redirect if the test is not found
+          // window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      };
+      fetchAndLoadTest(testId);
+    }
+  }, [t]); // Add other dependencies if they are used inside fetchAndLoadTest indirectly e.g. queryClient, but apiRequest and loadTestState are stable if defined outside or correctly memoized.
 
   const getResponseLanguage = (headers: Record<string, string> | null): string => {
     if (!headers) return 'plaintext';
