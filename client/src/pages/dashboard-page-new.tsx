@@ -483,6 +483,7 @@ export default function DashboardPage() {
       });
       setCurrentSavedTestId(data.id); // Store the ID of the saved test
       setTestName(data.name); // Update test name state
+      setIsSaveModalOpen(false); // Close the modal on successful save
     },
     onError: (error: Error) => {
       toast({

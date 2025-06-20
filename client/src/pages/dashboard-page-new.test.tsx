@@ -190,6 +190,11 @@ describe('DashboardPageNew - General Test Saving', () => {
         title: "Test saved",
       }));
     });
+
+    // Assert that the modal is closed
+    await waitFor(() => {
+      expect(screen.queryByTestId("mocked-save-test-modal-open")).not.toBeInTheDocument();
+    });
   });
 
   it('shows error toast when saveTestMutation (POST /api/tests) fails', async () => {
