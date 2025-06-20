@@ -39,6 +39,27 @@ async function getLogRetentionDaysSetting(): Promise<string | null> {
   return null;
 }
 
+// Valid log levels for Winston
+const VALID_LOG_LEVELS = ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'];
+
+async function getLogLevelSetting(): Promise<string> {
+  try {
+    const setting = await db
+      .select({ value: systemSettings.value })
+      .from(systemSettings)
+      .where(eq(systemSettings.key, 'logLevel'))
+      .limit(1);
+
+    if (setting.length > 0 && setting[0].value && VALID_LOG_LEVELS.includes(setting[0].value)) {
+      return setting[0].value;
+    }
+  } catch (error) {
+    console.error('Failed to fetch logLevel from DB:', error);
+  }
+  // Fallback to environment variable or 'info'
+  return process.env.LOG_LEVEL || 'info';
+}
+
 async function initializeLogger(): Promise<winston.Logger> {
   let maxFilesSetting = process.env.LOG_RETENTION_DAYS ? `${process.env.LOG_RETENTION_DAYS}d` : '7d';
 
@@ -47,8 +68,10 @@ async function initializeLogger(): Promise<winston.Logger> {
     maxFilesSetting = dbRetentionSetting;
   }
 
+  const logLevelFromDb = await getLogLevelSetting();
+
   const loggerInstance = winston.createLogger({
-    level: process.env.LOG_LEVEL || 'info',
+    level: logLevelFromDb, // Already includes fallback to env var or 'info'
     format: winston.format.combine(
       winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
       logFormat
@@ -85,6 +108,24 @@ async function initializeLogger(): Promise<winston.Logger> {
 const loggerPromise: Promise<winston.Logger> = initializeLogger();
 
 export default loggerPromise;
+
+export async function updateLogLevel(newLevel: string): Promise<void> {
+  if (!VALID_LOG_LEVELS.includes(newLevel)) {
+    const logger = await loggerPromise; // Get logger to log warning
+    logger.warn(`Attempted to set invalid log level: ${newLevel}. Valid levels are: ${VALID_LOG_LEVELS.join(', ')}.`);
+    return;
+  }
+
+  const logger = await loggerPromise;
+  logger.level = newLevel; // Set the level on the logger itself
+
+  // Also update level on all transports
+  logger.transports.forEach(transport => {
+    transport.level = newLevel;
+  });
+
+  logger.info(`Log level updated to: ${newLevel}`);
+}
 
 // Original synchronous logger for fallback or until async logger is ready
 // This might be useful in some scenarios but complicates things.
