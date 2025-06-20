@@ -26,8 +26,15 @@ vi.mock('lucide-react', async (importOriginal) => {
 const mockInvalidateQueries = vi.fn();
 const mockSetQueryData = vi.fn(); // Spy for setQueryData
 const mockMutateCreateProject = vi.fn();
+const mockRefetchProjects = vi.fn(() => Promise.resolve({ data: sampleProjects })); // Mock for refetch
 
-let mockProjectsQueryData: { data: Project[] | undefined; isLoading: boolean; isError: boolean; error: Error | null } = {
+let mockProjectsQueryData: {
+  data: Project[] | undefined;
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+  refetch?: () => Promise<any>; // Add refetch to the type
+} = {
   data: [],
   isLoading: false,
   isError: false,
@@ -43,9 +50,11 @@ vi.mock('@tanstack/react-query', async () => {
     ...original,
     useQuery: (options: { queryKey: string[] }) => {
       if (options.queryKey[0] === 'projects') {
-        return mockProjectsQueryData;
+        // Ensure the mock for 'projects' query returns the refetch spy
+        return { ...mockProjectsQueryData, refetch: mockRefetchProjects };
       }
-      return { data: [], isLoading: false, isError: false, error: null }; // Default for other queries
+      // Default for other queries (ensure they also have a basic refetch if needed, or adjust)
+      return { data: [], isLoading: false, isError: false, error: null, refetch: vi.fn(() => Promise.resolve({ data: [] })) };
     },
     useMutation: (options: any) => {
       // Store the component's onSuccess to be called by the test
@@ -106,16 +115,37 @@ describe('SaveTestModal', () => {
     vi.resetAllMocks(); // Reset all mocks before each test
     onSaveMock = vi.fn();
     onCloseMock = vi.fn();
-    mockProjectsQueryData = { data: sampleProjects, isLoading: false, isError: false, error: null };
+    // Initialize mockProjectsQueryData with the refetch spy for each test
+    mockProjectsQueryData = {
+      data: sampleProjects,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: mockRefetchProjects
+    };
+    mockRefetchProjects.mockClear(); // Clear calls from previous tests
   });
 
-  it('renders correctly when open', () => {
+  it('renders correctly when open and calls refetchProjects', () => {
     renderSaveTestModal({ isOpen: true, onSave: onSaveMock, onClose: onCloseMock });
     expect(screen.getByText('Save Test')).toBeInTheDocument();
     expect(screen.getByLabelText('Test Name')).toBeInTheDocument();
     expect(screen.getByLabelText(/Project/)).toBeInTheDocument(); // Label includes asterisk
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    expect(mockRefetchProjects).toHaveBeenCalledTimes(1); // Called on initial open due to useEffect
+  });
+
+  it('refetches projects when re-opened', () => {
+    const { rerender } = renderSaveTestModal({ isOpen: false, onSave: onSaveMock, onClose: onCloseMock });
+    expect(mockRefetchProjects).not.toHaveBeenCalled(); // Should not call if not open initially (enabled:false)
+
+    rerender(<SaveTestModal isOpen={true} onSave={onSaveMock} onClose={onCloseMock} />);
+    expect(mockRefetchProjects).toHaveBeenCalledTimes(1); // Called when opened
+
+    rerender(<SaveTestModal isOpen={false} onSave={onSaveMock} onClose={onCloseMock} />); // Close it
+    rerender(<SaveTestModal isOpen={true} onSave={onSaveMock, onClose: onCloseMock} />); // Re-open
+    expect(mockRefetchProjects).toHaveBeenCalledTimes(2); // Called again
   });
 
   it('Save button is disabled if test name is empty or project is not selected', async () => {

@@ -144,8 +144,9 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
     if (isOpen) {
       setInternalTestName(initialTestName || '');
       setSelectedProjectId(undefined); // Reset project selection
+      refetchProjects(); // Explicitly refetch projects when modal opens
     }
-  }, [isOpen, initialTestName]);
+  }, [isOpen, initialTestName, refetchProjects]); // Added refetchProjects to dependency array
 
   const handleSave = () => {
     if (internalTestName.trim()) {
