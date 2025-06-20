@@ -82,19 +82,29 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
       // Assuming apiRequest returns parsed JSON on success
       return response as Project;
     },
-    onSuccess: (newlyCreatedProject) => {
+    onSuccess: (newlyCreatedProject: Project) => { // Ensure newlyCreatedProject has the Project type
       toast({ title: t('saveTestModal.notifications.projectCreated.title', 'Project Created'), description: t('saveTestModal.notifications.projectCreated.description', `Project "${newlyCreatedProject.name}" created successfully.`) });
       setIsCreateProjectModalOpen(false);
       setNewProjectName('');
-      // Invalidate and refetch projects query
-      queryClient.invalidateQueries({ queryKey: ['projects'] }).then(() => {
-        // After projects are refetched, select the new one.
-        // This requires projectsData to be updated from the query.
-        // A useEffect watching projectsData might be cleaner for this auto-selection.
-        // For now, let's try setting it directly if the new project is in the fresh list.
-        // This part can be tricky due to timing.
-        setSelectedProjectId(newlyCreatedProject.id.toString());
+
+      // 1. Optimistically update the local cache
+      queryClient.setQueryData(['projects'], (oldData: Project[] | undefined) => {
+        const currentProjects = oldData || [];
+        // Avoid adding duplicates if somehow already present (defensive)
+        if (currentProjects.find(p => p.id === newlyCreatedProject.id)) {
+          return currentProjects;
+        }
+        return [...currentProjects, newlyCreatedProject];
       });
+
+      // 2. Set the new project as selected
+      // This will cause a re-render. The Select component should now find the
+      // newlyCreatedProject in projectsData (because of setQueryData)
+      // and display its name correctly.
+      setSelectedProjectId(newlyCreatedProject.id.toString());
+
+      // 3. Invalidate to refetch in the background for eventual consistency
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
     onError: (error) => {
       toast({ title: t('saveTestModal.notifications.projectCreateFailed.title', 'Project Creation Failed'), description: error.message, variant: 'destructive' });

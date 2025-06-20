@@ -24,13 +24,18 @@ vi.mock('lucide-react', async (importOriginal) => {
 
 // Mock API calls & react-query
 const mockInvalidateQueries = vi.fn();
+const mockSetQueryData = vi.fn(); // Spy for setQueryData
 const mockMutateCreateProject = vi.fn();
+
 let mockProjectsQueryData: { data: Project[] | undefined; isLoading: boolean; isError: boolean; error: Error | null } = {
   data: [],
   isLoading: false,
   isError: false,
   error: null,
 };
+
+// Store the actual onSuccess from the component's useMutation call
+let actualComponentOnSuccess: ((data: any, variables: any, context: any) => void) | undefined;
 
 vi.mock('@tanstack/react-query', async () => {
   const original = await vi.importActual('@tanstack/react-query') as any;
@@ -43,21 +48,22 @@ vi.mock('@tanstack/react-query', async () => {
       return { data: [], isLoading: false, isError: false, error: null }; // Default for other queries
     },
     useMutation: (options: any) => {
-      // Assuming the mutation in SaveTestModal is for creating projects
-      // This mock will be used for the createProjectMutation
+      // Store the component's onSuccess to be called by the test
+      actualComponentOnSuccess = options.onSuccess;
       return {
         mutate: (vars: any) => {
-          mockMutateCreateProject(vars); // Call our specific mock for project creation
-          if (options && options.onSuccess) {
-            // Simulate successful project creation
-            act(() => options.onSuccess({ id: Date.now(), name: vars.name }, vars, {}));
-          }
+          mockMutateCreateProject(vars); // Track that mutate was called
+          // Simulate the mutationFn resolving with a new project
+          // The actual component's onSuccess will then be triggered by the test.
+          // This mock assumes the mutationFn (apiRequest) itself is successful.
+          // The test will control WHEN onSuccess is called.
         },
-        isPending: false, // Default, can be overridden in tests
+        isPending: false,
       };
     },
     useQueryClient: () => ({
       invalidateQueries: mockInvalidateQueries,
+      setQueryData: mockSetQueryData, // Provide the mock for setQueryData
     }),
   };
 });
@@ -192,48 +198,63 @@ describe('SaveTestModal', () => {
       // Click "Save Project" in nested dialog
       const saveProjectButton = within(nestedDialog).getByRole('button', { name: 'Save Project' });
 
-      // Define what the create project mutation should do upon success for this specific test
-      mockMutateCreateProject.mockImplementationOnce((vars) => {
-        // Simulate the project being added to the list after invalidation and refetch
-        const newProject = { id: 3, name: vars.name };
-        act(() => {
-          // This simulates the queryClient.invalidateQueries + refetch behavior
-          // by directly updating the data source for the 'projects' query.
-          mockProjectsQueryData = {
-            data: [...sampleProjects, newProject],
-            isLoading: false,
-            isError: false,
-            error: null
-          };
-          // Manually trigger a "refetch" or component update that would use the new data.
-          // In a real scenario, react-query handles this. Here, we might need to re-render or rely on
-          // the component's internal refetch mechanism if `invalidateQueries` is robustly mocked for that.
-          // For this test, we assume invalidateQueries will eventually lead to projectsData updating.
-          // The auto-selection logic in the component relies on this.
-        });
-        // Simulate the actual onSuccess call from useMutation
-        const mutationOptions = (vi.mocked(QueryClientProvider).mock.calls[0] as any); // This is a bit of a hack to get to the mutation options.
-                                                                                      // A cleaner way would be to have a more direct way to get to the specific useMutation's options.
-                                                                                      // For this example, we'll assume the options.onSuccess from the useMutation mock is called.
-      });
 
-
+      // Simulate clicking "Save Project"
       fireEvent.click(saveProjectButton);
 
-      // Assertions
-      await waitFor(() => expect(mockMutateCreateProject).toHaveBeenCalledWith({ name: newProjectName }));
-      await waitFor(() => expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['projects'] }));
-      await waitFor(() => expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Project Created' })));
+      // 1. Assert that the mutation was called
+      expect(mockMutateCreateProject).toHaveBeenCalledWith({ name: newProjectName });
 
-      // Wait for the nested dialog to close
-      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Create New Project' })).not.toBeInTheDocument());
+      // 2. Simulate the mutation's success by manually calling the component's onSuccess
+      const newlyCreatedProjectMock: Project = { id: 3, name: newProjectName };
+      if (actualComponentOnSuccess) {
+        await act(async () => {
+          actualComponentOnSuccess(newlyCreatedProjectMock, { name: newProjectName }, {});
+        });
+      } else {
+        throw new Error("actualComponentOnSuccess was not defined by useMutation mock");
+      }
 
-      // Verify the new project is now selected in the main modal's dropdown
-      // This requires the component to re-render with updated projectsData and for the auto-selection logic to run.
-      // We will check the SelectValue display. This might be tricky if the update isn't immediate.
-      // We might need to wait for the text "Project Gamma" to appear in the SelectTrigger.
+      // 3. Assertions for optimistic update and auto-selection
+      // Check that setQueryData was called to optimistically update the cache
+      expect(mockSetQueryData).toHaveBeenCalledWith(
+        ['projects'],
+        expect.any(Function) // The updater function
+      );
+
+      // To verify the updater function's behavior, we can capture it and test separately,
+      // or check the effect: the project list in the component should now include the new project
+      // and it should be selected.
+
+      // Check that the new project is selected (its name appears in the SelectTrigger)
+      // This requires that the `projectsData` used by the Select component is updated by `setQueryData`
+      // The `mockProjectsQueryData` needs to be updated by the `setQueryData` mock or manually in test
+      // to reflect the optimistic update for the component's re-render.
+
+      // Simulate the effect of setQueryData for the test's `mockProjectsQueryData`
+      // This is a bit of a workaround as `setQueryData` is mocked at a low level.
+      // The component's `setQueryData` call would update the actual RQ cache.
+      // For the test, we update our mock data source that `useQuery` reads from.
+      const updaterFn = mockSetQueryData.mock.calls[0][1]; // Get the updater function
+      mockProjectsQueryData.data = updaterFn(sampleProjects); // Apply it to current sampleProjects
+
+      // Re-render or wait for component to update with new projectsData from the (mocked) cache
+      // In this setup, because useQuery reads from mockProjectsQueryData,
+      // once we update mockProjectsQueryData and if the component re-renders due to setSelectedProjectId,
+      // it should pick up the new data.
+
+      // Check if the new project name is displayed in the SelectTrigger
       const projectSelectTrigger = screen.getByRole('combobox', { name: /Project/i });
-      await waitFor(() => expect(within(projectSelectTrigger).getByText(newProjectName)).toBeInTheDocument(), { timeout: 2000 }); // Increased timeout for state update
+      await waitFor(() => {
+        expect(within(projectSelectTrigger).getByText(newProjectName)).toBeInTheDocument();
+      });
+
+      // Check that invalidateQueries was still called
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['projects'] });
+
+      // Check toast and dialog close
+      expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Project Created' }));
+      expect(screen.queryByRole('dialog', { name: 'Create New Project' })).not.toBeInTheDocument();
     });
   });
 });
