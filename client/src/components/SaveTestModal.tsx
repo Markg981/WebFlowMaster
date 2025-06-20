@@ -171,11 +171,13 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
                 ) : isErrorProjects ? (
                   <div className="p-2 text-red-500 text-sm">{t('saveTestModal.errorLoadingProjects.text')}</div>
                 ) : projectsData && projectsData.length > 0 ? (
-                  projectsData.map((project) => (
-                    <SelectItem key={project.id} value={project.id.toString()}>
-                      {project.name}
-                    </SelectItem>
-                  ))
+                  projectsData
+                    .filter(project => project && typeof project.id === 'number' && project.name) // Ensure project, id, and name exist
+                    .map((project) => (
+                      <SelectItem key={project.id} value={project.id.toString()}>
+                        {project.name}
+                      </SelectItem>
+                    ))
                 ) : (
                   <div className="p-2 text-muted-foreground text-sm">{t('saveTestModal.noProjectsAvailable.text')}</div>
                 )}

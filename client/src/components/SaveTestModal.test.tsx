@@ -256,5 +256,49 @@ describe('SaveTestModal', () => {
       expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Project Created' }));
       expect(screen.queryByRole('dialog', { name: 'Create New Project' })).not.toBeInTheDocument();
     });
+
+    it('handles malformed project data gracefully in the dropdown', async () => {
+      const malformedProjectsData: any[] = [
+        { id: 10, name: 'Valid Project 10' },
+        undefined, // Undefined entry
+        { name: 'Project Without ID' }, // Missing id
+        { id: 12, name: undefined }, // Missing name (but filter currently allows it if name is not explicitly checked, let's assume name is needed for display)
+        { id: null, name: 'Project With Null ID' }, // id is null
+        { id: 13, name: 'Valid Project 13' },
+        { id: '14', name: 'Project With String ID' }, // id is string, filter expects number
+      ];
+
+      mockProjectsQueryData = { data: malformedProjectsData  as Project[], isLoading: false, isError: false, error: null };
+
+      const { container } = renderSaveTestModal({ isOpen: true, onSave: onSaveMock, onClose: onCloseMock });
+
+      const projectSelectTrigger = screen.getByRole('combobox', { name: /Project/i });
+      fireEvent.mouseDown(projectSelectTrigger); // Open the dropdown
+
+      // Wait for dropdown items to be potentially rendered
+      await waitFor(() => {
+        // Valid projects should be present
+        expect(screen.getByText('Valid Project 10')).toBeInTheDocument();
+        expect(screen.getByText('Valid Project 13')).toBeInTheDocument();
+
+        // Check that items that would cause errors are NOT rendered as SelectItems
+        // This is an indirect way to check the filter. A direct check on item count is better.
+        expect(screen.queryByText('Project Without ID')).not.toBeInTheDocument();
+        // Name is expected for SelectItem's child, so "Project With Null ID" might not render if name is checked by filter
+        // However, the filter `project.name` only checks for truthiness.
+        // The key part is that `project.id.toString()` doesn't crash.
+        expect(screen.queryByText('Project With Null ID')).not.toBeInTheDocument(); // Assuming filter makes it skip due to `typeof project.id === 'number'`
+        expect(screen.queryByText('Project With String ID')).not.toBeInTheDocument();
+
+        // Check the number of rendered items. Should be 2 valid items.
+        // ShadCN's SelectItem role is 'option'.
+        const options = screen.getAllByRole('option');
+        expect(options.length).toBe(2);
+      });
+
+      // Ensure no console errors were thrown due to iterating over malformed data (Vitest would typically fail test if so)
+      // This test primarily ensures the component doesn't crash.
+      expect(projectSelectTrigger).toBeInTheDocument(); // Final check that modal is still there
+    });
   });
 });
