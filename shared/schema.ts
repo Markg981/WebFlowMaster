@@ -31,7 +31,7 @@ export const projects = sqliteTable("projects", {
 export const tests = sqliteTable("tests", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id").notNull().references(() => users.id),
-  projectId: integer("project_id").references(() => projects.id),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
   name: text("name").notNull(),
   url: text("url").notNull(),
   sequence: text("sequence", { mode: 'json' }).notNull(), // Array of test steps

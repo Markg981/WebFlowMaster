@@ -469,28 +469,21 @@ export default function DashboardPage() {
   });
 
   const saveTestMutation = useMutation({
-    mutationFn: async (payload?: { name?: string; url?: string; sequence?: DragDropTestStep[]; elements?: DetectedElement[]; status?: string }) => {
-      const testData = payload || {
-        name: testName || `Test for ${currentUrl || "Untitled"}`,
-        url: currentUrl,
-        sequence: testSequence,
-        elements: detectedElements, // Added elements here
-        status: "draft", // Default status or make it configurable
-      };
-      const res = await apiRequest("POST", "/api/tests", testData);
-      const result = await res.json();
-      if (!res.ok) {
-        throw new Error(result.error || "Failed to save test");
-      }
-      return result; // Assuming backend returns the saved test object including its ID
+    mutationFn: async (payload: { name: string; url: string; sequence: DragDropTestStep[]; elements: DetectedElement[]; status: string; projectId?: number }) => {
+      // No default payload here, it's fully constructed in handleConfirmSaveTest
+      const res = await apiRequest("POST", "/api/tests", payload);
+      // apiRequest should handle non-ok responses by throwing an error.
+      // It should also parse JSON response.
+      return res; // Assuming apiRequest returns parsed JSON directly
     },
-    onSuccess: (data) => { // data should be the saved test object
+    onSuccess: (data: any) => { // data should be the saved test object
       toast({
         title: "Test saved",
         description: "Your test has been saved successfully.",
       });
       setCurrentSavedTestId(data.id); // Store the ID of the saved test
       setTestName(data.name); // Update test name state
+      setIsSaveModalOpen(false); // Close the modal on successful save
     },
     onError: (error: Error) => {
       toast({
@@ -532,16 +525,31 @@ export default function DashboardPage() {
     setIsSaveModalOpen(false);
   };
 
-  const handleConfirmSaveTest = (newName: string) => {
+  // Updated to accept projectId
+  const handleConfirmSaveTest = (newName: string, projectId?: number) => {
     setTestName(newName); // Update the main page's testName state
+    if (!projectId) {
+      toast({
+        title: "Project Not Selected",
+        description: "Please select a project to save the test.",
+        variant: "destructive",
+      });
+      // Re-open modal or indicate error. For now, just preventing save.
+      // Re-opening modal might be better UX, but requires passing modal control back or more complex state.
+      // For now, the modal itself prevents saving without a project. This handler expects it if called.
+      console.error("Save attempt without projectId, this should be prevented by modal");
+      return;
+    }
     saveTestMutation.mutate({
       name: newName,
+      projectId: projectId, // Pass projectId here
       url: currentUrl,
       sequence: testSequence,
       elements: detectedElements,
-      status: "draft", // Or any default status
+      status: "draft",
     });
-    handleCloseSaveModal(); // Close the modal after saving
+    // Modal is closed by the SaveTestModal itself after its onSave is called if save is successful.
+    // Or, if you want this function to control it: handleCloseSaveModal();
   };
 
   const startRecordingMutation = useMutation({

@@ -26,6 +26,16 @@ import {
   PlusCircle,
   Archive,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 import { Link } from "wouter";
 import { UserSettings, fetchSettings } from "../lib/settings";
 
@@ -117,6 +127,11 @@ export default function SettingsPage() {
   const [logRetentionDays, setLogRetentionDays] = useState<string>("7");
   const [logLevel, setLogLevel] = useState<string>("info"); // New state for log level
 
+  // State for delete project confirmation dialog
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [deletingProjectId, setDeletingProjectId] = useState<number | null>(null);
+  const [deletingProjectName, setDeletingProjectName] = useState<string | null>(null);
+
   // Log level options
   const logLevels = [
     { value: 'error', label: 'Error' },
@@ -164,10 +179,19 @@ export default function SettingsPage() {
     createProjectMutation.mutate(newProjectName.trim());
   };
 
-  const handleDeleteProject = (projectId: number) => {
-    if (window.confirm("Are you sure you want to delete this project?")) {
-      deleteProjectMutation.mutate(projectId);
+  const handleDeleteProject = (project: Project) => { // Accept full project object
+    setDeletingProjectId(project.id);
+    setDeletingProjectName(project.name);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteProject = () => {
+    if (deletingProjectId !== null) {
+      deleteProjectMutation.mutate(deletingProjectId);
     }
+    setIsDeleteConfirmOpen(false); // Close dialog after action
+    setDeletingProjectId(null);
+    setDeletingProjectName(null);
   };
 
   const [darkMode, setDarkMode] = useState(false);
@@ -439,7 +463,7 @@ export default function SettingsPage() {
                   {projectsData.map((project) => (
                     <li key={project.id} className="flex items-center justify-between p-2 border rounded-md">
                       <span className="text-sm">{project.name}</span>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteProject(project.id)} disabled={deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id || isPageDisabled}>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteProject(project)} disabled={deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id || isPageDisabled}>
                         {(deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-red-500" />}
                       </Button>
                     </li>))}
@@ -586,6 +610,32 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('settingsPage.deleteProjectDialog.title', 'Confirm Project Deletion')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('settingsPage.deleteProjectDialog.description', `Are you sure you want to delete project "${deletingProjectName || ''}"? This action cannot be undone.`)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setIsDeleteConfirmOpen(false);
+              setDeletingProjectId(null);
+              setDeletingProjectName(null);
+            }}>{t('settingsPage.deleteProjectDialog.cancelButton', 'Cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteProject}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteProjectMutation.isPending}
+            >
+              {deleteProjectMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              {t('settingsPage.deleteProjectDialog.deleteButton', 'Delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

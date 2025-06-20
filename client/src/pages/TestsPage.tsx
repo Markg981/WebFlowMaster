@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter'; // Import useLocation
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, fromUnixTime, getTime, parseISO } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,6 +14,15 @@ import { CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronR
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import type { ApiTest } from '@shared/schema'; // Import ApiTest type
+import { apiRequest } from '@/lib/queryClient'; // For mutations
+import { toast } from '@/hooks/use-toast'; // For notifications
+
+// Interface for the data returned by GET /api/api-tests
+interface ApiTestData extends ApiTest {
+  creatorUsername: string | null;
+  projectName: string | null;
+}
 
 interface TestItem {
   id: string;
@@ -59,6 +68,7 @@ const formatTimestampToReadableDate = (timestamp: number): string => {
 const TestsPage: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation(); // Get setLocation for navigation
   // State for the "Tests" tab (now Test Plans)
   const [testPlanSearchTerm, setTestPlanSearchTerm] = useState('');
   // Removed mockTests state
@@ -78,6 +88,12 @@ const TestsPage: React.FC = () => {
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [deletingScheduleId, setDeletingScheduleId] = useState<string | null>(null);
+
+  // State for API Tests Tab
+  const [apiTestsData, setApiTestsData] = useState<ApiTestData[]>([]); // Holds all fetched API tests
+  const [apiTestSearchTerm, setApiTestSearchTerm] = useState('');
+  const [currentApiTestPage, setCurrentApiTestPage] = useState(1);
+  const [apiItemsPerPage] = useState(10); // Or make it configurable
 
   // Create Schedule Modal States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -101,6 +117,12 @@ const TestsPage: React.FC = () => {
   const [isDeleteTestPlanConfirmOpen, setIsDeleteTestPlanConfirmOpen] = useState(false);
   const [deletingTestPlanId, setDeletingTestPlanId] = useState<string | null>(null);
 
+  // Delete API Test Dialog States
+  const [isDeleteApiTestConfirmOpen, setIsDeleteApiTestConfirmOpen] = useState(false);
+  const [deletingApiTestId, setDeletingApiTestId] = useState<number | null>(null); // API Test ID is number
+  const [deletingApiTestName, setDeletingApiTestName] = useState<string | null>(null);
+
+
   // Fetch schedules using React Query
   const { data: schedules = [], isLoading: isLoadingSchedules, error: schedulesError } = useQuery<ScheduleItem[]>({
     queryKey: ['schedules'],
@@ -117,6 +139,22 @@ const TestsPage: React.FC = () => {
       }
       return response.json();
     },
+  });
+
+  // Fetch API Tests using React Query
+  const { data: fetchedApiTests, isLoading: isLoadingApiTests, error: apiTestsError } = useQuery<ApiTestData[]>({
+    queryKey: ['apiTestsList'], // Unique query key for this list
+    queryFn: async () => {
+      const response = await fetch('/api/api-tests');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Network response was not ok for API tests' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to fetch API tests');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setApiTestsData(data); // Populate local state on successful fetch
+    }
   });
 
   const filteredTestPlans = useMemo(() => { // Renamed from filteredTests
@@ -140,6 +178,29 @@ const TestsPage: React.FC = () => {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  // Filtering and Pagination for API Tests Tab
+  useEffect(() => {
+    setCurrentApiTestPage(1); // Reset to first page on search term change
+  }, [apiTestSearchTerm]);
+
+  const filteredApiTests = useMemo(() => {
+    if (!apiTestsData) return [];
+    return apiTestsData.filter(test =>
+      (test.name?.toLowerCase() || '').includes(apiTestSearchTerm.toLowerCase()) ||
+      (test.method?.toLowerCase() || '').includes(apiTestSearchTerm.toLowerCase()) ||
+      (test.url?.toLowerCase() || '').includes(apiTestSearchTerm.toLowerCase())
+    );
+  }, [apiTestSearchTerm, apiTestsData]);
+
+  const totalApiTestPages = Math.ceil(filteredApiTests.length / apiItemsPerPage);
+  const paginatedApiTests = useMemo(() => {
+    return filteredApiTests.slice(
+      (currentApiTestPage - 1) * apiItemsPerPage,
+      currentApiTestPage * apiItemsPerPage
+    );
+  }, [filteredApiTests, currentApiTestPage, apiItemsPerPage]);
+
 
   // getStatusBadgeVariant is likely not needed for TestPlans, can be removed if TestItem interface is fully removed.
   // For now, keep it if TestItem structure is still used elsewhere or as a placeholder.
@@ -404,6 +465,43 @@ const TestsPage: React.FC = () => {
     deleteTestPlanMutation.mutate(deletingTestPlanId);
   };
 
+  // --- API Test Delete Mutation and Handlers ---
+  const deleteApiTestMutation = useMutation({
+    mutationFn: async (apiTestId: number) => {
+      // Note: apiRequest is already set up to handle non-OK responses by throwing an error.
+      // So, we don't need to explicitly check response.ok here if apiRequest is used.
+      const response = await apiRequest('DELETE', `/api/api-tests/${apiTestId}`);
+      // For DELETE, a 204 No Content is typical for success without a body.
+      // apiRequest might return null or the response object itself on 204.
+      // If it returns the response, and you need to ensure no JSON parsing is attempted on 204:
+      if (response.status === 204) {
+        return null;
+      }
+      // If apiRequest is configured to parse JSON, and DELETE might return JSON (e.g. the deleted object - though less common)
+      // then this would be: return response.json();
+      // For now, assuming 204 or error (which apiRequest handles)
+      return null; // Or handle as per actual apiRequest behavior for 204
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['apiTestsList'] });
+      toast({ title: t('testsPage.notifications.apiTestDeleted.title', 'API Test Deleted'), description: t('testsPage.notifications.apiTestDeleted.description', `Test "${deletingApiTestName}" has been deleted.`)});
+      setIsDeleteApiTestConfirmOpen(false);
+      setDeletingApiTestId(null);
+      setDeletingApiTestName(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: t('testsPage.notifications.deleteFailed.title', 'Delete Failed'), description: error.message, variant: 'destructive' });
+      setIsDeleteApiTestConfirmOpen(false);
+      setDeletingApiTestId(null);
+      setDeletingApiTestName(null);
+    },
+  });
+
+  const handleConfirmDeleteApiTest = () => {
+    if (!deletingApiTestId) return;
+    deleteApiTestMutation.mutate(deletingApiTestId);
+  };
+
 
   return (
     <div className="flex flex-col h-full">
@@ -426,6 +524,7 @@ const TestsPage: React.FC = () => {
         <Tabs defaultValue="tests">
           <TabsList className="mb-4">
             <TabsTrigger value="tests">{t('testsPage.testPlans.label')}</TabsTrigger> {/* Renamed Tab */}
+            <TabsTrigger value="api-tests">API Tests</TabsTrigger> {/* New API Tests Tab */}
             <TabsTrigger value="schedules">{t('testSuitesPage.schedules.label')}</TabsTrigger>
           </TabsList>
 
@@ -532,6 +631,123 @@ const TestsPage: React.FC = () => {
           </Table>
             </Card>
           </TabsContent>
+
+          {/* API Tests Tab Content */}
+          <TabsContent value="api-tests">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+                <div className="relative w-full sm:w-auto">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder={t('testsPage.searchApiTests.placeholder', 'Search API tests...')}
+                    className="pl-8 pr-2 py-2 h-10 w-full sm:w-[200px] lg:w-[250px]"
+                    value={apiTestSearchTerm}
+                    onChange={(e) => setApiTestSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => { setApiTestSearchTerm(''); setCurrentApiTestPage(1); }}>
+                  <RefreshCcw size={18} />
+                </Button>
+                {/* Optional: Add "Create API Test" button here later if needed */}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentApiTestPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentApiTestPage === 1}
+                >
+                  <ChevronLeft size={16} />
+                </Button>
+                <span className="mx-2 text-sm font-medium">
+                  {`${Math.min((currentApiTestPage - 1) * apiItemsPerPage + 1, filteredApiTests.length === 0 ? 0 : (currentApiTestPage - 1) * apiItemsPerPage + 1)}-${Math.min(currentApiTestPage * apiItemsPerPage, filteredApiTests.length)} of ${filteredApiTests.length}`}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentApiTestPage(prev => Math.min(totalApiTestPages, prev + 1))}
+                  disabled={currentApiTestPage === totalApiTestPages || filteredApiTests.length === 0}
+                >
+                  <ChevronRight size={16} />
+                </Button>
+              </div>
+            </div>
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('testsPage.apiTestTable.name', 'Name')}</TableHead>
+                    <TableHead>{t('testsPage.apiTestTable.method', 'Method')}</TableHead>
+                    <TableHead>{t('testsPage.apiTestTable.url', 'URL')}</TableHead>
+                    <TableHead>{t('testsPage.apiTestTable.project', 'Project')}</TableHead>
+                    <TableHead>{t('testsPage.apiTestTable.creator', 'Creator')}</TableHead>
+                    <TableHead>{t('testsPage.apiTestTable.lastUpdated', 'Last Updated')}</TableHead>
+                    <TableHead>{t('testsPage.apiTestTable.actions', 'Actions')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoadingApiTests && (
+                    <TableRow><TableCell colSpan={7} className="text-center">{t('testsPage.loadingApiTests.text', 'Loading API tests...')}</TableCell></TableRow>
+                  )}
+                  {apiTestsError && (
+                    <TableRow><TableCell colSpan={7} className="text-center text-red-500">{t('testsPage.errorLoadingApiTests.text', 'Error loading API tests:')} {apiTestsError.message}</TableCell></TableRow>
+                  )}
+                  {!isLoadingApiTests && !apiTestsError && paginatedApiTests.map((test) => (
+                    <TableRow key={test.id}>
+                      <TableCell className="font-medium">{test.name}</TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          test.method === 'GET' ? 'default' :
+                          test.method === 'POST' ? 'secondary' : // Example: use different badge colors
+                          test.method === 'PUT' ? 'outline' : // You might need to define these variants or use existing ones
+                          test.method === 'DELETE' ? 'destructive' :
+                          'info' // A 'info' variant or another default
+                        }>{test.method}</Badge>
+                      </TableCell>
+                      <TableCell className="truncate max-w-xs" title={test.url}>{test.url}</TableCell>
+                      <TableCell>{test.projectName || t('testsPage.na.text', 'N/A')}</TableCell>
+                      <TableCell>{test.creatorUsername || t('testsPage.na.text', 'N/A')}</TableCell>
+                      <TableCell>{test.updatedAt ? formatTimestampToReadableDate(getTime(parseISO(test.updatedAt as any))) : t('testsPage.na.text', 'N/A')}</TableCell>
+                      <TableCell>
+                        {/* Placeholder for Action Buttons */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setLocation(`/api-tester?testId=${test.id}`)}>
+                              <Play className="w-4 h-4 mr-2" />
+                              {t('testsPage.viewLoad.button', 'View/Load')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600 hover:text-red-600 hover:bg-destructive/90 focus:text-red-600 focus:bg-destructive/90"
+                              onClick={() => {
+                                setDeletingApiTestId(test.id);
+                                setDeletingApiTestName(test.name);
+                                setIsDeleteApiTestConfirmOpen(true);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              {t('testsPage.delete.button', 'Delete')}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {!isLoadingApiTests && !apiTestsError && paginatedApiTests.length === 0 && (
+                     <TableRow><TableCell colSpan={7} className="text-center">{t('testsPage.noApiTestsFound.text', 'No API tests found.')}</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="schedules">
             <div className="flex justify-between items-center mb-6">
               <div className="flex space-x-2">
@@ -911,6 +1127,44 @@ const TestsPage: React.FC = () => {
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 {deleteTestPlanMutation.isPending ? t('testsPage.deleting.button') : t('testsPage.deleteTestPlan.button')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete API Test Confirmation Dialog */}
+        <AlertDialog open={isDeleteApiTestConfirmOpen} onOpenChange={(isOpen) => {
+          if (deleteApiTestMutation.isPending && isOpen) return;
+          setIsDeleteApiTestConfirmOpen(isOpen);
+          if (!isOpen) {
+            setDeletingApiTestId(null);
+            setDeletingApiTestName(null);
+          }
+        }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('testsPage.confirmApiTestDeletion.title', 'Confirm API Test Deletion')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('testsPage.confirmApiTestDeletion.description', `Are you sure you want to delete the API test "${deletingApiTestName || ''}"? This action cannot be undone.`)}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  setIsDeleteApiTestConfirmOpen(false);
+                  setDeletingApiTestId(null);
+                  setDeletingApiTestName(null);
+                }}
+                disabled={deleteApiTestMutation.isPending}
+              >
+                {t('testsPage.cancel.button', 'Cancel')}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmDeleteApiTest}
+                disabled={deleteApiTestMutation.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteApiTestMutation.isPending ? t('testsPage.deleting.button', 'Deleting...') : t('testsPage.delete.button', 'Delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -8,8 +8,26 @@ import { TestPlanItem, ScheduleItem } from './TestsPage'; // Assuming interfaces
                                                         // For simplicity, I'll redefine them if not directly importable.
 
 // If TestPlanItem and ScheduleItem are not exported from TestsPage.tsx, define them here:
-interface TestPlanItemForTest extends TestPlanItem {}
-interface ScheduleItemForTest extends ScheduleItem {}
+// interface TestPlanItemForTest extends TestPlanItem {} // Already defined or imported
+// interface ScheduleItemForTest extends ScheduleItem {} // Already defined or imported
+
+// Import or define ApiTestData structure if not already available from TestsPage.tsx
+// For this test, we'll assume ApiTestData is correctly defined in TestsPage.tsx and use a similar structure.
+interface ApiTestDataForTest {
+  id: number; // Assuming number based on typical DB IDs
+  name: string;
+  method: string;
+  url: string;
+  updatedAt: string; // ISO string format
+  creatorUsername: string | null;
+  projectName: string | null;
+  // Add other fields from ApiTest if they are displayed or used in logic
+  // For simplicity, only adding fields directly used by the planned tests
+  [key: string]: any; // Allow other properties from ApiTest
+}
+
+import { apiRequest } from '@/lib/queryClient'; // For mutations
+import { toast } from '@/hooks/use-toast'; // For notifications
 
 
 // Mock lucide-react icons
@@ -36,11 +54,16 @@ vi.mock('lucide-react', async (importOriginal) => {
 
 // Mock react-query
 const mockInvalidateQueries = vi.fn();
-const mockMutate = vi.fn();
+const mockMutate = vi.fn(); // Generic mutate mock
+const mockApiTestDeleteMutate = vi.fn(); // Specific mock for API test deletion
+
 let mockUseQueryData: Record<string, { data: any; isLoading: boolean; isError: boolean; error: any }> = {};
-const mockUseMutationImplementation = (options?: any) => ({
+
+// Updated mockUseMutationImplementation to accept a specific mock function
+const mockUseMutationImplementation = (options?: any, specificMutateFn?: Function) => ({
   mutate: (vars: any) => {
-    mockMutate(vars);
+    const currentMutateFn = specificMutateFn || mockMutate;
+    currentMutateFn(vars);
     if (options && options.onSuccess) {
       act(() => options.onSuccess({}, vars, {}));
     }
@@ -48,13 +71,47 @@ const mockUseMutationImplementation = (options?: any) => ({
   isPending: false,
 });
 
+// Mock wouter's useLocation
+const mockSetLocation = vi.fn();
+vi.mock('wouter', async () => {
+    const actual = await vi.importActual('wouter') as any;
+    return {
+        ...actual,
+        useLocation: () => [actual.useLocation()[0], mockSetLocation],
+    };
+});
+
+// Mock toast
+vi.mock('@/hooks/use-toast', () => ({
+  toast: vi.fn(),
+}));
 
 vi.mock('@tanstack/react-query', async () => {
-  const original = await vi.importActual('@tanstack/react-query') as any;
+  const originalReactQuery = await vi.importActual('@tanstack/react-query') as any;
   return {
-    ...original,
-    useQuery: (options: { queryKey: string[] }) => mockUseQueryData[options.queryKey[0]] || ({ data: [], isLoading: false, isError: false, error: null }),
-    useMutation: (options: any) => mockUseMutationImplementation(options),
+    ...originalReactQuery,
+    useQuery: (options: { queryKey: string[] }) => {
+      return mockUseQueryData[options.queryKey[0]] || ({ data: [], isLoading: false, isError: false, error: null });
+    },
+    useMutation: (options: any) => {
+      // This generic mock is used. Specific mutations in tests can be spied upon if needed.
+      // For instance, if deleteApiTestMutation is returned by a custom hook, that hook can be mocked,
+      // or the mutate function of the specific instance can be spied on/mocked in the test.
+      // Here, we provide a way for the component to use a generic mutation,
+      // and the test will verify if the correct parameters are passed to `mockMutate` or `mockApiTestDeleteMutate`
+      // if we decide to make this dispatcher smarter or spy on component's mutation instance.
+      // For now, the `deleteApiTestMutation` in the component will call `mockMutate` via this.
+      // If we want it to call `mockApiTestDeleteMutate` it needs to be setup in the component test.
+      // A simple way is to have the test for the component spy on the actual mutation object's mutate fn.
+      // For this global mock, we'll stick to one primary mockMutate for general use.
+      // The `mockApiTestDeleteMutate` is more for intent in test setup if we directly mock a specific useMutation instance.
+      if (options && options.mutationFn && options.mutationFn.toString().includes('/api/api-tests/')) {
+         // This is a fragile check. A better approach is specific mocking in the describe block for the component.
+         // console.log("Using mockApiTestDeleteMutate for API test deletion");
+         return mockUseMutationImplementation(options, mockApiTestDeleteMutate);
+      }
+      return mockUseMutationImplementation(options, mockMutate);
+    },
     useQueryClient: () => ({
       invalidateQueries: mockInvalidateQueries,
     }),
@@ -62,7 +119,7 @@ vi.mock('@tanstack/react-query', async () => {
 });
 
 const createTestQueryClient = () => new QueryClient({
-  defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+  defaultOptions: { queries: { retry: false, staleTime: Infinity } }, // Disable retries and set staleTime for tests
 });
 
 const AllTheProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -83,12 +140,28 @@ const sampleSchedulesData: ScheduleItemForTest[] = [
   { id: 's2', scheduleName: 'Weekly Report', testPlanId: 'tp2', testPlanName: 'Regression Suite', frequency: 'Weekly', nextRunAt: Math.floor(new Date('2024-01-07T18:00:00Z').getTime() / 1000), createdAt: Math.floor(Date.now() / 1000) - 7200, updatedAt: null },
 ];
 
+const sampleApiTestsData: ApiTestDataForTest[] = [
+  { id: 1, name: 'Get User Details', method: 'GET', url: '/api/users/1', updatedAt: new Date().toISOString(), creatorUsername: 'testadmin', projectName: 'Auth Project' },
+  { id: 2, name: 'Create Order', method: 'POST', url: '/api/orders', updatedAt: new Date(Date.now() - 86400000).toISOString(), creatorUsername: 'testeditor', projectName: null },
+];
+
+
 const setupDefaultMocks = () => {
   mockUseQueryData = {
     schedules: { data: sampleSchedulesData, isLoading: false, isError: false, error: null },
     testPlans: { data: sampleTestPlansData, isLoading: false, isError: false, error: null },
+    apiTestsList: { data: sampleApiTestsData, isLoading: false, isError: false, error: null },
   };
-   vi.mocked(mockUseMutation).mockImplementation(mockUseMutationImplementation);
+  // Reset general mutate mock, specific ones can be reset in their test suites if needed
+  mockMutate.mockReset();
+  mockApiTestDeleteMutate.mockReset(); // Reset specific mock too
+  mockSetLocation.mockReset(); // Reset navigation mock
+  vi.mocked(toast).mockReset(); // Reset toast mock
+
+  // The line below was problematic and is removed as useMutation is now globally mocked.
+  // Specific mutation mocks should be handled by spying on the mutate function returned by useMutation if needed,
+  // or by ensuring the correct specific mock function (like mockApiTestDeleteMutate) is called by the component's logic.
+  // vi.mocked(mockUseMutation).mockImplementation(mockUseMutationImplementation);
 };
 
 
@@ -237,6 +310,83 @@ describe('TestsPage - Schedules Tab (Test Plan Linking)', () => {
         testPlanId: sampleTestPlansData[1].id, // Updated ID
       }));
     });
+  });
+});
+
+
+describe('TestsPage - API Tests Tab', () => {
+  beforeEach(() => {
+    // Reset all mocks including navigation, toast, and specific mutation mocks for this suite
+    vi.resetAllMocks();
+    setupDefaultMocks(); // Sets up query data including apiTestsList
+  });
+
+  it('displays API tests, loading, and error states', async () => {
+    // Loading state for API Tests
+    mockUseQueryData['apiTestsList'] = { data: [], isLoading: true, isError: false, error: null };
+    renderTestsPage();
+    fireEvent.click(screen.getByRole('tab', { name: /API Tests/i }));
+    expect(screen.getByText('Loading API tests...')).toBeInTheDocument();
+
+    // Error state for API Tests
+    mockUseQueryData['apiTestsList'] = { data: [], isLoading: false, isError: true, error: { message: 'Failed to fetch API tests' } };
+    renderTestsPage();
+    fireEvent.click(screen.getByRole('tab', { name: /API Tests/i }));
+    expect(screen.getByText(/Error loading API tests: Failed to fetch API tests/i)).toBeInTheDocument();
+
+    // Success state for API Tests
+    mockUseQueryData['apiTestsList'] = { data: sampleApiTestsData, isLoading: false, isError: false, error: null };
+    renderTestsPage();
+    fireEvent.click(screen.getByRole('tab', { name: /API Tests/i }));
+
+    await waitFor(() => expect(screen.getByText(sampleApiTestsData[0].name)).toBeInTheDocument());
+    expect(screen.getByText(sampleApiTestsData[0].method)).toBeInTheDocument();
+    expect(screen.getByText(sampleApiTestsData[0].url)).toBeInTheDocument();
+    expect(screen.getByText(sampleApiTestsData[0].projectName!)).toBeInTheDocument();
+    expect(screen.getByText(sampleApiTestsData[0].creatorUsername!)).toBeInTheDocument();
+
+    expect(screen.getByText(sampleApiTestsData[1].name)).toBeInTheDocument();
+    expect(screen.getByText(sampleApiTestsData[1].method)).toBeInTheDocument();
+
+    const row2 = screen.getByText(sampleApiTestsData[1].name).closest('tr');
+    expect(within(row2!).getByText('N/A')).toBeInTheDocument(); // Project column for null projectName
+  });
+
+  it('handles "View/Load" button click for an API test', async () => {
+    renderTestsPage();
+    fireEvent.click(screen.getByRole('tab', { name: /API Tests/i }));
+    await waitFor(() => expect(screen.getByText(sampleApiTestsData[0].name)).toBeInTheDocument());
+
+    const actionButtons = await screen.findAllByTestId('icon-morevertical');
+    fireEvent.click(actionButtons[0].closest('button')!);
+    fireEvent.click(await screen.findByText('View/Load'));
+
+    expect(mockSetLocation).toHaveBeenCalledWith(`/api-tester?testId=${sampleApiTestsData[0].id}`);
+  });
+
+  it('handles "Delete" button click, confirmation, and successful deletion for an API test', async () => {
+    renderTestsPage();
+    fireEvent.click(screen.getByRole('tab', { name: /API Tests/i }));
+    await waitFor(() => expect(screen.getByText(sampleApiTestsData[0].name)).toBeInTheDocument());
+
+    const actionButtons = await screen.findAllByTestId('icon-morevertical');
+    fireEvent.click(actionButtons[0].closest('button')!);
+    fireEvent.click(await screen.findByText('Delete'));
+
+    const dialog = screen.getByRole('alertdialog', { name: /Confirm API Test Deletion/i });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText(new RegExp(sampleApiTestsData[0].name, 'i'))).toBeInTheDocument();
+
+    // Mock that this specific mutation will use mockApiTestDeleteMutate
+    // This is a common pattern if the global useMutation mock is too generic.
+    // However, our global mock now tries to route to mockApiTestDeleteMutate based on options.mutationFn.
+    // So, we directly expect mockApiTestDeleteMutate to be called.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(mockApiTestDeleteMutate).toHaveBeenCalledWith(sampleApiTestsData[0].id));
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['apiTestsList'] });
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'API Test Deleted' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
   });
 });
 

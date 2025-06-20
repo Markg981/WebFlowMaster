@@ -33,7 +33,7 @@ import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
-import { eq, and, desc, sql, leftJoin } from "drizzle-orm"; // Added leftJoin
+import { eq, and, desc, sql, leftJoin, getTableColumns, asc } from "drizzle-orm"; // Added leftJoin, getTableColumns, and asc
 import { playwrightService } from "./playwright-service";
 import type { Logger as WinstonLogger } from 'winston';
 
@@ -364,7 +364,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/projects", async (req, res) => { /* ... existing code ... */ });
+  app.get("/api/projects", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id;
+
+    try {
+      const userProjects = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.userId, userId))
+        .orderBy(asc(projects.name)); // Order by project name ascending
+
+      res.status(200).json(userProjects);
+    } catch (error: any) {
+      resolvedLogger.error({ // Ensure resolvedLogger is defined in this scope or use logger directly
+        message: `Error fetching projects for user ${userId}`,
+        error: error.message,
+        stack: error.stack,
+      });
+      res.status(500).json({ error: "Failed to fetch projects" });
+    }
+  });
 
   const detectElementsBodySchema = z.object({
     url: z.string().url({ message: "Invalid URL for element detection" }),
@@ -398,10 +420,161 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ success: false, error: `Internal server error during element detection: ${errorMessage}` });
     }
   });
-  app.post("/api/projects", async (req, res) => { /* ... existing code ... */ });
-  app.delete("/api/projects/:projectId", async (req, res) => { /* ... existing code ... */ });
+
+  app.post("/api/projects", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id;
+
+    // Validate payload using insertProjectSchema (which expects 'name')
+    // insertProjectSchema already has .pick({ name: true })
+    // and also validates name: z.string().min(1, "Project name cannot be empty")
+    const parseResult = insertProjectSchema.safeParse(req.body);
+
+    if (!parseResult.success) {
+      resolvedLogger.warn({
+        message: "POST /api/projects - Invalid payload",
+        errors: parseResult.error.flatten(),
+        userId,
+      });
+      return res.status(400).json({ error: "Invalid project data", details: parseResult.error.flatten() });
+    }
+
+    const { name } = parseResult.data;
+
+    try {
+      const newProject = await db
+        .insert(projects)
+        .values({
+          name,
+          userId,
+          // createdAt is handled by default in schema
+        })
+        .returning(); // Return all fields of the new project
+
+      if (newProject.length === 0) {
+        resolvedLogger.error({ message: "Project creation failed, no record returned.", name, userId });
+        return res.status(500).json({ error: "Failed to create project." });
+      }
+      res.status(201).json(newProject[0]);
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: "Error creating project",
+        userId,
+        projectName: name,
+        error: error.message,
+        stack: error.stack,
+      });
+      // Check for unique constraint errors if project names must be unique per user (not explicitly defined but common)
+      // if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') { // Example for SQLite
+      //   return res.status(409).json({ error: "A project with this name already exists." });
+      // }
+      res.status(500).json({ error: "Failed to create project" });
+    }
+  });
+  app.delete("/api/projects/:projectId", async (req, res) => {
+    // Ensure 'projects', 'eq', 'and', 'db', 'resolvedLogger' are correctly imported/available in scope.
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id;
+    const projectIdString = req.params.projectId;
+    const parsedProjectId = parseInt(projectIdString, 10);
+
+    if (isNaN(parsedProjectId)) {
+      return res.status(400).json({ error: "Invalid project ID format." });
+    }
+
+    try {
+      const projectToDelete = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)))
+        .limit(1);
+
+      if (projectToDelete.length === 0) {
+        return res.status(404).json({ error: "Project not found or not owned by user." });
+      }
+
+      await db
+        .delete(projects)
+        .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)));
+
+      res.status(204).send();
+
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: `Error deleting project ${parsedProjectId} for user ${userId}`,
+        error: error.message,
+        stack: error.stack,
+      });
+      res.status(500).json({ error: "Failed to delete project due to a server error." });
+    }
+  });
   app.get("/api/tests", async (req, res) => { /* ... existing code ... */ });
-  app.post("/api/tests", async (req, res) => { /* ... existing code ... */ });
+
+  // Schema for creating a new test (general UI test, not API test)
+  const createTestBodySchema = insertTestSchema.extend({
+    projectId: z.number().int().positive(), // Make projectId explicitly required
+    sequence: z.array(AdhocTestStepSchema), // Expect an array of AdhocTestStepSchema
+    elements: z.array(AdhocDetectedElementSchema), // Expect an array of AdhocDetectedElementSchema
+    // name and url are already required by insertTestSchema via the base 'tests' table definition
+  }).omit({ userId: true }); // userId will come from the session
+
+  app.post("/api/tests", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id;
+
+    const parseResult = createTestBodySchema.safeParse(req.body);
+
+    if (!parseResult.success) {
+      resolvedLogger.warn({
+        message: "POST /api/tests - Invalid payload",
+        errors: parseResult.error.flatten(),
+        userId,
+      });
+      return res.status(400).json({ error: "Invalid test data", details: parseResult.error.flatten() });
+    }
+
+    const { name, url, sequence, elements, projectId, status } = parseResult.data;
+
+    try {
+      const newTest = await db
+        .insert(tests)
+        .values({
+          userId,
+          projectId,
+          name,
+          url,
+          sequence: JSON.stringify(sequence), // Stringify sequence array
+          elements: JSON.stringify(elements), // Stringify elements array
+          status: status || "draft", // Default to draft if not provided
+          // createdAt and updatedAt are handled by default in schema
+        })
+        .returning();
+
+      if (newTest.length === 0) {
+        resolvedLogger.error({ message: "Test creation failed, no record returned.", name, userId });
+        return res.status(500).json({ error: "Failed to create test." });
+      }
+      res.status(201).json(newTest[0]);
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: "Error creating test",
+        userId,
+        testName: name,
+        error: error.message,
+        stack: error.stack,
+      });
+      if (error.message && error.message.includes('FOREIGN KEY constraint failed')) {
+        return res.status(400).json({ error: "Invalid project ID or project does not exist." });
+      }
+      res.status(500).json({ error: "Failed to create test" });
+    }
+  });
   app.put("/api/tests/:id", async (req, res) => { /* ... existing code ... */ });
   app.post("/api/tests/:id/execute", async (req, res) => { /* ... existing code ... */ });
   app.get("/api/settings", async (req, res) => {
@@ -714,10 +887,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { projectId, ...testData } = parseResult.data;
       const newTest = await db.insert(apiTests).values({
           ...testData, userId: req.user.id, projectId: projectId,
+          // Stringify JSON fields
           queryParams: testData.queryParams ? JSON.stringify(testData.queryParams) : null,
           requestHeaders: testData.requestHeaders ? JSON.stringify(testData.requestHeaders) : null,
           requestBody: testData.requestBody ? (typeof testData.requestBody === 'string' ? testData.requestBody : JSON.stringify(testData.requestBody)) : null,
           assertions: testData.assertions ? JSON.stringify(testData.assertions) : null,
+          authParams: testData.authParams ? JSON.stringify(testData.authParams) : null,
+          bodyFormData: testData.bodyFormData ? JSON.stringify(testData.bodyFormData) : null,
+          bodyUrlEncoded: testData.bodyUrlEncoded ? JSON.stringify(testData.bodyUrlEncoded) : null,
         }).returning();
       res.status(201).json(newTest[0]);
     } catch (error: any) {
@@ -727,8 +904,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/api-tests", async (req, res) => { /* ... existing code ... */ });
-  app.get("/api/api-tests/:id", async (req, res) => { /* ... existing code ... */ });
+  app.get("/api/api-tests", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id;
+
+    try {
+      const userTestsWithDetails = await db
+        .select({
+          ...getTableColumns(apiTests),
+          creatorUsername: users.username,
+          projectName: projects.name,
+        })
+        .from(apiTests)
+        .leftJoin(users, eq(apiTests.userId, users.id))
+        .leftJoin(projects, eq(apiTests.projectId, projects.id))
+        .where(eq(apiTests.userId, userId))
+        .orderBy(desc(apiTests.updatedAt));
+
+      res.json(userTestsWithDetails);
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: "Error fetching API tests with details",
+        userId,
+        error: error.message,
+        stack: error.stack,
+      });
+      res.status(500).json({ error: "Failed to fetch API tests" });
+    }
+  });
+
+  app.get("/api/api-tests/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id;
+    const testId = parseInt(req.params.id);
+
+    if (isNaN(testId)) {
+      return res.status(400).json({ error: "Invalid test ID format" });
+    }
+
+    try {
+      const result = await db
+        .select({
+          ...getTableColumns(apiTests),
+          creatorUsername: users.username,
+          projectName: projects.name,
+        })
+        .from(apiTests)
+        .leftJoin(users, eq(apiTests.userId, users.id))
+        .leftJoin(projects, eq(apiTests.projectId, projects.id))
+        .where(and(eq(apiTests.id, testId), eq(apiTests.userId, userId)))
+        .limit(1);
+
+      if (result.length === 0) {
+        return res.status(404).json({ error: "API Test not found or not authorized" });
+      }
+      // The result from Drizzle is an array, even with limit(1), so return the first element.
+      res.json(result[0]);
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: `Error fetching API test with ID ${testId}`,
+        userId,
+        testId,
+        error: error.message,
+        stack: error.stack,
+      });
+      res.status(500).json({ error: "Failed to fetch API test" });
+    }
+  });
 
   app.put("/api/api-tests/:id", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) { return res.status(401).json({ error: "Unauthorized" }); }
@@ -743,10 +989,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingTest.length === 0) { return res.status(404).json({ error: "Test not found or not owned by user" }); }
 
       const updatedValues: Partial<typeof apiTests.$inferInsert> = { ...testData, projectId, updatedAt: sql`datetime('now')` as any };
+      // Conditionally stringify JSON fields if they are provided in the payload
       if (testData.queryParams !== undefined) updatedValues.queryParams = testData.queryParams ? JSON.stringify(testData.queryParams) : null;
       if (testData.requestHeaders !== undefined) updatedValues.requestHeaders = testData.requestHeaders ? JSON.stringify(testData.requestHeaders) : null;
       if (testData.requestBody !== undefined) updatedValues.requestBody = testData.requestBody ? (typeof testData.requestBody === 'string' ? testData.requestBody : JSON.stringify(testData.requestBody)) : null;
       if (testData.assertions !== undefined) updatedValues.assertions = testData.assertions ? JSON.stringify(testData.assertions) : null;
+      if (testData.authParams !== undefined) updatedValues.authParams = testData.authParams ? JSON.stringify(testData.authParams) : null;
+      if (testData.bodyFormData !== undefined) updatedValues.bodyFormData = testData.bodyFormData ? JSON.stringify(testData.bodyFormData) : null;
+      if (testData.bodyUrlEncoded !== undefined) updatedValues.bodyUrlEncoded = testData.bodyUrlEncoded ? JSON.stringify(testData.bodyUrlEncoded) : null;
+      // Fields like authType, bodyType, bodyRawContentType, bodyGraphqlQuery, bodyGraphqlVariables are plain text or handled by ...testData
 
       const updatedTest = await db.update(apiTests).set(updatedValues).where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user.id))).returning();
       if (updatedTest.length === 0) { return res.status(404).json({ error: "Test not found after update attempt" }); }
@@ -758,7 +1009,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/api-tests/:id", async (req, res) => { /* ... existing code ... */ });
+  app.delete("/api/api-tests/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id;
+    const testId = parseInt(req.params.id);
+
+    if (isNaN(testId)) {
+      return res.status(400).json({ error: "Invalid test ID format" });
+    }
+
+    try {
+      const result = await db
+        .delete(apiTests)
+        .where(and(eq(apiTests.id, testId), eq(apiTests.userId, userId)))
+        .returning(); // .returning() might not be supported on all SQLite drivers for DELETE or might return empty array.
+                      // For DELETE, checking affectedRows is more common if driver supports it, or just assume success if no error.
+
+      // Check if any row was actually deleted. Drizzle's delete().returning() might return the deleted row(s).
+      // If it returns an empty array, it means no row matched the condition (either not found or not authorized).
+      if (result.length === 0) {
+         // To distinguish between not found and not authorized, one might do a select first,
+         // but for a delete operation, simply stating "not found" is often sufficient.
+        return res.status(404).json({ error: "API Test not found or not authorized" });
+      }
+
+      res.status(204).send(); // Successfully deleted, no content to return.
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: `Error deleting API test with ID ${testId}`,
+        userId,
+        testId,
+        error: error.message,
+        stack: error.stack,
+      });
+      res.status(500).json({ error: "Failed to delete API test" });
+    }
+  });
 
   // --- Schedules API Endpoints ---
 
