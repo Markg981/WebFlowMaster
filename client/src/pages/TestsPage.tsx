@@ -174,6 +174,19 @@ const TestsPage: React.FC = () => {
     }
   });
 
+  // Fetch actual Test Plans for Schedule modals
+  const { data: actualTestPlans = [], isLoading: isLoadingActualTestPlans, error: actualTestPlansError } = useQuery<TestPlanItem[]>({
+    queryKey: ['actualTestPlans'], // New, distinct queryKey
+    queryFn: async () => {
+      const response = await fetch('/api/test-plans');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Network response was not ok for actual test plans' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to fetch actual test plans');
+      }
+      return response.json();
+    },
+  });
+
   const filteredUiTests = useMemo(() => {
     if (!uiTests) return [];
     return uiTests.filter(test =>
@@ -328,7 +341,7 @@ const TestsPage: React.FC = () => {
   // --- Create Schedule Modal Handlers & Mutation ---
   const openCreateScheduleModal = () => {
     setNewScheduleName('');
-    setNewScheduleTestPlanId(testPlans.length > 0 ? testPlans[0].id : null); // Default to first test plan or null
+    setNewScheduleTestPlanId(actualTestPlans.length > 0 ? actualTestPlans[0].id : null); // Use actualTestPlans
     setNewFrequency('Daily');
     setNewNextRunAtString(formatTimestampToDateTimeLocal(Math.floor(Date.now() / 1000) + 3600));
     setIsCreateModalOpen(true);
@@ -392,7 +405,7 @@ const TestsPage: React.FC = () => {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['testPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['actualTestPlans'] });
       setIsCreateTestPlanModalOpen(false);
       // Potentially show success toast
     },
@@ -436,7 +449,7 @@ const TestsPage: React.FC = () => {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['testPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['actualTestPlans'] });
       setIsEditTestPlanModalOpen(false);
       setEditingTestPlan(null);
     },
@@ -472,7 +485,7 @@ const TestsPage: React.FC = () => {
       return null; // Or response.json() if backend returns data on delete
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['testPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['actualTestPlans'] });
       setIsDeleteTestPlanConfirmOpen(false);
       setDeletingTestPlanId(null);
     },
@@ -871,18 +884,18 @@ const TestsPage: React.FC = () => {
                 <Select
                   value={newScheduleTestPlanId || ''}
                   onValueChange={(value) => setNewScheduleTestPlanId(value)}
-                  disabled={isLoadingTestPlans || testPlans.length === 0}
+                  disabled={isLoadingActualTestPlans || actualTestPlans.length === 0}
                 >
                   <SelectTrigger className="col-span-3 h-10" id="newScheduleTestPlanId">
-                    <SelectValue placeholder={isLoadingTestPlans ? t('testsPage.loadingTestPlans.text') : (testPlans.length === 0 ? t('testsPage.noTestPlansAvailable.placeholder') : t('testsPage.selectATestPlan.placeholder'))} />
+                    <SelectValue placeholder={isLoadingActualTestPlans ? t('testsPage.loadingTestPlans.text') : (actualTestPlans.length === 0 ? t('testsPage.noTestPlansAvailable.placeholder') : t('testsPage.selectATestPlan.placeholder'))} />
                   </SelectTrigger>
                   <SelectContent>
-                    {isLoadingTestPlans ? (
+                    {isLoadingActualTestPlans ? (
                       <SelectItem value="loading" disabled>{t('testsPage.loadingTestPlans.text')}</SelectItem>
-                    ) : testPlans.length === 0 ? (
+                    ) : actualTestPlans.length === 0 ? (
                       <SelectItem value="no-plans" disabled>{t('testsPage.noTestPlansAvailable.placeholder')}</SelectItem>
                     ) : (
-                      testPlans.map(plan => (
+                      actualTestPlans.map(plan => (
                         <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
                       ))
                     )}
@@ -944,18 +957,18 @@ const TestsPage: React.FC = () => {
                   <Select
                     value={editableScheduleTestPlanId}
                     onValueChange={(value) => setEditableScheduleTestPlanId(value)}
-                    disabled={isLoadingTestPlans || testPlans.length === 0}
+                    disabled={isLoadingActualTestPlans || actualTestPlans.length === 0}
                   >
                     <SelectTrigger className="col-span-3 h-10">
-                      <SelectValue placeholder={isLoadingTestPlans ? t('testsPage.loadingTestPlans.text') : (testPlans.length === 0 ? t('testsPage.noTestPlansAvailable.placeholder') : t('testsPage.selectATestPlan.placeholder'))} />
+                      <SelectValue placeholder={isLoadingActualTestPlans ? t('testsPage.loadingTestPlans.text') : (actualTestPlans.length === 0 ? t('testsPage.noTestPlansAvailable.placeholder') : t('testsPage.selectATestPlan.placeholder'))} />
                     </SelectTrigger>
                     <SelectContent>
-                      {isLoadingTestPlans ? (
+                      {isLoadingActualTestPlans ? (
                         <SelectItem value="loading" disabled>{t('testsPage.loadingTestPlans.text')}</SelectItem>
-                      ) : testPlans.length === 0 ? (
+                      ) : actualTestPlans.length === 0 ? (
                         <SelectItem value="no-plans" disabled>{t('testsPage.noTestPlansAvailable.placeholder')}</SelectItem>
                       ) : (
-                        testPlans.map(plan => (
+                        actualTestPlans.map(plan => (
                           <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
                         ))
                       )}

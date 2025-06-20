@@ -177,14 +177,18 @@ const mockUiTestsData: GeneralTestData[] = [
   { id: 11, name: 'Lambda UI Special', url: 'http://example.com/lambda', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-11T11:00:00Z', updatedAt: '2023-01-21T11:00:00Z', userId: 1, projectName: 'Project Y', creatorUsername: 'user2' },
 ];
 
+// Mock data for actual Test Plans (used in Schedule modals)
+const mockActualTestPlansData: TestPlanItem[] = [ // Ensure TestPlanItem is imported or defined
+  { id: 'plan1', name: 'Regression Test Plan Active', description: 'Plan for regression tests', createdAt: Math.floor(Date.now() / 1000) - 3600, updatedAt: Math.floor(Date.now() / 1000) },
+  { id: 'plan2', name: 'Smoke Test Plan Active', description: 'Plan for smoke tests', createdAt: Math.floor(Date.now() / 1000) - 7200, updatedAt: Math.floor(Date.now() / 1000) - 1800 },
+];
 
 const setupDefaultMocks = () => {
   mockUseQueryData = {
     schedules: { data: sampleSchedulesData, isLoading: false, isError: false, error: null },
-    uiTests: { data: mockUiTestsData, isLoading: false, isError: false, error: null }, // Changed from testPlans to uiTests
+    uiTests: { data: mockUiTestsData, isLoading: false, isError: false, error: null },
     apiTestsList: { data: sampleApiTestsData, isLoading: false, isError: false, error: null },
-    // Remove testPlans if no longer used by any other test after refactoring
-    // testPlans: { data: sampleTestPlansData, isLoading: false, isError: false, error: null },
+    actualTestPlans: { data: mockActualTestPlansData, isLoading: false, isError: false, error: null }, // Added for schedule modals
   };
   // Reset general mutate mock, specific ones can be reset in their test suites if needed
   mockMutate.mockReset();
@@ -202,12 +206,12 @@ const setupDefaultMocks = () => {
 describe('TestsPage - Tests Tab (UI Tests)', () => { // Renamed suite
   beforeEach(() => {
     vi.resetAllMocks();
-    // Ensure setupDefaultMocks now prepares uiTests data
+    // Ensure setupDefaultMocks now prepares uiTests data and actualTestPlans
     mockUseQueryData = {
       schedules: { data: sampleSchedulesData, isLoading: false, isError: false, error: null },
-      uiTests: { data: mockUiTestsData, isLoading: false, isError: false, error: null }, // Use new mock data
+      uiTests: { data: mockUiTestsData, isLoading: false, isError: false, error: null },
       apiTestsList: { data: sampleApiTestsData, isLoading: false, isError: false, error: null },
-      // testPlans: { data: sampleTestPlansData, isLoading: false, isError: false, error: null }, // Remove if not used elsewhere
+      actualTestPlans: { data: mockActualTestPlansData, isLoading: false, isError: false, error: null },
     };
     mockMutate.mockReset();
     mockApiTestDeleteMutate.mockReset();
@@ -263,73 +267,85 @@ describe('TestsPage - Tests Tab (UI Tests)', () => { // Renamed suite
 describe('TestsPage - Schedules Tab (Test Plan Linking)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    setupDefaultMocks();
+    // Ensure setupDefaultMocks includes actualTestPlans
+    mockUseQueryData = {
+      schedules: { data: sampleSchedulesData, isLoading: false, isError: false, error: null },
+      uiTests: { data: mockUiTestsData, isLoading: false, isError: false, error: null },
+      apiTestsList: { data: sampleApiTestsData, isLoading: false, isError: false, error: null },
+      actualTestPlans: { data: mockActualTestPlansData, isLoading: false, isError: false, error: null },
+    };
+    mockMutate.mockReset();
+    mockApiTestDeleteMutate.mockReset();
+    mockSetLocation.mockReset();
+    vi.mocked(toast).mockReset();
   });
 
-  it('Create Schedule modal uses Select for Test Plan, populated by fetched testPlans', async () => {
+  it('Create Schedule modal uses Select for Test Plan, populated by fetched actualTestPlans', async () => {
     renderTestsPage();
     fireEvent.click(screen.getByRole('tab', { name: /Schedules/i }));
     fireEvent.click(screen.getByRole('button', { name: /Create Schedule/i }));
 
     const dialog = screen.getByRole('dialog', { name: /Create New Schedule/i });
-    const testPlanSelectTrigger = within(dialog).getByRole('combobox'); // ShadCN Select trigger for Test Plan
+    const testPlanSelectTrigger = within(dialog).getByRole('combobox');
     expect(testPlanSelectTrigger).toBeInTheDocument();
 
-    // Check if it shows loading/empty state if testPlans query is in that state
-    mockUseQueryData['testPlans'] = { data: [], isLoading: true, isError: false, error: null };
-    renderTestsPage(); // Re-render with new mock for testPlans
+    // Check if it shows loading/empty state if actualTestPlans query is in that state
+    mockUseQueryData['actualTestPlans'] = { data: [], isLoading: true, isError: false, error: null };
+    renderTestsPage();
     fireEvent.click(screen.getByRole('tab', { name: /Schedules/i }));
     fireEvent.click(screen.getByRole('button', { name: /Create Schedule/i }));
     let dialogRe = screen.getByRole('dialog', { name: /Create New Schedule/i });
-    expect(within(dialogRe).getByText('Loading test plans...')).toBeInTheDocument();
+    expect(within(dialogRe).getByText('Loading test plans...')).toBeInTheDocument(); // Key is generic
 
-    mockUseQueryData['testPlans'] = { data: sampleTestPlansData, isLoading: false, isError: false, error: null };
-    renderTestsPage(); // Re-render
+    mockUseQueryData['actualTestPlans'] = { data: mockActualTestPlansData, isLoading: false, isError: false, error: null };
+    renderTestsPage();
     fireEvent.click(screen.getByRole('tab', { name: /Schedules/i }));
     fireEvent.click(screen.getByRole('button', { name: /Create Schedule/i }));
     dialogRe = screen.getByRole('dialog', { name: /Create New Schedule/i });
     const testPlanSelectTriggerRe = within(dialogRe).getByRole('combobox');
     fireEvent.mouseDown(testPlanSelectTriggerRe);
-    expect(await screen.findByText(sampleTestPlansData[0].name)).toBeInTheDocument();
-    fireEvent.click(screen.getByText(sampleTestPlansData[1].name)); // Select "Regression Suite"
+    expect(await screen.findByText(mockActualTestPlansData[0].name)).toBeInTheDocument();
+    fireEvent.click(screen.getByText(mockActualTestPlansData[1].name));
 
-    fireEvent.change(within(dialogRe).getByLabelText(/Name/i), { target: { value: 'Schedule for Regression' } });
+    fireEvent.change(within(dialogRe).getByLabelText(/Name/i), { target: { value: 'Schedule for Smoke Plan' } });
     fireEvent.click(within(dialogRe).getByRole('button', { name: 'Create Schedule' }));
 
     await waitFor(() => {
       expect(mockMutate).toHaveBeenCalledWith(expect.objectContaining({
-        scheduleName: 'Schedule for Regression',
-        testPlanId: sampleTestPlansData[1].id, // ID of "Regression Suite"
+        scheduleName: 'Schedule for Smoke Plan',
+        testPlanId: mockActualTestPlansData[1].id,
       }));
     });
   });
 
-  it('Edit Schedule modal uses Select for Test Plan, pre-filled and updatable', async () => {
+  it('Edit Schedule modal uses Select for Test Plan, pre-filled and updatable with actualTestPlans', async () => {
+    // Ensure sampleSchedulesData[0] (Daily Sync) is linked to mockActualTestPlansData[0] (plan1) for pre-fill check
+    sampleSchedulesData[0].testPlanId = mockActualTestPlansData[0].id;
+    sampleSchedulesData[0].testPlanName = mockActualTestPlansData[0].name; // Ensure name matches for visual check in select
+     mockUseQueryData['schedules'] = { data: sampleSchedulesData, isLoading: false, isError: false, error: null };
+
+
     renderTestsPage();
     fireEvent.click(screen.getByRole('tab', { name: /Schedules/i }));
 
-    const scheduleToEdit = sampleSchedulesData[0]; // Daily Sync, linked to tp1 (Main Test Plan)
+    const scheduleToEdit = sampleSchedulesData[0];
     const moreButtons = await screen.findAllByTestId('icon-morevertical');
     fireEvent.click(moreButtons[0].closest('button')!);
     fireEvent.click(await screen.findByText('Edit'));
 
     const dialog = screen.getByRole('dialog', { name: new RegExp(`Edit Schedule: ${scheduleToEdit.scheduleName}`, 'i') });
     const testPlanSelectTrigger = within(dialog).getByRole('combobox');
-    // Check if pre-filled with "Main Test Plan" (tp1)
-    // This relies on SelectValue rendering the name for the given testPlanId
-    // A more direct check would be on the `value` prop of the Select if accessible, or state.
-    expect(within(testPlanSelectTrigger).getByText(sampleTestPlansData[0].name)).toBeInTheDocument();
+    expect(within(testPlanSelectTrigger).getByText(mockActualTestPlansData[0].name)).toBeInTheDocument();
 
-    // Change to "Regression Suite" (tp2)
     fireEvent.mouseDown(testPlanSelectTrigger);
-    fireEvent.click(await screen.findByText(sampleTestPlansData[1].name));
+    fireEvent.click(await screen.findByText(mockActualTestPlansData[1].name)); // Change to plan2
 
     fireEvent.click(within(dialog).getByRole('button', { name: /Save Changes/i }));
 
     await waitFor(() => {
       expect(mockMutate).toHaveBeenCalledWith(expect.objectContaining({
         id: scheduleToEdit.id,
-        testPlanId: sampleTestPlansData[1].id, // Updated ID
+        testPlanId: mockActualTestPlansData[1].id,
       }));
     });
   });
