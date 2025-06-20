@@ -158,28 +158,33 @@ interface GeneralTestData {
   userId: number;
   projectId?: number | null;
   projectName?: string | null;
+  creatorUsername?: string | null; // Added for consistency with what API provides
 }
 
-// General Tests Data
-const mockGeneralTests: GeneralTestData[] = [
-  { id: 1, name: 'General Test Alpha', url: 'http://example.com/alpha', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-01T10:00:00Z', updatedAt: '2023-01-10T10:00:00Z', userId: 1, projectName: 'Project X' },
-  { id: 2, name: 'General Test Beta', url: 'http://example.com/beta', sequence: [], elements: [], status: 'Fail', createdAt: '2023-01-02T11:00:00Z', updatedAt: '2023-01-11T11:00:00Z', userId: 1, projectName: 'Project Y' },
-  { id: 3, name: 'Another Test Gamma', url: 'http://example.com/gamma', sequence: [], elements: [], status: 'Pending', createdAt: '2023-01-03T12:00:00Z', updatedAt: '2023-01-12T12:00:00Z', userId: 1, projectName: 'Project X' },
-  { id: 4, name: 'Delta Test Case', url: 'http://example.com/delta', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-04T10:00:00Z', updatedAt: '2023-01-14T10:00:00Z', userId: 1, projectName: 'Project Z' },
-  { id: 5, name: 'Epsilon Scenario', url: 'http://example.com/epsilon', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-05T11:00:00Z', updatedAt: '2023-01-15T11:00:00Z', userId: 1, projectName: 'Project Y' },
-  { id: 6, name: 'Zeta Flow', url: 'http://example.com/zeta', sequence: [], elements: [], status: 'Fail', createdAt: '2023-01-06T12:00:00Z', updatedAt: '2023-01-16T12:00:00Z', userId: 1, projectName: 'Project X' },
-  { id: 7, name: 'Eta Verification', url: 'http://example.com/eta', sequence: [], elements: [], status: 'Pending', createdAt: '2023-01-07T10:00:00Z', updatedAt: '2023-01-17T10:00:00Z', userId: 1, projectName: 'Project Z' },
-  { id: 8, name: 'Theta Routine', url: 'http://example.com/theta', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-08T11:00:00Z', updatedAt: '2023-01-18T11:00:00Z', userId: 1, projectName: 'Project Y' },
-  { id: 9, name: 'Iota Check', url: 'http://example.com/iota', sequence: [], elements: [], status: 'Fail', createdAt: '2023-01-09T12:00:00Z', updatedAt: '2023-01-19T12:00:00Z', userId: 1, projectName: 'Project X' },
-  { id: 10, name: 'Kappa Example', url: 'http://example.com/kappa', sequence: [], elements: [], status: 'Pending', createdAt: '2023-01-10T10:00:00Z', updatedAt: '2023-01-20T10:00:00Z', userId: 1, projectName: 'Project Z' },
-  { id: 11, name: 'Lambda Special', url: 'http://example.com/lambda', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-11T11:00:00Z', updatedAt: '2023-01-21T11:00:00Z', userId: 1, projectName: 'Project Y' },
+// Mock Data for UI Tests Tab (formerly Test Plans)
+const mockUiTestsData: GeneralTestData[] = [
+  { id: 1, name: 'UI Test Alpha', url: 'http://example.com/alpha', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-01T10:00:00Z', updatedAt: '2023-01-10T10:00:00Z', userId: 1, projectName: 'Project X', creatorUsername: 'user1' },
+  { id: 2, name: 'UI Test Beta', url: 'http://example.com/beta', sequence: [], elements: [], status: 'Fail', createdAt: '2023-01-02T11:00:00Z', updatedAt: '2023-01-11T11:00:00Z', userId: 1, projectName: 'Project Y', creatorUsername: 'user1' },
+  { id: 3, name: 'Another UI Gamma', url: 'http://example.com/gamma', sequence: [], elements: [], status: 'Pending', createdAt: '2023-01-03T12:00:00Z', updatedAt: '2023-01-12T12:00:00Z', userId: 1, projectName: 'Project X', creatorUsername: 'user2' },
+  // Add more items for pagination testing - up to 11 for itemsPerPage=10
+  { id: 4, name: 'Delta UI Case', url: 'http://example.com/delta', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-04T10:00:00Z', updatedAt: '2023-01-14T10:00:00Z', userId: 1, projectName: 'Project Z', creatorUsername: 'user1' },
+  { id: 5, name: 'Epsilon UI Scenario', url: 'http://example.com/epsilon', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-05T11:00:00Z', updatedAt: '2023-01-15T11:00:00Z', userId: 1, projectName: 'Project Y', creatorUsername: 'user2' },
+  { id: 6, name: 'Zeta UI Flow', url: 'http://example.com/zeta', sequence: [], elements: [], status: 'Fail', createdAt: '2023-01-06T12:00:00Z', updatedAt: '2023-01-16T12:00:00Z', userId: 1, projectName: 'Project X', creatorUsername: 'user1' },
+  { id: 7, name: 'Eta UI Verification', url: 'http://example.com/eta', sequence: [], elements: [], status: 'Pending', createdAt: '2023-01-07T10:00:00Z', updatedAt: '2023-01-17T10:00:00Z', userId: 1, projectName: 'Project Z', creatorUsername: 'user2' },
+  { id: 8, name: 'Theta UI Routine', url: 'http://example.com/theta', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-08T11:00:00Z', updatedAt: '2023-01-18T11:00:00Z', userId: 1, projectName: 'Project Y', creatorUsername: 'user1' },
+  { id: 9, name: 'Iota UI Check', url: 'http://example.com/iota', sequence: [], elements: [], status: 'Fail', createdAt: '2023-01-09T12:00:00Z', updatedAt: '2023-01-19T12:00:00Z', userId: 1, projectName: 'Project X', creatorUsername: 'user2' },
+  { id: 10, name: 'Kappa UI Example', url: 'http://example.com/kappa', sequence: [], elements: [], status: 'Pending', createdAt: '2023-01-10T10:00:00Z', updatedAt: '2023-01-20T10:00:00Z', userId: 1, projectName: 'Project Z', creatorUsername: 'user1' },
+  { id: 11, name: 'Lambda UI Special', url: 'http://example.com/lambda', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-11T11:00:00Z', updatedAt: '2023-01-21T11:00:00Z', userId: 1, projectName: 'Project Y', creatorUsername: 'user2' },
 ];
+
 
 const setupDefaultMocks = () => {
   mockUseQueryData = {
     schedules: { data: sampleSchedulesData, isLoading: false, isError: false, error: null },
-    testPlans: { data: sampleTestPlansData, isLoading: false, isError: false, error: null },
+    uiTests: { data: mockUiTestsData, isLoading: false, isError: false, error: null }, // Changed from testPlans to uiTests
     apiTestsList: { data: sampleApiTestsData, isLoading: false, isError: false, error: null },
+    // Remove testPlans if no longer used by any other test after refactoring
+    // testPlans: { data: sampleTestPlansData, isLoading: false, isError: false, error: null },
   };
   // Reset general mutate mock, specific ones can be reset in their test suites if needed
   mockMutate.mockReset();
@@ -194,222 +199,63 @@ const setupDefaultMocks = () => {
 };
 
 
-describe('TestsPage - Test Plans Tab', () => {
+describe('TestsPage - Tests Tab (UI Tests)', () => { // Renamed suite
   beforeEach(() => {
     vi.resetAllMocks();
-    setupDefaultMocks();
+    // Ensure setupDefaultMocks now prepares uiTests data
+    mockUseQueryData = {
+      schedules: { data: sampleSchedulesData, isLoading: false, isError: false, error: null },
+      uiTests: { data: mockUiTestsData, isLoading: false, isError: false, error: null }, // Use new mock data
+      apiTestsList: { data: sampleApiTestsData, isLoading: false, isError: false, error: null },
+      // testPlans: { data: sampleTestPlansData, isLoading: false, isError: false, error: null }, // Remove if not used elsewhere
+    };
+    mockMutate.mockReset();
+    mockApiTestDeleteMutate.mockReset();
+    mockSetLocation.mockReset();
+    vi.mocked(toast).mockReset();
   });
 
-  it('displays test plans, loading, and error states', async () => {
+  it('displays UI tests, loading, and error states', async () => {
     // Loading state
-    mockUseQueryData['testPlans'] = { data: [], isLoading: true, isError: false, error: null };
+    mockUseQueryData['uiTests'] = { data: [], isLoading: true, isError: false, error: null };
     renderTestsPage();
-    fireEvent.click(screen.getByRole('tab', { name: /Test Plans/i }));
-    expect(screen.getByText('Loading test plans...')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /Tests/i })); // Updated tab name
+    expect(await screen.findByText('Loading tests...')).toBeInTheDocument(); // Updated loading text
 
     // Error state
-    mockUseQueryData['testPlans'] = { data: [], isLoading: false, isError: true, error: { message: 'Failed to fetch plans' } };
-    renderTestsPage(); // Re-render with new mock
-    fireEvent.click(screen.getByRole('tab', { name: /Test Plans/i }));
-    expect(screen.getByText(/Error loading test plans: Failed to fetch plans/i)).toBeInTheDocument();
+    mockUseQueryData['uiTests'] = { data: [], isLoading: false, isError: true, error: { message: 'Failed to fetch UI tests' } };
+    renderTestsPage();
+    fireEvent.click(screen.getByRole('tab', { name: /Tests/i }));
+    expect(await screen.findByText(/Error loading tests: Failed to fetch UI tests/i)).toBeInTheDocument(); // Updated error text
 
     // Success state
-    mockUseQueryData['testPlans'] = { data: sampleTestPlansData, isLoading: false, isError: false, error: null };
-    renderTestsPage(); // Re-render
-    fireEvent.click(screen.getByRole('tab', { name: /Test Plans/i }));
-    await waitFor(() => expect(screen.getByText(sampleTestPlansData[0].name)).toBeInTheDocument());
-    expect(screen.getByText(sampleTestPlansData[1].name)).toBeInTheDocument();
-  });
-
-  it('creates, edits, and deletes a test plan', async () => {
+    mockUseQueryData['uiTests'] = { data: mockUiTestsData, isLoading: false, isError: false, error: null };
     renderTestsPage();
-    fireEvent.click(screen.getByRole('tab', { name: /Test Plans/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Tests/i }));
+    await waitFor(() => expect(screen.getByText(mockUiTestsData[0].name)).toBeInTheDocument());
+    expect(screen.getByText(mockUiTestsData[0].url)).toBeInTheDocument(); // Check for URL
+    expect(screen.getByText(mockUiTestsData[0].projectName!)).toBeInTheDocument(); // Check for Project Name
+    const firstRowBadges = within(screen.getByText(mockUiTestsData[0].name).closest('tr')!).getAllByText('Pass');
+    expect(firstRowBadges.length).toBeGreaterThan(0);
 
-    // Create
-    fireEvent.click(screen.getByRole('button', { name: /Create Test Plan/i }));
-    let dialog = screen.getByRole('dialog', { name: /Create New Test Plan/i });
-    fireEvent.change(within(dialog).getByLabelText(/Name/i), { target: { value: 'New Plan Alpha' } });
-    fireEvent.change(within(dialog).getByLabelText(/Description/i), { target: { value: 'Alpha description' } });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Create Test Plan' }));
-
-    await waitFor(() => expect(mockMutate).toHaveBeenCalledWith({ name: 'New Plan Alpha', description: 'Alpha description' }));
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['testPlans'] });
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: /Create New Test Plan/i })).not.toBeInTheDocument());
-
-    // Edit (assuming the new plan is added to the list by react-query mock or a re-fetch)
-    // For test stability, let's target an existing plan from sample data for edit/delete
-    const planToEdit = sampleTestPlansData[0];
-    const editButtons = await screen.findAllByTestId('icon-morevertical');
-    fireEvent.click(editButtons[0].closest('button')!);
-    fireEvent.click(await screen.findByText('Edit'));
-
-    dialog = screen.getByRole('dialog', { name: new RegExp(`Edit Test Plan: ${planToEdit.name}`, 'i') });
-    fireEvent.change(within(dialog).getByLabelText(/Description/i), { target: { value: 'Updated description for Plan A' } });
-    fireEvent.click(within(dialog).getByRole('button', { name: /Save Changes/i }));
-
-    await waitFor(() => expect(mockMutate).toHaveBeenCalledWith({ id: planToEdit.id, name: planToEdit.name, description: 'Updated description for Plan A' }));
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['testPlans'] });
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: new RegExp(`Edit Test Plan: ${planToEdit.name}`, 'i') })).not.toBeInTheDocument());
-
-    // Delete
-    const deleteButtons = await screen.findAllByTestId('icon-morevertical'); // Re-query as list might have re-rendered
-    fireEvent.click(deleteButtons[0].closest('button')!);
-    fireEvent.click(await screen.findByText('Delete'));
-
-    const alertDialog = screen.getByRole('alertdialog', { name: /Confirm Deletion/i });
-    expect(within(alertDialog).getByText(new RegExp(planToEdit.name, 'i'))).toBeInTheDocument();
-    fireEvent.click(within(alertDialog).getByRole('button', { name: /Delete Test Plan/i }));
-
-    await waitFor(() => expect(mockMutate).toHaveBeenCalledWith(planToEdit.id));
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['testPlans'] });
-    await waitFor(() => expect(screen.queryByRole('alertdialog', { name: /Confirm Deletion/i })).not.toBeInTheDocument());
-  });
-});
-
-describe('TestsPage - General Tests Tab', () => {
-  let fetchSpy: any;
-
-  beforeEach(() => {
-    vi.resetAllMocks(); // Reset all mocks
-    setupDefaultMocks(); // Setup default mocks for other tabs if needed
-
-    // Specific mock for /api/tests for this suite
-    fetchSpy = vi.spyOn(global, 'fetch');
-
-    // Default successful fetch for general tests
-    // We'll use mockUseQueryData to simulate react-query's behavior more closely
-    // instead of directly mocking fetch for the initial load in most tests.
-    mockUseQueryData['generalTests'] = { data: mockGeneralTests, isLoading: false, isError: false, error: null };
-
-    // Fallback fetch mock for any unexpected calls or specific tests needing it
-    fetchSpy.mockImplementation((url: any, options: any) => {
-      if (url === '/api/tests' && options?.method !== 'POST' && options?.method !== 'PUT' && options?.method !== 'DELETE') {
-        // This will be overridden by mockUseQueryData for GET in most cases due to react-query's caching
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockGeneralTests),
-        });
-      }
-      // Fallback for other API calls if any are made by shared components or unmocked mutations
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
-    });
+    expect(screen.getByText(mockUiTestsData[1].name)).toBeInTheDocument();
+    expect(screen.getByText(mockUiTestsData[1].url)).toBeInTheDocument();
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks(); // Restore all mocks, including the global fetch spy
-  });
-
-  it('renders the General Tests tab and switches to it', async () => {
+  // The "Create Test Plan" button and associated modal tests are removed as the button is gone from this tab.
+  // Edit/Delete for individual UI tests are not yet implemented in the main component's UI for this tab,
+  // so tests for those are not added here. The "View/Edit" is a placeholder alert.
+  it('placeholder test for View/Edit action', async () => {
     renderTestsPage();
-    const generalTestsTab = screen.getByRole('tab', { name: /General Tests/i });
-    expect(generalTestsTab).toBeInTheDocument();
-    fireEvent.click(generalTestsTab);
+    fireEvent.click(screen.getByRole('tab', { name: /Tests/i }));
+    await waitFor(() => expect(screen.getByText(mockUiTestsData[0].name)).toBeInTheDocument());
 
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/Search general tests.../i)).toBeInTheDocument();
-    });
-  });
-
-  it('displays loading state for General Tests', async () => {
-    mockUseQueryData['generalTests'] = { data: [], isLoading: true, isError: false, error: null };
-    // No need to mock fetch here as useQuery's isLoading state is directly controlled.
-
-    renderTestsPage();
-    fireEvent.click(screen.getByRole('tab', { name: /General Tests/i }));
-
-    expect(await screen.findByText('Loading general tests...')).toBeInTheDocument();
-  });
-
-  it('displays error state for General Tests', async () => {
-    mockUseQueryData['generalTests'] = { data: [], isLoading: false, isError: true, error: { message: 'Custom Error: Failed to fetch general tests' } };
-    // No need to mock fetch here as useQuery's error state is directly controlled.
-
-    renderTestsPage();
-    fireEvent.click(screen.getByRole('tab', { name: /General Tests/i }));
-    expect(await screen.findByText(/Error loading general tests: Custom Error: Failed to fetch general tests/i)).toBeInTheDocument();
-  });
-
-  it('displays "No general tests found" message when no data is returned', async () => {
-    mockUseQueryData['generalTests'] = { data: [], isLoading: false, isError: false, error: null };
-    // No need to mock fetch here.
-
-    renderTestsPage();
-    fireEvent.click(screen.getByRole('tab', { name: /General Tests/i }));
-    expect(await screen.findByText('No general tests found.')).toBeInTheDocument();
-  });
-
-  it('displays fetched General Tests data in the table', async () => {
-    // mockUseQueryData['generalTests'] is already set to mockGeneralTests in beforeEach
-    renderTestsPage();
-    fireEvent.click(screen.getByRole('tab', { name: /General Tests/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText('General Test Alpha')).toBeInTheDocument();
-      expect(screen.getByText('http://example.com/alpha')).toBeInTheDocument();
-      expect(screen.getByText('Project X')).toBeInTheDocument();
-      const firstRowBadges = within(screen.getByText('General Test Alpha').closest('tr')!).getAllByText('Pass');
-      expect(firstRowBadges.length).toBeGreaterThan(0);
-
-
-      expect(screen.getByText('General Test Beta')).toBeInTheDocument();
-      expect(screen.getByText('http://example.com/beta')).toBeInTheDocument();
-      expect(screen.getByText('Project Y')).toBeInTheDocument();
-      const secondRowBadges = within(screen.getByText('General Test Beta').closest('tr')!).getAllByText('Fail');
-      expect(secondRowBadges.length).toBeGreaterThan(0);
-    });
-  });
-
-  it('filters General Tests based on search term', async () => {
-    renderTestsPage();
-    fireEvent.click(screen.getByRole('tab', { name: /General Tests/i }));
-
-    await waitFor(() => expect(screen.getByText('General Test Alpha')).toBeInTheDocument());
-
-    const searchInput = screen.getByPlaceholderText(/Search general tests.../i);
-    fireEvent.change(searchInput, { target: { value: 'Beta' } });
-
-    await waitFor(() => {
-      expect(screen.queryByText('General Test Alpha')).not.toBeInTheDocument();
-      expect(screen.getByText('General Test Beta')).toBeInTheDocument();
-    });
-
-    fireEvent.change(searchInput, { target: { value: 'Project X' } });
-    await waitFor(() => {
-      expect(screen.getByText('General Test Alpha')).toBeInTheDocument();
-      expect(screen.queryByText('General Test Beta')).not.toBeInTheDocument();
-      expect(screen.getByText('Another Test Gamma')).toBeInTheDocument();
-    });
-     fireEvent.click(screen.getByRole('button', { name: /refreshccw/i }));
-     await waitFor(() => {
-        expect(screen.getByText('General Test Alpha')).toBeInTheDocument();
-        expect(screen.getByText('General Test Beta')).toBeInTheDocument();
-     });
-  });
-
-  it('handles pagination for General Tests', async () => {
-    // itemsPerPage is 10 in TestsPage.tsx, mockGeneralTests has 11 items
-    renderTestsPage();
-    fireEvent.click(screen.getByRole('tab', { name: /General Tests/i }));
-
-    await waitFor(() => expect(screen.getByText('General Test Alpha')).toBeInTheDocument()); // First item on page 1
-    expect(screen.getByText(mockGeneralTests[9].name)).toBeInTheDocument(); // 10th item on page 1
-    expect(screen.queryByText(mockGeneralTests[10].name)).not.toBeInTheDocument(); // 11th item should not be on page 1
-
-    expect(screen.getByText(/1-10 of 11/i)).toBeInTheDocument();
-
-    const nextPageButton = screen.getByRole('button', { name: /chevronright/i });
-    fireEvent.click(nextPageButton);
-
-    await waitFor(() => expect(screen.getByText(mockGeneralTests[10].name)).toBeInTheDocument()); // 11th item on page 2
-    expect(screen.queryByText('General Test Alpha')).not.toBeInTheDocument();
-    expect(screen.getByText(/11-11 of 11/i)).toBeInTheDocument();
-
-    const prevPageButton = screen.getByRole('button', { name: /chevronleft/i });
-    fireEvent.click(prevPageButton);
-
-    await waitFor(() => expect(screen.getByText('General Test Alpha')).toBeInTheDocument());
-    expect(screen.queryByText(mockGeneralTests[10].name)).not.toBeInTheDocument();
-    expect(screen.getByText(/1-10 of 11/i)).toBeInTheDocument();
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const actionButtons = await screen.findAllByTestId('icon-morevertical');
+    fireEvent.click(actionButtons[0].closest('button')!);
+    fireEvent.click(await screen.findByText('View/Edit'));
+    expect(alertSpy).toHaveBeenCalledWith('View/Edit Test ID: ' + mockUiTestsData[0].id);
+    alertSpy.mockRestore();
   });
 });
 
@@ -568,26 +414,75 @@ describe('TestsPage - API Tests Tab', () => {
 
 // Search tests for Test Plans and Schedules should still pass or be adapted slightly if UI changed.
 // Keeping one example for Test Plan search.
-describe('TestsPage - Search Functionality', () => {
+describe('TestsPage - Search Functionality for UI Tests Tab', () => { // Renamed for clarity
   beforeEach(() => {
     vi.resetAllMocks();
-    setupDefaultMocks();
+    // Ensure setupDefaultMocks provides uiTests data
+     mockUseQueryData = {
+      schedules: { data: sampleSchedulesData, isLoading: false, isError: false, error: null },
+      uiTests: { data: mockUiTestsData, isLoading: false, isError: false, error: null },
+      apiTestsList: { data: sampleApiTestsData, isLoading: false, isError: false, error: null },
+    };
+    mockMutate.mockReset();
+    mockApiTestDeleteMutate.mockReset();
+    mockSetLocation.mockReset();
+    vi.mocked(toast).mockReset();
   });
 
-  it('filters test plans based on search term', async () => {
+  it('filters UI tests based on search term', async () => {
     renderTestsPage();
-    fireEvent.click(screen.getByRole('tab', { name: /Test Plans/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Tests/i })); // Target the repurposed "Tests" tab
 
-    expect(screen.getByText(sampleTestPlansData[0].name)).toBeInTheDocument();
-    expect(screen.getByText(sampleTestPlansData[1].name)).toBeInTheDocument();
+    // Ensure initial data is rendered
+    await waitFor(() => expect(screen.getByText(mockUiTestsData[0].name)).toBeInTheDocument());
+    expect(screen.getByText(mockUiTestsData[1].name)).toBeInTheDocument();
 
-    const searchInput = screen.getByPlaceholderText('Search test plans...');
-    fireEvent.change(searchInput, { target: { value: 'Main' } });
+    const searchInput = screen.getByPlaceholderText('Search tests...'); // Updated placeholder
+    fireEvent.change(searchInput, { target: { value: 'Alpha' } }); // Search for "Alpha"
 
     await waitFor(() => {
-      expect(screen.getByText(sampleTestPlansData[0].name)).toBeInTheDocument();
-      expect(screen.queryByText(sampleTestPlansData[1].name)).not.toBeInTheDocument();
+      expect(screen.getByText(mockUiTestsData[0].name)).toBeInTheDocument(); // UI Test Alpha
+      expect(screen.queryByText(mockUiTestsData[1].name)).not.toBeInTheDocument(); // UI Test Beta should be filtered out
     });
+
+    // Test filtering by URL
+    fireEvent.change(searchInput, { target: { value: 'example.com/beta' } });
+     await waitFor(() => {
+      expect(screen.queryByText(mockUiTestsData[0].name)).not.toBeInTheDocument();
+      expect(screen.getByText(mockUiTestsData[1].name)).toBeInTheDocument();
+    });
+
+    // Test filtering by project name
+    fireEvent.change(searchInput, { target: { value: 'Project X' } });
+    await waitFor(() => {
+      expect(screen.getByText(mockUiTestsData[0].name)).toBeInTheDocument(); // UI Test Alpha (Project X)
+      expect(screen.queryByText(mockUiTestsData[1].name)).not.toBeInTheDocument(); // UI Test Beta (Project Y)
+      expect(screen.getByText(mockUiTestsData[2].name)).toBeInTheDocument(); // Another UI Gamma (Project X)
+    });
+  });
+
+  it('handles pagination for UI Tests', async () => {
+    renderTestsPage();
+    fireEvent.click(screen.getByRole('tab', { name: /Tests/i }));
+
+    await waitFor(() => expect(screen.getByText(mockUiTestsData[0].name)).toBeInTheDocument());
+    expect(screen.getByText(mockUiTestsData[9].name)).toBeInTheDocument(); // 10th item
+    expect(screen.queryByText(mockUiTestsData[10].name)).not.toBeInTheDocument(); // 11th item
+
+    expect(screen.getByText(/1-10 of 11/i)).toBeInTheDocument();
+
+    const nextPageButton = screen.getByRole('button', { name: /chevronright/i });
+    fireEvent.click(nextPageButton);
+
+    await waitFor(() => expect(screen.getByText(mockUiTestsData[10].name)).toBeInTheDocument());
+    expect(screen.queryByText(mockUiTestsData[0].name)).not.toBeInTheDocument();
+    expect(screen.getByText(/11-11 of 11/i)).toBeInTheDocument();
+
+    const prevPageButton = screen.getByRole('button', { name: /chevronleft/i });
+    fireEvent.click(prevPageButton);
+
+    await waitFor(() => expect(screen.getByText(mockUiTestsData[0].name)).toBeInTheDocument());
+    expect(screen.queryByText(mockUiTestsData[10].name)).not.toBeInTheDocument();
   });
 });
 
