@@ -1,0 +1,39 @@
+{
+  "missing_keys_by_language": {
+    "en": [],
+    "it": [],
+    "fr": [
+      "nav.apiTester"
+    ],
+    "de": [
+      "nav.apiTester"
+    ]
+  },
+  "unused_translation_keys": [
+    "dashboard.title",
+    "dashboardPage.clearSequenceButton",
+    "dashboardPage.dropActionsHint",
+    "dashboardPage.dropActionsPrompt",
+    "dashboardPage.executeTestButton",
+    "dashboardPage.executingTestButton",
+    "dashboardPage.headerTitle",
+    "dashboardPage.navCreateTest",
+    "dashboardPage.navMyTests",
+    "dashboardPage.navReports",
+    "dashboardPage.saveTestButton",
+    "dashboardPage.savingTestButton",
+    "dashboardPage.testSequenceTitle",
+    "dashboardPage.toast.defaultTestName",
+    "dashboardPage.toast.elementsDetectedTitle",
+    "dashboardPage.toast.testSavedDesc",
+    "dashboardPage.toast.testSavedTitle",
+    "dashboardPage.toast.websiteLoadedDesc",
+    "dashboardPage.toast.websiteLoadedTitle",
+    "greeting",
+    "nav.backToDashboard",
+    "settings.english",
+    "settings.italian",
+    "settings.language",
+    "settings.title"
+  ]
+}
