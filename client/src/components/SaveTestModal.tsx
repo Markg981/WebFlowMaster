@@ -78,13 +78,35 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
   });
 
   const createProjectMutation = useMutation<Project, Error, { name: string }>({
-    mutationFn: async (projectData) => {
+    mutationFn: async (projectData: { name: string }): Promise<Project> => {
       const response = await apiRequest("POST", "/api/projects", projectData);
-      // Assuming apiRequest returns parsed JSON on success
-      return response as Project;
+
+      // Check if apiRequest returned a standard Fetch Response object
+      if (response && typeof response.json === 'function' && typeof response.ok !== 'undefined') {
+        if (!response.ok) {
+          let errorDetails = `API request failed with status ${response.status}`;
+          try {
+            const errorData = await response.json();
+            errorDetails = errorData.error || errorData.message || errorDetails;
+          } catch (e) {
+            // Ignore if error body isn't JSON
+          }
+          throw new Error(errorDetails);
+        }
+        return response.json() as Promise<Project>;
+      } else if (response && typeof (response as any).id !== 'undefined') {
+        // If it's not a Response object, but looks like our Project object (already parsed)
+        return response as Project;
+      } else {
+        // Unexpected response structure
+        console.error('Unexpected response from apiRequest for POST /api/projects:', response);
+        throw new Error('Unexpected response structure from API when creating project.');
+      }
     },
     onSuccess: (newlyCreatedProject: Project) => { // Ensure newlyCreatedProject has the Project type
-      toast({ title: t('saveTestModal.notifications.projectCreated.title', 'Project Created'), description: t('saveTestModal.notifications.projectCreated.description', `Project "${newlyCreatedProject.name}" created successfully.`) });
+      // Ensure newlyCreatedProject is not undefined or a Response object before accessing .name
+      const projectName = newlyCreatedProject && newlyCreatedProject.name ? newlyCreatedProject.name : "Unnamed Project";
+      toast({ title: t('saveTestModal.notifications.projectCreated.title', 'Project Created'), description: t('saveTestModal.notifications.projectCreated.description', `Project "${projectName}" created successfully.`) });
       setIsCreateProjectModalOpen(false);
       setNewProjectName('');
 
@@ -92,17 +114,20 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
       queryClient.setQueryData(['projects'], (oldData: Project[] | undefined) => {
         const currentProjects = oldData || [];
         // Avoid adding duplicates if somehow already present (defensive)
-        if (currentProjects.find(p => p.id === newlyCreatedProject.id)) {
-          return currentProjects;
+        // Also ensure newlyCreatedProject and its id are valid before using
+        if (newlyCreatedProject && typeof newlyCreatedProject.id === 'number') {
+          if (currentProjects.find(p => p.id === newlyCreatedProject.id)) {
+            return currentProjects;
+          }
+          return [...currentProjects, newlyCreatedProject];
         }
-        return [...currentProjects, newlyCreatedProject];
+        return currentProjects; // Return old data if new project is invalid
       });
 
-      // 2. Set the new project as selected
-      // This will cause a re-render. The Select component should now find the
-      // newlyCreatedProject in projectsData (because of setQueryData)
-      // and display its name correctly.
-      setSelectedProjectId(newlyCreatedProject.id.toString());
+      // 2. Set the new project as selected (only if valid)
+      if (newlyCreatedProject && typeof newlyCreatedProject.id === 'number') {
+        setSelectedProjectId(newlyCreatedProject.id.toString());
+      }
 
       // 3. Invalidate to refetch in the background for eventual consistency
       queryClient.invalidateQueries({ queryKey: ['projects'] });
