@@ -9,14 +9,14 @@
       "savedTitle": "Impostazioni salvate",
       "savedDescription": "Le tue preferenze sono state aggiornate con successo.",
       "errorTitle": "Errore nel salvataggio",
-      "errorDescription": "Si \u00e8 verificato un errore imprevisto.",
+      "errorDescription": "Si è verificato un errore imprevisto.",
       "resetTitle": "Impostazioni resettate",
-      "resetDescription": "Il modulo locale \u00e8 stato resettato. Le impostazioni recuperate potrebbero differire."
+      "resetDescription": "Il modulo locale è stato resettato. Le impostazioni recuperate potrebbero differire."
     },
     "appearance": {
       "title": "Aspetto",
       "description": "Personalizza l'aspetto dell'applicazione.",
-      "darkModeLabel": "Modalit\u00e0 Scura",
+      "darkModeLabel": "Modalità Scura",
       "darkModeDescription": "Passa dal tema chiaro a quello scuro."
     },
     "languageSettings": {
@@ -28,7 +28,7 @@
       "italian": "Italiano (Italia)",
       "french": "Francese (Francia)",
       "german": "Tedesco (Germania)",
-      "selectHint": "Questo cambier\u00e0 la lingua dell'interfaccia utente."
+      "selectHint": "Questo cambierà la lingua dell'interfaccia utente."
     },
     "buttons": {
       "resetForm": "Resetta Modulo",
@@ -38,7 +38,31 @@
     }
   },
   "dashboard": {
-    "title": "Cruscotto"
+    "title": "Cruscotto",
+    "kpiPanel": {
+      "totalTests": "[TRANSLATE] Total Tests",
+      "successRate": "[TRANSLATE] Success Rate",
+      "avgDuration": "[TRANSLATE] Avg. Duration",
+      "lastRun": "[TRANSLATE] Last Run"
+    },
+    "quickAccessReports": {
+      "recentTestReports": "[TRANSLATE] Recent Test Reports",
+      "reportDataWillBeAvailable": "[TRANSLATE] Report data will be available soon."
+    },
+    "runTestNowButton": {
+      "eseguiTestOra": "[TRANSLATE] Esegui test ora"
+    },
+    "testSchedulingsTable": {
+      "upcomingRecentSchedulings": "[TRANSLATE] Upcoming & Recent Schedulings",
+      "schedulingDataWillBeAvailable": "[TRANSLATE] Scheduling data will be available soon."
+    },
+    "testStatusPieChart": {
+      "testStatusOverview": "[TRANSLATE] Test Status Overview",
+      "chartDataWillBeAvailable": "[TRANSLATE] Chart data will be available soon."
+    },
+    "testTrendBarChart": {
+      "weeklyTestTrends": "[TRANSLATE] Weekly Test Trends"
+    }
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -81,16 +105,17 @@
     "dropActionsHint": "Trascina le azioni dalla barra laterale sinistra, quindi aggiungi elementi per completare ogni passaggio",
     "toast": {
       "websiteLoadedTitle": "Sito Web Caricato",
-      "websiteLoadedDesc": "Il sito web \u00e8 stato caricato con successo.",
+      "websiteLoadedDesc": "Il sito web è stato caricato con successo.",
       "websiteLoadErrorTitle": "Errore nel Caricamento del Sito Web",
       "elementsDetectedTitle": "Elementi Rilevati",
       "elementsDetectedDesc": "{{count}} elementi trovati sulla pagina.",
       "elementsDetectErrorTitle": "Errore nel Rilevamento degli Elementi",
       "defaultTestName": "Test per {{url}}",
       "testSavedTitle": "Test Salvato",
-      "testSavedDesc": "La tua sequenza di test \u00e8 stata salvata.",
+      "testSavedDesc": "La tua sequenza di test è stata salvata.",
       "testSaveErrorTitle": "Errore nel Salvataggio del Test"
-    }
+    },
+    "user": "[TRANSLATE] User"
   },
   "apiTesterPage": {
     "backToDashboard": {
@@ -307,6 +332,32 @@
   "testsPage": {
     "testManagement": {
       "title": "[TRANSLATE] Test Management"
+    },
+    "tests": {
+      "label": "Tests"
+    },
+    "searchTests": {
+      "placeholder": "Cerca tests..."
+    },
+    "uiTestTable": {
+      "name": "Nome",
+      "url": "URL",
+      "status": "Stato",
+      "project": "Progetto",
+      "lastUpdated": "Ultimo Aggiornamento",
+      "actions": "Azioni"
+    },
+    "loadingUiTests": {
+      "text": "Caricamento tests..."
+    },
+    "errorLoadingUiTests": {
+      "text": "Errore durante il caricamento dei tests:"
+    },
+    "noUiTestsFound": {
+      "text": "Nessun test trovato."
+    },
+    "viewEdit": {
+      "button": "Visualizza/Modifica"
     },
     "testPlans": {
       "label": "[TRANSLATE] Test Plans"
@@ -549,10 +600,10 @@
       "button": "[TRANSLATE] Detect Elements"
     },
     "modalitDiCreazioneTest": {
-      "label": "[TRANSLATE] Modalit\u00e0 di Creazione Test"
+      "label": "[TRANSLATE] Modalità di Creazione Test"
     },
     "selezionaModalit": {
-      "placeholder": "[TRANSLATE] Seleziona modalit\u00e0"
+      "placeholder": "[TRANSLATE] Seleziona modalità"
     },
     "creaTestManualeDragDrop": {
       "text": "[TRANSLATE] Crea test manuale (drag & drop)"
@@ -597,7 +648,7 @@
       "text": "[TRANSLATE] Registrazione in corso..."
     },
     "utilizzaLaFinestraDelBrowser": {
-      "description": "[TRANSLATE] Utilizza la finestra del browser separata che si \u00e8 aperta per interagire con il sito."
+      "description": "[TRANSLATE] Utilizza la finestra del browser separata che si è aperta per interagire con il sito."
     },
     "leAzioniRegistrateApparirannoNella": {
       "description": "[TRANSLATE] Le azioni registrate appariranno nella sezione \"Test Sequence\" qui sotto."
@@ -625,11 +676,6 @@
     },
     "loadAWebsiteAndClickDetect": {
       "description": "[TRANSLATE] Load a website and click \"Detect Elements\""
-    }
-  },
-  "dashboardPage": {
-    "user": {
-      "text": "[TRANSLATE] User"
     }
   },
   "notFoundPage": {
@@ -1051,56 +1097,6 @@
       },
       "enterBearerToken": {
         "placeholder": "[TRANSLATE] Enter bearer token"
-      }
-    }
-  },
-  "dashboard": {
-    "kpiPanel": {
-      "totalTests": {
-        "title": "[TRANSLATE] Total Tests"
-      },
-      "successRate": {
-        "title": "[TRANSLATE] Success Rate"
-      },
-      "avgDuration": {
-        "title": "[TRANSLATE] Avg. Duration"
-      },
-      "lastRun": {
-        "title": "[TRANSLATE] Last Run"
-      }
-    },
-    "quickAccessReports": {
-      "recentTestReports": {
-        "title": "[TRANSLATE] Recent Test Reports"
-      },
-      "reportDataWillBeAvailable": {
-        "description": "[TRANSLATE] Report data will be available soon."
-      }
-    },
-    "runTestNowButton": {
-      "eseguiTestOra": {
-        "button": "[TRANSLATE] Esegui test ora"
-      }
-    },
-    "testSchedulingsTable": {
-      "upcomingRecentSchedulings": {
-        "title": "[TRANSLATE] Upcoming & Recent Schedulings"
-      },
-      "schedulingDataWillBeAvailable": {
-        "description": "[TRANSLATE] Scheduling data will be available soon."
-      }
-    },
-    "testStatusPieChart": {
-      "testStatusOverview": {
-        "title": "[TRANSLATE] Test Status Overview"
-      },
-      "chartDataWillBeAvailable": {
-        "description": "[TRANSLATE] Chart data will be available soon."
-      }
-    },
-    "testTrendBarChart": {
-      "weeklyTestTrends": {
-        "title": "[TRANSLATE] Weekly Test Trends"
       }
     }
   }

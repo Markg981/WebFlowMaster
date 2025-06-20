@@ -41,6 +41,22 @@ interface TestPlanItem {
   updatedAt: number; // Unix timestamp (seconds)
 }
 
+// Interface for general test data based on the 'tests' table schema
+interface GeneralTestData {
+  id: number;
+  name: string;
+  url: string;
+  sequence: any; // Or string
+  elements: any; // Or string
+  status: string;
+  createdAt: string; // Assuming string representation of timestamp
+  updatedAt: string; // Assuming string representation of timestamp
+  userId: number;
+  projectId?: number | null;
+  projectName?: string | null; // Added for consistency
+  // Potentially add creatorUsername if that's also desired, similar to ApiTestData
+}
+
 interface ScheduleItem {
   id: string;
   scheduleName: string;
@@ -69,8 +85,8 @@ const TestsPage: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation(); // Get setLocation for navigation
-  // State for the "Tests" tab (now Test Plans)
-  const [testPlanSearchTerm, setTestPlanSearchTerm] = useState('');
+  // State for the "Tests" tab (now UI Tests)
+  const [uiTestSearchTerm, setUiTestSearchTerm] = useState('');
   // Removed mockTests state
 
   const [scheduleSearchTerm, setScheduleSearchTerm] = useState('');
@@ -129,13 +145,14 @@ const TestsPage: React.FC = () => {
     queryFn: async () => { /* ... unchanged ... */ },
   });
 
-  // Fetch Test Plans using React Query
-  const { data: testPlans = [], isLoading: isLoadingTestPlans, error: testPlansError } = useQuery<TestPlanItem[]>({
-    queryKey: ['testPlans'],
+  // Fetch UI Tests (formerly Test Plans, now general tests) using React Query
+  const { data: uiTests = [], isLoading: isLoadingUiTests, error: uiTestsError } = useQuery<GeneralTestData[]>({
+    queryKey: ['uiTests'], // Changed queryKey
     queryFn: async () => {
-      const response = await fetch('/api/test-plans');
+      const response = await fetch('/api/tests'); // Fetch general tests
       if (!response.ok) {
-        throw new Error('Network response was not ok for test plans');
+        const errorData = await response.json().catch(() => ({ message: 'Network response was not ok for UI tests' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to fetch UI tests');
       }
       return response.json();
     },
@@ -157,13 +174,27 @@ const TestsPage: React.FC = () => {
     }
   });
 
-  const filteredTestPlans = useMemo(() => { // Renamed from filteredTests
-    if (!testPlans) return [];
-    return testPlans.filter(plan =>
-      plan.name.toLowerCase().includes(testPlanSearchTerm.toLowerCase()) ||
-      (plan.description && plan.description.toLowerCase().includes(testPlanSearchTerm.toLowerCase()))
+  // Fetch actual Test Plans for Schedule modals
+  const { data: actualTestPlans = [], isLoading: isLoadingActualTestPlans, error: actualTestPlansError } = useQuery<TestPlanItem[]>({
+    queryKey: ['actualTestPlans'], // New, distinct queryKey
+    queryFn: async () => {
+      const response = await fetch('/api/test-plans');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Network response was not ok for actual test plans' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to fetch actual test plans');
+      }
+      return response.json();
+    },
+  });
+
+  const filteredUiTests = useMemo(() => {
+    if (!uiTests) return [];
+    return uiTests.filter(test =>
+      test.name.toLowerCase().includes(uiTestSearchTerm.toLowerCase()) ||
+      test.url.toLowerCase().includes(uiTestSearchTerm.toLowerCase()) ||
+      (test.projectName && test.projectName.toLowerCase().includes(uiTestSearchTerm.toLowerCase()))
     );
-  }, [testPlanSearchTerm, testPlans]);
+  }, [uiTestSearchTerm, uiTests]);
 
   const filteredSchedules = useMemo(() => {
     if (!schedules) return [];
@@ -172,12 +203,17 @@ const TestsPage: React.FC = () => {
     );
   }, [scheduleSearchTerm, schedules]);
 
-  // Pagination for Test Plans Tab
-  const totalTestPlanPages = Math.ceil(filteredTestPlans.length / itemsPerPage);
-  const paginatedTestPlans = filteredTestPlans.slice( // Renamed from paginatedTests
+  // Pagination for UI Tests Tab (formerly Test Plans)
+  const totalUiTestPages = Math.ceil(filteredUiTests.length / itemsPerPage);
+  const paginatedUiTests = filteredUiTests.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  // Effect to reset page number for UI Tests tab when search term changes
+  useEffect(() => {
+    setCurrentPage(1); // Reset main page state, now used by UI Tests tab
+  }, [uiTestSearchTerm]);
 
   // Filtering and Pagination for API Tests Tab
   useEffect(() => {
@@ -305,7 +341,7 @@ const TestsPage: React.FC = () => {
   // --- Create Schedule Modal Handlers & Mutation ---
   const openCreateScheduleModal = () => {
     setNewScheduleName('');
-    setNewScheduleTestPlanId(testPlans.length > 0 ? testPlans[0].id : null); // Default to first test plan or null
+    setNewScheduleTestPlanId(actualTestPlans.length > 0 ? actualTestPlans[0].id : null); // Use actualTestPlans
     setNewFrequency('Daily');
     setNewNextRunAtString(formatTimestampToDateTimeLocal(Math.floor(Date.now() / 1000) + 3600));
     setIsCreateModalOpen(true);
@@ -369,7 +405,7 @@ const TestsPage: React.FC = () => {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['testPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['actualTestPlans'] });
       setIsCreateTestPlanModalOpen(false);
       // Potentially show success toast
     },
@@ -413,7 +449,7 @@ const TestsPage: React.FC = () => {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['testPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['actualTestPlans'] });
       setIsEditTestPlanModalOpen(false);
       setEditingTestPlan(null);
     },
@@ -449,7 +485,7 @@ const TestsPage: React.FC = () => {
       return null; // Or response.json() if backend returns data on delete
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['testPlans'] });
+      queryClient.invalidateQueries({ queryKey: ['actualTestPlans'] });
       setIsDeleteTestPlanConfirmOpen(false);
       setDeletingTestPlanId(null);
     },
@@ -523,35 +559,31 @@ const TestsPage: React.FC = () => {
         {/* Tabs setup will be placed here, Test Plans controls will go into its TabContent */}
         <Tabs defaultValue="tests">
           <TabsList className="mb-4">
-            <TabsTrigger value="tests">{t('testsPage.testPlans.label')}</TabsTrigger> {/* Renamed Tab */}
+            <TabsTrigger value="tests">{t('testsPage.tests.label', 'Tests')}</TabsTrigger>
             <TabsTrigger value="api-tests">API Tests</TabsTrigger> {/* New API Tests Tab */}
             <TabsTrigger value="schedules">{t('testSuitesPage.schedules.label')}</TabsTrigger>
           </TabsList>
 
-          {/* Test Plans Tab Content */}
+          {/* UI Tests Tab Content (formerly Test Plans) */}
           <TabsContent value="tests">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0"> {/* Control Group for Test Plans */}
-              <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto"> {/* Search, Refresh, Create Button */}
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
                 <div className="relative w-full sm:w-auto">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  {/* The erroneous <Input tag on the next line has been removed */}
                   <Input
                     type="search"
-                    placeholder={t('testsPage.searchTestPlans.placeholder')}
+                    placeholder={t('testsPage.searchTests.placeholder', 'Search tests...')}
                     className="pl-8 pr-2 py-2 h-10 w-full sm:w-[200px] lg:w-[250px]"
-                    value={testPlanSearchTerm}
-                    onChange={(e) => { setTestPlanSearchTerm(e.target.value); setCurrentPage(1); }}
+                    value={uiTestSearchTerm}
+                    onChange={(e) => { setUiTestSearchTerm(e.target.value); setCurrentPage(1); }}
                   />
                 </div>
-                <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => { setTestPlanSearchTerm(''); setCurrentPage(1); }}>
+                <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => { setUiTestSearchTerm(''); setCurrentPage(1); }}>
                   <RefreshCcw size={18} />
                 </Button>
-                <Button variant="default" onClick={openCreateTestPlanModal} className="h-10">
-                  <PlusCircle className="w-4 h-4 mr-2" />
-                  {t('testsPage.createTestPlan.button')}
-                </Button>
+                {/* Create Test Plan button removed - this tab now lists general UI tests */}
               </div>
-              <div className="flex items-center gap-2"> {/* Pagination for Test Plans */}
+              <div className="flex items-center gap-2"> {/* Pagination for UI Tests */}
                 <Button
                   variant="outline"
                   size="icon"
@@ -562,71 +594,69 @@ const TestsPage: React.FC = () => {
                   <ChevronLeft size={16} />
                 </Button>
                 <span className="mx-2 text-sm font-medium">
-                  {`${Math.min((currentPage - 1) * itemsPerPage + 1, filteredTestPlans.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1)}-${Math.min(currentPage * itemsPerPage, filteredTestPlans.length)} of ${filteredTestPlans.length}`}
+                  {`${Math.min((currentPage - 1) * itemsPerPage + 1, filteredUiTests.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1)}-${Math.min(currentPage * itemsPerPage, filteredUiTests.length)} of ${filteredUiTests.length}`}
                 </span>
                 <Button
                   variant="outline"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => setCurrentPage(prev => Math.min(totalTestPlanPages, prev + 1))}
-                  disabled={currentPage === totalTestPlanPages || filteredTestPlans.length === 0}
+                  onClick={() => setCurrentPage(prev => Math.min(totalUiTestPages, prev + 1))}
+                  disabled={currentPage === totalUiTestPages || filteredUiTests.length === 0}
                 >
                   <ChevronRight size={16} />
                 </Button>
               </div>
             </div>
-            {/* Test Plans Table Card */}
+            {/* UI Tests Table Card (formerly Test Plans) */}
             <Card>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('testSuitesPage.name.label')}</TableHead>
-                    <TableHead>{t('testsPage.description.label')}</TableHead>
-                    <TableHead>{t('testsPage.createdAt.label')}</TableHead>
-                    <TableHead>{t('testsPage.updatedAt.label')}</TableHead>
-                    <TableHead>{t('testsPage.actions.label')}</TableHead>
+                    <TableHead>{t('testsPage.uiTestTable.name', 'Name')}</TableHead>
+                    <TableHead>{t('testsPage.uiTestTable.url', 'URL')}</TableHead>
+                    <TableHead>{t('testsPage.uiTestTable.status', 'Status')}</TableHead>
+                    <TableHead>{t('testsPage.uiTestTable.project', 'Project')}</TableHead>
+                    <TableHead>{t('testsPage.uiTestTable.lastUpdated', 'Last Updated')}</TableHead>
+                    <TableHead>{t('testsPage.uiTestTable.actions', 'Actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoadingTestPlans && (
-                    <TableRow><TableCell colSpan={5} className="text-center">{t('testsPage.loadingTestPlans.text')}</TableCell></TableRow>
+                  {isLoadingUiTests && (
+                    <TableRow><TableCell colSpan={6} className="text-center">{t('testsPage.loadingUiTests.text', 'Loading tests...')}</TableCell></TableRow>
                   )}
-                  {testPlansError && (
-                    <TableRow><TableCell colSpan={5} className="text-center text-red-500">Error loading test plans: {testPlansError.message}</TableCell></TableRow>
+                  {uiTestsError && (
+                    <TableRow><TableCell colSpan={6} className="text-center text-red-500">{t('testsPage.errorLoadingUiTests.text', 'Error loading tests:')} {uiTestsError.message}</TableCell></TableRow>
                   )}
-                  {!isLoadingTestPlans && !testPlansError && paginatedTestPlans.map((plan) => (
-                    <TableRow key={plan.id}>
-                      <TableCell className="font-medium">{plan.name}</TableCell>
-                      <TableCell>{plan.description || t('testsPage.na.text')}</TableCell>
-                      <TableCell>{formatTimestampToReadableDate(plan.createdAt)}</TableCell>
-                      <TableCell>{formatTimestampToReadableDate(plan.updatedAt)}</TableCell>
+                  {!isLoadingUiTests && !uiTestsError && paginatedUiTests.map((test) => (
+                    <TableRow key={test.id}>
+                      <TableCell className="font-medium">{test.name}</TableCell>
+                      <TableCell className="truncate max-w-xs" title={test.url}>{test.url}</TableCell>
                       <TableCell>
-                        <div className="flex items-center space-x-1">
-                          {/* Simplified Actions for Test Plans */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleOpenEditTestPlanModal(plan)}>
-                                <Edit3 className="w-4 h-4 mr-2" />
-                                {t('testsPage.edit.button')}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-red-600 hover:text-red-600 hover:bg-destructive/90 focus:text-red-600 focus:bg-destructive/90"
-                                onClick={() => handleOpenDeleteTestPlanConfirm(plan.id)}
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                {t('testsPage.delete.button')}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                        <Badge variant={getStatusBadgeVariant(test.status)}>{test.status}</Badge>
+                      </TableCell>
+                      <TableCell>{test.projectName || t('testsPage.na.text', 'N/A')}</TableCell>
+                      <TableCell>{test.updatedAt ? format(parseISO(test.updatedAt), 'yyyy-MM-dd HH:mm') : t('testsPage.na.text', 'N/A')}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => alert('View/Edit Test ID: ' + test.id)}>
+                              <Play className="w-4 h-4 mr-2" />
+                              {t('testsPage.viewEdit.button', 'View/Edit')}
+                            </DropdownMenuItem>
+                            {/* Add other actions like Delete here if needed in future */}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
+                  {!isLoadingUiTests && !uiTestsError && paginatedUiTests.length === 0 && (
+                     <TableRow><TableCell colSpan={6} className="text-center">{t('testsPage.noUiTestsFound.text', 'No tests found.')}</TableCell></TableRow>
+                  )}
             </TableBody>
           </Table>
             </Card>
@@ -854,18 +884,18 @@ const TestsPage: React.FC = () => {
                 <Select
                   value={newScheduleTestPlanId || ''}
                   onValueChange={(value) => setNewScheduleTestPlanId(value)}
-                  disabled={isLoadingTestPlans || testPlans.length === 0}
+                  disabled={isLoadingActualTestPlans || actualTestPlans.length === 0}
                 >
                   <SelectTrigger className="col-span-3 h-10" id="newScheduleTestPlanId">
-                    <SelectValue placeholder={isLoadingTestPlans ? t('testsPage.loadingTestPlans.text') : (testPlans.length === 0 ? t('testsPage.noTestPlansAvailable.placeholder') : t('testsPage.selectATestPlan.placeholder'))} />
+                    <SelectValue placeholder={isLoadingActualTestPlans ? t('testsPage.loadingTestPlans.text') : (actualTestPlans.length === 0 ? t('testsPage.noTestPlansAvailable.placeholder') : t('testsPage.selectATestPlan.placeholder'))} />
                   </SelectTrigger>
                   <SelectContent>
-                    {isLoadingTestPlans ? (
+                    {isLoadingActualTestPlans ? (
                       <SelectItem value="loading" disabled>{t('testsPage.loadingTestPlans.text')}</SelectItem>
-                    ) : testPlans.length === 0 ? (
+                    ) : actualTestPlans.length === 0 ? (
                       <SelectItem value="no-plans" disabled>{t('testsPage.noTestPlansAvailable.placeholder')}</SelectItem>
                     ) : (
-                      testPlans.map(plan => (
+                      actualTestPlans.map(plan => (
                         <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
                       ))
                     )}
@@ -927,18 +957,18 @@ const TestsPage: React.FC = () => {
                   <Select
                     value={editableScheduleTestPlanId}
                     onValueChange={(value) => setEditableScheduleTestPlanId(value)}
-                    disabled={isLoadingTestPlans || testPlans.length === 0}
+                    disabled={isLoadingActualTestPlans || actualTestPlans.length === 0}
                   >
                     <SelectTrigger className="col-span-3 h-10">
-                      <SelectValue placeholder={isLoadingTestPlans ? t('testsPage.loadingTestPlans.text') : (testPlans.length === 0 ? t('testsPage.noTestPlansAvailable.placeholder') : t('testsPage.selectATestPlan.placeholder'))} />
+                      <SelectValue placeholder={isLoadingActualTestPlans ? t('testsPage.loadingTestPlans.text') : (actualTestPlans.length === 0 ? t('testsPage.noTestPlansAvailable.placeholder') : t('testsPage.selectATestPlan.placeholder'))} />
                     </SelectTrigger>
                     <SelectContent>
-                      {isLoadingTestPlans ? (
+                      {isLoadingActualTestPlans ? (
                         <SelectItem value="loading" disabled>{t('testsPage.loadingTestPlans.text')}</SelectItem>
-                      ) : testPlans.length === 0 ? (
+                      ) : actualTestPlans.length === 0 ? (
                         <SelectItem value="no-plans" disabled>{t('testsPage.noTestPlansAvailable.placeholder')}</SelectItem>
                       ) : (
-                        testPlans.map(plan => (
+                        actualTestPlans.map(plan => (
                           <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
                         ))
                       )}
@@ -1110,7 +1140,7 @@ const TestsPage: React.FC = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>{t('testsPage.confirmDeletion.title')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete test plan "{testPlans.find(tp => tp.id === deletingTestPlanId)?.name}"?
+                Are you sure you want to delete test plan "{actualTestPlans.find(tp => tp.id === deletingTestPlanId)?.name}"?
                 This action cannot be undone and will also delete any associated schedules.
               </AlertDialogDescription>
             </AlertDialogHeader>
