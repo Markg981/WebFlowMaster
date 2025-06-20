@@ -40,8 +40,15 @@ beforeAll(async () => {
 
 
   app.use((req: Request, res: Response, next: NextFunction) => {
-    req.user = currentMockUser;
-    req.isAuthenticated = () => true;
+    // For a specific test, we might want to simulate unauthenticated
+    if (req.headers['x-test-unauthenticated'] === 'true') {
+      // @ts-ignore // Allow setting user to null for testing
+      req.user = null;
+      req.isAuthenticated = () => false;
+    } else {
+      req.user = currentMockUser;
+      req.isAuthenticated = () => true;
+    }
     next();
   });
 
@@ -248,6 +255,17 @@ describe('DELETE /api/projects/:projectId', () => {
       .expect(400)
       .then(res => {
           expect(res.body.error).toBe("Invalid project ID format");
+      });
+  });
+
+  it('should return 401 if unauthenticated', async () => {
+    // No need to set currentMockUser as the middleware will handle it based on header
+    await request(app)
+      .delete(`/api/projects/${seededProject1User1.id}`) // Use any valid project ID for the path
+      .set('x-test-unauthenticated', 'true')
+      .expect(401)
+      .then(res => {
+        expect(res.body.error).toBe("Unauthorized");
       });
   });
 });

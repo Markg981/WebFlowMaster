@@ -473,7 +473,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to create project" });
     }
   });
-  app.delete("/api/projects/:projectId", async (req, res) => { /* ... existing code ... */ });
+  app.delete("/api/projects/:projectId", async (req, res) => {
+    // Ensure 'projects', 'eq', 'and', 'db', 'resolvedLogger' are correctly imported/available in scope.
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id;
+    const projectIdString = req.params.projectId;
+    const parsedProjectId = parseInt(projectIdString, 10);
+
+    if (isNaN(parsedProjectId)) {
+      return res.status(400).json({ error: "Invalid project ID format." });
+    }
+
+    try {
+      const projectToDelete = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)))
+        .limit(1);
+
+      if (projectToDelete.length === 0) {
+        return res.status(404).json({ error: "Project not found or not owned by user." });
+      }
+
+      await db
+        .delete(projects)
+        .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)));
+
+      res.status(204).send();
+
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: `Error deleting project ${parsedProjectId} for user ${userId}`,
+        error: error.message,
+        stack: error.stack,
+      });
+      res.status(500).json({ error: "Failed to delete project due to a server error." });
+    }
+  });
   app.get("/api/tests", async (req, res) => { /* ... existing code ... */ });
 
   // Schema for creating a new test (general UI test, not API test)
