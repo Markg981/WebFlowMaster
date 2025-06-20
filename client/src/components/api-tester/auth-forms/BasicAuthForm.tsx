@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BasicAuthParams } from '@shared/schema';
@@ -14,6 +15,7 @@ export const BasicAuthForm: React.FC<BasicAuthFormProps> = ({
   onChange,
   disabled = false,
 }) => {
+  const { t } = useTranslation();
   const handleInputChange = (field: keyof BasicAuthParams, value: string) => {
     onChange({
       username: params.username || '',
@@ -25,25 +27,25 @@ export const BasicAuthForm: React.FC<BasicAuthFormProps> = ({
   return (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="basic-username">Username</Label>
+        <Label htmlFor="basic-username">{t('authForms.basicAuthForm.username.label')}</Label>
         <Input
           id="basic-username"
           type="text"
           value={params.username || ''}
           onChange={(e) => handleInputChange('username', e.target.value)}
-          placeholder="Enter username"
+          placeholder={t('authForms.basicAuthForm.enterUsername.placeholder')}
           disabled={disabled}
           className="mt-1"
         />
       </div>
       <div>
-        <Label htmlFor="basic-password">Password</Label>
+        <Label htmlFor="basic-password">{t('authForms.basicAuthForm.password.label')}</Label>
         <Input
           id="basic-password"
           type="password"
           value={params.password || ''}
           onChange={(e) => handleInputChange('password', e.target.value)}
-          placeholder="Enter password"
+          placeholder={t('authForms.basicAuthForm.enterPassword.placeholder')}
           disabled={disabled}
           className="mt-1"
         />

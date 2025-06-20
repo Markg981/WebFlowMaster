@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 // Removed useQuery, Link, Loader2, AlertCircle, FileText, ListChecks, Image
 // Removed Badge, BadgeProps, Button
 
@@ -7,6 +8,7 @@ import React from 'react';
 // getStatusBadgeStyle function (REMOVED)
 
 const QuickAccessReports: React.FC = () => {
+  const { t } = useTranslation();
   // useQuery hook (REMOVED)
   // Loading, Error, No Data states (REMOVED)
 
@@ -17,10 +19,10 @@ const QuickAccessReports: React.FC = () => {
 
   return (
     <div className={`${containerClasses} flex flex-col`}> {/* Added flex flex-col to allow title and content area to stack */}
-      <h3 className="text-lg font-semibold mb-4">Recent Test Reports</h3>
+      <h3 className="text-lg font-semibold mb-4">{t('dashboard.quickAccessReports.recentTestReports.title')}</h3>
       <div className={contentAreaClasses}>
         <p className="text-muted-foreground text-center">
-          Report data will be available soon.
+          {t('dashboard.quickAccessReports.reportDataWillBeAvailable.description')}
         </p>
       </div>
     </div>

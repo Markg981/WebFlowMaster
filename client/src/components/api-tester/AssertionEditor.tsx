@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Assertion, AssertionSourceSchema, AssertionComparisonSchema } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +52,7 @@ const targetValueRequiredByComparison: Record<Assertion['comparison'], boolean> 
 
 
 export const AssertionEditor: React.FC<AssertionEditorProps> = ({ assertions, onChange, isExecuting }) => {
+  const { t } = useTranslation();
   const handleAddAssertion = () => {
     const newAssertion: Assertion = {
       id: uuidv4(),
@@ -83,9 +85,9 @@ export const AssertionEditor: React.FC<AssertionEditorProps> = ({ assertions, on
         return (
           <div key={assertion.id} className="p-3 border rounded-md bg-card space-y-2">
             <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Assertion #{assertions.indexOf(assertion)+1}</Label>
+                <Label className="text-xs font-semibold">{t('apiTester.assertionEditor.assertion.label')}{assertions.indexOf(assertion)+1}</Label>
                 <div className="flex items-center space-x-2">
-                    <Label htmlFor={`enabled-${assertion.id}`} className="text-xs">Enabled</Label>
+                    <Label htmlFor={`enabled-${assertion.id}`} className="text-xs">{t('apiTester.assertionEditor.enabled.label')}</Label>
                     <Checkbox
                         id={`enabled-${assertion.id}`}
                         checked={assertion.enabled}
@@ -100,7 +102,7 @@ export const AssertionEditor: React.FC<AssertionEditorProps> = ({ assertions, on
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div>
-                <Label htmlFor={`source-${assertion.id}`} className="text-xs">Source</Label>
+                <Label htmlFor={`source-${assertion.id}`} className="text-xs">{t('apiTester.assertionEditor.source.label')}</Label>
                 <Select
                   value={assertion.source}
                   onValueChange={(value: Assertion['source']) => {
@@ -116,7 +118,7 @@ export const AssertionEditor: React.FC<AssertionEditorProps> = ({ assertions, on
                   disabled={isExecuting}
                 >
                   <SelectTrigger id={`source-${assertion.id}`}>
-                    <SelectValue placeholder="Select source" />
+                    <SelectValue placeholder={t('apiTester.assertionEditor.selectSource.placeholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {sourceOptions.map(option => (
@@ -127,14 +129,14 @@ export const AssertionEditor: React.FC<AssertionEditorProps> = ({ assertions, on
               </div>
 
               <div>
-                <Label htmlFor={`comparison-${assertion.id}`} className="text-xs">Comparison</Label>
+                <Label htmlFor={`comparison-${assertion.id}`} className="text-xs">{t('apiTester.assertionEditor.comparison.label')}</Label>
                 <Select
                   value={assertion.comparison}
                   onValueChange={(value: Assertion['comparison']) => handleChangeAssertion(assertion.id, 'comparison', value)}
                   disabled={isExecuting}
                 >
                   <SelectTrigger id={`comparison-${assertion.id}`}>
-                    <SelectValue placeholder="Select comparison" />
+                    <SelectValue placeholder={t('apiTester.assertionEditor.selectComparison.placeholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {availableComparisons.map(option => (
@@ -148,17 +150,17 @@ export const AssertionEditor: React.FC<AssertionEditorProps> = ({ assertions, on
             {needsProperty && (
               <div>
                 <Label htmlFor={`property-${assertion.id}`} className="text-xs">
-                  {assertion.source === 'header' ? 'Header Name' :
-                   assertion.source === 'body_json_path' ? 'JSON Path (e.g., data.id)' :
-                   'Property'}
+                  {assertion.source === 'header' ? t('apiTester.assertionEditor.headerName.label') :
+                   assertion.source === 'body_json_path' ? t('apiTester.assertionEditor.jsonPathEgDataid.label') :
+                   t('apiTester.assertionEditor.property.label')}
                 </Label>
                 <Input
                   id={`property-${assertion.id}`}
                   value={assertion.property}
                   onChange={(e) => handleChangeAssertion(assertion.id, 'property', e.target.value)}
                   placeholder={
-                    assertion.source === 'header' ? 'e.g., Content-Type' :
-                    assertion.source === 'body_json_path' ? 'e.g., user.name or items[0].id' : ''
+                    assertion.source === 'header' ? t('apiTester.assertionEditor.egContentType.placeholder') :
+                    assertion.source === 'body_json_path' ? t('apiTester.assertionEditor.egUsernameOrItems0id.placeholder') : ''
                   }
                   disabled={isExecuting}
                   className="text-sm"
@@ -168,16 +170,16 @@ export const AssertionEditor: React.FC<AssertionEditorProps> = ({ assertions, on
 
             {needsTargetValue && (
               <div>
-                <Label htmlFor={`target-${assertion.id}`} className="text-xs">Target Value</Label>
+                <Label htmlFor={`target-${assertion.id}`} className="text-xs">{t('apiTester.assertionEditor.targetValue.label')}</Label>
                 <Input
                   id={`target-${assertion.id}`}
                   value={assertion.targetValue}
                   onChange={(e) => handleChangeAssertion(assertion.id, 'targetValue', e.target.value)}
                   placeholder={
-                    assertion.comparison.includes('regex') ? 'Enter Regex' :
-                    assertion.source === 'status_code' ? 'e.g., 200' :
-                    assertion.source === 'response_time' ? 'e.g., 500 (in ms)' :
-                    'Expected value'
+                    assertion.comparison.includes('regex') ? t('apiTester.assertionEditor.enterRegex.placeholder') :
+                    assertion.source === 'status_code' ? t('apiTester.assertionEditor.eg200.placeholder') :
+                    assertion.source === 'response_time' ? t('apiTester.assertionEditor.eg500InMs.placeholder') :
+                    t('apiTester.assertionEditor.expectedValue.placeholder')
                   }
                   disabled={isExecuting}
                   className="text-sm"
@@ -188,7 +190,7 @@ export const AssertionEditor: React.FC<AssertionEditorProps> = ({ assertions, on
         );
       })}
       <Button variant="outline" size="sm" onClick={handleAddAssertion} disabled={isExecuting}>
-        <PlusCircle className="mr-2 h-4 w-4" /> Add Assertion
+        <PlusCircle className="mr-2 h-4 w-4" /> {t('apiTester.assertionEditor.addAssertion.button')}
       </Button>
     </div>
   );

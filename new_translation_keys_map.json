@@ -1,0 +1,1602 @@
+[
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Back to Dashboard",
+    "key": "apiTesterPage.backToDashboard.button"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "API Tester",
+    "key": "apiTesterPage.apiTester.title"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Save Changes",
+    "key": "apiTesterPage.saveChanges.button"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Save Test",
+    "key": "apiTesterPage.saveTest.button"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "History",
+    "key": "apiTesterPage.history.title"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Saved Tests",
+    "key": "apiTesterPage.savedTests.title"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Method",
+    "key": "apiTesterPage.method.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Base URL",
+    "key": "apiTesterPage.baseUrl.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "https://api.example.com/data",
+    "key": "apiTesterPage.httpsapiexamplecomdata.text"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Send",
+    "key": "apiTesterPage.send.button"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Effective URL (read-only):",
+    "key": "apiTesterPage.effectiveUrlReadonly.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Enter base URL and add params...",
+    "key": "apiTesterPage.enterBaseUrlAndAddParams.placeholder"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Query Params",
+    "key": "apiTesterPage.queryParams.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Authorization",
+    "key": "apiTesterPage.authorization.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Headers",
+    "key": "apiTesterPage.headers.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Body",
+    "key": "apiTesterPage.body.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Assertions",
+    "key": "apiTesterPage.assertions.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Key",
+    "key": "apiTesterPage.key.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Value",
+    "key": "apiTesterPage.value.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Add Param",
+    "key": "apiTesterPage.addParam.button"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Header Name",
+    "key": "apiTesterPage.headerName.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Header Value",
+    "key": "apiTesterPage.headerValue.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Add Header",
+    "key": "apiTesterPage.addHeader.button"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Body Type",
+    "key": "apiTesterPage.bodyType.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "This request does not have a body.",
+    "key": "apiTesterPage.thisRequestDoesNotHaveA.description"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Content-Type",
+    "key": "apiTesterPage.contentType.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Select content type",
+    "key": "apiTesterPage.selectContentType.placeholder"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "application/json",
+    "key": "apiTesterPage.applicationjson.text"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "text/plain",
+    "key": "apiTesterPage.textplain.text"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "application/xml",
+    "key": "apiTesterPage.applicationxml.text"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "text/html",
+    "key": "apiTesterPage.texthtml.text"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "application/javascript",
+    "key": "apiTesterPage.applicationjavascript.text"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Upload File",
+    "key": "apiTesterPage.uploadFile.button"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "GraphQL Query",
+    "key": "apiTesterPage.graphqlQuery.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "GraphQL Variables (JSON)",
+    "key": "apiTesterPage.graphqlVariablesJson.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Type",
+    "key": "apiTesterPage.type.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Text",
+    "key": "apiTesterPage.text.text"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "File",
+    "key": "apiTesterPage.file.text"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Add Field",
+    "key": "apiTesterPage.addField.button"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Response",
+    "key": "apiTesterPage.response.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Status:",
+    "key": "apiTesterPage.status.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "---",
+    "key": "apiTesterPage.text1"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Time:",
+    "key": "apiTesterPage.time.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Loading...",
+    "key": "apiTesterPage.loading.button"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Loading response headers...",
+    "key": "apiTesterPage.loadingResponseHeaders.placeholder"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Response headers will appear here...",
+    "key": "apiTesterPage.responseHeadersWillAppearHere.placeholder"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Assertion Results",
+    "key": "apiTesterPage.assertionResults.label"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "No assertions were run or results are not available.",
+    "key": "apiTesterPage.noAssertionsWereRunOrResults.description"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Running assertions...",
+    "key": "apiTesterPage.runningAssertions.text"
+  },
+  {
+    "file": "client/src/pages/DashboardOverviewPage.tsx",
+    "string": "WebTest Platform",
+    "key": "dashboardOverviewPage.webtestPlatform.text"
+  },
+  {
+    "file": "client/src/pages/DashboardOverviewPage.tsx",
+    "string": "No email provided",
+    "key": "dashboardOverviewPage.noEmailProvided.text"
+  },
+  {
+    "file": "client/src/pages/DashboardOverviewPage.tsx",
+    "string": "User not loaded",
+    "key": "dashboardOverviewPage.userNotLoaded.text"
+  },
+  {
+    "file": "client/src/pages/DashboardOverviewPage.tsx",
+    "string": "Dashboard Overview",
+    "key": "dashboardOverviewPage.dashboardOverview.title"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Test Suites",
+    "key": "testSuitesPage.testSuites.title"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Search tests...",
+    "key": "testSuitesPage.searchTests.placeholder"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Filter by project",
+    "key": "testSuitesPage.filterByProject.placeholder"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "All Projects",
+    "key": "testSuitesPage.allProjects.text"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "+ Test Plan",
+    "key": "testSuitesPage.testPlan.button"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Test Plan",
+    "key": "testSuitesPage.testPlan.label"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Schedules",
+    "key": "testSuitesPage.schedules.label"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Name",
+    "key": "testSuitesPage.name.label"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Test Lab Type",
+    "key": "testSuitesPage.testLabType.label"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Progetto di appartenenza",
+    "key": "testSuitesPage.progettoDiAppartenenza.label"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Azioni",
+    "key": "testSuitesPage.azioni.label"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "No Description",
+    "key": "testSuitesPage.noDescription.text"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Cross Device Testing",
+    "key": "testSuitesPage.crossDeviceTesting.text"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Schedule",
+    "key": "testSuitesPage.schedule.button"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Reports",
+    "key": "testSuitesPage.reports.button"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Run",
+    "key": "testSuitesPage.run.button"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Schedules content goes here.",
+    "key": "testSuitesPage.schedulesContentGoesHere.text"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Test Management",
+    "key": "testsPage.testManagement.title"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Test Plans",
+    "key": "testsPage.testPlans.label"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Search test plans...",
+    "key": "testsPage.searchTestPlans.placeholder"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Create Test Plan",
+    "key": "testsPage.createTestPlan.button"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Description",
+    "key": "testsPage.description.label"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Created At",
+    "key": "testsPage.createdAt.label"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Updated At",
+    "key": "testsPage.updatedAt.label"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Actions",
+    "key": "testsPage.actions.label"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Loading test plans...",
+    "key": "testsPage.loadingTestPlans.text"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "N/A",
+    "key": "testsPage.na.text"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Edit",
+    "key": "testsPage.edit.button"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Delete",
+    "key": "testsPage.delete.button"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "List View",
+    "key": "testsPage.listView.button"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Create Schedule",
+    "key": "testsPage.createSchedule.button"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Search schedules...",
+    "key": "testsPage.searchSchedules.placeholder"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Schedule Name",
+    "key": "testsPage.scheduleName.label"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Frequency",
+    "key": "testsPage.frequency.label"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Next Run At",
+    "key": "testsPage.nextRunAt.label"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Loading schedules...",
+    "key": "testsPage.loadingSchedules.text"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Create New Schedule",
+    "key": "testsPage.createNewSchedule.title"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Fill in the details for your new schedule.",
+    "key": "testsPage.fillInTheDetailsForYour.description"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "e.g., Daily Smoke Tests",
+    "key": "testsPage.egDailySmokeTests.placeholder"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "No test plans available",
+    "key": "testsPage.noTestPlansAvailable.placeholder"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Select a Test Plan",
+    "key": "testsPage.selectATestPlan.placeholder"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Select frequency",
+    "key": "testsPage.selectFrequency.placeholder"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Hourly",
+    "key": "testsPage.hourly.text"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Daily",
+    "key": "testsPage.daily.text"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Weekly",
+    "key": "testsPage.weekly.text"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Bi-Weekly",
+    "key": "testsPage.biweekly.text"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Monthly",
+    "key": "testsPage.monthly.text"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Every 15 minutes",
+    "key": "testsPage.every15Minutes.text"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Every 30 minutes",
+    "key": "testsPage.every30Minutes.text"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Cancel",
+    "key": "testsPage.cancel.button"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Creating...",
+    "key": "testsPage.creating.button"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Update the frequency and next run time for your schedule. Name and Test Plan are not editable here.",
+    "key": "testsPage.updateTheFrequencyAndNextRun.description"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Name:",
+    "key": "testsPage.name.label1"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Current Plan:",
+    "key": "testsPage.currentPlan.label"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Frequency:",
+    "key": "testsPage.frequency.label1"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Next Run At:",
+    "key": "testsPage.nextRunAt.label1"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Saving...",
+    "key": "testsPage.saving.button"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Save Changes",
+    "key": "testsPage.saveChanges.button"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Confirm Deletion",
+    "key": "testsPage.confirmDeletion.title"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Deleting...",
+    "key": "testsPage.deleting.button"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Create New Test Plan",
+    "key": "testsPage.createNewTestPlan.title"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Fill in the details for your new test plan. Name is required.",
+    "key": "testsPage.fillInTheDetailsForYourNewTestPlanName.description"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "e.g., End-to-End Checkout Flow",
+    "key": "testsPage.egEndtoendCheckoutFlow.placeholder"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Optional: A brief summary of the test plan",
+    "key": "testsPage.optionalABriefSummaryOfThe.placeholder"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Update the name and description for your test plan.",
+    "key": "testsPage.updateTheNameAndDescription.description"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Delete Test Plan",
+    "key": "testsPage.deleteTestPlan.button"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Automated Web Testing Made Simple",
+    "key": "authPage.automatedWebTestingMadeSimple.text"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Welcome",
+    "key": "authPage.welcome.title"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Sign in to your account or create a new one to get started",
+    "key": "authPage.signInToYourAccountOrCreate.description"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Sign In",
+    "key": "authPage.signIn.button"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Register",
+    "key": "authPage.register.button"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Username",
+    "key": "authPage.username.label"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Enter your username",
+    "key": "authPage.enterYourUsername.placeholder"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Password",
+    "key": "authPage.password.label"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Enter your password",
+    "key": "authPage.enterYourPassword.placeholder"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Signing in...",
+    "key": "authPage.signingIn.button"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Choose a username",
+    "key": "authPage.chooseAUsername.placeholder"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Choose a password",
+    "key": "authPage.chooseAPassword.placeholder"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Confirm Password",
+    "key": "authPage.confirmPassword.label"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Confirm your password",
+    "key": "authPage.confirmYourPassword.placeholder"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Passwords do not match",
+    "key": "authPage.passwordsDoNotMatch.description"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Creating account...",
+    "key": "authPage.creatingAccount.button"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Create Account",
+    "key": "authPage.createAccount.button"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Automate Your Web Testing",
+    "key": "authPage.automateYourWebTesting.title"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Create, execute, and manage automated web tests with our intuitive drag-and-drop interface.",
+    "key": "authPage.createExecuteAndManageAutomated.description"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "No coding required.",
+    "key": "authPage.noCodingRequired.text"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Visual element detection",
+    "key": "authPage.visualElementDetection.text"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Drag-and-drop test building",
+    "key": "authPage.draganddropTestBuilding.text"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Real-time test execution",
+    "key": "authPage.realtimeTestExecution.text"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Comprehensive reporting",
+    "key": "authPage.comprehensiveReporting.text"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Create Web Test",
+    "key": "dashboardPageNew.createWebTest.title"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Notifications",
+    "key": "dashboardPageNew.notifications.button"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Settings",
+    "key": "dashboardPageNew.settings.button"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Sign Out",
+    "key": "dashboardPageNew.signOut.button"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Website URL to Test",
+    "key": "dashboardPageNew.websiteUrlToTest.label"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "https://example.com",
+    "key": "dashboardPageNew.httpsexamplecom.placeholder"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Load Website",
+    "key": "dashboardPageNew.loadWebsite.button"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Detect Elements",
+    "key": "dashboardPageNew.detectElements.button"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Modalit\u00e0 di Creazione Test",
+    "key": "dashboardPageNew.modalitDiCreazioneTest.label"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Seleziona modalit\u00e0",
+    "key": "dashboardPageNew.selezionaModalit.placeholder"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Crea test manuale (drag & drop)",
+    "key": "dashboardPageNew.creaTestManualeDragDrop.text"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Registra azioni utente (auto-record)",
+    "key": "dashboardPageNew.registraAzioniUtenteAutorecord.text"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Starting...",
+    "key": "dashboardPageNew.starting.button"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Inizia registrazione",
+    "key": "dashboardPageNew.iniziaRegistrazione.button"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Stopping...",
+    "key": "dashboardPageNew.stopping.button"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Termina registrazione",
+    "key": "dashboardPageNew.terminaRegistrazione.button"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Test Result: Passed",
+    "key": "dashboardPageNew.testResultPassed.text"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Test Result: Failed",
+    "key": "dashboardPageNew.testResultFailed.text"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Available Actions",
+    "key": "dashboardPageNew.availableActions.title"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Website Preview",
+    "key": "dashboardPageNew.websitePreview.title"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Executing...",
+    "key": "dashboardPageNew.executing.text"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Playback",
+    "key": "dashboardPageNew.playback.text"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Loaded",
+    "key": "dashboardPageNew.loaded.text"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Registrazione in corso...",
+    "key": "dashboardPageNew.registrazioneInCorso.text"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Utilizza la finestra del browser separata che si \u00e8 aperta per interagire con il sito.",
+    "key": "dashboardPageNew.utilizzaLaFinestraDelBrowser.description"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Le azioni registrate appariranno nella sezione \"Test Sequence\" qui sotto.",
+    "key": "dashboardPageNew.leAzioniRegistrateApparirannoNella.description"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Test step screenshot",
+    "key": "dashboardPageNew.testStepScreenshot.text"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Website screenshot",
+    "key": "dashboardPageNew.websiteScreenshot.text"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Load a website to see the preview",
+    "key": "dashboardPageNew.loadAWebsiteToSeeThe.description"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Screenshots from website loading or test playback will appear here.",
+    "key": "dashboardPageNew.screenshotsFromWebsiteLoadingOr.description"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Detected Elements",
+    "key": "dashboardPageNew.detectedElements.title"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "found",
+    "key": "dashboardPageNew.found.text"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "No elements detected yet",
+    "key": "dashboardPageNew.noElementsDetectedYet.text"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Load a website and click \"Detect Elements\"",
+    "key": "dashboardPageNew.loadAWebsiteAndClickDetect.description"
+  },
+  {
+    "file": "client/src/pages/dashboard-page.tsx",
+    "string": "User",
+    "key": "dashboardPage.user.text"
+  },
+  {
+    "file": "client/src/pages/not-found.tsx",
+    "string": "404 Page Not Found",
+    "key": "notFoundPage.404PageNotFound.title"
+  },
+  {
+    "file": "client/src/pages/not-found.tsx",
+    "string": "Did you forget to add the page to the router?",
+    "key": "notFoundPage.didYouForgetToAddThePage.description"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Loading settings...",
+    "key": "settingsPage.loadingSettings.text"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Error loading user settings:",
+    "key": "settingsPage.errorLoadingUserSettings.label"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "An unknown error occurred.",
+    "key": "settingsPage.anUnknownErrorOccurred.description"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Try Again",
+    "key": "settingsPage.tryAgain.button"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Project Management",
+    "key": "settingsPage.projectManagement.title"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Create and manage your projects.",
+    "key": "settingsPage.createAndManageYourProjects.description"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "New Project Name",
+    "key": "settingsPage.newProjectName.label"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Enter project name",
+    "key": "settingsPage.enterProjectName.placeholder"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Create Project",
+    "key": "settingsPage.createProject.button"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Existing Projects",
+    "key": "settingsPage.existingProjects.title"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Loading projects...",
+    "key": "settingsPage.loadingProjects.text"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "No projects found.",
+    "key": "settingsPage.noProjectsFound.text"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Chromium",
+    "key": "settingsPage.chromium.text"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Firefox",
+    "key": "settingsPage.firefox.text"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "WebKit (Safari)",
+    "key": "settingsPage.webkitSafari.text"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Save Test",
+    "key": "saveTestModal.saveTest.button"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Please enter a name for your test. This will help you identify it later.",
+    "key": "saveTestModal.pleaseEnterANameForYour.description"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Test Name",
+    "key": "saveTestModal.testName.label"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "e.g., Login Functionality Test",
+    "key": "saveTestModal.egLoginFunctionalityTest.placeholder"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Project",
+    "key": "saveTestModal.project.label"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Select a project (Optional)",
+    "key": "saveTestModal.selectAProjectOptional.placeholder"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Loading projects...",
+    "key": "saveTestModal.loadingProjects.text"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Error loading projects.",
+    "key": "saveTestModal.errorLoadingProjects.text"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "No projects available.",
+    "key": "saveTestModal.noProjectsAvailable.text"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Cancel",
+    "key": "saveTestModal.cancel.button"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Save",
+    "key": "saveTestModal.save.button"
+  },
+  {
+    "file": "client/src/components/draggable-action.tsx",
+    "string": "Target:",
+    "key": "draggableAction.target.label"
+  },
+  {
+    "file": "client/src/components/draggable-element.tsx",
+    "string": "element",
+    "key": "draggableElement.element.text"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Test Sequence",
+    "key": "testSequenceBuilder.testSequence.title"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "steps",
+    "key": "testSequenceBuilder.steps.text"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Clear",
+    "key": "testSequenceBuilder.clear.button"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Recording in progress...",
+    "key": "testSequenceBuilder.recordingInProgress.text"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Recorded actions will appear here.",
+    "key": "testSequenceBuilder.recordedActionsWillAppearHere.description"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Drop actions here to build your test",
+    "key": "testSequenceBuilder.dropActionsHereToBuildYour.description"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Drag actions from the left sidebar, then add elements to complete each step",
+    "key": "testSequenceBuilder.dragActionsFromTheLeftSidebar.description"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Change action",
+    "key": "testSequenceBuilder.changeAction.placeholder"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Change Element",
+    "key": "testSequenceBuilder.changeElement.button"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Set Element",
+    "key": "testSequenceBuilder.setElement.button"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Text to input",
+    "key": "testSequenceBuilder.textToInput.label"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Option value",
+    "key": "testSequenceBuilder.optionValue.label"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Time (ms)",
+    "key": "testSequenceBuilder.timeMs.label"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Expected text",
+    "key": "testSequenceBuilder.expectedText.label"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Count (e.g. ==1)",
+    "key": "testSequenceBuilder.countEg1.label"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Expected value",
+    "key": "testSequenceBuilder.expectedValue.label"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Value",
+    "key": "testSequenceBuilder.value.label"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Enter text...",
+    "key": "testSequenceBuilder.enterText.placeholder"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Enter option value...",
+    "key": "testSequenceBuilder.enterOptionValue.placeholder"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "e.g., 1000",
+    "key": "testSequenceBuilder.eg1000.placeholder"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Text the element should contain...",
+    "key": "testSequenceBuilder.textTheElementShouldContain.placeholder"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "e.g., '==1', '>=5', '<3'",
+    "key": "testSequenceBuilder.eg153.placeholder"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Expected text or attribute value...",
+    "key": "testSequenceBuilder.expectedTextOrAttributeValue.placeholder"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Value...",
+    "key": "testSequenceBuilder.value.placeholder"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Remove step",
+    "key": "testSequenceBuilder.removeStep.button"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Execute Test",
+    "key": "testSequenceBuilder.executeTest.button"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Assertion #",
+    "key": "apiTester.assertionEditor.assertion.label"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Enabled",
+    "key": "apiTester.assertionEditor.enabled.label"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Source",
+    "key": "apiTester.assertionEditor.source.label"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Select source",
+    "key": "apiTester.assertionEditor.selectSource.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Comparison",
+    "key": "apiTester.assertionEditor.comparison.label"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Select comparison",
+    "key": "apiTester.assertionEditor.selectComparison.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Header Name",
+    "key": "apiTester.assertionEditor.headerName.label"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "JSON Path (e.g., data.id)",
+    "key": "apiTester.assertionEditor.jsonPathEgDataid.label"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Property",
+    "key": "apiTester.assertionEditor.property.label"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "e.g., Content-Type",
+    "key": "apiTester.assertionEditor.egContentType.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "e.g., user.name or items[0].id",
+    "key": "apiTester.assertionEditor.egUsernameOrItems0id.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Target Value",
+    "key": "apiTester.assertionEditor.targetValue.label"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Enter Regex",
+    "key": "apiTester.assertionEditor.enterRegex.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "e.g., 200",
+    "key": "apiTester.assertionEditor.eg200.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "e.g., 500 (in ms)",
+    "key": "apiTester.assertionEditor.eg500InMs.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Expected value",
+    "key": "apiTester.assertionEditor.expectedValue.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Add Assertion",
+    "key": "apiTester.assertionEditor.addAssertion.button"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Select Auth Type",
+    "key": "apiTester.authTypeDropdown.selectAuthType.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Inherit from Parent",
+    "key": "apiTester.authTypeDropdown.inheritFromParent.text"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "No Auth",
+    "key": "apiTester.authTypeDropdown.noAuth.text"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Basic Auth",
+    "key": "apiTester.authTypeDropdown.basicAuth.text"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Bearer Token",
+    "key": "apiTester.authTypeDropdown.bearerToken.text"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "JWT Bearer",
+    "key": "apiTester.authTypeDropdown.jwtBearer.text"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Digest Auth",
+    "key": "apiTester.authTypeDropdown.digestAuth.text"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "OAuth 1.0",
+    "key": "apiTester.authTypeDropdown.oauth10.text"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "OAuth 2.0",
+    "key": "apiTester.authTypeDropdown.oauth20.text"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Hawk Authentication",
+    "key": "apiTester.authTypeDropdown.hawkAuthentication.text"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "AWS Signature",
+    "key": "apiTester.authTypeDropdown.awsSignature.text"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "NTLM Authentication",
+    "key": "apiTester.authTypeDropdown.ntlmAuthentication.text"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "API Key",
+    "key": "apiTester.authTypeDropdown.apiKey.text"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Akamai EdgeGrid",
+    "key": "apiTester.authTypeDropdown.akamaiEdgegrid.text"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Atlassian ASAP",
+    "key": "apiTester.authTypeDropdown.atlassianAsap.text"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthorizationPanel.tsx",
+    "string": "Authorization Type",
+    "key": "apiTester.authorizationPanel.authorizationType.label"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthorizationPanel.tsx",
+    "string": "No parameters for this auth type.",
+    "key": "apiTester.authorizationPanel.noParametersForThisAuth.description"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthorizationPanel.tsx",
+    "string": "parameters are not yet configurable.",
+    "key": "apiTester.authorizationPanel.parametersAreNotYetConfigurable.description"
+  },
+  {
+    "file": "client/src/components/api-tester/HistoryPanel.tsx",
+    "string": "History",
+    "key": "apiTester.historyPanel.history.title"
+  },
+  {
+    "file": "client/src/components/api-tester/HistoryPanel.tsx",
+    "string": "Clear All",
+    "key": "apiTester.historyPanel.clearAll.button"
+  },
+  {
+    "file": "client/src/components/api-tester/HistoryPanel.tsx",
+    "string": "Loading history...",
+    "key": "apiTester.historyPanel.loadingHistory.text"
+  },
+  {
+    "file": "client/src/components/api-tester/HistoryPanel.tsx",
+    "string": "No history items yet.",
+    "key": "apiTester.historyPanel.noHistoryItemsYet.text"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Update API Test",
+    "key": "apiTester.saveApiTestModal.updateApiTest.title"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Save New API Test",
+    "key": "apiTester.saveApiTestModal.saveNewApiTest.title"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Update the details for this API test.",
+    "key": "apiTester.saveApiTestModal.updateTheDetailsForThisApi.description"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Enter a name for your new API test. You can also assign it to a project.",
+    "key": "apiTester.saveApiTestModal.enterANameForYourNewApi.description"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Test Name",
+    "key": "apiTester.saveApiTestModal.testName.label"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "e.g., Get User Details",
+    "key": "apiTester.saveApiTestModal.egGetUserDetails.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Project (Optional)",
+    "key": "apiTester.saveApiTestModal.projectOptional.label"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Select a project",
+    "key": "apiTester.saveApiTestModal.selectAProject.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "No Project",
+    "key": "apiTester.saveApiTestModal.noProject.text"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Updating...",
+    "key": "apiTester.saveApiTestModal.updating.button"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Update Test",
+    "key": "apiTester.saveApiTestModal.updateTest.button"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Saved Tests",
+    "key": "apiTester.savedTestsPanel.savedTests.title"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "New Test",
+    "key": "apiTester.savedTestsPanel.newTest.button"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Loading saved tests...",
+    "key": "apiTester.savedTestsPanel.loadingSavedTests.text"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "No tests saved yet.",
+    "key": "apiTester.savedTestsPanel.noTestsSavedYet.text"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Load Test",
+    "key": "apiTester.savedTestsPanel.loadTest.button"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Edit Test",
+    "key": "apiTester.savedTestsPanel.editTest.button"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Export Test",
+    "key": "apiTester.savedTestsPanel.exportTest.button"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Delete Test",
+    "key": "apiTester.savedTestsPanel.deleteTest.button"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Project ID:",
+    "key": "apiTester.savedTestsPanel.projectId.label"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Last updated:",
+    "key": "apiTester.savedTestsPanel.lastUpdated.label"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Key",
+    "key": "authForms.apiKeyAuthForm.key.label"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Enter API key name (e.g., X-API-KEY)",
+    "key": "authForms.apiKeyAuthForm.enterApiKeyNameEgXapikey.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Value",
+    "key": "authForms.apiKeyAuthForm.value.label"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Enter API key value",
+    "key": "authForms.apiKeyAuthForm.enterApiKeyValue.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Add to",
+    "key": "authForms.apiKeyAuthForm.addTo.label"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Select where to add API key",
+    "key": "authForms.apiKeyAuthForm.selectWhereToAddApiKey.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Header",
+    "key": "authForms.apiKeyAuthForm.header.text"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Query Param",
+    "key": "authForms.apiKeyAuthForm.queryParam.text"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/BasicAuthForm.tsx",
+    "string": "Username",
+    "key": "authForms.basicAuthForm.username.label"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/BasicAuthForm.tsx",
+    "string": "Enter username",
+    "key": "authForms.basicAuthForm.enterUsername.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/BasicAuthForm.tsx",
+    "string": "Password",
+    "key": "authForms.basicAuthForm.password.label"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/BasicAuthForm.tsx",
+    "string": "Enter password",
+    "key": "authForms.basicAuthForm.enterPassword.placeholder"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/BearerTokenAuthForm.tsx",
+    "string": "Token",
+    "key": "authForms.bearerTokenAuthForm.token.label"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/BearerTokenAuthForm.tsx",
+    "string": "Enter bearer token",
+    "key": "authForms.bearerTokenAuthForm.enterBearerToken.placeholder"
+  },
+  {
+    "file": "client/src/components/dashboard/KpiPanel.tsx",
+    "string": "Total Tests",
+    "key": "dashboard.kpiPanel.totalTests.title"
+  },
+  {
+    "file": "client/src/components/dashboard/KpiPanel.tsx",
+    "string": "Success Rate",
+    "key": "dashboard.kpiPanel.successRate.title"
+  },
+  {
+    "file": "client/src/components/dashboard/KpiPanel.tsx",
+    "string": "Avg. Duration",
+    "key": "dashboard.kpiPanel.avgDuration.title"
+  },
+  {
+    "file": "client/src/components/dashboard/KpiPanel.tsx",
+    "string": "Last Run",
+    "key": "dashboard.kpiPanel.lastRun.title"
+  },
+  {
+    "file": "client/src/components/dashboard/QuickAccessReports.tsx",
+    "string": "Recent Test Reports",
+    "key": "dashboard.quickAccessReports.recentTestReports.title"
+  },
+  {
+    "file": "client/src/components/dashboard/QuickAccessReports.tsx",
+    "string": "Report data will be available soon.",
+    "key": "dashboard.quickAccessReports.reportDataWillBeAvailable.description"
+  },
+  {
+    "file": "client/src/components/dashboard/RunTestNowButton.tsx",
+    "string": "Esegui test ora",
+    "key": "dashboard.runTestNowButton.eseguiTestOra.button"
+  },
+  {
+    "file": "client/src/components/dashboard/TestSchedulingsTable.tsx",
+    "string": "Upcoming & Recent Schedulings",
+    "key": "dashboard.testSchedulingsTable.upcomingRecentSchedulings.title"
+  },
+  {
+    "file": "client/src/components/dashboard/TestSchedulingsTable.tsx",
+    "string": "Scheduling data will be available soon.",
+    "key": "dashboard.testSchedulingsTable.schedulingDataWillBeAvailable.description"
+  },
+  {
+    "file": "client/src/components/dashboard/TestStatusPieChart.tsx",
+    "string": "Test Status Overview",
+    "key": "dashboard.testStatusPieChart.testStatusOverview.title"
+  },
+  {
+    "file": "client/src/components/dashboard/TestStatusPieChart.tsx",
+    "string": "Chart data will be available soon.",
+    "key": "dashboard.testStatusPieChart.chartDataWillBeAvailable.description"
+  },
+  {
+    "file": "client/src/components/dashboard/TestTrendBarChart.tsx",
+    "string": "Weekly Test Trends",
+    "key": "dashboard.testTrendBarChart.weeklyTestTrends.title"
+  }
+]

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BearerTokenAuthParams } from '@shared/schema';
@@ -14,6 +15,7 @@ export const BearerTokenAuthForm: React.FC<BearerTokenAuthFormProps> = ({
   onChange,
   disabled = false,
 }) => {
+  const { t } = useTranslation();
   const handleInputChange = (value: string) => {
     onChange({
       token: value,
@@ -23,13 +25,13 @@ export const BearerTokenAuthForm: React.FC<BearerTokenAuthFormProps> = ({
   return (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="bearer-token">Token</Label>
+        <Label htmlFor="bearer-token">{t('authForms.bearerTokenAuthForm.token.label')}</Label>
         <Input
           id="bearer-token"
           type="password" // Often tokens are sensitive, password type hides it
           value={params.token || ''}
           onChange={(e) => handleInputChange(e.target.value)}
-          placeholder="Enter bearer token"
+          placeholder={t('authForms.bearerTokenAuthForm.enterBearerToken.placeholder')}
           disabled={disabled}
           className="mt-1"
         />

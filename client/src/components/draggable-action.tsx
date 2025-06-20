@@ -1,4 +1,5 @@
 import { useDrag, useDrop } from "react-dnd"; // Added useDrop
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import type { DetectedElement } from "../drag-drop-provider"; // Import DetectedElement
 import { 
@@ -27,6 +28,7 @@ interface DraggableActionProps {
 }
 
 export function DraggableAction({ action, stepId, onDropElement, targetElement }: DraggableActionProps) {
+  const { t } = useTranslation();
   const [{ isDragging: isActionDragging }, drag, dragPreview] = useDrag(() => ({
     type: "action",
     item: { id: action.id, type: "action", data: action },
@@ -86,7 +88,7 @@ export function DraggableAction({ action, stepId, onDropElement, targetElement }
             {targetElement && (
               <div className="mt-1 pt-1 border-t border-gray-200">
                 <p className="text-xs text-primary truncate" title={targetElement.selector}>
-                  Target: {targetElement.text || targetElement.selector}
+                  {t('draggableAction.target.label')} {targetElement.text || targetElement.selector}
                 </p>
               </div>
             )}

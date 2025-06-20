@@ -1,4 +1,5 @@
 import { useDrag } from "react-dnd";
+import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search, MousePointer } from "lucide-react";
@@ -24,6 +25,7 @@ interface DraggableElementProps {
 }
 
 export function DraggableElement({ element, onHover }: DraggableElementProps) {
+  const { t } = useTranslation();
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "element",
     item: { id: element.id, type: "element", data: element },
@@ -90,7 +92,7 @@ export function DraggableElement({ element, onHover }: DraggableElementProps) {
             <span className="text-xs text-muted-foreground">{element.tag}</span>
           </div>
           <div className="font-medium text-foreground text-sm truncate">
-            {element.text || element.attributes.placeholder || element.attributes.alt || `${element.tag} element`}
+            {element.text || element.attributes.placeholder || element.attributes.alt || `${element.tag} ${t('draggableElement.element.text')}`}
           </div>
           <div className="text-xs text-muted-foreground truncate">
             {element.selector}

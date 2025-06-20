@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,7 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
   onSave,
   initialTestName,
 }) => {
+  const { t } = useTranslation();
   const [internalTestName, setInternalTestName] = useState(initialTestName || '');
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
 
@@ -79,28 +81,28 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Save Test</DialogTitle>
+          <DialogTitle>{t('saveTestModal.saveTest.button')}</DialogTitle>
           <DialogDescription>
-            Please enter a name for your test. This will help you identify it later.
+            {t('saveTestModal.pleaseEnterANameForYour.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="testName" className="text-right">
-              Test Name
+              {t('saveTestModal.testName.label')}
             </Label>
             <Input
               id="testName"
               value={internalTestName}
               onChange={(e) => setInternalTestName(e.target.value)}
               className="col-span-3"
-              placeholder="e.g., Login Functionality Test"
+              placeholder={t('saveTestModal.egLoginFunctionalityTest.placeholder')}
             />
           </div>
           {/* Project Selection Dropdown */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="projectSelect" className="text-right">
-              Project
+              {t('saveTestModal.project.label')}
             </Label>
             <Select
               value={selectedProjectId}
@@ -108,16 +110,16 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
               disabled={isLoadingProjects}
             >
               <SelectTrigger className="col-span-3" id="projectSelect">
-                <SelectValue placeholder="Select a project (Optional)" />
+                <SelectValue placeholder={t('saveTestModal.selectAProjectOptional.placeholder')} />
               </SelectTrigger>
               <SelectContent>
                 {isLoadingProjects ? (
                   <div className="flex items-center justify-center p-2">
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Loading projects...
+                    {t('saveTestModal.loadingProjects.text')}
                   </div>
                 ) : isErrorProjects ? (
-                  <div className="p-2 text-red-500 text-sm">Error loading projects.</div>
+                  <div className="p-2 text-red-500 text-sm">{t('saveTestModal.errorLoadingProjects.text')}</div>
                 ) : projectsData && projectsData.length > 0 ? (
                   projectsData.map((project) => (
                     <SelectItem key={project.id} value={project.id.toString()}>
@@ -125,7 +127,7 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
                     </SelectItem>
                   ))
                 ) : (
-                  <div className="p-2 text-muted-foreground text-sm">No projects available.</div>
+                  <div className="p-2 text-muted-foreground text-sm">{t('saveTestModal.noProjectsAvailable.text')}</div>
                 )}
               </SelectContent>
             </Select>
@@ -133,10 +135,10 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t('saveTestModal.cancel.button')}
           </Button>
           <Button onClick={handleSave} disabled={isSaveDisabled}>
-            Save
+            {t('saveTestModal.save.button')}
           </Button>
         </DialogFooter>
       </DialogContent>

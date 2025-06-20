@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, fromUnixTime, getTime, parseISO } from 'date-fns';
@@ -56,6 +57,7 @@ const formatTimestampToReadableDate = (timestamp: number): string => {
 
 
 const TestsPage: React.FC = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   // State for the "Tests" tab (now Test Plans)
   const [testPlanSearchTerm, setTestPlanSearchTerm] = useState('');
@@ -413,7 +415,7 @@ const TestsPage: React.FC = () => {
               <ArrowLeft className="w-4 h-5" />
             </Link>
             <FileText className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold text-card-foreground">Test Management</h1> {/* Updated Title */}
+            <h1 className="text-xl font-bold text-card-foreground">{t('testsPage.testManagement.title')}</h1> {/* Updated Title */}
           </div>
           {/* Removed generic +Test button from main header */}
         </div>
@@ -423,8 +425,8 @@ const TestsPage: React.FC = () => {
         {/* Tabs setup will be placed here, Test Plans controls will go into its TabContent */}
         <Tabs defaultValue="tests">
           <TabsList className="mb-4">
-            <TabsTrigger value="tests">Test Plans</TabsTrigger> {/* Renamed Tab */}
-            <TabsTrigger value="schedules">Schedules</TabsTrigger>
+            <TabsTrigger value="tests">{t('testsPage.testPlans.label')}</TabsTrigger> {/* Renamed Tab */}
+            <TabsTrigger value="schedules">{t('testSuitesPage.schedules.label')}</TabsTrigger>
           </TabsList>
 
           {/* Test Plans Tab Content */}
@@ -436,7 +438,7 @@ const TestsPage: React.FC = () => {
                   {/* The erroneous <Input tag on the next line has been removed */}
                   <Input
                     type="search"
-                    placeholder="Search test plans..."
+                    placeholder={t('testsPage.searchTestPlans.placeholder')}
                     className="pl-8 pr-2 py-2 h-10 w-full sm:w-[200px] lg:w-[250px]"
                     value={testPlanSearchTerm}
                     onChange={(e) => { setTestPlanSearchTerm(e.target.value); setCurrentPage(1); }}
@@ -447,7 +449,7 @@ const TestsPage: React.FC = () => {
                 </Button>
                 <Button variant="default" onClick={openCreateTestPlanModal} className="h-10">
                   <PlusCircle className="w-4 h-4 mr-2" />
-                  Create Test Plan
+                  {t('testsPage.createTestPlan.button')}
                 </Button>
               </div>
               <div className="flex items-center gap-2"> {/* Pagination for Test Plans */}
@@ -479,16 +481,16 @@ const TestsPage: React.FC = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead>Updated At</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>{t('testSuitesPage.name.label')}</TableHead>
+                    <TableHead>{t('testsPage.description.label')}</TableHead>
+                    <TableHead>{t('testsPage.createdAt.label')}</TableHead>
+                    <TableHead>{t('testsPage.updatedAt.label')}</TableHead>
+                    <TableHead>{t('testsPage.actions.label')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoadingTestPlans && (
-                    <TableRow><TableCell colSpan={5} className="text-center">Loading test plans...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="text-center">{t('testsPage.loadingTestPlans.text')}</TableCell></TableRow>
                   )}
                   {testPlansError && (
                     <TableRow><TableCell colSpan={5} className="text-center text-red-500">Error loading test plans: {testPlansError.message}</TableCell></TableRow>
@@ -496,7 +498,7 @@ const TestsPage: React.FC = () => {
                   {!isLoadingTestPlans && !testPlansError && paginatedTestPlans.map((plan) => (
                     <TableRow key={plan.id}>
                       <TableCell className="font-medium">{plan.name}</TableCell>
-                      <TableCell>{plan.description || 'N/A'}</TableCell>
+                      <TableCell>{plan.description || t('testsPage.na.text')}</TableCell>
                       <TableCell>{formatTimestampToReadableDate(plan.createdAt)}</TableCell>
                       <TableCell>{formatTimestampToReadableDate(plan.updatedAt)}</TableCell>
                       <TableCell>
@@ -511,14 +513,14 @@ const TestsPage: React.FC = () => {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => handleOpenEditTestPlanModal(plan)}>
                                 <Edit3 className="w-4 h-4 mr-2" />
-                                Edit
+                                {t('testsPage.edit.button')}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-600 hover:text-red-600 hover:bg-destructive/90 focus:text-red-600 focus:bg-destructive/90"
                                 onClick={() => handleOpenDeleteTestPlanConfirm(plan.id)}
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
-                                Delete
+                                {t('testsPage.delete.button')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -534,18 +536,18 @@ const TestsPage: React.FC = () => {
             <div className="flex justify-between items-center mb-6">
               <div className="flex space-x-2">
                 <Button variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200">
-                  List View
+                  {t('testsPage.listView.button')}
                 </Button>
                 <Button variant="default" onClick={openCreateScheduleModal}> {/* Corrected onClick handler */}
                   <PlusCircle className="w-4 h-4 mr-2" />
-                  Create Schedule
+                  {t('testsPage.createSchedule.button')}
                 </Button>
               </div>
               <div className="relative w-full sm:w-auto max-w-xs">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search schedules..."
+                  placeholder={t('testsPage.searchSchedules.placeholder')}
                   className="pl-8 pr-2 py-2 h-10 w-full"
                   value={scheduleSearchTerm}
                   onChange={(e) => setScheduleSearchTerm(e.target.value)}
@@ -556,17 +558,17 @@ const TestsPage: React.FC = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Schedule Name</TableHead>
-                    <TableHead>Test Plan</TableHead>
-                    <TableHead>Frequency</TableHead>
-                    <TableHead>Next Run At</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>{t('testsPage.scheduleName.label')}</TableHead>
+                    <TableHead>{t('testSuitesPage.testPlan.label')}</TableHead>
+                    <TableHead>{t('testsPage.frequency.label')}</TableHead>
+                    <TableHead>{t('testsPage.nextRunAt.label')}</TableHead>
+                    <TableHead>{t('testsPage.actions.label')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoadingSchedules && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center">Loading schedules...</TableCell>
+                      <TableCell colSpan={5} className="text-center">{t('testsPage.loadingSchedules.text')}</TableCell>
                     </TableRow>
                   )}
                   {schedulesError && (
@@ -593,14 +595,14 @@ const TestsPage: React.FC = () => {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => handleOpenEditModal(schedule)}>
                                 <Edit3 className="w-4 h-4 mr-2" />
-                                Edit
+                                  {t('testsPage.edit.button')}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-600 hover:text-red-600 hover:bg-destructive/90 focus:text-red-600 focus:bg-destructive/90"
                                 onClick={() => handleOpenDeleteConfirm(schedule.id)}
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
-                                Delete
+                                  {t('testsPage.delete.button')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -621,31 +623,31 @@ const TestsPage: React.FC = () => {
         }}>
           <DialogContent className="sm:max-w-[525px]">
             <DialogHeader>
-              <DialogTitle>Create New Schedule</DialogTitle>
+              <DialogTitle>{t('testsPage.createNewSchedule.title')}</DialogTitle>
               <DialogDescription>
-                Fill in the details for your new schedule.
+                {t('testsPage.fillInTheDetailsForYour.description')}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-6 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="newScheduleName" className="text-sm font-medium text-right col-span-1">Name<span className="text-red-500">*</span></label>
-                <Input id="newScheduleName" value={newScheduleName} onChange={(e) => setNewScheduleName(e.target.value)} className="col-span-3 h-10" placeholder="e.g., Daily Smoke Tests" />
+                <label htmlFor="newScheduleName" className="text-sm font-medium text-right col-span-1">{t('testSuitesPage.name.label')}<span className="text-red-500">*</span></label>
+                <Input id="newScheduleName" value={newScheduleName} onChange={(e) => setNewScheduleName(e.target.value)} className="col-span-3 h-10" placeholder={t('testsPage.egDailySmokeTests.placeholder')} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="newScheduleTestPlanId" className="text-sm font-medium text-right col-span-1">Test Plan<span className="text-red-500">*</span></label>
+                <label htmlFor="newScheduleTestPlanId" className="text-sm font-medium text-right col-span-1">{t('testSuitesPage.testPlan.label')}<span className="text-red-500">*</span></label>
                 <Select
                   value={newScheduleTestPlanId || ''}
                   onValueChange={(value) => setNewScheduleTestPlanId(value)}
                   disabled={isLoadingTestPlans || testPlans.length === 0}
                 >
                   <SelectTrigger className="col-span-3 h-10" id="newScheduleTestPlanId">
-                    <SelectValue placeholder={isLoadingTestPlans ? "Loading test plans..." : (testPlans.length === 0 ? "No test plans available" : "Select a Test Plan")} />
+                    <SelectValue placeholder={isLoadingTestPlans ? t('testsPage.loadingTestPlans.text') : (testPlans.length === 0 ? t('testsPage.noTestPlansAvailable.placeholder') : t('testsPage.selectATestPlan.placeholder'))} />
                   </SelectTrigger>
                   <SelectContent>
                     {isLoadingTestPlans ? (
-                      <SelectItem value="loading" disabled>Loading...</SelectItem>
+                      <SelectItem value="loading" disabled>{t('testsPage.loadingTestPlans.text')}</SelectItem>
                     ) : testPlans.length === 0 ? (
-                      <SelectItem value="no-plans" disabled>No test plans available</SelectItem>
+                      <SelectItem value="no-plans" disabled>{t('testsPage.noTestPlansAvailable.placeholder')}</SelectItem>
                     ) : (
                       testPlans.map(plan => (
                         <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
@@ -656,31 +658,31 @@ const TestsPage: React.FC = () => {
               </div>
               {/* newTestPlanName input removed */}
               <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="newFrequency" className="text-sm font-medium text-right col-span-1">Frequency<span className="text-red-500">*</span></label>
+                <label htmlFor="newFrequency" className="text-sm font-medium text-right col-span-1">{t('testsPage.frequency.label')}<span className="text-red-500">*</span></label>
                 <Select value={newFrequency} onValueChange={setNewFrequency}>
                   <SelectTrigger className="col-span-3 h-10">
-                    <SelectValue placeholder="Select frequency" />
+                    <SelectValue placeholder={t('testsPage.selectFrequency.placeholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Hourly">Hourly</SelectItem>
-                    <SelectItem value="Daily">Daily</SelectItem>
-                    <SelectItem value="Weekly">Weekly</SelectItem>
-                    <SelectItem value="Bi-Weekly">Bi-Weekly</SelectItem>
-                    <SelectItem value="Monthly">Monthly</SelectItem>
-                    <SelectItem value="Every 15 minutes">Every 15 minutes</SelectItem>
-                    <SelectItem value="Every 30 minutes">Every 30 minutes</SelectItem>
+                    <SelectItem value="Hourly">{t('testsPage.hourly.text')}</SelectItem>
+                    <SelectItem value="Daily">{t('testsPage.daily.text')}</SelectItem>
+                    <SelectItem value="Weekly">{t('testsPage.weekly.text')}</SelectItem>
+                    <SelectItem value="Bi-Weekly">{t('testsPage.biweekly.text')}</SelectItem>
+                    <SelectItem value="Monthly">{t('testsPage.monthly.text')}</SelectItem>
+                    <SelectItem value="Every 15 minutes">{t('testsPage.every15Minutes.text')}</SelectItem>
+                    <SelectItem value="Every 30 minutes">{t('testsPage.every30Minutes.text')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="newNextRunAt" className="text-sm font-medium text-right col-span-1">Next Run At<span className="text-red-500">*</span></label>
+                <label htmlFor="newNextRunAt" className="text-sm font-medium text-right col-span-1">{t('testsPage.nextRunAt.label')}<span className="text-red-500">*</span></label>
                 <Input id="newNextRunAt" type="datetime-local" value={newNextRunAtString} onChange={(e) => setNewNextRunAtString(e.target.value)} className="col-span-3 h-10" />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>{t('testsPage.cancel.button')}</Button>
               <Button onClick={handleCreateSchedule} disabled={createScheduleMutation.isPending}>
-                {createScheduleMutation.isPending ? "Creating..." : "Create Schedule"}
+                {createScheduleMutation.isPending ? t('testsPage.creating.button') : t('testsPage.createSchedule.button')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -696,29 +698,29 @@ const TestsPage: React.FC = () => {
               <DialogHeader>
                 <DialogTitle>Edit Schedule: {editingSchedule.scheduleName}</DialogTitle>
                 <DialogDescription>
-                  Update the frequency and next run time for your schedule. Name and Test Plan are not editable here.
+                  {t('testsPage.updateTheFrequencyAndNextRun.description')}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-6 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <label className="text-sm font-medium text-right col-span-1">Name:</label>
+                  <label className="text-sm font-medium text-right col-span-1">{t('testsPage.name.label1')}</label>
                   <p className="col-span-3 text-sm py-2">{editingSchedule.scheduleName}</p>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <label className="text-sm font-medium text-right col-span-1">Test Plan<span className="text-red-500">*</span>:</label>
+                  <label className="text-sm font-medium text-right col-span-1">{t('testSuitesPage.testPlan.label')}<span className="text-red-500">*</span>:</label>
                   <Select
                     value={editableScheduleTestPlanId}
                     onValueChange={(value) => setEditableScheduleTestPlanId(value)}
                     disabled={isLoadingTestPlans || testPlans.length === 0}
                   >
                     <SelectTrigger className="col-span-3 h-10">
-                      <SelectValue placeholder={isLoadingTestPlans ? "Loading test plans..." : (testPlans.length === 0 ? "No test plans available" : "Select a Test Plan")} />
+                      <SelectValue placeholder={isLoadingTestPlans ? t('testsPage.loadingTestPlans.text') : (testPlans.length === 0 ? t('testsPage.noTestPlansAvailable.placeholder') : t('testsPage.selectATestPlan.placeholder'))} />
                     </SelectTrigger>
                     <SelectContent>
                       {isLoadingTestPlans ? (
-                        <SelectItem value="loading" disabled>Loading...</SelectItem>
+                        <SelectItem value="loading" disabled>{t('testsPage.loadingTestPlans.text')}</SelectItem>
                       ) : testPlans.length === 0 ? (
-                        <SelectItem value="no-plans" disabled>No test plans available</SelectItem>
+                        <SelectItem value="no-plans" disabled>{t('testsPage.noTestPlansAvailable.placeholder')}</SelectItem>
                       ) : (
                         testPlans.map(plan => (
                           <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
@@ -729,36 +731,36 @@ const TestsPage: React.FC = () => {
                 </div>
                 {/* Removed editableTestPlanName input, display derived name instead */}
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <label className="text-sm font-medium text-right col-span-1">Current Plan:</label>
-                  <p className="col-span-3 text-sm py-2">{editingSchedule?.testPlanName || editableScheduleTestPlanId || 'N/A'}</p>
+                  <label className="text-sm font-medium text-right col-span-1">{t('testsPage.currentPlan.label')}</label>
+                  <p className="col-span-3 text-sm py-2">{editingSchedule?.testPlanName || editableScheduleTestPlanId || t('testsPage.na.text')}</p>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <label htmlFor="editFrequency" className="text-sm font-medium text-right col-span-1">Frequency:</label>
+                  <label htmlFor="editFrequency" className="text-sm font-medium text-right col-span-1">{t('testsPage.frequency.label1')}</label>
                   <Select value={editableFrequency} onValueChange={setEditableFrequency}>
                     <SelectTrigger className="col-span-3 h-10" id="editFrequency">
-                      <SelectValue placeholder="Select frequency" />
+                      <SelectValue placeholder={t('testsPage.selectFrequency.placeholder')} />
                     </SelectTrigger>
                     <SelectContent>
                        {/* Options same as create modal */}
-                      <SelectItem value="Hourly">Hourly</SelectItem>
-                      <SelectItem value="Daily">Daily</SelectItem>
-                      <SelectItem value="Weekly">Weekly</SelectItem>
-                      <SelectItem value="Bi-Weekly">Bi-Weekly</SelectItem>
-                      <SelectItem value="Monthly">Monthly</SelectItem>
-                      <SelectItem value="Every 15 minutes">Every 15 minutes</SelectItem>
-                      <SelectItem value="Every 30 minutes">Every 30 minutes</SelectItem>
+                      <SelectItem value="Hourly">{t('testsPage.hourly.text')}</SelectItem>
+                      <SelectItem value="Daily">{t('testsPage.daily.text')}</SelectItem>
+                      <SelectItem value="Weekly">{t('testsPage.weekly.text')}</SelectItem>
+                      <SelectItem value="Bi-Weekly">{t('testsPage.biweekly.text')}</SelectItem>
+                      <SelectItem value="Monthly">{t('testsPage.monthly.text')}</SelectItem>
+                      <SelectItem value="Every 15 minutes">{t('testsPage.every15Minutes.text')}</SelectItem>
+                      <SelectItem value="Every 30 minutes">{t('testsPage.every30Minutes.text')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <label htmlFor="editNextRunAt" className="text-sm font-medium text-right col-span-1">Next Run At:</label>
+                  <label htmlFor="editNextRunAt" className="text-sm font-medium text-right col-span-1">{t('testsPage.nextRunAt.label1')}</label>
                   <Input id="editNextRunAt" type="datetime-local" value={editableNextRunAt} onChange={(e) => setEditableNextRunAt(e.target.value)} className="col-span-3 h-10" />
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => { setIsEditModalOpen(false); setEditingSchedule(null); }}>Cancel</Button>
+                <Button variant="outline" onClick={() => { setIsEditModalOpen(false); setEditingSchedule(null); }}>{t('testsPage.cancel.button')}</Button>
                 <Button onClick={handleSaveChanges} disabled={editScheduleMutation.isPending}>
-                  {editScheduleMutation.isPending ? "Saving..." : "Save Changes"}
+                  {editScheduleMutation.isPending ? t('testsPage.saving.button') : t('testsPage.saveChanges.button')}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -773,7 +775,7 @@ const TestsPage: React.FC = () => {
         }}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+              <AlertDialogTitle>{t('testsPage.confirmDeletion.title')}</AlertDialogTitle>
               <AlertDialogDescription>
                 Are you sure you want to delete schedule "{schedules.find(s => s.id === deletingScheduleId)?.scheduleName}"? This action cannot be undone.
               </AlertDialogDescription>
@@ -783,14 +785,14 @@ const TestsPage: React.FC = () => {
                 onClick={() => { setIsDeleteConfirmOpen(false); setDeletingScheduleId(null); }}
                 disabled={deleteScheduleMutation.isPending}
               >
-                Cancel
+                {t('testsPage.cancel.button')}
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleConfirmDelete}
                 disabled={deleteScheduleMutation.isPending}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                {deleteScheduleMutation.isPending ? "Deleting..." : "Delete"}
+                {deleteScheduleMutation.isPending ? t('testsPage.deleting.button') : t('testsPage.delete.button')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -803,37 +805,37 @@ const TestsPage: React.FC = () => {
         }}>
           <DialogContent className="sm:max-w-[525px]">
             <DialogHeader>
-              <DialogTitle>Create New Test Plan</DialogTitle>
+              <DialogTitle>{t('testsPage.createNewTestPlan.title')}</DialogTitle>
               <DialogDescription>
-                Fill in the details for your new test plan. Name is required.
+                {t('testsPage.fillInTheDetailsForYourNewTestPlanName.description')}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-6 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="newTestPlanNameState" className="text-sm font-medium text-right col-span-1">Name<span className="text-red-500">*</span></label>
+                <label htmlFor="newTestPlanNameState" className="text-sm font-medium text-right col-span-1">{t('testSuitesPage.name.label')}<span className="text-red-500">*</span></label>
                 <Input
                   id="newTestPlanNameState"
                   value={newTestPlanNameState}
                   onChange={(e) => setNewTestPlanNameState(e.target.value)}
                   className="col-span-3 h-10"
-                  placeholder="e.g., End-to-End Checkout Flow"
+                  placeholder={t('testsPage.egEndtoendCheckoutFlow.placeholder')}
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="newTestPlanDescription" className="text-sm font-medium text-right col-span-1">Description</label>
+                <label htmlFor="newTestPlanDescription" className="text-sm font-medium text-right col-span-1">{t('testsPage.description.label')}</label>
                 <Input
                   id="newTestPlanDescription"
                   value={newTestPlanDescription}
                   onChange={(e) => setNewTestPlanDescription(e.target.value)}
                   className="col-span-3 h-10"
-                  placeholder="Optional: A brief summary of the test plan"
+                  placeholder={t('testsPage.optionalABriefSummaryOfThe.placeholder')}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateTestPlanModalOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsCreateTestPlanModalOpen(false)}>{t('testsPage.cancel.button')}</Button>
               <Button onClick={handleCreateTestPlan} disabled={createTestPlanMutation.isPending}>
-                {createTestPlanMutation.isPending ? "Creating..." : "Create Test Plan"}
+                {createTestPlanMutation.isPending ? t('testsPage.creating.button') : t('testsPage.createTestPlan.button')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -849,12 +851,12 @@ const TestsPage: React.FC = () => {
               <DialogHeader>
                 <DialogTitle>Edit Test Plan: {editingTestPlan.name}</DialogTitle>
                 <DialogDescription>
-                  Update the name and description for your test plan.
+                  {t('testsPage.updateTheNameAndDescription.description')}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-6 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <label htmlFor="editableTestPlanName" className="text-sm font-medium text-right col-span-1">Name<span className="text-red-500">*</span></label>
+                  <label htmlFor="editableTestPlanName" className="text-sm font-medium text-right col-span-1">{t('testSuitesPage.name.label')}<span className="text-red-500">*</span></label>
                   <Input
                     id="editableTestPlanName"
                     value={editableTestPlanName}
@@ -863,7 +865,7 @@ const TestsPage: React.FC = () => {
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <label htmlFor="editableTestPlanDescription" className="text-sm font-medium text-right col-span-1">Description</label>
+                  <label htmlFor="editableTestPlanDescription" className="text-sm font-medium text-right col-span-1">{t('testsPage.description.label')}</label>
                   <Input
                     id="editableTestPlanDescription"
                     value={editableTestPlanDescription}
@@ -873,9 +875,9 @@ const TestsPage: React.FC = () => {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => { setIsEditTestPlanModalOpen(false); setEditingTestPlan(null); }}>Cancel</Button>
+                <Button variant="outline" onClick={() => { setIsEditTestPlanModalOpen(false); setEditingTestPlan(null); }}>{t('testsPage.cancel.button')}</Button>
                 <Button onClick={handleEditTestPlanSaveChanges} disabled={editTestPlanMutation.isPending}>
-                  {editTestPlanMutation.isPending ? "Saving..." : "Save Changes"}
+                  {editTestPlanMutation.isPending ? t('testsPage.saving.button') : t('testsPage.saveChanges.button')}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -890,7 +892,7 @@ const TestsPage: React.FC = () => {
         }}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+              <AlertDialogTitle>{t('testsPage.confirmDeletion.title')}</AlertDialogTitle>
               <AlertDialogDescription>
                 Are you sure you want to delete test plan "{testPlans.find(tp => tp.id === deletingTestPlanId)?.name}"?
                 This action cannot be undone and will also delete any associated schedules.
@@ -901,14 +903,14 @@ const TestsPage: React.FC = () => {
                 onClick={() => { setIsDeleteTestPlanConfirmOpen(false); setDeletingTestPlanId(null); }}
                 disabled={deleteTestPlanMutation.isPending}
               >
-                Cancel
+                {t('testsPage.cancel.button')}
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleConfirmDeleteTestPlan}
                 disabled={deleteTestPlanMutation.isPending}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                {deleteTestPlanMutation.isPending ? "Deleting..." : "Delete Test Plan"}
+                {deleteTestPlanMutation.isPending ? t('testsPage.deleting.button') : t('testsPage.deleteTestPlan.button')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

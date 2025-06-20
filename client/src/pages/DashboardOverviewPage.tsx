@@ -50,7 +50,7 @@ const DashboardOverviewPage: React.FC = () => {
             <div className="flex items-center">
               <TestTube className={`h-7 w-7 text-primary transition-all duration-300 ${isSidebarCollapsed ? 'ml-0' : 'mr-2'}`} />
               {!isSidebarCollapsed && (
-                <span className="font-semibold text-lg whitespace-nowrap">WebTest Platform</span>
+                <span className="font-semibold text-lg whitespace-nowrap">{t('dashboardOverviewPage.webtestPlatform.text')}</span>
               )}
             </div>
             <Button
@@ -127,17 +127,17 @@ const DashboardOverviewPage: React.FC = () => {
             ) : (
               <>
                 <p className="text-sm font-semibold text-foreground truncate">{user.username}</p>
-                <p className="text-xs text-muted-foreground truncate">{user.email || 'No email provided'}</p>
+                <p className="text-xs text-muted-foreground truncate">{user.email || t('dashboardOverviewPage.noEmailProvided.text')}</p>
               </>
             )
           ) : (
             isSidebarCollapsed ? (
-              <div className="flex justify-center items-center py-2" title="User not loaded">
+              <div className="flex justify-center items-center py-2" title={t('dashboardOverviewPage.userNotLoaded.text')}>
                  <UserCircle className="h-7 w-7 text-muted-foreground opacity-50" />
               </div>
             ) : (
               <>
-                <p className="text-sm font-semibold text-muted-foreground">User not loaded</p>
+                <p className="text-sm font-semibold text-muted-foreground">{t('dashboardOverviewPage.userNotLoaded.text')}</p>
                 <p className="text-xs text-muted-foreground">...</p>
               </>
             )
@@ -150,7 +150,7 @@ const DashboardOverviewPage: React.FC = () => {
           isSidebarCollapsed ? 'ml-20' : 'ml-8' // Adjust based on actual final collapsed/expanded widths
       }`}>
         <header className="mb-6 px-0 mx-0">
-          <h1 className="text-3xl font-bold">Dashboard Overview</h1>
+          <h1 className="text-3xl font-bold">{t('dashboardOverviewPage.dashboardOverview.title')}</h1>
         </header>
 
         <KpiPanel />

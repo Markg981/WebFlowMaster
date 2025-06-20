@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query'; // Added useQueryClient
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +37,7 @@ const triggerTestRun = async (payload: TriggerTestRunPayload): Promise<TriggerTe
 };
 
 const RunTestNowButton: React.FC = () => {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient(); // For invalidating queries
 
@@ -87,7 +89,7 @@ const RunTestNowButton: React.FC = () => {
         ) : (
           <PlayCircle className="mr-2 h-5 w-5" />
         )}
-        Esegui test ora
+          {t('dashboard.runTestNowButton.eseguiTestOra.button')}
       </Button>
     </div>
   );

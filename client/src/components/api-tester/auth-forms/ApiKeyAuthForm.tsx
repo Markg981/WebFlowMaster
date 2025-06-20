@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -21,6 +22,7 @@ export const ApiKeyAuthForm: React.FC<ApiKeyAuthFormProps> = ({
   onChange,
   disabled = false,
 }) => {
+  const { t } = useTranslation();
   const handleInputChange = (
     field: keyof Omit<ApiKeyAuthParams, 'addTo'>,
     value: string
@@ -44,31 +46,31 @@ export const ApiKeyAuthForm: React.FC<ApiKeyAuthFormProps> = ({
   return (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="apiKey-key">Key</Label>
+        <Label htmlFor="apiKey-key">{t('authForms.apiKeyAuthForm.key.label')}</Label>
         <Input
           id="apiKey-key"
           type="text"
           value={params.key || ''}
           onChange={(e) => handleInputChange('key', e.target.value)}
-          placeholder="Enter API key name (e.g., X-API-KEY)"
+          placeholder={t('authForms.apiKeyAuthForm.enterApiKeyNameEgXapikey.placeholder')}
           disabled={disabled}
           className="mt-1"
         />
       </div>
       <div>
-        <Label htmlFor="apiKey-value">Value</Label>
+        <Label htmlFor="apiKey-value">{t('authForms.apiKeyAuthForm.value.label')}</Label>
         <Input
           id="apiKey-value"
           type="password" // API keys are sensitive
           value={params.value || ''}
           onChange={(e) => handleInputChange('value', e.target.value)}
-          placeholder="Enter API key value"
+          placeholder={t('authForms.apiKeyAuthForm.enterApiKeyValue.placeholder')}
           disabled={disabled}
           className="mt-1"
         />
       </div>
       <div>
-        <Label htmlFor="apiKey-addTo">Add to</Label>
+        <Label htmlFor="apiKey-addTo">{t('authForms.apiKeyAuthForm.addTo.label')}</Label>
         <Select
           value={params.addTo || 'header'}
           onValueChange={(value: ApiKeyAuthParams['addTo']) =>
@@ -77,11 +79,11 @@ export const ApiKeyAuthForm: React.FC<ApiKeyAuthFormProps> = ({
           disabled={disabled}
         >
           <SelectTrigger id="apiKey-addTo" className="w-full mt-1">
-            <SelectValue placeholder="Select where to add API key" />
+            <SelectValue placeholder={t('authForms.apiKeyAuthForm.selectWhereToAddApiKey.placeholder')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="header">Header</SelectItem>
-            <SelectItem value="query">Query Param</SelectItem>
+            <SelectItem value="header">{t('authForms.apiKeyAuthForm.header.text')}</SelectItem>
+            <SelectItem value="query">{t('authForms.apiKeyAuthForm.queryParam.text')}</SelectItem>
           </SelectContent>
         </Select>
       </div>

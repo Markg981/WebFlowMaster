@@ -1,0 +1,1282 @@
+[
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Back to Dashboard"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "API Tester"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Save Changes"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Save Test"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "History"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Saved Tests"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Method"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Base URL"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "https://api.example.com/data"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Send"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Effective URL (read-only):"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Enter base URL and add params..."
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Query Params"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Authorization"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Headers"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Body"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Assertions"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Key"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Value"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Add Param"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Header Name"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Header Value"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Add Header"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Body Type"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "This request does not have a body."
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Content-Type"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Select content type"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "application/json"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "text/plain"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "application/xml"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "text/html"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "application/javascript"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Upload File"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "GraphQL Query"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "GraphQL Variables (JSON)"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Type"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Text"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "File"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Add Field"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Response"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Status:"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "---"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Time:"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Loading..."
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Loading response headers..."
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Response headers will appear here..."
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Assertion Results"
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "No assertions were run or results are not available."
+  },
+  {
+    "file": "client/src/pages/ApiTesterPage.tsx",
+    "string": "Running assertions..."
+  },
+  {
+    "file": "client/src/pages/DashboardOverviewPage.tsx",
+    "string": "WebTest Platform"
+  },
+  {
+    "file": "client/src/pages/DashboardOverviewPage.tsx",
+    "string": "No email provided"
+  },
+  {
+    "file": "client/src/pages/DashboardOverviewPage.tsx",
+    "string": "User not loaded"
+  },
+  {
+    "file": "client/src/pages/DashboardOverviewPage.tsx",
+    "string": "Dashboard Overview"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Test Suites"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Search tests..."
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Filter by project"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "All Projects"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "+ Test Plan"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Test Plan"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Schedules"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Name"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Test Lab Type"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Progetto di appartenenza"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Azioni"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "No Description"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Cross Device Testing"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Schedule"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Reports"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Run"
+  },
+  {
+    "file": "client/src/pages/TestSuitesPage.tsx",
+    "string": "Schedules content goes here."
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Test Management"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Test Plans"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Search test plans..."
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Create Test Plan"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Description"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Created At"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Updated At"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Actions"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Loading test plans..."
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "N/A"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Edit"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Delete"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "List View"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Create Schedule"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Search schedules..."
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Schedule Name"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Frequency"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Next Run At"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Loading schedules..."
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Create New Schedule"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Fill in the details for your new schedule."
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "e.g., Daily Smoke Tests"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "No test plans available"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Select a Test Plan"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Select frequency"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Hourly"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Daily"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Weekly"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Bi-Weekly"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Monthly"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Every 15 minutes"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Every 30 minutes"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Cancel"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Creating..."
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Update the frequency and next run time for your schedule. Name and Test Plan are not editable here."
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Name:"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Current Plan:"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Frequency:"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Next Run At:"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Saving..."
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Save Changes"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Confirm Deletion"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Deleting..."
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Create New Test Plan"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Fill in the details for your new test plan. Name is required."
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "e.g., End-to-End Checkout Flow"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Optional: A brief summary of the test plan"
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Update the name and description for your test plan."
+  },
+  {
+    "file": "client/src/pages/TestsPage.tsx",
+    "string": "Delete Test Plan"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Automated Web Testing Made Simple"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Welcome"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Sign in to your account or create a new one to get started"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Sign In"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Register"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Username"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Enter your username"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Password"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Enter your password"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Signing in..."
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Choose a username"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Choose a password"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Confirm Password"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Confirm your password"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Passwords do not match"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Creating account..."
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Create Account"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Automate Your Web Testing"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Create, execute, and manage automated web tests with our intuitive drag-and-drop interface."
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "No coding required."
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Visual element detection"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Drag-and-drop test building"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Real-time test execution"
+  },
+  {
+    "file": "client/src/pages/auth-page.tsx",
+    "string": "Comprehensive reporting"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Create Web Test"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Notifications"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Settings"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Sign Out"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Website URL to Test"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "https://example.com"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Load Website"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Detect Elements"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Modalit\u00e0 di Creazione Test"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Seleziona modalit\u00e0"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Crea test manuale (drag & drop)"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Registra azioni utente (auto-record)"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Starting..."
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Inizia registrazione"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Stopping..."
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Termina registrazione"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Test Result: Passed"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Test Result: Failed"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Available Actions"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Website Preview"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Executing..."
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Playback"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Loaded"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Registrazione in corso..."
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Utilizza la finestra del browser separata che si \u00e8 aperta per interagire con il sito."
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Le azioni registrate appariranno nella sezione \"Test Sequence\" qui sotto."
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Test step screenshot"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Website screenshot"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Load a website to see the preview"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Screenshots from website loading or test playback will appear here."
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Detected Elements"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "found"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "No elements detected yet"
+  },
+  {
+    "file": "client/src/pages/dashboard-page-new.tsx",
+    "string": "Load a website and click \"Detect Elements\""
+  },
+  {
+    "file": "client/src/pages/dashboard-page.tsx",
+    "string": "User"
+  },
+  {
+    "file": "client/src/pages/not-found.tsx",
+    "string": "404 Page Not Found"
+  },
+  {
+    "file": "client/src/pages/not-found.tsx",
+    "string": "Did you forget to add the page to the router?"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Loading settings..."
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Error loading user settings:"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "An unknown error occurred."
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Try Again"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Project Management"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Create and manage your projects."
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "New Project Name"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Enter project name"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Create Project"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Existing Projects"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Loading projects..."
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "No projects found."
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Chromium"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "Firefox"
+  },
+  {
+    "file": "client/src/pages/settings-page.tsx",
+    "string": "WebKit (Safari)"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Save Test"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Please enter a name for your test. This will help you identify it later."
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Test Name"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "e.g., Login Functionality Test"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Project"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Select a project (Optional)"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Loading projects..."
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Error loading projects."
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "No projects available."
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Cancel"
+  },
+  {
+    "file": "client/src/components/SaveTestModal.tsx",
+    "string": "Save"
+  },
+  {
+    "file": "client/src/components/draggable-action.tsx",
+    "string": "Target:"
+  },
+  {
+    "file": "client/src/components/draggable-element.tsx",
+    "string": "element"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Test Sequence"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "steps"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Clear"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Recording in progress..."
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Recorded actions will appear here."
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Drop actions here to build your test"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Drag actions from the left sidebar, then add elements to complete each step"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Change action"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Change Element"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Set Element"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Text to input"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Option value"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Time (ms)"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Expected text"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Count (e.g. ==1)"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Expected value"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Value"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Enter text..."
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Enter option value..."
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "e.g., 1000"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Text the element should contain..."
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "e.g., '==1', '>=5', '<3'"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Expected text or attribute value..."
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Value..."
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Remove step"
+  },
+  {
+    "file": "client/src/components/test-sequence-builder.tsx",
+    "string": "Execute Test"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Assertion #"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Enabled"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Source"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Select source"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Comparison"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Select comparison"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Header Name"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "JSON Path (e.g., data.id)"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Property"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "e.g., Content-Type"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "e.g., user.name or items[0].id"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Target Value"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Enter Regex"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "e.g., 200"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "e.g., 500 (in ms)"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Expected value"
+  },
+  {
+    "file": "client/src/components/api-tester/AssertionEditor.tsx",
+    "string": "Add Assertion"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Select Auth Type"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Inherit from Parent"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "No Auth"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Basic Auth"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Bearer Token"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "JWT Bearer"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Digest Auth"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "OAuth 1.0"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "OAuth 2.0"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Hawk Authentication"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "AWS Signature"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "NTLM Authentication"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "API Key"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Akamai EdgeGrid"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthTypeDropdown.tsx",
+    "string": "Atlassian ASAP"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthorizationPanel.tsx",
+    "string": "Authorization Type"
+  },
+  {
+    "file": "client/src/components/api-tester/AuthorizationPanel.tsx",
+    "string": "No parameters for this auth type."
+  },
+  {
+    "file": "client/src/components/api-tester/AuthorizationPanel.tsx",
+    "string": "parameters are not yet configurable."
+  },
+  {
+    "file": "client/src/components/api-tester/HistoryPanel.tsx",
+    "string": "History"
+  },
+  {
+    "file": "client/src/components/api-tester/HistoryPanel.tsx",
+    "string": "Clear All"
+  },
+  {
+    "file": "client/src/components/api-tester/HistoryPanel.tsx",
+    "string": "Loading history..."
+  },
+  {
+    "file": "client/src/components/api-tester/HistoryPanel.tsx",
+    "string": "No history items yet."
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Update API Test"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Save New API Test"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Update the details for this API test."
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Enter a name for your new API test. You can also assign it to a project."
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Test Name"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "e.g., Get User Details"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Project (Optional)"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Select a project"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "No Project"
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Updating..."
+  },
+  {
+    "file": "client/src/components/api-tester/SaveApiTestModal.tsx",
+    "string": "Update Test"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Saved Tests"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "New Test"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Loading saved tests..."
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "No tests saved yet."
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Load Test"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Edit Test"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Export Test"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Delete Test"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Project ID:"
+  },
+  {
+    "file": "client/src/components/api-tester/SavedTestsPanel.tsx",
+    "string": "Last updated:"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Key"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Enter API key name (e.g., X-API-KEY)"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Value"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Enter API key value"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Add to"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Select where to add API key"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Header"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/ApiKeyAuthForm.tsx",
+    "string": "Query Param"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/BasicAuthForm.tsx",
+    "string": "Username"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/BasicAuthForm.tsx",
+    "string": "Enter username"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/BasicAuthForm.tsx",
+    "string": "Password"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/BasicAuthForm.tsx",
+    "string": "Enter password"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/BearerTokenAuthForm.tsx",
+    "string": "Token"
+  },
+  {
+    "file": "client/src/components/api-tester/auth-forms/BearerTokenAuthForm.tsx",
+    "string": "Enter bearer token"
+  },
+  {
+    "file": "client/src/components/dashboard/KpiPanel.tsx",
+    "string": "Total Tests"
+  },
+  {
+    "file": "client/src/components/dashboard/KpiPanel.tsx",
+    "string": "Success Rate"
+  },
+  {
+    "file": "client/src/components/dashboard/KpiPanel.tsx",
+    "string": "Avg. Duration"
+  },
+  {
+    "file": "client/src/components/dashboard/KpiPanel.tsx",
+    "string": "Last Run"
+  },
+  {
+    "file": "client/src/components/dashboard/QuickAccessReports.tsx",
+    "string": "Recent Test Reports"
+  },
+  {
+    "file": "client/src/components/dashboard/QuickAccessReports.tsx",
+    "string": "Report data will be available soon."
+  },
+  {
+    "file": "client/src/components/dashboard/RunTestNowButton.tsx",
+    "string": "Esegui test ora"
+  },
+  {
+    "file": "client/src/components/dashboard/TestSchedulingsTable.tsx",
+    "string": "Upcoming & Recent Schedulings"
+  },
+  {
+    "file": "client/src/components/dashboard/TestSchedulingsTable.tsx",
+    "string": "Scheduling data will be available soon."
+  },
+  {
+    "file": "client/src/components/dashboard/TestStatusPieChart.tsx",
+    "string": "Test Status Overview"
+  },
+  {
+    "file": "client/src/components/dashboard/TestStatusPieChart.tsx",
+    "string": "Chart data will be available soon."
+  },
+  {
+    "file": "client/src/components/dashboard/TestTrendBarChart.tsx",
+    "string": "Weekly Test Trends"
+  }
+]

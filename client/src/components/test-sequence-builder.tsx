@@ -1,4 +1,5 @@
 import { useState } from "react"; // Added useState
+import { useTranslation } from 'react-i18next';
 import { useDrop } from "react-dnd";
 import { Card } from "@/components/ui/card"; // Keep for overall structure if needed, or remove if steps are Cards
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,7 @@ export function TestSequenceBuilder({
   isRecordingActive = false, // Default value for the new prop
   lastTestOutcome = null, // Default value for the new prop
 }: TestSequenceBuilderProps) {
+  const { t } = useTranslation();
   const [isReassociatingElementForStepId, setReassociatingElementForStepId] = useState<string | null>(null);
 
   // Main drop target for adding NEW actions to the sequence
@@ -152,9 +154,9 @@ export function TestSequenceBuilder({
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Test Sequence</h3>
+        <h3 className="text-lg font-semibold text-gray-900">{t('testSequenceBuilder.testSequence.title')}</h3>
         <div className="flex items-center space-x-2">
-          <Badge variant="secondary">{testSequence.length} steps</Badge>
+          <Badge variant="secondary">{testSequence.length} {t('testSequenceBuilder.steps.text')}</Badge>
           <Button
             variant="outline"
             size="sm"
@@ -162,7 +164,7 @@ export function TestSequenceBuilder({
             disabled={testSequence.length === 0 || isRecordingActive}
           >
             <Trash2 className="h-4 w-4 mr-1" />
-            Clear
+            {t('testSequenceBuilder.clear.button')}
           </Button>
         </div>
       </div>
@@ -183,14 +185,14 @@ export function TestSequenceBuilder({
               {isRecordingActive ? (
                 <>
                   <RefreshCw className="h-12 w-12 mx-auto mb-4 opacity-50 animate-spin" />
-                  <p className="text-lg font-medium">Recording in progress...</p>
-                  <p className="text-sm">Recorded actions will appear here.</p>
+                  <p className="text-lg font-medium">{t('testSequenceBuilder.recordingInProgress.text')}</p>
+                  <p className="text-sm">{t('testSequenceBuilder.recordedActionsWillAppearHere.description')}</p>
                 </>
               ) : (
                 <>
                   <Plus className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium">Drop actions here to build your test</p>
-                  <p className="text-sm">Drag actions from the left sidebar, then add elements to complete each step</p>
+                  <p className="text-lg font-medium">{t('testSequenceBuilder.dropActionsHereToBuildYour.description')}</p>
+                  <p className="text-sm">{t('testSequenceBuilder.dragActionsFromTheLeftSidebar.description')}</p>
                 </>
               )}
             </div>
@@ -226,7 +228,7 @@ export function TestSequenceBuilder({
                         disabled={isRecordingActive} // Disable during recording
                       >
                         <SelectTrigger className="w-full h-9 text-xs">
-                          <SelectValue placeholder="Change action" />
+                          <SelectValue placeholder={t('testSequenceBuilder.changeAction.placeholder')} />
                         </SelectTrigger>
                         <SelectContent>
                           {availableActions.map(action => (
@@ -245,7 +247,7 @@ export function TestSequenceBuilder({
                           disabled={isRecordingActive} // Disable during recording
                         >
                           <RefreshCw className="h-3 w-3 mr-1" />
-                          {step.targetElement ? 'Change Element' : 'Set Element'}
+                          {step.targetElement ? t('testSequenceBuilder.changeElement.button') : t('testSequenceBuilder.setElement.button')}
                         </Button>
                       )}
                     </div>
@@ -266,23 +268,23 @@ export function TestSequenceBuilder({
                     {actionId && needsValue(actionId) && (
                       <div className="flex-1 min-w-0 ml-2 mt-0.5"> {/* Adjusted margin */}
                          <Label htmlFor={`step-value-${step.id}`} className="text-xs text-muted-foreground">
-                          {actionId === "input" ? "Text to input" :
-                           actionId === "select" ? "Option value" :
-                           actionId === "wait" ? "Time (ms)" :
-                           actionId === "assertTextContains" ? "Expected text" :
-                           actionId === "assertElementCount" ? "Count (e.g. ==1)" :
-                           actionId === "assert" ? "Expected value" : "Value"}
+                          {actionId === "input" ? t('testSequenceBuilder.textToInput.label') :
+                           actionId === "select" ? t('testSequenceBuilder.optionValue.label') :
+                           actionId === "wait" ? t('testSequenceBuilder.timeMs.label') :
+                           actionId === "assertTextContains" ? t('testSequenceBuilder.expectedText.label') :
+                           actionId === "assertElementCount" ? t('testSequenceBuilder.countEg1.label') :
+                           actionId === "assert" ? t('testSequenceBuilder.expectedValue.label') : t('testSequenceBuilder.value.label')}
                         </Label>
                         <Input
                           id={`step-value-${step.id}`}
                           placeholder={
-                            actionId === "input" ? "Enter text..." :
-                            actionId === "select" ? "Enter option value..." :
-                            actionId === "wait" ? "e.g., 1000" :
-                            actionId === "assertTextContains" ? "Text the element should contain..." :
-                            actionId === "assertElementCount" ? "e.g., '==1', '>=5', '<3'" :
-                            actionId === "assert" ? "Expected text or attribute value..." :
-                            "Value..."
+                            actionId === "input" ? t('testSequenceBuilder.enterText.placeholder') :
+                            actionId === "select" ? t('testSequenceBuilder.enterOptionValue.placeholder') :
+                            actionId === "wait" ? t('testSequenceBuilder.eg1000.placeholder') :
+                            actionId === "assertTextContains" ? t('testSequenceBuilder.textTheElementShouldContain.placeholder') :
+                            actionId === "assertElementCount" ? t('testSequenceBuilder.eg153.placeholder') :
+                            actionId === "assert" ? t('testSequenceBuilder.expectedTextOrAttributeValue.placeholder') :
+                            t('testSequenceBuilder.value.placeholder')
                           }
                           value={step.value || ""}
                           onChange={(e) => updateStepValue(step.id, e.target.value)}
@@ -298,7 +300,7 @@ export function TestSequenceBuilder({
                     size="icon"
                     onClick={() => !isRecordingActive && removeStep(step.id)} // Prevent click if recording
                     className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 mt-2"
-                    aria-label="Remove step"
+                    aria-label={t('testSequenceBuilder.removeStep.button')}
                     disabled={isRecordingActive} // Disable during recording
                   >
                     <Trash2 className="h-4 w-4" />
@@ -325,7 +327,7 @@ export function TestSequenceBuilder({
           disabled={isExecuting}
           className="flex-1"
         >
-          {isExecuting ? "Executing..." : "Execute Test"}
+          {isExecuting ? t('apiTesterPage.loading.button') : t('testSequenceBuilder.executeTest.button')}
         </Button>
         <Button
           onClick={onSaveTest}
@@ -333,7 +335,7 @@ export function TestSequenceBuilder({
           variant="secondary"
           className="flex-1"
         >
-          {isSaving ? "Saving..." : "Save Test"}
+          {isSaving ? t('apiTesterPage.loading.button') : t('apiTesterPage.saveTest.button')}
         </Button>
       </div>
     </div>

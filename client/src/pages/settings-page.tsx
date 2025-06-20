@@ -332,7 +332,7 @@ export default function SettingsPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-4 text-lg">Loading settings...</p>
+        <p className="ml-4 text-lg">{t('settingsPage.loadingSettings.text')}</p>
       </div>
     );
   }
@@ -341,10 +341,10 @@ export default function SettingsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <Bell className="h-12 w-12 text-red-500" />
-        <p className="mt-4 text-lg text-red-600">Error loading user settings:</p>
-        <p className="text-sm text-gray-700">{settingsError?.message || "An unknown error occurred."}</p>
+        <p className="mt-4 text-lg text-red-600">{t('settingsPage.errorLoadingUserSettings.label')}</p>
+        <p className="text-sm text-gray-700">{settingsError?.message || t('settingsPage.anUnknownErrorOccurred.description')}</p>
         <Button onClick={() => queryClient.refetchQueries({ queryKey: ['settings'] })} className="mt-4">
-          Try Again
+          {t('settingsPage.tryAgain.button')}
         </Button>
       </div>
     );
@@ -416,23 +416,23 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2"><ListTree className="h-5 w-5" /><span>Project Management</span></CardTitle>
-            <CardDescription>Create and manage your projects.</CardDescription>
+            <CardTitle className="flex items-center space-x-2"><ListTree className="h-5 w-5" /><span>{t('settingsPage.projectManagement.title')}</span></CardTitle>
+            <CardDescription>{t('settingsPage.createAndManageYourProjects.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="new-project-name">New Project Name</Label>
+              <Label htmlFor="new-project-name">{t('settingsPage.newProjectName.label')}</Label>
               <div className="flex space-x-2">
-                <Input id="new-project-name" placeholder="Enter project name" value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} disabled={createProjectMutation.isPending || isPageDisabled} />
+                <Input id="new-project-name" placeholder={t('settingsPage.enterProjectName.placeholder')} value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} disabled={createProjectMutation.isPending || isPageDisabled} />
                 <Button onClick={handleCreateProject} disabled={createProjectMutation.isPending || newProjectName.trim() === "" || isPageDisabled}>
-                  {createProjectMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlusCircle className="h-4 w-4 mr-2" />} Create Project
+                  {createProjectMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlusCircle className="h-4 w-4 mr-2" />} {t('settingsPage.createProject.button')}
                 </Button>
               </div>
             </div>
             <Separator />
             <div className="space-y-2">
-              <h3 className="text-md font-medium">Existing Projects</h3>
-              {isLoadingProjects ? <div className="flex items-center space-x-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>Loading projects...</span></div>
+              <h3 className="text-md font-medium">{t('settingsPage.existingProjects.title')}</h3>
+              {isLoadingProjects ? <div className="flex items-center space-x-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>{t('settingsPage.loadingProjects.text')}</span></div>
                 : isErrorProjects ? <p className="text-red-600">Error: {projectsError?.message}</p>
                 : projectsData && projectsData.length > 0 ? (
                 <ul className="space-y-2">
@@ -443,7 +443,7 @@ export default function SettingsPage() {
                         {(deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-red-500" />}
                       </Button>
                     </li>))}
-                </ul>) : (<p className="text-sm text-muted-foreground">No projects found.</p>)}
+                </ul>) : (<p className="text-sm text-muted-foreground">{t('settingsPage.noProjectsFound.text')}</p>)}
             </div>
           </CardContent>
         </Card>
@@ -474,7 +474,7 @@ export default function SettingsPage() {
                 <Select value={browser} onValueChange={(value: "chromium" | "firefox" | "webkit") => setBrowser(value)} disabled={isPageDisabled}>
                   <SelectTrigger><SelectValue placeholder={t('settings.playwright.browserPlaceholder')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="chromium">Chromium</SelectItem><SelectItem value="firefox">Firefox</SelectItem><SelectItem value="webkit">WebKit (Safari)</SelectItem>
+                    <SelectItem value="chromium">{t('settingsPage.chromium.text')}</SelectItem><SelectItem value="firefox">{t('settingsPage.firefox.text')}</SelectItem><SelectItem value="webkit">{t('settingsPage.webkitSafari.text')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
