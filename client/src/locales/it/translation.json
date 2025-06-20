@@ -9,14 +9,14 @@
       "savedTitle": "Impostazioni salvate",
       "savedDescription": "Le tue preferenze sono state aggiornate con successo.",
       "errorTitle": "Errore nel salvataggio",
-      "errorDescription": "Si è verificato un errore imprevisto.",
+      "errorDescription": "Si \u00e8 verificato un errore imprevisto.",
       "resetTitle": "Impostazioni resettate",
-      "resetDescription": "Il modulo locale è stato resettato. Le impostazioni recuperate potrebbero differire."
+      "resetDescription": "Il modulo locale \u00e8 stato resettato. Le impostazioni recuperate potrebbero differire."
     },
     "appearance": {
       "title": "Aspetto",
       "description": "Personalizza l'aspetto dell'applicazione.",
-      "darkModeLabel": "Modalità Scura",
+      "darkModeLabel": "Modalit\u00e0 Scura",
       "darkModeDescription": "Passa dal tema chiaro a quello scuro."
     },
     "languageSettings": {
@@ -28,7 +28,7 @@
       "italian": "Italiano (Italia)",
       "french": "Francese (Francia)",
       "german": "Tedesco (Germania)",
-      "selectHint": "Questo cambierà la lingua dell'interfaccia utente."
+      "selectHint": "Questo cambier\u00e0 la lingua dell'interfaccia utente."
     },
     "buttons": {
       "resetForm": "Resetta Modulo",
@@ -81,15 +81,1027 @@
     "dropActionsHint": "Trascina le azioni dalla barra laterale sinistra, quindi aggiungi elementi per completare ogni passaggio",
     "toast": {
       "websiteLoadedTitle": "Sito Web Caricato",
-      "websiteLoadedDesc": "Il sito web è stato caricato con successo.",
+      "websiteLoadedDesc": "Il sito web \u00e8 stato caricato con successo.",
       "websiteLoadErrorTitle": "Errore nel Caricamento del Sito Web",
       "elementsDetectedTitle": "Elementi Rilevati",
       "elementsDetectedDesc": "{{count}} elementi trovati sulla pagina.",
       "elementsDetectErrorTitle": "Errore nel Rilevamento degli Elementi",
       "defaultTestName": "Test per {{url}}",
       "testSavedTitle": "Test Salvato",
-      "testSavedDesc": "La tua sequenza di test è stata salvata.",
+      "testSavedDesc": "La tua sequenza di test \u00e8 stata salvata.",
       "testSaveErrorTitle": "Errore nel Salvataggio del Test"
+    }
+  },
+  "apiTesterPage": {
+    "backToDashboard": {
+      "button": "[TRANSLATE] Back to Dashboard"
+    },
+    "apiTester": {
+      "title": "[TRANSLATE] API Tester"
+    },
+    "saveChanges": {
+      "button": "[TRANSLATE] Save Changes"
+    },
+    "saveTest": {
+      "button": "[TRANSLATE] Save Test"
+    },
+    "history": {
+      "title": "[TRANSLATE] History"
+    },
+    "savedTests": {
+      "title": "[TRANSLATE] Saved Tests"
+    },
+    "method": {
+      "label": "[TRANSLATE] Method"
+    },
+    "baseUrl": {
+      "label": "[TRANSLATE] Base URL"
+    },
+    "httpsapiexamplecomdata": {
+      "text": "[TRANSLATE] https://api.example.com/data"
+    },
+    "send": {
+      "button": "[TRANSLATE] Send"
+    },
+    "effectiveUrlReadonly": {
+      "label": "[TRANSLATE] Effective URL (read-only):"
+    },
+    "enterBaseUrlAndAddParams": {
+      "placeholder": "[TRANSLATE] Enter base URL and add params..."
+    },
+    "queryParams": {
+      "label": "[TRANSLATE] Query Params"
+    },
+    "authorization": {
+      "label": "[TRANSLATE] Authorization"
+    },
+    "headers": {
+      "label": "[TRANSLATE] Headers"
+    },
+    "body": {
+      "label": "[TRANSLATE] Body"
+    },
+    "assertions": {
+      "label": "[TRANSLATE] Assertions"
+    },
+    "key": {
+      "label": "[TRANSLATE] Key"
+    },
+    "value": {
+      "label": "[TRANSLATE] Value"
+    },
+    "addParam": {
+      "button": "[TRANSLATE] Add Param"
+    },
+    "headerName": {
+      "label": "[TRANSLATE] Header Name"
+    },
+    "headerValue": {
+      "label": "[TRANSLATE] Header Value"
+    },
+    "addHeader": {
+      "button": "[TRANSLATE] Add Header"
+    },
+    "bodyType": {
+      "label": "[TRANSLATE] Body Type"
+    },
+    "thisRequestDoesNotHaveA": {
+      "description": "[TRANSLATE] This request does not have a body."
+    },
+    "contentType": {
+      "label": "[TRANSLATE] Content-Type"
+    },
+    "selectContentType": {
+      "placeholder": "[TRANSLATE] Select content type"
+    },
+    "applicationjson": {
+      "text": "[TRANSLATE] application/json"
+    },
+    "textplain": {
+      "text": "[TRANSLATE] text/plain"
+    },
+    "applicationxml": {
+      "text": "[TRANSLATE] application/xml"
+    },
+    "texthtml": {
+      "text": "[TRANSLATE] text/html"
+    },
+    "applicationjavascript": {
+      "text": "[TRANSLATE] application/javascript"
+    },
+    "uploadFile": {
+      "button": "[TRANSLATE] Upload File"
+    },
+    "graphqlQuery": {
+      "label": "[TRANSLATE] GraphQL Query"
+    },
+    "graphqlVariablesJson": {
+      "label": "[TRANSLATE] GraphQL Variables (JSON)"
+    },
+    "type": {
+      "label": "[TRANSLATE] Type"
+    },
+    "text": {
+      "text": "[TRANSLATE] Text"
+    },
+    "file": {
+      "text": "[TRANSLATE] File"
+    },
+    "addField": {
+      "button": "[TRANSLATE] Add Field"
+    },
+    "response": {
+      "label": "[TRANSLATE] Response"
+    },
+    "status": {
+      "label": "[TRANSLATE] Status:"
+    },
+    "text1": "[TRANSLATE] ---",
+    "time": {
+      "label": "[TRANSLATE] Time:"
+    },
+    "loading": {
+      "button": "[TRANSLATE] Loading..."
+    },
+    "loadingResponseHeaders": {
+      "placeholder": "[TRANSLATE] Loading response headers..."
+    },
+    "responseHeadersWillAppearHere": {
+      "placeholder": "[TRANSLATE] Response headers will appear here..."
+    },
+    "assertionResults": {
+      "label": "[TRANSLATE] Assertion Results"
+    },
+    "noAssertionsWereRunOrResults": {
+      "description": "[TRANSLATE] No assertions were run or results are not available."
+    },
+    "runningAssertions": {
+      "text": "[TRANSLATE] Running assertions..."
+    }
+  },
+  "dashboardOverviewPage": {
+    "webtestPlatform": {
+      "text": "[TRANSLATE] WebTest Platform"
+    },
+    "noEmailProvided": {
+      "text": "[TRANSLATE] No email provided"
+    },
+    "userNotLoaded": {
+      "text": "[TRANSLATE] User not loaded"
+    },
+    "dashboardOverview": {
+      "title": "[TRANSLATE] Dashboard Overview"
+    }
+  },
+  "testSuitesPage": {
+    "testSuites": {
+      "title": "[TRANSLATE] Test Suites"
+    },
+    "searchTests": {
+      "placeholder": "[TRANSLATE] Search tests..."
+    },
+    "filterByProject": {
+      "placeholder": "[TRANSLATE] Filter by project"
+    },
+    "allProjects": {
+      "text": "[TRANSLATE] All Projects"
+    },
+    "testPlan": {
+      "button": "[TRANSLATE] + Test Plan",
+      "label": "[TRANSLATE] Test Plan"
+    },
+    "schedules": {
+      "label": "[TRANSLATE] Schedules"
+    },
+    "name": {
+      "label": "[TRANSLATE] Name"
+    },
+    "testLabType": {
+      "label": "[TRANSLATE] Test Lab Type"
+    },
+    "progettoDiAppartenenza": {
+      "label": "[TRANSLATE] Progetto di appartenenza"
+    },
+    "azioni": {
+      "label": "[TRANSLATE] Azioni"
+    },
+    "noDescription": {
+      "text": "[TRANSLATE] No Description"
+    },
+    "crossDeviceTesting": {
+      "text": "[TRANSLATE] Cross Device Testing"
+    },
+    "schedule": {
+      "button": "[TRANSLATE] Schedule"
+    },
+    "reports": {
+      "button": "[TRANSLATE] Reports"
+    },
+    "run": {
+      "button": "[TRANSLATE] Run"
+    },
+    "schedulesContentGoesHere": {
+      "text": "[TRANSLATE] Schedules content goes here."
+    }
+  },
+  "testsPage": {
+    "testManagement": {
+      "title": "[TRANSLATE] Test Management"
+    },
+    "testPlans": {
+      "label": "[TRANSLATE] Test Plans"
+    },
+    "searchTestPlans": {
+      "placeholder": "[TRANSLATE] Search test plans..."
+    },
+    "createTestPlan": {
+      "button": "[TRANSLATE] Create Test Plan"
+    },
+    "description": {
+      "label": "[TRANSLATE] Description"
+    },
+    "createdAt": {
+      "label": "[TRANSLATE] Created At"
+    },
+    "updatedAt": {
+      "label": "[TRANSLATE] Updated At"
+    },
+    "actions": {
+      "label": "[TRANSLATE] Actions"
+    },
+    "loadingTestPlans": {
+      "text": "[TRANSLATE] Loading test plans..."
+    },
+    "na": {
+      "text": "[TRANSLATE] N/A"
+    },
+    "edit": {
+      "button": "[TRANSLATE] Edit"
+    },
+    "delete": {
+      "button": "[TRANSLATE] Delete"
+    },
+    "listView": {
+      "button": "[TRANSLATE] List View"
+    },
+    "createSchedule": {
+      "button": "[TRANSLATE] Create Schedule"
+    },
+    "searchSchedules": {
+      "placeholder": "[TRANSLATE] Search schedules..."
+    },
+    "scheduleName": {
+      "label": "[TRANSLATE] Schedule Name"
+    },
+    "frequency": {
+      "label": "[TRANSLATE] Frequency",
+      "label1": "[TRANSLATE] Frequency:"
+    },
+    "nextRunAt": {
+      "label": "[TRANSLATE] Next Run At",
+      "label1": "[TRANSLATE] Next Run At:"
+    },
+    "loadingSchedules": {
+      "text": "[TRANSLATE] Loading schedules..."
+    },
+    "createNewSchedule": {
+      "title": "[TRANSLATE] Create New Schedule"
+    },
+    "fillInTheDetailsForYour": {
+      "description": "[TRANSLATE] Fill in the details for your new schedule."
+    },
+    "egDailySmokeTests": {
+      "placeholder": "[TRANSLATE] e.g., Daily Smoke Tests"
+    },
+    "noTestPlansAvailable": {
+      "placeholder": "[TRANSLATE] No test plans available"
+    },
+    "selectATestPlan": {
+      "placeholder": "[TRANSLATE] Select a Test Plan"
+    },
+    "selectFrequency": {
+      "placeholder": "[TRANSLATE] Select frequency"
+    },
+    "hourly": {
+      "text": "[TRANSLATE] Hourly"
+    },
+    "daily": {
+      "text": "[TRANSLATE] Daily"
+    },
+    "weekly": {
+      "text": "[TRANSLATE] Weekly"
+    },
+    "biweekly": {
+      "text": "[TRANSLATE] Bi-Weekly"
+    },
+    "monthly": {
+      "text": "[TRANSLATE] Monthly"
+    },
+    "every15Minutes": {
+      "text": "[TRANSLATE] Every 15 minutes"
+    },
+    "every30Minutes": {
+      "text": "[TRANSLATE] Every 30 minutes"
+    },
+    "cancel": {
+      "button": "[TRANSLATE] Cancel"
+    },
+    "creating": {
+      "button": "[TRANSLATE] Creating..."
+    },
+    "updateTheFrequencyAndNextRun": {
+      "description": "[TRANSLATE] Update the frequency and next run time for your schedule. Name and Test Plan are not editable here."
+    },
+    "name": {
+      "label1": "[TRANSLATE] Name:"
+    },
+    "currentPlan": {
+      "label": "[TRANSLATE] Current Plan:"
+    },
+    "saving": {
+      "button": "[TRANSLATE] Saving..."
+    },
+    "saveChanges": {
+      "button": "[TRANSLATE] Save Changes"
+    },
+    "confirmDeletion": {
+      "title": "[TRANSLATE] Confirm Deletion"
+    },
+    "deleting": {
+      "button": "[TRANSLATE] Deleting..."
+    },
+    "createNewTestPlan": {
+      "title": "[TRANSLATE] Create New Test Plan"
+    },
+    "fillInTheDetailsForYourNewTestPlanName": {
+      "description": "[TRANSLATE] Fill in the details for your new test plan. Name is required."
+    },
+    "egEndtoendCheckoutFlow": {
+      "placeholder": "[TRANSLATE] e.g., End-to-End Checkout Flow"
+    },
+    "optionalABriefSummaryOfThe": {
+      "placeholder": "[TRANSLATE] Optional: A brief summary of the test plan"
+    },
+    "updateTheNameAndDescription": {
+      "description": "[TRANSLATE] Update the name and description for your test plan."
+    },
+    "deleteTestPlan": {
+      "button": "[TRANSLATE] Delete Test Plan"
+    }
+  },
+  "authPage": {
+    "automatedWebTestingMadeSimple": {
+      "text": "[TRANSLATE] Automated Web Testing Made Simple"
+    },
+    "welcome": {
+      "title": "[TRANSLATE] Welcome"
+    },
+    "signInToYourAccountOrCreate": {
+      "description": "[TRANSLATE] Sign in to your account or create a new one to get started"
+    },
+    "signIn": {
+      "button": "[TRANSLATE] Sign In"
+    },
+    "register": {
+      "button": "[TRANSLATE] Register"
+    },
+    "username": {
+      "label": "[TRANSLATE] Username"
+    },
+    "enterYourUsername": {
+      "placeholder": "[TRANSLATE] Enter your username"
+    },
+    "password": {
+      "label": "[TRANSLATE] Password"
+    },
+    "enterYourPassword": {
+      "placeholder": "[TRANSLATE] Enter your password"
+    },
+    "signingIn": {
+      "button": "[TRANSLATE] Signing in..."
+    },
+    "chooseAUsername": {
+      "placeholder": "[TRANSLATE] Choose a username"
+    },
+    "chooseAPassword": {
+      "placeholder": "[TRANSLATE] Choose a password"
+    },
+    "confirmPassword": {
+      "label": "[TRANSLATE] Confirm Password"
+    },
+    "confirmYourPassword": {
+      "placeholder": "[TRANSLATE] Confirm your password"
+    },
+    "passwordsDoNotMatch": {
+      "description": "[TRANSLATE] Passwords do not match"
+    },
+    "creatingAccount": {
+      "button": "[TRANSLATE] Creating account..."
+    },
+    "createAccount": {
+      "button": "[TRANSLATE] Create Account"
+    },
+    "automateYourWebTesting": {
+      "title": "[TRANSLATE] Automate Your Web Testing"
+    },
+    "createExecuteAndManageAutomated": {
+      "description": "[TRANSLATE] Create, execute, and manage automated web tests with our intuitive drag-and-drop interface."
+    },
+    "noCodingRequired": {
+      "text": "[TRANSLATE] No coding required."
+    },
+    "visualElementDetection": {
+      "text": "[TRANSLATE] Visual element detection"
+    },
+    "draganddropTestBuilding": {
+      "text": "[TRANSLATE] Drag-and-drop test building"
+    },
+    "realtimeTestExecution": {
+      "text": "[TRANSLATE] Real-time test execution"
+    },
+    "comprehensiveReporting": {
+      "text": "[TRANSLATE] Comprehensive reporting"
+    }
+  },
+  "dashboardPageNew": {
+    "createWebTest": {
+      "title": "[TRANSLATE] Create Web Test"
+    },
+    "notifications": {
+      "button": "[TRANSLATE] Notifications"
+    },
+    "settings": {
+      "button": "[TRANSLATE] Settings"
+    },
+    "signOut": {
+      "button": "[TRANSLATE] Sign Out"
+    },
+    "websiteUrlToTest": {
+      "label": "[TRANSLATE] Website URL to Test"
+    },
+    "httpsexamplecom": {
+      "placeholder": "[TRANSLATE] https://example.com"
+    },
+    "loadWebsite": {
+      "button": "[TRANSLATE] Load Website"
+    },
+    "detectElements": {
+      "button": "[TRANSLATE] Detect Elements"
+    },
+    "modalitDiCreazioneTest": {
+      "label": "[TRANSLATE] Modalit\u00e0 di Creazione Test"
+    },
+    "selezionaModalit": {
+      "placeholder": "[TRANSLATE] Seleziona modalit\u00e0"
+    },
+    "creaTestManualeDragDrop": {
+      "text": "[TRANSLATE] Crea test manuale (drag & drop)"
+    },
+    "registraAzioniUtenteAutorecord": {
+      "text": "[TRANSLATE] Registra azioni utente (auto-record)"
+    },
+    "starting": {
+      "button": "[TRANSLATE] Starting..."
+    },
+    "iniziaRegistrazione": {
+      "button": "[TRANSLATE] Inizia registrazione"
+    },
+    "stopping": {
+      "button": "[TRANSLATE] Stopping..."
+    },
+    "terminaRegistrazione": {
+      "button": "[TRANSLATE] Termina registrazione"
+    },
+    "testResultPassed": {
+      "text": "[TRANSLATE] Test Result: Passed"
+    },
+    "testResultFailed": {
+      "text": "[TRANSLATE] Test Result: Failed"
+    },
+    "availableActions": {
+      "title": "[TRANSLATE] Available Actions"
+    },
+    "websitePreview": {
+      "title": "[TRANSLATE] Website Preview"
+    },
+    "executing": {
+      "text": "[TRANSLATE] Executing..."
+    },
+    "playback": {
+      "text": "[TRANSLATE] Playback"
+    },
+    "loaded": {
+      "text": "[TRANSLATE] Loaded"
+    },
+    "registrazioneInCorso": {
+      "text": "[TRANSLATE] Registrazione in corso..."
+    },
+    "utilizzaLaFinestraDelBrowser": {
+      "description": "[TRANSLATE] Utilizza la finestra del browser separata che si \u00e8 aperta per interagire con il sito."
+    },
+    "leAzioniRegistrateApparirannoNella": {
+      "description": "[TRANSLATE] Le azioni registrate appariranno nella sezione \"Test Sequence\" qui sotto."
+    },
+    "testStepScreenshot": {
+      "text": "[TRANSLATE] Test step screenshot"
+    },
+    "websiteScreenshot": {
+      "text": "[TRANSLATE] Website screenshot"
+    },
+    "loadAWebsiteToSeeThe": {
+      "description": "[TRANSLATE] Load a website to see the preview"
+    },
+    "screenshotsFromWebsiteLoadingOr": {
+      "description": "[TRANSLATE] Screenshots from website loading or test playback will appear here."
+    },
+    "detectedElements": {
+      "title": "[TRANSLATE] Detected Elements"
+    },
+    "found": {
+      "text": "[TRANSLATE] found"
+    },
+    "noElementsDetectedYet": {
+      "text": "[TRANSLATE] No elements detected yet"
+    },
+    "loadAWebsiteAndClickDetect": {
+      "description": "[TRANSLATE] Load a website and click \"Detect Elements\""
+    }
+  },
+  "dashboardPage": {
+    "user": {
+      "text": "[TRANSLATE] User"
+    }
+  },
+  "notFoundPage": {
+    "404PageNotFound": {
+      "title": "[TRANSLATE] 404 Page Not Found"
+    },
+    "didYouForgetToAddThePage": {
+      "description": "[TRANSLATE] Did you forget to add the page to the router?"
+    }
+  },
+  "settingsPage": {
+    "loadingSettings": {
+      "text": "[TRANSLATE] Loading settings..."
+    },
+    "errorLoadingUserSettings": {
+      "label": "[TRANSLATE] Error loading user settings:"
+    },
+    "anUnknownErrorOccurred": {
+      "description": "[TRANSLATE] An unknown error occurred."
+    },
+    "tryAgain": {
+      "button": "[TRANSLATE] Try Again"
+    },
+    "projectManagement": {
+      "title": "[TRANSLATE] Project Management"
+    },
+    "createAndManageYourProjects": {
+      "description": "[TRANSLATE] Create and manage your projects."
+    },
+    "newProjectName": {
+      "label": "[TRANSLATE] New Project Name"
+    },
+    "enterProjectName": {
+      "placeholder": "[TRANSLATE] Enter project name"
+    },
+    "createProject": {
+      "button": "[TRANSLATE] Create Project"
+    },
+    "existingProjects": {
+      "title": "[TRANSLATE] Existing Projects"
+    },
+    "loadingProjects": {
+      "text": "[TRANSLATE] Loading projects..."
+    },
+    "noProjectsFound": {
+      "text": "[TRANSLATE] No projects found."
+    },
+    "chromium": {
+      "text": "[TRANSLATE] Chromium"
+    },
+    "firefox": {
+      "text": "[TRANSLATE] Firefox"
+    },
+    "webkitSafari": {
+      "text": "[TRANSLATE] WebKit (Safari)"
+    }
+  },
+  "saveTestModal": {
+    "saveTest": {
+      "button": "[TRANSLATE] Save Test"
+    },
+    "pleaseEnterANameForYour": {
+      "description": "[TRANSLATE] Please enter a name for your test. This will help you identify it later."
+    },
+    "testName": {
+      "label": "[TRANSLATE] Test Name"
+    },
+    "egLoginFunctionalityTest": {
+      "placeholder": "[TRANSLATE] e.g., Login Functionality Test"
+    },
+    "project": {
+      "label": "[TRANSLATE] Project"
+    },
+    "selectAProjectOptional": {
+      "placeholder": "[TRANSLATE] Select a project (Optional)"
+    },
+    "loadingProjects": {
+      "text": "[TRANSLATE] Loading projects..."
+    },
+    "errorLoadingProjects": {
+      "text": "[TRANSLATE] Error loading projects."
+    },
+    "noProjectsAvailable": {
+      "text": "[TRANSLATE] No projects available."
+    },
+    "cancel": {
+      "button": "[TRANSLATE] Cancel"
+    },
+    "save": {
+      "button": "[TRANSLATE] Save"
+    }
+  },
+  "draggableAction": {
+    "target": {
+      "label": "[TRANSLATE] Target:"
+    }
+  },
+  "draggableElement": {
+    "element": {
+      "text": "[TRANSLATE] element"
+    }
+  },
+  "testSequenceBuilder": {
+    "testSequence": {
+      "title": "[TRANSLATE] Test Sequence"
+    },
+    "steps": {
+      "text": "[TRANSLATE] steps"
+    },
+    "clear": {
+      "button": "[TRANSLATE] Clear"
+    },
+    "recordingInProgress": {
+      "text": "[TRANSLATE] Recording in progress..."
+    },
+    "recordedActionsWillAppearHere": {
+      "description": "[TRANSLATE] Recorded actions will appear here."
+    },
+    "dropActionsHereToBuildYour": {
+      "description": "[TRANSLATE] Drop actions here to build your test"
+    },
+    "dragActionsFromTheLeftSidebar": {
+      "description": "[TRANSLATE] Drag actions from the left sidebar, then add elements to complete each step"
+    },
+    "changeAction": {
+      "placeholder": "[TRANSLATE] Change action"
+    },
+    "changeElement": {
+      "button": "[TRANSLATE] Change Element"
+    },
+    "setElement": {
+      "button": "[TRANSLATE] Set Element"
+    },
+    "textToInput": {
+      "label": "[TRANSLATE] Text to input"
+    },
+    "optionValue": {
+      "label": "[TRANSLATE] Option value"
+    },
+    "timeMs": {
+      "label": "[TRANSLATE] Time (ms)"
+    },
+    "expectedText": {
+      "label": "[TRANSLATE] Expected text"
+    },
+    "countEg1": {
+      "label": "[TRANSLATE] Count (e.g. ==1)"
+    },
+    "expectedValue": {
+      "label": "[TRANSLATE] Expected value"
+    },
+    "value": {
+      "label": "[TRANSLATE] Value",
+      "placeholder": "[TRANSLATE] Value..."
+    },
+    "enterText": {
+      "placeholder": "[TRANSLATE] Enter text..."
+    },
+    "enterOptionValue": {
+      "placeholder": "[TRANSLATE] Enter option value..."
+    },
+    "eg1000": {
+      "placeholder": "[TRANSLATE] e.g., 1000"
+    },
+    "textTheElementShouldContain": {
+      "placeholder": "[TRANSLATE] Text the element should contain..."
+    },
+    "eg153": {
+      "placeholder": "[TRANSLATE] e.g., '==1', '>=5', '<3'"
+    },
+    "expectedTextOrAttributeValue": {
+      "placeholder": "[TRANSLATE] Expected text or attribute value..."
+    },
+    "removeStep": {
+      "button": "[TRANSLATE] Remove step"
+    },
+    "executeTest": {
+      "button": "[TRANSLATE] Execute Test"
+    }
+  },
+  "apiTester": {
+    "assertionEditor": {
+      "assertion": {
+        "label": "[TRANSLATE] Assertion #"
+      },
+      "enabled": {
+        "label": "[TRANSLATE] Enabled"
+      },
+      "source": {
+        "label": "[TRANSLATE] Source"
+      },
+      "selectSource": {
+        "placeholder": "[TRANSLATE] Select source"
+      },
+      "comparison": {
+        "label": "[TRANSLATE] Comparison"
+      },
+      "selectComparison": {
+        "placeholder": "[TRANSLATE] Select comparison"
+      },
+      "headerName": {
+        "label": "[TRANSLATE] Header Name"
+      },
+      "jsonPathEgDataid": {
+        "label": "[TRANSLATE] JSON Path (e.g., data.id)"
+      },
+      "property": {
+        "label": "[TRANSLATE] Property"
+      },
+      "egContentType": {
+        "placeholder": "[TRANSLATE] e.g., Content-Type"
+      },
+      "egUsernameOrItems0id": {
+        "placeholder": "[TRANSLATE] e.g., user.name or items[0].id"
+      },
+      "targetValue": {
+        "label": "[TRANSLATE] Target Value"
+      },
+      "enterRegex": {
+        "placeholder": "[TRANSLATE] Enter Regex"
+      },
+      "eg200": {
+        "placeholder": "[TRANSLATE] e.g., 200"
+      },
+      "eg500InMs": {
+        "placeholder": "[TRANSLATE] e.g., 500 (in ms)"
+      },
+      "expectedValue": {
+        "placeholder": "[TRANSLATE] Expected value"
+      },
+      "addAssertion": {
+        "button": "[TRANSLATE] Add Assertion"
+      }
+    },
+    "authTypeDropdown": {
+      "selectAuthType": {
+        "placeholder": "[TRANSLATE] Select Auth Type"
+      },
+      "inheritFromParent": {
+        "text": "[TRANSLATE] Inherit from Parent"
+      },
+      "noAuth": {
+        "text": "[TRANSLATE] No Auth"
+      },
+      "basicAuth": {
+        "text": "[TRANSLATE] Basic Auth"
+      },
+      "bearerToken": {
+        "text": "[TRANSLATE] Bearer Token"
+      },
+      "jwtBearer": {
+        "text": "[TRANSLATE] JWT Bearer"
+      },
+      "digestAuth": {
+        "text": "[TRANSLATE] Digest Auth"
+      },
+      "oauth10": {
+        "text": "[TRANSLATE] OAuth 1.0"
+      },
+      "oauth20": {
+        "text": "[TRANSLATE] OAuth 2.0"
+      },
+      "hawkAuthentication": {
+        "text": "[TRANSLATE] Hawk Authentication"
+      },
+      "awsSignature": {
+        "text": "[TRANSLATE] AWS Signature"
+      },
+      "ntlmAuthentication": {
+        "text": "[TRANSLATE] NTLM Authentication"
+      },
+      "apiKey": {
+        "text": "[TRANSLATE] API Key"
+      },
+      "akamaiEdgegrid": {
+        "text": "[TRANSLATE] Akamai EdgeGrid"
+      },
+      "atlassianAsap": {
+        "text": "[TRANSLATE] Atlassian ASAP"
+      }
+    },
+    "authorizationPanel": {
+      "authorizationType": {
+        "label": "[TRANSLATE] Authorization Type"
+      },
+      "noParametersForThisAuth": {
+        "description": "[TRANSLATE] No parameters for this auth type."
+      },
+      "parametersAreNotYetConfigurable": {
+        "description": "[TRANSLATE] parameters are not yet configurable."
+      }
+    },
+    "historyPanel": {
+      "history": {
+        "title": "[TRANSLATE] History"
+      },
+      "clearAll": {
+        "button": "[TRANSLATE] Clear All"
+      },
+      "loadingHistory": {
+        "text": "[TRANSLATE] Loading history..."
+      },
+      "noHistoryItemsYet": {
+        "text": "[TRANSLATE] No history items yet."
+      }
+    },
+    "saveApiTestModal": {
+      "updateApiTest": {
+        "title": "[TRANSLATE] Update API Test"
+      },
+      "saveNewApiTest": {
+        "title": "[TRANSLATE] Save New API Test"
+      },
+      "updateTheDetailsForThisApi": {
+        "description": "[TRANSLATE] Update the details for this API test."
+      },
+      "enterANameForYourNewApi": {
+        "description": "[TRANSLATE] Enter a name for your new API test. You can also assign it to a project."
+      },
+      "testName": {
+        "label": "[TRANSLATE] Test Name"
+      },
+      "egGetUserDetails": {
+        "placeholder": "[TRANSLATE] e.g., Get User Details"
+      },
+      "projectOptional": {
+        "label": "[TRANSLATE] Project (Optional)"
+      },
+      "selectAProject": {
+        "placeholder": "[TRANSLATE] Select a project"
+      },
+      "noProject": {
+        "text": "[TRANSLATE] No Project"
+      },
+      "updating": {
+        "button": "[TRANSLATE] Updating..."
+      },
+      "updateTest": {
+        "button": "[TRANSLATE] Update Test"
+      }
+    },
+    "savedTestsPanel": {
+      "savedTests": {
+        "title": "[TRANSLATE] Saved Tests"
+      },
+      "newTest": {
+        "button": "[TRANSLATE] New Test"
+      },
+      "loadingSavedTests": {
+        "text": "[TRANSLATE] Loading saved tests..."
+      },
+      "noTestsSavedYet": {
+        "text": "[TRANSLATE] No tests saved yet."
+      },
+      "loadTest": {
+        "button": "[TRANSLATE] Load Test"
+      },
+      "editTest": {
+        "button": "[TRANSLATE] Edit Test"
+      },
+      "exportTest": {
+        "button": "[TRANSLATE] Export Test"
+      },
+      "deleteTest": {
+        "button": "[TRANSLATE] Delete Test"
+      },
+      "projectId": {
+        "label": "[TRANSLATE] Project ID:"
+      },
+      "lastUpdated": {
+        "label": "[TRANSLATE] Last updated:"
+      }
+    }
+  },
+  "authForms": {
+    "apiKeyAuthForm": {
+      "key": {
+        "label": "[TRANSLATE] Key"
+      },
+      "enterApiKeyNameEgXapikey": {
+        "placeholder": "[TRANSLATE] Enter API key name (e.g., X-API-KEY)"
+      },
+      "value": {
+        "label": "[TRANSLATE] Value"
+      },
+      "enterApiKeyValue": {
+        "placeholder": "[TRANSLATE] Enter API key value"
+      },
+      "addTo": {
+        "label": "[TRANSLATE] Add to"
+      },
+      "selectWhereToAddApiKey": {
+        "placeholder": "[TRANSLATE] Select where to add API key"
+      },
+      "header": {
+        "text": "[TRANSLATE] Header"
+      },
+      "queryParam": {
+        "text": "[TRANSLATE] Query Param"
+      }
+    },
+    "basicAuthForm": {
+      "username": {
+        "label": "[TRANSLATE] Username"
+      },
+      "enterUsername": {
+        "placeholder": "[TRANSLATE] Enter username"
+      },
+      "password": {
+        "label": "[TRANSLATE] Password"
+      },
+      "enterPassword": {
+        "placeholder": "[TRANSLATE] Enter password"
+      }
+    },
+    "bearerTokenAuthForm": {
+      "token": {
+        "label": "[TRANSLATE] Token"
+      },
+      "enterBearerToken": {
+        "placeholder": "[TRANSLATE] Enter bearer token"
+      }
+    }
+  },
+  "dashboard": {
+    "kpiPanel": {
+      "totalTests": {
+        "title": "[TRANSLATE] Total Tests"
+      },
+      "successRate": {
+        "title": "[TRANSLATE] Success Rate"
+      },
+      "avgDuration": {
+        "title": "[TRANSLATE] Avg. Duration"
+      },
+      "lastRun": {
+        "title": "[TRANSLATE] Last Run"
+      }
+    },
+    "quickAccessReports": {
+      "recentTestReports": {
+        "title": "[TRANSLATE] Recent Test Reports"
+      },
+      "reportDataWillBeAvailable": {
+        "description": "[TRANSLATE] Report data will be available soon."
+      }
+    },
+    "runTestNowButton": {
+      "eseguiTestOra": {
+        "button": "[TRANSLATE] Esegui test ora"
+      }
+    },
+    "testSchedulingsTable": {
+      "upcomingRecentSchedulings": {
+        "title": "[TRANSLATE] Upcoming & Recent Schedulings"
+      },
+      "schedulingDataWillBeAvailable": {
+        "description": "[TRANSLATE] Scheduling data will be available soon."
+      }
+    },
+    "testStatusPieChart": {
+      "testStatusOverview": {
+        "title": "[TRANSLATE] Test Status Overview"
+      },
+      "chartDataWillBeAvailable": {
+        "description": "[TRANSLATE] Chart data will be available soon."
+      }
+    },
+    "testTrendBarChart": {
+      "weeklyTestTrends": {
+        "title": "[TRANSLATE] Weekly Test Trends"
+      }
     }
   }
 }

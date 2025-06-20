@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'wouter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -27,6 +28,7 @@ const mockTestPlans: TestPlanItem[] = [
 ];
 
 const TestSuitesPage: React.FC = () => {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProject, setSelectedProject] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -61,7 +63,7 @@ const TestSuitesPage: React.FC = () => {
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <LibrarySquare className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold text-card-foreground">Test Suites</h1>
+            <h1 className="text-xl font-bold text-card-foreground">{t('testSuitesPage.testSuites.title')}</h1>
           </div>
           <div className="flex items-center space-x-4">
             {/* Placeholder for right-side icons */}
@@ -81,7 +83,7 @@ const TestSuitesPage: React.FC = () => {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search tests..."
+                placeholder={t('testSuitesPage.searchTests.placeholder')}
                 className="pl-8 pr-2 py-2 h-10 w-full sm:w-[200px] lg:w-[250px]"
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
@@ -90,12 +92,12 @@ const TestSuitesPage: React.FC = () => {
             {/* Project Select Dropdown */}
             <Select value={selectedProject} onValueChange={(value) => { setSelectedProject(value); setCurrentPage(1); }}>
               <SelectTrigger className="h-10 w-full sm:w-auto sm:min-w-[180px]">
-                <SelectValue placeholder="Filter by project" />
+                <SelectValue placeholder={t('testSuitesPage.filterByProject.placeholder')} />
               </SelectTrigger>
               <SelectContent>
                 {projectOptions.map(project => (
                   <SelectItem key={project} value={project}>
-                    {project === 'all' ? 'All Projects' : project}
+                    {project === 'all' ? t('testSuitesPage.allProjects.text') : project}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -134,24 +136,24 @@ const TestSuitesPage: React.FC = () => {
             </div>
             {/* + Test Plan Button */}
             <Button className="bg-green-500 hover:bg-green-600 text-white">
-              + Test Plan
+              {t('testSuitesPage.testPlan.button')}
             </Button>
           </div>
         </div>
 
         <Tabs defaultValue="test-plan">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="test-plan">Test Plan</TabsTrigger>
-            <TabsTrigger value="schedules">Schedules</TabsTrigger>
+            <TabsTrigger value="test-plan">{t('testSuitesPage.testPlan.label')}</TabsTrigger>
+            <TabsTrigger value="schedules">{t('testSuitesPage.schedules.label')}</TabsTrigger>
           </TabsList>
           <TabsContent value="test-plan" className="mt-6">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Test Lab Type</TableHead>
-                  <TableHead>Progetto di appartenenza</TableHead>
-                  <TableHead>Azioni</TableHead>
+                  <TableHead>{t('testSuitesPage.name.label')}</TableHead>
+                  <TableHead>{t('testSuitesPage.testLabType.label')}</TableHead>
+                  <TableHead>{t('testSuitesPage.progettoDiAppartenenza.label')}</TableHead>
+                  <TableHead>{t('testSuitesPage.azioni.label')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -159,26 +161,26 @@ const TestSuitesPage: React.FC = () => {
                   <TableRow key={item.id}>
                     <TableCell>
                       <div>{item.name}</div>
-                    <div className="text-xs text-muted-foreground">No Description</div>
+                    <div className="text-xs text-muted-foreground">{t('testSuitesPage.noDescription.text')}</div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-1">
                       <Settings size={16} />
                       <MonitorSmartphone size={16} />
-                      <span>Cross Device Testing</span>
+                      <span>{t('testSuitesPage.crossDeviceTesting.text')}</span>
                     </div>
                   </TableCell>
                   <TableCell>{item.project}</TableCell>
                   <TableCell>
                     <div className="space-x-2">
                       <Button variant="outline" size="sm">
-                        <CalendarDays size={16} className="mr-1" /> Schedule
+                        <CalendarDays size={16} className="mr-1" /> {t('testSuitesPage.schedule.button')}
                       </Button>
                       <Button variant="outline" size="sm">
-                        <FileText size={16} className="mr-1" /> Reports
+                        <FileText size={16} className="mr-1" /> {t('testSuitesPage.reports.button')}
                       </Button>
                       <Button variant="outline" size="sm">
-                        <Play size={16} className="mr-1" /> Run
+                        <Play size={16} className="mr-1" /> {t('testSuitesPage.run.button')}
                       </Button>
                     </div>
                   </TableCell>
@@ -189,7 +191,7 @@ const TestSuitesPage: React.FC = () => {
         </TabsContent>
         <TabsContent value="schedules" className="mt-6">
           {/* Content for Schedules tab will go here */}
-          <p>Schedules content goes here.</p>
+          <p>{t('testSuitesPage.schedulesContentGoesHere.text')}</p>
         </TabsContent>
       </Tabs>
     </div> {/* End of Content Wrapper */}

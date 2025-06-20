@@ -1072,15 +1072,15 @@ export default function DashboardPage() {
                 <ArrowLeft className="h-5 w-5" />
               </Link>
               <TestTube className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold text-card-foreground">Create Web Test</h1>
+              <h1 className="text-xl font-bold text-card-foreground">{t('dashboardPageNew.createWebTest.title')}</h1>
             </div>
           </div>
           
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" aria-label="Notifications">
+            <Button variant="ghost" size="icon" aria-label={t('dashboardPageNew.notifications.button')}>
               <Bell className="h-4 w-4" />
             </Button>
-            <Link href="/settings" aria-label="Settings">
+            <Link href="/settings" aria-label={t('dashboardPageNew.settings.button')}>
               <Button variant="ghost" size="icon">
                 <Settings className="h-4 w-4" />
               </Button>
@@ -1095,7 +1095,7 @@ export default function DashboardPage() {
               onClick={() => logoutMutation.mutate()}
               disabled={logoutMutation.isPending}
             >
-              Sign Out
+              {t('dashboardPageNew.signOut.button')}
             </Button>
           </div>
         </div>
@@ -1105,13 +1105,13 @@ export default function DashboardPage() {
       <div className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center space-x-4">
           <div className="flex-grow">
-            <Label htmlFor="urlInput" className="block text-sm font-medium text-card-foreground mb-1">Website URL to Test</Label>
+            <Label htmlFor="urlInput" className="block text-sm font-medium text-card-foreground mb-1">{t('dashboardPageNew.websiteUrlToTest.label')}</Label>
             <div className="flex space-x-3">
               <Input
                 id="urlInput"
                 type="url"
                 className="flex-1"
-                placeholder="https://example.com"
+                placeholder={t('dashboardPageNew.httpsexamplecom.placeholder')}
                 value={currentUrl}
                 onChange={(e) => {
                   setCurrentUrl(e.target.value);
@@ -1133,7 +1133,7 @@ export default function DashboardPage() {
                 ) : (
                   <Globe className="h-4 w-4 mr-2" />
                 )}
-                {loadWebsiteMutation.isPending ? "Loading..." : "Load Website"}
+                {loadWebsiteMutation.isPending ? t('apiTesterPage.loading.button') : t('dashboardPageNew.loadWebsite.button')}
               </Button>
               {creationMode === 'manual' && (
                 <Button
@@ -1146,19 +1146,19 @@ export default function DashboardPage() {
                   ) : (
                     <Search className="h-4 w-4 mr-2" />
                   )}
-                  {detectElementsMutation.isPending ? "Detecting..." : "Detect Elements"}
+                  {detectElementsMutation.isPending ? t('apiTesterPage.loading.button') : t('dashboardPageNew.detectElements.button')}
                 </Button>
               )}
             </div>
             <div className="mt-4">
-              <Label htmlFor="creationModeSelect" className="block text-sm font-medium text-card-foreground mb-1">Modalità di Creazione Test</Label>
+              <Label htmlFor="creationModeSelect" className="block text-sm font-medium text-card-foreground mb-1">{t('dashboardPageNew.modalitDiCreazioneTest.label')}</Label>
               <Select value={creationMode} onValueChange={(value: "manual" | "record") => setCreationMode(value)}>
                 <SelectTrigger id="creationModeSelect" className="w-[280px]">
-                  <SelectValue placeholder="Seleziona modalità" />
+                  <SelectValue placeholder={t('dashboardPageNew.selezionaModalit.placeholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="manual">Crea test manuale (drag & drop)</SelectItem>
-                  <SelectItem value="record">Registra azioni utente (auto-record)</SelectItem>
+                  <SelectItem value="manual">{t('dashboardPageNew.creaTestManualeDragDrop.text')}</SelectItem>
+                  <SelectItem value="record">{t('dashboardPageNew.registraAzioniUtenteAutorecord.text')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1174,7 +1174,7 @@ export default function DashboardPage() {
                   ) : (
                     <Play className="h-4 w-4 mr-2" />
                   )}
-                  {startRecordingMutation.isPending ? "Starting..." : "Inizia registrazione"}
+                  {startRecordingMutation.isPending ? t('dashboardPageNew.starting.button') : t('dashboardPageNew.iniziaRegistrazione.button')}
                 </Button>
                 <Button
                   onClick={handleStopRecording}
@@ -1186,7 +1186,7 @@ export default function DashboardPage() {
                   ) : (
                     <StopCircle className="h-4 w-4 mr-2" />
                   )}
-                  {stopRecordingMutation.isPending ? "Stopping..." : "Termina registrazione"}
+                  {stopRecordingMutation.isPending ? t('dashboardPageNew.stopping.button') : t('dashboardPageNew.terminaRegistrazione.button')}
                 </Button>
               </div>
             )}
@@ -1223,7 +1223,7 @@ export default function DashboardPage() {
           {/* Left Sidebar - Actions */}
           {creationMode === 'manual' && (
             <div className="w-80 bg-card border-r border-border p-4">
-              <h3 className="text-lg font-semibold text-card-foreground mb-4">Available Actions</h3>
+              <h3 className="text-lg font-semibold text-card-foreground mb-4">{t('dashboardPageNew.availableActions.title')}</h3>
 
               <ScrollArea className="h-full">
                 <div className="space-y-2">
@@ -1239,24 +1239,24 @@ export default function DashboardPage() {
           <div className="flex-1 bg-card border-r border-border p-4">
             <div className="h-full flex flex-col">
               <div className="flex items-center justify-between mb-2"> {/* Reduced mb */}
-                <h3 className="text-lg font-semibold text-card-foreground">Website Preview</h3>
+                <h3 className="text-lg font-semibold text-card-foreground">{t('dashboardPageNew.websitePreview.title')}</h3>
                 <div className="flex items-center space-x-2">
                   {(executeDirectTestMutation.isPending || executeSavedTestMutation.isPending) && (
                     <Badge variant="outline" className="text-info border-info">
                       <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      Executing...
+                      {t('dashboardPageNew.executing.text')}
                     </Badge>
                   )}
                   {isExecutingPlayback && (
                      <Badge variant="outline" className="text-primary border-primary">
                       <Play className="h-3 w-3 mr-1" />
-                      Playback
+                      {t('dashboardPageNew.playback.text')}
                     </Badge>
                   )}
                   {websiteLoaded && !isExecutingPlayback && !executeDirectTestMutation.isPending && !executeSavedTestMutation.isPending && (
                     <Badge variant="secondary" className="bg-success text-success-foreground">
                       <CheckCircle className="h-3 w-3 mr-1" />
-                      Loaded
+                      {t('dashboardPageNew.loaded.text')}
                     </Badge>
                   )}
                 </div>
@@ -1275,12 +1275,12 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-center h-full text-muted-foreground">
                     <div className="text-center p-4">
                       <Play className="h-12 w-12 mx-auto mb-4 opacity-70 text-primary" />
-                      <p className="text-lg font-semibold text-foreground">Registrazione in corso...</p>
+                      <p className="text-lg font-semibold text-foreground">{t('dashboardPageNew.registrazioneInCorso.text')}</p>
                       <p className="text-sm text-muted-foreground mt-2">
-                        Utilizza la finestra del browser separata che si è aperta per interagire con il sito.
+                        {t('dashboardPageNew.utilizzaLaFinestraDelBrowser.description')}
                       </p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Le azioni registrate appariranno nella sezione "Test Sequence" qui sotto.
+                        {t('dashboardPageNew.leAzioniRegistrateApparirannoNella.description')}
                       </p>
                     </div>
                   </div>
@@ -1289,7 +1289,7 @@ export default function DashboardPage() {
                     <img 
                       ref={imageRef}
                       src={websiteScreenshot} 
-                      alt={isExecutingPlayback ? "Test step screenshot" : "Website screenshot"}
+                      alt={isExecutingPlayback ? t('dashboardPageNew.testStepScreenshot.text') : t('dashboardPageNew.websiteScreenshot.text')}
                       className="block max-w-full max-h-full object-contain"
                     />
                     {/* Element highlighting overlay - shown only when NOT in playback mode to avoid confusion */}
@@ -1309,8 +1309,8 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-center h-full text-muted-foreground">
                     <div className="text-center">
                       <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Load a website to see the preview</p>
-                      <p className="text-sm mt-2">Screenshots from website loading or test playback will appear here.</p>
+                      <p>{t('dashboardPageNew.loadAWebsiteToSeeThe.description')}</p>
+                      <p className="text-sm mt-2">{t('dashboardPageNew.screenshotsFromWebsiteLoadingOr.description')}</p>
                     </div>
                   </div>
                 )}
@@ -1322,8 +1322,8 @@ export default function DashboardPage() {
           {creationMode === 'manual' && (
             <div className="w-80 bg-card p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-card-foreground">Detected Elements</h3>
-              <Badge variant="secondary">{detectedElements.length} found</Badge>
+                <h3 className="text-lg font-semibold text-card-foreground">{t('dashboardPageNew.detectedElements.title')}</h3>
+              <Badge variant="secondary">{detectedElements.length} {t('dashboardPageNew.found.text')}</Badge>
             </div>
             
             <ScrollArea className="h-full">
@@ -1340,8 +1340,8 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-center h-32 text-muted-foreground">
                     <div className="text-center">
                       <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No elements detected yet</p>
-                      <p className="text-xs">Load a website and click "Detect Elements"</p>
+                      <p className="text-sm">{t('dashboardPageNew.noElementsDetectedYet.text')}</p>
+                      <p className="text-xs">{t('dashboardPageNew.loadAWebsiteAndClickDetect.description')}</p>
                     </div>
                   </div>
                 )}

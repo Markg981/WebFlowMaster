@@ -67,34 +67,34 @@ export const SaveApiTestModal: React.FC<SaveApiTestModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Update API Test' : 'Save New API Test'}</DialogTitle>
+          <DialogTitle>{isEditing ? t('apiTester.saveApiTestModal.updateApiTest.title') : t('apiTester.saveApiTestModal.saveNewApiTest.title')}</DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Update the details for this API test.' : 'Enter a name for your new API test. You can also assign it to a project.'}
+            {isEditing ? t('apiTester.saveApiTestModal.updateTheDetailsForThisApi.description') : t('apiTester.saveApiTestModal.enterANameForYourNewApi.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div>
-            <Label htmlFor="testName">Test Name</Label>
+            <Label htmlFor="testName">{t('apiTester.saveApiTestModal.testName.label')}</Label>
             <Input
               id="testName"
               value={testName}
               onChange={(e) => setTestName(e.target.value)}
-              placeholder="e.g., Get User Details"
+              placeholder={t('apiTester.saveApiTestModal.egGetUserDetails.placeholder')}
               disabled={isLoading}
             />
           </div>
           <div>
-            <Label htmlFor="testProject">Project (Optional)</Label>
+            <Label htmlFor="testProject">{t('apiTester.saveApiTestModal.projectOptional.label')}</Label>
             <Select
               value={selectedProjectId?.toString() || ''}
               onValueChange={(value) => setSelectedProjectId(value ? parseInt(value) : null)}
               disabled={isLoading || isLoadingProjects || !projectsData}
             >
               <SelectTrigger id="testProject">
-                <SelectValue placeholder="Select a project" />
+                <SelectValue placeholder={t('apiTester.saveApiTestModal.selectAProject.placeholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No Project</SelectItem>
+                <SelectItem value="">{t('apiTester.saveApiTestModal.noProject.text')}</SelectItem>
                 {projectsData?.map((project) => (
                   <SelectItem key={project.id} value={project.id.toString()}>
                     {project.name}
@@ -106,10 +106,10 @@ export const SaveApiTestModal: React.FC<SaveApiTestModalProps> = ({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isLoading}>
-            Cancel
+            {t('saveTestModal.cancel.button')}
           </Button>
           <Button onClick={handleSubmit} disabled={!testName.trim() || isLoading}>
-            {isLoading ? (isEditing ? 'Updating...' : 'Saving...') : (isEditing ? 'Update Test' : 'Save Test')}
+            {isLoading ? (isEditing ? t('apiTester.saveApiTestModal.updating.button') : t('testsPage.saving.button')) : (isEditing ? t('apiTester.saveApiTestModal.updateTest.button') : t('apiTesterPage.saveTest.button'))}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 // Removed useQuery import
 import KpiCard from './KpiCard';
 import { ListChecks, Percent, Clock, PlayCircle } from 'lucide-react'; // Removed AlertCircle, Loader2
@@ -10,33 +11,34 @@ import { ListChecks, Percent, Clock, PlayCircle } from 'lucide-react'; // Remove
 // const fetchLastRunInfo = async () => { ... };
 
 const KpiPanel: React.FC = () => {
+  const { t } = useTranslation();
   // useQuery hooks (REMOVED)
   // const { data: totalTestsData, ... } = useQuery(...);
   // const { data: successPercentageData, ... } = useQuery(...);
   // const { data: avgDurationData, ... } = useQuery(...);
   // const { data: lastRunData, ... } = useQuery(...);
 
-  const placeholderValue = "---"; // Placeholder for KPI values
+  const placeholderValue = t('apiTesterPage.text1'); // Placeholder for KPI values
 
   const kpis = [
     {
-      title: 'Total Tests',
+      title: t('dashboard.kpiPanel.totalTests.title'),
       // data, isLoading, isError, error properties removed
       icon: <ListChecks size={20} />,
       value: placeholderValue, // Directly pass placeholder
     },
     {
-      title: 'Success Rate',
+      title: t('dashboard.kpiPanel.successRate.title'),
       icon: <Percent size={20} />,
       value: placeholderValue,
     },
     {
-      title: 'Avg. Duration',
+      title: t('dashboard.kpiPanel.avgDuration.title'),
       icon: <Clock size={20} />,
       value: placeholderValue,
     },
     {
-      title: 'Last Run',
+      title: t('dashboard.kpiPanel.lastRun.title'),
       icon: <PlayCircle size={20} />,
       value: placeholderValue, // Simplified, status part removed
     },
@@ -47,9 +49,9 @@ const KpiPanel: React.FC = () => {
       {kpis.map((kpi, index) => (
         <KpiCard
           key={index}
-          title={kpi.title}
+          title={kpi.title} // This is now a t() call result
           icon={kpi.icon}
-          value={kpi.value} // Directly pass the value
+          value={kpi.value} // This is also a t() call result
         />
       ))}
     </div>

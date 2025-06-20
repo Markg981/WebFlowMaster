@@ -93,7 +93,7 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
   return (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="auth-type-dropdown">Authorization Type</Label>
+        <Label htmlFor="auth-type-dropdown">{t('apiTester.authorizationPanel.authorizationType.label')}</Label>
         <AuthTypeDropdown
           authType={authType}
           onAuthTypeChange={onAuthTypeChange}

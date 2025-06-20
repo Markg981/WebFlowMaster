@@ -1,5 +1,6 @@
 // client/src/pages/ApiTesterPage.tsx
 import React, { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -71,6 +72,7 @@ interface FormDataField {
 
 
 const ApiTesterPage: React.FC = () => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const [method, setMethod] = useState<string>(httpMethods[0]);
   const [url, setUrl] = useState<string>('');
@@ -748,18 +750,18 @@ const ApiTesterPage: React.FC = () => {
       <header className="bg-card border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Link href="/dashboard" aria-label="Back to Dashboard">
+            <Link href="/dashboard" aria-label={t('apiTesterPage.backToDashboard.button')}>
               <Button variant="ghost" size="icon">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
             <Network className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold text-card-foreground">API Tester</h1>
+            <h1 className="text-xl font-bold text-card-foreground">{t('apiTesterPage.apiTester.title')}</h1>
           </div>
           <div className="flex items-center space-x-2">
             <Button variant="outline" size="sm" onClick={() => handleOpenSaveModal()} disabled={apiProxyMutation.isPending}>
               <Save className="mr-2 h-4 w-4" />
-              {currentTestToEdit ? "Save Changes" : "Save Test"}
+              {currentTestToEdit ? t('apiTesterPage.saveChanges.button') : t('apiTesterPage.saveTest.button')}
             </Button>
           </div>
         </div>
@@ -770,10 +772,10 @@ const ApiTesterPage: React.FC = () => {
           <Tabs defaultValue="history" className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="grid w-full grid-cols-2 rounded-none border-b">
               <TabsTrigger value="history" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary">
-                <History className="mr-2 h-4 w-4"/> History
+                <History className="mr-2 h-4 w-4"/>{t('apiTesterPage.history.title')}
               </TabsTrigger>
               <TabsTrigger value="saved" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary">
-                <ListChecks className="mr-2 h-4 w-4"/> Saved Tests
+                <ListChecks className="mr-2 h-4 w-4"/>{t('apiTesterPage.savedTests.title')}
               </TabsTrigger>
             </TabsList>
             <TabsContent value="history" className="flex-1 overflow-y-auto ">
@@ -803,45 +805,45 @@ const ApiTesterPage: React.FC = () => {
             <div className="space-y-4">
               <div className="flex items-end space-x-2">
                 <div className="w-40">
-                  <Label htmlFor="httpMethod">Method</Label>
+                  <Label htmlFor="httpMethod">{t('apiTesterPage.method.label')}</Label>
                   <Select value={method} onValueChange={setMethod} disabled={apiProxyMutation.isPending}>
-                    <SelectTrigger id="httpMethod"><SelectValue placeholder="Method" /></SelectTrigger>
+                    <SelectTrigger id="httpMethod"><SelectValue placeholder={t('apiTesterPage.method.label')} /></SelectTrigger>
                     <SelectContent>{httpMethods.map((m) => (<SelectItem key={m} value={m}>{m}</SelectItem>))}</SelectContent>
                   </Select>
                 </div>
                 <div className="flex-1">
-                  <Label htmlFor="apiUrl">Base URL</Label>
-                  <Input id="apiUrl" type="url" placeholder="https://api.example.com/data" value={url} onChange={(e) => setUrl(e.target.value)} disabled={apiProxyMutation.isPending} />
+                  <Label htmlFor="apiUrl">{t('apiTesterPage.baseUrl.label')}</Label>
+                  <Input id="apiUrl" type="url" placeholder={t('apiTesterPage.httpsapiexamplecomdata.text')} value={url} onChange={(e) => setUrl(e.target.value)} disabled={apiProxyMutation.isPending} />
                 </div>
                 <Button size="lg" onClick={handleSendRequest} disabled={apiProxyMutation.isPending}>
-                  {apiProxyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Send
+                  {apiProxyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {t('apiTesterPage.send.button')}
                 </Button>
               </div>
               <div className="pt-2">
-                 <Label htmlFor="effectiveUrlDisplay" className="text-xs text-muted-foreground">Effective URL (read-only):</Label>
-                 <Input id="effectiveUrlDisplay" readOnly value={effectiveUrl || (url ? url : 'Enter base URL and add params...')} className="font-mono text-xs mt-1 bg-muted h-8" disabled={apiProxyMutation.isPending}/>
+                 <Label htmlFor="effectiveUrlDisplay" className="text-xs text-muted-foreground">{t('apiTesterPage.effectiveUrlReadonly.label')}</Label>
+                 <Input id="effectiveUrlDisplay" readOnly value={effectiveUrl || (url ? url : t('apiTesterPage.enterBaseUrlAndAddParams.placeholder'))} className="font-mono text-xs mt-1 bg-muted h-8" disabled={apiProxyMutation.isPending}/>
               </div>
             </div>
 
             <Tabs defaultValue="body" className="w-full">
               <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="params" disabled={apiProxyMutation.isPending}>Query Params</TabsTrigger>
-                <TabsTrigger value="auth" disabled={apiProxyMutation.isPending}>Authorization</TabsTrigger>
-                <TabsTrigger value="headers" disabled={apiProxyMutation.isPending}>Headers</TabsTrigger>
-                <TabsTrigger value="body" disabled={apiProxyMutation.isPending}>Body</TabsTrigger>
-                <TabsTrigger value="assertions" disabled={apiProxyMutation.isPending}>Assertions</TabsTrigger>
+                <TabsTrigger value="params" disabled={apiProxyMutation.isPending}>{t('apiTesterPage.queryParams.label')}</TabsTrigger>
+                <TabsTrigger value="auth" disabled={apiProxyMutation.isPending}>{t('apiTesterPage.authorization.label')}</TabsTrigger>
+                <TabsTrigger value="headers" disabled={apiProxyMutation.isPending}>{t('apiTesterPage.headers.label')}</TabsTrigger>
+                <TabsTrigger value="body" disabled={apiProxyMutation.isPending}>{t('apiTesterPage.body.label')}</TabsTrigger>
+                <TabsTrigger value="assertions" disabled={apiProxyMutation.isPending}>{t('apiTesterPage.assertions.label')}</TabsTrigger>
               </TabsList>
               <TabsContent value="params">
                 <div className="p-4 border rounded-md min-h-[200px] space-y-2">
                   {queryParams.map((param, index) => (
                     <div key={param.id} className="flex items-center space-x-2">
                       <Checkbox id={`qp-enabled-${param.id}`} checked={param.enabled} onCheckedChange={(checked) => handleKeyValueChange(index, 'enabled', !!checked, 'query')} disabled={apiProxyMutation.isPending}/>
-                      <Input placeholder="Key" value={param.key} onChange={(e) => handleKeyValueChange(index, 'key', e.target.value, 'query')} className="flex-1" disabled={apiProxyMutation.isPending}/>
-                      <Input placeholder="Value" value={param.value} onChange={(e) => handleKeyValueChange(index, 'value', e.target.value, 'query')} className="flex-1" disabled={apiProxyMutation.isPending}/>
+                      <Input placeholder={t('apiTesterPage.key.label')} value={param.key} onChange={(e) => handleKeyValueChange(index, 'key', e.target.value, 'query')} className="flex-1" disabled={apiProxyMutation.isPending}/>
+                      <Input placeholder={t('apiTesterPage.value.label')} value={param.value} onChange={(e) => handleKeyValueChange(index, 'value', e.target.value, 'query')} className="flex-1" disabled={apiProxyMutation.isPending}/>
                       <Button variant="ghost" size="icon" onClick={() => removeKeyValuePair(index, 'query')} disabled={apiProxyMutation.isPending}><XCircle className="h-4 w-4 text-destructive" /></Button>
                     </div>
                   ))}
-                  <Button variant="outline" size="sm" onClick={() => addKeyValuePair('query')} disabled={apiProxyMutation.isPending}><PlusCircle className="mr-2 h-4 w-4" /> Add Param</Button>
+                  <Button variant="outline" size="sm" onClick={() => addKeyValuePair('query')} disabled={apiProxyMutation.isPending}><PlusCircle className="mr-2 h-4 w-4" /> {t('apiTesterPage.addParam.button')}</Button>
                 </div>
               </TabsContent>
               <TabsContent value="auth">
@@ -860,18 +862,18 @@ const ApiTesterPage: React.FC = () => {
                   {requestHeaders.map((header, index) => (
                     <div key={header.id} className="flex items-center space-x-2">
                        <Checkbox id={`rh-enabled-${header.id}`} checked={header.enabled} onCheckedChange={(checked) => handleKeyValueChange(index, 'enabled', !!checked, 'header')} disabled={apiProxyMutation.isPending}/>
-                      <Input placeholder="Header Name" value={header.key} onChange={(e) => handleKeyValueChange(index, 'key', e.target.value, 'header')} className="flex-1" disabled={apiProxyMutation.isPending}/>
-                      <Input placeholder="Header Value" value={header.value} onChange={(e) => handleKeyValueChange(index, 'value', e.target.value, 'header')} className="flex-1" disabled={apiProxyMutation.isPending}/>
+                      <Input placeholder={t('apiTesterPage.headerName.label')} value={header.key} onChange={(e) => handleKeyValueChange(index, 'key', e.target.value, 'header')} className="flex-1" disabled={apiProxyMutation.isPending}/>
+                      <Input placeholder={t('apiTesterPage.headerValue.label')} value={header.value} onChange={(e) => handleKeyValueChange(index, 'value', e.target.value, 'header')} className="flex-1" disabled={apiProxyMutation.isPending}/>
                       <Button variant="ghost" size="icon" onClick={() => removeKeyValuePair(index, 'header')} disabled={apiProxyMutation.isPending}><XCircle className="h-4 w-4 text-destructive" /></Button>
                     </div>
                   ))}
-                  <Button variant="outline" size="sm" onClick={() => addKeyValuePair('header')} disabled={apiProxyMutation.isPending}><PlusCircle className="mr-2 h-4 w-4" /> Add Header</Button>
+                  <Button variant="outline" size="sm" onClick={() => addKeyValuePair('header')} disabled={apiProxyMutation.isPending}><PlusCircle className="mr-2 h-4 w-4" /> {t('apiTesterPage.addHeader.button')}</Button>
                 </div>
               </TabsContent>
               <TabsContent value="body">
                 <div className="p-4 border rounded-md min-h-[240px] space-y-4">
                   <div>
-                    <Label className="text-sm font-medium mb-2 block">Body Type</Label>
+                    <Label className="text-sm font-medium mb-2 block">{t('apiTesterPage.bodyType.label')}</Label>
                     <RadioGroup
                       value={selectedBodyType}
                       onValueChange={(value: string) => setSelectedBodyType(value as BodyType)}
@@ -893,33 +895,33 @@ const ApiTesterPage: React.FC = () => {
                   <div className="mt-4">
                     {selectedBodyType === 'none' && (
                       <p className="text-sm text-muted-foreground text-center py-4">
-                        This request does not have a body.
+                        {t('apiTesterPage.thisRequestDoesNotHaveA.description')}
                       </p>
                     )}
 
                     {selectedBodyType === 'raw' && (
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="raw-content-type">Content-Type</Label>
+                          <Label htmlFor="raw-content-type">{t('apiTesterPage.contentType.label')}</Label>
                           <Select
                             value={rawContentType}
                             onValueChange={setRawContentType}
                             disabled={apiProxyMutation.isPending}
                           >
                             <SelectTrigger id="raw-content-type" className="mt-1">
-                              <SelectValue placeholder="Select content type" />
+                              <SelectValue placeholder={t('apiTesterPage.selectContentType.placeholder')} />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="application/json">application/json</SelectItem>
-                              <SelectItem value="text/plain">text/plain</SelectItem>
-                              <SelectItem value="application/xml">application/xml</SelectItem>
-                              <SelectItem value="text/html">text/html</SelectItem>
-                              <SelectItem value="application/javascript">application/javascript</SelectItem>
+                              <SelectItem value="application/json">{t('apiTesterPage.applicationjson.text')}</SelectItem>
+                              <SelectItem value="text/plain">{t('apiTesterPage.textplain.text')}</SelectItem>
+                              <SelectItem value="application/xml">{t('apiTesterPage.applicationxml.text')}</SelectItem>
+                              <SelectItem value="text/html">{t('apiTesterPage.texthtml.text')}</SelectItem>
+                              <SelectItem value="application/javascript">{t('apiTesterPage.applicationjavascript.text')}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div>
-                          <Label htmlFor="requestBodyEditorRaw">Body</Label>
+                          <Label htmlFor="requestBodyEditorRaw">{t('apiTesterPage.body.label')}</Label>
                           <div className="mt-1 border rounded-md overflow-hidden">
                             <Editor
                               height="200px"
@@ -939,7 +941,7 @@ const ApiTesterPage: React.FC = () => {
 
                     {selectedBodyType === 'binary' && (
                       <div>
-                        <Label htmlFor="binary-file-input">Upload File</Label>
+                        <Label htmlFor="binary-file-input">{t('apiTesterPage.uploadFile.button')}</Label>
                         <Input
                           id="binary-file-input"
                           type="file"
@@ -958,7 +960,7 @@ const ApiTesterPage: React.FC = () => {
                     {selectedBodyType === 'GraphQL' && (
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="graphqlQueryEditor">GraphQL Query</Label>
+                          <Label htmlFor="graphqlQueryEditor">{t('apiTesterPage.graphqlQuery.label')}</Label>
                           <div className="mt-1 border rounded-md overflow-hidden">
                             <Editor
                               height="150px"
@@ -973,7 +975,7 @@ const ApiTesterPage: React.FC = () => {
                           </div>
                         </div>
                         <div>
-                          <Label htmlFor="graphqlVariablesEditor">GraphQL Variables (JSON)</Label>
+                          <Label htmlFor="graphqlVariablesEditor">{t('apiTesterPage.graphqlVariablesJson.label')}</Label>
                           <div className="mt-1 border rounded-md overflow-hidden">
                             <Editor
                               height="100px"
@@ -1000,7 +1002,7 @@ const ApiTesterPage: React.FC = () => {
                               disabled={apiProxyMutation.isPending}
                             />
                             <Input
-                              placeholder="Key"
+                              placeholder={t('apiTesterPage.key.label')}
                               value={field.key}
                               onChange={(e) => handleFormDataChange(index, 'key', e.target.value)}
                               className="flex-1"
@@ -1012,16 +1014,16 @@ const ApiTesterPage: React.FC = () => {
                               disabled={apiProxyMutation.isPending}
                             >
                               <SelectTrigger className="w-[100px]">
-                                <SelectValue placeholder="Type" />
+                                <SelectValue placeholder={t('apiTesterPage.type.label')} />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="text">Text</SelectItem>
-                                <SelectItem value="file">File</SelectItem>
+                                <SelectItem value="text">{t('apiTesterPage.text.text')}</SelectItem>
+                                <SelectItem value="file">{t('apiTesterPage.file.text')}</SelectItem>
                               </SelectContent>
                             </Select>
                             {field.type === 'text' ? (
                               <Input
-                                placeholder="Value"
+                                placeholder={t('apiTesterPage.value.label')}
                                 value={field.value as string} // Cast because type 'text' implies string value
                                 onChange={(e) => handleFormDataChange(index, 'value', e.target.value)}
                                 className="flex-1"
@@ -1041,7 +1043,7 @@ const ApiTesterPage: React.FC = () => {
                           </div>
                         ))}
                         <Button variant="outline" size="sm" onClick={addFormDataField} disabled={apiProxyMutation.isPending}>
-                          <PlusCircle className="mr-2 h-4 w-4" /> Add Field
+                          <PlusCircle className="mr-2 h-4 w-4" /> {t('apiTesterPage.addField.button')}
                         </Button>
                       </div>
                     )}
@@ -1056,14 +1058,14 @@ const ApiTesterPage: React.FC = () => {
                               disabled={apiProxyMutation.isPending}
                             />
                             <Input
-                              placeholder="Key"
+                              placeholder={t('apiTesterPage.key.label')}
                               value={pair.key}
                               onChange={(e) => handleUrlEncodedChange(index, 'key', e.target.value)}
                               className="flex-1"
                               disabled={apiProxyMutation.isPending}
                             />
                             <Input
-                              placeholder="Value"
+                              placeholder={t('apiTesterPage.value.label')}
                               value={pair.value}
                               onChange={(e) => handleUrlEncodedChange(index, 'value', e.target.value)}
                               className="flex-1"
@@ -1075,7 +1077,7 @@ const ApiTesterPage: React.FC = () => {
                           </div>
                         ))}
                         <Button variant="outline" size="sm" onClick={addUrlEncodedField} disabled={apiProxyMutation.isPending}>
-                          <PlusCircle className="mr-2 h-4 w-4" /> Add Param
+                          <PlusCircle className="mr-2 h-4 w-4" /> {t('apiTesterPage.addParam.button')}
                         </Button>
                       </div>
                     )}
@@ -1090,17 +1092,17 @@ const ApiTesterPage: React.FC = () => {
             </Tabs>
 
             <div>
-              <h2 className="text-xl font-semibold mb-2">Response</h2>
+              <h2 className="text-xl font-semibold mb-2">{t('apiTesterPage.response.label')}</h2>
               <div className={`p-4 border rounded-md bg-muted min-h-[200px] ${apiProxyMutation.isPending ? 'opacity-50 animate-pulse' : ''}`}>
                 <div className="flex justify-between items-center mb-2">
-                  <div><span className="font-semibold">Status:</span>{' '}{responseStatus !== null ? (<span className={responseStatus >= 200 && responseStatus < 300 ? 'text-green-500 font-bold' : 'text-red-500 font-bold'}>{responseStatus}</span>) : ( '---' )}</div>
-                  <div><span className="font-semibold">Time:</span> {duration !== null ? `${duration} ms` : (apiProxyMutation.isPending ? 'Loading...' : '---')}</div>
+                  <div><span className="font-semibold">{t('apiTesterPage.status.label')}</span>{' '}{responseStatus !== null ? (<span className={responseStatus >= 200 && responseStatus < 300 ? 'text-green-500 font-bold' : 'text-red-500 font-bold'}>{responseStatus}</span>) : (t('apiTesterPage.text1'))}</div>
+                  <div><span className="font-semibold">{t('apiTesterPage.time.label')}</span> {duration !== null ? `${duration} ms` : (apiProxyMutation.isPending ? t('apiTesterPage.loading.button') : t('apiTesterPage.text1'))}</div>
                 </div>
                 <Tabs defaultValue="responseBody" className="w-full">
                    <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="responseBody">Body</TabsTrigger>
-                    <TabsTrigger value="responseHeaders">Headers</TabsTrigger>
-                    <TabsTrigger value="assertionResults">Assertion Results</TabsTrigger>
+                    <TabsTrigger value="responseBody">{t('apiTesterPage.body.label')}</TabsTrigger>
+                    <TabsTrigger value="responseHeaders">{t('apiTesterPage.headers.label')}</TabsTrigger>
+                    <TabsTrigger value="assertionResults">{t('apiTesterPage.assertionResults.label')}</TabsTrigger>
                   </TabsList>
                   <TabsContent value="responseBody">
                     <div className="mt-1 border rounded-md overflow-hidden">
@@ -1109,14 +1111,14 @@ const ApiTesterPage: React.FC = () => {
                     </div>
                   </TabsContent>
                   <TabsContent value="responseHeaders">
-                    <Textarea readOnly placeholder={apiProxyMutation.isPending ? "Loading response headers..." : "Response headers will appear here..."}
+                    <Textarea readOnly placeholder={apiProxyMutation.isPending ? t('apiTesterPage.loadingResponseHeaders.placeholder') : t('apiTesterPage.responseHeadersWillAppearHere.placeholder')}
                       className="mt-1 h-[150px] bg-background font-mono text-sm"
                       value={responseHeaders ? JSON.stringify(responseHeaders, null, 2) : ''}/>
                   </TabsContent>
                   <TabsContent value="assertionResults">
                     <ScrollArea className="h-[250px] mt-1 p-2 border rounded-md bg-background">
-                      {(assertionResults === null || assertionResults.length === 0) && !apiProxyMutation.isPending && <p className="text-sm text-muted-foreground p-4 text-center">No assertions were run or results are not available.</p>}
-                      {apiProxyMutation.isPending && <p className="text-sm text-muted-foreground p-4 text-center">Running assertions...</p>}
+                      {(assertionResults === null || assertionResults.length === 0) && !apiProxyMutation.isPending && <p className="text-sm text-muted-foreground p-4 text-center">{t('apiTesterPage.noAssertionsWereRunOrResults.description')}</p>}
+                      {apiProxyMutation.isPending && <p className="text-sm text-muted-foreground p-4 text-center">{t('apiTesterPage.runningAssertions.text')}</p>}
                       {assertionResults && assertionResults.map((result, index) => (
                         <div key={result.assertion.id || index} className="p-2 mb-2 border rounded-md text-xs">
                           <div className="flex items-center justify-between">

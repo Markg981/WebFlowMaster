@@ -30,18 +30,18 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between py-3 px-4 border-b">
-        <CardTitle className="text-lg">History</CardTitle>
+        <CardTitle className="text-lg">{t('apiTester.historyPanel.history.title')}</CardTitle>
         {onClearHistory && (
           <Button variant="outline" size="sm" onClick={onClearHistory} disabled={isLoading || historyItems.length === 0}>
-            Clear All
+            {t('apiTester.historyPanel.clearAll.button')}
           </Button>
         )}
       </CardHeader>
       <CardContent className="p-0 flex-1">
         <ScrollArea className="h-full p-3">
-          {isLoading && <p className="text-sm text-muted-foreground">Loading history...</p>}
+          {isLoading && <p className="text-sm text-muted-foreground">{t('apiTester.historyPanel.loadingHistory.text')}</p>}
           {!isLoading && historyItems.length === 0 && (
-            <p className="text-sm text-muted-foreground p-4 text-center">No history items yet.</p>
+            <p className="text-sm text-muted-foreground p-4 text-center">{t('apiTester.historyPanel.noHistoryItemsYet.text')}</p>
           )}
           <div className="space-y-2">
             {historyItems.map((item) => (

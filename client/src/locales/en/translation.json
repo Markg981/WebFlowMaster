@@ -26,7 +26,7 @@
       "selectPlaceholder": "Select language",
       "english": "English (US)",
       "italian": "Italiano (Italia)",
-      "french": "Français (France)",
+      "french": "Fran\u00e7ais (France)",
       "german": "Deutsch (Deutschland)",
       "selectHint": "This will change the language of the user interface."
     },
@@ -90,6 +90,1018 @@
       "testSavedTitle": "Test Saved",
       "testSavedDesc": "Your test sequence has been saved.",
       "testSaveErrorTitle": "Error Saving Test"
+    }
+  },
+  "apiTesterPage": {
+    "backToDashboard": {
+      "button": "Back to Dashboard"
+    },
+    "apiTester": {
+      "title": "API Tester"
+    },
+    "saveChanges": {
+      "button": "Save Changes"
+    },
+    "saveTest": {
+      "button": "Save Test"
+    },
+    "history": {
+      "title": "History"
+    },
+    "savedTests": {
+      "title": "Saved Tests"
+    },
+    "method": {
+      "label": "Method"
+    },
+    "baseUrl": {
+      "label": "Base URL"
+    },
+    "httpsapiexamplecomdata": {
+      "text": "https://api.example.com/data"
+    },
+    "send": {
+      "button": "Send"
+    },
+    "effectiveUrlReadonly": {
+      "label": "Effective URL (read-only):"
+    },
+    "enterBaseUrlAndAddParams": {
+      "placeholder": "Enter base URL and add params..."
+    },
+    "queryParams": {
+      "label": "Query Params"
+    },
+    "authorization": {
+      "label": "Authorization"
+    },
+    "headers": {
+      "label": "Headers"
+    },
+    "body": {
+      "label": "Body"
+    },
+    "assertions": {
+      "label": "Assertions"
+    },
+    "key": {
+      "label": "Key"
+    },
+    "value": {
+      "label": "Value"
+    },
+    "addParam": {
+      "button": "Add Param"
+    },
+    "headerName": {
+      "label": "Header Name"
+    },
+    "headerValue": {
+      "label": "Header Value"
+    },
+    "addHeader": {
+      "button": "Add Header"
+    },
+    "bodyType": {
+      "label": "Body Type"
+    },
+    "thisRequestDoesNotHaveA": {
+      "description": "This request does not have a body."
+    },
+    "contentType": {
+      "label": "Content-Type"
+    },
+    "selectContentType": {
+      "placeholder": "Select content type"
+    },
+    "applicationjson": {
+      "text": "application/json"
+    },
+    "textplain": {
+      "text": "text/plain"
+    },
+    "applicationxml": {
+      "text": "application/xml"
+    },
+    "texthtml": {
+      "text": "text/html"
+    },
+    "applicationjavascript": {
+      "text": "application/javascript"
+    },
+    "uploadFile": {
+      "button": "Upload File"
+    },
+    "graphqlQuery": {
+      "label": "GraphQL Query"
+    },
+    "graphqlVariablesJson": {
+      "label": "GraphQL Variables (JSON)"
+    },
+    "type": {
+      "label": "Type"
+    },
+    "text": {
+      "text": "Text"
+    },
+    "file": {
+      "text": "File"
+    },
+    "addField": {
+      "button": "Add Field"
+    },
+    "response": {
+      "label": "Response"
+    },
+    "status": {
+      "label": "Status:"
+    },
+    "text1": "---",
+    "time": {
+      "label": "Time:"
+    },
+    "loading": {
+      "button": "Loading..."
+    },
+    "loadingResponseHeaders": {
+      "placeholder": "Loading response headers..."
+    },
+    "responseHeadersWillAppearHere": {
+      "placeholder": "Response headers will appear here..."
+    },
+    "assertionResults": {
+      "label": "Assertion Results"
+    },
+    "noAssertionsWereRunOrResults": {
+      "description": "No assertions were run or results are not available."
+    },
+    "runningAssertions": {
+      "text": "Running assertions..."
+    }
+  },
+  "dashboardOverviewPage": {
+    "webtestPlatform": {
+      "text": "WebTest Platform"
+    },
+    "noEmailProvided": {
+      "text": "No email provided"
+    },
+    "userNotLoaded": {
+      "text": "User not loaded"
+    },
+    "dashboardOverview": {
+      "title": "Dashboard Overview"
+    }
+  },
+  "testSuitesPage": {
+    "testSuites": {
+      "title": "Test Suites"
+    },
+    "searchTests": {
+      "placeholder": "Search tests..."
+    },
+    "filterByProject": {
+      "placeholder": "Filter by project"
+    },
+    "allProjects": {
+      "text": "All Projects"
+    },
+    "testPlan": {
+      "button": "+ Test Plan",
+      "label": "Test Plan"
+    },
+    "schedules": {
+      "label": "Schedules"
+    },
+    "name": {
+      "label": "Name"
+    },
+    "testLabType": {
+      "label": "Test Lab Type"
+    },
+    "progettoDiAppartenenza": {
+      "label": "Progetto di appartenenza"
+    },
+    "azioni": {
+      "label": "Azioni"
+    },
+    "noDescription": {
+      "text": "No Description"
+    },
+    "crossDeviceTesting": {
+      "text": "Cross Device Testing"
+    },
+    "schedule": {
+      "button": "Schedule"
+    },
+    "reports": {
+      "button": "Reports"
+    },
+    "run": {
+      "button": "Run"
+    },
+    "schedulesContentGoesHere": {
+      "text": "Schedules content goes here."
+    }
+  },
+  "testsPage": {
+    "testManagement": {
+      "title": "Test Management"
+    },
+    "testPlans": {
+      "label": "Test Plans"
+    },
+    "searchTestPlans": {
+      "placeholder": "Search test plans..."
+    },
+    "createTestPlan": {
+      "button": "Create Test Plan"
+    },
+    "description": {
+      "label": "Description"
+    },
+    "createdAt": {
+      "label": "Created At"
+    },
+    "updatedAt": {
+      "label": "Updated At"
+    },
+    "actions": {
+      "label": "Actions"
+    },
+    "loadingTestPlans": {
+      "text": "Loading test plans..."
+    },
+    "na": {
+      "text": "N/A"
+    },
+    "edit": {
+      "button": "Edit"
+    },
+    "delete": {
+      "button": "Delete"
+    },
+    "listView": {
+      "button": "List View"
+    },
+    "createSchedule": {
+      "button": "Create Schedule"
+    },
+    "searchSchedules": {
+      "placeholder": "Search schedules..."
+    },
+    "scheduleName": {
+      "label": "Schedule Name"
+    },
+    "frequency": {
+      "label": "Frequency",
+      "label1": "Frequency:"
+    },
+    "nextRunAt": {
+      "label": "Next Run At",
+      "label1": "Next Run At:"
+    },
+    "loadingSchedules": {
+      "text": "Loading schedules..."
+    },
+    "createNewSchedule": {
+      "title": "Create New Schedule"
+    },
+    "fillInTheDetailsForYour": {
+      "description": "Fill in the details for your new schedule."
+    },
+    "egDailySmokeTests": {
+      "placeholder": "e.g., Daily Smoke Tests"
+    },
+    "noTestPlansAvailable": {
+      "placeholder": "No test plans available"
+    },
+    "selectATestPlan": {
+      "placeholder": "Select a Test Plan"
+    },
+    "selectFrequency": {
+      "placeholder": "Select frequency"
+    },
+    "hourly": {
+      "text": "Hourly"
+    },
+    "daily": {
+      "text": "Daily"
+    },
+    "weekly": {
+      "text": "Weekly"
+    },
+    "biweekly": {
+      "text": "Bi-Weekly"
+    },
+    "monthly": {
+      "text": "Monthly"
+    },
+    "every15Minutes": {
+      "text": "Every 15 minutes"
+    },
+    "every30Minutes": {
+      "text": "Every 30 minutes"
+    },
+    "cancel": {
+      "button": "Cancel"
+    },
+    "creating": {
+      "button": "Creating..."
+    },
+    "updateTheFrequencyAndNextRun": {
+      "description": "Update the frequency and next run time for your schedule. Name and Test Plan are not editable here."
+    },
+    "name": {
+      "label1": "Name:"
+    },
+    "currentPlan": {
+      "label": "Current Plan:"
+    },
+    "saving": {
+      "button": "Saving..."
+    },
+    "saveChanges": {
+      "button": "Save Changes"
+    },
+    "confirmDeletion": {
+      "title": "Confirm Deletion"
+    },
+    "deleting": {
+      "button": "Deleting..."
+    },
+    "createNewTestPlan": {
+      "title": "Create New Test Plan"
+    },
+    "fillInTheDetailsForYourNewTestPlanName": {
+      "description": "Fill in the details for your new test plan. Name is required."
+    },
+    "egEndtoendCheckoutFlow": {
+      "placeholder": "e.g., End-to-End Checkout Flow"
+    },
+    "optionalABriefSummaryOfThe": {
+      "placeholder": "Optional: A brief summary of the test plan"
+    },
+    "updateTheNameAndDescription": {
+      "description": "Update the name and description for your test plan."
+    },
+    "deleteTestPlan": {
+      "button": "Delete Test Plan"
+    }
+  },
+  "authPage": {
+    "automatedWebTestingMadeSimple": {
+      "text": "Automated Web Testing Made Simple"
+    },
+    "welcome": {
+      "title": "Welcome"
+    },
+    "signInToYourAccountOrCreate": {
+      "description": "Sign in to your account or create a new one to get started"
+    },
+    "signIn": {
+      "button": "Sign In"
+    },
+    "register": {
+      "button": "Register"
+    },
+    "username": {
+      "label": "Username"
+    },
+    "enterYourUsername": {
+      "placeholder": "Enter your username"
+    },
+    "password": {
+      "label": "Password"
+    },
+    "enterYourPassword": {
+      "placeholder": "Enter your password"
+    },
+    "signingIn": {
+      "button": "Signing in..."
+    },
+    "chooseAUsername": {
+      "placeholder": "Choose a username"
+    },
+    "chooseAPassword": {
+      "placeholder": "Choose a password"
+    },
+    "confirmPassword": {
+      "label": "Confirm Password"
+    },
+    "confirmYourPassword": {
+      "placeholder": "Confirm your password"
+    },
+    "passwordsDoNotMatch": {
+      "description": "Passwords do not match"
+    },
+    "creatingAccount": {
+      "button": "Creating account..."
+    },
+    "createAccount": {
+      "button": "Create Account"
+    },
+    "automateYourWebTesting": {
+      "title": "Automate Your Web Testing"
+    },
+    "createExecuteAndManageAutomated": {
+      "description": "Create, execute, and manage automated web tests with our intuitive drag-and-drop interface."
+    },
+    "noCodingRequired": {
+      "text": "No coding required."
+    },
+    "visualElementDetection": {
+      "text": "Visual element detection"
+    },
+    "draganddropTestBuilding": {
+      "text": "Drag-and-drop test building"
+    },
+    "realtimeTestExecution": {
+      "text": "Real-time test execution"
+    },
+    "comprehensiveReporting": {
+      "text": "Comprehensive reporting"
+    }
+  },
+  "dashboardPageNew": {
+    "createWebTest": {
+      "title": "Create Web Test"
+    },
+    "notifications": {
+      "button": "Notifications"
+    },
+    "settings": {
+      "button": "Settings"
+    },
+    "signOut": {
+      "button": "Sign Out"
+    },
+    "websiteUrlToTest": {
+      "label": "Website URL to Test"
+    },
+    "httpsexamplecom": {
+      "placeholder": "https://example.com"
+    },
+    "loadWebsite": {
+      "button": "Load Website"
+    },
+    "detectElements": {
+      "button": "Detect Elements"
+    },
+    "modalitDiCreazioneTest": {
+      "label": "Modalit\u00e0 di Creazione Test"
+    },
+    "selezionaModalit": {
+      "placeholder": "Seleziona modalit\u00e0"
+    },
+    "creaTestManualeDragDrop": {
+      "text": "Crea test manuale (drag & drop)"
+    },
+    "registraAzioniUtenteAutorecord": {
+      "text": "Registra azioni utente (auto-record)"
+    },
+    "starting": {
+      "button": "Starting..."
+    },
+    "iniziaRegistrazione": {
+      "button": "Inizia registrazione"
+    },
+    "stopping": {
+      "button": "Stopping..."
+    },
+    "terminaRegistrazione": {
+      "button": "Termina registrazione"
+    },
+    "testResultPassed": {
+      "text": "Test Result: Passed"
+    },
+    "testResultFailed": {
+      "text": "Test Result: Failed"
+    },
+    "availableActions": {
+      "title": "Available Actions"
+    },
+    "websitePreview": {
+      "title": "Website Preview"
+    },
+    "executing": {
+      "text": "Executing..."
+    },
+    "playback": {
+      "text": "Playback"
+    },
+    "loaded": {
+      "text": "Loaded"
+    },
+    "registrazioneInCorso": {
+      "text": "Registrazione in corso..."
+    },
+    "utilizzaLaFinestraDelBrowser": {
+      "description": "Utilizza la finestra del browser separata che si \u00e8 aperta per interagire con il sito."
+    },
+    "leAzioniRegistrateApparirannoNella": {
+      "description": "Le azioni registrate appariranno nella sezione \"Test Sequence\" qui sotto."
+    },
+    "testStepScreenshot": {
+      "text": "Test step screenshot"
+    },
+    "websiteScreenshot": {
+      "text": "Website screenshot"
+    },
+    "loadAWebsiteToSeeThe": {
+      "description": "Load a website to see the preview"
+    },
+    "screenshotsFromWebsiteLoadingOr": {
+      "description": "Screenshots from website loading or test playback will appear here."
+    },
+    "detectedElements": {
+      "title": "Detected Elements"
+    },
+    "found": {
+      "text": "found"
+    },
+    "noElementsDetectedYet": {
+      "text": "No elements detected yet"
+    },
+    "loadAWebsiteAndClickDetect": {
+      "description": "Load a website and click \"Detect Elements\""
+    }
+  },
+  "dashboardPage": {
+    "user": {
+      "text": "User"
+    }
+  },
+  "notFoundPage": {
+    "404PageNotFound": {
+      "title": "404 Page Not Found"
+    },
+    "didYouForgetToAddThePage": {
+      "description": "Did you forget to add the page to the router?"
+    }
+  },
+  "settingsPage": {
+    "loadingSettings": {
+      "text": "Loading settings..."
+    },
+    "errorLoadingUserSettings": {
+      "label": "Error loading user settings:"
+    },
+    "anUnknownErrorOccurred": {
+      "description": "An unknown error occurred."
+    },
+    "tryAgain": {
+      "button": "Try Again"
+    },
+    "projectManagement": {
+      "title": "Project Management"
+    },
+    "createAndManageYourProjects": {
+      "description": "Create and manage your projects."
+    },
+    "newProjectName": {
+      "label": "New Project Name"
+    },
+    "enterProjectName": {
+      "placeholder": "Enter project name"
+    },
+    "createProject": {
+      "button": "Create Project"
+    },
+    "existingProjects": {
+      "title": "Existing Projects"
+    },
+    "loadingProjects": {
+      "text": "Loading projects..."
+    },
+    "noProjectsFound": {
+      "text": "No projects found."
+    },
+    "chromium": {
+      "text": "Chromium"
+    },
+    "firefox": {
+      "text": "Firefox"
+    },
+    "webkitSafari": {
+      "text": "WebKit (Safari)"
+    }
+  },
+  "saveTestModal": {
+    "saveTest": {
+      "button": "Save Test"
+    },
+    "pleaseEnterANameForYour": {
+      "description": "Please enter a name for your test. This will help you identify it later."
+    },
+    "testName": {
+      "label": "Test Name"
+    },
+    "egLoginFunctionalityTest": {
+      "placeholder": "e.g., Login Functionality Test"
+    },
+    "project": {
+      "label": "Project"
+    },
+    "selectAProjectOptional": {
+      "placeholder": "Select a project (Optional)"
+    },
+    "loadingProjects": {
+      "text": "Loading projects..."
+    },
+    "errorLoadingProjects": {
+      "text": "Error loading projects."
+    },
+    "noProjectsAvailable": {
+      "text": "No projects available."
+    },
+    "cancel": {
+      "button": "Cancel"
+    },
+    "save": {
+      "button": "Save"
+    }
+  },
+  "draggableAction": {
+    "target": {
+      "label": "Target:"
+    }
+  },
+  "draggableElement": {
+    "element": {
+      "text": "element"
+    }
+  },
+  "testSequenceBuilder": {
+    "testSequence": {
+      "title": "Test Sequence"
+    },
+    "steps": {
+      "text": "steps"
+    },
+    "clear": {
+      "button": "Clear"
+    },
+    "recordingInProgress": {
+      "text": "Recording in progress..."
+    },
+    "recordedActionsWillAppearHere": {
+      "description": "Recorded actions will appear here."
+    },
+    "dropActionsHereToBuildYour": {
+      "description": "Drop actions here to build your test"
+    },
+    "dragActionsFromTheLeftSidebar": {
+      "description": "Drag actions from the left sidebar, then add elements to complete each step"
+    },
+    "changeAction": {
+      "placeholder": "Change action"
+    },
+    "changeElement": {
+      "button": "Change Element"
+    },
+    "setElement": {
+      "button": "Set Element"
+    },
+    "textToInput": {
+      "label": "Text to input"
+    },
+    "optionValue": {
+      "label": "Option value"
+    },
+    "timeMs": {
+      "label": "Time (ms)"
+    },
+    "expectedText": {
+      "label": "Expected text"
+    },
+    "countEg1": {
+      "label": "Count (e.g. ==1)"
+    },
+    "expectedValue": {
+      "label": "Expected value"
+    },
+    "value": {
+      "label": "Value",
+      "placeholder": "Value..."
+    },
+    "enterText": {
+      "placeholder": "Enter text..."
+    },
+    "enterOptionValue": {
+      "placeholder": "Enter option value..."
+    },
+    "eg1000": {
+      "placeholder": "e.g., 1000"
+    },
+    "textTheElementShouldContain": {
+      "placeholder": "Text the element should contain..."
+    },
+    "eg153": {
+      "placeholder": "e.g., '==1', '>=5', '<3'"
+    },
+    "expectedTextOrAttributeValue": {
+      "placeholder": "Expected text or attribute value..."
+    },
+    "removeStep": {
+      "button": "Remove step"
+    },
+    "executeTest": {
+      "button": "Execute Test"
+    }
+  },
+  "apiTester": {
+    "assertionEditor": {
+      "assertion": {
+        "label": "Assertion #"
+      },
+      "enabled": {
+        "label": "Enabled"
+      },
+      "source": {
+        "label": "Source"
+      },
+      "selectSource": {
+        "placeholder": "Select source"
+      },
+      "comparison": {
+        "label": "Comparison"
+      },
+      "selectComparison": {
+        "placeholder": "Select comparison"
+      },
+      "headerName": {
+        "label": "Header Name"
+      },
+      "jsonPathEgDataid": {
+        "label": "JSON Path (e.g., data.id)"
+      },
+      "property": {
+        "label": "Property"
+      },
+      "egContentType": {
+        "placeholder": "e.g., Content-Type"
+      },
+      "egUsernameOrItems0id": {
+        "placeholder": "e.g., user.name or items[0].id"
+      },
+      "targetValue": {
+        "label": "Target Value"
+      },
+      "enterRegex": {
+        "placeholder": "Enter Regex"
+      },
+      "eg200": {
+        "placeholder": "e.g., 200"
+      },
+      "eg500InMs": {
+        "placeholder": "e.g., 500 (in ms)"
+      },
+      "expectedValue": {
+        "placeholder": "Expected value"
+      },
+      "addAssertion": {
+        "button": "Add Assertion"
+      }
+    },
+    "authTypeDropdown": {
+      "selectAuthType": {
+        "placeholder": "Select Auth Type"
+      },
+      "inheritFromParent": {
+        "text": "Inherit from Parent"
+      },
+      "noAuth": {
+        "text": "No Auth"
+      },
+      "basicAuth": {
+        "text": "Basic Auth"
+      },
+      "bearerToken": {
+        "text": "Bearer Token"
+      },
+      "jwtBearer": {
+        "text": "JWT Bearer"
+      },
+      "digestAuth": {
+        "text": "Digest Auth"
+      },
+      "oauth10": {
+        "text": "OAuth 1.0"
+      },
+      "oauth20": {
+        "text": "OAuth 2.0"
+      },
+      "hawkAuthentication": {
+        "text": "Hawk Authentication"
+      },
+      "awsSignature": {
+        "text": "AWS Signature"
+      },
+      "ntlmAuthentication": {
+        "text": "NTLM Authentication"
+      },
+      "apiKey": {
+        "text": "API Key"
+      },
+      "akamaiEdgegrid": {
+        "text": "Akamai EdgeGrid"
+      },
+      "atlassianAsap": {
+        "text": "Atlassian ASAP"
+      }
+    },
+    "authorizationPanel": {
+      "authorizationType": {
+        "label": "Authorization Type"
+      },
+      "noParametersForThisAuth": {
+        "description": "No parameters for this auth type."
+      },
+      "parametersAreNotYetConfigurable": {
+        "description": "parameters are not yet configurable."
+      }
+    },
+    "historyPanel": {
+      "history": {
+        "title": "History"
+      },
+      "clearAll": {
+        "button": "Clear All"
+      },
+      "loadingHistory": {
+        "text": "Loading history..."
+      },
+      "noHistoryItemsYet": {
+        "text": "No history items yet."
+      }
+    },
+    "saveApiTestModal": {
+      "updateApiTest": {
+        "title": "Update API Test"
+      },
+      "saveNewApiTest": {
+        "title": "Save New API Test"
+      },
+      "updateTheDetailsForThisApi": {
+        "description": "Update the details for this API test."
+      },
+      "enterANameForYourNewApi": {
+        "description": "Enter a name for your new API test. You can also assign it to a project."
+      },
+      "testName": {
+        "label": "Test Name"
+      },
+      "egGetUserDetails": {
+        "placeholder": "e.g., Get User Details"
+      },
+      "projectOptional": {
+        "label": "Project (Optional)"
+      },
+      "selectAProject": {
+        "placeholder": "Select a project"
+      },
+      "noProject": {
+        "text": "No Project"
+      },
+      "updating": {
+        "button": "Updating..."
+      },
+      "updateTest": {
+        "button": "Update Test"
+      }
+    },
+    "savedTestsPanel": {
+      "savedTests": {
+        "title": "Saved Tests"
+      },
+      "newTest": {
+        "button": "New Test"
+      },
+      "loadingSavedTests": {
+        "text": "Loading saved tests..."
+      },
+      "noTestsSavedYet": {
+        "text": "No tests saved yet."
+      },
+      "loadTest": {
+        "button": "Load Test"
+      },
+      "editTest": {
+        "button": "Edit Test"
+      },
+      "exportTest": {
+        "button": "Export Test"
+      },
+      "deleteTest": {
+        "button": "Delete Test"
+      },
+      "projectId": {
+        "label": "Project ID:"
+      },
+      "lastUpdated": {
+        "label": "Last updated:"
+      }
+    }
+  },
+  "authForms": {
+    "apiKeyAuthForm": {
+      "key": {
+        "label": "Key"
+      },
+      "enterApiKeyNameEgXapikey": {
+        "placeholder": "Enter API key name (e.g., X-API-KEY)"
+      },
+      "value": {
+        "label": "Value"
+      },
+      "enterApiKeyValue": {
+        "placeholder": "Enter API key value"
+      },
+      "addTo": {
+        "label": "Add to"
+      },
+      "selectWhereToAddApiKey": {
+        "placeholder": "Select where to add API key"
+      },
+      "header": {
+        "text": "Header"
+      },
+      "queryParam": {
+        "text": "Query Param"
+      }
+    },
+    "basicAuthForm": {
+      "username": {
+        "label": "Username"
+      },
+      "enterUsername": {
+        "placeholder": "Enter username"
+      },
+      "password": {
+        "label": "Password"
+      },
+      "enterPassword": {
+        "placeholder": "Enter password"
+      }
+    },
+    "bearerTokenAuthForm": {
+      "token": {
+        "label": "Token"
+      },
+      "enterBearerToken": {
+        "placeholder": "Enter bearer token"
+      }
+    }
+  },
+  "dashboard": {
+    "kpiPanel": {
+      "totalTests": {
+        "title": "Total Tests"
+      },
+      "successRate": {
+        "title": "Success Rate"
+      },
+      "avgDuration": {
+        "title": "Avg. Duration"
+      },
+      "lastRun": {
+        "title": "Last Run"
+      }
+    },
+    "quickAccessReports": {
+      "recentTestReports": {
+        "title": "Recent Test Reports"
+      },
+      "reportDataWillBeAvailable": {
+        "description": "Report data will be available soon."
+      }
+    },
+    "runTestNowButton": {
+      "eseguiTestOra": {
+        "button": "Esegui test ora"
+      }
+    },
+    "testSchedulingsTable": {
+      "upcomingRecentSchedulings": {
+        "title": "Upcoming & Recent Schedulings"
+      },
+      "schedulingDataWillBeAvailable": {
+        "description": "Scheduling data will be available soon."
+      }
+    },
+    "testStatusPieChart": {
+      "testStatusOverview": {
+        "title": "Test Status Overview"
+      },
+      "chartDataWillBeAvailable": {
+        "description": "Chart data will be available soon."
+      }
+    },
+    "testTrendBarChart": {
+      "weeklyTestTrends": {
+        "title": "Weekly Test Trends"
+      }
     }
   }
 }

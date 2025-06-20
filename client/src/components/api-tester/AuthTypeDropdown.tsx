@@ -43,7 +43,7 @@ export const AuthTypeDropdown: React.FC<AuthTypeDropdownProps> = ({
       disabled={disabled}
     >
       <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select Auth Type" />
+        <SelectValue placeholder={t('apiTester.authTypeDropdown.selectAuthType.placeholder')} />
       </SelectTrigger>
       <SelectContent>
         {AuthTypeSchema.options.map((type) => (
