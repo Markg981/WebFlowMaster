@@ -522,13 +522,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userInterfaceTests = await db
         .select({
-          ...getTableColumns(tests), // Selects all columns from the 'tests' table
+          ...getTableColumns(tests),
           projectName: projects.name,
-          creatorUsername: users.username, // Added creatorUsername
+          // creatorUsername: users.username, // Temporarily removed
         })
         .from(tests)
         .leftJoin(projects, eq(tests.projectId, projects.id))
-        .leftJoin(users, eq(tests.userId, users.id)) // Join with users table
+        // .leftJoin(users, eq(tests.userId, users.id)) // Temporarily removed
         .where(eq(tests.userId, userId))
         .orderBy(desc(tests.updatedAt));
 
