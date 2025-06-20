@@ -512,7 +512,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to delete project due to a server error." });
     }
   });
-  app.get("/api/tests", async (req, res) => { /* ... existing code ... */ });
+
+  app.get("/api/tests", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id;
+
+    try {
+      const userInterfaceTests = await db
+        .select({
+          ...getTableColumns(tests), // Selects all columns from the 'tests' table
+          projectName: projects.name,
+          creatorUsername: users.username, // Added creatorUsername
+        })
+        .from(tests)
+        .leftJoin(projects, eq(tests.projectId, projects.id))
+        .leftJoin(users, eq(tests.userId, users.id)) // Join with users table
+        .where(eq(tests.userId, userId))
+        .orderBy(desc(tests.updatedAt));
+
+      // No manual JSON.parse needed here if tests.sequence and tests.elements are { mode: 'json' }
+      // Drizzle should handle the parsing.
+      res.json(userInterfaceTests);
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: `Error fetching UI tests for user ${userId}`,
+        error: error.message,
+        stack: error.stack,
+      });
+      res.status(500).json({ error: "Failed to fetch UI tests" });
+    }
+  });
 
   // Schema for creating a new test (general UI test, not API test)
   const createTestBodySchema = insertTestSchema.extend({

@@ -145,6 +145,35 @@ const sampleApiTestsData: ApiTestDataForTest[] = [
   { id: 2, name: 'Create Order', method: 'POST', url: '/api/orders', updatedAt: new Date(Date.now() - 86400000).toISOString(), creatorUsername: 'testeditor', projectName: null },
 ];
 
+// Added GeneralTestData interface for clarity in tests, assuming it's similar to the one in TestsPage.tsx
+interface GeneralTestData {
+  id: number;
+  name: string;
+  url: string;
+  sequence: any[]; // Assuming array for parsed JSON, adjust if string
+  elements: any[]; // Assuming array for parsed JSON, adjust if string
+  status: string;
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
+  userId: number;
+  projectId?: number | null;
+  projectName?: string | null;
+}
+
+// General Tests Data
+const mockGeneralTests: GeneralTestData[] = [
+  { id: 1, name: 'General Test Alpha', url: 'http://example.com/alpha', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-01T10:00:00Z', updatedAt: '2023-01-10T10:00:00Z', userId: 1, projectName: 'Project X' },
+  { id: 2, name: 'General Test Beta', url: 'http://example.com/beta', sequence: [], elements: [], status: 'Fail', createdAt: '2023-01-02T11:00:00Z', updatedAt: '2023-01-11T11:00:00Z', userId: 1, projectName: 'Project Y' },
+  { id: 3, name: 'Another Test Gamma', url: 'http://example.com/gamma', sequence: [], elements: [], status: 'Pending', createdAt: '2023-01-03T12:00:00Z', updatedAt: '2023-01-12T12:00:00Z', userId: 1, projectName: 'Project X' },
+  { id: 4, name: 'Delta Test Case', url: 'http://example.com/delta', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-04T10:00:00Z', updatedAt: '2023-01-14T10:00:00Z', userId: 1, projectName: 'Project Z' },
+  { id: 5, name: 'Epsilon Scenario', url: 'http://example.com/epsilon', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-05T11:00:00Z', updatedAt: '2023-01-15T11:00:00Z', userId: 1, projectName: 'Project Y' },
+  { id: 6, name: 'Zeta Flow', url: 'http://example.com/zeta', sequence: [], elements: [], status: 'Fail', createdAt: '2023-01-06T12:00:00Z', updatedAt: '2023-01-16T12:00:00Z', userId: 1, projectName: 'Project X' },
+  { id: 7, name: 'Eta Verification', url: 'http://example.com/eta', sequence: [], elements: [], status: 'Pending', createdAt: '2023-01-07T10:00:00Z', updatedAt: '2023-01-17T10:00:00Z', userId: 1, projectName: 'Project Z' },
+  { id: 8, name: 'Theta Routine', url: 'http://example.com/theta', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-08T11:00:00Z', updatedAt: '2023-01-18T11:00:00Z', userId: 1, projectName: 'Project Y' },
+  { id: 9, name: 'Iota Check', url: 'http://example.com/iota', sequence: [], elements: [], status: 'Fail', createdAt: '2023-01-09T12:00:00Z', updatedAt: '2023-01-19T12:00:00Z', userId: 1, projectName: 'Project X' },
+  { id: 10, name: 'Kappa Example', url: 'http://example.com/kappa', sequence: [], elements: [], status: 'Pending', createdAt: '2023-01-10T10:00:00Z', updatedAt: '2023-01-20T10:00:00Z', userId: 1, projectName: 'Project Z' },
+  { id: 11, name: 'Lambda Special', url: 'http://example.com/lambda', sequence: [], elements: [], status: 'Pass', createdAt: '2023-01-11T11:00:00Z', updatedAt: '2023-01-21T11:00:00Z', userId: 1, projectName: 'Project Y' },
+];
 
 const setupDefaultMocks = () => {
   mockUseQueryData = {
@@ -234,6 +263,153 @@ describe('TestsPage - Test Plans Tab', () => {
     await waitFor(() => expect(mockMutate).toHaveBeenCalledWith(planToEdit.id));
     expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['testPlans'] });
     await waitFor(() => expect(screen.queryByRole('alertdialog', { name: /Confirm Deletion/i })).not.toBeInTheDocument());
+  });
+});
+
+describe('TestsPage - General Tests Tab', () => {
+  let fetchSpy: any;
+
+  beforeEach(() => {
+    vi.resetAllMocks(); // Reset all mocks
+    setupDefaultMocks(); // Setup default mocks for other tabs if needed
+
+    // Specific mock for /api/tests for this suite
+    fetchSpy = vi.spyOn(global, 'fetch');
+
+    // Default successful fetch for general tests
+    // We'll use mockUseQueryData to simulate react-query's behavior more closely
+    // instead of directly mocking fetch for the initial load in most tests.
+    mockUseQueryData['generalTests'] = { data: mockGeneralTests, isLoading: false, isError: false, error: null };
+
+    // Fallback fetch mock for any unexpected calls or specific tests needing it
+    fetchSpy.mockImplementation((url: any, options: any) => {
+      if (url === '/api/tests' && options?.method !== 'POST' && options?.method !== 'PUT' && options?.method !== 'DELETE') {
+        // This will be overridden by mockUseQueryData for GET in most cases due to react-query's caching
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockGeneralTests),
+        });
+      }
+      // Fallback for other API calls if any are made by shared components or unmocked mutations
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks(); // Restore all mocks, including the global fetch spy
+  });
+
+  it('renders the General Tests tab and switches to it', async () => {
+    renderTestsPage();
+    const generalTestsTab = screen.getByRole('tab', { name: /General Tests/i });
+    expect(generalTestsTab).toBeInTheDocument();
+    fireEvent.click(generalTestsTab);
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Search general tests.../i)).toBeInTheDocument();
+    });
+  });
+
+  it('displays loading state for General Tests', async () => {
+    mockUseQueryData['generalTests'] = { data: [], isLoading: true, isError: false, error: null };
+    // No need to mock fetch here as useQuery's isLoading state is directly controlled.
+
+    renderTestsPage();
+    fireEvent.click(screen.getByRole('tab', { name: /General Tests/i }));
+
+    expect(await screen.findByText('Loading general tests...')).toBeInTheDocument();
+  });
+
+  it('displays error state for General Tests', async () => {
+    mockUseQueryData['generalTests'] = { data: [], isLoading: false, isError: true, error: { message: 'Custom Error: Failed to fetch general tests' } };
+    // No need to mock fetch here as useQuery's error state is directly controlled.
+
+    renderTestsPage();
+    fireEvent.click(screen.getByRole('tab', { name: /General Tests/i }));
+    expect(await screen.findByText(/Error loading general tests: Custom Error: Failed to fetch general tests/i)).toBeInTheDocument();
+  });
+
+  it('displays "No general tests found" message when no data is returned', async () => {
+    mockUseQueryData['generalTests'] = { data: [], isLoading: false, isError: false, error: null };
+    // No need to mock fetch here.
+
+    renderTestsPage();
+    fireEvent.click(screen.getByRole('tab', { name: /General Tests/i }));
+    expect(await screen.findByText('No general tests found.')).toBeInTheDocument();
+  });
+
+  it('displays fetched General Tests data in the table', async () => {
+    // mockUseQueryData['generalTests'] is already set to mockGeneralTests in beforeEach
+    renderTestsPage();
+    fireEvent.click(screen.getByRole('tab', { name: /General Tests/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('General Test Alpha')).toBeInTheDocument();
+      expect(screen.getByText('http://example.com/alpha')).toBeInTheDocument();
+      expect(screen.getByText('Project X')).toBeInTheDocument();
+      const firstRowBadges = within(screen.getByText('General Test Alpha').closest('tr')!).getAllByText('Pass');
+      expect(firstRowBadges.length).toBeGreaterThan(0);
+
+
+      expect(screen.getByText('General Test Beta')).toBeInTheDocument();
+      expect(screen.getByText('http://example.com/beta')).toBeInTheDocument();
+      expect(screen.getByText('Project Y')).toBeInTheDocument();
+      const secondRowBadges = within(screen.getByText('General Test Beta').closest('tr')!).getAllByText('Fail');
+      expect(secondRowBadges.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('filters General Tests based on search term', async () => {
+    renderTestsPage();
+    fireEvent.click(screen.getByRole('tab', { name: /General Tests/i }));
+
+    await waitFor(() => expect(screen.getByText('General Test Alpha')).toBeInTheDocument());
+
+    const searchInput = screen.getByPlaceholderText(/Search general tests.../i);
+    fireEvent.change(searchInput, { target: { value: 'Beta' } });
+
+    await waitFor(() => {
+      expect(screen.queryByText('General Test Alpha')).not.toBeInTheDocument();
+      expect(screen.getByText('General Test Beta')).toBeInTheDocument();
+    });
+
+    fireEvent.change(searchInput, { target: { value: 'Project X' } });
+    await waitFor(() => {
+      expect(screen.getByText('General Test Alpha')).toBeInTheDocument();
+      expect(screen.queryByText('General Test Beta')).not.toBeInTheDocument();
+      expect(screen.getByText('Another Test Gamma')).toBeInTheDocument();
+    });
+     fireEvent.click(screen.getByRole('button', { name: /refreshccw/i }));
+     await waitFor(() => {
+        expect(screen.getByText('General Test Alpha')).toBeInTheDocument();
+        expect(screen.getByText('General Test Beta')).toBeInTheDocument();
+     });
+  });
+
+  it('handles pagination for General Tests', async () => {
+    // itemsPerPage is 10 in TestsPage.tsx, mockGeneralTests has 11 items
+    renderTestsPage();
+    fireEvent.click(screen.getByRole('tab', { name: /General Tests/i }));
+
+    await waitFor(() => expect(screen.getByText('General Test Alpha')).toBeInTheDocument()); // First item on page 1
+    expect(screen.getByText(mockGeneralTests[9].name)).toBeInTheDocument(); // 10th item on page 1
+    expect(screen.queryByText(mockGeneralTests[10].name)).not.toBeInTheDocument(); // 11th item should not be on page 1
+
+    expect(screen.getByText(/1-10 of 11/i)).toBeInTheDocument();
+
+    const nextPageButton = screen.getByRole('button', { name: /chevronright/i });
+    fireEvent.click(nextPageButton);
+
+    await waitFor(() => expect(screen.getByText(mockGeneralTests[10].name)).toBeInTheDocument()); // 11th item on page 2
+    expect(screen.queryByText('General Test Alpha')).not.toBeInTheDocument();
+    expect(screen.getByText(/11-11 of 11/i)).toBeInTheDocument();
+
+    const prevPageButton = screen.getByRole('button', { name: /chevronleft/i });
+    fireEvent.click(prevPageButton);
+
+    await waitFor(() => expect(screen.getByText('General Test Alpha')).toBeInTheDocument());
+    expect(screen.queryByText(mockGeneralTests[10].name)).not.toBeInTheDocument();
+    expect(screen.getByText(/1-10 of 11/i)).toBeInTheDocument();
   });
 });
 

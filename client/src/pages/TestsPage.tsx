@@ -41,6 +41,22 @@ interface TestPlanItem {
   updatedAt: number; // Unix timestamp (seconds)
 }
 
+// Interface for general test data based on the 'tests' table schema
+interface GeneralTestData {
+  id: number;
+  name: string;
+  url: string;
+  sequence: any; // Or string
+  elements: any; // Or string
+  status: string;
+  createdAt: string; // Assuming string representation of timestamp
+  updatedAt: string; // Assuming string representation of timestamp
+  userId: number;
+  projectId?: number | null;
+  projectName?: string | null; // Added for consistency
+  // Potentially add creatorUsername if that's also desired, similar to ApiTestData
+}
+
 interface ScheduleItem {
   id: string;
   scheduleName: string;
@@ -94,6 +110,11 @@ const TestsPage: React.FC = () => {
   const [apiTestSearchTerm, setApiTestSearchTerm] = useState('');
   const [currentApiTestPage, setCurrentApiTestPage] = useState(1);
   const [apiItemsPerPage] = useState(10); // Or make it configurable
+
+  // State for General Tests Tab
+  const [generalTestSearchTerm, setGeneralTestSearchTerm] = useState('');
+  const [currentGeneralTestPage, setCurrentGeneralTestPage] = useState(1);
+  // const [generalTestItemsPerPage, setGeneralTestItemsPerPage] = useState(10); // Optional, using itemsPerPage for now
 
   // Create Schedule Modal States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -157,6 +178,19 @@ const TestsPage: React.FC = () => {
     }
   });
 
+  // Fetch General Tests using React Query
+  const { data: generalTests = [], isLoading: isLoadingGeneralTests, error: generalTestsError } = useQuery<GeneralTestData[]>({
+    queryKey: ['generalTests'],
+    queryFn: async () => {
+      const response = await fetch('/api/tests'); // Ensure this is the correct endpoint
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Network response was not ok for general tests' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to fetch general tests');
+      }
+      return response.json();
+    },
+  });
+
   const filteredTestPlans = useMemo(() => { // Renamed from filteredTests
     if (!testPlans) return [];
     return testPlans.filter(plan =>
@@ -200,6 +234,29 @@ const TestsPage: React.FC = () => {
       currentApiTestPage * apiItemsPerPage
     );
   }, [filteredApiTests, currentApiTestPage, apiItemsPerPage]);
+
+  // Filtering and Pagination for General Tests Tab
+  useEffect(() => {
+      setCurrentGeneralTestPage(1);
+  }, [generalTestSearchTerm]);
+
+  const filteredGeneralTests = useMemo(() => {
+    if (!generalTests) return [];
+    return generalTests.filter(test =>
+      test.name.toLowerCase().includes(generalTestSearchTerm.toLowerCase()) ||
+      test.url.toLowerCase().includes(generalTestSearchTerm.toLowerCase()) ||
+      (test.projectName && test.projectName.toLowerCase().includes(generalTestSearchTerm.toLowerCase()))
+      // Add other fields to search if necessary
+    );
+  }, [generalTestSearchTerm, generalTests]);
+
+  const totalGeneralTestPages = Math.ceil(filteredGeneralTests.length / itemsPerPage); // Assuming 'itemsPerPage' exists and can be reused
+  const paginatedGeneralTests = useMemo(() => {
+    return filteredGeneralTests.slice(
+      (currentGeneralTestPage - 1) * itemsPerPage, // Assuming 'itemsPerPage'
+      currentGeneralTestPage * itemsPerPage // Assuming 'itemsPerPage'
+    );
+  }, [filteredGeneralTests, currentGeneralTestPage, itemsPerPage]); // Assuming 'itemsPerPage'
 
 
   // getStatusBadgeVariant is likely not needed for TestPlans, can be removed if TestItem interface is fully removed.
@@ -525,6 +582,7 @@ const TestsPage: React.FC = () => {
           <TabsList className="mb-4">
             <TabsTrigger value="tests">{t('testsPage.testPlans.label')}</TabsTrigger> {/* Renamed Tab */}
             <TabsTrigger value="api-tests">API Tests</TabsTrigger> {/* New API Tests Tab */}
+            <TabsTrigger value="general-tests">{t('testsPage.generalTests.label', 'General Tests')}</TabsTrigger>
             <TabsTrigger value="schedules">{t('testSuitesPage.schedules.label')}</TabsTrigger>
           </TabsList>
 
@@ -742,6 +800,104 @@ const TestsPage: React.FC = () => {
                   ))}
                   {!isLoadingApiTests && !apiTestsError && paginatedApiTests.length === 0 && (
                      <TableRow><TableCell colSpan={7} className="text-center">{t('testsPage.noApiTestsFound.text', 'No API tests found.')}</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
+
+          {/* General Tests Tab Content */}
+          <TabsContent value="general-tests">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+                <div className="relative w-full sm:w-auto">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder={t('testsPage.searchGeneralTests.placeholder', 'Search general tests...')}
+                    className="pl-8 pr-2 py-2 h-10 w-full sm:w-[200px] lg:w-[250px]"
+                    value={generalTestSearchTerm}
+                    onChange={(e) => setGeneralTestSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => { setGeneralTestSearchTerm(''); setCurrentGeneralTestPage(1); }}>
+                  <RefreshCcw size={18} />
+                </Button>
+                {/* Optional: Add "Create General Test" button here later if needed */}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentGeneralTestPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentGeneralTestPage === 1}
+                >
+                  <ChevronLeft size={16} />
+                </Button>
+                <span className="mx-2 text-sm font-medium">
+                  {`${Math.min((currentGeneralTestPage - 1) * itemsPerPage + 1, filteredGeneralTests.length === 0 ? 0 : (currentGeneralTestPage - 1) * itemsPerPage + 1)}-${Math.min(currentGeneralTestPage * itemsPerPage, filteredGeneralTests.length)} of ${filteredGeneralTests.length}`}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCurrentGeneralTestPage(prev => Math.min(totalGeneralTestPages, prev + 1))}
+                  disabled={currentGeneralTestPage === totalGeneralTestPages || filteredGeneralTests.length === 0}
+                >
+                  <ChevronRight size={16} />
+                </Button>
+              </div>
+            </div>
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('testsPage.generalTestTable.name', 'Name')}</TableHead>
+                    <TableHead>{t('testsPage.generalTestTable.url', 'URL')}</TableHead>
+                    <TableHead>{t('testsPage.generalTestTable.status', 'Status')}</TableHead>
+                    <TableHead>{t('testsPage.generalTestTable.project', 'Project')}</TableHead>
+                    <TableHead>{t('testsPage.generalTestTable.lastUpdated', 'Last Updated')}</TableHead>
+                    <TableHead>{t('testsPage.generalTestTable.actions', 'Actions')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoadingGeneralTests && (
+                    <TableRow><TableCell colSpan={6} className="text-center">{t('testsPage.loadingGeneralTests.text', 'Loading general tests...')}</TableCell></TableRow>
+                  )}
+                  {generalTestsError && (
+                    <TableRow><TableCell colSpan={6} className="text-center text-red-500">{t('testsPage.errorLoadingGeneralTests.text', 'Error loading general tests:')} {generalTestsError.message}</TableCell></TableRow>
+                  )}
+                  {!isLoadingGeneralTests && !generalTestsError && paginatedGeneralTests.map((test) => (
+                    <TableRow key={test.id}>
+                      <TableCell className="font-medium">{test.name}</TableCell>
+                      <TableCell className="truncate max-w-xs" title={test.url}>{test.url}</TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusBadgeVariant(test.status)}>{test.status}</Badge>
+                      </TableCell>
+                      <TableCell>{test.projectName || t('testsPage.na.text', 'N/A')}</TableCell>
+                      <TableCell>{test.updatedAt ? format(parseISO(test.updatedAt), 'yyyy-MM-dd HH:mm') : t('testsPage.na.text', 'N/A')}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => alert('View/Edit Test ID: ' + test.id)}>
+                              {/* Replace Play icon with something more generic like Eye or Edit if preferred */}
+                              <Play className="w-4 h-4 mr-2" />
+                              {t('testsPage.viewEdit.button', 'View/Edit')}
+                            </DropdownMenuItem>
+                            {/* Add other actions like Delete here if needed in future */}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {!isLoadingGeneralTests && !generalTestsError && paginatedGeneralTests.length === 0 && (
+                     <TableRow><TableCell colSpan={6} className="text-center">{t('testsPage.noGeneralTestsFound.text', 'No general tests found.')}</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
