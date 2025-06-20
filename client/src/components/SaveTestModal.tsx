@@ -62,6 +62,7 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const queryClient = useQueryClient(); // For invalidating queries
+  const [projectListVersion, setProjectListVersion] = useState(0); // State to force re-mount Select
 
   // Fetch projects only when the modal is open
   const {
@@ -105,6 +106,9 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
 
       // 3. Invalidate to refetch in the background for eventual consistency
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+
+      // 4. Increment version to force Select re-mount
+      setProjectListVersion(prevVersion => prevVersion + 1);
     },
     onError: (error) => {
       toast({ title: t('saveTestModal.notifications.projectCreateFailed.title', 'Project Creation Failed'), description: error.message, variant: 'destructive' });
@@ -155,6 +159,7 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
               {t('saveTestModal.project.label')}<span className="text-destructive">*</span>
             </Label>
             <Select
+              key={`project-select-${projectListVersion}`} // Add this key
               value={selectedProjectId}
               onValueChange={setSelectedProjectId}
               disabled={isLoadingProjects}
