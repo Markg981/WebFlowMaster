@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { AlertCircle, TestTube } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function AuthPage() {
+  const { t } = useTranslation();
   const { user, loginMutation, registerMutation } = useAuth();
   const [, navigate] = useLocation();
   

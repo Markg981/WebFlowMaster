@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useTranslation } from 'react-i18next';
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQuery, QueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -196,6 +197,7 @@ export const availableActions: TestAction[] = [
 ];
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { user, logoutMutation } = useAuth();
   // Initial URL state. "https://github.com" is a placeholder that can be overwritten.
   const [currentUrl, setCurrentUrl] = useState("https://github.com");

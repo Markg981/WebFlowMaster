@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ApiTest } from '@shared/schema';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +28,7 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
   isLoading,
   isDeletingTestId,
 }) => {
+  const { t } = useTranslation();
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between py-3 px-4 border-b">

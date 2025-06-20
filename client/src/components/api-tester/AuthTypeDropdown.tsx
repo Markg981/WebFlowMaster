@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Select,
   SelectContent,
@@ -36,6 +37,7 @@ export const AuthTypeDropdown: React.FC<AuthTypeDropdownProps> = ({
   onAuthTypeChange,
   disabled = false,
 }) => {
+  const { t } = useTranslation();
   return (
     <Select
       value={authType}

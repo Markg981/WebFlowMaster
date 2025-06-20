@@ -1,4 +1,5 @@
 import { useState } from "react"; // Added useState
+import { useTranslation } from 'react-i18next';
 import { useDrop } from "react-dnd";
 import { Card } from "@/components/ui/card"; // Keep for overall structure if needed, or remove if steps are Cards
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,7 @@ export function TestSequenceBuilder({
   isRecordingActive = false, // Default value for the new prop
   lastTestOutcome = null, // Default value for the new prop
 }: TestSequenceBuilderProps) {
+  const { t } = useTranslation();
   const [isReassociatingElementForStepId, setReassociatingElementForStepId] = useState<string | null>(null);
 
   // Main drop target for adding NEW actions to the sequence

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ApiTestHistoryEntry } from '@shared/schema';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +19,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
   onClearHistory,
   isLoading,
 }) => {
+  const { t } = useTranslation();
   const getStatusColor = (status?: number | null) => {
     if (status === null || status === undefined) return 'bg-gray-400';
     if (status >= 200 && status < 300) return 'bg-green-500';

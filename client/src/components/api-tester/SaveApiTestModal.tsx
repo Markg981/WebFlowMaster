@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,7 @@ export const SaveApiTestModal: React.FC<SaveApiTestModalProps> = ({
   isEditing,
   isLoading,
 }) => {
+  const { t } = useTranslation();
   const [testName, setTestName] = useState(initialTestName);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(initialProjectId);
 

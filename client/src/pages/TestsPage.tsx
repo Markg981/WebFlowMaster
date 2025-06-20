@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, fromUnixTime, getTime, parseISO } from 'date-fns';
@@ -56,6 +57,7 @@ const formatTimestampToReadableDate = (timestamp: number): string => {
 
 
 const TestsPage: React.FC = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   // State for the "Tests" tab (now Test Plans)
   const [testPlanSearchTerm, setTestPlanSearchTerm] = useState('');

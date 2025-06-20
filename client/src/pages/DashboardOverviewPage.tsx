@@ -50,7 +50,7 @@ const DashboardOverviewPage: React.FC = () => {
             <div className="flex items-center">
               <TestTube className={`h-7 w-7 text-primary transition-all duration-300 ${isSidebarCollapsed ? 'ml-0' : 'mr-2'}`} />
               {!isSidebarCollapsed && (
-                <span className="font-semibold text-lg whitespace-nowrap">{{t('dashboardOverviewPage.webtestPlatform.text')}}</span>
+                <span className="font-semibold text-lg whitespace-nowrap">{t('dashboardOverviewPage.webtestPlatform.text')}</span>
               )}
             </div>
             <Button

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   AuthType,
   AuthParams,
@@ -46,6 +47,7 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
   onAuthParamsChange,
   disabled = false,
 }) => {
+  const { t } = useTranslation();
   const renderAuthForm = () => {
     switch (authType) {
       case AuthTypeSchema.enum.basic:

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,7 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
   onSave,
   initialTestName,
 }) => {
+  const { t } = useTranslation();
   const [internalTestName, setInternalTestName] = useState(initialTestName || '');
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
 

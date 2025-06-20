@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Assertion, AssertionSourceSchema, AssertionComparisonSchema } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +52,7 @@ const targetValueRequiredByComparison: Record<Assertion['comparison'], boolean> 
 
 
 export const AssertionEditor: React.FC<AssertionEditorProps> = ({ assertions, onChange, isExecuting }) => {
+  const { t } = useTranslation();
   const handleAddAssertion = () => {
     const newAssertion: Assertion = {
       id: uuidv4(),
