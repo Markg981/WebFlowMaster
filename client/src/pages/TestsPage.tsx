@@ -1140,7 +1140,7 @@ const TestsPage: React.FC = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>{t('testsPage.confirmDeletion.title')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete test plan "{testPlans.find(tp => tp.id === deletingTestPlanId)?.name}"?
+                Are you sure you want to delete test plan "{actualTestPlans.find(tp => tp.id === deletingTestPlanId)?.name}"?
                 This action cannot be undone and will also delete any associated schedules.
               </AlertDialogDescription>
             </AlertDialogHeader>
