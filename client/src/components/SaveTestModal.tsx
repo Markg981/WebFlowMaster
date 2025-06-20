@@ -171,13 +171,19 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
                 ) : isErrorProjects ? (
                   <div className="p-2 text-red-500 text-sm">{t('saveTestModal.errorLoadingProjects.text')}</div>
                 ) : projectsData && projectsData.length > 0 ? (
-                  projectsData
-                    .filter(project => project && typeof project.id === 'number' && project.name) // Ensure project, id, and name exist
-                    .map((project) => (
-                      <SelectItem key={project.id} value={project.id.toString()}>
-                        {project.name}
-                      </SelectItem>
-                    ))
+                  projectsData.map((project, index) => {
+                    // Ensure project object itself is valid and has a usable id and name
+                    if (project && typeof project.id === 'number' && project.id !== null && typeof project.name === 'string') {
+                      return (
+                        <SelectItem key={project.id} value={project.id.toString()}>
+                          {project.name}
+                        </SelectItem>
+                      );
+                    }
+                    // Log problematic item for debugging if needed, and return null to skip rendering it
+                    console.warn('SaveTestModal: Skipping rendering of invalid project item at index ' + index + ':', project);
+                    return null;
+                  })
                 ) : (
                   <div className="p-2 text-muted-foreground text-sm">{t('saveTestModal.noProjectsAvailable.text')}</div>
                 )}
