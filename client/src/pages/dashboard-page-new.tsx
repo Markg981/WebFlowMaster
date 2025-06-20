@@ -524,18 +524,6 @@ export default function DashboardPage() {
     setIsSaveModalOpen(false);
   };
 
-  const handleConfirmSaveTest = (newName: string) => {
-    setTestName(newName); // Update the main page's testName state
-    saveTestMutation.mutate({
-      name: newName,
-      url: currentUrl,
-      sequence: testSequence,
-      elements: detectedElements,
-      status: "draft", // Or any default status
-    });
-    handleCloseSaveModal(); // Close the modal after saving
-  };
-
   // Updated to accept projectId
   const handleConfirmSaveTest = (newName: string, projectId?: number) => {
     setTestName(newName); // Update the main page's testName state
