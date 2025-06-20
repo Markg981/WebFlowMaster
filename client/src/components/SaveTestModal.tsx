@@ -29,18 +29,25 @@ interface Project {
 
 // API function for fetching projects
 const fetchProjects = async (): Promise<Project[]> => {
-  // Using apiRequest for consistency, though direct fetch is also fine here.
-  // Assuming apiRequest is set up to handle JSON parsing and errors.
-  const response = await apiRequest("GET", "/api/projects");
-  // apiRequest is expected to throw on error, so direct return if successful.
-  // It should also parse JSON, so response should be Project[] directly if apiRequest handles it.
-  // If apiRequest returns the raw Response object, then:
-  // if (!response.ok) {
-  //   const errorData = await response.json().catch(() => ({ error: "Failed to fetch projects and parse error" }));
-  //   throw new Error(errorData.error || "Failed to fetch projects");
-  // }
-  // return response.json();
-  return response as Project[]; // Assuming apiRequest returns parsed JSON based on typical setup
+  const response = await apiRequest("GET", "/api/projects"); // apiRequest should throw if !response.ok
+
+  // Assuming apiRequest might return a Response object that needs .json()
+  // or it might return already parsed JSON (if it's a more advanced wrapper).
+  if (response && typeof response.json === 'function') {
+    try {
+      const data = await response.json();
+      return data as Project[]; // Assuming the backend sends Project[]
+    } catch (error) {
+      console.error("Failed to parse projects JSON:", error);
+      throw new Error("Failed to parse project data from server.");
+    }
+  } else if (response && Array.isArray(response)) {
+    // This case handles if apiRequest already parsed the JSON and returned the array.
+    return response as Project[];
+  } else {
+    console.error("Unexpected response type from fetchProjects:", response);
+    throw new Error("Received unexpected data format for projects.");
+  }
 };
 
 interface SaveTestModalProps {

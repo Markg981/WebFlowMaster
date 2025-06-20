@@ -33,7 +33,7 @@ import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
-import { eq, and, desc, sql, leftJoin, getTableColumns } from "drizzle-orm"; // Added leftJoin and getTableColumns
+import { eq, and, desc, sql, leftJoin, getTableColumns, asc } from "drizzle-orm"; // Added leftJoin, getTableColumns, and asc
 import { playwrightService } from "./playwright-service";
 import type { Logger as WinstonLogger } from 'winston';
 
@@ -364,7 +364,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/projects", async (req, res) => { /* ... existing code ... */ });
+  app.get("/api/projects", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id;
+
+    try {
+      const userProjects = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.userId, userId))
+        .orderBy(asc(projects.name)); // Order by project name ascending
+
+      res.status(200).json(userProjects);
+    } catch (error: any) {
+      resolvedLogger.error({ // Ensure resolvedLogger is defined in this scope or use logger directly
+        message: `Error fetching projects for user ${userId}`,
+        error: error.message,
+        stack: error.stack,
+      });
+      res.status(500).json({ error: "Failed to fetch projects" });
+    }
+  });
 
   const detectElementsBodySchema = z.object({
     url: z.string().url({ message: "Invalid URL for element detection" }),
