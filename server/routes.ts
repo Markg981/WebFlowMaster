@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import logger from "./logger"; // Import Winston logger
+import logger, { updateLogLevel } from "./logger"; // Import Winston logger and updateLogLevel
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import {
@@ -107,12 +107,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/load-website", async (req, res) => {
-    (resolvedLogger.info || console.log)("SERVER: /api/load-website route handler reached. Request body:", req.body);
+    resolvedLogger.http(`POST /api/load-website - Handler reached. UserId: ${(req.user as any)?.id}`);
+    resolvedLogger.debug({ message: "POST /api/load-website - Request body:", body: req.body });
 
     const parseResult = loadWebsiteBodySchema.safeParse(req.body);
 
     if (!parseResult.success) {
-      (resolvedLogger.error || console.error)("SERVER: /api/load-website - Invalid request body:", parseResult.error.flatten());
+      resolvedLogger.warn({ message: "POST /api/load-website - Invalid request body", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
       return res.status(400).json({ success: false, error: 'Invalid request payload', details: parseResult.error.flatten() });
     }
 
@@ -120,18 +121,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any)?.id as number | undefined;
 
     try {
-      (resolvedLogger.info || console.log)(`SERVER: /api/load-website - Calling playwrightService.loadWebsite with URL: ${url}`);
+      resolvedLogger.debug({ message: `POST /api/load-website - Calling playwrightService.loadWebsite`, url, userId });
       const result = await playwrightService.loadWebsite(url, userId);
-      (resolvedLogger.info || console.log)(`SERVER: /api/load-website - playwrightService.loadWebsite call returned. Success: ${result?.success}`);
+      resolvedLogger.debug({ message: `POST /api/load-website - playwrightService.loadWebsite returned`, success: result?.success, url, userId });
 
       if (result.success) {
         res.json({ success: true, screenshot: result.screenshot, html: result.html });
       } else {
-        (resolvedLogger.error || console.error)(`SERVER: /api/load-website - playwrightService.loadWebsite failed. Error: ${result.error}`);
+        resolvedLogger.error({ message: `POST /api/load-website - playwrightService.loadWebsite failed`, error: result.error, url, userId });
         res.status(500).json({ success: false, error: result.error || 'Failed to load website using Playwright service.' });
       }
     } catch (error: any) {
-      (resolvedLogger.error || console.error)("SERVER: /api/load-website - Critical error in route handler:", error);
+      resolvedLogger.error({ message: "POST /api/load-website - Critical error in route handler", error: error.message, stack: error.stack, url, userId });
       const errorMessage = error instanceof Error ? error.message : 'Unknown internal server error';
       res.status(500).json({ success: false, error: `Internal server error: ${errorMessage}` });
     }
@@ -144,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const parseResult = proxyApiRequestBodySchema.safeParse(req.body);
     if (!parseResult.success) {
-      resolvedLogger.error("Invalid /api/proxy-api-request payload:", { errors: parseResult.error.flatten() });
+      resolvedLogger.warn({ message: "POST /api/proxy-api-request - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
@@ -375,22 +376,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const parseResult = detectElementsBodySchema.safeParse(req.body);
     if (!parseResult.success) {
-      (resolvedLogger.error || console.error)("SERVER: /api/detect-elements - Invalid request body:", parseResult.error.flatten());
+      resolvedLogger.warn({ message: "POST /api/detect-elements - Invalid request body", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
       return res.status(400).json({ success: false, error: "Invalid request payload", details: parseResult.error.flatten() });
     }
     const { url } = parseResult.data;
     const userId = (req.user as any)?.id as number | undefined;
 
-    (resolvedLogger.info || console.log)(`SERVER: /api/detect-elements route handler reached. URL: ${url}, UserID: ${userId}`);
+    resolvedLogger.http(`POST /api/detect-elements - Handler reached. URL: ${url}, UserID: ${userId}`);
+    resolvedLogger.debug({ message: "POST /api/detect-elements - Request body:", body: req.body });
+
 
     try {
-      (resolvedLogger.info || console.log)(`SERVER: /api/detect-elements - Calling playwrightService.detectElements with URL: ${url}`);
+      resolvedLogger.debug({ message: `POST /api/detect-elements - Calling playwrightService.detectElements`, url, userId });
       const elements = await playwrightService.detectElements(url, userId);
-      (resolvedLogger.info || console.log)(`SERVER: /api/detect-elements - playwrightService.detectElements call returned. Element count: ${elements?.length}`);
+      resolvedLogger.debug({ message: `POST /api/detect-elements - playwrightService.detectElements returned`, elementCount: elements?.length, url, userId });
 
       res.json({ success: true, elements: elements });
     } catch (error: any) {
-      (resolvedLogger.error || console.error)("SERVER: /api/detect-elements - Error in route handler:", error);
+      resolvedLogger.error({ message: "POST /api/detect-elements - Error in route handler", error: error.message, stack: error.stack, url, userId });
       const errorMessage = error instanceof Error ? error.message : 'Unknown internal server error';
       res.status(500).json({ success: false, error: `Internal server error during element detection: ${errorMessage}` });
     }
@@ -427,8 +430,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const newSettings = await db.insert(userSettings).values(defaultSettings).returning();
         return res.json(newSettings[0]);
       }
-    } catch (error) {
-      resolvedLogger.error("Failed to fetch settings:", error);
+    } catch (error: any) {
+      resolvedLogger.error({ message: "Failed to fetch user settings", userId: (req.user as any)?.id, error: error.message, stack: error.stack });
       return res.status(500).json({ error: "Failed to fetch settings" });
     }
   });
@@ -440,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const parseResult = userSettingsBodySchema.safeParse(req.body);
     if (!parseResult.success) {
-      resolvedLogger.error("Invalid /api/settings payload:", { errors: parseResult.error.flatten() });
+      resolvedLogger.warn({ message: "POST /api/settings - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
@@ -461,26 +464,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .returning();
         return res.json(newSettings[0]);
       }
-    } catch (error) {
-      resolvedLogger.error("Failed to save settings:", error);
+    } catch (error: any) {
+      resolvedLogger.error({ message: "Failed to save user settings", userId: (req.user as any)?.id, error: error.message, stack: error.stack, body: req.body });
       return res.status(500).json({ error: "Failed to save settings" });
     }
   });
 
   app.post("/api/execute-test-direct", async (req, res) => {
     const userId = (req.user as any)?.id;
-    // Enhanced Entry Logging
-    resolvedLogger.info({ message: "ROUTE: /api/execute-test-direct - Handler Reached.", userId });
-    resolvedLogger.debug({ message: "ROUTE: /api/execute-test-direct - Request body:", body: req.body });
+    resolvedLogger.http({ message: "POST /api/execute-test-direct - Handler Reached.", userId });
+    resolvedLogger.debug({ message: "POST /api/execute-test-direct - Request body:", body: req.body, userId });
 
     if (!req.isAuthenticated() || !userId) {
-      resolvedLogger.warn("ROUTE: /api/execute-test-direct - Unauthorized access attempt.");
+      resolvedLogger.warn({ message: "POST /api/execute-test-direct - Unauthorized access attempt.", userId });
       return res.status(401).json({ success: false, error: "Unauthorized" });
     }
 
     const parseResult = executeDirectTestSchema.safeParse(req.body);
     if (!parseResult.success) {
-      resolvedLogger.error("ROUTE: /api/execute-test-direct - Invalid request payload.", { errors: parseResult.error.flatten() });
+      resolvedLogger.warn({ message: "POST /api/execute-test-direct - Invalid request payload", errors: parseResult.error.flatten(), userId });
       return res.status(400).json({ success: false, error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
@@ -488,10 +490,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let resultFromService: any; // Keep it flexible to hold partial results in case of error
 
     try {
-      resolvedLogger.info("ROUTE: /api/execute-test-direct - About to call playwrightService.executeAdhocSequence.");
+      resolvedLogger.debug({ message: "POST /api/execute-test-direct - Calling playwrightService.executeAdhocSequence.", userId, testName: payload.name });
       resultFromService = await playwrightService.executeAdhocSequence(payload, userId);
-      resolvedLogger.info("ROUTE: /api/execute-test-direct - playwrightService.executeAdhocSequence returned.");
-      resolvedLogger.debug({ message: "ROUTE: /api/execute-test-direct - Result from service:", result: resultFromService });
+      resolvedLogger.debug({ message: "POST /api/execute-test-direct - playwrightService.executeAdhocSequence returned.", userId, testName: payload.name, serviceSuccess: resultFromService?.success });
+      resolvedLogger.debug({ message: "POST /api/execute-test-direct - Result from service:", result: resultFromService, userId });
 
       // Ensure that even if executeAdhocSequence returns a non-standard error structure, we handle it
       if (typeof resultFromService?.success === 'boolean') {
@@ -499,7 +501,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // This case implies executeAdhocSequence might have thrown an error that was caught by the outer try-catch
         // or returned an unexpected structure.
-        resolvedLogger.error("ROUTE: /api/execute-test-direct - Unexpected structure from playwrightService.executeAdhocSequence.", { resultFromService });
+        resolvedLogger.error({ message: "POST /api/execute-test-direct - Unexpected structure from playwrightService.executeAdhocSequence.", resultFromService, userId, testName: payload.name });
         res.status(500).json({
           success: false,
           error: "Internal server error: Unexpected response from test execution service.",
@@ -509,7 +511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     } catch (error: any) {
-      resolvedLogger.error(`ROUTE: /api/execute-test-direct - ERROR during playwrightService.executeAdhocSequence call or response sending: ${error.message}`, error.stack);
+      resolvedLogger.error({ message: `POST /api/execute-test-direct - ERROR during playwrightService.executeAdhocSequence call or response sending`, error: error.message, stack: error.stack, userId, testName: payload.name });
       const responseError = {
         success: false,
         error: "Error executing test sequence: " + error.message,
@@ -522,23 +524,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } finally {
       let logData: any = {
-        message: "ROUTE: /api/execute-test-direct - Handler complete.",
+        message: "POST /api/execute-test-direct - Handler complete.",
         userId,
         testName: payload.name
       };
       if (resultFromService) {
         logData.overallSuccess = resultFromService.success;
         logData.stepsReturned = resultFromService.steps?.length;
-        logData.error = resultFromService.success ? undefined : resultFromService.error;
+        logData.error = resultFromService.success ? undefined : resultFromService.error; // This is service error, not our log error
       } else {
         logData.overallSuccess = false;
-        logData.error = "resultFromService was undefined in finally block";
+        // logData.error already indicates resultFromService was undefined if it's not set by error block
       }
-      resolvedLogger.info(logData);
+      resolvedLogger.http(logData); // Changed to http for summary log
 
       resolvedLogger.debug({
-        message: "ROUTE: /api/execute-test-direct - Full response that was/would be sent:",
-        responseDetails: resultFromService || "Error response sent in catch block or resultFromService was undefined"
+        message: "POST /api/execute-test-direct - Full response that was/would be sent:",
+        responseDetails: resultFromService || "Error response sent in catch block or resultFromService was undefined",
+        userId
       });
     }
   });
@@ -576,7 +579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     } catch (error: any) {
-      resolvedLogger.error("Error starting recording session:", error);
+      resolvedLogger.error({ message: "Error starting recording session", error: error.message, stack: error.stack, url: req.body?.url, userId: (req.user as any)?.id });
       res.status(500).json({ 
         success: false, 
         error: "Internal server error" 
@@ -617,7 +620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     } catch (error: any) {
-      resolvedLogger.error("Error stopping recording session:", error);
+      resolvedLogger.error({ message: "Error stopping recording session", error: error.message, stack: error.stack, sessionId: req.body?.sessionId, userId: (req.user as any)?.id });
       res.status(500).json({ 
         success: false, 
         error: "Internal server error" 
@@ -658,7 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     } catch (error: any) {
-      resolvedLogger.error("Error getting recorded actions:", error);
+      resolvedLogger.error({ message: "Error getting recorded actions", error: error.message, stack: error.stack, sessionId: req.query?.sessionId, userId: (req.user as any)?.id });
       res.status(500).json({ 
         success: false, 
         error: "Internal server error" 
@@ -670,11 +673,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/api-test-history", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) { return res.status(401).json({ error: "Unauthorized" }); }
     const parseResult = insertApiTestHistorySchema.safeParse(req.body);
-    if (!parseResult.success) { return res.status(400).json({ error: "Invalid history data", details: parseResult.error.flatten() }); }
+    if (!parseResult.success) { resolvedLogger.warn({ message: "POST /api/api-test-history - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id }); return res.status(400).json({ error: "Invalid history data", details: parseResult.error.flatten() }); }
     try {
       const newHistoryEntry = await db.insert(apiTestHistory).values({ ...parseResult.data, userId: req.user.id }).returning();
       res.status(201).json(newHistoryEntry[0]);
-    } catch (error) { resolvedLogger.error("Error creating API test history entry:", error); res.status(500).json({ error: "Failed to save API test history" }); }
+    } catch (error: any) { resolvedLogger.error({ message: "Error creating API test history entry", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to save API test history" }); }
   });
 
   app.get("/api/api-test-history", async (req, res) => {
@@ -687,7 +690,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalResult = await db.select({ count: sql`count(*)` }).from(apiTestHistory).where(eq(apiTestHistory.userId, req.user.id));
       const total = totalResult[0]?.count || 0;
       res.json({ items: historyEntries, page, limit, totalItems: Number(total), totalPages: Math.ceil(Number(total) / limit) });
-    } catch (error) { resolvedLogger.error("Error fetching API test history:", error); res.status(500).json({ error: "Failed to fetch API test history" }); }
+    } catch (error: any) { resolvedLogger.error({ message: "Error fetching API test history", error: error.message, stack: error.stack, userId: (req.user as any)?.id, query: req.query }); res.status(500).json({ error: "Failed to fetch API test history" }); }
   });
 
   app.delete("/api/api-test-history/:id", async (req, res) => {
@@ -698,7 +701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await db.delete(apiTestHistory).where(and(eq(apiTestHistory.id, id), eq(apiTestHistory.userId, req.user.id))).returning();
       if (result.length === 0) { return res.status(404).json({ error: "History entry not found or not owned by user" }); }
       res.status(204).send();
-    } catch (error) { resolvedLogger.error(`Error deleting API test history entry ${id}:`, error); res.status(500).json({ error: "Failed to delete history entry" }); }
+    } catch (error: any) { resolvedLogger.error({ message: `Error deleting API test history entry ${id}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to delete history entry" }); }
   });
 
   // --- Saved API Tests Endpoints ---
@@ -706,7 +709,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated() || !req.user) { return res.status(401).json({ error: "Unauthorized" }); }
     const postApiTestSchema = insertApiTestSchema.extend({ projectId: z.number().int().positive().optional().nullable() });
     const parseResult = postApiTestSchema.safeParse(req.body);
-    if (!parseResult.success) { return res.status(400).json({ error: "Invalid test data", details: parseResult.error.flatten() }); }
+    if (!parseResult.success) { resolvedLogger.warn({ message: "POST /api/api-tests - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id }); return res.status(400).json({ error: "Invalid test data", details: parseResult.error.flatten() }); }
     try {
       const { projectId, ...testData } = parseResult.data;
       const newTest = await db.insert(apiTests).values({
@@ -718,7 +721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }).returning();
       res.status(201).json(newTest[0]);
     } catch (error: any) {
-      resolvedLogger.error("Error creating API test:", error);
+      resolvedLogger.error({ message: "Error creating API test", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
       if (error.message && error.message.includes('FOREIGN KEY constraint failed')) { return res.status(400).json({ error: "Invalid project ID or project does not exist." }); }
       res.status(500).json({ error: "Failed to create API test" });
     }
@@ -733,7 +736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (isNaN(id)) { return res.status(400).json({ error: "Invalid test ID" }); }
     const putApiTestSchema = updateApiTestSchema.extend({ projectId: z.number().int().positive().optional().nullable() });
     const parseResult = putApiTestSchema.safeParse(req.body);
-    if (!parseResult.success) { return res.status(400).json({ error: "Invalid test data", details: parseResult.error.flatten() }); }
+    if (!parseResult.success) { resolvedLogger.warn({ message: `PUT /api/api-tests/${id} - Invalid payload`, errors: parseResult.error.flatten(), userId: (req.user as any)?.id }); return res.status(400).json({ error: "Invalid test data", details: parseResult.error.flatten() }); }
     try {
       const { projectId, ...testData } = parseResult.data;
       const existingTest = await db.select({id: apiTests.id}).from(apiTests).where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user.id)));
@@ -749,7 +752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (updatedTest.length === 0) { return res.status(404).json({ error: "Test not found after update attempt" }); }
       res.json(updatedTest[0]);
     } catch (error: any) {
-      resolvedLogger.error(`Error updating API test ${id}:`, error);
+      resolvedLogger.error({ message: `Error updating API test ${id}`, error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
       if (error.message && error.message.includes('FOREIGN KEY constraint failed')) { return res.status(400).json({ error: "Invalid project ID or project does not exist." }); }
       res.status(500).json({ error: "Failed to update API test" });
     }
@@ -786,8 +789,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Add .where(eq(schedules.userId, req.user.id)) if user-specific
 
       res.json(result);
-    } catch (error) {
-      logger.error("Error fetching schedules:", error);
+    } catch (error: any) {
+      resolvedLogger.error({ message: "Error fetching schedules", error: error.message, stack: error.stack, userId: (req.user as any)?.id });
       res.status(500).json({ error: "Failed to fetch schedules" });
     }
   });
@@ -801,7 +804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // insertScheduleSchema already expects testPlanId and does not include testPlanName
     const parseResult = insertScheduleSchema.safeParse(req.body);
     if (!parseResult.success) {
-      logger.error("Invalid /api/schedules POST payload:", { errors: parseResult.error.flatten() });
+      resolvedLogger.warn({ message: "POST /api/schedules - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
@@ -835,7 +838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createdScheduleResult = await db.insert(schedules).values(valuesToInsert).returning();
 
       if (createdScheduleResult.length === 0) {
-        logger.error("Schedule creation failed, no record returned.");
+        resolvedLogger.error({ message: "Schedule creation failed, no record returned", valuesToInsert, userId: (req.user as any)?.id });
         return res.status(500).json({ error: "Failed to create schedule." });
       }
 
@@ -852,13 +855,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .limit(1);
 
       if (finalResult.length === 0) {
-         logger.error("Failed to fetch newly created schedule with test plan name.");
+         resolvedLogger.error({ message: "Failed to fetch newly created schedule with test plan name", scheduleId, userId: (req.user as any)?.id });
          return res.status(500).json({ error: "Failed to retrieve created schedule details." });
       }
 
       res.status(201).json(finalResult[0]);
     } catch (error: any) {
-      logger.error("Error creating schedule:", error);
+      resolvedLogger.error({ message: "Error creating schedule", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
       if (error.message && error.message.toLowerCase().includes('foreign key constraint failed')) {
         return res.status(400).json({ error: "Invalid Test Plan ID: The specified Test Plan does not exist." });
       }
@@ -876,7 +879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // updateScheduleSchema does not include testPlanName
     const parseResult = updateScheduleSchema.safeParse(req.body);
     if (!parseResult.success) {
-      logger.error(`Invalid /api/schedules/${scheduleId} PUT payload:`, { errors: parseResult.error.flatten() });
+      resolvedLogger.warn({ message: `PUT /api/schedules/${scheduleId} - Invalid payload`, errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
@@ -927,13 +930,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .limit(1);
 
       if (finalResult.length === 0) {
-         logger.error("Failed to fetch updated schedule with test plan name.");
+         resolvedLogger.error({ message: "Failed to fetch updated schedule with test plan name", scheduleId, userId: (req.user as any)?.id });
          return res.status(404).json({ error: "Schedule not found after update." });
       }
       res.json(finalResult[0]);
 
     } catch (error: any) {
-      logger.error(`Error updating schedule ${scheduleId}:`, error);
+      resolvedLogger.error({ message: `Error updating schedule ${scheduleId}`, error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
       if (error.message && error.message.toLowerCase().includes('foreign key constraint failed')) {
         return res.status(400).json({ error: "Invalid Test Plan ID: The specified Test Plan does not exist." });
       }
@@ -958,8 +961,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Schedule not found" });
       }
       res.status(204).send();
-    } catch (error) {
-      logger.error(`Error deleting schedule ${scheduleId}:`, error);
+    } catch (error: any) {
+      resolvedLogger.error({ message: `Error deleting schedule ${scheduleId}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id });
       res.status(500).json({ error: "Failed to delete schedule" });
     }
   });
@@ -975,8 +978,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add .where(eq(testPlans.userId, req.user.id)) if userId is added to testPlans table for multi-tenancy
       const allTestPlans = await db.select().from(testPlans).orderBy(desc(testPlans.createdAt));
       res.json(allTestPlans);
-    } catch (error) {
-      resolvedLogger.error("Error fetching test plans:", error);
+    } catch (error: any) {
+      resolvedLogger.error({ message: "Error fetching test plans", error: error.message, stack: error.stack, userId: (req.user as any)?.id });
       res.status(500).json({ error: "Failed to fetch test plans" });
     }
   });
@@ -994,8 +997,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Test plan not found" });
       }
       res.json(result[0]);
-    } catch (error) {
-      resolvedLogger.error(`Error fetching test plan ${testPlanId}:`, error);
+    } catch (error: any) {
+      resolvedLogger.error({ message: `Error fetching test plan ${testPlanId}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id });
       res.status(500).json({ error: "Failed to fetch test plan" });
     }
   });
@@ -1008,7 +1011,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const parseResult = insertTestPlanSchema.safeParse(req.body);
     if (!parseResult.success) {
-      resolvedLogger.error("Invalid /api/test-plans POST payload:", { errors: parseResult.error.flatten() });
+      resolvedLogger.warn({message: "POST /api/test-plans - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
@@ -1032,8 +1035,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Failed to create test plan." });
       }
       res.status(201).json(createdPlan[0]);
-    } catch (error) {
-      resolvedLogger.error("Error creating test plan:", error);
+    } catch (error: any) {
+      resolvedLogger.error({ message: "Error creating test plan", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
       res.status(500).json({ error: "Failed to create test plan" });
     }
   });
@@ -1047,7 +1050,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const parseResult = updateTestPlanSchema.safeParse(req.body);
     if (!parseResult.success) {
-      resolvedLogger.error(`Invalid /api/test-plans/${testPlanId} PUT payload:`, { errors: parseResult.error.flatten() });
+      resolvedLogger.warn({message: `PUT /api/test-plans/${testPlanId} - Invalid payload`, errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
@@ -1078,8 +1081,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Test plan not found or no changes made." });
       }
       res.json(updatedPlan[0]);
-    } catch (error) {
-      resolvedLogger.error(`Error updating test plan ${testPlanId}:`, error);
+    } catch (error: any) {
+      resolvedLogger.error({ message: `Error updating test plan ${testPlanId}`, error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
       res.status(500).json({ error: "Failed to update test plan" });
     }
   });
@@ -1104,8 +1107,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Test plan not found" });
       }
       res.status(204).send();
-    } catch (error) {
-      resolvedLogger.error(`Error deleting test plan ${testPlanId}:`, error);
+    } catch (error: any) {
+      resolvedLogger.error({ message: `Error deleting test plan ${testPlanId}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id });
       res.status(500).json({ error: "Failed to delete test plan" });
     }
   });
@@ -1122,8 +1125,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const settings = await db.select().from(systemSettings);
       res.json(settings);
-    } catch (error) {
-      resolvedLogger.error("Error fetching system settings:", error);
+    } catch (error: any) {
+      resolvedLogger.error({ message: "Error fetching system settings", error: error.message, stack: error.stack, userId: (req.user as any)?.id });
       res.status(500).json({ error: "Failed to fetch system settings" });
     }
   });
@@ -1140,8 +1143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Setting not found" });
       }
       res.json(result[0]);
-    } catch (error) {
-      resolvedLogger.error(`Error fetching system setting ${key}:`, error);
+    } catch (error: any) {
+      resolvedLogger.error({ message: `Error fetching system setting ${key}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id });
       res.status(500).json({ error: "Failed to fetch system setting" });
     }
   });
@@ -1154,7 +1157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const parseResult = insertSystemSettingSchema.safeParse(req.body);
     if (!parseResult.success) {
-      resolvedLogger.error("Invalid /api/system-settings POST payload:", { errors: parseResult.error.flatten() });
+      resolvedLogger.warn({ message: "POST /api/system-settings - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
     try {
@@ -1174,16 +1177,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (finalResult.length === 0) {
          // This case should ideally not be reached if upsert is successful
-         resolvedLogger.error("System setting upsert failed, no record found post-operation for key:", key);
+         resolvedLogger.error({ message: "System setting upsert failed, no record found post-operation", key, value, userId: (req.user as any)?.id });
          return res.status(500).json({ error: "Failed to create or update system setting, and could not retrieve it." });
       }
       // Respond with 201 if it was an insert, 200 if an update.
       // For simplicity, we'll just return 200/201 with the final state.
       // Checking if it was an insert or update might require another query or different DB driver behavior.
-      res.status(200).json(finalResult[0]); // Could be 201 if we knew it was an insert
+      const savedSetting = finalResult[0];
+      res.status(200).json(savedSetting); // Could be 201 if we knew it was an insert
 
-    } catch (error) {
-      resolvedLogger.error("Error creating/updating system setting:", error);
+      // After successfully saving, if the key is logLevel, update the logger instance
+      if (savedSetting.key === 'logLevel' && savedSetting.value) {
+        try {
+          await updateLogLevel(savedSetting.value);
+          resolvedLogger.info({ message: `Log level dynamically updated to: ${savedSetting.value} via API`, key: savedSetting.key, value: savedSetting.value, userId: (req.user as any)?.id });
+        } catch (updateError: any) {
+          resolvedLogger.error({ message: `Failed to dynamically update log level to ${savedSetting.value} after saving setting`, error: updateError.message, stack: updateError.stack, key: savedSetting.key, value: savedSetting.value, userId: (req.user as any)?.id });
+          // Do not fail the entire request, as the setting was saved to DB.
+          // The logger will pick up the new level on next restart if dynamic update fails.
+        }
+      }
+
+    } catch (error: any) {
+      resolvedLogger.error({ message: "Error creating/updating system setting", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
       res.status(500).json({ error: "Failed to create or update system setting" });
     }
   });

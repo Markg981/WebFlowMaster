@@ -51,6 +51,7 @@ app.use(express.urlencoded({ extended: false }));
   async function ensureDefaultSystemSettings() {
     const settingsToEnsure = [
       { key: 'logRetentionDays', value: process.env.LOG_RETENTION_DAYS || '7' },
+      { key: 'logLevel', value: process.env.LOG_LEVEL || 'info' },
       // Add other default system settings here if needed
     ];
 

@@ -115,6 +115,18 @@ export default function SettingsPage() {
 
   const [newProjectName, setNewProjectName] = useState("");
   const [logRetentionDays, setLogRetentionDays] = useState<string>("7");
+  const [logLevel, setLogLevel] = useState<string>("info"); // New state for log level
+
+  // Log level options
+  const logLevels = [
+    { value: 'error', label: 'Error' },
+    { value: 'warn', label: 'Warning' },
+    { value: 'info', label: 'Info' },
+    { value: 'http', label: 'HTTP' },
+    { value: 'verbose', label: 'Verbose' },
+    { value: 'debug', label: 'Debug' },
+    { value: 'silly', label: 'Silly' },
+  ];
 
   const { data: projectsData, isLoading: isLoadingProjects, isError: isErrorProjects, error: projectsError } = useQuery<Project[], Error>({
     queryKey: ["projects"],
@@ -176,6 +188,11 @@ export default function SettingsPage() {
     queryFn: () => fetchSystemSetting("logRetentionDays"),
   });
 
+  const { data: logLevelSettingData, isLoading: isLoadingLogLevelSetting, isError: isErrorLogLevelSetting, error: logLevelSettingError } = useQuery<{ key: string; value: string } | null, Error>({
+    queryKey: ["systemSetting", "logLevel"],
+    queryFn: () => fetchSystemSetting("logLevel"),
+  });
+
   useEffect(() => {
     if (settingsData) {
       setDarkMode(settingsData.theme === "dark");
@@ -192,9 +209,19 @@ export default function SettingsPage() {
     if (logRetentionSettingData && logRetentionSettingData.value) {
       setLogRetentionDays(logRetentionSettingData.value);
     } else if (!isLoadingLogRetentionSetting && logRetentionSettingData === null) {
+      // Default if not set in DB
       setLogRetentionDays("7");
     }
   }, [logRetentionSettingData, isLoadingLogRetentionSetting]);
+
+  useEffect(() => {
+    if (logLevelSettingData && logLevelSettingData.value) {
+      setLogLevel(logLevelSettingData.value);
+    } else if (!isLoadingLogLevelSetting && logLevelSettingData === null) {
+      // If not set in DB, default to 'info' or a sensible default from the logLevels array
+      setLogLevel("info");
+    }
+  }, [logLevelSettingData, isLoadingLogLevelSetting]);
 
   useEffect(() => {
     if (darkMode) document.documentElement.classList.add("dark");
@@ -240,6 +267,27 @@ export default function SettingsPage() {
     saveLogRetentionMutation.mutate({ key: "logRetentionDays", value: logRetentionDays });
   };
 
+  const saveLogLevelMutation = useMutation<{ key: string; value: string }, Error, { key: string; value: string }>({
+    mutationFn: saveSystemSetting,
+    onSuccess: (savedSetting) => {
+      queryClient.setQueryData(["systemSetting", savedSetting.key], savedSetting);
+      // Update the local state as well
+      setLogLevel(savedSetting.value);
+      toast({ title: t('settings.system.toast.logLevelSavedTitle', 'Log Level Saved'), description: t('settings.system.toast.logLevelSavedDescription', `Minimum log level set to ${savedSetting.value}.`, { level: savedSetting.value }) });
+    },
+    onError: (error) => {
+      toast({ title: t('settings.system.toast.logLevelErrorTitle', 'Error Saving Log Level'), description: error.message || t('settings.toast.errorDescription'), variant: "destructive" });
+    },
+  });
+
+  const handleSaveLogLevelSetting = () => {
+    if (!logLevels.find(l => l.value === logLevel)) {
+        toast({ title: t('settings.system.validation.invalidLogLevelTitle', 'Invalid Log Level'), description: t('settings.system.validation.selectValidLogLevelError', 'Please select a valid log level.'), variant: "destructive" });
+        return;
+    }
+    saveLogLevelMutation.mutate({ key: "logLevel", value: logLevel });
+  };
+
   const handleSaveUserSettings = () => {
     const settingsToSave: Partial<UserSettings> = {
       theme: darkMode ? "dark" : "light",
@@ -276,11 +324,11 @@ export default function SettingsPage() {
     toast({ title: t('settings.toast.resetTitle'), description: t('settings.toast.resetDescription') });
   };
 
-  const isAnyLoading = isLoadingSettings || isLoadingLogRetentionSetting;
-  const isAnyMutating = userSettingsMutation.isPending || saveLogRetentionMutation.isPending || logoutMutation.isPending;
+  const isAnyLoading = isLoadingSettings || isLoadingLogRetentionSetting || isLoadingLogLevelSetting;
+  const isAnyMutating = userSettingsMutation.isPending || saveLogRetentionMutation.isPending || saveLogLevelMutation.isPending || logoutMutation.isPending;
   const isPageDisabled = isAnyLoading || isAnyMutating;
 
-  if (isLoadingSettings) { // Initial page load based on user settings
+  if (isLoadingSettings || isLoadingLogLevelSetting) { // Initial page load, consider all critical settings fetches
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -463,6 +511,26 @@ export default function SettingsPage() {
             <Button onClick={handleSaveLogRetentionSetting} disabled={isLoadingLogRetentionSetting || saveLogRetentionMutation.isPending || (logRetentionSettingData?.value === logRetentionDays && logRetentionSettingData !== null && !isErrorLogRetentionSetting)}>
               {saveLogRetentionMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               {saveLogRetentionMutation.isPending ? t('settings.buttons.saving', 'Saving...') : t('settings.system.saveButton', 'Save Log Retention')}
+            </Button>
+            <Separator />
+            <div className="space-y-2">
+              <Label htmlFor="logLevelSelect">{t('settings.system.logLevelLabel', 'Minimum Log Level')}</Label>
+              <Select value={logLevel} onValueChange={setLogLevel} disabled={isLoadingLogLevelSetting || saveLogLevelMutation.isPending}>
+                <SelectTrigger id="logLevelSelect">
+                  <SelectValue placeholder={t('settings.system.logLevelPlaceholder', 'Select log level...')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {logLevels.map(level => (
+                    <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">{t('settings.system.logLevelDescription', 'Select the minimum level of logs to record. Dynamic update is attempted, otherwise requires application restart.')}</p>
+              {isErrorLogLevelSetting && (<p className="text-sm text-red-600">{logLevelSettingError?.message || t('settings.system.fetchErrorLogLevel', 'Failed to fetch log level setting.')}</p>)}
+            </div>
+            <Button onClick={handleSaveLogLevelSetting} disabled={isLoadingLogLevelSetting || saveLogLevelMutation.isPending || (logLevelSettingData?.value === logLevel && logLevelSettingData !== null && !isErrorLogLevelSetting)}>
+              {saveLogLevelMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              {saveLogLevelMutation.isPending ? t('settings.buttons.saving', 'Saving...') : t('settings.system.saveButtonLogLevel', 'Save Log Level')}
             </Button>
           </CardContent>
         </Card>
