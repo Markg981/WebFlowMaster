@@ -327,7 +327,13 @@
     },
     "schedulesContentGoesHere": {
       "text": "[TRANSLATE] Schedules content goes here."
-    }
+    },
+    "loadingTestPlans.text": "Caricamento Test Plan in corso...",
+    "errorLoadingTestPlans.text": "Errore durante il caricamento dei Test Plan",
+    "noTestPlansFound.text": "Nessun Test Plan trovato.",
+    "description.label": "Descrizione",
+    "testingType.label": "Tipo Test",
+    "crossBrowserTesting.text": "Cross Browser Testing"
   },
   "testsPage": {
     "testManagement": {
@@ -1048,6 +1054,114 @@
       "lastUpdated": {
         "label": "[TRANSLATE] Last updated:"
       }
+    }
+  },
+  "createTestPlanWizard": {
+    "step1": {
+      "title": "Step 1: Crea Test Plan",
+      "description": "Fornisci i dettagli di base per il tuo nuovo piano di test.",
+      "fieldsPlaceholder": "I campi per Nome Test Plan, Descrizione, Test Lab, Tipo Test andranno qui.",
+      "name.label": "Nome Test Plan",
+      "name.placeholder": "es. Flusso di Checkout End-to-End",
+      "descriptionField.label": "Descrizione (Opzionale)",
+      "descriptionField.placeholder": "Un breve riassunto di cosa copre questo piano di test.",
+      "testLab.label": "Seleziona Test Lab",
+      "testingType.label": "Tipo di Test",
+      "validation": {
+        "nameRequired": "Il Nome del Test Plan è obbligatorio."
+      }
+    },
+    "step2": {
+      "title": "Step 2: Macchine di Test & Suite",
+      "description": "Configura le macchine di test e seleziona le suite di test.",
+      "fieldsPlaceholder": "L'UI per la selezione delle Macchine di Test e delle Suite di Test andrà qui.",
+      "testMachinesConfig.title": "Configurazione Macchine di Test",
+      "os.label": "Sistema Operativo",
+      "os.placeholder": "Seleziona OS",
+      "osVersion.label": "Versione OS",
+      "osVersion.placeholder": "es. 10, 11, Sonoma",
+      "browser.label": "Browser",
+      "browser.placeholder": "Seleziona Browser",
+      "browserVersion.label": "Versione Browser",
+      "browserVersion.placeholder": "es. latest, 120.0",
+      "headless.label": "Headless",
+      "desiredCapabilities.link": "Desired Capabilities (Opzionale)",
+      "desiredCapabilities.alertNotImplemented": "La configurazione delle Desired Capabilities non è ancora implementata.",
+      "addMachineButton": "Aggiungi Configurazione Macchina",
+      "addedMachines.title": "Configurazioni Aggiunte:",
+      "validation": {
+        "machineFieldsRequired": "Tutti i campi di configurazione della macchina sono obbligatori.",
+        "atLeastOneMachineOrSuite": "Aggiungi almeno una configurazione macchina o seleziona almeno una suite di test."
+      },
+      "testSuitesSelection.title": "Selezione Suite di Test",
+      "noTestSuitesSelected": "Nessuna suite di test ancora selezionata.",
+      "addTestSuitesButton": "Aggiungi Suite di Test"
+    },
+    "step3": {
+      "title": "Step 3: Impostazioni Test Plan",
+      "description": "Regola le impostazioni avanzate per l'esecuzione del piano di test.",
+      "fieldsPlaceholder": "I campi di configurazione per screenshot, timeout, gestione errori ecc. andranno qui.",
+      "captureScreenshots.label": "Cattura Screenshot",
+      "captureScreenshots.options.always": "Sempre",
+      "captureScreenshots.options.on_failed_steps": "Su Step Falliti (default)",
+      "captureScreenshots.options.never": "Mai",
+      "visualTesting.label": "Visual Testing (Sperimentale)",
+      "pageLoadTimeout.label": "Timeout Caricamento Pagina (secondi)",
+      "elementTimeout.label": "Timeout Elemento (secondi)",
+      "onMajorStepFailure.label": "In Caso di Fallimento Step Principale",
+      "onMajorStepFailure.options.abort_run_next": "Interrompi ed esegui Test Case successivo (default)",
+      "onMajorStepFailure.options.stop": "Interrompi Esecuzione",
+      "onMajorStepFailure.options.retry": "Riprova Step",
+      "onAbortedTestCase.label": "In Caso di Test Case Interrotto",
+      "onAbortedTestCase.options.delete_cookies_reuse_session": "Elimina cookie e riusa sessione (default)",
+      "onAbortedTestCase.options.stop": "Interrompi Esecuzione",
+      "onTestSuitePreRequisiteFailure.label": "In Caso di Fallimento Prerequisito Test Suite",
+      "onTestSuitePreRequisiteFailure.options.stop": "Interrompi Esecuzione (default)",
+      "onTestSuitePreRequisiteFailure.options.skip_suite": "Salta Test Suite",
+      "onTestSuitePreRequisiteFailure.options.continue": "Continua Comunque",
+      "onTestCasePreRequisiteFailure.label": "In Caso di Fallimento Prerequisito Test Case",
+      "onTestCasePreRequisiteFailure.options.stop": "Interrompi Esecuzione (default)",
+      "onTestCasePreRequisiteFailure.options.skip_case": "Salta Test Case",
+      "onTestCasePreRequisiteFailure.options.continue": "Continua Comunque",
+      "onTestStepPreRequisiteFailure.label": "In Caso di Fallimento Prerequisito Test Step",
+      "onTestStepPreRequisiteFailure.options.abort_run_next": "Interrompi ed esegui Test Case successivo (default)",
+      "onTestStepPreRequisiteFailure.options.stop": "Interrompi Esecuzione",
+      "onTestStepPreRequisiteFailure.options.skip_step": "Salta Test Step",
+      "reRunOnFailure.label": "Riesegui in Caso di Fallimento",
+      "reRunOnFailure.options.none": "Nessuna (default)",
+      "reRunOnFailure.options.once": "Una volta",
+      "reRunOnFailure.options.twice": "Due volte",
+      "reRunOnFailure.options.thrice": "Tre volte",
+      "sendNotificationWhen.label": "Invia Notifica Quando",
+      "sendNotificationWhen.options.passed": "Passato",
+      "sendNotificationWhen.options.failed": "Fallito",
+      "sendNotificationWhen.options.notExecuted": "Non Eseguito",
+      "sendNotificationWhen.options.stopped": "Interrotto",
+      "validation": {
+        "pageLoadTimeoutRequired": "Timeout Caricamento Pagina deve essere un numero positivo.",
+        "elementTimeoutRequired": "Timeout Elemento deve essere un numero positivo."
+      }
+    },
+    "cancel": "Annulla",
+    "previous": "Precedente",
+    "next": "Successivo",
+    "createPlan": "Crea Piano",
+    "creatingPlan": "Creazione..."
+  },
+  "testSuiteSelectorModal": {
+    "title": "Seleziona Suite di Test",
+    "description": "Cerca e seleziona le suite di test da aggiungere al tuo piano di test.",
+    "searchPlaceholder": "Cerca per nome o tag...",
+    "loading": "Caricamento test...",
+    "error": "Errore durante il caricamento dei test:",
+    "noTestsFound": "Nessun test trovato o tutti i test disponibili sono già selezionati.",
+    "cancel": "Annulla",
+    "addSelected": "Aggiungi Selezionati",
+    "pagination": {
+      "previous": "Precedente",
+      "next": "Successivo",
+      "page": "Pagina",
+      "of": "di"
     }
   },
   "authForms": {

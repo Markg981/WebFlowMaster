@@ -302,7 +302,13 @@
     },
     "schedulesContentGoesHere": {
       "text": "Schedules content goes here."
-    }
+    },
+    "loadingTestPlans.text": "Loading Test Plans...",
+    "errorLoadingTestPlans.text": "Error loading Test Plans",
+    "noTestPlansFound.text": "No Test Plans found.",
+    "description.label": "Description",
+    "testingType.label": "Testing Type",
+    "crossBrowserTesting.text": "Cross Browser Testing"
   },
   "testsPage": {
     "testManagement": {
@@ -1052,6 +1058,114 @@
       "enterBearerToken": {
         "placeholder": "Enter bearer token"
       }
+    }
+  },
+  "createTestPlanWizard": {
+    "step1": {
+      "title": "Step 1: Create Test Plan",
+      "description": "Provide basic details for your new test plan.",
+      "fieldsPlaceholder": "Fields for Test Plan Name, Description, Test Lab, Testing Type will go here.",
+      "name.label": "Test Plan Name",
+      "name.placeholder": "e.g., End-to-End Checkout Flow",
+      "descriptionField.label": "Description (Optional)",
+      "descriptionField.placeholder": "A brief summary of what this test plan covers.",
+      "testLab.label": "Select Test Lab",
+      "testingType.label": "Testing Type",
+      "validation": {
+        "nameRequired": "Test Plan Name is required."
+      }
+    },
+    "step2": {
+      "title": "Step 2: Test Machines & Suites",
+      "description": "Configure test machines and select test suites.",
+      "fieldsPlaceholder": "UI for Test Machines and Test Suites selection will go here.",
+      "testMachinesConfig.title": "Test Machines Configuration",
+      "os.label": "Operating System",
+      "os.placeholder": "Select OS",
+      "osVersion.label": "OS Version",
+      "osVersion.placeholder": "e.g., 10, 11, Sonoma",
+      "browser.label": "Browser",
+      "browser.placeholder": "Select Browser",
+      "browserVersion.label": "Browser Version",
+      "browserVersion.placeholder": "e.g., latest, 120.0",
+      "headless.label": "Headless",
+      "desiredCapabilities.link": "Desired Capabilities (Optional)",
+      "desiredCapabilities.alertNotImplemented": "Desired Capabilities configuration is not yet implemented.",
+      "addMachineButton": "Add Machine Configuration",
+      "addedMachines.title": "Added Configurations:",
+      "validation": {
+        "machineFieldsRequired": "All machine configuration fields are required.",
+        "atLeastOneMachineOrSuite": "Please add at least one machine configuration or select at least one test suite."
+      },
+      "testSuitesSelection.title": "Test Suites Selection",
+      "noTestSuitesSelected": "No test suites selected yet.",
+      "addTestSuitesButton": "Add Test Suites"
+    },
+    "step3": {
+      "title": "Step 3: Test Plan Settings",
+      "description": "Adjust advanced settings for the test plan execution.",
+      "fieldsPlaceholder": "Configuration fields for screenshots, timeouts, error handling etc. will go here.",
+      "captureScreenshots.label": "Capture Screenshots",
+      "captureScreenshots.options.always": "Always",
+      "captureScreenshots.options.on_failed_steps": "On Failed Steps (default)",
+      "captureScreenshots.options.never": "Never",
+      "visualTesting.label": "Visual Testing (Experimental)",
+      "pageLoadTimeout.label": "Page Load Timeout (seconds)",
+      "elementTimeout.label": "Element Timeout (seconds)",
+      "onMajorStepFailure.label": "On Major Step Failure",
+      "onMajorStepFailure.options.abort_run_next": "Abort and run next Test Case (default)",
+      "onMajorStepFailure.options.stop": "Stop Execution",
+      "onMajorStepFailure.options.retry": "Retry Step",
+      "onAbortedTestCase.label": "On Aborted Test Case",
+      "onAbortedTestCase.options.delete_cookies_reuse_session": "Delete cookies and reuse session (default)",
+      "onAbortedTestCase.options.stop": "Stop Execution",
+      "onTestSuitePreRequisiteFailure.label": "On Test Suite Pre Requisite Failure",
+      "onTestSuitePreRequisiteFailure.options.stop": "Stop Execution (default)",
+      "onTestSuitePreRequisiteFailure.options.skip_suite": "Skip Test Suite",
+      "onTestSuitePreRequisiteFailure.options.continue": "Continue Anyway",
+      "onTestCasePreRequisiteFailure.label": "On Test Case Pre Requisite Failure",
+      "onTestCasePreRequisiteFailure.options.stop": "Stop Execution (default)",
+      "onTestCasePreRequisiteFailure.options.skip_case": "Skip Test Case",
+      "onTestCasePreRequisiteFailure.options.continue": "Continue Anyway",
+      "onTestStepPreRequisiteFailure.label": "On Test Step Pre Requisite Failure",
+      "onTestStepPreRequisiteFailure.options.abort_run_next": "Abort and run next Test Case (default)",
+      "onTestStepPreRequisiteFailure.options.stop": "Stop Execution",
+      "onTestStepPreRequisiteFailure.options.skip_step": "Skip Test Step",
+      "reRunOnFailure.label": "Re-Run On Failure",
+      "reRunOnFailure.options.none": "None (default)",
+      "reRunOnFailure.options.once": "Once",
+      "reRunOnFailure.options.twice": "Twice",
+      "reRunOnFailure.options.thrice": "Thrice",
+      "sendNotificationWhen.label": "Send Notification When",
+      "sendNotificationWhen.options.passed": "Passed",
+      "sendNotificationWhen.options.failed": "Failed",
+      "sendNotificationWhen.options.notExecuted": "Not Executed",
+      "sendNotificationWhen.options.stopped": "Stopped",
+      "validation": {
+        "pageLoadTimeoutRequired": "Page Load Timeout must be a positive number.",
+        "elementTimeoutRequired": "Element Timeout must be a positive number."
+      }
+    },
+    "cancel": "Cancel",
+    "previous": "Previous",
+    "next": "Next",
+    "createPlan": "Create Plan",
+    "creatingPlan": "Creating..."
+  },
+  "testSuiteSelectorModal": {
+    "title": "Select Test Suites",
+    "description": "Search and select the test suites to add to your test plan.",
+    "searchPlaceholder": "Search by name or tag...",
+    "loading": "Loading tests...",
+    "error": "Error loading tests:",
+    "noTestsFound": "No tests found or all available tests are already selected.",
+    "cancel": "Cancel",
+    "addSelected": "Add Selected",
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page",
+      "of": "of"
     }
   },
   "dashboard": {

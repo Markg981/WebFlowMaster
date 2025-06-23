@@ -26,6 +26,8 @@ import {
   insertTestPlanSchema,  // Import Zod schema for inserting test plans
   updateTestPlanSchema,  // Import Zod schema for updating test plans
   selectTestPlanSchema,   // Import Zod schema for selecting test plans
+  testPlanSelectedTests, // Import testPlanSelectedTests table schema
+  users,                 // Import users table schema for potential future use with test plans
   systemSettings,        // Import systemSettings table schema
   insertSystemSettingSchema // Import Zod schema for systemSettings
 } from "@shared/schema";
@@ -33,7 +35,7 @@ import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
-import { eq, and, desc, sql, leftJoin, getTableColumns, asc } from "drizzle-orm"; // Added leftJoin, getTableColumns, and asc
+import { eq, and, desc, sql, leftJoin, getTableColumns, asc, or, like, ilike, inArray } from "drizzle-orm"; // Added or, like, ilike, inArray
 import { playwrightService } from "./playwright-service";
 import type { Logger as WinstonLogger } from 'winston';
 
@@ -1286,6 +1288,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // --- Schedules API Endpoints ---
+  // ... (existing schedule endpoints) ...
+
+  // Zod Schema for Test Plan API Payloads (including selected tests)
+  const testPlanApiPayloadSchema = insertTestPlanSchema.extend({
+    selectedTests: z.array(z.object({
+      id: z.number().int(), // This will be either tests.id or apiTests.id
+      type: z.enum(['ui', 'api'])
+    })).optional().default([])
+  });
+
+  const updateTestPlanApiPayloadSchema = updateTestPlanSchema.extend({
+    selectedTests: z.array(z.object({
+      id: z.number().int(),
+      type: z.enum(['ui', 'api'])
+    })).optional() // On update, if not provided, selected tests are not changed. If an empty array is provided, all are removed.
+  });
+
+
   // --- Test Plans API Endpoints ---
 
   // GET /api/test-plans - List all test plans
@@ -1328,35 +1349,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const parseResult = insertTestPlanSchema.safeParse(req.body);
+    const parseResult = testPlanApiPayloadSchema.safeParse(req.body);
     if (!parseResult.success) {
       resolvedLogger.warn({message: "POST /api/test-plans - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
     try {
-      const newPlanData = parseResult.data;
+      const { selectedTests, ...newPlanData } = parseResult.data;
       const planId = uuidv4(); // Generate new UUID
 
-      // createdAt and updatedAt have defaults in schema (strftime('%s', 'now'))
-      // Drizzle ORM should respect these for SQLite on insert.
-      const createdPlan = await db
-        .insert(testPlans)
-        .values({
-          ...newPlanData,
-          id: planId,
-          // userId: req.user.id, // Add if user-specific and if userId is part of testPlans schema
-        })
-        .returning();
+      const createdPlanResult = await db.transaction(async (tx) => {
+        const insertedPlan = await tx
+          .insert(testPlans)
+          .values({
+            ...newPlanData,
+            id: planId,
+            // userId: req.user.id, // Future consideration
+            // Ensure JSON fields are stringified if Zod schema returns them as objects
+            testMachinesConfig: newPlanData.testMachinesConfig ? JSON.stringify(newPlanData.testMachinesConfig) : null,
+            notificationSettings: newPlanData.notificationSettings ? JSON.stringify(newPlanData.notificationSettings) : null,
+          })
+          .returning();
 
-      if (createdPlan.length === 0) {
-        resolvedLogger.error("Test plan creation failed, no record returned.");
-        return res.status(500).json({ error: "Failed to create test plan." });
-      }
-      res.status(201).json(createdPlan[0]);
+        if (insertedPlan.length === 0) {
+          resolvedLogger.error("Test plan main record creation failed within transaction.");
+          throw new Error("Failed to create test plan main record.");
+        }
+        const mainPlan = insertedPlan[0];
+
+        if (selectedTests && selectedTests.length > 0) {
+          const selectedTestValues = selectedTests.map(st => ({
+            testPlanId: mainPlan.id,
+            testId: st.type === 'ui' ? st.id : null,
+            apiTestId: st.type === 'api' ? st.id : null,
+            testType: st.type,
+          }));
+          await tx.insert(testPlanSelectedTests).values(selectedTestValues);
+        }
+        return mainPlan;
+      });
+
+      // Fetch the full plan with selected tests to return
+      // (This might be complex if we need to join with tests/apiTests names, for now just return the created plan object)
+      // For simplicity, returning the direct result from the transaction.
+      // Client might need to re-fetch or this endpoint could be enhanced to return joined data.
+      res.status(201).json(createdPlanResult);
+
     } catch (error: any) {
-      resolvedLogger.error({ message: "Error creating test plan", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
-      res.status(500).json({ error: "Failed to create test plan" });
+      // Enhanced error logging
+      const errorDetails = {
+        messageFromError: error.message,
+        stackTrace: error.stack,
+        errorCode: (error as any).code, // For SQLite errors like SQLITE_CONSTRAINT
+        requestBodyAttempted: req.body,
+        userId: (req.user as any)?.id,
+      };
+      resolvedLogger.error({ message: "Critical error creating test plan with selected tests", details: errorDetails });
+
+      if (error.message.includes("FOREIGN KEY constraint failed")) {
+        return res.status(400).json({ error: "Invalid reference: One or more selected tests, or the project ID, do not exist."});
+      }
+      // Generic error for client, specific details logged on server
+      res.status(500).json({ error: "Failed to create test plan due to an internal server error." });
     }
   });
 
@@ -1367,41 +1422,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const testPlanId = req.params.id;
 
-    const parseResult = updateTestPlanSchema.safeParse(req.body);
+    const parseResult = updateTestPlanApiPayloadSchema.safeParse(req.body);
     if (!parseResult.success) {
       resolvedLogger.warn({message: `PUT /api/test-plans/${testPlanId} - Invalid payload`, errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
     try {
-      const updates = parseResult.data;
-      if (Object.keys(updates).length === 0) {
-        // If no update data is provided, check if the plan exists first.
-        const existingPlan = await db.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId));
-        if (existingPlan.length === 0) {
+      const { selectedTests, ...planUpdates } = parseResult.data;
+
+      // Check if there's anything to update for the main plan or selected tests
+      if (Object.keys(planUpdates).length === 0 && selectedTests === undefined) {
+        // Check if the plan exists first to return 404 if not, otherwise 400 for no data
+        const existingPlanCheck = await db.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId));
+        if (existingPlanCheck.length === 0) {
             return res.status(404).json({ error: "Test plan not found." });
         }
-        // If the plan exists but no data was provided for update.
         return res.status(400).json({ error: "No update data provided." });
       }
 
-      // Proceed with update if updates object is not empty
-      const updatedPlan = await db
-        .update(testPlans)
-        .set({
-          ...updates,
-          updatedAt: Math.floor(Date.now() / 1000), // Explicitly set updatedAt Unix timestamp
-        })
-        .where(eq(testPlans.id, testPlanId))
-        // Add .where(and(eq(testPlans.id, testPlanId), eq(testPlans.userId, req.user.id))) if user-specific
-        .returning();
+      const updatedPlanResult = await db.transaction(async (tx) => {
+        let mainPlanUpdated;
+        if (Object.keys(planUpdates).length > 0) {
+          // Stringify JSON fields before updating
+          const updatesToApply = { ...planUpdates } as any;
+          if (planUpdates.testMachinesConfig !== undefined) {
+            updatesToApply.testMachinesConfig = planUpdates.testMachinesConfig ? JSON.stringify(planUpdates.testMachinesConfig) : null;
+          }
+          if (planUpdates.notificationSettings !== undefined) {
+            updatesToApply.notificationSettings = planUpdates.notificationSettings ? JSON.stringify(planUpdates.notificationSettings) : null;
+          }
 
-      if (updatedPlan.length === 0) {
-        return res.status(404).json({ error: "Test plan not found or no changes made." });
+          mainPlanUpdated = await tx
+            .update(testPlans)
+            .set({
+              ...updatesToApply,
+              updatedAt: Math.floor(Date.now() / 1000),
+            })
+            .where(eq(testPlans.id, testPlanId))
+            .returning();
+
+          if (mainPlanUpdated.length === 0) {
+            resolvedLogger.warn(`PUT /api/test-plans/${testPlanId} - Test plan not found during main record update.`);
+            throw new Error("Test plan not found or no changes to main record."); // Will be caught and result in 404 like
+          }
+        } else {
+          // If only selectedTests are being updated, fetch the current plan to return
+          const currentPlan = await tx.select().from(testPlans).where(eq(testPlans.id, testPlanId));
+          if (currentPlan.length === 0) {
+            throw new Error("Test plan not found.");
+          }
+          mainPlanUpdated = currentPlan;
+        }
+
+
+        if (selectedTests !== undefined) { // If selectedTests is provided (even an empty array)
+          await tx.delete(testPlanSelectedTests).where(eq(testPlanSelectedTests.testPlanId, testPlanId));
+
+          if (selectedTests.length > 0) {
+            const selectedTestValues = selectedTests.map(st => ({
+              testPlanId: testPlanId,
+              testId: st.type === 'ui' ? st.id : null,
+              apiTestId: st.type === 'api' ? st.id : null,
+              testType: st.type,
+            }));
+            await tx.insert(testPlanSelectedTests).values(selectedTestValues);
+          }
+        }
+        return mainPlanUpdated[0]; // Return the first element of the (potentially) updated plan
+      });
+
+      if (!updatedPlanResult) { // Should be caught by transaction error handling but as a safeguard
+        return res.status(404).json({ error: "Test plan not found or no effective changes made." });
       }
-      res.json(updatedPlan[0]);
+      res.json(updatedPlanResult);
+
     } catch (error: any) {
       resolvedLogger.error({ message: `Error updating test plan ${testPlanId}`, error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
+       if (error.message.toLowerCase().includes("test plan not found")) { // Custom error from transaction
+        return res.status(404).json({ error: "Test plan not found." });
+      }
+      if (error.message.includes("FOREIGN KEY constraint failed")) {
+        return res.status(400).json({ error: "One or more selected tests do not exist."})
+      }
       res.status(500).json({ error: "Failed to update test plan" });
     }
   });
@@ -1431,6 +1534,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to delete test plan" });
     }
   });
+
+  // GET /api/selectable-tests - List UI and API tests for selection in Test Plans
+  app.get("/api/selectable-tests", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id; // Assuming tests are user-specific
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10; // Default to 10 items per page
+    const offset = (page - 1) * limit;
+    const searchTerm = req.query.search as string | undefined;
+
+    try {
+      // Base queries
+      let uiTestsQuery = db.select({
+          id: tests.id,
+          name: tests.name,
+          description: sql<string>`null`.as('description'), // UI tests don't have a description field in the schema
+          type: sql<string>`'ui'`.as('type'),
+          updatedAt: tests.updatedAt
+        })
+        .from(tests)
+        .where(eq(tests.userId, userId));
+
+      let apiTestsQuery = db.select({
+          id: apiTests.id,
+          name: apiTests.name,
+          description: sql<string>`null`.as('description'), // API tests also don't have a dedicated description field
+          type: sql<string>`'api'`.as('type'),
+          updatedAt: apiTests.updatedAt
+        })
+        .from(apiTests)
+        .where(eq(apiTests.userId, userId));
+
+      // Apply search term if provided
+      if (searchTerm) {
+        const searchPattern = `%${searchTerm}%`;
+        uiTestsQuery = uiTestsQuery.where(ilike(tests.name, searchPattern));
+        apiTestsQuery = apiTestsQuery.where(ilike(apiTests.name, searchPattern));
+      }
+
+      const uiTestResults = await uiTestsQuery;
+      const apiTestResults = await apiTestsQuery;
+
+      // Combine results
+      let combinedResults = [...uiTestResults, ...apiTestResults];
+
+      // Sort combined results (e.g., by name or updatedAt)
+      combinedResults.sort((a, b) => {
+        // Sort by name alphabetically by default
+        return a.name.localeCompare(b.name);
+        // Or sort by updatedAt if preferred:
+        // return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      });
+
+      const totalItems = combinedResults.length;
+      const paginatedItems = combinedResults.slice(offset, offset + limit);
+      const totalPages = Math.ceil(totalItems / limit);
+
+      res.json({
+        items: paginatedItems,
+        totalItems,
+        totalPages,
+        currentPage: page,
+        itemsPerPage: limit,
+      });
+
+    } catch (error: any) {
+      resolvedLogger.error({ message: "Error fetching selectable tests", error: error.message, stack: error.stack, userId, query: req.query });
+      res.status(500).json({ error: "Failed to fetch selectable tests" });
+    }
+  });
+
 
   // --- System Settings API Endpoints ---
 

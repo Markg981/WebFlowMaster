@@ -1,57 +1,79 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'wouter';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, ArrowLeft, LibrarySquare } from 'lucide-react';
+import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, ArrowLeft, LibrarySquare, Loader2 } from 'lucide-react';
+import type { TestPlan } from '@shared/schema'; // Import TestPlan type
+import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard'; // Import the wizard
 
-interface TestPlanItem {
-  id: string;
-  name: string;
-  project: string;
-}
+// Interface for the actual TestPlan data structure from backend (adjust if necessary based on actual API response)
+// Using TestPlan type from @shared/schema directly is better.
+// interface TestPlanItem extends TestPlan {
+//   // Any client-side specific additions can go here, but TestPlan from schema should be the base
+// }
 
-const mockTestPlans: TestPlanItem[] = [
-  { id: '1', name: 'Test Suite Alpha', project: 'Progetto Apollo' },
-  { id: '2', name: 'User Authentication Flow', project: 'Progetto Zeus' },
-  { id: '3', name: 'Payment Gateway Integration', project: 'Progetto Hera' },
-  { id: '4', name: 'API Performance Metrics', project: 'Progetto Apollo' },
-  { id: '5', name: 'Frontend Accessibility Audit', project: 'Progetto Ares' },
-  { id: '6', name: 'Database Stress Test', project: 'Progetto Zeus' },
-  { id: '7', name: 'Security Vulnerability Scan', project: 'Progetto Hades' },
-  { id: '8', name: 'Mobile Responsiveness Check', project: 'Progetto Ares' },
-  { id: '9', name: 'Cross-browser Compatibility', project: 'Progetto Apollo' },
-  { id: '10', name: 'Data Backup and Restore Test', project: 'Progetto Hades' },
-];
+const fetchTestPlans = async (): Promise<TestPlan[]> => {
+  const response = await fetch('/api/test-plans');
+  if (!response.ok) {
+    throw new Error('Network response was not ok');
+  }
+  return response.json();
+};
 
 const TestSuitesPage: React.FC = () => {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedProject, setSelectedProject] = useState('all');
+  // const [selectedProject, setSelectedProject] = useState('all'); // Project filter removed for now
   const [currentPage, setCurrentPage] = useState(1);
+  const [isWizardOpen, setIsWizardOpen] = useState(false); // State for wizard visibility
   const itemsPerPage = 5;
 
-  const projectOptions = useMemo(() => {
-    const projects = [...new Set(mockTestPlans.map(plan => plan.project))].sort();
-    return ['all', ...projects];
-  }, []); // Removed mockTestPlans from dependency array as it's constant
+  const { data: allTestPlans = [], isLoading, error } = useQuery<TestPlan[]>({
+    queryKey: ['testPlans'],
+    queryFn: fetchTestPlans,
+  });
+
+  const handlePlanCreated = () => {
+    queryClient.invalidateQueries({ queryKey: ['testPlans'] }); // Invalidate cache to refetch
+  };
+
+  // Project filter logic removed as 'project' is not part of TestPlan schema directly
+  // const projectOptions = useMemo(() => {
+  //   const projects = [...new Set(allTestPlans.map(plan => plan.project))].sort(); // Assuming project exists
+  //   return ['all', ...projects];
+  // }, [allTestPlans]);
 
   const filteredTestPlans = useMemo(() => {
-    return mockTestPlans.filter(plan => {
+    return allTestPlans.filter(plan => {
       const nameMatch = plan.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const projectMatch = selectedProject === 'all' || plan.project === selectedProject;
-      return nameMatch && projectMatch;
+      // const projectMatch = selectedProject === 'all' || plan.project === selectedProject; // Project matching removed
+      return nameMatch; // Only name match for now
     });
-  }, [searchTerm, selectedProject]); // Removed mockTestPlans from dependency array
+  }, [allTestPlans, searchTerm]);
 
   const totalPages = Math.ceil(filteredTestPlans.length / itemsPerPage);
   const paginatedTestPlans = filteredTestPlans.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  // Reset current page if filters change and current page becomes invalid
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    } else if (currentPage === 0 && totalPages > 0) {
+      setCurrentPage(1);
+    } else if (filteredTestPlans.length === 0 && currentPage !==1) {
+      setCurrentPage(1);
+    }
+  }, [filteredTestPlans.length, totalPages, currentPage]);
+
 
   return (
     <div className="flex flex-col h-full"> {/* MODIFIED: Outermost container */}
@@ -89,7 +111,8 @@ const TestSuitesPage: React.FC = () => {
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               />
             </div>
-            {/* Project Select Dropdown */}
+            {/* Project Select Dropdown - REMOVED */}
+            {/*
             <Select value={selectedProject} onValueChange={(value) => { setSelectedProject(value); setCurrentPage(1); }}>
               <SelectTrigger className="h-10 w-full sm:w-auto sm:min-w-[180px]">
                 <SelectValue placeholder={t('testSuitesPage.filterByProject.placeholder')} />
@@ -102,8 +125,9 @@ const TestSuitesPage: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
+            */}
             {/* Refresh Button */}
-            <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => { setSearchTerm(''); setSelectedProject('all'); setCurrentPage(1); }}>
+            <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => { setSearchTerm(''); setCurrentPage(1); /* setSelectedProject('all'); */ }}>
               <RefreshCcw size={18} />
             </Button>
           </div>
@@ -117,29 +141,35 @@ const TestSuitesPage: React.FC = () => {
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
+                disabled={currentPage === 1 || isLoading}
               >
                 <ChevronLeft size={16} />
               </Button>
               <span className="mx-2">
-                {`${Math.min((currentPage - 1) * itemsPerPage + 1, filteredTestPlans.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1)}-${Math.min(currentPage * itemsPerPage, filteredTestPlans.length)} of ${filteredTestPlans.length}`}
+                {isLoading ? '...' : `${Math.min((currentPage - 1) * itemsPerPage + 1, filteredTestPlans.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1)}-${Math.min(currentPage * itemsPerPage, filteredTestPlans.length)} of ${filteredTestPlans.length}`}
               </span>
               <Button
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages || filteredTestPlans.length === 0}
+                disabled={currentPage === totalPages || filteredTestPlans.length === 0 || isLoading}
               >
                 <ChevronRight size={16} />
               </Button>
             </div>
             {/* + Test Plan Button */}
-            <Button className="bg-green-500 hover:bg-green-600 text-white">
+            <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={() => setIsWizardOpen(true)}>
               {t('testSuitesPage.testPlan.button')}
             </Button>
           </div>
         </div>
+
+        <CreateTestPlanWizard
+          isOpen={isWizardOpen}
+          onClose={() => setIsWizardOpen(false)}
+          onPlanCreated={handlePlanCreated}
+        />
 
         <Tabs defaultValue="test-plan">
           <TabsList className="grid w-full grid-cols-2">
@@ -147,33 +177,58 @@ const TestSuitesPage: React.FC = () => {
             <TabsTrigger value="schedules">{t('testSuitesPage.schedules.label')}</TabsTrigger>
           </TabsList>
           <TabsContent value="test-plan" className="mt-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('testSuitesPage.name.label')}</TableHead>
-                  <TableHead>{t('testSuitesPage.testLabType.label')}</TableHead>
-                  <TableHead>{t('testSuitesPage.progettoDiAppartenenza.label')}</TableHead>
-                  <TableHead>{t('testSuitesPage.azioni.label')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedTestPlans.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <div>{item.name}</div>
-                    <div className="text-xs text-muted-foreground">{t('testSuitesPage.noDescription.text')}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-1">
-                      <Settings size={16} />
-                      <MonitorSmartphone size={16} />
-                      <span>{t('testSuitesPage.crossDeviceTesting.text')}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{item.project}</TableCell>
-                  <TableCell>
-                    <div className="space-x-2">
-                      <Button variant="outline" size="sm">
+            <>
+            {isLoading && (
+              <div className="flex justify-center items-center py-10">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="ml-2">{t('testSuitesPage.loadingTestPlans.text')}</p>
+              </div>
+            )}
+            {error && (
+              <div className="text-red-500 text-center py-10">
+                {t('testSuitesPage.errorLoadingTestPlans.text')}: {error.message}
+              </div>
+            )}
+            {!isLoading && !error && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('testSuitesPage.name.label')}</TableHead>
+                    <TableHead>{t('testSuitesPage.description.label')}</TableHead>
+                    <TableHead>{t('testSuitesPage.testingType.label')}</TableHead>
+                    {/* <TableHead>{t('testSuitesPage.progettoDiAppartenenza.label')}</TableHead> REMOVED */}
+                    <TableHead>{t('testSuitesPage.azioni.label')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedTestPlans.length === 0 && !isLoading && (
+                     <TableRow>
+                        <TableCell colSpan={4} className="text-center py-10">
+                          {t('testSuitesPage.noTestPlansFound.text')}
+                        </TableCell>
+                      </TableRow>
+                  )}
+                  {paginatedTestPlans.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <div>{item.name}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs text-muted-foreground">
+                          {item.description || t('testSuitesPage.noDescription.text')}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <Settings size={16} />
+                          <MonitorSmartphone size={16} />
+                          <span>{t('testSuitesPage.crossBrowserTesting.text')}</span> {/* Static as per wizard Step 1 */}
+                        </div>
+                      </TableCell>
+                      {/* <TableCell>{item.project}</TableCell> REMOVED */}
+                      <TableCell>
+                        <div className="space-x-2">
+                          <Button variant="outline" size="sm">
                         <CalendarDays size={16} className="mr-1" /> {t('testSuitesPage.schedule.button')}
                       </Button>
                       <Button variant="outline" size="sm">
@@ -188,6 +243,8 @@ const TestSuitesPage: React.FC = () => {
               ))}
             </TableBody>
           </Table>
+            )}
+            </>
         </TabsContent>
         <TabsContent value="schedules" className="mt-6">
           {/* Content for Schedules tab will go here */}
