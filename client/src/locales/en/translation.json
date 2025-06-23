@@ -302,6 +302,144 @@
     },
     "schedulesContentGoesHere": {
       "text": "Schedules content goes here."
+    },
+    "loadingTestPlans": {
+      "text": "Loading test plans..."
+    },
+    "errorLoadingTestPlans": {
+      "text": "Error loading test plans: {{message}}"
+    },
+    "noTestPlansFound": {
+      "text": "No test plans found."
+    },
+    "getStartedByCreating": {
+      "text": "Get started by creating a new test plan."
+    },
+    "noTestPlansMatchSearch": {
+        "text": "No test plans match your search criteria."
+    },
+    "tryDifferentSearch": {
+        "text": "Try a different search term or filter."
+    }
+  },
+  "createTestPlanWizard": {
+    "title": "Create Test Plan",
+    "step": "Step",
+    "of": "of",
+    "step1": {
+      "title": "Create Test Plan",
+      "detailsTitle": "Test Plan Details",
+      "testPlanNameLabel": "Test Plan Name",
+      "testPlanNamePlaceholder": "Enter a unique name for your test plan",
+      "descriptionLabel": "Description (Optional)",
+      "descriptionPlaceholder": "Provide a brief description of the test plan",
+      "selectTestLabLabel": "Select Test Lab",
+      "testLabInfo": "Currently, only Web Test Automator lab is supported.",
+      "testingTypeLabel": "Testing Type",
+      "testingTypeInfo": "Cross Browser Testing is pre-selected for this lab.",
+      "validation": {
+        "nameRequired": "Test Plan Name is required."
+      }
+    },
+    "step2": {
+      "title": "Test Machines & Suites",
+      "testMachinesConfigTitle": "Test Machines Configuration",
+      "testMachineLabel": "Test Machine",
+      "testMachinePlaceholder": "Select a test machine",
+      "osVersionLabel": "OS Version",
+      "osVersionPlaceholder": "Select OS version",
+      "browserLabel": "Browser",
+      "browserPlaceholder": "Select browser",
+      "browserVersionLabel": "Browser Version",
+      "browserVersionPlaceholder": "e.g., 123.0",
+      "headlessLabel": "Headless",
+      "headlessToggleLabel": "Toggle headless mode",
+      "addMachineButton": "Add Machine",
+      "desiredCapabilitiesLink": "Desired Capabilities (Optional)",
+      "addedMachinesTitle": "Added Machines:",
+      "testSuitesSelectionTitle": "Test Suites Selection",
+      "addTestSuitesButton": "+ Add Test Suites",
+      "noTestSuitesSelected": "No test suites selected yet. Click '+ Add Test Suites' to begin.",
+      "addSuitesModal": {
+        "title": "Add Test Suites to Plan",
+        "searchPlaceholder": "Search tests by name or description...",
+        "loadingTests": "Loading available tests...",
+        "noTestsFound": "No tests found matching your criteria.",
+        "cancelButton": "Cancel",
+        "addButton": "Add Selected Suites"
+      },
+      "validation": {
+        "machineConfigRequiredFields": "Please select Test Machine, OS Version, and Browser."
+      }
+    },
+    "step3": {
+      "title": "Settings",
+      "settingsTitle": "Test Plan Settings",
+      "captureScreenshotsLabel": "Capture Screenshots",
+      "screenshotOptions": {
+        "always": "Always",
+        "onFailedSteps": "On Failed Steps (default)",
+        "never": "Never"
+      },
+      "visualTestingLabel": "Visual Testing",
+      "pageLoadTimeoutLabel": "Page Load Timeout (sec)",
+      "elementTimeoutLabel": "Element Timeout (sec)",
+      "onMajorStepFailureLabel": "On Major Step Failure",
+      "failureOptions": {
+        "majorStep": {
+          "abortRunNextCase": "Abort and run next Test Case (default)",
+          "retryStep": "Retry Step"
+        },
+        "abortedCase": {
+          "deleteCookiesReuseSession": "Delete cookies and reuse session (default)"
+        },
+        "preRequisite": {
+          "skipTestSuite": "Skip Test Suite",
+          "skipTestCase": "Skip Test Case",
+          "skipTestStep": "Skip Test Step",
+          "continueAnyway": "Continue Anyway"
+        },
+        "stopExecution": "Stop Execution"
+      },
+      "onAbortedTestCaseLabel": "On Aborted Test Case",
+      "onTestSuitePreRequisiteFailureLabel": "On Test Suite Pre-Requisite Failure",
+      "onTestCasePreRequisiteFailureLabel": "On Test Case Pre-Requisite Failure",
+      "onTestStepPreRequisiteFailureLabel": "On Test Step Pre-Requisite Failure",
+      "reRunOnFailureLabel": "Re-Run On Failure",
+      "reRunOptions": {
+        "none": "None (default)",
+        "once": "Once",
+        "twice": "Twice",
+        "thrice": "Thrice"
+      },
+      "sendNotificationWhenLabel": "Send Notification When",
+      "notificationOptions": {
+        "passed": "Passed",
+        "failed": "Failed",
+        "notExecuted": "Not Executed",
+        "stopped": "Stopped"
+      },
+      "testingTypeDisplayLabel": "Testing Type (from Step 1)",
+      "descriptionDisplayLabel": "Description (from Step 1)",
+      "noDescriptionProvided": "No description was provided.",
+      "validation": {
+        "pageLoadTimeoutRequired": "Page Load Timeout is required and must be a positive number.",
+        "elementTimeoutRequired": "Element Timeout is required and must be a positive number."
+      }
+    },
+    "previousButton": "Previous",
+    "nextButton": "Next",
+    "cancelButton": "Cancel",
+    "createPlanButton": "Create Plan",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "planCreationInitiated": "Plan creation process initiated. Check console for data.",
+    "success": {
+      "planCreatedSuccessfully": "Test Plan created successfully!"
+    },
+    "errors": {
+      "failedToCreate": "Failed to create Test Plan",
+      "networkError": "A network error occurred. Please try again."
     }
   },
   "testsPage": {

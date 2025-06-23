@@ -26,10 +26,13 @@ import {
   insertTestPlanSchema,  // Import Zod schema for inserting test plans
   updateTestPlanSchema,  // Import Zod schema for updating test plans
   selectTestPlanSchema,   // Import Zod schema for selecting test plans
+  testPlanTestMachines, // Import testPlanTestMachines table schema
+  testPlanTests, // Import testPlanTests table schema
   systemSettings,        // Import systemSettings table schema
   insertSystemSettingSchema // Import Zod schema for systemSettings
 } from "@shared/schema";
 import { z } from "zod";
+import { TestPlanTestMachine } from "@shared/schema"; // Specific type for test machine
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
@@ -1328,39 +1331,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const parseResult = insertTestPlanSchema.safeParse(req.body);
+    // Extended schema to include testMachines and selectedTestSuites from client
+    const extendedInsertTestPlanSchema = insertTestPlanSchema.extend({
+        testMachines: z.array(z.object({ // Corresponds to TestMachineConfig on client, minus 'id' which is client-side only for list keys
+            testMachine: z.string(),
+            osVersion: z.string(),
+            browser: z.string(),
+            browserVersion: z.string(),
+            headless: z.boolean(),
+        })).optional(),
+        selectedTestSuites: z.array(z.object({ // Corresponds to AvailableTest or SelectedTestSuite on client
+            id: z.string(), // This will be the testId (integer in tests table)
+            name: z.string().optional(), // Other fields are optional as we only need id
+            description: z.string().optional(),
+            type: z.string().optional(),
+        })).optional(),
+        // Explicitly parse numeric fields that might come as strings from form
+        pageLoadTimeout: z.preprocess(val => Number(val), z.number().positive()),
+        elementTimeout: z.preprocess(val => Number(val), z.number().positive()),
+    });
+
+    const parseResult = extendedInsertTestPlanSchema.safeParse(req.body);
     if (!parseResult.success) {
-      resolvedLogger.warn({message: "POST /api/test-plans - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
+      resolvedLogger.warn({message: "POST /api/test-plans - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id, body: req.body });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
     try {
-      const newPlanData = parseResult.data;
-      const planId = uuidv4(); // Generate new UUID
+      const { testMachines: clientTestMachines, selectedTestSuites: clientSelectedTestSuites, ...newPlanData } = parseResult.data;
+      const planId = uuidv4();
 
-      // createdAt and updatedAt have defaults in schema (strftime('%s', 'now'))
-      // Drizzle ORM should respect these for SQLite on insert.
-      const createdPlan = await db
-        .insert(testPlans)
-        .values({
-          ...newPlanData,
-          id: planId,
-          // userId: req.user.id, // Add if user-specific and if userId is part of testPlans schema
-        })
-        .returning();
+      await db.transaction(async (tx) => {
+        const createdPlan = await tx
+          .insert(testPlans)
+          .values({
+            ...newPlanData,
+            id: planId,
+            // userId: req.user.id, // Add if user-specific and if userId is part of testPlans schema
+            // notificationSettings will be handled by newPlanData if present (it's JSON text)
+          })
+          .returning();
 
-      if (createdPlan.length === 0) {
-        resolvedLogger.error("Test plan creation failed, no record returned.");
-        return res.status(500).json({ error: "Failed to create test plan." });
-      }
-      res.status(201).json(createdPlan[0]);
+        if (createdPlan.length === 0) {
+          resolvedLogger.error("Test plan creation failed, no record returned from main insert.");
+          throw new Error("Failed to create test plan core record.");
+        }
+
+        if (clientTestMachines && clientTestMachines.length > 0) {
+          const machineInserts = clientTestMachines.map(machine => ({
+            id: uuidv4(), // Generate ID for each machine config entry
+            testPlanId: planId,
+            testMachine: machine.testMachine,
+            osVersion: machine.osVersion,
+            browser: machine.browser,
+            browserVersion: machine.browserVersion,
+            headless: machine.headless,
+          }));
+          await tx.insert(testPlanTestMachines).values(machineInserts);
+        }
+
+        if (clientSelectedTestSuites && clientSelectedTestSuites.length > 0) {
+          const suiteInserts = clientSelectedTestSuites.map(suite => ({
+            testPlanId: planId,
+            testId: parseInt(suite.id, 10), // Assuming test IDs are integers
+          }));
+           // Filter out any NaN testIds from parsing, though Zod should catch non-string IDs earlier
+          const validSuiteInserts = suiteInserts.filter(s => !isNaN(s.testId));
+          if (validSuiteInserts.length > 0) {
+            await tx.insert(testPlanTests).values(validSuiteInserts);
+          }
+        }
+
+        // Fetch the complete plan to return, including relations if desired, or just the base plan
+        // For now, just return the createdPlan[0] which is the base TestPlan object
+        res.status(201).json(createdPlan[0]);
+      });
+
     } catch (error: any) {
-      resolvedLogger.error({ message: "Error creating test plan", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
-      res.status(500).json({ error: "Failed to create test plan" });
+      resolvedLogger.error({ message: "Error creating test plan with transaction", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
+      // Check for specific Drizzle/SQLite errors if needed, e.g., foreign key constraint
+       if (error.message && error.message.toLowerCase().includes('foreign key constraint failed')) {
+        return res.status(400).json({ error: "Invalid data: A specified test or other referenced entity does not exist." });
+      }
+      res.status(500).json({ error: "Failed to create test plan due to a server error." });
     }
   });
 
   // PUT /api/test-plans/:id - Update an existing test plan
+  // TODO: This endpoint will also need to handle updates to testMachines and selectedTestSuites (delete old, insert new)
   app.put("/api/test-plans/:id", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });

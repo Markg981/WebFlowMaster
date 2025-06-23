@@ -246,23 +246,128 @@ export const testPlans = sqliteTable("test_plans", {
   id: text('id').primaryKey(), // Client-generated ID or UUID string
   name: text('name').notNull(),
   description: text('description'),
+  // Fields from Step 1 (name, description already here)
+  // testLab: text('test_lab').default('Web Test Automator').notNull(), // Defaulted, non-editable by user for now
+  // testingType: text('testing_type').default('Cross Browser Testing').notNull(), // Defaulted, non-editable
+
+  // Fields from Step 3
+  captureScreenshots: text('capture_screenshots', { enum: ['always', 'on_failed_steps', 'never'] }).default('on_failed_steps').notNull(),
+  visualTestingEnabled: integer('visual_testing_enabled', { mode: 'boolean' }).default(false).notNull(),
+  pageLoadTimeout: integer('page_load_timeout').default(30).notNull(),
+  elementTimeout: integer('element_timeout').default(30).notNull(),
+  onMajorStepFailure: text('on_major_step_failure', { enum: ['abort_run_next_case', 'stop_execution', 'retry_step'] }).default('abort_run_next_case').notNull(),
+  onAbortedTestCase: text('on_aborted_test_case', { enum: ['delete_cookies_reuse_session', 'stop_execution'] }).default('delete_cookies_reuse_session').notNull(),
+  onTestSuitePreRequisiteFailure: text('on_test_suite_pre_requisite_failure', { enum: ['stop_execution', 'skip_test_suite', 'continue_anyway'] }).default('stop_execution').notNull(),
+  onTestCasePreRequisiteFailure: text('on_test_case_pre_requisite_failure', { enum: ['stop_execution', 'skip_test_case', 'continue_anyway'] }).default('stop_execution').notNull(),
+  onTestStepPreRequisiteFailure: text('on_test_step_pre_requisite_failure', { enum: ['abort_run_next_case', 'stop_execution', 'skip_test_step'] }).default('abort_run_next_case').notNull(),
+  reRunOnFailure: text('re_run_on_failure', { enum: ['none', 'once', 'twice', 'thrice'] }).default('none').notNull(),
+  notificationSettings: text('notification_settings', {mode: 'json'}), // JSON for { passed: bool, failed: bool, ... }
+
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(), // Unix timestamp
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(), // Unix timestamp, to be updated by app logic on change
+  // userId: integer("user_id").references(() => users.id), // If plans are user-specific
 });
 
+// Junction table for Test Plans and Tests (Many-to-Many)
+export const testPlanTests = sqliteTable('test_plan_tests', {
+  testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
+  testId: integer('test_id').notNull().references(() => tests.id, { onDelete: 'cascade' }), // Assuming 'tests' table uses integer IDs
+  // Add any additional fields for the relationship, e.g., order of execution
+}, (t) => ({
+  pk: sql`PRIMARY KEY(${t.testPlanId}, ${t.testId})`,
+}));
+
+
+// Table for Test Plan Test Machines
+export const testPlanTestMachines = sqliteTable('test_plan_test_machines', {
+  id: text('id').primaryKey(), // Or integer autoincrement if preferred
+  testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
+  testMachine: text('test_machine').notNull(),
+  osVersion: text('os_version').notNull(),
+  browser: text('browser').notNull(),
+  browserVersion: text('browser_version'),
+  headless: integer('headless', { mode: 'boolean' }).default(false).notNull(),
+});
+
+
+// Relations for Test Plans
+export const testPlansRelations = relations(testPlans, ({ many }) => ({
+  testPlanTests: many(testPlanTests),
+  testPlanTestMachines: many(testPlanTestMachines),
+  schedules: many(schedules), // Existing relation
+}));
+
+export const testsRelationsExtended = relations(tests, ({ many }) => ({
+  ...testsRelations, // Keep existing relations if any, or define them if not already
+  testPlanTests: many(testPlanTests),
+  user: relations(tests, ({ one }) => ({ // Assuming testsRelations didn't explicitly include user
+    user: one(users, { fields: [tests.userId], references: [users.id] }),
+    project: one(projects, { fields: [tests.projectId], references: [projects.id] }),
+    runs: many(testRuns),
+  })).user, // Example if you need to re-define or ensure it's there
+  project: relations(tests, ({ one }) => ({
+    user: one(users, { fields: [tests.userId], references: [users.id] }),
+    project: one(projects, { fields: [tests.projectId], references: [projects.id] }),
+    runs: many(testRuns),
+  })).project,
+   runs: relations(tests, ({ one, many }) => ({
+    user: one(users, { fields: [tests.userId], references: [users.id] }),
+    project: one(projects, { fields: [tests.projectId], references: [projects.id] }),
+    runs: many(testRuns),
+  })).runs,
+}));
+
+
+export const testPlanTestsRelations = relations(testPlanTests, ({ one }) => ({
+  testPlan: one(testPlans, {
+    fields: [testPlanTests.testPlanId],
+    references: [testPlans.id],
+  }),
+  test: one(tests, {
+    fields: [testPlanTests.testId],
+    references: [tests.id],
+  }),
+}));
+
+export const testPlanTestMachinesRelations = relations(testPlanTestMachines, ({ one }) => ({
+  testPlan: one(testPlans, {
+    fields: [testPlanTestMachines.testPlanId],
+    references: [testPlans.id],
+  }),
+}));
+
+
 // Zod Schemas for Test Plans
-export const insertTestPlanSchema = createInsertSchema(testPlans)
-  .omit({ id: true, createdAt: true, updatedAt: true }); // ID generated by app, timestamps by DB/app
+const NotificationSettingsSchema = z.object({
+  passed: z.boolean().default(true),
+  failed: z.boolean().default(true),
+  notExecuted: z.boolean().default(true),
+  stopped: z.boolean().default(true),
+});
 
-export const selectTestPlanSchema = createInsertSchema(testPlans); // Includes all fields, useful for return types
+export const insertTestPlanSchema = createInsertSchema(testPlans, {
+  // Override specific fields if Zod needs more specific types than infered
+  pageLoadTimeout: z.number().positive(),
+  elementTimeout: z.number().positive(),
+  notificationSettings: NotificationSettingsSchema.optional(),
+}).omit({ id: true, createdAt: true, updatedAt: true });
 
-export const updateTestPlanSchema = createInsertSchema(testPlans)
-  .pick({ name: true, description: true }) // Only allow updating these fields
-  .partial(); // All picked fields are optional for updates
+export const selectTestPlanSchema = createSelectSchema(testPlans, {
+   notificationSettings: NotificationSettingsSchema.optional(),
+});
+
+export const updateTestPlanSchema = insertTestPlanSchema.partial().omit({
+  // Potentially omit fields that shouldn't be updated this way, e.g. relations
+});
+
 
 // Types for Test Plans
 export type TestPlan = typeof testPlans.$inferSelect;
 export type InsertTestPlan = typeof testPlans.$inferInsert;
+export type TestPlanTest = typeof testPlanTests.$inferSelect;
+export type InsertTestPlanTest = typeof testPlanTests.$inferInsert;
+export type TestPlanTestMachine = typeof testPlanTestMachines.$inferSelect;
+export type InsertTestPlanTestMachine = typeof testPlanTestMachines.$inferInsert;
 
 
 // --- Assertion Schemas ---

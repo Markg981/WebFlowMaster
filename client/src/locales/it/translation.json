@@ -326,7 +326,145 @@
       "button": "[TRANSLATE] Run"
     },
     "schedulesContentGoesHere": {
-      "text": "[TRANSLATE] Schedules content goes here."
+      "text": "Il contenuto delle schedulazioni andrà qui."
+    },
+    "loadingTestPlans": {
+      "text": "Caricamento dei piani di test..."
+    },
+    "errorLoadingTestPlans": {
+      "text": "Errore durante il caricamento dei piani di test: {{message}}"
+    },
+    "noTestPlansFound": {
+      "text": "Nessun piano di test trovato."
+    },
+    "getStartedByCreating": {
+      "text": "Inizia creando un nuovo piano di test."
+    },
+    "noTestPlansMatchSearch": {
+      "text": "Nessun piano di test corrisponde ai tuoi criteri di ricerca."
+    },
+    "tryDifferentSearch": {
+      "text": "Prova un termine di ricerca o un filtro diverso."
+    }
+  },
+  "createTestPlanWizard": {
+    "title": "Crea Piano di Test",
+    "step": "Passo",
+    "of": "di",
+    "step1": {
+      "title": "Crea Piano di Test",
+      "detailsTitle": "Dettagli Piano di Test",
+      "testPlanNameLabel": "Nome Piano di Test",
+      "testPlanNamePlaceholder": "Inserisci un nome univoco per il tuo piano di test",
+      "descriptionLabel": "Descrizione (Opzionale)",
+      "descriptionPlaceholder": "Fornisci una breve descrizione del piano di test",
+      "selectTestLabLabel": "Seleziona Test Lab",
+      "testLabInfo": "Attualmente, è supportato solo il lab Web Test Automator.",
+      "testingTypeLabel": "Tipo di Testing",
+      "testingTypeInfo": "Il Cross Browser Testing è pre-selezionato per questo lab.",
+      "validation": {
+        "nameRequired": "Il Nome del Piano di Test è obbligatorio."
+      }
+    },
+    "step2": {
+      "title": "Macchine e Suite di Test",
+      "testMachinesConfigTitle": "Configurazione Macchine di Test",
+      "testMachineLabel": "Macchina di Test",
+      "testMachinePlaceholder": "Seleziona una macchina",
+      "osVersionLabel": "Versione OS",
+      "osVersionPlaceholder": "Seleziona versione OS",
+      "browserLabel": "Browser",
+      "browserPlaceholder": "Seleziona browser",
+      "browserVersionLabel": "Versione Browser",
+      "browserVersionPlaceholder": "es. 123.0",
+      "headlessLabel": "Headless",
+      "headlessToggleLabel": "Attiva/Disattiva modalità headless",
+      "addMachineButton": "Aggiungi Macchina",
+      "desiredCapabilitiesLink": "Desired Capabilities (Opzionale)",
+      "addedMachinesTitle": "Macchine Aggiunte:",
+      "testSuitesSelectionTitle": "Selezione Suite di Test",
+      "addTestSuitesButton": "+ Aggiungi Suite di Test",
+      "noTestSuitesSelected": "Nessuna suite di test selezionata. Clicca su '+ Aggiungi Suite di Test' per iniziare.",
+      "addSuitesModal": {
+        "title": "Aggiungi Suite di Test al Piano",
+        "searchPlaceholder": "Cerca test per nome o descrizione...",
+        "loadingTests": "Caricamento test disponibili...",
+        "noTestsFound": "Nessun test trovato che corrisponda ai criteri.",
+        "cancelButton": "Annulla",
+        "addButton": "Aggiungi Suite Selezionate"
+      },
+      "validation": {
+        "machineConfigRequiredFields": "Selezionare Macchina di Test, Versione OS e Browser."
+      }
+    },
+    "step3": {
+      "title": "Impostazioni",
+      "settingsTitle": "Impostazioni Piano di Test",
+      "captureScreenshotsLabel": "Cattura Screenshot",
+      "screenshotOptions": {
+        "always": "Sempre",
+        "onFailedSteps": "Su Passi Falliti (default)",
+        "never": "Mai"
+      },
+      "visualTestingLabel": "Visual Testing",
+      "pageLoadTimeoutLabel": "Timeout Caricamento Pagina (sec)",
+      "elementTimeoutLabel": "Timeout Elemento (sec)",
+      "onMajorStepFailureLabel": "In Caso di Fallimento Passo Principale",
+      "failureOptions": {
+        "majorStep": {
+          "abortRunNextCase": "Interrompi ed esegui Test Case successivo (default)",
+          "retryStep": "Riprova Passo"
+        },
+        "abortedCase": {
+          "deleteCookiesReuseSession": "Elimina cookie e riutilizza sessione (default)"
+        },
+        "preRequisite": {
+          "skipTestSuite": "Salta Test Suite",
+          "skipTestCase": "Salta Test Case",
+          "skipTestStep": "Salta Passo di Test",
+          "continueAnyway": "Continua Comunque"
+        },
+        "stopExecution": "Interrompi Esecuzione"
+      },
+      "onAbortedTestCaseLabel": "In Caso di Test Case Interrotto",
+      "onTestSuitePreRequisiteFailureLabel": "In Caso di Fallimento Prerequisito Test Suite",
+      "onTestCasePreRequisiteFailureLabel": "In Caso di Fallimento Prerequisito Test Case",
+      "onTestStepPreRequisiteFailureLabel": "In Caso di Fallimento Prerequisito Passo di Test",
+      "reRunOnFailureLabel": "Riesegui in Caso di Fallimento",
+      "reRunOptions": {
+        "none": "Nessuna (default)",
+        "once": "Una volta",
+        "twice": "Due volte",
+        "thrice": "Tre volte"
+      },
+      "sendNotificationWhenLabel": "Invia Notifica Quando",
+      "notificationOptions": {
+        "passed": "Passato",
+        "failed": "Fallito",
+        "notExecuted": "Non Eseguito",
+        "stopped": "Interrotto"
+      },
+      "testingTypeDisplayLabel": "Tipo di Testing (dal Passo 1)",
+      "descriptionDisplayLabel": "Descrizione (dal Passo 1)",
+      "noDescriptionProvided": "Nessuna descrizione fornita.",
+      "validation": {
+        "pageLoadTimeoutRequired": "Timeout Caricamento Pagina è obbligatorio e deve essere un numero positivo.",
+        "elementTimeoutRequired": "Timeout Elemento è obbligatorio e deve essere un numero positivo."
+      }
+    },
+    "previousButton": "Precedente",
+    "nextButton": "Successivo",
+    "cancelButton": "Annulla",
+    "createPlanButton": "Crea Piano",
+    "enabled": "Abilitato",
+    "disabled": "Disabilitato",
+    "planCreationInitiated": "Processo di creazione del piano avviato. Controlla la console per i dati.",
+    "success": {
+      "planCreatedSuccessfully": "Piano di Test creato con successo!"
+    },
+    "errors": {
+      "failedToCreate": "Creazione del Piano di Test fallita",
+      "networkError": "Si è verificato un errore di rete. Riprova."
     }
   },
   "testsPage": {

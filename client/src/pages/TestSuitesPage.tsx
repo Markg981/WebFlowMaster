@@ -6,46 +6,73 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, ArrowLeft, LibrarySquare } from 'lucide-react';
+import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, ArrowLeft, LibrarySquare, PlusCircle } from 'lucide-react'; // Added PlusCircle
+import { useQuery } from '@tanstack/react-query'; // Added for API calls
+import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog'; // Added DialogContent
+import CreateTestPlanWizard from '@/components/test-plan-wizard/CreateTestPlanWizard'; // Import the wizard
 
-interface TestPlanItem {
-  id: string;
+// Define the TestPlan type based on expected API response (adjust as needed)
+interface TestPlan {
+  id: string; // Assuming ID is a string (like UUID) from the backend
   name: string;
-  project: string;
+  description?: string | null; // Optional description
+  // Placeholder for other fields that might come from the API or be relevant for display
+  testLabType?: string; // Example: "Web Test Automator"
+  project?: string; // Example: Could be a project name or ID
+  // Add other fields from your testPlans schema as needed for display
+  // e.g., createdAt, updatedAt if you want to show them
 }
 
-const mockTestPlans: TestPlanItem[] = [
-  { id: '1', name: 'Test Suite Alpha', project: 'Progetto Apollo' },
-  { id: '2', name: 'User Authentication Flow', project: 'Progetto Zeus' },
-  { id: '3', name: 'Payment Gateway Integration', project: 'Progetto Hera' },
-  { id: '4', name: 'API Performance Metrics', project: 'Progetto Apollo' },
-  { id: '5', name: 'Frontend Accessibility Audit', project: 'Progetto Ares' },
-  { id: '6', name: 'Database Stress Test', project: 'Progetto Zeus' },
-  { id: '7', name: 'Security Vulnerability Scan', project: 'Progetto Hades' },
-  { id: '8', name: 'Mobile Responsiveness Check', project: 'Progetto Ares' },
-  { id: '9', name: 'Cross-browser Compatibility', project: 'Progetto Apollo' },
-  { id: '10', name: 'Data Backup and Restore Test', project: 'Progetto Hades' },
-];
+// API fetching function - replace with your actual API call logic
+// API fetching function
+const fetchTestPlans = async (): Promise<TestPlan[]> => {
+  const response = await fetch('/api/test-plans');
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Network response was not ok' }));
+    throw new Error(errorData.message || 'Failed to fetch test plans');
+  }
+  return response.json();
+};
+
 
 const TestSuitesPage: React.FC = () => {
   const { t } = useTranslation();
+  const queryClient = useQueryClient(); // Get queryClient instance
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedProject, setSelectedProject] = useState('all');
+  const [selectedProject, setSelectedProject] = useState('all'); // This might need to adapt based on how projects are handled with real data
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [isWizardOpen, setIsWizardOpen] = useState(false); // State to control wizard modal
+
+  // Fetch test plans using react-query
+  const { data: testPlans = [], isLoading, error, refetch } = useQuery<TestPlan[]>({ // Added refetch
+    queryKey: ['testPlans'],
+    queryFn: fetchTestPlans,
+  });
+
+  const handleWizardClose = () => {
+    setIsWizardOpen(false);
+    // Invalidate and refetch the testPlans query when the wizard closes successfully
+    // This ensures the list is updated with the newly created plan.
+    queryClient.invalidateQueries({ queryKey: ['testPlans'] });
+  };
 
   const projectOptions = useMemo(() => {
-    const projects = [...new Set(mockTestPlans.map(plan => plan.project))].sort();
+    // This will be dynamic based on fetched testPlans or a separate projects API endpoint
+    if (isLoading || error || !testPlans.length) return ['all'];
+    const projects = [...new Set(testPlans.filter(plan => plan.project).map(plan => plan.project!))].sort();
     return ['all', ...projects];
-  }, []); // Removed mockTestPlans from dependency array as it's constant
+  }, [testPlans, isLoading, error]);
 
   const filteredTestPlans = useMemo(() => {
-    return mockTestPlans.filter(plan => {
+    if (isLoading || error) return [];
+    return testPlans.filter(plan => {
       const nameMatch = plan.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const projectMatch = selectedProject === 'all' || plan.project === selectedProject;
+      // TODO: Adapt project filtering if `plan.project` is not directly available or needs mapping
+      const projectMatch = selectedProject === 'all' || (plan.project && plan.project === selectedProject);
       return nameMatch && projectMatch;
     });
-  }, [searchTerm, selectedProject]); // Removed mockTestPlans from dependency array
+  }, [searchTerm, selectedProject, testPlans, isLoading, error]);
 
   const totalPages = Math.ceil(filteredTestPlans.length / itemsPerPage);
   const paginatedTestPlans = filteredTestPlans.slice(
@@ -134,10 +161,19 @@ const TestSuitesPage: React.FC = () => {
                 <ChevronRight size={16} />
               </Button>
             </div>
-            {/* + Test Plan Button */}
-            <Button className="bg-green-500 hover:bg-green-600 text-white">
-              {t('testSuitesPage.testPlan.button')}
-            </Button>
+            {/* + Test Plan Button - Now triggers modal */}
+            <Dialog open={isWizardOpen} onOpenChange={setIsWizardOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-green-500 hover:bg-green-600 text-white">
+                  <PlusCircle size={18} className="mr-2" /> {t('testSuitesPage.testPlan.button')}
+                </Button>
+              </DialogTrigger>
+              {/*
+                Placeholder for CreateTestPlanWizard component.
+              <DialogContent className="p-0 overflow-hidden max-w-[90vw] md:max-w-3xl lg:max-w-4xl xl:max-w-5xl h-auto max-h-[90vh]">
+                {isWizardOpen && <CreateTestPlanWizard onClose={handleWizardClose} />}
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
@@ -147,55 +183,82 @@ const TestSuitesPage: React.FC = () => {
             <TabsTrigger value="schedules">{t('testSuitesPage.schedules.label')}</TabsTrigger>
           </TabsList>
           <TabsContent value="test-plan" className="mt-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('testSuitesPage.name.label')}</TableHead>
-                  <TableHead>{t('testSuitesPage.testLabType.label')}</TableHead>
-                  <TableHead>{t('testSuitesPage.progettoDiAppartenenza.label')}</TableHead>
-                  <TableHead>{t('testSuitesPage.azioni.label')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedTestPlans.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <div>{item.name}</div>
-                    <div className="text-xs text-muted-foreground">{t('testSuitesPage.noDescription.text')}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-1">
-                      <Settings size={16} />
-                      <MonitorSmartphone size={16} />
-                      <span>{t('testSuitesPage.crossDeviceTesting.text')}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{item.project}</TableCell>
-                  <TableCell>
-                    <div className="space-x-2">
-                      <Button variant="outline" size="sm">
-                        <CalendarDays size={16} className="mr-1" /> {t('testSuitesPage.schedule.button')}
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <FileText size={16} className="mr-1" /> {t('testSuitesPage.reports.button')}
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Play size={16} className="mr-1" /> {t('testSuitesPage.run.button')}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TabsContent>
-        <TabsContent value="schedules" className="mt-6">
-          {/* Content for Schedules tab will go here */}
-          <p>{t('testSuitesPage.schedulesContentGoesHere.text')}</p>
-        </TabsContent>
-      </Tabs>
-    </div> {/* End of Content Wrapper */}
-  </div> /* ADDED: This closes the outermost div */
+            {isLoading && <p>{t('testSuitesPage.loadingTestPlans.text')}</p>}
+            {error && <p className="text-red-500">{t('testSuitesPage.errorLoadingTestPlans.text', { message: (error as Error).message })}</p>}
+            {!isLoading && !error && testPlans.length === 0 && (
+              <div className="text-center py-10">
+                <p className="text-lg text-muted-foreground">{t('testSuitesPage.noTestPlansFound.text')}</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {t('testSuitesPage.getStartedByCreating.text')}
+                </p>
+                {/* Optionally, trigger the modal from here too if desired */}
+                {/* <Button onClick={() => setIsWizardOpen(true)} className="mt-4">
+                  <PlusCircle size={18} className="mr-2" /> {t('testSuitesPage.testPlan.button')}
+                </Button> */}
+              </div>
+            )}
+            {!isLoading && !error && testPlans.length > 0 && paginatedTestPlans.length === 0 && searchTerm && (
+                 <div className="text-center py-10">
+                    <p className="text-lg text-muted-foreground">{t('testSuitesPage.noTestPlansMatchSearch.text')}</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                    {t('testSuitesPage.tryDifferentSearch.text')}
+                    </p>
+                </div>
+            )}
+            {!isLoading && !error && paginatedTestPlans.length > 0 && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('testSuitesPage.name.label')}</TableHead>
+                    <TableHead>{t('testSuitesPage.testLabType.label')}</TableHead>
+                    <TableHead>{t('testSuitesPage.progettoDiAppartenenza.label')}</TableHead>
+                    <TableHead>{t('testSuitesPage.azioni.label')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedTestPlans.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <div>{item.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.description || t('testSuitesPage.noDescription.text')}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <Settings size={16} />
+                          <MonitorSmartphone size={16} />
+                          {/* This should come from item.testLabType or a default */}
+                          <span>{item.testLabType || t('testSuitesPage.crossDeviceTesting.text')}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{item.project || '-'}</TableCell>
+                      <TableCell>
+                        <div className="space-x-2">
+                          <Button variant="outline" size="sm">
+                            <CalendarDays size={16} className="mr-1" /> {t('testSuitesPage.schedule.button')}
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <FileText size={16} className="mr-1" /> {t('testSuitesPage.reports.button')}
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Play size={16} className="mr-1" /> {t('testSuitesPage.run.button')}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </TabsContent>
+          <TabsContent value="schedules" className="mt-6">
+            {/* Content for Schedules tab will go here */}
+            <p>{t('testSuitesPage.schedulesContentGoesHere.text')}</p>
+          </TabsContent>
+        </Tabs>
+      </div> {/* End of Content Wrapper */}
+    </div> /* ADDED: This closes the outermost div */
   );
 };
 
