@@ -107,16 +107,22 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
     setSelectedTestSuites(prev => [...prev, ...newSuites]);
   };
 
-  // Declare selectedTestSuites state and related states BEFORE useMemo that depends on it
-  interface SelectedTestSuite {
-    id: number;
-    name: string;
-    type: 'ui' | 'api';
-  }
-  const [selectedTestSuites, setSelectedTestSuites] = useState<SelectedTestSuite[]>([]);
-  const [isTestSuiteSelectorOpen, setIsTestSuiteSelectorOpen] = useState(false);
+  // const alreadySelectedSuiteIds = useMemo(() => { // Questa è la posizione corretta per alreadySelectedSuiteIds
+  //   return selectedTestSuites.map(s => `${s.type}-${s.id}`);
+  // }, [selectedTestSuites]);
+  // La dichiarazione di selectedTestSuites, isTestSuiteSelectorOpen, e l'interfaccia SelectedTestSuite
+  // sono già state fatte sopra (attorno alla linea 94-99). Questo blocco sotto è la duplicazione da rimuovere.
 
-  const alreadySelectedSuiteIds = useMemo(() => {
+  // RIMUOVERE QUESTO BLOCCO DUPLICATO:
+  // interface SelectedTestSuite {
+  //   id: number;
+  //   name: string;
+  //   type: 'ui' | 'api';
+  // }
+  // const [selectedTestSuites, setSelectedTestSuites] = useState<SelectedTestSuite[]>([]);
+  // const [isTestSuiteSelectorOpen, setIsTestSuiteSelectorOpen] = useState(false);
+
+  const alreadySelectedSuiteIds = useMemo(() => { // Assicurati che selectedTestSuites sia definito prima
     return selectedTestSuites.map(s => `${s.type}-${s.id}`);
   }, [selectedTestSuites]);
 
