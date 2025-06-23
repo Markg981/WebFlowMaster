@@ -89,6 +89,16 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
     setTestMachines(prev => prev.filter(machine => machine.id !== idToRemove));
   };
 
+  // Define SelectedTestSuite interface first
+  interface SelectedTestSuite {
+    id: number;
+    name: string;
+    type: 'ui' | 'api';
+  }
+  // Declare selectedTestSuites state and related states BEFORE useMemo that depends on it
+  const [selectedTestSuites, setSelectedTestSuites] = useState<SelectedTestSuite[]>([]);
+  const [isTestSuiteSelectorOpen, setIsTestSuiteSelectorOpen] = useState(false);
+
   const handleAddSuitesFromSelector = (suitesToAdd: SelectedTestSuite[]) => {
     // Avoid duplicates if user re-opens selector and adds already present items (though selector should filter them)
     const newSuites = suitesToAdd.filter(
