@@ -97,18 +97,18 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
     setSelectedTestSuites(prev => [...prev, ...newSuites]);
   };
 
-  const alreadySelectedSuiteIds = useMemo(() => {
-    return selectedTestSuites.map(s => `${s.type}-${s.id}`);
-  }, [selectedTestSuites]);
-
-
-  interface SelectedTestSuite { // Already defined above, but for clarity in this block
+  // Declare selectedTestSuites state and related states BEFORE useMemo that depends on it
+  interface SelectedTestSuite {
     id: number;
     name: string;
     type: 'ui' | 'api';
   }
   const [selectedTestSuites, setSelectedTestSuites] = useState<SelectedTestSuite[]>([]);
   const [isTestSuiteSelectorOpen, setIsTestSuiteSelectorOpen] = useState(false);
+
+  const alreadySelectedSuiteIds = useMemo(() => {
+    return selectedTestSuites.map(s => `${s.type}-${s.id}`);
+  }, [selectedTestSuites]);
 
   // Step 3 Data
   const [captureScreenshots, setCaptureScreenshots] = useState('on_failed_steps');
