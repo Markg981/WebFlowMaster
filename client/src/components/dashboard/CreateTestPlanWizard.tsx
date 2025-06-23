@@ -11,7 +11,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import { ArrowRight, ArrowLeft, PlusCircle, XCircle, ExternalLink } from 'lucide-react';
+import { ArrowRight, ArrowLeft, PlusCircle, XCircle, ExternalLink, Loader2 } from 'lucide-react'; // Added Loader2
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
