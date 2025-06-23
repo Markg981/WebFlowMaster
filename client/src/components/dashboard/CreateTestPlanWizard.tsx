@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,16 +18,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { v4 as uuidv4 } from 'uuid';
 import TestSuiteSelectorModal from './TestSuiteSelectorModal';
 
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 interface CreateTestPlanWizardProps {
   isOpen: boolean;
   onClose: () => void;
   onPlanCreated: () => void;
 }
-
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 
 const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onClose, onPlanCreated }) => {
   const { t } = useTranslation();
@@ -54,9 +53,31 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
   const [currentBrowserVersion, setCurrentBrowserVersion] = useState('latest');
   const [currentHeadless, setCurrentHeadless] = useState(false);
   const [testMachineFormError, setTestMachineFormError] = useState<string | null>(null);
+  const [currentOsVersionOptions, setCurrentOsVersionOptions] = useState<string[]>([]);
 
-  const osOptions = ["Windows", "MacOS", "Linux"];
+  const osOptions = ["windows", "macos", "linux"];
   const browserOptions = ["chrome", "firefox", "webkit", "edge"];
+
+  const osVersionMap: Record<string, string[]> = {
+    windows: ['11', '10', 'Server 2022', 'Server 2019', 'Server 2016', 'Other'],
+    macos: ['Sonoma (14)', 'Ventura (13)', 'Monterey (12)', 'Big Sur (11)', 'Other'],
+    linux: ['Ubuntu 22.04', 'Ubuntu 20.04', 'Debian 12', 'Fedora 39', 'CentOS Stream 9', 'Other'],
+  };
+
+  useEffect(() => {
+    if (currentOs && osVersionMap[currentOs]) {
+      const newOptions = osVersionMap[currentOs];
+      setCurrentOsVersionOptions(newOptions);
+      if (!newOptions.includes(currentOsVersion) || currentOsVersion === '') {
+        setCurrentOsVersion(newOptions[0] || '');
+      }
+    } else {
+      setCurrentOsVersionOptions([]);
+      setCurrentOsVersion('');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentOs]);
+
 
   const handleAddTestMachine = () => {
     if (!currentOs || !currentOsVersion || !currentBrowserName || !currentBrowserVersion) {
@@ -290,12 +311,17 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                     <Label htmlFor="os">{t('createTestPlanWizard.step2.os.label', 'Operating System')}</Label>
                     <Select value={currentOs} onValueChange={setCurrentOs}>
                       <SelectTrigger id="os"><SelectValue placeholder={t('createTestPlanWizard.step2.os.placeholder', 'Select OS')} /></SelectTrigger>
-                      <SelectContent>{osOptions.map(os => <SelectItem key={os} value={os.toLowerCase()}>{os}</SelectItem>)}</SelectContent>
+                      <SelectContent>{osOptions.map(osKey => <SelectItem key={osKey} value={osKey}>{osKey.charAt(0).toUpperCase() + osKey.slice(1)}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="osVersion">{t('createTestPlanWizard.step2.osVersion.label', 'OS Version')}</Label>
-                    <Input id="osVersion" value={currentOsVersion} onChange={e => setCurrentOsVersion(e.target.value)} placeholder={t('createTestPlanWizard.step2.osVersion.placeholder', 'e.g., 10, 11, Sonoma')} />
+                    <Select value={currentOsVersion} onValueChange={setCurrentOsVersion} disabled={!currentOs || currentOsVersionOptions.length === 0}>
+                      <SelectTrigger id="osVersion"><SelectValue placeholder={t('createTestPlanWizard.step2.osVersion.placeholderSelect', 'Select Version')} /></SelectTrigger>
+                      <SelectContent>
+                        {currentOsVersionOptions.map(version => <SelectItem key={version} value={version}>{version}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="browserName">{t('createTestPlanWizard.step2.browser.label', 'Browser')}</Label>

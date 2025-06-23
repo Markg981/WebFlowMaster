@@ -1397,11 +1397,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(createdPlanResult);
 
     } catch (error: any) {
-      resolvedLogger.error({ message: "Error creating test plan with selected tests", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
+      // Enhanced error logging
+      const errorDetails = {
+        messageFromError: error.message,
+        stackTrace: error.stack,
+        errorCode: (error as any).code, // For SQLite errors like SQLITE_CONSTRAINT
+        requestBodyAttempted: req.body,
+        userId: (req.user as any)?.id,
+      };
+      resolvedLogger.error({ message: "Critical error creating test plan with selected tests", details: errorDetails });
+
       if (error.message.includes("FOREIGN KEY constraint failed")) {
-        return res.status(400).json({ error: "One or more selected tests do not exist."})
+        return res.status(400).json({ error: "Invalid reference: One or more selected tests, or the project ID, do not exist."});
       }
-      res.status(500).json({ error: "Failed to create test plan" });
+      // Generic error for client, specific details logged on server
+      res.status(500).json({ error: "Failed to create test plan due to an internal server error." });
     }
   });
 
