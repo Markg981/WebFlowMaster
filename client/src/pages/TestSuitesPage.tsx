@@ -177,6 +177,7 @@ const TestSuitesPage: React.FC = () => {
             <TabsTrigger value="schedules">{t('testSuitesPage.schedules.label')}</TabsTrigger>
           </TabsList>
           <TabsContent value="test-plan" className="mt-6">
+            <>
             {isLoading && (
               <div className="flex justify-center items-center py-10">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -242,6 +243,8 @@ const TestSuitesPage: React.FC = () => {
               ))}
             </TableBody>
           </Table>
+            )}
+            </>
         </TabsContent>
         <TabsContent value="schedules" className="mt-6">
           {/* Content for Schedules tab will go here */}
