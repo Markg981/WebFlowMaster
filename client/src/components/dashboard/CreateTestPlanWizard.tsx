@@ -135,77 +135,11 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
 
   const totalSteps = 3;
 
-  // Error states for each step's specific validation fields
-  const [testPlanNameError, setTestPlanNameError] = useState('');
-  const [step2ValidationError, setStep2ValidationError] = useState(''); // General error for step 2
-
-  // Step 2 Data - Types defined here for clarity, though could be in a shared types file
-  interface TestMachineConfig {
-    id: string;
-    os: string;
-    osVersion: string;
-    browserName: string;
-    browserVersion: string;
-    headless: boolean;
-  }
-  const [testMachines, setTestMachines] = useState<TestMachineConfig[]>([]);
-  const [currentOs, setCurrentOs] = useState('');
-  const [currentOsVersion, setCurrentOsVersion] = useState('');
-  const [currentBrowserName, setCurrentBrowserName] = useState('chrome');
-  const [currentBrowserVersion, setCurrentBrowserVersion] = useState('latest');
-  const [currentHeadless, setCurrentHeadless] = useState(false);
-  const [testMachineFormError, setTestMachineFormError] = useState<string | null>(null);
+  // Error states for step validation (testPlanNameError is already defined with Step 1 data)
+  const [step2ValidationError, setStep2ValidationError] = useState('');
 
 
-  // Static options for selects
-  const osOptions = ["Windows", "MacOS", "Linux"];
-  const browserOptions = ["chrome", "firefox", "webkit", "edge"];
-
-
-  const handleAddTestMachine = () => {
-    if (!currentOs || !currentOsVersion || !currentBrowserName || !currentBrowserVersion) {
-      setTestMachineFormError(t('createTestPlanWizard.step2.validation.machineFieldsRequired', 'All machine configuration fields are required.'));
-      return;
-    }
-    setTestMachines(prev => [...prev, {
-      id: uuidv4(),
-      os: currentOs, osVersion: currentOsVersion,
-      browserName: currentBrowserName, browserVersion: currentBrowserVersion,
-      headless: currentHeadless,
-    }]);
-    setTestMachineFormError(null);
-    if (testMachines.length + 1 > 0 || selectedTestSuites.length > 0) setStep2ValidationError('');
-  };
-
-  const handleRemoveTestMachine = (idToRemove: string) => {
-    setTestMachines(prev => prev.filter(machine => machine.id !== idToRemove));
-  };
-
-  const handleAddSuitesFromSelector = (suitesToAdd: SelectedTestSuite[]) => {
-    const newSuites = suitesToAdd.filter(
-      add => !selectedTestSuites.find(existing => existing.id === add.id && existing.type === add.type)
-    );
-    setSelectedTestSuites(prev => {
-      const updatedSelection = [...prev, ...newSuites];
-      if (updatedSelection.length > 0 || testMachines.length > 0) setStep2ValidationError('');
-      return updatedSelection;
-    });
-  };
-
-  const alreadySelectedSuiteIds = useMemo(() => {
-    return selectedTestSuites.map(s => `${s.type}-${s.id}`);
-  }, [selectedTestSuites]);
-
-
-  interface SelectedTestSuite {
-    id: number;
-    name: string;
-    type: 'ui' | 'api';
-  }
-  const [selectedTestSuites, setSelectedTestSuites] = useState<SelectedTestSuite[]>([]);
-  const [isTestSuiteSelectorOpen, setIsTestSuiteSelectorOpen] = useState(false);
-
-
+  // validateStep1 is already defined with Step 1 data and testPlanNameError state
   const validateStep1 = () => {
     if (!testPlanName.trim()) {
       setTestPlanNameError(t('createTestPlanWizard.step1.validation.nameRequired', 'Test Plan Name is required.'));
