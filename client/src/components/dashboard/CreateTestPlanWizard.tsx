@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox'; // Added Checkbox import
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -11,18 +11,18 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import { ArrowRight, ArrowLeft, PlusCircle, XCircle, ExternalLink, Loader2 } from 'lucide-react'; // Added Loader2
+import { ArrowRight, ArrowLeft, PlusCircle, XCircle, ExternalLink, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { v4 as uuidv4 } from 'uuid';
-import TestSuiteSelectorModal from './TestSuiteSelectorModal'; // Import the new modal
+import TestSuiteSelectorModal from './TestSuiteSelectorModal';
 
 
 interface CreateTestPlanWizardProps {
   isOpen: boolean;
   onClose: () => void;
-  onPlanCreated: () => void; // Callback to refresh test plans list
+  onPlanCreated: () => void;
 }
 
 import { Input } from '@/components/ui/input';
@@ -41,7 +41,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
   // Step 2 Data
   interface TestMachineConfig {
     id: string;
-    // testMachineName: string; // e.g., "Local Agent", "Remote Selenium Grid"
     os: string;
     osVersion: string;
     browserName: string;
@@ -49,8 +48,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
     headless: boolean;
   }
   const [testMachines, setTestMachines] = useState<TestMachineConfig[]>([]);
-  // Current values for the Test Machine form
-  // const [currentTestMachineName, setCurrentTestMachineName] = useState('Local Agent');
   const [currentOs, setCurrentOs] = useState('');
   const [currentOsVersion, setCurrentOsVersion] = useState('');
   const [currentBrowserName, setCurrentBrowserName] = useState('chrome');
@@ -58,11 +55,8 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
   const [currentHeadless, setCurrentHeadless] = useState(false);
   const [testMachineFormError, setTestMachineFormError] = useState<string | null>(null);
 
-
-  // Static options for selects
   const osOptions = ["Windows", "MacOS", "Linux"];
   const browserOptions = ["chrome", "firefox", "webkit", "edge"];
-
 
   const handleAddTestMachine = () => {
     if (!currentOs || !currentOsVersion || !currentBrowserName || !currentBrowserVersion) {
@@ -71,59 +65,38 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
     }
     setTestMachines(prev => [...prev, {
       id: uuidv4(),
-      os: currentOs,
-      osVersion: currentOsVersion,
-      browserName: currentBrowserName,
-      browserVersion: currentBrowserVersion,
+      os: currentOs, osVersion: currentOsVersion,
+      browserName: currentBrowserName, browserVersion: currentBrowserVersion,
       headless: currentHeadless,
     }]);
-    // Reset form fields for next entry (optional)
-    // setCurrentOs('');
-    // setCurrentOsVersion('');
-    // setCurrentBrowserName('chrome');
-    // setCurrentBrowserVersion('latest');
-    // setCurrentHeadless(false);
-    setTestMachineFormError(null); // Clear error
+    setTestMachineFormError(null);
+    if (testMachines.length + 1 > 0 || selectedTestSuites.length > 0) setStep2ValidationError('');
   };
 
   const handleRemoveTestMachine = (idToRemove: string) => {
     setTestMachines(prev => prev.filter(machine => machine.id !== idToRemove));
   };
 
-  // Define SelectedTestSuite interface first
   interface SelectedTestSuite {
     id: number;
     name: string;
     type: 'ui' | 'api';
   }
-  // Declare selectedTestSuites state and related states BEFORE useMemo that depends on it
   const [selectedTestSuites, setSelectedTestSuites] = useState<SelectedTestSuite[]>([]);
   const [isTestSuiteSelectorOpen, setIsTestSuiteSelectorOpen] = useState(false);
 
   const handleAddSuitesFromSelector = (suitesToAdd: SelectedTestSuite[]) => {
-    // Avoid duplicates if user re-opens selector and adds already present items (though selector should filter them)
     const newSuites = suitesToAdd.filter(
       add => !selectedTestSuites.find(existing => existing.id === add.id && existing.type === add.type)
     );
-    setSelectedTestSuites(prev => [...prev, ...newSuites]);
+    setSelectedTestSuites(prev => {
+      const updatedSelection = [...prev, ...newSuites];
+      if (updatedSelection.length > 0 || testMachines.length > 0) setStep2ValidationError('');
+      return updatedSelection;
+    });
   };
 
-  // const alreadySelectedSuiteIds = useMemo(() => { // Questa è la posizione corretta per alreadySelectedSuiteIds
-  //   return selectedTestSuites.map(s => `${s.type}-${s.id}`);
-  // }, [selectedTestSuites]);
-  // La dichiarazione di selectedTestSuites, isTestSuiteSelectorOpen, e l'interfaccia SelectedTestSuite
-  // sono già state fatte sopra (attorno alla linea 94-99). Questo blocco sotto è la duplicazione da rimuovere.
-
-  // RIMUOVERE QUESTO BLOCCO DUPLICATO:
-  // interface SelectedTestSuite {
-  //   id: number;
-  //   name: string;
-  //   type: 'ui' | 'api';
-  // }
-  // const [selectedTestSuites, setSelectedTestSuites] = useState<SelectedTestSuite[]>([]);
-  // const [isTestSuiteSelectorOpen, setIsTestSuiteSelectorOpen] = useState(false);
-
-  const alreadySelectedSuiteIds = useMemo(() => { // Assicurati che selectedTestSuites sia definito prima
+  const alreadySelectedSuiteIds = useMemo(() => {
     return selectedTestSuites.map(s => `${s.type}-${s.id}`);
   }, [selectedTestSuites]);
 
@@ -149,14 +122,9 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-
   const totalSteps = 3;
-
-  // Error states for step validation (testPlanNameError is already defined with Step 1 data)
   const [step2ValidationError, setStep2ValidationError] = useState('');
 
-
-  // validateStep1 is already defined with Step 1 data and testPlanNameError state
   const validateStep1 = () => {
     if (!testPlanName.trim()) {
       setTestPlanNameError(t('createTestPlanWizard.step1.validation.nameRequired', 'Test Plan Name is required.'));
@@ -196,12 +164,9 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
     return isValid;
   };
 
-
   const handleNext = () => {
     if (currentStep === 1 && !validateStep1()) return;
     if (currentStep === 2 && !validateStep2()) return;
-    // Step 3 validation is done before final submission in handleCreatePlan
-
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
@@ -214,7 +179,7 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
   };
 
   const handleCreatePlan = async () => {
-    setSubmitError(null); // Clear previous submit errors
+    setSubmitError(null);
     if (!validateStep1() || !validateStep2() || !validateStep3()) {
       if (!validateStep1()) setCurrentStep(1);
       else if (!validateStep2()) setCurrentStep(2);
@@ -240,8 +205,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
       selectedTests: selectedTestSuites.map(st => ({ id: st.id, type: st.type })),
     };
 
-    console.log('Submitting Test Plan:', planDataToSubmit);
-
     try {
       const response = await fetch('/api/test-plans', {
         method: 'POST',
@@ -253,14 +216,14 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
         try {
           const errorData = await response.json();
           errorMsg = errorData.error || errorData.message || errorMsg;
-          if (errorData.details) { // Zod validation errors
+          if (errorData.details) {
             errorMsg = `${errorMsg}: ${JSON.stringify(errorData.details.formErrors || errorData.details.fieldErrors || errorData.details)}`;
           }
         } catch (e) { /* ignore if response is not json */ }
         throw new Error(errorMsg);
       }
       onPlanCreated();
-      onClose(); // This will also call resetForm
+      onClose();
     } catch (error: any) {
       console.error("Failed to create test plan:", error);
       setSubmitError(error.message || 'An unexpected error occurred.');
@@ -314,58 +277,41 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
             </div>
           </>
         );
-      // ... other cases remain the same for now
       case 2:
         return (
           <>
             <DialogTitle>{t('createTestPlanWizard.step2.title', 'Step 2: Test Machines & Suites')}</DialogTitle>
             <DialogDescription>{t('createTestPlanWizard.step2.description', 'Configure test machines and select test suites.')}</DialogDescription>
-
             <div className="py-6 space-y-8">
-              {/* Test Machines Configuration */}
               <section>
                 <h3 className="text-lg font-semibold mb-3">{t('createTestPlanWizard.step2.testMachinesConfig.title', 'Test Machines Configuration')}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 border rounded-md">
-                  {/* OS */}
                   <div className="space-y-1">
                     <Label htmlFor="os">{t('createTestPlanWizard.step2.os.label', 'Operating System')}</Label>
                     <Select value={currentOs} onValueChange={setCurrentOs}>
-                      <SelectTrigger id="os">
-                        <SelectValue placeholder={t('createTestPlanWizard.step2.os.placeholder', 'Select OS')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {osOptions.map(os => <SelectItem key={os} value={os.toLowerCase()}>{os}</SelectItem>)}
-                      </SelectContent>
+                      <SelectTrigger id="os"><SelectValue placeholder={t('createTestPlanWizard.step2.os.placeholder', 'Select OS')} /></SelectTrigger>
+                      <SelectContent>{osOptions.map(os => <SelectItem key={os} value={os.toLowerCase()}>{os}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  {/* OS Version */}
                   <div className="space-y-1">
                     <Label htmlFor="osVersion">{t('createTestPlanWizard.step2.osVersion.label', 'OS Version')}</Label>
                     <Input id="osVersion" value={currentOsVersion} onChange={e => setCurrentOsVersion(e.target.value)} placeholder={t('createTestPlanWizard.step2.osVersion.placeholder', 'e.g., 10, 11, Sonoma')} />
                   </div>
-                  {/* Browser */}
                   <div className="space-y-1">
                     <Label htmlFor="browserName">{t('createTestPlanWizard.step2.browser.label', 'Browser')}</Label>
                     <Select value={currentBrowserName} onValueChange={setCurrentBrowserName}>
-                      <SelectTrigger id="browserName">
-                        <SelectValue placeholder={t('createTestPlanWizard.step2.browser.placeholder', 'Select Browser')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {browserOptions.map(b => <SelectItem key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)}</SelectItem>)}
-                      </SelectContent>
+                      <SelectTrigger id="browserName"><SelectValue placeholder={t('createTestPlanWizard.step2.browser.placeholder', 'Select Browser')} /></SelectTrigger>
+                      <SelectContent>{browserOptions.map(b => <SelectItem key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  {/* Browser Version */}
                   <div className="space-y-1">
                     <Label htmlFor="browserVersion">{t('createTestPlanWizard.step2.browserVersion.label', 'Browser Version')}</Label>
                     <Input id="browserVersion" value={currentBrowserVersion} onChange={e => setCurrentBrowserVersion(e.target.value)} placeholder={t('createTestPlanWizard.step2.browserVersion.placeholder', 'e.g., latest, 120.0')} />
                   </div>
-                  {/* Headless Toggle */}
                   <div className="flex items-center space-x-2 pt-5">
                     <Switch id="headless" checked={currentHeadless} onCheckedChange={setCurrentHeadless} />
                     <Label htmlFor="headless">{t('createTestPlanWizard.step2.headless.label', 'Headless')}</Label>
                   </div>
-                   {/* Desired Capabilities Link */}
                   <div className="lg:col-span-1 flex items-end pb-1">
                      <Button variant="link" className="p-0 h-auto text-xs" onClick={() => alert(t('createTestPlanWizard.step2.desiredCapabilities.alertNotImplemented', 'Desired Capabilities configuration is not yet implemented.'))}>
                         {t('createTestPlanWizard.step2.desiredCapabilities.link', 'Desired Capabilities (Optional)')}
@@ -377,8 +323,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                 <Button onClick={handleAddTestMachine} variant="outline" size="sm" className="mt-3">
                   <PlusCircle className="mr-2 h-4 w-4" /> {t('createTestPlanWizard.step2.addMachineButton', 'Add Machine Configuration')}
                 </Button>
-
-                {/* List of Added Test Machines */}
                 {testMachines.length > 0 && (
                   <div className="mt-4 space-y-2">
                     <h4 className="font-medium text-sm">{t('createTestPlanWizard.step2.addedMachines.title', 'Added Configurations:')}</h4>
@@ -395,8 +339,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                   </div>
                 )}
               </section>
-
-              {/* Test Suites Selection */}
               <section>
                 <h3 className="text-lg font-semibold mb-3">{t('createTestPlanWizard.step2.testSuitesSelection.title', 'Test Suites Selection')}</h3>
                 <div className="p-4 border rounded-md min-h-[100px]">
@@ -432,8 +374,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
             <DialogTitle>{t('createTestPlanWizard.step3.title', 'Step 3: Test Plan Settings')}</DialogTitle>
             <DialogDescription>{t('createTestPlanWizard.step3.description', 'Adjust advanced settings for the test plan execution.')}</DialogDescription>
             <div className="py-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-
-              {/* Capture Screenshots */}
               <div>
                 <Label htmlFor="captureScreenshots">{t('createTestPlanWizard.step3.captureScreenshots.label', 'Capture Screenshots')}</Label>
                 <Select value={captureScreenshots} onValueChange={setCaptureScreenshots}>
@@ -445,37 +385,25 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Testing Type (Display Only) */}
               <div>
                 <Label>{t('createTestPlanWizard.step1.testingType.label', 'Testing Type')}</Label>
                 <Input value="Cross Browser Testing" disabled className="mt-1 bg-muted" />
               </div>
-
-              {/* Visual Testing */}
               <div className="flex items-center space-x-2 mt-2 md:mt-0 md:pt-6">
                 <Switch id="visualTesting" checked={visualTestingEnabled} onCheckedChange={setVisualTestingEnabled} />
                 <Label htmlFor="visualTesting">{t('createTestPlanWizard.step3.visualTesting.label', 'Visual Testing (Experimental)')}</Label>
               </div>
-
-              {/* Spacer for alignment or another field */}
               <div></div>
-
-              {/* Page Load Timeout */}
               <div>
                 <Label htmlFor="pageLoadTimeout">{t('createTestPlanWizard.step3.pageLoadTimeout.label', 'Page Load Timeout (seconds)')}</Label>
                 <Input id="pageLoadTimeout" type="number" value={pageLoadTimeout} onChange={e => setPageLoadTimeout(e.target.value)} placeholder="30" />
                 {pageLoadTimeoutError && <p className="text-sm text-red-500 mt-1">{pageLoadTimeoutError}</p>}
               </div>
-
-              {/* Element Timeout */}
               <div>
                 <Label htmlFor="elementTimeout">{t('createTestPlanWizard.step3.elementTimeout.label', 'Element Timeout (seconds)')}</Label>
                 <Input id="elementTimeout" type="number" value={elementTimeout} onChange={e => setElementTimeout(e.target.value)} placeholder="30" />
                 {elementTimeoutError && <p className="text-sm text-red-500 mt-1">{elementTimeoutError}</p>}
               </div>
-
-              {/* On Major Step Failure */}
               <div>
                 <Label htmlFor="onMajorStepFailure">{t('createTestPlanWizard.step3.onMajorStepFailure.label', 'On Major Step Failure')}</Label>
                 <Select value={onMajorStepFailure} onValueChange={setOnMajorStepFailure}>
@@ -487,8 +415,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* On Aborted Test Case */}
               <div>
                 <Label htmlFor="onAbortedTestCase">{t('createTestPlanWizard.step3.onAbortedTestCase.label', 'On Aborted Test Case')}</Label>
                 <Select value={onAbortedTestCase} onValueChange={setOnAbortedTestCase}>
@@ -499,8 +425,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* On Test Suite Pre Requisite Failure */}
               <div>
                 <Label htmlFor="onTestSuitePreRequisiteFailure">{t('createTestPlanWizard.step3.onTestSuitePreRequisiteFailure.label', 'On Test Suite Pre Requisite Failure')}</Label>
                 <Select value={onTestSuitePreRequisiteFailure} onValueChange={setOnTestSuitePreRequisiteFailure}>
@@ -512,8 +436,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* On Test Case Pre Requisite Failure */}
               <div>
                 <Label htmlFor="onTestCasePreRequisiteFailure">{t('createTestPlanWizard.step3.onTestCasePreRequisiteFailure.label', 'On Test Case Pre Requisite Failure')}</Label>
                 <Select value={onTestCasePreRequisiteFailure} onValueChange={setOnTestCasePreRequisiteFailure}>
@@ -525,8 +447,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* On Test Step Pre Requisite Failure */}
               <div>
                 <Label htmlFor="onTestStepPreRequisiteFailure">{t('createTestPlanWizard.step3.onTestStepPreRequisiteFailure.label', 'On Test Step Pre Requisite Failure')}</Label>
                 <Select value={onTestStepPreRequisiteFailure} onValueChange={setOnTestStepPreRequisiteFailure}>
@@ -538,8 +458,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Re-Run On Failure */}
               <div>
                 <Label htmlFor="reRunOnFailure">{t('createTestPlanWizard.step3.reRunOnFailure.label', 'Re-Run On Failure')}</Label>
                 <Select value={reRunOnFailure} onValueChange={setReRunOnFailure}>
@@ -552,8 +470,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Send Notification When (Checkboxes) */}
               <div className="md:col-span-2">
                 <Label>{t('createTestPlanWizard.step3.sendNotificationWhen.label', 'Send Notification When')}</Label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 mt-1 p-3 border rounded-md">
@@ -573,13 +489,10 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                   ))}
                 </div>
               </div>
-
-              {/* Description (Display Only from Step 1) */}
               <div className="md:col-span-2">
                 <Label htmlFor="step3Description">{t('createTestPlanWizard.step1.descriptionField.label', 'Description')}</Label>
                 <Textarea id="step3Description" value={description} disabled rows={2} className="mt-1 bg-muted" />
               </div>
-
             </div>
           </>
         );
@@ -593,8 +506,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
     setTestPlanName('');
     setDescription('');
     setTestPlanNameError('');
-
-    // Reset Step 2 states
     setTestMachines([]);
     setCurrentOs('');
     setCurrentOsVersion('');
@@ -605,8 +516,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
     setSelectedTestSuites([]);
     setIsTestSuiteSelectorOpen(false);
     setStep2ValidationError('');
-
-    // Reset Step 3 states
     setCaptureScreenshots('on_failed_steps');
     setVisualTestingEnabled(false);
     setPageLoadTimeout("30");
@@ -620,6 +529,8 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
     setNotificationSettings({ passed: true, failed: true, notExecuted: true, stopped: true });
     setPageLoadTimeoutError('');
     setElementTimeoutError('');
+    setIsSubmitting(false);
+    setSubmitError(null);
   };
 
   return (
@@ -633,8 +544,6 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
         <DialogHeader className="flex-shrink-0">
           {/* Title and Description are now part of renderStepContent */}
         </DialogHeader>
-
-        {/* Progress Indicator */}
         <div className="flex items-center justify-center my-4 flex-shrink-0">
             {Array.from({ length: totalSteps }, (_, i) => (
               <React.Fragment key={i}>
@@ -655,12 +564,9 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
               </React.Fragment>
             ))}
           </div>
-
-        {/* Scrollable Step Content Area */}
         <div className="flex-grow overflow-y-auto pr-2 pl-1 scrollbar-thin scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent">
           {renderStepContent()}
         </div>
-
         <DialogFooter className="mt-6 flex-shrink-0">
           <div className="w-full flex justify-between items-center">
             <Button variant="outline" onClick={() => { onClose(); resetForm(); }} disabled={isSubmitting}>
