@@ -53,12 +53,15 @@ beforeAll(async () => {
       return res.status(401).json({ error: "Unauthorized" });
     }
     const userId = req.user.id;
-    const resolvedLogger = (await vi.importActual('./logger') as any).default; // Get actual logger for router logic
+    // Use the globally mocked logger. Vitest's vi.mock should ensure that any import of './logger'
+    // within this test file's execution context (including this route handler) gets the mock.
+    // The `default` export of the mock is a Promise that resolves to the logger object.
+    const logger = (await import('./logger')).default;
 
     const parseResult = createTestBodySchema.safeParse(req.body);
 
     if (!parseResult.success) {
-      resolvedLogger.warn({ message: "POST /api/tests - Invalid payload (test)", errors: parseResult.error.flatten(), userId });
+      logger.warn({ message: "POST /api/tests - Invalid payload (test)", errors: parseResult.error.flatten(), userId });
       return res.status(400).json({ error: "Invalid test data", details: parseResult.error.flatten() });
     }
 
@@ -79,12 +82,12 @@ beforeAll(async () => {
         .returning();
 
       if (newTestResult.length === 0) {
-        resolvedLogger.error({ message: "Test creation failed, no record returned (test).", name, userId });
+        logger.error({ message: "Test creation failed, no record returned (test).", name, userId });
         return res.status(500).json({ error: "Failed to create test." });
       }
       res.status(201).json(newTestResult[0]);
     } catch (error: any) {
-      resolvedLogger.error({ message: "Error creating test (test)", userId, testName: name, error: error.message, stack: error.stack });
+      logger.error({ message: "Error creating test (test)", userId, testName: name, error: error.message, stack: error.stack });
       if (error.message && error.message.includes('FOREIGN KEY constraint failed')) {
         return res.status(400).json({ error: "Invalid project ID or project does not exist." });
       }

@@ -30,12 +30,22 @@ vi.mock('./logger', () => ({
 
 let app: Application;
 
-// Define mock users
-const mockUser1 = { id: 1, username: 'user1', password: 'password1' } as User;
-const mockUser2 = { id: 2, username: 'user2', password: 'password2' } as User;
+// Define mock users (without IDs initially, as they will be auto-generated)
+const mockUser1Data = { username: 'user1', password: 'password1' };
+const mockUser2Data = { username: 'user2', password: 'password2' };
 
 // Variable to switch authenticated user for testing authorization
-let currentMockUser: User = mockUser1;
+// Will hold the full User object including the auto-generated ID after seeding
+let currentMockUser: User;
+let _seededUser1: User; // To store user1 with its DB-generated ID (renamed)
+let _seededUser2: User; // To store user2 with its DB-generated ID (renamed)
+// The rest of the seeded variables remain as they are, assuming they are not causing the "already declared" issue.
+// If the issue persists for them, they would also need renaming or careful scoping.
+let seededProject1User1: Project;
+let seededApiTestUser1Project1: InsertApiTest;
+let seededApiTestUser1NoProject: InsertApiTest;
+let seededApiTestUser2: InsertApiTest;
+
 
 beforeAll(async () => {
   app = express();
@@ -134,12 +144,11 @@ beforeAll(async () => {
   app.use(apiTestRouter); // Mount the router
 });
 
-let seededUser1: User;
-let seededUser2: User;
-let seededProject1User1: Project;
-let seededApiTestUser1Project1: InsertApiTest;
-let seededApiTestUser1NoProject: InsertApiTest;
-let seededApiTestUser2: InsertApiTest;
+// These are declared once at the module scope.
+// The "already declared" error was likely due to a faulty previous edit/read cycle on my part.
+// I will ensure the file content matches this structure.
+// let seededUser1: User; // This was the duplicate line causing issues if it appeared again below
+// let seededUser2: User; // This was the duplicate line
 
 
 beforeEach(async () => {
@@ -150,11 +159,12 @@ beforeEach(async () => {
 
   // Seed Users
   // Drizzle's .returning() gives an array, so destructure to get the object.
-  [seededUser1] = await db.insert(users).values({ id: mockUser1.id, username: mockUser1.username, password: 'hashed_password1' } as InsertUser).returning();
-  [seededUser2] = await db.insert(users).values({ id: mockUser2.id, username: mockUser2.username, password: 'hashed_password2' } as InsertUser).returning();
+  // Do not specify IDs, let them be auto-generated.
+  [seededUser1] = await db.insert(users).values({ username: mockUser1Data.username, password: 'hashed_password1' } as Omit<InsertUser, 'id'>).returning();
+  [seededUser2] = await db.insert(users).values({ username: mockUser2Data.username, password: 'hashed_password2' } as Omit<InsertUser, 'id'>).returning();
 
   // Seed Projects
-  [seededProject1User1] = await db.insert(projects).values({ name: 'User1 Project1', userId: seededUser1.id } as InsertProject).returning();
+  [seededProject1User1] = await db.insert(projects).values({ name: 'User1 Project1', userId: seededUser1.id } as Omit<InsertProject, 'id'>).returning();
 
   // Seed ApiTests
   const testDataUser1Project1 = {
