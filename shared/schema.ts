@@ -304,10 +304,10 @@ export const testPlanSelectedTestsRelations = relations(testPlanSelectedTests, (
 const TestMachineConfigSchema = z.object({
   os: z.string(),
   osVersion: z.string(),
-  browser: z.string(),
+  browserName: z.string(), // Changed from browser to browserName
   browserVersion: z.string(),
   headless: z.boolean(),
-}).optional(); // Making individual machine config optional if needed, or use z.array(TestMachineConfigSchema).min(1)
+}).optional();
 
 export const insertTestPlanSchema = createInsertSchema(testPlans, {
   name: z.string().min(1, "Test Plan Name is required"),
