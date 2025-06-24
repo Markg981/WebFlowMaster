@@ -4,8 +4,8 @@ import loggerPromise from './logger';
 import type { Logger as WinstonLogger } from 'winston';
 import { storage } from './storage'; // To fetch user settings
 import type { Test, UserSettings } from '@shared/schema'; // Import Test and UserSettings type
-import fs from 'fs-extra'; // Import fs-extra for directory creation and file saving
-import path from 'path';   // Import path for path manipulation
+import fs from 'fs-extra';
+import path from 'path';
 
 // Default settings if not found or incomplete
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
@@ -86,7 +86,7 @@ interface StepResult {
   selector?: string;
   value?: string;
   status: 'passed' | 'failed';
-  screenshot?: string; // Can be base64 or a file path
+  screenshot?: string;
   error?: string;
   details: string;
 }
@@ -934,9 +934,6 @@ export class PlaywrightService {
       }
     }
   }
-
-export class PlaywrightService {
-  // ... (existing properties and methods)
 
   async executeTestSequence(
     test: Test,
