@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, ArrowLeft, LibrarySquare, Loader2 } from 'lucide-react';
 import type { TestPlan } from '@shared/schema'; // Import TestPlan type
 import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard'; // Import the wizard
+import { useToast } from '@/hooks/use-toast'; // Import the toast hook
+import { runTestPlanAPI } from '@/lib/api/test-plans'; // Import the API function
 
 // Interface for the actual TestPlan data structure from backend (adjust if necessary based on actual API response)
 // Using TestPlan type from @shared/schema directly is better.
@@ -32,9 +34,11 @@ const TestSuitesPage: React.FC = () => {
   // const [selectedProject, setSelectedProject] = useState('all'); // Project filter removed for now
   const [currentPage, setCurrentPage] = useState(1);
   const [isWizardOpen, setIsWizardOpen] = useState(false); // State for wizard visibility
+  const { toast } = useToast(); // Initialize useToast
+  const [runningPlanId, setRunningPlanId] = useState<string | null>(null); // To track the plan being run
   const itemsPerPage = 5;
 
-  const { data: allTestPlans = [], isLoading, error } = useQuery<TestPlan[]>({
+  const { data: allTestPlans = [], isLoading, error, refetch: refetchTestPlans } = useQuery<TestPlan[]>({
     queryKey: ['testPlans'],
     queryFn: fetchTestPlans,
   });
@@ -74,6 +78,39 @@ const TestSuitesPage: React.FC = () => {
     }
   }, [filteredTestPlans.length, totalPages, currentPage]);
 
+  const handleRunPlan = async (planId: string, planName: string) => {
+    setRunningPlanId(planId);
+    toast({
+      title: t('testSuitesPage.toast.runningTitle', { planName }),
+      description: t('testSuitesPage.toast.runningDescription'),
+    });
+
+    try {
+      const result = await runTestPlanAPI(planId);
+      if (result.success && result.data) {
+        // Assuming result.data is the TestPlanRun object
+        const runStatus = result.data.status || 'unknown';
+        toast({
+          title: t('testSuitesPage.toast.completedTitle', { planName }),
+          description: t('testSuitesPage.toast.completedDescription', { status: runStatus, runId: result.data.id }),
+          variant: (runStatus === 'passed' || runStatus === 'partial') ? 'default' : 'destructive',
+        });
+        // Optionally, refetch test plan runs data here if displaying last run status
+        // queryClient.invalidateQueries({ queryKey: ['testPlanRuns', planId] }); // Example
+      } else {
+        // If success is false or data is missing, but no error was thrown by runTestPlanAPI
+        throw new Error(result.error || t('testSuitesPage.toast.unknownError'));
+      }
+    } catch (err: any) {
+      toast({
+        title: t('testSuitesPage.toast.errorTitle', { planName }),
+        description: err.message || t('testSuitesPage.toast.executionError'),
+        variant: "destructive",
+      });
+    } finally {
+      setRunningPlanId(null);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full"> {/* MODIFIED: Outermost container */}
@@ -234,8 +271,18 @@ const TestSuitesPage: React.FC = () => {
                       <Button variant="outline" size="sm">
                         <FileText size={16} className="mr-1" /> {t('testSuitesPage.reports.button')}
                       </Button>
-                      <Button variant="outline" size="sm">
-                        <Play size={16} className="mr-1" /> {t('testSuitesPage.run.button')}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRunPlan(item.id, item.name)}
+                        disabled={runningPlanId === item.id || !!runningPlanId} // Disable if this plan is running OR any other plan is running
+                      >
+                        {runningPlanId === item.id ? (
+                          <Loader2 size={16} className="mr-1 animate-spin" />
+                        ) : (
+                          <Play size={16} className="mr-1" />
+                        )}
+                        {runningPlanId === item.id ? t('testSuitesPage.running.button') : t('testSuitesPage.run.button')}
                       </Button>
                     </div>
                   </TableCell>
