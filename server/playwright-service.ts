@@ -4,6 +4,8 @@ import loggerPromise from './logger';
 import type { Logger as WinstonLogger } from 'winston';
 import { storage } from './storage'; // To fetch user settings
 import type { Test, UserSettings } from '@shared/schema'; // Import Test and UserSettings type
+import fs from 'fs-extra'; // Import fs-extra for directory creation and file saving
+import path from 'path';   // Import path for path manipulation
 
 // Default settings if not found or incomplete
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
@@ -933,10 +935,7 @@ export class PlaywrightService {
     }
   }
 
-import fs from 'fs-extra'; // Import fs-extra for directory creation and file saving
-import path from 'path';   // Import path for path manipulation
-
-// ... (other imports)
+// ... (other imports) // fs and path are now at the top
 
 export class PlaywrightService {
   // ... (existing properties and methods)
