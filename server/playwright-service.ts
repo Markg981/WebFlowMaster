@@ -84,7 +84,7 @@ interface StepResult {
   selector?: string;
   value?: string;
   status: 'passed' | 'failed';
-  screenshot?: string;
+  screenshot?: string; // Can be base64 or a file path
   error?: string;
   details: string;
 }
@@ -933,9 +933,21 @@ export class PlaywrightService {
     }
   }
 
-  async executeTestSequence(test: Test, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number }> {
+import fs from 'fs-extra'; // Import fs-extra for directory creation and file saving
+import path from 'path';   // Import path for path manipulation
+
+// ... (other imports)
+
+export class PlaywrightService {
+  // ... (existing properties and methods)
+
+  async executeTestSequence(
+    test: Test,
+    userId: number,
+    screenshotBaseDir?: string // Optional base directory for screenshots
+  ): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number }> {
     const startTime = Date.now();
-    resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url });
+    resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url, screenshotBaseDir });
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
     let page: Page | null = null;
@@ -961,15 +973,33 @@ export class PlaywrightService {
         try {
           resolvedLogger.debug({message: "PS:executeTestSequence - Navigating to initial URL", testName: test.name, url: test.url});
           await page.goto(test.url, { waitUntil: 'domcontentloaded' });
-          const screenshotBuffer = await page.screenshot({ type: 'png' });
-          const screenshot = screenshotBuffer.toString('base64');
-          stepResults.push({ name: 'Load Page', type: 'navigation', status: 'passed', screenshot: `data:image/png;base64,${screenshot}`, details: `Successfully navigated to ${test.url}` });
+          let navScreenshotPath: string | undefined;
+          if (screenshotBaseDir) {
+            await fs.ensureDir(screenshotBaseDir);
+            const screenshotFilePath = path.join(screenshotBaseDir, `step_navigation_load_${Date.now()}.png`);
+            await page.screenshot({ type: 'png', path: screenshotFilePath });
+            navScreenshotPath = screenshotFilePath;
+          } else {
+            const screenshotBuffer = await page.screenshot({ type: 'png' });
+            navScreenshotPath = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
+          }
+          stepResults.push({ name: 'Load Page', type: 'navigation', status: 'passed', screenshot: navScreenshotPath, details: `Successfully navigated to ${test.url}` });
         } catch (e: any) {
           overallSuccess = false;
           resolvedLogger.error({ message: "PS:executeTestSequence - Failed initial navigation", testName: test.name, url: test.url, error: e.message, stack: e.stack });
-          const errorScreenshotBuffer = await page?.screenshot({ type: 'png' }).catch(() => null);
-          const errorScreenshot = errorScreenshotBuffer?.toString('base64');
-          stepResults.push({ name: 'Load Page', type: 'navigation', status: 'failed', error: e.message, screenshot: errorScreenshot ? `data:image/png;base64,${errorScreenshot}` : undefined, details: `Failed to navigate to ${test.url}` });
+          let errorNavScreenshotPath: string | undefined;
+          if (page && !page.isClosed()) {
+            if (screenshotBaseDir) {
+              await fs.ensureDir(screenshotBaseDir);
+              const errorScreenshotFilePath = path.join(screenshotBaseDir, `step_navigation_load_error_${Date.now()}.png`);
+              await page.screenshot({ type: 'png', path: errorScreenshotFilePath }).catch(err => resolvedLogger.warn("Failed to save error screenshot to file", err));
+              errorNavScreenshotPath = errorScreenshotFilePath;
+            } else {
+              const errorScreenshotBuffer = await page.screenshot({ type: 'png' }).catch(() => null);
+              errorNavScreenshotPath = errorScreenshotBuffer ? `data:image/png;base64,${errorScreenshotBuffer.toString('base64')}` : undefined;
+            }
+          }
+          stepResults.push({ name: 'Load Page', type: 'navigation', status: 'failed', error: e.message, screenshot: errorNavScreenshotPath, details: `Failed to navigate to ${test.url}` });
           const duration = Date.now() - startTime;
           return { success: false, steps: stepResults, error: e.message, duration };
         }
@@ -1058,24 +1088,46 @@ export class PlaywrightService {
               default:
                 throw new Error(`Unsupported action ID: ${actionId}`);
             }
-            const screenshotBuffer = await page.screenshot({ type: 'png' });
-            stepScreenshot = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
+
+            // Screenshot logic for successful step
+            if (screenshotBaseDir) {
+              await fs.ensureDir(screenshotBaseDir);
+              // Sanitize actionName for use in filename
+              const sanitizedActionName = actionName.replace(/[^a-z0-9_.-]/gi, '_').substring(0, 50);
+              const screenshotFilePath = path.join(screenshotBaseDir, `step_${sanitizedActionName}_${Date.now()}.png`);
+              await page.screenshot({ type: 'png', path: screenshotFilePath });
+              stepScreenshot = screenshotFilePath;
+            } else {
+              const screenshotBuffer = await page.screenshot({ type: 'png' });
+              stepScreenshot = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
+            }
+
           } catch (e: any) {
             stepStatus = 'failed';
             stepError = e.message;
             overallSuccess = false;
             resolvedLogger.error({ message: `Error in step "${actionName}"`, testName: test.name, testId: test.id, actionId, selector: step.targetElement?.selector, error: e.message, stack: e.stack });
-            if (page) {
+
+            // Screenshot logic for failed step
+            if (page && !page.isClosed()) {
               try {
-                const errorScreenshotBuffer = await page.screenshot({ type: 'png' });
-                stepScreenshot = `data:image/png;base64,${errorScreenshotBuffer.toString('base64')}`;
+                if (screenshotBaseDir) {
+                  await fs.ensureDir(screenshotBaseDir);
+                  const sanitizedActionName = actionName.replace(/[^a-z0-9_.-]/gi, '_').substring(0, 50);
+                  const errorScreenshotFilePath = path.join(screenshotBaseDir, `step_${sanitizedActionName}_error_${Date.now()}.png`);
+                  await page.screenshot({ type: 'png', path: errorScreenshotFilePath });
+                  stepScreenshot = errorScreenshotFilePath;
+                } else {
+                  const errorScreenshotBuffer = await page.screenshot({ type: 'png' });
+                  stepScreenshot = `data:image/png;base64,${errorScreenshotBuffer.toString('base64')}`;
+                }
               } catch (screenError: any) {
                 resolvedLogger.warn({ message: 'Failed to take screenshot on error', testName: test.name, actionName, error: screenError.message, stack: screenError.stack });
               }
             }
           }
           if (stepStatus === 'failed') overallSuccess = false;
-          stepResults.push({ name: actionName, type: actionId || 'unknown', selector: step.targetElement?.selector, value: step.value, status: stepStatus, screenshot: stepScreenshot, error: stepError, details: stepStatus === 'passed' ? 'Action executed successfully.' : `Action failed: ${stepError}` });
+          stepResults.push({ name: actionName, type: actionId || 'unknown', selector: step.targetElement?.selector, value: step.value, status: stepStatus, screenshot: stepScreenshot, error: stepError, details: stepStatus === 'passed' ? 'Action executed successfully.' : `Action failed: ${stepError || 'Unknown error'}` });
           if (!overallSuccess) {
             resolvedLogger.info({ message: `PS:executeTestSequence - Step failed. Stopping sequence execution.`, testName: test.name, failedStep: actionName });
             break;

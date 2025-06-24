@@ -1519,6 +1519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // onDelete: 'cascade' is defined in the schedules.testPlanId FK.
       // This means deleting a test plan will automatically delete associated schedules.
+      // Also, test_plan_selected_tests and test_plan_runs have onDelete: 'cascade' for testPlanId.
       const result = await db
         .delete(testPlans)
         .where(eq(testPlans.id, testPlanId))
@@ -1534,6 +1535,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to delete test plan" });
     }
   });
+
+  // POST /api/run-test-plan/:id - Execute a test plan
+  app.post("/api/run-test-plan/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const testPlanId = req.params.id;
+    const userId = req.user.id;
+
+    resolvedLogger.http({ message: `POST /api/run-test-plan/${testPlanId} - Handler reached`, testPlanId, userId });
+
+    try {
+      // Dynamically import runTestPlan to avoid circular dependencies if test-execution-service grows
+      const { runTestPlan } = await import("./test-execution-service");
+      const executionResult = await runTestPlan(testPlanId, userId);
+
+      if (executionResult.error) {
+        // Check if a specific status code was suggested by runTestPlan
+        const statusCode = executionResult.status && typeof executionResult.status === 'number' ? executionResult.status : 500;
+        resolvedLogger.error({ message: `Test plan execution failed for plan ${testPlanId}`, error: executionResult.error, testPlanRunId: executionResult.testPlanRunId });
+        return res.status(statusCode).json({ success: false, error: executionResult.error, data: executionResult });
+      }
+
+      resolvedLogger.info({ message: `Test plan ${testPlanId} executed successfully. Run ID: ${executionResult.id}` });
+      // executionResult should be the full TestPlanRun object
+      res.status(200).json({ success: true, data: executionResult });
+
+    } catch (error: any) {
+      resolvedLogger.error({
+        message: `Critical error in /api/run-test-plan/${testPlanId} route handler`,
+        testPlanId,
+        userId,
+        error: error.message,
+        stack: error.stack,
+      });
+      res.status(500).json({ success: false, error: "Internal server error during test plan execution." });
+    }
+  });
+
 
   // GET /api/selectable-tests - List UI and API tests for selection in Test Plans
   app.get("/api/selectable-tests", async (req, res) => {
