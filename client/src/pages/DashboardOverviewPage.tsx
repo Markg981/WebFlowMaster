@@ -24,7 +24,6 @@ const DashboardOverviewPage: React.FC = () => {
   const [isCreateTestActive] = useRoute('/dashboard/create-test'); // Changed path
   const [isApiTesterActive] = useRoute('/dashboard/api-tester'); // For the new API Tester link
   const [isSettingsActive] = useRoute('/settings');
-  const [isTestsActive] = useRoute('/tests'); // Correctly initialize isTestsActive
   const [isSuitesActive] = useRoute('/test-suites'); // Updated active state for Test Suites
   const isSchedulazioniActive = false;
   const isReportsActive = false;
@@ -82,12 +81,6 @@ const DashboardOverviewPage: React.FC = () => {
                 <Link href="/dashboard/create-test" title={t('nav.createTest')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isCreateTestActive ? activeLinkStyle : inactiveLinkStyle}`}>
                   <PlusSquare className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
                   {!isSidebarCollapsed && <span>{t('nav.createTest')}</span>}
-                </Link>
-              </li>
-              <li>
-                <Link href="/tests" title={t('nav.tests')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isTestsActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                  <TestsIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                  {!isSidebarCollapsed && <span>{t('nav.tests')}</span>}
                 </Link>
               </li>
               <li>
