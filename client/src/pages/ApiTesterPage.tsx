@@ -512,8 +512,71 @@ const ApiTesterPage: React.FC = () => {
 
   const handleLoadHistoryItem = (item: ApiTestHistoryEntry) => {
     setMethod(item.method); setUrl(item.url);
-    setQueryParams(item.queryParams ? (typeof item.queryParams === 'string' ? JSON.parse(item.queryParams) : item.queryParams) : [{ id: `qp-${Date.now()}`, key: '', value: '', enabled: true }]);
-    setRequestHeaders(item.requestHeaders ? (typeof item.requestHeaders === 'string' ? JSON.parse(item.requestHeaders) : item.requestHeaders) : [{ id: `rh-${Date.now()}`, key: '', value: '', enabled: true }]);
+
+    // Properly parse queryParams from history item which might be an object or array
+    let parsedQueryParams: KeyValuePair[];
+    if (item.queryParams) {
+      const paramsToParse = typeof item.queryParams === 'string'
+        ? JSON.parse(item.queryParams)
+        : item.queryParams;
+
+      if (Array.isArray(paramsToParse)) {
+        parsedQueryParams = paramsToParse.map((p: any, index: number) => ({
+          id: p.id || `qp-${Date.now()}-${index}`,
+          key: p.key || '',
+          value: p.value || '',
+          enabled: typeof p.enabled === 'boolean' ? p.enabled : true,
+        }));
+      } else if (typeof paramsToParse === 'object' && paramsToParse !== null) {
+        parsedQueryParams = Object.entries(paramsToParse).map(([key, value], index) => ({
+          id: `qp-${Date.now()}-${index}`,
+          key,
+          value: Array.isArray(value) ? value.join(',') : String(value),
+          enabled: true,
+        }));
+      } else {
+        parsedQueryParams = [{ id: `qp-${Date.now()}`, key: '', value: '', enabled: true }];
+      }
+    } else {
+      parsedQueryParams = [{ id: `qp-${Date.now()}`, key: '', value: '', enabled: true }];
+    }
+    if (parsedQueryParams.length === 0) {
+        parsedQueryParams.push({ id: `qp-${Date.now()}-empty`, key: '', value: '', enabled: true });
+    }
+    setQueryParams(parsedQueryParams);
+
+    // Properly parse requestHeaders
+    let parsedRequestHeaders: KeyValuePair[];
+    if (item.requestHeaders) {
+        const headersToParse = typeof item.requestHeaders === 'string'
+            ? JSON.parse(item.requestHeaders)
+            : item.requestHeaders;
+
+        if (Array.isArray(headersToParse)) {
+            parsedRequestHeaders = headersToParse.map((h: any, index: number) => ({
+                id: h.id || `rh-${Date.now()}-${index}`,
+                key: h.key || '',
+                value: h.value || '',
+                enabled: typeof h.enabled === 'boolean' ? h.enabled : true,
+            }));
+        } else if (typeof headersToParse === 'object' && headersToParse !== null) {
+            parsedRequestHeaders = Object.entries(headersToParse).map(([key, value], index) => ({
+                id: `rh-${Date.now()}-${index}`,
+                key,
+                value: String(value),
+                enabled: true,
+            }));
+        } else {
+            parsedRequestHeaders = [{ id: `rh-${Date.now()}`, key: '', value: '', enabled: true }];
+        }
+    } else {
+        parsedRequestHeaders = [{ id: `rh-${Date.now()}`, key: '', value: '', enabled: true }];
+    }
+    if (parsedRequestHeaders.length === 0) {
+        parsedRequestHeaders.push({ id: `rh-${Date.now()}-empty`, key: '', value: '', enabled: true });
+    }
+    setRequestHeaders(parsedRequestHeaders);
+
     setRequestBodyValue(item.requestBody || '');
     setResponseStatus(item.responseStatus ?? null);
     setResponseHeaders(item.responseHeaders ? (typeof item.responseHeaders === 'string' ? JSON.parse(item.responseHeaders) : item.responseHeaders) : null);
