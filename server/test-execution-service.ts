@@ -167,7 +167,7 @@ export async function runTestPlan(
         id: testPlanRunId,
         testPlanId: planId,
         status: 'running',
-        startedAt: Math.floor(Date.now() / 1000),
+        // startedAt will be set by the database default
         // `results` will be updated as tests complete
       })
       .returning();

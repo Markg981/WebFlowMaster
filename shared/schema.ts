@@ -8,7 +8,7 @@ export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });
 
 export const userSettings = sqliteTable("user_settings", {
@@ -25,7 +25,7 @@ export const projects = sqliteTable("projects", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   userId: integer("user_id").notNull().references(() => users.id),
-  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });
 
 export const tests = sqliteTable("tests", {
@@ -37,8 +37,8 @@ export const tests = sqliteTable("tests", {
   sequence: text("sequence", { mode: 'json' }).notNull(), // Array of test steps
   elements: text("elements", { mode: 'json' }).notNull(), // Detected DOM elements
   status: text("status").notNull().default("draft"), // draft, saved, executing, completed
-  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
-  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(), // Consider removing DB default for updatedAt if app logic handles it
 });
 
 export const testRuns = sqliteTable("test_runs", {
@@ -46,8 +46,8 @@ export const testRuns = sqliteTable("test_runs", {
   testId: integer("test_id").notNull().references(() => tests.id),
   status: text("status").notNull(), // running, completed, failed
   results: text("results", { mode: 'json' }), // Execution results and logs
-  startedAt: text("started_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
-  completedAt: text("completed_at"),
+  startedAt: integer("started_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  completedAt: integer("completed_at", { mode: 'timestamp' }), // Made consistent
 });
 
 export const apiTestHistory = sqliteTable("api_test_history", {
@@ -62,7 +62,7 @@ export const apiTestHistory = sqliteTable("api_test_history", {
   responseHeaders: text("response_headers", { mode: 'json' }),
   responseBody: text("response_body"),
   durationMs: integer("duration_ms"),
-  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });
 
 export const apiTests = sqliteTable("api_tests", {
@@ -84,8 +84,8 @@ export const apiTests = sqliteTable("api_tests", {
   bodyUrlEncoded: text("body_url_encoded", { mode: 'json' }), // Nullable
   bodyGraphqlQuery: text("body_graphql_query"), // Nullable
   bodyGraphqlVariables: text("body_graphql_variables"), // Nullable
-  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
-  updatedAt: text("updated_at").default(sql`(CURRENT_TIMESTAMP)`).notNull(),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(), // Consider removing DB default for updatedAt if app logic handles it
 });
 
 // System Settings Table
