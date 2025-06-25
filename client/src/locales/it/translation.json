@@ -552,6 +552,9 @@
     }
   },
   "authPage": {
+    "webtestPlatform": {
+      "text": "WebTest Platform"
+    },
     "automatedWebTestingMadeSimple": {
       "text": "[TRANSLATE] Automated Web Testing Made Simple"
     },
