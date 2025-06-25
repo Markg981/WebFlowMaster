@@ -12,7 +12,7 @@ import {
 import SchedulesList from '@/components/scheduling/SchedulesList';
 import ScheduleForm from '@/components/scheduling/ScheduleForm';
 import { Button } from '@/components/ui/button';
-import { PlusCircledIcon } from '@radix-ui/react-icons';
+import { PlusCircle } from 'lucide-react'; // Changed from @radix-ui/react-icons
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'; // DialogClose might be needed
 import { useToast } from '@/components/ui/use-toast';
 
@@ -120,7 +120,7 @@ const SchedulingPage: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl md:text-3xl font-bold">Test Plan Scheduling</h1>
         <Button onClick={handleOpenCreateForm}>
-          <PlusCircledIcon className="mr-2 h-4 w-4" /> Create Schedule
+          <PlusCircle className="mr-2 h-4 w-4" /> Create Schedule
         </Button>
       </div>
 
