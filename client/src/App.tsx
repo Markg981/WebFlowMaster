@@ -15,6 +15,7 @@ import SettingsPage from "@/pages/settings-page";
 import ApiTesterPage from "@/pages/ApiTesterPage";
 import TestSuitesPage from './pages/TestSuitesPage'; // Using relative path for diagnosis
 import TestPlanExecutionPage from './pages/TestPlanExecutionPage'; // Using relative path for diagnosis
+import SchedulingPage from './pages/SchedulingPage'; // Added SchedulingPage
 import { ProtectedRoute } from "./lib/protected-route";
 // Imports for ThemeLoader
 import { useEffect } from 'react'; // useEffect already imported
@@ -80,6 +81,7 @@ function Router() {
       <ProtectedRoute path="/dashboard/create-test" component={DashboardPage} />
       <ProtectedRoute path="/dashboard/api-tester" component={ApiTesterPage} />
       <ProtectedRoute path="/dashboard" component={DashboardOverviewPage} />
+      <ProtectedRoute path="/scheduling" component={SchedulingPage} />
       <ProtectedRoute path="/test-suites" component={TestSuitesPage} />
       <ProtectedRoute path="/test-plan/:planId/run" component={TestPlanExecutionPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
