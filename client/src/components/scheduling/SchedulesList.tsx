@@ -3,7 +3,7 @@ import type { TestPlanScheduleEnhanced } from '@/lib/api/schedules';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Pencil2Icon, TrashIcon } from '@radix-ui/react-icons';
+import { FileEdit, Trash2 } from 'lucide-react'; // Changed from @radix-ui/react-icons
 import { format } from 'date-fns';
 
 interface SchedulesListProps {
@@ -67,10 +67,10 @@ const SchedulesList: React.FC<SchedulesListProps> = ({ schedules, onEdit, onDele
               </TableCell>
               <TableCell className="space-x-2">
                 <Button variant="ghost" size="icon" onClick={() => onEdit(schedule)} title="Edit Schedule">
-                  <Pencil2Icon className="h-4 w-4" />
+                  <FileEdit className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="icon" onClick={() => onDelete(schedule.id)} title="Delete Schedule">
-                  <TrashIcon className="h-4 w-4 text-red-500" />
+                  <Trash2 className="h-4 w-4 text-red-500" />
                 </Button>
               </TableCell>
             </TableRow>

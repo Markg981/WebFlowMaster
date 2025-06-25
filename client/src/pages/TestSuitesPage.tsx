@@ -14,7 +14,8 @@ import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard';
 import ScheduleWizard from '@/components/scheduling/ScheduleWizard'; // Import ScheduleWizard
 import { useToast } from '@/hooks/use-toast';
 import { runTestPlanAPI, fetchTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans'; // Renamed fetchTestPlans
-import { fetchSchedulesByPlanId, deleteSchedule, toggleScheduleActiveStatus, TestPlanScheduleWithPlanName } from '@/lib/api/schedules';
+// Removed toggleScheduleActiveStatus, will use updateSchedule instead
+import { fetchSchedulesByPlanId, deleteSchedule, updateSchedule, TestPlanScheduleWithPlanName, UpdateScheduleClientPayload } from '@/lib/api/schedules';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
@@ -67,8 +68,8 @@ const TestSuitesPage: React.FC = () => {
   });
 
   const toggleScheduleStatusMutation = useMutation({
-    mutationFn: (data: { id: string, isActive: boolean }) => toggleScheduleActiveStatus(data.id, data.isActive),
-    onSuccess: (updatedSchedule) => {
+    mutationFn: (data: { id: string, payload: UpdateScheduleClientPayload }) => updateSchedule(data.id, data.payload),
+    onSuccess: (updatedSchedule) => { // updatedSchedule is TestPlanScheduleEnhanced
       toast({ title: t(updatedSchedule.isActive ? 'testSuitesPage.toast.scheduleActivateSuccess.title' : 'testSuitesPage.toast.scheduleDeactivateSuccess.title') });
       queryClient.invalidateQueries({ queryKey: ['schedulesByPlanId', currentlyViewedPlanIdForSchedules] });
       queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] });
