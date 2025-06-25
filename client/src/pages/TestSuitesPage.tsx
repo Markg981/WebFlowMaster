@@ -221,33 +221,33 @@ const TestSuitesPage: React.FC = () => {
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1 || isLoading}
+                disabled={currentPage === 1 || isLoadingTestPlans}
               >
                 <ChevronLeft size={16} />
               </Button>
               <span className="mx-2">
-                {isLoading ? '...' : `${Math.min((currentPage - 1) * itemsPerPage + 1, filteredTestPlans.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1)}-${Math.min(currentPage * itemsPerPage, filteredTestPlans.length)} of ${filteredTestPlans.length}`}
+                {isLoadingTestPlans ? '...' : `${Math.min((currentPage - 1) * itemsPerPage + 1, filteredTestPlans.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1)}-${Math.min(currentPage * itemsPerPage, filteredTestPlans.length)} of ${filteredTestPlans.length}`}
               </span>
               <Button
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages || filteredTestPlans.length === 0 || isLoading}
+                disabled={currentPage === totalPages || filteredTestPlans.length === 0 || isLoadingTestPlans}
               >
                 <ChevronRight size={16} />
               </Button>
             </div>
             {/* + Test Plan Button */}
-            <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={() => setIsWizardOpen(true)}>
+            <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={() => setIsCreatePlanWizardOpen(true)}>
               {t('testSuitesPage.testPlan.button')}
             </Button>
           </div>
         </div>
 
         <CreateTestPlanWizard
-          isOpen={isWizardOpen}
-          onClose={() => setIsWizardOpen(false)}
+          isOpen={isCreatePlanWizardOpen}
+          onClose={() => setIsCreatePlanWizardOpen(false)}
           onPlanCreated={handlePlanCreated}
         />
 
@@ -258,18 +258,18 @@ const TestSuitesPage: React.FC = () => {
           </TabsList>
           <TabsContent value="test-plan" className="mt-6">
             <>
-            {isLoading && (
+            {isLoadingTestPlans && (
               <div className="flex justify-center items-center py-10">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="ml-2">{t('testSuitesPage.loadingTestPlans.text')}</p>
               </div>
             )}
-            {error && (
+            {testPlansError && (
               <div className="text-red-500 text-center py-10">
-                {t('testSuitesPage.errorLoadingTestPlans.text')}: {error.message}
+                {t('testSuitesPage.errorLoadingTestPlans.text')}: {testPlansError.message}
               </div>
             )}
-            {!isLoading && !error && (
+            {!isLoadingTestPlans && !testPlansError && (
               <Table>
                 <TableHeader>
                   <TableRow>
