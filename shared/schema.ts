@@ -195,93 +195,101 @@ export type InsertProject = typeof projects.$inferInsert;
 export type SystemSetting = typeof systemSettings.$inferSelect;
 export type InsertSystemSetting = typeof systemSettings.$inferInsert;
 
-// Schedules Table
-export const schedules = sqliteTable("schedules", {
-  id: text('id').primaryKey(),
-  scheduleName: text('schedule_name').notNull(),
-  testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }), // Made notNull and added FK
-  // testPlanName: text('test_plan_name'), // REMOVED
-  frequency: text('frequency').notNull(),
-  nextRunAt: integer('next_run_at', { mode: 'timestamp' }).notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }),
-});
-
-// Relations for Schedules
-export const schedulesRelations = relations(schedules, ({ one }) => ({
-  testPlan: one(testPlans, {
-    fields: [schedules.testPlanId],
-    references: [testPlans.id],
-  }),
-  // Add user relation if schedules become user-specific
-  // user: one(users, { fields: [schedules.userId], references: [users.id] }),
-}));
-
-
-// Zod Schemas for Schedules
-export const insertScheduleSchema = createInsertSchema(schedules, {
-  nextRunAt: z.number().positive().or(z.date()),
-  // testPlanId is now notNull and will be included by default from createInsertSchema
-}).omit({ createdAt: true, updatedAt: true }); // id is omitted by default if it's a primary key without a default function in some contexts, but let's be explicit if needed. For text PK, it's usually required.
-
-export const selectScheduleSchema = createInsertSchema(schedules); // For selecting, includes all fields
-
-export const updateScheduleSchema = createInsertSchema(schedules, {
-  nextRunAt: z.number().positive().or(z.date()).optional(), // Ensure nextRunAt can be optional and still a date/number
-}).pick({
-  scheduleName: true,
-  testPlanId: true, // testPlanId might be updatable
-  // testPlanName is removed
-  frequency: true,
-  nextRunAt: true,
-}).partial();
-
-// Types for Schedules
-export type Schedule = typeof schedules.$inferSelect;
-export type InsertSchedule = typeof schedules.$inferInsert;
-
-
 // Test Plans Table
 export const testPlans = sqliteTable("test_plans", {
   id: text('id').primaryKey(), // Client-generated ID or UUID string
   name: text('name').notNull(),
   description: text('description'),
-  testMachinesConfig: text('test_machines_config', { mode: 'json' }), // Added for Step 2
-  captureScreenshots: text('capture_screenshots').default('on_failed_steps'), // Added for Step 3: 'always', 'on_failed_steps', 'never'
-  visualTestingEnabled: integer('visual_testing_enabled', { mode: 'boolean' }).default(false), // Added for Step 3
-  pageLoadTimeout: integer('page_load_timeout').default(30000), // Added for Step 3 (ms)
-  elementTimeout: integer('element_timeout').default(30000), // Added for Step 3 (ms)
-  onMajorStepFailure: text('on_major_step_failure').default('abort_and_run_next_test_case'), // Added for Step 3
-  onAbortedTestCase: text('on_aborted_test_case').default('delete_cookies_and_reuse_session'), // Added for Step 3
-  onTestSuitePreRequisiteFailure: text('on_test_suite_pre_requisite_failure').default('stop_execution'), // Added for Step 3
-  onTestCasePreRequisiteFailure: text('on_test_case_pre_requisite_failure').default('stop_execution'), // Added for Step 3
-  onTestStepPreRequisiteFailure: text('on_test_step_pre_requisite_failure').default('abort_and_run_next_test_case'), // Added for Step 3
-  reRunOnFailure: text('re_run_on_failure').default('none'), // Added for Step 3: 'none', 'once', 'twice', 'thrice'
-  notificationSettings: text('notification_settings', { mode: 'json' }), // Added for Step 3 (e.g., { passed: true, failed: true, ...})
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(), // Unix timestamp
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(), // Unix timestamp, to be updated by app logic on change
+  testMachinesConfig: text('test_machines_config', { mode: 'json' }),
+  captureScreenshots: text('capture_screenshots').default('on_failed_steps'),
+  visualTestingEnabled: integer('visual_testing_enabled', { mode: 'boolean' }).default(false),
+  pageLoadTimeout: integer('page_load_timeout').default(30000),
+  elementTimeout: integer('element_timeout').default(30000),
+  onMajorStepFailure: text('on_major_step_failure').default('abort_and_run_next_test_case'),
+  onAbortedTestCase: text('on_aborted_test_case').default('delete_cookies_and_reuse_session'),
+  onTestSuitePreRequisiteFailure: text('on_test_suite_pre_requisite_failure').default('stop_execution'),
+  onTestCasePreRequisiteFailure: text('on_test_case_pre_requisite_failure').default('stop_execution'),
+  onTestStepPreRequisiteFailure: text('on_test_step_pre_requisite_failure').default('abort_and_run_next_test_case'),
+  reRunOnFailure: text('re_run_on_failure').default('none'), // Plan-level default, can be overridden by schedule
+  notificationSettings: text('notification_settings', { mode: 'json' }), // Plan-level default notifications
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });
 
-// Test Plan Selected Tests Table (Join table)
+// Test Plan Schedules Table (renamed from schedules)
+export const testPlanSchedules = sqliteTable("test_plan_schedules", {
+  id: text('id').primaryKey(), // Consider UUID, generated by server
+  testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
+  scheduleName: text('schedule_name').notNull(),
+  frequency: text('frequency').notNull(), // e.g., 'once', 'daily@10:00', 'weekly@Mon,14:30', 'cron:0 0 * * *'
+  nextRunAt: integer('next_run_at', { mode: 'timestamp' }).notNull(),
+  environment: text('environment'), // e.g., 'Staging', 'QA', 'Production'
+  browsers: text('browsers', { mode: 'json' }), // e.g., ["chromium", "firefox"]
+  notificationConfigOverride: text('notification_config_override', { mode: 'json' }), // Schedule-specific notifications
+  executionParameters: text('execution_parameters', { mode: 'json' }), // Optional parameters to inject
+  isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
+  retryOnFailure: text('retry_on_failure', { enum: ['none', 'once', 'twice'] }).default('none').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }),
+  // userId: integer('user_id').references(() => users.id), // If schedules are user-specific for permissions
+});
+
+// Test Plan Executions Table (renamed from testPlanRuns)
+export const testPlanExecutions = sqliteTable("test_plan_executions", {
+  id: text('id').primaryKey(), // Consider UUID, generated by server
+  scheduleId: text('schedule_id').references(() => testPlanSchedules.id, { onDelete: 'set null' }), // Link to schedule if it was a scheduled run
+  testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
+  status: text('status', { enum: ['pending', 'running', 'completed', 'failed', 'error', 'cancelled'] }).notNull().default('pending'),
+  results: text("results", { mode: 'json' }), // Detailed logs, duration per test, overall outcome, errors
+  startedAt: integer('started_at', { mode: 'timestamp' }).notNull().default(sql`(strftime('%s', 'now'))`),
+  completedAt: integer('completed_at', { mode: 'timestamp' }),
+  environment: text('environment'), // Copied from schedule or specified for manual run
+  browsers: text('browsers', { mode: 'json' }), // Copied from schedule or specified for manual run
+  triggeredBy: text('triggered_by', { enum: ['scheduled', 'manual', 'api'] }).notNull().default('manual'),
+  // userId: integer('user_id').references(() => users.id), // User who manually triggered or owns the schedule
+});
+
+
+// Test Plan Selected Tests Table (Join table) - No changes needed from original
 export const testPlanSelectedTests = sqliteTable("test_plan_selected_tests", {
   id: integer('id').primaryKey({ autoIncrement: true }),
   testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
   testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }), // For UI tests
   apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }), // For API tests
-  testType: text('test_type').notNull(), // 'ui' or 'api'
-  // Ensures that either testId or apiTestId is populated, but not both.
-  // This constraint needs to be handled at the application/trigger level if not directly supported by SQLite in this way.
-  // For now, the schema allows both to be nullable and relies on application logic.
-  // Consider adding a CHECK constraint if SQLite version supports it well with Drizzle:
-  // _check: sql`CHECK ((test_id IS NOT NULL AND api_test_id IS NULL) OR (test_id IS NULL AND api_test_id IS NOT NULL))`
+  testType: text('test_type', { enum: ['ui', 'api'] }).notNull(),
 });
 
 
 // Relations for Test Plans
 export const testPlansRelations = relations(testPlans, ({ many }) => ({
   selectedTests: many(testPlanSelectedTests, { relationName: 'selectedTestsForPlan' }),
-  schedules: many(schedules), // Existing relation for schedules
+  schedules: many(testPlanSchedules), // Updated relation name
+  executions: many(testPlanExecutions), // Added relation
 }));
+
+// Relations for Test Plan Schedules
+export const testPlanSchedulesRelations = relations(testPlanSchedules, ({ one, many }) => ({
+  testPlan: one(testPlans, {
+    fields: [testPlanSchedules.testPlanId],
+    references: [testPlans.id],
+  }),
+  executions: many(testPlanExecutions), // A schedule can have many executions
+  // user: one(users, { fields: [testPlanSchedules.userId], references: [users.id] }),
+}));
+
+// Relations for Test Plan Executions
+export const testPlanExecutionsRelations = relations(testPlanExecutions, ({ one }) => ({
+  testPlan: one(testPlans, {
+    fields: [testPlanExecutions.testPlanId],
+    references: [testPlans.id],
+  }),
+  schedule: one(testPlanSchedules, { // An execution can belong to one schedule
+    fields: [testPlanExecutions.scheduleId],
+    references: [testPlanSchedules.id],
+  }),
+  // user: one(users, { fields: [testPlanExecutions.userId], references: [users.id] }),
+}));
+
 
 export const testPlanSelectedTestsRelations = relations(testPlanSelectedTests, ({ one }) => ({
   testPlan: one(testPlans, {
@@ -304,7 +312,7 @@ export const testPlanSelectedTestsRelations = relations(testPlanSelectedTests, (
 const TestMachineConfigSchema = z.object({
   os: z.string(),
   osVersion: z.string(),
-  browserName: z.string(), // Changed from browser to browserName
+  browserName: z.string(),
   browserVersion: z.string(),
   headless: z.boolean(),
 }).optional();
@@ -312,7 +320,7 @@ const TestMachineConfigSchema = z.object({
 export const insertTestPlanSchema = createInsertSchema(testPlans, {
   name: z.string().min(1, "Test Plan Name is required"),
   description: z.string().optional(),
-  testMachinesConfig: z.array(TestMachineConfigSchema).optional().nullable(), // Array of machine configs
+  testMachinesConfig: z.array(TestMachineConfigSchema).optional().nullable(),
   captureScreenshots: z.enum(['always', 'on_failed_steps', 'never']).default('on_failed_steps'),
   visualTestingEnabled: z.boolean().default(false),
   pageLoadTimeout: z.number().int().positive().default(30000),
@@ -323,7 +331,7 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
   onTestCasePreRequisiteFailure: z.enum(['stop_execution', 'skip_test_case', 'continue_anyway']).default('stop_execution'),
   onTestStepPreRequisiteFailure: z.enum(['abort_and_run_next_test_case', 'stop_execution', 'skip_test_step']).default('abort_and_run_next_test_case'),
   reRunOnFailure: z.enum(['none', 'once', 'twice', 'thrice']).default('none'),
-  notificationSettings: z.object({ // Structure for notification preferences
+  notificationSettings: z.object({
     passed: z.boolean().default(true),
     failed: z.boolean().default(true),
     notExecuted: z.boolean().default(true),
@@ -331,9 +339,8 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
   }).optional().nullable(),
 }).omit({ id: true, createdAt: true, updatedAt: true });
 
-export const selectTestPlanSchema = createSelectSchema(testPlans); // Includes all fields
-
-export const updateTestPlanSchema = insertTestPlanSchema.partial(); // All fields optional for updates
+export const selectTestPlanSchema = createSelectSchema(testPlans);
+export const updateTestPlanSchema = insertTestPlanSchema.partial();
 
 // Types for Test Plans
 export type TestPlan = typeof testPlans.$inferSelect;
@@ -341,46 +348,41 @@ export type InsertTestPlan = typeof testPlans.$inferInsert;
 export type TestPlanSelectedTest = typeof testPlanSelectedTests.$inferSelect;
 export type InsertTestPlanSelectedTest = typeof testPlanSelectedTests.$inferInsert;
 
-// Test Plan Runs Table
-export const testPlanRuns = sqliteTable("test_plan_runs", {
-  id: text('id').primaryKey(), // UUID generated by the application for the run itself
-  testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
-  status: text('status', { enum: ['pending', 'running', 'passed', 'failed', 'partial', 'error'] }).notNull().default('pending'),
-  results: text("results", { mode: 'json' }), // Stores array of individual test run results, similar to StepResult[]
-  startedAt: integer('started_at', { mode: 'timestamp' }).notNull().default(sql`(strftime('%s', 'now'))`),
-  completedAt: integer('completed_at', { mode: 'timestamp' }),
-  // runId: text('run_id').notNull().unique(), // Decided to use 'id' as the unique run identifier
+// Zod Schemas for Test Plan Schedules
+export const insertTestPlanScheduleSchema = createInsertSchema(testPlanSchedules, {
+  nextRunAt: z.number().positive().or(z.date()), // Ensure this is a timestamp or Date object
+  browsers: z.array(z.string()).optional().nullable(), // Expect an array of browser names
+  notificationConfigOverride: z.record(z.any()).optional().nullable(), // Flexible JSON object
+  executionParameters: z.record(z.any()).optional().nullable(), // Flexible JSON object
+  isActive: z.boolean().default(true),
+  retryOnFailure: z.enum(['none', 'once', 'twice']).default('none'),
+}).omit({ id: true, createdAt: true, updatedAt: true });
+
+export const selectTestPlanScheduleSchema = createSelectSchema(testPlanSchedules);
+export const updateTestPlanScheduleSchema = insertTestPlanScheduleSchema.partial().extend({
+  // Ensure specific fields like isActive can be explicitly set to true/false
+  isActive: z.boolean().optional(),
 });
 
-// Relations for Test Plan Runs
-export const testPlanRunsRelations = relations(testPlanRuns, ({ one }) => ({
-  testPlan: one(testPlans, {
-    fields: [testPlanRuns.testPlanId],
-    references: [testPlans.id],
-  }),
-  // If we need to link to a specific user who initiated the run:
-  // user: one(users, { fields: [testPlanRuns.triggeredByUserId], references: [users.id] }),
-}));
 
-// Zod Schemas for Test Plan Runs
-export const insertTestPlanRunSchema = createInsertSchema(testPlanRuns, {
-  // `id` will be set by the application (UUID)
-  // `results` will be an array of objects, so we can use z.any() for the base schema generation
-  // and then refine it if needed, or handle its structure at the application level.
-  results: z.array(z.any()).optional().nullable(), // Or a more specific schema for individual test results
+// Types for Test Plan Schedules
+export type TestPlanSchedule = typeof testPlanSchedules.$inferSelect;
+export type InsertTestPlanSchedule = typeof testPlanSchedules.$inferInsert;
+
+
+// Zod Schemas for Test Plan Executions
+export const insertTestPlanExecutionSchema = createInsertSchema(testPlanExecutions, {
+  results: z.any().optional().nullable(), // Or a more specific schema for results
   startedAt: z.number().optional(), // Default is SQL, but can be set by app
   completedAt: z.number().optional().nullable(),
-}).omit({
-  // `id` is specified here if it's not auto-generated by DB and must be provided by app
-  // `status` has a default, so often omitted from direct insert unless overriding
-  // `createdAt`, `updatedAt` like fields are usually omitted if DB handles them. Here `startedAt` has default.
-});
+  browsers: z.array(z.string()).optional().nullable(),
+}).omit({ id: true }); // id will be server-generated UUID
 
-export const selectTestPlanRunSchema = createSelectSchema(testPlanRuns);
+export const selectTestPlanExecutionSchema = createSelectSchema(testPlanExecutions);
 
-// Types for Test Plan Runs
-export type TestPlanRun = typeof testPlanRuns.$inferSelect;
-export type InsertTestPlanRun = typeof testPlanRuns.$inferInsert;
+// Types for Test Plan Executions
+export type TestPlanExecution = typeof testPlanExecutions.$inferSelect;
+export type InsertTestPlanExecution = typeof testPlanExecutions.$inferInsert;
 
 
 // --- Assertion Schemas ---

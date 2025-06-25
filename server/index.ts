@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import schedulerService from "./scheduler-service"; // Import the scheduler service
 import { setupVite, serveStatic, log } from "./vite";
 import 'dotenv/config';
 import loggerPromise from './logger'; // Import Winston logger promise
@@ -76,6 +77,16 @@ app.use(express.urlencoded({ extended: false }));
   await ensureDefaultSystemSettings(); // Call during server startup
 
   const server = await registerRoutes(app);
+
+  // Initialize the scheduler after routes are registered and DB is presumably ready
+  // In a real app, ensure DB connection/migration is complete before this.
+  try {
+    await schedulerService.initializeScheduler();
+    logger.info('Scheduler initialized successfully after routes.');
+  } catch (schedulerError) {
+    logger.error('Failed to initialize scheduler:', schedulerError);
+    // Decide if server should proceed or exit based on severity
+  }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

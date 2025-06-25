@@ -1,64 +1,110 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'wouter';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, ArrowLeft, LibrarySquare, Loader2 } from 'lucide-react';
-import type { TestPlan } from '@shared/schema'; // Import TestPlan type
-import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard'; // Import the wizard
-import { useToast } from '@/hooks/use-toast'; // Import the toast hook
-import { runTestPlanAPI } from '@/lib/api/test-plans'; // Import the API function
+// Select component from shadcn/ui is not used in the current version of this file for project filtering.
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, ArrowLeft, LibrarySquare, Loader2, Edit2, Trash2, Power, PowerOff, PlusCircle } from 'lucide-react';
+import type { TestPlan } from '@shared/schema';
+import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard';
+import ScheduleWizard from '@/components/scheduling/ScheduleWizard'; // Import ScheduleWizard
+import { useToast } from '@/hooks/use-toast';
+import { runTestPlanAPI, fetchTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans'; // Renamed fetchTestPlans
+import { fetchSchedulesByPlanId, deleteSchedule, toggleScheduleActiveStatus, TestPlanScheduleWithPlanName } from '@/lib/api/schedules';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { format } from 'date-fns';
 
-// Interface for the actual TestPlan data structure from backend (adjust if necessary based on actual API response)
-// Using TestPlan type from @shared/schema directly is better.
-// interface TestPlanItem extends TestPlan {
-//   // Any client-side specific additions can go here, but TestPlan from schema should be the base
-// }
-
-const fetchTestPlans = async (): Promise<TestPlan[]> => {
-  const response = await fetch('/api/test-plans');
-  if (!response.ok) {
-    throw new Error('Network response was not ok');
-  }
-  return response.json();
-};
 
 const TestSuitesPage: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  // const [selectedProject, setSelectedProject] = useState('all'); // Project filter removed for now
   const [currentPage, setCurrentPage] = useState(1);
-  const [isWizardOpen, setIsWizardOpen] = useState(false); // State for wizard visibility
-  const { toast } = useToast(); // Initialize useToast
-  const [runningPlanId, setRunningPlanId] = useState<string | null>(null); // To track the plan being run
+  const [isCreatePlanWizardOpen, setIsCreatePlanWizardOpen] = useState(false);
+  const [isScheduleWizardOpen, setIsScheduleWizardOpen] = useState(false);
+  const [scheduleToEdit, setScheduleToEdit] = useState<TestPlanScheduleWithPlanName | null>(null);
+  const [selectedTestPlanForScheduling, setSelectedTestPlanForScheduling] = useState<string | undefined>(undefined);
+
+  const [activeTab, setActiveTab] = useState('test-plan');
+  // When switching to 'schedules' tab, we might need to know which plan's schedules to show.
+  // For simplicity, let's assume if a plan was just interacted with (e.g. "Schedule" button clicked),
+  // its ID is stored and used. Or, a dropdown could select a plan for the schedules tab.
+  // For now, let's use `selectedTestPlanForScheduling` to also drive which plan's schedules are shown if the tab is active.
+  const [currentlyViewedPlanIdForSchedules, setCurrentlyViewedPlanIdForSchedules] = useState<string | null>(null);
+
+
+  const { toast } = useToast();
+  const [runningPlanId, setRunningPlanId] = useState<string | null>(null);
   const itemsPerPage = 5;
 
-  const { data: allTestPlans = [], isLoading, error, refetch: refetchTestPlans } = useQuery<TestPlan[]>({
-    queryKey: ['testPlans'],
-    queryFn: fetchTestPlans,
+  const { data: allTestPlans = [], isLoading: isLoadingTestPlans, error: testPlansError } = useQuery<TestPlan[]>({
+    queryKey: ['testPlans'], // Query key for fetching all full test plans
+    queryFn: fetchAllTestPlans, // Use the renamed function
   });
 
+  const { data: schedulesForPlan, isLoading: isLoadingSchedules, error: schedulesError } = useQuery({
+    queryKey: ['schedulesByPlanId', currentlyViewedPlanIdForSchedules],
+    queryFn: () => currentlyViewedPlanIdForSchedules ? fetchSchedulesByPlanId(currentlyViewedPlanIdForSchedules) : Promise.resolve([]),
+    enabled: !!currentlyViewedPlanIdForSchedules && activeTab === 'schedules', // Only fetch if a plan is selected and tab is active
+  });
+
+  const deleteScheduleMutation = useMutation({
+    mutationFn: deleteSchedule,
+    onSuccess: (_, scheduleId) => {
+      toast({ title: t('testSuitesPage.toast.scheduleDeleteSuccess.title'), description: t('testSuitesPage.toast.scheduleDeleteSuccess.description') });
+      queryClient.invalidateQueries({ queryKey: ['schedulesByPlanId', currentlyViewedPlanIdForSchedules] });
+      queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] }); // Also invalidate general list if any
+    },
+    onError: (error: Error) => {
+      toast({ title: t('testSuitesPage.toast.scheduleDeleteError.title'), description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const toggleScheduleStatusMutation = useMutation({
+    mutationFn: (data: { id: string, isActive: boolean }) => toggleScheduleActiveStatus(data.id, data.isActive),
+    onSuccess: (updatedSchedule) => {
+      toast({ title: t(updatedSchedule.isActive ? 'testSuitesPage.toast.scheduleActivateSuccess.title' : 'testSuitesPage.toast.scheduleDeactivateSuccess.title') });
+      queryClient.invalidateQueries({ queryKey: ['schedulesByPlanId', currentlyViewedPlanIdForSchedules] });
+      queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: t('testSuitesPage.toast.scheduleStatusError.title'), description: error.message, variant: 'destructive' });
+    }
+  });
+
+
   const handlePlanCreated = () => {
-    queryClient.invalidateQueries({ queryKey: ['testPlans'] }); // Invalidate cache to refetch
+    queryClient.invalidateQueries({ queryKey: ['testPlans'] });
   };
 
-  // Project filter logic removed as 'project' is not part of TestPlan schema directly
-  // const projectOptions = useMemo(() => {
-  //   const projects = [...new Set(allTestPlans.map(plan => plan.project))].sort(); // Assuming project exists
-  //   return ['all', ...projects];
-  // }, [allTestPlans]);
+  const handleScheduleSaved = () => {
+    if(currentlyViewedPlanIdForSchedules) {
+      queryClient.invalidateQueries({ queryKey: ['schedulesByPlanId', currentlyViewedPlanIdForSchedules] });
+    }
+    queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] }); // General list if exists
+  };
+
+  const openScheduleWizardForNew = (planId: string) => {
+    setSelectedTestPlanForScheduling(planId);
+    setScheduleToEdit(null);
+    setIsScheduleWizardOpen(true);
+  };
+
+  const openScheduleWizardForEdit = (schedule: TestPlanScheduleWithPlanName) => {
+    setSelectedTestPlanForScheduling(schedule.testPlanId); // Ensure this is set
+    setScheduleToEdit(schedule);
+    setIsScheduleWizardOpen(true);
+  };
 
   const filteredTestPlans = useMemo(() => {
-    return allTestPlans.filter(plan => {
-      const nameMatch = plan.name.toLowerCase().includes(searchTerm.toLowerCase());
-      // const projectMatch = selectedProject === 'all' || plan.project === selectedProject; // Project matching removed
-      return nameMatch; // Only name match for now
-    });
+    return allTestPlans.filter(plan =>
+      plan.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   }, [allTestPlans, searchTerm]);
 
   const totalPages = Math.ceil(filteredTestPlans.length / itemsPerPage);
@@ -67,15 +113,10 @@ const TestSuitesPage: React.FC = () => {
     currentPage * itemsPerPage
   );
 
-  // Reset current page if filters change and current page becomes invalid
   useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    } else if (currentPage === 0 && totalPages > 0) {
-      setCurrentPage(1);
-    } else if (filteredTestPlans.length === 0 && currentPage !==1) {
-      setCurrentPage(1);
-    }
+    if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages);
+    else if (currentPage === 0 && totalPages > 0) setCurrentPage(1);
+    else if (filteredTestPlans.length === 0 && currentPage !== 1) setCurrentPage(1);
   }, [filteredTestPlans.length, totalPages, currentPage]);
 
   const handleRunPlan = async (planId: string, planName: string) => {
@@ -84,21 +125,16 @@ const TestSuitesPage: React.FC = () => {
       title: t('testSuitesPage.toast.runningTitle', { planName }),
       description: t('testSuitesPage.toast.runningDescription'),
     });
-
     try {
       const result = await runTestPlanAPI(planId);
       if (result.success && result.data) {
-        // Assuming result.data is the TestPlanRun object
         const runStatus = result.data.status || 'unknown';
         toast({
           title: t('testSuitesPage.toast.completedTitle', { planName }),
           description: t('testSuitesPage.toast.completedDescription', { status: runStatus, runId: result.data.id }),
           variant: (runStatus === 'passed' || runStatus === 'partial') ? 'default' : 'destructive',
         });
-        // Optionally, refetch test plan runs data here if displaying last run status
-        // queryClient.invalidateQueries({ queryKey: ['testPlanRuns', planId] }); // Example
       } else {
-        // If success is false or data is missing, but no error was thrown by runTestPlanAPI
         throw new Error(result.error || t('testSuitesPage.toast.unknownError'));
       }
     } catch (err: any) {
@@ -112,9 +148,16 @@ const TestSuitesPage: React.FC = () => {
     }
   };
 
+  // Effect to set the first plan as default for schedules tab if no specific plan is chosen yet
+  useEffect(() => {
+    if (activeTab === 'schedules' && !currentlyViewedPlanIdForSchedules && allTestPlans.length > 0) {
+      setCurrentlyViewedPlanIdForSchedules(allTestPlans[0].id);
+    }
+  }, [activeTab, currentlyViewedPlanIdForSchedules, allTestPlans]);
+
+
   return (
-    <div className="flex flex-col h-full"> {/* MODIFIED: Outermost container */}
-      {/* New Page Header START */}
+    <div className="flex flex-col h-full">
       <header className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
