@@ -23,6 +23,7 @@ import { format } from 'date-fns';
 const TestSuitesPage: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation(); // Hook for navigation
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreatePlanWizardOpen, setIsCreatePlanWizardOpen] = useState(false);
@@ -155,6 +156,12 @@ const TestSuitesPage: React.FC = () => {
     }
   }, [activeTab, currentlyViewedPlanIdForSchedules, allTestPlans]);
 
+  // Updated handleRunPlan to navigate to the execution page
+  const handleRunPlan = (planId: string, _planName?: string) => {
+    // No longer setting runningPlanId here as the page will change
+    // Toast notifications will be handled by the execution page or via WebSocket updates
+    navigate(`/test-plan/${planId}/run`);
+  };
 
   return (
     <div className="flex flex-col h-full">

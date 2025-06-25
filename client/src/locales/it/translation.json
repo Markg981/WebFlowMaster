@@ -1261,5 +1261,37 @@
         "placeholder": "[TRANSLATE] Enter bearer token"
       }
     }
+  },
+  "testPlanExecutionPage": {
+    "loadingPlan.text": "Caricamento Dettagli Test Plan...",
+    "errorLoadingPlan.text": "Errore durante il caricamento del test plan",
+    "backToTestSuites.button": "Torna alle Test Suite",
+    "planNotFound.text": "Test Plan non trovato.",
+    "runningTestPlan.text": "Esecuzione Test Plan",
+    "startExecution.button": "Avvia Esecuzione",
+    "runAgain.button": "Esegui di Nuovo",
+    "running.button": "In Esecuzione...",
+    "overallProgress.title": "Progresso Generale",
+    "overallProgress.description": "{{completed}} di {{total}} test completati.",
+    "status.passed": "Passato",
+    "status.failed": "Fallito",
+    "status.pending": "In Attesa",
+    "tests.title": "Test nel Piano",
+    "tests.description": "Stato dei singoli test per {{planName}}.",
+    "noDescription.text": "Nessuna descrizione fornita per questo test.",
+    "statusLabels.running": "In Esecuzione",
+    "statusLabels.passed": "Passato",
+    "statusLabels.failed": "Fallito",
+    "statusLabels.pending": "In Attesa",
+    "noTestsInPlan.text": "Questo test plan non contiene ancora nessun test.",
+    "executionLog.title": "Log di Esecuzione",
+    "executionLog.description": "Aggiornamenti in tempo reale durante l'esecuzione del test plan.",
+    "executionLog.noLogsYet.text": "I log di esecuzione appariranno qui una volta avviata.",
+    "logs": {
+      "startingExecution": "Avvio esecuzione per il piano: {{planName}}",
+      "runningTest": "Esecuzione test: {{testName}}",
+      "testCompleted": "Test {{testName}} completato con stato: {{status}}",
+      "executionFinished": "Esecuzione del test plan terminata."
+    }
   }
 }

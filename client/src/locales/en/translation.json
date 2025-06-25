@@ -1267,5 +1267,37 @@
         "inactive": "Inactive"
       }
     }
+  },
+  "testPlanExecutionPage": {
+    "loadingPlan.text": "Loading Test Plan Details...",
+    "errorLoadingPlan.text": "Error loading test plan",
+    "backToTestSuites.button": "Back to Test Suites",
+    "planNotFound.text": "Test Plan not found.",
+    "runningTestPlan.text": "Running Test Plan",
+    "startExecution.button": "Start Execution",
+    "runAgain.button": "Run Again",
+    "running.button": "Running...",
+    "overallProgress.title": "Overall Progress",
+    "overallProgress.description": "{{completed}} of {{total}} tests completed.",
+    "status.passed": "Passed",
+    "status.failed": "Failed",
+    "status.pending": "Pending",
+    "tests.title": "Tests in Plan",
+    "tests.description": "Individual test statuses for {{planName}}.",
+    "noDescription.text": "No description provided for this test.",
+    "statusLabels.running": "Running",
+    "statusLabels.passed": "Passed",
+    "statusLabels.failed": "Failed",
+    "statusLabels.pending": "Pending",
+    "noTestsInPlan.text": "This test plan does not contain any tests yet.",
+    "executionLog.title": "Execution Log",
+    "executionLog.description": "Real-time updates as the test plan executes.",
+    "executionLog.noLogsYet.text": "Execution logs will appear here once started.",
+    "logs": {
+      "startingExecution": "Starting execution for plan: {{planName}}",
+      "runningTest": "Running test: {{testName}}",
+      "testCompleted": "Test {{testName}} completed with status: {{status}}",
+      "executionFinished": "Test plan execution finished."
+    }
   }
 }

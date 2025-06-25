@@ -13,7 +13,8 @@ import DashboardPage from "@/pages/dashboard-page-new"; // This is the "Create T
 import DashboardOverviewPage from "@/pages/DashboardOverviewPage";
 import SettingsPage from "@/pages/settings-page";
 import ApiTesterPage from "@/pages/ApiTesterPage";
-import TestSuitesPage from './pages/TestSuitesPage'; // Import the new TestSuitesPage
+import TestSuitesPage from './pages/TestSuitesPage'; // Using relative path for diagnosis
+import TestPlanExecutionPage from './pages/TestPlanExecutionPage'; // Using relative path for diagnosis
 import { ProtectedRoute } from "./lib/protected-route";
 // Imports for ThemeLoader
 import { useEffect } from 'react'; // useEffect already imported
@@ -80,6 +81,7 @@ function Router() {
       <ProtectedRoute path="/dashboard/api-tester" component={ApiTesterPage} />
       <ProtectedRoute path="/dashboard" component={DashboardOverviewPage} />
       <ProtectedRoute path="/test-suites" component={TestSuitesPage} />
+      <ProtectedRoute path="/test-plan/:planId/run" component={TestPlanExecutionPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} /> {/* Catch-all for 404 */}

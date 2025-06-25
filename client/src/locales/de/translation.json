@@ -1102,5 +1102,37 @@
         "title": "[TRANSLATE] Weekly Test Trends"
       }
     }
+  },
+  "testPlanExecutionPage": {
+    "loadingPlan.text": "[TRANSLATE] Loading Test Plan Details...",
+    "errorLoadingPlan.text": "[TRANSLATE] Error loading test plan",
+    "backToTestSuites.button": "[TRANSLATE] Back to Test Suites",
+    "planNotFound.text": "[TRANSLATE] Test Plan not found.",
+    "runningTestPlan.text": "[TRANSLATE] Running Test Plan",
+    "startExecution.button": "[TRANSLATE] Start Execution",
+    "runAgain.button": "[TRANSLATE] Run Again",
+    "running.button": "[TRANSLATE] Running...",
+    "overallProgress.title": "[TRANSLATE] Overall Progress",
+    "overallProgress.description": "[TRANSLATE] {{completed}} of {{total}} tests completed.",
+    "status.passed": "[TRANSLATE] Passed",
+    "status.failed": "[TRANSLATE] Failed",
+    "status.pending": "[TRANSLATE] Pending",
+    "tests.title": "[TRANSLATE] Tests in Plan",
+    "tests.description": "[TRANSLATE] Individual test statuses for {{planName}}.",
+    "noDescription.text": "[TRANSLATE] No description provided for this test.",
+    "statusLabels.running": "[TRANSLATE] Running",
+    "statusLabels.passed": "[TRANSLATE] Passed",
+    "statusLabels.failed": "[TRANSLATE] Failed",
+    "statusLabels.pending": "[TRANSLATE] Pending",
+    "noTestsInPlan.text": "[TRANSLATE] This test plan does not contain any tests yet.",
+    "executionLog.title": "[TRANSLATE] Execution Log",
+    "executionLog.description": "[TRANSLATE] Real-time updates as the test plan executes.",
+    "executionLog.noLogsYet.text": "[TRANSLATE] Execution logs will appear here once started.",
+    "logs": {
+      "startingExecution": "[TRANSLATE] Starting execution for plan: {{planName}}",
+      "runningTest": "[TRANSLATE] Running test: {{testName}}",
+      "testCompleted": "[TRANSLATE] Test {{testName}} completed with status: {{status}}",
+      "executionFinished": "[TRANSLATE] Test plan execution finished."
+    }
   }
 }
