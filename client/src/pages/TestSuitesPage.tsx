@@ -120,35 +120,6 @@ const TestSuitesPage: React.FC = () => {
     else if (filteredTestPlans.length === 0 && currentPage !== 1) setCurrentPage(1);
   }, [filteredTestPlans.length, totalPages, currentPage]);
 
-  const handleRunPlan = async (planId: string, planName: string) => {
-    setRunningPlanId(planId);
-    toast({
-      title: t('testSuitesPage.toast.runningTitle', { planName }),
-      description: t('testSuitesPage.toast.runningDescription'),
-    });
-    try {
-      const result = await runTestPlanAPI(planId);
-      if (result.success && result.data) {
-        const runStatus = result.data.status || 'unknown';
-        toast({
-          title: t('testSuitesPage.toast.completedTitle', { planName }),
-          description: t('testSuitesPage.toast.completedDescription', { status: runStatus, runId: result.data.id }),
-          variant: (runStatus === 'passed' || runStatus === 'partial') ? 'default' : 'destructive',
-        });
-      } else {
-        throw new Error(result.error || t('testSuitesPage.toast.unknownError'));
-      }
-    } catch (err: any) {
-      toast({
-        title: t('testSuitesPage.toast.errorTitle', { planName }),
-        description: err.message || t('testSuitesPage.toast.executionError'),
-        variant: "destructive",
-      });
-    } finally {
-      setRunningPlanId(null);
-    }
-  };
-
   // Effect to set the first plan as default for schedules tab if no specific plan is chosen yet
   useEffect(() => {
     if (activeTab === 'schedules' && !currentlyViewedPlanIdForSchedules && allTestPlans.length > 0) {
