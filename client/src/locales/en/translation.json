@@ -1216,6 +1216,53 @@
       "weeklyTestTrends": {
         "title": "Weekly Test Trends"
       }
+    },
+    "testSchedulingsTable": {
+      "upcomingActiveSchedules": {
+        "title": "Upcoming Active Schedules"
+      },
+      "viewAll": {
+        "link": "View All"
+      },
+      "loading": {
+        "text": "Loading..."
+      },
+      "error": {
+        "text": "Error loading schedules."
+      },
+      "noUpcomingSchedules": {
+        "text": "No upcoming active schedules."
+      },
+      "table": {
+        "testPlan": {
+          "header": "Test Plan"
+        },
+        "scheduleName": {
+          "header": "Schedule Name"
+        },
+        "environment": {
+          "header": "Environment"
+        },
+        "nextRun": {
+          "header": "Next Run"
+        },
+        "frequency": {
+          "header": "Frequency"
+        },
+        "status": {
+          "header": "Status"
+        }
+      },
+      "notSet": {
+        "text": "Not Set"
+      },
+      "notScheduled": {
+        "text": "Not Scheduled"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      }
     }
   }
 }

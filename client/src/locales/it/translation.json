@@ -53,6 +53,51 @@
       "eseguiTestOra": "[TRANSLATE] Esegui test ora"
     },
     "testSchedulingsTable": {
+      "upcomingActiveSchedules": {
+        "title": "Programmazioni attive"
+      },
+      "viewAll": {
+        "link": "Visualizza tutto"
+      },
+      "loading": {
+        "text": "Caricamento..."
+      },
+      "error": {
+        "text": "Errore durante il caricamento delle pianificazioni."
+      },
+      "noUpcomingSchedules": {
+        "text": "Nessuna pianificazione attiva."
+      },
+      "table": {
+        "testPlan": {
+          "header": "Piano di test"
+        },
+        "scheduleName": {
+          "header": "Nome pianificazione"
+        },
+        "environment": {
+          "header": "Ambiente"
+        },
+        "nextRun": {
+          "header": "Prossima esecuzione"
+        },
+        "frequency": {
+          "header": "Frequenza"
+        },
+        "status": {
+          "header": "Stato"
+        }
+      },
+      "notSet": {
+        "text": "Non impostato"
+      },
+      "notScheduled": {
+        "text": "Non pianificato"
+      },
+      "status": {
+        "active": "Attivo",
+        "inactive": "Inattivo"
+      },
       "upcomingRecentSchedulings": "[TRANSLATE] Upcoming & Recent Schedulings",
       "schedulingDataWillBeAvailable": "[TRANSLATE] Scheduling data will be available soon."
     },
