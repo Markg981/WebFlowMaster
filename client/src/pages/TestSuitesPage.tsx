@@ -281,7 +281,7 @@ const TestSuitesPage: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedTestPlans.length === 0 && !isLoading && (
+                  {paginatedTestPlans.length === 0 && !isLoadingTestPlans && (
                      <TableRow>
                         <TableCell colSpan={4} className="text-center py-10">
                           {t('testSuitesPage.noTestPlansFound.text')}
