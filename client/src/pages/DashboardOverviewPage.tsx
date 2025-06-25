@@ -25,8 +25,8 @@ const DashboardOverviewPage: React.FC = () => {
   const [isApiTesterActive] = useRoute('/dashboard/api-tester'); // For the new API Tester link
   const [isSettingsActive] = useRoute('/settings');
   const [isSuitesActive] = useRoute('/test-suites'); // Updated active state for Test Suites
-  const isSchedulazioniActive = false;
-  const isReportsActive = false;
+  const [isSchedulingActive] = useRoute('/scheduling'); // Corrected variable name and added useRoute
+  const isReportsActive = false; // Placeholder, adjust if Reports page is implemented
 
   const linkBaseStyle = "flex items-center py-2 px-3 rounded-md text-sm font-medium";
   const activeLinkStyle = "bg-primary/10 text-primary";
@@ -90,9 +90,9 @@ const DashboardOverviewPage: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="#/schedulazioni" title={t('nav.schedulazioni')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSchedulazioniActive ? activeLinkStyle : inactiveLinkStyle}`}>
+                <Link href="/scheduling" title={t('nav.scheduling', 'Scheduling')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSchedulingActive ? activeLinkStyle : inactiveLinkStyle}`}>
                   <CalendarClock className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                  {!isSidebarCollapsed && <span>{t('nav.schedulazioni')}</span>}
+                  {!isSidebarCollapsed && <span>{t('nav.scheduling', 'Scheduling')}</span>}
                 </Link>
               </li>
               <li>

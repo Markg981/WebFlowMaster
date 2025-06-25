@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter'; // Corrected import
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -14,7 +14,8 @@ import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard';
 import ScheduleWizard from '@/components/scheduling/ScheduleWizard'; // Import ScheduleWizard
 import { useToast } from '@/hooks/use-toast';
 import { runTestPlanAPI, fetchTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans'; // Renamed fetchTestPlans
-import { fetchSchedulesByPlanId, deleteSchedule, toggleScheduleActiveStatus, TestPlanScheduleWithPlanName } from '@/lib/api/schedules';
+// Removed toggleScheduleActiveStatus, will use updateSchedule instead
+import { fetchSchedulesByPlanId, deleteSchedule, updateSchedule, TestPlanScheduleWithPlanName, UpdateScheduleClientPayload } from '@/lib/api/schedules';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
@@ -67,8 +68,8 @@ const TestSuitesPage: React.FC = () => {
   });
 
   const toggleScheduleStatusMutation = useMutation({
-    mutationFn: (data: { id: string, isActive: boolean }) => toggleScheduleActiveStatus(data.id, data.isActive),
-    onSuccess: (updatedSchedule) => {
+    mutationFn: (data: { id: string, payload: UpdateScheduleClientPayload }) => updateSchedule(data.id, data.payload),
+    onSuccess: (updatedSchedule) => { // updatedSchedule is TestPlanScheduleEnhanced
       toast({ title: t(updatedSchedule.isActive ? 'testSuitesPage.toast.scheduleActivateSuccess.title' : 'testSuitesPage.toast.scheduleDeactivateSuccess.title') });
       queryClient.invalidateQueries({ queryKey: ['schedulesByPlanId', currentlyViewedPlanIdForSchedules] });
       queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] });
@@ -119,35 +120,6 @@ const TestSuitesPage: React.FC = () => {
     else if (currentPage === 0 && totalPages > 0) setCurrentPage(1);
     else if (filteredTestPlans.length === 0 && currentPage !== 1) setCurrentPage(1);
   }, [filteredTestPlans.length, totalPages, currentPage]);
-
-  const handleRunPlan = async (planId: string, planName: string) => {
-    setRunningPlanId(planId);
-    toast({
-      title: t('testSuitesPage.toast.runningTitle', { planName }),
-      description: t('testSuitesPage.toast.runningDescription'),
-    });
-    try {
-      const result = await runTestPlanAPI(planId);
-      if (result.success && result.data) {
-        const runStatus = result.data.status || 'unknown';
-        toast({
-          title: t('testSuitesPage.toast.completedTitle', { planName }),
-          description: t('testSuitesPage.toast.completedDescription', { status: runStatus, runId: result.data.id }),
-          variant: (runStatus === 'passed' || runStatus === 'partial') ? 'default' : 'destructive',
-        });
-      } else {
-        throw new Error(result.error || t('testSuitesPage.toast.unknownError'));
-      }
-    } catch (err: any) {
-      toast({
-        title: t('testSuitesPage.toast.errorTitle', { planName }),
-        description: err.message || t('testSuitesPage.toast.executionError'),
-        variant: "destructive",
-      });
-    } finally {
-      setRunningPlanId(null);
-    }
-  };
 
   // Effect to set the first plan as default for schedules tab if no specific plan is chosen yet
   useEffect(() => {
