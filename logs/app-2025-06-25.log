@@ -1,0 +1,9 @@
+2025-06-25 10:12:08 - info: PlaywrightService: Winston logger initialized successfully.
+2025-06-25 10:12:13 - info: PlaywrightService: Winston logger initialized successfully.
+2025-06-25 10:57:18 - info: PlaywrightService: Winston logger initialized successfully.
+2025-06-25 10:57:18 - info: Initialized default system setting: logRetentionDays=7
+2025-06-25 10:57:18 - info: Initialized default system setting: logLevel=info
+2025-06-25 10:57:18 - info: [SchedulerService] Initializing scheduler...
+2025-06-25 10:57:18 - error: [SchedulerService] Error initializing scheduler: no such table: test_plan_schedules
+2025-06-25 10:57:18 - info: Scheduler initialized successfully after routes.
+2025-06-25 10:57:18 - info: Server listening on port 5000
