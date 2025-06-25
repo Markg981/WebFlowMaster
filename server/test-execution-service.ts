@@ -3,7 +3,7 @@ import type { Test, ApiTest, TestPlan } from '@shared/schema'; // Assuming ApiTe
 import type { StepResult } from './playwright-service'; // Import StepResult type
 import loggerPromise from './logger';
 import { db } from './db';
-import { tests as testsTable, apiTests as apiTestsTable, testPlanSelectedTests, testPlans, testPlanRuns as testPlanRunsTable } from '@shared/schema';
+import { tests as testsTable, apiTests as apiTestsTable, testPlanSelectedTests, testPlans, testPlanExecutions as testPlanExecutionsTable } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs-extra';
@@ -162,7 +162,7 @@ export async function runTestPlan(
   // 2. Create initial TestPlanRun record in DB
   let currentTestPlanRun;
   try {
-    const inserted = await db.insert(testPlanRunsTable) // Assuming testPlanRunsTable is the imported schema object
+    const inserted = await db.insert(testPlanExecutionsTable) // Assuming testPlanRunsTable is the imported schema object
       .values({
         id: testPlanRunId,
         testPlanId: planId,
@@ -186,7 +186,7 @@ export async function runTestPlan(
   } catch (dirError: any) {
     resolvedLogger.error({ message: 'Failed to create base results directory', baseResultsDir, error: dirError.message, stack: dirError.stack });
     // Update TestPlanRun to 'error' status
-    await db.update(testPlanRunsTable).set({ status: 'error', completedAt: Math.floor(Date.now() / 1000) }).where(eq(testPlanRunsTable.id, testPlanRunId));
+    await db.update(testPlanExecutionsTable).set({ status: 'error', completedAt: Math.floor(Date.now() / 1000) }).where(eq(testPlanExecutionsTable.id, testPlanRunId));
     return { error: `Failed to create results directory: ${dirError.message}`, status: 500, testPlanRunId };
   }
 
@@ -246,9 +246,9 @@ export async function runTestPlan(
 
       // Update TestPlanRun with partial results (optional, for real-time updates)
       try {
-        await db.update(testPlanRunsTable)
+        await db.update(testPlanExecutionsTable)
           .set({ results: JSON.stringify(individualTestResults) }) // Store results as JSON string
-          .where(eq(testPlanRunsTable.id, testPlanRunId));
+          .where(eq(testPlanExecutionsTable.id, testPlanRunId));
       } catch (dbUpdateError: any) {
         resolvedLogger.error({ message: 'Failed to update TestPlanRun with partial results', testPlanRunId, error: dbUpdateError.message });
         // Continue execution if possible, final update will happen later
@@ -297,13 +297,13 @@ export async function runTestPlan(
   // 5. Update TestPlanRun record with final status and results
   const completedAt = Math.floor(Date.now() / 1000);
   try {
-    const finalUpdate = await db.update(testPlanRunsTable)
+    const finalUpdate = await db.update(testPlanExecutionsTable)
       .set({
         status: overallStatus,
         results: JSON.stringify(individualTestResults),
         completedAt: completedAt,
       })
-      .where(eq(testPlanRunsTable.id, testPlanRunId))
+      .where(eq(testPlanExecutionsTable.id, testPlanRunId))
       .returning();
 
     if (finalUpdate.length > 0) {
