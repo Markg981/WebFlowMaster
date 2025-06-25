@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter'; // Import useLocation
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -30,6 +30,7 @@ const fetchTestPlans = async (): Promise<TestPlan[]> => {
 const TestSuitesPage: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation(); // Hook for navigation
   const [searchTerm, setSearchTerm] = useState('');
   // const [selectedProject, setSelectedProject] = useState('all'); // Project filter removed for now
   const [currentPage, setCurrentPage] = useState(1);
@@ -78,39 +79,23 @@ const TestSuitesPage: React.FC = () => {
     }
   }, [filteredTestPlans.length, totalPages, currentPage]);
 
-  const handleRunPlan = async (planId: string, planName: string) => {
-    setRunningPlanId(planId);
-    toast({
-      title: t('testSuitesPage.toast.runningTitle', { planName }),
-      description: t('testSuitesPage.toast.runningDescription'),
-    });
-
-    try {
-      const result = await runTestPlanAPI(planId);
-      if (result.success && result.data) {
-        // Assuming result.data is the TestPlanRun object
-        const runStatus = result.data.status || 'unknown';
-        toast({
-          title: t('testSuitesPage.toast.completedTitle', { planName }),
-          description: t('testSuitesPage.toast.completedDescription', { status: runStatus, runId: result.data.id }),
-          variant: (runStatus === 'passed' || runStatus === 'partial') ? 'default' : 'destructive',
-        });
-        // Optionally, refetch test plan runs data here if displaying last run status
-        // queryClient.invalidateQueries({ queryKey: ['testPlanRuns', planId] }); // Example
-      } else {
-        // If success is false or data is missing, but no error was thrown by runTestPlanAPI
-        throw new Error(result.error || t('testSuitesPage.toast.unknownError'));
-      }
-    } catch (err: any) {
-      toast({
-        title: t('testSuitesPage.toast.errorTitle', { planName }),
-        description: err.message || t('testSuitesPage.toast.executionError'),
-        variant: "destructive",
-      });
-    } finally {
-      setRunningPlanId(null);
-    }
+  // Updated handleRunPlan to navigate to the execution page
+  const handleRunPlan = (planId: string, _planName?: string) => {
+    // No longer setting runningPlanId here as the page will change
+    // Toast notifications will be handled by the execution page or via WebSocket updates
+    navigate(`/test-plan/${planId}/run`);
   };
+
+  // Add new toast message keys to translation files:
+  // "testSuitesPage.toast.runningTitle": "Starting Test Plan: {{planName}}",
+  // "testSuitesPage.toast.runningDescription": "You will be redirected to the execution page.",
+  // "testSuitesPage.toast.completedTitle": "Test Plan {{planName}} Finished",
+  // "testSuitesPage.toast.completedDescription": "Status: {{status}}. Run ID: {{runId}}",
+  // "testSuitesPage.toast.errorTitle": "Error Running {{planName}}",
+  // "testSuitesPage.toast.executionError": "An error occurred during test plan execution.",
+  // "testSuitesPage.toast.unknownError": "An unknown error occurred while trying to run the test plan."
+  // "testSuitesPage.running.button": "Running..."
+
 
   return (
     <div className="flex flex-col h-full"> {/* MODIFIED: Outermost container */}
