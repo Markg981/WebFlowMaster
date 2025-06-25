@@ -13,8 +13,8 @@ import DashboardPage from "@/pages/dashboard-page-new"; // This is the "Create T
 import DashboardOverviewPage from "@/pages/DashboardOverviewPage";
 import SettingsPage from "@/pages/settings-page";
 import ApiTesterPage from "@/pages/ApiTesterPage";
-import TestSuitesPage from '@/pages/TestSuitesPage'; // Corrected path alias
-import TestPlanExecutionPage from '@/pages/TestPlanExecutionPage'; // Corrected path alias
+import TestSuitesPage from './pages/TestSuitesPage'; // Using relative path for diagnosis
+import TestPlanExecutionPage from './pages/TestPlanExecutionPage'; // Using relative path for diagnosis
 import { ProtectedRoute } from "./lib/protected-route";
 // Imports for ThemeLoader
 import { useEffect } from 'react'; // useEffect already imported
