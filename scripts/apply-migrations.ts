@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
 // Ensure DATABASE_URL is set
 if (!process.env.DATABASE_URL) {
@@ -11,7 +12,9 @@ if (!process.env.DATABASE_URL) {
 }
 
 const dbUrl = process.env.DATABASE_URL;
-const migrationsFolder = path.resolve(process.cwd(), 'migrations'); // Changed to 'migrations'
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const migrationsFolder = path.resolve(__dirname, '../migrations');
 
 console.log(`Connecting to SQLite database at: ${dbUrl}`);
 const sqlite = new Database(dbUrl);
