@@ -287,11 +287,13 @@ const TestSuitesPage: React.FC = () => {
                       {/* <TableCell>{item.project}</TableCell> REMOVED */}
                       <TableCell>
                         <div className="space-x-2">
-                          <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => openScheduleWizardForNew(item.id)}>
                         <CalendarDays size={16} className="mr-1" /> {t('testSuitesPage.schedule.button')}
                       </Button>
-                      <Button variant="outline" size="sm">
-                        <FileText size={16} className="mr-1" /> {t('testSuitesPage.reports.button')}
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/reports?planId=${item.id}`}>
+                          <FileText size={16} className="mr-1" /> {t('testSuitesPage.reports.button')}
+                        </Link>
                       </Button>
                       <Button
                         variant="outline"

@@ -1760,6 +1760,194 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+// --- Test Report Page API Endpoint ---
+app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const { executionId } = req.params;
+  const userId = req.user.id; // Assuming reports might be user-scoped in the future or for auth checks
+
+  resolvedLogger.http({ message: `GET /api/test-plan-executions/${executionId}/report - Handler reached`, executionId, userId });
+
+  if (!executionId) {
+    return res.status(400).json({ error: "Execution ID is required." });
+  }
+
+  try {
+    // 1. Fetch the main TestPlanExecution record and its associated TestPlan
+    const executionDetailsResult = await db
+      .select({
+        execution: getTableColumns(testPlanExecutions),
+        plan: getTableColumns(testPlans),
+      })
+      .from(testPlanExecutions)
+      .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
+      .where(eq(testPlanExecutions.id, executionId))
+      // Add user ID check if necessary: and(eq(testPlanExecutions.id, executionId), eq(testPlans.userId, userId)))
+      // Or if testPlanExecutions has a userId: and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.userId, userId)))
+      .limit(1);
+
+    if (executionDetailsResult.length === 0) {
+      resolvedLogger.warn({ message: `Execution ID ${executionId} not found.`, userId });
+      return res.status(404).json({ error: "Test plan execution not found." });
+    }
+
+    const { execution, plan } = executionDetailsResult[0];
+
+    // 2. Fetch all reportTestCaseResults for this execution
+    // Ensure reportTestCaseResults is imported from @shared/schema
+    const testCaseResults = await db
+      .select()
+      .from(reportTestCaseResults)
+      .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
+      .orderBy(desc(reportTestCaseResults.status), asc(reportTestCaseResults.testName)); // Example ordering
+
+    // 3. Calculate Key Metrics
+    const totalTests = testCaseResults.length;
+    const passedTests = testCaseResults.filter(r => r.status === 'Passed').length;
+    const failedTests = testCaseResults.filter(r => r.status === 'Failed').length;
+    const skippedTests = testCaseResults.filter(r => r.status === 'Skipped').length;
+    // Add other statuses if needed (e.g., 'Error', 'Pending')
+
+    let totalDurationMs = 0;
+    testCaseResults.forEach(r => {
+      if (r.durationMs !== null && r.durationMs !== undefined) {
+        totalDurationMs += r.durationMs;
+      }
+    });
+    const averageTimePerTest = totalTests > 0 ? Math.round(totalDurationMs / totalTests) : 0;
+
+    // 4. Prepare data for charts
+    const passFailSkippedDistribution = {
+      passed: passedTests,
+      failed: failedTests,
+      skipped: skippedTests,
+    };
+
+    const priorityDistribution: Record<string, { passed: number, failed: number, skipped: number, total: number }> = {};
+    testCaseResults.forEach(r => {
+      const prio = r.priority || 'N/A';
+      if (!priorityDistribution[prio]) {
+        priorityDistribution[prio] = { passed: 0, failed: 0, skipped: 0, total: 0 };
+      }
+      priorityDistribution[prio].total++;
+      if (r.status === 'Passed') priorityDistribution[prio].passed++;
+      else if (r.status === 'Failed') priorityDistribution[prio].failed++;
+      else if (r.status === 'Skipped') priorityDistribution[prio].skipped++;
+    });
+
+    const detailedSeverityDistribution: Record<string, { passed: number, failed: number, skipped: number, total: number }> = {};
+     testCaseResults.forEach(r => {
+      const sev = r.severity || 'N/A';
+      if (!detailedSeverityDistribution[sev]) {
+        detailedSeverityDistribution[sev] = { passed: 0, failed: 0, skipped: 0, total: 0 };
+      }
+      detailedSeverityDistribution[sev].total++;
+      if (r.status === 'Passed') detailedSeverityDistribution[sev].passed++;
+      else if (r.status === 'Failed') detailedSeverityDistribution[sev].failed++;
+      else if (r.status === 'Skipped') detailedSeverityDistribution[sev].skipped++;
+    });
+
+    // 5. Detailed View of Failed Tests
+    const failedTestDetails = testCaseResults
+      .filter(r => r.status === 'Failed')
+      .map(r => ({
+        id: r.id,
+        testName: r.testName,
+        reasonForFailure: r.reasonForFailure,
+        screenshotUrl: r.screenshotUrl,
+        detailedLog: r.detailedLog,
+        component: r.component,
+        priority: r.priority,
+        severity: r.severity,
+        durationMs: r.durationMs,
+        uiTestId: r.uiTestId,
+        apiTestId: r.apiTestId,
+        testType: r.testType,
+      }));
+
+    // 6. Expandable Test Groupings (by module, then by component as an example)
+    const groupedByModule: Record<string, {
+        passed: number, failed: number, skipped: number, total: number,
+        components: Record<string, {
+            passed: number, failed: number, skipped: number, total: number,
+            tests: Array<typeof testCaseResults[0]> // Using the inferred type of elements in testCaseResults
+        }>
+    }> = {};
+
+    testCaseResults.forEach(r => {
+      const moduleName = r.module || 'Uncategorized Module';
+      const componentName = r.component || 'Uncategorized Component';
+
+      if (!groupedByModule[moduleName]) {
+        groupedByModule[moduleName] = { passed: 0, failed: 0, skipped: 0, total: 0, components: {} };
+      }
+      if (!groupedByModule[moduleName].components[componentName]) {
+        groupedByModule[moduleName].components[componentName] = { passed: 0, failed: 0, skipped: 0, total: 0, tests: [] };
+      }
+
+      groupedByModule[moduleName].total++;
+      groupedByModule[moduleName].components[componentName].total++;
+      groupedByModule[moduleName].components[componentName].tests.push(r);
+
+      if (r.status === 'Passed') {
+        groupedByModule[moduleName].passed++;
+        groupedByModule[moduleName].components[componentName].passed++;
+      } else if (r.status === 'Failed') {
+        groupedByModule[moduleName].failed++;
+        groupedByModule[moduleName].components[componentName].failed++;
+      } else if (r.status === 'Skipped') {
+        groupedByModule[moduleName].skipped++;
+        groupedByModule[moduleName].components[componentName].skipped++;
+      }
+    });
+
+    const reportData = {
+      header: {
+        testSuiteName: plan?.name || 'N/A',
+        environment: execution.environment || 'N/A',
+        browsers: execution.browsers ? JSON.parse(execution.browsers as string) : [],
+        dateTime: execution.startedAt ? new Date(execution.startedAt * 1000).toISOString() : 'N/A',
+        completedAt: execution.completedAt ? new Date(execution.completedAt * 1000).toISOString() : null,
+        status: execution.status,
+        triggeredBy: execution.triggeredBy,
+        executionId: execution.id,
+        testPlanId: execution.testPlanId,
+      },
+      keyMetrics: {
+        totalTests: execution.totalTests ?? totalTests, // Prefer pre-calculated, fallback to fresh calculation
+        passedTests: execution.passedTests ?? passedTests,
+        failedTests: execution.failedTests ?? failedTests,
+        skippedTests: execution.skippedTests ?? skippedTests,
+        passRate: (execution.totalTests ?? totalTests) > 0 ?
+                  parseFloat((((execution.passedTests ?? passedTests) / (execution.totalTests ?? totalTests)) * 100).toFixed(2)) : 0,
+        averageTimePerTestMs: averageTimePerTest, // This needs fresh calculation from reportTestCaseResults
+        totalTestCasesDurationMs: totalDurationMs, // Sum of individual test case durations
+        executionDurationMs: execution.executionDurationMs ?? ((execution.completedAt && execution.startedAt) ? (execution.completedAt - execution.startedAt) * 1000 : null),
+      },
+      charts: {
+        passFailSkippedDistribution,
+        priorityDistribution,
+        severityDistribution: detailedSeverityDistribution,
+      },
+      failedTestDetails,
+      testGroupings: groupedByModule,
+      allTests: testCaseResults, // For frontend flexibility
+    };
+
+    res.json(reportData);
+
+  } catch (error: any) {
+    resolvedLogger.error({
+      message: `Error fetching report for execution ${executionId}`,
+      error: error.message,
+      stack: error.stack,
+      userId,
+    });
+    res.status(500).json({ error: "Failed to fetch test execution report." });
+  }
+});
 
   // --- System Settings API Endpoints ---
 
