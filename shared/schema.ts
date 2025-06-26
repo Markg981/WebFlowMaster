@@ -34,26 +34,26 @@ export const tests = sqliteTable("tests", {
   projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
   name: text("name").notNull(),
   url: text("url").notNull(),
-  sequence: text("sequence", { mode: 'json' }).notNull(), // Array of test steps
-  elements: text("elements", { mode: 'json' }).notNull(), // Detected DOM elements
-  status: text("status").notNull().default("draft"), // draft, saved, executing, completed
+  sequence: text("sequence", { mode: 'json' }).notNull(),
+  elements: text("elements", { mode: 'json' }).notNull(),
+  status: text("status").notNull().default("draft"),
   createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
   updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 
-  // NEW Fields for reporting
-  module: text("module").nullable(), // e.g., Authentication, UserProfile
-  featureArea: text("feature_area").nullable(), // e.g., Login Form, Profile Update
-  scenario: text("scenario").nullable(), // More specific scenario
-  component: text("component").nullable(), // e.g., Login, Dashboard, Payments
-  priority: text("priority", { enum: ['Critical', 'High', 'Medium', 'Low'] }).default('Medium').nullable(),
-  severity: text("severity", { enum: ['Blocker', 'Critical', 'Major', 'Minor'] }).default('Major').nullable(),
+  // NEW Fields for reporting - .nullable() removed, nullability is default if .notNull() is absent
+  module: text("module"),
+  featureArea: text("feature_area"),
+  scenario: text("scenario"),
+  component: text("component"),
+  priority: text("priority", { enum: ['Critical', 'High', 'Medium', 'Low'] }).default('Medium'),
+  severity: text("severity", { enum: ['Blocker', 'Critical', 'Major', 'Minor'] }).default('Major'),
 });
 
 export const testRuns = sqliteTable("test_runs", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   testId: integer("test_id").notNull().references(() => tests.id),
-  status: text("status").notNull(), // running, completed, failed
-  results: text("results", { mode: 'json' }), // Execution results and logs
+  status: text("status").notNull(),
+  results: text("results", { mode: 'json' }),
   startedAt: integer("started_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
   completedAt: integer("completed_at", { mode: 'timestamp' }),
 });
@@ -95,13 +95,13 @@ export const apiTests = sqliteTable("api_tests", {
   createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
   updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 
-  // NEW Fields for reporting
-  module: text("module").nullable(),
-  featureArea: text("feature_area").nullable(),
-  scenario: text("scenario").nullable(),
-  component: text("component").nullable(),
-  priority: text("priority", { enum: ['Critical', 'High', 'Medium', 'Low'] }).default('Medium').nullable(),
-  severity: text("severity", { enum: ['Blocker', 'Critical', 'Major', 'Minor'] }).default('Major').nullable(),
+  // NEW Fields for reporting - .nullable() removed
+  module: text("module"),
+  featureArea: text("feature_area"),
+  scenario: text("scenario"),
+  component: text("component"),
+  priority: text("priority", { enum: ['Critical', 'High', 'Medium', 'Low'] }).default('Medium'),
+  severity: text("severity", { enum: ['Blocker', 'Critical', 'Major', 'Minor'] }).default('Major'),
 });
 
 // System Settings Table
@@ -160,11 +160,11 @@ export const testPlanExecutions = sqliteTable("test_plan_executions", {
   environment: text('environment'),
   browsers: text('browsers', { mode: 'json' }),
   triggeredBy: text('triggered_by', { enum: ['scheduled', 'manual', 'api'] }).notNull().default('manual'),
-  totalTests: integer("total_tests").nullable(),
-  passedTests: integer("passed_tests").nullable(),
-  failedTests: integer("failed_tests").nullable(),
-  skippedTests: integer("skipped_tests").nullable(),
-  executionDurationMs: integer("execution_duration_ms").nullable(),
+  totalTests: integer("total_tests"), // Nullable by default
+  passedTests: integer("passed_tests"), // Nullable by default
+  failedTests: integer("failed_tests"), // Nullable by default
+  skippedTests: integer("skipped_tests"), // Nullable by default
+  executionDurationMs: integer("execution_duration_ms"), // Nullable by default
 });
 
 // ---- NEW TABLE for Individual Test Case Results ----
@@ -182,12 +182,12 @@ export const reportTestCaseResults = sqliteTable("report_test_case_results", {
   startedAt: integer("started_at", { mode: 'timestamp' }).notNull(),
   completedAt: integer("completed_at", { mode: 'timestamp' }),
   durationMs: integer("duration_ms"),
-  module: text("module").nullable(),
-  featureArea: text("feature_area").nullable(),
-  scenario: text("scenario").nullable(),
-  component: text("component").nullable(),
-  priority: text("priority", { enum: ['Critical', 'High', 'Medium', 'Low'] }).nullable(),
-  severity: text("severity", { enum: ['Blocker', 'Critical', 'Major', 'Minor'] }).nullable(),
+  module: text("module"),
+  featureArea: text("feature_area"),
+  scenario: text("scenario"),
+  component: text("component"),
+  priority: text("priority", { enum: ['Critical', 'High', 'Medium', 'Low'] }), // Default is not set here, can be set by app logic
+  severity: text("severity", { enum: ['Blocker', 'Critical', 'Major', 'Minor'] }), // Default is not set here
 });
 
 // Test Plan Selected Tests Table
@@ -223,6 +223,7 @@ export const testsRelations = relations(tests, ({ one, many }) => ({
   user: one(users, { fields: [tests.userId], references: [users.id] }),
   project: one(projects, { fields: [tests.projectId], references: [projects.id] }),
   runs: many(testRuns),
+  // reportResults: many(reportTestCaseResults, { relationName: 'uiTestReportResults' }) // Optional: if direct link needed
 }));
 
 export const testRunsRelations = relations(testRuns, ({ one }) => ({
@@ -236,6 +237,7 @@ export const apiTestHistoryRelations = relations(apiTestHistory, ({ one }) => ({
 export const apiTestsRelations = relations(apiTests, ({ one, many }) => ({
   user: one(users, { fields: [apiTests.userId], references: [users.id] }),
   project: one(projects, { fields: [apiTests.projectId], references: [projects.id] }),
+  // reportResults: many(reportTestCaseResults, { relationName: 'apiTestReportResults' }) // Optional: if direct link needed
 }));
 
 export const testPlansRelations = relations(testPlans, ({ many }) => ({
@@ -249,13 +251,13 @@ export const testPlanSchedulesRelations = relations(testPlanSchedules, ({ one, m
   executions: many(testPlanExecutions),
 }));
 
-export const testPlanExecutionsRelations = relations(testPlanExecutions, ({ one, many }) => ({ // Updated
+export const testPlanExecutionsRelations = relations(testPlanExecutions, ({ one, many }) => ({
   testPlan: one(testPlans, { fields: [testPlanExecutions.testPlanId], references: [testPlans.id] }),
   schedule: one(testPlanSchedules, { fields: [testPlanExecutions.scheduleId], references: [testPlanSchedules.id] }),
-  detailedResults: many(reportTestCaseResults), // Added
+  detailedResults: many(reportTestCaseResults),
 }));
 
-export const reportTestCaseResultsRelations = relations(reportTestCaseResults, ({ one }) => ({ // Added
+export const reportTestCaseResultsRelations = relations(reportTestCaseResults, ({ one }) => ({
   testPlanExecution: one(testPlanExecutions, { fields: [reportTestCaseResults.testPlanExecutionId], references: [testPlanExecutions.id] }),
   uiTest: one(tests, { fields: [reportTestCaseResults.uiTestId], references: [tests.id] }),
   apiTest: one(apiTests, { fields: [reportTestCaseResults.apiTestId], references: [apiTests.id] }),
@@ -274,8 +276,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
-export const insertTestSchema = createInsertSchema(tests, { // Updated
-  module: z.string().optional().nullable(),
+export const insertTestSchema = createInsertSchema(tests, {
+  module: z.string().optional().nullable(), // Zod handles .nullable() correctly for optional fields
   featureArea: z.string().optional().nullable(),
   scenario: z.string().optional().nullable(),
   component: z.string().optional().nullable(),
@@ -302,7 +304,7 @@ export const insertTestRunSchema = createInsertSchema(testRuns).omit({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertTest = z.infer<typeof insertTestSchema>;
-export type Test = typeof tests.$inferSelect; // This will now include the new fields
+export type Test = typeof tests.$inferSelect;
 export type InsertTestRun = z.infer<typeof insertTestRunSchema>;
 export type TestRun = typeof testRuns.$inferSelect;
 export type UserSettings = typeof userSettings.$inferSelect;
@@ -367,7 +369,7 @@ export const updateTestPlanScheduleSchema = insertTestPlanScheduleSchema.partial
 export type TestPlanSchedule = typeof testPlanSchedules.$inferSelect;
 export type InsertTestPlanSchedule = typeof testPlanSchedules.$inferInsert;
 
-export const insertTestPlanExecutionSchema = createInsertSchema(testPlanExecutions, { // Updated
+export const insertTestPlanExecutionSchema = createInsertSchema(testPlanExecutions, {
   results: z.any().optional().nullable(),
   startedAt: z.number().optional(),
   completedAt: z.number().optional().nullable(),
@@ -379,12 +381,12 @@ export const insertTestPlanExecutionSchema = createInsertSchema(testPlanExecutio
   executionDurationMs: z.number().int().optional().nullable(),
 }).omit({ id: true });
 
-export const selectTestPlanExecutionSchema = createSelectSchema(testPlanExecutions); // This will include new aggregate fields
+export const selectTestPlanExecutionSchema = createSelectSchema(testPlanExecutions);
 
 export type TestPlanExecution = typeof testPlanExecutions.$inferSelect;
 export type InsertTestPlanExecution = typeof testPlanExecutions.$inferInsert;
 
-// ---- ZOD SCHEMAS AND TYPES for reportTestCaseResults ---- Added
+// ---- ZOD SCHEMAS AND TYPES for reportTestCaseResults ----
 export const insertReportTestCaseResultSchema = createInsertSchema(reportTestCaseResults, {
   startedAt: z.number(),
   completedAt: z.number().optional().nullable(),
@@ -405,7 +407,6 @@ export type InsertReportTestCaseResult = typeof reportTestCaseResults.$inferInse
 
 
 // --- Assertion Schemas ---
-// ... (rest of the file remains the same from Assertion Schemas downwards) ...
 export const AssertionSourceSchema = z.enum(['status_code', 'header', 'body_json_path', 'body_text', 'response_time']);
 export const AssertionComparisonSchema = z.enum([
   'equals', 'not_equals',
@@ -429,55 +430,27 @@ export type Assertion = z.infer<typeof AssertionSchema>;
 
 // --- API Authentication Schemas ---
 export const AuthTypeSchema = z.enum([
-  'inherit',
-  'none',
-  'basic',
-  'bearer',
-  'jwtBearer',
-  'digest',
-  'oauth1',
-  'oauth2',
-  'hawk',
-  'aws',
-  'ntlm',
-  'apiKey',
-  'akamai',
-  'asap',
+  'inherit', 'none', 'basic', 'bearer', 'jwtBearer', 'digest', 'oauth1', 'oauth2',
+  'hawk', 'aws', 'ntlm', 'apiKey', 'akamai', 'asap',
 ]);
 export type AuthType = z.infer<typeof AuthTypeSchema>;
 
-export const BasicAuthParamsSchema = z.object({
-  username: z.string(),
-  password: z.string(),
-});
+export const BasicAuthParamsSchema = z.object({ username: z.string(), password: z.string() });
 export type BasicAuthParams = z.infer<typeof BasicAuthParamsSchema>;
-
-export const BearerTokenAuthParamsSchema = z.object({
-  token: z.string(),
-});
+export const BearerTokenAuthParamsSchema = z.object({ token: z.string() });
 export type BearerTokenAuthParams = z.infer<typeof BearerTokenAuthParamsSchema>;
-
-export const ApiKeyAuthParamsSchema = z.object({
-  key: z.string(),
-  value: z.string(),
-  addTo: z.enum(['header', 'query']),
-});
+export const ApiKeyAuthParamsSchema = z.object({ key: z.string(), value: z.string(), addTo: z.enum(['header', 'query']) });
 export type ApiKeyAuthParams = z.infer<typeof ApiKeyAuthParamsSchema>;
 
 export const AuthParamsSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal(AuthTypeSchema.enum.basic), params: BasicAuthParamsSchema }),
   z.object({ type: z.literal(AuthTypeSchema.enum.bearer), params: BearerTokenAuthParamsSchema }),
   z.object({ type: z.literal(AuthTypeSchema.enum.apiKey), params: ApiKeyAuthParamsSchema }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.inherit) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.none) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.jwtBearer) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.digest) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.oauth1) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.oauth2) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.hawk) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.aws) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.ntlm) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.akamai) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.inherit) }), z.object({ type: z.literal(AuthTypeSchema.enum.none) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.jwtBearer) }), z.object({ type: z.literal(AuthTypeSchema.enum.digest) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.oauth1) }), z.object({ type: z.literal(AuthTypeSchema.enum.oauth2) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.hawk) }), z.object({ type: z.literal(AuthTypeSchema.enum.aws) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.ntlm) }), z.object({ type: z.literal(AuthTypeSchema.enum.akamai) }),
   z.object({ type: z.literal(AuthTypeSchema.enum.asap) }),
 ]);
 export type AuthParams = z.infer<typeof AuthParamsSchema>;
@@ -486,37 +459,18 @@ const bodyTypesArray = ['none', 'form-data', 'x-www-form-urlencoded', 'raw', 'bi
 export const BodyTypeSchema = z.enum(bodyTypesArray);
 export type BodyType = z.infer<typeof BodyTypeSchema>;
 
-export const KeyValuePairSchema = z.object({
-  id: z.string(),
-  key: z.string(),
-  value: z.string(),
-  enabled: z.boolean(),
-});
+export const KeyValuePairSchema = z.object({ id: z.string(), key: z.string(), value: z.string(), enabled: z.boolean() });
 export type KeyValuePair = z.infer<typeof KeyValuePairSchema>;
 
 export const FormDataFieldMetadataSchema = z.union([
-  z.object({
-    id: z.string(),
-    key: z.string(),
-    enabled: z.boolean(),
-    type: z.literal('text'),
-    value: z.string(),
-  }),
-  z.object({
-    id: z.string(),
-    key: z.string(),
-    enabled: z.boolean(),
-    type: z.literal('file'),
-    fileName: z.string(),
-    fileType: z.string(),
-  }),
+  z.object({ id: z.string(), key: z.string(), enabled: z.boolean(), type: z.literal('text'), value: z.string() }),
+  z.object({ id: z.string(), key: z.string(), enabled: z.boolean(), type: z.literal('file'), fileName: z.string(), fileType: z.string() }),
 ]);
 export type FormDataFieldMetadata = z.infer<typeof FormDataFieldMetadataSchema>;
 
-export const insertApiTestHistorySchema = createInsertSchema(apiTestHistory, {
-}).omit({ id: true, createdAt: true, userId: true });
+export const insertApiTestHistorySchema = createInsertSchema(apiTestHistory, {}).omit({ id: true, createdAt: true, userId: true });
 
-export const insertApiTestSchema = createInsertSchema(apiTests, { // Updated
+export const insertApiTestSchema = createInsertSchema(apiTests, {
   name: z.string().min(1, "Test name cannot be empty"),
   method: z.string().min(1, "HTTP method is required"),
   url: z.string().url("Invalid URL format"),
@@ -563,31 +517,24 @@ export const updateApiTestSchema = insertApiTestSchema.partial().extend({
 
 export type ApiTestHistoryEntry = typeof apiTestHistory.$inferSelect;
 export type InsertApiTestHistoryEntry = typeof apiTestHistory.$inferInsert;
-export type ApiTest = typeof apiTests.$inferSelect; // This will include new fields
+export type ApiTest = typeof apiTests.$inferSelect;
 export type InsertApiTest = typeof apiTests.$inferInsert;
 
 export const AdhocTestActionSchema = z.object({
-  id: z.enum([
-    'click', 'input', 'wait', 'scroll', 'assert', 'hover', 'select',
-    'assertTextContains', 'assertElementCount'
-  ]),
+  id: z.enum(['click', 'input', 'wait', 'scroll', 'assert', 'hover', 'select', 'assertTextContains', 'assertElementCount']),
   type: z.string(), name: z.string(), icon: z.string(), description: z.string(),
 });
 export type AdhocTestAction = z.infer<typeof AdhocTestActionSchema>;
 
 export const AdhocDetectedElementSchema = z.object({
-  id: z.string(), type: z.string(), selector: z.string(),
-  text: z.string().optional().nullable(), tag: z.string(),
+  id: z.string(), type: z.string(), selector: z.string(), text: z.string().optional().nullable(), tag: z.string(),
   attributes: z.record(z.string()),
   boundingBox: z.object({ x: z.number(), y: z.number(), width: z.number(), height: z.number() }).optional(),
 });
 export type AdhocDetectedElement = z.infer<typeof AdhocDetectedElementSchema>;
 
 export const AdhocTestStepSchema = z.object({
-  id: z.string(),
-  action: AdhocTestActionSchema,
-  targetElement: AdhocDetectedElementSchema.optional(),
-  value: z.string().optional().nullable(),
+  id: z.string(), action: AdhocTestActionSchema, targetElement: AdhocDetectedElementSchema.optional(), value: z.string().optional().nullable(),
 }).refine(data => {
   if (['click', 'input', 'hover', 'select', 'assert', 'assertTextContains', 'assertElementCount'].includes(data.action.id) && !data.targetElement) return false;
   return true;
