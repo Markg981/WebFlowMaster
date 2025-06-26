@@ -15,10 +15,14 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react'; // Changed from @radix-ui/react-icons
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'; // DialogClose might be needed
 import { useToast } from '@/components/ui/use-toast';  // Corrected import path
+import { useTranslation } from 'react-i18next';
+import { Link } from 'wouter';
+import { ArrowLeft, CalendarDays } from 'lucide-react'; // Added imports for header
 
 const SchedulingPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { t } = useTranslation(); // Added translation hook
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<TestPlanScheduleEnhanced | null>(null);
@@ -116,64 +120,79 @@ const SchedulingPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-6 lg:p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold">Test Plan Scheduling</h1>
-        <Button onClick={handleOpenCreateForm}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Create Schedule
-        </Button>
+    <div className="h-screen flex flex-col bg-background text-foreground">
+      <header className="bg-card border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Link href="/dashboard" aria-label={t('schedulingPage.backToDashboard.button', 'Back to Dashboard')}>
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <CalendarDays className="h-6 w-6 text-primary" />
+            <h1 className="text-xl font-bold text-card-foreground">{t('schedulingPage.title', 'Scheduling')}</h1>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="sm" onClick={handleOpenCreateForm}>
+              <PlusCircle className="mr-2 h-4 w-4" /> {t('schedulingPage.createSchedule.button', 'Create Schedule')}
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main content area */}
+      <div className="flex-1 overflow-auto p-4 md:p-6">
+        {/* Dialogs remain outside the scrollable content typically, or are portalled */}
+        <Dialog open={isFormOpen} onOpenChange={(open) => {
+          if (!open) {
+            setEditingSchedule(null); // Clear editing state when dialog closes
+          }
+          setIsFormOpen(open);
+        }}>
+          <DialogContent className="sm:max-w-[600px] md:max-w-[750px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingSchedule ? t('schedulingPage.editSchedule.title', 'Edit Schedule') : t('schedulingPage.createNewSchedule.title', 'Create New Schedule')}</DialogTitle>
+              {editingSchedule && <DialogDescription>{t('schedulingPage.editingSchedule.description', 'Editing schedule:')} {editingSchedule.scheduleName}</DialogDescription>}
+            </DialogHeader>
+            <ScheduleForm
+              initialData={editingSchedule || undefined}
+              onSubmit={handleFormSubmit}
+              onCancel={() => {
+                setIsFormOpen(false);
+                setEditingSchedule(null);
+              }}
+              isSubmitting={createMutation.isPending || updateMutation.isPending}
+            />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isConfirmDeleteDialogOpen} onOpenChange={setIsConfirmDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('schedulingPage.confirmDeletion.title', 'Confirm Deletion')}</DialogTitle>
+              <DialogDescription>
+                {t('schedulingPage.confirmDeletion.description', 'Are you sure you want to delete this schedule? This action cannot be undone.')}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsConfirmDeleteDialogOpen(false)} disabled={deleteMutation.isPending}>
+                {t('schedulingPage.cancel.button', 'Cancel')}
+              </Button>
+              <Button variant="destructive" onClick={confirmDeleteSchedule} disabled={deleteMutation.isPending}>
+                {deleteMutation.isPending ? t('schedulingPage.deleting.button', 'Deleting...') : t('schedulingPage.delete.button', 'Delete')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <SchedulesList
+          schedules={schedules || []}
+          onEdit={handleEditSchedule}
+          onDelete={handleDeleteScheduleAttempt}
+          isLoading={isLoading}
+          error={error}
+        />
       </div>
-
-      <Dialog open={isFormOpen} onOpenChange={(open) => {
-        if (!open) {
-          setEditingSchedule(null); // Clear editing state when dialog closes
-        }
-        setIsFormOpen(open);
-      }}>
-        <DialogContent className="sm:max-w-[600px] md:max-w-[750px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingSchedule ? 'Edit Schedule' : 'Create New Schedule'}</DialogTitle>
-            {editingSchedule && <DialogDescription>Editing schedule: {editingSchedule.scheduleName}</DialogDescription>}
-          </DialogHeader>
-          <ScheduleForm
-            initialData={editingSchedule || undefined}
-            onSubmit={handleFormSubmit}
-            onCancel={() => {
-              setIsFormOpen(false);
-              setEditingSchedule(null);
-            }}
-            isSubmitting={createMutation.isPending || updateMutation.isPending}
-          />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isConfirmDeleteDialogOpen} onOpenChange={setIsConfirmDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this schedule? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsConfirmDeleteDialogOpen(false)} disabled={deleteMutation.isPending}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDeleteSchedule} disabled={deleteMutation.isPending}>
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-
-      <SchedulesList
-        schedules={schedules || []}
-        onEdit={handleEditSchedule}
-        onDelete={handleDeleteScheduleAttempt}
-        isLoading={isLoading}
-        error={error}
-      />
     </div>
   );
 };
