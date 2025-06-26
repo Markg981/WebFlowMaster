@@ -1,7 +1,7 @@
 // client/src/pages/GeneralReportsPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation, useRoute } from 'wouter'; // Added useRoute
+import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,15 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 // import { DatePickerWithRange } from '@/components/ui/date-range-picker'; // Placeholder
 import {
-  FileText, Filter, Loader2, AlertCircle, Eye, ChevronLeft, ChevronRight, Search,
-  Home, PlusSquare, ListChecksIcon as TestsIcon, LibrarySquare as SuitesIcon,
-  CalendarClock, FileTextIcon as ReportsIcon, Settings as SettingsIcon, Network,
-  PanelLeftClose, PanelRightClose, UserCircle, TestTube
+  FileText, Filter, Loader2, AlertCircle, Eye, ChevronLeft, ChevronRight, Search, ArrowLeft
 } from 'lucide-react';
 import type { TestPlanExecution, TestPlan } from '@shared/schema';
 import { format } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from '@/hooks/use-auth'; // For user info in sidebar
 
 // Mock/Placeholder for DatePickerWithRange if not available
 const DatePickerWithRangePlaceholder = ({ date, onDateChange }: { date: any, onDateChange: (date: any) => void }) => (
@@ -40,51 +36,39 @@ interface PaginatedExecutionsResponse {
   limit: number;
 }
 
+// Using actual API endpoint now
 async function fetchTestExecutions(
   page: number,
   limit: number,
   filters: { planId?: string | null; status?: string | null; dateFrom?: Date | null; dateTo?: Date | null; searchTerm?: string | null; }
 ): Promise<PaginatedExecutionsResponse> {
   const queryParams = new URLSearchParams();
+  // Drizzle expects offset, not page for pagination directly in this backend
   queryParams.append('offset', ((page - 1) * limit).toString());
   queryParams.append('limit', limit.toString());
+
   if (filters.planId) queryParams.append('planId', filters.planId);
   if (filters.status) queryParams.append('status', filters.status);
-  if (filters.searchTerm) queryParams.append('search', filters.searchTerm);
+  if (filters.searchTerm) queryParams.append('search', filters.searchTerm); // Assuming backend supports 'search' for plan name
 
-  // Actual API call (replace mock)
   const response = await fetch(`/api/test-plan-executions?${queryParams.toString()}`);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: 'Failed to fetch test executions' }));
     throw new Error(errorData.error || errorData.message || 'Failed to fetch test executions');
   }
   const data = await response.json();
-  // Assuming the backend response structure is { items: [], limit: number, offset: number, totalItems?: number }
-  // and we need to calculate totalPages and currentPage based on that.
-  // For now, let's ensure the mock structure from API matches PaginatedExecutionsResponse if using mock.
-  // If using real API, ensure data structure matches.
+  // The backend returns { items: [], limit: number, offset: number }
+  // We need to calculate totalPages and currentPage based on what we have or what backend could provide
+  // For now, if backend doesn't send totalItems, pagination will be basic next/prev based on items length
+  const totalItems = data.totalItems || (data.items.length < limit && page === 1 ? data.items.length : (page * limit + (data.items.length === limit ? 1 : 0) ) ); // Estimate totalItems
+
   return {
     items: data.items,
-    totalItems: data.totalItems || data.items.length, // Fallback if totalItems not provided
-    totalPages: data.totalPages || Math.ceil((data.totalItems || data.items.length) / limit), // Fallback
+    totalItems: totalItems,
+    totalPages: Math.ceil(totalItems / limit),
     currentPage: page,
     limit: limit,
   };
-
-  // Fallback to mock if needed for development without backend ready:
-  // console.log(`Fetching executions with params: ${queryParams.toString()}`);
-  // await new Promise(resolve => setTimeout(resolve, 700));
-  // const mockItems: TestPlanExecutionWithPlanName[] = [
-  //   { id: 'exec_1', testPlanId: 'plan_abc', testPlanName: 'Login & Signup Flow', status: 'completed', startedAt: Math.floor(Date.now()/1000) - 3600, completedAt: Math.floor(Date.now()/1000) - 3000, environment: 'QA', browsers: '["chrome"]', triggeredBy: 'manual', totalTests: 10, passedTests: 8, failedTests: 2, skippedTests: 0, executionDurationMs: 60000, results: '' },
-  //   { id: 'exec_2', testPlanId: 'plan_def', testPlanName: 'Payment Gateway Tests', status: 'failed', startedAt: Math.floor(Date.now()/1000) - 7200, completedAt: Math.floor(Date.now()/1000) - 6800, environment: 'Staging', browsers: '["firefox"]', triggeredBy: 'scheduled', totalTests: 5, passedTests: 2, failedTests: 3, skippedTests: 0, executionDurationMs: 40000, results: '' },
-  //   { id: 'exec_3', testPlanId: 'plan_abc', testPlanName: 'Login & Signup Flow', status: 'running', startedAt: Math.floor(Date.now()/1000) - 600, completedAt: null, environment: 'QA', browsers: '["chrome"]', triggeredBy: 'manual', totalTests: null, passedTests: null, failedTests: null, skippedTests: null, executionDurationMs: null, results: '' },
-  // ];
-  // const filteredItems = mockItems.filter(item =>
-  //   (!filters.planId || item.testPlanId === filters.planId) &&
-  //   (!filters.status || item.status === filters.status) &&
-  //   (!filters.searchTerm || item.testPlanName?.toLowerCase().includes(filters.searchTerm.toLowerCase()))
-  // );
-  // return { items: filteredItems.slice(0, limit) , totalItems: filteredItems.length, totalPages: Math.ceil(filteredItems.length/limit), currentPage: page, limit };
 }
 
 async function fetchTestPlansForFilter(): Promise<Pick<TestPlan, 'id' | 'name'>[]> {
@@ -97,23 +81,8 @@ async function fetchTestPlansForFilter(): Promise<Pick<TestPlan, 'id' | 'name'>[
 
 const GeneralReportsPage: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const [locationUrl, navigate] = useLocation(); // Renamed to avoid conflict if 'location' object is used
+  const [locationUrl, navigate] = useLocation();
   const queryParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-
-
-  // Sidebar state
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-
-  // Active route states for sidebar
-  const [isDashboardActive] = useRoute('/dashboard');
-  const [isCreateTestActive] = useRoute('/dashboard/create-test');
-  const [isApiTesterActive] = useRoute('/dashboard/api-tester');
-  const [isSettingsActive] = useRoute('/settings');
-  const [isSuitesActive] = useRoute('/test-suites');
-  const [isSchedulingActive] = useRoute('/scheduling');
-  const [isReportsActive] = useRoute('/reports');
-
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -143,8 +112,6 @@ const GeneralReportsPage: React.FC = () => {
     if (selectedPlanId) params.set('planId', selectedPlanId);
     if (selectedStatus) params.set('status', selectedStatus);
     if (searchTerm) params.set('search', searchTerm);
-    // Consider adding page to URL as well if desired
-    // params.set('page', currentPage.toString());
     navigate(`/reports?${params.toString()}`, { replace: true });
   }, [selectedPlanId, selectedStatus, searchTerm, navigate]);
 
@@ -181,73 +148,29 @@ const GeneralReportsPage: React.FC = () => {
     }
   };
 
-  // Sidebar link styles
-  const linkBaseStyle = "flex items-center py-2 px-3 rounded-md text-sm font-medium";
-  const activeLinkStyle = "bg-primary/10 text-primary";
-  const inactiveLinkStyle = "text-foreground hover:bg-muted hover:text-foreground";
-  const iconBaseStyle = "mr-3 h-5 w-5";
-  const collapsedIconStyle = "h-6 w-6";
-
-
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      {/* Sidebar */}
-      <aside
-        className={`bg-card text-card-foreground border-r border-border shrink-0 flex flex-col transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? 'w-20 p-2' : 'w-64 p-4'
-        }`}
-      >
-        <div>
-          <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} p-1 mb-2 h-12`}>
-            <div className="flex items-center">
-              <TestTube className={`h-7 w-7 text-primary transition-all duration-300 ${isSidebarCollapsed ? 'ml-0' : 'mr-2'}`} />
-              {!isSidebarCollapsed && (
-                <span className="font-semibold text-lg whitespace-nowrap">{t('dashboardOverviewPage.webtestPlatform.text')}</span>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            >
-              {isSidebarCollapsed ? <PanelRightClose size={20} /> : <PanelLeftClose size={20} />}
-            </Button>
+    <div className="flex flex-col h-screen bg-background text-foreground">
+      {/* Simplified Header */}
+      <header className="bg-card border-b border-border px-4 py-3 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="icon" aria-label={t('generalReportsPage.backToDashboard', 'Back to Dashboard')}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <FileText className="h-6 w-6 text-primary" />
+            <h1 className="text-xl font-bold text-card-foreground">
+              {t('generalReportsPage.title', 'Test Execution Reports')}
+            </h1>
           </div>
-          <nav className={isSidebarCollapsed ? "mt-2" : "mt-0"}>
-            <ul className="space-y-1">
-              <li><Link href="/dashboard" title={t('nav.dashboard')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isDashboardActive ? activeLinkStyle : inactiveLinkStyle}`}><Home className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />{!isSidebarCollapsed && <span>{t('nav.dashboard')}</span>}</Link></li>
-              <li><Link href="/dashboard/api-tester" title={t('nav.apiTester', 'API Tester')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isApiTesterActive ? activeLinkStyle : inactiveLinkStyle}`}><Network className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />{!isSidebarCollapsed && <span>{t('nav.apiTester', 'API Tester')}</span>}</Link></li>
-              <li><Link href="/dashboard/create-test" title={t('nav.createTest')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isCreateTestActive ? activeLinkStyle : inactiveLinkStyle}`}><PlusSquare className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />{!isSidebarCollapsed && <span>{t('nav.createTest')}</span>}</Link></li>
-              <li><Link href="/test-suites" title={t('nav.suites')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSuitesActive ? activeLinkStyle : inactiveLinkStyle}`}><SuitesIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />{!isSidebarCollapsed && <span>{t('nav.suites')}</span>}</Link></li>
-              <li><Link href="/scheduling" title={t('nav.scheduling', 'Scheduling')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSchedulingActive ? activeLinkStyle : inactiveLinkStyle}`}><CalendarClock className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />{!isSidebarCollapsed && <span>{t('nav.scheduling', 'Scheduling')}</span>}</Link></li>
-              <li><Link href="/reports" title={t('nav.reports')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isReportsActive ? activeLinkStyle : inactiveLinkStyle}`}><ReportsIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />{!isSidebarCollapsed && <span>{t('nav.reports')}</span>}</Link></li>
-              <li><Link href="/settings" title={t('nav.settings')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSettingsActive ? activeLinkStyle : inactiveLinkStyle}`}><SettingsIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />{!isSidebarCollapsed && <span>{t('nav.settings')}</span>}</Link></li>
-            </ul>
-          </nav>
+          {/* Add any global actions for this page here if needed */}
         </div>
-        <div className={`mt-auto pt-4 border-t border-border ${isSidebarCollapsed ? 'px-0' : 'px-3'}`}>
-          {user ? (isSidebarCollapsed ? <div className="flex justify-center items-center py-2" title={user.username}><UserCircle className="h-7 w-7 text-muted-foreground" /></div> : (<><p className="text-sm font-semibold text-foreground truncate">{user.username}</p><p className="text-xs text-muted-foreground truncate">{user.email || t('dashboardOverviewPage.noEmailProvided.text')}</p></>)) : (isSidebarCollapsed ? <div className="flex justify-center items-center py-2" title={t('dashboardOverviewPage.userNotLoaded.text')}><UserCircle className="h-7 w-7 text-muted-foreground opacity-50" /></div> : (<><p className="text-sm font-semibold text-muted-foreground">{t('dashboardOverviewPage.userNotLoaded.text')}</p><p className="text-xs text-muted-foreground">...</p></>))}
-        </div>
-      </aside>
+      </header>
 
       {/* Main Content Area */}
-      <main className={`flex-1 py-6 pr-6 pl-6 md:pl-8 overflow-auto transition-all duration-300 ease-in-out`}> {/* Adjusted pl for content spacing */}
+      <main className="flex-1 overflow-auto p-4 md:p-6">
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-                <div className="mb-2 md:mb-0">
-                    <CardTitle className="text-2xl flex items-center">
-                        <FileText className="mr-2 h-6 w-6 text-primary" />
-                        {t('generalReportsPage.title', 'Test Execution Reports')}
-                    </CardTitle>
-                    <CardDescription>{t('generalReportsPage.description', 'View and filter past test plan executions.')}</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-
           <Card>
             <CardHeader>
                 <CardTitle className="text-lg flex items-center">
@@ -326,11 +249,13 @@ const GeneralReportsPage: React.FC = () => {
                         ))}
                         </TableBody>
                     </Table>
-                    <div className="flex items-center justify-end space-x-2 py-4">
-                        <span className="text-sm text-muted-foreground">Page {executionsResponse.currentPage} of {executionsResponse.totalPages} (Total: {executionsResponse.totalItems} items)</span>
-                        <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={executionsResponse.currentPage <= 1}><ChevronLeft className="h-4 w-4 mr-1"/> Previous</Button>
-                        <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(executionsResponse.totalPages, prev + 1))} disabled={executionsResponse.currentPage >= executionsResponse.totalPages}>Next <ChevronRight className="h-4 w-4 ml-1"/></Button>
-                    </div>
+                    {executionsResponse.totalPages > 1 && (
+                        <div className="flex items-center justify-end space-x-2 py-4">
+                            <span className="text-sm text-muted-foreground">Page {executionsResponse.currentPage} of {executionsResponse.totalPages} (Total: {executionsResponse.totalItems} items)</span>
+                            <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={executionsResponse.currentPage <= 1}><ChevronLeft className="h-4 w-4 mr-1"/> Previous</Button>
+                            <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(executionsResponse.totalPages, prev + 1))} disabled={executionsResponse.currentPage >= executionsResponse.totalPages}>Next <ChevronRight className="h-4 w-4 ml-1"/></Button>
+                        </div>
+                    )}
                     </>
                 )}
             </CardContent>

@@ -1,6 +1,6 @@
 // client/src/pages/TestReportPage.tsx
-import React, { useState } from 'react';
-import { useRoute, Link, useLocation } from 'wouter';
+import React, { useState } from 'react'; // Removed sidebar-related state
+import { useRoute, Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { fetchTestExecutionReport } from '@/lib/api/reports';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,15 +10,13 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   ExternalLink, Download, Share2, ListFilter, CheckCircle2, XCircle, SkipForward, AlertCircle, Clock,
-  ChevronRight, FileText, Image as ImageIcon, RefreshCw, Home, PlusSquare, ListChecksIcon as TestsIcon,
-  LibrarySquare as SuitesIcon, CalendarClock, FileTextIcon as ReportsIcon, Settings as SettingsIcon, Network,
-  PanelLeftClose, PanelRightClose, UserCircle, TestTube
+  ChevronRight, FileText, Image as ImageIcon, RefreshCw, ArrowLeft // Added ArrowLeft
 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from '@/hooks/use-auth'; // For sidebar user info
-import { useTranslation } from 'react-i18next'; // For sidebar translations
+import { useTranslation } from 'react-i18next'; // For potential future use in header
 
-// Placeholder for chart component (remains the same)
+// PlaceholderChart and TestPlanExecutionReport interface remain the same
+
 const PlaceholderChart = ({ title, data }: { title: string, data: any }) => (
   <Card className="flex-1 min-w-[300px]">
     <CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader>
@@ -28,18 +26,11 @@ const PlaceholderChart = ({ title, data }: { title: string, data: any }) => (
   </Card>
 );
 
-// Report data type definition (remains the same)
 export interface TestPlanExecutionReport {
   header: {
-    testSuiteName: string;
-    environment: string;
-    browsers: string[];
-    dateTime: string;
-    completedAt: string | null;
-    status: 'pending' | 'running' | 'completed' | 'failed' | 'error' | 'cancelled';
-    triggeredBy: 'scheduled' | 'manual' | 'api';
-    executionId: string;
-    testPlanId: string;
+    testSuiteName: string; environment: string; browsers: string[]; dateTime: string;
+    completedAt: string | null; status: 'pending' | 'running' | 'completed' | 'failed' | 'error' | 'cancelled';
+    triggeredBy: 'scheduled' | 'manual' | 'api'; executionId: string; testPlanId: string;
   };
   keyMetrics: {
     totalTests: number; passedTests: number; failedTests: number; skippedTests: number;
@@ -77,29 +68,9 @@ export interface TestPlanExecutionReport {
 
 const TestReportPage: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
   const [, params] = useRoute<{ planId: string; executionId: string }>("/test-plans/:planId/executions/:executionId/report");
   const executionId = params?.executionId;
-
-  // Sidebar state
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-
-  // Active route states for sidebar
-  const [isDashboardActive] = useRoute('/dashboard');
-  const [isCreateTestActive] = useRoute('/dashboard/create-test');
-  const [isApiTesterActive] = useRoute('/dashboard/api-tester');
-  const [isSettingsActive] = useRoute('/settings');
-  const [isSuitesActive] = useRoute('/test-suites');
-  const [isSchedulingActive] = useRoute('/scheduling');
-  // For detailed report, mark /reports as active or a more specific pattern
-  const [isReportsActive] = useRoute('/reports');
-  const [isCurrentReportActive] = useRoute('/test-plans/:planId/executions/:executionId/report');
-
-
-  // Filter states (remain for future use, not directly used by layout)
-  // const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
-  // const [selectedSeverity, setSelectedSeverity] = useState<string | null>(null);
-  // const [selectedOutcome, setSelectedOutcome] = useState<string | null>(null);
+  const planId = params?.planId; // Keep planId for back navigation context
 
   const { data: reportData, isLoading, error, refetch, isFetching } = useQuery<TestPlanExecutionReport, Error>(
     ['testExecutionReport', executionId],
@@ -113,6 +84,7 @@ const TestReportPage: React.FC = () => {
     }
   );
 
+  // Helper functions (getStatusIcon, getStatusColor, formatDuration) remain the same
   const getStatusIcon = (status: string | null | undefined, sizeClass = "h-5 w-5") => {
     if (!status) return <AlertCircle className={`${sizeClass} text-gray-500`} />;
     switch (status.toLowerCase()) {
@@ -127,7 +99,6 @@ const TestReportPage: React.FC = () => {
 
   const getStatusColor = (status: string | null | undefined) => {
     if (!status) return "text-gray-600 dark:text-gray-400";
-    // ... (status color logic remains the same)
     switch (status.toLowerCase()) {
       case 'passed': return "text-green-600 dark:text-green-400";
       case 'completed': return "text-green-600 dark:text-green-400";
@@ -150,12 +121,6 @@ const TestReportPage: React.FC = () => {
     return `${minutes}m ${seconds.padStart(2, '0')}s`;
   };
 
-  // Sidebar link styles
-  const linkBaseStyle = "flex items-center py-2 px-3 rounded-md text-sm font-medium";
-  const activeLinkStyle = "bg-primary/10 text-primary";
-  const inactiveLinkStyle = "text-foreground hover:bg-muted hover:text-foreground";
-  const iconBaseStyle = "mr-3 h-5 w-5";
-  const collapsedIconStyle = "h-6 w-6";
 
   const pageContent = () => {
     if (isLoading) return <div className="p-6 text-center">Loading test report...</div>;
@@ -171,13 +136,7 @@ const TestReportPage: React.FC = () => {
           <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
               <div className="mb-2 md:mb-0">
-                <CardTitle className="text-2xl flex items-center">
-                  {getStatusIcon(header.status, "h-7 w-7 mr-2")}
-                  {header.testSuiteName}
-                </CardTitle>
-                <CardDescription>
-                  Execution ID: {header.executionId} (Plan: <Link href={`/test-suites?planId=${header.testPlanId}`} className="underline hover:text-primary">{header.testPlanId}</Link>)
-                </CardDescription>
+                {/* Title moved to page header */}
               </div>
               <div className="flex items-center space-x-2">
                 {(header.status === 'running' || header.status === 'pending') && (
@@ -191,6 +150,9 @@ const TestReportPage: React.FC = () => {
                 <Button variant="outline" size="sm" onClick={() => console.log("Share report clicked")}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
               </div>
             </div>
+             <CardDescription className="mt-1"> {/* Added mt-1 for spacing from title which is now in page header */}
+                Execution ID: {header.executionId} (Plan: <Link href={`/test-suites?planId=${header.testPlanId}`} className="underline hover:text-primary">{header.testPlanId}</Link>)
+            </CardDescription>
             <div className="text-sm text-muted-foreground pt-2 grid grid-cols-1 md:grid-cols-2 gap-x-4">
               <p><strong>Environment:</strong> {header.environment || 'N/A'} {header.browsers && header.browsers.length > 0 ? `(${header.browsers.join(', ')})` : ''}</p>
               <p><strong>Triggered by:</strong> {header.triggeredBy || 'N/A'}</p>
@@ -231,50 +193,38 @@ const TestReportPage: React.FC = () => {
     );
   };
 
+  // Determine the back link based on whether planId is available (for context from GeneralReportsPage)
+  const backLinkHref = planId ? `/reports?planId=${planId}` : '/reports';
+
+
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      {/* Sidebar */}
-      <aside
-        className={`bg-card text-card-foreground border-r border-border shrink-0 flex flex-col transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? 'w-20 p-2' : 'w-64 p-4'
-        }`}
-      >
-        <div>
-          <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} p-1 mb-2 h-12`}>
-            <div className="flex items-center">
-              <TestTube className={`h-7 w-7 text-primary transition-all duration-300 ${isSidebarCollapsed ? 'ml-0' : 'mr-2'}`} />
-              {!isSidebarCollapsed && (
-                <span className="font-semibold text-lg whitespace-nowrap">{t('dashboardOverviewPage.webtestPlatform.text')}</span>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            >
-              {isSidebarCollapsed ? <PanelRightClose size={20} /> : <PanelLeftClose size={20} />}
-            </Button>
+    <div className="flex flex-col h-screen bg-background text-foreground">
+      {/* Simplified Header */}
+      <header className="bg-card border-b border-border px-4 py-3 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Link href={backLinkHref}>
+              <Button variant="ghost" size="icon" aria-label={t('testReportPage.backToReports', 'Back to Reports List')}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <FileText className="h-6 w-6 text-primary" />
+            <h1 className="text-xl font-bold text-card-foreground truncate max-w-md md:max-w-lg lg:max-w-2xl">
+              {t('testReportPage.title', 'Test Report')}: <span className="font-normal text-muted-foreground">{reportData?.header.testSuiteName || executionId}</span>
+            </h1>
           </div>
-          <nav className={isSidebarCollapsed ? "mt-2" : "mt-0"}>
-            <ul className="space-y-1">
-              <li><Link href="/dashboard" title={t('nav.dashboard')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isDashboardActive ? activeLinkStyle : inactiveLinkStyle}`}><Home className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />{!isSidebarCollapsed && <span>{t('nav.dashboard')}</span>}</Link></li>
-              <li><Link href="/dashboard/api-tester" title={t('nav.apiTester', 'API Tester')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isApiTesterActive ? activeLinkStyle : inactiveLinkStyle}`}><Network className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />{!isSidebarCollapsed && <span>{t('nav.apiTester', 'API Tester')}</span>}</Link></li>
-              <li><Link href="/dashboard/create-test" title={t('nav.createTest')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isCreateTestActive ? activeLinkStyle : inactiveLinkStyle}`}><PlusSquare className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />{!isSidebarCollapsed && <span>{t('nav.createTest')}</span>}</Link></li>
-              <li><Link href="/test-suites" title={t('nav.suites')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSuitesActive ? activeLinkStyle : inactiveLinkStyle}`}><SuitesIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />{!isSidebarCollapsed && <span>{t('nav.suites')}</span>}</Link></li>
-              <li><Link href="/scheduling" title={t('nav.scheduling', 'Scheduling')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSchedulingActive ? activeLinkStyle : inactiveLinkStyle}`}><CalendarClock className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />{!isSidebarCollapsed && <span>{t('nav.scheduling', 'Scheduling')}</span>}</Link></li>
-              <li><Link href="/reports" title={t('nav.reports')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${(isReportsActive || isCurrentReportActive) ? activeLinkStyle : inactiveLinkStyle}`}><ReportsIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />{!isSidebarCollapsed && <span>{t('nav.reports')}</span>}</Link></li>
-              <li><Link href="/settings" title={t('nav.settings')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSettingsActive ? activeLinkStyle : inactiveLinkStyle}`}><SettingsIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />{!isSidebarCollapsed && <span>{t('nav.settings')}</span>}</Link></li>
-            </ul>
-          </nav>
+          {/* Optional: Add page-specific actions here if needed, like a global refresh for THIS report */}
+           {(reportData?.header?.status === 'running' || reportData?.header?.status === 'pending') && (
+                <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+                  <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+                  Refresh Report
+                </Button>
+            )}
         </div>
-        <div className={`mt-auto pt-4 border-t border-border ${isSidebarCollapsed ? 'px-0' : 'px-3'}`}>
-          {user ? (isSidebarCollapsed ? <div className="flex justify-center items-center py-2" title={user.username}><UserCircle className="h-7 w-7 text-muted-foreground" /></div> : (<><p className="text-sm font-semibold text-foreground truncate">{user.username}</p><p className="text-xs text-muted-foreground truncate">{user.email || t('dashboardOverviewPage.noEmailProvided.text')}</p></>)) : (isSidebarCollapsed ? <div className="flex justify-center items-center py-2" title={t('dashboardOverviewPage.userNotLoaded.text')}><UserCircle className="h-7 w-7 text-muted-foreground opacity-50" /></div> : (<><p className="text-sm font-semibold text-muted-foreground">{t('dashboardOverviewPage.userNotLoaded.text')}</p><p className="text-xs text-muted-foreground">...</p></>))}
-        </div>
-      </aside>
+      </header>
 
       {/* Main Content Area */}
-      <main className={`flex-1 py-6 pr-6 pl-6 md:pl-8 overflow-auto transition-all duration-300 ease-in-out`}>
+      <main className="flex-1 overflow-auto p-4 md:p-6">
         {pageContent()}
       </main>
     </div>
