@@ -26,7 +26,7 @@ const DashboardOverviewPage: React.FC = () => {
   const [isSettingsActive] = useRoute('/settings');
   const [isSuitesActive] = useRoute('/test-suites'); // Updated active state for Test Suites
   const [isSchedulingActive] = useRoute('/scheduling'); // Corrected variable name and added useRoute
-  const isReportsActive = false; // Placeholder, adjust if Reports page is implemented
+  const [isReportsActive] = useRoute('/reports'); // Updated for the new general reports page
 
   const linkBaseStyle = "flex items-center py-2 px-3 rounded-md text-sm font-medium";
   const activeLinkStyle = "bg-primary/10 text-primary";
@@ -96,7 +96,7 @@ const DashboardOverviewPage: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="#/reports" title={t('nav.reports')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isReportsActive ? activeLinkStyle : inactiveLinkStyle}`}>
+                <Link href="/reports" title={t('nav.reports')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isReportsActive ? activeLinkStyle : inactiveLinkStyle}`}>
                   <ReportsIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
                   {!isSidebarCollapsed && <span>{t('nav.reports')}</span>}
                 </Link>
