@@ -22,6 +22,8 @@ import {
 } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 
+const NO_PROJECT_SENTINEL = "_no_project_";
+
 interface SaveApiTestModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -88,15 +90,21 @@ export const SaveApiTestModal: React.FC<SaveApiTestModalProps> = ({
           <div>
             <Label htmlFor="testProject">{t('apiTester.saveApiTestModal.projectOptional.label')}</Label>
             <Select
-              value={selectedProjectId?.toString() || ''}
-              onValueChange={(value) => setSelectedProjectId(value ? parseInt(value) : null)}
+              value={selectedProjectId !== null ? selectedProjectId.toString() : NO_PROJECT_SENTINEL}
+              onValueChange={(value) => {
+                if (value === NO_PROJECT_SENTINEL) {
+                  setSelectedProjectId(null);
+                } else {
+                  setSelectedProjectId(parseInt(value)); // Assuming project IDs are numbers
+                }
+              }}
               disabled={isLoading || isLoadingProjects || !projectsData}
             >
               <SelectTrigger id="testProject">
                 <SelectValue placeholder={t('apiTester.saveApiTestModal.selectAProject.placeholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">{t('apiTester.saveApiTestModal.noProject.text')}</SelectItem>
+                <SelectItem value={NO_PROJECT_SENTINEL}>{t('apiTester.saveApiTestModal.noProject.text')}</SelectItem>
                 {projectsData?.map((project) => (
                   <SelectItem key={project.id} value={project.id.toString()}>
                     {project.name}
