@@ -247,6 +247,14 @@ export const testPlanExecutions = sqliteTable("test_plan_executions", {
   browsers: text('browsers', { mode: 'json' }), // Copied from schedule or specified for manual run
   triggeredBy: text('triggered_by', { enum: ['scheduled', 'manual', 'api'] }).notNull().default('manual'),
   // userId: integer('user_id').references(() => users.id), // User who manually triggered or owns the schedule
+
+  // Fields to store aggregated metrics directly on the execution record
+  // These would be updated when the execution completes by the execution service.
+  totalTests: integer("total_tests").nullable(),
+  passedTests: integer("passed_tests").nullable(),
+  failedTests: integer("failed_tests").nullable(),
+  skippedTests: integer("skipped_tests").nullable(),
+  executionDurationMs: integer("execution_duration_ms").nullable(), // Total time for the whole execution (completedAt - startedAt)
 });
 
 

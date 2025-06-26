@@ -16,6 +16,7 @@ import ApiTesterPage from "@/pages/ApiTesterPage";
 import TestSuitesPage from './pages/TestSuitesPage'; // Using relative path for diagnosis
 import TestPlanExecutionPage from './pages/TestPlanExecutionPage'; // Using relative path for diagnosis
 import SchedulingPage from './pages/SchedulingPage'; // Added SchedulingPage
+import TestReportPage from './pages/TestReportPage'; // Added TestReportPage
 import { ProtectedRoute } from "./lib/protected-route";
 // Imports for ThemeLoader
 import { useEffect } from 'react'; // useEffect already imported
@@ -84,6 +85,7 @@ function Router() {
       <ProtectedRoute path="/scheduling" component={SchedulingPage} />
       <ProtectedRoute path="/test-suites" component={TestSuitesPage} />
       <ProtectedRoute path="/test-plan/:planId/run" component={TestPlanExecutionPage} />
+      <ProtectedRoute path="/test-plans/:planId/executions/:executionId/report" component={TestReportPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} /> {/* Catch-all for 404 */}

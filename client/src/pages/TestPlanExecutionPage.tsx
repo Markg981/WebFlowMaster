@@ -133,6 +133,7 @@ const TestPlanExecutionPage: React.FC = () => {
     setExecutionLog(prev => [...prev, t('testPlanExecutionPage.logs.executionFinished')]);
     setIsExecuting(false);
     // In a real app, you might mark the TestPlanRun as 'completed' here via an API call
+    // Now that the run is 'finished' (mocked), if currentRunId exists, we can offer to view the report.
   };
   // END MOCK EXECUTION LOGIC
 
@@ -246,6 +247,15 @@ const TestPlanExecutionPage: React.FC = () => {
                 <span>{t('testPlanExecutionPage.status.failed')}: {failedTestsCount}</span>
                 <span>{t('testPlanExecutionPage.status.pending')}: {testsToRun.length - completedTestsCount}</span>
               </div>
+              {currentRunId && !isExecuting && completedTestsCount === testsToRun.length && (
+                <CardFooter className="pt-4">
+                  <Button asChild variant="default" className="w-full">
+                    <Link href={`/test-plans/${planId}/executions/${currentRunId}/report`}>
+                      {t('testPlanExecutionPage.viewDetailedReport.button')}
+                    </Link>
+                  </Button>
+                </CardFooter>
+              )}
             </CardContent>
           </Card>
 
