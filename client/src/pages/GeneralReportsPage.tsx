@@ -8,10 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { DatePickerWithRange } from '@/components/ui/date-range-picker'; // Assuming this exists or will be created
+// import { DatePickerWithRange } from '@/components/ui/date-range-picker'; // Assuming this exists or will be created - Placeholder used for now
 import { FileText, Filter, Loader2, AlertCircle, Eye, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import type { TestPlanExecution, TestPlan } from '@shared/schema'; // Import types
 import { format } from 'date-fns'; // For date formatting
+import { Badge } from "@/components/ui/badge"; // Added Badge import
 
 // Mock/Placeholder for DatePickerWithRange if not available
 const DatePickerWithRangePlaceholder = ({ date, onDateChange }: { date: any, onDateChange: (date: any) => void }) => (
