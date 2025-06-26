@@ -125,8 +125,9 @@ const GeneralReportsPage: React.FC = () => {
     const params = new URLSearchParams();
     if (selectedPlanId) params.set('planId', selectedPlanId);
     // Add other filters to params if needed
-    navigate(`${location.pathname}?${params.toString()}`, { replace: true });
-  }, [selectedPlanId, navigate, location.pathname]);
+    // Use static path /reports to avoid issues with location.pathname being undefined initially
+    navigate(`/reports?${params.toString()}`, { replace: true });
+  }, [selectedPlanId, navigate]); // Removed location.pathname from dependencies as we use static path
 
 
   const handlePlanFilterChange = (planId: string) => {
