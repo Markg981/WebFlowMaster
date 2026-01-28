@@ -27,7 +27,7 @@ import { SavedTestsPanel } from '@/components/api-tester/SavedTestsPanel';
 import { SaveApiTestModal } from '@/components/api-tester/SaveApiTestModal';
 import { AssertionEditor } from '@/components/api-tester/AssertionEditor';
 import { AuthorizationPanel } from '@/components/api-tester/AuthorizationPanel';
-import { ApiTestHistoryEntry, InsertApiTestHistoryEntry, ApiTest, InsertApiTest, Assertion, AuthType, AuthParams } from '@shared/schema';
+import { ApiTestHistoryEntry, InsertApiTestHistoryPayload, ApiTest, InsertApiTest, Assertion, AuthType, AuthParams } from '@shared/schema';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -197,10 +197,10 @@ const ApiTesterPage: React.FC = () => {
   const saveToHistoryMutation = useMutation<
     ApiTestHistoryEntry,
     Error,
-    InsertApiTestHistoryEntry
+    InsertApiTestHistoryPayload
   >({ // Ensure this is an object literal for the options
-    mutationFn: async (historyEntry: InsertApiTestHistoryEntry) => {
-      const payloadForBackend: InsertApiTestHistoryEntry = {
+    mutationFn: async (historyEntry: InsertApiTestHistoryPayload) => {
+      const payloadForBackend: InsertApiTestHistoryPayload = {
           method: historyEntry.method,
           url: historyEntry.url,
           queryParams: historyEntry.queryParams,
@@ -212,7 +212,7 @@ const ApiTesterPage: React.FC = () => {
           durationMs: historyEntry.durationMs,
       };
       // userId, id, createdAt are omitted as they are handled by backend/DB.
-      // The InsertApiTestHistoryEntry type should reflect this.
+      // The InsertApiTestHistoryPayload type should reflect this.
       const response = await apiRequest('POST', '/api/api-test-history', payloadForBackend);
       return response.json();
     },
@@ -258,7 +258,7 @@ const ApiTesterPage: React.FC = () => {
       toast({
         title: data.status ? `Request Successful: ${data.status}` : "Request Successful",
         description: hasAssertions ? `Assertions ${assertionSummary}` : `API returned status ${data.status}`,
-        variant: hasAssertions && !allAssertionsPassed ? "warning" : "default",
+        variant: hasAssertions && !allAssertionsPassed ? "destructive" : "default",
       });
 
       const currentParamsForHistory = queryParams.filter(p => p.enabled && p.key.trim()).reduce((acc, p) => {
@@ -290,7 +290,7 @@ const ApiTesterPage: React.FC = () => {
         requestBodyForHistory = variables.body as string | null; // Already string, or null/undefined
       }
 
-      const historyEntry: InsertApiTestHistoryEntry = {
+      const historyEntry: InsertApiTestHistoryPayload = {
           method: variables.method, url: variables.url, queryParams: currentParamsForHistory,
           requestHeaders: currentHeadersForHistory, requestBody: requestBodyForHistory,
           responseStatus: data.status, responseHeaders: data.headers,
@@ -406,7 +406,7 @@ const ApiTesterPage: React.FC = () => {
                 finalBody = JSON.parse(requestBodyValue);
               } catch (e) {
                 finalBody = requestBodyValue; // Send as text if JSON is invalid
-                toast({ title: "Invalid JSON", description: "Request body is not valid JSON. Sending as plain text.", variant: "warning", duration: 3000 });
+                 toast({ title: "Invalid JSON", description: "Request body is not valid JSON. Sending as plain text.", variant: "default", duration: 3000 });
               }
             } else {
               finalBody = requestBodyValue;
@@ -424,7 +424,7 @@ const ApiTesterPage: React.FC = () => {
             try {
               gqlPayload.variables = JSON.parse(graphqlVariables);
             } catch (e) {
-              toast({ title: "Invalid GraphQL Variables", description: "Variables are not valid JSON. Sending query without variables.", variant: "warning", duration: 3000 });
+               toast({ title: "Invalid GraphQL Variables", description: "Variables are not valid JSON. Sending query without variables.", variant: "default", duration: 3000 });
             }
           }
           finalBody = JSON.stringify(gqlPayload);
@@ -602,6 +602,9 @@ const ApiTesterPage: React.FC = () => {
   const loadTestState = (test: ApiTest) => {
     setMethod(test.method);
     setUrl(test.url);
+    if (test.authType) setAuthType(test.authType as AuthType);
+    if (test.authParams) setAuthParams(test.authParams as AuthParams);
+    if (test.bodyType) setSelectedBodyType(test.bodyType as BodyType);
 
     const parseKeyValuePairs = (jsonStringOrArray: string | KeyValuePair[] | null | undefined, prefix: 'qp' | 'rh'): KeyValuePair[] => {
       if (!jsonStringOrArray) return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
@@ -640,14 +643,14 @@ const ApiTesterPage: React.FC = () => {
     }
 
     // Load new fields
-    setAuthType(test.authType || 'none');
+    setAuthType((test.authType as AuthType) || 'none');
     try {
       setAuthParams(test.authParams ? (typeof test.authParams === 'string' ? JSON.parse(test.authParams) : test.authParams) : undefined);
     } catch (e) {
       console.error("Error parsing authParams from saved test:", e);
       setAuthParams(undefined);
     }
-    setSelectedBodyType(test.bodyType || 'raw');
+    setSelectedBodyType((test.bodyType as BodyType) || 'raw');
     setRawContentType(test.bodyRawContentType || 'application/json');
     setGraphqlQuery(test.bodyGraphqlQuery || '');
     setGraphqlVariables(test.bodyGraphqlVariables || '');
@@ -668,31 +671,11 @@ const ApiTesterPage: React.FC = () => {
           }))
         );
         if (loadedFormData.some(item => item.type === 'file')) {
-          toast({ title: "Form Data Files", description: "File entries need to be re-selected.", variant: "info", duration: 4000});
-        }
+        toast({ title: "Form Data Files", description: "File entries need to be re-selected.", variant: "default", duration: 4000});
+      }
       } catch (e) {
         console.error("Error parsing bodyFormData from saved test:", e);
         setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
-      }
-    } else {
-      setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
-    }
-
-    if (test.bodyUrlEncoded) {
-      const loadedUrlEncoded = (typeof test.bodyUrlEncoded === 'string' ? JSON.parse(test.bodyUrlEncoded) : test.bodyUrlEncoded) as Array<any>;
-      setUrlEncodedBody(
-        loadedUrlEncoded.map(item => ({
-          id: item.id || uuidv4(),
-          key: item.key || '',
-          value: item.type === 'file' ? null : item.value || '', // File objects can't be stored, set to null
-          enabled: item.enabled !== undefined ? item.enabled : true,
-          type: item.type || 'text',
-          // Add fileName and fileType if they exist for file type, to inform the user
-          ...(item.type === 'file' && item.fileName && { fileNamePlaceholder: item.fileName, fileTypePlaceholder: item.fileType }),
-        }))
-      );
-      if (loadedFormData.some(item => item.type === 'file')) {
-        toast({ title: "Form Data Files", description: "File entries need to be re-selected.", variant: "info", duration: 4000});
       }
     } else {
       setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
@@ -860,15 +843,13 @@ const ApiTesterPage: React.FC = () => {
           toast({
             title: t('apiTesterPage.notifications.loadFailed.title', 'Load Failed'),
             description: error.message || t('apiTesterPage.notifications.loadFailed.description', `Failed to load test with ID: ${id}`),
-            variant: 'destructive',
+            variant: "default",
           });
-          // Optionally, clear the URL parameter or redirect if the test is not found
-          // window.history.replaceState({}, document.title, window.location.pathname);
         }
-      };
-      fetchAndLoadTest(testId);
-    }
-  }, [t]); // Add other dependencies if they are used inside fetchAndLoadTest indirectly e.g. queryClient, but apiRequest and loadTestState are stable if defined outside or correctly memoized.
+        };
+        fetchAndLoadTest(testId);
+      }
+  }, [t, loadTestState]);
 
   const getResponseLanguage = (headers: Record<string, string> | null): string => {
     if (!headers) return 'plaintext';
@@ -1067,10 +1048,9 @@ const ApiTesterPage: React.FC = () => {
                               theme={monacoTheme}
                               value={requestBodyValue}
                               onChange={(value) => setRequestBodyValue(value || '')}
-                              options={{ minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true, tabSize: 2, insertSpaces: true }}
-                              onMount={(editor, monaco) => { editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => { if (!apiProxyMutation.isPending) { handleSendRequest(); } }); }}
-                              className={apiProxyMutation.isPending || method === 'GET' || method === 'HEAD' ? 'opacity-50 cursor-not-allowed' : ''}
-                              readOnly={apiProxyMutation.isPending || method === 'GET' || method === 'HEAD'}
+                               options={{ minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true, tabSize: 2, insertSpaces: true, readOnly: apiProxyMutation.isPending || method === 'GET' || method === 'HEAD' }}
+                               onMount={(editor, monaco) => { editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => { if (!apiProxyMutation.isPending) { handleSendRequest(); } }); }}
+                               className={apiProxyMutation.isPending || method === 'GET' || method === 'HEAD' ? 'opacity-50 cursor-not-allowed' : ''}
                             />
                           </div>
                         </div>
@@ -1106,9 +1086,8 @@ const ApiTesterPage: React.FC = () => {
                               theme={monacoTheme}
                               value={graphqlQuery}
                               onChange={(value) => setGraphqlQuery(value || '')}
-                              options={{ minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true }}
+                              options={{ minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true, readOnly: apiProxyMutation.isPending }}
                               className={apiProxyMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}
-                              readOnly={apiProxyMutation.isPending}
                             />
                           </div>
                         </div>
@@ -1121,9 +1100,8 @@ const ApiTesterPage: React.FC = () => {
                               theme={monacoTheme}
                               value={graphqlVariables}
                               onChange={(value) => setGraphqlVariables(value || '')}
-                              options={{ minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true }}
+                              options={{ minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true, readOnly: apiProxyMutation.isPending }}
                               className={apiProxyMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}
-                              readOnly={apiProxyMutation.isPending}
                             />
                           </div>
                         </div>

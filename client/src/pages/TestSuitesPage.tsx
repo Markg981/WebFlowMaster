@@ -15,7 +15,7 @@ import ScheduleWizard from '@/components/scheduling/ScheduleWizard'; // Import S
 import { useToast } from '@/hooks/use-toast';
 import { runTestPlanAPI, fetchTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans'; // Renamed fetchTestPlans
 // Removed toggleScheduleActiveStatus, will use updateSchedule instead
-import { fetchSchedulesByPlanId, deleteSchedule, updateSchedule, TestPlanScheduleWithPlanName, UpdateScheduleClientPayload } from '@/lib/api/schedules';
+import { fetchSchedulesByPlanId, deleteSchedule, updateSchedule, TestPlanScheduleEnhanced, UpdateScheduleClientPayload } from '@/lib/api/schedules';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
@@ -29,7 +29,7 @@ const TestSuitesPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreatePlanWizardOpen, setIsCreatePlanWizardOpen] = useState(false);
   const [isScheduleWizardOpen, setIsScheduleWizardOpen] = useState(false);
-  const [scheduleToEdit, setScheduleToEdit] = useState<TestPlanScheduleWithPlanName | null>(null);
+  const [scheduleToEdit, setScheduleToEdit] = useState<TestPlanScheduleEnhanced | null>(null);
   const [selectedTestPlanForScheduling, setSelectedTestPlanForScheduling] = useState<string | undefined>(undefined);
 
   const [activeTab, setActiveTab] = useState('test-plan');
@@ -97,14 +97,14 @@ const TestSuitesPage: React.FC = () => {
     setIsScheduleWizardOpen(true);
   };
 
-  const openScheduleWizardForEdit = (schedule: TestPlanScheduleWithPlanName) => {
+  const openScheduleWizardForEdit = (schedule: TestPlanScheduleEnhanced) => {
     setSelectedTestPlanForScheduling(schedule.testPlanId); // Ensure this is set
     setScheduleToEdit(schedule);
     setIsScheduleWizardOpen(true);
   };
 
   const filteredTestPlans = useMemo(() => {
-    return allTestPlans.filter(plan =>
+    return (allTestPlans as TestPlan[]).filter((plan: TestPlan) =>
       plan.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [allTestPlans, searchTerm]);
@@ -267,7 +267,7 @@ const TestSuitesPage: React.FC = () => {
                         </TableCell>
                       </TableRow>
                   )}
-                  {paginatedTestPlans.map((item) => (
+                  {paginatedTestPlans.map((item: TestPlan) => (
                     <TableRow key={item.id}>
                       <TableCell>
                         <div>{item.name}</div>

@@ -49,7 +49,7 @@ const parseServerScheduleResponse = (schedule: TestPlanSchedule): TestPlanSchedu
   return {
     ...schedule,
     testPlanName: (schedule as any).testPlanName, // testPlanName is joined by server
-    nextRunAt: new Date(schedule.nextRunAt * 1000), // Convert timestamp to Date
+    nextRunAt: new Date((schedule.nextRunAt as any) * 1000), // Convert timestamp to Date
     browsers: schedule.browsers as string[] | null,
     notificationConfigOverride: schedule.notificationConfigOverride as Record<string, any> | null,
     executionParameters: schedule.executionParameters as Record<string, any> | null,
@@ -126,11 +126,11 @@ export const deleteSchedule = async (id: string): Promise<void> => {
 const EXECUTIONS_BASE_URL = '/api/test-plan-executions';
 
 // Enhanced type for executions, ensuring Date objects for timestamps
-export interface TestPlanExecutionEnhanced extends TestPlanExecution {
+export interface TestPlanExecutionEnhanced extends Omit<TestPlanExecution, 'startedAt' | 'completedAt' | 'results' | 'browsers'> {
   testPlanName?: string;
   scheduleName?: string;
   startedAt: Date; // Ensure this is a Date object
-  completedAt?: Date | null; // Ensure this is a Date object or null
+  completedAt: Date | null; // Ensure this is a Date object or null
   // Server already parses results and browsers JSON
   results: Record<string, any> | null;
   browsers: string[] | null;
@@ -161,8 +161,8 @@ const parseServerExecutionResponse = (execution: TestPlanExecution): TestPlanExe
     ...execution,
     testPlanName: (execution as any).testPlanName,
     scheduleName: (execution as any).scheduleName,
-    startedAt: new Date(execution.startedAt * 1000), // Convert timestamp to Date
-    completedAt: execution.completedAt ? new Date(execution.completedAt * 1000) : null,
+    startedAt: new Date((execution.startedAt as any) * 1000), // Convert timestamp to Date
+    completedAt: execution.completedAt ? new Date((execution.completedAt as any) * 1000) : null,
     results: execution.results as Record<string, any> | null,
     browsers: execution.browsers as string[] | null,
   };

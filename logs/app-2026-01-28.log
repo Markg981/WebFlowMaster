@@ -1,0 +1,31 @@
+2026-01-28 18:34:35 - warn: GEMINI_API_KEY not set. AI features disabled.
+2026-01-28 18:34:35 - info: PlaywrightService: Winston logger initialized successfully.
+2026-01-28 18:34:35 - error: Failed to ensure default system setting for logRetentionDays: no such table: system_settings
+2026-01-28 18:34:35 - error: Failed to ensure default system setting for logLevel: no such table: system_settings
+2026-01-28 18:34:35 - info: [SchedulerService] Initializing scheduler...
+2026-01-28 18:34:35 - error: [SchedulerService] Error initializing scheduler: no such table: test_plan_schedules
+2026-01-28 18:34:35 - info: Scheduler initialized successfully after routes.
+2026-01-28 18:35:27 - warn: GEMINI_API_KEY not set. AI features disabled.
+2026-01-28 18:35:27 - info: PlaywrightService: Winston logger initialized successfully.
+2026-01-28 18:35:27 - error: Failed to ensure default system setting for logRetentionDays: no such table: system_settings
+2026-01-28 18:35:27 - error: Failed to ensure default system setting for logLevel: no such table: system_settings
+2026-01-28 18:35:27 - info: [SchedulerService] Initializing scheduler...
+2026-01-28 18:35:27 - error: [SchedulerService] Error initializing scheduler: no such table: test_plan_schedules
+2026-01-28 18:35:27 - info: Scheduler initialized successfully after routes.
+2026-01-28 18:36:47 - warn: GEMINI_API_KEY not set. AI features disabled.
+2026-01-28 18:36:47 - info: PlaywrightService: Winston logger initialized successfully.
+2026-01-28 18:36:47 - info: Initialized default system setting: logRetentionDays=7
+2026-01-28 18:36:47 - info: Initialized default system setting: logLevel=info
+2026-01-28 18:36:47 - info: [SchedulerService] Initializing scheduler...
+2026-01-28 18:36:47 - info: [SchedulerService] Found 0 active schedules to load.
+2026-01-28 18:36:47 - info: [SchedulerService] Scheduler initialized successfully.
+2026-01-28 18:36:47 - info: Scheduler initialized successfully after routes.
+2026-01-28 18:36:47 - info: Server listening on port 5000
+2026-01-28 18:37:15 - warn: GEMINI_API_KEY not set. AI features disabled.
+2026-01-28 18:37:15 - info: PlaywrightService: Winston logger initialized successfully.
+2026-01-28 18:37:15 - info: [SchedulerService] Initializing scheduler...
+2026-01-28 18:37:15 - info: [SchedulerService] Found 0 active schedules to load.
+2026-01-28 18:37:15 - info: [SchedulerService] Scheduler initialized successfully.
+2026-01-28 18:37:15 - info: Scheduler initialized successfully after routes.
+2026-01-28 18:37:15 - info: Server listening on port 5000
+2026-01-28 18:37:29 - info: [express] GET /api/user 401 in 3ms

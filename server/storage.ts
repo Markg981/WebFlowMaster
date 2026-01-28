@@ -1,11 +1,45 @@
-import { users, tests, testRuns, userSettings, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
+import { users, tests, testRuns, userSettings, sessions, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import session from "express-session";
 // import connectPg from "connect-pg-simple";
 // import { pool } from "./db"; // Removed as pool is not available with SQLite
 
-// const PostgresSessionStore = connectPg(session); // PostgreSQL specific
+
+export class DatabaseSessionStore extends session.Store {
+  constructor() {
+    super();
+  }
+
+  get(sid: string, callback: (err: any, session?: session.SessionData | null) => void) {
+    db.select().from(sessions).where(eq(sessions.sid, sid))
+      .then((rows) => {
+        if (rows.length === 0) return callback(null, null);
+        callback(null, rows[0].sess as session.SessionData);
+      })
+      .catch((err) => callback(err));
+  }
+
+  set(sid: string, sess: session.SessionData, callback?: (err?: any) => void) {
+      const expire = sess.cookie?.expires ? new Date(sess.cookie.expires) : new Date(Date.now() + 86400000);
+      db.insert(sessions).values({
+        sid,
+        sess: sess as any, // Drizzle expects generic JSON
+        expire
+      }).onConflictDoUpdate({
+        target: sessions.sid,
+        set: { sess: sess as any, expire }
+      })
+      .then(() => callback && callback())
+      .catch((err) => callback && callback(err));
+  }
+
+  destroy(sid: string, callback?: (err?: any) => void) {
+    db.delete(sessions).where(eq(sessions.sid, sid))
+      .then(() => callback && callback())
+      .catch((err) => callback && callback(err));
+  }
+}
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -25,17 +59,14 @@ export interface IStorage {
   getUserSettings(userId: number): Promise<UserSettings | undefined>;
   upsertUserSettings(userId: number, settingsData: Partial<Omit<InsertUserSettings, 'userId'>>): Promise<UserSettings>;
   
-  // sessionStore: session.SessionStore; // Commented out for now
+  sessionStore: session.Store;
 }
 
 export class DatabaseStorage implements IStorage {
-  // public sessionStore: session.SessionStore; // Commented out for now
+  public sessionStore: session.Store;
 
   constructor() {
-    // this.sessionStore = new PostgresSessionStore({ // PostgreSQL specific
-    //   pool,
-    //   createTableIfMissing: true
-    // });
+    this.sessionStore = new DatabaseSessionStore();
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -84,7 +115,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTest(id: number): Promise<boolean> {
     const result = await db.delete(tests).where(eq(tests.id, id));
-    return result.rowCount > 0;
+    return result.changes > 0;
   }
 
   async createTestRun(testRun: InsertTestRun): Promise<TestRun> {

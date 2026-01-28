@@ -98,13 +98,13 @@ const GeneralReportsPage: React.FC = () => {
   });
 
   const { data: executionsResponse, isLoading, error, isFetching, refetch } = useQuery<PaginatedExecutionsResponse, Error>({
-    queryKey: ['testExecutions', currentPage, selectedPlanId, selectedStatus, /*selectedDateRange,*/ searchTerm],
+    queryKey: ['testExecutions', currentPage, selectedPlanId, selectedStatus, searchTerm],
     queryFn: () => fetchTestExecutions(currentPage, itemsPerPage, {
         planId: selectedPlanId,
         status: selectedStatus,
         searchTerm: searchTerm,
     }),
-    keepPreviousData: true,
+    placeholderData: (previousData: PaginatedExecutionsResponse | undefined) => previousData,
   });
 
   useEffect(() => {
@@ -236,11 +236,11 @@ const GeneralReportsPage: React.FC = () => {
                             <TableHead>{t('generalReportsPage.table.actions', 'Actions')}</TableHead>
                         </TableRow></TableHeader>
                         <TableBody>
-                        {executionsResponse.items.map((exec) => (
+                        {executionsResponse?.items.map((exec: TestPlanExecutionWithPlanName) => (
                             <TableRow key={exec.id}>
                             <TableCell className="font-medium">{exec.testPlanName || exec.testPlanId}</TableCell>
                             <TableCell><Badge variant={getStatusBadgeVariant(exec.status)} className="capitalize">{exec.status}</Badge></TableCell>
-                            <TableCell>{exec.startedAt ? format(new Date(exec.startedAt * 1000), 'PPpp') : 'N/A'}</TableCell>
+                             <TableCell>{exec.startedAt ? format(new Date(exec.startedAt), 'PPpp') : 'N/A'}</TableCell>
                             <TableCell>{formatDuration(exec.executionDurationMs)}</TableCell>
                             <TableCell>{`${exec.passedTests ?? '-'}/${exec.failedTests ?? '-'}/${exec.skippedTests ?? '-'}/${exec.totalTests ?? '-'}`}</TableCell>
                             <TableCell className="capitalize">{exec.triggeredBy}</TableCell>
@@ -249,7 +249,7 @@ const GeneralReportsPage: React.FC = () => {
                         ))}
                         </TableBody>
                     </Table>
-                    {executionsResponse.totalPages > 1 && (
+                    {executionsResponse && executionsResponse.totalPages > 1 && (
                         <div className="flex items-center justify-end space-x-2 py-4">
                             <span className="text-sm text-muted-foreground">Page {executionsResponse.currentPage} of {executionsResponse.totalPages} (Total: {executionsResponse.totalItems} items)</span>
                             <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={executionsResponse.currentPage <= 1}><ChevronLeft className="h-4 w-4 mr-1"/> Previous</Button>

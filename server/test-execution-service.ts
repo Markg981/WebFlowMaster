@@ -149,7 +149,8 @@ export async function runTest(
 
 export async function runTestPlan(
   planId: string,
-  userId: number
+  userId: number,
+  overrides?: { environment?: string | null; browsers?: any; customParams?: any }
 ): Promise<TestPlanExecution | { error: string; status?: number; testPlanRunId?: string }> { // Return type updated
   const resolvedLogger = await loggerPromise;
   const testPlanRunId = uuidv4();
@@ -171,7 +172,7 @@ export async function runTestPlan(
         id: testPlanRunId,
         testPlanId: planId,
         status: 'running',
-        startedAt: Math.floor(overallStartTime / 1000), // Record precise start time
+        startedAt: new Date(overallStartTime), // Use Date object
         // environment and browsers could be copied from plan or schedule if this was a scheduled run
         environment: testPlan.name, // Placeholder, ideally from schedule or manual run config
         triggeredBy: 'manual', // Assuming manual run for now
@@ -191,7 +192,7 @@ export async function runTestPlan(
     resolvedLogger.error({ message: 'Failed to create base results directory', baseResultsDir, error: dirError.message });
     await db.update(testPlanExecutionsTable).set({
       status: 'error',
-      completedAt: Math.floor(Date.now() / 1000),
+      completedAt: new Date(),
       results: JSON.stringify([{ error: `Failed to create results directory: ${dirError.message}` }]),
       executionDurationMs: Date.now() - overallStartTime,
     }).where(eq(testPlanExecutionsTable.id, testPlanRunId));
@@ -282,8 +283,8 @@ export async function runTestPlan(
       reasonForFailure: failureReason,
       screenshotUrl: screenshotFinalPath,
       detailedLog: stepsOrLogData, // Or specific log for API tests
-      startedAt: Math.floor(singleTestStartTime / 1000),
-      completedAt: Math.floor(singleTestEndTime / 1000),
+      startedAt: new Date(singleTestStartTime),
+      completedAt: new Date(singleTestEndTime),
       durationMs: singleTestDurationMs,
       module: testObjectDefinition?.module || null,
       featureArea: testObjectDefinition?.featureArea || null,
@@ -340,7 +341,7 @@ export async function runTestPlan(
       .set({
         status: finalOverallStatus,
         results: JSON.stringify(legacyIndividualTestResultsForJsonBlob), // Keep the old JSON blob for now
-        completedAt: Math.floor(overallCompletedAt / 1000),
+        completedAt: new Date(overallCompletedAt),
         totalTests: calculatedTotalTests,
         passedTests: calculatedPassedTests,
         failedTests: calculatedFailedTests,
@@ -365,7 +366,7 @@ export async function runTestPlan(
       id: testPlanRunId, testPlanId: planId, status: 'error',
       results: JSON.stringify(legacyIndividualTestResultsForJsonBlob),
       startedAt: currentTestPlanRun.startedAt,
-      completedAt: Math.floor(overallCompletedAt / 1000),
+      completedAt: new Date(overallCompletedAt),
       error: `DB error during final aggregate update: ${dbError.message}`
     } as any;
   }

@@ -1,4 +1,4 @@
-import cron from 'node-cron';
+import cron, { ScheduledTask } from 'node-cron';
 import { db } from './db';
 import { testPlanSchedules, testPlanExecutions, testPlans } from '@shared/schema';
 import type { TestPlanSchedule, TestPlanExecution, TestPlan } from '@shared/schema';
@@ -11,7 +11,7 @@ import logger from './logger';
 import { runTestPlan } from './test-execution-service'; // Adjust path if necessary
 
 interface ActiveJob {
-  job: cron.ScheduledTask;
+  job: ScheduledTask; // Use imported type
   scheduleId: string;
 }
 
@@ -54,7 +54,7 @@ function frequencyToCronPattern(frequency: string, nextRunAt: Date): string | nu
         if (unit === 'hours') return `0 */${value} * * *`;
         if (unit === 'days') return `0 ${hours} */${value} * *`; // At the specific hour of nextRunAt
       }
-      logger.warn(`[SchedulerService] Unknown frequency format: ${frequency}. Cannot convert to cron pattern.`);
+      console.warn(`[SchedulerService] Unknown frequency format: ${frequency}. Cannot convert to cron pattern.`);
       return null;
   }
 }
@@ -85,7 +85,7 @@ async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) 
       environment: schedule.environment,
       browsers: schedule.browsers ? JSON.stringify(schedule.browsers) : null, // Store as JSON string
       triggeredBy: 'scheduled',
-      startedAt: Math.floor(Date.now() / 1000),
+      startedAt: new Date(), // Use Date object
       // executionParameters from schedule can be passed to runTestPlan if it supports it
     });
 
@@ -108,13 +108,16 @@ async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) 
     );
 
 
-    executionStatus = result.status || 'error'; // runTestPlan should return a TestPlanRun like object
+      executionStatus = (result && 'status' in result && typeof result.status === 'string') 
+        ? result.status as "pending" | "running" | "completed" | "failed" | "error" | "cancelled" 
+        : 'error';
+
     // Update testPlanExecutions with the final status and results
     await db.update(testPlanExecutions)
       .set({
         status: executionStatus,
-        results: result.results ? JSON.stringify(result.results) : null,
-        completedAt: Math.floor(Date.now() / 1000),
+        results: 'results' in result ? JSON.stringify((result as any).results) : null,
+        completedAt: new Date(),
       })
       .where(eq(testPlanExecutions.id, executionId));
 
@@ -136,7 +139,7 @@ async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) 
         .set({
           status: 'error',
           results: JSON.stringify({ error: error.message, stack: error.stack }),
-          completedAt: Math.floor(Date.now() / 1000),
+          completedAt: new Date(),
         })
         .where(eq(testPlanExecutions.id, executionId));
     } catch (dbError) {
@@ -146,7 +149,7 @@ async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) 
     // Update nextRunAt for recurring schedules (if not 'once')
     if (schedule.frequency !== 'once') {
       try {
-        const cronPattern = frequencyToCronPattern(schedule.frequency, new Date(schedule.nextRunAt * 1000));
+        const cronPattern = frequencyToCronPattern(schedule.frequency, schedule.nextRunAt);
         if (cronPattern) { // Only if it's a recurring pattern recognized
             // This is tricky: node-cron itself handles the next run time internally for its jobs.
             // We need to calculate the next run time based on *our* schedule definition to store it.
@@ -163,7 +166,7 @@ async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) 
       }
     } else {
       // For 'once' schedules, deactivate it after execution
-      await db.update(testPlanSchedules).set({ isActive: false, updatedAt: Math.floor(Date.now()/1000) }).where(eq(testPlanSchedules.id, schedule.id));
+      await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
       resolvedLogger.info(`[SchedulerService] Deactivated 'once' schedule ${schedule.id} after execution.`);
       removeScheduleJob(schedule.id); // Remove it from active cron jobs
     }
@@ -192,20 +195,21 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
   }
   const plan = planResult[0];
 
-  let task: cron.ScheduledTask;
+  let task: ScheduledTask;
 
   if (schedule.frequency === 'once') {
     // For 'once' tasks, schedule them to run at `nextRunAt` and then they are done.
     // node-cron doesn't directly support a "run once at this future time then stop" via cron string.
     // We can schedule it if `nextRunAt` is in the future.
     const now = Math.floor(Date.now() / 1000);
-    if (schedule.nextRunAt > now) {
+    // nextRunAt is a Date object because of mode: "timestamp" in schema
+    if (schedule.nextRunAt.getTime() > Date.now()) {
       // This is a bit of a hack for 'once'. We create a cron job that runs every minute,
       // and inside the job, it checks if the current time matches `nextRunAt`.
       // A better way would be to use setTimeout for true 'once' tasks if they are imminent,
       // or a more sophisticated scheduler that handles one-time future tasks.
       // Or, if `node-cron` is used, schedule it for the specific time and ensure the job unschedules itself.
-      const runAtDate = new Date(schedule.nextRunAt * 1000);
+      const runAtDate = schedule.nextRunAt;
       const cronTimeForOnce = `${runAtDate.getUTCMinutes()} ${runAtDate.getUTCHours()} ${runAtDate.getUTCDate()} ${runAtDate.getUTCMonth() + 1} *`; // Runs once on this date/time
 
       try {
@@ -225,13 +229,13 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
       resolvedLogger.info(`[SchedulerService] 'Once' schedule ${schedule.id} has a nextRunAt in the past. Not scheduling.`);
       // Optionally, deactivate it here if it wasn't already.
       if (schedule.isActive) {
-        await db.update(testPlanSchedules).set({ isActive: false, updatedAt: Math.floor(Date.now()/1000) }).where(eq(testPlanSchedules.id, schedule.id));
+        await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
       }
       return;
     }
   } else {
     // For recurring tasks
-    const cronPattern = frequencyToCronPattern(schedule.frequency, new Date(schedule.nextRunAt * 1000));
+    const cronPattern = frequencyToCronPattern(schedule.frequency, schedule.nextRunAt);
     if (!cronPattern || !cron.validate(cronPattern)) {
       resolvedLogger.error(`[SchedulerService] Invalid or null cron pattern '${cronPattern}' for schedule ${schedule.id} (Frequency: ${schedule.frequency}). Not adding job.`);
       return;
@@ -255,7 +259,7 @@ export function removeScheduleJob(scheduleId: string) {
   if (activeJob) {
     activeJob.job.stop();
     activeCronJobs.delete(scheduleId);
-    logger.info(`[SchedulerService] Removed cron job for schedule ${scheduleId}`);
+    (async () => { (await logger).info(`[SchedulerService] Removed cron job for schedule ${scheduleId}`); })();
   }
 }
 
@@ -294,9 +298,9 @@ export async function initializeScheduler() {
     resolvedLogger.info(`[SchedulerService] Found ${schedulesToLoad.length} active schedules to load.`);
     for (const schedule of schedulesToLoad) {
       // If it's a 'once' schedule and its time has passed, deactivate it and skip.
-      if (schedule.frequency === 'once' && schedule.nextRunAt <= now) {
+      if (schedule.frequency === 'once' && schedule.nextRunAt.getTime() <= Date.now()) {
         resolvedLogger.info(`[SchedulerService] 'Once' schedule ${schedule.id} has past. Deactivating.`);
-        await db.update(testPlanSchedules).set({ isActive: false, updatedAt: Math.floor(Date.now()/1000) }).where(eq(testPlanSchedules.id, schedule.id));
+        await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
         continue;
       }
       await addScheduleJob(schedule);

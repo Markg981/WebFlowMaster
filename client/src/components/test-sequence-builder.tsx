@@ -241,7 +241,7 @@ export function TestSequenceBuilder({
                       {actionId && needsTargetElement(actionId) && (
                         <Button
                           variant="outline"
-                          size="xs"
+                          size="sm"
                           onClick={() => !isRecordingActive && setReassociatingElementForStepId(step.id)} // Prevent click if recording
                           className="text-xs h-7"
                           disabled={isRecordingActive} // Disable during recording

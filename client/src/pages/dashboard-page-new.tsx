@@ -38,7 +38,7 @@ import {
   TestTube, // Added this icon
 } from "lucide-react";
 import { Link } from "wouter";
-import debounceFromLodash from 'lodash/debounce'; // Attempt to import lodash.debounce
+
 
 // Interface for actions received from backend recording service
 interface BackendRecordedAction {
@@ -588,7 +588,7 @@ export default function DashboardPage() {
       toast({
         title: "Cannot Start Recording",
         description: "Please load a website before starting to record a test.",
-        variant: "warning",
+        variant: "destructive",
       });
       return;
     }
@@ -704,7 +704,7 @@ export default function DashboardPage() {
           toast({
             title: "Errore di Rete o Server",
             description: `Impossibile aggiornare le azioni (errore ${res.status}). La sessione potrebbe essere terminata.`,
-            variant: "warning",
+            variant: "destructive",
             duration: 7000,
           });
           // Consider stopping if error is 404, indicating session truly not found
@@ -729,7 +729,7 @@ export default function DashboardPage() {
             toast({
               title: "Sessione di Registrazione Terminata",
               description: result.error || "La finestra di registrazione è stata chiusa o la sessione è scaduta.",
-              variant: "info",
+              variant: "default",
               duration: 7000,
             });
             setIsRecording(false);
@@ -760,7 +760,7 @@ export default function DashboardPage() {
             toast({
               title: "Problema con la Sessione di Registrazione",
               description: result.error || "Si è verificato un errore recuperando le azioni.",
-              variant: "warning",
+              variant: "destructive",
               duration: 7000,
             });
             // For non-session-ending errors, you might choose not to stop recording immediately
@@ -1012,7 +1012,7 @@ export default function DashboardPage() {
   // New function to handle sequence updates and trigger real-time execution
 
   const debouncedExecuteMutation = useMemo(() => {
-    const actualDebounce = typeof debounceFromLodash === 'function' ? debounceFromLodash : simpleDebounce;
+    const actualDebounce = simpleDebounce;
     return actualDebounce((payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string }) => {
       // Condition for execution is checked here, inside the debounced function,
       // to ensure it's evaluated at the moment of potential execution, not when debouncing starts.
@@ -1238,7 +1238,7 @@ export default function DashboardPage() {
               <ScrollArea className="h-full">
                 <div className="space-y-2">
                   {availableActions.map((action) => (
-                    <DraggableAction key={action.id} action={action} />
+                    <DraggableAction key={action.id} action={action} stepId="library" onDropElement={() => {}} />
                   ))}
                 </div>
               </ScrollArea>

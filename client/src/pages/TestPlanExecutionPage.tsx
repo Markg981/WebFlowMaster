@@ -7,36 +7,37 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress'; // Using shadcn progress bar
 import { Separator } from '@/components/ui/separator';
-import type { TestPlan, ApiTest, TestPlanRun, TestRun } from '@shared/schema'; // Import relevant types
-import { fetchTestPlanDetailsAPI, fetchTestPlanRunDetailsAPI } from '@/lib/api/test-plans'; // Placeholder for actual API
+import type { TestPlan, ApiTest, TestRun } from '@shared/schema'; // Removed TestPlanRun
+// Removed missing API imports, using local mock for now as per page design
 
 // Mock API for fetching test plan details (replace with actual API call)
 const fetchTestPlanDetails = async (planId: string): Promise<TestPlan & { tests: ApiTest[] }> => {
-  // This is a mock. In reality, you'd fetch this from your backend.
-  // The backend would need an endpoint like /api/test-plans/:planId/details
-  // which returns the plan and its associated tests.
   console.log(`Fetching details for planId: ${planId}`);
-  // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500));
 
-  // Example: Find the plan from a predefined list or mock data source
-  // For now, returning a more detailed mock structure
   const mockPlansWithTests: (TestPlan & { tests: ApiTest[] })[] = [
     {
       id: 'plan-123',
       name: 'Login and Signup Flow',
       description: 'End-to-end tests for user authentication.',
-      projectId: 'proj-abc',
-      testIds: ['test-001', 'test-002', 'test-003'],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      testMachinesConfig: null,
+      captureScreenshots: 'on_failed_steps',
+      visualTestingEnabled: false,
+      pageLoadTimeout: 30000,
+      elementTimeout: 30000,
+      onMajorStepFailure: 'abort_and_run_next_test_case',
+      onAbortedTestCase: 'delete_cookies_and_reuse_session',
+      onTestSuitePreRequisiteFailure: 'stop_execution',
+      onTestCasePreRequisiteFailure: 'stop_execution',
+      onTestStepPreRequisiteFailure: 'abort_and_run_next_test_case',
+      reRunOnFailure: 'none',
+      notificationSettings: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
       tests: [
-        { id: 'test-001', name: 'Test User Login Valid Credentials', description: 'Login with correct email and password.', method: 'POST', url: '/api/auth/login', headers: {}, body: '{"email":"test@example.com", "password":"password"}', expectedStatusCode: 200, projectId: 'proj-abc', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), assertions: [] },
-        { id: 'test-002', name: 'Test User Login Invalid Credentials', description: 'Login with incorrect password.', method: 'POST', url: '/api/auth/login', headers: {}, body: '{"email":"test@example.com", "password":"wrongpassword"}', expectedStatusCode: 401, projectId: 'proj-abc', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), assertions: [] },
-        { id: 'test-003', name: 'Test User Signup New Account', description: 'Create a new user account.', method: 'POST', url: '/api/auth/signup', headers: {}, body: '{"email":"newuser@example.com", "password":"newpassword", "name":"New User"}', expectedStatusCode: 201, projectId: 'proj-abc', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), assertions: [] },
+        { id: 1, name: 'Test User Login Valid Credentials', method: 'POST', url: '/api/auth/login', requestHeaders: {}, requestBody: '{"email":"test@example.com", "password":"password"}', createdAt: new Date(), updatedAt: new Date(), assertions: [], module: null, featureArea: null, scenario: 'Login with correct email and password.', component: null, priority: 'Medium', severity: 'Major', authParams: null, bodyType: null, bodyRawContentType: null, bodyFormData: null, bodyUrlEncoded: null, bodyGraphqlQuery: null, bodyGraphqlVariables: null, userId: 1, projectId: 1, queryParams: null, authType: null },
       ]
     },
-    // Add more mock plans if needed
   ];
 
   const plan = mockPlansWithTests.find(p => p.id === planId);
@@ -62,12 +63,12 @@ const TestPlanExecutionPage: React.FC = () => {
   // const runId = params.runId; // If we want to view specific run details later
 
   const [executionLog, setExecutionLog] = useState<string[]>([]);
-  const [testStatuses, setTestStatuses] = useState<Record<string, TestExecutionState>>({});
+  const [testStatuses, setTestStatuses] = useState<Record<number, TestExecutionState>>({});
   const [overallProgress, setOverallProgress] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null); // Stores the ID of the current execution run
 
-  const { data: testPlanData, isLoading: isLoadingPlan, error: planError } = useQuery({
+  const { data: testPlanData, isLoading: isLoadingPlan, error: planError } = useQuery<TestPlan & { tests: ApiTest[] }, Error>({
     queryKey: ['testPlanDetails', planId],
     queryFn: () => fetchTestPlanDetails(planId!), // Using mock for now
     enabled: !!planId,
@@ -76,7 +77,7 @@ const TestPlanExecutionPage: React.FC = () => {
   // Initialize test statuses once plan data is loaded
   useEffect(() => {
     if (testPlanData?.tests) {
-      const initialStatuses: Record<string, TestExecutionState> = {};
+      const initialStatuses: Record<number, TestExecutionState> = {};
       testPlanData.tests.forEach(test => {
         initialStatuses[test.id] = { ...test, status: 'pending' };
       });
@@ -276,7 +277,7 @@ const TestPlanExecutionPage: React.FC = () => {
                         {getStatusIcon(testState.status)}
                         <div>
                           <p className="font-medium text-foreground">{test.name}</p>
-                          <p className="text-sm text-muted-foreground">{test.description || t('testPlanExecutionPage.noDescription.text')}</p>
+                          <p className="text-sm text-muted-foreground">{test.scenario || t('testPlanExecutionPage.noDescription.text')}</p>
                         </div>
                       </div>
                       <div className="text-sm text-muted-foreground">

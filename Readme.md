@@ -1,144 +1,110 @@
-# WebTest Platform - Readme.md
+# WebFlowMaster 🚀
 
-## Overview
+**Transforming Excel Requirements into Resilient, AI-Powered Automated Tests.**
 
-This is a full-stack web application for creating and executing automated tests on web pages. The platform integrates Playwright for browser automation and element detection, providing users with a visual interface to create test sequences by interacting with web elements.
+WebFlowMaster is a cutting-edge **Low-Code Test Automation Platform** designed to bridge the gap between QA requirements (often in Excel) and robust automation execution. By leveraging **GenAI (Gemini)** for self-healing and failure analysis, it drastically reduces test maintenance overhead.
 
-## System Architecture
+---
 
-### Frontend Architecture
-- **Framework**: React with TypeScript
-- **Styling**: Tailwind CSS with shadcn/ui components
-- **State Management**: TanStack Query (React Query) for server state
-- **Routing**: Wouter for client-side routing
-- **Build Tool**: Vite with hot module replacement
+## 🌟 Value Proposition
 
-### Backend Architecture
-- **Runtime**: Node.js with Express.js
-- **Language**: TypeScript with ES modules
-- **Authentication**: Passport.js with local strategy and session-based auth
-- **Database ORM**: Drizzle ORM
-- **Session Storage**: PostgreSQL-backed sessions via connect-pg-simple
+- **Low-Code & Visual**: Drag & drop test builder and visual element inspector.
+- **Excel-Driven**: Import your existing Excel test cases and map them to automated flows instantly.
+- **AI-Resilient**: Tests allow "Self-Healing". If a selector breaks, AI analyzes the DOM to find the new element automatically.
+- **Smart Analysis**: Automated Root Cause Analysis (RCA) for failed tests using GenAI.
 
-### Database Schema
-- **Users**: Authentication and user management
-- **Tests**: Test configurations with sequences and detected elements
-- **Test Runs**: Execution history and results tracking
-- **Relationships**: Users have many tests, tests have many runs
+---
 
-## Key Components
+## 🛠 Technology Stack
 
-### Authentication System
-- Session-based authentication using express-session
-- Password hashing with Node.js crypto (scrypt)
-- Protected routes with authentication middleware
-- User registration and login endpoints
+- **Frontend**: Hybrid Architecture (Angular + AngularJS) for legacy compatibility and modern performance.
+- **Backend**: Node.js with Express.
+- **Database**: SQLite (managed via Drizzle ORM).
+- **Automation Engine**: Playwright.
+- **AI Engine**: Google Gemini Pro.
+- **Reporting**: Allure Reports.
 
-### Test Management
-- Visual test creation interface
-- URL loading through backend proxy (CORS handling)
-- Element detection using mock implementation (placeholder for Omniparser V2)
-- Drag-and-drop test sequence builder
-- Test execution and result tracking
+---
 
-### Database Layer
-- PostgreSQL with Neon serverless driver
-- Drizzle ORM for type-safe database operations
-- Migration system for schema changes
-- Connection pooling for performance
+## ✨ Key Features
 
-## Data Flow
+### 1. 🔍 Visual Inspector
 
-1. **Authentication Flow**: User logs in → Session created → JWT-like session management
-2. **Test Creation Flow**: URL input → Backend proxy load → Element detection → Visual test builder
-3. **Test Execution Flow**: Test trigger → Backend execution → Results storage → UI updates
-4. **Data Persistence**: All operations go through Drizzle ORM → PostgreSQL database
+Interactive overlay to detect and verify page elements (CSS/XPath) in real-time without diving into DevTools.
 
-## External Dependencies
+### 2. 🏗 Drag & Drop Builder
 
-### Core Dependencies
-- **@neondatabase/serverless**: Database connectivity
-- **drizzle-orm**: Database ORM and query builder
-- **passport**: Authentication middleware
-- **express-session**: Session management
-- **@tanstack/react-query**: Server state management
+Construct complex test sequences visually. Reorder steps, add assertions, and configure data inputs with a simple drag-and-drop interface.
 
-### UI Dependencies
-- **@radix-ui/***: Headless UI components
-- **tailwindcss**: Utility-first CSS framework
-- **lucide-react**: Icon library
-- **wouter**: Lightweight router
+### 3. 📊 Excel Mapping Integration
 
-### Development Dependencies
-- **tsx**: TypeScript execution for development
-- **esbuild**: Fast JavaScript bundler for production
-- **vite**: Frontend build tool and dev server
+Upload test case spreadsheets. The system parses columns and maps rows to automated test sequences, enabling bulk execution from business requirements.
 
-## Deployment Strategy
+### 4. 🧠 AI Self-Healing
 
-### Development Environment
-- **Runtime**: Node.js 20 with PostgreSQL 16
-- **Development Server**: `npm run dev` runs both frontend (Vite) and backend (tsx)
-- **Hot Reload**: Vite HMR for frontend, tsx watch mode for backend
-- **Port Configuration**: Backend on 5000, proxied through Vite
+Never let a UI change break your suite.
 
-### Production Deployment
-- **Build Process**: `npm run build` - Vite build + esbuild bundle
-- **Runtime**: `npm run start` serves production bundle
-- **Platform**: Configured for Replit autoscale deployment
-- **Database**: Environment variable DATABASE_URL for connection
+- **Detects** selector failures (Timeout/Not Found).
+- **Analyzes** the new DOM structure using AI.
+- **Heals** the test by effectively finding the updated element.
+- **Updates** the database automatically for future runs.
 
-### Logging Configuration
-The log retention period, which determines how long daily log files are kept before being deleted (older files are compressed), can be configured in the application's UI.
-- **Primary Configuration**: Navigate to the **Settings** page, then look for the **System Settings** (or similarly named) card. You will find an input field for "Log Retention Period (days)".
-- **Environment Variable Override**: The `LOG_RETENTION_DAYS` environment variable can still be used. It serves as an override or an initial value before the UI is configured.
-  - Example: `LOG_RETENTION_DAYS=14`
-- **Priority of Settings**:
-  1.  Value set in the UI (stored in the database).
-  2.  `LOG_RETENTION_DAYS` environment variable (if UI setting is not found or invalid).
-  3.  Hardcoded default in the server (currently 7 days, if neither UI nor environment variable is set).
-- **Default Value**: If no specific configuration is made, the system defaults to retaining logs for 7 days.
+---
 
-### Database Management
-- **Migrations**: `npm run db:push` applies schema changes
-- **Schema Location**: `./shared/schema.ts` for type sharing
-- **Configuration**: `drizzle.config.ts` for migration settings
+## 🚀 Quick Start
 
-## Changelog
+### Prerequisites
 
-```
-Changelog:
-- June 13, 2025. Initial setup
-```
+- Node.js (v18+)
+- NPM
+- Gemini API Key
 
-## User Preferences
+### Installation
 
-```
-Preferred communication style: Simple, everyday language.
-```
+1.  **Clone the repository:**
 
-## Development Notes
+    ```bash
+    git clone https://github.com/your-repo/WebFlowMaster.git
+    cd WebFlowMaster
+    ```
 
-### Folder Structure
-- `client/`: React frontend application
-- `server/`: Express.js backend application  
-- `shared/`: Common TypeScript types and database schema
-- `migrations/`: Database migration files (generated)
+2.  **Install dependencies:**
 
-### Key Configuration Files
-- `vite.config.ts`: Frontend build configuration
-- `drizzle.config.ts`: Database migration configuration
-- `tsconfig.json`: TypeScript compiler settings
-- `tailwind.config.ts`: Styling configuration
+    ```bash
+    npm install
+    # Install playwright browsers
+    npx playwright install
+    ```
 
-### Environment Setup
-- Requires `DATABASE_URL` environment variable
-- Optional `SESSION_SECRET` for secure sessions
-- Development mode supports Replit-specific tooling
+3.  **Configure Environment:**
+    Create a `.env` file in the root:
 
-### Planned Integrations
-- **Playwright**: For web page automation and element detection
-- **Omniparser V2**: For DOM element analysis and classification
-- **Docker**: For containerized deployment (configured but not implemented)
+    ```env
+    GEMINI_API_KEY=your_gemini_api_key
+    PORT=5000
+    ```
 
-The application follows a monorepo structure with shared TypeScript types between frontend and backend, enabling full-stack type safety and efficient development workflows.
+4.  **Run the logic:**
+
+    ```bash
+    # Run database migrations
+    npm run db:push
+
+    # Start the development server
+    npm run dev
+    ```
+
+5.  **Access the Dashboard:**
+    Open `http://localhost:5000` in your browser.
+
+---
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](./docs/CONTRIBUTING.md) for details on extending the Self-Healing capabilities.
+
+## 📄 Documentation
+
+- [Architecture Guide](./docs/ARCHITECTURE.md)
+- [API Reference](./docs/API_REFERENCE.md)
+- [User Functional Guide](./docs/USER_GUIDE.md)

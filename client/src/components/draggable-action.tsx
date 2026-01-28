@@ -1,7 +1,7 @@
 import { useDrag, useDrop } from "react-dnd"; // Added useDrop
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
-import type { DetectedElement } from "../drag-drop-provider"; // Import DetectedElement
+import type { DetectedElement } from "./drag-drop-provider"; // Corrected path
 import { 
   MousePointer, 
   Keyboard, 
@@ -25,9 +25,18 @@ interface DraggableActionProps {
   stepId: string; // This is the unique ID of this action step in the sequence
   onDropElement: (stepId: string, element: DetectedElement) => void;
   targetElement?: DetectedElement; // Optional: To display info about the associated element
+  isDropZoneActive?: boolean;
+  isRecordingActive?: boolean;
 }
 
-export function DraggableAction({ action, stepId, onDropElement, targetElement }: DraggableActionProps) {
+export function DraggableAction({ 
+  action, 
+  stepId, 
+  onDropElement, 
+  targetElement,
+  isDropZoneActive,
+  isRecordingActive 
+}: DraggableActionProps) {
   const { t } = useTranslation();
   const [{ isDragging: isActionDragging }, drag, dragPreview] = useDrag(() => ({
     type: "action",

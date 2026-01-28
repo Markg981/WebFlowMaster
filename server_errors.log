@@ -1,0 +1,113 @@
+server/db.ts(3,25): error TS6307: File 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/shared/schema.ts' is not listed within the file list of project 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/tsconfig.json'. Projects must list all files or use an 'include' pattern.
+  The file is in the program because:
+    Imported via '@shared/schema' from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/db.ts'
+    Imported via '@shared/schema' from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/logger.ts'
+    Imported via "@shared/schema" from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/ai-automation-service.ts'
+    Imported via "@shared/schema" from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/storage.ts'
+    Imported via "@shared/schema" from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/auth.ts'
+    Imported via "@shared/schema" from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/routes/projects.routes.ts'
+    Imported via "@shared/schema" from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/routes/tests.routes.ts'
+    Imported via '@shared/schema' from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/playwright-service.ts'
+    Imported via "@shared/schema" from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/routes/test-plans.routes.ts'
+    Imported via '@shared/schema' from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/scheduler-service.ts'
+    Imported via '@shared/schema' from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/scheduler-service.ts'
+    Imported via '@shared/schema' from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/test-execution-service.ts'
+    Imported via '@shared/schema' from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/test-execution-service.ts'
+    Imported via "@shared/schema" from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/routes/uploads.routes.ts'
+    Imported via '@shared/schema' from file 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/index.ts'
+server/logger.ts(99,5): error TS2353: Object literal may only specify known properties, and 'write' does not exist in type '(options?: any) => ReadableStream'.
+server/playwright-service.ts(346,29): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'typeof import("C:/Users/marco.oliva/Source/Repos/WebFlowMaster/node_modules/playwright/index")'.
+  No index signature with a parameter of type 'string' was found on type 'typeof import("C:/Users/marco.oliva/Source/Repos/WebFlowMaster/node_modules/playwright/index")'.
+server/playwright-service.ts(349,29): error TS18047: 'browser' is possibly 'null'.
+server/playwright-service.ts(406,7): error TS2322: Type 'string' is not assignable to type '"chromium" | "firefox" | "webkit"'.
+server/playwright-service.ts(539,44): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+server/playwright-service.ts(634,51): error TS2345: Argument of type 'string' is not assignable to parameter of type '"chromium" | "firefox" | "webkit" | undefined'.
+server/playwright-service.ts(688,60): error TS2584: Cannot find name 'document'. Do you need to change your target library? Try changing the 'lib' compiler option to include 'dom'.
+server/playwright-service.ts(688,105): error TS7006: Parameter 'element' implicitly has an 'any' type.
+server/playwright-service.ts(688,114): error TS7006: Parameter 'index' implicitly has an 'any' type.
+server/playwright-service.ts(688,694): error TS7006: Parameter 'c' implicitly has an 'any' type.
+server/playwright-service.ts(688,1383): error TS18046: 'attr' is of type 'unknown'.
+server/playwright-service.ts(688,1396): error TS18046: 'attr' is of type 'unknown'.
+server/playwright-service.ts(736,45): error TS2304: Cannot find name 'window'.
+server/playwright-service.ts(825,60): error TS2584: Cannot find name 'document'. Do you need to change your target library? Try changing the 'lib' compiler option to include 'dom'.
+server/playwright-service.ts(825,105): error TS7006: Parameter 'element' implicitly has an 'any' type.
+server/playwright-service.ts(825,114): error TS7006: Parameter 'index' implicitly has an 'any' type.
+server/playwright-service.ts(825,694): error TS7006: Parameter 'c' implicitly has an 'any' type.
+server/playwright-service.ts(825,1383): error TS18046: 'attr' is of type 'unknown'.
+server/playwright-service.ts(825,1396): error TS18046: 'attr' is of type 'unknown'.
+server/playwright-service.ts(844,56): error TS2584: Cannot find name 'document'. Do you need to change your target library? Try changing the 'lib' compiler option to include 'dom'.
+server/playwright-service.ts(844,101): error TS7006: Parameter 'element' implicitly has an 'any' type.
+server/playwright-service.ts(844,110): error TS7006: Parameter 'index' implicitly has an 'any' type.
+server/playwright-service.ts(844,690): error TS7006: Parameter 'c' implicitly has an 'any' type.
+server/playwright-service.ts(844,1379): error TS18046: 'attr' is of type 'unknown'.
+server/playwright-service.ts(844,1392): error TS18046: 'attr' is of type 'unknown'.
+server/playwright-service.ts(888,29): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'typeof import("C:/Users/marco.oliva/Source/Repos/WebFlowMaster/node_modules/playwright/index")'.
+  No index signature with a parameter of type 'string' was found on type 'typeof import("C:/Users/marco.oliva/Source/Repos/WebFlowMaster/node_modules/playwright/index")'.
+server/playwright-service.ts(893,23): error TS18047: 'browser' is possibly 'null'.
+server/playwright-service.ts(915,52): error TS2584: Cannot find name 'document'. Do you need to change your target library? Try changing the 'lib' compiler option to include 'dom'.
+server/playwright-service.ts(915,97): error TS7006: Parameter 'element' implicitly has an 'any' type.
+server/playwright-service.ts(915,106): error TS7006: Parameter 'index' implicitly has an 'any' type.
+server/playwright-service.ts(915,686): error TS7006: Parameter 'c' implicitly has an 'any' type.
+server/playwright-service.ts(915,1377): error TS18046: 'attr' is of type 'unknown'.
+server/playwright-service.ts(915,1390): error TS18046: 'attr' is of type 'unknown'.
+server/playwright-service.ts(965,35): error TS2339: Property 'acquire' does not exist on type 'Promise<BrowserPool>'.
+server/playwright-service.ts(967,23): error TS18047: 'browser' is possibly 'null'.
+server/playwright-service.ts(1108,39): error TS2339: Property 'release' does not exist on type 'Promise<BrowserPool>'.
+server/routes/projects.routes.ts(34,57): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { name: string | SQL<unknown> | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }): SQLiteInsertBase<...>', gave the following error.
+    Argument of type '{ name: string; }' is not assignable to parameter of type '{ name: string | SQL<unknown> | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }'.
+      Property 'userId' is missing in type '{ name: string; }' but required in type '{ name: string | SQL<unknown> | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }'.
+  Overload 2 of 2, '(values: { name: string | SQL<unknown> | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }[]): SQLiteInsertBase<...>', gave the following error.
+    Argument of type '{ name: string; }' is not assignable to parameter of type '{ name: string | SQL<unknown> | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }[]'.
+      Type '{ name: string; }' is missing the following properties from type '{ name: string | SQL<unknown> | Placeholder<string, any>; userId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; createdAt?: SQL<...> | ... 2 more ... | undefined; }[]': length, pop, push, concat, and 35 more.
+server/routes/reports.routes.ts(13,32): error TS2554: Expected 4 arguments, but got 0.
+server/routes/test-plans.routes.ts(85,13): error TS2769: No overload matches this call.
+  Overload 2 of 2, '(values: { id: string | SQL<unknown> | Placeholder<string, any>; testPlanId: string | SQL<unknown> | Placeholder<string, any>; scheduleName: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; retryOnFailure?: SQL<...> | ... 4 more ... | undefined; }[]): SQLiteInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'id' does not exist in type '{ id: string | SQL<unknown> | Placeholder<string, any>; testPlanId: string | SQL<unknown> | Placeholder<string, any>; scheduleName: string | SQL<unknown> | Placeholder<...>; ... 9 more ...; retryOnFailure?: SQL<...> | ... 4 more ... | undefined; }[]'.
+server/routes/tests.routes.ts(3,180): error TS2724: '"@shared/schema"' has no exported member named 'AdhocTestSchema'. Did you mean 'AdhocTestStepSchema'?
+server/routes/tests.routes.ts(53,48): error TS2554: Expected 2-3 arguments, but got 1.
+server/routes/tests.routes.ts(72,39): error TS2783: 'success' is specified more than once, so this usage will be overwritten.
+server/routes/uploads.routes.ts(24,50): error TS2339: Property 'detectColumns' does not exist on type 'ExcelService'.
+server/routes/uploads.routes.ts(25,37): error TS2339: Property 'getDefaultMappings' does not exist on type 'ExcelService'.
+server/routes/uploads.routes.ts(34,45): error TS2339: Property 'parseExcel' does not exist on type 'ExcelService'.
+server/scheduler-service.ts(14,8): error TS2503: Cannot find namespace 'cron'.
+server/scheduler-service.ts(57,14): error TS2339: Property 'warn' does not exist on type 'Promise<Logger>'.
+server/scheduler-service.ts(80,41): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { id: string | SQL<unknown> | Placeholder<string, any>; testPlanId: string | SQL<unknown> | Placeholder<string, any>; status?: "error" | SQL<unknown> | ... 6 more ... | undefined; ... 11 more ...; executionDurationMs?: number | ... 3 more ... | undefined; }): SQLiteInsertBase<...>', gave the following error.
+    Type 'number' is not assignable to type 'SQL<unknown> | Date | Placeholder<string, any> | undefined'.
+  Overload 2 of 2, '(values: { id: string | SQL<unknown> | Placeholder<string, any>; testPlanId: string | SQL<unknown> | Placeholder<string, any>; status?: "error" | SQL<unknown> | ... 6 more ... | undefined; ... 11 more ...; executionDurationMs?: number | ... 3 more ... | undefined; }[]): SQLiteInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'id' does not exist in type '{ id: string | SQL<unknown> | Placeholder<string, any>; testPlanId: string | SQL<unknown> | Placeholder<string, any>; status?: "error" | SQL<unknown> | "pending" | ... 5 more ... | undefined; ... 11 more ...; executionDurationMs?: number | ... 3 more ... | undefined; }[]'.
+server/scheduler-service.ts(103,9): error TS2554: Expected 2 arguments, but got 3.
+server/scheduler-service.ts(111,5): error TS2322: Type 'number | "error" | "pending" | "running" | "completed" | "failed" | "cancelled"' is not assignable to type '"error" | "pending" | "running" | "completed" | "failed" | "cancelled"'.
+  Type 'number' is not assignable to type '"error" | "pending" | "running" | "completed" | "failed" | "cancelled"'.
+server/scheduler-service.ts(116,25): error TS2339: Property 'results' does not exist on type '{ id: string; status: "error" | "pending" | "running" | "completed" | "failed" | "cancelled"; results: unknown; startedAt: Date; completedAt: Date | null; testPlanId: string; environment: string | null; ... 7 more ...; executionDurationMs: number | null; } | { ...; }'.
+  Property 'results' does not exist on type '{ error: string; status?: number | undefined; testPlanRunId?: string | undefined; }'.
+server/scheduler-service.ts(116,57): error TS2339: Property 'results' does not exist on type '{ id: string; status: "error" | "pending" | "running" | "completed" | "failed" | "cancelled"; results: unknown; startedAt: Date; completedAt: Date | null; testPlanId: string; environment: string | null; ... 7 more ...; executionDurationMs: number | null; } | { ...; }'.
+  Property 'results' does not exist on type '{ error: string; status?: number | undefined; testPlanRunId?: string | undefined; }'.
+server/scheduler-service.ts(117,9): error TS2322: Type 'number' is not assignable to type 'SQL<unknown> | Date | SQLiteColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | null | undefined'.
+server/scheduler-service.ts(139,11): error TS2322: Type 'number' is not assignable to type 'SQL<unknown> | Date | SQLiteColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | null | undefined'.
+server/scheduler-service.ts(149,81): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+server/scheduler-service.ts(166,65): error TS2322: Type 'number' is not assignable to type 'SQL<unknown> | Date | SQLiteColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | null | undefined'.
+server/scheduler-service.ts(195,13): error TS2503: Cannot find namespace 'cron'.
+server/scheduler-service.ts(202,9): error TS2365: Operator '>' cannot be applied to types 'Date' and 'number'.
+server/scheduler-service.ts(208,34): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+server/scheduler-service.ts(228,67): error TS2322: Type 'number' is not assignable to type 'SQL<unknown> | Date | SQLiteColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | null | undefined'.
+server/scheduler-service.ts(234,77): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+server/scheduler-service.ts(258,12): error TS2339: Property 'info' does not exist on type 'Promise<Logger>'.
+server/scheduler-service.ts(297,44): error TS2365: Operator '<=' cannot be applied to types 'Date' and 'number'.
+server/scheduler-service.ts(299,67): error TS2322: Type 'number' is not assignable to type 'SQL<unknown> | Date | SQLiteColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | null | undefined'.
+server/test-execution-service.ts(3,15): error TS2459: Module '"./playwright-service"' declares 'StepResult' locally, but it is not exported.
+server/test-execution-service.ts(170,8): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { id: string | SQL<unknown> | Placeholder<string, any>; testPlanId: string | SQL<unknown> | Placeholder<string, any>; status?: "error" | SQL<unknown> | ... 6 more ... | undefined; ... 11 more ...; executionDurationMs?: number | ... 3 more ... | undefined; }): SQLiteInsertBase<...>', gave the following error.
+    Type 'number' is not assignable to type 'SQL<unknown> | Date | Placeholder<string, any> | undefined'.
+  Overload 2 of 2, '(values: { id: string | SQL<unknown> | Placeholder<string, any>; testPlanId: string | SQL<unknown> | Placeholder<string, any>; status?: "error" | SQL<unknown> | ... 6 more ... | undefined; ... 11 more ...; executionDurationMs?: number | ... 3 more ... | undefined; }[]): SQLiteInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'id' does not exist in type '{ id: string | SQL<unknown> | Placeholder<string, any>; testPlanId: string | SQL<unknown> | Placeholder<string, any>; status?: "error" | SQL<unknown> | "pending" | ... 5 more ... | undefined; ... 11 more ...; executionDurationMs?: number | ... 3 more ... | undefined; }[]'.
+server/test-execution-service.ts(194,7): error TS2322: Type 'number' is not assignable to type 'SQL<unknown> | Date | SQLiteColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | null | undefined'.
+server/test-execution-service.ts(285,7): error TS2322: Type 'number' is not assignable to type 'Date'.
+server/test-execution-service.ts(286,7): error TS2322: Type 'number' is not assignable to type 'Date'.
+server/test-execution-service.ts(343,9): error TS2322: Type 'number' is not assignable to type 'SQL<unknown> | Date | SQLiteColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | null | undefined'.
+server/vite.ts(7,24): error TS6307: File 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/vite.config.ts' is not listed within the file list of project 'C:/Users/marco.oliva/Source/Repos/WebFlowMaster/server/tsconfig.json'. Projects must list all files or use an 'include' pattern.
+server/vite.ts(39,5): error TS2322: Type '{ middlewareMode: boolean; hmr: { server: Server<typeof IncomingMessage, typeof ServerResponse>; }; allowedHosts: boolean; }' is not assignable to type 'ServerOptions'.
+  Types of property 'allowedHosts' are incompatible.
+    Type 'boolean' is not assignable to type 'true | string[] | undefined'.

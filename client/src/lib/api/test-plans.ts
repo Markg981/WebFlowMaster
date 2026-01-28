@@ -1,4 +1,4 @@
-import type { TestPlan, TestPlanRun } from '@shared/schema';
+import type { TestPlan } from '@shared/schema';
 
 // Summary type for Test Plan selection in wizards/dropdowns
 export interface TestPlanSummary {
@@ -6,16 +6,14 @@ export interface TestPlanSummary {
   name: string;
 }
 
-// Fetch all test plans (summary view)
-export const fetchTestPlansAPI = async (): Promise<TestPlanSummary[]> => {
+// Fetch all test plans (full view for management page)
+export const fetchTestPlansAPI = async (): Promise<TestPlan[]> => {
   const response = await fetch('/api/test-plans');
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to fetch test plans');
   }
-  // Assuming the backend returns full TestPlan objects, we map to summary
-  const fullTestPlans: TestPlan[] = await response.json();
-  return fullTestPlans.map(plan => ({ id: plan.id, name: plan.name }));
+  return response.json();
 };
 
 
@@ -34,7 +32,7 @@ export const fetchTestPlanByIdAPI = async (id: string): Promise<TestPlan> => {
 // For now, assuming it returns the TestPlanRun object which might have a 'data' wrapper from the route.
 interface RunTestPlanResponse {
   success: boolean;
-  data?: TestPlanRun;
+  data?: any; // Avoiding deep type deps for now if not exported
   error?: string;
 }
 

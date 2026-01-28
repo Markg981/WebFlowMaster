@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'; // Added Button import
 import {
   Home, PlusSquare, ListChecksIcon as TestsIcon, LibrarySquare as SuitesIcon,
   CalendarClock, FileTextIcon as ReportsIcon, Settings as SettingsIcon, Network, // Added Network icon
-  PanelLeftClose, PanelRightClose, UserCircle, TestTube // Added TestTube
+  PanelLeftClose, PanelRightClose, UserCircle, TestTube, FileSpreadsheet // Added TestTube
 } from 'lucide-react';
 import KpiPanel from '@/components/dashboard/KpiPanel';
 import TestStatusPieChart from '@/components/dashboard/TestStatusPieChart';
@@ -27,6 +27,7 @@ const DashboardOverviewPage: React.FC = () => {
   const [isSuitesActive] = useRoute('/test-suites'); // Updated active state for Test Suites
   const [isSchedulingActive] = useRoute('/scheduling'); // Corrected variable name and added useRoute
   const [isReportsActive] = useRoute('/reports'); // Updated for the new general reports page
+  const [isTestManagerActive] = useRoute('/test-manager');
 
   const linkBaseStyle = "flex items-center py-2 px-3 rounded-md text-sm font-medium";
   const activeLinkStyle = "bg-primary/10 text-primary";
@@ -84,6 +85,12 @@ const DashboardOverviewPage: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link href="/test-manager" title="Test Manager" className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isTestManagerActive ? activeLinkStyle : inactiveLinkStyle}`}>
+                  <FileSpreadsheet className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
+                  {!isSidebarCollapsed && <span>Test Manager</span>}
+                </Link>
+              </li>
+              <li>
                 <Link href="/test-suites" title={t('nav.suites')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSuitesActive ? activeLinkStyle : inactiveLinkStyle}`}>
                   <SuitesIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
                   {!isSidebarCollapsed && <span>{t('nav.suites')}</span>}
@@ -120,7 +127,7 @@ const DashboardOverviewPage: React.FC = () => {
             ) : (
               <>
                 <p className="text-sm font-semibold text-foreground truncate">{user.username}</p>
-                <p className="text-xs text-muted-foreground truncate">{user.email || t('dashboardOverviewPage.noEmailProvided.text')}</p>
+                {/* <p className="text-xs text-muted-foreground truncate">{user.email || t('dashboardOverviewPage.noEmailProvided.text')}</p> - Email removed as not in schema */}
               </>
             )
           ) : (

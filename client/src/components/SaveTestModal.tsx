@@ -103,7 +103,7 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
         return response.json() as Promise<Project>;
       } else if (response && typeof (response as any).id !== 'undefined') {
         // If it's not a Response object, but looks like our Project object (already parsed)
-        return response as Project;
+        return response as unknown as Project;
       } else {
         // Unexpected response structure
         console.error('Unexpected response from apiRequest for POST /api/projects:', response);

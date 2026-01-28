@@ -22,6 +22,18 @@ export const RETRY_ON_FAILURE_OPTIONS: { value: TestPlanSchedule['retryOnFailure
   { value: 'twice', label: 'Twice' },
 ];
 
+export const RETRY_VALUES = RETRY_ON_FAILURE_OPTIONS.map(o => o.value);
+
+export const WEEK_DAY_OPTIONS = [
+  { id: '0', label: 'Sunday' },
+  { id: '1', label: 'Monday' },
+  { id: '2', label: 'Tuesday' },
+  { id: '3', label: 'Wednesday' },
+  { id: '4', label: 'Thursday' },
+  { id: '5', label: 'Friday' },
+  { id: '6', label: 'Saturday' },
+] as const;
+
 export const BROWSER_OPTIONS = [
   { value: 'chromium', label: 'Chromium' },
   { value: 'firefox', label: 'Firefox' },
@@ -30,6 +42,8 @@ export const BROWSER_OPTIONS = [
   { value: 'safari', label: 'Safari' }, // Added from previous version seen
 ] as const;
 
+export const BROWSER_VALUES = BROWSER_OPTIONS.map(o => o.value);
+
 // For environment, if you want a predefined list for the form, you can define it here too:
 export const ENVIRONMENT_OPTIONS = [
     { value: 'QA', label: 'QA' },
@@ -37,6 +51,8 @@ export const ENVIRONMENT_OPTIONS = [
     { value: 'Production', label: 'Production' },
     { value: 'Development', label: 'Development' },
 ] as const;
+
+export const ENVIRONMENT_VALUES = ENVIRONMENT_OPTIONS.map(o => o.value);
 
 
 export const scheduleFormSchema = z.object({
@@ -93,7 +109,7 @@ export const transformFormValuesToApiPayload = (
     scheduleName: values.scheduleName,
     testPlanId: values.testPlanId,
     frequency: effectiveFrequency,
-    nextRunAt: Math.floor(values.nextRunAt.getTime() / 1000),
+    nextRunAt: values.nextRunAt,
     environment: values.environment || null,
     browsers: values.browsers && values.browsers.length > 0 ? values.browsers : null,
     isActive: values.isActive,
