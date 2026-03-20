@@ -1,0 +1,3 @@
+## 2025-06-25 - [DraggableElement List Re-rendering Bottleneck]
+**Learning:** The DashboardPage layout creates a severe specific bottleneck because it renders potentially hundreds of detected DOM elements as `DraggableElement`s. When hovering ANY element, the parent updates `highlightedElement` state to draw the bounding box, forcing a full re-render of the ENTIRE list of elements on every single mouse enter/leave event, causing massive visual lag.
+**Action:** In this codebase's specific test builder pattern, any component rendered in the "Detected Elements" sidebar MUST be wrapped in `React.memo` to survive the rapid hover state updates required for the visual highlighting overlay.
