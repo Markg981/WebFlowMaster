@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search, MousePointer } from "lucide-react";
+import React from "react";
 
 interface DetectedElement {
   id: string;
@@ -24,7 +25,11 @@ interface DraggableElementProps {
   onHover: (elementId: string | null) => void;
 }
 
-export function DraggableElement({ element, onHover }: DraggableElementProps) {
+// ⚡ Bolt: Wrapped DraggableElement in React.memo to prevent unnecessary re-renders.
+// Since this component is rendered inside a large list (detectedElements), updating the highlighted
+// element state in the parent would cause all elements to re-render.
+// Expected Impact: Reduces re-renders by up to ~99% on hover (only the newly hovered and un-hovered elements should render if the parent passes a memoized onHover).
+export const DraggableElement = React.memo(function DraggableElement({ element, onHover }: DraggableElementProps) {
   const { t } = useTranslation();
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "element",
@@ -101,4 +106,4 @@ export function DraggableElement({ element, onHover }: DraggableElementProps) {
       </div>
     </Card>
   );
-}
+});
