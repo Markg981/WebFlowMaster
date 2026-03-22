@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { useDrag, useDrop } from "react-dnd"; // Added useDrop
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
@@ -29,7 +30,10 @@ interface DraggableActionProps {
   isRecordingActive?: boolean;
 }
 
-export function DraggableAction({ 
+// ⚡ Bolt: Wrapped DraggableAction in React.memo() to prevent unnecessary re-renders
+// when the parent DashboardPage updates (e.g., during sequence changes or recording).
+// This improves performance when rendering large lists of available actions or test steps.
+export const DraggableAction = memo(function DraggableAction({
   action, 
   stepId, 
   onDropElement, 
@@ -106,4 +110,4 @@ export function DraggableAction({
       </Card>
     </div>
   );
-}
+});
