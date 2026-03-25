@@ -1,3 +1,4 @@
+import React from "react";
 import { useDrag } from "react-dnd";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
@@ -24,7 +25,11 @@ interface DraggableElementProps {
   onHover: (elementId: string | null) => void;
 }
 
-export function DraggableElement({ element, onHover }: DraggableElementProps) {
+// ⚡ Bolt: Wrapped DraggableElement in React.memo to prevent unnecessary re-renders.
+// Since this component is rendered inside a potentially large list (detectedElements),
+// this ensures each item only re-renders when its specific props (like 'element') change,
+// rather than re-rendering the entire list whenever the parent component updates.
+export const DraggableElement = React.memo(function DraggableElement({ element, onHover }: DraggableElementProps) {
   const { t } = useTranslation();
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "element",
@@ -101,4 +106,4 @@ export function DraggableElement({ element, onHover }: DraggableElementProps) {
       </div>
     </Card>
   );
-}
+});
