@@ -1,0 +1,3 @@
+## 2026-03-25 - React.memo and useCallback on large lists
+**Learning:** In `client/src/pages/dashboard-page-new.tsx`, the list of `detectedElements` can grow large. Rendering a `DraggableElement` for each item without memoization causes all elements to re-render whenever the parent component updates, even if the individual element's props haven't changed. Note that the setter function returned by `useState` (like `setHighlightedElement`) already has a stable reference, so wrapping it in `useCallback` is redundant and unnecessary.
+**Action:** Always wrap list items in `React.memo` to prevent costly, cascading re-renders across the entire list. Do not use `useCallback` for standard `useState` setter functions passed down as props, as their references are natively stable.
