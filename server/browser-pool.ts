@@ -10,6 +10,7 @@ interface PoolItem {
   id: string;
   browser: Browser;
   type: string;
+  headless: boolean;
   lastUsed: number;
   inUse: boolean;
 }
@@ -47,7 +48,7 @@ export class BrowserPool {
     const availableItem = this.pool.find(item => 
       !item.inUse && 
       item.type === browserType && 
-      this.isHeadlessMatch(item.browser, headless)
+      item.headless === headless
     );
 
     if (availableItem) {
@@ -72,6 +73,7 @@ export class BrowserPool {
       id: uuidv4(),
       browser,
       type: browserType,
+      headless,
       lastUsed: now,
       inUse: true
     };
@@ -133,16 +135,6 @@ export class BrowserPool {
       this.pool = this.pool.filter(i => i.id !== id);
   }
 
-  // Helper to check headless state (Playwright doesn't expose public prop easily, relying on context knowledge or separate tracking needed)
-  // For MVP, we assume if we launched it, we know it. But since we don't store headless prop in PoolItem, we should add it.
-  // Actually, checking browser.newContext() options might reveal it, but cleaner to store in PoolItem.
-  // I will update PoolItem interface implicitly in valid logic below.
-  private isHeadlessMatch(browser: Browser, targetHeadless: boolean): boolean {
-      // Simplification: We will just assume true for now or add 'headless' to PoolItem struct
-      // For improved logic, I'll update the PoolItem interface in next iteration if needed.
-      // Currently, most tests run same headless mode.
-      return true; // Weak check, relies on consistent usage. 
-  }
 }
 
 export const browserPool = BrowserPool.getInstance();
