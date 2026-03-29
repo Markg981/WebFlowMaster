@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { useDrag } from "react-dnd";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
@@ -24,7 +25,8 @@ interface DraggableElementProps {
   onHover: (elementId: string | null) => void;
 }
 
-export function DraggableElement({ element, onHover }: DraggableElementProps) {
+// ⚡ Bolt: Added React.memo to prevent unnecessary re-renders of list items in DashboardPage when other state changes
+export const DraggableElement = memo(function DraggableElement({ element, onHover }: DraggableElementProps) {
   const { t } = useTranslation();
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "element",
@@ -101,4 +103,4 @@ export function DraggableElement({ element, onHover }: DraggableElementProps) {
       </div>
     </Card>
   );
-}
+});
