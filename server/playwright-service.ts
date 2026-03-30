@@ -340,6 +340,8 @@ export class PlaywrightService {
   async loadWebsite(url: string, userId?: number): Promise<{ success: boolean; screenshot?: string; html?: string; error?: string }> {
     resolvedLogger.http({ message: "PlaywrightService: loadWebsite called", url, userId });
     let browser: Browser | null = null;
+    let context: BrowserContext | null = null;
+    let page: Page | null = null;
     try {
       const userSettings = userId ? await storage.getUserSettings(userId) : undefined;
       const browserType = userSettings?.playwrightBrowser || DEFAULT_BROWSER;
@@ -348,11 +350,11 @@ export class PlaywrightService {
       const effectiveWaitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME;
       resolvedLogger.debug({ message: "PS:loadWebsite - Effective settings", browserType, headlessMode, pageTimeout, effectiveWaitTime, userId });
 
-      const browserEngine = playwright[browserType as 'chromium' | 'firefox' | 'webkit'];
-      browser = await browserEngine.launch({ headless: headlessMode });
+      const pool = await browserPool;
+      browser = await pool.acquire(browserType as 'chromium' | 'firefox' | 'webkit', headlessMode);
       const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; // Standardized UA
-      const context = await browser.newContext({ userAgent });
-      const page = await context.newPage();
+      context = await browser.newContext({ userAgent });
+      page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
       
       await page.setViewportSize({ width: 1280, height: 720 });
@@ -386,8 +388,11 @@ export class PlaywrightService {
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     } finally {
+      if (page && !page.isClosed()) await page.close().catch(() => {});
+      if (context) await context.close().catch(() => {});
       if (browser) {
-        await browser.close();
+        const pool = await browserPool;
+        await pool.release(browser).catch(() => {});
       }
     }
   }
@@ -416,8 +421,8 @@ export class PlaywrightService {
 
       const browserLaunchOptions = { headless: effectiveHeadlessMode };
       resolvedLogger.debug({ message: `PS:startRecordingSession - Attempting to launch browser`, browserType, options: browserLaunchOptions, sessionId });
-      const browserEngine = playwright[browserType as 'chromium' | 'firefox' | 'webkit'];
-      browser = await browserEngine.launch(browserLaunchOptions);
+      const pool = await browserPool;
+      browser = await pool.acquire(browserType as 'chromium' | 'firefox' | 'webkit', effectiveHeadlessMode);
       resolvedLogger.debug({ message: `PS:startRecordingSession - Browser launched`, sessionId, connected: browser?.isConnected(), type: browser?.browserType?.().name() });
 
       const contextOptions = {
@@ -497,9 +502,16 @@ export class PlaywrightService {
 
       resolvedLogger.error({ message: `PS:startRecordingSession - CRITICAL ERROR during session setup`, sessionId, stage, url, error: error.message, stack: error.stack, browserLaunched: !!browser, browserConnected: browser?.isConnected() });
 
+      if (page && !page.isClosed()) await page.close().catch(() => {});
+      if (context) await context.close().catch(() => {});
       if (browser && browser.isConnected()) {
         resolvedLogger.debug({ message: `PS:startRecordingSession - Attempting to close browser in catch block`, sessionId });
-        await browser.close().catch(err => resolvedLogger.error({ message: `PS:startRecordingSession - Failed to close browser during error handling`, sessionId, error: err.message, stack: err.stack }));
+        const pool = await browserPool;
+        try {
+          await pool.release(browser);
+        } catch (err: any) {
+          resolvedLogger.error({ message: `PS:startRecordingSession - Failed to close browser during error handling`, sessionId, error: err.message, stack: err.stack });
+        }
         resolvedLogger.debug({ message: `PS:startRecordingSession - Browser close attempt in catch block finished`, sessionId });
       } else if (browser) {
         resolvedLogger.debug({ message: `PS:startRecordingSession - Browser exists but is not connected in catch block. No close attempt.`, sessionId });
@@ -548,27 +560,6 @@ export class PlaywrightService {
         resolvedLogger.info({ message: `PS:stopRecordingSession - Page for session was already closed. Final action URL uses a fallback.`, sessionId, fallbackUrl: lastUrl });
       }
 
-      if (session.page && !session.page.isClosed()) {
-        resolvedLogger.debug({ message: `PS:stopRecordingSession - Attempting to close page`, sessionId });
-        await session.page.close().catch(e => resolvedLogger.warn({ message: `PS:stopRecordingSession - Error closing page resource`, sessionId, error: e.message, stack: e.stack }));
-      } else {
-        resolvedLogger.debug({ message: `PS:stopRecordingSession - Page for session was already closed or did not exist.`, sessionId });
-      }
-
-      if (session.context) {
-        resolvedLogger.debug({ message: `PS:stopRecordingSession - Attempting to close context`, sessionId });
-        await session.context.close().catch(e => resolvedLogger.warn({ message: `PS:stopRecordingSession - Error closing context resource`, sessionId, error: e.message, stack: e.stack }));
-      } else {
-        resolvedLogger.debug({ message: `PS:stopRecordingSession - Context for session did not exist.`, sessionId });
-      }
-
-      if (session.browser && session.browser.isConnected()) {
-        resolvedLogger.debug({ message: `PS:stopRecordingSession - Attempting to close browser`, sessionId });
-        await session.browser.close().catch(e => resolvedLogger.warn({ message: `PS:stopRecordingSession - Error closing browser resource`, sessionId, error: e.message, stack: e.stack }));
-      } else {
-        resolvedLogger.debug({ message: `PS:stopRecordingSession - Browser for session was already closed, not connected, or did not exist.`, sessionId });
-      }
-
       const recordedActions = session.actions;
       if (recordedActions.length === 0) {
         resolvedLogger.warn({ message: `PS:stopRecordingSession - Session is being stopped with an empty action list.`, sessionId });
@@ -580,17 +571,32 @@ export class PlaywrightService {
         }
       }
 
-      resolvedLogger.info({ message: `PS:stopRecordingSession - Session finalized. Returning actions.`, sessionId, actionCount: recordedActions.length });
-      this.activeSessions.delete(sessionId);
-      resolvedLogger.debug({ message: `PS:stopRecordingSession - Session removed from activeSessions.`, sessionId });
-
       return { success: true, actions: recordedActions };
 
     } catch (error: any) {
       resolvedLogger.error({ message: `PS:stopRecordingSession - CRITICAL error during stop sequence`, sessionId, error: error.message, stack: error.stack });
+      return { success: false, error: "Critical error occurred while stopping the recording session." };
+    } finally {
+      if (session.page && !session.page.isClosed()) {
+        resolvedLogger.debug({ message: `PS:stopRecordingSession - Attempting to close page`, sessionId });
+        await session.page.close().catch(e => resolvedLogger.warn({ message: `PS:stopRecordingSession - Error closing page resource`, sessionId, error: e.message, stack: e.stack }));
+      }
+      if (session.context) {
+        resolvedLogger.debug({ message: `PS:stopRecordingSession - Attempting to close context`, sessionId });
+        await session.context.close().catch(e => resolvedLogger.warn({ message: `PS:stopRecordingSession - Error closing context resource`, sessionId, error: e.message, stack: e.stack }));
+      }
+      if (session.browser) {
+        resolvedLogger.debug({ message: `PS:stopRecordingSession - Attempting to release browser`, sessionId });
+        const pool = await browserPool;
+        try {
+          await pool.release(session.browser);
+        } catch (e: any) {
+          resolvedLogger.warn({ message: `PS:stopRecordingSession - Error releasing browser resource`, sessionId, error: e.message, stack: e.stack });
+        }
+      }
+
       this.activeSessions.delete(sessionId);
-      resolvedLogger.debug({ message: `PS:stopRecordingSession - Session removed from activeSessions due to critical error during stop sequence.`, sessionId });
-      return { success: false, error: error.message || `Unknown error stopping recording session ${sessionId}` };
+      resolvedLogger.debug({ message: `PS:stopRecordingSession - Session removed from activeSessions.`, sessionId });
     }
   }
 
@@ -637,7 +643,8 @@ export class PlaywrightService {
       // const browserEngine = playwright[browserType];
       const browserEngine = playwright[browserType as 'chromium' | 'firefox' | 'webkit'];
       // browser = await browserEngine.launch(browserLaunchOptions);
-      browser = await (await browserPool).acquire(browserType as 'chromium' | 'firefox' | 'webkit', headlessMode);
+      const pool = await browserPool;
+      browser = await pool.acquire(browserType as 'chromium' | 'firefox' | 'webkit', headlessMode);
       
       if (!browser) throw new Error("Failed to acquire browser from pool");
       resolvedLogger.debug({ message: "PS:executeAdhocSequence - Browser executed", testName, connected: browser.isConnected(), type: browser.browserType?.().name() });
@@ -862,17 +869,22 @@ export class PlaywrightService {
       resolvedLogger.verbose({ message: "PS:executeAdhocSequence (finally) - State before closing page", testName, pageExists:!!page, pageClosed: page?.isClosed() });
       if (page && !page.isClosed()) {
         resolvedLogger.debug({ message: "PS:executeAdhocSequence - Closing page", testName });
-        await page.close();
+        await page.close().catch(() => {});
       }
       resolvedLogger.verbose({ message: "PS:executeAdhocSequence (finally) - State before closing context", testName, contextExists: !!context });
       if (context) {
         resolvedLogger.debug({ message: "PS:executeAdhocSequence - Closing context", testName });
-        await context.close();
+        await context.close().catch(() => {});
       }
       resolvedLogger.verbose({ message: "PS:executeAdhocSequence (finally) - State before closing browser", testName, browserExists: !!browser, browserConnected: browser?.isConnected() });
       if (browser && browser.isConnected()) {
-        resolvedLogger.debug({ message: "PS:executeAdhocSequence (finally) - Attempting to close browser...", testName });
-        await browser.close().catch(e => resolvedLogger.warn({ message: "PS:executeAdhocSequence - Error closing browser (adhoc)", testName, error: e.message, stack: e.stack }));
+        resolvedLogger.debug({ message: "PS:executeAdhocSequence (finally) - Attempting to release browser...", testName });
+        const pool = await browserPool;
+        try {
+          await pool.release(browser);
+        } catch(e: any) {
+          resolvedLogger.warn({ message: "PS:executeAdhocSequence - Error releasing browser (adhoc)", testName, error: e.message, stack: e.stack });
+        }
       }
     }
   }
@@ -893,8 +905,8 @@ export class PlaywrightService {
       resolvedLogger.debug({ message: "PS:detectElements - Effective settings", browserType, headlessMode, pageTimeout, userId });
 
       resolvedLogger.debug({ message: "PS:detectElements - Attempting to launch browser", browserType, headlessMode });
-      const browserEngine = playwright[browserType as 'chromium' | 'firefox' | 'webkit'];
-      browser = await browserEngine.launch({ headless: headlessMode });
+      const pool = await browserPool;
+      browser = await pool.acquire(browserType as 'chromium' | 'firefox' | 'webkit', headlessMode);
       if (!browser) throw new Error("Failed to launch browser");
 
       const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -931,21 +943,11 @@ export class PlaywrightService {
       resolvedLogger.error({ message: "PS:detectElements - Error caught during element detection", url, userId, error: error.message, stack: error.stack, pageExists: !!page, pageClosed: page?.isClosed() });
       throw error;
     } finally {
-      resolvedLogger.debug({ message: "PS:detectElements - Inside finally block.", url, userId });
-      resolvedLogger.verbose({ message: "PS:detectElements (finally) - State before closing page", url, pageExists:!!page, pageClosed: page?.isClosed() });
-      if (page && !page.isClosed()) {
-        resolvedLogger.debug({ message: "PS:detectElements (finally) - Attempting to close page...", url });
-        await page.close().catch(e => resolvedLogger.warn({ message: "PS:detectElements - Error closing page", url, error: e.message, stack: e.stack }));
-      }
-      resolvedLogger.verbose({ message: "PS:detectElements (finally) - State before closing context", url, contextExists: !!context });
-      if (context) {
-        resolvedLogger.debug({ message: "PS:detectElements (finally) - Attempting to close context...", url });
-        await context.close().catch(e => resolvedLogger.warn({ message: "PS:detectElements - Error closing context", url, error: e.message, stack: e.stack }));
-      }
-      resolvedLogger.verbose({ message: "PS:detectElements (finally) - State before closing browser", url, browserExists: !!browser, browserConnected: browser?.isConnected() });
-      if (browser && browser.isConnected()) {
-        resolvedLogger.debug({ message: "PS:detectElements (finally) - Attempting to close browser...", url });
-        await browser.close().catch(e => resolvedLogger.warn({ message: "PS:detectElements - Error closing browser", url, error: e.message, stack: e.stack }));
+      if (page && !page.isClosed()) await page.close().catch(() => {});
+      if (context) await context.close().catch(() => {});
+      if (browser) {
+        const pool = await browserPool;
+        await pool.release(browser).catch(() => {});
       }
     }
   }
@@ -971,7 +973,8 @@ export class PlaywrightService {
       resolvedLogger.debug({ message: `PS:executeTestSequence - Effective settings`, testName: test.name, browserType, headlessMode, pageTimeout });
 
       // browser = await browserEngine.launch({ headless: headlessMode });
-      browser = await (await browserPool).acquire(browserType as "chromium" | "firefox" | "webkit", headlessMode);
+      const pool = await browserPool;
+      browser = await pool.acquire(browserType as "chromium" | "firefox" | "webkit", headlessMode);
       const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
       context = await browser.newContext({ userAgent });
       page = await context.newPage();
@@ -1114,7 +1117,10 @@ export class PlaywrightService {
     } finally {
        if (page) await page.close().catch(() => {});
        if (context) await context.close().catch(() => {});
-        if (browser) await (await browserPool).release(browser);
+       if (browser) {
+         const pool = await browserPool;
+         await pool.release(browser).catch(() => {});
+       }
     }
   }
 }
