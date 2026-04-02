@@ -1,4 +1,4 @@
-import React from 'react'; // Added React import
+import React, { Suspense, lazy } from 'react'; // Added React, Suspense, and lazy imports
 import { Switch, Route, useLocation } from "wouter"; // Added useLocation
 // Kept queryClient and QueryClientProvider for App structure
 import { queryClient } from "./lib/queryClient";
@@ -7,19 +7,23 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth"; // useAuth already imported here, good
 import { DragDropProvider } from "@/components/drag-drop-provider";
-import NotFound from "@/pages/not-found";
-import AuthPage from "@/pages/auth-page";
-import DashboardPage from "@/pages/dashboard-page-new"; // This is the "Create Test" page
-import DashboardOverviewPage from "@/pages/DashboardOverviewPage";
-import SettingsPage from "@/pages/settings-page";
-import ApiTesterPage from "@/pages/ApiTesterPage";
-import TestSuitesPage from './pages/TestSuitesPage'; // Using relative path for diagnosis
-import TestPlanExecutionPage from './pages/TestPlanExecutionPage'; // Using relative path for diagnosis
-import SchedulingPage from './pages/SchedulingPage'; // Added SchedulingPage
-import TestReportPage from './pages/TestReportPage'; 
-import GeneralReportsPage from './pages/GeneralReportsPage'; 
-import TestManager from './pages/TestManager'; 
 import { ProtectedRoute } from "./lib/protected-route";
+import { Loader2 } from "lucide-react";
+
+// Lazy loading page components for bundle size optimization
+const NotFound = lazy(() => import("@/pages/not-found"));
+const AuthPage = lazy(() => import("@/pages/auth-page"));
+const DashboardPage = lazy(() => import("@/pages/dashboard-page-new")); // This is the "Create Test" page
+const DashboardOverviewPage = lazy(() => import("@/pages/DashboardOverviewPage"));
+const SettingsPage = lazy(() => import("@/pages/settings-page"));
+const ApiTesterPage = lazy(() => import("@/pages/ApiTesterPage"));
+const TestSuitesPage = lazy(() => import('./pages/TestSuitesPage')); // Using relative path for diagnosis
+const TestPlanExecutionPage = lazy(() => import('./pages/TestPlanExecutionPage')); // Using relative path for diagnosis
+const SchedulingPage = lazy(() => import('./pages/SchedulingPage')); // Added SchedulingPage
+const TestReportPage = lazy(() => import('./pages/TestReportPage'));
+const GeneralReportsPage = lazy(() => import('./pages/GeneralReportsPage'));
+const TestManager = lazy(() => import('./pages/TestManager'));
+
 // Imports for ThemeLoader
 import { useEffect } from 'react'; // useEffect already imported
 import { useQuery } from '@tanstack/react-query';
@@ -79,21 +83,23 @@ const RootRedirector = () => {
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={RootRedirector} /> {/* Handles root path redirection */}
-      <ProtectedRoute path="/dashboard/create-test" component={DashboardPage} />
-      <ProtectedRoute path="/dashboard/api-tester" component={ApiTesterPage} />
-      <ProtectedRoute path="/dashboard" component={DashboardOverviewPage} />
-      <ProtectedRoute path="/scheduling" component={SchedulingPage} />
-      <ProtectedRoute path="/test-suites" component={TestSuitesPage} />
-      <ProtectedRoute path="/test-manager" component={TestManager} />
-      <ProtectedRoute path="/reports" component={GeneralReportsPage} /> {/* New route for general reports */}
-      <ProtectedRoute path="/test-plan/:planId/run" component={TestPlanExecutionPage} />
-      <ProtectedRoute path="/test-plans/:planId/executions/:executionId/report" component={TestReportPage} />
-      <ProtectedRoute path="/settings" component={SettingsPage} />
-      <Route path="/auth" component={AuthPage} />
-      <Route component={NotFound} /> {/* Catch-all for 404 */}
-    </Switch>
+    <Suspense fallback={<div className="flex items-center justify-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <Switch>
+        <Route path="/" component={RootRedirector} /> {/* Handles root path redirection */}
+        <ProtectedRoute path="/dashboard/create-test" component={DashboardPage} />
+        <ProtectedRoute path="/dashboard/api-tester" component={ApiTesterPage} />
+        <ProtectedRoute path="/dashboard" component={DashboardOverviewPage} />
+        <ProtectedRoute path="/scheduling" component={SchedulingPage} />
+        <ProtectedRoute path="/test-suites" component={TestSuitesPage} />
+        <ProtectedRoute path="/test-manager" component={TestManager} />
+        <ProtectedRoute path="/reports" component={GeneralReportsPage} /> {/* New route for general reports */}
+        <ProtectedRoute path="/test-plan/:planId/run" component={TestPlanExecutionPage} />
+        <ProtectedRoute path="/test-plans/:planId/executions/:executionId/report" component={TestReportPage} />
+        <ProtectedRoute path="/settings" component={SettingsPage} />
+        <Route path="/auth" component={AuthPage} />
+        <Route component={NotFound} /> {/* Catch-all for 404 */}
+      </Switch>
+    </Suspense>
   );
 }
 
