@@ -8,3 +8,8 @@ vite.config.ts.*
 # Added for SQLite migration
 /.env
 /data/
+
+# Logs
+*.log
+logs/
+*-audit.json

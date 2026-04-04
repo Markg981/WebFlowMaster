@@ -1,0 +1,3 @@
+## 2025-06-25 - Playwright Browser Pool Memory Leaks
+**Learning:** When adopting `BrowserPool` to reuse Playwright browser instances, explicitly closing the `BrowserContext` (`await context.close()`) and `Page` (`await page.close()`) objects before releasing the browser back to the pool is crucial to prevent severe memory leaks. Further, if the `headless` parameter is not matched appropriately, incorrect browser instances might be reused.
+**Action:** Always ensure properly scoped `context` and `page` variables that are closed in the `finally` block before calling `browserPool.release(browser)`. Ensure `headless` matching is strictly implemented in pool logic to avoid unexpected behaviors.
