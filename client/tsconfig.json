@@ -7,6 +7,6 @@
     "composite": true,
     "tsBuildInfoFile": "../node_modules/.cache/tsbuildinfo.client.json"
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "../shared/**/*.ts"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"]
 }
