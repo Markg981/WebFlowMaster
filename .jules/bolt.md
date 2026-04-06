@@ -1,0 +1,3 @@
+## 2024-05-24 - Playwright Browser Pool Optimization
+**Learning:** The `playwright-service.ts` had several endpoints (`loadWebsite`, `detectElements`) launching new browser instances instead of reusing the `browserPool`, leading to high latency. Also `executeAdhocSequence` caused a memory leak by calling `browser.close()` instead of `browserPool.release()`.
+**Action:** Always acquire and release browsers using `(await browserPool).acquire(...)` and `(await browserPool).release(...)` in Playwright integrations. Additionally, ensure `page.close()` and `context.close()` are called before releasing the browser back to the pool to prevent memory leaks over time.
