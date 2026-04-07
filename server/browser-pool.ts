@@ -12,6 +12,7 @@ interface PoolItem {
   type: string;
   lastUsed: number;
   inUse: boolean;
+  headless: boolean;
 }
 
 export class BrowserPool {
@@ -25,10 +26,10 @@ export class BrowserPool {
     this.startCleanupLoop();
   }
 
-  public static async getInstance(): Promise<BrowserPool> {
+  public static getInstance(): BrowserPool {
     if (!BrowserPool.instance) {
       BrowserPool.instance = new BrowserPool();
-      BrowserPool.instance.logger = await loggerPromise;
+      loggerPromise.then(logger => { BrowserPool.instance.logger = logger; }).catch(console.error);
     }
     return BrowserPool.instance;
   }
@@ -47,7 +48,7 @@ export class BrowserPool {
     const availableItem = this.pool.find(item => 
       !item.inUse && 
       item.type === browserType && 
-      this.isHeadlessMatch(item.browser, headless)
+      item.headless === headless
     );
 
     if (availableItem) {
@@ -73,7 +74,8 @@ export class BrowserPool {
       browser,
       type: browserType,
       lastUsed: now,
-      inUse: true
+      inUse: true,
+      headless: headless
     };
 
     this.pool.push(newItem);
@@ -133,16 +135,6 @@ export class BrowserPool {
       this.pool = this.pool.filter(i => i.id !== id);
   }
 
-  // Helper to check headless state (Playwright doesn't expose public prop easily, relying on context knowledge or separate tracking needed)
-  // For MVP, we assume if we launched it, we know it. But since we don't store headless prop in PoolItem, we should add it.
-  // Actually, checking browser.newContext() options might reveal it, but cleaner to store in PoolItem.
-  // I will update PoolItem interface implicitly in valid logic below.
-  private isHeadlessMatch(browser: Browser, targetHeadless: boolean): boolean {
-      // Simplification: We will just assume true for now or add 'headless' to PoolItem struct
-      // For improved logic, I'll update the PoolItem interface in next iteration if needed.
-      // Currently, most tests run same headless mode.
-      return true; // Weak check, relies on consistent usage. 
-  }
 }
 
 export const browserPool = BrowserPool.getInstance();

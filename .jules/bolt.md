@@ -1,0 +1,3 @@
+## 2024-05-18 - Playwright BrowserPool Leak Fix
+**Learning:** Playwright `Browser` instances must be properly closed or released back to a connection pool to avoid severe memory leaks. Calling `browser.close()` on a pooled connection defeats the pool and causes connection exhaustion, whereas failing to clean up `page` and `context` leaves zombie memory.
+**Action:** Always acquire from `BrowserPool` using `browserPool.acquire(...)` instead of `playwright.launch(...)`. Ensure `page.close()` and `context.close()` are called in `finally` blocks, and critically, use `browserPool.release(browser)` instead of `browser.close()` for pooled instances.
