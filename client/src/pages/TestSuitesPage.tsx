@@ -110,10 +110,14 @@ const TestSuitesPage: React.FC = () => {
   }, [allTestPlans, searchTerm]);
 
   const totalPages = Math.ceil(filteredTestPlans.length / itemsPerPage);
-  const paginatedTestPlans = filteredTestPlans.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+
+  // ⚡ Bolt: Memoize paginated slice to avoid unnecessary array slicing on every render
+  const paginatedTestPlans = useMemo(() => {
+    return filteredTestPlans.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+  }, [filteredTestPlans, currentPage, itemsPerPage]);
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) setCurrentPage(totalPages);
