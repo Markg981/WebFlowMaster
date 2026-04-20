@@ -11,7 +11,7 @@ import {
   testPlanExecutions as testPlanExecutionsTable,
   reportTestCaseResults as reportTestCaseResultsTable // Added
 } from '@shared/schema';
-import { eq, and, sql } from 'drizzle-orm'; // Added sql
+import { eq, and, sql, inArray } from 'drizzle-orm'; // Added sql
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs-extra';
 import path from 'path';
@@ -204,6 +204,25 @@ export async function runTestPlan(
     .from(testPlanSelectedTests)
     .where(eq(testPlanSelectedTests.testPlanId, planId));
 
+  // ⚡ Bolt Performance Optimization:
+  // N+1 Query Fix: Batch fetch all related UI and API tests outside the loop
+  // instead of querying the database individually for each selected test link.
+  // This reduces N queries to just 2 queries, significantly improving test plan execution speed.
+  const uiTestIds = selectedTestsLinks.filter(link => link.testType === 'ui' && link.testId).map(link => link.testId as number);
+  const apiTestIds = selectedTestsLinks.filter(link => link.testType === 'api' && link.apiTestId).map(link => link.apiTestId as number);
+
+  const uiTestsMap = new Map<number, Test>();
+  if (uiTestIds.length > 0) {
+    const fetchedUiTests = await db.select().from(testsTable).where(inArray(testsTable.id, uiTestIds));
+    fetchedUiTests.forEach(test => uiTestsMap.set(test.id, test as Test));
+  }
+
+  const apiTestsMap = new Map<number, ApiTest>();
+  if (apiTestIds.length > 0) {
+    const fetchedApiTests = await db.select().from(apiTestsTable).where(inArray(apiTestsTable.id, apiTestIds));
+    fetchedApiTests.forEach(test => apiTestsMap.set(test.id, test as ApiTest));
+  }
+
   const legacyIndividualTestResultsForJsonBlob: IndividualTestRunResult[] = [];
 
   for (const link of selectedTestsLinks) {
@@ -211,13 +230,9 @@ export async function runTestPlan(
     let testTypeForRun: 'ui' | 'api' | undefined = link.testType as ('ui' | 'api');
 
     if (link.testId && link.testType === 'ui') {
-      // Fetch UI test with new metadata fields
-      const uiTestArr = await db.select().from(testsTable).where(eq(testsTable.id, link.testId)).limit(1);
-      if (uiTestArr.length > 0) testObjectDefinition = uiTestArr[0];
+      testObjectDefinition = uiTestsMap.get(link.testId);
     } else if (link.apiTestId && link.testType === 'api') {
-      // Fetch API test with new metadata fields
-      const apiTestArr = await db.select().from(apiTestsTable).where(eq(apiTestsTable.id, link.apiTestId)).limit(1);
-      if (apiTestArr.length > 0) testObjectDefinition = apiTestArr[0];
+      testObjectDefinition = apiTestsMap.get(link.apiTestId);
     }
 
     const singleTestStartTime = Date.now();
