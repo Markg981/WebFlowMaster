@@ -7,4 +7,4 @@ vite.config.ts.*
 
 # Added for SQLite migration
 /.env
-/data/
+/data/logs/
