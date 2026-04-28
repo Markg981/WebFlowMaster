@@ -11,7 +11,7 @@ import {
   testPlanExecutions as testPlanExecutionsTable,
   reportTestCaseResults as reportTestCaseResultsTable // Added
 } from '@shared/schema';
-import { eq, and, sql } from 'drizzle-orm'; // Added sql
+import { eq, and, sql, inArray } from 'drizzle-orm'; // Added sql, inArray
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs-extra';
 import path from 'path';
@@ -204,6 +204,30 @@ export async function runTestPlan(
     .from(testPlanSelectedTests)
     .where(eq(testPlanSelectedTests.testPlanId, planId));
 
+  // --- BOLT OPTIMIZATION: N+1 Query Resolution ---
+  // What: Batch fetch all related UI and API tests before the loop instead of querying inside the loop.
+  // Why: Prevents an N+1 query bottleneck where N is the number of selected tests in the plan.
+  // Impact: Reduces O(N) database queries to exactly 2 queries, significantly speeding up plan execution initialization.
+  const uiTestIds = selectedTestsLinks.filter(link => link.testId && link.testType === 'ui').map(link => link.testId!);
+  const apiTestIds = selectedTestsLinks.filter(link => link.apiTestId && link.testType === 'api').map(link => link.apiTestId!);
+
+  const uiTestMap = new Map<number, Test>();
+  if (uiTestIds.length > 0) {
+    const uiTests = await db.select().from(testsTable).where(inArray(testsTable.id, uiTestIds));
+    for (const test of uiTests) {
+      uiTestMap.set(test.id, test as Test);
+    }
+  }
+
+  const apiTestMap = new Map<number, ApiTest>();
+  if (apiTestIds.length > 0) {
+    const apiTests = await db.select().from(apiTestsTable).where(inArray(apiTestsTable.id, apiTestIds));
+    for (const test of apiTests) {
+      apiTestMap.set(test.id, test as ApiTest);
+    }
+  }
+  // --- END OPTIMIZATION ---
+
   const legacyIndividualTestResultsForJsonBlob: IndividualTestRunResult[] = [];
 
   for (const link of selectedTestsLinks) {
@@ -211,13 +235,9 @@ export async function runTestPlan(
     let testTypeForRun: 'ui' | 'api' | undefined = link.testType as ('ui' | 'api');
 
     if (link.testId && link.testType === 'ui') {
-      // Fetch UI test with new metadata fields
-      const uiTestArr = await db.select().from(testsTable).where(eq(testsTable.id, link.testId)).limit(1);
-      if (uiTestArr.length > 0) testObjectDefinition = uiTestArr[0];
+      testObjectDefinition = uiTestMap.get(link.testId);
     } else if (link.apiTestId && link.testType === 'api') {
-      // Fetch API test with new metadata fields
-      const apiTestArr = await db.select().from(apiTestsTable).where(eq(apiTestsTable.id, link.apiTestId)).limit(1);
-      if (apiTestArr.length > 0) testObjectDefinition = apiTestArr[0];
+      testObjectDefinition = apiTestMap.get(link.apiTestId);
     }
 
     const singleTestStartTime = Date.now();
