@@ -37,7 +37,8 @@ import {
   testPlanWebhooks,
   environments,
   secrets,
-  reportTestCaseResults
+  reportTestCaseResults,
+  ReportTestCaseResult
 } from "@shared/schema";
 import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
@@ -47,6 +48,7 @@ import { eq, and, desc, sql, getTableColumns, asc, or, like, ilike, inArray, isN
 import { playwrightService } from "./playwright-service";
 import type { Logger as WinstonLogger } from 'winston';
 import schedulerService from "./scheduler-service"; // Import schedulerService
+import loggerPromise, { updateLogLevel } from "./logger";
 
 import projectsRoutes from "./routes/projects.routes";
 import testsRoutes from "./routes/tests.routes";
@@ -56,6 +58,30 @@ import reportsRoutes from "./routes/reports.routes";
 import authRoutes from "./routes/auth.routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+    const resolvedLogger = await loggerPromise;
+
+  const loadWebsiteBodySchema = z.object({
+    url: z.string().url({ message: "Invalid URL" }),
+  });
+
+  const proxyApiRequestBodySchema = z.object({
+    method: z.string(),
+    url: z.string().url(),
+    queryParams: z.record(z.any()).optional(),
+    headers: z.record(z.string()).optional(),
+    body: z.any().optional(),
+    assertions: z.array(AssertionSchema).optional(),
+  });
+
+  const userSettingsBodySchema = createInsertSchema(userSettings).omit({ userId: true, updatedAt: true });
+
+  const executeDirectTestSchema = z.object({
+    name: z.string(),
+    url: z.string().url(),
+    sequence: z.array(AdhocTestStepSchema),
+    elements: z.array(AdhocDetectedElementSchema),
+  });
+
     // Auth First
     setupAuth(app); // Attaches passport strategies
     
@@ -618,7 +644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingSettings.length > 0) {
         // Update existing settings
         const updatedSettings = await db.update(userSettings)
-          .set({ ...parseResult.data, updatedAt: sql`datetime('now')` as any })
+          .set({ ...parseResult.data, updatedAt: new Date() })
           .where(eq(userSettings.userId, req.user.id))
           .returning();
         return res.json(updatedSettings[0]);
@@ -980,7 +1006,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existingTest = await db.select({id: apiTests.id}).from(apiTests).where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user.id)));
       if (existingTest.length === 0) { return res.status(404).json({ error: "Test not found or not owned by user" }); }
 
-      const updatedValues: Partial<typeof apiTests.$inferInsert> = { ...testData, projectId, updatedAt: sql`datetime('now')` as any };
+      const updatedValues: Partial<typeof apiTests.$inferInsert> = { ...testData, projectId, updatedAt: new Date() };
       // Conditionally stringify JSON fields if they are provided in the payload
       if (testData.queryParams !== undefined) updatedValues.queryParams = testData.queryParams ? JSON.stringify(testData.queryParams) : null;
       if (testData.requestHeaders !== undefined) updatedValues.requestHeaders = testData.requestHeaders ? JSON.stringify(testData.requestHeaders) : null;
@@ -1059,7 +1085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .orderBy(desc(testPlanSchedules.createdAt));
 
       // Manually parse JSON fields for client
-      const parsedResults = result.map(schedule => ({
+      const parsedResults = result.map((schedule: any) => ({
         ...schedule,
         browsers: typeof schedule.browsers === 'string' ? JSON.parse(schedule.browsers) : schedule.browsers,
         notificationConfigOverride: typeof schedule.notificationConfigOverride === 'string' ? JSON.parse(schedule.notificationConfigOverride) : schedule.notificationConfigOverride,
@@ -1093,7 +1119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(testPlanSchedules.testPlanId, planId))
         .orderBy(desc(testPlanSchedules.createdAt));
 
-      const parsedResults = result.map(schedule => ({
+      const parsedResults = result.map((schedule: any) => ({
         ...schedule,
         browsers: typeof schedule.browsers === 'string' ? JSON.parse(schedule.browsers) : schedule.browsers,
         notificationConfigOverride: typeof schedule.notificationConfigOverride === 'string' ? JSON.parse(schedule.notificationConfigOverride) : schedule.notificationConfigOverride,
@@ -1123,22 +1149,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newScheduleData = parseResult.data;
       const scheduleId = uuidv4(); // Server-generated ID
 
-      let nextRunAtTimestamp: number;
-      if (newScheduleData.nextRunAt instanceof Date) {
-        nextRunAtTimestamp = Math.floor(newScheduleData.nextRunAt.getTime() / 1000);
-      } else {
-        nextRunAtTimestamp = newScheduleData.nextRunAt;
-      }
+      const nextRunAtDate = newScheduleData.nextRunAt instanceof Date 
+        ? newScheduleData.nextRunAt 
+        : new Date(newScheduleData.nextRunAt * 1000);
 
       const valuesToInsert: typeof testPlanSchedules.$inferInsert = {
         ...newScheduleData,
         id: scheduleId,
-        nextRunAt: nextRunAtTimestamp,
+        nextRunAt: nextRunAtDate,
         // Ensure JSON fields are stringified
         browsers: newScheduleData.browsers ? JSON.stringify(newScheduleData.browsers) : null,
         notificationConfigOverride: newScheduleData.notificationConfigOverride ? JSON.stringify(newScheduleData.notificationConfigOverride) : null,
         executionParameters: newScheduleData.executionParameters ? JSON.stringify(newScheduleData.executionParameters) : null,
-        updatedAt: Math.floor(Date.now() / 1000),
+        updatedAt: new Date(),
         // userId: req.user.id, // If schedules become user-specific
       };
 
@@ -1204,19 +1227,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No update data provided." });
       }
 
-      let nextRunAtTimestamp: number | undefined = undefined;
-      if (updates.nextRunAt !== undefined) {
-        if (updates.nextRunAt instanceof Date) {
-          nextRunAtTimestamp = Math.floor(updates.nextRunAt.getTime() / 1000);
-        } else {
-          nextRunAtTimestamp = updates.nextRunAt;
-        }
-      }
+      const nextRunAtDate = updates.nextRunAt !== undefined 
+        ? (updates.nextRunAt instanceof Date ? updates.nextRunAt : new Date((updates.nextRunAt as any) * 1000))
+        : undefined;
 
       const valuesToUpdate: Partial<typeof testPlanSchedules.$inferInsert> = {
         ...updates,
-        nextRunAt: nextRunAtTimestamp,
-        updatedAt: Math.floor(Date.now() / 1000),
+        nextRunAt: nextRunAtDate,
+        updatedAt: new Date(),
       };
       // Stringify JSON fields if they are part of the update
       if (updates.browsers !== undefined) valuesToUpdate.browsers = updates.browsers ? JSON.stringify(updates.browsers) : null;
@@ -1341,7 +1359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // const totalRecordsResult = await db.select({ count: sql`count(*)` }).from(testPlanExecutions).where(and(...conditions));
       // const totalRecords = Number(totalRecordsResult[0]?.count) || 0;
 
-      const parsedExecutions = executions.map(exec => ({
+      const parsedExecutions = executions.map((exec: any) => ({
         ...exec,
         results: typeof exec.results === 'string' ? JSON.parse(exec.results) : exec.results,
         browsers: typeof exec.browsers === 'string' ? JSON.parse(exec.browsers) : exec.browsers,
@@ -1425,7 +1443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { selectedTests, ...newPlanData } = parseResult.data;
       const planId = uuidv4(); // Generate new UUID
 
-      const createdPlanResult = await db.transaction(async (tx) => {
+      const createdPlanResult = await db.transaction(async (tx: any) => {
         const insertedPlan = await tx
           .insert(testPlans)
           .values({
@@ -1445,7 +1463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const mainPlan = insertedPlan[0];
 
         if (selectedTests && selectedTests.length > 0) {
-          const selectedTestValues = selectedTests.map(st => ({
+          const selectedTestValues = selectedTests.map((st: any) => ({
             testPlanId: mainPlan.id,
             testId: st.type === 'ui' ? st.id : null,
             apiTestId: st.type === 'api' ? st.id : null,
@@ -1507,7 +1525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No update data provided." });
       }
 
-      const updatedPlanResult = await db.transaction(async (tx) => {
+      const updatedPlanResult = await db.transaction(async (tx: any) => {
         let mainPlanUpdated;
         if (Object.keys(planUpdates).length > 0) {
           // Stringify JSON fields before updating
@@ -1546,7 +1564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await tx.delete(testPlanSelectedTests).where(eq(testPlanSelectedTests.testPlanId, testPlanId));
 
           if (selectedTests.length > 0) {
-            const selectedTestValues = selectedTests.map(st => ({
+            const selectedTestValues = selectedTests.map((st: any) => ({
               testPlanId: testPlanId,
               testId: st.type === 'ui' ? st.id : null,
               apiTestId: st.type === 'api' ? st.id : null,
@@ -1617,11 +1635,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { runTestPlan } = await import("./test-execution-service");
       const executionResult = await runTestPlan(testPlanId, userId);
 
-      if (executionResult.error) {
+      if ("error" in executionResult) {
+        const errorResult = executionResult as { error: string; status?: number; testPlanRunId?: string };
         // Check if a specific status code was suggested by runTestPlan
-        const statusCode = executionResult.status && typeof executionResult.status === 'number' ? executionResult.status : 500;
-        resolvedLogger.error({ message: `Test plan execution failed for plan ${testPlanId}`, error: executionResult.error, testPlanRunId: executionResult.testPlanRunId });
-        return res.status(statusCode).json({ success: false, error: executionResult.error, data: executionResult });
+        const statusCode = errorResult.status && typeof errorResult.status === 'number' ? errorResult.status : 500;
+        resolvedLogger.error({ message: `Test plan execution failed for plan ${testPlanId}`, error: errorResult.error, testPlanRunId: errorResult.testPlanRunId });
+        return res.status(statusCode).json({ success: false, error: errorResult.error, data: executionResult });
       }
 
       resolvedLogger.info({ message: `Test plan ${testPlanId} executed successfully. Run ID: ${executionResult.id}` });
@@ -1751,7 +1770,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
 
     // 2. Fetch all reportTestCaseResults for this execution
     // Ensure reportTestCaseResults is imported from @shared/schema
-    const testCaseResults = await db
+    const testCaseResults: ReportTestCaseResult[] = await db
       .select()
       .from(reportTestCaseResults)
       .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
@@ -1996,4 +2015,26 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
 
     const httpServer = createServer(app);
     return httpServer;
+}
+
+function getValueByPath(obj: any, path: string): any {
+  if (!path || path === '$' || path === '') return obj;
+  const parts = path.replace(/^\$\.?/, '').split('.');
+  let current = obj;
+  for (const part of parts) {
+    if (current === null || current === undefined) return undefined;
+    const arrayMatch = part.match(/^(\w+)\[(\d+)\]$/);
+    if (arrayMatch) {
+      const [_, prop, index] = arrayMatch;
+      current = current[prop];
+      if (Array.isArray(current)) {
+        current = current[parseInt(index)];
+      } else {
+        return undefined;
+      }
+    } else {
+      current = current[part];
+    }
+  }
+  return current;
 }

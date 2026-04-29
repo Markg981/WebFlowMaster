@@ -19,6 +19,8 @@ export const userSettings = pgTable("user_settings", {
   playwrightHeadless: boolean("playwright_headless").default(true).notNull(),
   playwrightDefaultTimeout: integer("playwright_default_timeout").default(30000).notNull(),
   playwrightWaitTime: integer("playwright_wait_time").default(1000).notNull(),
+  language: text("language").default('en').notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const projects = pgTable("projects", {
@@ -56,6 +58,19 @@ export const testRuns = pgTable("test_runs", {
   results: jsonb("results"),
   startedAt: timestamp("started_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
+});
+
+export const detectedElements = pgTable("detected_elements", {
+  id: serial("id").primaryKey(),
+  testId: integer("test_id").notNull().references(() => tests.id, { onDelete: 'cascade' }),
+  elementId: text("element_id").notNull(), // Client-side ID like elem-button-1
+  selector: text("selector").notNull(),
+  originalSelector: text("original_selector"),
+  type: text("type"),
+  text: text("text"),
+  tag: text("tag"),
+  attributes: jsonb("attributes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const apiTestHistory = pgTable("api_test_history", {
@@ -225,22 +240,20 @@ export const testPlanSelectedTests = pgTable("test_plan_selected_tests", {
 });
 
 // Excel Sequences Map Table
-export const excelSequencesMap = sqliteTable("excel_sequences_map", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const excelSequencesMap = pgTable("excel_sequences_map", {
+  id: serial("id").primaryKey(),
   testId: integer("test_id")
     .notNull()
     .references(() => tests.id, { onDelete: "cascade" }),
   excelTestCaseId: text("excel_test_case_id").notNull().unique(), // Assuming one Excel ID maps to one Sequence
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .default(sql`(strftime('%s', 'now'))`)
-    .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 
-export const sessions = sqliteTable("sessions", {
+export const sessions = pgTable("sessions", {
   sid: text("sid").primaryKey(),
-  sess: text("sess", { mode: "json" }).notNull(),
-  expire: integer("expire", { mode: "timestamp" }).notNull(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire").notNull(),
 });
 
 // Relation Definitions
@@ -439,6 +452,14 @@ export type Project = typeof projects.$inferSelect;
 export type InsertProject = typeof projects.$inferInsert;
 export type SystemSetting = typeof systemSettings.$inferSelect;
 export type InsertSystemSetting = typeof systemSettings.$inferInsert;
+
+export const insertDetectedElementSchema = createInsertSchema(detectedElements).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type DetectedElement = typeof detectedElements.$inferSelect;
+export type InsertDetectedElement = z.infer<typeof insertDetectedElementSchema>;
 
 const TestMachineConfigSchema = z
   .object({

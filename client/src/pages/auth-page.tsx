@@ -107,7 +107,7 @@ export default function AuthPage() {
                   </TabsList>
                   
                   <AnimatePresence mode="wait">
-                    <TabsContent value="login">
+                    <TabsContent value="login" key="login">
                       <motion.form 
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -157,7 +157,7 @@ export default function AuthPage() {
                       </motion.form>
                     </TabsContent>
                     
-                    <TabsContent value="register">
+                    <TabsContent value="register" key="register">
                       <motion.form 
                         initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}

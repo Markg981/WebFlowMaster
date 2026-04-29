@@ -71,7 +71,7 @@ export interface DetectedElement { // Exporting if it's used elsewhere, or keep 
   id: string;
   type: string;
   selector: string;
-  text: string;
+  text?: string | null;
   tag: string;
   attributes: Record<string, string>;
   boundingBox?: { // Optional as per original description
@@ -86,15 +86,14 @@ interface TestStep {
   id: string;
   action: TestAction;
   targetElement?: DetectedElement;
-  value?: string;
+  value?: string | null;
 }
 
 export interface StepResult {
-export interface StepResult {
   name: string;
   type: string;
-  selector?: string;
-  value?: string;
+  selector?: string | null;
+  value?: string | null;
   status: 'passed' | 'failed';
   screenshot?: string;
   error?: string;
@@ -114,15 +113,15 @@ interface AdhocSequencePayload {
 // Interface for recorded actions
 export interface RecordedAction { // Exporting to be potentially used by routes.ts if strict typing is desired there
   type: 'click' | 'input' | 'select' | 'navigate' | 'keypress' | 'assertion'; // Added keypress, assertion
-  selector?: string; // Optional for actions like navigate or generic assertions
-  value?: string;
+  selector?: string | null; // Optional for actions like navigate or generic assertions
+  value?: string | null;
   timestamp: number;
   url?: string; // URL at the time of action
   key?: string; // For keypress events
   targetTag?: string; // HTML tag of the target element (e.g., 'input', 'button')
   targetId?: string; // ID of the target element
   targetClass?: string; // Classes of the target element
-  targetText?: string; // Inner text or value of the element, truncated
+  targetText?: string | null; // Inner text or value of the element, truncated
   assertType?: string; // e.g., 'containsText', 'elementCount'
   assertValue?: string; // e.g., the text to contain, or '==5'
 }

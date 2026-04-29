@@ -199,7 +199,7 @@ const ApiTesterPage: React.FC = () => {
     Error,
     InsertApiTestHistoryPayload
   >({ // Ensure this is an object literal for the options
-    mutationFn: async (historyEntry: InsertApiTestHistoryEntry) => {
+    mutationFn: async (historyEntry: InsertApiTestHistoryPayload) => {
       const payloadForBackend = {
         method: historyEntry.method,
         url: historyEntry.url,
@@ -212,7 +212,7 @@ const ApiTesterPage: React.FC = () => {
         durationMs: historyEntry.durationMs,
       };
       // userId, id, createdAt are omitted as they are handled by backend/DB.
-      // The InsertApiTestHistoryEntry type should reflect this.
+      // The InsertApiTestHistoryPayload type should reflect this.
       const response = await apiRequest('POST', '/api/api-test-history', payloadForBackend as any);
       return response.json();
     },
@@ -258,7 +258,6 @@ const ApiTesterPage: React.FC = () => {
       toast({
         title: data.status ? `Request Successful: ${data.status}` : "Request Successful",
         description: hasAssertions ? `Assertions ${assertionSummary}` : `API returned status ${data.status}`,
-        variant: hasAssertions && !allAssertionsPassed ? "destructive" : "default",
         variant: hasAssertions && !allAssertionsPassed ? "destructive" : "default",
       });
 

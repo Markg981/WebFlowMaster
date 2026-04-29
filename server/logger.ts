@@ -14,8 +14,12 @@ const __dirname = dirname(__filename);
 const logDir = path.join(__dirname, '../logs');
 
 // Define the log format
-const logFormat = winston.format.printf(({ timestamp, level, message }) => {
-  return `${timestamp} - ${level}: ${message}`;
+const logFormat = winston.format.printf(({ timestamp, level, message, ...metadata }) => {
+  let metaString = '';
+  if (metadata && Object.keys(metadata).length > 0) {
+    metaString = ' ' + JSON.stringify(metadata);
+  }
+  return `${timestamp} - ${level}: ${message}${metaString}`;
 });
 
 async function getLogRetentionDaysSetting(): Promise<string | null> {

@@ -563,8 +563,8 @@ export default function DashboardPage() {
       setSessionId(data.sessionId);
       setIsRecording(true);
       toast({
-        title: "Registrazione Avviata",
-        description: "Interagisci con la nuova finestra del browser che è stata aperta per registrare le tue azioni.",
+        title: t('dashboardPageNew.toasts.recordingStarted.title'),
+        description: t('dashboardPageNew.toasts.recordingStarted.description'),
         duration: 7000,
       });
       // Polling will be started by useEffect based on isRecording and sessionId
@@ -573,7 +573,7 @@ export default function DashboardPage() {
       setIsRecording(false); // Revert state on error
       // Button states will be managed based on isRecording and mutation pending state
       toast({
-        title: "Failed to Start Recording",
+        title: t('dashboardPageNew.toasts.failedToStartRecording'),
         description: error.message,
         variant: "destructive",
       });
@@ -583,9 +583,8 @@ export default function DashboardPage() {
   const handleStartRecording = async () => {
     if (!currentUrl || !websiteLoaded) {
       toast({
-        title: "Cannot Start Recording",
-        description: "Please load a website before starting to record a test.",
-        variant: "destructive",
+        title: t('dashboardPageNew.toasts.cannotStartRecording.title'),
+        description: t('dashboardPageNew.toasts.cannotStartRecording.description'),
         variant: "destructive",
       });
       return;
@@ -644,8 +643,8 @@ export default function DashboardPage() {
         console.log("[StopRecording onSuccess] Length of mapped newTestSequence:", newTestSequence.length);
         setTestSequence(newTestSequence);
         toast({
-          title: "Recording Stopped",
-          description: `Test sequence updated with ${newTestSequence.length} recorded actions.`,
+          title: t('dashboardPageNew.toasts.recordingStopped.title'),
+          description: t('dashboardPageNew.toasts.recordingStopped.description', { count: newTestSequence.length }),
         });
       } else {
         console.log("[StopRecording onSuccess] data.sequence is missing or empty. Clearing test sequence.");
@@ -700,9 +699,8 @@ export default function DashboardPage() {
         console.warn(`Polling: API request failed with status ${res.status}. Session might have ended. Error: ${errorText}`);
         if (isRecording && sessionId === currentSessionId) {
           toast({
-            title: "Errore di Rete o Server",
-            description: `Impossibile aggiornare le azioni (errore ${res.status}). La sessione potrebbe essere terminata.`,
-            variant: "destructive",
+            title: t('dashboardPageNew.toasts.networkError.title'),
+            description: t('dashboardPageNew.toasts.networkError.description', { status: res.status }),
             variant: "destructive",
             duration: 7000,
           });
@@ -726,9 +724,8 @@ export default function DashboardPage() {
         if (result.sessionEnded) {
           if (isRecording && sessionId === currentSessionId) {
             toast({
-              title: "Sessione di Registrazione Terminata",
-              description: result.error || "La finestra di registrazione è stata chiusa o la sessione è scaduta.",
-              variant: "default",
+              title: t('dashboardPageNew.toasts.sessionTerminated.title'),
+              description: result.error || t('dashboardPageNew.toasts.sessionTerminated.description'),
               variant: "default",
               duration: 7000,
             });
@@ -758,9 +755,8 @@ export default function DashboardPage() {
         } else {
           if (isRecording && sessionId === currentSessionId) {
             toast({
-              title: "Problema con la Sessione di Registrazione",
-              description: result.error || "Si è verificato un errore recuperando le azioni.",
-              variant: "destructive",
+              title: t('dashboardPageNew.toasts.sessionProblem.title'),
+              description: result.error || t('dashboardPageNew.toasts.sessionProblem.description'),
               variant: "destructive",
               duration: 7000,
             });
@@ -898,14 +894,21 @@ export default function DashboardPage() {
         if (data.steps[0]?.screenshot) {
           setWebsiteScreenshot(data.steps[data.steps.length - 1].screenshot);
         }
-        toast({ title: "Direct Test Execution Started", description: "Playing back results..." });
+        toast({
+          title: t('dashboardPageNew.toasts.directExecutionStarted.title'),
+          description: t('dashboardPageNew.toasts.directExecutionStarted.description')
+        });
       } else {
         // This block handles cases where data.success is false or data.steps is empty
         setIsExecutingPlayback(false);
         setCurrentPlaybackStepIndex(null);
         setPlaybackSteps([]);
         setLastTestOverallResult(data.success !== undefined ? data.success : false); // Set overall result to failed or actual success value
-        toast({ title: data.success ? "Execution Note" : "Test Failed", description: data.error || (data.success ? "No steps to play back." : "Execution failed or no steps returned."), variant: data.success ? "default" : "destructive" });
+        toast({
+          title: data.success ? t('dashboardPageNew.toasts.executionNote') : t('dashboardPageNew.toasts.testFailed'),
+          description: data.error || (data.success ? t('dashboardPageNew.toasts.noStepsToPlayback') : t('dashboardPageNew.toasts.executionFailed')),
+          variant: data.success ? "default" : "destructive"
+        });
       }
     },
     onSettled: () => {
@@ -924,7 +927,7 @@ export default function DashboardPage() {
       setPlaybackSteps([]);
       setDetectedElements([]); // Clear elements on error
       setLastTestOverallResult(false); // Set overall result to failed
-      toast({ title: "Test Failed", description: error.message, variant: "destructive" });
+      toast({ title: t('dashboardPageNew.toasts.testFailed'), description: error.message, variant: "destructive" });
     },
   });
 
@@ -956,21 +959,21 @@ export default function DashboardPage() {
       // setPlaybackSteps([]); // Keep steps for review until next execution? Or clear.
       if (lastTestOverallResult === true) {
         toast({
-          title: "Test Passed",
-          description: "All steps executed successfully.",
+          title: t('dashboardPageNew.toasts.testPassed'),
+          description: t('dashboardPageNew.testResultPassed.text'),
         });
       } else if (lastTestOverallResult === false) {
         toast({
-          title: "Test Failed",
-          description: "Some steps failed during execution.",
+          title: t('dashboardPageNew.toasts.testFailed'),
+          description: t('dashboardPageNew.testResultFailed.text'),
           variant: "destructive",
         });
       } else {
         // This case should ideally not be reached if lastTestOverallResult is always set before playback
         toast({
-          title: "Playback Complete",
-          description: "Finished playing back all test steps. Test result unknown.",
-          variant: "default", // Or "warning"
+          title: t('dashboardPageNew.toasts.playbackComplete.title'),
+          description: t('dashboardPageNew.toasts.playbackComplete.description'),
+          variant: "default",
         });
       }
       // Optionally, restore the original website screenshot if available
@@ -984,7 +987,11 @@ export default function DashboardPage() {
   const handleExecuteTest = () => {
     setLastTestOverallResult(null); // Reset overall result before new execution
     if (testSequence.length === 0) {
-      toast({ title: "Empty Sequence", description: "Please add steps to your test sequence.", variant: "destructive" });
+      toast({
+        title: t('dashboardPageNew.toasts.emptySequence.title'),
+        description: t('dashboardPageNew.toasts.emptySequence.description'),
+        variant: "destructive"
+      });
       return;
     }
 
@@ -993,7 +1000,7 @@ export default function DashboardPage() {
       url: currentUrl,
       sequence: testSequence,
       elements: detectedElements,
-      name: testName || `Adhoc Test for ${currentUrl || "Untitled"}`
+      name: testName || t('dashboardPageNew.toasts.adhocTestName', { url: currentUrl || t('dashboardPageNew.toasts.untitled') })
     };
     executeDirectTestMutation.mutate(payload);
   };
@@ -1034,7 +1041,7 @@ export default function DashboardPage() {
         url: currentUrl,
         sequence: newSequence,
         elements: detectedElements, // Pass current elements as context
-        name: testName || `Realtime Preview for ${currentUrl || "Untitled"}`
+        name: testName || t('dashboardPageNew.toasts.realtimePreviewName', { url: currentUrl || t('dashboardPageNew.toasts.untitled') })
       };
       console.log("[DashboardPage] handleSequenceUpdated: Debouncing execution with payload:", payload);
       debouncedExecuteMutation(payload);
@@ -1211,7 +1218,7 @@ export default function DashboardPage() {
             <div className="p-3 rounded-md bg-green-100 border border-green-300 text-green-700">
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 mr-2" />
-                <span className="font-semibold">Test Result: Passed</span>
+                <span className="font-semibold">{t('dashboardPageNew.testResultPassed.text')}</span>
               </div>
             </div>
           )}
@@ -1219,7 +1226,7 @@ export default function DashboardPage() {
             <div className="p-3 rounded-md bg-red-100 border border-red-300 text-red-700">
               <div className="flex items-center">
                 <XCircle className="h-5 w-5 mr-2" />
-                <span className="font-semibold">Test Result: Failed</span>
+                <span className="font-semibold">{t('dashboardPageNew.testResultFailed.text')}</span>
               </div>
             </div>
           )}
@@ -1232,7 +1239,7 @@ export default function DashboardPage() {
         <div className="flex h-[60vh] border-b border-border">
           {/* Left Sidebar - Actions */}
           {creationMode === 'manual' && (
-            <div className="w-80 bg-card border-r border-border p-4 relative z-[-1]">
+            <div className="w-80 bg-card border-r border-border p-4 relative">
               <h3 className="text-lg font-semibold text-card-foreground mb-4">{t('dashboardPageNew.availableActions.title')}</h3>
 
               <ScrollArea className="h-full">
@@ -1274,8 +1281,17 @@ export default function DashboardPage() {
               {/* Playback Status Text */}
               {isExecutingPlayback && currentPlaybackStepIndex !== null && playbackSteps.length > 0 && playbackSteps[currentPlaybackStepIndex] && (
                 <div className="mb-2 text-sm text-muted-foreground text-center p-1 bg-muted rounded-md">
-                  Step {currentPlaybackStepIndex + 1}/{playbackSteps.length}: {playbackSteps[currentPlaybackStepIndex].name} - {playbackSteps[currentPlaybackStepIndex].details}
-                  {playbackSteps[currentPlaybackStepIndex].status === 'failed' && <span className="text-destructive ml-2">(Failed: {playbackSteps[currentPlaybackStepIndex].error})</span>}
+                  {t('dashboardPageNew.playbackStatus', {
+                    current: currentPlaybackStepIndex + 1,
+                    total: playbackSteps.length,
+                    name: playbackSteps[currentPlaybackStepIndex].name,
+                    details: playbackSteps[currentPlaybackStepIndex].details
+                  })}
+                  {playbackSteps[currentPlaybackStepIndex].status === 'failed' && (
+                    <span className="text-destructive ml-2">
+                      {t('dashboardPageNew.playbackFailed', { error: playbackSteps[currentPlaybackStepIndex].error })}
+                    </span>
+                  )}
                 </div>
               )}
 

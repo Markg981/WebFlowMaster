@@ -71,7 +71,8 @@
   }
   
   .glass-card {
-    @apply bg-card/60 backdrop-blur-md border border-white/5 shadow-lg;
+    @apply backdrop-blur-md border border-white/5 shadow-lg;
+    background-color: hsl(var(--card) / 0.6);
   }
   
   .text-success {

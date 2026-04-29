@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import {
   Home, PlusSquare, ListChecksIcon as TestsIcon, LibrarySquare as SuitesIcon,
   CalendarClock, FileTextIcon as ReportsIcon, Settings as SettingsIcon, Network,
-  PanelLeftClose, PanelRightClose, UserCircle, TestTube
+  PanelLeftClose, PanelRightClose, UserCircle, TestTube, FileSpreadsheet
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import KpiPanel from '@/components/dashboard/KpiPanel';
@@ -36,6 +36,7 @@ const DashboardOverviewPage: React.FC = () => {
   const [isSuitesActive] = useRoute('/test-suites'); // Updated active state for Test Suites
   const [isSchedulingActive] = useRoute('/scheduling'); // Corrected variable name and added useRoute
   const [isReportsActive] = useRoute('/reports'); // Updated for the new general reports page
+  const [isTestManagerActive] = useRoute('/test-manager');
   const [isDashboardActive] = useRoute('/dashboard');
 
   const linkBaseStyle = "flex items-center py-2 px-3 rounded-md text-sm font-medium";

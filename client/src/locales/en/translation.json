@@ -35,6 +35,27 @@
       "cancel": "Cancel",
       "saveSettings": "Save Settings",
       "saving": "Saving..."
+    },
+    "playwright": {
+      "title": "Playwright Engine",
+      "description": "Configure the automation engine settings.",
+      "browserLabel": "Default Browser",
+      "browserPlaceholder": "Select browser",
+      "timeoutLabel": "Default Timeout (ms)",
+      "headlessLabel": "Headless Mode",
+      "headlessDescription": "Run browser without a GUI",
+      "waitLabel": "Post-Action Wait (ms)"
+    },
+    "system": {
+      "title": "System Settings",
+      "description": "Manage system-wide configurations.",
+      "logRetentionLabel": "Log Retention Period (days)",
+      "logRetentionDescription": "Number of days to keep server logs.",
+      "logLevelLabel": "Minimum Log Level",
+      "logLevelPlaceholder": "Select log level...",
+      "logLevelDescription": "Select the minimum level of logs to record.",
+      "saveButton": "Save Log Retention",
+      "saveButtonLogLevel": "Save Log Level"
     }
   },
   "dashboard": {
@@ -574,13 +595,13 @@
       "button": "Starting..."
     },
     "iniziaRegistrazione": {
-      "button": "Inizia registrazione"
+      "button": "Start recording"
     },
     "stopping": {
       "button": "Stopping..."
     },
     "terminaRegistrazione": {
-      "button": "Termina registrazione"
+      "button": "Stop recording"
     },
     "testResultPassed": {
       "text": "Test Result: Passed"
@@ -604,13 +625,13 @@
       "text": "Loaded"
     },
     "registrazioneInCorso": {
-      "text": "Registrazione in corso..."
+      "text": "Recording in progress..."
     },
     "utilizzaLaFinestraDelBrowser": {
-      "description": "Utilizza la finestra del browser separata che si \u00e8 aperta per interagire con il sito."
+      "description": "Use the separate browser window that opened to interact with the site."
     },
     "leAzioniRegistrateApparirannoNella": {
-      "description": "Le azioni registrate appariranno nella sezione \"Test Sequence\" qui sotto."
+      "description": "Recorded actions will appear in the Test Sequence section below."
     },
     "testStepScreenshot": {
       "text": "Test step screenshot"
@@ -668,6 +689,46 @@
       "assertElementCount": {
         "name": "Assert Element Count",
         "description": "Checks how many elements match a selector."
+      }
+    },
+    "playbackStatus": "Step {{current}}/{{total}}: {{name}} - {{details}}",
+    "playbackFailed": "(Failed: {{error}})",
+    "toasts": {
+      "directExecutionStarted": { "title": "Direct Test Execution Started", "description": "Playing back results..." },
+      "executionNote": "Execution Note",
+      "testFailed": "Test Failed",
+      "testPassed": "Test Passed",
+      "playbackComplete": { "title": "Playback Complete", "description": "Finished playing back all test steps." },
+      "emptySequence": { "title": "Empty Sequence", "description": "Please add steps to your test sequence." },
+      "noStepsToPlayback": "No steps to play back.",
+      "executionFailed": "Execution failed or no steps returned.",
+      "adhocTestName": "Adhoc Test for {{url}}",
+      "realtimePreviewName": "Realtime Preview for {{url}}",
+      "untitled": "Untitled",
+      "recordingStarted": {
+        "title": "Recording Started",
+        "description": "Interact with the new browser window that has opened to record your actions."
+      },
+      "failedToStartRecording": "Failed to Start Recording",
+      "cannotStartRecording": {
+        "title": "Cannot Start Recording",
+        "description": "Please load a website before starting to record a test."
+      },
+      "recordingStopped": {
+        "title": "Recording Stopped",
+        "description": "Test sequence updated with {{count}} recorded actions."
+      },
+      "networkError": {
+        "title": "Network or Server Error",
+        "description": "Unable to update actions (error {{status}}). The session may have ended."
+      },
+      "sessionTerminated": {
+        "title": "Recording Session Terminated",
+        "description": "The recording window was closed or the session has expired."
+      },
+      "sessionProblem": {
+        "title": "Problem with Recording Session",
+        "description": "An error occurred while retrieving actions."
       }
     }
   },

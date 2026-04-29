@@ -35,6 +35,27 @@
       "cancel": "Annulla",
       "saveSettings": "Salva Impostazioni",
       "saving": "Salvataggio..."
+    },
+    "playwright": {
+      "title": "Motore Playwright",
+      "description": "Configura le impostazioni del motore di automazione.",
+      "browserLabel": "Browser Predefinito",
+      "browserPlaceholder": "Seleziona browser",
+      "timeoutLabel": "Timeout Predefinito (ms)",
+      "headlessLabel": "Modalità Headless",
+      "headlessDescription": "Esegui il browser senza interfaccia grafica",
+      "waitLabel": "Attesa Post-Azione (ms)"
+    },
+    "system": {
+      "title": "Impostazioni di Sistema",
+      "description": "Gestisci le configurazioni a livello di sistema.",
+      "logRetentionLabel": "Periodo di Conservazione Log (giorni)",
+      "logRetentionDescription": "Numero di giorni per conservare i log del server.",
+      "logLevelLabel": "Livello Minimo di Log",
+      "logLevelPlaceholder": "Seleziona livello log...",
+      "logLevelDescription": "Seleziona il livello minimo di log da registrare.",
+      "saveButton": "Salva Conservazione Log",
+      "saveButtonLogLevel": "Salva Livello Log"
     }
   },
   "dashboard": {
@@ -820,6 +841,46 @@
       },
       "enterText": {
         "placeholder": "Inserisci testo..."
+      }
+    },
+    "playbackStatus": "Passaggio {{current}}/{{total}}: {{name}} - {{details}}",
+    "playbackFailed": "(Fallito: {{error}})",
+    "toasts": {
+      "directExecutionStarted": { "title": "Esecuzione Diretta Avviata", "description": "Riproduzione dei risultati..." },
+      "executionNote": "Nota di Esecuzione",
+      "testFailed": "Test Fallito",
+      "testPassed": "Test Superato",
+      "playbackComplete": { "title": "Riproduzione Completata", "description": "Riproduzione di tutti i passaggi terminata." },
+      "emptySequence": { "title": "Sequenza Vuota", "description": "Aggiungi dei passaggi alla sequenza prima di eseguire il test." },
+      "noStepsToPlayback": "Nessun passaggio da riprodurre.",
+      "executionFailed": "Esecuzione fallita o nessun passaggio restituito.",
+      "adhocTestName": "Test Adhoc per {{url}}",
+      "realtimePreviewName": "Anteprima in tempo reale per {{url}}",
+      "untitled": "Senza titolo",
+      "recordingStarted": {
+        "title": "Registrazione Avviata",
+        "description": "Interagisci con la nuova finestra del browser che è stata aperta per registrare le tue azioni."
+      },
+      "failedToStartRecording": "Errore nell'avvio della registrazione",
+      "cannotStartRecording": {
+        "title": "Impossibile avviare la registrazione",
+        "description": "Carica un sito web prima di iniziare a registrare un test."
+      },
+      "recordingStopped": {
+        "title": "Registrazione Interrotta",
+        "description": "Sequenza di test aggiornata con {{count}} azioni registrate."
+      },
+      "networkError": {
+        "title": "Errore di Rete o Server",
+        "description": "Impossibile aggiornare le azioni (errore {{status}}). La sessione potrebbe essere terminata."
+      },
+      "sessionTerminated": {
+        "title": "Sessione di Registrazione Terminata",
+        "description": "La finestra di registrazione è stata chiusa o la sessione è scaduta."
+      },
+      "sessionProblem": {
+        "title": "Problema con la Sessione di Registrazione",
+        "description": "Si è verificato un errore recuperando le azioni."
       }
     }
   },

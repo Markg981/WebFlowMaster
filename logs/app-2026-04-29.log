@@ -3520,3 +3520,105 @@
 2026-04-29 14:58:53 - info: [express] GET /api/test-plan-executions 200 in 4ms :: {"items":[],"limit":10,"offset":0}
 2026-04-29 14:59:15 - info: [express] GET /api/api-test-history 200 in 11ms :: {"items":[],"page":1,"limit":50,"total…
 2026-04-29 14:59:15 - info: [express] GET /api/api-tests 200 in 12ms :: []
+2026-04-29 15:28:20 - info: PlaywrightService: Winston logger initialized successfully.
+2026-04-29 15:28:20 - info: Redis connection established successfully.
+2026-04-29 15:28:20 - info: WebSocket server initialized and listening to BullMQ events
+2026-04-29 15:28:20 - info: [SchedulerService] Initializing scheduler...
+2026-04-29 15:28:20 - info: [SchedulerService] Found 0 active schedules to load.
+2026-04-29 15:28:20 - info: [SchedulerService] Scheduler initialized successfully.
+2026-04-29 15:28:20 - info: Scheduler initialized successfully after routes.
+2026-04-29 15:28:20 - info: Server listening on port 5000
+2026-04-29 15:30:55 - info: PlaywrightService: Winston logger initialized successfully.
+2026-04-29 15:30:55 - info: Redis connection established successfully.
+2026-04-29 15:30:55 - info: WebSocket server initialized and listening to BullMQ events
+2026-04-29 15:30:55 - info: [SchedulerService] Initializing scheduler...
+2026-04-29 15:30:55 - info: [SchedulerService] Found 0 active schedules to load.
+2026-04-29 15:30:55 - info: [SchedulerService] Scheduler initialized successfully.
+2026-04-29 15:30:55 - info: Scheduler initialized successfully after routes.
+2026-04-29 15:30:55 - info: Server listening on port 5000
+2026-04-29 15:31:21 - info: [express] GET /api/user 401 in 7ms
+2026-04-29 15:31:35 - info: [express] POST /api/login 200 in 46ms :: {"id":1,"username":"marco.oliva@aveva.com","pass…
+2026-04-29 15:31:35 - info: [express] GET /api/settings 304 in 8ms :: {"userId":1,"theme":"light","defaultTestUrl":""…
+2026-04-29 15:33:32 - info: [express] GET /api/user 304 in 4ms :: {"id":1,"username":"marco.oliva@aveva.com","passwor…
+2026-04-29 15:33:59 - info: [express] GET /api/settings 304 in 5ms :: {"userId":1,"theme":"light","defaultTestUrl":""…
+2026-04-29 15:33:59 - info: [express] GET /api/test-plan-schedules 304 in 10ms :: []
+2026-04-29 15:33:59 - info: [express] GET /api/analytics/dashboard 200 in 38ms
+2026-04-29 15:39:55 - info: PlaywrightService: Winston logger initialized successfully.
+2026-04-29 15:39:55 - info: Redis connection established successfully.
+2026-04-29 15:39:55 - info: WebSocket server initialized and listening to BullMQ events
+2026-04-29 15:39:55 - info: [SchedulerService] Initializing scheduler...
+2026-04-29 15:39:55 - info: [SchedulerService] Found 0 active schedules to load.
+2026-04-29 15:39:55 - info: [SchedulerService] Scheduler initialized successfully.
+2026-04-29 15:39:55 - info: Scheduler initialized successfully after routes.
+2026-04-29 15:39:55 - info: Server listening on port 5000
+2026-04-29 18:40:57 - info: PlaywrightService: Winston logger initialized successfully.
+2026-04-29 18:40:57 - info: Redis connection established successfully.
+2026-04-29 18:40:57 - info: WebSocket server initialized and listening to BullMQ events
+2026-04-29 18:40:57 - info: [SchedulerService] Initializing scheduler...
+2026-04-29 18:40:57 - info: [SchedulerService] Found 0 active schedules to load.
+2026-04-29 18:40:57 - info: [SchedulerService] Scheduler initialized successfully.
+2026-04-29 18:40:57 - info: Scheduler initialized successfully after routes.
+2026-04-29 18:40:58 - info: Server listening on port 5000
+2026-04-29 18:41:26 - info: [express] GET /api/user 401 in 7ms
+2026-04-29 18:41:36 - info: [express] POST /api/login 200 in 45ms :: {"id":1,"username":"marco.oliva@aveva.com","pass…
+2026-04-29 18:41:36 - error: Failed to fetch user settings
+2026-04-29 18:41:36 - info: [express] GET /api/settings 500 in 58ms :: {"error":"Failed to fetch settings"}
+2026-04-29 18:41:36 - info: [express] GET /api/test-plan-schedules 200 in 24ms :: []
+2026-04-29 18:41:36 - info: [express] GET /api/analytics/dashboard 200 in 57ms
+2026-04-29 18:44:09 - info: PlaywrightService: Winston logger initialized successfully.
+2026-04-29 18:44:09 - info: Redis connection established successfully.
+2026-04-29 18:44:09 - info: WebSocket server initialized and listening to BullMQ events
+2026-04-29 18:44:09 - info: [SchedulerService] Initializing scheduler...
+2026-04-29 18:44:09 - info: [SchedulerService] Found 0 active schedules to load.
+2026-04-29 18:44:09 - info: [SchedulerService] Scheduler initialized successfully.
+2026-04-29 18:44:09 - info: Scheduler initialized successfully after routes.
+2026-04-29 18:44:10 - info: Server listening on port 5000
+2026-04-29 18:44:14 - info: [express] POST /api/login 200 in 50ms :: {"id":1,"username":"marco.oliva@aveva.com","pass…
+2026-04-29 18:44:15 - error: Failed to fetch user settings
+2026-04-29 18:44:15 - info: [express] GET /api/settings 500 in 45ms :: {"error":"Failed to fetch settings"}
+2026-04-29 18:44:15 - info: [express] GET /api/test-plan-schedules 304 in 16ms :: []
+2026-04-29 18:44:15 - info: [express] GET /api/analytics/dashboard 200 in 40ms
+2026-04-29 18:54:16 - info: PlaywrightService: Winston logger initialized successfully.
+2026-04-29 18:54:16 - info: Redis connection established successfully.
+2026-04-29 18:54:16 - info: WebSocket server initialized and listening to BullMQ events
+2026-04-29 18:54:16 - info: [SchedulerService] Initializing scheduler...
+2026-04-29 18:54:16 - info: [SchedulerService] Found 0 active schedules to load.
+2026-04-29 18:54:16 - info: [SchedulerService] Scheduler initialized successfully.
+2026-04-29 18:54:16 - info: Scheduler initialized successfully after routes.
+2026-04-29 18:54:17 - info: Server listening on port 5000
+2026-04-29 18:54:22 - info: [express] POST /api/login 200 in 48ms :: {"id":1,"username":"marco.oliva@aveva.com","pass…
+2026-04-29 18:54:22 - info: [express] GET /api/settings 200 in 13ms :: {"userId":1,"theme":"light","defaultTestUrl":"…
+2026-04-29 18:54:22 - info: [express] GET /api/test-plan-schedules 304 in 17ms :: []
+2026-04-29 18:54:22 - info: [express] GET /api/analytics/dashboard 200 in 49ms
+2026-04-29 18:57:53 - info: PlaywrightService: Winston logger initialized successfully.
+2026-04-29 18:57:53 - info: Redis connection established successfully.
+2026-04-29 18:57:53 - info: WebSocket server initialized and listening to BullMQ events
+2026-04-29 18:57:53 - info: [SchedulerService] Initializing scheduler...
+2026-04-29 18:57:53 - info: [SchedulerService] Found 0 active schedules to load.
+2026-04-29 18:57:53 - info: [SchedulerService] Scheduler initialized successfully.
+2026-04-29 18:57:53 - info: Scheduler initialized successfully after routes.
+2026-04-29 18:57:53 - info: Server listening on port 5000
+2026-04-29 18:58:05 - info: [express] GET /api/user 401 in 9ms
+2026-04-29 18:58:15 - info: [express] POST /api/login 200 in 46ms :: {"id":1,"username":"marco.oliva@aveva.com","pass…
+2026-04-29 18:58:15 - info: [express] GET /api/settings 200 in 11ms :: {"userId":1,"theme":"light","defaultTestUrl":"…
+2026-04-29 18:58:15 - info: [express] GET /api/test-plan-schedules 304 in 17ms :: []
+2026-04-29 18:58:15 - info: [express] GET /api/analytics/dashboard 200 in 44ms
+2026-04-29 18:58:18 - info: [express] GET /api/projects 200 in 7ms :: []
+2026-04-29 18:58:18 - info: [express] GET /api/settings 304 in 11ms :: {"userId":1,"theme":"light","defaultTestUrl":"…
+2026-04-29 18:58:18 - info: [express] GET /api/system-settings/logRetentionDays 200 in 11ms :: {"key":"logRetentionDa…
+2026-04-29 18:58:18 - info: [express] GET /api/system-settings/logLevel 200 in 10ms :: {"key":"logLevel","value":"inf…
+2026-04-29 18:58:18 - info: [express] GET /api/environments 200 in 9ms
+2026-04-29 19:01:43 - info: [express] GET /api/user 200 in 3ms :: {"id":1,"username":"marco.oliva@aveva.com","passwor…
+2026-04-29 19:01:43 - info: [express] GET /api/settings 304 in 5ms :: {"userId":1,"theme":"light","defaultTestUrl":""…
+2026-04-29 19:01:43 - info: [express] GET /api/projects 304 in 12ms :: []
+2026-04-29 19:01:43 - info: [express] GET /api/system-settings/logRetentionDays 304 in 12ms :: {"key":"logRetentionDa…
+2026-04-29 19:01:43 - info: [express] GET /api/system-settings/logLevel 304 in 12ms :: {"key":"logLevel","value":"inf…
+2026-04-29 19:01:43 - info: [express] GET /api/settings 304 in 6ms :: {"userId":1,"theme":"light","defaultTestUrl":""…
+2026-04-29 19:01:43 - info: [express] GET /api/environments 200 in 8ms
+2026-04-29 19:01:47 - info: [express] GET /api/user 304 in 2ms :: {"id":1,"username":"marco.oliva@aveva.com","passwor…
+2026-04-29 19:01:47 - info: [express] GET /api/settings 304 in 8ms :: {"userId":1,"theme":"light","defaultTestUrl":""…
+2026-04-29 19:01:47 - info: [express] GET /api/projects 304 in 8ms :: []
+2026-04-29 19:01:47 - info: [express] GET /api/system-settings/logRetentionDays 304 in 7ms :: {"key":"logRetentionDay…
+2026-04-29 19:01:47 - info: [express] GET /api/system-settings/logLevel 304 in 4ms :: {"key":"logLevel","value":"info…
+2026-04-29 19:01:47 - info: [express] GET /api/settings 304 in 3ms :: {"userId":1,"theme":"light","defaultTestUrl":""…
+2026-04-29 19:01:47 - info: [express] GET /api/environments 200 in 7ms

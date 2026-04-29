@@ -1,5 +1,5 @@
-import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
-import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
+import { drizzle as drizzlePg, type NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { drizzle as drizzlePglite, type PgliteDatabase } from 'drizzle-orm/pglite';
 import { Pool } from 'pg';
 import { PGlite } from '@electric-sql/pglite';
 import * as schema from '@shared/schema';
@@ -10,7 +10,8 @@ if (!process.env.DATABASE_URL) {
 
 const dbUrl = process.env.DATABASE_URL;
 
-let db: any;
+export type DbType = NodePgDatabase<typeof schema> | PgliteDatabase<typeof schema>;
+let db: DbType;
 
 if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
   // Real PostgreSQL
