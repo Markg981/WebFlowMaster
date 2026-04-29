@@ -10,6 +10,7 @@ import path from 'path';
 import { reportingService } from './reporting-service';
 import { PlaywrightReporter } from './playwright-reporter';
 import { browserPool } from './browser-pool';
+import { getWsEmitter } from './websocket';
 
 // Default settings if not found or incomplete
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
@@ -971,9 +972,11 @@ export class PlaywrightService {
   async executeTestSequence(
     test: Test,
     userId: number,
-    screenshotBaseDir?: string // Optional base directory for screenshots
+    screenshotBaseDir?: string, // Optional base directory for screenshots
+    executionId?: string // Optional execution ID for real-time logging
   ): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number }> {
     const startTime = Date.now();
+    const wsEmitter = getWsEmitter();
     resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url, screenshotBaseDir });
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
@@ -1000,7 +1003,17 @@ export class PlaywrightService {
 
       if (test.url) {
         try {
-          resolvedLogger.debug({ message: "PS:executeTestSequence - Navigating to initial URL", testName: test.name, url: test.url });
+          const navMessage = `Navigating to ${test.url}`;
+          resolvedLogger.debug({ message: "PS:executeTestSequence - " + navMessage, testName: test.name, url: test.url });
+          if (executionId) {
+            wsEmitter.emitExecutionLog(executionId, {
+              level: 'step',
+              source: 'playwright',
+              message: navMessage,
+              timestamp: new Date().toISOString(),
+              metadata: { url: test.url }
+            });
+          }
           await page.goto(test.url, { waitUntil: 'domcontentloaded' });
           let navScreenshotPath: string | undefined;
           if (screenshotBaseDir) {
@@ -1052,6 +1065,17 @@ export class PlaywrightService {
           reporter.setContext(test.id, i);
 
           reporter.resetStepState();
+
+          const stepLogMessage = `Executing step ${i + 1}: ${actionName}`;
+          if (executionId) {
+            wsEmitter.emitExecutionLog(executionId, {
+              level: 'step',
+              source: 'playwright',
+              message: stepLogMessage,
+              timestamp: new Date().toISOString(),
+              metadata: { action: actionName, stepIndex: i, selector: step.targetElement?.selector }
+            });
+          }
 
           try {
             if (!actionId) throw new Error('Step action ID is missing.');

@@ -16,9 +16,11 @@ import { v4 as uuidv4 } from 'uuid';
 // @ts-ignore - no @types/fs-extra installed
 import fs from 'fs-extra';
 import path from 'path';
+import { getWsEmitter, type ExecutionLogEntry } from './websocket';
 import { testExecutionQueue } from './queue';
 import { secrets as secretsTable } from '@shared/schema';
 import { decryptSecret } from './crypto';
+import { getCorrelationId } from './middleware/correlation';
 
 // Helper to interpolate {{SECRET_KEY}} in strings
 function interpolateSecrets(str: string, secretsMap: Record<string, string>): string {
@@ -78,7 +80,7 @@ export async function runTest(
     const screenshotBaseDir = path.join('./results', planId, runId, `ui_${testId}`);
     try {
       await fs.ensureDir(screenshotBaseDir);
-      const result = await playwrightService.executeTestSequence(uiTest, userId, screenshotBaseDir);
+      const result = await playwrightService.executeTestSequence(uiTest, userId, screenshotBaseDir, runId);
       const durationMs = Date.now() - startTime;
 
       // Determine overall test status
@@ -212,7 +214,8 @@ export async function runTestPlan(
     await testExecutionQueue.add('execute-plan', {
       planId,
       testPlanRunId,
-      userId
+      userId,
+      correlationId: getCorrelationId() || `job-${testPlanRunId.slice(0, 8)}`
     });
 
     resolvedLogger.info({ message: 'TestPlanRun job enqueued successfully', testPlanRunId, dbId: currentTestPlanRun.id });
@@ -229,9 +232,18 @@ export async function processTestPlanJob(
   userId: number
 ): Promise<any> {
   const resolvedLogger = await loggerPromise;
+  const wsEmitter = getWsEmitter();
   const overallStartTime = Date.now();
 
-  resolvedLogger.info({ message: `Starting background test plan execution`, planId, testPlanRunId, userId });
+  const startLog: ExecutionLogEntry = {
+    level: 'info',
+    source: 'system',
+    message: `Starting background test plan execution for plan ${planId}`,
+    timestamp: new Date(overallStartTime).toISOString(),
+    metadata: { planId, testPlanRunId, userId }
+  };
+  resolvedLogger.info(startLog);
+  wsEmitter.emitExecutionLog(testPlanRunId, startLog);
 
   // Update status to running
   await db.update(testPlanExecutionsTable)
@@ -268,13 +280,28 @@ export async function processTestPlanJob(
         resolvedLogger.warn(`Failed to decrypt secret ${secret.keyName} for environment ${environmentId}`);
       }
     }
-    resolvedLogger.info(`Loaded and decrypted ${Object.keys(secretsMap).length} secrets for environment ${environmentId}`);
+    const envLog: ExecutionLogEntry = {
+      level: 'info',
+      source: 'system',
+      message: `Loaded and decrypted ${Object.keys(secretsMap).length} secrets for environment ${environmentId}`,
+      timestamp: new Date().toISOString(),
+      metadata: { environmentId, secretCount: Object.keys(secretsMap).length }
+    };
+    resolvedLogger.info(envLog);
+    wsEmitter.emitExecutionLog(testPlanRunId, envLog);
   }
 
   const selectedTestsLinks = await db
     .select()
     .from(testPlanSelectedTests)
     .where(eq(testPlanSelectedTests.testPlanId, planId));
+
+  wsEmitter.emitExecutionLog(testPlanRunId, {
+    level: 'info',
+    source: 'system',
+    message: `Found ${selectedTestsLinks.length} tests to execute in this plan.`,
+    timestamp: new Date().toISOString()
+  });
 
   const legacyIndividualTestResultsForJsonBlob: IndividualTestRunResult[] = [];
 
@@ -297,6 +324,15 @@ export async function processTestPlanJob(
     let failureReason: string | undefined = undefined;
     let screenshotFinalPath: string | undefined = undefined;
     let stepsOrLogData: string | undefined = undefined;
+
+    const testName = testObjectDefinition?.name || `Unknown Test (ID: ${link.testId || link.apiTestId})`;
+    wsEmitter.emitExecutionLog(testPlanRunId, {
+      level: 'info',
+      source: 'system',
+      message: `Starting test: ${testName} (${testTypeForRun})`,
+      timestamp: new Date(singleTestStartTime).toISOString(),
+      metadata: { testId: link.testId || link.apiTestId, testType: testTypeForRun }
+    });
 
     if (testObjectDefinition && testTypeForRun) {
       if (testTypeForRun === 'ui' && typeof (testObjectDefinition as Test).sequence === 'string') {
@@ -325,6 +361,15 @@ export async function processTestPlanJob(
       failureReason = resultFromRunTest.error;
       screenshotFinalPath = resultFromRunTest.screenshotPath; // This is a file path
       stepsOrLogData = resultFromRunTest.steps ? JSON.stringify(resultFromRunTest.steps) : undefined; // For UI tests
+
+      const singleTestDurationMs = Date.now() - singleTestStartTime;
+      wsEmitter.emitExecutionLog(testPlanRunId, {
+        level: reportStatus === 'Passed' ? 'info' : 'error',
+        source: 'system',
+        message: `Finished test: ${testName}. Status: ${reportStatus} (${singleTestDurationMs}ms)`,
+        timestamp: new Date().toISOString(),
+        metadata: { durationMs: singleTestDurationMs, status: reportStatus }
+      });
 
       // Convert screenshotPath to a URL if needed, e.g., /results/planId/runId/testId/screenshot.png
       if (screenshotFinalPath) {
@@ -360,8 +405,6 @@ export async function processTestPlanJob(
       reasonForFailure: failureReason,
       screenshotUrl: screenshotFinalPath,
       detailedLog: stepsOrLogData, // Or specific log for API tests
-      startedAt: new Date(singleTestStartTime),
-      completedAt: new Date(singleTestEndTime),
       startedAt: new Date(singleTestStartTime),
       completedAt: new Date(singleTestEndTime),
       durationMs: singleTestDurationMs,

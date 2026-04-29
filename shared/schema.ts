@@ -202,6 +202,22 @@ export const reportTestCaseResults = pgTable("report_test_case_results", {
   severity: text("severity"),
 });
 
+// ─── Execution Logs (User-Facing Console) ─────────────────────────────────────
+// Stores structured log entries emitted during test plan execution.
+// Queried by the frontend log console and streamed live via WebSocket.
+export const executionLogs = pgTable("execution_logs", {
+  id: serial('id').primaryKey(),
+  testPlanExecutionId: text('test_plan_execution_id').notNull()
+    .references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
+  level: text('level').notNull(),               // 'info' | 'warn' | 'error' | 'step' | 'debug'
+  source: text('source').notNull(),             // 'playwright' | 'api-runner' | 'system' | 'worker'
+  message: text('message').notNull(),
+  metadata: jsonb('metadata'),                  // Step details, screenshots, timing, etc.
+  testCaseResultId: text('test_case_result_id'), // Optional link to a specific test case
+  correlationId: text('correlation_id'),
+});
+
 export const environments = pgTable("environments", {
   id: serial('id').primaryKey(),
   name: text('name').notNull().unique(),
@@ -590,6 +606,9 @@ export const selectReportTestCaseResultSchema = createSelectSchema(
 
 export type ReportTestCaseResult = typeof reportTestCaseResults.$inferSelect;
 export type InsertReportTestCaseResult = typeof reportTestCaseResults.$inferInsert;
+
+export type ExecutionLog = typeof executionLogs.$inferSelect;
+export type InsertExecutionLog = typeof executionLogs.$inferInsert;
 
 export type Environment = typeof environments.$inferSelect;
 export type InsertEnvironment = typeof environments.$inferInsert;

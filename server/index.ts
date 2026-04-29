@@ -8,6 +8,7 @@ import { db } from './db'; // Import db instance
 import { systemSettings } from '@shared/schema'; // Import systemSettings table
 import { eq } from 'drizzle-orm'; // Import eq operator
 import { setupWebSockets } from './websocket';
+import { correlationMiddleware } from './middleware/correlation';
 
 const app = express();
 app.use(express.json());
@@ -16,36 +17,29 @@ app.use(express.urlencoded({ extended: false }));
 (async () => {
   const logger = await loggerPromise; // Resolve the logger promise
 
-  // Request logging middleware - MOVED HERE and USES RESOLVED LOGGER
-  app.use((req, res, next) => {
-    console.log(`SERVER: Request Logger Middleware: Received ${req.method} ${req.path}`);
-    const start = Date.now();
-    const path = req.path;
-    let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  // ─── Correlation ID middleware (must be FIRST) ──────────────────────────
+  // Generates a unique trace ID for each request and propagates it
+  // through AsyncLocalStorage to all downstream async operations.
+  app.use(correlationMiddleware);
 
-    const originalResJson = res.json;
-    res.json = function (bodyJson, ...args) {
-      capturedJsonResponse = bodyJson;
-      return originalResJson.apply(res, [bodyJson, ...args]);
-    };
+  // ─── Structured request logging middleware ──────────────────────────────
+  app.use((req, res, next) => {
+    const start = Date.now();
+    const requestPath = req.path;
 
     res.on("finish", () => {
       const duration = Date.now() - start;
-      if (path.startsWith("/api")) {
-        let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-        if (capturedJsonResponse) {
-          logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-        }
-
-        if (logLine.length > 80) {
-          logLine = logLine.slice(0, 79) + "…";
-        }
-
-        log(logger, logLine); // Pass resolved logger instance
+      if (requestPath.startsWith("/api")) {
+        // Structured log: each field is a discrete, queryable property
+        logger.http('[express] Request completed', {
+          method: req.method,
+          path: requestPath,
+          statusCode: res.statusCode,
+          durationMs: duration,
+        });
       }
     });
 
-    console.log(`SERVER: Request Logger Middleware: Calling next() for ${req.method} ${req.path}`);
     next();
   });
 

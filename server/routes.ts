@@ -38,7 +38,8 @@ import {
   environments,
   secrets,
   reportTestCaseResults,
-  ReportTestCaseResult
+  ReportTestCaseResult,
+  executionLogs
 } from "@shared/schema";
 import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
@@ -1673,36 +1674,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const searchTerm = req.query.search as string | undefined;
 
     try {
-      // Base queries
-      let uiTestsQuery = db.select({
+      // Build conditions
+      const uiConditions = [eq(tests.userId, userId)];
+      const apiConditions = [eq(apiTests.userId, userId)];
+
+      if (searchTerm) {
+        const searchPattern = `%${searchTerm}%`;
+        uiConditions.push(ilike(tests.name, searchPattern));
+        apiConditions.push(ilike(apiTests.name, searchPattern));
+      }
+
+      // Execute queries
+      const uiTestResults = await db.select({
           id: tests.id,
           name: tests.name,
-          description: sql<string>`null`.as('description'), // UI tests don't have a description field in the schema
+          description: sql<string>`null`.as('description'),
           type: sql<string>`'ui'`.as('type'),
           updatedAt: tests.updatedAt
         })
         .from(tests)
-        .where(eq(tests.userId, userId));
+        .where(and(...uiConditions));
 
-      let apiTestsQuery = db.select({
+      const apiTestResults = await db.select({
           id: apiTests.id,
           name: apiTests.name,
-          description: sql<string>`null`.as('description'), // API tests also don't have a dedicated description field
+          description: sql<string>`null`.as('description'),
           type: sql<string>`'api'`.as('type'),
           updatedAt: apiTests.updatedAt
         })
         .from(apiTests)
-        .where(eq(apiTests.userId, userId));
-
-      // Apply search term if provided
-      if (searchTerm) {
-        const searchPattern = `%${searchTerm}%`;
-        uiTestsQuery = uiTestsQuery.where(ilike(tests.name, searchPattern));
-        apiTestsQuery = apiTestsQuery.where(ilike(apiTests.name, searchPattern));
-      }
-
-      const uiTestResults = await uiTestsQuery;
-      const apiTestResults = await apiTestsQuery;
+        .where(and(...apiConditions));
 
       // Combine results
       let combinedResults = [...uiTestResults, ...apiTestResults];
@@ -1732,6 +1733,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch selectable tests" });
     }
   });
+
+// --- Test Execution Logs API Endpoint ---
+app.get("/api/test-plan-executions/:executionId/logs", async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const { executionId } = req.params;
+
+  try {
+    const logs = await db
+      .select()
+      .from(executionLogs)
+      .where(eq(executionLogs.testPlanExecutionId, executionId))
+      .orderBy(asc(executionLogs.timestamp));
+
+    res.json(logs);
+  } catch (error: any) {
+    resolvedLogger.error({ message: "Error fetching execution logs", error: error.message, executionId });
+    res.status(500).json({ error: "Failed to fetch execution logs" });
+  }
+});
 
 // --- Test Report Page API Endpoint ---
 app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
@@ -1881,8 +1903,8 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
         testSuiteName: plan?.name || 'N/A',
         environment: execution.environment || 'N/A',
         browsers: execution.browsers ? JSON.parse(execution.browsers as string) : [],
-        dateTime: execution.startedAt ? new Date(execution.startedAt * 1000).toISOString() : 'N/A',
-        completedAt: execution.completedAt ? new Date(execution.completedAt * 1000).toISOString() : null,
+        dateTime: execution.startedAt ? execution.startedAt.toISOString() : 'N/A',
+        completedAt: execution.completedAt ? execution.completedAt.toISOString() : null,
         status: execution.status,
         triggeredBy: execution.triggeredBy,
         executionId: execution.id,
@@ -1897,7 +1919,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
                   parseFloat((((execution.passedTests ?? passedTests) / (execution.totalTests ?? totalTests)) * 100).toFixed(2)) : 0,
         averageTimePerTestMs: averageTimePerTest, // This needs fresh calculation from reportTestCaseResults
         totalTestCasesDurationMs: totalDurationMs, // Sum of individual test case durations
-        executionDurationMs: execution.executionDurationMs ?? ((execution.completedAt && execution.startedAt) ? (execution.completedAt - execution.startedAt) * 1000 : null),
+        executionDurationMs: execution.executionDurationMs ?? ((execution.completedAt && execution.startedAt) ? (new Date(execution.completedAt).getTime() - new Date(execution.startedAt).getTime()) : null),
       },
       charts: {
         passFailSkippedDistribution,

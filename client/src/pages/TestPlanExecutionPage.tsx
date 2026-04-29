@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress'; // Using shadcn progress ba
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'framer-motion';
-import { LiveConsole } from '@/components/LiveConsole';
+import { ExecutionLogConsole } from '@/components/ExecutionLogConsole';
 import type { TestPlan, ApiTest } from '@shared/schema'; // Import relevant types
 import { fetchTestPlanByIdAPI } from '@/lib/api/test-plans';
 import { apiRequest } from '@/lib/queryClient';
@@ -71,7 +71,6 @@ const TestPlanExecutionPage: React.FC = () => {
   const planId = params.planId;
   // const runId = params.runId; // If we want to view specific run details later
 
-  const [executionLog, setExecutionLog] = useState<string[]>([]);
   const [testStatuses, setTestStatuses] = useState<Record<number, TestExecutionState>>({});
   const [overallProgress, setOverallProgress] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
@@ -104,27 +103,7 @@ const TestPlanExecutionPage: React.FC = () => {
     }
   }, [testPlanData]);
 
-  // WebSocket Connection for Real-Time Logs
-  useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    const ws = new WebSocket(wsUrl);
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (['job-active', 'job-completed', 'job-failed', 'job-progress'].includes(data.type) && data.log) {
-          setExecutionLog(prev => [...prev, data.log]);
-        }
-      } catch (e) {
-        console.error('Error parsing WebSocket message:', e);
-      }
-    };
-
-    return () => {
-      ws.close();
-    };
-  }, []);
 
   const testsToRun = useMemo(() => testPlanData?.tests || [], [testPlanData]);
 
@@ -132,7 +111,6 @@ const TestPlanExecutionPage: React.FC = () => {
     if (isExecuting) return;
 
     setIsExecuting(true);
-    setExecutionLog([t('testPlanExecutionPage.logs.startingExecution', { planName: testPlanData?.name })]);
 
     try {
       const payload: any = {};
@@ -145,9 +123,8 @@ const TestPlanExecutionPage: React.FC = () => {
 
       if (data.success && data.data) {
         setCurrentRunId(data.data.id);
-        setExecutionLog(prev => [...prev, "Test plan sent to worker for execution!"]);
-        // The worker is now running it. Progress will be streamed via WebSockets.
-        // For the UI tests list, we could set them all to 'running' for now:
+        
+        // Initialize test statuses to 'running' for the UI tests list
         const initialStatuses: Record<string, TestExecutionState> = {};
         testPlanData?.tests.forEach(test => {
           initialStatuses[test.id] = { ...test, status: 'running' };
@@ -157,7 +134,7 @@ const TestPlanExecutionPage: React.FC = () => {
         throw new Error(data.error || "Execution failed");
       }
     } catch (e: any) {
-      setExecutionLog(prev => [...prev, `ERROR: ${e.message}`]);
+      console.error('Execution failed:', e);
       setIsExecuting(false);
     }
   };
@@ -307,54 +284,54 @@ const TestPlanExecutionPage: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <ul className="divide-y divide-border">
-                {testsToRun.map((test, index) => {
-                  const testState = testStatuses[test.id] || { ...test, status: 'pending' };
-                  return (
-                    <motion.li
-                      key={test.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center space-x-3">
-                        {getStatusIcon(testState.status)}
-                        <div>
-                          <p className="font-medium text-foreground">{test.name}</p>
-                          <p className="text-sm text-muted-foreground">{test.url || t('testPlanExecutionPage.noDescription.text')}</p>
+              <div className="divide-y divide-border">
+                {testsToRun.length > 0 ? (
+                  testsToRun.map((test, index) => {
+                    const testState = testStatuses[test.id] || { ...test, status: 'pending' };
+                    return (
+                      <motion.div
+                        key={test.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center space-x-3">
+                          {getStatusIcon(testState.status)}
+                          <div>
+                            <p className="font-medium text-foreground">{test.name}</p>
+                            <p className="text-sm text-muted-foreground">{test.url || t('testPlanExecutionPage.noDescription.text')}</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {testState.status === 'running' && t('testPlanExecutionPage.statusLabels.running')}
-                        {testState.status === 'passed' && `${t('testPlanExecutionPage.statusLabels.passed')} ${testState.duration ? `(${(testState.duration / 1000).toFixed(2)}s)` : ''}`}
-                        {testState.status === 'failed' && `${t('testPlanExecutionPage.statusLabels.failed')} ${testState.duration ? `(${(testState.duration / 1000).toFixed(2)}s)` : ''}`}
-                        {testState.status === 'pending' && t('testPlanExecutionPage.statusLabels.pending')}
-                      </div>
-                    </motion.li>
-                  );
-                })}
-                {testsToRun.length === 0 && (
-                  <li className="p-4 text-center text-muted-foreground">
-                    {t('testPlanExecutionPage.noTestsInPlan.text')}
-                  </li>
+                        <div className="text-sm text-muted-foreground">
+                          {testState.status === 'running' && t('testPlanExecutionPage.statusLabels.running')}
+                          {testState.status === 'passed' && `${t('testPlanExecutionPage.statusLabels.passed')} ${testState.duration ? `(${(testState.duration / 1000).toFixed(2)}s)` : ''}`}
+                          {testState.status === 'failed' && `${t('testPlanExecutionPage.statusLabels.failed')} ${testState.duration ? `(${(testState.duration / 1000).toFixed(2)}s)` : ''}`}
+                          {testState.status === 'pending' && t('testPlanExecutionPage.statusLabels.pending')}
+                        </div>
+                      </motion.div>
+                    );
+                  })
+                ) : (
+                  <div className="p-8 text-center text-muted-foreground italic">
+                    {t('testPlanExecutionPage.noTestsInPlan.text', 'Nessun test presente in questo piano.')}
+                  </div>
                 )}
-              </ul>
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Right Column: Execution Log */}
-        <Card className="md:col-span-1 flex flex-col max-h-[calc(100vh-12rem)] glass-card"> {/* Adjust max-h as needed */}
-          <CardHeader className="bg-muted/30">
-            <CardTitle className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse-slow"></span>
-              {t('testPlanExecutionPage.executionLog.title')}
-            </CardTitle>
-            <CardDescription>{t('testPlanExecutionPage.executionLog.description')}</CardDescription>
-          </CardHeader>
-          <LiveConsole logs={executionLog} />
-        </Card>
+        <div className="md:col-span-1 h-[calc(100vh-12rem)] min-h-[500px]">
+          {currentRunId ? (
+            <ExecutionLogConsole executionId={currentRunId} />
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-500 font-mono text-xs italic">
+              {t('testPlanExecutionPage.logs.waitingForExecution', 'In attesa di esecuzione...')}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
