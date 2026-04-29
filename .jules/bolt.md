@@ -1,0 +1,3 @@
+## 2025-02-09 - N+1 Query Elimination using Hash Map Lookup
+**Learning:** Found an N+1 query bottleneck in `server/test-execution-service.ts` where looping over test plan relations (`testPlanSelectedTests`) caused sequential database requests for each associated UI (`testsTable`) and API (`apiTestsTable`) test definition.
+**Action:** Implemented O(1) in-memory lookups by extracting IDs, batching database queries upfront using Drizzle ORM's `inArray()`, and storing entities in `Map<number, Test>` and `Map<number, ApiTest>`. Avoid using `inArray` with empty arrays to prevent SQL runtime errors. Always extract arrays and query conditionally (`if (ids.length > 0)`).
