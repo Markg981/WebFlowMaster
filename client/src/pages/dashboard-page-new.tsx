@@ -21,7 +21,7 @@ import { DraggableElement } from "@/components/draggable-element";
 import { VisualTestBuilder } from "@/components/visual-builder/VisualTestBuilder";
 import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
 import SaveTestModal from "@/components/SaveTestModal"; // Import the modal
-import { 
+import {
   Globe,
   Search,
   CheckCircle,
@@ -263,9 +263,9 @@ export default function DashboardPage() {
     }
     // If settings have loaded, and there's no defaultTestUrl, and the user hasn't changed the URL,
     // then clear the placeholder. This handles the case where the initial placeholder should be removed.
-    else if (settingsData && !settingsData.defaultTestUrl && currentUrl === "https://github.com" && !isInitialUrlPrefilled ) {
-        setCurrentUrl("");
-        setIsInitialUrlPrefilled(true);
+    else if (settingsData && !settingsData.defaultTestUrl && currentUrl === "https://github.com" && !isInitialUrlPrefilled) {
+      setCurrentUrl("");
+      setIsInitialUrlPrefilled(true);
     }
 
   }, [settingsData, currentUrl, isInitialUrlPrefilled]); // Removed setCurrentUrl and setIsInitialUrlPrefilled from deps as they are setters
@@ -318,8 +318,8 @@ export default function DashboardPage() {
   // Calculate scaled bounding box for the highlighted element
   const scaledHighlightedBoundingBox = useMemo(() => {
     if (!highlightedElement || !imageRenderDimensions || !detectedElements ||
-        imageRenderDimensions.naturalWidth === 0 || imageRenderDimensions.naturalHeight === 0 ||
-        imageRenderDimensions.renderedWidth === 0 || imageRenderDimensions.renderedHeight === 0) {
+      imageRenderDimensions.naturalWidth === 0 || imageRenderDimensions.naturalHeight === 0 ||
+      imageRenderDimensions.renderedWidth === 0 || imageRenderDimensions.renderedHeight === 0) {
       return null;
     }
 
@@ -586,6 +586,7 @@ export default function DashboardPage() {
         title: "Cannot Start Recording",
         description: "Please load a website before starting to record a test.",
         variant: "destructive",
+        variant: "destructive",
       });
       return;
     }
@@ -615,7 +616,7 @@ export default function DashboardPage() {
           const correspondingAction = availableActions.find(a => a.id === recordedAction.type);
 
           if (!correspondingAction) {
-            console.warn(`[StopRecording onSuccess MAP] No available action found for recorded type: '${recordedAction.type}'. Full action object:`, JSON.stringify(recordedAction, null, 2) ,'. This action will be SKIPPED.');
+            console.warn(`[StopRecording onSuccess MAP] No available action found for recorded type: '${recordedAction.type}'. Full action object:`, JSON.stringify(recordedAction, null, 2), '. This action will be SKIPPED.');
             return null;
           }
 
@@ -702,6 +703,7 @@ export default function DashboardPage() {
             title: "Errore di Rete o Server",
             description: `Impossibile aggiornare le azioni (errore ${res.status}). La sessione potrebbe essere terminata.`,
             variant: "destructive",
+            variant: "destructive",
             duration: 7000,
           });
           // Consider stopping if error is 404, indicating session truly not found
@@ -727,13 +729,14 @@ export default function DashboardPage() {
               title: "Sessione di Registrazione Terminata",
               description: result.error || "La finestra di registrazione è stata chiusa o la sessione è scaduta.",
               variant: "default",
+              variant: "default",
               duration: 7000,
             });
             setIsRecording(false);
             setSessionId(null);
             // If backend sends last batch of actions with sessionEnded=true, process them:
             if (result.sequence && result.sequence.length > 0) {
-              const lastActions = result.sequence.map( (recordedAction, index) => {
+              const lastActions = result.sequence.map((recordedAction, index) => {
                 const correspondingAction = availableActions.find(a => a.id === recordedAction.type);
                 if (!correspondingAction) return null;
                 let targetElementPlaceholder: DetectedElement | undefined = undefined;
@@ -757,6 +760,7 @@ export default function DashboardPage() {
             toast({
               title: "Problema con la Sessione di Registrazione",
               description: result.error || "Si è verificato un errore recuperando le azioni.",
+              variant: "destructive",
               variant: "destructive",
               duration: 7000,
             });
@@ -935,7 +939,7 @@ export default function DashboardPage() {
     if (stepIndex >= 0 && stepIndex < playbackSteps.length) {
       const currentStep = playbackSteps[stepIndex];
       if (currentStep.screenshot) {
-        console.log("[DashboardPage] Playback: Setting screenshot for step", stepIndex, currentStep.screenshot.substring(0,100));
+        console.log("[DashboardPage] Playback: Setting screenshot for step", stepIndex, currentStep.screenshot.substring(0, 100));
         setWebsiteScreenshot(currentStep.screenshot);
       }
       // Optionally, update other UI elements with currentStep.name, currentStep.details, etc.
@@ -1046,7 +1050,7 @@ export default function DashboardPage() {
         // For now, let's clear detected elements or leave them as is.
         // setDetectedElements([]);
       }
-       // If the sequence is empty, ensure playback stops and clears.
+      // If the sequence is empty, ensure playback stops and clears.
       setIsExecutingPlayback(false);
       setCurrentPlaybackStepIndex(null);
       setPlaybackSteps([]);
@@ -1081,7 +1085,7 @@ export default function DashboardPage() {
               <h1 className="text-xl font-bold text-card-foreground">{t('dashboardPageNew.createWebTest.title')}</h1>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             <Button variant="ghost" size="icon" aria-label={t('dashboardPageNew.notifications.button')}>
               <Bell className="h-4 w-4" />
@@ -1095,8 +1099,8 @@ export default function DashboardPage() {
               <User className="h-6 w-6 text-muted-foreground" />
               <span className="text-sm font-medium text-foreground">{user?.username}</span>
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => logoutMutation.mutate()}
               disabled={logoutMutation.isPending}
@@ -1234,7 +1238,7 @@ export default function DashboardPage() {
               <ScrollArea className="h-full">
                 <div className="space-y-2">
                   {availableActions.map((action) => (
-                    <DraggableAction key={action.id} action={action} />
+                    <DraggableAction key={action.id} action={action} stepId="library" onDropElement={() => { }} />
                   ))}
                 </div>
               </ScrollArea>
@@ -1254,7 +1258,7 @@ export default function DashboardPage() {
                     </Badge>
                   )}
                   {isExecutingPlayback && (
-                     <Badge variant="outline" className="text-primary border-primary">
+                    <Badge variant="outline" className="text-primary border-primary">
                       <Play className="h-3 w-3 mr-1" />
                       {t('dashboardPageNew.playback.text')}
                     </Badge>
@@ -1274,7 +1278,7 @@ export default function DashboardPage() {
                   {playbackSteps[currentPlaybackStepIndex].status === 'failed' && <span className="text-destructive ml-2">(Failed: {playbackSteps[currentPlaybackStepIndex].error})</span>}
                 </div>
               )}
-              
+
               {/* This is the container whose dimensions are used for scaling calculations */}
               <div ref={imageContainerRef} className="flex-1 border-2 border-border rounded-lg overflow-hidden relative bg-muted flex items-center justify-center">
                 {creationMode === 'record' && isRecording ? (
@@ -1292,15 +1296,15 @@ export default function DashboardPage() {
                   </div>
                 ) : (websiteLoaded || isExecutingPlayback) && websiteScreenshot ? (
                   <div className="relative">
-                    <img 
+                    <img
                       ref={imageRef}
-                      src={websiteScreenshot} 
+                      src={websiteScreenshot}
                       alt={isExecutingPlayback ? t('dashboardPageNew.testStepScreenshot.text') : t('dashboardPageNew.websiteScreenshot.text')}
                       className="block max-w-full max-h-full object-contain"
                     />
                     {/* Element highlighting overlay - shown only when NOT in playback mode to avoid confusion */}
                     {!isExecutingPlayback && scaledHighlightedBoundingBox && (
-                      <div 
+                      <div
                         className="absolute border-2 border-destructive bg-destructive/20 pointer-events-none"
                         style={{
                           top: `${scaledHighlightedBoundingBox.top}px`,
@@ -1329,30 +1333,30 @@ export default function DashboardPage() {
             <div className="w-80 bg-card p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-card-foreground">{t('dashboardPageNew.detectedElements.title')}</h3>
-              <Badge variant="secondary">{detectedElements.length} {t('dashboardPageNew.found.text')}</Badge>
-            </div>
-            
-            <ScrollArea className="h-full">
-              <div className="space-y-2">
-                {detectedElements.map((element) => (
-                  <DraggableElement 
-                    key={element.id} 
-                    element={element} 
-                    onHover={setHighlightedElement}
-                  />
-                ))}
-                
-                {detectedElements.length === 0 && (
-                  <div className="flex items-center justify-center h-32 text-muted-foreground">
-                    <div className="text-center">
-                      <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">{t('dashboardPageNew.noElementsDetectedYet.text')}</p>
-                      <p className="text-xs">{t('dashboardPageNew.loadAWebsiteAndClickDetect.description')}</p>
-                    </div>
-                  </div>
-                )}
+                <Badge variant="secondary">{detectedElements.length} {t('dashboardPageNew.found.text')}</Badge>
               </div>
-            </ScrollArea>
+
+              <ScrollArea className="h-full">
+                <div className="space-y-2">
+                  {detectedElements.map((element) => (
+                    <DraggableElement
+                      key={element.id}
+                      element={element}
+                      onHover={setHighlightedElement}
+                    />
+                  ))}
+
+                  {detectedElements.length === 0 && (
+                    <div className="flex items-center justify-center h-32 text-muted-foreground">
+                      <div className="text-center">
+                        <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">{t('dashboardPageNew.noElementsDetectedYet.text')}</p>
+                        <p className="text-xs">{t('dashboardPageNew.loadAWebsiteAndClickDetect.description')}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
             </div>
           )}
           {/* If creationMode is 'record', the Detected Elements sidebar might be hidden or replaced */}

@@ -33,7 +33,7 @@ function injectSecretsIntoTest(testObj: any, secretsMap: Record<string, string>)
   if (testObj === null || typeof testObj !== 'object') {
     return typeof testObj === 'string' ? interpolateSecrets(testObj, secretsMap) : testObj;
   }
-  
+
   if (Array.isArray(testObj)) {
     return testObj.map(item => injectSecretsIntoTest(item, secretsMap));
   }
@@ -207,14 +207,14 @@ export async function runTestPlan(
       })
       .returning();
     currentTestPlanRun = inserted[0];
-    
+
     // Add job to Queue
     await testExecutionQueue.add('execute-plan', {
       planId,
       testPlanRunId,
       userId
     });
-    
+
     resolvedLogger.info({ message: 'TestPlanRun job enqueued successfully', testPlanRunId, dbId: currentTestPlanRun.id });
     return currentTestPlanRun;
   } catch (dbError: any) {
@@ -230,14 +230,14 @@ export async function processTestPlanJob(
 ): Promise<any> {
   const resolvedLogger = await loggerPromise;
   const overallStartTime = Date.now();
-  
+
   resolvedLogger.info({ message: `Starting background test plan execution`, planId, testPlanRunId, userId });
 
   // Update status to running
   await db.update(testPlanExecutionsTable)
     .set({ status: 'running' })
     .where(eq(testPlanExecutionsTable.id, testPlanRunId));
-    
+
   let currentTestPlanRun: any = { startedAt: Math.floor(overallStartTime / 1000) };
 
   const baseResultsDir = path.join('./results', planId, testPlanRunId);
@@ -247,7 +247,7 @@ export async function processTestPlanJob(
     resolvedLogger.error({ message: 'Failed to create base results directory', baseResultsDir, error: dirError.message });
     await db.update(testPlanExecutionsTable).set({
       status: 'error',
-      completedAt: Math.floor(Date.now() / 1000),
+      completedAt: new Date(),
       results: JSON.stringify([{ error: `Failed to create results directory: ${dirError.message}` }]),
       executionDurationMs: Date.now() - overallStartTime,
     }).where(eq(testPlanExecutionsTable.id, testPlanRunId));
@@ -362,6 +362,8 @@ export async function processTestPlanJob(
       detailedLog: stepsOrLogData, // Or specific log for API tests
       startedAt: new Date(singleTestStartTime),
       completedAt: new Date(singleTestEndTime),
+      startedAt: new Date(singleTestStartTime),
+      completedAt: new Date(singleTestEndTime),
       durationMs: singleTestDurationMs,
       module: testObjectDefinition?.module || null,
       featureArea: testObjectDefinition?.featureArea || null,
@@ -381,8 +383,8 @@ export async function processTestPlanJob(
 
   // After all tests have run, calculate final aggregates from reportTestCaseResultsTable
   const finalDetailedResults = await db.select()
-                                   .from(reportTestCaseResultsTable)
-                                   .where(eq(reportTestCaseResultsTable.testPlanExecutionId, testPlanRunId));
+    .from(reportTestCaseResultsTable)
+    .where(eq(reportTestCaseResultsTable.testPlanExecutionId, testPlanRunId));
 
   const calculatedTotalTests = finalDetailedResults.length;
   const calculatedPassedTests = finalDetailedResults.filter((r: any) => r.status === 'Passed').length;
@@ -401,7 +403,7 @@ export async function processTestPlanJob(
   } else if (calculatedTotalTests === calculatedPassedTests && calculatedTotalTests > 0) {
     finalOverallStatus = 'completed';
   } else if (calculatedTotalTests > 0 && calculatedPassedTests < calculatedTotalTests) {
-     // Some tests ran, none failed outright, but not all passed (e.g. skipped, or if we add other non-failure statuses)
+    // Some tests ran, none failed outright, but not all passed (e.g. skipped, or if we add other non-failure statuses)
     finalOverallStatus = 'completed'; // Or a more nuanced status like 'completed_with_issues'
   } else if (selectedTestsLinks.length === 0) {
     finalOverallStatus = 'completed'; // No tests to run, so it's 'completed'
@@ -418,7 +420,7 @@ export async function processTestPlanJob(
       .set({
         status: finalOverallStatus,
         results: JSON.stringify(legacyIndividualTestResultsForJsonBlob), // Keep the old JSON blob for now
-        completedAt: Math.floor(overallCompletedAt / 1000),
+        completedAt: new Date(overallCompletedAt),
         totalTests: calculatedTotalTests,
         passedTests: calculatedPassedTests,
         failedTests: calculatedFailedTests,
@@ -443,7 +445,7 @@ export async function processTestPlanJob(
       id: testPlanRunId, testPlanId: planId, status: 'error',
       results: JSON.stringify(legacyIndividualTestResultsForJsonBlob),
       startedAt: currentTestPlanRun.startedAt,
-      completedAt: Math.floor(overallCompletedAt / 1000),
+      completedAt: new Date(overallCompletedAt),
       error: `DB error during final aggregate update: ${dbError.message}`
     } as any;
   }

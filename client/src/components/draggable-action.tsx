@@ -25,9 +25,18 @@ interface DraggableActionProps {
   stepId?: string; // Optional for palette usage
   onDropElement?: (stepId: string, element: DetectedElement) => void;
   targetElement?: DetectedElement; // Optional: To display info about the associated element
+  isDropZoneActive?: boolean;
+  isRecordingActive?: boolean;
 }
 
-export function DraggableAction({ action, stepId, onDropElement, targetElement }: DraggableActionProps) {
+export function DraggableAction({ 
+  action, 
+  stepId, 
+  onDropElement, 
+  targetElement,
+  isDropZoneActive,
+  isRecordingActive 
+}: DraggableActionProps) {
   const { t } = useTranslation();
   const [{ isDragging: isActionDragging }, drag, dragPreview] = useDrag(() => ({
     type: "action",

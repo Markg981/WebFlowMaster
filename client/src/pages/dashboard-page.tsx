@@ -287,7 +287,7 @@ export default function DashboardPage() {
           <ScrollArea className="h-full">
             <div className="space-y-2">
               {availableActions.map((action) => (
-                <DraggableAction key={action.id} action={action} />
+                <DraggableAction key={action.id} action={action} stepId="library" onDropElement={() => {}} />
               ))}
             </div>
           </ScrollArea>

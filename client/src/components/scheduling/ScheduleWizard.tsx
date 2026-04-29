@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { 
-  scheduleFormSchema, 
-  type ScheduleFormValues, 
-  ENVIRONMENT_OPTIONS, 
-  BROWSER_OPTIONS, 
-  FREQUENCY_OPTIONS, 
+import {
+  scheduleFormSchema,
+  type ScheduleFormValues,
+  ENVIRONMENT_OPTIONS,
+  BROWSER_OPTIONS,
+  FREQUENCY_OPTIONS,
   RETRY_ON_FAILURE_OPTIONS,
-  transformFormValuesToApiPayload, 
-  transformApiDataToFormValues 
+  transformFormValuesToApiPayload,
+  transformApiDataToFormValues
 } from '@/lib/schemas/scheduleFormSchema';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,9 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
     queryKey: ['testPlansSummary'],
     queryFn: fetchTestPlansAPI,
     enabled: isOpen,
+    queryKey: ['testPlansSummary'],
+    queryFn: fetchTestPlansAPI,
+    enabled: isOpen,
   });
 
   const defaultValues = useMemo((): Partial<ScheduleFormValues> => {
@@ -68,65 +71,69 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
   }, [scheduleToEdit, initialTestPlanId]);
 
   const form = useForm<ScheduleFormValues>({
-    resolver: zodResolver(scheduleFormSchema),
-    defaultValues: defaultValues as ScheduleFormValues,
-    mode: 'onChange',
-  });
+    const form = useForm<ScheduleFormValues>({
+      resolver: zodResolver(scheduleFormSchema),
+      defaultValues: defaultValues as ScheduleFormValues,
+      mode: 'onChange',
+    });
 
-  useEffect(() => {
-    if (scheduleToEdit) {
-      form.reset(transformApiDataToFormValues(scheduleToEdit) as ScheduleFormValues);
-    } else {
-      form.reset({
-        ...defaultValues,
-        testPlanId: initialTestPlanId || (testPlansData && testPlansData.length > 0 ? testPlansData[0].id : ''),
-      } as ScheduleFormValues);
-    }
-  }, [scheduleToEdit, initialTestPlanId, form, defaultValues, testPlansData]);
+    useEffect(() => {
+  if (scheduleToEdit) {
+    form.reset(transformApiDataToFormValues(scheduleToEdit) as ScheduleFormValues);
+    form.reset(transformApiDataToFormValues(scheduleToEdit) as ScheduleFormValues);
+  } else {
+    form.reset({
+      ...defaultValues,
+      testPlanId: initialTestPlanId || (testPlansData && testPlansData.length > 0 ? testPlansData[0].id : ''),
+    } as ScheduleFormValues);
+  }
+}, [scheduleToEdit, initialTestPlanId, form, defaultValues, testPlansData]);
 
+const createMutation = useMutation({
+  mutationFn: (data: any) => createSchedule(data),
+  onSuccess: () => {
+    toast({ title: t('scheduleWizard.toast.success.createTitle'), description: t('scheduleWizard.toast.success.createDescription') });
+    queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] });
+    onScheduleSaved();
+    handleClose();
+  },
+  onError: (error: Error) => {
+    toast({ title: t('scheduleWizard.toast.error.createTitle'), description: error.message, variant: 'destructive' });
+  },
+});
 
-  const createMutation = useMutation({
-    mutationFn: createSchedule,
-    onSuccess: () => {
-      toast({ title: t('scheduleWizard.toast.success.createTitle'), description: t('scheduleWizard.toast.success.createDescription') });
-      queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] });
-      onScheduleSaved();
-      handleClose();
-    },
-    onError: (error: Error) => {
-      toast({ title: t('scheduleWizard.toast.error.createTitle'), description: error.message || t('scheduleWizard.toast.error.genericDescription'), variant: 'destructive' });
-    },
-  });
+const updateMutation = useMutation({
+  mutationFn: (data: { id: string, payload: ScheduleFormValues }) => updateSchedule(data.id, transformFormValuesToApiPayload(data.payload) as any),
+  onSuccess: () => {
+    toast({ title: t('scheduleWizard.toast.success.updateTitle'), description: t('scheduleWizard.toast.success.updateDescription') });
+    queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] });
+    onScheduleSaved();
+    handleClose();
+  },
+  onError: (error: Error) => {
+    toast({ title: t('scheduleWizard.toast.error.updateTitle'), description: error.message, variant: 'destructive' });
+  },
+});
 
-  const updateMutation = useMutation({
-    mutationFn: (data: { id: string, payload: ScheduleFormValues }) => updateSchedule(data.id, transformFormValuesToApiPayload(data.payload) as any),
-    onSuccess: () => {
-      toast({ title: t('scheduleWizard.toast.success.updateTitle'), description: t('scheduleWizard.toast.success.updateDescription') });
-      queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] });
-      onScheduleSaved();
-      handleClose();
-    },
-    onError: (error: Error) => {
-      toast({ title: t('scheduleWizard.toast.error.updateTitle'), description: error.message || t('scheduleWizard.toast.error.genericDescription'), variant: 'destructive' });
-    },
-  });
+const onSubmit = (data: ScheduleFormValues) => {
+  if (scheduleToEdit?.id) {
+    updateMutation.mutate({ id: scheduleToEdit.id, data: payload as any });
+  } else {
+    createMutation.mutate(transformFormValuesToApiPayload(data) as any);
+  }
+};
 
-  const onSubmit = (data: ScheduleFormValues) => {
-    if (scheduleToEdit?.id) {
-      updateMutation.mutate({ id: scheduleToEdit.id, payload: data });
-    } else {
-      createMutation.mutate(transformFormValuesToApiPayload(data) as any);
-    }
-  };
-
-  const handleNext = async () => {
+const handleNext = async () => {
+  const result = await form.trigger();
+  if (result) {
     const result = await form.trigger();
     if (result) {
       setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
     } else {
-      toast({title: t('scheduleWizard.toast.error.validationError'), description: t('scheduleWizard.toast.error.checkFields'), variant: "destructive"})
+      toast({ title: t('scheduleWizard.toast.error.validationError'), description: t('scheduleWizard.toast.error.checkFields'), variant: "destructive" })
     }
   };
+
   const handlePrevious = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
 
   const handleClose = () => {
@@ -147,18 +154,17 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
         </DialogHeader>
 
         <div className="flex justify-around items-center p-2 border-b mb-4">
-            {[...Array(totalSteps)].map((_, index) => (
-                <div key={index} className={`flex flex-col items-center ${currentStep === index + 1 ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center border-2 ${currentStep >= index + 1 ? 'bg-primary border-primary text-primary-foreground' : 'border-muted'}`}>
-                        {index + 1}
-                    </div>
-                    <span className="text-xs mt-1 text-center">
-                        {t(`scheduleWizard.steps.step${index + 1}.title`)}
-                    </span>
-                </div>
-            ))}
+          {[...Array(totalSteps)].map((_, index) => (
+            <div key={index} className={`flex flex-col items-center ${currentStep === index + 1 ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
+              <div className={`h-8 w-8 rounded-full flex items-center justify-center border-2 ${currentStep >= index + 1 ? 'bg-primary border-primary text-primary-foreground' : 'border-muted'}`}>
+                {index + 1}
+              </div>
+              <span className="text-xs mt-1 text-center">
+                {t(`scheduleWizard.steps.step${index + 1}.title`)}
+              </span>
+            </div>
+          ))}
         </div>
-
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 overflow-y-auto px-1 flex-1">
           {currentStep === 1 && (
@@ -172,18 +178,15 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
                     <Select onValueChange={field.onChange} value={field.value} disabled={!!initialTestPlanId || isLoadingTestPlans}>
                       <SelectTrigger><SelectValue placeholder={t('scheduleWizard.steps.step1.selectTestPlanPlaceholder')} /></SelectTrigger>
                       <SelectContent>
-                        {isLoadingTestPlans && <SelectItem value="loading" disabled>{t('scheduleWizard.loading')}</SelectItem>}
                         {testPlansData?.map(plan => <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   )}
                 />
-                {form.formState.errors.testPlanId && <p className="text-sm text-destructive mt-1">{form.formState.errors.testPlanId.message}</p>}
               </div>
               <div>
                 <Label htmlFor="scheduleName">{t('scheduleWizard.steps.step1.scheduleNameLabel')}</Label>
                 <Input id="scheduleName" {...form.register('scheduleName')} />
-                {form.formState.errors.scheduleName && <p className="text-sm text-destructive mt-1">{form.formState.errors.scheduleName.message}</p>}
               </div>
               <div>
                 <Label htmlFor="environment">{t('scheduleWizard.steps.step1.environmentLabel')}</Label>
@@ -194,6 +197,7 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
                     <Select onValueChange={field.onChange} value={field.value || undefined}>
                       <SelectTrigger><SelectValue placeholder={t('scheduleWizard.steps.step1.selectEnvironmentPlaceholder')} /></SelectTrigger>
                       <SelectContent>
+                        {ENVIRONMENT_OPTIONS.map(env => <SelectItem key={env.value} value={env.value}>{env.label}</SelectItem>)}
                         {ENVIRONMENT_OPTIONS.map(env => <SelectItem key={env.value} value={env.value}>{env.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -213,6 +217,8 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {BROWSER_OPTIONS.map((browser) => (
                       <div key={browser.value} className="flex items-center space-x-2">
+                    {BROWSER_OPTIONS.map((browser) => (
+                      <div key={browser.value} className="flex items-center space-x-2">
                         <Checkbox
                           id={`browser-${browser.value}`}
                           checked={field.value?.includes(browser.value)}
@@ -224,12 +230,12 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
                           }}
                         />
                         <Label htmlFor={`browser-${browser.value}`} className="font-normal">{browser.label}</Label>
+                        <Label htmlFor={`browser-${browser.value}`} className="font-normal">{browser.label}</Label>
                       </div>
                     ))}
                   </div>
                 )}
               />
-              {form.formState.errors.browsers && <p className="text-sm text-destructive mt-1">{form.formState.errors.browsers.message}</p>}
             </div>
           )}
 
@@ -245,6 +251,7 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
                       <SelectTrigger><SelectValue placeholder={t('scheduleWizard.steps.step3.selectFrequencyPlaceholder')} /></SelectTrigger>
                       <SelectContent>
                         {FREQUENCY_OPTIONS.map(freq => <SelectItem key={freq.value} value={freq.value}>{freq.label}</SelectItem>)}
+                        {FREQUENCY_OPTIONS.map(freq => <SelectItem key={freq.value} value={freq.value}>{freq.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   )}
@@ -255,13 +262,14 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
                 <Label>{t('scheduleWizard.steps.step3.pickDateTime')}</Label>
                 <Controller
                     name="nextRunAt"
+                    name="nextRunAt"
                     control={form.control}
                     render={({ field }) => (
                     <Popover>
                         <PopoverTrigger asChild>
                         <Button variant={"outline"} className={`w-full justify-start text-left font-normal ${!field.value && "text-muted-foreground"}`}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, "PPP HH:mm") : <span>{t('scheduleWizard.steps.step3.pickDateTime')}</span>}
+                            {field.value instanceof Date ? format(field.value, "PPP HH:mm") : <span>{t('scheduleWizard.steps.step3.pickDateTime')}</span>}
                         </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
@@ -332,6 +340,7 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
                     <Select onValueChange={field.onChange} value={field.value}>
                         <SelectTrigger><SelectValue placeholder={t('scheduleWizard.steps.step5.selectRetryPlaceholder')} /></SelectTrigger>
                         <SelectContent>
+                        {RETRY_ON_FAILURE_OPTIONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
                         {RETRY_ON_FAILURE_OPTIONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
                         </SelectContent>
                     </Select>

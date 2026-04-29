@@ -16,11 +16,7 @@ import { apiRequest } from '@/lib/queryClient';
 
 // Mock API for fetching test plan details (replace with actual API call)
 const fetchTestPlanDetails = async (planId: string): Promise<TestPlan & { tests: ApiTest[] }> => {
-  // This is a mock. In reality, you'd fetch this from your backend.
-  // The backend would need an endpoint like /api/test-plans/:planId/details
-  // which returns the plan and its associated tests.
   console.log(`Fetching details for planId: ${planId}`);
-  // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500));
 
   // Example: Find the plan from a predefined list or mock data source
@@ -51,7 +47,6 @@ const fetchTestPlanDetails = async (planId: string): Promise<TestPlan & { tests:
         { id: 3, name: 'Test User Signup New Account', method: 'POST', url: '/api/auth/signup', headers: {}, body: '{"email":"newuser@example.com", "password":"newpassword", "name":"New User"}', expectedStatusCode: 201, projectId: null, createdAt: new Date(), updatedAt: new Date(), assertions: [] },
       ]
     },
-    // Add more mock plans if needed
   ];
 
   const plan = mockPlansWithTests.find(p => p.id === planId);
@@ -77,7 +72,7 @@ const TestPlanExecutionPage: React.FC = () => {
   // const runId = params.runId; // If we want to view specific run details later
 
   const [executionLog, setExecutionLog] = useState<string[]>([]);
-  const [testStatuses, setTestStatuses] = useState<Record<string, TestExecutionState>>({});
+  const [testStatuses, setTestStatuses] = useState<Record<number, TestExecutionState>>({});
   const [overallProgress, setOverallProgress] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null); // Stores the ID of the current execution run
@@ -100,7 +95,7 @@ const TestPlanExecutionPage: React.FC = () => {
   // Initialize test statuses once plan data is loaded
   useEffect(() => {
     if (testPlanData?.tests) {
-      const initialStatuses: Record<string, TestExecutionState> = {};
+      const initialStatuses: Record<number, TestExecutionState> = {};
       testPlanData.tests.forEach(test => {
         initialStatuses[test.id] = { ...test, status: 'pending' };
       });
@@ -138,7 +133,7 @@ const TestPlanExecutionPage: React.FC = () => {
 
     setIsExecuting(true);
     setExecutionLog([t('testPlanExecutionPage.logs.startingExecution', { planName: testPlanData?.name })]);
-    
+
     try {
       const payload: any = {};
       if (selectedEnvironment && selectedEnvironment !== 'none') {
@@ -147,7 +142,7 @@ const TestPlanExecutionPage: React.FC = () => {
 
       const res = await apiRequest('POST', `/api/run-test-plan/${planId}`, payload);
       const data = await res.json();
-      
+
       if (data.success && data.data) {
         setCurrentRunId(data.data.id);
         setExecutionLog(prev => [...prev, "Test plan sent to worker for execution!"]);
@@ -267,8 +262,8 @@ const TestPlanExecutionPage: React.FC = () => {
                 {isExecuting
                   ? t('testPlanExecutionPage.running.button')
                   : completedTestsCount > 0 && completedTestsCount === testsToRun.length
-                  ? t('testPlanExecutionPage.runAgain.button')
-                  : t('testPlanExecutionPage.startExecution.button')}
+                    ? t('testPlanExecutionPage.runAgain.button')
+                    : t('testPlanExecutionPage.startExecution.button')}
               </span>
             </Button>
           </div>
@@ -308,7 +303,7 @@ const TestPlanExecutionPage: React.FC = () => {
             <CardHeader>
               <CardTitle>{t('testPlanExecutionPage.tests.title')}</CardTitle>
               <CardDescription>
-                 {t('testPlanExecutionPage.tests.description', { planName: testPlanData.name })}
+                {t('testPlanExecutionPage.tests.description', { planName: testPlanData.name })}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
@@ -316,8 +311,8 @@ const TestPlanExecutionPage: React.FC = () => {
                 {testsToRun.map((test, index) => {
                   const testState = testStatuses[test.id] || { ...test, status: 'pending' };
                   return (
-                    <motion.li 
-                      key={test.id} 
+                    <motion.li
+                      key={test.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -340,9 +335,9 @@ const TestPlanExecutionPage: React.FC = () => {
                   );
                 })}
                 {testsToRun.length === 0 && (
-                    <li className="p-4 text-center text-muted-foreground">
-                        {t('testPlanExecutionPage.noTestsInPlan.text')}
-                    </li>
+                  <li className="p-4 text-center text-muted-foreground">
+                    {t('testPlanExecutionPage.noTestsInPlan.text')}
+                  </li>
                 )}
               </ul>
             </CardContent>

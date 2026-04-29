@@ -55,6 +55,7 @@ function frequencyToCronPattern(frequency: string, nextRunAt: Date): string | nu
         if (unit === 'days') return `0 ${hours} */${value} * *`; // At the specific hour of nextRunAt
       }
       console.warn(`[SchedulerService] Unknown frequency format: ${frequency}. Cannot convert to cron pattern.`);
+      console.warn(`[SchedulerService] Unknown frequency format: ${frequency}. Cannot convert to cron pattern.`);
       return null;
   }
 }
@@ -98,8 +99,8 @@ async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) 
     const placeholderUserIdForScheduledTask = 1; // TODO: Replace with actual user logic if required
 
     const result = await runTestPlan(
-        schedule.testPlanId,
-        placeholderUserIdForScheduledTask // This needs to be addressed.
+      schedule.testPlanId,
+      placeholderUserIdForScheduledTask // This needs to be addressed.
     ) as any;
 
 
@@ -117,10 +118,10 @@ async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) 
 
     // Handle retries - simplified version
     if ((executionStatus === 'failed' || executionStatus === 'error') && schedule.retryOnFailure && schedule.retryOnFailure !== 'none') {
-        // Implement actual retry logic (e.g., another runTestPlan call after a delay)
-        // This could involve creating a new execution record or updating the existing one.
-        // For simplicity, this is a placeholder. A robust retry would need careful state management.
-        resolvedLogger.info(`[SchedulerService] Schedule ${schedule.id} failed, retry configured to ${schedule.retryOnFailure}. (Retry logic placeholder)`);
+      // Implement actual retry logic (e.g., another runTestPlan call after a delay)
+      // This could involve creating a new execution record or updating the existing one.
+      // For simplicity, this is a placeholder. A robust retry would need careful state management.
+      resolvedLogger.info(`[SchedulerService] Schedule ${schedule.id} failed, retry configured to ${schedule.retryOnFailure}. (Retry logic placeholder)`);
     }
 
   } catch (error: any) {
@@ -131,6 +132,7 @@ async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) 
         .set({
           status: 'error',
           results: JSON.stringify({ error: error.message, stack: error.stack }),
+          completedAt: new Date(),
           completedAt: new Date(),
         })
         .where(eq(testPlanExecutions.id, executionId));
@@ -143,21 +145,22 @@ async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) 
       try {
         const cronPattern = frequencyToCronPattern(schedule.frequency, new Date(schedule.nextRunAt));
         if (cronPattern) { // Only if it's a recurring pattern recognized
-            // This is tricky: node-cron itself handles the next run time internally for its jobs.
-            // We need to calculate the next run time based on *our* schedule definition to store it.
-            // This requires a robust cron expression parser or date calculation logic.
-            // For simplicity, we'll assume for now that `node-cron` jobs are re-created/updated based on DB state.
-            // A more robust approach would involve a library like `cron-parser`.
-            // Placeholder:
-            // const newNextRunAt = calculateNextRunTime(schedule.frequency, new Date(schedule.nextRunAt * 1000));
-            // await db.update(testPlanSchedules).set({ nextRunAt: newNextRunAt }).where(eq(testPlanSchedules.id, schedule.id));
-            // resolvedLogger.info(`[SchedulerService] Updated nextRunAt for recurring schedule ${schedule.id} to ${newNextRunAt}`);
+          // This is tricky: node-cron itself handles the next run time internally for its jobs.
+          // We need to calculate the next run time based on *our* schedule definition to store it.
+          // This requires a robust cron expression parser or date calculation logic.
+          // For simplicity, we'll assume for now that `node-cron` jobs are re-created/updated based on DB state.
+          // A more robust approach would involve a library like `cron-parser`.
+          // Placeholder:
+          // const newNextRunAt = calculateNextRunTime(schedule.frequency, new Date(schedule.nextRunAt * 1000));
+          // await db.update(testPlanSchedules).set({ nextRunAt: newNextRunAt }).where(eq(testPlanSchedules.id, schedule.id));
+          // resolvedLogger.info(`[SchedulerService] Updated nextRunAt for recurring schedule ${schedule.id} to ${newNextRunAt}`);
         }
       } catch (e) {
-          resolvedLogger.error(`[SchedulerService] Failed to update nextRunAt for schedule ${schedule.id}`, e);
+        resolvedLogger.error(`[SchedulerService] Failed to update nextRunAt for schedule ${schedule.id}`, e);
       }
     } else {
       // For 'once' schedules, deactivate it after execution
+      await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
       await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
       resolvedLogger.info(`[SchedulerService] Deactivated 'once' schedule ${schedule.id} after execution.`);
       await removeScheduleJob(schedule.id); // Remove it from active cron jobs
@@ -189,7 +192,7 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
 
   let task: any; // cron.ScheduledTask
 
-    if (schedule.frequency === 'once') {
+  if (schedule.frequency === 'once') {
     // For 'once' tasks, schedule them to run at `nextRunAt` and then they are done.
     // node-cron doesn't directly support a "run once at this future time then stop" via cron string.
     // We can schedule it if `nextRunAt` is in the future.
@@ -210,7 +213,7 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
           // The executeScheduledPlan already deactivates 'once' schedules.
         }, { timezone: "UTC" }); // Assuming all times are UTC
         resolvedLogger.info(`[SchedulerService] Scheduled 'once' job for schedule ${schedule.id} at ${runAtDate.toISOString()}`);
-      } catch(e:any) {
+      } catch (e: any) {
         resolvedLogger.error(`[SchedulerService] Invalid cron pattern for 'once' schedule ${schedule.id} (${cronTimeForOnce}): ${e.message}`);
         return;
       }
@@ -219,6 +222,7 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
       resolvedLogger.info(`[SchedulerService] 'Once' schedule ${schedule.id} has a nextRunAt in the past. Not scheduling.`);
       // Optionally, deactivate it here if it wasn't already.
       if (schedule.isActive) {
+        await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
         await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
       }
       return;
@@ -231,13 +235,13 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
       return;
     }
     try {
-        task = cron.schedule(cronPattern, async () => {
-            await executeScheduledPlan(schedule, plan);
-        }, { timezone: "UTC" }); // Assuming all times are UTC
-        resolvedLogger.info(`[SchedulerService] Added cron job for schedule ${schedule.id} with pattern: ${cronPattern}`);
-    } catch(e:any) {
-        resolvedLogger.error(`[SchedulerService] Failed to schedule job for schedule ${schedule.id} with pattern ${cronPattern}: ${e.message}`);
-        return;
+      task = cron.schedule(cronPattern, async () => {
+        await executeScheduledPlan(schedule, plan);
+      }, { timezone: "UTC" }); // Assuming all times are UTC
+      resolvedLogger.info(`[SchedulerService] Added cron job for schedule ${schedule.id} with pattern: ${cronPattern}`);
+    } catch (e: any) {
+      resolvedLogger.error(`[SchedulerService] Failed to schedule job for schedule ${schedule.id} with pattern ${cronPattern}: ${e.message}`);
+      return;
     }
   }
 
@@ -289,9 +293,9 @@ export async function initializeScheduler() {
     resolvedLogger.info(`[SchedulerService] Found ${schedulesToLoad.length} active schedules to load.`);
     for (const schedule of schedulesToLoad) {
       // If it's a 'once' schedule and its time has passed, deactivate it and skip.
-      if (schedule.frequency === 'once' && schedule.nextRunAt <= now) {
+      if (schedule.frequency === 'once' && schedule.nextRunAt.getTime() <= Date.now()) {
         resolvedLogger.info(`[SchedulerService] 'Once' schedule ${schedule.id} has past. Deactivating.`);
-        await db.update(testPlanSchedules).set({ isActive: false, updatedAt: Math.floor(Date.now()/1000) }).where(eq(testPlanSchedules.id, schedule.id));
+        await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
         continue;
       }
       await addScheduleJob(schedule);

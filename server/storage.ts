@@ -1,23 +1,57 @@
-import { users, tests, testRuns, userSettings, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
+import { users, tests, testRuns, userSettings, sessions, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import session from "express-session";
 // import connectPg from "connect-pg-simple";
 // import { pool } from "./db"; // Removed as pool is not available with SQLite
 
-// const PostgresSessionStore = connectPg(session); // PostgreSQL specific
+
+export class DatabaseSessionStore extends session.Store {
+  constructor() {
+    super();
+  }
+
+  get(sid: string, callback: (err: any, session?: session.SessionData | null) => void) {
+    db.select().from(sessions).where(eq(sessions.sid, sid))
+      .then((rows) => {
+        if (rows.length === 0) return callback(null, null);
+        callback(null, rows[0].sess as session.SessionData);
+      })
+      .catch((err) => callback(err));
+  }
+
+  set(sid: string, sess: session.SessionData, callback?: (err?: any) => void) {
+    const expire = sess.cookie?.expires ? new Date(sess.cookie.expires) : new Date(Date.now() + 86400000);
+    db.insert(sessions).values({
+      sid,
+      sess: sess as any, // Drizzle expects generic JSON
+      expire
+    }).onConflictDoUpdate({
+      target: sessions.sid,
+      set: { sess: sess as any, expire }
+    })
+      .then(() => callback && callback())
+      .catch((err) => callback && callback(err));
+  }
+
+  destroy(sid: string, callback?: (err?: any) => void) {
+    db.delete(sessions).where(eq(sessions.sid, sid))
+      .then(() => callback && callback())
+      .catch((err) => callback && callback(err));
+  }
+}
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
   getTest(id: number): Promise<Test | undefined>;
   getTestsByUser(userId: number): Promise<Test[]>;
   createTest(test: InsertTest): Promise<Test>;
   updateTest(id: number, test: Partial<InsertTest>): Promise<Test | undefined>;
   deleteTest(id: number): Promise<boolean>;
-  
+
   createTestRun(testRun: InsertTestRun): Promise<TestRun>;
   getTestRuns(testId: number): Promise<TestRun[]>;
   updateTestRun(id: number, testRun: Partial<InsertTestRun>): Promise<TestRun | undefined>;
@@ -76,7 +110,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTest(id: number): Promise<boolean> {
     const result = await db.delete(tests).where(eq(tests.id, id));
-    return result.rowCount > 0;
+    return result.changes > 0;
   }
 
   async createTestRun(testRun: InsertTestRun): Promise<TestRun> {

@@ -7,12 +7,20 @@ import type { Test, UserSettings } from '@shared/schema'; // Import Test and Use
 // @ts-ignore
 import fs from 'fs-extra';
 import path from 'path';
+import { reportingService } from './reporting-service';
+import { PlaywrightReporter } from './playwright-reporter';
+import { browserPool } from './browser-pool';
 
 // Default settings if not found or incomplete
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
 const DEFAULT_HEADLESS = true;
-const DEFAULT_TIMEOUT = 30000; // 30 seconds
-const DEFAULT_WAIT_TIME = 1000; // 1 second (could be for navigation or specific waits)
+const DEFAULT_TIMEOUT = 30000;
+const DEFAULT_WAIT_TIME = 1000;
+
+// Type guard for browser type
+function isBrowserType(type: string): type is 'chromium' | 'firefox' | 'webkit' {
+  return ['chromium', 'firefox', 'webkit'].includes(type);
+}
 
 let resolvedLogger: WinstonLogger;
 (async () => {
@@ -28,7 +36,7 @@ let resolvedLogger: WinstonLogger;
     }
   } catch (error: any) {
     const fallbackLogger = console;
-    fallbackLogger.error("PlaywrightService: Failed to initialize Winston logger. Falling back to console.", {error: error.message, stack: error.stack });
+    fallbackLogger.error("PlaywrightService: Failed to initialize Winston logger. Falling back to console.", { error: error.message, stack: error.stack });
     // Fallback to a console-based logger if promise rejects
     resolvedLogger = fallbackLogger as any;
   }
@@ -82,6 +90,7 @@ interface TestStep {
 }
 
 export interface StepResult {
+export interface StepResult {
   name: string;
   type: string;
   selector?: string;
@@ -90,6 +99,8 @@ export interface StepResult {
   screenshot?: string;
   error?: string;
   details: string;
+  healed?: boolean;
+  rca?: string;
 }
 
 // Interface for the ad-hoc sequence payload
@@ -347,12 +358,12 @@ export class PlaywrightService {
       const context = await browser.newContext({ userAgent });
       const page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
-      
+
       await page.setViewportSize({ width: 1280, height: 720 });
       // Removed page.setUserAgent, as it's set on context
-      
-      await page.goto(url, { 
-        waitUntil: 'domcontentloaded', 
+
+      await page.goto(url, {
+        waitUntil: 'domcontentloaded',
         // timeout is already set by setDefaultTimeout
       });
 
@@ -391,7 +402,7 @@ export class PlaywrightService {
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
     let page: Page | null = null;
-    resolvedLogger.debug({ message:"PS:startRecordingSession - Initial state", sessionId, url, userId });
+    resolvedLogger.debug({ message: "PS:startRecordingSession - Initial state", sessionId, url, userId });
 
     let browserType: 'chromium' | 'firefox' | 'webkit' = DEFAULT_BROWSER; // Define here for catch block visibility
 
@@ -535,8 +546,8 @@ export class PlaywrightService {
       } else {
         let lastUrl = session.targetUrl;
         if (session.actions.length > 0) {
-            const lastRecordedActionWithUrl = session.actions.slice().reverse().find(a => a.url);
-            if (lastRecordedActionWithUrl) lastUrl = lastRecordedActionWithUrl.url as string;
+          const lastRecordedActionWithUrl = session.actions.slice().reverse().find(a => a.url);
+          if (lastRecordedActionWithUrl) lastUrl = lastRecordedActionWithUrl.url as string;
         }
         const finalAction: RecordedAction = { type: 'navigate', url: lastUrl, timestamp: Date.now(), value: 'Recording session stopped (page was already closed)' };
         session.actions.push(finalAction);
@@ -569,9 +580,9 @@ export class PlaywrightService {
         resolvedLogger.warn({ message: `PS:stopRecordingSession - Session is being stopped with an empty action list.`, sessionId });
       } else if (recordedActions.length === 1 && (recordedActions[0].value === 'Recording session stopped' || recordedActions[0].value === 'Recording session stopped (page was already closed)')) {
         if (session.actions.find(action => action.value === 'Recording session started' && action.type === 'navigate')) {
-             resolvedLogger.warn({ message: `PS:stopRecordingSession - Session stopped with only the final 'stop' action, initial navigation was present but no user actions.`, sessionId });
+          resolvedLogger.warn({ message: `PS:stopRecordingSession - Session stopped with only the final 'stop' action, initial navigation was present but no user actions.`, sessionId });
         } else {
-             resolvedLogger.warn({ message: `PS:stopRecordingSession - Session stopped with only the final 'stop' action. No user or initial navigation actions recorded/persisted.`, sessionId });
+          resolvedLogger.warn({ message: `PS:stopRecordingSession - Session stopped with only the final 'stop' action. No user or initial navigation actions recorded/persisted.`, sessionId });
         }
       }
 
@@ -685,10 +696,10 @@ export class PlaywrightService {
             try {
               // @ts-ignore
               finalDetectedElementsNavFail = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
-                const interactiveSelectors = ['input:not([type="hidden"])','button','a[href]','select','textarea','[onclick]','[role="button"]','[tabindex]:not([tabindex="-1"])','h1, h2, h3, h4, h5, h6','img[alt]','form','[data-testid]','[data-test]'];
+                const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
                 const detectedElementsEval: any[] = []; let globalElementCounter = 0;
                 // @ts-ignore
-                interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')') ); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
+                interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
                 return detectedElementsEval.slice(0, 50);
               });
             } catch (detectionError: any) {
@@ -742,7 +753,8 @@ export class PlaywrightService {
                 break;
               case 'assert':
                 resolvedLogger.warn({ message: `PS:executeAdhocSequence - Generic 'assert' action encountered. Consider using specific assertions.`, testName, actionName, selector: step.targetElement?.selector });
-                if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = 'Selector missing for generic assert action.';
+                if (!step.targetElement?.selector) {
+                  stepStatus = 'failed'; stepError = 'Selector missing for generic assert action.';
                 } else {
                   const elementToAssert = await page.locator(step.targetElement.selector).count();
                   if (elementToAssert === 0) { stepStatus = 'failed'; stepError = `Assertion Failed: Element "${step.targetElement.selector}" not found.`; }
@@ -821,19 +833,19 @@ export class PlaywrightService {
 
       let finalDetectedElements: DetectedElement[] = [];
       if (page && !page.isClosed()) {
-          resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting final element detection (success path)", testName, pageClosed: page?.isClosed() });
-          try {
-              // @ts-ignore
-              finalDetectedElements = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
-                const interactiveSelectors = ['input:not([type="hidden"])','button','a[href]','select','textarea','[onclick]','[role="button"]','[tabindex]:not([tabindex="-1"])','h1, h2, h3, h4, h5, h6','img[alt]','form','[data-testid]','[data-test]'];
-                const detectedElementsEval: any[] = []; let globalElementCounter = 0;
-                // @ts-ignore
-                interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')') ); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
-                return detectedElementsEval.slice(0, 50);
-              });
-          } catch (detectionError: any) {
-              resolvedLogger.warn({ message: `PS:executeAdhocSequence - Error during final element detection (success path)`, testName, error: detectionError.message, stack: detectionError.stack });
-          }
+        resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting final element detection (success path)", testName, pageClosed: page?.isClosed() });
+        try {
+          // @ts-ignore
+          finalDetectedElements = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
+            const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
+            const detectedElementsEval: any[] = []; let globalElementCounter = 0;
+            // @ts-ignore
+            interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
+            return detectedElementsEval.slice(0, 50);
+          });
+        } catch (detectionError: any) {
+          resolvedLogger.warn({ message: `PS:executeAdhocSequence - Error during final element detection (success path)`, testName, error: detectionError.message, stack: detectionError.stack });
+        }
       }
       return { success: overallSuccess, steps: stepResults, duration, detectedElements: finalDetectedElements };
 
@@ -846,10 +858,10 @@ export class PlaywrightService {
         try {
           // @ts-ignore
           finalDetectedElementsCriticalError = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
-            const interactiveSelectors = ['input:not([type="hidden"])','button','a[href]','select','textarea','[onclick]','[role="button"]','[tabindex]:not([tabindex="-1"])','h1, h2, h3, h4, h5, h6','img[alt]','form','[data-testid]','[data-test]'];
+            const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
             const detectedElementsEval: any[] = []; let globalElementCounter = 0;
             // @ts-ignore
-            interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')') ); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
+            interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
             return detectedElementsEval.slice(0, 50);
           });
         } catch (detectionError: any) {
@@ -859,15 +871,15 @@ export class PlaywrightService {
       return { success: false, steps: stepResults, error: error.message || 'Unknown critical error during ad-hoc execution', duration, detectedElements: finalDetectedElementsCriticalError };
     } finally {
       resolvedLogger.debug({ message: "PS:executeAdhocSequence - Inside finally block.", testName });
-      resolvedLogger.verbose({ message: "PS:executeAdhocSequence (finally) - State before closing page", testName, pageExists:!!page, pageClosed: page?.isClosed() });
+      resolvedLogger.verbose({ message: "PS:executeAdhocSequence (finally) - State before closing page", testName, pageExists: !!page, pageClosed: page?.isClosed() });
       if (page && !page.isClosed()) {
-        resolvedLogger.debug({ message: "PS:executeAdhocSequence (finally) - Attempting to close page...", testName });
-        await page.close().catch(e => resolvedLogger.warn({ message: "PS:executeAdhocSequence - Error closing page (adhoc)", testName, error: e.message, stack: e.stack }));
+        resolvedLogger.debug({ message: "PS:executeAdhocSequence - Closing page", testName });
+        await page.close();
       }
       resolvedLogger.verbose({ message: "PS:executeAdhocSequence (finally) - State before closing context", testName, contextExists: !!context });
       if (context) {
-        resolvedLogger.debug({ message: "PS:executeAdhocSequence (finally) - Attempting to close context...", testName });
-        await context.close().catch(e => resolvedLogger.warn({ message: "PS:executeAdhocSequence - Error closing context (adhoc)", testName, error: e.message, stack: e.stack }));
+        resolvedLogger.debug({ message: "PS:executeAdhocSequence - Closing context", testName });
+        await context.close();
       }
       resolvedLogger.verbose({ message: "PS:executeAdhocSequence (finally) - State before closing browser", testName, browserExists: !!browser, browserConnected: browser?.isConnected() });
       if (browser && browser.isConnected()) {
@@ -922,10 +934,10 @@ export class PlaywrightService {
       try {
         // @ts-ignore
         elements = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
-          const interactiveSelectors = ['input:not([type="hidden"])','button','a[href]','select','textarea','[onclick]','[role="button"]','[tabindex]:not([tabindex="-1"])','h1, h2, h3, h4, h5, h6','img[alt]','form','[data-testid]','[data-test]'];
-          const detectedElements:any[] = []; let globalElementCounter = 0;
+          const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
+          const detectedElements: any[] = []; let globalElementCounter = 0;
           // @ts-ignore
-          interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')') ); if (classes.length > 0) { uniqueSelector = `${tagName}.${classes[0]}`; } } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes:Record<string,string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElements.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
+          interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) { uniqueSelector = `${tagName}.${classes[0]}`; } } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElements.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
           return detectedElements.slice(0, 50);
         });
       } catch (evalError: any) {
@@ -939,7 +951,7 @@ export class PlaywrightService {
       throw error;
     } finally {
       resolvedLogger.debug({ message: "PS:detectElements - Inside finally block.", url, userId });
-      resolvedLogger.verbose({ message: "PS:detectElements (finally) - State before closing page", url, pageExists:!!page, pageClosed: page?.isClosed() });
+      resolvedLogger.verbose({ message: "PS:detectElements (finally) - State before closing page", url, pageExists: !!page, pageClosed: page?.isClosed() });
       if (page && !page.isClosed()) {
         resolvedLogger.debug({ message: "PS:detectElements (finally) - Attempting to close page...", url });
         await page.close().catch(e => resolvedLogger.warn({ message: "PS:detectElements - Error closing page", url, error: e.message, stack: e.stack }));
@@ -989,7 +1001,7 @@ export class PlaywrightService {
 
       if (test.url) {
         try {
-          resolvedLogger.debug({message: "PS:executeTestSequence - Navigating to initial URL", testName: test.name, url: test.url});
+          resolvedLogger.debug({ message: "PS:executeTestSequence - Navigating to initial URL", testName: test.name, url: test.url });
           await page.goto(test.url, { waitUntil: 'domcontentloaded' });
           let navScreenshotPath: string | undefined;
           if (screenshotBaseDir) {
@@ -1025,29 +1037,34 @@ export class PlaywrightService {
         stepResults.push({ name: 'Initial State', type: 'setup', status: 'passed', details: 'No initial URL provided.' });
       }
 
+      const reporter = new PlaywrightReporter(page); // Initialize reporter
+
       if (overallSuccess && test.sequence && Array.isArray(test.sequence)) {
         resolvedLogger.debug({ message: `PS:executeTestSequence - Starting execution of ${test.sequence.length} steps`, testName: test.name });
-        for (const step of test.sequence as TestStep[]) {
+
+        for (const [i, step] of (test.sequence as TestStep[]).entries()) {
           let stepStatus: 'passed' | 'failed' = 'passed';
           let stepError: string | undefined;
           let stepScreenshot: string | undefined;
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
-          resolvedLogger.verbose({ message: `PS:executeTestSequence - Executing step`, testName: test.name, actionName, actionId, selector: step.targetElement?.selector, value: step.value });
+
+          // Set context for AI Healing
+          reporter.setContext(test.id, i);
+
+          reporter.resetStepState();
 
           try {
             if (!actionId) throw new Error('Step action ID is missing.');
-            if (!page) throw new Error('Page is not available.');
 
             switch (actionId) {
               case 'click':
                 if (!step.targetElement?.selector) throw new Error('Selector missing for click action.');
-                await page.click(step.targetElement.selector);
+                await reporter.click(step.targetElement.selector, actionName);
                 break;
               case 'input':
                 if (!step.targetElement?.selector) throw new Error('Selector missing for input action.');
-                if (typeof step.value !== 'string') throw new Error('Value missing for input action.');
-                await page.fill(step.targetElement.selector, step.value);
+                await reporter.fill(step.targetElement.selector, typeof step.value === 'string' ? step.value : '', actionName);
                 break;
               case 'wait':
                 if (typeof step.value !== 'string' || isNaN(parseInt(step.value))) throw new Error('Invalid or missing value for wait action.');
@@ -1063,7 +1080,8 @@ export class PlaywrightService {
                 break;
               case 'assert':
                 resolvedLogger.warn({ message: `Generic 'assert' action encountered in test sequence. Consider using specific assertions.`, testName: test.name, actionName, selector: step.targetElement?.selector });
-                if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = 'Selector missing for generic assert action.';
+                if (!step.targetElement?.selector) {
+                  stepStatus = 'failed'; stepError = 'Selector missing for generic assert action.';
                 } else {
                   const elementToAssert = await page.locator(step.targetElement.selector).count();
                   if (elementToAssert === 0) { stepStatus = 'failed'; stepError = `Assertion Failed: Element "${step.targetElement.selector}" not found.`; }
@@ -1091,16 +1109,16 @@ export class PlaywrightService {
                   case '>': countMatch = actualCount > parsedAssertion.count; break;
                   case '<': countMatch = actualCount < parsedAssertion.count; break;
                   case '!=': countMatch = actualCount !== parsedAssertion.count; break;
-                   default: stepStatus = 'failed'; stepError = `Unknown operator "${parsedAssertion.operator}" for assertElementCount.`; break;
+                  default: stepStatus = 'failed'; stepError = `Unknown operator "${parsedAssertion.operator}" for assertElementCount.`; break;
                 }
-                 if (!countMatch && stepStatus === 'passed') { stepStatus = 'failed'; stepError = `Assertion Failed: Element count for selector "${step.targetElement.selector}" did not match. Expected ${parsedAssertion.operator} ${parsedAssertion.count}, Actual: ${actualCount}.`; }
+                if (!countMatch && stepStatus === 'passed') { stepStatus = 'failed'; stepError = `Assertion Failed: Element count for selector "${step.targetElement.selector}" did not match. Expected ${parsedAssertion.operator} ${parsedAssertion.count}, Actual: ${actualCount}.`; }
                 break;
               case 'hover':
                 if (!step.targetElement?.selector) throw new Error('Selector missing for hover action.');
                 await page.hover(step.targetElement.selector);
                 break;
               case 'select':
-                 if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for select action."; break; }
+                if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for select action."; break; }
                 if (typeof step.value !== 'string' || step.value.trim() === '') { stepStatus = 'failed'; stepError = "Value missing for select action (expected option value)."; break; }
                 await page.selectOption(step.targetElement.selector, step.value);
                 break;
@@ -1125,56 +1143,46 @@ export class PlaywrightService {
             stepStatus = 'failed';
             stepError = e.message;
             overallSuccess = false;
-            resolvedLogger.error({ message: `Error in step "${actionName}"`, testName: test.name, testId: test.id, actionId, selector: step.targetElement?.selector, error: e.message, stack: e.stack });
+            resolvedLogger.error({ message: `Error in step "${actionName}"`, error: e.message });
 
-            // Screenshot logic for failed step
-            if (page && !page.isClosed()) {
-              try {
-                if (screenshotBaseDir) {
-                  await fs.ensureDir(screenshotBaseDir);
-                  const sanitizedActionName = actionName.replace(/[^a-z0-9_.-]/gi, '_').substring(0, 50);
-                  const errorScreenshotFilePath = path.join(screenshotBaseDir, `step_${sanitizedActionName}_error_${Date.now()}.png`);
-                  await page.screenshot({ type: 'png', path: errorScreenshotFilePath });
-                  stepScreenshot = errorScreenshotFilePath;
-                } else {
-                  const errorScreenshotBuffer = await page.screenshot({ type: 'png' });
-                  stepScreenshot = `data:image/png;base64,${errorScreenshotBuffer.toString('base64')}`;
-                }
-              } catch (screenError: any) {
-                resolvedLogger.warn({ message: 'Failed to take screenshot on error', testName: test.name, actionName, error: screenError.message, stack: screenError.stack });
-              }
-            }
+            // Reporter likely already captured screenshot on error inside its methods
+            // But we can ensure it here if we want to update the result object
           }
+
           if (stepStatus === 'failed') overallSuccess = false;
-          stepResults.push({ name: actionName, type: actionId || 'unknown', selector: step.targetElement?.selector, value: step.value, status: stepStatus, screenshot: stepScreenshot, error: stepError, details: stepStatus === 'passed' ? 'Action executed successfully.' : `Action failed: ${stepError || 'Unknown error'}` });
-          if (!overallSuccess) {
-            resolvedLogger.info({ message: `PS:executeTestSequence - Step failed. Stopping sequence execution.`, testName: test.name, failedStep: actionName });
-            break;
-          }
+          stepResults.push({
+            name: actionName,
+            type: actionId || 'unknown',
+            status: stepStatus,
+            error: stepError,
+            details: stepStatus === 'passed' ? 'Success' : stepError || 'Failed',
+            healed: reporter.lastActionHealed,
+            rca: reporter.lastActionRca
+          });
+
+          if (!overallSuccess) break;
         }
       }
 
       const duration = Date.now() - startTime;
-      resolvedLogger.info({ message: `Test "${test.name}" completed.`, testId: test.id, success: overallSuccess, durationMs: duration, stepsExecuted: stepResults.length });
       return { success: overallSuccess, steps: stepResults, duration };
 
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      resolvedLogger.error({ message: `Critical error executing test "${test.name}"`, testId: test.id, userId, error: error.message, stack: error.stack });
       return { success: false, steps: stepResults, error: error.message || 'Unknown critical error', duration };
     } finally {
-      resolvedLogger.debug({ message: "PS:executeTestSequence - Inside finally block", testName: test.name, testId: test.id });
-      if (page) await page.close().catch(e => resolvedLogger.warn({ message: "Error closing page in finally", testName: test.name, error: e.message, stack: e.stack }));
-      if (context) await context.close().catch(e => resolvedLogger.warn({ message: "Error closing context in finally", testName: test.name, error: e.message, stack: e.stack }));
-      if (browser) await browser.close().catch(e => resolvedLogger.warn({ message: "Error closing browser in finally", testName: test.name, error: e.message, stack: e.stack }));
+      if (page) await page.close().catch(() => { });
+      if (context) await context.close().catch(() => { });
+      if (browser) await (await browserPool).release(browser);
     }
   }
-
-  // Removed shared browser instance, so global close might not be needed or needs rethink
-  // async close() {
-  // No shared browser or context to close here anymore.
-  // }
 }
+
+// Removed shared browser instance, so global close might not be needed or needs rethink
+// async close() {
+// No shared browser or context to close here anymore.
+// }
+
 
 export const playwrightService = new PlaywrightService();
 

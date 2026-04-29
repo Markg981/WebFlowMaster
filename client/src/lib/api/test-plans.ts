@@ -13,9 +13,7 @@ export const fetchTestPlansAPI = async (): Promise<TestPlanSummary[]> => {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to fetch test plans');
   }
-  // Assuming the backend returns full TestPlan objects, we map to summary
-  const fullTestPlans: TestPlan[] = await response.json();
-  return fullTestPlans.map(plan => ({ id: plan.id, name: plan.name }));
+  return response.json();
 };
 
 // Fetch all test plans (full view)

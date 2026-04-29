@@ -27,7 +27,7 @@ import { SavedTestsPanel } from '@/components/api-tester/SavedTestsPanel';
 import { SaveApiTestModal } from '@/components/api-tester/SaveApiTestModal';
 import { AssertionEditor } from '@/components/api-tester/AssertionEditor';
 import { AuthorizationPanel } from '@/components/api-tester/AuthorizationPanel';
-import { ApiTestHistoryEntry, InsertApiTestHistoryEntry, ApiTest, InsertApiTest, Assertion, AuthType, AuthParams } from '@shared/schema';
+import { ApiTestHistoryEntry, InsertApiTestHistoryPayload, ApiTest, InsertApiTest, Assertion, AuthType, AuthParams } from '@shared/schema';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -187,7 +187,7 @@ const ApiTesterPage: React.FC = () => {
       let queryString = '';
       if (queryParams.filter(p => p.enabled && p.key.trim()).length > 0) {
         const tempUrl = new URL("http://placeholder.com");
-         queryParams.filter(p => p.enabled && p.key.trim()).forEach(p => tempUrl.searchParams.append(p.key, p.value));
+        queryParams.filter(p => p.enabled && p.key.trim()).forEach(p => tempUrl.searchParams.append(p.key, p.value));
         queryString = tempUrl.search;
       }
       return url + queryString;
@@ -197,19 +197,19 @@ const ApiTesterPage: React.FC = () => {
   const saveToHistoryMutation = useMutation<
     ApiTestHistoryEntry,
     Error,
-    InsertApiTestHistoryEntry
+    InsertApiTestHistoryPayload
   >({ // Ensure this is an object literal for the options
     mutationFn: async (historyEntry: InsertApiTestHistoryEntry) => {
       const payloadForBackend = {
-          method: historyEntry.method,
-          url: historyEntry.url,
-          queryParams: historyEntry.queryParams,
-          requestHeaders: historyEntry.requestHeaders,
-          requestBody: historyEntry.requestBody,
-          responseStatus: historyEntry.responseStatus,
-          responseHeaders: historyEntry.responseHeaders,
-          responseBody: historyEntry.responseBody,
-          durationMs: historyEntry.durationMs,
+        method: historyEntry.method,
+        url: historyEntry.url,
+        queryParams: historyEntry.queryParams,
+        requestHeaders: historyEntry.requestHeaders,
+        requestBody: historyEntry.requestBody,
+        responseStatus: historyEntry.responseStatus,
+        responseHeaders: historyEntry.responseHeaders,
+        responseBody: historyEntry.responseBody,
+        durationMs: historyEntry.durationMs,
       };
       // userId, id, createdAt are omitted as they are handled by backend/DB.
       // The InsertApiTestHistoryEntry type should reflect this.
@@ -259,12 +259,13 @@ const ApiTesterPage: React.FC = () => {
         title: data.status ? `Request Successful: ${data.status}` : "Request Successful",
         description: hasAssertions ? `Assertions ${assertionSummary}` : `API returned status ${data.status}`,
         variant: hasAssertions && !allAssertionsPassed ? "destructive" : "default",
+        variant: hasAssertions && !allAssertionsPassed ? "destructive" : "default",
       });
 
       const currentParamsForHistory = queryParams.filter(p => p.enabled && p.key.trim()).reduce((acc, p) => {
         if (acc[p.key]) {
-            if (Array.isArray(acc[p.key])) { (acc[p.key] as string[]).push(p.value); }
-            else { acc[p.key] = [acc[p.key] as string, p.value]; }
+          if (Array.isArray(acc[p.key])) { (acc[p.key] as string[]).push(p.value); }
+          else { acc[p.key] = [acc[p.key] as string, p.value]; }
         } else { acc[p.key] = p.value; }
         return acc;
       }, {} as Record<string, string | string[]>);
@@ -291,11 +292,11 @@ const ApiTesterPage: React.FC = () => {
       }
 
       const historyEntry = {
-          method: variables.method, url: variables.url, queryParams: currentParamsForHistory,
-          requestHeaders: currentHeadersForHistory, requestBody: requestBodyForHistory,
-          responseStatus: data.status, responseHeaders: data.headers,
-          responseBody: (typeof data.body === 'object' && data.body !== null) ? JSON.stringify(data.body) : data.body,
-          durationMs: data.duration,
+        method: variables.method, url: variables.url, queryParams: currentParamsForHistory,
+        requestHeaders: currentHeadersForHistory, requestBody: requestBodyForHistory,
+        responseStatus: data.status, responseHeaders: data.headers,
+        responseBody: (typeof data.body === 'object' && data.body !== null) ? JSON.stringify(data.body) : data.body,
+        durationMs: data.duration,
       };
       saveToHistoryMutation.mutate(historyEntry as any);
     },
@@ -445,9 +446,9 @@ const ApiTesterPage: React.FC = () => {
 
     // Ensure body is undefined for GET/HEAD requests regardless of selectedBodyType
     if (method === 'GET' || method === 'HEAD') {
-        finalBody = undefined;
-        delete processedHeaders['Content-Type'];
-        delete processedHeaders['content-type'];
+      finalBody = undefined;
+      delete processedHeaders['Content-Type'];
+      delete processedHeaders['content-type'];
     }
 
     apiProxyMutation.mutate({
@@ -477,37 +478,38 @@ const ApiTesterPage: React.FC = () => {
     staleTime: 5 * 60 * 1000
   });
 
-  const saveApiTestMutation = useMutation<ApiTest, Error, {name: string, projectId?: number | null} & Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt'>>({
-      mutationFn: async (testData) => {
-          const endpoint = currentTestToEdit ? `/api/api-tests/${currentTestToEdit.id}` : '/api/api-tests';
-          const httpMethod = currentTestToEdit ? 'PUT' : 'POST';
-          const payload = { ...testData,
-              queryParams: testData.queryParams ? JSON.stringify(testData.queryParams) : null,
-              requestHeaders: testData.requestHeaders ? JSON.stringify(testData.requestHeaders) : null,
-              assertions: testData.assertions ? JSON.stringify(testData.assertions) : null, // Stringify assertions
-          };
-          return (await apiRequest(httpMethod, endpoint, payload)).json();
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['apiTests'] });
-        setIsSaveModalOpen(false); setCurrentTestToEdit(null);
-        toast({ title: currentTestToEdit ? 'Test Updated Successfully' : 'Test Saved Successfully' });
-      },
-      onError: (error) => { toast({ title: 'Save Test Failed', description: error.message, variant: 'destructive' });}
-    }
+  const saveApiTestMutation = useMutation<ApiTest, Error, { name: string, projectId?: number | null } & Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt'>>({
+    mutationFn: async (testData) => {
+      const endpoint = currentTestToEdit ? `/api/api-tests/${currentTestToEdit.id}` : '/api/api-tests';
+      const httpMethod = currentTestToEdit ? 'PUT' : 'POST';
+      const payload = {
+        ...testData,
+        queryParams: testData.queryParams ? JSON.stringify(testData.queryParams) : null,
+        requestHeaders: testData.requestHeaders ? JSON.stringify(testData.requestHeaders) : null,
+        assertions: testData.assertions ? JSON.stringify(testData.assertions) : null, // Stringify assertions
+      };
+      return (await apiRequest(httpMethod, endpoint, payload)).json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['apiTests'] });
+      setIsSaveModalOpen(false); setCurrentTestToEdit(null);
+      toast({ title: currentTestToEdit ? 'Test Updated Successfully' : 'Test Saved Successfully' });
+    },
+    onError: (error) => { toast({ title: 'Save Test Failed', description: error.message, variant: 'destructive' }); }
+  }
   );
 
   const deleteApiTestMutation = useMutation<void, Error, number>({
-      mutationFn: async (testId) => {
-          const res = await apiRequest('DELETE', `/api/api-tests/${testId}`);
-          if (!res.ok && res.status !== 204) {
-            const errorData = await res.json().catch(() => ({ message: "Delete failed with status " + res.status }));
-            throw new Error(errorData.error || "Failed to delete test");
-          }
-      },
-      onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['apiTests'] }); toast({ title: 'Test Deleted Successfully' }); },
-      onError: (error) => { toast({ title: 'Delete Test Failed', description: error.message, variant: 'destructive' });}
-    }
+    mutationFn: async (testId) => {
+      const res = await apiRequest('DELETE', `/api/api-tests/${testId}`);
+      if (!res.ok && res.status !== 204) {
+        const errorData = await res.json().catch(() => ({ message: "Delete failed with status " + res.status }));
+        throw new Error(errorData.error || "Failed to delete test");
+      }
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['apiTests'] }); toast({ title: 'Test Deleted Successfully' }); },
+    onError: (error) => { toast({ title: 'Delete Test Failed', description: error.message, variant: 'destructive' }); }
+  }
   );
 
   const handleLoadHistoryItem = (item: ApiTestHistoryEntry) => {
@@ -541,39 +543,39 @@ const ApiTesterPage: React.FC = () => {
       parsedQueryParams = [{ id: `qp-${Date.now()}`, key: '', value: '', enabled: true }];
     }
     if (parsedQueryParams.length === 0) {
-        parsedQueryParams.push({ id: `qp-${Date.now()}-empty`, key: '', value: '', enabled: true });
+      parsedQueryParams.push({ id: `qp-${Date.now()}-empty`, key: '', value: '', enabled: true });
     }
     setQueryParams(parsedQueryParams);
 
     // Properly parse requestHeaders
     let parsedRequestHeaders: KeyValuePair[];
     if (item.requestHeaders) {
-        const headersToParse = typeof item.requestHeaders === 'string'
-            ? JSON.parse(item.requestHeaders)
-            : item.requestHeaders;
+      const headersToParse = typeof item.requestHeaders === 'string'
+        ? JSON.parse(item.requestHeaders)
+        : item.requestHeaders;
 
-        if (Array.isArray(headersToParse)) {
-            parsedRequestHeaders = headersToParse.map((h: any, index: number) => ({
-                id: h.id || `rh-${Date.now()}-${index}`,
-                key: h.key || '',
-                value: h.value || '',
-                enabled: typeof h.enabled === 'boolean' ? h.enabled : true,
-            }));
-        } else if (typeof headersToParse === 'object' && headersToParse !== null) {
-            parsedRequestHeaders = Object.entries(headersToParse).map(([key, value], index) => ({
-                id: `rh-${Date.now()}-${index}`,
-                key,
-                value: String(value),
-                enabled: true,
-            }));
-        } else {
-            parsedRequestHeaders = [{ id: `rh-${Date.now()}`, key: '', value: '', enabled: true }];
-        }
-    } else {
+      if (Array.isArray(headersToParse)) {
+        parsedRequestHeaders = headersToParse.map((h: any, index: number) => ({
+          id: h.id || `rh-${Date.now()}-${index}`,
+          key: h.key || '',
+          value: h.value || '',
+          enabled: typeof h.enabled === 'boolean' ? h.enabled : true,
+        }));
+      } else if (typeof headersToParse === 'object' && headersToParse !== null) {
+        parsedRequestHeaders = Object.entries(headersToParse).map(([key, value], index) => ({
+          id: `rh-${Date.now()}-${index}`,
+          key,
+          value: String(value),
+          enabled: true,
+        }));
+      } else {
         parsedRequestHeaders = [{ id: `rh-${Date.now()}`, key: '', value: '', enabled: true }];
+      }
+    } else {
+      parsedRequestHeaders = [{ id: `rh-${Date.now()}`, key: '', value: '', enabled: true }];
     }
     if (parsedRequestHeaders.length === 0) {
-        parsedRequestHeaders.push({ id: `rh-${Date.now()}-empty`, key: '', value: '', enabled: true });
+      parsedRequestHeaders.push({ id: `rh-${Date.now()}-empty`, key: '', value: '', enabled: true });
     }
     setRequestHeaders(parsedRequestHeaders);
 
@@ -602,6 +604,9 @@ const ApiTesterPage: React.FC = () => {
   const loadTestState = (test: ApiTest) => {
     setMethod(test.method);
     setUrl(test.url);
+    if (test.authType) setAuthType(test.authType as AuthType);
+    if (test.authParams) setAuthParams(test.authParams as AuthParams);
+    if (test.bodyType) setSelectedBodyType(test.bodyType as BodyType);
 
     const parseKeyValuePairs = (jsonStringOrArray: string | KeyValuePair[] | null | undefined, prefix: 'qp' | 'rh'): KeyValuePair[] => {
       if (!jsonStringOrArray) return [{ id: `${prefix}-${Date.now()}`, key: '', value: '', enabled: true }];
@@ -641,12 +646,14 @@ const ApiTesterPage: React.FC = () => {
 
     // Load new fields
     setAuthType((test.authType as AuthType) || 'none');
+    setAuthType((test.authType as AuthType) || 'none');
     try {
       setAuthParams(test.authParams ? (typeof test.authParams === 'string' ? JSON.parse(test.authParams) : test.authParams) : undefined);
     } catch (e) {
       console.error("Error parsing authParams from saved test:", e);
       setAuthParams(undefined);
     }
+    setSelectedBodyType((test.bodyType as BodyType) || 'raw');
     setSelectedBodyType((test.bodyType as BodyType) || 'raw');
     setRawContentType(test.bodyRawContentType || 'application/json');
     setGraphqlQuery(test.bodyGraphqlQuery || '');
@@ -668,7 +675,7 @@ const ApiTesterPage: React.FC = () => {
           }))
         );
         if (loadedFormData.some(item => item.type === 'file')) {
-          toast({ title: "Form Data Files", description: "File entries need to be re-selected.", variant: "default", duration: 4000});
+          toast({ title: "Form Data Files", description: "File entries need to be re-selected.", variant: "default", duration: 4000 });
         }
       } catch (e) {
         console.error("Error parsing bodyFormData from saved test:", e);
@@ -692,7 +699,7 @@ const ApiTesterPage: React.FC = () => {
         }))
       );
       if (loadedUrlEncoded.some(item => item.type === 'file')) {
-        toast({ title: "URL Encoded Files", description: "File entries need to be re-selected.", variant: "default", duration: 4000});
+        toast({ title: "URL Encoded Files", description: "File entries need to be re-selected.", variant: "default", duration: 4000 });
       }
     } else {
       setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
@@ -720,61 +727,61 @@ const ApiTesterPage: React.FC = () => {
 
 
   const handleOpenSaveModal = (testToEdit?: ApiTest) => {
-      if (testToEdit) {
-          setCurrentTestToEdit(testToEdit);
-          loadTestState(testToEdit); // Use the common loader
-      } else {
-          setCurrentTestToEdit(null);
-          // Optionally reset parts of the form if opening for a new test, though current UI state is often desired.
-          // For now, it will save the current UI state as a new test.
-      }
-      setIsSaveModalOpen(true);
+    if (testToEdit) {
+      setCurrentTestToEdit(testToEdit);
+      loadTestState(testToEdit); // Use the common loader
+    } else {
+      setCurrentTestToEdit(null);
+      // Optionally reset parts of the form if opening for a new test, though current UI state is often desired.
+      // For now, it will save the current UI state as a new test.
+    }
+    setIsSaveModalOpen(true);
   };
 
   const handleSaveTestConfirm = (name: string, projectId?: number | null) => {
-      const currentParams = queryParams.filter(p => p.enabled && p.key.trim()).reduce((acc, p) => {
-          if (acc[p.key]) {
-              if (Array.isArray(acc[p.key])) { (acc[p.key] as string[]).push(p.value); }
-              else { acc[p.key] = [acc[p.key] as string, p.value]; }
-          } else { acc[p.key] = p.value; }
-          return acc;
-        }, {} as Record<string, string | string[]>);
-      const currentHeaders = requestHeaders.filter(h => h.enabled && h.key.trim()).reduce((acc, h) => { acc[h.key] = h.value; return acc; }, {} as Record<string, string>);
+    const currentParams = queryParams.filter(p => p.enabled && p.key.trim()).reduce((acc, p) => {
+      if (acc[p.key]) {
+        if (Array.isArray(acc[p.key])) { (acc[p.key] as string[]).push(p.value); }
+        else { acc[p.key] = [acc[p.key] as string, p.value]; }
+      } else { acc[p.key] = p.value; }
+      return acc;
+    }, {} as Record<string, string | string[]>);
+    const currentHeaders = requestHeaders.filter(h => h.enabled && h.key.trim()).reduce((acc, h) => { acc[h.key] = h.value; return acc; }, {} as Record<string, string>);
 
-      const transformedFormDataBody = formDataBody.map(field => {
-        if (field.type === 'file' && field.value instanceof File) {
-          return {
-            id: field.id,
-            key: field.key,
-            enabled: field.enabled,
-            type: 'file' as 'file', // Ensure literal type
-            fileName: field.value.name,
-            fileType: field.value.type,
-            // value is not sent, backend will handle file through other means or this signals a file was present
-          };
-        }
-        return field; // For text fields, keep as is (value is string)
-      });
+    const transformedFormDataBody = formDataBody.map(field => {
+      if (field.type === 'file' && field.value instanceof File) {
+        return {
+          id: field.id,
+          key: field.key,
+          enabled: field.enabled,
+          type: 'file' as 'file', // Ensure literal type
+          fileName: field.value.name,
+          fileType: field.value.type,
+          // value is not sent, backend will handle file through other means or this signals a file was present
+        };
+      }
+      return field; // For text fields, keep as is (value is string)
+    });
 
-      const config: Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt'> = {
-          method, url,
-          queryParams: currentParams,
-          requestHeaders: currentHeaders,
-          // requestBody is the old field, new fields will store specific body types
-          requestBody: selectedBodyType === 'raw' ? requestBodyValue :
-                       selectedBodyType === 'GraphQL' ? JSON.stringify({query: graphqlQuery, variables: graphqlVariables}) : null,
-          assertions: assertions,
-          // New fields
-          authType: authType,
-          authParams: authParams,
-          bodyType: selectedBodyType,
-          bodyRawContentType: selectedBodyType === 'raw' ? rawContentType : undefined,
-          bodyFormData: selectedBodyType === 'form-data' ? transformedFormDataBody : undefined,
-          bodyUrlEncoded: selectedBodyType === 'x-www-form-urlencoded' ? urlEncodedBody : undefined,
-          bodyGraphqlQuery: selectedBodyType === 'GraphQL' ? graphqlQuery : undefined,
-          bodyGraphqlVariables: selectedBodyType === 'GraphQL' ? graphqlVariables : undefined,
-      };
-      saveApiTestMutation.mutate({ name, projectId, ...config });
+    const config: Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt'> = {
+      method, url,
+      queryParams: currentParams,
+      requestHeaders: currentHeaders,
+      // requestBody is the old field, new fields will store specific body types
+      requestBody: selectedBodyType === 'raw' ? requestBodyValue :
+        selectedBodyType === 'GraphQL' ? JSON.stringify({ query: graphqlQuery, variables: graphqlVariables }) : null,
+      assertions: assertions,
+      // New fields
+      authType: authType,
+      authParams: authParams,
+      bodyType: selectedBodyType,
+      bodyRawContentType: selectedBodyType === 'raw' ? rawContentType : undefined,
+      bodyFormData: selectedBodyType === 'form-data' ? transformedFormDataBody : undefined,
+      bodyUrlEncoded: selectedBodyType === 'x-www-form-urlencoded' ? urlEncodedBody : undefined,
+      bodyGraphqlQuery: selectedBodyType === 'GraphQL' ? graphqlQuery : undefined,
+      bodyGraphqlVariables: selectedBodyType === 'GraphQL' ? graphqlVariables : undefined,
+    };
+    saveApiTestMutation.mutate({ name, projectId, ...config });
   };
 
   const handleLoadSavedTest = (test: ApiTest) => {
@@ -860,15 +867,13 @@ const ApiTesterPage: React.FC = () => {
           toast({
             title: t('apiTesterPage.notifications.loadFailed.title', 'Load Failed'),
             description: error.message || t('apiTesterPage.notifications.loadFailed.description', `Failed to load test with ID: ${id}`),
-            variant: 'destructive',
+            variant: "default",
           });
-          // Optionally, clear the URL parameter or redirect if the test is not found
-          // window.history.replaceState({}, document.title, window.location.pathname);
         }
       };
       fetchAndLoadTest(testId);
     }
-  }, [t]); // Add other dependencies if they are used inside fetchAndLoadTest indirectly e.g. queryClient, but apiRequest and loadTestState are stable if defined outside or correctly memoized.
+  }, [t, loadTestState]);
 
   const getResponseLanguage = (headers: Record<string, string> | null): string => {
     if (!headers) return 'plaintext';
@@ -910,10 +915,10 @@ const ApiTesterPage: React.FC = () => {
           <Tabs defaultValue="history" className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="grid w-full grid-cols-2 rounded-none border-b">
               <TabsTrigger value="history" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary">
-                <History className="mr-2 h-4 w-4"/>{t('apiTesterPage.history.title')}
+                <History className="mr-2 h-4 w-4" />{t('apiTesterPage.history.title')}
               </TabsTrigger>
               <TabsTrigger value="saved" className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary">
-                <ListChecks className="mr-2 h-4 w-4"/>{t('apiTesterPage.savedTests.title')}
+                <ListChecks className="mr-2 h-4 w-4" />{t('apiTesterPage.savedTests.title')}
               </TabsTrigger>
             </TabsList>
             <TabsContent value="history" className="flex-1 overflow-y-auto ">
@@ -958,8 +963,8 @@ const ApiTesterPage: React.FC = () => {
                 </Button>
               </div>
               <div className="pt-2">
-                 <Label htmlFor="effectiveUrlDisplay" className="text-xs text-muted-foreground">{t('apiTesterPage.effectiveUrlReadonly.label')}</Label>
-                 <Input id="effectiveUrlDisplay" readOnly value={effectiveUrl || (url ? url : t('apiTesterPage.enterBaseUrlAndAddParams.placeholder'))} className="font-mono text-xs mt-1 bg-muted h-8" disabled={apiProxyMutation.isPending}/>
+                <Label htmlFor="effectiveUrlDisplay" className="text-xs text-muted-foreground">{t('apiTesterPage.effectiveUrlReadonly.label')}</Label>
+                <Input id="effectiveUrlDisplay" readOnly value={effectiveUrl || (url ? url : t('apiTesterPage.enterBaseUrlAndAddParams.placeholder'))} className="font-mono text-xs mt-1 bg-muted h-8" disabled={apiProxyMutation.isPending} />
               </div>
             </div>
 
@@ -975,9 +980,9 @@ const ApiTesterPage: React.FC = () => {
                 <div className="p-4 border rounded-md min-h-[200px] space-y-2">
                   {queryParams.map((param, index) => (
                     <div key={param.id} className="flex items-center space-x-2">
-                      <Checkbox id={`qp-enabled-${param.id}`} checked={param.enabled} onCheckedChange={(checked) => handleKeyValueChange(index, 'enabled', !!checked, 'query')} disabled={apiProxyMutation.isPending}/>
-                      <Input placeholder={t('apiTesterPage.key.label')} value={param.key} onChange={(e) => handleKeyValueChange(index, 'key', e.target.value, 'query')} className="flex-1" disabled={apiProxyMutation.isPending}/>
-                      <Input placeholder={t('apiTesterPage.value.label')} value={param.value} onChange={(e) => handleKeyValueChange(index, 'value', e.target.value, 'query')} className="flex-1" disabled={apiProxyMutation.isPending}/>
+                      <Checkbox id={`qp-enabled-${param.id}`} checked={param.enabled} onCheckedChange={(checked) => handleKeyValueChange(index, 'enabled', !!checked, 'query')} disabled={apiProxyMutation.isPending} />
+                      <Input placeholder={t('apiTesterPage.key.label')} value={param.key} onChange={(e) => handleKeyValueChange(index, 'key', e.target.value, 'query')} className="flex-1" disabled={apiProxyMutation.isPending} />
+                      <Input placeholder={t('apiTesterPage.value.label')} value={param.value} onChange={(e) => handleKeyValueChange(index, 'value', e.target.value, 'query')} className="flex-1" disabled={apiProxyMutation.isPending} />
                       <Button variant="ghost" size="icon" onClick={() => removeKeyValuePair(index, 'query')} disabled={apiProxyMutation.isPending}><XCircle className="h-4 w-4 text-destructive" /></Button>
                     </div>
                   ))}
@@ -999,9 +1004,9 @@ const ApiTesterPage: React.FC = () => {
                 <div className="p-4 border rounded-md min-h-[200px] space-y-2">
                   {requestHeaders.map((header, index) => (
                     <div key={header.id} className="flex items-center space-x-2">
-                       <Checkbox id={`rh-enabled-${header.id}`} checked={header.enabled} onCheckedChange={(checked) => handleKeyValueChange(index, 'enabled', !!checked, 'header')} disabled={apiProxyMutation.isPending}/>
-                      <Input placeholder={t('apiTesterPage.headerName.label')} value={header.key} onChange={(e) => handleKeyValueChange(index, 'key', e.target.value, 'header')} className="flex-1" disabled={apiProxyMutation.isPending}/>
-                      <Input placeholder={t('apiTesterPage.headerValue.label')} value={header.value} onChange={(e) => handleKeyValueChange(index, 'value', e.target.value, 'header')} className="flex-1" disabled={apiProxyMutation.isPending}/>
+                      <Checkbox id={`rh-enabled-${header.id}`} checked={header.enabled} onCheckedChange={(checked) => handleKeyValueChange(index, 'enabled', !!checked, 'header')} disabled={apiProxyMutation.isPending} />
+                      <Input placeholder={t('apiTesterPage.headerName.label')} value={header.key} onChange={(e) => handleKeyValueChange(index, 'key', e.target.value, 'header')} className="flex-1" disabled={apiProxyMutation.isPending} />
+                      <Input placeholder={t('apiTesterPage.headerValue.label')} value={header.value} onChange={(e) => handleKeyValueChange(index, 'value', e.target.value, 'header')} className="flex-1" disabled={apiProxyMutation.isPending} />
                       <Button variant="ghost" size="icon" onClick={() => removeKeyValuePair(index, 'header')} disabled={apiProxyMutation.isPending}><XCircle className="h-4 w-4 text-destructive" /></Button>
                     </div>
                   ))}
@@ -1257,7 +1262,7 @@ const ApiTesterPage: React.FC = () => {
                   <div><span className="font-semibold">{t('apiTesterPage.time.label')}</span> {duration !== null ? `${duration} ms` : (apiProxyMutation.isPending ? t('apiTesterPage.loading.button') : t('apiTesterPage.text1'))}</div>
                 </div>
                 <Tabs defaultValue="responseBody" className="w-full">
-                   <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="responseBody">{t('apiTesterPage.body.label')}</TabsTrigger>
                     <TabsTrigger value="responseHeaders">{t('apiTesterPage.headers.label')}</TabsTrigger>
                     <TabsTrigger value="assertionResults">{t('apiTesterPage.assertionResults.label')}</TabsTrigger>
@@ -1265,13 +1270,13 @@ const ApiTesterPage: React.FC = () => {
                   <TabsContent value="responseBody">
                     <div className="mt-1 border rounded-md overflow-hidden">
                       <Editor height="250px" language={responseEditorLanguage} theme={monacoTheme} value={responseBody !== null && responseBody !== undefined ? (typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody, null, 2)) : ''}
-                        options={{ readOnly: true, minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true }}/>
+                        options={{ readOnly: true, minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true }} />
                     </div>
                   </TabsContent>
                   <TabsContent value="responseHeaders">
                     <Textarea readOnly placeholder={apiProxyMutation.isPending ? t('apiTesterPage.loadingResponseHeaders.placeholder') : t('apiTesterPage.responseHeadersWillAppearHere.placeholder')}
                       className="mt-1 h-[150px] bg-background font-mono text-sm"
-                      value={responseHeaders ? JSON.stringify(responseHeaders, null, 2) : ''}/>
+                      value={responseHeaders ? JSON.stringify(responseHeaders, null, 2) : ''} />
                   </TabsContent>
                   <TabsContent value="assertionResults">
                     <ScrollArea className="h-[250px] mt-1 p-2 border rounded-md bg-background">

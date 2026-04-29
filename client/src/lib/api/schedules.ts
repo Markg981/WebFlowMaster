@@ -126,10 +126,11 @@ export const deleteSchedule = async (id: string): Promise<void> => {
 const EXECUTIONS_BASE_URL = '/api/test-plan-executions';
 
 // Enhanced type for executions, ensuring Date objects for timestamps
-export interface TestPlanExecutionEnhanced extends TestPlanExecution {
+export interface TestPlanExecutionEnhanced extends Omit<TestPlanExecution, 'startedAt' | 'completedAt' | 'results' | 'browsers'> {
   testPlanName?: string;
   scheduleName?: string;
   startedAt: Date; // Ensure this is a Date object
+  completedAt: Date | null; // Ensure this is a Date object or null
   completedAt: Date | null; // Ensure this is a Date object or null
   // Server already parses results and browsers JSON
   results: Record<string, any> | null;

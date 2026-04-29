@@ -1,6 +1,5 @@
-import type { Express } from "express";
 import { createServer, type Server } from "http";
-import logger, { updateLogLevel } from "./logger"; // Import Winston logger and updateLogLevel
+import { Express } from "express";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import {
@@ -49,74 +48,24 @@ import { playwrightService } from "./playwright-service";
 import type { Logger as WinstonLogger } from 'winston';
 import schedulerService from "./scheduler-service"; // Import schedulerService
 
-
-// Zod schema for validating POST /api/settings request body
-const userSettingsBodySchema = createInsertSchema(userSettings, {
-  playwrightHeadless: z.boolean().optional(),
-  playwrightDefaultTimeout: z.number().int().positive().optional(),
-  playwrightWaitTime: z.number().int().positive().optional(),
-  theme: z.string().optional(),
-  defaultTestUrl: z.string().url().or(z.literal('')).optional().nullable(),
-  playwrightBrowser: z.enum(['chromium', 'firefox', 'webkit']).optional(),
-}).omit({ userId: true });
-
-const executeDirectTestSchema = z.object({
-  url: z.string().url({ message: "Invalid URL format" }).min(1, {message: "URL cannot be empty"}),
-  sequence: z.array(AdhocTestStepSchema).min(1, { message: "Sequence must contain at least one step" }),
-  elements: z.array(AdhocDetectedElementSchema),
-  name: z.string().optional().default("Ad-hoc Test"),
-});
-
-const startRecordingSchema = z.object({
-  url: z.string().url({ message: "Invalid URL format" }).min(1, {message: "URL cannot be empty"}),
-});
-
-const stopRecordingSchema = z.object({
-  sessionId: z.string().min(1, {message: "Session ID cannot be empty"}),
-});
-
-const getRecordedActionsSchema = z.object({
-  sessionId: z.string().min(1, {message: "Session ID cannot be empty"}),
-});
-
-const proxyApiRequestBodySchema = z.object({
-  method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"]),
-  url: z.string().url({ message: "Invalid URL format" }),
-  queryParams: z.record(z.string().or(z.array(z.string()))).optional(),
-  headers: z.record(z.string()).optional(),
-  body: z.any().optional(),
-  assertions: z.array(AssertionSchema).optional(), // Added assertions
-});
-
-// Helper to safely get a value from an object using a simple dot-notation path
-function getValueByPath(obj: any, path: string): any {
-  if (typeof path !== 'string' || !path.trim()) return undefined;
-  const keys = path.replace(/^\$\.?/, '').split('.').filter(k => k.trim());
-  let current = obj;
-  for (const key of keys) {
-    if (current === null || typeof current !== 'object') return undefined;
-    const bracketMatch = key.match(/^(.+)\[(\d+)\]$/);
-    if (bracketMatch) {
-      const arrKey = bracketMatch[1];
-      const index = parseInt(bracketMatch[2]);
-      current = (current as any)[arrKey];
-      if (!Array.isArray(current) || index >= current.length || index < 0) return undefined;
-      current = current[index];
-    } else {
-      current = (current as any)[key];
-    }
-    if (current === undefined) return undefined;
-  }
-  return current;
-}
+import projectsRoutes from "./routes/projects.routes";
+import testsRoutes from "./routes/tests.routes";
+import testPlansRoutes from "./routes/test-plans.routes";
+import uploadsRoutes from "./routes/uploads.routes";
+import reportsRoutes from "./routes/reports.routes";
+import authRoutes from "./routes/auth.routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  const resolvedLogger: WinstonLogger = await logger; // Resolve the logger promise
-  setupAuth(app);
-
-  const loadWebsiteBodySchema = z.object({
-    url: z.string().min(1, { message: "URL cannot be empty" }).url({ message: "Invalid URL format" }),
-  });
+    // Auth First
+    setupAuth(app); // Attaches passport strategies
+    
+    // API Routers
+    app.use(authRoutes);
+    app.use(projectsRoutes);
+    app.use(testsRoutes);
+    app.use(testPlansRoutes);
+    app.use(uploadsRoutes);
+    app.use(reportsRoutes);
 
   app.post("/api/load-website", async (req, res) => {
     resolvedLogger.http(`POST /api/load-website - Handler reached. UserId: ${(req.user as any)?.id}`);
@@ -707,7 +656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       resolvedLogger.debug({ message: "POST /api/execute-test-direct - Calling playwrightService.executeAdhocSequence.", userId, testName: payload.name });
-      resultFromService = await playwrightService.executeAdhocSequence(payload as any, userId);
+      resultFromService = await playwrightService.executeAdhocSequence(payload, userId);
       resolvedLogger.debug({ message: "POST /api/execute-test-direct - playwrightService.executeAdhocSequence returned.", userId, testName: payload.name, serviceSuccess: resultFromService?.success });
       resolvedLogger.debug({ message: "POST /api/execute-test-direct - Result from service:", result: resultFromService, userId });
 
@@ -1110,7 +1059,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .orderBy(desc(testPlanSchedules.createdAt));
 
       // Manually parse JSON fields for client
-      const parsedResults = result.map((schedule: any) => ({
+      const parsedResults = result.map(schedule => ({
         ...schedule,
         browsers: typeof schedule.browsers === 'string' ? JSON.parse(schedule.browsers) : schedule.browsers,
         notificationConfigOverride: typeof schedule.notificationConfigOverride === 'string' ? JSON.parse(schedule.notificationConfigOverride) : schedule.notificationConfigOverride,
@@ -1144,7 +1093,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(testPlanSchedules.testPlanId, planId))
         .orderBy(desc(testPlanSchedules.createdAt));
 
-      const parsedResults = result.map((schedule: any) => ({
+      const parsedResults = result.map(schedule => ({
         ...schedule,
         browsers: typeof schedule.browsers === 'string' ? JSON.parse(schedule.browsers) : schedule.browsers,
         notificationConfigOverride: typeof schedule.notificationConfigOverride === 'string' ? JSON.parse(schedule.notificationConfigOverride) : schedule.notificationConfigOverride,
@@ -1174,22 +1123,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newScheduleData = parseResult.data;
       const scheduleId = uuidv4(); // Server-generated ID
 
-      let nextRunAtDate: Date;
+      let nextRunAtTimestamp: number;
       if (newScheduleData.nextRunAt instanceof Date) {
-        nextRunAtDate = newScheduleData.nextRunAt;
+        nextRunAtTimestamp = Math.floor(newScheduleData.nextRunAt.getTime() / 1000);
       } else {
-        nextRunAtDate = new Date(newScheduleData.nextRunAt);
+        nextRunAtTimestamp = newScheduleData.nextRunAt;
       }
 
       const valuesToInsert: typeof testPlanSchedules.$inferInsert = {
         ...newScheduleData,
         id: scheduleId,
-        nextRunAt: nextRunAtDate,
+        nextRunAt: nextRunAtTimestamp,
         // Ensure JSON fields are stringified
         browsers: newScheduleData.browsers ? JSON.stringify(newScheduleData.browsers) : null,
         notificationConfigOverride: newScheduleData.notificationConfigOverride ? JSON.stringify(newScheduleData.notificationConfigOverride) : null,
         executionParameters: newScheduleData.executionParameters ? JSON.stringify(newScheduleData.executionParameters) : null,
-        updatedAt: new Date(),
+        updatedAt: Math.floor(Date.now() / 1000),
         // userId: req.user.id, // If schedules become user-specific
       };
 
@@ -1255,19 +1204,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No update data provided." });
       }
 
-      let nextRunAtDate: Date | undefined = undefined;
+      let nextRunAtTimestamp: number | undefined = undefined;
       if (updates.nextRunAt !== undefined) {
         if (updates.nextRunAt instanceof Date) {
-          nextRunAtDate = updates.nextRunAt;
+          nextRunAtTimestamp = Math.floor(updates.nextRunAt.getTime() / 1000);
         } else {
-          nextRunAtDate = new Date(updates.nextRunAt);
+          nextRunAtTimestamp = updates.nextRunAt;
         }
       }
 
       const valuesToUpdate: Partial<typeof testPlanSchedules.$inferInsert> = {
         ...updates,
-        nextRunAt: nextRunAtDate,
-        updatedAt: new Date(),
+        nextRunAt: nextRunAtTimestamp,
+        updatedAt: Math.floor(Date.now() / 1000),
       };
       // Stringify JSON fields if they are part of the update
       if (updates.browsers !== undefined) valuesToUpdate.browsers = updates.browsers ? JSON.stringify(updates.browsers) : null;
@@ -1392,7 +1341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // const totalRecordsResult = await db.select({ count: sql`count(*)` }).from(testPlanExecutions).where(and(...conditions));
       // const totalRecords = Number(totalRecordsResult[0]?.count) || 0;
 
-      const parsedExecutions = executions.map((exec: any) => ({
+      const parsedExecutions = executions.map(exec => ({
         ...exec,
         results: typeof exec.results === 'string' ? JSON.parse(exec.results) : exec.results,
         browsers: typeof exec.browsers === 'string' ? JSON.parse(exec.browsers) : exec.browsers,
@@ -1460,144 +1409,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GET /api/test-plans/:id/webhooks - List webhooks for a plan
-  app.get("/api/test-plans/:id/webhooks", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
-    try {
-      const result = await db.select().from(testPlanWebhooks).where(eq(testPlanWebhooks.testPlanId, req.params.id));
-      res.json(result);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch webhooks" });
-    }
-  });
-
-  // POST /api/test-plans/:id/webhooks - Create a webhook
-  app.post("/api/test-plans/:id/webhooks", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
-    try {
-      const { name } = req.body;
-      const { v4: uuidv4 } = await import('uuid');
-      const token = uuidv4().replace(/-/g, '') + uuidv4().replace(/-/g, ''); // Generate a long secure token
-      
-      const [webhook] = await db.insert(testPlanWebhooks).values({
-        testPlanId: req.params.id,
-        name: name || "CI/CD Webhook",
-        token
-      }).returning();
-      res.status(201).json(webhook);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to create webhook" });
-    }
-  });
-
-  // DELETE /api/webhooks/:id - Delete a webhook
-  app.delete("/api/webhooks/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
-    try {
-      await db.delete(testPlanWebhooks).where(eq(testPlanWebhooks.id, parseInt(req.params.id)));
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete webhook" });
-    }
-  });
-
-  // --- Environments & Secrets Vault API ---
-  
-  // GET /api/environments
-  app.get("/api/environments", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
-    try {
-      const results = await db.select().from(environments).orderBy(desc(environments.createdAt));
-      res.json(results);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch environments" });
-    }
-  });
-
-  // POST /api/environments
-  app.post("/api/environments", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
-    try {
-      const { name, description } = req.body;
-      const [env] = await db.insert(environments).values({
-        name,
-        description,
-        userId: (req.user as any).id
-      }).returning();
-      res.status(201).json(env);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to create environment" });
-    }
-  });
-
-  // DELETE /api/environments/:id
-  app.delete("/api/environments/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
-    try {
-      await db.delete(environments).where(eq(environments.id, parseInt(req.params.id)));
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete environment" });
-    }
-  });
-
-  // GET /api/environments/:id/secrets
-  app.get("/api/environments/:id/secrets", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
-    try {
-      const results = await db.select({
-        id: secrets.id,
-        environmentId: secrets.environmentId,
-        keyName: secrets.keyName,
-        createdAt: secrets.createdAt,
-        updatedAt: secrets.updatedAt
-        // Explicitly omitting the encryptedValue, iv, authTag so they never go to the frontend
-      }).from(secrets).where(eq(secrets.environmentId, parseInt(req.params.id)));
-      res.json(results);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch secrets" });
-    }
-  });
-
-  // POST /api/environments/:id/secrets
-  app.post("/api/environments/:id/secrets", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
-    try {
-      const { keyName, value } = req.body;
-      
-      const { encryptSecret } = await import("./crypto");
-      const { encryptedValue, iv, authTag } = encryptSecret(value);
-
-      const [secret] = await db.insert(secrets).values({
-        environmentId: parseInt(req.params.id),
-        keyName,
-        encryptedValue,
-        iv,
-        authTag,
-        userId: (req.user as any).id
-      }).returning({
-        id: secrets.id,
-        keyName: secrets.keyName,
-        createdAt: secrets.createdAt
-      }); // Return safe data
-      
-      res.status(201).json(secret);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to create secret" });
-    }
-  });
-
-  // DELETE /api/secrets/:id
-  app.delete("/api/secrets/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
-    try {
-      await db.delete(secrets).where(eq(secrets.id, parseInt(req.params.id)));
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete secret" });
-    }
-  });
-
   // POST /api/test-plans - Create a new test plan
   app.post("/api/test-plans", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -1614,7 +1425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { selectedTests, ...newPlanData } = parseResult.data;
       const planId = uuidv4(); // Generate new UUID
 
-      const createdPlanResult = await db.transaction(async (tx: any) => {
+      const createdPlanResult = await db.transaction(async (tx) => {
         const insertedPlan = await tx
           .insert(testPlans)
           .values({
@@ -1696,7 +1507,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No update data provided." });
       }
 
-      const updatedPlanResult = await db.transaction(async (tx: any) => {
+      const updatedPlanResult = await db.transaction(async (tx) => {
         let mainPlanUpdated;
         if (Object.keys(planUpdates).length > 0) {
           // Stringify JSON fields before updating
@@ -1791,22 +1602,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // --- ANALYTICS ROUTES ---
-  app.get("/api/analytics/dashboard", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    try {
-      const { getDashboardMetrics } = await import('./analytics');
-      const metrics = await getDashboardMetrics(req.user.id);
-      res.json(metrics);
-    } catch (error: any) {
-      const resolvedLoggerLocal = await logger;
-      resolvedLoggerLocal.error({ message: "Failed to fetch analytics", error: error.message });
-      res.status(500).json({ error: "Failed to load dashboard metrics" });
-    }
-  });
-
   // POST /api/run-test-plan/:id - Execute a test plan
   app.post("/api/run-test-plan/:id", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -1814,14 +1609,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const testPlanId = req.params.id;
     const userId = req.user.id;
-    const environmentId = req.body.environmentId ? parseInt(req.body.environmentId) : undefined;
 
-    resolvedLogger.http({ message: `POST /api/run-test-plan/${testPlanId} - Handler reached`, testPlanId, userId, environmentId });
+    resolvedLogger.http({ message: `POST /api/run-test-plan/${testPlanId} - Handler reached`, testPlanId, userId });
 
     try {
       // Dynamically import runTestPlan to avoid circular dependencies if test-execution-service grows
       const { runTestPlan } = await import("./test-execution-service");
-      const executionResult = await runTestPlan(testPlanId, userId, environmentId) as any;
+      const executionResult = await runTestPlan(testPlanId, userId);
 
       if (executionResult.error) {
         // Check if a specific status code was suggested by runTestPlan
@@ -1965,13 +1759,13 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
 
     // 3. Calculate Key Metrics
     const totalTests = testCaseResults.length;
-    const passedTests = testCaseResults.filter((r: any) => r.status === 'Passed').length;
-    const failedTests = testCaseResults.filter((r: any) => r.status === 'Failed').length;
-    const skippedTests = testCaseResults.filter((r: any) => r.status === 'Skipped').length;
+    const passedTests = testCaseResults.filter(r => r.status === 'Passed').length;
+    const failedTests = testCaseResults.filter(r => r.status === 'Failed').length;
+    const skippedTests = testCaseResults.filter(r => r.status === 'Skipped').length;
     // Add other statuses if needed (e.g., 'Error', 'Pending')
 
     let totalDurationMs = 0;
-    testCaseResults.forEach((r: any) => {
+    testCaseResults.forEach(r => {
       if (r.durationMs !== null && r.durationMs !== undefined) {
         totalDurationMs += r.durationMs;
       }
@@ -1986,7 +1780,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
     };
 
     const priorityDistribution: Record<string, { passed: number, failed: number, skipped: number, total: number }> = {};
-    testCaseResults.forEach((r: any) => {
+    testCaseResults.forEach(r => {
       const prio = r.priority || 'N/A';
       if (!priorityDistribution[prio]) {
         priorityDistribution[prio] = { passed: 0, failed: 0, skipped: 0, total: 0 };
@@ -1998,7 +1792,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
     });
 
     const detailedSeverityDistribution: Record<string, { passed: number, failed: number, skipped: number, total: number }> = {};
-     testCaseResults.forEach((r: any) => {
+     testCaseResults.forEach(r => {
       const sev = r.severity || 'N/A';
       if (!detailedSeverityDistribution[sev]) {
         detailedSeverityDistribution[sev] = { passed: 0, failed: 0, skipped: 0, total: 0 };
@@ -2011,8 +1805,8 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
 
     // 5. Detailed View of Failed Tests
     const failedTestDetails = testCaseResults
-      .filter((r: any) => r.status === 'Failed')
-      .map((r: any) => ({
+      .filter(r => r.status === 'Failed')
+      .map(r => ({
         id: r.id,
         testName: r.testName,
         reasonForFailure: r.reasonForFailure,
@@ -2036,7 +1830,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
         }>
     }> = {};
 
-    testCaseResults.forEach((r: any) => {
+    testCaseResults.forEach(r => {
       const moduleName = r.module || 'Uncategorized Module';
       const componentName = r.component || 'Uncategorized Component';
 
@@ -2200,6 +1994,6 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+    const httpServer = createServer(app);
+    return httpServer;
 }

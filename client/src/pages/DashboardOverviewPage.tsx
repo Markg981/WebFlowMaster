@@ -62,9 +62,8 @@ const DashboardOverviewPage: React.FC = () => {
     <div className="flex h-screen bg-background text-foreground">
       {/* Sidebar */}
       <aside
-        className={`bg-card text-card-foreground border-r border-border shrink-0 flex flex-col transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? 'w-20 p-2' : 'w-64 p-4'
-        }`}
+        className={`bg-card text-card-foreground border-r border-border shrink-0 flex flex-col transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20 p-2' : 'w-64 p-4'
+          }`}
       >
         <div> {/* This div wraps the header and nav, separate from user info at the bottom */}
           {/* Sidebar Header: Logo, Title (when expanded), and Collapse Button */}
@@ -104,6 +103,12 @@ const DashboardOverviewPage: React.FC = () => {
                 <Link href="/dashboard/create-test" title={t('nav.createTest')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isCreateTestActive ? activeLinkStyle : inactiveLinkStyle}`}>
                   <PlusSquare className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
                   {!isSidebarCollapsed && <span>{t('nav.createTest')}</span>}
+                </Link>
+              </li>
+              <li>
+                <Link href="/test-manager" title="Test Manager" className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isTestManagerActive ? activeLinkStyle : inactiveLinkStyle}`}>
+                  <FileSpreadsheet className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
+                  {!isSidebarCollapsed && <span>Test Manager</span>}
                 </Link>
               </li>
               <li>
@@ -148,7 +153,7 @@ const DashboardOverviewPage: React.FC = () => {
           ) : (
             isSidebarCollapsed ? (
               <div className="flex justify-center items-center py-2" title={t('dashboardOverviewPage.userNotLoaded.text')}>
-                 <UserCircle className="h-7 w-7 text-muted-foreground opacity-50" />
+                <UserCircle className="h-7 w-7 text-muted-foreground opacity-50" />
               </div>
             ) : (
               <>
@@ -161,13 +166,12 @@ const DashboardOverviewPage: React.FC = () => {
       </aside>
 
       {/* Main Content Area */}
-      <motion.main 
+      <motion.main
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className={`flex-1 py-6 pr-4 pl-0 overflow-auto transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? 'ml-20' : 'ml-8' // Adjust based on actual final collapsed/expanded widths
-        }`}
+        className={`flex-1 py-6 pr-4 pl-0 overflow-auto transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'ml-20' : 'ml-8' // Adjust based on actual final collapsed/expanded widths
+          }`}
       >
         <motion.header variants={itemVariants} className="mb-6 px-0 mx-0">
           <h1 className="text-3xl font-bold tracking-tight">{t('dashboardOverviewPage.dashboardOverview.title')}</h1>
