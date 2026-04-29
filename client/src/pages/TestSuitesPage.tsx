@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from 'wouter'; // Corrected import
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,15 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 // Select component from shadcn/ui is not used in the current version of this file for project filtering.
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, ArrowLeft, LibrarySquare, Loader2, Edit2, Trash2, Power, PowerOff, PlusCircle } from 'lucide-react';
+import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, ArrowLeft, LibrarySquare, Loader2, Edit2, Trash2, Power, PowerOff, PlusCircle, Link2 } from 'lucide-react';
 import type { TestPlan } from '@shared/schema';
 import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard';
-import ScheduleWizard from '@/components/scheduling/ScheduleWizard'; // Import ScheduleWizard
-import { useToast } from '@/hooks/use-toast';
-import { runTestPlanAPI, fetchTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans'; // Renamed fetchTestPlans
-// Removed toggleScheduleActiveStatus, will use updateSchedule instead
-import { fetchSchedulesByPlanId, deleteSchedule, updateSchedule, TestPlanScheduleWithPlanName, UpdateScheduleClientPayload } from '@/lib/api/schedules';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import WebhooksModal from '@/components/dashboard/WebhooksModal';
+import ScheduleWizard from '@/components/scheduling/ScheduleWizard';
+import { runTestPlanAPI, fetchFullTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans'; // Renamed fetchTestPlans
+import { fetchSchedulesByPlanId, deleteSchedule, updateSchedule, TestPlanScheduleEnhanced, UpdateScheduleClientPayload } from '@/lib/api/schedules';
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 
@@ -29,8 +28,11 @@ const TestSuitesPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreatePlanWizardOpen, setIsCreatePlanWizardOpen] = useState(false);
   const [isScheduleWizardOpen, setIsScheduleWizardOpen] = useState(false);
-  const [scheduleToEdit, setScheduleToEdit] = useState<TestPlanScheduleWithPlanName | null>(null);
+  const [scheduleToEdit, setScheduleToEdit] = useState<TestPlanScheduleEnhanced | null>(null);
   const [selectedTestPlanForScheduling, setSelectedTestPlanForScheduling] = useState<string | undefined>(undefined);
+
+  const [isWebhooksModalOpen, setIsWebhooksModalOpen] = useState(false);
+  const [selectedPlanForWebhooks, setSelectedPlanForWebhooks] = useState<{ id: string, name: string } | null>(null);
 
   const [activeTab, setActiveTab] = useState('test-plan');
   // When switching to 'schedules' tab, we might need to know which plan's schedules to show.
@@ -97,7 +99,7 @@ const TestSuitesPage: React.FC = () => {
     setIsScheduleWizardOpen(true);
   };
 
-  const openScheduleWizardForEdit = (schedule: TestPlanScheduleWithPlanName) => {
+  const openScheduleWizardForEdit = (schedule: TestPlanScheduleEnhanced) => {
     setSelectedTestPlanForScheduling(schedule.testPlanId); // Ensure this is set
     setScheduleToEdit(schedule);
     setIsScheduleWizardOpen(true);
@@ -290,6 +292,12 @@ const TestSuitesPage: React.FC = () => {
                       <Button variant="outline" size="sm" onClick={() => openScheduleWizardForNew(item.id)}>
                         <CalendarDays size={16} className="mr-1" /> {t('testSuitesPage.schedule.button')}
                       </Button>
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setSelectedPlanForWebhooks({ id: item.id, name: item.name });
+                        setIsWebhooksModalOpen(true);
+                      }}>
+                        <Link2 size={16} className="mr-1" /> Webhooks
+                      </Button>
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/reports?planId=${item.id}`}>
                           <FileText size={16} className="mr-1" /> {t('testSuitesPage.reports.button')}
@@ -322,6 +330,16 @@ const TestSuitesPage: React.FC = () => {
           <p>{t('testSuitesPage.schedulesContentGoesHere.text')}</p>
         </TabsContent>
       </Tabs>
+      
+      {selectedPlanForWebhooks && (
+        <WebhooksModal
+          isOpen={isWebhooksModalOpen}
+          onClose={() => setIsWebhooksModalOpen(false)}
+          planId={selectedPlanForWebhooks.id}
+          planName={selectedPlanForWebhooks.name}
+        />
+      )}
+
     </div> {/* End of Content Wrapper */}
   </div> /* ADDED: This closes the outermost div */
   );

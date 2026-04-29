@@ -36,14 +36,14 @@ const fetchProjects = async (): Promise<Project[]> => {
   if (response && typeof response.json === 'function') {
     try {
       const data = await response.json();
-      return data as Project[]; // Assuming the backend sends Project[]
+      return data as unknown as Project[]; // Assuming the backend sends Project[]
     } catch (error) {
       console.error("Failed to parse projects JSON:", error);
       throw new Error("Failed to parse project data from server.");
     }
   } else if (response && Array.isArray(response)) {
     // This case handles if apiRequest already parsed the JSON and returned the array.
-    return response as Project[];
+    return response as unknown as Project[];
   } else {
     console.error("Unexpected response type from fetchProjects:", response);
     throw new Error("Received unexpected data format for projects.");
@@ -103,7 +103,7 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
         return response.json() as Promise<Project>;
       } else if (response && typeof (response as any).id !== 'undefined') {
         // If it's not a Response object, but looks like our Project object (already parsed)
-        return response as Project;
+        return response as unknown as Project;
       } else {
         // Unexpected response structure
         console.error('Unexpected response from apiRequest for POST /api/projects:', response);

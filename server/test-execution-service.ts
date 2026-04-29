@@ -13,8 +13,37 @@ import {
 } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm'; // Added sql
 import { v4 as uuidv4 } from 'uuid';
+// @ts-ignore - no @types/fs-extra installed
 import fs from 'fs-extra';
 import path from 'path';
+import { testExecutionQueue } from './queue';
+import { secrets as secretsTable } from '@shared/schema';
+import { decryptSecret } from './crypto';
+
+// Helper to interpolate {{SECRET_KEY}} in strings
+function interpolateSecrets(str: string, secretsMap: Record<string, string>): string {
+  if (typeof str !== 'string') return str;
+  return str.replace(/\{\{([^}]+)\}\}/g, (match, keyName) => {
+    return secretsMap[keyName] !== undefined ? secretsMap[keyName] : match;
+  });
+}
+
+// Deep clone and inject secrets into a test object
+function injectSecretsIntoTest(testObj: any, secretsMap: Record<string, string>): any {
+  if (testObj === null || typeof testObj !== 'object') {
+    return typeof testObj === 'string' ? interpolateSecrets(testObj, secretsMap) : testObj;
+  }
+  
+  if (Array.isArray(testObj)) {
+    return testObj.map(item => injectSecretsIntoTest(item, secretsMap));
+  }
+
+  const result: any = {};
+  for (const [key, value] of Object.entries(testObj)) {
+    result[key] = injectSecretsIntoTest(value, secretsMap);
+  }
+  return result;
+}
 
 // Define a common result structure for individual test runs
 export interface IndividualTestRunResult {
@@ -149,13 +178,14 @@ export async function runTest(
 
 export async function runTestPlan(
   planId: string,
-  userId: number
-): Promise<TestPlanExecution | { error: string; status?: number; testPlanRunId?: string }> { // Return type updated
+  userId: number,
+  environmentId?: number
+): Promise<TestPlanExecution | { error: string; status?: number; testPlanRunId?: string }> {
   const resolvedLogger = await loggerPromise;
   const testPlanRunId = uuidv4();
-  const overallStartTime = Date.now(); // For overall execution duration
+  const overallStartTime = Date.now();
 
-  resolvedLogger.info({ message: `Starting test plan execution`, planId, testPlanRunId, userId });
+  resolvedLogger.info({ message: `Enqueueing test plan execution`, planId, testPlanRunId, userId });
 
   const planResult = await db.select().from(testPlans).where(eq(testPlans.id, planId)).limit(1);
   if (!planResult || planResult.length === 0) {
@@ -170,19 +200,45 @@ export async function runTestPlan(
       .values({
         id: testPlanRunId,
         testPlanId: planId,
-        status: 'running',
-        startedAt: Math.floor(overallStartTime / 1000), // Record precise start time
-        // environment and browsers could be copied from plan or schedule if this was a scheduled run
-        environment: testPlan.name, // Placeholder, ideally from schedule or manual run config
-        triggeredBy: 'manual', // Assuming manual run for now
+        status: 'pending', // Queue status
+        startedAt: new Date(overallStartTime),
+        environment: environmentId ? environmentId.toString() : null, // Save environment ID here
+        triggeredBy: 'manual',
       })
       .returning();
     currentTestPlanRun = inserted[0];
-    resolvedLogger.info({ message: 'Initial TestPlanRun record created', testPlanRunId, dbId: currentTestPlanRun.id });
+    
+    // Add job to Queue
+    await testExecutionQueue.add('execute-plan', {
+      planId,
+      testPlanRunId,
+      userId
+    });
+    
+    resolvedLogger.info({ message: 'TestPlanRun job enqueued successfully', testPlanRunId, dbId: currentTestPlanRun.id });
+    return currentTestPlanRun;
   } catch (dbError: any) {
-    resolvedLogger.error({ message: 'Failed to create initial TestPlanRun record in DB', planId, testPlanRunId, error: dbError.message, stack: dbError.stack });
+    resolvedLogger.error({ message: 'Failed to enqueue test plan run', planId, testPlanRunId, error: dbError.message, stack: dbError.stack });
     return { error: `Failed to initialize test plan run: ${dbError.message}`, status: 500 };
   }
+}
+
+export async function processTestPlanJob(
+  planId: string,
+  testPlanRunId: string,
+  userId: number
+): Promise<any> {
+  const resolvedLogger = await loggerPromise;
+  const overallStartTime = Date.now();
+  
+  resolvedLogger.info({ message: `Starting background test plan execution`, planId, testPlanRunId, userId });
+
+  // Update status to running
+  await db.update(testPlanExecutionsTable)
+    .set({ status: 'running' })
+    .where(eq(testPlanExecutionsTable.id, testPlanRunId));
+    
+  let currentTestPlanRun: any = { startedAt: Math.floor(overallStartTime / 1000) };
 
   const baseResultsDir = path.join('./results', planId, testPlanRunId);
   try {
@@ -196,6 +252,23 @@ export async function runTestPlan(
       executionDurationMs: Date.now() - overallStartTime,
     }).where(eq(testPlanExecutionsTable.id, testPlanRunId));
     return { error: `Failed to create results directory: ${dirError.message}`, status: 500, testPlanRunId };
+  }
+
+  // Phase 8: Fetch Environment and Secrets
+  const executionRecord = await db.select().from(testPlanExecutionsTable).where(eq(testPlanExecutionsTable.id, testPlanRunId)).limit(1);
+  const environmentId = executionRecord[0]?.environment ? parseInt(executionRecord[0].environment) : null;
+  const secretsMap: Record<string, string> = {};
+
+  if (environmentId && !isNaN(environmentId)) {
+    const environmentSecrets = await db.select().from(secretsTable).where(eq(secretsTable.environmentId, environmentId));
+    for (const secret of environmentSecrets) {
+      try {
+        secretsMap[secret.keyName] = decryptSecret(secret.encryptedValue, secret.iv, secret.authTag);
+      } catch (e) {
+        resolvedLogger.warn(`Failed to decrypt secret ${secret.keyName} for environment ${environmentId}`);
+      }
+    }
+    resolvedLogger.info(`Loaded and decrypted ${Object.keys(secretsMap).length} secrets for environment ${environmentId}`);
   }
 
   const selectedTestsLinks = await db
@@ -235,7 +308,12 @@ export async function runTestPlan(
         catch (e) { resolvedLogger.warn("Failed to parse UI test elements"); }
       }
 
-      const resultFromRunTest = await runTest(testObjectDefinition, userId, planId, testPlanRunId, testTypeForRun);
+      // Inject secrets
+      if (Object.keys(secretsMap).length > 0) {
+        testObjectDefinition = injectSecretsIntoTest(testObjectDefinition, secretsMap);
+      }
+
+      const resultFromRunTest = await runTest(testObjectDefinition!, userId, planId, testPlanRunId, testTypeForRun);
       legacyIndividualTestResultsForJsonBlob.push(resultFromRunTest); // Keep populating the old JSON blob for now
 
       // Map runTest result to reportTestCaseResults status
@@ -282,8 +360,8 @@ export async function runTestPlan(
       reasonForFailure: failureReason,
       screenshotUrl: screenshotFinalPath,
       detailedLog: stepsOrLogData, // Or specific log for API tests
-      startedAt: Math.floor(singleTestStartTime / 1000),
-      completedAt: Math.floor(singleTestEndTime / 1000),
+      startedAt: new Date(singleTestStartTime),
+      completedAt: new Date(singleTestEndTime),
       durationMs: singleTestDurationMs,
       module: testObjectDefinition?.module || null,
       featureArea: testObjectDefinition?.featureArea || null,
@@ -307,9 +385,9 @@ export async function runTestPlan(
                                    .where(eq(reportTestCaseResultsTable.testPlanExecutionId, testPlanRunId));
 
   const calculatedTotalTests = finalDetailedResults.length;
-  const calculatedPassedTests = finalDetailedResults.filter(r => r.status === 'Passed').length;
-  const calculatedFailedTests = finalDetailedResults.filter(r => r.status === 'Failed').length;
-  const calculatedSkippedTests = finalDetailedResults.filter(r => r.status === 'Skipped').length;
+  const calculatedPassedTests = finalDetailedResults.filter((r: any) => r.status === 'Passed').length;
+  const calculatedFailedTests = finalDetailedResults.filter((r: any) => r.status === 'Failed').length;
+  const calculatedSkippedTests = finalDetailedResults.filter((r: any) => r.status === 'Skipped').length;
   // Consider 'Error' status as failures or a separate category if needed for overall status.
   // For overall status, let's say if any 'Failed' or 'Error', the whole run is 'failed'.
   // If any 'Skipped' and no 'Failed'/'Error', maybe 'partial' or 'completed_with_skipped'.
@@ -318,7 +396,7 @@ export async function runTestPlan(
   let finalOverallStatus: TestPlanExecution['status'] = 'pending'; // Should be 'completed' or 'failed' or 'error'
   if (calculatedTotalTests === 0 && selectedTestsLinks.length > 0) {
     finalOverallStatus = 'error'; // No results recorded but tests were expected
-  } else if (calculatedFailedTests > 0 || finalDetailedResults.some(r => r.status === 'Error')) {
+  } else if (calculatedFailedTests > 0 || finalDetailedResults.some((r: any) => r.status === 'Error')) {
     finalOverallStatus = 'failed';
   } else if (calculatedTotalTests === calculatedPassedTests && calculatedTotalTests > 0) {
     finalOverallStatus = 'completed';

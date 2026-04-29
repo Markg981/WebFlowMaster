@@ -1,144 +1,116 @@
-# WebTest Platform - Readme.md
+# 🚀 WebFlowMaster
 
-## Overview
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/Markg981/WebFlowMaster)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/Markg981/WebFlowMaster)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TS-5.6-blue.svg)](https://www.typescriptlang.org/)
 
-This is a full-stack web application for creating and executing automated tests on web pages. The platform integrates Playwright for browser automation and element detection, providing users with a visual interface to create test sequences by interacting with web elements.
+> **WebFlowMaster** è la piattaforma enterprise per il test automation end-to-end. Combina un Visual Builder intuitivo con un potente motore di esecuzione basato su Playwright e Puppeteer per garantire la massima affidabilità delle tue applicazioni web.
 
-## System Architecture
+---
 
-### Frontend Architecture
-- **Framework**: React with TypeScript
-- **Styling**: Tailwind CSS with shadcn/ui components
-- **State Management**: TanStack Query (React Query) for server state
-- **Routing**: Wouter for client-side routing
-- **Build Tool**: Vite with hot module replacement
+## 🌟 Elevator Pitch
+Dimentica script fragili e manutenzione infinita. Con WebFlowMaster, il tuo team QA può creare test complessi in pochi minuti grazie al **No-Code Visual Builder**, registrarli in tempo reale e monitorarli attraverso dashboard analitiche avanzate. È la soluzione definitiva per integrare il testing di alta qualità nel tuo ciclo di CI/CD.
 
-### Backend Architecture
-- **Runtime**: Node.js with Express.js
-- **Language**: TypeScript with ES modules
-- **Authentication**: Passport.js with local strategy and session-based auth
-- **Database ORM**: Drizzle ORM
-- **Session Storage**: PostgreSQL-backed sessions via connect-pg-simple
+---
 
-### Database Schema
-- **Users**: Authentication and user management
-- **Tests**: Test configurations with sequences and detected elements
-- **Test Runs**: Execution history and results tracking
-- **Relationships**: Users have many tests, tests have many runs
+## 🛠️ Stack Tecnologico
 
-## Key Components
+| Layer | Tecnologie |
+| :--- | :--- |
+| **Frontend** | React, TypeScript, Vite, TailwindCSS, Shadcn/UI |
+| **Backend** | Node.js, Express, Passport.js |
+| **Database** | PostgreSQL (Neon), SQLite (Better-sqlite3), Drizzle ORM |
+| **Automation** | Playwright, Puppeteer |
+| **Task Queue** | BullMQ, Redis, Node-cron |
+| **Logging** | Winston |
 
-### Authentication System
-- Session-based authentication using express-session
-- Password hashing with Node.js crypto (scrypt)
-- Protected routes with authentication middleware
-- User registration and login endpoints
+---
 
-### Test Management
-- Visual test creation interface
-- URL loading through backend proxy (CORS handling)
-- Element detection using mock implementation (placeholder for Omniparser V2)
-- Drag-and-drop test sequence builder
-- Test execution and result tracking
+## 📋 Prerequisiti
+Assicurati di avere installato sul tuo sistema:
+- **Node.js** (v20 o superiore)
+- **npm** (v10 o superiore)
+- **Redis** (necessario per BullMQ e sessioni)
+- **PostgreSQL** (o SQLite per sviluppo locale)
 
-### Database Layer
-- PostgreSQL with Neon serverless driver
-- Drizzle ORM for type-safe database operations
-- Migration system for schema changes
-- Connection pooling for performance
+---
 
-## Data Flow
+## 🚀 Installazione Locale
 
-1. **Authentication Flow**: User logs in → Session created → JWT-like session management
-2. **Test Creation Flow**: URL input → Backend proxy load → Element detection → Visual test builder
-3. **Test Execution Flow**: Test trigger → Backend execution → Results storage → UI updates
-4. **Data Persistence**: All operations go through Drizzle ORM → PostgreSQL database
+1. **Clona il repository:**
+   ```bash
+   git clone https://github.com/Markg981/WebFlowMaster.git
+   cd WebFlowMaster
+   ```
 
-## External Dependencies
+2. **Installa le dipendenze della root e del client:**
+   ```bash
+   npm install
+   npm run install-client
+   ```
 
-### Core Dependencies
-- **@neondatabase/serverless**: Database connectivity
-- **drizzle-orm**: Database ORM and query builder
-- **passport**: Authentication middleware
-- **express-session**: Session management
-- **@tanstack/react-query**: Server state management
+3. **Configura le variabili d'ambiente:**
+   Crea un file `.env` nella root del progetto partendo dal template (vedi sezione sotto).
 
-### UI Dependencies
-- **@radix-ui/***: Headless UI components
-- **tailwindcss**: Utility-first CSS framework
-- **lucide-react**: Icon library
-- **wouter**: Lightweight router
+4. **Inizializza il database:**
+   ```bash
+   npm run db:push
+   ```
 
-### Development Dependencies
-- **tsx**: TypeScript execution for development
-- **esbuild**: Fast JavaScript bundler for production
-- **vite**: Frontend build tool and dev server
+5. **Avvia l'ambiente di sviluppo:**
+   Apri due terminali e lancia:
+   - **Terminale 1 (Backend & Worker):** `npm run dev`
+   - **Terminale 2 (Frontend):** `npm run dev:client`
 
-## Deployment Strategy
+---
 
-### Development Environment
-- **Runtime**: Node.js 20 with PostgreSQL 16
-- **Development Server**: `npm run dev` runs both frontend (Vite) and backend (tsx)
-- **Hot Reload**: Vite HMR for frontend, tsx watch mode for backend
-- **Port Configuration**: Backend on 5000, proxied through Vite
+## ⚙️ Variabili d'Ambiente (.env)
+Crea un file `.env` e configura i seguenti parametri:
 
-### Production Deployment
-- **Build Process**: `npm run build` - Vite build + esbuild bundle
-- **Runtime**: `npm run start` serves production bundle
-- **Platform**: Configured for Replit autoscale deployment
-- **Database**: Environment variable DATABASE_URL for connection
+```env
+# Database
+DATABASE_URL=postgres://user:password@localhost:5432/webflowmaster
 
-### Logging Configuration
-The log retention period, which determines how long daily log files are kept before being deleted (older files are compressed), can be configured in the application's UI.
-- **Primary Configuration**: Navigate to the **Settings** page, then look for the **System Settings** (or similarly named) card. You will find an input field for "Log Retention Period (days)".
-- **Environment Variable Override**: The `LOG_RETENTION_DAYS` environment variable can still be used. It serves as an override or an initial value before the UI is configured.
-  - Example: `LOG_RETENTION_DAYS=14`
-- **Priority of Settings**:
-  1.  Value set in the UI (stored in the database).
-  2.  `LOG_RETENTION_DAYS` environment variable (if UI setting is not found or invalid).
-  3.  Hardcoded default in the server (currently 7 days, if neither UI nor environment variable is set).
-- **Default Value**: If no specific configuration is made, the system defaults to retaining logs for 7 days.
+# Redis (Sessioni e Worker)
+REDIS_URL=redis://localhost:6379
 
-### Database Management
-- **Migrations**: `npm run db:push` applies schema changes
-- **Schema Location**: `./shared/schema.ts` for type sharing
-- **Configuration**: `drizzle.config.ts` for migration settings
+# Autenticazione
+SESSION_SECRET=your_super_secret_key
 
-## Changelog
-
-```
-Changelog:
-- June 13, 2025. Initial setup
+# Logging
+LOG_LEVEL=info
 ```
 
-## User Preferences
+---
 
+## 🧪 Testing
+Per eseguire la suite di test completa:
+```bash
+npm run test
 ```
-Preferred communication style: Simple, everyday language.
+Per i test del client:
+```bash
+npm run test:client
 ```
 
-## Development Notes
+---
 
-### Folder Structure
-- `client/`: React frontend application
-- `server/`: Express.js backend application  
-- `shared/`: Common TypeScript types and database schema
-- `migrations/`: Database migration files (generated)
+## 📂 Struttura della Documentazione
+Per approfondimenti, consulta la cartella `docs/`:
+- [**User Guide**](./docs/USER_GUIDE.md): Manuale per tester e QA Engineer.
+- [**Admin Guide**](./docs/ADMIN_GUIDE.md): Guida alla configurazione e manutenzione per sysadmin.
 
-### Key Configuration Files
-- `vite.config.ts`: Frontend build configuration
-- `drizzle.config.ts`: Database migration configuration
-- `tsconfig.json`: TypeScript compiler settings
-- `tailwind.config.ts`: Styling configuration
+---
 
-### Environment Setup
-- Requires `DATABASE_URL` environment variable
-- Optional `SESSION_SECRET` for secure sessions
-- Development mode supports Replit-specific tooling
+## 🤝 Contribuire
+Siamo aperti a contributi! Se vuoi migliorare WebFlowMaster:
+1. Forka il progetto.
+2. Crea un branch per la tua feature (`git checkout -b feature/AmazingFeature`).
+3. Fai il commit delle modifiche (`git commit -m 'Add some AmazingFeature'`).
+4. Pusha il branch (`git push origin feature/AmazingFeature`).
+5. Apri una Pull Request.
 
-### Planned Integrations
-- **Playwright**: For web page automation and element detection
-- **Omniparser V2**: For DOM element analysis and classification
-- **Docker**: For containerized deployment (configured but not implemented)
+---
 
-The application follows a monorepo structure with shared TypeScript types between frontend and backend, enabling full-stack type safety and efficient development workflows.
+Developed with ❤️ by the **WebFlowMaster Team**.

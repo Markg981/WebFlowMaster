@@ -24,18 +24,10 @@ export interface IStorage {
 
   getUserSettings(userId: number): Promise<UserSettings | undefined>;
   upsertUserSettings(userId: number, settingsData: Partial<Omit<InsertUserSettings, 'userId'>>): Promise<UserSettings>;
-  
-  // sessionStore: session.SessionStore; // Commented out for now
 }
 
 export class DatabaseStorage implements IStorage {
-  // public sessionStore: session.SessionStore; // Commented out for now
-
   constructor() {
-    // this.sessionStore = new PostgresSessionStore({ // PostgreSQL specific
-    //   pool,
-    //   createTableIfMissing: true
-    // });
   }
 
   async getUser(id: number): Promise<User | undefined> {

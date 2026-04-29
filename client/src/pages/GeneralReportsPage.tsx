@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -63,7 +63,11 @@ async function fetchTestExecutions(
   const totalItems = data.totalItems || (data.items.length < limit && page === 1 ? data.items.length : (page * limit + (data.items.length === limit ? 1 : 0) ) ); // Estimate totalItems
 
   return {
-    items: data.items,
+    items: data.items.map((item: any) => ({
+      ...item,
+      startedAt: item.startedAt ? new Date(item.startedAt * 1000) : null,
+      completedAt: item.completedAt ? new Date(item.completedAt * 1000) : null,
+    })),
     totalItems: totalItems,
     totalPages: Math.ceil(totalItems / limit),
     currentPage: page,
@@ -104,7 +108,7 @@ const GeneralReportsPage: React.FC = () => {
         status: selectedStatus,
         searchTerm: searchTerm,
     }),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
   useEffect(() => {
@@ -240,7 +244,7 @@ const GeneralReportsPage: React.FC = () => {
                             <TableRow key={exec.id}>
                             <TableCell className="font-medium">{exec.testPlanName || exec.testPlanId}</TableCell>
                             <TableCell><Badge variant={getStatusBadgeVariant(exec.status)} className="capitalize">{exec.status}</Badge></TableCell>
-                            <TableCell>{exec.startedAt ? format(new Date(exec.startedAt * 1000), 'PPpp') : 'N/A'}</TableCell>
+                            <TableCell>{exec.startedAt ? format(exec.startedAt, 'PPpp') : 'N/A'}</TableCell>
                             <TableCell>{formatDuration(exec.executionDurationMs)}</TableCell>
                             <TableCell>{`${exec.passedTests ?? '-'}/${exec.failedTests ?? '-'}/${exec.skippedTests ?? '-'}/${exec.totalTests ?? '-'}`}</TableCell>
                             <TableCell className="capitalize">{exec.triggeredBy}</TableCell>

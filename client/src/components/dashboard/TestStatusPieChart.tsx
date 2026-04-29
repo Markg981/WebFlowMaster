@@ -1,29 +1,53 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-// Removed useQuery and Recharts imports
-// Removed Loader2, AlertCircle imports
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Loader2 } from 'lucide-react';
 
-// Mock API function (REMOVED)
-// const fetchTestStatusSummary = async () => { ... };
+interface TestStatusPieChartProps {
+  data?: Array<{ name: string; value: number; fill: string }>;
+  isLoading?: boolean;
+}
 
-// COLORS, STATUS_DISPLAY_NAMES, TestStatus type (REMOVED as no data processing)
-
-const TestStatusPieChart: React.FC = () => {
+const TestStatusPieChart: React.FC<TestStatusPieChartProps> = ({ data, isLoading }) => {
   const { t } = useTranslation();
-  // useQuery hook (REMOVED)
-  // const { data, isLoading, isError, error } = useQuery(...);
-
-  // Loading, Error, No Data states (REMOVED as chart is not rendered)
-
-  // chartData processing (REMOVED)
 
   return (
-    <div className="bg-card text-card-foreground p-4 rounded-lg shadow h-80 w-full flex flex-col items-center justify-center">
-      <h3 className="text-lg font-semibold mb-4 text-center">{t('dashboard.testStatusPieChart.testStatusOverview.title')}</h3>
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-muted-foreground text-center">
-          {t('dashboard.testStatusPieChart.chartDataWillBeAvailable.description')}
-        </p>
+    <div className="bg-card text-card-foreground p-4 rounded-lg border shadow-sm h-80 w-full flex flex-col">
+      <h3 className="text-lg font-semibold mb-4 text-center">{t('dashboard.testStatusPieChart.testStatusOverview.title', 'Execution Status Breakdown')}</h3>
+      <div className="flex-1 w-full h-full min-h-0">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
+          </div>
+        ) : !data || data.every(d => d.value === 0) ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-muted-foreground text-center">No test executions found.</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data.filter(d => d.value > 0)}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={90}
+                paddingAngle={2}
+                dataKey="value"
+                stroke="none"
+              >
+                {data.filter(d => d.value > 0).map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ borderRadius: '8px', backgroundColor: 'var(--card)', color: 'var(--card-foreground)', border: '1px solid var(--border)' }} 
+                itemStyle={{ color: 'var(--foreground)' }}
+              />
+              <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '12px' }} />
+            </PieChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

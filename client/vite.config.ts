@@ -8,9 +8,19 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@shared': path.resolve(__dirname, '../shared'), // Adjusted path for shared
+      '@shared': path.resolve(__dirname, '../shared'),
     },
   },
-  // If your Vitest config needs to be separate, keep it that way.
-  // Otherwise, you could merge parts of vitest.config.ts here if desired.
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'http://localhost:5000',
+        ws: true,
+      },
+    },
+  },
 });

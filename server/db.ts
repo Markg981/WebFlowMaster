@@ -1,25 +1,25 @@
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
+import { drizzle as drizzlePglite } from 'drizzle-orm/pglite';
+import { Pool } from 'pg';
+import { PGlite } from '@electric-sql/pglite';
 import * as schema from '@shared/schema';
-import fs from 'fs';
-import path from 'path';
 
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    'DATABASE_URL must be set and point to the SQLite database file path.',
-  );
+  throw new Error('DATABASE_URL must be set.');
 }
 
-const dbPath = process.env.DATABASE_URL;
-const dbDir = path.dirname(dbPath);
+const dbUrl = process.env.DATABASE_URL;
 
-// Ensure the directory for the SQLite database exists
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+let db: any;
+
+if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
+  // Real PostgreSQL
+  const pool = new Pool({ connectionString: dbUrl });
+  db = drizzlePg(pool, { schema });
+} else {
+  // PGlite (local file/memory)
+  const client = new PGlite(dbUrl);
+  db = drizzlePglite(client, { schema });
 }
 
-// DATABASE_URL will be the path to the SQLite file, e.g., "data/local.db"
-const sqlite = new Database(dbPath);
-export const db = drizzle(sqlite, { schema });
-
-// We are no longer exporting 'pool' as it's specific to NeonDB
+export { db };

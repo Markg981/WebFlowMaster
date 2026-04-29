@@ -241,7 +241,7 @@ export function TestSequenceBuilder({
                       {actionId && needsTargetElement(actionId) && (
                         <Button
                           variant="outline"
-                          size="xs"
+                          size="sm"
                           onClick={() => !isRecordingActive && setReassociatingElementForStepId(step.id)} // Prevent click if recording
                           className="text-xs h-7"
                           disabled={isRecordingActive} // Disable during recording
@@ -259,8 +259,6 @@ export function TestSequenceBuilder({
                         stepId={step.id}
                         onDropElement={handleAssociateElementToAction} // Drop logic for elements is still handled by DraggableAction
                         targetElement={step.targetElement}
-                        isDropZoneActive={isReassociatingElementForStepId === step.id && !isRecordingActive} // Only active if not recording
-                        isRecordingActive={isRecordingActive} // Pass down for internal control if needed
                       />
                     </div>
 

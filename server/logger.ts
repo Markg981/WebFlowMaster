@@ -95,7 +95,7 @@ async function initializeLogger(): Promise<winston.Logger> {
   });
 
   // Create a stream object with a 'write' function that will be used by morgan
-  loggerInstance.stream = {
+  (loggerInstance as any).stream = {
     write: (message: string): void => {
       loggerInstance.info(message.substring(0, message.lastIndexOf('\n')));
     },

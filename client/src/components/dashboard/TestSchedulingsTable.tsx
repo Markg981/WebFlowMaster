@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { fetchAllSchedules, TestPlanScheduleWithPlanName } from '@/lib/api/schedules';
+import { fetchAllSchedules, TestPlanScheduleEnhanced } from '@/lib/api/schedules';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertCircle, CalendarDays } from 'lucide-react';
@@ -11,14 +11,18 @@ import { Link } from 'wouter';
 const TestSchedulingsTable: React.FC = () => {
   const { t } = useTranslation();
 
-  const { data: schedules = [], isLoading, error } = useQuery<TestPlanScheduleWithPlanName[]>({
+  const { data: schedules = [], isLoading, error } = useQuery<TestPlanScheduleEnhanced[]>({
     queryKey: ['allActiveSchedulesForDashboard'], // Unique query key
     queryFn: async () => {
       const allSchedules = await fetchAllSchedules();
       // Filter for active schedules and sort by nextRunAt ascending
       return allSchedules
         .filter(s => s.isActive)
-        .sort((a, b) => (a.nextRunAt || 0) - (b.nextRunAt || 0));
+        .sort((a, b) => {
+          const timeA = a.nextRunAt instanceof Date ? a.nextRunAt.getTime() : 0;
+          const timeB = b.nextRunAt instanceof Date ? b.nextRunAt.getTime() : 0;
+          return timeA - timeB;
+        });
     },
     // Refetch interval can be added if real-time updates are desired, e.g., refetchInterval: 60000, // every minute
   });
@@ -81,7 +85,7 @@ const TestSchedulingsTable: React.FC = () => {
                     {schedule.environment ? <Badge variant="outline">{schedule.environment}</Badge> : <span className="text-xs text-muted-foreground">{t('dashboard.testSchedulingsTable.notSet.text')}</span>}
                     </TableCell>
                   <TableCell>
-                    {schedule.nextRunAt ? format(new Date(schedule.nextRunAt * 1000), 'PPpp') : t('dashboard.testSchedulingsTable.notScheduled.text')}
+                    {schedule.nextRunAt instanceof Date ? format(schedule.nextRunAt, 'PPpp') : t('dashboard.testSchedulingsTable.notScheduled.text')}
                   </TableCell>
                   <TableCell className="text-xs">{schedule.frequency}</TableCell>
                   <TableCell>

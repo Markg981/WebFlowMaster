@@ -1,46 +1,47 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-// Removed useQuery import
 import KpiCard from './KpiCard';
-import { ListChecks, Percent, Clock, PlayCircle } from 'lucide-react'; // Removed AlertCircle, Loader2
+import { ListChecks, Percent, Clock, PlayCircle, Loader2 } from 'lucide-react';
 
-// Mock API functions (REMOVED)
-// const fetchTotalTests = async () => { ... };
-// const fetchSuccessPercentage = async () => { ... };
-// const fetchAverageTestDuration = async () => { ... };
-// const fetchLastRunInfo = async () => { ... };
+interface KpiPanelProps {
+  data?: {
+    totalRuns: number;
+    successRate: number;
+    avgDuration: number;
+    lastRun: any;
+  };
+  isLoading?: boolean;
+}
 
-const KpiPanel: React.FC = () => {
+const KpiPanel: React.FC<KpiPanelProps> = ({ data, isLoading }) => {
   const { t } = useTranslation();
-  // useQuery hooks (REMOVED)
-  // const { data: totalTestsData, ... } = useQuery(...);
-  // const { data: successPercentageData, ... } = useQuery(...);
-  // const { data: avgDurationData, ... } = useQuery(...);
-  // const { data: lastRunData, ... } = useQuery(...);
 
-  const placeholderValue = t('apiTesterPage.text1'); // Placeholder for KPI values
+  const formatDuration = (ms: number) => {
+    if (!ms) return '0s';
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
 
   const kpis = [
     {
-      title: t('dashboard.kpiPanel.totalTests.title'),
-      // data, isLoading, isError, error properties removed
+      title: t('dashboard.kpiPanel.totalTests.title', 'Total Executions'),
       icon: <ListChecks size={20} />,
-      value: placeholderValue, // Directly pass placeholder
+      value: isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : (data?.totalRuns || 0).toString(),
     },
     {
-      title: t('dashboard.kpiPanel.successRate.title'),
+      title: t('dashboard.kpiPanel.successRate.title', 'Success Rate'),
       icon: <Percent size={20} />,
-      value: placeholderValue,
+      value: isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : `${data?.successRate || 0}%`,
     },
     {
-      title: t('dashboard.kpiPanel.avgDuration.title'),
+      title: t('dashboard.kpiPanel.avgDuration.title', 'Avg Duration'),
       icon: <Clock size={20} />,
-      value: placeholderValue,
+      value: isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : formatDuration(data?.avgDuration || 0),
     },
     {
-      title: t('dashboard.kpiPanel.lastRun.title'),
+      title: t('dashboard.kpiPanel.lastRun.title', 'Last Run Status'),
       icon: <PlayCircle size={20} />,
-      value: placeholderValue, // Simplified, status part removed
+      value: isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : (data?.lastRun?.status || 'N/A').toUpperCase(),
     },
   ];
 
@@ -49,9 +50,9 @@ const KpiPanel: React.FC = () => {
       {kpis.map((kpi, index) => (
         <KpiCard
           key={index}
-          title={kpi.title} // This is now a t() call result
+          title={kpi.title}
           icon={kpi.icon}
-          value={kpi.value} // This is also a t() call result
+          value={kpi.value as any}
         />
       ))}
     </div>

@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 7
+    },
+    "auditLog": "C:\\Users\\marco.oliva\\source\\repos\\WebFlowMaster\\logs\\.f432d3978116b60ba7c8e051c0a921a210e0683a-audit.json",
+    "files": [
+        {
+            "date": 1777456567878,
+            "name": "C:\\Users\\marco.oliva\\source\\repos\\WebFlowMaster\\logs\\app-2026-04-29.log",
+            "hash": "b6c3dcc49b2481002302c2005c0d07249a1462d58267722d36076aab41005ae8"
+        }
+    ],
+    "hashType": "sha256"
+}

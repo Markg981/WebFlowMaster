@@ -200,7 +200,7 @@ const ApiTesterPage: React.FC = () => {
     InsertApiTestHistoryEntry
   >({ // Ensure this is an object literal for the options
     mutationFn: async (historyEntry: InsertApiTestHistoryEntry) => {
-      const payloadForBackend: InsertApiTestHistoryEntry = {
+      const payloadForBackend = {
           method: historyEntry.method,
           url: historyEntry.url,
           queryParams: historyEntry.queryParams,
@@ -213,7 +213,7 @@ const ApiTesterPage: React.FC = () => {
       };
       // userId, id, createdAt are omitted as they are handled by backend/DB.
       // The InsertApiTestHistoryEntry type should reflect this.
-      const response = await apiRequest('POST', '/api/api-test-history', payloadForBackend);
+      const response = await apiRequest('POST', '/api/api-test-history', payloadForBackend as any);
       return response.json();
     },
     onSuccess: () => {
@@ -258,7 +258,7 @@ const ApiTesterPage: React.FC = () => {
       toast({
         title: data.status ? `Request Successful: ${data.status}` : "Request Successful",
         description: hasAssertions ? `Assertions ${assertionSummary}` : `API returned status ${data.status}`,
-        variant: hasAssertions && !allAssertionsPassed ? "warning" : "default",
+        variant: hasAssertions && !allAssertionsPassed ? "destructive" : "default",
       });
 
       const currentParamsForHistory = queryParams.filter(p => p.enabled && p.key.trim()).reduce((acc, p) => {
@@ -290,14 +290,14 @@ const ApiTesterPage: React.FC = () => {
         requestBodyForHistory = variables.body as string | null; // Already string, or null/undefined
       }
 
-      const historyEntry: InsertApiTestHistoryEntry = {
+      const historyEntry = {
           method: variables.method, url: variables.url, queryParams: currentParamsForHistory,
           requestHeaders: currentHeadersForHistory, requestBody: requestBodyForHistory,
           responseStatus: data.status, responseHeaders: data.headers,
           responseBody: (typeof data.body === 'object' && data.body !== null) ? JSON.stringify(data.body) : data.body,
           durationMs: data.duration,
       };
-      saveToHistoryMutation.mutate(historyEntry);
+      saveToHistoryMutation.mutate(historyEntry as any);
     },
     onError: (error) => {
       setResponseStatus(null); setResponseHeaders(null);
@@ -406,7 +406,7 @@ const ApiTesterPage: React.FC = () => {
                 finalBody = JSON.parse(requestBodyValue);
               } catch (e) {
                 finalBody = requestBodyValue; // Send as text if JSON is invalid
-                toast({ title: "Invalid JSON", description: "Request body is not valid JSON. Sending as plain text.", variant: "warning", duration: 3000 });
+                toast({ title: "Invalid JSON", description: "Request body is not valid JSON. Sending as plain text.", variant: "destructive", duration: 3000 });
               }
             } else {
               finalBody = requestBodyValue;
@@ -424,7 +424,7 @@ const ApiTesterPage: React.FC = () => {
             try {
               gqlPayload.variables = JSON.parse(graphqlVariables);
             } catch (e) {
-              toast({ title: "Invalid GraphQL Variables", description: "Variables are not valid JSON. Sending query without variables.", variant: "warning", duration: 3000 });
+              toast({ title: "Invalid GraphQL Variables", description: "Variables are not valid JSON. Sending query without variables.", variant: "destructive", duration: 3000 });
             }
           }
           finalBody = JSON.stringify(gqlPayload);
@@ -640,14 +640,14 @@ const ApiTesterPage: React.FC = () => {
     }
 
     // Load new fields
-    setAuthType(test.authType || 'none');
+    setAuthType((test.authType as AuthType) || 'none');
     try {
       setAuthParams(test.authParams ? (typeof test.authParams === 'string' ? JSON.parse(test.authParams) : test.authParams) : undefined);
     } catch (e) {
       console.error("Error parsing authParams from saved test:", e);
       setAuthParams(undefined);
     }
-    setSelectedBodyType(test.bodyType || 'raw');
+    setSelectedBodyType((test.bodyType as BodyType) || 'raw');
     setRawContentType(test.bodyRawContentType || 'application/json');
     setGraphqlQuery(test.bodyGraphqlQuery || '');
     setGraphqlVariables(test.bodyGraphqlVariables || '');
@@ -668,7 +668,7 @@ const ApiTesterPage: React.FC = () => {
           }))
         );
         if (loadedFormData.some(item => item.type === 'file')) {
-          toast({ title: "Form Data Files", description: "File entries need to be re-selected.", variant: "info", duration: 4000});
+          toast({ title: "Form Data Files", description: "File entries need to be re-selected.", variant: "default", duration: 4000});
         }
       } catch (e) {
         console.error("Error parsing bodyFormData from saved test:", e);
@@ -691,8 +691,8 @@ const ApiTesterPage: React.FC = () => {
           ...(item.type === 'file' && item.fileName && { fileNamePlaceholder: item.fileName, fileTypePlaceholder: item.fileType }),
         }))
       );
-      if (loadedFormData.some(item => item.type === 'file')) {
-        toast({ title: "Form Data Files", description: "File entries need to be re-selected.", variant: "info", duration: 4000});
+      if (loadedUrlEncoded.some(item => item.type === 'file')) {
+        toast({ title: "URL Encoded Files", description: "File entries need to be re-selected.", variant: "default", duration: 4000});
       }
     } else {
       setFormDataBody([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
@@ -1067,10 +1067,18 @@ const ApiTesterPage: React.FC = () => {
                               theme={monacoTheme}
                               value={requestBodyValue}
                               onChange={(value) => setRequestBodyValue(value || '')}
-                              options={{ minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true, tabSize: 2, insertSpaces: true }}
+                              options={{
+                                minimap: { enabled: false },
+                                scrollBeyondLastLine: false,
+                                fontSize: 13,
+                                wordWrap: 'on',
+                                automaticLayout: true,
+                                tabSize: 2,
+                                insertSpaces: true,
+                                readOnly: apiProxyMutation.isPending || method === 'GET' || method === 'HEAD'
+                              }}
                               onMount={(editor, monaco) => { editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => { if (!apiProxyMutation.isPending) { handleSendRequest(); } }); }}
                               className={apiProxyMutation.isPending || method === 'GET' || method === 'HEAD' ? 'opacity-50 cursor-not-allowed' : ''}
-                              readOnly={apiProxyMutation.isPending || method === 'GET' || method === 'HEAD'}
                             />
                           </div>
                         </div>
@@ -1106,9 +1114,15 @@ const ApiTesterPage: React.FC = () => {
                               theme={monacoTheme}
                               value={graphqlQuery}
                               onChange={(value) => setGraphqlQuery(value || '')}
-                              options={{ minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true }}
+                              options={{
+                                minimap: { enabled: false },
+                                scrollBeyondLastLine: false,
+                                fontSize: 13,
+                                wordWrap: 'on',
+                                automaticLayout: true,
+                                readOnly: apiProxyMutation.isPending
+                              }}
                               className={apiProxyMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}
-                              readOnly={apiProxyMutation.isPending}
                             />
                           </div>
                         </div>
@@ -1121,9 +1135,15 @@ const ApiTesterPage: React.FC = () => {
                               theme={monacoTheme}
                               value={graphqlVariables}
                               onChange={(value) => setGraphqlVariables(value || '')}
-                              options={{ minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 13, wordWrap: 'on', automaticLayout: true }}
+                              options={{
+                                minimap: { enabled: false },
+                                scrollBeyondLastLine: false,
+                                fontSize: 13,
+                                wordWrap: 'on',
+                                automaticLayout: true,
+                                readOnly: apiProxyMutation.isPending
+                              }}
                               className={apiProxyMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}
-                              readOnly={apiProxyMutation.isPending}
                             />
                           </div>
                         </div>

@@ -1,7 +1,7 @@
 import { useDrag, useDrop } from "react-dnd"; // Added useDrop
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
-import type { DetectedElement } from "../drag-drop-provider"; // Import DetectedElement
+import type { DetectedElement } from "./drag-drop-provider"; // Corrected path
 import { 
   MousePointer, 
   Keyboard, 
@@ -22,8 +22,8 @@ interface TestAction {
 
 interface DraggableActionProps {
   action: TestAction; // This is the definition of the action (e.g. 'click', 'type')
-  stepId: string; // This is the unique ID of this action step in the sequence
-  onDropElement: (stepId: string, element: DetectedElement) => void;
+  stepId?: string; // Optional for palette usage
+  onDropElement?: (stepId: string, element: DetectedElement) => void;
   targetElement?: DetectedElement; // Optional: To display info about the associated element
 }
 
@@ -41,7 +41,7 @@ export function DraggableAction({ action, stepId, onDropElement, targetElement }
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: "element", // Accepts items of type "element"
     drop: (item: { id: string; type: string; data: DetectedElement }, monitor) => {
-      if (monitor.didDrop()) {
+      if (monitor.didDrop() || !onDropElement || !stepId) {
         return;
       }
       // When an element is dropped on this action, call onDropElement with this action's stepId and the element data
@@ -82,8 +82,8 @@ export function DraggableAction({ action, stepId, onDropElement, targetElement }
         <div className="flex items-center space-x-3">
           {renderActionIcon(action.icon)}
           <div>
-            <div className="font-medium text-foreground text-sm">{action.name}</div>
-            <div className="text-xs text-muted-foreground">{action.description}</div>
+            <div className="font-medium text-foreground text-sm">{t(action.name)}</div>
+            <div className="text-xs text-muted-foreground">{t(action.description)}</div>
             {/* Display info about the target element if it exists */}
             {targetElement && (
               <div className="mt-1 pt-1 border-t border-gray-200">

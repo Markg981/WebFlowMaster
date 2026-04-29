@@ -18,7 +18,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { DraggableAction } from "@/components/draggable-action";
 import { DraggableElement } from "@/components/draggable-element";
-import { TestSequenceBuilder } from "@/components/test-sequence-builder";
+import { VisualTestBuilder } from "@/components/visual-builder/VisualTestBuilder";
 import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
 import SaveTestModal from "@/components/SaveTestModal"; // Import the modal
 import { 
@@ -38,7 +38,7 @@ import {
   TestTube, // Added this icon
 } from "lucide-react";
 import { Link } from "wouter";
-import debounceFromLodash from 'lodash/debounce'; // Attempt to import lodash.debounce
+// import debounceFromLodash from 'lodash/debounce'; // Removed due to missing types
 
 // Interface for actions received from backend recording service
 interface BackendRecordedAction {
@@ -171,28 +171,25 @@ export interface TestAction {
 
 // Exporting availableActions for use in TestSequenceBuilder and potentially other components
 export const availableActions: TestAction[] = [
-  { id: "click", type: "click", name: "Click Element", icon: "mouse-pointer", description: "Simulate a mouse click" },
-  { id: "input", type: "input", name: "Input Text", icon: "keyboard", description: "Type text into field" },
-  { id: "wait", type: "wait", name: "Wait", icon: "clock", description: "Pause execution" },
-  { id: "scroll", type: "scroll", name: "Scroll", icon: "scroll", description: "Scroll page or element" },
-  // General 'assert' might be kept for simple assertions or removed if specific ones cover all cases
-  // For now, specific assertions are preferred. The generic 'assert' might be removed later.
-  // { id: "assert", type: "assert", name: "Assert Element", icon: "check-circle", description: "Verify element properties" },
-  { id: "hover", type: "hover", name: "Hover", icon: "hand", description: "Hover over element" },
-  { id: "select", type: "select", name: "Select Option", icon: "chevron-down", description: "Choose dropdown option" },
+  { id: "click", type: "click", name: "dashboardPageNew.actions.click.name", icon: "mouse-pointer", description: "dashboardPageNew.actions.click.description" },
+  { id: "input", type: "input", name: "dashboardPageNew.actions.input.name", icon: "keyboard", description: "dashboardPageNew.actions.input.description" },
+  { id: "wait", type: "wait", name: "dashboardPageNew.actions.wait.name", icon: "clock", description: "dashboardPageNew.actions.wait.description" },
+  { id: "scroll", type: "scroll", name: "dashboardPageNew.actions.scroll.name", icon: "scroll", description: "dashboardPageNew.actions.scroll.description" },
+  { id: "hover", type: "hover", name: "dashboardPageNew.actions.hover.name", icon: "hand", description: "dashboardPageNew.actions.hover.description" },
+  { id: "select", type: "select", name: "dashboardPageNew.actions.select.name", icon: "chevron-down", description: "dashboardPageNew.actions.select.description" },
   {
     id: "assertTextContains",
-    type: "assertTextContains", // Or "assertion" if grouping by broader type
-    name: "Assert Text Contains",
-    icon: "CheckSquare", // Using CheckSquare from lucide-react (ensure it's imported if not already)
-    description: "Checks if an element contains specific text."
+    type: "assertTextContains",
+    name: "dashboardPageNew.actions.assertTextContains.name",
+    icon: "CheckSquare",
+    description: "dashboardPageNew.actions.assertTextContains.description"
   },
   {
     id: "assertElementCount",
-    type: "assertElementCount", // Or "assertion"
-    name: "Assert Element Count",
-    icon: "ListChecks", // Using ListChecks from lucide-react (ensure it's imported if not already)
-    description: "Checks how many elements match a selector."
+    type: "assertElementCount",
+    name: "dashboardPageNew.actions.assertElementCount.name",
+    icon: "ListChecks",
+    description: "dashboardPageNew.actions.assertElementCount.description"
   },
 ];
 
@@ -588,7 +585,7 @@ export default function DashboardPage() {
       toast({
         title: "Cannot Start Recording",
         description: "Please load a website before starting to record a test.",
-        variant: "warning",
+        variant: "destructive",
       });
       return;
     }
@@ -704,7 +701,7 @@ export default function DashboardPage() {
           toast({
             title: "Errore di Rete o Server",
             description: `Impossibile aggiornare le azioni (errore ${res.status}). La sessione potrebbe essere terminata.`,
-            variant: "warning",
+            variant: "destructive",
             duration: 7000,
           });
           // Consider stopping if error is 404, indicating session truly not found
@@ -729,7 +726,7 @@ export default function DashboardPage() {
             toast({
               title: "Sessione di Registrazione Terminata",
               description: result.error || "La finestra di registrazione è stata chiusa o la sessione è scaduta.",
-              variant: "info",
+              variant: "default",
               duration: 7000,
             });
             setIsRecording(false);
@@ -760,7 +757,7 @@ export default function DashboardPage() {
             toast({
               title: "Problema con la Sessione di Registrazione",
               description: result.error || "Si è verificato un errore recuperando le azioni.",
-              variant: "warning",
+              variant: "destructive",
               duration: 7000,
             });
             // For non-session-ending errors, you might choose not to stop recording immediately
@@ -1012,8 +1009,7 @@ export default function DashboardPage() {
   // New function to handle sequence updates and trigger real-time execution
 
   const debouncedExecuteMutation = useMemo(() => {
-    const actualDebounce = typeof debounceFromLodash === 'function' ? debounceFromLodash : simpleDebounce;
-    return actualDebounce((payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string }) => {
+    return simpleDebounce((payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string }) => {
       // Condition for execution is checked here, inside the debounced function,
       // to ensure it's evaluated at the moment of potential execution, not when debouncing starts.
       if (!executeDirectTestMutation.isPending && !isExecutingPlayback) {
@@ -1074,7 +1070,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="bg-card border-b border-border px-6 py-4">
+      <header className="bg-card border-b border-border px-6 py-4 relative z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
@@ -1112,7 +1108,7 @@ export default function DashboardPage() {
       </header>
 
       {/* URL Input Section */}
-      <div className="bg-card border-b border-border px-6 py-4">
+      <div className="bg-card border-b border-border px-6 py-4 relative z-40">
         <div className="flex items-center space-x-4">
           <div className="flex-grow">
             <Label htmlFor="urlInput" className="block text-sm font-medium text-card-foreground mb-1">{t('dashboardPageNew.websiteUrlToTest.label')}</Label>
@@ -1166,7 +1162,7 @@ export default function DashboardPage() {
                 <SelectTrigger id="creationModeSelect" className="w-[280px]">
                   <SelectValue placeholder={t('dashboardPageNew.selezionaModalit.placeholder')} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-50 bg-background opacity-100 shadow-2xl border-2">
                   <SelectItem value="manual">{t('dashboardPageNew.creaTestManualeDragDrop.text')}</SelectItem>
                   <SelectItem value="record">{t('dashboardPageNew.registraAzioniUtenteAutorecord.text')}</SelectItem>
                 </SelectContent>
@@ -1227,12 +1223,12 @@ export default function DashboardPage() {
       )}
 
       {/* Main Content Area - Two-level layout */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col relative z-0">
         {/* Top section: Actions, Preview, Elements (60% of viewport) */}
         <div className="flex h-[60vh] border-b border-border">
           {/* Left Sidebar - Actions */}
           {creationMode === 'manual' && (
-            <div className="w-80 bg-card border-r border-border p-4">
+            <div className="w-80 bg-card border-r border-border p-4 relative z-[-1]">
               <h3 className="text-lg font-semibold text-card-foreground mb-4">{t('dashboardPageNew.availableActions.title')}</h3>
 
               <ScrollArea className="h-full">
@@ -1365,7 +1361,7 @@ export default function DashboardPage() {
 
         {/* Bottom section: Test Sequence Builder (40% of viewport) */}
         <div className="h-[40vh] bg-card p-6"> {/* Changed bg-white to bg-card */}
-          <TestSequenceBuilder
+          <VisualTestBuilder
             testSequence={testSequence}
             onUpdateSequence={handleSequenceUpdated}
             onExecuteTest={handleExecuteTest}

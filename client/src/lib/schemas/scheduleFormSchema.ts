@@ -93,7 +93,7 @@ export const transformFormValuesToApiPayload = (
     scheduleName: values.scheduleName,
     testPlanId: values.testPlanId,
     frequency: effectiveFrequency,
-    nextRunAt: Math.floor(values.nextRunAt.getTime() / 1000),
+    nextRunAt: values.nextRunAt,
     environment: values.environment || null,
     browsers: values.browsers && values.browsers.length > 0 ? values.browsers : null,
     isActive: values.isActive,

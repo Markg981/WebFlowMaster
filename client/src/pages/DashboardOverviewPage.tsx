@@ -1,32 +1,42 @@
-import React, { useState } from 'react'; // Added useState
+import React, { useState } from 'react';
 import { Link, useRoute } from 'wouter';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
-import { Button } from '@/components/ui/button'; // Added Button import
+import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
 import {
   Home, PlusSquare, ListChecksIcon as TestsIcon, LibrarySquare as SuitesIcon,
-  CalendarClock, FileTextIcon as ReportsIcon, Settings as SettingsIcon, Network, // Added Network icon
-  PanelLeftClose, PanelRightClose, UserCircle, TestTube // Added TestTube
+  CalendarClock, FileTextIcon as ReportsIcon, Settings as SettingsIcon, Network,
+  PanelLeftClose, PanelRightClose, UserCircle, TestTube
 } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
 import KpiPanel from '@/components/dashboard/KpiPanel';
 import TestStatusPieChart from '@/components/dashboard/TestStatusPieChart';
 import TestTrendBarChart from '@/components/dashboard/TestTrendBarChart';
 import TestSchedulingsTable from '@/components/dashboard/TestSchedulingsTable';
 import QuickAccessReports from '@/components/dashboard/QuickAccessReports';
 import RunTestNowButton from '@/components/dashboard/RunTestNowButton';
+import { motion } from 'framer-motion';
 
 const DashboardOverviewPage: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  const [isDashboardActive] = useRoute('/dashboard');
+  const { data: analyticsData, isLoading: isLoadingAnalytics } = useQuery({
+    queryKey: ['analyticsDashboard'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/analytics/dashboard');
+      return res.json();
+    }
+  });
   const [isCreateTestActive] = useRoute('/dashboard/create-test'); // Changed path
   const [isApiTesterActive] = useRoute('/dashboard/api-tester'); // For the new API Tester link
   const [isSettingsActive] = useRoute('/settings');
   const [isSuitesActive] = useRoute('/test-suites'); // Updated active state for Test Suites
   const [isSchedulingActive] = useRoute('/scheduling'); // Corrected variable name and added useRoute
   const [isReportsActive] = useRoute('/reports'); // Updated for the new general reports page
+  const [isDashboardActive] = useRoute('/dashboard');
 
   const linkBaseStyle = "flex items-center py-2 px-3 rounded-md text-sm font-medium";
   const activeLinkStyle = "bg-primary/10 text-primary";
@@ -34,6 +44,19 @@ const DashboardOverviewPage: React.FC = () => {
 
   const iconBaseStyle = "mr-3 h-5 w-5"; // For non-collapsed state
   const collapsedIconStyle = "h-6 w-6"; // For collapsed state, icons might be larger and centered
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.4, ease: "easeOut" } }
+  };
 
   return (
     <div className="flex h-screen bg-background text-foreground">
@@ -120,7 +143,6 @@ const DashboardOverviewPage: React.FC = () => {
             ) : (
               <>
                 <p className="text-sm font-semibold text-foreground truncate">{user.username}</p>
-                <p className="text-xs text-muted-foreground truncate">{user.email || t('dashboardOverviewPage.noEmailProvided.text')}</p>
               </>
             )
           ) : (
@@ -139,34 +161,45 @@ const DashboardOverviewPage: React.FC = () => {
       </aside>
 
       {/* Main Content Area */}
-      <main className={`flex-1 py-6 pr-4 pl-0 overflow-auto transition-all duration-300 ease-in-out ${
+      <motion.main 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className={`flex-1 py-6 pr-4 pl-0 overflow-auto transition-all duration-300 ease-in-out ${
           isSidebarCollapsed ? 'ml-20' : 'ml-8' // Adjust based on actual final collapsed/expanded widths
-      }`}>
-        <header className="mb-6 px-0 mx-0">
-          <h1 className="text-3xl font-bold">{t('dashboardOverviewPage.dashboardOverview.title')}</h1>
-        </header>
+        }`}
+      >
+        <motion.header variants={itemVariants} className="mb-6 px-0 mx-0">
+          <h1 className="text-3xl font-bold tracking-tight">{t('dashboardOverviewPage.dashboardOverview.title')}</h1>
+        </motion.header>
 
-        <KpiPanel />
+        <motion.div variants={itemVariants}>
+          <KpiPanel data={analyticsData?.kpis} isLoading={isLoadingAnalytics} />
+        </motion.div>
 
         {/* Charts Section */}
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TestStatusPieChart />
-          <TestTrendBarChart />
-        </div>
+        <motion.div variants={itemVariants} className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TestStatusPieChart data={analyticsData?.distribution} isLoading={isLoadingAnalytics} />
+          <TestTrendBarChart data={analyticsData?.trend} isLoading={isLoadingAnalytics} />
+        </motion.div>
 
         {/* Test Schedulings Table Section */}
-        <div className="mt-6">
+        <motion.div variants={itemVariants} className="mt-6">
           <TestSchedulingsTable />
-        </div>
+        </motion.div>
 
         {/* Quick Access Reports Section */}
         {/* mt-6 is handled by the component itself, so no need for an extra div with margin unless further styling is needed */}
-        <QuickAccessReports />
+        <motion.div variants={itemVariants}>
+          <QuickAccessReports />
+        </motion.div>
 
         {/* Run Test Now Button Section */}
         {/* mt-8 and text-center is handled by the component's wrapper div */}
-        <RunTestNowButton />
-      </main>
+        <motion.div variants={itemVariants}>
+          <RunTestNowButton />
+        </motion.div>
+      </motion.main>
     </div>
   );
 };

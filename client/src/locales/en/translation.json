@@ -559,16 +559,16 @@
       "button": "Detect Elements"
     },
     "modalitDiCreazioneTest": {
-      "label": "Modalit\u00e0 di Creazione Test"
+      "label": "Test Creation Mode"
     },
     "selezionaModalit": {
-      "placeholder": "Seleziona modalit\u00e0"
+      "placeholder": "Select mode"
     },
     "creaTestManualeDragDrop": {
-      "text": "Crea test manuale (drag & drop)"
+      "text": "Create manual test (drag & drop)"
     },
     "registraAzioniUtenteAutorecord": {
-      "text": "Registra azioni utente (auto-record)"
+      "text": "Record user actions (auto-record)"
     },
     "starting": {
       "button": "Starting..."
@@ -635,6 +635,40 @@
     },
     "loadAWebsiteAndClickDetect": {
       "description": "Load a website and click \"Detect Elements\""
+    },
+    "actions": {
+      "click": {
+        "name": "Click Element",
+        "description": "Simulate a mouse click"
+      },
+      "input": {
+        "name": "Input Text",
+        "description": "Type text into field"
+      },
+      "wait": {
+        "name": "Wait",
+        "description": "Pause execution"
+      },
+      "scroll": {
+        "name": "Scroll",
+        "description": "Scroll page or element"
+      },
+      "hover": {
+        "name": "Hover",
+        "description": "Hover over element"
+      },
+      "select": {
+        "name": "Select Option",
+        "description": "Choose dropdown option"
+      },
+      "assertTextContains": {
+        "name": "Assert Text Contains",
+        "description": "Checks if an element contains specific text."
+      },
+      "assertElementCount": {
+        "name": "Assert Element Count",
+        "description": "Checks how many elements match a selector."
+      }
     }
   },
   "dashboardPage": {

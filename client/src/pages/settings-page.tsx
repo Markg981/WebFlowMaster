@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Link } from "wouter";
 import { UserSettings, fetchSettings } from "../lib/settings";
+import EnvironmentsCard from "@/components/settings/EnvironmentsCard";
 
 interface Project {
   id: number;
@@ -471,6 +472,8 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        <EnvironmentsCard />
 
         <Card>
           <CardHeader>

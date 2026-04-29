@@ -7,6 +7,7 @@ import loggerPromise from './logger'; // Import Winston logger promise
 import { db } from './db'; // Import db instance
 import { systemSettings } from '@shared/schema'; // Import systemSettings table
 import { eq } from 'drizzle-orm'; // Import eq operator
+import { setupWebSockets } from './websocket';
 
 const app = express();
 app.use(express.json());
@@ -77,6 +78,12 @@ app.use(express.urlencoded({ extended: false }));
   await ensureDefaultSystemSettings(); // Call during server startup
 
   const server = await registerRoutes(app);
+  
+  const { webhooksRouter } = await import("./webhooks");
+  app.use("/api/webhooks", webhooksRouter);
+  
+  // Set up WebSockets for real-time logging
+  await setupWebSockets(server);
 
   // Initialize the scheduler after routes are registered and DB is presumably ready
   // In a real app, ensure DB connection/migration is complete before this.

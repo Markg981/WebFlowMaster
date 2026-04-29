@@ -7,8 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress'; // Using shadcn progress bar
 import { Separator } from '@/components/ui/separator';
-import type { TestPlan, ApiTest, TestPlanRun, TestRun } from '@shared/schema'; // Import relevant types
-import { fetchTestPlanDetailsAPI, fetchTestPlanRunDetailsAPI } from '@/lib/api/test-plans'; // Placeholder for actual API
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { motion } from 'framer-motion';
+import { LiveConsole } from '@/components/LiveConsole';
+import type { TestPlan, ApiTest } from '@shared/schema'; // Import relevant types
+import { fetchTestPlanByIdAPI } from '@/lib/api/test-plans';
+import { apiRequest } from '@/lib/queryClient';
 
 // Mock API for fetching test plan details (replace with actual API call)
 const fetchTestPlanDetails = async (planId: string): Promise<TestPlan & { tests: ApiTest[] }> => {
@@ -21,19 +25,30 @@ const fetchTestPlanDetails = async (planId: string): Promise<TestPlan & { tests:
 
   // Example: Find the plan from a predefined list or mock data source
   // For now, returning a more detailed mock structure
-  const mockPlansWithTests: (TestPlan & { tests: ApiTest[] })[] = [
+  const mockPlansWithTests: (TestPlan & { tests: any[] })[] = [
     {
       id: 'plan-123',
       name: 'Login and Signup Flow',
       description: 'End-to-end tests for user authentication.',
-      projectId: 'proj-abc',
-      testIds: ['test-001', 'test-002', 'test-003'],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      userId: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      testMachinesConfig: null,
+      captureScreenshots: null,
+      visualTestingEnabled: false,
+      pageLoadTimeout: null,
+      elementTimeout: null,
+      onMajorStepFailure: null,
+      onAbortedTestCase: null,
+      onTestSuitePreRequisiteFailure: null,
+      onTestCasePreRequisiteFailure: null,
+      onTestStepPreRequisiteFailure: null,
+      reRunOnFailure: null,
+      notificationSettings: null,
       tests: [
-        { id: 'test-001', name: 'Test User Login Valid Credentials', description: 'Login with correct email and password.', method: 'POST', url: '/api/auth/login', headers: {}, body: '{"email":"test@example.com", "password":"password"}', expectedStatusCode: 200, projectId: 'proj-abc', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), assertions: [] },
-        { id: 'test-002', name: 'Test User Login Invalid Credentials', description: 'Login with incorrect password.', method: 'POST', url: '/api/auth/login', headers: {}, body: '{"email":"test@example.com", "password":"wrongpassword"}', expectedStatusCode: 401, projectId: 'proj-abc', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), assertions: [] },
-        { id: 'test-003', name: 'Test User Signup New Account', description: 'Create a new user account.', method: 'POST', url: '/api/auth/signup', headers: {}, body: '{"email":"newuser@example.com", "password":"newpassword", "name":"New User"}', expectedStatusCode: 201, projectId: 'proj-abc', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), assertions: [] },
+        { id: 1, name: 'Test User Login Valid Credentials', method: 'POST', url: '/api/auth/login', headers: {}, body: '{"email":"test@example.com", "password":"password"}', expectedStatusCode: 200, projectId: null, createdAt: new Date(), updatedAt: new Date(), assertions: [] },
+        { id: 2, name: 'Test User Login Invalid Credentials', method: 'POST', url: '/api/auth/login', headers: {}, body: '{"email":"test@example.com", "password":"wrongpassword"}', expectedStatusCode: 401, projectId: null, createdAt: new Date(), updatedAt: new Date(), assertions: [] },
+        { id: 3, name: 'Test User Signup New Account', method: 'POST', url: '/api/auth/signup', headers: {}, body: '{"email":"newuser@example.com", "password":"newpassword", "name":"New User"}', expectedStatusCode: 201, projectId: null, createdAt: new Date(), updatedAt: new Date(), assertions: [] },
       ]
     },
     // Add more mock plans if needed
@@ -66,6 +81,15 @@ const TestPlanExecutionPage: React.FC = () => {
   const [overallProgress, setOverallProgress] = useState(0);
   const [isExecuting, setIsExecuting] = useState(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null); // Stores the ID of the current execution run
+  const [selectedEnvironment, setSelectedEnvironment] = useState<string>("none");
+
+  const { data: environments = [] } = useQuery({
+    queryKey: ['environments'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/environments');
+      return res.json();
+    }
+  });
 
   const { data: testPlanData, isLoading: isLoadingPlan, error: planError } = useQuery({
     queryKey: ['testPlanDetails', planId],
@@ -85,57 +109,64 @@ const TestPlanExecutionPage: React.FC = () => {
     }
   }, [testPlanData]);
 
+  // WebSocket Connection for Real-Time Logs
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (['job-active', 'job-completed', 'job-failed', 'job-progress'].includes(data.type) && data.log) {
+          setExecutionLog(prev => [...prev, data.log]);
+        }
+      } catch (e) {
+        console.error('Error parsing WebSocket message:', e);
+      }
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, []);
+
   const testsToRun = useMemo(() => testPlanData?.tests || [], [testPlanData]);
 
-  // MOCK EXECUTION LOGIC
-  const simulateTestExecution = async () => {
-    if (!testsToRun.length || isExecuting) return;
+  const executePlan = async () => {
+    if (isExecuting) return;
 
     setIsExecuting(true);
     setExecutionLog([t('testPlanExecutionPage.logs.startingExecution', { planName: testPlanData?.name })]);
-    // Mock: "Start" the plan run and get a runId (in a real scenario, an API call would do this)
-    const newRunId = `run-${Date.now()}`;
-    setCurrentRunId(newRunId);
+    
+    try {
+      const payload: any = {};
+      if (selectedEnvironment && selectedEnvironment !== 'none') {
+        payload.environmentId = parseInt(selectedEnvironment);
+      }
 
-
-    let completedTests = 0;
-
-    for (const test of testsToRun) {
-      setTestStatuses(prev => ({
-        ...prev,
-        [test.id]: { ...prev[test.id], status: 'running' },
-      }));
-      setExecutionLog(prev => [...prev, t('testPlanExecutionPage.logs.runningTest', { testName: test.name })]);
-
-      const startTime = Date.now();
-      // Simulate test duration
-      const duration = Math.random() * (2000 - 500) + 500; // 0.5 to 2 seconds
-      await new Promise(resolve => setTimeout(resolve, duration));
-      const endTime = Date.now();
-
-      // Simulate success/failure
-      const didPass = Math.random() > 0.2; // 80% chance of passing
-
-      setTestStatuses(prev => ({
-        ...prev,
-        [test.id]: {
-            ...prev[test.id],
-            status: didPass ? 'passed' : 'failed',
-            duration: endTime - startTime
-        },
-      }));
-      setExecutionLog(prev => [...prev, t('testPlanExecutionPage.logs.testCompleted', { testName: test.name, status: didPass ? 'PASSED' : 'FAILED' })]);
-
-      completedTests++;
-      setOverallProgress(Math.round((completedTests / testsToRun.length) * 100));
+      const res = await apiRequest('POST', `/api/run-test-plan/${planId}`, payload);
+      const data = await res.json();
+      
+      if (data.success && data.data) {
+        setCurrentRunId(data.data.id);
+        setExecutionLog(prev => [...prev, "Test plan sent to worker for execution!"]);
+        // The worker is now running it. Progress will be streamed via WebSockets.
+        // For the UI tests list, we could set them all to 'running' for now:
+        const initialStatuses: Record<string, TestExecutionState> = {};
+        testPlanData?.tests.forEach(test => {
+          initialStatuses[test.id] = { ...test, status: 'running' };
+        });
+        setTestStatuses(initialStatuses);
+      } else {
+        throw new Error(data.error || "Execution failed");
+      }
+    } catch (e: any) {
+      setExecutionLog(prev => [...prev, `ERROR: ${e.message}`]);
+      setIsExecuting(false);
     }
-
-    setExecutionLog(prev => [...prev, t('testPlanExecutionPage.logs.executionFinished')]);
-    setIsExecuting(false);
-    // In a real app, you might mark the TestPlanRun as 'completed' here via an API call
-    // Now that the run is 'finished' (mocked), if currentRunId exists, we can offer to view the report.
   };
-  // END MOCK EXECUTION LOGIC
+  // END REAL EXECUTION LOGIC
 
   const getStatusIcon = (status: TestStatus) => {
     switch (status) {
@@ -209,24 +240,38 @@ const TestPlanExecutionPage: React.FC = () => {
               </p>
             </div>
           </div>
-          <Button
-            onClick={simulateTestExecution}
-            disabled={isExecuting || !testsToRun.length}
-            className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md flex items-center space-x-2"
-          >
-            {isExecuting ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <PlayCircle className="h-5 w-5" />
-            )}
-            <span>
-              {isExecuting
-                ? t('testPlanExecutionPage.running.button')
-                : completedTestsCount > 0 && completedTestsCount === testsToRun.length
-                ? t('testPlanExecutionPage.runAgain.button')
-                : t('testPlanExecutionPage.startExecution.button')}
-            </span>
-          </Button>
+          <div className="flex items-center space-x-4">
+            <Select value={selectedEnvironment} onValueChange={setSelectedEnvironment}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select Environment" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No Environment</SelectItem>
+                {environments.map((env: any) => (
+                  <SelectItem key={env.id} value={env.id.toString()}>{env.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button
+              onClick={executePlan}
+              disabled={isExecuting || !testsToRun.length}
+              className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md flex items-center space-x-2"
+            >
+              {isExecuting ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <PlayCircle className="h-5 w-5" />
+              )}
+              <span>
+                {isExecuting
+                  ? t('testPlanExecutionPage.running.button')
+                  : completedTestsCount > 0 && completedTestsCount === testsToRun.length
+                  ? t('testPlanExecutionPage.runAgain.button')
+                  : t('testPlanExecutionPage.startExecution.button')}
+              </span>
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -271,12 +316,18 @@ const TestPlanExecutionPage: React.FC = () => {
                 {testsToRun.map((test, index) => {
                   const testState = testStatuses[test.id] || { ...test, status: 'pending' };
                   return (
-                    <li key={test.id} className="p-4 flex items-center justify-between hover:bg-muted/50">
+                    <motion.li 
+                      key={test.id} 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                    >
                       <div className="flex items-center space-x-3">
                         {getStatusIcon(testState.status)}
                         <div>
                           <p className="font-medium text-foreground">{test.name}</p>
-                          <p className="text-sm text-muted-foreground">{test.description || t('testPlanExecutionPage.noDescription.text')}</p>
+                          <p className="text-sm text-muted-foreground">{test.url || t('testPlanExecutionPage.noDescription.text')}</p>
                         </div>
                       </div>
                       <div className="text-sm text-muted-foreground">
@@ -285,7 +336,7 @@ const TestPlanExecutionPage: React.FC = () => {
                         {testState.status === 'failed' && `${t('testPlanExecutionPage.statusLabels.failed')} ${testState.duration ? `(${(testState.duration / 1000).toFixed(2)}s)` : ''}`}
                         {testState.status === 'pending' && t('testPlanExecutionPage.statusLabels.pending')}
                       </div>
-                    </li>
+                    </motion.li>
                   );
                 })}
                 {testsToRun.length === 0 && (
@@ -299,20 +350,15 @@ const TestPlanExecutionPage: React.FC = () => {
         </div>
 
         {/* Right Column: Execution Log */}
-        <Card className="md:col-span-1 flex flex-col max-h-[calc(100vh-12rem)]"> {/* Adjust max-h as needed */}
-          <CardHeader>
-            <CardTitle>{t('testPlanExecutionPage.executionLog.title')}</CardTitle>
+        <Card className="md:col-span-1 flex flex-col max-h-[calc(100vh-12rem)] glass-card"> {/* Adjust max-h as needed */}
+          <CardHeader className="bg-muted/30">
+            <CardTitle className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse-slow"></span>
+              {t('testPlanExecutionPage.executionLog.title')}
+            </CardTitle>
             <CardDescription>{t('testPlanExecutionPage.executionLog.description')}</CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto p-4 space-y-2 text-sm bg-muted rounded-b-md">
-            {executionLog.length === 0 && <p className="text-muted-foreground">{t('testPlanExecutionPage.executionLog.noLogsYet.text')}</p>}
-            {executionLog.map((log, index) => (
-              <p key={index} className="font-mono text-xs leading-relaxed">
-                <span className="text-primary mr-2">{`[${new Date().toLocaleTimeString()}]`}</span>
-                {log}
-              </p>
-            ))}
-          </CardContent>
+          <LiveConsole logs={executionLog} />
         </Card>
       </main>
     </div>

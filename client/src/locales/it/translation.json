@@ -630,106 +630,197 @@
   },
   "dashboardPageNew": {
     "createWebTest": {
-      "title": "[TRANSLATE] Create Web Test"
+      "title": "Crea Web Test"
     },
     "notifications": {
-      "button": "[TRANSLATE] Notifications"
+      "button": "Notifiche"
     },
     "settings": {
-      "button": "[TRANSLATE] Settings"
+      "button": "Impostazioni"
     },
     "signOut": {
-      "button": "[TRANSLATE] Sign Out"
+      "button": "Esci"
     },
     "websiteUrlToTest": {
-      "label": "[TRANSLATE] Website URL to Test"
+      "label": "URL del sito da testare"
     },
     "httpsexamplecom": {
-      "placeholder": "[TRANSLATE] https://example.com"
+      "placeholder": "https://esempio.it"
     },
     "loadWebsite": {
-      "button": "[TRANSLATE] Load Website"
+      "button": "Carica Sito"
     },
     "detectElements": {
-      "button": "[TRANSLATE] Detect Elements"
+      "button": "Rileva Elementi"
     },
     "modalitDiCreazioneTest": {
-      "label": "[TRANSLATE] Modalità di Creazione Test"
+      "label": "Modalità di Creazione Test"
     },
     "selezionaModalit": {
-      "placeholder": "[TRANSLATE] Seleziona modalità"
+      "placeholder": "Seleziona modalità"
     },
     "creaTestManualeDragDrop": {
-      "text": "[TRANSLATE] Crea test manuale (drag & drop)"
+      "text": "Crea test manuale (drag & drop)"
     },
     "registraAzioniUtenteAutorecord": {
-      "text": "[TRANSLATE] Registra azioni utente (auto-record)"
+      "text": "Registra azioni utente (auto-record)"
     },
     "starting": {
-      "button": "[TRANSLATE] Starting..."
+      "button": "Avvio..."
     },
     "iniziaRegistrazione": {
-      "button": "[TRANSLATE] Inizia registrazione"
+      "button": "Inizia registrazione"
     },
     "stopping": {
-      "button": "[TRANSLATE] Stopping..."
+      "button": "Arresto..."
     },
     "terminaRegistrazione": {
-      "button": "[TRANSLATE] Termina registrazione"
+      "button": "Termina registrazione"
     },
     "testResultPassed": {
-      "text": "[TRANSLATE] Test Result: Passed"
+      "text": "Risultato Test: Superato"
     },
     "testResultFailed": {
-      "text": "[TRANSLATE] Test Result: Failed"
+      "text": "Risultato Test: Fallito"
     },
     "availableActions": {
-      "title": "[TRANSLATE] Available Actions"
+      "title": "Azioni Disponibili"
     },
     "websitePreview": {
-      "title": "[TRANSLATE] Website Preview"
+      "title": "Anteprima Sito"
     },
     "executing": {
-      "text": "[TRANSLATE] Executing..."
+      "text": "Esecuzione..."
     },
     "playback": {
-      "text": "[TRANSLATE] Playback"
+      "text": "Riproduzione"
     },
     "loaded": {
-      "text": "[TRANSLATE] Loaded"
+      "text": "Caricato"
     },
     "registrazioneInCorso": {
-      "text": "[TRANSLATE] Registrazione in corso..."
+      "text": "Registrazione in corso..."
     },
     "utilizzaLaFinestraDelBrowser": {
-      "description": "[TRANSLATE] Utilizza la finestra del browser separata che si è aperta per interagire con il sito."
+      "description": "Utilizza la finestra del browser separata per interagire con il sito."
     },
     "leAzioniRegistrateApparirannoNella": {
-      "description": "[TRANSLATE] Le azioni registrate appariranno nella sezione \"Test Sequence\" qui sotto."
+      "description": "Le azioni registrate appariranno nella sezione Sequenza di Test."
     },
     "testStepScreenshot": {
-      "text": "[TRANSLATE] Test step screenshot"
+      "text": "Screenshot passaggio test"
     },
     "websiteScreenshot": {
-      "text": "[TRANSLATE] Website screenshot"
+      "text": "Screenshot sito web"
     },
     "loadAWebsiteToSeeThe": {
-      "description": "[TRANSLATE] Load a website to see the preview"
+      "description": "Carica un sito per vedere l'anteprima"
     },
     "screenshotsFromWebsiteLoadingOr": {
-      "description": "[TRANSLATE] Screenshots from website loading or test playback will appear here."
+      "description": "Gli screenshot del caricamento o della riproduzione appariranno qui."
     },
     "detectedElements": {
-      "title": "[TRANSLATE] Detected Elements"
+      "title": "Detected Elements"
     },
     "found": {
-      "text": "[TRANSLATE] found"
+      "text": "found"
     },
     "noElementsDetectedYet": {
-      "text": "[TRANSLATE] No elements detected yet"
+      "text": "No elements detected yet"
     },
     "loadAWebsiteAndClickDetect": {
-      "description": "[TRANSLATE] Load a website and click \"Detect Elements\""
+      "description": "Load a website and click \"Detect Elements\""
+    },
+    "actions": {
+      "click": {
+        "name": "Click Elemento",
+        "description": "Simula un clic del mouse"
+      },
+      "input": {
+        "name": "Inserimento Testo",
+        "description": "Scrivi testo in un campo"
+      },
+      "wait": {
+        "name": "Attendi",
+        "description": "Sospendi l'esecuzione"
+      },
+      "scroll": {
+        "name": "Scorri",
+        "description": "Scorri la pagina o l'elemento"
+      },
+      "hover": {
+        "name": "Passa sopra",
+        "description": "Passa il mouse sopra l'elemento"
+      },
+      "select": {
+        "name": "Seleziona Opzione",
+        "description": "Scegli un'opzione dal menu"
+      },
+      "assertTextContains": {
+        "name": "Verifica Testo Contenuto",
+        "description": "Controlla se un elemento contiene un testo specifico."
+      },
+      "assertElementCount": {
+        "name": "Verifica Conteggio Elementi",
+        "description": "Controlla quanti elementi corrispondono a un selettore."
+      }
+    },
+    "testSequenceBuilder": {
+      "testSequence": {
+        "title": "Sequenza di Test"
+      },
+      "steps": {
+        "text": "passaggi"
+      },
+      "clear": {
+        "button": "Pulisci"
+      },
+      "recordingInProgress": {
+        "text": "Registrazione in corso..."
+      },
+      "recordedActionsWillAppearHere": {
+        "description": "Le azioni registrate appariranno qui."
+      },
+      "dropActionsHereToBuildYour": {
+        "description": "Trascina le azioni qui per costruire il tuo test"
+      },
+      "dragActionsFromTheLeftSidebar": {
+        "description": "Trascina le azioni dalla barra laterale sinistra, quindi aggiungi elementi per completare ogni passaggio"
+      },
+      "changeAction": {
+        "placeholder": "Cambia azione"
+      },
+      "changeElement": {
+        "button": "Cambia Elemento"
+      },
+      "setElement": {
+        "button": "Imposta Elemento"
+      },
+      "textToInput": {
+        "label": "Testo da inserire"
+      },
+      "optionValue": {
+        "label": "Valore opzione"
+      },
+      "timeMs": {
+        "label": "Tempo (ms)"
+      },
+      "expectedText": {
+        "label": "Testo atteso"
+      },
+      "countEg1": {
+        "label": "Conteggio (es. ==1)"
+      },
+      "expectedValue": {
+        "label": "Valore atteso"
+      },
+      "value": {
+        "label": "Valore / Testo",
+        "placeholder": "Valore..."
+      },
+      "enterText": {
+        "placeholder": "Inserisci testo..."
+      }
     }
   },
   "notFoundPage": {

@@ -1,123 +1,123 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { pgTable, text, integer, serial, timestamp, boolean, jsonb } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations, sql } from 'drizzle-orm';
 
 // Table Definitions
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const userSettings = sqliteTable("user_settings", {
+export const userSettings = pgTable("user_settings", {
   userId: integer("user_id").primaryKey().references(() => users.id),
   theme: text("theme").default('light').notNull(),
   defaultTestUrl: text("default_test_url"),
   playwrightBrowser: text("playwright_browser").default('chromium').notNull(),
-  playwrightHeadless: integer("playwright_headless", { mode: 'boolean' }).default(true).notNull(),
+  playwrightHeadless: boolean("playwright_headless").default(true).notNull(),
   playwrightDefaultTimeout: integer("playwright_default_timeout").default(30000).notNull(),
   playwrightWaitTime: integer("playwright_wait_time").default(1000).notNull(),
 });
 
-export const projects = sqliteTable("projects", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   userId: integer("user_id").notNull().references(() => users.id),
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const tests = sqliteTable("tests", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const tests = pgTable("tests", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
   name: text("name").notNull(),
   url: text("url").notNull(),
-  sequence: text("sequence", { mode: 'json' }).notNull(),
-  elements: text("elements", { mode: 'json' }).notNull(),
+  sequence: jsonb("sequence").notNull(),
+  elements: jsonb("elements").notNull(),
   status: text("status").notNull().default("draft"),
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
-  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 
-  // NEW Fields for reporting - .nullable() removed, nullability is default if .notNull() is absent
+  // NEW Fields for reporting
   module: text("module"),
   featureArea: text("feature_area"),
   scenario: text("scenario"),
   component: text("component"),
-  priority: text("priority", { enum: ['Critical', 'High', 'Medium', 'Low'] }).default('Medium'),
-  severity: text("severity", { enum: ['Blocker', 'Critical', 'Major', 'Minor'] }).default('Major'),
+  priority: text("priority").default('Medium'), // enum is handled by app logic/zod
+  severity: text("severity").default('Major'),
 });
 
-export const testRuns = sqliteTable("test_runs", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const testRuns = pgTable("test_runs", {
+  id: serial("id").primaryKey(),
   testId: integer("test_id").notNull().references(() => tests.id),
   status: text("status").notNull(),
-  results: text("results", { mode: 'json' }),
-  startedAt: integer("started_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
-  completedAt: integer("completed_at", { mode: 'timestamp' }),
+  results: jsonb("results"),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
 });
 
-export const apiTestHistory = sqliteTable("api_test_history", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const apiTestHistory = pgTable("api_test_history", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   method: text("method").notNull(),
   url: text("url").notNull(),
-  queryParams: text("query_params", { mode: 'json' }),
-  requestHeaders: text("request_headers", { mode: 'json' }),
+  queryParams: jsonb("query_params"),
+  requestHeaders: jsonb("request_headers"),
   requestBody: text("request_body"),
   responseStatus: integer("response_status"),
-  responseHeaders: text("response_headers", { mode: 'json' }),
+  responseHeaders: jsonb("response_headers"),
   responseBody: text("response_body"),
   durationMs: integer("duration_ms"),
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const apiTests = sqliteTable("api_tests", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const apiTests = pgTable("api_tests", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
   name: text("name").notNull(),
   method: text("method").notNull(),
   url: text("url").notNull(),
-  queryParams: text("query_params", { mode: 'json' }),
-  requestHeaders: text("request_headers", { mode: 'json' }),
+  queryParams: jsonb("query_params"),
+  requestHeaders: jsonb("request_headers"),
   requestBody: text("request_body"),
-  assertions: text("assertions", { mode: 'json' }),
+  assertions: jsonb("assertions"),
   authType: text("auth_type"),
-  authParams: text("auth_params", { mode: 'json' }),
+  authParams: jsonb("auth_params"),
   bodyType: text("body_type"),
   bodyRawContentType: text("body_raw_content_type"),
-  bodyFormData: text("body_form_data", { mode: 'json' }),
-  bodyUrlEncoded: text("body_url_encoded", { mode: 'json' }),
+  bodyFormData: jsonb("body_form_data"),
+  bodyUrlEncoded: jsonb("body_url_encoded"),
   bodyGraphqlQuery: text("body_graphql_query"),
   bodyGraphqlVariables: text("body_graphql_variables"),
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
-  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 
-  // NEW Fields for reporting - .nullable() removed
+  // NEW Fields for reporting
   module: text("module"),
   featureArea: text("feature_area"),
   scenario: text("scenario"),
   component: text("component"),
-  priority: text("priority", { enum: ['Critical', 'High', 'Medium', 'Low'] }).default('Medium'),
-  severity: text("severity", { enum: ['Blocker', 'Critical', 'Major', 'Minor'] }).default('Major'),
+  priority: text("priority").default('Medium'),
+  severity: text("severity").default('Major'),
 });
 
-// System Settings Table
-export const systemSettings = sqliteTable('system_settings', {
+export const systemSettings = pgTable('system_settings', {
   key: text('key').primaryKey(),
   value: text('value'),
 });
 
 // Test Plans Table
-export const testPlans = sqliteTable("test_plans", {
+export const testPlans = pgTable("test_plans", {
   id: text('id').primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
   name: text('name').notNull(),
   description: text('description'),
-  testMachinesConfig: text('test_machines_config', { mode: 'json' }),
+  testMachinesConfig: jsonb('test_machines_config'),
   captureScreenshots: text('capture_screenshots').default('on_failed_steps'),
-  visualTestingEnabled: integer('visual_testing_enabled', { mode: 'boolean' }).default(false),
+  visualTestingEnabled: boolean('visual_testing_enabled').default(false),
   pageLoadTimeout: integer('page_load_timeout').default(30000),
   elementTimeout: integer('element_timeout').default(30000),
   onMajorStepFailure: text('on_major_step_failure').default('abort_and_run_next_test_case'),
@@ -126,77 +126,102 @@ export const testPlans = sqliteTable("test_plans", {
   onTestCasePreRequisiteFailure: text('on_test_case_pre_requisite_failure').default('stop_execution'),
   onTestStepPreRequisiteFailure: text('on_test_step_pre_requisite_failure').default('abort_and_run_next_test_case'),
   reRunOnFailure: text('re_run_on_failure').default('none'),
-  notificationSettings: text('notification_settings', { mode: 'json' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  notificationSettings: jsonb('notification_settings'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Test Plan Schedules Table
-export const testPlanSchedules = sqliteTable("test_plan_schedules", {
+export const testPlanSchedules = pgTable("test_plan_schedules", {
   id: text('id').primaryKey(),
   testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
   scheduleName: text('schedule_name').notNull(),
   frequency: text('frequency').notNull(),
-  nextRunAt: integer('next_run_at', { mode: 'timestamp' }).notNull(),
+  nextRunAt: timestamp('next_run_at').notNull(),
   environment: text('environment'),
-  browsers: text('browsers', { mode: 'json' }),
-  notificationConfigOverride: text('notification_config_override', { mode: 'json' }),
-  executionParameters: text('execution_parameters', { mode: 'json' }),
-  isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
-  retryOnFailure: text('retry_on_failure', { enum: ['none', 'once', 'twice'] }).default('none').notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }),
+  browsers: jsonb('browsers'),
+  notificationConfigOverride: jsonb('notification_config_override'),
+  executionParameters: jsonb('execution_parameters'),
+  isActive: boolean('is_active').default(true).notNull(),
+  retryOnFailure: text('retry_on_failure').default('none').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at'),
 });
 
-// Test Plan Executions Table
-export const testPlanExecutions = sqliteTable("test_plan_executions", {
+export const testPlanExecutions = pgTable("test_plan_executions", {
   id: text('id').primaryKey(),
   scheduleId: text('schedule_id').references(() => testPlanSchedules.id, { onDelete: 'set null' }),
   testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
-  status: text('status', { enum: ['pending', 'running', 'completed', 'failed', 'error', 'cancelled'] }).notNull().default('pending'),
-  results: text("results", { mode: 'json' }),
-  startedAt: integer('started_at', { mode: 'timestamp' }).notNull().default(sql`(strftime('%s', 'now'))`),
-  completedAt: integer('completed_at', { mode: 'timestamp' }),
+  status: text('status').notNull().default('pending'),
+  results: jsonb("results"),
+  startedAt: timestamp('started_at').notNull().defaultNow(),
+  completedAt: timestamp('completed_at'),
   environment: text('environment'),
-  browsers: text('browsers', { mode: 'json' }),
-  triggeredBy: text('triggered_by', { enum: ['scheduled', 'manual', 'api'] }).notNull().default('manual'),
-  totalTests: integer("total_tests"), // Nullable by default
-  passedTests: integer("passed_tests"), // Nullable by default
-  failedTests: integer("failed_tests"), // Nullable by default
-  skippedTests: integer("skipped_tests"), // Nullable by default
-  executionDurationMs: integer("execution_duration_ms"), // Nullable by default
+  browsers: jsonb('browsers'),
+  triggeredBy: text('triggered_by').notNull().default('manual'),
+  totalTests: integer("total_tests"),
+  passedTests: integer("passed_tests"),
+  failedTests: integer("failed_tests"),
+  skippedTests: integer("skipped_tests"),
+  executionDurationMs: integer("execution_duration_ms"),
 });
 
-// ---- NEW TABLE for Individual Test Case Results ----
-export const reportTestCaseResults = sqliteTable("report_test_case_results", {
+export const reportTestCaseResults = pgTable("report_test_case_results", {
   id: text("id").primaryKey(),
   testPlanExecutionId: text("test_plan_execution_id").notNull().references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
   uiTestId: integer("ui_test_id").references(() => tests.id, { onDelete: 'set null' }),
   apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'set null' }),
-  testType: text("test_type", { enum: ['ui', 'api'] }).notNull(),
+  testType: text("test_type").notNull(),
   testName: text("test_name").notNull(),
-  status: text("status", { enum: ['Passed', 'Failed', 'Skipped', 'Pending', 'Error'] }).notNull(),
+  status: text("status").notNull(),
   reasonForFailure: text("reason_for_failure"),
   screenshotUrl: text("screenshot_url"),
   detailedLog: text("detailed_log"),
-  startedAt: integer("started_at", { mode: 'timestamp' }).notNull(),
-  completedAt: integer("completed_at", { mode: 'timestamp' }),
+  startedAt: timestamp("started_at").notNull(),
+  completedAt: timestamp("completed_at"),
   durationMs: integer("duration_ms"),
   module: text("module"),
   featureArea: text("feature_area"),
   scenario: text("scenario"),
   component: text("component"),
-  priority: text("priority", { enum: ['Critical', 'High', 'Medium', 'Low'] }), // Default is not set here, can be set by app logic
-  severity: text("severity", { enum: ['Blocker', 'Critical', 'Major', 'Minor'] }), // Default is not set here
+  priority: text("priority"),
+  severity: text("severity"),
 });
 
-// Test Plan Selected Tests Table
-export const testPlanSelectedTests = sqliteTable("test_plan_selected_tests", {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const environments = pgTable("environments", {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  description: text('description'),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const secrets = pgTable("secrets", {
+  id: serial('id').primaryKey(),
+  environmentId: integer('environment_id').notNull().references(() => environments.id, { onDelete: 'cascade' }),
+  keyName: text('key_name').notNull(),
+  encryptedValue: text('encrypted_value').notNull(),
+  iv: text('iv').notNull(),
+  authTag: text('auth_tag').notNull(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const testPlanWebhooks = pgTable("test_plan_webhooks", {
+  id: serial('id').primaryKey(),
+  testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  lastUsedAt: timestamp('last_used_at'),
+});
+
+export const testPlanSelectedTests = pgTable("test_plan_selected_tests", {
+  id: serial('id').primaryKey(),
   testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
   testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }),
   apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }),
-  testType: text('test_type', { enum: ['ui', 'api'] }).notNull(),
+  testType: text('test_type').notNull(),
 });
 
 
@@ -207,6 +232,18 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   tests: many(tests),
   apiTestHistory: many(apiTestHistory),
   apiTests: many(apiTests),
+  environments: many(environments),
+  secrets: many(secrets),
+}));
+
+export const environmentsRelations = relations(environments, ({ one, many }) => ({
+  user: one(users, { fields: [environments.userId], references: [users.id] }),
+  secrets: many(secrets),
+}));
+
+export const secretsRelations = relations(secrets, ({ one }) => ({
+  environment: one(environments, { fields: [secrets.environmentId], references: [environments.id] }),
+  user: one(users, { fields: [secrets.userId], references: [users.id] }),
 }));
 
 export const userSettingsRelations = relations(userSettings, ({ one }) => ({
@@ -404,6 +441,13 @@ export const selectReportTestCaseResultSchema = createSelectSchema(reportTestCas
 
 export type ReportTestCaseResult = typeof reportTestCaseResults.$inferSelect;
 export type InsertReportTestCaseResult = typeof reportTestCaseResults.$inferInsert;
+
+export type Environment = typeof environments.$inferSelect;
+export type InsertEnvironment = typeof environments.$inferInsert;
+export type Secret = typeof secrets.$inferSelect;
+export type InsertSecret = typeof secrets.$inferInsert;
+export type TestPlanWebhook = typeof testPlanWebhooks.$inferSelect;
+export type InsertTestPlanWebhook = typeof testPlanWebhooks.$inferInsert;
 
 
 // --- Assertion Schemas ---

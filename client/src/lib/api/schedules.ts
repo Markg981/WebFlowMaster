@@ -31,7 +31,7 @@ export type UpdateScheduleClientPayload = Partial<Omit<InsertTestPlanSchedule, '
 const prepareSchedulePayloadForServer = (data: CreateScheduleClientPayload | UpdateScheduleClientPayload): any => {
   const payload: any = { ...data };
   if (data.nextRunAt && data.nextRunAt instanceof Date) {
-    payload.nextRunAt = Math.floor(data.nextRunAt.getTime() / 1000);
+    payload.nextRunAt = data.nextRunAt;
   }
   // The server route handlers for POST/PUT on /api/test-plan-schedules
   // already expect 'browsers', 'notificationConfigOverride', 'executionParameters'
@@ -49,7 +49,7 @@ const parseServerScheduleResponse = (schedule: TestPlanSchedule): TestPlanSchedu
   return {
     ...schedule,
     testPlanName: (schedule as any).testPlanName, // testPlanName is joined by server
-    nextRunAt: new Date(schedule.nextRunAt * 1000), // Convert timestamp to Date
+    nextRunAt: new Date(schedule.nextRunAt), // nextRunAt is returned as ISO string
     browsers: schedule.browsers as string[] | null,
     notificationConfigOverride: schedule.notificationConfigOverride as Record<string, any> | null,
     executionParameters: schedule.executionParameters as Record<string, any> | null,
@@ -130,7 +130,7 @@ export interface TestPlanExecutionEnhanced extends TestPlanExecution {
   testPlanName?: string;
   scheduleName?: string;
   startedAt: Date; // Ensure this is a Date object
-  completedAt?: Date | null; // Ensure this is a Date object or null
+  completedAt: Date | null; // Ensure this is a Date object or null
   // Server already parses results and browsers JSON
   results: Record<string, any> | null;
   browsers: string[] | null;
@@ -161,8 +161,8 @@ const parseServerExecutionResponse = (execution: TestPlanExecution): TestPlanExe
     ...execution,
     testPlanName: (execution as any).testPlanName,
     scheduleName: (execution as any).scheduleName,
-    startedAt: new Date(execution.startedAt * 1000), // Convert timestamp to Date
-    completedAt: execution.completedAt ? new Date(execution.completedAt * 1000) : null,
+    startedAt: new Date(execution.startedAt), // Convert to Date
+    completedAt: execution.completedAt ? new Date(execution.completedAt) : null,
     results: execution.results as Record<string, any> | null,
     browsers: execution.browsers as string[] | null,
   };

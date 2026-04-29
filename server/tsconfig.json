@@ -6,6 +6,6 @@
     "composite": true,
     "tsBuildInfoFile": "../node_modules/.cache/tsbuildinfo.server.json"
   },
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", "../shared/**/*.ts"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  redis:
+    image: valkey/valkey:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  api:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/webflowmaster
+      - SESSION_SECRET=7G823eU1afEmmjSg73Juk_wRoVPt6mqbjBXliA6XXNg
+    depends_on:
+      - redis
+      - postgres
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/webflowmaster
+    depends_on:
+      - redis
+      - postgres
+    # You can scale this service: docker-compose up --scale worker=5
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=webflowmaster
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+volumes:
+  redis_data:
+  pg_data:
