@@ -1,0 +1,3 @@
+## 2024-05-24 - N+1 Query in Test Execution Service
+**Learning:** The application had an N+1 query problem inside the test-execution loop where individual `uiTest` and `apiTest` records were being sequentially fetched from the database based on foreign keys. When running a test suite with 100 tests, this resulted in 100 extra database queries.
+**Action:** Always batch fetch related model IDs using `inArray` from `drizzle-orm` and populate a JavaScript `Map` for O(1) in-memory lookup prior to iterating over loops. Remember to guard `inArray` with an `.length > 0` check to prevent Drizzle from throwing a runtime error.

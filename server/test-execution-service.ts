@@ -11,7 +11,7 @@ import {
   testPlanExecutions as testPlanExecutionsTable,
   reportTestCaseResults as reportTestCaseResultsTable // Added
 } from '@shared/schema';
-import { eq, and, sql } from 'drizzle-orm'; // Added sql
+import { eq, and, sql, inArray } from 'drizzle-orm'; // Added sql
 import { v4 as uuidv4 } from 'uuid';
 // @ts-ignore - no @types/fs-extra installed
 import fs from 'fs-extra';
@@ -303,6 +303,25 @@ export async function processTestPlanJob(
     timestamp: new Date().toISOString()
   });
 
+  const uiTestIds = selectedTestsLinks.filter(link => link.testId && link.testType === 'ui').map(link => link.testId as number);
+  const apiTestIds = selectedTestsLinks.filter(link => link.apiTestId && link.testType === 'api').map(link => link.apiTestId as number);
+
+  const uiTestsMap = new Map<number, Test>();
+  if (uiTestIds.length > 0) {
+    const uiTests = await db.select().from(testsTable).where(inArray(testsTable.id, uiTestIds));
+    for (const test of uiTests) {
+      uiTestsMap.set(test.id, test);
+    }
+  }
+
+  const apiTestsMap = new Map<number, ApiTest>();
+  if (apiTestIds.length > 0) {
+    const apiTests = await db.select().from(apiTestsTable).where(inArray(apiTestsTable.id, apiTestIds));
+    for (const test of apiTests) {
+      apiTestsMap.set(test.id, test);
+    }
+  }
+
   const legacyIndividualTestResultsForJsonBlob: IndividualTestRunResult[] = [];
 
   for (const link of selectedTestsLinks) {
@@ -311,12 +330,10 @@ export async function processTestPlanJob(
 
     if (link.testId && link.testType === 'ui') {
       // Fetch UI test with new metadata fields
-      const uiTestArr = await db.select().from(testsTable).where(eq(testsTable.id, link.testId)).limit(1);
-      if (uiTestArr.length > 0) testObjectDefinition = uiTestArr[0];
+      testObjectDefinition = uiTestsMap.get(link.testId);
     } else if (link.apiTestId && link.testType === 'api') {
       // Fetch API test with new metadata fields
-      const apiTestArr = await db.select().from(apiTestsTable).where(eq(apiTestsTable.id, link.apiTestId)).limit(1);
-      if (apiTestArr.length > 0) testObjectDefinition = apiTestArr[0];
+      testObjectDefinition = apiTestsMap.get(link.apiTestId);
     }
 
     const singleTestStartTime = Date.now();
