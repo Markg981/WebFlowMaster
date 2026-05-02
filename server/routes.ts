@@ -1798,71 +1798,38 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
       .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
       .orderBy(desc(reportTestCaseResults.status), asc(reportTestCaseResults.testName)); // Example ordering
 
+    // ⚡ Bolt Performance Optimization:
+    // Combined 8 separate array traversals (filters, maps, forEach loops) into a single O(N) loop
+    // to calculate metrics, distributions, collect failed details, and perform groupings.
+
     // 3. Calculate Key Metrics
     const totalTests = testCaseResults.length;
-    const passedTests = testCaseResults.filter(r => r.status === 'Passed').length;
-    const failedTests = testCaseResults.filter(r => r.status === 'Failed').length;
-    const skippedTests = testCaseResults.filter(r => r.status === 'Skipped').length;
-    // Add other statuses if needed (e.g., 'Error', 'Pending')
-
+    let passedTests = 0;
+    let failedTests = 0;
+    let skippedTests = 0;
     let totalDurationMs = 0;
-    testCaseResults.forEach(r => {
-      if (r.durationMs !== null && r.durationMs !== undefined) {
-        totalDurationMs += r.durationMs;
-      }
-    });
-    const averageTimePerTest = totalTests > 0 ? Math.round(totalDurationMs / totalTests) : 0;
 
-    // 4. Prepare data for charts
-    const passFailSkippedDistribution = {
-      passed: passedTests,
-      failed: failedTests,
-      skipped: skippedTests,
-    };
-
+    // 4. Prepare data for charts (Initialization)
     const priorityDistribution: Record<string, { passed: number, failed: number, skipped: number, total: number }> = {};
-    testCaseResults.forEach(r => {
-      const prio = r.priority || 'N/A';
-      if (!priorityDistribution[prio]) {
-        priorityDistribution[prio] = { passed: 0, failed: 0, skipped: 0, total: 0 };
-      }
-      priorityDistribution[prio].total++;
-      if (r.status === 'Passed') priorityDistribution[prio].passed++;
-      else if (r.status === 'Failed') priorityDistribution[prio].failed++;
-      else if (r.status === 'Skipped') priorityDistribution[prio].skipped++;
-    });
-
     const detailedSeverityDistribution: Record<string, { passed: number, failed: number, skipped: number, total: number }> = {};
-     testCaseResults.forEach(r => {
-      const sev = r.severity || 'N/A';
-      if (!detailedSeverityDistribution[sev]) {
-        detailedSeverityDistribution[sev] = { passed: 0, failed: 0, skipped: 0, total: 0 };
-      }
-      detailedSeverityDistribution[sev].total++;
-      if (r.status === 'Passed') detailedSeverityDistribution[sev].passed++;
-      else if (r.status === 'Failed') detailedSeverityDistribution[sev].failed++;
-      else if (r.status === 'Skipped') detailedSeverityDistribution[sev].skipped++;
-    });
 
-    // 5. Detailed View of Failed Tests
-    const failedTestDetails = testCaseResults
-      .filter(r => r.status === 'Failed')
-      .map(r => ({
-        id: r.id,
-        testName: r.testName,
-        reasonForFailure: r.reasonForFailure,
-        screenshotUrl: r.screenshotUrl,
-        detailedLog: r.detailedLog,
-        component: r.component,
-        priority: r.priority,
-        severity: r.severity,
-        durationMs: r.durationMs,
-        uiTestId: r.uiTestId,
-        apiTestId: r.apiTestId,
-        testType: r.testType,
-      }));
+    // 5. Detailed View of Failed Tests (Initialization)
+    const failedTestDetails: Array<{
+      id: number;
+      testName: string | null;
+      reasonForFailure: string | null;
+      screenshotUrl: string | null;
+      detailedLog: string | null;
+      component: string | null;
+      priority: string | null;
+      severity: string | null;
+      durationMs: number | null;
+      uiTestId: number | null;
+      apiTestId: number | null;
+      testType: string | null;
+    }> = [];
 
-    // 6. Expandable Test Groupings (by module, then by component as an example)
+    // 6. Expandable Test Groupings (Initialization)
     const groupedByModule: Record<string, {
         passed: number, failed: number, skipped: number, total: number,
         components: Record<string, {
@@ -1871,7 +1838,56 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
         }>
     }> = {};
 
-    testCaseResults.forEach(r => {
+    // Single pass to collect all data
+    for (const r of testCaseResults) {
+      // -- Metrics & Duration --
+      if (r.status === 'Passed') passedTests++;
+      else if (r.status === 'Failed') failedTests++;
+      else if (r.status === 'Skipped') skippedTests++;
+
+      if (r.durationMs !== null && r.durationMs !== undefined) {
+        totalDurationMs += r.durationMs;
+      }
+
+      // -- Priority Distribution --
+      const prio = r.priority || 'N/A';
+      if (!priorityDistribution[prio]) {
+        priorityDistribution[prio] = { passed: 0, failed: 0, skipped: 0, total: 0 };
+      }
+      priorityDistribution[prio].total++;
+      if (r.status === 'Passed') priorityDistribution[prio].passed++;
+      else if (r.status === 'Failed') priorityDistribution[prio].failed++;
+      else if (r.status === 'Skipped') priorityDistribution[prio].skipped++;
+
+      // -- Severity Distribution --
+      const sev = r.severity || 'N/A';
+      if (!detailedSeverityDistribution[sev]) {
+        detailedSeverityDistribution[sev] = { passed: 0, failed: 0, skipped: 0, total: 0 };
+      }
+      detailedSeverityDistribution[sev].total++;
+      if (r.status === 'Passed') detailedSeverityDistribution[sev].passed++;
+      else if (r.status === 'Failed') detailedSeverityDistribution[sev].failed++;
+      else if (r.status === 'Skipped') detailedSeverityDistribution[sev].skipped++;
+
+      // -- Failed Test Details --
+      if (r.status === 'Failed') {
+        failedTestDetails.push({
+          id: r.id,
+          testName: r.testName,
+          reasonForFailure: r.reasonForFailure,
+          screenshotUrl: r.screenshotUrl,
+          detailedLog: r.detailedLog,
+          component: r.component,
+          priority: r.priority,
+          severity: r.severity,
+          durationMs: r.durationMs,
+          uiTestId: r.uiTestId,
+          apiTestId: r.apiTestId,
+          testType: r.testType,
+        });
+      }
+
+      // -- Test Groupings --
       const moduleName = r.module || 'Uncategorized Module';
       const componentName = r.component || 'Uncategorized Component';
 
@@ -1896,7 +1912,14 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
         groupedByModule[moduleName].skipped++;
         groupedByModule[moduleName].components[componentName].skipped++;
       }
-    });
+    }
+
+    const averageTimePerTest = totalTests > 0 ? Math.round(totalDurationMs / totalTests) : 0;
+    const passFailSkippedDistribution = {
+      passed: passedTests,
+      failed: failedTests,
+      skipped: skippedTests,
+    };
 
     const reportData = {
       header: {
