@@ -5,6 +5,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { CommandMenu } from "@/components/CommandMenu";
 import { AuthProvider, useAuth } from "@/hooks/use-auth"; // useAuth already imported here, good
 import { DragDropProvider } from "@/components/drag-drop-provider";
 import NotFound from "@/pages/not-found";

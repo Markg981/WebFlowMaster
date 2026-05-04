@@ -439,7 +439,7 @@ export default function DashboardPage() {
       toast({
         title: "Failed to load website",
         description: error.message,
-        variant: "destructive",
+        style: { background: "var(--destructive)", color: "white" },
       });
     },
   });
@@ -460,7 +460,7 @@ export default function DashboardPage() {
       toast({
         title: "Failed to detect elements",
         description: error.message,
-        variant: "destructive",
+        style: { background: "var(--destructive)", color: "white" },
       });
     },
   });
@@ -486,7 +486,7 @@ export default function DashboardPage() {
       toast({
         title: "Failed to save test",
         description: error.message,
-        variant: "destructive",
+        style: { background: "var(--destructive)", color: "white" },
       });
     },
   });
@@ -506,7 +506,7 @@ export default function DashboardPage() {
       toast({
         title: "No test steps",
         description: "Add some test steps before saving",
-        variant: "destructive",
+        style: { background: "var(--destructive)", color: "white" },
       });
       return;
     }
@@ -529,7 +529,7 @@ export default function DashboardPage() {
       toast({
         title: "Project Not Selected",
         description: "Please select a project to save the test.",
-        variant: "destructive",
+        style: { background: "var(--destructive)", color: "white" },
       });
       // Re-open modal or indicate error. For now, just preventing save.
       // Re-opening modal might be better UX, but requires passing modal control back or more complex state.
@@ -575,7 +575,7 @@ export default function DashboardPage() {
       toast({
         title: t('dashboardPageNew.toasts.failedToStartRecording'),
         description: error.message,
-        variant: "destructive",
+        style: { background: "var(--destructive)", color: "white" },
       });
     },
   });
@@ -585,7 +585,7 @@ export default function DashboardPage() {
       toast({
         title: t('dashboardPageNew.toasts.cannotStartRecording.title'),
         description: t('dashboardPageNew.toasts.cannotStartRecording.description'),
-        variant: "destructive",
+        style: { background: "var(--destructive)", color: "white" },
       });
       return;
     }
@@ -659,7 +659,7 @@ export default function DashboardPage() {
       toast({
         title: "Failed to Stop Recording",
         description: error.message,
-        variant: "destructive",
+        style: { background: "var(--destructive)", color: "white" },
       });
     },
     // The malformed onSettled and duplicate onError that followed have been removed.
@@ -676,7 +676,7 @@ export default function DashboardPage() {
       toast({
         title: "Error",
         description: "No recording session is active.",
-        variant: "destructive",
+        style: { background: "var(--destructive)", color: "white" },
       });
       // Ensure states are reset even if sessionId was somehow null
       setIsRecording(false);
@@ -701,7 +701,7 @@ export default function DashboardPage() {
           toast({
             title: t('dashboardPageNew.toasts.networkError.title'),
             description: t('dashboardPageNew.toasts.networkError.description', { status: res.status }),
-            variant: "destructive",
+            style: { background: "var(--destructive)", color: "white" },
             duration: 7000,
           });
           // Consider stopping if error is 404, indicating session truly not found
@@ -726,7 +726,7 @@ export default function DashboardPage() {
             toast({
               title: t('dashboardPageNew.toasts.sessionTerminated.title'),
               description: result.error || t('dashboardPageNew.toasts.sessionTerminated.description'),
-              variant: "default",
+              style: { background: "var(--success)", color: "white" },
               duration: 7000,
             });
             setIsRecording(false);
@@ -757,7 +757,7 @@ export default function DashboardPage() {
             toast({
               title: t('dashboardPageNew.toasts.sessionProblem.title'),
               description: result.error || t('dashboardPageNew.toasts.sessionProblem.description'),
-              variant: "destructive",
+              style: { background: "var(--destructive)", color: "white" },
               duration: 7000,
             });
             // For non-session-ending errors, you might choose not to stop recording immediately
@@ -854,14 +854,14 @@ export default function DashboardPage() {
         setIsExecutingPlayback(false);
         setCurrentPlaybackStepIndex(null);
         setPlaybackSteps([]);
-        toast({ title: "Execution Failed", description: data.error || "No steps returned or execution failed.", variant: "destructive" });
+        toast({ title: "Execution Failed", description: data.error || "No steps returned or execution failed.", style: { background: "var(--destructive)", color: "white" } });
       }
     },
     onError: (error: Error) => {
       setIsExecutingPlayback(false);
       setCurrentPlaybackStepIndex(null);
       setPlaybackSteps([]);
-      toast({ title: "Saved Test Execution Request Failed", description: error.message, variant: "destructive" });
+      toast({ title: "Saved Test Execution Request Failed", description: error.message, style: { background: "var(--destructive)", color: "white" } });
     },
   });
 
@@ -907,7 +907,7 @@ export default function DashboardPage() {
         toast({
           title: data.success ? t('dashboardPageNew.toasts.executionNote') : t('dashboardPageNew.toasts.testFailed'),
           description: data.error || (data.success ? t('dashboardPageNew.toasts.noStepsToPlayback') : t('dashboardPageNew.toasts.executionFailed')),
-          variant: data.success ? "default" : "destructive"
+
         });
       }
     },
@@ -927,7 +927,7 @@ export default function DashboardPage() {
       setPlaybackSteps([]);
       setDetectedElements([]); // Clear elements on error
       setLastTestOverallResult(false); // Set overall result to failed
-      toast({ title: t('dashboardPageNew.toasts.testFailed'), description: error.message, variant: "destructive" });
+      toast({ title: t('dashboardPageNew.toasts.testFailed'), description: error.message, style: { background: "var(--destructive)", color: "white" } });
     },
   });
 
@@ -966,14 +966,14 @@ export default function DashboardPage() {
         toast({
           title: t('dashboardPageNew.toasts.testFailed'),
           description: t('dashboardPageNew.testResultFailed.text'),
-          variant: "destructive",
+          style: { background: "var(--destructive)", color: "white" },
         });
       } else {
         // This case should ideally not be reached if lastTestOverallResult is always set before playback
         toast({
           title: t('dashboardPageNew.toasts.playbackComplete.title'),
           description: t('dashboardPageNew.toasts.playbackComplete.description'),
-          variant: "default",
+          style: { background: "var(--success)", color: "white" },
         });
       }
       // Optionally, restore the original website screenshot if available
@@ -990,7 +990,7 @@ export default function DashboardPage() {
       toast({
         title: t('dashboardPageNew.toasts.emptySequence.title'),
         description: t('dashboardPageNew.toasts.emptySequence.description'),
-        variant: "destructive"
+        style: { background: "var(--destructive)", color: "white" }
       });
       return;
     }
