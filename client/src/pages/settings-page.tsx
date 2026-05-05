@@ -37,7 +37,7 @@ import {
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { Link } from "wouter";
-import { UserSettings, fetchSettings } from "../lib/settings";
+import { UserSettings, fetchSettings, SETTINGS_QUERY_KEY } from "../lib/settings";
 import EnvironmentsCard from "@/components/settings/EnvironmentsCard";
 
 interface Project {
@@ -204,8 +204,9 @@ export default function SettingsPage() {
   const [language, setLanguage] = useState("en");
 
   const { data: settingsData, isLoading: isLoadingSettings, isError: isErrorSettings, error: settingsError } = useQuery<UserSettings, Error>({
-    queryKey: ["settings"],
+    queryKey: [SETTINGS_QUERY_KEY, user?.id],
     queryFn: fetchSettings,
+    enabled: !!user,
   });
 
   const { data: logRetentionSettingData, isLoading: isLoadingLogRetentionSetting, isError: isErrorLogRetentionSetting, error: logRetentionSettingError } = useQuery<{ key: string; value: string } | null, Error>({
@@ -264,7 +265,9 @@ export default function SettingsPage() {
   const userSettingsMutation = useMutation<UserSettings, Error, Partial<UserSettings>>({
     mutationFn: saveSettings,
     onSuccess: (savedData) => {
-      queryClient.setQueryData(["settings"], savedData);
+      queryClient.setQueryData([SETTINGS_QUERY_KEY, user?.id], savedData);
+      // Also invalidate globally to ensure App.tsx loader sees it
+      queryClient.invalidateQueries({ queryKey: [SETTINGS_QUERY_KEY, user?.id] });
       toast({ title: t('settings.toast.savedTitle'), description: t('settings.toast.savedDescription') });
     },
     onError: (error) => {

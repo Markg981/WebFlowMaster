@@ -634,6 +634,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     const parseResult = userSettingsBodySchema.safeParse(req.body);
+    resolvedLogger.debug({ message: "POST /api/settings - parseResult:", data: parseResult.data, success: parseResult.success, body: req.body });
     if (!parseResult.success) {
       resolvedLogger.warn({ message: "POST /api/settings - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });

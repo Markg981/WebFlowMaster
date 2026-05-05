@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.4.5",
+    "@google/generative-ai": "^0.24.1",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@neondatabase/serverless": "^0.10.4",
     "@playwright/test": "^1.53.0",
@@ -31,6 +32,7 @@
     "@types/uuid": "^10.0.0",
     "better-sqlite3": "^11.10.0",
     "bullmq": "^5.76.5",
+    "caniuse-lite": "^1.0.30001791",
     "connect-pg-simple": "^10.0.0",
     "connect-redis": "^9.0.0",
     "dotenv": "^16.5.0",
@@ -43,6 +45,7 @@
     "ioredis": "^5.10.1",
     "memorystore": "^1.6.7",
     "multer": "^2.0.2",
+    "nanoid": "^5.1.11",
     "node-cron": "^4.1.1",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
@@ -50,10 +53,12 @@
     "playwright": "^1.53.1",
     "puppeteer": "^24.10.1",
     "uuid": "^11.1.1",
+    "vite": "^5.4.14",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
     "winston-loki": "^6.1.4",
     "ws": "^8.18.0",
+    "zod": "3.23.8",
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {

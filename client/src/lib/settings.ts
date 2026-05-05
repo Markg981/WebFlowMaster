@@ -1,4 +1,6 @@
 // client/src/lib/settings.ts
+export const SETTINGS_QUERY_KEY = "userSettings";
+
 export interface UserSettings {
   theme: "light" | "dark";
   defaultTestUrl: string | null;

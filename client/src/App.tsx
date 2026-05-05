@@ -24,14 +24,14 @@ import { ProtectedRoute } from "./lib/protected-route";
 // Imports for ThemeLoader
 import { useEffect } from 'react'; // useEffect already imported
 import { useQuery } from '@tanstack/react-query';
-import { UserSettings, fetchSettings } from './lib/settings';
+import { UserSettings, fetchSettings, SETTINGS_QUERY_KEY } from './lib/settings';
 // useAuth is already imported via AuthProvider line above
 import i18n from './i18n';
 
 const SettingsEffectLoader = () => {
   const { user } = useAuth();
   const { data: settingsData } = useQuery<UserSettings, Error>({
-    queryKey: ["userSettingsApp", user?.id],
+    queryKey: [SETTINGS_QUERY_KEY, user?.id],
     queryFn: fetchSettings,
     staleTime: Infinity,
     enabled: !!user,
