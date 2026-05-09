@@ -46,6 +46,7 @@ import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
 import { eq, and, desc, sql, getTableColumns, asc, or, like, ilike, inArray, isNull } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
+import { unionAll } from "drizzle-orm/pg-core";
 import { playwrightService } from "./playwright-service";
 import type { Logger as WinstonLogger } from 'winston';
 import schedulerService from "./scheduler-service"; // Import schedulerService
@@ -1684,8 +1685,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         apiConditions.push(ilike(apiTests.name, searchPattern));
       }
 
-      // Execute queries
-      const uiTestResults = await db.select({
+      // Define queries
+      const uiQuery = db.select({
           id: tests.id,
           name: tests.name,
           description: sql<string>`null`.as('description'),
@@ -1695,7 +1696,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(tests)
         .where(and(...uiConditions));
 
-      const apiTestResults = await db.select({
+      const apiQuery = db.select({
           id: apiTests.id,
           name: apiTests.name,
           description: sql<string>`null`.as('description'),
@@ -1705,19 +1706,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(apiTests)
         .where(and(...apiConditions));
 
-      // Combine results
-      let combinedResults = [...uiTestResults, ...apiTestResults];
+      // ⚡ BOLT OPTIMIZATION:
+      // What: Replaced in-memory array combination and sorting with database-level `unionAll`.
+      // Why: Previously, fetching all tests into Node.js arrays and using `.sort()` caused O(N) memory bottlenecks and excessive DB transfer.
+      // Impact: Significantly reduces memory footprint and speeds up page load (O(1) memory per page instead of O(N)).
+      // Measurement: Monitor `/api/selectable-tests` response times under high load; it should be much faster.
+      const combinedQuery = unionAll(uiQuery, apiQuery);
 
-      // Sort combined results (e.g., by name or updatedAt)
-      combinedResults.sort((a, b) => {
-        // Sort by name alphabetically by default
-        return a.name.localeCompare(b.name);
-        // Or sort by updatedAt if preferred:
-        // return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      });
+      // Fetch paginated results and total count
+      const [paginatedItems, countResult] = await Promise.all([
+        db.select()
+          .from(combinedQuery.as('combined'))
+          .orderBy(asc(sql`name`))
+          .limit(limit)
+          .offset(offset),
+        db.select({ count: sql<number>`count(*)` })
+          .from(combinedQuery.as('combined'))
+      ]);
 
-      const totalItems = combinedResults.length;
-      const paginatedItems = combinedResults.slice(offset, offset + limit);
+      const totalItems = Number(countResult[0]?.count) || 0;
       const totalPages = Math.ceil(totalItems / limit);
 
       res.json({
