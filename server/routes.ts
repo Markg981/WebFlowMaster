@@ -44,6 +44,7 @@ import {
 import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
+import { unionAll } from "drizzle-orm/pg-core";
 import { db } from "./db";
 import { eq, and, desc, sql, getTableColumns, asc, or, like, ilike, inArray, isNull } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
@@ -1684,40 +1685,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         apiConditions.push(ilike(apiTests.name, searchPattern));
       }
 
-      // Execute queries
-      const uiTestResults = await db.select({
+      // Execute queries using unionAll for optimal O(1) pagination at the DB level
+      const uiQuery = db.select({
           id: tests.id,
           name: tests.name,
-          description: sql<string>`null`.as('description'),
+          description: sql<string | null>`null`.as('description'),
           type: sql<string>`'ui'`.as('type'),
           updatedAt: tests.updatedAt
         })
         .from(tests)
         .where(and(...uiConditions));
 
-      const apiTestResults = await db.select({
+      const apiQuery = db.select({
           id: apiTests.id,
           name: apiTests.name,
-          description: sql<string>`null`.as('description'),
+          description: sql<string | null>`null`.as('description'),
           type: sql<string>`'api'`.as('type'),
           updatedAt: apiTests.updatedAt
         })
         .from(apiTests)
         .where(and(...apiConditions));
 
-      // Combine results
-      let combinedResults = [...uiTestResults, ...apiTestResults];
+      const paginatedItems = await unionAll(uiQuery, apiQuery)
+        .orderBy(sql`name ASC`)
+        .limit(limit)
+        .offset(offset);
 
-      // Sort combined results (e.g., by name or updatedAt)
-      combinedResults.sort((a, b) => {
-        // Sort by name alphabetically by default
-        return a.name.localeCompare(b.name);
-        // Or sort by updatedAt if preferred:
-        // return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      });
-
-      const totalItems = combinedResults.length;
-      const paginatedItems = combinedResults.slice(offset, offset + limit);
+      const uiCountResult = await db.select({ count: sql`count(*)` }).from(tests).where(and(...uiConditions));
+      const apiCountResult = await db.select({ count: sql`count(*)` }).from(apiTests).where(and(...apiConditions));
+      const totalItems = Number(uiCountResult[0].count) + Number(apiCountResult[0].count);
       const totalPages = Math.ceil(totalItems / limit);
 
       res.json({
