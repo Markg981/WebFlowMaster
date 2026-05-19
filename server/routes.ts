@@ -46,6 +46,7 @@ import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
 import { eq, and, desc, sql, getTableColumns, asc, or, like, ilike, inArray, isNull } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
+import { unionAll } from "drizzle-orm/pg-core";
 import { playwrightService } from "./playwright-service";
 import type { Logger as WinstonLogger } from 'winston';
 import schedulerService from "./scheduler-service"; // Import schedulerService
@@ -1684,8 +1685,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         apiConditions.push(ilike(apiTests.name, searchPattern));
       }
 
-      // Execute queries
-      const uiTestResults = await db.select({
+      // Define queries (without awaiting them)
+      const uiQuery = db.select({
           id: tests.id,
           name: tests.name,
           description: sql<string>`null`.as('description'),
@@ -1695,7 +1696,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(tests)
         .where(and(...uiConditions));
 
-      const apiTestResults = await db.select({
+      const apiQuery = db.select({
           id: apiTests.id,
           name: apiTests.name,
           description: sql<string>`null`.as('description'),
@@ -1705,19 +1706,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(apiTests)
         .where(and(...apiConditions));
 
-      // Combine results
-      let combinedResults = [...uiTestResults, ...apiTestResults];
+      // ⚡ BOLT OPTIMIZATION: Resolves O(N) memory and compute bottleneck by performing
+      // combining, sorting, and pagination at the database level instead of in-memory.
+      // Expected impact: Significantly reduced Node.js memory footprint and improved API response
+      // time for users with many tests, as we only fetch the requested page of data.
+      const paginatedItems = await unionAll(uiQuery, apiQuery)
+        .orderBy(sql`name ASC`)
+        .limit(limit)
+        .offset(offset);
 
-      // Sort combined results (e.g., by name or updatedAt)
-      combinedResults.sort((a, b) => {
-        // Sort by name alphabetically by default
-        return a.name.localeCompare(b.name);
-        // Or sort by updatedAt if preferred:
-        // return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      });
+      // To get total items, execute two lightweight count queries and sum them
+      const uiCountResult = await db.select({ count: sql<number>`count(*)` }).from(tests).where(and(...uiConditions));
+      const apiCountResult = await db.select({ count: sql<number>`count(*)` }).from(apiTests).where(and(...apiConditions));
 
-      const totalItems = combinedResults.length;
-      const paginatedItems = combinedResults.slice(offset, offset + limit);
+      const totalItems = Number(uiCountResult[0]?.count || 0) + Number(apiCountResult[0]?.count || 0);
       const totalPages = Math.ceil(totalItems / limit);
 
       res.json({
