@@ -46,6 +46,7 @@ import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
 import { eq, and, desc, sql, getTableColumns, asc, or, like, ilike, inArray, isNull } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
+import { unionAll } from "drizzle-orm/pg-core";
 import { playwrightService } from "./playwright-service";
 import type { Logger as WinstonLogger } from 'winston';
 import schedulerService from "./scheduler-service"; // Import schedulerService
@@ -1684,8 +1685,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         apiConditions.push(ilike(apiTests.name, searchPattern));
       }
 
-      // Execute queries
-      const uiTestResults = await db.select({
+      // Use unionAll to combine and paginate in the database instead of Node.js memory
+      // ⚡ Bolt: Prevent O(N) memory allocation and JS sorting for large tables by pushing pagination to PostgreSQL/PGlite natively
+      const uiQuery = db.select({
           id: tests.id,
           name: tests.name,
           description: sql<string>`null`.as('description'),
@@ -1695,7 +1697,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(tests)
         .where(and(...uiConditions));
 
-      const apiTestResults = await db.select({
+      const apiQuery = db.select({
           id: apiTests.id,
           name: apiTests.name,
           description: sql<string>`null`.as('description'),
@@ -1705,19 +1707,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(apiTests)
         .where(and(...apiConditions));
 
-      // Combine results
-      let combinedResults = [...uiTestResults, ...apiTestResults];
+      // Total count query for pagination metadata (executed concurrently)
+      const [totalUi, totalApi] = await Promise.all([
+        db.select({ count: sql<number>`count(*)` }).from(tests).where(and(...uiConditions)),
+        db.select({ count: sql<number>`count(*)` }).from(apiTests).where(and(...apiConditions))
+      ]);
+      const totalItems = Number(totalUi[0].count) + Number(totalApi[0].count);
 
-      // Sort combined results (e.g., by name or updatedAt)
-      combinedResults.sort((a, b) => {
-        // Sort by name alphabetically by default
-        return a.name.localeCompare(b.name);
-        // Or sort by updatedAt if preferred:
-        // return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      });
+      const unionQuery = unionAll(uiQuery, apiQuery);
 
-      const totalItems = combinedResults.length;
-      const paginatedItems = combinedResults.slice(offset, offset + limit);
+      const paginatedItems = await unionQuery
+        .orderBy(asc(sql`name`))
+        .limit(limit)
+        .offset(offset);
       const totalPages = Math.ceil(totalItems / limit);
 
       res.json({

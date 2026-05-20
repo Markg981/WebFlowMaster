@@ -1,3 +1,3 @@
-## 2024-05-24 - N+1 Query in Test Plan Execution
-**Learning:** The `runTestPlan` function in `server/test-execution-service.ts` was executing a separate DB query for each UI/API test inside the sequential execution loop, causing an N+1 query bottleneck.
-**Action:** Always batch fetch related models using `inArray` and store them in O(1) memory lookup maps (e.g., `new Map()`) prior to looping when querying associations inside loops using Drizzle ORM.
+## 2025-06-25 - Push Pagination to Postgres using Drizzle unionAll
+**Learning:** In WebFlowMaster's routes.ts, the `/api/selectable-tests` endpoint was combining results from `tests` and `apiTests` tables by eagerly fetching all unpaginated records into memory and executing Javascript `sort` and `slice` operations. For large datasets, this constitutes a massive O(N) memory and time bottleneck. Drizzle ORM does not inherently perform DB-level union sorting.
+**Action:** Always replace in-memory array concatenation of SQL queries with Drizzle's `unionAll` from `drizzle-orm/pg-core` attached to unawaited subqueries. Chain `.orderBy()`, `.limit()`, and `.offset()` to let PostgreSQL/PGlite naturally handle pagination. Run independent count aggregations concurrently using `Promise.all` to save time.
