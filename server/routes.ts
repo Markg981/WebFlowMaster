@@ -1,3 +1,4 @@
+import { unionAll } from 'drizzle-orm/pg-core';
 import { createServer, type Server } from "http";
 import { Express } from "express";
 import { setupAuth } from "./auth";
@@ -1684,8 +1685,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         apiConditions.push(ilike(apiTests.name, searchPattern));
       }
 
-      // Execute queries
-      const uiTestResults = await db.select({
+      // ⚡ BOLT OPTIMIZATION: Resolves O(N) memory bottleneck by doing pagination/sorting at the SQL level.
+      // Instead of fetching all results into Node memory and slicing them, we use Drizzle's `unionAll`
+      // to combine queries in SQL, run a single count, and apply limit/offset on the combined result.
+      const uiTestsQuery = db.select({
           id: tests.id,
           name: tests.name,
           description: sql<string>`null`.as('description'),
@@ -1695,7 +1698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(tests)
         .where(and(...uiConditions));
 
-      const apiTestResults = await db.select({
+      const apiTestsQuery = db.select({
           id: apiTests.id,
           name: apiTests.name,
           description: sql<string>`null`.as('description'),
@@ -1705,19 +1708,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(apiTests)
         .where(and(...apiConditions));
 
-      // Combine results
-      let combinedResults = [...uiTestResults, ...apiTestResults];
+      const unionQuery = unionAll(uiTestsQuery, apiTestsQuery).as('combined');
 
-      // Sort combined results (e.g., by name or updatedAt)
-      combinedResults.sort((a, b) => {
-        // Sort by name alphabetically by default
-        return a.name.localeCompare(b.name);
-        // Or sort by updatedAt if preferred:
-        // return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      });
+      // 1. Get total count for pagination
+      const totalCountResult = await db.select({ count: sql<number>`count(*)` }).from(unionQuery);
+      const totalItems = Number(totalCountResult[0]?.count || 0);
 
-      const totalItems = combinedResults.length;
-      const paginatedItems = combinedResults.slice(offset, offset + limit);
+      // 2. Fetch the paginated and sorted items
+      const paginatedItems = await db.select()
+        .from(unionQuery)
+        .orderBy(asc(sql`name`))
+        .limit(limit)
+        .offset(offset);
+
       const totalPages = Math.ceil(totalItems / limit);
 
       res.json({
