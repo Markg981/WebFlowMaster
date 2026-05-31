@@ -46,6 +46,7 @@ import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
 import { eq, and, desc, sql, getTableColumns, asc, or, like, ilike, inArray, isNull } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
+import { unionAll } from "drizzle-orm/pg-core";
 import { playwrightService } from "./playwright-service";
 import type { Logger as WinstonLogger } from 'winston';
 import schedulerService from "./scheduler-service"; // Import schedulerService
@@ -1685,7 +1686,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Execute queries
-      const uiTestResults = await db.select({
+      const uiTestQuery = db.select({
           id: tests.id,
           name: tests.name,
           description: sql<string>`null`.as('description'),
@@ -1695,7 +1696,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(tests)
         .where(and(...uiConditions));
 
-      const apiTestResults = await db.select({
+      const apiTestQuery = db.select({
           id: apiTests.id,
           name: apiTests.name,
           description: sql<string>`null`.as('description'),
@@ -1705,19 +1706,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(apiTests)
         .where(and(...apiConditions));
 
-      // Combine results
-      let combinedResults = [...uiTestResults, ...apiTestResults];
+      // Use unionAll to combine and paginate in the database to prevent O(N) memory bottleneck
+      const paginatedItems = await unionAll(uiTestQuery, apiTestQuery)
+        .orderBy(sql`name asc`)
+        .limit(limit)
+        .offset(offset);
 
-      // Sort combined results (e.g., by name or updatedAt)
-      combinedResults.sort((a, b) => {
-        // Sort by name alphabetically by default
-        return a.name.localeCompare(b.name);
-        // Or sort by updatedAt if preferred:
-        // return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      });
+      // Get count using separate queries to avoid full table fetch
+      const [uiCountResult] = await db.select({ count: sql`count(*)` }).from(tests).where(and(...uiConditions));
+      const [apiCountResult] = await db.select({ count: sql`count(*)` }).from(apiTests).where(and(...apiConditions));
 
-      const totalItems = combinedResults.length;
-      const paginatedItems = combinedResults.slice(offset, offset + limit);
+      const totalItems = Number(uiCountResult?.count || 0) + Number(apiCountResult?.count || 0);
       const totalPages = Math.ceil(totalItems / limit);
 
       res.json({
