@@ -45,7 +45,8 @@ import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
-import { eq, and, desc, sql, getTableColumns, asc, or, like, ilike, inArray, isNull } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
+import { eq, and, desc, sql, getTableColumns, asc, or, like, ilike, inArray, isNull } from "drizzle-orm";
+import { unionAll } from "drizzle-orm/pg-core"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
 import type { Logger as WinstonLogger } from 'winston';
 import schedulerService from "./scheduler-service"; // Import schedulerService
@@ -1685,7 +1686,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Execute queries
-      const uiTestResults = await db.select({
+      const uiQuery = db.select({
           id: tests.id,
           name: tests.name,
           description: sql<string>`null`.as('description'),
@@ -1695,7 +1696,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(tests)
         .where(and(...uiConditions));
 
-      const apiTestResults = await db.select({
+      const apiQuery = db.select({
           id: apiTests.id,
           name: apiTests.name,
           description: sql<string>`null`.as('description'),
@@ -1705,19 +1706,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(apiTests)
         .where(and(...apiConditions));
 
-      // Combine results
-      let combinedResults = [...uiTestResults, ...apiTestResults];
+      // ⚡ Bolt: Performance Optimization
+      // What: Replaced in-memory concatenation, sorting, and pagination with database-level UNION ALL.
+      // Why: Fetching all tests into Node.js memory creates an O(N) memory bottleneck and slow response times for users with many tests.
+      // Impact: Reduces memory usage from O(N) to O(limit) and offloads sorting/pagination to the database engine.
+      // Measurement: API response payload size is strictly capped at 'limit', and server memory avoids full table materialization.
+      const combinedQuery = unionAll(uiQuery, apiQuery);
 
-      // Sort combined results (e.g., by name or updatedAt)
-      combinedResults.sort((a, b) => {
-        // Sort by name alphabetically by default
-        return a.name.localeCompare(b.name);
-        // Or sort by updatedAt if preferred:
-        // return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      });
+      const totalItemsQuery = await db.select({ count: sql`count(*)` }).from(combinedQuery.as('combined_tests'));
+      const totalItems = Number(totalItemsQuery[0]?.count) || 0;
 
-      const totalItems = combinedResults.length;
-      const paginatedItems = combinedResults.slice(offset, offset + limit);
+      const paginatedItems = await db.select()
+        .from(combinedQuery.as('combined_tests_paginated'))
+        .orderBy(asc(sql`name`))
+        .limit(limit)
+        .offset(offset);
       const totalPages = Math.ceil(totalItems / limit);
 
       res.json({
