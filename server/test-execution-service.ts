@@ -445,9 +445,21 @@ export async function processTestPlanJob(
     .where(eq(reportTestCaseResultsTable.testPlanExecutionId, testPlanRunId));
 
   const calculatedTotalTests = finalDetailedResults.length;
-  const calculatedPassedTests = finalDetailedResults.filter((r: any) => r.status === 'Passed').length;
-  const calculatedFailedTests = finalDetailedResults.filter((r: any) => r.status === 'Failed').length;
-  const calculatedSkippedTests = finalDetailedResults.filter((r: any) => r.status === 'Skipped').length;
+
+  // ⚡ Bolt: Replaced multiple O(N) array .filter() passes with a single O(N) loop
+  // This reduces memory allocations and CPU cycles when calculating test metrics
+  let calculatedPassedTests = 0;
+  let calculatedFailedTests = 0;
+  let calculatedSkippedTests = 0;
+  let hasErrorTests = false;
+
+  for (const r of finalDetailedResults) {
+    if (r.status === 'Passed') calculatedPassedTests++;
+    else if (r.status === 'Failed') calculatedFailedTests++;
+    else if (r.status === 'Skipped') calculatedSkippedTests++;
+    else if (r.status === 'Error') hasErrorTests = true;
+  }
+
   // Consider 'Error' status as failures or a separate category if needed for overall status.
   // For overall status, let's say if any 'Failed' or 'Error', the whole run is 'failed'.
   // If any 'Skipped' and no 'Failed'/'Error', maybe 'partial' or 'completed_with_skipped'.
@@ -456,7 +468,7 @@ export async function processTestPlanJob(
   let finalOverallStatus: TestPlanExecution['status'] = 'pending'; // Should be 'completed' or 'failed' or 'error'
   if (calculatedTotalTests === 0 && selectedTestsLinks.length > 0) {
     finalOverallStatus = 'error'; // No results recorded but tests were expected
-  } else if (calculatedFailedTests > 0 || finalDetailedResults.some((r: any) => r.status === 'Error')) {
+  } else if (calculatedFailedTests > 0 || hasErrorTests) {
     finalOverallStatus = 'failed';
   } else if (calculatedTotalTests === calculatedPassedTests && calculatedTotalTests > 0) {
     finalOverallStatus = 'completed';
