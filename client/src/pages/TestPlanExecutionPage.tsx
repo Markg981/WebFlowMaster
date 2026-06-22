@@ -187,9 +187,20 @@ const TestPlanExecutionPage: React.FC = () => {
     );
   }
 
-  const completedTestsCount = Object.values(testStatuses).filter(t => t.status === 'passed' || t.status === 'failed').length;
-  const passedTestsCount = Object.values(testStatuses).filter(t => t.status === 'passed').length;
-  const failedTestsCount = Object.values(testStatuses).filter(t => t.status === 'failed').length;
+  // ⚡ Bolt: Single pass count computation to replace O(3N) array filtrations (O(K*N) bottleneck)
+  let completedTestsCount = 0;
+  let passedTestsCount = 0;
+  let failedTestsCount = 0;
+
+  for (const t of Object.values(testStatuses)) {
+    if (t.status === 'passed') {
+      passedTestsCount++;
+      completedTestsCount++;
+    } else if (t.status === 'failed') {
+      failedTestsCount++;
+      completedTestsCount++;
+    }
+  }
 
 
   return (
