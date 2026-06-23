@@ -444,10 +444,19 @@ export async function processTestPlanJob(
     .from(reportTestCaseResultsTable)
     .where(eq(reportTestCaseResultsTable.testPlanExecutionId, testPlanRunId));
 
+  // ⚡ BOLT OPTIMIZATION: Combine multiple .filter() passes into a single O(N) loop
+  // This prevents unnecessary K*N array allocations and iterations for metrics calculation
   const calculatedTotalTests = finalDetailedResults.length;
-  const calculatedPassedTests = finalDetailedResults.filter((r: any) => r.status === 'Passed').length;
-  const calculatedFailedTests = finalDetailedResults.filter((r: any) => r.status === 'Failed').length;
-  const calculatedSkippedTests = finalDetailedResults.filter((r: any) => r.status === 'Skipped').length;
+  let calculatedPassedTests = 0;
+  let calculatedFailedTests = 0;
+  let calculatedSkippedTests = 0;
+
+  for (const r of finalDetailedResults) {
+    if (r.status === 'Passed') calculatedPassedTests++;
+    else if (r.status === 'Failed') calculatedFailedTests++;
+    else if (r.status === 'Skipped') calculatedSkippedTests++;
+  }
+
   // Consider 'Error' status as failures or a separate category if needed for overall status.
   // For overall status, let's say if any 'Failed' or 'Error', the whole run is 'failed'.
   // If any 'Skipped' and no 'Failed'/'Error', maybe 'partial' or 'completed_with_skipped'.
