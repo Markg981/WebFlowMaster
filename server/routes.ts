@@ -46,6 +46,7 @@ import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
 import { eq, and, desc, sql, getTableColumns, asc, or, like, ilike, inArray, isNull } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
+import { unionAll } from "drizzle-orm/pg-core";
 import { playwrightService } from "./playwright-service";
 import type { Logger as WinstonLogger } from 'winston';
 import schedulerService from "./scheduler-service"; // Import schedulerService
@@ -1685,7 +1686,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Execute queries
-      const uiTestResults = await db.select({
+      const uiTestResults = db.select({
           id: tests.id,
           name: tests.name,
           description: sql<string>`null`.as('description'),
@@ -1695,7 +1696,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(tests)
         .where(and(...uiConditions));
 
-      const apiTestResults = await db.select({
+      const apiTestResults = db.select({
           id: apiTests.id,
           name: apiTests.name,
           description: sql<string>`null`.as('description'),
@@ -1705,19 +1706,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(apiTests)
         .where(and(...apiConditions));
 
-      // Combine results
-      let combinedResults = [...uiTestResults, ...apiTestResults];
+      // Combine results using database UNION ALL
+      const combinedUnion = unionAll(uiTestResults, apiTestResults).as('combined_union');
 
-      // Sort combined results (e.g., by name or updatedAt)
-      combinedResults.sort((a, b) => {
-        // Sort by name alphabetically by default
-        return a.name.localeCompare(b.name);
-        // Or sort by updatedAt if preferred:
-        // return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      });
+      // Get total count for pagination
+      const totalCountResult = await db.select({ count: sql<number>`count(*)` }).from(combinedUnion);
+      const totalItems = Number(totalCountResult[0]?.count) || 0;
 
-      const totalItems = combinedResults.length;
-      const paginatedItems = combinedResults.slice(offset, offset + limit);
+      // Get paginated and sorted items
+      const paginatedItems = await db.select()
+        .from(combinedUnion)
+        .orderBy(asc(sql`name`))
+        .limit(limit)
+        .offset(offset);
+
       const totalPages = Math.ceil(totalItems / limit);
 
       res.json({
