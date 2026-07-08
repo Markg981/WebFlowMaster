@@ -298,7 +298,7 @@ export async function updateScheduleJob(schedule: TestPlanSchedule) {
   resolvedLogger.info(`[SchedulerService] Updating job for schedule ${schedule.id}`);
   await removeScheduleJob(schedule.id); // Remove existing job if any
   if (schedule.isActive) {
-    addScheduleJob(schedule); // Add new job if active
+    await addScheduleJob(schedule); // Add new job if active
   } else {
     resolvedLogger.info(`[SchedulerService] Schedule ${schedule.id} is now inactive. Job not (re)added.`);
   }
