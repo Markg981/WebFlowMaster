@@ -13,14 +13,23 @@ const dbUrl = process.env.DATABASE_URL;
 export type DbType = NodePgDatabase<typeof schema> | PgliteDatabase<typeof schema>;
 let db: DbType;
 
+let closeDbImpl: () => Promise<void> = async () => {};
+
 if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
   // Real PostgreSQL
   const pool = new Pool({ connectionString: dbUrl });
   db = drizzlePg(pool, { schema });
+  closeDbImpl = () => pool.end();
 } else {
   // PGlite (local file/memory)
   const client = new PGlite(dbUrl);
   db = drizzlePglite(client, { schema });
+  closeDbImpl = () => client.close();
+}
+
+/** Close the underlying DB connection(s). Used during graceful shutdown. */
+export async function closeDb(): Promise<void> {
+  await closeDbImpl();
 }
 
 export { db };

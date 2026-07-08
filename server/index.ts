@@ -4,11 +4,12 @@ import schedulerService from "./scheduler-service"; // Import the scheduler serv
 import { setupVite, serveStatic } from "./vite";
 import 'dotenv/config';
 import loggerPromise from './logger'; // Import Winston logger promise
-import { db } from './db'; // Import db instance
+import { db, closeDb } from './db'; // Import db instance
 import { systemSettings } from '@shared/schema'; // Import systemSettings table
 import { eq } from 'drizzle-orm'; // Import eq operator
 import { setupWebSockets } from './websocket';
 import { correlationMiddleware } from './middleware/correlation';
+import { connection as redisConnection } from './redis';
 
 const app = express();
 app.use(express.json());
@@ -122,4 +123,37 @@ app.use(express.urlencoded({ extended: false }));
     // Use the resolved logger for consistency, though the custom `log` was used before
     logger.info(`Server listening on port ${port}`);
   });
+
+  // ─── Graceful shutdown ──────────────────────────────────────────────────────
+  // Stop accepting new connections, stop cron jobs, then close Redis and DB so
+  // a redeploy/termination doesn't sever in-flight work or leak connections.
+  let shuttingDown = false;
+  const shutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info(`Received ${signal}, shutting down gracefully...`);
+
+    // Force-exit if cleanup hangs.
+    const forceTimer = setTimeout(() => {
+      logger.error('Graceful shutdown timed out; forcing exit.');
+      process.exit(1);
+    }, 10000);
+    forceTimer.unref();
+
+    server.close(async () => {
+      try {
+        await schedulerService.shutdownScheduler();
+        await redisConnection.quit();
+        await closeDb();
+        logger.info('Graceful shutdown complete.');
+        process.exit(0);
+      } catch (err) {
+        logger.error('Error during graceful shutdown', err);
+        process.exit(1);
+      }
+    });
+  };
+
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 })();

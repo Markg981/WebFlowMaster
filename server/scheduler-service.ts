@@ -108,17 +108,25 @@ async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) 
       // executionParameters from schedule can be passed to runTestPlan if it supports it
     });
 
-    // TODO: Enhance runTestPlan to accept executionParameters, environment, browsers from schedule
-    // For now, runTestPlan likely uses plan's default config or user's settings.
-    // We need to ensure runTestPlan can take overrides from the schedule.
-    // Also, userId for runTestPlan. Schedules might not have a user, or have a service user.
-    // Assuming runTestPlan needs a userId, this is a gap if schedule is system-wide.
-    // Let's assume a placeholder or that runTestPlan can handle a null/system user.
-    const placeholderUserIdForScheduledTask = 1; // TODO: Replace with actual user logic if required
+    // Run on behalf of the schedule's owner. Legacy schedules created before the
+    // userId column may be null; fall back to the test plan's owner in that case.
+    let ownerUserId = schedule.userId ?? null;
+    if (ownerUserId == null) {
+      const planOwner = await db
+        .select({ userId: testPlans.userId })
+        .from(testPlans)
+        .where(eq(testPlans.id, schedule.testPlanId))
+        .limit(1);
+      ownerUserId = planOwner[0]?.userId ?? null;
+      resolvedLogger.warn(`[SchedulerService] Schedule ${schedule.id} has no userId; falling back to the test plan owner (${ownerUserId}).`);
+    }
+    if (ownerUserId == null) {
+      throw new Error(`Cannot execute schedule ${schedule.id}: no owner user could be resolved.`);
+    }
 
     const result = await runTestPlan(
       schedule.testPlanId,
-      placeholderUserIdForScheduledTask // This needs to be addressed.
+      ownerUserId
     ) as any;
 
 
@@ -361,9 +369,18 @@ export async function initializeScheduler() {
 //     The job needs to explicitly stop itself or be removed after the first execution. The current logic deactivates
 //     the schedule in DB and removes the job from `activeCronJobs`, which is good.
 
+/** Stop all in-memory cron jobs. Called during graceful shutdown. */
+export async function shutdownScheduler(): Promise<void> {
+  const resolvedLogger = await logger;
+  activeCronJobs.forEach((j) => j.job.stop());
+  activeCronJobs.clear();
+  resolvedLogger.info('[SchedulerService] All cron jobs stopped.');
+}
+
 export default {
   initializeScheduler,
   addScheduleJob,
   updateScheduleJob,
   removeScheduleJob,
+  shutdownScheduler,
 };
