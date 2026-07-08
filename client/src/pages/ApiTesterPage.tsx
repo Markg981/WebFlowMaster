@@ -314,7 +314,7 @@ const ApiTesterPage: React.FC = () => {
       return;
     }
 
-    let processedHeaders = requestHeaders
+    const processedHeaders = requestHeaders
       .filter(h => h.enabled && h.key.trim())
       .reduce((acc, h) => { acc[h.key] = h.value; return acc; }, {} as Record<string, string>);
 
@@ -753,7 +753,7 @@ const ApiTesterPage: React.FC = () => {
           id: field.id,
           key: field.key,
           enabled: field.enabled,
-          type: 'file' as 'file', // Ensure literal type
+          type: 'file' as const, // Ensure literal type
           fileName: field.value.name,
           fileType: field.value.type,
           // value is not sent, backend will handle file through other means or this signals a file was present

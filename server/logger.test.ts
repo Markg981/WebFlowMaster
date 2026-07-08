@@ -1,125 +1,73 @@
-import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll } from 'vitest';
+import { initializeLogger } from './logger';
+import { db } from './db';
+import { systemSettings } from '@shared/schema';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Helper to get a fresh logger instance for testing environment effects
-async function getTestLoggerInstance() {
-  // Resetting modules ensures that logger.ts (and its dependencies like db) are re-evaluated.
-  // This is crucial for tests that modify process.env or mock dependencies.
-  vi.resetModules();
-  const { default: promise } = await import('./logger'); // logger.ts exports a promise
-  return await promise; // await the promise to get the logger instance
+// These tests exercise logger initialization against the REAL (PGlite) test database.
+// Instead of mocking `db`, we seed the `system_settings` table to control what the
+// logger reads — this keeps the tests aligned with production behaviour and avoids
+// brittle mocks that inspect Drizzle internals.
+
+function getDailyRotateFileTransport(logger: Awaited<ReturnType<typeof initializeLogger>>) {
+  return logger.transports.find((t) => t instanceof DailyRotateFile) as DailyRotateFile | undefined;
 }
 
 describe('Logger Configuration', () => {
-  let originalEnv: NodeJS.ProcessEnv;
+  const originalRetention = process.env.LOG_RETENTION_DAYS;
 
-  beforeEach(() => {
-    originalEnv = { ...process.env }; // Save original env
-
-    // Mock db calls for these specific logger tests to isolate logger's initialization logic
-    // from actual database state or availability during tests.
-    vi.mock('./db', async (importOriginal) => {
-      const actualDbModule = await importOriginal() as any;
-      return {
-        ...actualDbModule, // Spread any other exports from the actual db module
-        db: { // Mock only the db object and its select method used by logger
-          select: vi.fn().mockReturnValue({
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                // Simulate DB returning no settings for logRetentionDays or logLevel
-                limit: vi.fn().mockResolvedValue([]),
-              }),
-            }),
-          }),
-          // If logger's db interaction becomes more complex, mock other methods here.
-        },
-      };
-    });
+  beforeEach(async () => {
+    // Start each test from a clean settings table and env.
+    await db.delete(systemSettings);
+    delete process.env.LOG_RETENTION_DAYS;
   });
 
-  afterEach(() => {
-    process.env = originalEnv; // Restore original env
-    vi.unmock('./db'); // IMPORTANT: Unmock './db' so other test suites get the real db
-    vi.resetModules(); // Clean up modules for subsequent test suites
-  });
-
-  it('should have DailyRotateFile transport configured with default (7d) when no env var or DB setting', async () => {
-    delete process.env.LOG_RETENTION_DAYS; // Ensure env var is not set
-
-    const logger = await getTestLoggerInstance(); // This will use the mocked db
-
-    const dailyRotateFileTransport = logger.transports.find(
-      transport => transport instanceof DailyRotateFile
-    ) as DailyRotateFile | undefined;
-
-    expect(dailyRotateFileTransport).toBeInstanceOf(DailyRotateFile);
-    if (dailyRotateFileTransport) {
-      const options = dailyRotateFileTransport.options;
-      const expectedLogDir = path.join(__dirname, '../logs');
-      expect(options.filename).toBe(path.join(expectedLogDir, 'app-%DATE%.log'));
-      expect(options.datePattern).toBe('YYYY-MM-DD');
-      expect(options.zippedArchive).toBe(true);
-      expect(options.maxSize).toBe('20m');
-      expect(options.maxFiles).toBe('7d'); // Default from logger.ts logic
+  afterAll(async () => {
+    await db.delete(systemSettings);
+    if (originalRetention === undefined) {
+      delete process.env.LOG_RETENTION_DAYS;
+    } else {
+      process.env.LOG_RETENTION_DAYS = originalRetention;
     }
   });
 
-  it('should use LOG_RETENTION_DAYS env var if DB setting is not found', async () => {
-    process.env.LOG_RETENTION_DAYS = '10'; // Set env var
-
-    const logger = await getTestLoggerInstance(); // This will use the mocked db
-
-    const dailyRotateFileTransport = logger.transports.find(
-      transport => transport instanceof DailyRotateFile
-    ) as DailyRotateFile | undefined;
-
-    expect(dailyRotateFileTransport).toBeInstanceOf(DailyRotateFile);
-    if (dailyRotateFileTransport) {
-      expect(dailyRotateFileTransport.options.maxFiles).toBe('10d'); // Should pick up the env var
-    }
-  });
-
-  it('should use DB setting for logRetentionDays if available and valid, overriding env var', async () => {
-    process.env.LOG_RETENTION_DAYS = '5'; // This should be overridden by DB
-
-    // Specific mock for this test case where DB returns a value for logRetentionDays
-    vi.resetModules(); // Reset modules before applying a new mock specific to this test
-    vi.doMock('./db', async (importOriginal) => { // Use doMock for specific, scoped mock
-        const actualDbModule = await importOriginal() as any;
-        return {
-            ...actualDbModule,
-            db: {
-                ...actualDbModule.db,
-                select: vi.fn().mockImplementation(() => ({
-                    from: vi.fn().mockImplementation(() => ({
-                        where: vi.fn().mockImplementation((condition) => {
-                            if (condition && typeof condition !== 'function' && 'column' in condition && condition.column.name === 'key' && condition.value === 'logRetentionDays') {
-                                return { limit: vi.fn().mockResolvedValue([{ value: '15' }]) };
-                            }
-                            if (condition && typeof condition !== 'function' && 'column' in condition && condition.column.name === 'key' && condition.value === 'logLevel') {
-                                return { limit: vi.fn().mockResolvedValue([{ value: 'info' }]) };
-                            }
-                            return { limit: vi.fn().mockResolvedValue([]) };
-                        }),
-                    })),
-                })),
-            },
-        };
-    });
-
-    const logger = await getTestLoggerInstance();
-    const transport = logger.transports.find(t => t instanceof DailyRotateFile) as DailyRotateFile | undefined;
+  it('uses the default (7d) retention when neither env var nor DB setting is present', async () => {
+    const logger = await initializeLogger();
+    const transport = getDailyRotateFileTransport(logger);
 
     expect(transport).toBeInstanceOf(DailyRotateFile);
-    if (transport) {
-        expect(transport.options.maxFiles).toBe('15d');
-    }
-    vi.doUnmock('./db'); // Clean up the specific mock
+    const options = transport!.options;
+    const expectedLogDir = path.join(__dirname, '../logs');
+    expect(options.filename).toBe(path.join(expectedLogDir, 'app-%DATE%.log'));
+    expect(options.datePattern).toBe('YYYY-MM-DD');
+    expect(options.zippedArchive).toBe(true);
+    expect(options.maxSize).toBe('20m');
+    expect(options.maxFiles).toBe('7d');
+  });
+
+  it('uses the LOG_RETENTION_DAYS env var when no DB setting is found', async () => {
+    process.env.LOG_RETENTION_DAYS = '10';
+
+    const logger = await initializeLogger();
+    const transport = getDailyRotateFileTransport(logger);
+
+    expect(transport).toBeInstanceOf(DailyRotateFile);
+    expect(transport!.options.maxFiles).toBe('10d');
+  });
+
+  it('uses the DB setting for logRetentionDays, overriding the env var', async () => {
+    process.env.LOG_RETENTION_DAYS = '5'; // should be overridden by the DB value
+    await db.insert(systemSettings).values({ key: 'logRetentionDays', value: '15' });
+
+    const logger = await initializeLogger();
+    const transport = getDailyRotateFileTransport(logger);
+
+    expect(transport).toBeInstanceOf(DailyRotateFile);
+    expect(transport!.options.maxFiles).toBe('15d');
   });
 });

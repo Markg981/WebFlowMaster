@@ -1,8 +1,9 @@
 import * as cron from 'node-cron';
+import { parseExpression } from 'cron-parser';
 import { db } from './db';
 import { testPlanSchedules, testPlanExecutions, testPlans } from '@shared/schema';
 import type { TestPlanSchedule, TestPlanExecution, TestPlan } from '@shared/schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import logger from './logger';
 // Import runTestPlan function - assuming it's exported from test-execution-service
@@ -55,14 +56,31 @@ function frequencyToCronPattern(frequency: string, nextRunAt: Date): string | nu
         if (unit === 'days') return `0 ${hours} */${value} * *`; // At the specific hour of nextRunAt
       }
       console.warn(`[SchedulerService] Unknown frequency format: ${frequency}. Cannot convert to cron pattern.`);
-      console.warn(`[SchedulerService] Unknown frequency format: ${frequency}. Cannot convert to cron pattern.`);
       return null;
+  }
+}
+
+// Compute the next run time for a recurring schedule from its frequency, using a
+// real cron parser so the stored `nextRunAt` stays accurate for persistence and the UI.
+function calculateNextRunTime(frequency: string, from: Date): Date | null {
+  const pattern = frequencyToCronPattern(frequency, from);
+  if (!pattern) return null;
+  try {
+    const interval = parseExpression(pattern, { currentDate: from, tz: 'UTC' });
+    return interval.next().toDate();
+  } catch {
+    return null;
   }
 }
 
 // Exported for testing purposes
 export function frequencyToCronPatternForTest(frequency: string, nextRunAt: Date): string | null {
   return frequencyToCronPattern(frequency, nextRunAt);
+}
+
+// Exported for testing purposes
+export function calculateNextRunTimeForTest(frequency: string, from: Date): Date | null {
+  return calculateNextRunTime(frequency, from);
 }
 
 // Exported for testing purposes
@@ -133,7 +151,6 @@ async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) 
           status: 'error',
           results: JSON.stringify({ error: error.message, stack: error.stack }),
           completedAt: new Date(),
-          completedAt: new Date(),
         })
         .where(eq(testPlanExecutions.id, executionId));
     } catch (dbError) {
@@ -143,24 +160,21 @@ async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) 
     // Update nextRunAt for recurring schedules (if not 'once')
     if (schedule.frequency !== 'once') {
       try {
-        const cronPattern = frequencyToCronPattern(schedule.frequency, new Date(schedule.nextRunAt));
-        if (cronPattern) { // Only if it's a recurring pattern recognized
-          // This is tricky: node-cron itself handles the next run time internally for its jobs.
-          // We need to calculate the next run time based on *our* schedule definition to store it.
-          // This requires a robust cron expression parser or date calculation logic.
-          // For simplicity, we'll assume for now that `node-cron` jobs are re-created/updated based on DB state.
-          // A more robust approach would involve a library like `cron-parser`.
-          // Placeholder:
-          // const newNextRunAt = calculateNextRunTime(schedule.frequency, new Date(schedule.nextRunAt * 1000));
-          // await db.update(testPlanSchedules).set({ nextRunAt: newNextRunAt }).where(eq(testPlanSchedules.id, schedule.id));
-          // resolvedLogger.info(`[SchedulerService] Updated nextRunAt for recurring schedule ${schedule.id} to ${newNextRunAt}`);
+        // Calculate and persist the next run time so it survives restarts and is shown in the UI.
+        const newNextRunAt = calculateNextRunTime(schedule.frequency, new Date());
+        if (newNextRunAt) {
+          await db.update(testPlanSchedules)
+            .set({ nextRunAt: newNextRunAt, updatedAt: new Date() })
+            .where(eq(testPlanSchedules.id, schedule.id));
+          resolvedLogger.info(`[SchedulerService] Updated nextRunAt for recurring schedule ${schedule.id} to ${newNextRunAt.toISOString()}`);
+        } else {
+          resolvedLogger.warn(`[SchedulerService] Could not compute nextRunAt for schedule ${schedule.id} (frequency: ${schedule.frequency}).`);
         }
       } catch (e) {
         resolvedLogger.error(`[SchedulerService] Failed to update nextRunAt for schedule ${schedule.id}`, e);
       }
     } else {
       // For 'once' schedules, deactivate it after execution
-      await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
       await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
       resolvedLogger.info(`[SchedulerService] Deactivated 'once' schedule ${schedule.id} after execution.`);
       await removeScheduleJob(schedule.id); // Remove it from active cron jobs
@@ -223,7 +237,6 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
       // Optionally, deactivate it here if it wasn't already.
       if (schedule.isActive) {
         await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
-        await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
       }
       return;
     }
@@ -277,7 +290,6 @@ export async function initializeScheduler() {
   activeCronJobs.clear();
 
   try {
-    const now = Math.floor(Date.now() / 1000);
     const schedulesToLoad = await db
       .select()
       .from(testPlanSchedules)

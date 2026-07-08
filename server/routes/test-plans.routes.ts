@@ -117,7 +117,7 @@ router.get("/api/test-plan-executions", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
     const { planId, limit = 10 } = req.query;
 
-    let query = db.select({
+    const query = db.select({
         ...getTableColumns(testPlanExecutions),
         testPlanName: testPlans.name
     })

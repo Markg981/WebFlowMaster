@@ -1,0 +1,13 @@
+node_modules
+dist
+client/dist
+migrations
+migrations_old
+allure-results
+results
+coverage
+logs
+uploads
+data
+package-lock.json
+*.log

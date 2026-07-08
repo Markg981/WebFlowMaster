@@ -10,7 +10,7 @@ The system operates as a unified flow from Requirement (Excel) to Execution (Pla
 graph TD
     User[QA User] -->|Uploads| Excel[Excel Test Plan]
     Excel -->|Parsed by| Backend[Node.js Backend]
-    Backend -->|Stores sequences in| DB[(SQLite Database)]
+    Backend -->|Stores sequences in| DB[(PostgreSQL / PGlite Database)]
 
     subgraph Execution Loop
         Runner[Playwright Runner] -->|Reads| DB
@@ -30,7 +30,9 @@ graph TD
 
 ---
 
-## 🗄️ Database Schema (SQLite)
+## 🗄️ Database Schema (PostgreSQL / PGlite)
+
+> **Note:** The persistence layer uses PostgreSQL in production (via Drizzle ORM `node-postgres`) and [PGlite](https://github.com/electric-sql/pglite) for local development. A `DATABASE_URL` starting with `postgres://` selects PostgreSQL; otherwise it is treated as a local PGlite data directory. (Earlier versions of the project used SQLite.)
 
 The core testing logic revolves around the `tests` table, managed via Drizzle ORM.
 
@@ -83,7 +85,7 @@ The `AIAutomationService` acts as a middleware between Playwright failures and t
     - **Prompt**: "Find the element in this new DOM that corresponds to the old selector X."
 4.  **Verification**: The Runner retries the action with the _proposed_ selector.
 5.  **Persistence**:
-    - If the retry succeeds, the new selector is committed to SQLite via `UPDATE tests SET ...`.
+    - If the retry succeeds, the new selector is committed to the database via `UPDATE tests SET ...`.
 6.  **Reporting**: The step is marked as `[HEALED]` in Allure.
 
 ### Failure Analysis (RCA)

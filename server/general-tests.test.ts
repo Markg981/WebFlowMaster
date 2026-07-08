@@ -75,8 +75,9 @@ beforeAll(async () => {
           projectId,
           name,
           url,
-          sequence: JSON.stringify(sequence),
-          elements: JSON.stringify(elements),
+          // `sequence`/`elements` are jsonb columns — pass the objects directly.
+          sequence,
+          elements,
           status: status || "draft",
         })
         .returning();
@@ -88,7 +89,9 @@ beforeAll(async () => {
       res.status(201).json(newTestResult[0]);
     } catch (error: any) {
       logger.error({ message: "Error creating test (test)", userId, testName: name, error: error.message, stack: error.stack });
-      if (error.message && error.message.includes('FOREIGN KEY constraint failed')) {
+      // PostgreSQL/PGlite report FK violations as "...violates foreign key constraint..."
+      // (SQLite used "FOREIGN KEY constraint failed"); match both, case-insensitively.
+      if (error.message && /foreign key/i.test(error.message)) {
         return res.status(400).json({ error: "Invalid project ID or project does not exist." });
       }
       res.status(500).json({ error: "Failed to create test" });
@@ -148,8 +151,9 @@ describe('POST /api/tests', () => {
     const dbTest = await db.select().from(tests).where(eq(tests.id, response.body.id)).limit(1);
     expect(dbTest.length).toBe(1);
     expect(dbTest[0].name).toBe(testPayload.name);
-    expect(JSON.parse(dbTest[0].sequence as string)).toEqual(validSequence);
-    expect(JSON.parse(dbTest[0].elements as string)).toEqual(validElements);
+    // jsonb columns are returned already parsed as objects/arrays (no JSON.parse needed).
+    expect(dbTest[0].sequence).toEqual(validSequence);
+    expect(dbTest[0].elements).toEqual(validElements);
   });
 
   it('should fail if name is missing', async () => {

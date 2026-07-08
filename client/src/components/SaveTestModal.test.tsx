@@ -144,7 +144,7 @@ describe('SaveTestModal', () => {
     expect(mockRefetchProjects).toHaveBeenCalledTimes(1); // Called when opened
 
     rerender(<SaveTestModal isOpen={false} onSave={onSaveMock} onClose={onCloseMock} />); // Close it
-    rerender(<SaveTestModal isOpen={true} onSave={onSaveMock, onClose: onCloseMock} />); // Re-open
+    rerender(<SaveTestModal isOpen={true} onSave={onSaveMock} onClose={onCloseMock} />); // Re-open
     expect(mockRefetchProjects).toHaveBeenCalledTimes(2); // Called again
   });
 

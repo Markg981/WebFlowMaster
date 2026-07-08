@@ -20,7 +20,7 @@ Dimentica script fragili e manutenzione infinita. Con WebFlowMaster, il tuo team
 | :--- | :--- |
 | **Frontend** | React, TypeScript, Vite, TailwindCSS, Shadcn/UI |
 | **Backend** | Node.js, Express, Passport.js |
-| **Database** | PostgreSQL (Neon), SQLite (Better-sqlite3), Drizzle ORM |
+| **Database** | PostgreSQL (produzione), PGlite (sviluppo locale), Drizzle ORM |
 | **Automation** | Playwright, Puppeteer |
 | **Task Queue** | BullMQ, Redis, Node-cron |
 | **Logging** | Winston |
@@ -66,17 +66,24 @@ Assicurati di avere installato sul tuo sistema:
 ---
 
 ## ⚙️ Variabili d'Ambiente (.env)
-Crea un file `.env` e configura i seguenti parametri:
+Copia il template [`.env.example`](./.env.example) in `.env` e valorizza i parametri:
 
 ```env
-# Database
-DATABASE_URL=postgres://user:password@localhost:5432/webflowmaster
+# Database: connection string Postgres OPPURE percorso data dir PGlite locale
+DATABASE_URL=./data/local-pg
 
-# Redis (Sessioni e Worker)
+# Redis (Sessioni e Worker BullMQ)
 REDIS_URL=redis://localhost:6379
 
-# Autenticazione
-SESSION_SECRET=your_super_secret_key
+# Autenticazione — genera con:
+#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+SESSION_SECRET=change-me
+
+# Chiave 32-byte (64 hex) per cifrare i secrets salvati (AES-256-GCM)
+ENCRYPTION_KEY=change-me-64-hex-characters
+
+# AI Self-Healing (opzionale): senza chiave le funzioni AI sono disabilitate
+GEMINI_API_KEY=
 
 # Logging
 LOG_LEVEL=info
@@ -99,7 +106,9 @@ npm run test:client
 ## 📂 Struttura della Documentazione
 Per approfondimenti, consulta la cartella `docs/`:
 - [**User Guide**](./docs/USER_GUIDE.md): Manuale per tester e QA Engineer.
-- [**Admin Guide**](./docs/ADMIN_GUIDE.md): Guida alla configurazione e manutenzione per sysadmin.
+- [**Architecture**](./docs/ARCHITECTURE.md): Design tecnico, schema DB e AI Self-Healing.
+- [**API Reference**](./docs/API_REFERENCE.md): Riferimento degli endpoint REST.
+- [**Contributing**](./docs/CONTRIBUTING.md): Linee guida per contribuire.
 
 ---
 

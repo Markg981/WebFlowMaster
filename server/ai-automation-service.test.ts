@@ -1,24 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { AIAutomationService } from './ai-automation-service';
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { db } from './db';
-import { tests, detectedElements } from '@shared/schema';
+import { tests, detectedElements, users } from '@shared/schema';
+import { eq, and } from 'drizzle-orm';
 
-// Mock better-sqlite3 to avoid native binding errors
-vi.mock('better-sqlite3', () => {
-  return {
-    default: vi.fn().mockImplementation(() => ({
-      prepare: vi.fn().mockReturnValue({
-        run: vi.fn(),
-        get: vi.fn(),
-        all: vi.fn(),
-      }),
-      exec: vi.fn(),
-      pragma: vi.fn(),
-    })),
-  };
-});
-
-// Mock Google Generative AI
+// Mock only genuinely external / non-deterministic dependencies:
+//  - Google Gemini (a real network API we must not call in tests)
+//  - the logger (to keep test output clean)
+// The database is NOT mocked: these tests run against the real PGlite test DB.
 const { mockGenerateContent } = vi.hoisted(() => {
   return { mockGenerateContent: vi.fn() };
 });
@@ -31,45 +19,36 @@ vi.mock('@google/generative-ai', () => ({
   })),
 }));
 
-// Mock DB
-vi.mock('./db', () => ({
-  db: {
-    select: vi.fn().mockReturnThis(),
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    set: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    values: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue([{ id: 1 }]),
-  },
+vi.mock('./logger', () => ({
+  default: Promise.resolve({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-// Mock Logger
-vi.mock('./logger', () => ({
-  default: Promise.resolve({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+// Import after the mocks are registered.
+const { AIAutomationService } = await import('./ai-automation-service');
 
 describe('AIAutomationService', () => {
-  let service: AIAutomationService;
+  let service: InstanceType<typeof AIAutomationService>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     process.env.GEMINI_API_KEY = 'test_key';
     service = new AIAutomationService();
+
+    // Clean slate (respect FK order: detected_elements -> tests -> users).
+    await db.delete(detectedElements);
+    await db.delete(tests);
+    await db.delete(users);
   });
 
-  afterEach(() => {
+  afterAll(async () => {
+    await db.delete(detectedElements);
+    await db.delete(tests);
+    await db.delete(users);
     delete process.env.GEMINI_API_KEY;
   });
 
   describe('healSelector', () => {
-    it('should return a new selector from AI response', async () => {
+    it('should return a new selector from the AI response', async () => {
       mockGenerateContent.mockResolvedValueOnce({
         response: { text: () => 'div.new-selector' },
       });
@@ -79,69 +58,80 @@ describe('AIAutomationService', () => {
       expect(mockGenerateContent).toHaveBeenCalled();
     });
 
-    it('should return null if API key is missing', async () => {
-        delete process.env.GEMINI_API_KEY;
-        // Re-instantiate to pick up missing env
-        service = new AIAutomationService();
-        const result = await service.healSelector('div.old', 'html', 'error');
-        expect(result).toBeNull();
+    it('should return null if the API key is missing', async () => {
+      delete process.env.GEMINI_API_KEY;
+      service = new AIAutomationService(); // re-instantiate to pick up the missing env
+      const result = await service.healSelector('div.old', 'html', 'error');
+      expect(result).toBeNull();
     });
 
     it('should return null on API failure', async () => {
-        mockGenerateContent.mockRejectedValueOnce(new Error('API Error'));
-        const result = await service.healSelector('div.old', 'html', 'error');
-        expect(result).toBeNull();
+      mockGenerateContent.mockRejectedValueOnce(new Error('API Error'));
+      const result = await service.healSelector('div.old', 'html', 'error');
+      expect(result).toBeNull();
     });
   });
 
   describe('analyzeFailure', () => {
-    it('should return analysis text from AI', async () => {
-        mockGenerateContent.mockResolvedValueOnce({
-            response: { text: () => 'Analysis: Timeout issue.' },
-        });
+    it('should return analysis text from the AI', async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => 'Analysis: Timeout issue.' },
+      });
 
-        const result = await service.analyzeFailure('Timeout', 'Stack...', [], '');
-        expect(result).toBe('Analysis: Timeout issue.');
+      const result = await service.analyzeFailure('Timeout', 'Stack...', [], '');
+      expect(result).toBe('Analysis: Timeout issue.');
     });
   });
 
   describe('updateSelectorInDb', () => {
-      it('should update legacy tests table and upsert detected_elements', async () => {
-          const testId = 123;
-          const stepIndex = 0;
-          const sequence = [
-              { targetElement: { id: 'el1', selector: 'div.old', tag: 'div' } }
-          ];
-          const newSelector = 'div.new';
+    it('updates the sequence, the elements repository and upserts detected_elements', async () => {
+      // Seed a real user + test.
+      const [user] = await db
+        .insert(users)
+        .values({ username: 'ai-heal-user', password: 'hashed' })
+        .returning();
 
-          // Mock DB Select
-          // First call: Get Test -> returns record
-          // Second call: Get detectedElement -> returns empty (to force insert)
-          const selectMock = vi.fn()
-            .mockImplementationOnce(() => ({ // Query 1: tests
-                from: vi.fn().mockReturnThis(),
-                where: vi.fn().mockReturnThis(),
-                limit: vi.fn().mockResolvedValue([{ 
-                    id: testId, 
-                    sequence: sequence, 
-                    elements: [{ id: 'el1', selector: 'div.old' }] 
-                }]),
-            }))
-            .mockImplementationOnce(() => ({ // Query 2: detectedElements
-                 from: vi.fn().mockReturnThis(),
-                 where: vi.fn().mockReturnThis(), // and(...)
-                 limit: vi.fn().mockResolvedValue([]),
-            }));
+      const sequence = [
+        {
+          targetElement: {
+            id: 'el1',
+            selector: 'div.old',
+            tag: 'div',
+            text: 'Click me',
+            attributes: { role: 'button' },
+          },
+        },
+      ];
+      const elements = [{ id: 'el1', selector: 'div.old' }];
 
-          (db.select as any).mockImplementation(selectMock);
+      const [seededTest] = await db
+        .insert(tests)
+        .values({
+          userId: user.id,
+          name: 'Healing test',
+          url: 'http://example.com',
+          sequence, // jsonb column — pass the object directly (no JSON.stringify)
+          elements,
+        })
+        .returning();
 
-          await service.updateSelectorInDb(testId, stepIndex, newSelector);
+      await service.updateSelectorInDb(seededTest.id, 0, 'div.new');
 
-          // Verify Legacy Update
-          expect(db.update).toHaveBeenCalledWith(tests);
-          
-          // Verify Normalized Update (Insert path)
-          expect(db.insert).toHaveBeenCalledWith(detectedElements);
-      });
+      // The sequence step and the elements repository should now carry the healed selector.
+      const [updated] = await db.select().from(tests).where(eq(tests.id, seededTest.id)).limit(1);
+      const updatedSequence = updated.sequence as any[];
+      const updatedElements = updated.elements as any[];
+      expect(updatedSequence[0].targetElement.selector).toBe('div.new');
+      expect(updatedElements[0].selector).toBe('div.new');
+
+      // A normalized detected_elements row should have been inserted for the element.
+      const detected = await db
+        .select()
+        .from(detectedElements)
+        .where(and(eq(detectedElements.testId, seededTest.id), eq(detectedElements.elementId, 'el1')))
+        .limit(1);
+      expect(detected.length).toBe(1);
+      expect(detected[0].selector).toBe('div.new');
+    });
   });
 });

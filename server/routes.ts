@@ -183,7 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let responseBodyContent: any;
       const contentType = apiResponse.headers.get("content-type");
-      let responseText = await apiResponse.text();
+      const responseText = await apiResponse.text();
       try {
         if (contentType && contentType.includes("application/json") && responseText) {
           responseBodyContent = JSON.parse(responseText);
@@ -195,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         responseBodyContent = responseText;
       }
 
-      let assertionResults: Array<{ assertion: z.infer<typeof AssertionSchema>; pass: boolean; actualValue: any; error?: string }> = [];
+      const assertionResults: Array<{ assertion: z.infer<typeof AssertionSchema>; pass: boolean; actualValue: any; error?: string }> = [];
       if (assertions && assertions.length > 0) {
         assertions.forEach(assertion => {
           if (!assertion.enabled) return;
@@ -588,7 +588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error.message,
         stack: error.stack,
       });
-      if (error.message && error.message.includes('FOREIGN KEY constraint failed')) {
+      if (error.message && /foreign key/i.test(error.message || '')) {
         return res.status(400).json({ error: "Invalid project ID or project does not exist." });
       }
       res.status(500).json({ error: "Failed to create test" });
@@ -715,7 +715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json(responseError);
       }
     } finally {
-      let logData: any = {
+      const logData: any = {
         message: "POST /api/execute-test-direct - Handler complete.",
         userId,
         testName: payload.name
@@ -918,7 +918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(newTest[0]);
     } catch (error: any) {
       resolvedLogger.error({ message: "Error creating API test", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
-      if (error.message && error.message.includes('FOREIGN KEY constraint failed')) { return res.status(400).json({ error: "Invalid project ID or project does not exist." }); }
+      if (error.message && /foreign key/i.test(error.message || '')) { return res.status(400).json({ error: "Invalid project ID or project does not exist." }); }
       res.status(500).json({ error: "Failed to create API test" });
     }
   });
@@ -1023,7 +1023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedTest[0]);
     } catch (error: any) {
       resolvedLogger.error({ message: `Error updating API test ${id}`, error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
-      if (error.message && error.message.includes('FOREIGN KEY constraint failed')) { return res.status(400).json({ error: "Invalid project ID or project does not exist." }); }
+      if (error.message && /foreign key/i.test(error.message || '')) { return res.status(400).json({ error: "Invalid project ID or project does not exist." }); }
       res.status(500).json({ error: "Failed to update API test" });
     }
   });
@@ -1492,7 +1492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       resolvedLogger.error({ message: "Critical error creating test plan with selected tests", details: errorDetails });
 
-      if (error.message.includes("FOREIGN KEY constraint failed")) {
+      if (/foreign key/i.test(error.message || '')) {
         return res.status(400).json({ error: "Invalid reference: One or more selected tests, or the project ID, do not exist."});
       }
       // Generic error for client, specific details logged on server
@@ -1587,7 +1587,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
        if (error.message.toLowerCase().includes("test plan not found")) { // Custom error from transaction
         return res.status(404).json({ error: "Test plan not found." });
       }
-      if (error.message.includes("FOREIGN KEY constraint failed")) {
+      if (/foreign key/i.test(error.message || '')) {
         return res.status(400).json({ error: "One or more selected tests do not exist."})
       }
       res.status(500).json({ error: "Failed to update test plan" });
@@ -1706,7 +1706,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(and(...apiConditions));
 
       // Combine results
-      let combinedResults = [...uiTestResults, ...apiTestResults];
+      const combinedResults = [...uiTestResults, ...apiTestResults];
 
       // Sort combined results (e.g., by name or updatedAt)
       combinedResults.sort((a, b) => {
@@ -1902,7 +1902,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
       header: {
         testSuiteName: plan?.name || 'N/A',
         environment: execution.environment || 'N/A',
-        browsers: execution.browsers ? JSON.parse(execution.browsers as string) : [],
+        browsers: typeof execution.browsers === 'string' ? JSON.parse(execution.browsers) : (execution.browsers ?? []),
         dateTime: execution.startedAt ? execution.startedAt.toISOString() : 'N/A',
         completedAt: execution.completedAt ? execution.completedAt.toISOString() : null,
         status: execution.status,
