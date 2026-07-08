@@ -18,6 +18,20 @@ interface ActiveJob {
 
 const activeCronJobs: Map<string, ActiveJob> = new Map();
 
+// Retry-on-failure policy: number of extra attempts after the first failed run.
+const RETRY_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 30_000;
+function retriesForPolicy(policy: string | null | undefined): number {
+  switch (policy) {
+    case 'once':
+      return 1;
+    case 'twice':
+      return 2;
+    default:
+      return 0;
+  }
+}
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 // Helper to convert frequency to cron pattern
 // This is a simplified version. A more robust solution would parse more complex frequencies.
 // For 'once', it's handled by nextRunAt and then the schedule should be deactivated or deleted.
@@ -102,7 +116,7 @@ async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) 
       testPlanId: schedule.testPlanId,
       status: 'pending',
       environment: schedule.environment,
-      browsers: schedule.browsers ? JSON.stringify(schedule.browsers) : null, // Store as JSON string
+      browsers: schedule.browsers ?? null, // jsonb column — store the array directly
       triggeredBy: 'scheduled',
       startedAt: new Date(),
       // executionParameters from schedule can be passed to runTestPlan if it supports it
@@ -124,31 +138,31 @@ async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) 
       throw new Error(`Cannot execute schedule ${schedule.id}: no owner user could be resolved.`);
     }
 
-    const result = await runTestPlan(
-      schedule.testPlanId,
-      ownerUserId
-    ) as any;
+    // Run the plan, retrying on failure per the schedule's retryOnFailure policy.
+    const maxRetries = retriesForPolicy(schedule.retryOnFailure);
+    let result: any;
+    let attempts = 0;
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+      if (attempt > 1) {
+        resolvedLogger.info(`[SchedulerService] Retry ${attempt - 1}/${maxRetries} for schedule ${schedule.id} after a failed attempt.`);
+        await delay(RETRY_DELAY_MS);
+      }
+      attempts = attempt;
+      result = (await runTestPlan(schedule.testPlanId, ownerUserId)) as any;
+      executionStatus = result?.status || 'error'; // runTestPlan returns a TestPlanRun-like object
+      if (executionStatus !== 'failed' && executionStatus !== 'error') break;
+    }
 
-
-    executionStatus = result.status || 'error'; // runTestPlan should return a TestPlanRun like object
-    // Update testPlanExecutions with the final status and results
+    // Update testPlanExecutions with the final status and results (jsonb — no stringify).
     await db.update(testPlanExecutions)
       .set({
         status: executionStatus,
-        results: (result as any).results ? JSON.stringify((result as any).results) : null,
+        results: result?.results ?? null,
         completedAt: new Date(),
       })
       .where(eq(testPlanExecutions.id, executionId));
 
-    resolvedLogger.info(`[SchedulerService] Execution completed for schedule ${schedule.id}, Plan ${plan.name}. Status: ${executionStatus}`);
-
-    // Handle retries - simplified version
-    if ((executionStatus === 'failed' || executionStatus === 'error') && schedule.retryOnFailure && schedule.retryOnFailure !== 'none') {
-      // Implement actual retry logic (e.g., another runTestPlan call after a delay)
-      // This could involve creating a new execution record or updating the existing one.
-      // For simplicity, this is a placeholder. A robust retry would need careful state management.
-      resolvedLogger.info(`[SchedulerService] Schedule ${schedule.id} failed, retry configured to ${schedule.retryOnFailure}. (Retry logic placeholder)`);
-    }
+    resolvedLogger.info(`[SchedulerService] Execution completed for schedule ${schedule.id}, Plan ${plan.name}. Status: ${executionStatus} (after ${attempts} attempt(s)).`);
 
   } catch (error: any) {
     resolvedLogger.error(`[SchedulerService] Error executing scheduled plan ${schedule.testPlanId} (Schedule ID: ${schedule.id}): ${error.message}`, { stack: error.stack, scheduleId: schedule.id, executionId });
