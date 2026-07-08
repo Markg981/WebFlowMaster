@@ -1,4 +1,4 @@
-import { pgTable, text, integer, serial, timestamp, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, serial, timestamp, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations, sql } from 'drizzle-orm';
@@ -28,7 +28,9 @@ export const projects = pgTable("projects", {
   name: text("name").notNull(),
   userId: integer("user_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("projects_user_id_idx").on(table.userId),
+]);
 
 export const tests = pgTable("tests", {
   id: serial("id").primaryKey(),
@@ -49,7 +51,11 @@ export const tests = pgTable("tests", {
   component: text("component"),
   priority: text("priority").default('Medium'), // enum is handled by app logic/zod
   severity: text("severity").default('Major'),
-});
+}, (table) => [
+  index("tests_user_id_idx").on(table.userId),
+  index("tests_project_id_idx").on(table.projectId),
+  index("tests_status_idx").on(table.status),
+]);
 
 export const testRuns = pgTable("test_runs", {
   id: serial("id").primaryKey(),
@@ -58,7 +64,9 @@ export const testRuns = pgTable("test_runs", {
   results: jsonb("results"),
   startedAt: timestamp("started_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
-});
+}, (table) => [
+  index("test_runs_test_id_idx").on(table.testId),
+]);
 
 export const detectedElements = pgTable("detected_elements", {
   id: serial("id").primaryKey(),
@@ -71,7 +79,10 @@ export const detectedElements = pgTable("detected_elements", {
   tag: text("tag"),
   attributes: jsonb("attributes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("detected_elements_test_id_idx").on(table.testId),
+  index("detected_elements_test_id_element_id_idx").on(table.testId, table.elementId),
+]);
 
 export const apiTestHistory = pgTable("api_test_history", {
   id: serial("id").primaryKey(),
@@ -86,7 +97,9 @@ export const apiTestHistory = pgTable("api_test_history", {
   responseBody: text("response_body"),
   durationMs: integer("duration_ms"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("api_test_history_user_id_idx").on(table.userId),
+]);
 
 export const apiTests = pgTable("api_tests", {
   id: serial("id").primaryKey(),
@@ -117,7 +130,10 @@ export const apiTests = pgTable("api_tests", {
   component: text("component"),
   priority: text("priority").default('Medium'),
   severity: text("severity").default('Major'),
-});
+}, (table) => [
+  index("api_tests_user_id_idx").on(table.userId),
+  index("api_tests_project_id_idx").on(table.projectId),
+]);
 
 export const systemSettings = pgTable('system_settings', {
   key: text('key').primaryKey(),
@@ -144,11 +160,16 @@ export const testPlans = pgTable("test_plans", {
   notificationSettings: jsonb('notification_settings'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => [
+  index("test_plans_user_id_idx").on(table.userId),
+]);
 
 export const testPlanSchedules = pgTable("test_plan_schedules", {
   id: text('id').primaryKey(),
   testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
+  // Owner of the schedule; scheduled executions run on behalf of this user.
+  // Nullable so pre-existing rows migrate cleanly (the scheduler falls back for them).
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
   scheduleName: text('schedule_name').notNull(),
   frequency: text('frequency').notNull(),
   nextRunAt: timestamp('next_run_at').notNull(),
@@ -160,7 +181,11 @@ export const testPlanSchedules = pgTable("test_plan_schedules", {
   retryOnFailure: text('retry_on_failure').default('none').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at'),
-});
+}, (table) => [
+  index("test_plan_schedules_test_plan_id_idx").on(table.testPlanId),
+  index("test_plan_schedules_user_id_idx").on(table.userId),
+  index("test_plan_schedules_active_next_run_idx").on(table.isActive, table.nextRunAt),
+]);
 
 export const testPlanExecutions = pgTable("test_plan_executions", {
   id: text('id').primaryKey(),
@@ -178,7 +203,12 @@ export const testPlanExecutions = pgTable("test_plan_executions", {
   failedTests: integer("failed_tests"),
   skippedTests: integer("skipped_tests"),
   executionDurationMs: integer("execution_duration_ms"),
-});
+}, (table) => [
+  index("test_plan_executions_test_plan_id_idx").on(table.testPlanId),
+  index("test_plan_executions_schedule_id_idx").on(table.scheduleId),
+  index("test_plan_executions_status_idx").on(table.status),
+  index("test_plan_executions_started_at_idx").on(table.startedAt),
+]);
 
 export const reportTestCaseResults = pgTable("report_test_case_results", {
   id: text("id").primaryKey(),
@@ -200,7 +230,11 @@ export const reportTestCaseResults = pgTable("report_test_case_results", {
   component: text("component"),
   priority: text("priority"),
   severity: text("severity"),
-});
+}, (table) => [
+  index("report_test_case_results_execution_id_idx").on(table.testPlanExecutionId),
+  index("report_test_case_results_ui_test_id_idx").on(table.uiTestId),
+  index("report_test_case_results_api_test_id_idx").on(table.apiTestId),
+]);
 
 // ─── Execution Logs (User-Facing Console) ─────────────────────────────────────
 // Stores structured log entries emitted during test plan execution.
@@ -216,7 +250,10 @@ export const executionLogs = pgTable("execution_logs", {
   metadata: jsonb('metadata'),                  // Step details, screenshots, timing, etc.
   testCaseResultId: text('test_case_result_id'), // Optional link to a specific test case
   correlationId: text('correlation_id'),
-});
+}, (table) => [
+  index("execution_logs_execution_id_idx").on(table.testPlanExecutionId),
+  index("execution_logs_correlation_id_idx").on(table.correlationId),
+]);
 
 export const environments = pgTable("environments", {
   id: serial('id').primaryKey(),
@@ -224,7 +261,9 @@ export const environments = pgTable("environments", {
   description: text('description'),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+}, (table) => [
+  index("environments_user_id_idx").on(table.userId),
+]);
 
 export const secrets = pgTable("secrets", {
   id: serial('id').primaryKey(),
@@ -236,7 +275,10 @@ export const secrets = pgTable("secrets", {
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+}, (table) => [
+  index("secrets_environment_id_idx").on(table.environmentId),
+  index("secrets_user_id_idx").on(table.userId),
+]);
 
 export const testPlanWebhooks = pgTable("test_plan_webhooks", {
   id: serial('id').primaryKey(),
@@ -245,7 +287,9 @@ export const testPlanWebhooks = pgTable("test_plan_webhooks", {
   name: text('name').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   lastUsedAt: timestamp('last_used_at'),
-});
+}, (table) => [
+  index("test_plan_webhooks_test_plan_id_idx").on(table.testPlanId),
+]);
 
 export const testPlanSelectedTests = pgTable("test_plan_selected_tests", {
   id: serial('id').primaryKey(),
@@ -253,7 +297,11 @@ export const testPlanSelectedTests = pgTable("test_plan_selected_tests", {
   testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }),
   apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }),
   testType: text('test_type').notNull(),
-});
+}, (table) => [
+  index("test_plan_selected_tests_test_plan_id_idx").on(table.testPlanId),
+  index("test_plan_selected_tests_test_id_idx").on(table.testId),
+  index("test_plan_selected_tests_api_test_id_idx").on(table.apiTestId),
+]);
 
 // Excel Sequences Map Table
 export const excelSequencesMap = pgTable("excel_sequences_map", {
@@ -263,14 +311,18 @@ export const excelSequencesMap = pgTable("excel_sequences_map", {
     .references(() => tests.id, { onDelete: "cascade" }),
   excelTestCaseId: text("excel_test_case_id").notNull().unique(), // Assuming one Excel ID maps to one Sequence
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("excel_sequences_map_test_id_idx").on(table.testId),
+]);
 
 
 export const sessions = pgTable("sessions", {
   sid: text("sid").primaryKey(),
   sess: jsonb("sess").notNull(),
   expire: timestamp("expire").notNull(),
-});
+}, (table) => [
+  index("sessions_expire_idx").on(table.expire),
+]);
 
 // Relation Definitions
 export const usersRelations = relations(users, ({ many, one }) => ({

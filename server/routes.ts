@@ -1158,12 +1158,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...newScheduleData,
         id: scheduleId,
         nextRunAt: nextRunAtDate,
-        // Ensure JSON fields are stringified
-        browsers: newScheduleData.browsers ? JSON.stringify(newScheduleData.browsers) : null,
-        notificationConfigOverride: newScheduleData.notificationConfigOverride ? JSON.stringify(newScheduleData.notificationConfigOverride) : null,
-        executionParameters: newScheduleData.executionParameters ? JSON.stringify(newScheduleData.executionParameters) : null,
+        browsers: newScheduleData.browsers ?? null,
+        notificationConfigOverride: newScheduleData.notificationConfigOverride ?? null,
+        executionParameters: newScheduleData.executionParameters ?? null,
         updatedAt: new Date(),
-        // userId: req.user.id, // If schedules become user-specific
+        // Owner of the schedule (authoritative from the session, not the client payload).
+        userId: (req.user as any)?.id ?? null,
       };
 
       const createdScheduleResult = await db.insert(testPlanSchedules).values(valuesToInsert).returning();
