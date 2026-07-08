@@ -1,10 +1,47 @@
+# Dependencies
 node_modules
+
+# Build output
 dist
-.DS_Store
+client/dist
 server/public
+
+# OS / editor
+.DS_Store
+.vs/
+.vscode/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Local database (PGlite/SQLite data dirs)
+/data/
+
+# Logs
+logs/
+*.log
+
+# Test / reporting artifacts
+allure-results/
+results/
+coverage/
+uploads/
+
+# Misc build artifacts
 vite.config.ts.*
 *.tar.gz
 
-# Added for SQLite migration
-/.env
-/data/
+# One-off analysis / report artifacts (were committed by mistake)
+current_code_keys.txt
+extracted_new_keys.txt
+found_translation_keys.txt
+translation_keys.txt
+new_translation_keys_list.txt
+new_translation_keys_map.json
+parsed_translation_data.json
+translation_analysis_report.json
+final_translation_analysis_report.json
+hardcoded_strings_to_translate.json
+comprehensive_report.md
