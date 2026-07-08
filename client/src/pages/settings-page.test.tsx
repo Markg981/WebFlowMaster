@@ -217,6 +217,6 @@ describe('SettingsPage - Project Deletion', () => {
     }
 
     expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Error Deleting Project", description: errorMessage, variant: "destructive" }));
-    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 });

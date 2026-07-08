@@ -112,7 +112,7 @@ async function getLogLevelSetting(): Promise<string> {
 
 const isDev = process.env.NODE_ENV !== 'production';
 
-async function initializeLogger(): Promise<winston.Logger> {
+export async function initializeLogger(): Promise<winston.Logger> {
   let maxFilesSetting = process.env.LOG_RETENTION_DAYS ? `${process.env.LOG_RETENTION_DAYS}d` : '7d';
 
   const dbRetentionSetting = await getLogRetentionDaysSetting();
