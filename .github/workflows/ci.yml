@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # PGlite local data dir (no external Postgres needed for CI)
+      DATABASE_URL: data/test.db
+      REDIS_URL: redis://localhost:6379
+      SESSION_SECRET: ci-test-session-secret
+      # 32-byte hex key required by crypto.ts
+      ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000
+      LOG_LEVEL: error
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies (root + client workspace)
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      - name: Lint
+        run: npm run lint
+
+      # Formatting is available via `npm run format` but not yet enforced as a gate,
+      # since the pre-existing codebase has not been Prettier-formatted in bulk.
+      # - name: Format check
+      #   run: npm run format:check
+
+      - name: Unit tests
+        run: npm test
