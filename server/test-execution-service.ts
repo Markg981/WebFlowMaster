@@ -250,7 +250,7 @@ export async function processTestPlanJob(
     .set({ status: 'running' })
     .where(eq(testPlanExecutionsTable.id, testPlanRunId));
 
-  let currentTestPlanRun: any = { startedAt: Math.floor(overallStartTime / 1000) };
+  const currentTestPlanRun: any = { startedAt: Math.floor(overallStartTime / 1000) };
 
   const baseResultsDir = path.join('./results', planId, testPlanRunId);
   try {
@@ -326,7 +326,7 @@ export async function processTestPlanJob(
 
   for (const link of selectedTestsLinks) {
     let testObjectDefinition: Test | ApiTest | undefined;
-    let testTypeForRun: 'ui' | 'api' | undefined = link.testType as ('ui' | 'api');
+    const testTypeForRun: 'ui' | 'api' | undefined = link.testType as ('ui' | 'api');
 
     if (link.testId && link.testType === 'ui') {
       testObjectDefinition = uiTestsMap.get(link.testId);

@@ -131,7 +131,6 @@ export interface TestPlanExecutionEnhanced extends Omit<TestPlanExecution, 'star
   scheduleName?: string;
   startedAt: Date; // Ensure this is a Date object
   completedAt: Date | null; // Ensure this is a Date object or null
-  completedAt: Date | null; // Ensure this is a Date object or null
   // Server already parses results and browsers JSON
   results: Record<string, any> | null;
   browsers: string[] | null;

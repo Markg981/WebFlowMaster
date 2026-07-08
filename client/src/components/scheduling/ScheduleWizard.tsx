@@ -47,9 +47,6 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
     queryKey: ['testPlansSummary'],
     queryFn: fetchTestPlansAPI,
     enabled: isOpen,
-    queryKey: ['testPlansSummary'],
-    queryFn: fetchTestPlansAPI,
-    enabled: isOpen,
   });
 
   const defaultValues = useMemo((): Partial<ScheduleFormValues> => {
@@ -71,66 +68,62 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
   }, [scheduleToEdit, initialTestPlanId]);
 
   const form = useForm<ScheduleFormValues>({
-    const form = useForm<ScheduleFormValues>({
-      resolver: zodResolver(scheduleFormSchema),
-      defaultValues: defaultValues as ScheduleFormValues,
-      mode: 'onChange',
-    });
+    resolver: zodResolver(scheduleFormSchema),
+    defaultValues: defaultValues as ScheduleFormValues,
+    mode: 'onChange',
+  });
 
-    useEffect(() => {
-  if (scheduleToEdit) {
-    form.reset(transformApiDataToFormValues(scheduleToEdit) as ScheduleFormValues);
-    form.reset(transformApiDataToFormValues(scheduleToEdit) as ScheduleFormValues);
-  } else {
-    form.reset({
-      ...defaultValues,
-      testPlanId: initialTestPlanId || (testPlansData && testPlansData.length > 0 ? testPlansData[0].id : ''),
-    } as ScheduleFormValues);
-  }
-}, [scheduleToEdit, initialTestPlanId, form, defaultValues, testPlansData]);
+  useEffect(() => {
+    if (scheduleToEdit) {
+      form.reset(transformApiDataToFormValues(scheduleToEdit) as ScheduleFormValues);
+    } else {
+      form.reset({
+        ...defaultValues,
+        testPlanId: initialTestPlanId || (testPlansData && testPlansData.length > 0 ? testPlansData[0].id : ''),
+      } as ScheduleFormValues);
+    }
+  }, [scheduleToEdit, initialTestPlanId, form, defaultValues, testPlansData]);
 
-const createMutation = useMutation({
-  mutationFn: (data: any) => createSchedule(data),
-  onSuccess: () => {
-    toast({ title: t('scheduleWizard.toast.success.createTitle'), description: t('scheduleWizard.toast.success.createDescription') });
-    queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] });
-    onScheduleSaved();
-    handleClose();
-  },
-  onError: (error: Error) => {
-    toast({ title: t('scheduleWizard.toast.error.createTitle'), description: error.message, variant: 'destructive' });
-  },
-});
+  const createMutation = useMutation({
+    mutationFn: (data: any) => createSchedule(data),
+    onSuccess: () => {
+      toast({ title: t('scheduleWizard.toast.success.createTitle'), description: t('scheduleWizard.toast.success.createDescription') });
+      queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] });
+      onScheduleSaved();
+      handleClose();
+    },
+    onError: (error: Error) => {
+      toast({ title: t('scheduleWizard.toast.error.createTitle'), description: error.message, variant: 'destructive' });
+    },
+  });
 
-const updateMutation = useMutation({
-  mutationFn: (data: { id: string, payload: ScheduleFormValues }) => updateSchedule(data.id, transformFormValuesToApiPayload(data.payload) as any),
-  onSuccess: () => {
-    toast({ title: t('scheduleWizard.toast.success.updateTitle'), description: t('scheduleWizard.toast.success.updateDescription') });
-    queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] });
-    onScheduleSaved();
-    handleClose();
-  },
-  onError: (error: Error) => {
-    toast({ title: t('scheduleWizard.toast.error.updateTitle'), description: error.message, variant: 'destructive' });
-  },
-});
+  const updateMutation = useMutation({
+    mutationFn: (data: { id: string, payload: ScheduleFormValues }) => updateSchedule(data.id, transformFormValuesToApiPayload(data.payload) as any),
+    onSuccess: () => {
+      toast({ title: t('scheduleWizard.toast.success.updateTitle'), description: t('scheduleWizard.toast.success.updateDescription') });
+      queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] });
+      onScheduleSaved();
+      handleClose();
+    },
+    onError: (error: Error) => {
+      toast({ title: t('scheduleWizard.toast.error.updateTitle'), description: error.message, variant: 'destructive' });
+    },
+  });
 
-const onSubmit = (data: ScheduleFormValues) => {
-  if (scheduleToEdit?.id) {
-    updateMutation.mutate({ id: scheduleToEdit.id, data: payload as any });
-  } else {
-    createMutation.mutate(transformFormValuesToApiPayload(data) as any);
-  }
-};
+  const onSubmit = (data: ScheduleFormValues) => {
+    if (scheduleToEdit?.id) {
+      updateMutation.mutate({ id: scheduleToEdit.id, payload: data });
+    } else {
+      createMutation.mutate(transformFormValuesToApiPayload(data) as any);
+    }
+  };
 
-const handleNext = async () => {
-  const result = await form.trigger();
-  if (result) {
+  const handleNext = async () => {
     const result = await form.trigger();
     if (result) {
       setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
     } else {
-      toast({ title: t('scheduleWizard.toast.error.validationError'), description: t('scheduleWizard.toast.error.checkFields'), variant: "destructive" })
+      toast({ title: t('scheduleWizard.toast.error.validationError'), description: t('scheduleWizard.toast.error.checkFields'), variant: "destructive" });
     }
   };
 
@@ -198,7 +191,6 @@ const handleNext = async () => {
                       <SelectTrigger><SelectValue placeholder={t('scheduleWizard.steps.step1.selectEnvironmentPlaceholder')} /></SelectTrigger>
                       <SelectContent>
                         {ENVIRONMENT_OPTIONS.map(env => <SelectItem key={env.value} value={env.value}>{env.label}</SelectItem>)}
-                        {ENVIRONMENT_OPTIONS.map(env => <SelectItem key={env.value} value={env.value}>{env.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   )}
@@ -217,8 +209,6 @@ const handleNext = async () => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {BROWSER_OPTIONS.map((browser) => (
                       <div key={browser.value} className="flex items-center space-x-2">
-                    {BROWSER_OPTIONS.map((browser) => (
-                      <div key={browser.value} className="flex items-center space-x-2">
                         <Checkbox
                           id={`browser-${browser.value}`}
                           checked={field.value?.includes(browser.value)}
@@ -229,7 +219,6 @@ const handleNext = async () => {
                             field.onChange(newValue);
                           }}
                         />
-                        <Label htmlFor={`browser-${browser.value}`} className="font-normal">{browser.label}</Label>
                         <Label htmlFor={`browser-${browser.value}`} className="font-normal">{browser.label}</Label>
                       </div>
                     ))}
@@ -251,7 +240,6 @@ const handleNext = async () => {
                       <SelectTrigger><SelectValue placeholder={t('scheduleWizard.steps.step3.selectFrequencyPlaceholder')} /></SelectTrigger>
                       <SelectContent>
                         {FREQUENCY_OPTIONS.map(freq => <SelectItem key={freq.value} value={freq.value}>{freq.label}</SelectItem>)}
-                        {FREQUENCY_OPTIONS.map(freq => <SelectItem key={freq.value} value={freq.value}>{freq.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   )}
@@ -261,7 +249,6 @@ const handleNext = async () => {
               <div>
                 <Label>{t('scheduleWizard.steps.step3.pickDateTime')}</Label>
                 <Controller
-                    name="nextRunAt"
                     name="nextRunAt"
                     control={form.control}
                     render={({ field }) => (
@@ -340,7 +327,6 @@ const handleNext = async () => {
                     <Select onValueChange={field.onChange} value={field.value}>
                         <SelectTrigger><SelectValue placeholder={t('scheduleWizard.steps.step5.selectRetryPlaceholder')} /></SelectTrigger>
                         <SelectContent>
-                        {RETRY_ON_FAILURE_OPTIONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
                         {RETRY_ON_FAILURE_OPTIONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
                         </SelectContent>
                     </Select>

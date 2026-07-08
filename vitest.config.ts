@@ -6,6 +6,12 @@ export default defineConfig({
     globals: true, // To use describe, it, expect, etc. globally
     environment: 'node', // Crucial for backend testing
     include: ['server/**/*.test.ts'], // Pattern to find test files
+    // The tests share a single file-backed PGlite database. PGlite is a single-writer
+    // WASM instance, so running test files in parallel across workers corrupts it
+    // (WASM "Aborted()"). Run everything in one process, sequentially.
+    pool: 'forks',
+    poolOptions: { forks: { singleFork: true } },
+    fileParallelism: false,
     // setupFiles: ['./server/tests/setup.ts'], // Optional: for global test setup
     // reporters: ['default', 'html'], // Optional: for UI reporting via @vitest/ui
     // coverage: { // Optional: configure coverage

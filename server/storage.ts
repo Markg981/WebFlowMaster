@@ -109,8 +109,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteTest(id: number): Promise<boolean> {
-    const result = await db.delete(tests).where(eq(tests.id, id));
-    return result.changes > 0;
+    const deleted = await db.delete(tests).where(eq(tests.id, id)).returning();
+    return deleted.length > 0;
   }
 
   async createTestRun(testRun: InsertTestRun): Promise<TestRun> {

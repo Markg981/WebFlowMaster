@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import schedulerService from "./scheduler-service"; // Import the scheduler service
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite, serveStatic } from "./vite";
 import 'dotenv/config';
 import loggerPromise from './logger'; // Import Winston logger promise
 import { db } from './db'; // Import db instance
@@ -93,8 +93,13 @@ app.use(express.urlencoded({ extended: false }));
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
+    // Log the error instead of re-throwing (re-throwing after the response is sent
+    // triggers "Cannot set headers after they are sent").
+    logger.error("Unhandled request error", { status, message, stack: err.stack });
+
+    if (!res.headersSent) {
+      res.status(status).json({ message });
+    }
   });
 
   // importantly only setup vite in development and after
