@@ -1902,7 +1902,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
       header: {
         testSuiteName: plan?.name || 'N/A',
         environment: execution.environment || 'N/A',
-        browsers: execution.browsers ? JSON.parse(execution.browsers as string) : [],
+        browsers: typeof execution.browsers === 'string' ? JSON.parse(execution.browsers) : (execution.browsers ?? []),
         dateTime: execution.startedAt ? execution.startedAt.toISOString() : 'N/A',
         completedAt: execution.completedAt ? execution.completedAt.toISOString() : null,
         status: execution.status,
