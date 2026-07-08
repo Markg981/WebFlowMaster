@@ -8,6 +8,13 @@
       "when": 1783535734111,
       "tag": "0000_spooky_hedge_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783551613357,
+      "tag": "0001_add_indexes_and_schedule_owner",
+      "breakpoints": true
     }
   ]
 }

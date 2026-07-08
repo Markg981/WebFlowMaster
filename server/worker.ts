@@ -4,6 +4,7 @@ import { TEST_EXECUTION_QUEUE_NAME } from './queue';
 import { processTestPlanJob } from './test-execution-service';
 import loggerPromise from './logger';
 import { correlationStore } from './middleware/correlation';
+import { closeDb } from './db';
 import 'dotenv/config';
 
 (async () => {
@@ -43,4 +44,29 @@ import 'dotenv/config';
   });
 
   logger.info(`Worker started and listening to queue: ${TEST_EXECUTION_QUEUE_NAME}`);
+
+  // ─── Graceful shutdown ──────────────────────────────────────────────────────
+  // worker.close() waits for the in-flight job to finish before resolving, so a
+  // redeploy doesn't kill a running test execution mid-flight.
+  let shuttingDown = false;
+  const shutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info(`Worker received ${signal}, shutting down gracefully...`);
+    const forceTimer = setTimeout(() => process.exit(1), 30000);
+    forceTimer.unref();
+    try {
+      await worker.close(); // waits for the active job to complete
+      await connection.quit();
+      await closeDb();
+      logger.info('Worker graceful shutdown complete.');
+      process.exit(0);
+    } catch (err) {
+      logger.error('Error during worker graceful shutdown', err);
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 })();

@@ -42,7 +42,8 @@ function createSessionStore(): session.Store {
 // Rate limiter applied to authentication endpoints to slow down brute-force attempts.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // max attempts per window per IP
+  // Effectively disabled under test so the suite isn't throttled; enforced in real runs.
+  max: process.env.NODE_ENV === "test" ? 100000 : 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many attempts, please try again later." },

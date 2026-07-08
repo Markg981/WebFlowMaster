@@ -25,6 +25,13 @@ export default defineConfig({
     env: {
       DATABASE_URL: 'data/test.db',
     },
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      reportsDirectory: './coverage',
+      include: ['server/**/*.ts'],
+      exclude: ['server/**/*.test.ts', 'server/tests/**'],
+    },
   },
   resolve: {
     alias: {
