@@ -51,9 +51,9 @@ module.exports = {
     'no-case-declarations': 'warn',
     'no-useless-escape': 'warn',
     '@typescript-eslint/prefer-as-const': 'warn',
-    // React Hooks: kept as warnings for now — there are pre-existing violations
-    // (e.g. a top-level useToast) worth fixing, but they shouldn't block the CI gate yet.
-    'react-hooks/rules-of-hooks': 'warn',
+    // Rules-of-hooks catches real bugs; enforced in production code (the only
+    // current violations are test-file mock patterns, disabled in the override below).
+    'react-hooks/rules-of-hooks': 'error',
     'react-hooks/exhaustive-deps': 'warn',
     // These catch real bugs (e.g. the duplicated object keys found in this repo):
     'no-dupe-keys': 'error',
@@ -65,6 +65,11 @@ module.exports = {
     {
       files: ['**/*.test.ts', '**/*.test.tsx'],
       env: { node: true },
+      rules: {
+        // Test files legitimately call hooks in mock components / to grab mocked
+        // return values; the rules-of-hooks heuristic misfires on those patterns.
+        'react-hooks/rules-of-hooks': 'off',
+      },
     },
   ],
 };
