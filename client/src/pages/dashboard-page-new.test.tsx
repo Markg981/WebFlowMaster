@@ -121,8 +121,6 @@ describe('DashboardPageNew - General Test Saving', () => {
     const testNameFromModal = "Test With Project ID";
     const projectIdFromModal = sampleProjectsData[1].id;
     const testUrl = "http://currenturl.com";
-    const testSequenceData: any[] = []; // Keep empty for this test, as SaveTestModal mock doesn't use it
-    const testElementsData: any[] = []; // Keep empty
 
     // Mock SaveTestModal to call its onSave prop
     vi.mock('@/components/SaveTestModal', () => ({

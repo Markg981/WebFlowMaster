@@ -56,7 +56,7 @@ export class ReportingService {
     await body(); 
   }
   
-  async attachScreenshot(name: string, buffer: Buffer): Promise<void> {
+  async attachScreenshot(_name: string, _buffer: Buffer): Promise<void> {
       // No-op in manual mod, handled in generateReport
   }
 
@@ -115,7 +115,7 @@ export class ReportingService {
                     source: fileName,
                     type: 'text/plain'
                 });
-             } catch(e) {}
+             } catch { /* best-effort attachment; ignore failures */ }
         }
 
         const stepStatusDetails = step.error ? { message: step.error } : undefined;

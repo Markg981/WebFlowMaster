@@ -375,7 +375,7 @@ const ApiTesterPage: React.FC = () => {
           finalBody = undefined;
           finalContentType = undefined;
           break;
-        case 'form-data':
+        case 'form-data': {
           const formData = new FormData();
           formDataBody.forEach(field => {
             if (field.enabled && field.key) {
@@ -389,7 +389,8 @@ const ApiTesterPage: React.FC = () => {
           finalBody = formData;
           finalContentType = undefined; // Browser will set this with boundary
           break;
-        case 'x-www-form-urlencoded':
+        }
+        case 'x-www-form-urlencoded': {
           const urlSearchParams = new URLSearchParams();
           urlEncodedBody.forEach(pair => {
             if (pair.enabled && pair.key) {
@@ -399,6 +400,7 @@ const ApiTesterPage: React.FC = () => {
           finalBody = urlSearchParams.toString();
           finalContentType = 'application/x-www-form-urlencoded;charset=UTF-8';
           break;
+        }
         case 'raw':
           if (requestBodyValue.trim()) {
             if (rawContentType === 'application/json') {
@@ -418,7 +420,7 @@ const ApiTesterPage: React.FC = () => {
           finalBody = binaryBodyFile;
           finalContentType = binaryBodyFile?.type || 'application/octet-stream';
           break;
-        case 'GraphQL':
+        case 'GraphQL': {
           const gqlPayload: { query: string, variables?: object } = { query: graphqlQuery };
           if (graphqlVariables.trim()) {
             try {
@@ -430,6 +432,7 @@ const ApiTesterPage: React.FC = () => {
           finalBody = JSON.stringify(gqlPayload);
           finalContentType = 'application/json';
           break;
+        }
       }
     }
 
@@ -824,7 +827,7 @@ const ApiTesterPage: React.FC = () => {
     const href = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = href;
-    const filename = `${(exportData.name || 'api_test').replace(/[\/:*?"<>|]/g, '_').replace(/\s+/g, '_')}.json`;
+    const filename = `${(exportData.name || 'api_test').replace(/[/:*?"<>|]/g, '_').replace(/\s+/g, '_')}.json`;
     link.download = filename;
     document.body.appendChild(link);
     link.click();

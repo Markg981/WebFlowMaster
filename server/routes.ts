@@ -193,7 +193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let evalError: string | undefined = undefined;
           try {
             switch (assertion.source) {
-              case 'status_code':
+              case 'status_code': {
                 actualValue = responseStatus;
                 const expectedStatus = parseInt(assertion.targetValue || '');
                 if (isNaN(expectedStatus)) { evalError = "Target value is not a number"; break; }
@@ -207,6 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   default: evalError = `Unsupported comparison for status_code: ${assertion.comparison}`;
                 }
                 break;
+              }
               case 'header':
                 actualValue = responseHeaders[assertion.property?.toLowerCase() || ''];
                 switch (assertion.comparison) {
@@ -275,7 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                    }
                 }
                 break;
-              case 'body_text':
+              case 'body_text': {
                 const bodyAsString = typeof responseBodyContent === 'string' ? responseBodyContent : JSON.stringify(responseBodyContent);
                 actualValue = bodyAsString;
                 const targetStr = assertion.targetValue || '';
@@ -297,7 +298,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   default: evalError = `Unsupported comparison for body_text: ${assertion.comparison}`;
                 }
                 break;
-              case 'response_time':
+              }
+              case 'response_time': {
                 actualValue = duration;
                 const expectedTime = parseInt(assertion.targetValue || '');
                 if (isNaN(expectedTime)) { evalError = "Target value is not a number for response_time"; break; }
@@ -309,6 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   default: evalError = `Unsupported comparison for response_time: ${assertion.comparison}`;
                 }
                 break;
+              }
               default: evalError = `Unknown assertion source: ${(assertion as any).source}`;
             }
           } catch (e: any) {
@@ -583,8 +586,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to create test" });
     }
   });
-  app.put("/api/tests/:id", async (req, res) => { /* ... existing code ... */ });
-  app.post("/api/tests/:id/execute", async (req, res) => { /* ... existing code ... */ });
+  app.put("/api/tests/:id", async (_req, _res) => { /* ... existing code ... */ });
+  app.post("/api/tests/:id/execute", async (_req, _res) => { /* ... existing code ... */ });
   app.get("/api/settings", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });

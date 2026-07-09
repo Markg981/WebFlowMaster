@@ -43,7 +43,7 @@ let seededUser2: User; // To store user2 with its DB-generated ID
 // If the issue persists for them, they would also need renaming or careful scoping.
 let seededProject1User1: Project;
 let seededApiTestUser1Project1: InsertApiTest;
-let seededApiTestUser1NoProject: InsertApiTest;
+let _seededApiTestUser1NoProject: InsertApiTest;
 let seededApiTestUser2: InsertApiTest;
 
 
@@ -193,7 +193,7 @@ beforeEach(async () => {
   };
   await db.insert(apiTests).values(testDataUser1NoProject);
   const insertedTestsUser1NoProject = await db.select().from(apiTests).where(and(eq(apiTests.name, testDataUser1NoProject.name), eq(apiTests.userId, seededUser1.id)));
-  seededApiTestUser1NoProject = insertedTestsUser1NoProject[0];
+  _seededApiTestUser1NoProject = insertedTestsUser1NoProject[0];
 
 
   const testDataUser2 = {

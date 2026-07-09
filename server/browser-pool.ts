@@ -137,7 +137,7 @@ export class BrowserPool {
   // For MVP, we assume if we launched it, we know it. But since we don't store headless prop in PoolItem, we should add it.
   // Actually, checking browser.newContext() options might reveal it, but cleaner to store in PoolItem.
   // I will update PoolItem interface implicitly in valid logic below.
-  private isHeadlessMatch(browser: Browser, targetHeadless: boolean): boolean {
+  private isHeadlessMatch(_browser: Browser, _targetHeadless: boolean): boolean {
       // Simplification: We will just assume true for now or add 'headless' to PoolItem struct
       // For improved logic, I'll update the PoolItem interface in next iteration if needed.
       // Currently, most tests run same headless mode.

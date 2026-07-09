@@ -13,7 +13,7 @@ import {
 } from '@shared/schema';
 import { eq, inArray } from 'drizzle-orm'; // Added sql
 import { v4 as uuidv4 } from 'uuid';
-// @ts-ignore - no @types/fs-extra installed
+// @ts-expect-error fs-extra default import interop
 import fs from 'fs-extra';
 import path from 'path';
 import { getWsEmitter, type ExecutionLogEntry } from './websocket';
@@ -194,7 +194,6 @@ export async function runTestPlan(
     resolvedLogger.error({ message: `Test Plan not found`, planId, testPlanRunId });
     return { error: 'Test Plan not found', status: 404 };
   }
-  const testPlan = planResult[0];
 
   let currentTestPlanRun: TestPlanExecution;
   try {

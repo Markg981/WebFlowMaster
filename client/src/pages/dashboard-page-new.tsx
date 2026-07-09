@@ -214,7 +214,7 @@ export default function DashboardPage() {
   const [isExecutingPlayback, setIsExecutingPlayback] = useState(false);
   const [currentPlaybackStepIndex, setCurrentPlaybackStepIndex] = useState<number | null>(null);
   const [playbackSteps, setPlaybackSteps] = useState<StepResult[]>([]);
-  const [currentSavedTestId, setCurrentSavedTestId] = useState<string | null>(null); // To store ID of saved/loaded test
+  const [_currentSavedTestId, setCurrentSavedTestId] = useState<string | null>(null); // To store ID of saved/loaded test
   const [testName, setTestName] = useState<string>(""); // To store test name
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [lastTestOverallResult, setLastTestOverallResult] = useState<boolean | null>(null);

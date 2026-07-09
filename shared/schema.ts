@@ -385,7 +385,7 @@ export const apiTestHistoryRelations = relations(apiTestHistory, ({ one }) => ({
   user: one(users, { fields: [apiTestHistory.userId], references: [users.id] }),
 }));
 
-export const apiTestsRelations = relations(apiTests, ({ one, many }) => ({
+export const apiTestsRelations = relations(apiTests, ({ one }) => ({
   user: one(users, { fields: [apiTests.userId], references: [users.id] }),
   project: one(projects, {
     fields: [apiTests.projectId],

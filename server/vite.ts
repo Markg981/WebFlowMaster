@@ -4,7 +4,7 @@ import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-// @ts-ignore
+// @ts-expect-error importing untyped vite config module
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 import winston from 'winston'; // Import winston type

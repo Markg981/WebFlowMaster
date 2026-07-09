@@ -174,7 +174,7 @@ export class AIAutomationService {
   /**
    * Root Cause Analysis
    */
-  async analyzeFailure(error: string, stack: string, networkLogs: string[], screenshotBase64?: string): Promise<string> {
+  async analyzeFailure(error: string, stack: string, networkLogs: string[], _screenshotBase64?: string): Promise<string> {
     if (!this.isAvailable()) return "AI Analysis Unavailable (No Key)";
 
     try {

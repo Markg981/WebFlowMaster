@@ -41,7 +41,7 @@ beforeAll(async () => {
   app.use((req: Request, res: Response, next: NextFunction) => {
     // For a specific test, we might want to simulate unauthenticated
     if (req.headers['x-test-unauthenticated'] === 'true') {
-      // @ts-ignore // Allow setting user to null for testing
+      // @ts-expect-error allow setting user to null for testing
       req.user = null;
       req.isAuthenticated = () => false;
     } else {

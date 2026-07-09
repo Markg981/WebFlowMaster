@@ -72,7 +72,7 @@ export class ExcelService {
     };
   }
 
-  async parseExcel(filePath: string, mappings: any): Promise<ExcelTestCase[]> {
+  async parseExcel(filePath: string, _mappings: any): Promise<ExcelTestCase[]> {
       // For now, delegate to parseExcelFile or use mappings if implemented
       // Ignoring mappings for this quick fix to ensure compilation, or implementing strict mapping.
       // Re-using parseExcelFile logic but properly:

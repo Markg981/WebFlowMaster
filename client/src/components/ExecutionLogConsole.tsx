@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Terminal, Filter, Pause, Play, Download, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,7 +42,6 @@ const SOURCE_COLORS: Record<string, string> = {
 };
 
 export function ExecutionLogConsole({ executionId }: ExecutionLogConsoleProps) {
-  const { t } = useTranslation();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeLevels, setActiveLevels] = useState<Set<string>>(new Set(['info', 'warn', 'error', 'step']));

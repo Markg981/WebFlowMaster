@@ -176,7 +176,7 @@ export default function DashboardPage() {
     setTestSequence([]);
   };
 
-  const renderActionIcon = (iconName: string) => {
+  const _renderActionIcon = (iconName: string) => {
     const iconProps = { className: "h-4 w-4" };
     switch (iconName) {
       case "mouse-pointer": return <MousePointer {...iconProps} />;

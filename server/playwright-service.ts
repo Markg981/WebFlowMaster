@@ -4,7 +4,7 @@ import loggerPromise from './logger';
 import type { Logger as WinstonLogger } from 'winston';
 import { storage } from './storage'; // To fetch user settings
 import type { Test } from '@shared/schema'; // Import Test and UserSettings type
-// @ts-ignore
+// @ts-expect-error browser-context DOM globals in page.evaluate
 import fs from 'fs-extra';
 import path from 'path';
 import { PlaywrightReporter } from './playwright-reporter';
@@ -16,11 +16,6 @@ const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
 const DEFAULT_HEADLESS = true;
 const DEFAULT_TIMEOUT = 30000;
 const DEFAULT_WAIT_TIME = 1000;
-
-// Type guard for browser type
-function isBrowserType(type: string): type is 'chromium' | 'firefox' | 'webkit' {
-  return ['chromium', 'firefox', 'webkit'].includes(type);
-}
 
 let resolvedLogger: WinstonLogger;
 (async () => {
@@ -693,11 +688,11 @@ export class PlaywrightService {
           if (page && !page.isClosed()) {
             resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting element detection (due to navigation failure)", testName, pageClosed: page?.isClosed() });
             try {
-              // @ts-ignore
+              // @ts-expect-error browser-context DOM globals in page.evaluate
               finalDetectedElementsNavFail = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
                 const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
                 const detectedElementsEval: any[] = []; let globalElementCounter = 0;
-                // @ts-ignore
+                // @ts-expect-error browser-context DOM globals in page.evaluate
                 interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
                 return detectedElementsEval.slice(0, 50);
               });
@@ -746,7 +741,7 @@ export class PlaywrightService {
                 if (step.targetElement?.selector) {
                   await page.locator(step.targetElement.selector).scrollIntoViewIfNeeded();
                 } else {
-                  // @ts-ignore
+                  // @ts-expect-error browser-context DOM globals in page.evaluate
                   await page.evaluate(() => window.scrollBy(0, 200));
                 }
                 break;
@@ -759,14 +754,15 @@ export class PlaywrightService {
                   if (elementToAssert === 0) { stepStatus = 'failed'; stepError = `Assertion Failed: Element "${step.targetElement.selector}" not found.`; }
                 }
                 break;
-              case 'assertTextContains':
+              case 'assertTextContains': {
                 if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for assertTextContains action."; break; }
                 if (typeof step.value !== 'string' || step.value.trim() === '') { stepStatus = 'failed'; stepError = "Expected text (value) missing or empty for assertTextContains action."; break; }
                 const elementForText = page.locator(step.targetElement.selector);
                 const actualText = await elementForText.textContent();
                 if (actualText === null || !actualText.includes(step.value)) { stepStatus = 'failed'; stepError = `Assertion Failed: Element "${step.targetElement.selector}" did not contain text "${step.value}". Actual: "${actualText === null ? 'null' : actualText}".`; }
                 break;
-              case 'assertElementCount':
+              }
+              case 'assertElementCount': {
                 if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for assertElementCount action."; break; }
                 if (typeof step.value !== 'string' || step.value.trim() === '') { stepStatus = 'failed'; stepError = "Expected count (value) missing or empty for assertElementCount action."; break; }
                 const parsedAssertion = parseAssertionValue(step.value);
@@ -785,6 +781,7 @@ export class PlaywrightService {
                 }
                 if (!countMatch && stepStatus === 'passed') { stepStatus = 'failed'; stepError = `Assertion Failed: Element count for selector "${step.targetElement.selector}" did not match. Expected ${parsedAssertion.operator} ${parsedAssertion.count}, Actual: ${actualCount}.`; }
                 break;
+              }
               case 'hover':
                 if (!step.targetElement?.selector) throw new Error('Selector missing for hover action.');
                 await page.hover(step.targetElement.selector);
@@ -834,11 +831,11 @@ export class PlaywrightService {
       if (page && !page.isClosed()) {
         resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting final element detection (success path)", testName, pageClosed: page?.isClosed() });
         try {
-          // @ts-ignore
+          // @ts-expect-error browser-context DOM globals in page.evaluate
           finalDetectedElements = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
             const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
             const detectedElementsEval: any[] = []; let globalElementCounter = 0;
-            // @ts-ignore
+            // @ts-expect-error browser-context DOM globals in page.evaluate
             interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
             return detectedElementsEval.slice(0, 50);
           });
@@ -855,11 +852,11 @@ export class PlaywrightService {
       if (page && !page.isClosed()) {
         resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting element detection after critical error", testName, pageClosed: page?.isClosed() });
         try {
-          // @ts-ignore
+          // @ts-expect-error browser-context DOM globals in page.evaluate
           finalDetectedElementsCriticalError = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
             const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
             const detectedElementsEval: any[] = []; let globalElementCounter = 0;
-            // @ts-ignore
+            // @ts-expect-error browser-context DOM globals in page.evaluate
             interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
             return detectedElementsEval.slice(0, 50);
           });
@@ -931,11 +928,11 @@ export class PlaywrightService {
 
       let elements: any[] = [];
       try {
-        // @ts-ignore
+        // @ts-expect-error browser-context DOM globals in page.evaluate
         elements = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
           const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
           const detectedElements: any[] = []; let globalElementCounter = 0;
-          // @ts-ignore
+          // @ts-expect-error browser-context DOM globals in page.evaluate
           interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) { uniqueSelector = `${tagName}.${classes[0]}`; } } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElements.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
           return detectedElements.slice(0, 50);
         });
@@ -1096,7 +1093,7 @@ export class PlaywrightService {
                 if (step.targetElement?.selector) {
                   await page.locator(step.targetElement.selector).scrollIntoViewIfNeeded();
                 } else {
-                  // @ts-ignore
+                  // @ts-expect-error browser-context DOM globals in page.evaluate
                   await page.evaluate(() => window.scrollBy(0, 200));
                 }
                 break;
@@ -1109,14 +1106,15 @@ export class PlaywrightService {
                   if (elementToAssert === 0) { stepStatus = 'failed'; stepError = `Assertion Failed: Element "${step.targetElement.selector}" not found.`; }
                 }
                 break;
-              case 'assertTextContains':
+              case 'assertTextContains': {
                 if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for assertTextContains action."; break; }
                 if (typeof step.value !== 'string' || step.value.trim() === '') { stepStatus = 'failed'; stepError = "Expected text (value) missing or empty for assertTextContains action."; break; }
                 const elementForText = page.locator(step.targetElement.selector);
                 const actualText = await elementForText.textContent();
                 if (actualText === null || !actualText.includes(step.value)) { stepStatus = 'failed'; stepError = `Assertion Failed: Element "${step.targetElement.selector}" did not contain text "${step.value}". Actual: "${actualText === null ? 'null' : actualText}".`; }
                 break;
-              case 'assertElementCount':
+              }
+              case 'assertElementCount': {
                 if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for assertElementCount action."; break; }
                 if (typeof step.value !== 'string' || step.value.trim() === '') { stepStatus = 'failed'; stepError = "Expected count (value) missing or empty for assertElementCount action."; break; }
                 const parsedAssertion = parseAssertionValue(step.value);
@@ -1135,6 +1133,7 @@ export class PlaywrightService {
                 }
                 if (!countMatch && stepStatus === 'passed') { stepStatus = 'failed'; stepError = `Assertion Failed: Element count for selector "${step.targetElement.selector}" did not match. Expected ${parsedAssertion.operator} ${parsedAssertion.count}, Actual: ${actualCount}.`; }
                 break;
+              }
               case 'hover':
                 if (!step.targetElement?.selector) throw new Error('Selector missing for hover action.');
                 await page.hover(step.targetElement.selector);
@@ -1176,6 +1175,7 @@ export class PlaywrightService {
             name: actionName,
             type: actionId || 'unknown',
             status: stepStatus,
+            screenshot: stepScreenshot,
             error: stepError,
             details: stepStatus === 'passed' ? 'Success' : stepError || 'Failed',
             healed: reporter.lastActionHealed,

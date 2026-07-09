@@ -24,14 +24,14 @@ const TestSuitesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreatePlanWizardOpen, setIsCreatePlanWizardOpen] = useState(false);
-  const [isScheduleWizardOpen, setIsScheduleWizardOpen] = useState(false);
-  const [scheduleToEdit, setScheduleToEdit] = useState<TestPlanScheduleEnhanced | null>(null);
-  const [selectedTestPlanForScheduling, setSelectedTestPlanForScheduling] = useState<string | undefined>(undefined);
+  const [_isScheduleWizardOpen, setIsScheduleWizardOpen] = useState(false);
+  const [_scheduleToEdit, setScheduleToEdit] = useState<TestPlanScheduleEnhanced | null>(null);
+  const [_selectedTestPlanForScheduling, setSelectedTestPlanForScheduling] = useState<string | undefined>(undefined);
 
   const [isWebhooksModalOpen, setIsWebhooksModalOpen] = useState(false);
   const [selectedPlanForWebhooks, setSelectedPlanForWebhooks] = useState<{ id: string, name: string } | null>(null);
 
-  const [activeTab, setActiveTab] = useState('test-plan');
+  const [activeTab, _setActiveTab] = useState('test-plan');
   // When switching to 'schedules' tab, we might need to know which plan's schedules to show.
   // For simplicity, let's assume if a plan was just interacted with (e.g. "Schedule" button clicked),
   // its ID is stored and used. Or, a dropdown could select a plan for the schedules tab.
@@ -40,7 +40,7 @@ const TestSuitesPage: React.FC = () => {
 
 
   const { toast } = useToast();
-  const [runningPlanId, setRunningPlanId] = useState<string | null>(null);
+  const [runningPlanId, _setRunningPlanId] = useState<string | null>(null);
   const itemsPerPage = 5;
 
   const { data: allTestPlans = [], isLoading: isLoadingTestPlans, error: testPlansError } = useQuery<TestPlan[]>({
@@ -48,15 +48,15 @@ const TestSuitesPage: React.FC = () => {
     queryFn: fetchAllTestPlans, // Use the renamed function
   });
 
-  const { data: schedulesForPlan, isLoading: isLoadingSchedules, error: schedulesError } = useQuery({
+  const { data: _schedulesForPlan, isLoading: _isLoadingSchedules, error: _schedulesError } = useQuery({
     queryKey: ['schedulesByPlanId', currentlyViewedPlanIdForSchedules],
     queryFn: () => currentlyViewedPlanIdForSchedules ? fetchSchedulesByPlanId(currentlyViewedPlanIdForSchedules) : Promise.resolve([]),
     enabled: !!currentlyViewedPlanIdForSchedules && activeTab === 'schedules', // Only fetch if a plan is selected and tab is active
   });
 
-  const deleteScheduleMutation = useMutation({
+  const _deleteScheduleMutation = useMutation({
     mutationFn: deleteSchedule,
-    onSuccess: (_, scheduleId) => {
+    onSuccess: (_, _scheduleId) => {
       toast({ title: t('testSuitesPage.toast.scheduleDeleteSuccess.title'), description: t('testSuitesPage.toast.scheduleDeleteSuccess.description') });
       queryClient.invalidateQueries({ queryKey: ['schedulesByPlanId', currentlyViewedPlanIdForSchedules] });
       queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] }); // Also invalidate general list if any
@@ -66,7 +66,7 @@ const TestSuitesPage: React.FC = () => {
     },
   });
 
-  const toggleScheduleStatusMutation = useMutation({
+  const _toggleScheduleStatusMutation = useMutation({
     mutationFn: (data: { id: string, payload: UpdateScheduleClientPayload }) => updateSchedule(data.id, data.payload),
     onSuccess: (updatedSchedule) => { // updatedSchedule is TestPlanScheduleEnhanced
       toast({ title: t(updatedSchedule.isActive ? 'testSuitesPage.toast.scheduleActivateSuccess.title' : 'testSuitesPage.toast.scheduleDeactivateSuccess.title') });
@@ -83,7 +83,7 @@ const TestSuitesPage: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['testPlans'] });
   };
 
-  const handleScheduleSaved = () => {
+  const _handleScheduleSaved = () => {
     if (currentlyViewedPlanIdForSchedules) {
       queryClient.invalidateQueries({ queryKey: ['schedulesByPlanId', currentlyViewedPlanIdForSchedules] });
     }
@@ -96,7 +96,7 @@ const TestSuitesPage: React.FC = () => {
     setIsScheduleWizardOpen(true);
   };
 
-  const openScheduleWizardForEdit = (schedule: TestPlanScheduleEnhanced) => {
+  const _openScheduleWizardForEdit = (schedule: TestPlanScheduleEnhanced) => {
     setSelectedTestPlanForScheduling(schedule.testPlanId); // Ensure this is set
     setScheduleToEdit(schedule);
     setIsScheduleWizardOpen(true);

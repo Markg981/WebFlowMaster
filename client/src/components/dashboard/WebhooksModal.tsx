@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -18,13 +17,12 @@ interface WebhooksModalProps {
 }
 
 export default function WebhooksModal({ isOpen, onClose, planId, planName }: WebhooksModalProps) {
-  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [newWebhookName, setNewWebhookName] = useState('');
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
-  const { data: webhooks = [], isLoading } = useQuery({
+  const { data: webhooks = [] } = useQuery({
     queryKey: ['webhooks', planId],
     queryFn: async () => {
       const res = await apiRequest("GET", `/api/test-plans/${planId}/webhooks`);

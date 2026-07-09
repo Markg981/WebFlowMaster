@@ -42,7 +42,7 @@ module.exports = {
     'unused-imports/no-unused-imports': 'warn',
     'unused-imports/no-unused-vars': [
       'warn',
-      { args: 'after-used', argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      { args: 'after-used', argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', ignoreRestSiblings: true },
     ],
     '@typescript-eslint/no-empty-function': 'off',
     // Global type augmentation (e.g. Express.User) legitimately needs `declare global { namespace ... }`.

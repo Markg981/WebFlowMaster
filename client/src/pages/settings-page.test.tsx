@@ -40,9 +40,9 @@ let mockSystemSettingsQuery: Record<string, any> = {};
 
 // Store actual mutation options from the component
 let actualDeleteProjectMutationOptions: any = null;
-let actualCreateProjectMutationOptions: any = null;
-let actualUserSettingsMutationOptions: any = null;
-let actualSaveSystemSettingMutationOptions: any = null;
+let _actualCreateProjectMutationOptions: any = null;
+let _actualUserSettingsMutationOptions: any = null;
+let _actualSaveSystemSettingMutationOptions: any = null;
 
 
 vi.mock('@tanstack/react-query', async () => {
@@ -65,15 +65,15 @@ vi.mock('@tanstack/react-query', async () => {
         return { mutate: mockDeleteProjectMutate, isPending: false, data: undefined, error: null };
       }
       if (fnStr.includes('/api/projects') && fnStr.includes('POST')) {
-        actualCreateProjectMutationOptions = options;
+        _actualCreateProjectMutationOptions = options;
         return { mutate: mockCreateProjectMutate, isPending: false, data: undefined, error: null };
       }
       if (fnStr.includes('/api/settings')) {
-        actualUserSettingsMutationOptions = options;
+        _actualUserSettingsMutationOptions = options;
         return { mutate: mockUserSettingsMutate, isPending: false, data: undefined, error: null };
       }
       if (fnStr.includes('/api/system-settings')) {
-        actualSaveSystemSettingMutationOptions = options;
+        _actualSaveSystemSettingMutationOptions = options;
         return { mutate: mockSaveSystemSettingMutate, isPending: false, data: undefined, error: null };
       }
       return { mutate: vi.fn(), isPending: false, data: undefined, error: null };

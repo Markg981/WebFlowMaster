@@ -32,13 +32,11 @@ interface DraggableActionProps {
 export function DraggableAction({ 
   action, 
   stepId, 
-  onDropElement, 
+  onDropElement,
   targetElement,
-  isDropZoneActive,
-  isRecordingActive 
 }: DraggableActionProps) {
   const { t } = useTranslation();
-  const [{ isDragging: isActionDragging }, drag, dragPreview] = useDrag(() => ({
+  const [{ isDragging: isActionDragging }, drag] = useDrag(() => ({
     type: "action",
     item: { id: action.id, type: "action", data: action },
     collect: (monitor) => ({
