@@ -4,7 +4,10 @@ import { TEST_EXECUTION_QUEUE_NAME } from './queue';
 import { processTestPlanJob } from './test-execution-service';
 import loggerPromise from './logger';
 import { correlationStore } from './middleware/correlation';
-import { closeDb } from './db';
+import { closeDb, db } from './db';
+import { TRIGGER_SCHEDULE_JOB, executeScheduledPlan } from './scheduler-service';
+import { testPlanSchedules, testPlans } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 import 'dotenv/config';
 
 (async () => {
@@ -29,6 +32,28 @@ import 'dotenv/config';
             logger.error(`Job ${job.id} failed:`, error);
             throw error; // Let BullMQ handle the failure
           }
+        });
+      } else if (job.name === TRIGGER_SCHEDULE_JOB) {
+        // Fired by a BullMQ job scheduler (SCHEDULER_BACKEND=bullmq). Load the latest
+        // schedule + plan from the DB and run it via the shared execution logic.
+        const { scheduleId } = job.data;
+        const cid = `sched-${String(scheduleId).slice(0, 8)}`;
+        await correlationStore.run({ correlationId: cid }, async () => {
+          const [schedule] = await db.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId)).limit(1);
+          if (!schedule) {
+            logger.warn(`Scheduled trigger for unknown/removed schedule ${scheduleId}; skipping.`);
+            return;
+          }
+          if (!schedule.isActive) {
+            logger.info(`Scheduled trigger for inactive schedule ${scheduleId}; skipping.`);
+            return;
+          }
+          const [plan] = await db.select().from(testPlans).where(eq(testPlans.id, schedule.testPlanId)).limit(1);
+          if (!plan) {
+            logger.warn(`Scheduled trigger for schedule ${scheduleId}: test plan ${schedule.testPlanId} not found; skipping.`);
+            return;
+          }
+          await executeScheduledPlan(schedule, plan);
         });
       }
     },

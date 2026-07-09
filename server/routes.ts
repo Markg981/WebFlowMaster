@@ -1,10 +1,8 @@
 import { createServer, type Server } from "http";
 import { Express } from "express";
 import { setupAuth } from "./auth";
-import { storage } from "./storage";
 import {
   insertTestSchema,
-  insertTestRunSchema,
   userSettings,
   projects,
   insertProjectSchema,
@@ -20,23 +18,13 @@ import {
   testPlans,
   insertTestPlanSchema,
   updateTestPlanSchema,
-  selectTestPlanSchema,
   testPlanSelectedTests,
   users,
   systemSettings,
   insertSystemSettingSchema,
   // Updated schema imports for schedules and executions
   testPlanSchedules,
-  insertTestPlanScheduleSchema,
-  updateTestPlanScheduleSchema,
-  selectTestPlanScheduleSchema,
   testPlanExecutions,
-  insertTestPlanExecutionSchema,
-  selectTestPlanExecutionSchema,
-  // Phase 7/8/9 tables
-  testPlanWebhooks,
-  environments,
-  secrets,
   reportTestCaseResults,
   ReportTestCaseResult,
   executionLogs
@@ -45,10 +33,9 @@ import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
-import { eq, and, desc, sql, getTableColumns, asc, or, like, ilike, inArray, isNull } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
+import { eq, and, desc, sql, getTableColumns, asc, ilike } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
-import type { Logger as WinstonLogger } from 'winston';
-import schedulerService from "./scheduler-service"; // Import schedulerService
+// Import schedulerService
 import loggerPromise, { updateLogLevel } from "./logger";
 
 import projectsRoutes from "./routes/projects.routes";
@@ -204,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let evalError: string | undefined = undefined;
           try {
             switch (assertion.source) {
-              case 'status_code':
+              case 'status_code': {
                 actualValue = responseStatus;
                 const expectedStatus = parseInt(assertion.targetValue || '');
                 if (isNaN(expectedStatus)) { evalError = "Target value is not a number"; break; }
@@ -218,6 +205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   default: evalError = `Unsupported comparison for status_code: ${assertion.comparison}`;
                 }
                 break;
+              }
               case 'header':
                 actualValue = responseHeaders[assertion.property?.toLowerCase() || ''];
                 switch (assertion.comparison) {
@@ -286,7 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                    }
                 }
                 break;
-              case 'body_text':
+              case 'body_text': {
                 const bodyAsString = typeof responseBodyContent === 'string' ? responseBodyContent : JSON.stringify(responseBodyContent);
                 actualValue = bodyAsString;
                 const targetStr = assertion.targetValue || '';
@@ -308,7 +296,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   default: evalError = `Unsupported comparison for body_text: ${assertion.comparison}`;
                 }
                 break;
-              case 'response_time':
+              }
+              case 'response_time': {
                 actualValue = duration;
                 const expectedTime = parseInt(assertion.targetValue || '');
                 if (isNaN(expectedTime)) { evalError = "Target value is not a number for response_time"; break; }
@@ -320,6 +309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   default: evalError = `Unsupported comparison for response_time: ${assertion.comparison}`;
                 }
                 break;
+              }
               default: evalError = `Unknown assertion source: ${(assertion as any).source}`;
             }
           } catch (e: any) {
@@ -594,8 +584,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to create test" });
     }
   });
-  app.put("/api/tests/:id", async (req, res) => { /* ... existing code ... */ });
-  app.post("/api/tests/:id/execute", async (req, res) => { /* ... existing code ... */ });
+  app.put("/api/tests/:id", async (_req, _res) => { /* ... existing code ... */ });
+  app.post("/api/tests/:id/execute", async (_req, _res) => { /* ... existing code ... */ });
   app.get("/api/settings", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -1069,36 +1059,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // --- Test Plan Schedules API Endpoints (formerly /api/schedules) ---
 
-  // GET /api/test-plan-schedules - List all schedules
-  // Add .where(eq(testPlanSchedules.userId, req.user.id)) if user-specific access control is added to schedules
-  app.get("/api/test-plan-schedules", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    try {
-      const result = await db
-        .select({
-          ...getTableColumns(testPlanSchedules), // Select all columns from testPlanSchedules
-          testPlanName: testPlans.name, // And the name from the joined testPlans table
-        })
-        .from(testPlanSchedules)
-        .leftJoin(testPlans, eq(testPlanSchedules.testPlanId, testPlans.id))
-        .orderBy(desc(testPlanSchedules.createdAt));
-
-      // Manually parse JSON fields for client
-      const parsedResults = result.map((schedule: any) => ({
-        ...schedule,
-        browsers: typeof schedule.browsers === 'string' ? JSON.parse(schedule.browsers) : schedule.browsers,
-        notificationConfigOverride: typeof schedule.notificationConfigOverride === 'string' ? JSON.parse(schedule.notificationConfigOverride) : schedule.notificationConfigOverride,
-        executionParameters: typeof schedule.executionParameters === 'string' ? JSON.parse(schedule.executionParameters) : schedule.executionParameters,
-      }));
-      res.json(parsedResults);
-    } catch (error: any) {
-      resolvedLogger.error({ message: "Error fetching test plan schedules", error: error.message, stack: error.stack, userId: (req.user as any)?.id });
-      res.status(500).json({ error: "Failed to fetch test plan schedules" });
-    }
-  });
-
   // GET /api/test-plan-schedules/plan/:planId - List schedules for a specific test plan
   app.get("/api/test-plan-schedules/plan/:planId", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
@@ -1133,247 +1093,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
-  // POST /api/test-plan-schedules - Create a new schedule
-  app.post("/api/test-plan-schedules", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    const parseResult = insertTestPlanScheduleSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      resolvedLogger.warn({ message: "POST /api/test-plan-schedules - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
-      return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
-    }
-
-    try {
-      const newScheduleData = parseResult.data;
-      const scheduleId = uuidv4(); // Server-generated ID
-
-      const nextRunAtDate = newScheduleData.nextRunAt instanceof Date 
-        ? newScheduleData.nextRunAt 
-        : new Date(newScheduleData.nextRunAt * 1000);
-
-      const valuesToInsert: typeof testPlanSchedules.$inferInsert = {
-        ...newScheduleData,
-        id: scheduleId,
-        nextRunAt: nextRunAtDate,
-        browsers: newScheduleData.browsers ?? null,
-        notificationConfigOverride: newScheduleData.notificationConfigOverride ?? null,
-        executionParameters: newScheduleData.executionParameters ?? null,
-        updatedAt: new Date(),
-        // Owner of the schedule (authoritative from the session, not the client payload).
-        userId: (req.user as any)?.id ?? null,
-      };
-
-      const createdScheduleResult = await db.insert(testPlanSchedules).values(valuesToInsert).returning();
-
-      if (createdScheduleResult.length === 0) {
-        resolvedLogger.error({ message: "Schedule creation failed, no record returned", valuesToInsert, userId: (req.user as any)?.id });
-        return res.status(500).json({ error: "Failed to create schedule." });
-      }
-      const createdSchedule = createdScheduleResult[0];
-
-      // Add job to scheduler
-      await schedulerService.addScheduleJob(createdSchedule);
-
-      // Fetch with testPlanName for response consistency
-      const finalResult = await db
-        .select({ ...getTableColumns(testPlanSchedules), testPlanName: testPlans.name })
-        .from(testPlanSchedules)
-        .leftJoin(testPlans, eq(testPlanSchedules.testPlanId, testPlans.id))
-        .where(eq(testPlanSchedules.id, createdSchedule.id))
-        .limit(1);
-
-      if (finalResult.length === 0) {
-         resolvedLogger.error({ message: "Failed to fetch newly created schedule with test plan name", scheduleId: createdSchedule.id, userId: (req.user as any)?.id });
-         return res.status(500).json({ error: "Failed to retrieve created schedule details." });
-      }
-      const responseSchedule = {
-        ...finalResult[0],
-        browsers: typeof finalResult[0].browsers === 'string' ? JSON.parse(finalResult[0].browsers) : finalResult[0].browsers,
-        notificationConfigOverride: typeof finalResult[0].notificationConfigOverride === 'string' ? JSON.parse(finalResult[0].notificationConfigOverride) : finalResult[0].notificationConfigOverride,
-        executionParameters: typeof finalResult[0].executionParameters === 'string' ? JSON.parse(finalResult[0].executionParameters) : finalResult[0].executionParameters,
-      };
-      res.status(201).json(responseSchedule);
-
-    } catch (error: any) {
-      resolvedLogger.error({ message: "Error creating test plan schedule", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
-      if (error.message && error.message.toLowerCase().includes('foreign key constraint failed')) {
-        return res.status(400).json({ error: "Invalid Test Plan ID: The specified Test Plan does not exist." });
-      }
-      res.status(500).json({ error: "Failed to create test plan schedule" });
-    }
-  });
-
-  // PUT /api/test-plan-schedules/:id - Update an existing schedule
-  app.put("/api/test-plan-schedules/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const scheduleId = req.params.id;
-
-    const parseResult = updateTestPlanScheduleSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      resolvedLogger.warn({ message: `PUT /api/test-plan-schedules/${scheduleId} - Invalid payload`, errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
-      return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
-    }
-
-    try {
-      const updates = parseResult.data;
-      if (Object.keys(updates).length === 0) {
-        // Check if schedule exists to return 404, otherwise 400
-        const existing = await db.select({id: testPlanSchedules.id}).from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId)).limit(1);
-        if(existing.length === 0) return res.status(404).json({ error: "Schedule not found." });
-        return res.status(400).json({ error: "No update data provided." });
-      }
-
-      const nextRunAtDate = updates.nextRunAt !== undefined 
-        ? (updates.nextRunAt instanceof Date ? updates.nextRunAt : new Date((updates.nextRunAt as any) * 1000))
-        : undefined;
-
-      const valuesToUpdate: Partial<typeof testPlanSchedules.$inferInsert> = {
-        ...updates,
-        nextRunAt: nextRunAtDate,
-        updatedAt: new Date(),
-      };
-      // Stringify JSON fields if they are part of the update
-      if (updates.browsers !== undefined) valuesToUpdate.browsers = updates.browsers ? JSON.stringify(updates.browsers) : null;
-      if (updates.notificationConfigOverride !== undefined) valuesToUpdate.notificationConfigOverride = updates.notificationConfigOverride ? JSON.stringify(updates.notificationConfigOverride) : null;
-      if (updates.executionParameters !== undefined) valuesToUpdate.executionParameters = updates.executionParameters ? JSON.stringify(updates.executionParameters) : null;
-
-      // Remove undefined fields to avoid Drizzle errors on setting undefined
-      Object.keys(valuesToUpdate).forEach(key => (valuesToUpdate as any)[key] === undefined && delete (valuesToUpdate as any)[key]);
-
-      const updatedScheduleResult = await db
-        .update(testPlanSchedules)
-        .set(valuesToUpdate)
-        .where(eq(testPlanSchedules.id, scheduleId))
-        .returning();
-
-      if (updatedScheduleResult.length === 0) {
-        return res.status(404).json({ error: "Schedule not found or no changes made." });
-      }
-      const updatedSchedule = updatedScheduleResult[0];
-
-      // Update job in scheduler
-      await schedulerService.updateScheduleJob(updatedSchedule);
-
-      const finalResult = await db
-        .select({ ...getTableColumns(testPlanSchedules), testPlanName: testPlans.name })
-        .from(testPlanSchedules)
-        .leftJoin(testPlans, eq(testPlanSchedules.testPlanId, testPlans.id))
-        .where(eq(testPlanSchedules.id, scheduleId))
-        .limit(1);
-
-      if (finalResult.length === 0) {
-         resolvedLogger.error({ message: "Failed to fetch updated schedule with test plan name", scheduleId, userId: (req.user as any)?.id });
-         return res.status(404).json({ error: "Schedule not found after update." });
-      }
-      const responseSchedule = {
-        ...finalResult[0],
-        browsers: typeof finalResult[0].browsers === 'string' ? JSON.parse(finalResult[0].browsers) : finalResult[0].browsers,
-        notificationConfigOverride: typeof finalResult[0].notificationConfigOverride === 'string' ? JSON.parse(finalResult[0].notificationConfigOverride) : finalResult[0].notificationConfigOverride,
-        executionParameters: typeof finalResult[0].executionParameters === 'string' ? JSON.parse(finalResult[0].executionParameters) : finalResult[0].executionParameters,
-      };
-      res.json(responseSchedule);
-
-    } catch (error: any) {
-      resolvedLogger.error({ message: `Error updating schedule ${scheduleId}`, error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
-      if (error.message && error.message.toLowerCase().includes('foreign key constraint failed')) {
-        return res.status(400).json({ error: "Invalid Test Plan ID: The specified Test Plan does not exist." });
-      }
-      res.status(500).json({ error: "Failed to update schedule" });
-    }
-  });
-
-  // DELETE /api/test-plan-schedules/:id - Delete a schedule
-  app.delete("/api/test-plan-schedules/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const scheduleId = req.params.id;
-    try {
-      const result = await db
-        .delete(testPlanSchedules)
-        .where(eq(testPlanSchedules.id, scheduleId))
-        .returning();
-
-      if (result.length === 0) {
-        return res.status(404).json({ error: "Schedule not found" });
-      }
-      // Remove job from scheduler
-      schedulerService.removeScheduleJob(scheduleId);
-      res.status(204).send();
-    } catch (error: any) {
-      resolvedLogger.error({ message: `Error deleting schedule ${scheduleId}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id });
-      res.status(500).json({ error: "Failed to delete schedule" });
-    }
-  });
-
-  // --- Test Plan Executions API Endpoints ---
-  app.get("/api/test-plan-executions", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    const { planId, scheduleId, limit = 10, offset = 0, status, triggeredBy } = req.query;
-    const pageLimit = Math.min(Math.max(1, parseInt(limit as string)), 100); // Clamp limit between 1 and 100
-    const pageOffset = Math.max(0, parseInt(offset as string));
-
-    try {
-      let query = db.select({
-          ...getTableColumns(testPlanExecutions),
-          testPlanName: testPlans.name,
-          scheduleName: testPlanSchedules.scheduleName,
-        })
-        .from(testPlanExecutions)
-        .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
-        .leftJoin(testPlanSchedules, eq(testPlanExecutions.scheduleId, testPlanSchedules.id))
-        .$dynamic(); // Prepare for dynamic conditions
-
-      const conditions = [];
-      // TODO: Add userId filter if executions are user-specific
-      // conditions.push(eq(testPlanExecutions.userId, req.user.id));
-
-      if (planId && typeof planId === 'string') {
-        conditions.push(eq(testPlanExecutions.testPlanId, planId));
-      }
-      if (scheduleId && typeof scheduleId === 'string') {
-        conditions.push(eq(testPlanExecutions.scheduleId, scheduleId));
-      }
-      if (status && typeof status === 'string') {
-        conditions.push(eq(testPlanExecutions.status, status as any)); // Cast status
-      }
-      if (triggeredBy && typeof triggeredBy === 'string') {
-        conditions.push(eq(testPlanExecutions.triggeredBy, triggeredBy as any)); // Cast triggeredBy
-      }
-
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
-
-      const executions = await query.orderBy(desc(testPlanExecutions.startedAt)).limit(pageLimit).offset(pageOffset);
-
-      // Count total for pagination (can be slow on large tables without specific indexing)
-      // A simpler count without joins might be faster if only filtering by execution table fields.
-      // const totalRecordsResult = await db.select({ count: sql`count(*)` }).from(testPlanExecutions).where(and(...conditions));
-      // const totalRecords = Number(totalRecordsResult[0]?.count) || 0;
-
-      const parsedExecutions = executions.map((exec: any) => ({
-        ...exec,
-        results: typeof exec.results === 'string' ? JSON.parse(exec.results) : exec.results,
-        browsers: typeof exec.browsers === 'string' ? JSON.parse(exec.browsers) : exec.browsers,
-      }));
-
-      // For now, returning items without total count for simplicity to avoid complex count query
-      res.json({ items: parsedExecutions, limit: pageLimit, offset: pageOffset });
-
-    } catch (error: any) {
-      resolvedLogger.error({ message: "Error fetching test plan executions", error: error.message, stack: error.stack, query: req.query, userId: (req.user as any)?.id });
-      res.status(500).json({ error: "Failed to fetch test plan executions" });
-    }
-  });
 
 
   // Zod Schema for Test Plan API Payloads (including selected tests)

@@ -1,7 +1,7 @@
 import { useState } from "react"; // Added useState
 import { useTranslation } from 'react-i18next';
 import { useDrop } from "react-dnd";
-import { Card } from "@/components/ui/card"; // Keep for overall structure if needed, or remove if steps are Cards
+// Keep for overall structure if needed, or remove if steps are Cards
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label"; // Added Label import
@@ -19,7 +19,7 @@ import {
 import { availableActions, TestAction } from "@/pages/dashboard-page-new";
 import { TestStep, DetectedElement } from "@/components/drag-drop-provider"; // TestAction removed from here
 import { DraggableAction } from "./draggable-action"; // Import DraggableAction
-import { Trash2, Settings, Plus, Link2, RefreshCw, CheckCircle2, XCircle } from "lucide-react"; // Added Link2 for element icon, RefreshCw as an option
+import { Trash2, Plus, RefreshCw, CheckCircle2, XCircle } from "lucide-react"; // Added Link2 for element icon, RefreshCw as an option
 // Icons for actions are now rendered by DraggableAction, so they might not be needed here directly
 // unless used for other UI elements. Keeping them for now.
 // Specific action icons (MousePointer, Keyboard, etc.) might not be needed if DraggableAction handles icon display

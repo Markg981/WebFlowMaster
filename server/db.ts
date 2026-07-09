@@ -3,6 +3,8 @@ import { drizzle as drizzlePglite, type PgliteDatabase } from 'drizzle-orm/pglit
 import { Pool } from 'pg';
 import { PGlite } from '@electric-sql/pglite';
 import * as schema from '@shared/schema';
+import fs from 'fs';
+import path from 'path';
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL must be set.');
@@ -21,7 +23,11 @@ if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
   db = drizzlePg(pool, { schema });
   closeDbImpl = () => pool.end();
 } else {
-  // PGlite (local file/memory)
+  // PGlite (local file/memory). For a file-backed data dir, ensure the parent exists —
+  // PGlite does not create it recursively, so a fresh checkout (e.g. CI) fails otherwise.
+  if (!dbUrl.startsWith('memory://')) {
+    fs.mkdirSync(path.dirname(dbUrl), { recursive: true });
+  }
   const client = new PGlite(dbUrl);
   db = drizzlePglite(client, { schema });
   closeDbImpl = () => client.close();

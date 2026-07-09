@@ -1,5 +1,5 @@
 import { playwrightService } from './playwright-service';
-import type { Test, ApiTest, TestPlan, TestPlanExecution, InsertReportTestCaseResult } from '@shared/schema'; // Assuming ApiTest will be defined or Test is generic enough
+import type { Test, ApiTest, TestPlanExecution, InsertReportTestCaseResult } from '@shared/schema'; // Assuming ApiTest will be defined or Test is generic enough
 import type { StepResult } from './playwright-service'; // Import StepResult type
 import loggerPromise from './logger';
 import { db } from './db';
@@ -11,9 +11,8 @@ import {
   testPlanExecutions as testPlanExecutionsTable,
   reportTestCaseResults as reportTestCaseResultsTable // Added
 } from '@shared/schema';
-import { eq, and, sql, inArray } from 'drizzle-orm'; // Added sql
+import { eq, inArray } from 'drizzle-orm'; // Added sql
 import { v4 as uuidv4 } from 'uuid';
-// @ts-ignore - no @types/fs-extra installed
 import fs from 'fs-extra';
 import path from 'path';
 import { getWsEmitter, type ExecutionLogEntry } from './websocket';
@@ -194,7 +193,6 @@ export async function runTestPlan(
     resolvedLogger.error({ message: `Test Plan not found`, planId, testPlanRunId });
     return { error: 'Test Plan not found', status: 404 };
   }
-  const testPlan = planResult[0];
 
   let currentTestPlanRun: TestPlanExecution;
   try {

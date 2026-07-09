@@ -300,7 +300,7 @@ describe('SaveTestModal', () => {
 
       mockProjectsQueryData = { data: malformedProjectsData  as Project[], isLoading: false, isError: false, error: null };
 
-      const { container } = renderSaveTestModal({ isOpen: true, onSave: onSaveMock, onClose: onCloseMock });
+      renderSaveTestModal({ isOpen: true, onSave: onSaveMock, onClose: onCloseMock });
 
       const projectSelectTrigger = screen.getByRole('combobox', { name: /Project/i });
       fireEvent.mouseDown(projectSelectTrigger); // Open the dropdown

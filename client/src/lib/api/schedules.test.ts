@@ -4,7 +4,6 @@ import {
   updateSchedule,
   deleteSchedule,
   fetchSchedulesByPlanId,
-  type TestPlanScheduleEnhanced,
   type CreateScheduleClientPayload,
   type UpdateScheduleClientPayload,
 } from './schedules';

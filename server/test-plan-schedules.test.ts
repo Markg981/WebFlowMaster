@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vites
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
 import { db } from './db'; // Main DB import
-import { testPlanSchedules, testPlans, type InsertTestPlanSchedule, type TestPlanSchedule, type TestPlan } from '../shared/schema';
-import { eq, leftJoin, desc, getTableColumns } from 'drizzle-orm';
+import { users, testPlanSchedules, testPlans, type InsertTestPlanSchedule, type TestPlan } from '../shared/schema';
+import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import schedulerService from './scheduler-service'; // Import the actual service
 
@@ -53,13 +53,15 @@ beforeEach(async () => {
   // Clear tables: testPlanSchedules first due to FK, then testPlans
   await db.delete(testPlanSchedules);
   await db.delete(testPlans);
+  await db.delete(users);
+  await db.insert(users).values({ id: mockUser.id, username: mockUser.username, password: 'hashed' });
   vi.clearAllMocks(); // Clear mocks before each test
 
   // Seed Test Plans
   const planId1 = uuidv4();
   const planId2 = uuidv4();
-  [seededPlan1] = await db.insert(testPlans).values({ id: planId1, name: 'Default Test Plan 1', description: 'For general testing' }).returning();
-  [seededPlan2] = await db.insert(testPlans).values({ id: planId2, name: 'Default Test Plan 2', description: 'Another plan' }).returning();
+  [seededPlan1] = await db.insert(testPlans).values({ id: planId1, name: 'Default Test Plan 1', description: 'For general testing', userId: mockUser.id }).returning();
+  [seededPlan2] = await db.insert(testPlans).values({ id: planId2, name: 'Default Test Plan 2', description: 'Another plan', userId: mockUser.id }).returning();
 });
 
 afterAll(async () => {
@@ -72,17 +74,19 @@ afterAll(async () => {
 describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
   describe('POST /api/test-plan-schedules', () => {
     it('should create a new schedule with valid data and call schedulerService.addScheduleJob', async () => {
-      const newSchedulePayload: Omit<InsertTestPlanSchedule, 'id' | 'createdAt' | 'updatedAt'> = {
+      // nextRunAt is sent as unix-seconds (what the client sends over the wire): a JSON
+      // request can't carry a Date, and the schema accepts number-or-Date, not ISO strings.
+      const newSchedulePayload = {
         scheduleName: 'Nightly QA Run',
         testPlanId: seededPlan1.id,
         frequency: 'daily@02:00',
         nextRunAt: Math.floor(new Date('2025-01-01T02:00:00Z').getTime() / 1000),
         environment: 'QA',
-        browsers: JSON.stringify(['chromium', 'firefox']),
+        browsers: ['chromium', 'firefox'],
         isActive: true,
         retryOnFailure: 'once',
-        notificationConfigOverride: JSON.stringify({ emails: 'qa@example.com', onSuccess: true, onFailure: true }),
-        executionParameters: JSON.stringify({ customVar: 'nightlyValue' }),
+        notificationConfigOverride: { emails: 'qa@example.com', onSuccess: true, onFailure: true },
+        executionParameters: { customVar: 'nightlyValue' },
       };
 
       const response = await request(app)
@@ -124,7 +128,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
     it('should return 400 when creating a schedule with a non-existent testPlanId', async () => {
       const newSchedulePayload = {
         scheduleName: 'Invalid Plan Run', testPlanId: uuidv4(), frequency: 'Daily',
-        nextRunAt: Math.floor(new Date().getTime() / 1000), environment: "QA", browsers: JSON.stringify(["chromium"])
+        nextRunAt: Math.floor(new Date().getTime() / 1000), environment: "QA", browsers: ["chromium"]
       };
       const response = await request(app)
         .post('/api/test-plan-schedules')
@@ -139,7 +143,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
     it('should return all schedules with their testPlanName joined and JSON fields parsed', async () => {
       const schedule1Data: InsertTestPlanSchedule = {
         id: uuidv4(), scheduleName: 'Schedule A', testPlanId: seededPlan1.id,
-        frequency: 'Daily', nextRunAt: Math.floor(Date.now() / 1000),
+        frequency: 'Daily', nextRunAt: new Date(),
         browsers: JSON.stringify(['chromium']), isActive: true, retryOnFailure: 'none'
       };
       await db.insert(testPlanSchedules).values(schedule1Data);
@@ -161,8 +165,8 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
       const s1Id = uuidv4();
       const s2Id = uuidv4();
       await db.insert(testPlanSchedules).values([
-        { id: s1Id, scheduleName: 'Plan1 Sched1', testPlanId: seededPlan1.id, frequency: 'once', nextRunAt: Date.now(), environment: 'QA', browsers: JSON.stringify(['chrome']) },
-        { id: s2Id, scheduleName: 'Plan2 Sched1', testPlanId: seededPlan2.id, frequency: 'daily', nextRunAt: Date.now(), environment: 'Staging', browsers: JSON.stringify(['firefox']) },
+        { id: s1Id, scheduleName: 'Plan1 Sched1', testPlanId: seededPlan1.id, frequency: 'once', nextRunAt: new Date(), environment: 'QA', browsers: JSON.stringify(['chrome']) },
+        { id: s2Id, scheduleName: 'Plan2 Sched1', testPlanId: seededPlan2.id, frequency: 'daily', nextRunAt: new Date(), environment: 'Staging', browsers: JSON.stringify(['firefox']) },
       ]);
 
       const response = await request(app)
@@ -183,7 +187,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
       const scheduleId = uuidv4();
       const initialSchedule: InsertTestPlanSchedule = {
         id: scheduleId, scheduleName: 'Initial Name', testPlanId: seededPlan1.id,
-        frequency: 'Daily', nextRunAt: Math.floor(Date.now() / 1000),
+        frequency: 'Daily', nextRunAt: new Date(),
         environment: 'Dev', browsers: JSON.stringify(['webkit']), isActive: true, retryOnFailure: 'none'
       };
       await db.insert(testPlanSchedules).values(initialSchedule);
@@ -215,7 +219,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
       const dbSchedule = await db.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId));
       expect(dbSchedule[0].testPlanId).toBe(updatedData.testPlanId);
       expect(dbSchedule[0].environment).toBe('Staging');
-      expect(dbSchedule[0].isActive).toBe(0); // SQLite stores boolean as 0/1
+      expect(dbSchedule[0].isActive).toBe(false); // Postgres boolean column
 
       expect(schedulerService.updateScheduleJob).toHaveBeenCalledTimes(1);
       expect(schedulerService.updateScheduleJob).toHaveBeenCalledWith(
@@ -229,7 +233,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
       const scheduleId = uuidv4();
       const scheduleToDelete: InsertTestPlanSchedule = {
         id: scheduleId, scheduleName: 'To Delete', testPlanId: seededPlan1.id,
-        frequency: 'Once', nextRunAt: Math.floor(Date.now() / 1000),
+        frequency: 'Once', nextRunAt: new Date(),
         environment: 'Prod', browsers: JSON.stringify(['all'])
       };
       await db.insert(testPlanSchedules).values(scheduleToDelete);

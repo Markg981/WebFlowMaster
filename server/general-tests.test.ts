@@ -12,11 +12,10 @@ import {
   type User,
   type Project,
   type InsertUser,
-  type InsertProject,
-  type Test
+  type InsertProject
 } from '../shared/schema';
 import { z } from 'zod';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 // Mock logger
 vi.mock('./logger', () => ({

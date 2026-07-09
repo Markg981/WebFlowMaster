@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Terminal, Filter, Pause, Play, Download, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Terminal, Filter, Pause, Play, Download, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +11,6 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 
 interface LogEntry {
@@ -44,7 +42,6 @@ const SOURCE_COLORS: Record<string, string> = {
 };
 
 export function ExecutionLogConsole({ executionId }: ExecutionLogConsoleProps) {
-  const { t } = useTranslation();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeLevels, setActiveLevels] = useState<Set<string>>(new Set(['info', 'warn', 'error', 'step']));

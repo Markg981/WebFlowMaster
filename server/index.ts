@@ -9,6 +9,7 @@ import { systemSettings } from '@shared/schema'; // Import systemSettings table
 import { eq } from 'drizzle-orm'; // Import eq operator
 import { setupWebSockets } from './websocket';
 import { correlationMiddleware } from './middleware/correlation';
+import { csrfOriginCheck } from './middleware/csrf';
 import { connection as redisConnection } from './redis';
 
 const app = express();
@@ -22,6 +23,11 @@ app.use(express.urlencoded({ extended: false }));
   // Generates a unique trace ID for each request and propagates it
   // through AsyncLocalStorage to all downstream async operations.
   app.use(correlationMiddleware);
+
+  // ─── CSRF (Origin/Referer) check for state-changing requests ────────────
+  // Layered on top of the SameSite=Lax session cookie. Rejects cross-origin
+  // browser POST/PUT/PATCH/DELETE; server-to-server calls (no Origin) pass.
+  app.use(csrfOriginCheck);
 
   // ─── Structured request logging middleware ──────────────────────────────
   app.use((req, res, next) => {

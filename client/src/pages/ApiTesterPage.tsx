@@ -1,5 +1,5 @@
 // client/src/pages/ApiTesterPage.tsx
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Network, Loader2, PlusCircle, XCircle, History, Save, ListChecks, CheckCircle, XCircle as XCircleIcon, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Network, Loader2, PlusCircle, XCircle, History, Save, ListChecks, CheckCircle, XCircle as XCircleIcon } from 'lucide-react';
 import { Link } from 'wouter';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -375,7 +375,7 @@ const ApiTesterPage: React.FC = () => {
           finalBody = undefined;
           finalContentType = undefined;
           break;
-        case 'form-data':
+        case 'form-data': {
           const formData = new FormData();
           formDataBody.forEach(field => {
             if (field.enabled && field.key) {
@@ -389,7 +389,8 @@ const ApiTesterPage: React.FC = () => {
           finalBody = formData;
           finalContentType = undefined; // Browser will set this with boundary
           break;
-        case 'x-www-form-urlencoded':
+        }
+        case 'x-www-form-urlencoded': {
           const urlSearchParams = new URLSearchParams();
           urlEncodedBody.forEach(pair => {
             if (pair.enabled && pair.key) {
@@ -399,6 +400,7 @@ const ApiTesterPage: React.FC = () => {
           finalBody = urlSearchParams.toString();
           finalContentType = 'application/x-www-form-urlencoded;charset=UTF-8';
           break;
+        }
         case 'raw':
           if (requestBodyValue.trim()) {
             if (rawContentType === 'application/json') {
@@ -418,7 +420,7 @@ const ApiTesterPage: React.FC = () => {
           finalBody = binaryBodyFile;
           finalContentType = binaryBodyFile?.type || 'application/octet-stream';
           break;
-        case 'GraphQL':
+        case 'GraphQL': {
           const gqlPayload: { query: string, variables?: object } = { query: graphqlQuery };
           if (graphqlVariables.trim()) {
             try {
@@ -430,6 +432,7 @@ const ApiTesterPage: React.FC = () => {
           finalBody = JSON.stringify(gqlPayload);
           finalContentType = 'application/json';
           break;
+        }
       }
     }
 
@@ -600,7 +603,9 @@ const ApiTesterPage: React.FC = () => {
     toast({ title: "Loaded from history", description: `${item.method} ${item.url}`, duration: 2000 });
   };
 
-  const loadTestState = (test: ApiTest) => {
+  // Memoized so the "load test from ?testId=" effect below doesn't re-run (and re-fetch)
+  // on every render. Body only calls stable setters plus toast.
+  const loadTestState = useCallback((test: ApiTest) => {
     setMethod(test.method);
     setUrl(test.url);
     if (test.authType) setAuthType(test.authType as AuthType);
@@ -722,7 +727,7 @@ const ApiTesterPage: React.FC = () => {
     } else {
       setUrlEncodedBody([{ id: uuidv4(), key: '', value: '', enabled: true }]);
     }
-  };
+  }, []);
 
 
   const handleOpenSaveModal = (testToEdit?: ApiTest) => {
@@ -824,7 +829,7 @@ const ApiTesterPage: React.FC = () => {
     const href = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = href;
-    const filename = `${(exportData.name || 'api_test').replace(/[\/:*?"<>|]/g, '_').replace(/\s+/g, '_')}.json`;
+    const filename = `${(exportData.name || 'api_test').replace(/[/:*?"<>|]/g, '_').replace(/\s+/g, '_')}.json`;
     link.download = filename;
     document.body.appendChild(link);
     link.click();

@@ -1,8 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
-import { tests, insertTestSchema, apiTests, insertApiTestSchema, updateApiTestSchema, AdhocTestStepSchema, AdhocDetectedElementSchema, apiTestHistory, insertApiTestHistorySchema } from "@shared/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
-import { z } from "zod";
+import { tests, insertTestSchema, apiTests, insertApiTestSchema, updateApiTestSchema } from "@shared/schema";
+import { eq, desc, and } from "drizzle-orm";
 import loggerPromise from "../logger";
 import { playwrightService } from "../playwright-service";
 

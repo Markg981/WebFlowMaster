@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'wouter';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -15,13 +15,6 @@ import {
 import type { TestPlanExecution, TestPlan } from '@shared/schema';
 import { format } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
-
-// Mock/Placeholder for DatePickerWithRange if not available
-const DatePickerWithRangePlaceholder = ({ date, onDateChange }: { date: any, onDateChange: (date: any) => void }) => (
-  <Button variant="outline" onClick={() => console.log("Date Range Picker clicked")}>
-    {date?.from ? `${format(date.from, "LLL dd, y")} - ${date.to ? format(date.to, "LLL dd, y") : ""}` : "Select Date Range"}
-  </Button>
-);
 
 interface TestPlanExecutionWithPlanName extends TestPlanExecution {
   testPlanName?: string;
@@ -85,7 +78,7 @@ async function fetchTestPlansForFilter(): Promise<Pick<TestPlan, 'id' | 'name'>[
 
 const GeneralReportsPage: React.FC = () => {
   const { t } = useTranslation();
-  const [locationUrl, navigate] = useLocation();
+  const [, navigate] = useLocation();
   const queryParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
 
   const [currentPage, setCurrentPage] = useState(1);

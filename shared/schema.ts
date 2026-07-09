@@ -1,7 +1,7 @@
 import { pgTable, text, integer, serial, timestamp, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
-import { relations, sql } from 'drizzle-orm';
+import { relations } from 'drizzle-orm';
 
 // Table Definitions
 export const users = pgTable("users", {
@@ -385,7 +385,7 @@ export const apiTestHistoryRelations = relations(apiTestHistory, ({ one }) => ({
   user: one(users, { fields: [apiTestHistory.userId], references: [users.id] }),
 }));
 
-export const apiTestsRelations = relations(apiTests, ({ one, many }) => ({
+export const apiTestsRelations = relations(apiTests, ({ one }) => ({
   user: one(users, { fields: [apiTests.userId], references: [users.id] }),
   project: one(projects, {
     fields: [apiTests.projectId],

@@ -1,8 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
 import { projects, insertProjectSchema } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
-import { z } from "zod";
+import { desc } from "drizzle-orm";
 import loggerPromise from "../logger";
 
 const router = Router();

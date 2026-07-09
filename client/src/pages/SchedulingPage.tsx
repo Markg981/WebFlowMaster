@@ -53,7 +53,7 @@ const SchedulingPage: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: (data: CreateScheduleClientPayload) => createSchedule(data),
     ...mutationOptions,
-    onSuccess: (...args) => {
+    onSuccess: () => {
       mutationOptions.onSuccess?.();
       toast({ title: 'Success', description: 'Schedule created successfully.' });
     },
@@ -62,7 +62,7 @@ const SchedulingPage: React.FC = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateScheduleClientPayload }) => updateSchedule(id, data),
     ...mutationOptions,
-    onSuccess: (...args) => {
+    onSuccess: () => {
       mutationOptions.onSuccess?.();
       toast({ title: 'Success', description: 'Schedule updated successfully.' });
     },

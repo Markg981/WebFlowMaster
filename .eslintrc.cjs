@@ -12,7 +12,7 @@ module.exports = {
     sourceType: 'module',
     ecmaFeatures: { jsx: true },
   },
-  plugins: ['@typescript-eslint', 'react-hooks'],
+  plugins: ['@typescript-eslint', 'react-hooks', 'unused-imports'],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
@@ -36,9 +36,13 @@ module.exports = {
     // so the gate is useful without a massive up-front cleanup.
     '@typescript-eslint/no-explicit-any': 'off',
     'no-unused-vars': 'off',
-    '@typescript-eslint/no-unused-vars': [
+    // Unused *imports* are auto-removable via `eslint --fix`; unused *vars/args*
+    // stay as warnings (prefix with `_` to intentionally keep one).
+    '@typescript-eslint/no-unused-vars': 'off',
+    'unused-imports/no-unused-imports': 'warn',
+    'unused-imports/no-unused-vars': [
       'warn',
-      { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      { args: 'after-used', argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', ignoreRestSiblings: true },
     ],
     '@typescript-eslint/no-empty-function': 'off',
     // Global type augmentation (e.g. Express.User) legitimately needs `declare global { namespace ... }`.

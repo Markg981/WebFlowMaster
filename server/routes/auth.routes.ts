@@ -1,6 +1,4 @@
 import { Router } from "express";
-import passport from "passport";
-import { setupAuth } from "../auth";
 
 // Note: Much of the auth logic is currently in setupAuth which attaches directly to the app.
 // For this refactor, we will import setupAuth and let it do its thing, 

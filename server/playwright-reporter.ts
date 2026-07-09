@@ -1,4 +1,4 @@
-import { Page, ElementHandle, Locator, Frame } from 'playwright';
+import { Page } from 'playwright';
 import { reportingService } from './reporting-service';
 import { aiService } from './ai-automation-service';
 
@@ -82,7 +82,7 @@ export class PlaywrightReporter {
                 }
                 this.lastActionHealed = true;
                 return;
-            } catch (retryError) {}
+            } catch { /* retry failed; fall through to failure handling */ }
          }
         await this.handleFailure(e, "Fill Failed");
         throw e;
@@ -108,7 +108,7 @@ export class PlaywrightReporter {
                 }
                 this.lastActionHealed = true;
                 return;
-            } catch (retryError) {}
+            } catch { /* retry failed; fall through to failure handling */ }
          }
          await this.handleFailure(e, "Select Failed");
          throw e;
