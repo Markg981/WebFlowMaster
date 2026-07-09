@@ -37,8 +37,8 @@ const mockUser2Data = { username: 'user2', password: 'password2' };
 // Variable to switch authenticated user for testing authorization
 // Will hold the full User object including the auto-generated ID after seeding
 let currentMockUser: User;
-let _seededUser1: User; // To store user1 with its DB-generated ID (renamed)
-let _seededUser2: User; // To store user2 with its DB-generated ID (renamed)
+let seededUser1: User; // To store user1 with its DB-generated ID
+let seededUser2: User; // To store user2 with its DB-generated ID
 // The rest of the seeded variables remain as they are, assuming they are not causing the "already declared" issue.
 // If the issue persists for them, they would also need renaming or careful scoping.
 let seededProject1User1: Project;
@@ -206,7 +206,7 @@ beforeEach(async () => {
   const insertedTestsUser2 = await db.select().from(apiTests).where(and(eq(apiTests.name, testDataUser2.name), eq(apiTests.userId, seededUser2.id)));
   seededApiTestUser2 = insertedTestsUser2[0];
 
-  currentMockUser = mockUser1; // Default to user1 for tests
+  currentMockUser = seededUser1; // Default to user1 for tests
 });
 
 afterAll(async () => {
@@ -218,7 +218,7 @@ afterAll(async () => {
 describe('API Tests Endpoints', () => {
   describe('GET /api/api-tests', () => {
     it('should return API tests for the authenticated user with creator and project names', async () => {
-      currentMockUser = mockUser1; // Authenticate as user1
+      currentMockUser = seededUser1; // Authenticate as user1
       const response = await request(app)
         .get('/api/api-tests')
         .expect(200);
@@ -242,7 +242,7 @@ describe('API Tests Endpoints', () => {
 
     it('should return an empty array if the user has no API tests', async () => {
       // Authenticate as user2, who initially has one test. Delete it first.
-      currentMockUser = mockUser2;
+      currentMockUser = seededUser2;
       await db.delete(apiTests).where(eq(apiTests.userId, seededUser2.id));
 
       const response = await request(app)
@@ -254,7 +254,7 @@ describe('API Tests Endpoints', () => {
     });
 
     it('should not return tests from other users', async () => {
-      currentMockUser = mockUser2; // Authenticate as user2
+      currentMockUser = seededUser2; // Authenticate as user2
       const response = await request(app)
         .get('/api/api-tests')
         .expect(200);
@@ -269,7 +269,7 @@ describe('API Tests Endpoints', () => {
 
   describe('GET /api/api-tests/:id', () => {
     it('should return a single API test with details if it belongs to the user', async () => {
-      currentMockUser = mockUser1;
+      currentMockUser = seededUser1;
       const testId = seededApiTestUser1Project1.id;
       const response = await request(app)
         .get(`/api/api-tests/${testId}`)
@@ -283,7 +283,7 @@ describe('API Tests Endpoints', () => {
     });
 
     it('should return 404 if the API test is not found', async () => {
-      currentMockUser = mockUser1;
+      currentMockUser = seededUser1;
       const nonExistentId = 9999;
       await request(app)
         .get(`/api/api-tests/${nonExistentId}`)
@@ -291,7 +291,7 @@ describe('API Tests Endpoints', () => {
     });
 
     it('should return 404 if the API test belongs to another user', async () => {
-      currentMockUser = mockUser1; // User1 tries to access User2's test
+      currentMockUser = seededUser1; // User1 tries to access User2's test
       const testIdUser2 = seededApiTestUser2.id;
       await request(app)
         .get(`/api/api-tests/${testIdUser2}`)
@@ -299,7 +299,7 @@ describe('API Tests Endpoints', () => {
     });
 
     it('should return 400 if test ID is not a number', async () => {
-      currentMockUser = mockUser1;
+      currentMockUser = seededUser1;
       await request(app)
         .get('/api/api-tests/invalid-id')
         .expect(400)
@@ -311,7 +311,7 @@ describe('API Tests Endpoints', () => {
 
   describe('DELETE /api/api-tests/:id', () => {
     it('should delete an API test if it belongs to the user', async () => {
-      currentMockUser = mockUser1;
+      currentMockUser = seededUser1;
       const testIdToDelete = seededApiTestUser1Project1.id;
 
       await request(app)
@@ -324,7 +324,7 @@ describe('API Tests Endpoints', () => {
     });
 
     it('should return 404 when trying to delete a non-existent API test', async () => {
-      currentMockUser = mockUser1;
+      currentMockUser = seededUser1;
       const nonExistentId = 9999;
       await request(app)
         .delete(`/api/api-tests/${nonExistentId}`)
@@ -332,7 +332,7 @@ describe('API Tests Endpoints', () => {
     });
 
     it('should return 404 when trying to delete an API test belonging to another user', async () => {
-      currentMockUser = mockUser1; // User1 tries to delete User2's test
+      currentMockUser = seededUser1; // User1 tries to delete User2's test
       const testIdUser2 = seededApiTestUser2.id;
 
       await request(app)
@@ -345,7 +345,7 @@ describe('API Tests Endpoints', () => {
     });
 
     it('should return 400 if test ID is not a number', async () => {
-        currentMockUser = mockUser1;
+        currentMockUser = seededUser1;
         await request(app)
           .delete('/api/api-tests/invalid-id')
           .expect(400)

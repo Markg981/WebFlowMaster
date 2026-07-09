@@ -24,6 +24,10 @@ export default defineConfig({
     setupFiles: ['./server/tests/setup.ts'], // Added setup file for migrations
     env: {
       DATABASE_URL: 'data/test.db',
+      // setupAuth requires these; provide test values so route-registering suites
+      // don't throw. Sessions use an in-memory store under NODE_ENV=test.
+      SESSION_SECRET: 'test-session-secret',
+      ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000',
     },
     coverage: {
       provider: 'v8',
