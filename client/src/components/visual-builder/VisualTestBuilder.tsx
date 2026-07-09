@@ -88,6 +88,10 @@ export function VisualTestBuilder({
 
     setNodes(newNodes);
     setEdges(newEdges);
+    // handleUpdateValue/handleDeleteNode close over testSequence (already a dep) and the
+    // stable onUpdateSequence prop; the effect re-syncs whenever testSequence changes, so
+    // listing the (non-memoized) handlers would only cause redundant re-runs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [testSequence, isExecuting, isRecordingActive]);
 
   const onNodesChange: OnNodesChange = useCallback(

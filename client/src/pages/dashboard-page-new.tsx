@@ -827,6 +827,9 @@ export default function DashboardPage() {
         clearInterval(pollingIntervalId);
       }
     };
+    // fetchRecordedActions only reads its sessionId argument; listing it would restart the
+    // 3s polling interval on every render. The meaningful triggers are already listed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecording, sessionId, testSequence]); // testSequence is now a dep for comparison
 
   // This mutation is for executing saved tests by ID (currently not used by the main execute button)
@@ -979,6 +982,9 @@ export default function DashboardPage() {
       //   setWebsiteScreenshot(loadWebsiteMutation.data.screenshot);
       // }
     }
+    // Playback-completion effect; lastTestOverallResult is set before playback starts and
+    // read here by design, and `t` is stable. Re-running on those would double-fire toasts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isExecutingPlayback, currentPlaybackStepIndex, playbackSteps]);
 
 
@@ -1025,6 +1031,9 @@ export default function DashboardPage() {
         executeDirectTestMutation.mutate(payload);
       }
     }, 750); // 750ms debounce delay
+    // Depends on the specific mutation fields used (isPending/mutate), not the whole
+    // mutation object, to avoid rebuilding the debounced fn on unrelated status changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [executeDirectTestMutation.isPending, isExecutingPlayback, executeDirectTestMutation.mutate]); // Add dependencies for the mutation status
 
   const handleSequenceUpdated = (newSequence: DragDropTestStep[]) => {

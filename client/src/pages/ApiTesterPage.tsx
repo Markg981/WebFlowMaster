@@ -1,5 +1,5 @@
 // client/src/pages/ApiTesterPage.tsx
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -603,7 +603,9 @@ const ApiTesterPage: React.FC = () => {
     toast({ title: "Loaded from history", description: `${item.method} ${item.url}`, duration: 2000 });
   };
 
-  const loadTestState = (test: ApiTest) => {
+  // Memoized so the "load test from ?testId=" effect below doesn't re-run (and re-fetch)
+  // on every render. Body only calls stable setters plus toast.
+  const loadTestState = useCallback((test: ApiTest) => {
     setMethod(test.method);
     setUrl(test.url);
     if (test.authType) setAuthType(test.authType as AuthType);
@@ -725,7 +727,7 @@ const ApiTesterPage: React.FC = () => {
     } else {
       setUrlEncodedBody([{ id: uuidv4(), key: '', value: '', enabled: true }]);
     }
-  };
+  }, []);
 
 
   const handleOpenSaveModal = (testToEdit?: ApiTest) => {
