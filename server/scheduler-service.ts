@@ -10,6 +10,7 @@ import logger from './logger';
 // We need to be careful with circular dependencies if test-execution-service also imports this.
 // For now, let's assume it can be imported. If not, we might need to use an event emitter or refactor.
 import { runTestPlan } from './test-execution-service'; // Adjust path if necessary
+import { testExecutionQueue } from './queue';
 
 interface ActiveJob {
   job: any; // cron.ScheduledTask
@@ -17,6 +18,16 @@ interface ActiveJob {
 }
 
 const activeCronJobs: Map<string, ActiveJob> = new Map();
+
+// Scheduler backend selection. Default is the in-process node-cron engine (single
+// instance). Set SCHEDULER_BACKEND=bullmq to use Redis-backed BullMQ job schedulers,
+// which are distributed (no duplicate runs across instances) and survive restarts.
+export const SCHEDULER_BACKEND: 'cron' | 'bullmq' =
+  process.env.SCHEDULER_BACKEND === 'bullmq' ? 'bullmq' : 'cron';
+
+// Job name used for BullMQ-triggered scheduled runs (handled by the worker).
+export const TRIGGER_SCHEDULE_JOB = 'trigger-schedule';
+const onceJobId = (scheduleId: string) => `once:${scheduleId}`;
 
 // Retry-on-failure policy: number of extra attempts after the first failed run.
 const RETRY_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 30_000;
@@ -102,7 +113,7 @@ export async function executeScheduledPlanForTest(schedule: TestPlanSchedule, pl
   return executeScheduledPlan(schedule, plan);
 }
 
-async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) {
+export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) {
   const resolvedLogger = await logger;
   resolvedLogger.info(`[SchedulerService] Triggering job for schedule: ${schedule.scheduleName} (ID: ${schedule.id}), Plan: ${plan.name}`);
 
@@ -391,10 +402,102 @@ export async function shutdownScheduler(): Promise<void> {
   resolvedLogger.info('[SchedulerService] All cron jobs stopped.');
 }
 
+// ─── BullMQ backend ───────────────────────────────────────────────────────────
+// Instead of an in-process cron, each active schedule becomes a Redis-backed BullMQ
+// Job Scheduler (recurring) or a delayed job ('once'). The worker consumes the
+// resulting 'trigger-schedule' jobs and runs executeScheduledPlan. This is
+// distributed (single source of truth in Redis) and survives restarts.
+
+export async function bullmqAddScheduleJob(schedule: TestPlanSchedule): Promise<void> {
+  const resolvedLogger = await logger;
+  if (!schedule.isActive) {
+    resolvedLogger.info(`[SchedulerService/bullmq] Schedule ${schedule.id} is not active. Not adding job.`);
+    return;
+  }
+
+  const data = { scheduleId: schedule.id };
+
+  if (schedule.frequency === 'once') {
+    const runAtMs = new Date(schedule.nextRunAt).getTime();
+    const delayMs = runAtMs - Date.now();
+    if (delayMs <= 0) {
+      resolvedLogger.info(`[SchedulerService/bullmq] 'once' schedule ${schedule.id} is in the past. Deactivating.`);
+      await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
+      return;
+    }
+    await testExecutionQueue.add(TRIGGER_SCHEDULE_JOB, data, { delay: delayMs, jobId: onceJobId(schedule.id) });
+    resolvedLogger.info(`[SchedulerService/bullmq] Scheduled one-time job for schedule ${schedule.id} in ${delayMs}ms.`);
+    return;
+  }
+
+  const pattern = frequencyToCronPattern(schedule.frequency, new Date(schedule.nextRunAt));
+  if (!pattern) {
+    resolvedLogger.error(`[SchedulerService/bullmq] Could not derive a cron pattern for schedule ${schedule.id} (frequency: ${schedule.frequency}). Not adding job.`);
+    return;
+  }
+  // The job-scheduler id is the schedule id, so upsert is idempotent (safe re-runs).
+  await testExecutionQueue.upsertJobScheduler(
+    schedule.id,
+    { pattern, tz: 'UTC' },
+    { name: TRIGGER_SCHEDULE_JOB, data },
+  );
+  resolvedLogger.info(`[SchedulerService/bullmq] Upserted job scheduler for ${schedule.id} with pattern: ${pattern}`);
+}
+
+export async function bullmqRemoveScheduleJob(scheduleId: string): Promise<void> {
+  await testExecutionQueue.removeJobScheduler(scheduleId).catch(() => {});
+  await testExecutionQueue.remove(onceJobId(scheduleId)).catch(() => {});
+}
+
+export async function bullmqUpdateScheduleJob(schedule: TestPlanSchedule): Promise<void> {
+  await bullmqRemoveScheduleJob(schedule.id);
+  if (schedule.isActive) {
+    await bullmqAddScheduleJob(schedule);
+  }
+}
+
+export async function bullmqInitializeScheduler(): Promise<void> {
+  const resolvedLogger = await logger;
+  resolvedLogger.info('[SchedulerService/bullmq] Initializing BullMQ schedulers...');
+  const activeSchedules = await db.select().from(testPlanSchedules).where(eq(testPlanSchedules.isActive, true));
+  const activeIds = new Set(activeSchedules.map((s) => s.id));
+
+  // Reconcile: drop any Redis job schedulers that no longer map to an active schedule.
+  try {
+    const existing = await testExecutionQueue.getJobSchedulers(0, -1);
+    for (const js of existing) {
+      if (js.key && !activeIds.has(js.key)) {
+        await testExecutionQueue.removeJobScheduler(js.key).catch(() => {});
+      }
+    }
+  } catch (e) {
+    resolvedLogger.error('[SchedulerService/bullmq] Failed to reconcile existing job schedulers', e);
+  }
+
+  for (const schedule of activeSchedules) {
+    if (schedule.frequency === 'once' && new Date(schedule.nextRunAt).getTime() <= Date.now()) {
+      await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
+      continue;
+    }
+    await bullmqAddScheduleJob(schedule);
+  }
+  resolvedLogger.info(`[SchedulerService/bullmq] Initialized ${activeSchedules.length} schedule(s).`);
+}
+
+export async function bullmqShutdownScheduler(): Promise<void> {
+  // BullMQ job schedulers live in Redis by design; nothing to stop in-process.
+}
+
+// ─── Backend dispatch (public API used by index.ts / routes.ts) ─────────────────
 export default {
-  initializeScheduler,
-  addScheduleJob,
-  updateScheduleJob,
-  removeScheduleJob,
-  shutdownScheduler,
+  initializeScheduler: () =>
+    SCHEDULER_BACKEND === 'bullmq' ? bullmqInitializeScheduler() : initializeScheduler(),
+  addScheduleJob: (schedule: TestPlanSchedule) =>
+    SCHEDULER_BACKEND === 'bullmq' ? bullmqAddScheduleJob(schedule) : addScheduleJob(schedule),
+  updateScheduleJob: (schedule: TestPlanSchedule) =>
+    SCHEDULER_BACKEND === 'bullmq' ? bullmqUpdateScheduleJob(schedule) : updateScheduleJob(schedule),
+  removeScheduleJob: (scheduleId: string) =>
+    SCHEDULER_BACKEND === 'bullmq' ? bullmqRemoveScheduleJob(scheduleId) : removeScheduleJob(scheduleId),
+  shutdownScheduler: () =>
+    SCHEDULER_BACKEND === 'bullmq' ? bullmqShutdownScheduler() : shutdownScheduler(),
 };
