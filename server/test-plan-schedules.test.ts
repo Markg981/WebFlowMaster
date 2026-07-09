@@ -71,24 +71,22 @@ afterAll(async () => {
 });
 
 
-// TODO: these tests were written against an earlier routes.ts and have drifted
-// (assertion mismatches on status codes / error messages / response shape). Seeding
-// was repaired (users + userId + Date timestamps); un-skip and align assertions
-// with the current routes to re-enable.
-describe.skip('Test Plan Schedules API (/api/test-plan-schedules)', () => {
+describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
   describe('POST /api/test-plan-schedules', () => {
     it('should create a new schedule with valid data and call schedulerService.addScheduleJob', async () => {
-      const newSchedulePayload: Omit<InsertTestPlanSchedule, 'id' | 'createdAt' | 'updatedAt'> = {
+      // nextRunAt is sent as unix-seconds (what the client sends over the wire): a JSON
+      // request can't carry a Date, and the schema accepts number-or-Date, not ISO strings.
+      const newSchedulePayload = {
         scheduleName: 'Nightly QA Run',
         testPlanId: seededPlan1.id,
         frequency: 'daily@02:00',
-        nextRunAt: new Date('2025-01-01T02:00:00Z'),
+        nextRunAt: Math.floor(new Date('2025-01-01T02:00:00Z').getTime() / 1000),
         environment: 'QA',
-        browsers: JSON.stringify(['chromium', 'firefox']),
+        browsers: ['chromium', 'firefox'],
         isActive: true,
         retryOnFailure: 'once',
-        notificationConfigOverride: JSON.stringify({ emails: 'qa@example.com', onSuccess: true, onFailure: true }),
-        executionParameters: JSON.stringify({ customVar: 'nightlyValue' }),
+        notificationConfigOverride: { emails: 'qa@example.com', onSuccess: true, onFailure: true },
+        executionParameters: { customVar: 'nightlyValue' },
       };
 
       const response = await request(app)
@@ -130,7 +128,7 @@ describe.skip('Test Plan Schedules API (/api/test-plan-schedules)', () => {
     it('should return 400 when creating a schedule with a non-existent testPlanId', async () => {
       const newSchedulePayload = {
         scheduleName: 'Invalid Plan Run', testPlanId: uuidv4(), frequency: 'Daily',
-        nextRunAt: Math.floor(new Date().getTime() / 1000), environment: "QA", browsers: JSON.stringify(["chromium"])
+        nextRunAt: Math.floor(new Date().getTime() / 1000), environment: "QA", browsers: ["chromium"]
       };
       const response = await request(app)
         .post('/api/test-plan-schedules')
@@ -221,7 +219,7 @@ describe.skip('Test Plan Schedules API (/api/test-plan-schedules)', () => {
       const dbSchedule = await db.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId));
       expect(dbSchedule[0].testPlanId).toBe(updatedData.testPlanId);
       expect(dbSchedule[0].environment).toBe('Staging');
-      expect(dbSchedule[0].isActive).toBe(0); // SQLite stores boolean as 0/1
+      expect(dbSchedule[0].isActive).toBe(false); // Postgres boolean column
 
       expect(schedulerService.updateScheduleJob).toHaveBeenCalledTimes(1);
       expect(schedulerService.updateScheduleJob).toHaveBeenCalledWith(

@@ -63,11 +63,7 @@ afterAll(async () => {
   await db.delete(testPlans);
 });
 
-// TODO: these tests were written against an earlier routes.ts and have drifted
-// (assertion mismatches on status codes / error messages / response shape). Seeding
-// was repaired (users + userId + Date timestamps); un-skip and align assertions
-// with the current routes to re-enable.
-describe.skip('Test Plan Executions API (/api/test-plan-executions)', () => {
+describe('Test Plan Executions API (/api/test-plan-executions)', () => {
   it('should get all executions, parsing JSON fields', async () => {
     const exec1: InsertTestPlanExecution = {
       id: uuidv4(), testPlanId: seededPlan.id, scheduleId: seededSchedule1.id, status: 'completed',
