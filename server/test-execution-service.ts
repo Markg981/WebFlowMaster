@@ -13,7 +13,6 @@ import {
 } from '@shared/schema';
 import { eq, inArray } from 'drizzle-orm'; // Added sql
 import { v4 as uuidv4 } from 'uuid';
-// @ts-expect-error fs-extra default import interop
 import fs from 'fs-extra';
 import path from 'path';
 import { getWsEmitter, type ExecutionLogEntry } from './websocket';

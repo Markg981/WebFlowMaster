@@ -4,7 +4,6 @@ import loggerPromise from './logger';
 import type { Logger as WinstonLogger } from 'winston';
 import { storage } from './storage'; // To fetch user settings
 import type { Test } from '@shared/schema'; // Import Test and UserSettings type
-// @ts-expect-error browser-context DOM globals in page.evaluate
 import fs from 'fs-extra';
 import path from 'path';
 import { PlaywrightReporter } from './playwright-reporter';
@@ -688,11 +687,9 @@ export class PlaywrightService {
           if (page && !page.isClosed()) {
             resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting element detection (due to navigation failure)", testName, pageClosed: page?.isClosed() });
             try {
-              // @ts-expect-error browser-context DOM globals in page.evaluate
               finalDetectedElementsNavFail = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
                 const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
                 const detectedElementsEval: any[] = []; let globalElementCounter = 0;
-                // @ts-expect-error browser-context DOM globals in page.evaluate
                 interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
                 return detectedElementsEval.slice(0, 50);
               });
@@ -741,7 +738,6 @@ export class PlaywrightService {
                 if (step.targetElement?.selector) {
                   await page.locator(step.targetElement.selector).scrollIntoViewIfNeeded();
                 } else {
-                  // @ts-expect-error browser-context DOM globals in page.evaluate
                   await page.evaluate(() => window.scrollBy(0, 200));
                 }
                 break;
@@ -831,11 +827,9 @@ export class PlaywrightService {
       if (page && !page.isClosed()) {
         resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting final element detection (success path)", testName, pageClosed: page?.isClosed() });
         try {
-          // @ts-expect-error browser-context DOM globals in page.evaluate
           finalDetectedElements = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
             const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
             const detectedElementsEval: any[] = []; let globalElementCounter = 0;
-            // @ts-expect-error browser-context DOM globals in page.evaluate
             interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
             return detectedElementsEval.slice(0, 50);
           });
@@ -852,11 +846,9 @@ export class PlaywrightService {
       if (page && !page.isClosed()) {
         resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting element detection after critical error", testName, pageClosed: page?.isClosed() });
         try {
-          // @ts-expect-error browser-context DOM globals in page.evaluate
           finalDetectedElementsCriticalError = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
             const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
             const detectedElementsEval: any[] = []; let globalElementCounter = 0;
-            // @ts-expect-error browser-context DOM globals in page.evaluate
             interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
             return detectedElementsEval.slice(0, 50);
           });
@@ -928,11 +920,9 @@ export class PlaywrightService {
 
       let elements: any[] = [];
       try {
-        // @ts-expect-error browser-context DOM globals in page.evaluate
         elements = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
           const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
           const detectedElements: any[] = []; let globalElementCounter = 0;
-          // @ts-expect-error browser-context DOM globals in page.evaluate
           interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) { uniqueSelector = `${tagName}.${classes[0]}`; } } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElements.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
           return detectedElements.slice(0, 50);
         });
@@ -1093,7 +1083,6 @@ export class PlaywrightService {
                 if (step.targetElement?.selector) {
                   await page.locator(step.targetElement.selector).scrollIntoViewIfNeeded();
                 } else {
-                  // @ts-expect-error browser-context DOM globals in page.evaluate
                   await page.evaluate(() => window.scrollBy(0, 200));
                 }
                 break;

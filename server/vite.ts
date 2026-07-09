@@ -4,7 +4,11 @@ import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-// @ts-expect-error importing untyped vite config module
+// vite.config.ts lives outside the server tsconfig project, so `tsc -b` raises TS6307
+// (a project-reference error). @ts-expect-error does NOT suppress TS6307, so @ts-ignore
+// is genuinely required here.
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 import winston from 'winston'; // Import winston type
