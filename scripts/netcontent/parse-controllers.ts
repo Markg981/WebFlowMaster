@@ -1,4 +1,6 @@
-import type { Endpoint, EndpointParam } from './types';
+import fs from 'fs';
+import path from 'path';
+import type { Endpoint, EndpointParam, ParseResult } from './types';
 
 // Splits a C# parameter list on top-level commas (ignores commas inside <...> generics).
 function splitTopLevel(paramStr: string): string[] {
@@ -40,8 +42,17 @@ export function parseParams(paramStr: string): EndpointParam[] {
 }
 
 // Matches: [HttpGet]/[HttpPost] ... [Route("...")] ... public <ret> <Name>( <params> )
-const ACTION_RE =
-  /\[Http(Get|Post)\]\s*(?:\[[^\]]*\]\s*)*?\[Route\("([^"]+)"\)\]\s*(?:\[[^\]]*\]\s*)*public\s+[\w<>?,\[\]\s]+?\s+(\w+)\s*\(([^)]*)\)/gs;
+// The gaps tolerate interleaved attributes, `//` line comments and `/* */` block
+// comments between the attributes and the method signature.
+const SKIP = String.raw`(?:\s|\[[^\]]*\]|\/\/[^\n]*|\/\*[\s\S]*?\*\/)*?`;
+const ACTION_RE = new RegExp(
+  String.raw`\[Http(Get|Post)\]` +
+    SKIP +
+    String.raw`\[Route\("([^"]+)"\)\]` +
+    SKIP +
+    String.raw`public\s+[\w<>?,.\[\]\s]+?\s+(\w+)\s*\(([^)]*)\)`,
+  'gs',
+);
 
 export function parseControllerSource(
   source: string,
@@ -67,6 +78,45 @@ export function parseControllerSource(
     warnings.push(
       `${controller}: ${verbCount - endpoints.length} action(s) with [HttpGet]/[HttpPost] but no adjacent [Route(...)] were skipped.`,
     );
+  }
+  return { endpoints, warnings };
+}
+
+export function moduleFromPath(filePath: string, controllersRoot: string): string {
+  const rel = path.relative(controllersRoot, filePath);
+  const segments = rel.split(path.sep);
+  if (segments.length > 1) {
+    return segments[0]; // subfolder domain, e.g. "TareCheck"
+  }
+  // Directly under Controllers: "CommonNccController.cs" -> "Common".
+  return path
+    .basename(filePath, '.cs')
+    .replace(/Controller$/, '')
+    .replace(/^Ncc/, '');
+}
+
+function walkCsFiles(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...walkCsFiles(full));
+    else if (entry.isFile() && entry.name.endsWith('.cs')) out.push(full);
+  }
+  return out;
+}
+
+export function parseControllersDir(controllersRoot: string): ParseResult {
+  if (!fs.existsSync(controllersRoot)) {
+    throw new Error(`Controllers directory not found: ${controllersRoot}`);
+  }
+  const endpoints: Endpoint[] = [];
+  const warnings: string[] = [];
+  for (const file of walkCsFiles(controllersRoot)) {
+    const source = fs.readFileSync(file, 'utf-8');
+    const controller = moduleFromPath(file, controllersRoot);
+    const res = parseControllerSource(source, controller);
+    endpoints.push(...res.endpoints);
+    warnings.push(...res.warnings);
   }
   return { endpoints, warnings };
 }
