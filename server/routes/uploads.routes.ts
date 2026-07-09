@@ -3,9 +3,8 @@ import multer from "multer";
 import { excelService } from "../excel-service";
 import fs from "fs-extra";
 import loggerPromise from "../logger";
-import { excelSequencesMap, insertExcelSequencesMapSchema } from "@shared/schema";
+import { excelSequencesMap } from "@shared/schema";
 import { db } from "../db";
-import { eq } from "drizzle-orm";
 
 const router = Router();
 const logger = await loggerPromise;

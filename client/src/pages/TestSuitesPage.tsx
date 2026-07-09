@@ -9,15 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 // Select component from shadcn/ui is not used in the current version of this file for project filtering.
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, ArrowLeft, LibrarySquare, Loader2, Edit2, Trash2, Power, PowerOff, PlusCircle, Link2 } from 'lucide-react';
+import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, ArrowLeft, LibrarySquare, Loader2, Link2 } from 'lucide-react';
 import type { TestPlan } from '@shared/schema';
 import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard';
 import WebhooksModal from '@/components/dashboard/WebhooksModal';
-import ScheduleWizard from '@/components/scheduling/ScheduleWizard';
-import { runTestPlanAPI, fetchFullTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans'; // Renamed fetchTestPlans
+import { fetchFullTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans'; // Renamed fetchTestPlans
 import { fetchSchedulesByPlanId, deleteSchedule, updateSchedule, TestPlanScheduleEnhanced, UpdateScheduleClientPayload } from '@/lib/api/schedules';
-import { Badge } from "@/components/ui/badge";
-import { format } from 'date-fns';
 
 
 const TestSuitesPage: React.FC = () => {

@@ -12,8 +12,8 @@ import {
   type InsertUser,
   type InsertProject
 } from '../shared/schema';
-import { eq, and, desc, getTableColumns, leftJoin } from 'drizzle-orm';
-import { v4 as uuidv4 } from 'uuid'; // Not strictly needed for these tests but good for consistency if IDs were strings
+import { eq, and, desc, getTableColumns } from 'drizzle-orm';
+// Not strictly needed for these tests but good for consistency if IDs were strings
 
 // Mock logger to prevent console output during tests, unless explicitly needed
 vi.mock('./logger', () => ({

@@ -1,5 +1,5 @@
 
-import playwright, { Browser, ChromiumBrowser, FirefoxBrowser, WebKitBrowser } from 'playwright';
+import playwright, { Browser } from 'playwright';
 import { v4 as uuidv4 } from 'uuid';
 import loggerPromise from './logger';
 

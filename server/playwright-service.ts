@@ -1,13 +1,12 @@
-import playwright, { Browser, Page, BrowserContext, ChromiumBrowser, FirefoxBrowser, WebKitBrowser } from 'playwright';
+import playwright, { Browser, Page, BrowserContext } from 'playwright';
 import { v4 as uuidv4 } from 'uuid'; // For generating session IDs
 import loggerPromise from './logger';
 import type { Logger as WinstonLogger } from 'winston';
 import { storage } from './storage'; // To fetch user settings
-import type { Test, UserSettings } from '@shared/schema'; // Import Test and UserSettings type
+import type { Test } from '@shared/schema'; // Import Test and UserSettings type
 // @ts-ignore
 import fs from 'fs-extra';
 import path from 'path';
-import { reportingService } from './reporting-service';
 import { PlaywrightReporter } from './playwright-reporter';
 import { browserPool } from './browser-pool';
 import { getWsEmitter } from './websocket';

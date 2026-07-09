@@ -1,17 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'wouter';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle, XCircle, Loader2, PlayCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress'; // Using shadcn progress bar
-import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'framer-motion';
 import { ExecutionLogConsole } from '@/components/ExecutionLogConsole';
 import type { TestPlan, ApiTest } from '@shared/schema'; // Import relevant types
-import { fetchTestPlanByIdAPI } from '@/lib/api/test-plans';
 import { apiRequest } from '@/lib/queryClient';
 
 // Mock API for fetching test plan details (replace with actual API call)

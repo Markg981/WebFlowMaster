@@ -1,7 +1,7 @@
 import { pgTable, text, integer, serial, timestamp, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
-import { relations, sql } from 'drizzle-orm';
+import { relations } from 'drizzle-orm';
 
 // Table Definitions
 export const users = pgTable("users", {

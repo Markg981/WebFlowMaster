@@ -17,8 +17,7 @@ import {
   type InsertTest,
   type InsertApiTest
 } from '../shared/schema';
-import { z } from 'zod';
-import { eq, and, desc, asc } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 // Mock logger
 vi.mock('./logger', () => ({

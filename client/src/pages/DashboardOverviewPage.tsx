@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
-  Home, PlusSquare, ListChecksIcon as TestsIcon, LibrarySquare as SuitesIcon,
+  Home, PlusSquare, LibrarySquare as SuitesIcon,
   CalendarClock, FileTextIcon as ReportsIcon, Settings as SettingsIcon, Network,
   PanelLeftClose, PanelRightClose, UserCircle, TestTube, FileSpreadsheet
 } from 'lucide-react';

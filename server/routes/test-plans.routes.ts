@@ -1,8 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
-import { testPlans, testPlanSchedules, testPlanExecutions, insertTestPlanSchema, updateTestPlanSchema, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema } from "@shared/schema";
+import { testPlans, testPlanSchedules, testPlanExecutions, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema } from "@shared/schema";
 import { eq, desc, and, getTableColumns } from "drizzle-orm";
-import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid';
 import loggerPromise from "../logger";
 import schedulerService from "../scheduler-service";

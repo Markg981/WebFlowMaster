@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'wouter';
+import { Link } from 'wouter';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,7 +14,7 @@ import { useExcelMappings } from '@/hooks/useExcelMappings';
 import { useTestRunner } from '@/hooks/useTestRunner';
 
 import {
-  Home, PlusSquare, ListChecksIcon as TestsIcon, LibrarySquare as SuitesIcon,
+  Home, PlusSquare, LibrarySquare as SuitesIcon,
   CalendarClock, FileTextIcon as ReportsIcon, Settings as SettingsIcon, Network,
   PanelLeftClose, PanelRightClose, TestTube,
   FileSpreadsheet, Upload, Play, 

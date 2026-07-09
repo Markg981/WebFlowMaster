@@ -1,10 +1,8 @@
 import { createServer, type Server } from "http";
 import { Express } from "express";
 import { setupAuth } from "./auth";
-import { storage } from "./storage";
 import {
   insertTestSchema,
-  insertTestRunSchema,
   userSettings,
   projects,
   insertProjectSchema,
@@ -20,7 +18,6 @@ import {
   testPlans,
   insertTestPlanSchema,
   updateTestPlanSchema,
-  selectTestPlanSchema,
   testPlanSelectedTests,
   users,
   systemSettings,
@@ -29,14 +26,7 @@ import {
   testPlanSchedules,
   insertTestPlanScheduleSchema,
   updateTestPlanScheduleSchema,
-  selectTestPlanScheduleSchema,
   testPlanExecutions,
-  insertTestPlanExecutionSchema,
-  selectTestPlanExecutionSchema,
-  // Phase 7/8/9 tables
-  testPlanWebhooks,
-  environments,
-  secrets,
   reportTestCaseResults,
   ReportTestCaseResult,
   executionLogs
@@ -45,9 +35,8 @@ import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
-import { eq, and, desc, sql, getTableColumns, asc, or, like, ilike, inArray, isNull } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
+import { eq, and, desc, sql, getTableColumns, asc, ilike } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
-import type { Logger as WinstonLogger } from 'winston';
 import schedulerService from "./scheduler-service"; // Import schedulerService
 import loggerPromise, { updateLogLevel } from "./logger";
 

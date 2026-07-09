@@ -1,17 +1,15 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { DraggableAction } from "@/components/draggable-action";
-import { DraggableElement } from "@/components/draggable-element";
 import { TestSequenceBuilder } from "@/components/test-sequence-builder";
 import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
 import { 
@@ -24,17 +22,14 @@ import {
   Scroll, 
   CheckCircle, 
   Hand, 
-  ChevronDown, 
-  Play, 
-  Save, 
-  Trash2,
+  ChevronDown,
   Settings, // Already present, good
   Bell,     // Already present, good
   User,     // Already present, good
   ArrowLeft
 } from "lucide-react";
 import { useTranslation } from 'react-i18next';
-import { Link, useRoute } from 'wouter';
+import { Link } from 'wouter';
 
 interface DetectedElement {
   id: string;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from 'react-i18next';
 import { useAuth } from "@/hooks/use-auth";
-import { useMutation, useQuery, QueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,11 +30,9 @@ import {
   User,
   Loader2,
   Play,
-  Pause,
   StopCircle,
   ArrowLeft, // Add this if not present
-  XCircle, // Added for test result display
-  PlusSquare, // Added for page icon
+  XCircle, // Added for page icon
   TestTube, // Added this icon
 } from "lucide-react";
 import { Link } from "wouter";

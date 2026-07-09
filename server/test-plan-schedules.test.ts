@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vites
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
 import { db } from './db'; // Main DB import
-import { users, testPlanSchedules, testPlans, type InsertTestPlanSchedule, type TestPlanSchedule, type TestPlan } from '../shared/schema';
-import { eq, leftJoin, desc, getTableColumns } from 'drizzle-orm';
+import { users, testPlanSchedules, testPlans, type InsertTestPlanSchedule, type TestPlan } from '../shared/schema';
+import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import schedulerService from './scheduler-service'; // Import the actual service
 

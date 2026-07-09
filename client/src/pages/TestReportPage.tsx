@@ -1,5 +1,5 @@
 // client/src/pages/TestReportPage.tsx
-import React, { useState } from 'react'; // Removed sidebar-related state
+import React from 'react'; // Removed sidebar-related state
 import { useRoute, Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { fetchTestExecutionReport } from '@/lib/api/reports';
@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  ExternalLink, Download, Share2, ListFilter, CheckCircle2, XCircle, SkipForward, AlertCircle, Clock,
+import { Download, Share2, ListFilter, CheckCircle2, XCircle, SkipForward, AlertCircle, Clock,
   ChevronRight, FileText, Image as ImageIcon, RefreshCw, ArrowLeft // Added ArrowLeft
 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";

@@ -8,7 +8,6 @@ import {
   testPlanSchedules, type InsertTestPlanSchedule,
   testPlanExecutions, type InsertTestPlanExecution
 } from '../shared/schema';
-import { eq, and, desc, getTableColumns } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 let app: Application;

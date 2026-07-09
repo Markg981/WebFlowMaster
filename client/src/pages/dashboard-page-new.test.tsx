@@ -1,7 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { QueryClient, QueryClientProvider, useMutation, useQuery } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import DashboardPageNew from './dashboard-page-new';
 import { MemoryRouter } from 'wouter';
 import { DndProvider } from 'react-dnd';

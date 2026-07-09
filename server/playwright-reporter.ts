@@ -1,4 +1,4 @@
-import { Page, ElementHandle, Locator, Frame } from 'playwright';
+import { Page } from 'playwright';
 import { reportingService } from './reporting-service';
 import { aiService } from './ai-automation-service';
 
