@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from 'wouter'; // Corrected import
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -14,7 +13,6 @@ import type { TestPlan } from '@shared/schema';
 import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard';
 import WebhooksModal from '@/components/dashboard/WebhooksModal';
 import { fetchFullTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans'; // Renamed fetchTestPlans
-import { fetchSchedulesByPlanId, deleteSchedule, updateSchedule, TestPlanScheduleEnhanced, UpdateScheduleClientPayload } from '@/lib/api/schedules';
 
 
 const TestSuitesPage: React.FC = () => {
@@ -24,23 +22,10 @@ const TestSuitesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreatePlanWizardOpen, setIsCreatePlanWizardOpen] = useState(false);
-  const [_isScheduleWizardOpen, setIsScheduleWizardOpen] = useState(false);
-  const [_scheduleToEdit, setScheduleToEdit] = useState<TestPlanScheduleEnhanced | null>(null);
-  const [_selectedTestPlanForScheduling, setSelectedTestPlanForScheduling] = useState<string | undefined>(undefined);
-
   const [isWebhooksModalOpen, setIsWebhooksModalOpen] = useState(false);
   const [selectedPlanForWebhooks, setSelectedPlanForWebhooks] = useState<{ id: string, name: string } | null>(null);
 
-  const [activeTab, _setActiveTab] = useState('test-plan');
-  // When switching to 'schedules' tab, we might need to know which plan's schedules to show.
-  // For simplicity, let's assume if a plan was just interacted with (e.g. "Schedule" button clicked),
-  // its ID is stored and used. Or, a dropdown could select a plan for the schedules tab.
-  // For now, let's use `selectedTestPlanForScheduling` to also drive which plan's schedules are shown if the tab is active.
-  const [currentlyViewedPlanIdForSchedules, setCurrentlyViewedPlanIdForSchedules] = useState<string | null>(null);
-
-
-  const { toast } = useToast();
-  const [runningPlanId, _setRunningPlanId] = useState<string | null>(null);
+  const [runningPlanId] = useState<string | null>(null);
   const itemsPerPage = 5;
 
   const { data: allTestPlans = [], isLoading: isLoadingTestPlans, error: testPlansError } = useQuery<TestPlan[]>({
@@ -48,58 +33,14 @@ const TestSuitesPage: React.FC = () => {
     queryFn: fetchAllTestPlans, // Use the renamed function
   });
 
-  const { data: _schedulesForPlan, isLoading: _isLoadingSchedules, error: _schedulesError } = useQuery({
-    queryKey: ['schedulesByPlanId', currentlyViewedPlanIdForSchedules],
-    queryFn: () => currentlyViewedPlanIdForSchedules ? fetchSchedulesByPlanId(currentlyViewedPlanIdForSchedules) : Promise.resolve([]),
-    enabled: !!currentlyViewedPlanIdForSchedules && activeTab === 'schedules', // Only fetch if a plan is selected and tab is active
-  });
-
-  const _deleteScheduleMutation = useMutation({
-    mutationFn: deleteSchedule,
-    onSuccess: (_, _scheduleId) => {
-      toast({ title: t('testSuitesPage.toast.scheduleDeleteSuccess.title'), description: t('testSuitesPage.toast.scheduleDeleteSuccess.description') });
-      queryClient.invalidateQueries({ queryKey: ['schedulesByPlanId', currentlyViewedPlanIdForSchedules] });
-      queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] }); // Also invalidate general list if any
-    },
-    onError: (error: Error) => {
-      toast({ title: t('testSuitesPage.toast.scheduleDeleteError.title'), description: error.message, variant: 'destructive' });
-    },
-  });
-
-  const _toggleScheduleStatusMutation = useMutation({
-    mutationFn: (data: { id: string, payload: UpdateScheduleClientPayload }) => updateSchedule(data.id, data.payload),
-    onSuccess: (updatedSchedule) => { // updatedSchedule is TestPlanScheduleEnhanced
-      toast({ title: t(updatedSchedule.isActive ? 'testSuitesPage.toast.scheduleActivateSuccess.title' : 'testSuitesPage.toast.scheduleDeactivateSuccess.title') });
-      queryClient.invalidateQueries({ queryKey: ['schedulesByPlanId', currentlyViewedPlanIdForSchedules] });
-      queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] });
-    },
-    onError: (error: Error) => {
-      toast({ title: t('testSuitesPage.toast.scheduleStatusError.title'), description: error.message, variant: 'destructive' });
-    }
-  });
-
-
   const handlePlanCreated = () => {
     queryClient.invalidateQueries({ queryKey: ['testPlans'] });
   };
 
-  const _handleScheduleSaved = () => {
-    if (currentlyViewedPlanIdForSchedules) {
-      queryClient.invalidateQueries({ queryKey: ['schedulesByPlanId', currentlyViewedPlanIdForSchedules] });
-    }
-    queryClient.invalidateQueries({ queryKey: ['testPlanSchedules'] }); // General list if exists
-  };
-
-  const openScheduleWizardForNew = (planId: string) => {
-    setSelectedTestPlanForScheduling(planId);
-    setScheduleToEdit(null);
-    setIsScheduleWizardOpen(true);
-  };
-
-  const _openScheduleWizardForEdit = (schedule: TestPlanScheduleEnhanced) => {
-    setSelectedTestPlanForScheduling(schedule.testPlanId); // Ensure this is set
-    setScheduleToEdit(schedule);
-    setIsScheduleWizardOpen(true);
+  // Scheduling has its own dedicated page (/scheduling); route users there instead of
+  // an in-page wizard (the previous inline scheduling UI was never wired up).
+  const openScheduling = () => {
+    navigate('/scheduling');
   };
 
   const filteredTestPlans = useMemo(() => {
@@ -115,13 +56,6 @@ const TestSuitesPage: React.FC = () => {
     else if (currentPage === 0 && totalPages > 0) setCurrentPage(1);
     else if (filteredTestPlans.length === 0 && currentPage !== 1) setCurrentPage(1);
   }, [filteredTestPlans.length, totalPages, currentPage]);
-
-  // Effect to set the first plan as default for schedules tab if no specific plan is chosen yet
-  useEffect(() => {
-    if (activeTab === 'schedules' && !currentlyViewedPlanIdForSchedules && allTestPlans.length > 0) {
-      setCurrentlyViewedPlanIdForSchedules(allTestPlans[0].id);
-    }
-  }, [activeTab, currentlyViewedPlanIdForSchedules, allTestPlans]);
 
   // Updated handleRunPlan to navigate to the execution page
   const handleRunPlan = (planId: string, _planName?: string) => {
@@ -262,7 +196,7 @@ const TestSuitesPage: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <div className="space-x-2">
-                            <Button variant="outline" size="sm" onClick={() => openScheduleWizardForNew(item.id)}>
+                            <Button variant="outline" size="sm" onClick={openScheduling}>
                               <CalendarDays size={16} className="mr-1" /> {t('testSuitesPage.schedule.button')}
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => {
@@ -299,7 +233,12 @@ const TestSuitesPage: React.FC = () => {
             </>
           </TabsContent>
           <TabsContent value="schedules" className="mt-6">
-            <p>{t('testSuitesPage.schedulesContentGoesHere.text')}</p>
+            <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
+              <p className="text-muted-foreground">{t('testSuitesPage.schedulesContentGoesHere.text')}</p>
+              <Button variant="outline" onClick={openScheduling}>
+                <CalendarDays size={16} className="mr-2" /> {t('testSuitesPage.schedule.button')}
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
 
