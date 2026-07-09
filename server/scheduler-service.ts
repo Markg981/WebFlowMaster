@@ -1,5 +1,7 @@
 import * as cron from 'node-cron';
-import { parseExpression } from 'cron-parser';
+// cron-parser v4 is CommonJS; under Node ESM (tsx) only the default import exposes
+// its members — a named `{ parseExpression }` import throws at runtime.
+import cronParser from 'cron-parser';
 import { db } from './db';
 import { testPlanSchedules, testPlanExecutions, testPlans } from '@shared/schema';
 import type { TestPlanSchedule, TestPlanExecution, TestPlan } from '@shared/schema';
@@ -27,7 +29,8 @@ export const SCHEDULER_BACKEND: 'cron' | 'bullmq' =
 
 // Job name used for BullMQ-triggered scheduled runs (handled by the worker).
 export const TRIGGER_SCHEDULE_JOB = 'trigger-schedule';
-const onceJobId = (scheduleId: string) => `once:${scheduleId}`;
+// NOTE: BullMQ custom job ids must NOT contain ':' — use a hyphen separator.
+const onceJobId = (scheduleId: string) => `once-${scheduleId}`;
 
 // Retry-on-failure policy: number of extra attempts after the first failed run.
 const RETRY_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 30_000;
@@ -91,7 +94,7 @@ function calculateNextRunTime(frequency: string, from: Date): Date | null {
   const pattern = frequencyToCronPattern(frequency, from);
   if (!pattern) return null;
   try {
-    const interval = parseExpression(pattern, { currentDate: from, tz: 'UTC' });
+    const interval = cronParser.parseExpression(pattern, { currentDate: from, tz: 'UTC' });
     return interval.next().toDate();
   } catch {
     return null;

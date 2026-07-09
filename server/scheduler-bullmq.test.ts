@@ -73,7 +73,7 @@ describe('BullMQ scheduler backend', () => {
     const [name, data, opts] = q.add.mock.calls[0];
     expect(name).toBe(TRIGGER_SCHEDULE_JOB);
     expect(data).toEqual({ scheduleId: 'sched-1' });
-    expect(opts.jobId).toBe('once:sched-1');
+    expect(opts.jobId).toBe('once-sched-1');
     expect(opts.delay).toBeGreaterThan(0);
     expect(q.upsertJobScheduler).not.toHaveBeenCalled();
   });
@@ -87,7 +87,7 @@ describe('BullMQ scheduler backend', () => {
   it('removes both the recurring scheduler and any one-time job', async () => {
     await bullmqRemoveScheduleJob('sched-1');
     expect(q.removeJobScheduler).toHaveBeenCalledWith('sched-1');
-    expect(q.remove).toHaveBeenCalledWith('once:sched-1');
+    expect(q.remove).toHaveBeenCalledWith('once-sched-1');
   });
 
   it('update = remove then re-add for an active schedule', async () => {
