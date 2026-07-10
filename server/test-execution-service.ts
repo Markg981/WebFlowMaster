@@ -1,5 +1,6 @@
 import { playwrightService } from './playwright-service';
-import type { Test, ApiTest, TestPlanExecution, InsertReportTestCaseResult } from '@shared/schema'; // Assuming ApiTest will be defined or Test is generic enough
+import type { Test, ApiTest, TestPlanExecution, InsertReportTestCaseResult, Precondition } from '@shared/schema'; // Assuming ApiTest will be defined or Test is generic enough
+import { runPreconditions } from './precondition-runner';
 import type { StepResult } from './playwright-service'; // Import StepResult type
 import loggerPromise from './logger';
 import { db } from './db';
@@ -79,6 +80,31 @@ export async function runTest(
     const screenshotBaseDir = path.join('./results', planId, runId, `ui_${testId}`);
     try {
       await fs.ensureDir(screenshotBaseDir);
+
+      // Establish preconditions (ordered API setup calls) before the UI sequence, so the
+      // system under test is in the required state. Fail-fast: if setup fails, the test
+      // is blocked (reported as 'error'), not a misleading pass/fail.
+      const preResult = await runPreconditions(
+        (uiTest as unknown as { preconditions?: Precondition[] | null }).preconditions,
+        { baseUrl: process.env.DMO_BASE_URL || 'http://localhost:7000' },
+      );
+      if (!preResult.ok) {
+        const durationMs = Date.now() - startTime;
+        resolvedLogger.warn({
+          message: 'UI Test blocked: precondition failed',
+          testId, testName, planId, runId, failedAt: preResult.failedAt, reason: preResult.reason,
+        });
+        return {
+          testId,
+          testType: 'ui',
+          name: uiTest.name,
+          success: false,
+          status: 'error',
+          error: `Precondition failed at "${preResult.failedAt}": ${preResult.reason}`,
+          durationMs,
+        };
+      }
+
       const result = await playwrightService.executeTestSequence(uiTest, userId, screenshotBaseDir, runId);
       const durationMs = Date.now() - startTime;
 
