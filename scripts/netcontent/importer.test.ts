@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { db } from '../../server/db';
 import { users, projects, apiTests } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -17,6 +17,14 @@ beforeEach(async () => {
   await db.delete(projects);
   await db.delete(users);
   await db.insert(users).values({ id: 1, username: 'owner', password: 'x' });
+});
+
+// Clean up so leftover projects (FK -> users) don't break other suites' db.delete(users)
+// when this file runs before them (test-file order differs between machines/CI).
+afterAll(async () => {
+  await db.delete(apiTests);
+  await db.delete(projects);
+  await db.delete(users);
 });
 
 describe('resolveUserId', () => {
