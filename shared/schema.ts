@@ -40,6 +40,10 @@ export const tests = pgTable("tests", {
   url: text("url").notNull(),
   sequence: jsonb("sequence").notNull(),
   elements: jsonb("elements").notNull(),
+  // Ordered API setup calls that must succeed before the UI sequence runs, so the
+  // system under test is in the required state (e.g. a static scale check before a
+  // tare check). Nullable: existing/most tests have none. See PreconditionSchema.
+  preconditions: jsonb("preconditions"),
   status: text("status").notNull().default("draft"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -481,11 +485,37 @@ export const selectExcelSequencesMapSchema = createSelectSchema(excelSequencesMa
 export type ExcelSequencesMap = typeof excelSequencesMap.$inferSelect;
 export type InsertExcelSequencesMap = typeof excelSequencesMap.$inferInsert;
 
+// A precondition is an ordered API setup call executed (through the app under test's
+// own API) before the UI sequence, to bring the system into the required state.
+// Its request shape mirrors an apiTests row; it may reference the saved apiTest it
+// was composed from.
+export const PreconditionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  method: z.string(),
+  url: z.string(), // may contain the {{baseUrl}} variable
+  queryParams: z
+    .array(
+      z.object({
+        key: z.string(),
+        value: z.string(),
+        enabled: z.boolean().optional().default(true),
+      }),
+    )
+    .optional()
+    .nullable(),
+  requestHeaders: z.record(z.string()).optional().nullable(),
+  requestBody: z.any().optional().nullable(),
+  sourceApiTestId: z.number().int().optional().nullable(),
+});
+export type Precondition = z.infer<typeof PreconditionSchema>;
+
 export const insertTestSchema = createInsertSchema(tests, {
   module: z.string().optional().nullable(), // Zod handles .nullable() correctly for optional fields
   featureArea: z.string().optional().nullable(),
   scenario: z.string().optional().nullable(),
   component: z.string().optional().nullable(),
+  preconditions: z.array(PreconditionSchema).optional().nullable(),
   priority: z.enum(["Critical", "High", "Medium", "Low"]).optional().nullable(),
   severity: z
     .enum(["Blocker", "Critical", "Major", "Minor"])

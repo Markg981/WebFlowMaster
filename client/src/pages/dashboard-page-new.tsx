@@ -21,6 +21,8 @@ import { DraggableElement } from "@/components/draggable-element";
 import { VisualTestBuilder } from "@/components/visual-builder/VisualTestBuilder";
 import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
 import SaveTestModal from "@/components/SaveTestModal"; // Import the modal
+import { PreconditionsPanel } from "@/components/PreconditionsPanel";
+import type { Precondition } from "@shared/schema";
 import {
   Globe,
   Search,
@@ -198,6 +200,7 @@ export default function DashboardPage() {
   const [currentUrl, setCurrentUrl] = useState("https://github.com");
   const [detectedElements, setDetectedElements] = useState<DetectedElement[]>([]);
   const [testSequence, setTestSequence] = useState<DragDropTestStep[]>([]);
+  const [preconditions, setPreconditions] = useState<Precondition[]>([]);
   const [creationMode, setCreationMode] = useState<"manual" | "record">(
     "manual"
   );
@@ -464,7 +467,7 @@ export default function DashboardPage() {
   });
 
   const saveTestMutation = useMutation({
-    mutationFn: async (payload: { name: string; url: string; sequence: DragDropTestStep[]; elements: DetectedElement[]; status: string; projectId?: number }) => {
+    mutationFn: async (payload: { name: string; url: string; sequence: DragDropTestStep[]; elements: DetectedElement[]; status: string; projectId?: number; preconditions?: Precondition[] }) => {
       // No default payload here, it's fully constructed in handleConfirmSaveTest
       const res = await apiRequest("POST", "/api/tests", payload);
       // apiRequest should handle non-ok responses by throwing an error.
@@ -541,6 +544,7 @@ export default function DashboardPage() {
       url: currentUrl,
       sequence: testSequence,
       elements: detectedElements,
+      preconditions,
       status: "draft",
     });
     // Modal is closed by the SaveTestModal itself after its onSave is called if save is successful.
@@ -1400,6 +1404,9 @@ export default function DashboardPage() {
             lastTestOutcome={lastTestOverallResult} // Pass the test outcome state
           />
         </div>
+      </div>
+      <div className="px-4 pb-4">
+        <PreconditionsPanel preconditions={preconditions} onChange={setPreconditions} />
       </div>
       <SaveTestModal
         isOpen={isSaveModalOpen}

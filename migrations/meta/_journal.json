@@ -15,6 +15,13 @@
       "when": 1783551613357,
       "tag": "0001_add_indexes_and_schedule_owner",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783660835350,
+      "tag": "0002_fantastic_wind_dancer",
+      "breakpoints": true
     }
   ]
 }
