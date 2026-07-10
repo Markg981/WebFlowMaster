@@ -90,6 +90,7 @@
     "eslint-plugin-unused-imports": "^3.2.0",
     "eslint-plugin-vitest": "^0.5.4",
     "globals": "^16.2.0",
+    "node-html-parser": "^9.0.0",
     "prettier": "^3.9.4",
     "supertest": "^7.1.1",
     "tsx": "^4.19.1",
