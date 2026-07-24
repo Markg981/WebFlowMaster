@@ -1,24 +1,33 @@
 import React from 'react';
+import { cn } from '../../lib/utils';
 
 interface KpiCardProps {
   title: string;
-  value: string | number | React.ReactNode; // Updated to allow ReactNode for loading/error states
+  value: string | number | React.ReactNode;
   icon?: React.ReactNode;
+  hint?: React.ReactNode;
+  /** Emphasized card (Signal-tinted measurement strip). Use for the headline metric. */
+  emphasis?: boolean;
 }
 
-const KpiCard: React.FC<KpiCardProps> = ({ title, value, icon }) => {
+const KpiCard: React.FC<KpiCardProps> = ({ title, value, icon, hint, emphasis }) => {
+  const isScalar = typeof value === 'string' || typeof value === 'number';
   return (
-    <div className="bg-card text-card-foreground p-4 rounded-lg shadow">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-        {icon && <div className="text-muted-foreground">{icon}</div>}
-      </div>
-      <div className="mt-1">{/* Changed p to div to better accommodate ReactNode values */}
-        {typeof value === 'string' || typeof value === 'number' ? (
-          <p className="text-3xl font-semibold">{value}</p>
-        ) : (
-          value // Render ReactNode directly (e.g. loader or error icon)
-        )}
+    <div className="overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm">
+      <div className={cn('kpi-strip', emphasis && 'kpi-strip--accent')} />
+      <div className="p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
+          {icon && <div className="text-muted-foreground/60">{icon}</div>}
+        </div>
+        <div className="mt-2 min-h-[36px]">
+          {isScalar ? (
+            <p className="font-mono text-[30px] font-semibold leading-none tracking-tight tabular-nums">{value}</p>
+          ) : (
+            value
+          )}
+        </div>
+        {hint && <div className="mt-2 font-mono text-xs tabular-nums text-muted-foreground">{hint}</div>}
       </div>
     </div>
   );

@@ -22,37 +22,41 @@ const KpiPanel: React.FC<KpiPanelProps> = ({ data, isLoading }) => {
     return `${(ms / 1000).toFixed(1)}s`;
   };
 
+  const spinner = <Loader2 className="animate-spin h-5 w-5 text-muted-foreground" />;
+
   const kpis = [
     {
-      title: t('dashboard.kpiPanel.totalTests.title', 'Total Executions'),
-      icon: <ListChecks size={20} />,
-      value: isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : (data?.totalRuns || 0).toString(),
+      title: t('dashboard.kpiPanel.successRate.title', 'Success Rate'),
+      icon: <Percent size={18} />,
+      value: isLoading ? spinner : `${data?.successRate ?? 0}%`,
+      emphasis: true,
     },
     {
-      title: t('dashboard.kpiPanel.successRate.title', 'Success Rate'),
-      icon: <Percent size={20} />,
-      value: isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : `${data?.successRate || 0}%`,
+      title: t('dashboard.kpiPanel.totalTests.title', 'Total Executions'),
+      icon: <ListChecks size={18} />,
+      value: isLoading ? spinner : (data?.totalRuns ?? 0).toString(),
     },
     {
       title: t('dashboard.kpiPanel.avgDuration.title', 'Avg Duration'),
-      icon: <Clock size={20} />,
-      value: isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : formatDuration(data?.avgDuration || 0),
+      icon: <Clock size={18} />,
+      value: isLoading ? spinner : formatDuration(data?.avgDuration || 0),
     },
     {
       title: t('dashboard.kpiPanel.lastRun.title', 'Last Run Status'),
-      icon: <PlayCircle size={20} />,
-      value: isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : (data?.lastRun?.status || 'N/A').toUpperCase(),
+      icon: <PlayCircle size={18} />,
+      value: isLoading ? spinner : (data?.lastRun?.status || 'N/A').toUpperCase(),
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {kpis.map((kpi, index) => (
         <KpiCard
           key={index}
           title={kpi.title}
           icon={kpi.icon}
           value={kpi.value as any}
+          emphasis={kpi.emphasis}
         />
       ))}
     </div>

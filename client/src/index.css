@@ -2,56 +2,118 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  WebTest Platform — "Instrument Console" design tokens.
+  A QA console driving an industrial net-content / checkweigher system: cool-slate
+  neutrals, one brand hue (Signal), a first-class pass/fail/blocked/running status
+  ramp, and monospace tabular figures as the voice of measurement.
+
+  All colors are HSL triplets so Tailwind's hsl(var(--x)) resolves them.
+*/
 :root {
-  --background: 0 0% 100%;
-  --foreground: 20 14.3% 4.1%;
-  --muted: 60 4.8% 95.9%;
-  --muted-foreground: 25 5.3% 44.7%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 20 14.3% 4.1%;
+  /* Neutrals — cool slate, biased toward the Signal hue rather than pure grey */
+  --background: 216 33% 98%;
+  --foreground: 222 47% 11%;
   --card: 0 0% 100%;
-  --card-foreground: 20 14.3% 4.1%;
-  --border: 20 5.9% 90%;
-  --input: 20 5.9% 90%;
-  --primary: 207 90% 54%;
-  --primary-foreground: 211 100% 99%;
-  --secondary: 60 4.8% 95.9%;
-  --secondary-foreground: 24 9.8% 10%;
-  --accent: 16 82% 52%;
-  --accent-foreground: 60 9.1% 97.8%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 60 9.1% 97.8%;
-  --ring: 20 14.3% 4.1%;
-  --radius: 0.5rem;
-  --success: hsl(142, 76%, 36%);
-  --warning: hsl(32, 95%, 44%);
-  --error: hsl(4, 90%, 58%);
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --muted: 216 33% 96%;
+  --muted-foreground: 217 19% 45%;
+  --secondary: 216 30% 95%;
+  --secondary-foreground: 222 40% 20%;
+  --accent: 216 33% 94%;
+  --accent-foreground: 222 47% 15%;
+  --border: 216 24% 91%;
+  --input: 217 22% 86%;
+
+  /* Brand — Signal (calibration blue) */
+  --primary: 226 100% 59%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 226 100% 59%;
+
+  /* Status ramp (semantic — not the accent) */
+  --success: 142 71% 36%;
+  --success-foreground: 0 0% 100%;
+  --success-weak: 145 55% 93%;
+  --warning: 32 94% 44%;
+  --warning-foreground: 0 0% 100%;
+  --warning-weak: 37 78% 92%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --destructive-weak: 0 79% 95%;
+
+  /* Charts */
+  --chart-1: 226 100% 59%;
+  --chart-2: 142 71% 40%;
+  --chart-3: 32 94% 50%;
+  --chart-4: 262 68% 60%;
+  --chart-5: 190 80% 42%;
+
+  /* Sidebar (only referenced by the unused shadcn sidebar primitive; defined for safety) */
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 222 47% 11%;
+  --sidebar-primary: 226 100% 59%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 226 100% 96%;
+  --sidebar-accent-foreground: 226 100% 59%;
+  --sidebar-border: 216 24% 91%;
+  --sidebar-ring: 226 100% 59%;
+
+  --radius: 0.625rem;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px hsl(222 47% 11% / 0.05);
+  --shadow-md: 0 1px 2px hsl(222 47% 11% / 0.04), 0 4px 16px hsl(222 47% 11% / 0.06);
 }
 
 .dark {
-  --background: 240 10% 4%;
-  --foreground: 0 0% 98%;
-  --muted: 240 5% 12%;
-  --muted-foreground: 240 5% 65%;
-  --popover: 240 10% 6%;
-  --popover-foreground: 0 0% 98%;
-  --card: 240 10% 6%;
-  --card-foreground: 0 0% 98%;
-  --border: 240 5% 16%;
-  --input: 240 5% 16%;
-  --primary: 210 100% 55%;
+  --background: 220 37% 6%;
+  --foreground: 214 38% 93%;
+  --card: 222 37% 11%;
+  --card-foreground: 214 38% 93%;
+  --popover: 222 34% 13%;
+  --popover-foreground: 214 38% 93%;
+  --muted: 222 25% 16%;
+  --muted-foreground: 216 20% 65%;
+  --secondary: 222 26% 18%;
+  --secondary-foreground: 214 30% 88%;
+  --accent: 222 24% 20%;
+  --accent-foreground: 214 38% 93%;
+  --border: 222 26% 17%;
+  --input: 218 24% 23%;
+
+  --primary: 224 100% 68%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 240 5% 16%;
-  --secondary-foreground: 0 0% 98%;
-  --accent: 210 100% 55%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
-  --ring: 210 100% 55%;
-  --radius: 0.5rem;
-  --success: hsl(142, 76%, 36%);
-  --warning: hsl(32, 95%, 44%);
-  --error: hsl(0, 84%, 60%);
+  --ring: 224 100% 68%;
+
+  --success: 152 62% 50%;
+  --success-foreground: 152 80% 8%;
+  --success-weak: 154 44% 12%;
+  --warning: 34 82% 60%;
+  --warning-foreground: 36 90% 8%;
+  --warning-weak: 36 44% 13%;
+  --destructive: 0 84% 68%;
+  --destructive-foreground: 0 60% 10%;
+  --destructive-weak: 356 40% 15%;
+
+  --chart-1: 224 100% 68%;
+  --chart-2: 152 62% 50%;
+  --chart-3: 34 82% 60%;
+  --chart-4: 262 78% 72%;
+  --chart-5: 190 75% 55%;
+
+  --sidebar-background: 222 37% 11%;
+  --sidebar-foreground: 214 38% 93%;
+  --sidebar-primary: 224 100% 68%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 222 47% 18%;
+  --sidebar-accent-foreground: 224 100% 78%;
+  --sidebar-border: 222 26% 17%;
+  --sidebar-ring: 224 100% 68%;
+
+  --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.3);
+  --shadow-md: 0 1px 2px hsl(0 0% 0% / 0.3), 0 6px 20px hsl(0 0% 0% / 0.35);
 }
 
 @layer base {
@@ -59,55 +121,80 @@
     @apply border-border;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
+
+  /* Data is measurement: monospace with lined-up (tabular) figures. */
+  .font-mono,
+  code,
+  kbd,
+  samp {
+    font-feature-settings: 'tnum' 1, 'zero' 1;
+  }
+
+  /* Calmer, hue-tinted scrollbars so dense tables/consoles don't look raw. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border: 2px solid transparent;
+    background-clip: content-box;
+    border-radius: 9999px;
+  }
+  *::-webkit-scrollbar-thumb:hover { background: hsl(var(--input)); background-clip: content-box; }
 }
 
 @layer utilities {
-  .glass-panel {
-    @apply bg-background/60 backdrop-blur-md border border-white/10 shadow-xl;
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+
+  /* Status text/background helpers, kept for the few existing call sites and reused
+     by the shared StatusChip. */
+  .text-success { color: hsl(var(--success)); }
+  .text-warning { color: hsl(var(--warning)); }
+  .text-error   { color: hsl(var(--destructive)); }
+  .bg-success   { background-color: hsl(var(--success)); }
+  .bg-warning   { background-color: hsl(var(--warning)); }
+  .bg-error     { background-color: hsl(var(--destructive)); }
+  .border-success { border-color: hsl(var(--success)); }
+  .border-warning { border-color: hsl(var(--warning)); }
+  .border-error   { border-color: hsl(var(--destructive)); }
+
+  /*
+    Signature: a measurement tick-rule — a hairline baseline with short ticks,
+    echoing the scale/ruler of a weighing system. Used under page titles and along
+    the top edge of KPI cards. `.tick-rule--accent` tints the ticks Signal.
+  */
+  .tick-rule {
+    height: 9px;
+    background-image: repeating-linear-gradient(90deg, hsl(var(--input)) 0 1px, transparent 1px 22px);
+    border-top: 1px solid hsl(var(--input));
   }
-  
-  .glass-card {
-    @apply backdrop-blur-md border border-white/5 shadow-lg;
-    background-color: hsl(var(--card) / 0.6);
+  .tick-rule--accent {
+    background-image: repeating-linear-gradient(90deg, hsl(var(--primary)) 0 1px, transparent 1px 22px);
+    border-top-color: hsl(var(--primary) / 0.5);
+    -webkit-mask-image: linear-gradient(90deg, #000 0 72px, transparent 240px);
+            mask-image: linear-gradient(90deg, #000 0 72px, transparent 240px);
   }
-  
-  .text-success {
-    color: var(--success);
+
+  /* The measurement strip along the top edge of a KPI card. */
+  .kpi-strip {
+    height: 6px;
+    border-bottom: 1px solid hsl(var(--border));
+    background-image: repeating-linear-gradient(90deg, hsl(var(--border)) 0 1px, transparent 1px 14px);
   }
-  
-  .text-warning {
-    color: var(--warning);
-  }
-  
-  .text-error {
-    color: var(--error);
-  }
-  
-  .bg-success {
-    background-color: var(--success);
-  }
-  
-  .bg-warning {
-    background-color: var(--warning);
-  }
-  
-  .bg-error {
-    background-color: var(--error);
-  }
-  
-  .border-success {
-    border-color: var(--success);
-  }
-  
-  .border-warning {
-    border-color: var(--warning);
-  }
-  
-  .border-error {
-    border-color: var(--error);
+  .kpi-strip--accent {
+    border-bottom-color: hsl(var(--primary) / 0.4);
+    background-image: repeating-linear-gradient(90deg, hsl(var(--primary) / 0.55) 0 1px, transparent 1px 14px);
   }
 }

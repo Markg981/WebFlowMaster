@@ -31,14 +31,31 @@ const registerSchema = z.object({
 });
 
 // Choose a session store: Redis for real deployments (shared across instances /
-// the worker process), in-memory only for the test environment where no Redis is required.
+// the worker process), in-memory only where no Redis is required. This runs after
+// index.ts has attempted connectSessionRedis(), so sessionRedis.isOpen is authoritative.
 function createSessionStore(): session.Store {
   if (process.env.NODE_ENV === "test") {
     return new MemoryStore({ checkPeriod: 86400000 });
   }
-  // Uses the node-redis client (sessionRedis), not the ioredis one: connect-redis peer-
-  // depends on `redis` >= 5 and calls set(key, val, {EX}), mGet() and scanIterator().
-  return new RedisStore({ client: sessionRedis, prefix: "wfm:sess:" });
+  if (sessionRedis.isOpen) {
+    // Uses the node-redis client (sessionRedis), not the ioredis one: connect-redis peer-
+    // depends on `redis` >= 5 and calls set(key, val, {EX}), mGet() and scanIterator().
+    return new RedisStore({ client: sessionRedis, prefix: "wfm:sess:" });
+  }
+  // Redis is unreachable. In production a shared store is mandatory (multiple instances +
+  // the worker must see the same sessions), so refuse to start on an in-memory store.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Session Redis is not connected. Refusing to start in production without a shared session store — check REDIS_URL and that Redis is reachable.",
+    );
+  }
+  // Development convenience only: don't make local work depend on a running Redis. Sessions
+  // live in memory (lost on restart, single-process), which is fine for one developer.
+  console.warn(
+    "[auth] Redis unavailable — using an in-memory session store for local development. " +
+      "Sessions will not persist across restarts. Start Redis to use the shared store.",
+  );
+  return new MemoryStore({ checkPeriod: 86400000 });
 }
 
 // Rate limiter applied to authentication endpoints to slow down brute-force attempts.

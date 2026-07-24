@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from 'react-i18next';
-import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -27,17 +26,11 @@ import {
   Globe,
   Search,
   CheckCircle,
-  Settings,
-  Bell,
-  User,
   Loader2,
   Play,
-  StopCircle,
-  ArrowLeft, // Add this if not present
-  XCircle, // Added for page icon
-  TestTube, // Added this icon
+  StopCircle, // Add this if not present
+  XCircle, // Added this icon
 } from "lucide-react";
-import { Link } from "wouter";
 // import debounceFromLodash from 'lodash/debounce'; // Removed due to missing types
 
 // Interface for actions received from backend recording service
@@ -195,7 +188,6 @@ export const availableActions: TestAction[] = [
 
 export default function DashboardPage() {
   const { t } = useTranslation();
-  const { user, logoutMutation } = useAuth();
   // Initial URL state. "https://github.com" is a placeholder that can be overwritten.
   const [currentUrl, setCurrentUrl] = useState("https://github.com");
   const [detectedElements, setDetectedElements] = useState<DetectedElement[]>([]);
@@ -1090,43 +1082,15 @@ export default function DashboardPage() {
   console.log("[DashboardPage] executeDirectTestMutation.isPending:", executeDirectTestMutation.isPending, "isExecutingPlayback:", isExecutingPlayback);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <header className="bg-card border-b border-border px-6 py-4 relative z-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Link href="/dashboard" className="flex items-center space-x-2 text-primary hover:underline">
-                <ArrowLeft className="h-5 w-5" />
-              </Link>
-              <TestTube className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold text-card-foreground">{t('dashboardPageNew.createWebTest.title')}</h1>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" aria-label={t('dashboardPageNew.notifications.button')}>
-              <Bell className="h-4 w-4" />
-            </Button>
-            <Link href="/settings" aria-label={t('dashboardPageNew.settings.button')}>
-              <Button variant="ghost" size="icon">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </Link>
-            <div className="flex items-center space-x-2">
-              <User className="h-6 w-6 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">{user?.username}</span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => logoutMutation.mutate()}
-              disabled={logoutMutation.isPending}
-            >
-              {t('dashboardPageNew.signOut.button')}
-            </Button>
-          </div>
+    <div className="min-h-full bg-background text-foreground">
+      {/* Page header */}
+      <header className="border-b border-border bg-card px-6 py-4">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {t('dashboardPageNew.eyebrow', 'Author a UI test')}
         </div>
+        <h1 className="mt-0.5 text-xl font-bold tracking-tight text-card-foreground">
+          {t('dashboardPageNew.createWebTest.title')}
+        </h1>
       </header>
 
       {/* URL Input Section */}

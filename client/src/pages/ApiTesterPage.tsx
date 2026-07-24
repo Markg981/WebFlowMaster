@@ -14,8 +14,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Network, Loader2, PlusCircle, XCircle, History, Save, ListChecks, CheckCircle, XCircle as XCircleIcon } from 'lucide-react';
-import { Link } from 'wouter';
+import { Loader2, PlusCircle, XCircle, History, Save, ListChecks, CheckCircle, XCircle as XCircleIcon } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
@@ -889,25 +888,15 @@ const ApiTesterPage: React.FC = () => {
   const responseEditorLanguage = useMemo(() => getResponseLanguage(responseHeaders), [responseHeaders]);
 
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground">
-      <header className="bg-card border-b border-border px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Link href="/dashboard" aria-label={t('apiTesterPage.backToDashboard.button')}>
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <Network className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold text-card-foreground">{t('apiTesterPage.apiTester.title')}</h1>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={() => handleOpenSaveModal()} disabled={apiProxyMutation.isPending}>
-              <Save className="mr-2 h-4 w-4" />
-              {currentTestToEdit ? t('apiTesterPage.saveChanges.button') : t('apiTesterPage.saveTest.button')}
-            </Button>
-          </div>
+    <div className="h-full flex flex-col bg-background text-foreground">
+      <header className="flex items-center justify-between gap-2 border-b border-border bg-card px-4 py-2">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {t('apiTesterPage.requestBuilder.eyebrow', 'Request builder')}
         </div>
+        <Button variant="default" size="sm" onClick={() => handleOpenSaveModal()} disabled={apiProxyMutation.isPending}>
+          <Save className="mr-2 h-4 w-4" />
+          {currentTestToEdit ? t('apiTesterPage.saveChanges.button') : t('apiTesterPage.saveTest.button')}
+        </Button>
       </header>
 
       <div className="flex flex-1 overflow-hidden">

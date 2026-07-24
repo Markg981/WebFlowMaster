@@ -15,11 +15,9 @@ import {
   Sun,
   Globe, 
   Monitor,
-  Settings,
   Bell,
   User,
   Save,
-  ArrowLeft,
   Loader2,
   ListTree,
   Trash2,
@@ -355,19 +353,19 @@ export default function SettingsPage() {
 
   if (isLoadingSettings || isLoadingLogLevelSetting) { // Initial page load, consider all critical settings fetches
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-4 text-lg">{t('settingsPage.loadingSettings.text')}</p>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="ml-4 text-lg text-muted-foreground">{t('settingsPage.loadingSettings.text')}</p>
       </div>
     );
   }
 
   if (isErrorSettings) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <Bell className="h-12 w-12 text-red-500" />
-        <p className="mt-4 text-lg text-red-600">{t('settingsPage.errorLoadingUserSettings.label')}</p>
-        <p className="text-sm text-gray-700">{settingsError?.message || t('settingsPage.anUnknownErrorOccurred.description')}</p>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center">
+        <Bell className="h-10 w-10 text-destructive" />
+        <p className="mt-4 text-lg font-semibold text-destructive">{t('settingsPage.errorLoadingUserSettings.label')}</p>
+        <p className="text-sm text-muted-foreground">{settingsError?.message || t('settingsPage.anUnknownErrorOccurred.description')}</p>
         <Button onClick={() => queryClient.refetchQueries({ queryKey: ['settings'] })} className="mt-4">
           {t('settingsPage.tryAgain.button')}
         </Button>
@@ -376,29 +374,16 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="bg-card border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Link href="/dashboard" className="flex items-center space-x-2 text-primary hover:underline">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <Settings className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold text-card-foreground">{t('settings.pageTitle', 'Settings')}</h1>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <User className="h-6 w-6" />
-              <span className="text-sm font-medium">{user?.username}</span>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => logoutMutation.mutate()} disabled={isPageDisabled}>
-              {t('settings.buttons.signOut', 'Sign Out')}
-            </Button>
-          </div>
+    <div className="mx-auto max-w-4xl p-6">
+      <header className="mb-6">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {t('settingsPage.eyebrow', 'Preferences')}
         </div>
+        <h1 className="mt-0.5 text-2xl font-bold tracking-tight">{t('settings.pageTitle', 'Settings')}</h1>
+        <div className="tick-rule tick-rule--accent mt-3" />
       </header>
 
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2"><Sun className="h-5 w-5" /><span>{t('settings.appearance.title')}</span></CardTitle>

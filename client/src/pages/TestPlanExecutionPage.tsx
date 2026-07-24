@@ -147,7 +147,7 @@ const TestPlanExecutionPage: React.FC = () => {
       case 'passed':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'failed':
-        return <XCircle className="h-5 w-5 text-red-500" />;
+        return <XCircle className="h-5 w-5 text-destructive" />;
       default:
         return null;
     }
@@ -155,7 +155,7 @@ const TestPlanExecutionPage: React.FC = () => {
 
   if (isLoadingPlan) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-full">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="ml-4 text-lg">{t('testPlanExecutionPage.loadingPlan.text')}</p>
       </div>
@@ -164,7 +164,7 @@ const TestPlanExecutionPage: React.FC = () => {
 
   if (planError) {
     return (
-      <div className="flex flex-col justify-center items-center h-screen text-red-500">
+      <div className="flex flex-col justify-center items-center h-full text-destructive">
         <XCircle className="h-12 w-12 mb-4" />
         <p className="text-lg">{t('testPlanExecutionPage.errorLoadingPlan.text')}: {(planError as Error).message}</p>
         <Button variant="link" asChild className="mt-4">
@@ -176,7 +176,7 @@ const TestPlanExecutionPage: React.FC = () => {
 
   if (!testPlanData) {
     return (
-      <div className="flex flex-col justify-center items-center h-screen">
+      <div className="flex flex-col justify-center items-center h-full">
         <p className="text-lg">{t('testPlanExecutionPage.planNotFound.text')}</p>
         <Button variant="link" asChild className="mt-4">
           <Link href="/test-suites">{t('testPlanExecutionPage.backToTestSuites.button')}</Link>
@@ -191,7 +191,7 @@ const TestPlanExecutionPage: React.FC = () => {
 
 
   return (
-    <div className="flex flex-col h-screen bg-muted/40">
+    <div className="flex flex-col h-full bg-muted/30">
       <header className="bg-background border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">

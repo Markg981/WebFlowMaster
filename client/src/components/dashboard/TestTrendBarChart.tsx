@@ -26,16 +26,17 @@ const TestTrendBarChart: React.FC<TestTrendBarChartProps> = ({ data, isLoading }
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} tickFormatter={(val) => val.substring(5)} />
-              <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-              <Tooltip 
-                contentStyle={{ borderRadius: '8px', backgroundColor: 'var(--card)', color: 'var(--card-foreground)' }} 
-                cursor={{ fill: 'var(--muted)' }}
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(val) => val.substring(5)} stroke="hsl(var(--border))" />
+              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} stroke="hsl(var(--border))" />
+              <Tooltip
+                contentStyle={{ borderRadius: '10px', backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))', border: '1px solid hsl(var(--border))', boxShadow: 'var(--shadow-md)', fontSize: '12px' }}
+                itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
+                cursor={{ fill: 'hsl(var(--muted))', opacity: 0.5 }}
               />
               <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <Bar dataKey="passed" name="Passed" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
-              <Bar dataKey="failed" name="Failed" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="passed" name="Passed" stackId="a" fill="hsl(142 71% 40%)" radius={[0, 0, 4, 4]} />
+              <Bar dataKey="failed" name="Failed" stackId="a" fill="hsl(0 72% 51%)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}

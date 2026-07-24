@@ -16,8 +16,7 @@ import { PlusCircle } from 'lucide-react'; // Changed from @radix-ui/react-icons
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'; // DialogClose might be needed
 import { useToast } from '@/components/ui/use-toast';  // Corrected import path
 import { useTranslation } from 'react-i18next';
-import { Link } from 'wouter';
-import { ArrowLeft, CalendarDays } from 'lucide-react'; // Added imports for header
+// Added imports for header
 
 const SchedulingPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -120,28 +119,24 @@ const SchedulingPage: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground">
-      <header className="bg-card border-b border-border px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Link href="/dashboard" aria-label={t('schedulingPage.backToDashboard.button', 'Back to Dashboard')}>
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <CalendarDays className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold text-card-foreground">{t('schedulingPage.title', 'Scheduling')}</h1>
+    <div className="mx-auto max-w-[1400px] p-6">
+      <header className="mb-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {t('schedulingPage.eyebrow', 'Automation')}
+            </div>
+            <h1 className="mt-0.5 text-2xl font-bold tracking-tight">{t('schedulingPage.title', 'Scheduling')}</h1>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" onClick={handleOpenCreateForm}>
-              <PlusCircle className="mr-2 h-4 w-4" /> {t('schedulingPage.createSchedule.button', 'Create Schedule')}
-            </Button>
-          </div>
+          <Button variant="default" size="sm" onClick={handleOpenCreateForm}>
+            <PlusCircle className="mr-2 h-4 w-4" /> {t('schedulingPage.createSchedule.button', 'Create Schedule')}
+          </Button>
         </div>
+        <div className="tick-rule tick-rule--accent mt-3" />
       </header>
 
       {/* Main content area */}
-      <div className="flex-1 overflow-auto p-4 md:p-6">
+      <div>
         {/* Dialogs remain outside the scrollable content typically, or are portalled */}
         <Dialog open={isFormOpen} onOpenChange={(open) => {
           if (!open) {
