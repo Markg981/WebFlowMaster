@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit2, Trash2, PlayCircle, PlusCircle, Download } from 'lucide-react';
+import { Edit2, Trash2, PlusCircle, Download } from 'lucide-react';
 
 interface SavedTestsPanelProps {
   savedTests: ApiTest[];
@@ -63,12 +63,27 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
     projectLabel(a).localeCompare(projectLabel(b)),
   );
 
+  // The row itself loads the test: clicking a card is the obvious gesture, and in a narrow
+  // sidebar the action icons are the first thing to be squeezed out of sight.
   const renderRow = (test: ApiTest) => (
-    <div key={test.id} className="p-3 border rounded-md hover:bg-muted/50 transition-colors">
-      <div className="flex items-center justify-between">
+    <div
+      key={test.id}
+      role="button"
+      tabIndex={0}
+      onClick={() => onLoadTest(test)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onLoadTest(test);
+        }
+      }}
+      title={t('apiTester.savedTestsPanel.loadTest.button')}
+      className="w-full p-3 border rounded-md hover:bg-muted/50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
+    >
+      <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <Badge variant="secondary" className="font-mono text-xs py-0.5 px-1.5">
+            <Badge variant="secondary" className="font-mono text-xs py-0.5 px-1.5 shrink-0">
               {test.method}
             </Badge>
             <span className="text-sm font-semibold truncate" title={test.name}>
@@ -78,28 +93,28 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
           <p className="text-xs text-muted-foreground truncate" title={test.url}>
             {test.url}
           </p>
+          <div className="text-xs text-muted-foreground mt-1">
+            {t('apiTester.savedTestsPanel.lastUpdated.label')} {new Date(test.updatedAt).toLocaleDateString()}
+          </div>
         </div>
-        <div className="flex items-center space-x-1 ml-2">
-          <Button variant="ghost" size="icon" onClick={() => onLoadTest(test)}
-            title={t('apiTester.savedTestsPanel.loadTest.button')} disabled={isLoading || !!isDeletingTestId}>
-            <PlayCircle className="h-4 w-4 text-blue-500" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => onEditTest(test)}
+        {/* Icons sit inside the clickable card, so each stops the click from also loading it. */}
+        <div className="flex items-center shrink-0">
+          <Button variant="ghost" size="icon" className="h-7 w-7"
+            onClick={(e) => { e.stopPropagation(); onEditTest(test); }}
             title={t('apiTester.savedTestsPanel.editTest.button')} disabled={isLoading || !!isDeletingTestId}>
             <Edit2 className="h-4 w-4 text-muted-foreground" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => onExportTest(test)}
+          <Button variant="ghost" size="icon" className="h-7 w-7"
+            onClick={(e) => { e.stopPropagation(); onExportTest(test); }}
             title={t('apiTester.savedTestsPanel.exportTest.button')} disabled={isLoading || !!isDeletingTestId}>
             <Download className="h-4 w-4 text-sky-500" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => onDeleteTest(test.id)}
+          <Button variant="ghost" size="icon" className="h-7 w-7"
+            onClick={(e) => { e.stopPropagation(); onDeleteTest(test.id); }}
             title={t('apiTester.savedTestsPanel.deleteTest.button')} disabled={isLoading || isDeletingTestId === test.id}>
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
         </div>
-      </div>
-      <div className="text-xs text-muted-foreground mt-1">
-        {t('apiTester.savedTestsPanel.lastUpdated.label')} {new Date(test.updatedAt).toLocaleDateString()}
       </div>
     </div>
   );
