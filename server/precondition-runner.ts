@@ -1,14 +1,11 @@
 import type { Precondition } from '@shared/schema';
+import { fetchTarget, substituteVariables as substituteVars } from './outbound-http';
 
 export interface PreconditionResult {
   ok: boolean;
   ranCount: number;
   failedAt?: string; // name of the precondition that failed
   reason?: string;
-}
-
-function substituteVars(s: string, vars: Record<string, string>): string {
-  return s.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_m, k: string) => (k in vars ? vars[k] : `{{${k}}}`));
 }
 
 /**
@@ -21,7 +18,7 @@ function substituteVars(s: string, vars: Record<string, string>): string {
 export async function runPreconditions(
   preconditions: Precondition[] | null | undefined,
   vars: Record<string, string>,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: typeof fetch = fetchTarget,
 ): Promise<PreconditionResult> {
   const list = preconditions ?? [];
   let ran = 0;

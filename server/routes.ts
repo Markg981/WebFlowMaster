@@ -32,6 +32,7 @@ import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
 import { eq, and, desc, sql, getTableColumns, asc, ilike } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
+import { fetchTarget, requestVariables, substituteInValues, substituteVariables } from "./outbound-http";
 // Import schedulerService
 import loggerPromise, { updateLogLevel } from "./logger";
 
@@ -51,7 +52,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const proxyApiRequestBodySchema = z.object({
     method: z.string(),
-    url: z.string().url(),
+    // Not .url(): saved tests legitimately hold {{baseUrl}}/... here. The URL is
+    // validated below, once the variables have been resolved.
+    url: z.string().min(1),
     queryParams: z.record(z.any()).optional(),
     headers: z.record(z.string()).optional(),
     body: z.any().optional(),
@@ -121,9 +124,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
-    const { method, url: baseUrl, queryParams, headers: customHeaders, body: requestBody, assertions } = parseResult.data;
+    const { method, url: rawUrl, queryParams: rawQueryParams, headers: rawHeaders, body: requestBody, assertions } = parseResult.data;
     const startTime = Date.now();
     let timeoutId: NodeJS.Timeout | undefined = undefined;
+
+    // Saved tests store portable URLs like {{baseUrl}}/api/... — resolve them here so the
+    // imported catalog runs as-is, the same way the UI-test and precondition runners do.
+    const vars = requestVariables();
+    const baseUrl = substituteVariables(rawUrl, vars);
+    const queryParams = substituteInValues(rawQueryParams, vars);
+    const customHeaders = substituteInValues(rawHeaders, vars);
+
+    if (!z.string().url().safeParse(baseUrl).success) {
+      const unresolved = baseUrl.match(/\{\{\s*[\w.]+\s*\}\}/g);
+      return res.status(400).json({
+        error: unresolved
+          ? `Unresolved variable(s) ${unresolved.join(", ")} in the URL. Set them in the environment (baseUrl comes from DMO_BASE_URL) or write the address in full.`
+          : `Invalid target URL: "${baseUrl}"`,
+      });
+    }
 
     try {
       const targetUrl = new URL(baseUrl);
@@ -156,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       timeoutId = setTimeout(() => controller.abort(), 30000);
       requestOptions.signal = controller.signal;
 
-      const apiResponse = await fetch(targetUrl.toString(), requestOptions);
+      const apiResponse = await fetchTarget(targetUrl.toString(), requestOptions);
       clearTimeout(timeoutId);
       timeoutId = undefined;
 
