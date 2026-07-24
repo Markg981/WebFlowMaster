@@ -10,7 +10,7 @@ import { eq } from 'drizzle-orm'; // Import eq operator
 import { setupWebSockets } from './websocket';
 import { correlationMiddleware } from './middleware/correlation';
 import { csrfOriginCheck } from './middleware/csrf';
-import { connection as redisConnection } from './redis';
+import { connection as redisConnection, connectSessionRedis, sessionRedis } from './redis';
 
 const app = express();
 app.use(express.json());
@@ -77,6 +77,17 @@ app.use(express.urlencoded({ extended: false }));
   }
 
   await ensureDefaultSystemSettings(); // Call during server startup
+
+  // The express-session store needs its node-redis client connected before the first
+  // request. Non-fatal: a failure is logged loudly and the server still boots (sessions
+  // just won't persist), rather than blocking startup entirely.
+  if (process.env.NODE_ENV !== "test") {
+    try {
+      await connectSessionRedis();
+    } catch {
+      logger.error("Continuing without a Redis session store — logins will not persist.");
+    }
+  }
 
   const server = await registerRoutes(app);
   
@@ -150,6 +161,7 @@ app.use(express.urlencoded({ extended: false }));
       try {
         await schedulerService.shutdownScheduler();
         await redisConnection.quit();
+        if (sessionRedis.isOpen) await sessionRedis.quit();
         await closeDb();
         logger.info('Graceful shutdown complete.');
         process.exit(0);

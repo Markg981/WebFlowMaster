@@ -11,7 +11,7 @@ import { RedisStore } from "connect-redis";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import createMemoryStore from "memorystore";
-import { connection } from "./redis";
+import { sessionRedis } from "./redis";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -36,7 +36,9 @@ function createSessionStore(): session.Store {
   if (process.env.NODE_ENV === "test") {
     return new MemoryStore({ checkPeriod: 86400000 });
   }
-  return new RedisStore({ client: connection, prefix: "wfm:sess:" });
+  // Uses the node-redis client (sessionRedis), not the ioredis one: connect-redis peer-
+  // depends on `redis` >= 5 and calls set(key, val, {EX}), mGet() and scanIterator().
+  return new RedisStore({ client: sessionRedis, prefix: "wfm:sess:" });
 }
 
 // Rate limiter applied to authentication endpoints to slow down brute-force attempts.
