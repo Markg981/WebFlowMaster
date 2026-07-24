@@ -484,13 +484,9 @@ const ApiTesterPage: React.FC = () => {
     mutationFn: async (testData) => {
       const endpoint = currentTestToEdit ? `/api/api-tests/${currentTestToEdit.id}` : '/api/api-tests';
       const httpMethod = currentTestToEdit ? 'PUT' : 'POST';
-      const payload = {
-        ...testData,
-        queryParams: testData.queryParams ? JSON.stringify(testData.queryParams) : null,
-        requestHeaders: testData.requestHeaders ? JSON.stringify(testData.requestHeaders) : null,
-        assertions: testData.assertions ? JSON.stringify(testData.assertions) : null, // Stringify assertions
-      };
-      return (await apiRequest(httpMethod, endpoint, payload)).json();
+      // These columns are jsonb: send real JSON. Pre-encoding them (a leftover from the
+      // SQLite days) produced strings the server-side schema rejects, so every save 400'd.
+      return (await apiRequest(httpMethod, endpoint, testData)).json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['apiTests'] });
