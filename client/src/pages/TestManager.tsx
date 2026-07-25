@@ -40,7 +40,6 @@ const TestManager: React.FC = () => {
                  </Button>
               </div>
             </div>
-            <div className="tick-rule tick-rule--accent mt-3" />
         </header>
 
         <Card>

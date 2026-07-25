@@ -170,31 +170,4 @@
   .border-warning { border-color: hsl(var(--warning)); }
   .border-error   { border-color: hsl(var(--destructive)); }
 
-  /*
-    Signature: a measurement tick-rule — a hairline baseline with short ticks,
-    echoing the scale/ruler of a weighing system. Used under page titles and along
-    the top edge of KPI cards. `.tick-rule--accent` tints the ticks Signal.
-  */
-  .tick-rule {
-    height: 9px;
-    background-image: repeating-linear-gradient(90deg, hsl(var(--input)) 0 1px, transparent 1px 22px);
-    border-top: 1px solid hsl(var(--input));
-  }
-  .tick-rule--accent {
-    background-image: repeating-linear-gradient(90deg, hsl(var(--primary)) 0 1px, transparent 1px 22px);
-    border-top-color: hsl(var(--primary) / 0.5);
-    -webkit-mask-image: linear-gradient(90deg, #000 0 72px, transparent 240px);
-            mask-image: linear-gradient(90deg, #000 0 72px, transparent 240px);
-  }
-
-  /* The measurement strip along the top edge of a KPI card. */
-  .kpi-strip {
-    height: 6px;
-    border-bottom: 1px solid hsl(var(--border));
-    background-image: repeating-linear-gradient(90deg, hsl(var(--border)) 0 1px, transparent 1px 14px);
-  }
-  .kpi-strip--accent {
-    border-bottom-color: hsl(var(--primary) / 0.4);
-    background-image: repeating-linear-gradient(90deg, hsl(var(--primary) / 0.55) 0 1px, transparent 1px 14px);
-  }
 }

@@ -132,7 +132,6 @@ const SchedulingPage: React.FC = () => {
             <PlusCircle className="mr-2 h-4 w-4" /> {t('schedulingPage.createSchedule.button', 'Create Schedule')}
           </Button>
         </div>
-        <div className="tick-rule tick-rule--accent mt-3" />
       </header>
 
       {/* Main content area */}

@@ -380,7 +380,6 @@ export default function SettingsPage() {
           {t('settingsPage.eyebrow', 'Preferences')}
         </div>
         <h1 className="mt-0.5 text-2xl font-bold tracking-tight">{t('settings.pageTitle', 'Settings')}</h1>
-        <div className="tick-rule tick-rule--accent mt-3" />
       </header>
 
       <div className="space-y-6">

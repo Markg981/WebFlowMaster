@@ -36,7 +36,7 @@ const DashboardOverviewPage: React.FC = () => {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="mx-auto flex max-w-[1400px] flex-col gap-6 p-6"
+      className="flex w-full flex-col gap-6 p-6 xl:p-8"
     >
       <motion.header variants={itemVariants}>
         <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -45,7 +45,6 @@ const DashboardOverviewPage: React.FC = () => {
         <h1 className="mt-0.5 text-2xl font-bold tracking-tight">
           {t('dashboardOverviewPage.dashboardOverview.title')}
         </h1>
-        <div className="tick-rule tick-rule--accent mt-3" />
       </motion.header>
 
       <motion.div variants={itemVariants}>

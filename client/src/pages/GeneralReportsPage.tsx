@@ -140,7 +140,6 @@ const GeneralReportsPage: React.FC = () => {
         <h1 className="mt-0.5 text-2xl font-bold tracking-tight">
           {t('generalReportsPage.title', 'Test Execution Reports')}
         </h1>
-        <div className="tick-rule tick-rule--accent mt-3" />
       </header>
 
       <div className="space-y-6">

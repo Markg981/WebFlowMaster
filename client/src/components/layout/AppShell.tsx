@@ -107,11 +107,25 @@ const SidebarNav: React.FC<{ collapsed: boolean; onNavigate?: () => void }> = ({
   );
 };
 
+const BrandMark: React.FC<{ className?: string }> = ({ className }) => (
+  // A dial/gauge with a needle — a measurement motif for a QA platform that weighs and checks.
+  <div
+    className={cn(
+      'grid shrink-0 place-items-center rounded-[10px] bg-gradient-to-br from-primary to-primary/70 shadow-sm ring-1 ring-inset ring-white/20',
+      className,
+    )}
+  >
+    <svg viewBox="0 0 24 24" fill="none" className="h-[19px] w-[19px] text-white" aria-hidden="true">
+      <path d="M4.5 15.5a7.5 7.5 0 0 1 15 0" stroke="currentColor" strokeOpacity="0.45" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M12 15.5 16.4 9.2" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+      <circle cx="12" cy="15.5" r="1.8" fill="currentColor" />
+    </svg>
+  </div>
+);
+
 const Brand: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
   <div className={cn('flex items-center gap-2.5 px-2 py-1', collapsed && 'justify-center px-0')}>
-    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/60 shadow-sm ring-1 ring-inset ring-white/15">
-      <span className="font-mono text-[13px] font-bold text-primary-foreground">W</span>
-    </div>
+    <BrandMark className="h-8 w-8" />
     {!collapsed && (
       <div className="min-w-0">
         <div className="truncate text-sm font-semibold leading-tight tracking-tight">WebTest Platform</div>
