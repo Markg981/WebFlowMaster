@@ -115,7 +115,7 @@ const Brand: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
     {!collapsed && (
       <div className="min-w-0">
         <div className="truncate text-sm font-semibold leading-tight tracking-tight">WebTest Platform</div>
-        <div className="truncate text-[11px] font-medium text-muted-foreground">DMO · NetContent QA</div>
+        <div className="truncate text-[11px] font-medium text-muted-foreground">DMO · QA Platform</div>
       </div>
     )}
   </div>
@@ -227,7 +227,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               {collapsed ? <PanelLeftOpen className="h-[18px] w-[18px]" /> : <PanelLeftClose className="h-[18px] w-[18px]" />}
             </button>
             <div className="min-w-0 truncate text-sm">
-              <span className="text-muted-foreground">NetContent</span>
+              <span className="text-muted-foreground">DMO</span>
               <span className="mx-1.5 text-border">/</span>
               <span className="font-semibold text-foreground">{pageTitle(location, sections, t('nav.settings'))}</span>
             </div>

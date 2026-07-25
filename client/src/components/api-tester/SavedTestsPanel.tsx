@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { ApiTest } from '@shared/schema';
@@ -6,7 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit2, Trash2, PlusCircle, Download } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Edit2, Trash2, PlusCircle, Download, ChevronRight } from 'lucide-react';
 
 interface SavedTestsPanelProps {
   savedTests: ApiTest[];
@@ -62,6 +63,13 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
   const sortedProjectIds = Array.from(byProject.keys()).sort((a, b) =>
     projectLabel(a).localeCompare(projectLabel(b)),
   );
+
+  // Each project is a collapsible group: click the project name to reveal its tests.
+  // The first project starts open so the panel isn't empty on load; the rest start closed.
+  const [openState, setOpenState] = useState<Record<number, boolean>>({});
+  const isOpen = (pid: number, index: number) => openState[pid] ?? index === 0;
+  const toggleProject = (pid: number, index: number) =>
+    setOpenState((prev) => ({ ...prev, [pid]: !(prev[pid] ?? index === 0) }));
 
   // The row itself loads the test: clicking a card is the obvious gesture, and in a narrow
   // sidebar the action icons are the first thing to be squeezed out of sight.
@@ -134,29 +142,40 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
             <p className="text-sm text-muted-foreground p-4 text-center">{t('apiTester.savedTestsPanel.noTestsSavedYet.text')}</p>
           )}
 
-          <div className="space-y-4">
-            {sortedProjectIds.map((pid) => {
+          <div className="space-y-2">
+            {sortedProjectIds.map((pid, index) => {
               const modules = byProject.get(pid)!;
               const count = Array.from(modules.values()).reduce((n, arr) => n + arr.length, 0);
               const sortedModules = Array.from(modules.keys()).sort((a, b) => a.localeCompare(b));
+              const open = isOpen(pid, index);
               return (
-                <div key={pid}>
-                  <div className="flex items-center gap-2 mb-2 sticky top-0 bg-background/95 py-1 z-10">
-                    <span className="text-sm font-bold">{projectLabel(pid)}</span>
-                    <Badge variant="outline" className="text-xs">{count}</Badge>
-                  </div>
-                  <div className="space-y-3 pl-1">
-                    {sortedModules.map((mod) => (
-                      <div key={mod}>
-                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                          {mod} <span className="font-normal">({modules.get(mod)!.length})</span>
+                <div key={pid} className="rounded-lg border border-border">
+                  <button
+                    type="button"
+                    onClick={() => toggleProject(pid, index)}
+                    aria-expanded={open}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent"
+                  >
+                    <ChevronRight
+                      className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')}
+                    />
+                    <span className="flex-1 truncate text-sm font-semibold">{projectLabel(pid)}</span>
+                    <Badge variant="secondary" className="font-mono text-[11px] tabular-nums">{count}</Badge>
+                  </button>
+                  {open && (
+                    <div className="space-y-3 px-2 pb-3 pt-1">
+                      {sortedModules.map((mod) => (
+                        <div key={mod}>
+                          <div className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            {mod} <span className="font-normal text-muted-foreground/70">({modules.get(mod)!.length})</span>
+                          </div>
+                          <div className="space-y-2">
+                            {modules.get(mod)!.map(renderRow)}
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          {modules.get(mod)!.map(renderRow)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
