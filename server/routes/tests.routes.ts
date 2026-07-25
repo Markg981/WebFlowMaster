@@ -58,23 +58,11 @@ router.post("/api/tests/:id/run", async (req, res) => {
     }
 });
 
-// POST /api/detect-elements - Inspector
-router.post("/api/detect-elements", async (req, res) => {
-    // Basic wrapper for element detection
-    const { url } = req.body;
-    if(!url) return res.status(400).json({ error: "URL required" });
-    
-    try {
-        // Assuming loadWebsite returns elements (it currently returns screenshot/html, 
-        // usually the client parses it or we need a service method for detection).
-        // Reuse loadWebsite for now as in original routes.
-        const result = await playwrightService.loadWebsite(url);
-        if(result.success) res.json(result);
-        else res.status(500).json({ error: result.error });
-    } catch(e: any) {
-        res.status(500).json({ error: e.message });
-    }
-});
+// NOTE: /api/detect-elements is intentionally NOT defined here. It is handled by the
+// authenticated handler in routes.ts, which calls playwrightService.detectElements()
+// (with the user's settings) and returns { success, elements }. An earlier stub here
+// wrongly called loadWebsite() and returned no `elements`, shadowing the real route
+// and leaving the Detected Elements panel empty.
 
 
 // --- API Tests ---

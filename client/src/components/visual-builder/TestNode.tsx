@@ -1,4 +1,5 @@
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
+import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,14 +16,31 @@ export type TestNodeData = {
   isRecordingActive?: boolean;
   onUpdateValue: (id: string, value: string) => void;
   onDeleteNode: (id: string) => void;
+  onSetTarget?: (id: string, element: DetectedElement) => void;
   [key: string]: unknown; // Satisfy Record<string, unknown> constraint
 };
 
 export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
   const { t } = useTranslation();
-  
+
   const needsValue = ["input", "wait", "assert", "select", "assertTextContains", "assertElementCount"].includes(data.action.id);
   const needsTarget = ["click", "input", "assert", "hover", "select", "assertTextContains", "assertElementCount"].includes(data.action.id);
+
+  // Accept a detected element dropped from the "Detected Elements" panel and bind it as
+  // this step's target. Without this drop target the dragged element had nowhere to land
+  // and react-dnd snapped it back (it appeared to "vanish").
+  const [{ isOver, canDrop }, dropRef] = useDrop(() => ({
+    accept: "element",
+    canDrop: () => !data.isRecordingActive,
+    drop: (item: { data: DetectedElement }) => {
+      if (data.isRecordingActive) return;
+      data.onSetTarget?.(id, item.data);
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+      canDrop: !!monitor.canDrop(),
+    }),
+  }), [id, data.isRecordingActive, data.onSetTarget]);
 
   return (
     <Card className={`min-w-[250px] p-4 shadow-lg border-2 ${data.targetElement ? 'border-primary' : (needsTarget ? 'border-destructive/50' : 'border-border')} bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75 transition-all`}>
@@ -49,8 +67,17 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
 
       <div className="space-y-3 mt-4">
         {needsTarget && (
-          <div className="flex items-center space-x-2 bg-muted/50 p-2 rounded-md border border-border/50">
-            <Link2 className={`h-4 w-4 ${data.targetElement ? 'text-green-500' : 'text-muted-foreground'}`} />
+          <div
+            ref={dropRef as any}
+            className={`nodrag flex items-center space-x-2 p-2 rounded-md border transition-colors ${
+              isOver && canDrop
+                ? 'bg-primary/10 border-primary border-dashed'
+                : data.targetElement
+                  ? 'bg-muted/50 border-primary/40'
+                  : 'bg-muted/50 border-destructive/40 border-dashed'
+            }`}
+          >
+            <Link2 className={`h-4 w-4 shrink-0 ${data.targetElement ? 'text-green-500' : 'text-muted-foreground'}`} />
             <span className="text-xs truncate max-w-[180px]">
               {data.targetElement ? data.targetElement.text : t('dashboardPage.dropActionsPrompt')}
             </span>

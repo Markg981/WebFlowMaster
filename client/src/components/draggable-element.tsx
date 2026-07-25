@@ -26,13 +26,17 @@ interface DraggableElementProps {
 
 export function DraggableElement({ element, onHover }: DraggableElementProps) {
   const { t } = useTranslation();
+  // `element` MUST be in the deps array: detected-element ids are positional
+  // (regenerated from 0 on every detect), so React reuses the same DraggableElement
+  // instance for a different element after a re-detect. Without deps, useDrag keeps the
+  // stale item from first render and the wrong element gets bound to the step.
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "element",
     item: { id: element.id, type: "element", data: element },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
-  }));
+  }), [element]);
 
   const renderElementIcon = (type: string) => {
     const iconProps = { className: "h-4 w-4 text-muted-foreground" };

@@ -56,3 +56,6 @@ scripts/netcontent/endpoints.manifest.json
 scripts/netcontent-ui/views.inventory.json
 
 scripts/netcontent-ui/ui-tests.preview.json
+
+# Playwright MCP session artifacts
+.playwright-mcp/
