@@ -1,9 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { 
-  ReactFlow, 
-  Background, 
-  Controls, 
-  MiniMap,
+  ReactFlow,
+  Background,
   Node,
   Edge,
   addEdge,
@@ -163,10 +161,9 @@ export function VisualTestBuilder({
           connectionMode={ConnectionMode.Strict}
           fitView
           className="bg-dot-pattern"
+          proOptions={{ hideAttribution: true }}
         >
-          <Background color="#9ca3af" gap={16} />
-          <Controls />
-          <MiniMap zoomable pannable nodeColor="#3b82f6" />
+          <Background color="hsl(var(--border))" gap={16} />
         </ReactFlow>
       </div>
 

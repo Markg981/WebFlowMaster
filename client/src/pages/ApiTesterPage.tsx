@@ -20,7 +20,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
 import Editor from '@monaco-editor/react';
 import { Checkbox } from "@/components/ui/checkbox";
-import { useTheme } from "next-themes";
+import { useIsDark } from "@/hooks/use-is-dark";
 import { HistoryPanel } from '@/components/api-tester/HistoryPanel';
 import { SavedTestsPanel } from '@/components/api-tester/SavedTestsPanel';
 import { SaveApiTestModal } from '@/components/api-tester/SaveApiTestModal';
@@ -72,7 +72,7 @@ interface FormDataField {
 
 const ApiTesterPage: React.FC = () => {
   const { t } = useTranslation();
-  const { theme } = useTheme();
+  const isDark = useIsDark();
   const [method, setMethod] = useState<string>(httpMethods[0]);
   const [url, setUrl] = useState<string>('');
   const [requestBodyValue, setRequestBodyValue] = useState<string>('');
@@ -462,7 +462,7 @@ const ApiTesterPage: React.FC = () => {
     });
   };
 
-  const monacoTheme = theme === 'dark' || theme === 'system' ? 'vs-dark' : 'light';
+  const monacoTheme = isDark ? 'vs-dark' : 'light';
 
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [currentTestToEdit, setCurrentTestToEdit] = useState<ApiTest | null>(null);
