@@ -15,7 +15,7 @@ import { allowsSelfSignedCertificate, substituteVariables } from './outbound-htt
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
 const DEFAULT_HEADLESS = true;
 const DEFAULT_TIMEOUT = 30000;
-const DEFAULT_WAIT_TIME = 1000;
+const DEFAULT_WAIT_TIME = 2000;
 
 let resolvedLogger: WinstonLogger;
 (async () => {
@@ -362,6 +362,13 @@ export class PlaywrightService {
         // timeout is already set by setDefaultTimeout
       });
 
+      // SPA frameworks (Angular/DevExpress, React, …) render their content after
+      // domcontentloaded, so a fixed short wait captures an empty shell. Wait for the
+      // network to go idle first; if it never settles (long-polling/websockets), fall
+      // back to the fixed wait rather than failing.
+      await page.waitForLoadState('networkidle', { timeout: pageTimeout }).catch(() => {
+        resolvedLogger.debug({ message: "PS:loadWebsite - networkidle not reached, proceeding after fixed wait", url });
+      });
       await page.waitForTimeout(effectiveWaitTime);
 
       const html = await page.content();
@@ -613,6 +620,100 @@ export class PlaywrightService {
     return { success: true, actions: [...session.actions] };
   }
 
+  /**
+   * Scans the current page for interactive elements and returns them with GUARANTEED
+   * unique CSS selectors (id → stable attribute → non-transient class combo → nth-of-type
+   * structural path). Single source of truth for element detection — used by both
+   * detectElements() and the post-run detection inside executeAdhocSequence(), so the two
+   * never drift apart (previously they did: execution produced non-unique class selectors
+   * like `button.mat-mdc-menu-item`, which Playwright could not click unambiguously).
+   */
+  private async detectElementsOnPage(page: Page): Promise<DetectedElement[]> {
+    return await page.evaluate(() => {
+      // esbuild/tsx (keepNames) wraps named functions in `__name(fn, "…")`; that helper only
+      // exists in the Node bundle, so provide a harmless identity shim for the browser page.
+      (globalThis as any).__name = (globalThis as any).__name || ((fn: any) => fn);
+
+      const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
+
+      const isUnique = (sel: string) => {
+        try { return document.querySelectorAll(sel).length === 1; } catch { return false; }
+      };
+
+      const structuralPath = (el: Element): string => {
+        const parts: string[] = [];
+        let node: Element | null = el;
+        while (node && node.nodeType === 1 && node.tagName.toLowerCase() !== 'html') {
+          if (node.id && isUnique(`#${CSS.escape(node.id)}`)) { parts.unshift(`#${CSS.escape(node.id)}`); break; }
+          let part = node.tagName.toLowerCase();
+          const parent: Element | null = node.parentElement;
+          if (parent) {
+            const sameTag = Array.from(parent.children).filter((c) => c.tagName === node!.tagName);
+            if (sameTag.length > 1) part += `:nth-of-type(${sameTag.indexOf(node) + 1})`;
+          }
+          parts.unshift(part);
+          node = parent;
+        }
+        return parts.join(' > ');
+      };
+
+      const buildUniqueSelector = (el: Element): string => {
+        const tag = el.tagName.toLowerCase();
+        if (el.id && isUnique(`#${CSS.escape(el.id)}`)) return `#${CSS.escape(el.id)}`;
+        for (const attr of ['data-testid', 'data-test', 'name', 'aria-label']) {
+          const v = el.getAttribute(attr);
+          if (v) { const s = `${tag}[${attr}="${v.replace(/"/g, '\\"')}"]`; if (isUnique(s)) return s; }
+        }
+        if (typeof el.className === 'string' && el.className.trim()) {
+          const classes = el.className.split(/\s+/).filter((c) =>
+            c && !/[:()[\]/.]/.test(c) && !/^(ng|cdk)-/.test(c) && !/(focus|active|hover|selected|touched|dirty|pristine)/i.test(c));
+          for (let n = classes.length; n >= 1; n--) {
+            const s = `${tag}.${classes.slice(0, n).join('.')}`;
+            if (isUnique(s)) return s;
+          }
+        }
+        return structuralPath(el);
+      };
+
+      const detectedElements: any[] = [];
+      const seen = new Set<Element>();
+      let globalElementCounter = 0;
+      interactiveSelectors.forEach((selector) => {
+        document.querySelectorAll(selector).forEach((element, index) => {
+          if (seen.has(element)) return; // an element can match several selectors — keep one entry
+          const rect = element.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0 && rect.top >= 0) {
+            seen.add(element);
+            const tagName = element.tagName.toLowerCase();
+            const text = element.textContent?.trim() || '';
+            const placeholder = element.getAttribute('placeholder') || '';
+            const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
+            const uniqueSelector = buildUniqueSelector(element);
+            let elementType = 'element';
+            if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
+            else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
+            else if (tagName === 'a') elementType = 'link';
+            else if (tagName.match(/h[1-6]/)) elementType = 'heading';
+            else if (tagName === 'select') elementType = 'select';
+            else if (tagName === 'textarea') elementType = 'textarea';
+            const attributes: Record<string, string> = {};
+            Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; });
+            detectedElements.push({
+              id: `elem-${tagName}-${globalElementCounter++}`,
+              type: elementType,
+              selector: uniqueSelector,
+              text: displayText.substring(0, 100),
+              tag: tagName,
+              attributes,
+              boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) },
+            });
+          }
+        });
+      });
+      return detectedElements.slice(0, 50) as DetectedElement[];
+    });
+  }
+
   async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detectedElements?: DetectedElement[] }> {
     const testName = payload.name || "Ad-hoc Test";
     resolvedLogger.http({ message: "PlaywrightService: executeAdhocSequence called", testName, userId, url: payload.url });
@@ -695,12 +796,7 @@ export class PlaywrightService {
           if (page && !page.isClosed()) {
             resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting element detection (due to navigation failure)", testName, pageClosed: page?.isClosed() });
             try {
-              finalDetectedElementsNavFail = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
-                const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
-                const detectedElementsEval: any[] = []; let globalElementCounter = 0;
-                interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
-                return detectedElementsEval.slice(0, 50);
-              });
+              finalDetectedElementsNavFail = await this.detectElementsOnPage(page);
             } catch (detectionError: any) {
               resolvedLogger.warn({ message: `PS:executeAdhocSequence - Error during element detection (navigation fail path)`, testName, error: detectionError.message, stack: detectionError.stack });
             }
@@ -798,6 +894,11 @@ export class PlaywrightService {
               default:
                 throw new Error(`Unsupported action ID: ${actionId}`);
             }
+            // Let the UI settle before capturing: a click often dismisses a menu and opens a
+            // dialog with an animation, and may fire XHRs. Without this the screenshot catches a
+            // mid-transition frame (old menu overlapping a half-open dialog).
+            await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+            await page.waitForTimeout(600);
             resolvedLogger.verbose({ message: `PS:executeAdhocSequence - Taking screenshot for step`, testName, actionName, actionId });
             const screenshotBuffer = await page.screenshot({ type: 'png' });
             stepScreenshot = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
@@ -835,12 +936,7 @@ export class PlaywrightService {
       if (page && !page.isClosed()) {
         resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting final element detection (success path)", testName, pageClosed: page?.isClosed() });
         try {
-          finalDetectedElements = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
-            const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
-            const detectedElementsEval: any[] = []; let globalElementCounter = 0;
-            interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
-            return detectedElementsEval.slice(0, 50);
-          });
+          finalDetectedElements = await this.detectElementsOnPage(page);
         } catch (detectionError: any) {
           resolvedLogger.warn({ message: `PS:executeAdhocSequence - Error during final element detection (success path)`, testName, error: detectionError.message, stack: detectionError.stack });
         }
@@ -854,12 +950,7 @@ export class PlaywrightService {
       if (page && !page.isClosed()) {
         resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting element detection after critical error", testName, pageClosed: page?.isClosed() });
         try {
-          finalDetectedElementsCriticalError = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
-            const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
-            const detectedElementsEval: any[] = []; let globalElementCounter = 0;
-            interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) uniqueSelector = `${tagName}.${classes[0]}`; } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElementsEval.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
-            return detectedElementsEval.slice(0, 50);
-          });
+          finalDetectedElementsCriticalError = await this.detectElementsOnPage(page);
         } catch (detectionError: any) {
           resolvedLogger.warn({ message: `PS:executeAdhocSequence - Error during element detection (critical error path)`, testName, error: detectionError.message, stack: detectionError.stack });
         }
@@ -923,18 +1014,19 @@ export class PlaywrightService {
       resolvedLogger.debug({ message: `PS:detectElements - Navigating to URL`, url: targetUrl, pageClosed: page?.isClosed() });
       await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
 
+      // SPA content (Angular/DevExpress, React, …) mounts after domcontentloaded. Wait
+      // for the network to settle so the DOM is populated before we query it; fall back
+      // to the fixed wait if it never idles (long-polling/websockets).
+      await page.waitForLoadState('networkidle', { timeout: pageTimeout }).catch(() => {
+        resolvedLogger.debug({ message: "PS:detectElements - networkidle not reached, proceeding after fixed wait", url });
+      });
       const waitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME;
       resolvedLogger.debug({ message: `PS:detectElements - Waiting for timeout`, waitTime, pageClosed: page?.isClosed() });
       await page.waitForTimeout(waitTime);
 
-      let elements: any[] = [];
+      let elements: DetectedElement[] = [];
       try {
-        elements = await page.evaluate(() => { // Code for element detection (omitted for brevity, same as original)
-          const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
-          const detectedElements: any[] = []; let globalElementCounter = 0;
-          interactiveSelectors.forEach(selector => { document.querySelectorAll(selector).forEach((element, index) => { const rect = element.getBoundingClientRect(); if (rect.width > 0 && rect.height > 0 && rect.top >= 0) { const tagName = element.tagName.toLowerCase(); const text = element.textContent?.trim() || ''; const placeholder = element.getAttribute('placeholder') || ''; const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`; let uniqueSelector = selector; if (element.id) { uniqueSelector = `#${element.id}`; } else if (element.className && typeof element.className === 'string') { const classes = element.className.split(' ').filter(c => c.length > 0 && !c.includes(':') && !c.includes('(') && !c.includes(')')); if (classes.length > 0) { uniqueSelector = `${tagName}.${classes[0]}`; } } let elementType = 'element'; if (tagName === 'input') elementType = element.getAttribute('type') || 'input'; else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button'; else if (tagName === 'a') elementType = 'link'; else if (tagName.match(/h[1-6]/)) elementType = 'heading'; else if (tagName === 'select') elementType = 'select'; else if (tagName === 'textarea') elementType = 'textarea'; const attributes: Record<string, string> = {}; Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; }); detectedElements.push({ id: `elem-${tagName}-${globalElementCounter++}`, type: elementType, selector: uniqueSelector, text: displayText.substring(0, 100), tag: tagName, attributes, boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) } }); } }); });
-          return detectedElements.slice(0, 50);
-        });
+        elements = await this.detectElementsOnPage(page);
       } catch (evalError: any) {
         resolvedLogger.warn({ message: "PS:detectElements - Evaluation failed", error: evalError.message });
       }

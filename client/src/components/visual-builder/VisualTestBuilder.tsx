@@ -15,7 +15,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { TestStep } from '@/components/drag-drop-provider';
+import { TestStep, DetectedElement } from '@/components/drag-drop-provider';
 import { TestNode, TestNodeData } from './TestNode';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -67,7 +67,8 @@ export function VisualTestBuilder({
         targetElement: step.targetElement,
         isRecordingActive,
         onUpdateValue: (id, val) => handleUpdateValue(id, val),
-        onDeleteNode: (id) => handleDeleteNode(id)
+        onDeleteNode: (id) => handleDeleteNode(id),
+        onSetTarget: (id, element) => handleSetTarget(id, element)
       }
     }));
 
@@ -136,6 +137,11 @@ export function VisualTestBuilder({
 
   const handleDeleteNode = (id: string) => {
     const updated = testSequence.filter(s => s.id !== id);
+    onUpdateSequence(updated);
+  };
+
+  const handleSetTarget = (id: string, element: DetectedElement) => {
+    const updated = testSequence.map(s => s.id === id ? { ...s, targetElement: element } : s);
     onUpdateSequence(updated);
   };
 

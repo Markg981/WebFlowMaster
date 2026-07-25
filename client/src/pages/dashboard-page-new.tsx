@@ -1035,47 +1035,19 @@ export default function DashboardPage() {
   const handleSequenceUpdated = (newSequence: DragDropTestStep[]) => {
     setTestSequence(newSequence);
 
-    const allStepsComplete = newSequence.every(isTestStepComplete);
-    console.log("[DashboardPage] handleSequenceUpdated: allStepsComplete:", allStepsComplete, "for newSequence with length:", newSequence.length);
+    // Tests run ONLY when the user clicks "Execute Test". Editing the sequence — adding
+    // an action or binding a target element — must never launch a run on its own.
+    // (Previously, completing every step auto-triggered a debounced Playwright execution,
+    // which surprised users mid-edit and swapped the builder into playback view.)
+    if (typeof debouncedExecuteMutation.cancel === 'function') {
+      debouncedExecuteMutation.cancel();
+    }
 
-    if (newSequence.length > 0 && allStepsComplete && currentUrl && websiteLoaded) {
-      // Conditions for debounced execution (isPending, isExecutingPlayback) are checked inside debouncedExecuteMutation
-      const payload = {
-        url: currentUrl,
-        sequence: newSequence,
-        elements: detectedElements, // Pass current elements as context
-        name: testName || t('dashboardPageNew.toasts.realtimePreviewName', { url: currentUrl || t('dashboardPageNew.toasts.untitled') })
-      };
-      console.log("[DashboardPage] handleSequenceUpdated: Debouncing execution with payload:", payload);
-      debouncedExecuteMutation(payload);
-    } else if (newSequence.length === 0) {
-      // If sequence is cleared, cancel any pending debounced execution
-      if (typeof debouncedExecuteMutation.cancel === 'function') {
-        debouncedExecuteMutation.cancel();
-      }
-      // Also, if sequence is cleared, and a URL is loaded, re-detect elements for the base page.
-      // This resets the element list to the state of the page before any actions.
-      if (currentUrl && websiteLoaded) {
-        // handleDetectElements(); // This would fetch fresh elements.
-        // For now, let's clear detected elements or leave them as is.
-        // setDetectedElements([]);
-      }
-      // If the sequence is empty, ensure playback stops and clears.
+    // If the sequence was cleared, make sure any in-progress playback stops and resets.
+    if (newSequence.length === 0) {
       setIsExecutingPlayback(false);
       setCurrentPlaybackStepIndex(null);
       setPlaybackSteps([]);
-      // Potentially clear the screenshot or revert to initial loaded screenshot
-      // if (loadWebsiteMutation.data?.screenshot) {
-      //  setWebsiteScreenshot(loadWebsiteMutation.data.screenshot);
-      // }
-    } else if (newSequence.length > 0 && !allStepsComplete) {
-      // Sequence is not empty but not all steps are complete.
-      // Cancel any pending debounced execution because the current sequence isn't fully valid for preview.
-      if (typeof debouncedExecuteMutation.cancel === 'function') {
-        debouncedExecuteMutation.cancel();
-      }
-      console.log("Real-time execution skipped: Not all test steps are complete.");
-      // Optionally, provide feedback to the user here (e.g., via a toast or UI indicator)
     }
   };
 
