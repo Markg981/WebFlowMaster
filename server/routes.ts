@@ -12,14 +12,11 @@ import {
   apiTestHistory,
   apiTests,
   insertApiTestHistorySchema,
-  insertApiTestSchema,
-  updateApiTestSchema,
   AssertionSchema,
   testPlans,
   insertTestPlanSchema,
   updateTestPlanSchema,
   testPlanSelectedTests,
-  users,
   systemSettings,
   insertSystemSettingSchema,
   // Updated schema imports for schedules and executions
@@ -35,6 +32,7 @@ import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
 import { eq, and, desc, sql, getTableColumns, asc, ilike } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
+import { fetchTarget, requestVariables, substituteInValues, substituteVariables } from "./outbound-http";
 // Import schedulerService
 import loggerPromise, { updateLogLevel } from "./logger";
 
@@ -54,7 +52,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const proxyApiRequestBodySchema = z.object({
     method: z.string(),
-    url: z.string().url(),
+    // Not .url(): saved tests legitimately hold {{baseUrl}}/... here. The URL is
+    // validated below, once the variables have been resolved.
+    url: z.string().min(1),
     queryParams: z.record(z.any()).optional(),
     headers: z.record(z.string()).optional(),
     body: z.any().optional(),
@@ -124,9 +124,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
-    const { method, url: baseUrl, queryParams, headers: customHeaders, body: requestBody, assertions } = parseResult.data;
+    const { method, url: rawUrl, queryParams: rawQueryParams, headers: rawHeaders, body: requestBody, assertions } = parseResult.data;
     const startTime = Date.now();
     let timeoutId: NodeJS.Timeout | undefined = undefined;
+
+    // Saved tests store portable URLs like {{baseUrl}}/api/... — resolve them here so the
+    // imported catalog runs as-is, the same way the UI-test and precondition runners do.
+    const vars = requestVariables();
+    const baseUrl = substituteVariables(rawUrl, vars);
+    const queryParams = substituteInValues(rawQueryParams, vars);
+    const customHeaders = substituteInValues(rawHeaders, vars);
+
+    if (!z.string().url().safeParse(baseUrl).success) {
+      const unresolved = baseUrl.match(/\{\{\s*[\w.]+\s*\}\}/g);
+      return res.status(400).json({
+        error: unresolved
+          ? `Unresolved variable(s) ${unresolved.join(", ")} in the URL. Set them in the environment (baseUrl comes from DMO_BASE_URL) or write the address in full.`
+          : `Invalid target URL: "${baseUrl}"`,
+      });
+    }
 
     try {
       const targetUrl = new URL(baseUrl);
@@ -159,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       timeoutId = setTimeout(() => controller.abort(), 30000);
       requestOptions.signal = controller.signal;
 
-      const apiResponse = await fetch(targetUrl.toString(), requestOptions);
+      const apiResponse = await fetchTarget(targetUrl.toString(), requestOptions);
       clearTimeout(timeoutId);
       timeoutId = undefined;
 
@@ -884,177 +900,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (result.length === 0) { return res.status(404).json({ error: "History entry not found or not owned by user" }); }
       res.status(204).send();
     } catch (error: any) { resolvedLogger.error({ message: `Error deleting API test history entry ${id}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to delete history entry" }); }
-  });
-
-  // --- Saved API Tests Endpoints ---
-  app.post("/api/api-tests", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) { return res.status(401).json({ error: "Unauthorized" }); }
-    const postApiTestSchema = insertApiTestSchema.extend({ projectId: z.number().int().positive().optional().nullable() });
-    const parseResult = postApiTestSchema.safeParse(req.body);
-    if (!parseResult.success) { resolvedLogger.warn({ message: "POST /api/api-tests - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id }); return res.status(400).json({ error: "Invalid test data", details: parseResult.error.flatten() }); }
-    try {
-      const { projectId, ...testData } = parseResult.data;
-      const newTest = await db.insert(apiTests).values({
-          ...testData, userId: req.user.id, projectId: projectId,
-          // Stringify JSON fields
-          queryParams: testData.queryParams ? JSON.stringify(testData.queryParams) : null,
-          requestHeaders: testData.requestHeaders ? JSON.stringify(testData.requestHeaders) : null,
-          requestBody: testData.requestBody ? (typeof testData.requestBody === 'string' ? testData.requestBody : JSON.stringify(testData.requestBody)) : null,
-          assertions: testData.assertions ? JSON.stringify(testData.assertions) : null,
-          authParams: testData.authParams ? JSON.stringify(testData.authParams) : null,
-          bodyFormData: testData.bodyFormData ? JSON.stringify(testData.bodyFormData) : null,
-          bodyUrlEncoded: testData.bodyUrlEncoded ? JSON.stringify(testData.bodyUrlEncoded) : null,
-        }).returning();
-      res.status(201).json(newTest[0]);
-    } catch (error: any) {
-      resolvedLogger.error({ message: "Error creating API test", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
-      if (error.message && /foreign key/i.test(error.message || '')) { return res.status(400).json({ error: "Invalid project ID or project does not exist." }); }
-      res.status(500).json({ error: "Failed to create API test" });
-    }
-  });
-
-  app.get("/api/api-tests", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const userId = req.user.id;
-
-    try {
-      const userTestsWithDetails = await db
-        .select({
-          ...getTableColumns(apiTests),
-          creatorUsername: users.username,
-          projectName: projects.name,
-        })
-        .from(apiTests)
-        .leftJoin(users, eq(apiTests.userId, users.id))
-        .leftJoin(projects, eq(apiTests.projectId, projects.id))
-        .where(eq(apiTests.userId, userId))
-        .orderBy(desc(apiTests.updatedAt));
-
-      res.json(userTestsWithDetails);
-    } catch (error: any) {
-      resolvedLogger.error({
-        message: "Error fetching API tests with details",
-        userId,
-        error: error.message,
-        stack: error.stack,
-      });
-      res.status(500).json({ error: "Failed to fetch API tests" });
-    }
-  });
-
-  app.get("/api/api-tests/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const userId = req.user.id;
-    const testId = parseInt(req.params.id);
-
-    if (isNaN(testId)) {
-      return res.status(400).json({ error: "Invalid test ID format" });
-    }
-
-    try {
-      const result = await db
-        .select({
-          ...getTableColumns(apiTests),
-          creatorUsername: users.username,
-          projectName: projects.name,
-        })
-        .from(apiTests)
-        .leftJoin(users, eq(apiTests.userId, users.id))
-        .leftJoin(projects, eq(apiTests.projectId, projects.id))
-        .where(and(eq(apiTests.id, testId), eq(apiTests.userId, userId)))
-        .limit(1);
-
-      if (result.length === 0) {
-        return res.status(404).json({ error: "API Test not found or not authorized" });
-      }
-      // The result from Drizzle is an array, even with limit(1), so return the first element.
-      res.json(result[0]);
-    } catch (error: any) {
-      resolvedLogger.error({
-        message: `Error fetching API test with ID ${testId}`,
-        userId,
-        testId,
-        error: error.message,
-        stack: error.stack,
-      });
-      res.status(500).json({ error: "Failed to fetch API test" });
-    }
-  });
-
-  app.put("/api/api-tests/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) { return res.status(401).json({ error: "Unauthorized" }); }
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) { return res.status(400).json({ error: "Invalid test ID" }); }
-    const putApiTestSchema = updateApiTestSchema.extend({ projectId: z.number().int().positive().optional().nullable() });
-    const parseResult = putApiTestSchema.safeParse(req.body);
-    if (!parseResult.success) { resolvedLogger.warn({ message: `PUT /api/api-tests/${id} - Invalid payload`, errors: parseResult.error.flatten(), userId: (req.user as any)?.id }); return res.status(400).json({ error: "Invalid test data", details: parseResult.error.flatten() }); }
-    try {
-      const { projectId, ...testData } = parseResult.data;
-      const existingTest = await db.select({id: apiTests.id}).from(apiTests).where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user.id)));
-      if (existingTest.length === 0) { return res.status(404).json({ error: "Test not found or not owned by user" }); }
-
-      const updatedValues: Partial<typeof apiTests.$inferInsert> = { ...testData, projectId, updatedAt: new Date() };
-      // Conditionally stringify JSON fields if they are provided in the payload
-      if (testData.queryParams !== undefined) updatedValues.queryParams = testData.queryParams ? JSON.stringify(testData.queryParams) : null;
-      if (testData.requestHeaders !== undefined) updatedValues.requestHeaders = testData.requestHeaders ? JSON.stringify(testData.requestHeaders) : null;
-      if (testData.requestBody !== undefined) updatedValues.requestBody = testData.requestBody ? (typeof testData.requestBody === 'string' ? testData.requestBody : JSON.stringify(testData.requestBody)) : null;
-      if (testData.assertions !== undefined) updatedValues.assertions = testData.assertions ? JSON.stringify(testData.assertions) : null;
-      if (testData.authParams !== undefined) updatedValues.authParams = testData.authParams ? JSON.stringify(testData.authParams) : null;
-      if (testData.bodyFormData !== undefined) updatedValues.bodyFormData = testData.bodyFormData ? JSON.stringify(testData.bodyFormData) : null;
-      if (testData.bodyUrlEncoded !== undefined) updatedValues.bodyUrlEncoded = testData.bodyUrlEncoded ? JSON.stringify(testData.bodyUrlEncoded) : null;
-      // Fields like authType, bodyType, bodyRawContentType, bodyGraphqlQuery, bodyGraphqlVariables are plain text or handled by ...testData
-
-      const updatedTest = await db.update(apiTests).set(updatedValues).where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user.id))).returning();
-      if (updatedTest.length === 0) { return res.status(404).json({ error: "Test not found after update attempt" }); }
-      res.json(updatedTest[0]);
-    } catch (error: any) {
-      resolvedLogger.error({ message: `Error updating API test ${id}`, error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id });
-      if (error.message && /foreign key/i.test(error.message || '')) { return res.status(400).json({ error: "Invalid project ID or project does not exist." }); }
-      res.status(500).json({ error: "Failed to update API test" });
-    }
-  });
-
-  app.delete("/api/api-tests/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const userId = req.user.id;
-    const testId = parseInt(req.params.id);
-
-    if (isNaN(testId)) {
-      return res.status(400).json({ error: "Invalid test ID format" });
-    }
-
-    try {
-      const result = await db
-        .delete(apiTests)
-        .where(and(eq(apiTests.id, testId), eq(apiTests.userId, userId)))
-        .returning(); // .returning() might not be supported on all SQLite drivers for DELETE or might return empty array.
-                      // For DELETE, checking affectedRows is more common if driver supports it, or just assume success if no error.
-
-      // Check if any row was actually deleted. Drizzle's delete().returning() might return the deleted row(s).
-      // If it returns an empty array, it means no row matched the condition (either not found or not authorized).
-      if (result.length === 0) {
-         // To distinguish between not found and not authorized, one might do a select first,
-         // but for a delete operation, simply stating "not found" is often sufficient.
-        return res.status(404).json({ error: "API Test not found or not authorized" });
-      }
-
-      res.status(204).send(); // Successfully deleted, no content to return.
-    } catch (error: any) {
-      resolvedLogger.error({
-        message: `Error deleting API test with ID ${testId}`,
-        userId,
-        testId,
-        error: error.message,
-        stack: error.stack,
-      });
-      res.status(500).json({ error: "Failed to delete API test" });
-    }
   });
 
   // --- Test Plan Schedules API Endpoints (formerly /api/schedules) ---

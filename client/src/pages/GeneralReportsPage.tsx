@@ -9,12 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 // import { DatePickerWithRange } from '@/components/ui/date-range-picker'; // Placeholder
-import {
-  FileText, Filter, Loader2, AlertCircle, Eye, ChevronLeft, ChevronRight, Search, ArrowLeft
+import { Filter, Loader2, AlertCircle, Eye, ChevronLeft, ChevronRight, Search
 } from 'lucide-react';
 import type { TestPlanExecution, TestPlan } from '@shared/schema';
 import { format } from 'date-fns';
-import { Badge } from "@/components/ui/badge";
+import { StatusChip } from '@/components/ui/status-chip';
 
 interface TestPlanExecutionWithPlanName extends TestPlanExecution {
   testPlanName?: string;
@@ -132,42 +131,18 @@ const GeneralReportsPage: React.FC = () => {
     return `${(ms / 1000).toFixed(2)}s`;
   };
 
-  const getStatusBadgeVariant = (status: TestPlanExecution['status'] | undefined): "default" | "destructive" | "outline" | "secondary" => {
-    if (!status) return "secondary";
-    switch (status) {
-      case 'completed': return 'default';
-      case 'failed': return 'destructive';
-      case 'running': return 'secondary';
-      case 'pending': return 'outline';
-      case 'error': return 'destructive';
-      case 'cancelled': return 'outline';
-      default: return 'secondary';
-    }
-  };
-
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground">
-      {/* Simplified Header */}
-      <header className="bg-card border-b border-border px-4 py-3 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="icon" aria-label={t('generalReportsPage.backToDashboard', 'Back to Dashboard')}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <FileText className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold text-card-foreground">
-              {t('generalReportsPage.title', 'Test Execution Reports')}
-            </h1>
-          </div>
-          {/* Add any global actions for this page here if needed */}
+    <div className="mx-auto max-w-[1400px] p-6">
+      <header className="mb-6">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {t('generalReportsPage.eyebrow', 'Execution history')}
         </div>
+        <h1 className="mt-0.5 text-2xl font-bold tracking-tight">
+          {t('generalReportsPage.title', 'Test Execution Reports')}
+        </h1>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-auto p-4 md:p-6">
-        <div className="space-y-6">
+      <div className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center">
@@ -236,10 +211,10 @@ const GeneralReportsPage: React.FC = () => {
                       {executionsResponse?.items.map((exec: TestPlanExecutionWithPlanName) => (
                         <TableRow key={exec.id}>
                           <TableCell className="font-medium">{exec.testPlanName || exec.testPlanId}</TableCell>
-                          <TableCell><Badge variant={getStatusBadgeVariant(exec.status)} className="capitalize">{exec.status}</Badge></TableCell>
-                          <TableCell>{exec.startedAt ? format(exec.startedAt, 'PPpp') : 'N/A'}</TableCell>
-                          <TableCell>{formatDuration(exec.executionDurationMs)}</TableCell>
-                          <TableCell>{`${exec.passedTests ?? '-'}/${exec.failedTests ?? '-'}/${exec.skippedTests ?? '-'}/${exec.totalTests ?? '-'}`}</TableCell>
+                          <TableCell><StatusChip status={exec.status} /></TableCell>
+                          <TableCell className="tabular-nums">{exec.startedAt ? format(exec.startedAt, 'PPpp') : 'N/A'}</TableCell>
+                          <TableCell className="font-mono tabular-nums">{formatDuration(exec.executionDurationMs)}</TableCell>
+                          <TableCell className="font-mono tabular-nums">{`${exec.passedTests ?? '-'}/${exec.failedTests ?? '-'}/${exec.skippedTests ?? '-'}/${exec.totalTests ?? '-'}`}</TableCell>
                           <TableCell className="capitalize">{exec.triggeredBy}</TableCell>
                           <TableCell><Button variant="outline" size="sm" asChild><Link href={`/test-plans/${exec.testPlanId}/executions/${exec.id}/report`}><Eye className="mr-1 h-4 w-4" /> {t('generalReportsPage.table.viewReport', 'View Report')}</Link></Button></TableCell>
                         </TableRow>
@@ -257,8 +232,7 @@ const GeneralReportsPage: React.FC = () => {
               )}
             </CardContent>
           </Card>
-        </div>
-      </main>
+      </div>
     </div>
   );
 };

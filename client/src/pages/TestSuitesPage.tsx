@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 // Select component from shadcn/ui is not used in the current version of this file for project filtering.
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, ArrowLeft, LibrarySquare, Loader2, Link2 } from 'lucide-react';
+import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, Loader2, Link2 } from 'lucide-react';
 import type { TestPlan } from '@shared/schema';
 import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard';
 import WebhooksModal from '@/components/dashboard/WebhooksModal';
@@ -70,24 +70,16 @@ const TestSuitesPage: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col h-full">
-      <header className="bg-card border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Link href="/dashboard" className="flex items-center space-x-2 text-primary hover:underline">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <LibrarySquare className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold text-card-foreground">{t('testSuitesPage.testSuites.title')}</h1>
-          </div>
-          <div className="flex items-center space-x-4">
-            {/* Placeholder for right-side icons */}
-          </div>
+    <div className="mx-auto max-w-[1400px] p-6">
+      <header className="mb-6">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {t('testSuitesPage.eyebrow', 'Test plans')}
         </div>
+        <h1 className="mt-0.5 text-2xl font-bold tracking-tight">{t('testSuitesPage.testSuites.title')}</h1>
       </header>
 
       {/* Content Wrapper for controls and tabs */}
-      <div className="p-6 flex-1 overflow-auto">
+      <div>
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
           <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
             <div className="relative w-full sm:w-auto">

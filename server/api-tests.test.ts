@@ -12,7 +12,7 @@ import {
   type InsertUser,
   type InsertProject
 } from '../shared/schema';
-import { eq, and, desc, getTableColumns } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 // Not strictly needed for these tests but good for consistency if IDs were strings
 
 // Mock logger to prevent console output during tests, unless explicitly needed
@@ -58,90 +58,11 @@ beforeAll(async () => {
     next();
   });
 
-  // Simplified API Test Router (replicating essential logic from server/routes.ts)
-  const apiTestRouter = express.Router();
-
-  // GET /api/api-tests
-  apiTestRouter.get("/api/api-tests", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const userId = req.user.id;
-    try {
-      const userTestsWithDetails = await db
-        .select({
-          ...getTableColumns(apiTests),
-          creatorUsername: users.username,
-          projectName: projects.name,
-        })
-        .from(apiTests)
-        .leftJoin(users, eq(apiTests.userId, users.id))
-        .leftJoin(projects, eq(apiTests.projectId, projects.id))
-        .where(eq(apiTests.userId, userId))
-        .orderBy(desc(apiTests.updatedAt));
-      res.json(userTestsWithDetails);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch API tests" });
-    }
-  });
-
-  // GET /api/api-tests/:id
-  apiTestRouter.get("/api/api-tests/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const userId = req.user.id;
-    const testId = parseInt(req.params.id);
-    if (isNaN(testId)) {
-      return res.status(400).json({ error: "Invalid test ID format" });
-    }
-    try {
-      const result = await db
-        .select({
-          ...getTableColumns(apiTests),
-          creatorUsername: users.username,
-          projectName: projects.name,
-        })
-        .from(apiTests)
-        .leftJoin(users, eq(apiTests.userId, users.id))
-        .leftJoin(projects, eq(apiTests.projectId, projects.id))
-        .where(and(eq(apiTests.id, testId), eq(apiTests.userId, userId)))
-        .limit(1);
-      if (result.length === 0) {
-        return res.status(404).json({ error: "API Test not found or not authorized" });
-      }
-      res.json(result[0]);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch API test" });
-    }
-  });
-
-  // DELETE /api/api-tests/:id
-  apiTestRouter.delete("/api/api-tests/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const userId = req.user.id;
-    const testId = parseInt(req.params.id);
-    if (isNaN(testId)) {
-      return res.status(400).json({ error: "Invalid test ID format" });
-    }
-    try {
-      const result = await db
-        .delete(apiTests)
-        .where(and(eq(apiTests.id, testId), eq(apiTests.userId, userId)))
-        .returning({ id: apiTests.id }); // Check if any row was affected
-
-      if (result.length === 0) {
-        return res.status(404).json({ error: "API Test not found or not authorized for deletion" });
-      }
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete API test" });
-    }
-  });
-
-  app.use(apiTestRouter); // Mount the router
+  // Mount the REAL router. This suite used to re-implement the handlers inline, so it
+  // validated a copy: the production route could (and did) drift — silently dropping
+  // projectId — while these tests stayed green.
+  const { default: testsRoutes } = await import('./routes/tests.routes');
+  app.use(testsRoutes);
 });
 
 // These are declared once at the module scope.
@@ -305,6 +226,95 @@ describe('API Tests Endpoints', () => {
         .expect(400)
         .then(res => {
             expect(res.body.error).toBe("Invalid test ID format");
+        });
+    });
+  });
+
+  describe('POST /api/api-tests', () => {
+    const newTestPayload = {
+      name: 'Created via API',
+      method: 'GET',
+      url: 'http://example.com/created',
+    };
+
+    it('should persist the chosen projectId so the test stays grouped under its project', async () => {
+      currentMockUser = seededUser1;
+      const response = await request(app)
+        .post('/api/api-tests')
+        .send({ ...newTestPayload, projectId: seededProject1User1.id })
+        .expect(201);
+
+      expect(response.body.projectId).toBe(seededProject1User1.id);
+      expect(response.body.userId).toBe(seededUser1.id);
+
+      const [stored] = await db.select().from(apiTests).where(eq(apiTests.id, response.body.id));
+      expect(stored.projectId).toBe(seededProject1User1.id);
+    });
+
+    it('should accept jsonb fields as real JSON (not pre-encoded strings)', async () => {
+      currentMockUser = seededUser1;
+      const response = await request(app)
+        .post('/api/api-tests')
+        .send({
+          ...newTestPayload,
+          name: 'With query params',
+          queryParams: { plant: 'P1', line: ['L1', 'L2'] },
+          requestHeaders: { 'X-Api-Key': 'abc' },
+        })
+        .expect(201);
+
+      expect(response.body.queryParams).toEqual({ plant: 'P1', line: ['L1', 'L2'] });
+      expect(response.body.requestHeaders).toEqual({ 'X-Api-Key': 'abc' });
+    });
+
+    it('should reject an unknown projectId with 400, not 500', async () => {
+      currentMockUser = seededUser1;
+      await request(app)
+        .post('/api/api-tests')
+        .send({ ...newTestPayload, projectId: 999999 })
+        .expect(400);
+    });
+
+    it('should return 400 for an invalid payload', async () => {
+      currentMockUser = seededUser1;
+      await request(app)
+        .post('/api/api-tests')
+        .send({ method: 'GET', url: 'not-a-url' })
+        .expect(400);
+    });
+  });
+
+  describe('PUT /api/api-tests/:id', () => {
+    it('should update a test owned by the user, including its project', async () => {
+      currentMockUser = seededUser1;
+      const response = await request(app)
+        .put(`/api/api-tests/${seededApiTestUser1Project1.id}`)
+        .send({ name: 'Renamed', projectId: null })
+        .expect(200);
+
+      expect(response.body.name).toBe('Renamed');
+      expect(response.body.projectId).toBeNull();
+    });
+
+    it("should return 404 when updating another user's test", async () => {
+      currentMockUser = seededUser1;
+      await request(app)
+        .put(`/api/api-tests/${seededApiTestUser2.id}`)
+        .send({ name: 'Hijacked' })
+        .expect(404);
+
+      const [untouched] = await db.select().from(apiTests).where(eq(apiTests.id, seededApiTestUser2.id));
+      expect(untouched.name).toBe('Test for User2');
+    });
+
+    it('should return 400 if test ID is not a number', async () => {
+      currentMockUser = seededUser1;
+      await request(app)
+        .put('/api/api-tests/invalid-id')
+        .send({ name: 'Whatever' })
+        .expect(400)
+        .then(res => {
+          expect(res.body.error).toBe("Invalid test ID format");
         });
     });
   });

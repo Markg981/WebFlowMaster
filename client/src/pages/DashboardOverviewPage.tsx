@@ -1,14 +1,6 @@
-import React, { useState } from 'react';
-import { Link, useRoute } from 'wouter';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/hooks/use-auth';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import {
-  Home, PlusSquare, LibrarySquare as SuitesIcon,
-  CalendarClock, FileTextIcon as ReportsIcon, Settings as SettingsIcon, Network,
-  PanelLeftClose, PanelRightClose, UserCircle, TestTube, FileSpreadsheet
-} from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import KpiPanel from '@/components/dashboard/KpiPanel';
 import TestStatusPieChart from '@/components/dashboard/TestStatusPieChart';
@@ -20,192 +12,62 @@ import { motion } from 'framer-motion';
 
 const DashboardOverviewPage: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const { data: analyticsData, isLoading: isLoadingAnalytics } = useQuery({
     queryKey: ['analyticsDashboard'],
     queryFn: async () => {
       const res = await apiRequest('GET', '/api/analytics/dashboard');
       return res.json();
-    }
+    },
   });
-  const [isCreateTestActive] = useRoute('/dashboard/create-test'); // Changed path
-  const [isApiTesterActive] = useRoute('/dashboard/api-tester'); // For the new API Tester link
-  const [isSettingsActive] = useRoute('/settings');
-  const [isSuitesActive] = useRoute('/test-suites'); // Updated active state for Test Suites
-  const [isSchedulingActive] = useRoute('/scheduling'); // Corrected variable name and added useRoute
-  const [isReportsActive] = useRoute('/reports'); // Updated for the new general reports page
-  const [isTestManagerActive] = useRoute('/test-manager');
-  const [isDashboardActive] = useRoute('/dashboard');
-
-  const linkBaseStyle = "flex items-center py-2 px-3 rounded-md text-sm font-medium";
-  const activeLinkStyle = "bg-primary/10 text-primary";
-  const inactiveLinkStyle = "text-foreground hover:bg-muted hover:text-foreground";
-
-  const iconBaseStyle = "mr-3 h-5 w-5"; // For non-collapsed state
-  const collapsedIconStyle = "h-6 w-6"; // For collapsed state, icons might be larger and centered
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
+    visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
   };
 
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { duration: 0.4, ease: "easeOut" } }
+    hidden: { y: 16, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.35, ease: 'easeOut' } },
   };
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      {/* Sidebar */}
-      <aside
-        className={`bg-card text-card-foreground border-r border-border shrink-0 flex flex-col transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'w-20 p-2' : 'w-64 p-4'
-          }`}
-      >
-        <div> {/* This div wraps the header and nav, separate from user info at the bottom */}
-          {/* Sidebar Header: Logo, Title (when expanded), and Collapse Button */}
-          <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} p-1 mb-2 h-12`}> {/* Fixed height for header */}
-            <div className="flex items-center">
-              <TestTube className={`h-7 w-7 text-primary transition-all duration-300 ${isSidebarCollapsed ? 'ml-0' : 'mr-2'}`} />
-              {!isSidebarCollapsed && (
-                <span className="font-semibold text-lg whitespace-nowrap">{t('dashboardOverviewPage.webtestPlatform.text')}</span>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" // Added focus styling
-            >
-              {isSidebarCollapsed ? <PanelRightClose size={20} /> : <PanelLeftClose size={20} />}
-            </Button>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className={isSidebarCollapsed ? "mt-2" : "mt-0"}> {/* Adjust margin based on collapse state */}
-            <ul className="space-y-1">
-              <li>
-                <Link href="/dashboard" title={t('nav.dashboard')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isDashboardActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                  <Home className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                  {!isSidebarCollapsed && <span>{t('nav.dashboard')}</span>}
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard/api-tester" title={t('nav.apiTester', 'API Tester')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isApiTesterActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                  <Network className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                  {!isSidebarCollapsed && <span>{t('nav.apiTester', 'API Tester')}</span>}
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard/create-test" title={t('nav.createTest')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isCreateTestActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                  <PlusSquare className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                  {!isSidebarCollapsed && <span>{t('nav.createTest')}</span>}
-                </Link>
-              </li>
-              <li>
-                <Link href="/test-manager" title="Test Manager" className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isTestManagerActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                  <FileSpreadsheet className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                  {!isSidebarCollapsed && <span>Test Manager</span>}
-                </Link>
-              </li>
-              <li>
-                <Link href="/test-suites" title={t('nav.suites')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSuitesActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                  <SuitesIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                  {!isSidebarCollapsed && <span>{t('nav.suites')}</span>}
-                </Link>
-              </li>
-              <li>
-                <Link href="/scheduling" title={t('nav.scheduling', 'Scheduling')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSchedulingActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                  <CalendarClock className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                  {!isSidebarCollapsed && <span>{t('nav.scheduling', 'Scheduling')}</span>}
-                </Link>
-              </li>
-              <li>
-                <Link href="/reports" title={t('nav.reports')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isReportsActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                  <ReportsIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                  {!isSidebarCollapsed && <span>{t('nav.reports')}</span>}
-                </Link>
-              </li>
-              <li>
-                <Link href="/settings" title={t('nav.settings')} className={`${linkBaseStyle} ${isSidebarCollapsed ? 'justify-center' : ''} ${isSettingsActive ? activeLinkStyle : inactiveLinkStyle}`}>
-                  <SettingsIcon className={isSidebarCollapsed ? collapsedIconStyle : iconBaseStyle} />
-                  {!isSidebarCollapsed && <span>{t('nav.settings')}</span>}
-                </Link>
-              </li>
-            </ul>
-          </nav>
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="flex w-full flex-col gap-6 p-6 xl:p-8"
+    >
+      <motion.header variants={itemVariants}>
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {t('dashboardOverviewPage.overview.eyebrow', 'Overview')}
         </div>
+        <h1 className="mt-0.5 text-2xl font-bold tracking-tight">
+          {t('dashboardOverviewPage.dashboardOverview.title')}
+        </h1>
+      </motion.header>
 
-        <div className={`mt-auto pt-4 border-t border-border ${isSidebarCollapsed ? 'px-0' : 'px-3'}`}>
-          {user ? (
-            isSidebarCollapsed ? (
-              <div className="flex justify-center items-center py-2" title={user.username}>
-                <UserCircle className="h-7 w-7 text-muted-foreground" />
-              </div>
-            ) : (
-              <>
-                <p className="text-sm font-semibold text-foreground truncate">{user.username}</p>
-              </>
-            )
-          ) : (
-            isSidebarCollapsed ? (
-              <div className="flex justify-center items-center py-2" title={t('dashboardOverviewPage.userNotLoaded.text')}>
-                <UserCircle className="h-7 w-7 text-muted-foreground opacity-50" />
-              </div>
-            ) : (
-              <>
-                <p className="text-sm font-semibold text-muted-foreground">{t('dashboardOverviewPage.userNotLoaded.text')}</p>
-                <p className="text-xs text-muted-foreground">...</p>
-              </>
-            )
-          )}
-        </div>
-      </aside>
+      <motion.div variants={itemVariants}>
+        <KpiPanel data={analyticsData?.kpis} isLoading={isLoadingAnalytics} />
+      </motion.div>
 
-      {/* Main Content Area */}
-      <motion.main
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className={`flex-1 py-6 pr-4 pl-0 overflow-auto transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'ml-20' : 'ml-8' // Adjust based on actual final collapsed/expanded widths
-          }`}
-      >
-        <motion.header variants={itemVariants} className="mb-6 px-0 mx-0">
-          <h1 className="text-3xl font-bold tracking-tight">{t('dashboardOverviewPage.dashboardOverview.title')}</h1>
-        </motion.header>
+      <motion.div variants={itemVariants} className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <TestStatusPieChart data={analyticsData?.distribution} isLoading={isLoadingAnalytics} />
+        <TestTrendBarChart data={analyticsData?.trend} isLoading={isLoadingAnalytics} />
+      </motion.div>
 
-        <motion.div variants={itemVariants}>
-          <KpiPanel data={analyticsData?.kpis} isLoading={isLoadingAnalytics} />
-        </motion.div>
+      <motion.div variants={itemVariants}>
+        <TestSchedulingsTable />
+      </motion.div>
 
-        {/* Charts Section */}
-        <motion.div variants={itemVariants} className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TestStatusPieChart data={analyticsData?.distribution} isLoading={isLoadingAnalytics} />
-          <TestTrendBarChart data={analyticsData?.trend} isLoading={isLoadingAnalytics} />
-        </motion.div>
+      <motion.div variants={itemVariants}>
+        <QuickAccessReports />
+      </motion.div>
 
-        {/* Test Schedulings Table Section */}
-        <motion.div variants={itemVariants} className="mt-6">
-          <TestSchedulingsTable />
-        </motion.div>
-
-        {/* Quick Access Reports Section */}
-        {/* mt-6 is handled by the component itself, so no need for an extra div with margin unless further styling is needed */}
-        <motion.div variants={itemVariants}>
-          <QuickAccessReports />
-        </motion.div>
-
-        {/* Run Test Now Button Section */}
-        {/* mt-8 and text-center is handled by the component's wrapper div */}
-        <motion.div variants={itemVariants}>
-          <RunTestNowButton />
-        </motion.div>
-      </motion.main>
-    </div>
+      <motion.div variants={itemVariants}>
+        <RunTestNowButton />
+      </motion.div>
+    </motion.div>
   );
 };
 

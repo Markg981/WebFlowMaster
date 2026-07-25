@@ -9,6 +9,7 @@ import path from 'path';
 import { PlaywrightReporter } from './playwright-reporter';
 import { browserPool } from './browser-pool';
 import { getWsEmitter } from './websocket';
+import { allowsSelfSignedCertificate, substituteVariables } from './outbound-http';
 
 // Default settings if not found or incomplete
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
@@ -334,6 +335,7 @@ export class PlaywrightService {
 
   async loadWebsite(url: string, userId?: number): Promise<{ success: boolean; screenshot?: string; html?: string; error?: string }> {
     resolvedLogger.http({ message: "PlaywrightService: loadWebsite called", url, userId });
+    const targetUrl = substituteVariables(url);
     let browser: Browser | null = null;
     try {
       const userSettings = userId ? await storage.getUserSettings(userId) : undefined;
@@ -348,14 +350,14 @@ export class PlaywrightService {
       browser = await browserEngine.launch({ headless: headlessMode });
       if (!browser) throw new Error("Failed to launch browser instance.");
       const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; // Standardized UA
-      const context = await browser.newContext({ userAgent });
+      const context = await browser.newContext({ userAgent, ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl) });
       const page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
 
       await page.setViewportSize({ width: 1280, height: 720 });
       // Removed page.setUserAgent, as it's set on context
 
-      await page.goto(url, {
+      await page.goto(targetUrl, {
         waitUntil: 'domcontentloaded',
         // timeout is already set by setDefaultTimeout
       });
@@ -391,6 +393,7 @@ export class PlaywrightService {
 
   async startRecordingSession(url: string, userId?: number): Promise<{ success: boolean, sessionId?: string, error?: string }> {
     resolvedLogger.http({ message: "PlaywrightService: startRecordingSession called", url, userId });
+    const targetUrl = substituteVariables(url);
     const sessionId = uuidv4();
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
@@ -421,7 +424,8 @@ export class PlaywrightService {
 
       const contextOptions = {
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        viewport: { width: 1280, height: 720 }
+        viewport: { width: 1280, height: 720 },
+        ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl)
       };
       resolvedLogger.debug({ message: `PS:startRecordingSession - Attempting to create new browser context`, options: contextOptions, sessionId });
       context = await browser.newContext(contextOptions);
@@ -435,8 +439,8 @@ export class PlaywrightService {
       page.setDefaultTimeout(pageTimeout);
 
       const gotoOptions = { waitUntil: 'domcontentloaded' as const };
-      resolvedLogger.debug({ message: `PS:startRecordingSession - Navigating to URL`, url, options: gotoOptions, sessionId, pageClosed: page?.isClosed() });
-      await page.goto(url, gotoOptions);
+      resolvedLogger.debug({ message: `PS:startRecordingSession - Navigating to URL`, url: targetUrl, options: gotoOptions, sessionId, pageClosed: page?.isClosed() });
+      await page.goto(targetUrl, gotoOptions);
       resolvedLogger.debug({ message: "PS:startRecordingSession - Navigation complete.", sessionId });
 
       resolvedLogger.debug({ message: `PS:startRecordingSession - Waiting for timeout: ${specificWaitTime}ms.`, sessionId, pageClosed: page?.isClosed() });
@@ -612,6 +616,7 @@ export class PlaywrightService {
   async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detectedElements?: DetectedElement[] }> {
     const testName = payload.name || "Ad-hoc Test";
     resolvedLogger.http({ message: "PlaywrightService: executeAdhocSequence called", testName, userId, url: payload.url });
+    const targetUrl = payload.url ? substituteVariables(payload.url) : payload.url;
     const startTime = Date.now();
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
@@ -639,7 +644,10 @@ export class PlaywrightService {
       if (!browser) throw new Error("Failed to launch browser instance.");
       resolvedLogger.debug({ message: "PS:executeAdhocSequence - Browser launched", testName, connected: browser?.isConnected(), type: browser?.browserType?.().name() });
 
-      const contextOptions = { userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' };
+      const contextOptions = {
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl ?? '')
+      };
       resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting to create new browser context", testName, options: contextOptions });
       context = await browser.newContext(contextOptions);
       resolvedLogger.debug({ message: "PS:executeAdhocSequence - Browser context created", testName });
@@ -654,11 +662,11 @@ export class PlaywrightService {
       resolvedLogger.debug({ message: "PS:executeAdhocSequence - Setting viewport size to 1280x720", testName });
       await page.setViewportSize({ width: 1280, height: 720 });
 
-      if (payload.url) {
+      if (targetUrl) {
         const gotoOptions = { waitUntil: 'domcontentloaded' as const };
-        resolvedLogger.debug({ message: `PS:executeAdhocSequence - Navigating to URL`, testName, url: payload.url, options: gotoOptions, pageClosed: page?.isClosed() });
+        resolvedLogger.debug({ message: `PS:executeAdhocSequence - Navigating to URL`, testName, url: targetUrl, options: gotoOptions, pageClosed: page?.isClosed() });
         try {
-          await page.goto(payload.url, gotoOptions);
+          await page.goto(targetUrl, gotoOptions);
           resolvedLogger.debug({ message: "PS:executeAdhocSequence - Navigation complete. Attempting screenshot...", testName });
           const screenshotBuffer = await page.screenshot({ type: 'png' });
           const screenshot = screenshotBuffer.toString('base64');
@@ -879,6 +887,7 @@ export class PlaywrightService {
 
   async detectElements(url: string, userId?: number): Promise<DetectedElement[]> {
     resolvedLogger.http({ message: "PlaywrightService: detectElements called", url, userId });
+    const targetUrl = substituteVariables(url);
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
     let page: Page | null = null;
@@ -900,7 +909,7 @@ export class PlaywrightService {
 
       const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
       resolvedLogger.debug({ message: "PS:detectElements - Attempting to create new browser context", userAgent });
-      context = await browser.newContext({ userAgent });
+      context = await browser.newContext({ userAgent, ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl) });
 
       resolvedLogger.debug({ message: "PS:detectElements - Attempting to create new page" });
       page = await context.newPage();
@@ -911,8 +920,8 @@ export class PlaywrightService {
       resolvedLogger.debug({ message: "PS:detectElements - Setting viewport size" });
       await page.setViewportSize({ width: 1280, height: 720 });
 
-      resolvedLogger.debug({ message: `PS:detectElements - Navigating to URL`, url, pageClosed: page?.isClosed() });
-      await page.goto(url, { waitUntil: 'domcontentloaded' });
+      resolvedLogger.debug({ message: `PS:detectElements - Navigating to URL`, url: targetUrl, pageClosed: page?.isClosed() });
+      await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
 
       const waitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME;
       resolvedLogger.debug({ message: `PS:detectElements - Waiting for timeout`, waitTime, pageClosed: page?.isClosed() });
@@ -964,6 +973,7 @@ export class PlaywrightService {
     const startTime = Date.now();
     const wsEmitter = getWsEmitter();
     resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url, screenshotBaseDir });
+    const targetUrl = test.url ? substituteVariables(test.url) : test.url;
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
     let page: Page | null = null;
@@ -982,25 +992,25 @@ export class PlaywrightService {
       browser = await browserEngine.launch({ headless: headlessMode });
       if (!browser) throw new Error("Failed to launch browser for executeApiDirect.");
       const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-      context = await browser.newContext({ userAgent });
+      context = await browser.newContext({ userAgent, ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl ?? '') });
       page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
       await page.setViewportSize({ width: 1280, height: 720 });
 
-      if (test.url) {
+      if (targetUrl) {
         try {
-          const navMessage = `Navigating to ${test.url}`;
-          resolvedLogger.debug({ message: "PS:executeTestSequence - " + navMessage, testName: test.name, url: test.url });
+          const navMessage = `Navigating to ${targetUrl}`;
+          resolvedLogger.debug({ message: "PS:executeTestSequence - " + navMessage, testName: test.name, url: targetUrl });
           if (executionId) {
             wsEmitter.emitExecutionLog(executionId, {
               level: 'step',
               source: 'playwright',
               message: navMessage,
               timestamp: new Date().toISOString(),
-              metadata: { url: test.url }
+              metadata: { url: targetUrl }
             });
           }
-          await page.goto(test.url, { waitUntil: 'domcontentloaded' });
+          await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
           let navScreenshotPath: string | undefined;
           if (screenshotBaseDir) {
             await fs.ensureDir(screenshotBaseDir);
