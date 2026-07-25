@@ -166,7 +166,15 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     persistTheme(next ? 'dark' : 'light');
   };
 
-  const initials = (user?.username ?? '?').replace(/@.*/, '').slice(0, 2).toUpperCase();
+  // Initials from first + last name, derived from the email local part
+  // ("marco.oliva@…" → "MO"). Falls back to the first two letters when there's
+  // only one part ("admin@…" → "AD").
+  const initials = (() => {
+    const local = (user?.username ?? '').replace(/@.*/, '');
+    const parts = local.split(/[._+-]+/).filter(Boolean);
+    const raw = parts.length >= 2 ? parts[0][0] + parts[parts.length - 1][0] : local.slice(0, 2);
+    return (raw || '?').toUpperCase();
+  })();
 
   const sidebarInner = (
     <div className="flex h-full flex-col gap-4 p-3">
