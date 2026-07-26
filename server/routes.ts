@@ -9,6 +9,7 @@ import {
   tests,
   AdhocTestStepSchema,
   AdhocDetectedElementSchema,
+  PreconditionSchema,
   apiTestHistory,
   apiTests,
   insertApiTestHistorySchema,
@@ -68,6 +69,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     url: z.string().url(),
     sequence: z.array(AdhocTestStepSchema),
     elements: z.array(AdhocDetectedElementSchema),
+    // Preconditions are part of a saved test and are run by the scheduled runner, so the
+    // ad-hoc preview must accept and run them too — otherwise "Execute Test" exercises a
+    // different setup than the real run.
+    preconditions: z.array(PreconditionSchema).optional().nullable(),
   });
 
     // Auth First
@@ -744,6 +749,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   // --- Recording API Endpoints ---
+
+  /**
+   * Whether this server can open the visible browser window a recording needs.
+   *
+   * Recording is inherently local: Playwright launches the window on the machine running
+   * this process, not in the user's browser. The one thing the server can check for certain
+   * is whether it has a display at all — a Linux container without DISPLAY never will — so
+   * the UI can disable the button with a real reason instead of failing at launch time.
+   */
+  app.get("/api/recording-capability", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const headlessOnly = process.platform === 'linux' && !process.env.DISPLAY;
+    res.json({
+      supported: !headlessOnly,
+      reason: headlessOnly ? 'no-display' : undefined,
+      // Always reported: the window appears here, which is only useful to the user when
+      // the server runs on their own machine.
+      serverPlatform: process.platform,
+    });
+  });
+
   app.post("/api/start-recording", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -805,11 +834,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { sessionId } = parseResult.data;
       const result = await playwrightService.stopRecordingSession(sessionId, req.user.id);
-      
+
       if (result.success) {
-        res.json({ 
-          success: true, 
-          sequence: result.actions || [] 
+        res.json({
+          success: true,
+          sequence: result.sequence || []
         });
       } else {
         res.status(404).json({ 
@@ -846,16 +875,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { sessionId } = parseResult.data;
       const result = await playwrightService.getRecordedActions(sessionId, req.user.id);
-      
+
+      // The field is `sequence` on every recording endpoint — start, stop and poll — so the
+      // client has one shape to parse. It used to be `actions` only here, which is why the
+      // live action list stayed empty for the whole recording.
       if (result.success) {
-        res.json({ 
-          success: true, 
-          actions: result.actions || [] 
+        res.json({
+          success: true,
+          sequence: result.sequence || [],
+          sessionEnded: result.sessionEnded || false,
+          error: result.error,
         });
       } else {
-        res.status(404).json({ 
-          success: false, 
-          error: result.error || "Recording session not found" 
+        res.status(404).json({
+          success: false,
+          sequence: [],
+          sessionEnded: result.sessionEnded || false,
+          error: result.error || "Recording session not found"
         });
       }
     } catch (error: any) {

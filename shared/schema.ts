@@ -2,6 +2,7 @@ import { pgTable, text, integer, serial, timestamp, boolean, jsonb, index } from
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations } from 'drizzle-orm';
+import { ADHOC_ACTION_IDS } from './recording';
 
 // Table Definitions
 export const users = pgTable("users", {
@@ -920,17 +921,9 @@ export type ApiTest = typeof apiTests.$inferSelect;
 export type InsertApiTest = typeof apiTests.$inferInsert;
 
 export const AdhocTestActionSchema = z.object({
-  id: z.enum([
-    "click",
-    "input",
-    "wait",
-    "scroll",
-    "assert",
-    "hover",
-    "select",
-    "assertTextContains",
-    "assertElementCount",
-  ]),
+  // Keep in sync with ADHOC_ACTION_IDS in shared/recording.ts, which drives the
+  // recorder → builder mapping.
+  id: z.enum(ADHOC_ACTION_IDS),
   type: z.string(),
   name: z.string(),
   icon: z.string(),
@@ -993,6 +986,7 @@ export const AdhocTestStepSchema = z
           "input",
           "wait",
           "select",
+          "navigate",
           "assertTextContains",
           "assertElementCount",
         ].includes(data.action.id) &&
@@ -1005,7 +999,7 @@ export const AdhocTestStepSchema = z
     },
     {
       message:
-        "A non-empty value is required for input, wait, select, assertTextContains, and assertElementCount actions",
+        "A non-empty value is required for input, wait, select, navigate, assertTextContains, and assertElementCount actions",
       path: ["value"],
     },
   )
@@ -1017,6 +1011,22 @@ export const AdhocTestStepSchema = z
     {
       message:
         "For 'wait' action, value must be a number (e.g., '1000' for 1 second)",
+      path: ["value"],
+    },
+  )
+  .refine(
+    (data) => {
+      // A recorded navigation replays as page.goto(value), so the value must be a URL.
+      if (data.action.id !== "navigate") return true;
+      try {
+        new URL(data.value ?? "");
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    {
+      message: "For 'navigate' action, value must be an absolute URL",
       path: ["value"],
     },
   );

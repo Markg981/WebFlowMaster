@@ -1,4 +1,21 @@
 {
+  "recording": {
+    "opensOnServerMachine": "The recorder opens a real browser window on the machine running WebFlowMaster, not in this tab. Use it only when the server runs on your own computer.",
+    "unavailableOnServer": "This server has no display, so it cannot open a recording window. Run WebFlowMaster locally to record a test.",
+    "capturedCount_one": "{{count}} action",
+    "capturedCount_other": "{{count}} actions",
+    "waitingForActions": "Waiting for your first action in the browser window…",
+    "assertHint": "Use the \"Add assert\" button in the recorder toolbar to record an expected result.",
+    "overwriteConfirm": "Starting a recording replaces the current test steps. Continue?",
+    "sessionEnded": "Recording session ended",
+    "pollFailed": "Lost contact with the recording session",
+    "start": {
+      "failed": "Failed to start recording"
+    },
+    "stop": {
+      "failed": "Failed to stop recording"
+    }
+  },
   "greeting": "Hello",
   "settings": {
     "title": "Settings",
@@ -685,6 +702,14 @@
       "assertTextContains": {
         "name": "Assert Text Contains",
         "description": "Checks if an element contains specific text."
+      },
+      "navigate": {
+        "name": "Navigate",
+        "description": "Go to a specific URL"
+      },
+      "assert": {
+        "name": "Assert Visible",
+        "description": "Checks that an element is visible on the page."
       },
       "assertElementCount": {
         "name": "Assert Element Count",

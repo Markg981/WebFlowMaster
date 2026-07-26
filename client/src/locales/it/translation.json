@@ -1,4 +1,21 @@
 {
+  "recording": {
+    "opensOnServerMachine": "Il recorder apre una finestra reale del browser sulla macchina che esegue WebFlowMaster, non in questa scheda. Usalo solo se il server gira sul tuo computer.",
+    "unavailableOnServer": "Questo server non ha un display, quindi non può aprire una finestra di registrazione. Esegui WebFlowMaster in locale per registrare un test.",
+    "capturedCount_one": "{{count}} azione",
+    "capturedCount_other": "{{count}} azioni",
+    "waitingForActions": "In attesa della prima azione nella finestra del browser…",
+    "assertHint": "Usa il pulsante \"Add assert\" nella barra del recorder per registrare un risultato atteso.",
+    "overwriteConfirm": "Avviando una registrazione gli step attuali del test verranno sostituiti. Continuare?",
+    "sessionEnded": "Sessione di registrazione terminata",
+    "pollFailed": "Contatto perso con la sessione di registrazione",
+    "start": {
+      "failed": "Avvio della registrazione non riuscito"
+    },
+    "stop": {
+      "failed": "Arresto della registrazione non riuscito"
+    }
+  },
   "greeting": "Ciao",
   "settings": {
     "title": "Impostazioni",
@@ -780,6 +797,14 @@
       "assertTextContains": {
         "name": "Verifica Testo Contenuto",
         "description": "Controlla se un elemento contiene un testo specifico."
+      },
+      "navigate": {
+        "name": "Naviga",
+        "description": "Vai a un URL specifico"
+      },
+      "assert": {
+        "name": "Verifica Visibilità",
+        "description": "Controlla che un elemento sia visibile nella pagina."
       },
       "assertElementCount": {
         "name": "Verifica Conteggio Elementi",
