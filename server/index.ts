@@ -55,7 +55,9 @@ app.use(express.urlencoded({ extended: false }));
     const settingsToEnsure = [
       { key: 'logRetentionDays', value: process.env.LOG_RETENTION_DAYS || '7' },
       { key: 'logLevel', value: process.env.LOG_LEVEL || 'info' },
-      // Add other default system settings here if needed
+      // Separate from logLevel on purpose: turning the server up to debug should not also
+      // flood the ingest endpoint with browser traffic.
+      { key: 'clientLogLevel', value: process.env.CLIENT_LOG_LEVEL || 'info' },
     ];
 
     for (const settingToEnsure of settingsToEnsure) {
