@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
+import fsPromises from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { IncidentStore, MAX_OCCURRENCES } from './store';
@@ -32,6 +33,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -82,6 +84,53 @@ describe('IncidentStore.upsert', () => {
     const reoccurred = await store.upsert(incident());
     expect(reoccurred.status).toBe('ignored');
   });
+
+  it('does not let a recurrence without a repro erase the stored one', async () => {
+    await store.upsert(
+      incident({ repro: { path: 'repro/inc_aaaaaa.spec.ts', command: 'npx vitest run', confidence: 'high' } }),
+    );
+
+    const reoccurred = await store.upsert(incident({ repro: undefined }));
+
+    expect(reoccurred.repro).toEqual({
+      path: 'repro/inc_aaaaaa.spec.ts',
+      command: 'npx vitest run',
+      confidence: 'high',
+    });
+  });
+});
+
+describe('IncidentStore.readIndex', () => {
+  it('returns an empty list when index.json is simply absent', async () => {
+    expect(await store.readIndex()).toEqual([]);
+  });
+
+  it('rebuilds from incident files when index.json is corrupt, without losing them on the next upsert', async () => {
+    await store.upsert(incident({ id: 'inc_one001', fingerprint: 'one001' }));
+    await store.upsert(incident({ id: 'inc_two002', fingerprint: 'two002' }));
+
+    fs.writeFileSync(path.join(root, 'index.json'), 'not valid json{{{');
+
+    const rebuilt = await store.readIndex();
+    expect(rebuilt.map((e) => e.id).sort()).toEqual(['inc_one001', 'inc_two002']);
+
+    // A later upsert must reindex from the rebuilt view, not from an empty one, or the
+    // two pre-existing incidents become unreachable through the index.
+    await store.upsert(incident({ id: 'inc_three3', fingerprint: 'three3' }));
+    const after = await store.readIndex();
+    expect(after.map((e) => e.id).sort()).toEqual(['inc_one001', 'inc_three3', 'inc_two002']);
+  });
+
+  it('skips an unparseable incident file during rebuild but keeps the valid ones', async () => {
+    await store.upsert(incident({ id: 'inc_good001', fingerprint: 'good001' }));
+    await store.upsert(incident({ id: 'inc_bad0001', fingerprint: 'bad0001' }));
+
+    fs.writeFileSync(path.join(root, 'index.json'), 'not valid json{{{');
+    fs.writeFileSync(path.join(root, 'incidents', 'inc_bad0001.json'), 'also not json{{{');
+
+    const rebuilt = await store.readIndex();
+    expect(rebuilt.map((e) => e.id)).toEqual(['inc_good001']);
+  });
 });
 
 describe('IncidentStore.prune', () => {
@@ -106,5 +155,31 @@ describe('IncidentStore.prune', () => {
 
     expect(removed).toBe(1);
     expect((await store.readIndex()).map((e) => e.id)).toEqual(['inc_new002']);
+  });
+
+  it('counts only incidents actually deleted and keeps a failed deletion in the index', async () => {
+    const old = new Date(Date.now() - 40 * 24 * 3600_000).toISOString();
+    await store.upsert(incident({ id: 'inc_old003', fingerprint: 'old003', lastSeen: old }));
+    await store.upsert(incident({ id: 'inc_old004', fingerprint: 'old004', lastSeen: old }));
+
+    const stuckPath = path.join(root, 'incidents', 'inc_old004.json');
+    const realRm = fsPromises.rm.bind(fsPromises);
+    vi.spyOn(fsPromises, 'rm').mockImplementation(async (...args: Parameters<typeof fsPromises.rm>) => {
+      if (args[0] === stuckPath) {
+        const err = new Error('EBUSY: resource busy or locked') as NodeJS.ErrnoException;
+        err.code = 'EBUSY';
+        throw err;
+      }
+      return realRm(...args);
+    });
+
+    const removed = await store.prune({ maxFiles: 500, maxAgeDays: 30 });
+
+    // Only inc_old003 was actually removed; inc_old004's file could not be deleted, so it
+    // must not be counted and must still be reachable through the index.
+    expect(removed).toBe(1);
+    const ids = (await store.readIndex()).map((e) => e.id);
+    expect(ids).toEqual(['inc_old004']);
+    expect(fs.existsSync(stuckPath)).toBe(true);
   });
 });

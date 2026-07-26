@@ -25,7 +25,9 @@ export class IncidentStore {
   }
 
   private serialise<T>(operation: () => Promise<T>): Promise<T> {
-    const result = this.queue.then(operation, operation);
+    // this.queue is reassigned below through a handler that always resolves, so it
+    // never rejects; the operation is therefore always run as the onFulfilled branch.
+    const result = this.queue.then(operation);
     this.queue = result.catch(() => undefined);
     return result;
   }
@@ -36,11 +38,30 @@ export class IncidentStore {
 
   private async writeJson(target: string, value: unknown): Promise<void> {
     await fs.mkdir(path.dirname(target), { recursive: true });
-    // Write-then-rename so a reader never sees a half-written file.
+    // Write-then-rename so a reader never sees a half-written file. The temp name is
+    // unique per call so concurrent writes within one process cannot collide.
     const temp = `${target}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
     await fs.writeFile(temp, JSON.stringify(value, null, 2), 'utf8');
-    await fs.rm(target, { force: true });
-    await fs.rename(temp, target);
+
+    // fs.rename replaces an existing destination atomically (MoveFileEx with
+    // replace-existing on Windows), so there is no need to delete `target` first — doing
+    // so would only create a window where concurrent readers see it as missing, and would
+    // strand the new data in the temp file if the rename then failed.
+    const maxAttempts = 5;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await fs.rename(temp, target);
+        return;
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code;
+        // On Windows, an antivirus scanner or the file indexer can briefly hold a handle
+        // open; a short bounded retry rides that out instead of losing the write.
+        if ((code !== 'EPERM' && code !== 'EBUSY') || attempt >= maxAttempts) {
+          throw err;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 20 * attempt));
+      }
+    }
   }
 
   async read(id: string): Promise<Incident | null> {
@@ -54,9 +75,54 @@ export class IncidentStore {
   async readIndex(): Promise<IncidentIndexEntry[]> {
     try {
       return JSON.parse(await fs.readFile(this.indexPath, 'utf8')) as IncidentIndexEntry[];
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        // No index yet: legitimately empty.
+        return [];
+      }
+      // index.json exists but is corrupt or unreadable. Returning [] here would make
+      // every already-recorded incident unreachable the moment the next upsert rewrites
+      // the index from this "empty" view. The incident files are the source of truth, so
+      // rebuild from them instead.
+      return this.rebuildIndexFromIncidents();
+    }
+  }
+
+  private toIndexEntry(incident: Incident): IncidentIndexEntry {
+    return {
+      id: incident.id,
+      kind: incident.kind,
+      status: incident.status,
+      title: incident.title,
+      count: incident.count,
+      lastSeen: incident.lastSeen,
+      file: `incidents/${incident.id}.json`,
+      reproPath: incident.repro?.path,
+      reproConfidence: incident.repro?.confidence,
+    };
+  }
+
+  private async rebuildIndexFromIncidents(): Promise<IncidentIndexEntry[]> {
+    let files: string[];
+    try {
+      files = await fs.readdir(this.incidentsDir);
     } catch {
+      // No incidents directory either: nothing to rebuild from.
       return [];
     }
+
+    const entries: IncidentIndexEntry[] = [];
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+      try {
+        const raw = await fs.readFile(path.join(this.incidentsDir, file), 'utf8');
+        entries.push(this.toIndexEntry(JSON.parse(raw) as Incident));
+      } catch {
+        // One unreadable/unparseable incident file must not sink the whole rebuild.
+      }
+    }
+    entries.sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
+    return entries;
   }
 
   async upsert(incoming: Incident): Promise<Incident> {
@@ -83,22 +149,12 @@ export class IncidentStore {
 
   private async reindex(incident: Incident): Promise<void> {
     const index = (await this.readIndex()).filter((entry) => entry.id !== incident.id);
-    index.push({
-      id: incident.id,
-      kind: incident.kind,
-      status: incident.status,
-      title: incident.title,
-      count: incident.count,
-      lastSeen: incident.lastSeen,
-      file: `incidents/${incident.id}.json`,
-      reproPath: incident.repro?.path,
-      reproConfidence: incident.repro?.confidence,
-    });
+    index.push(this.toIndexEntry(incident));
     index.sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
     await this.writeJson(this.indexPath, index);
   }
 
-  /** Returns how many incidents were removed. */
+  /** Returns how many incidents were actually removed from disk. */
   async prune(options: { maxFiles?: number; maxAgeDays?: number } = {}): Promise<number> {
     const maxFiles = options.maxFiles ?? MAX_INCIDENT_FILES;
     const maxAgeDays = options.maxAgeDays ?? MAX_INCIDENT_AGE_DAYS;
@@ -121,15 +177,36 @@ export class IncidentStore {
       });
       const overflow = new Set(ranked.slice(0, Math.max(0, survivors.length - maxFiles)).map((e) => e.id));
 
-      const doomed = [...tooOld, ...overflow];
+      const doomed = new Set([...tooOld, ...overflow]);
+
+      // Attempt every deletion rather than bailing on the first failure, so one locked
+      // file cannot leave the rest deleted-on-disk but still listed in the index (or vice
+      // versa). Ids whose file could not be removed stay in the index.
+      const failedToRemove = new Set<string>();
+      let removedCount = 0;
       for (const id of doomed) {
-        await fs.rm(this.filePath(id), { force: true });
+        try {
+          // No `force`: a genuine deletion is distinguished from a no-op on an already-
+          // absent file, so the returned count reflects what this call actually removed.
+          await fs.rm(this.filePath(id));
+          removedCount++;
+        } catch (err) {
+          if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+            // Already gone; the stale index entry should still be dropped below, but this
+            // call didn't remove anything.
+            continue;
+          }
+          failedToRemove.add(id);
+        }
       }
 
-      if (doomed.length > 0) {
-        await this.writeJson(this.indexPath, index.filter((e) => !doomed.includes(e.id)));
+      if (doomed.size > 0) {
+        await this.writeJson(
+          this.indexPath,
+          index.filter((e) => !doomed.has(e.id) || failedToRemove.has(e.id)),
+        );
       }
-      return doomed.length;
+      return removedCount;
     });
   }
 }
