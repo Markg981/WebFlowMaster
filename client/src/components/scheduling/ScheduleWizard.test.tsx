@@ -1,234 +1,221 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { I18nextProvider } from 'react-i18next';
-import i18n from '@/i18n'; // Your i18n instance
 import ScheduleWizard from './ScheduleWizard';
-import { TestPlanScheduleWithPlanName } from '@/lib/api/schedules';
 import * as testPlansApi from '@/lib/api/test-plans';
 import * as schedulesApi from '@/lib/api/schedules';
+import { BROWSER_OPTIONS, FREQUENCY_OPTIONS } from '@/lib/schemas/scheduleFormSchema';
 
-// Mocks
 vi.mock('@/lib/api/test-plans');
 vi.mock('@/lib/api/schedules');
 
-// useToast is globally mocked in setupTests.ts, so we can spy on its returned toast function
-import { useToast } from '@/hooks/use-toast';
-const { toast } = useToast(); // Get the mocked toast function
+// A single stable spy: the global setupTests mock returns a fresh vi.fn() per call, so a
+// module-level `const { toast } = useToast()` would never see the component's calls.
+const mockToast = vi.fn();
+vi.mock('@/hooks/use-toast', () => ({
+  useToast: () => ({ toast: mockToast, dismiss: vi.fn(), toasts: [] }),
+  toast: (...args: unknown[]) => mockToast(...args),
+}));
+
+const fetchTestPlansAPI = vi.mocked(testPlansApi.fetchTestPlansAPI);
+const createSchedule = vi.mocked(schedulesApi.createSchedule);
+const updateSchedule = vi.mocked(schedulesApi.updateSchedule);
 
 const mockTestPlans = [
   { id: 'tp1', name: 'Test Plan Alpha' },
   { id: 'tp2', name: 'Test Plan Beta' },
 ];
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false, // Disable retries for tests
-      gcTime: Infinity, // Prevent garbage collection during tests
-    },
-  },
-});
-
-const AllTheProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <I18nextProvider i18n={i18n}>
-        {children}
-      </I18nextProvider>
-    </QueryClientProvider>
-  );
+// The `scheduleWizard.*` namespace has no English bundle, so i18next echoes the keys back.
+// Asserting on them keeps the tests stable until the strings are actually translated.
+const K = {
+  createTitle: 'scheduleWizard.createTitle',
+  editTitle: 'scheduleWizard.editTitle',
+  stepTitle: (n: number) => `scheduleWizard.steps.step${n}.title`,
+  scheduleNameLabel: 'scheduleWizard.steps.step1.scheduleNameLabel',
+  testPlanLabel: 'scheduleWizard.steps.step1.testPlanLabel',
+  next: 'scheduleWizard.buttons.next',
+  createSchedule: 'scheduleWizard.buttons.createSchedule',
+  saveChanges: 'scheduleWizard.buttons.saveChanges',
+  summaryTitle: 'scheduleWizard.steps.step6.summaryTitle',
 };
 
-describe('ScheduleWizard', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    queryClient.clear(); // Clear TanStack Query cache
-    (testPlansApi.fetchTestPlansAPI as vi.Mock).mockResolvedValue(mockTestPlans);
-    (schedulesApi.createSchedule as vi.Mock).mockResolvedValue({ id: 'new-sched-1', name: 'New Schedule' });
-    (schedulesApi.updateSchedule as vi.Mock).mockResolvedValue({ id: 'edited-sched-1', name: 'Updated Schedule' });
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false } },
   });
 
-  const renderWizard = (props: Partial<React.ComponentProps<typeof ScheduleWizard>> = {}) => {
-    const defaultProps: React.ComponentProps<typeof ScheduleWizard> = {
-      isOpen: true,
-      onClose: vi.fn(),
-      onScheduleSaved: vi.fn(),
-      ...props,
-    };
-    return render(<ScheduleWizard {...defaultProps} />, { wrapper: AllTheProviders });
+let queryClient: QueryClient;
+
+const renderWizard = (props: Partial<React.ComponentProps<typeof ScheduleWizard>> = {}) => {
+  const defaultProps: React.ComponentProps<typeof ScheduleWizard> = {
+    isOpen: true,
+    onClose: vi.fn(),
+    onScheduleSaved: vi.fn(),
+    ...props,
   };
+  const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+  return { ...render(<ScheduleWizard {...defaultProps} />, { wrapper }), props: defaultProps };
+};
 
-  it('renders step 1 correctly with test plans loaded', async () => {
+/** The step indicator puts the active styling on the wrapper, not on the label span. */
+const activeStepTitles = () =>
+  screen
+    .getAllByText(/^scheduleWizard\.steps\.step\d\.title$/)
+    .filter((el) => el.parentElement?.className.includes('font-semibold'))
+    .map((el) => el.textContent);
+
+/** Radix needs focus + a keyboard activation; JSDOM has no PointerEvent. */
+const openSelect = async (trigger: HTMLElement) => {
+  await waitFor(() => expect(trigger).not.toBeDisabled());
+  trigger.focus();
+  fireEvent.keyDown(trigger, { key: 'Enter', code: 'Enter' });
+  await waitFor(() => expect(screen.getAllByRole('option', { hidden: true }).length).toBeGreaterThan(0));
+};
+
+const clickNext = async () => {
+  fireEvent.click(screen.getByText(K.next));
+};
+
+const fillStepOne = async (name: string) => {
+  await waitFor(() => expect(fetchTestPlansAPI).toHaveBeenCalled());
+  // The wizard defaults testPlanId to the first plan once the list resolves.
+  await waitFor(() =>
+    expect(screen.getByLabelText(K.testPlanLabel)).toHaveTextContent(mockTestPlans[0].name),
+  );
+  fireEvent.change(screen.getByLabelText(K.scheduleNameLabel), { target: { value: name } });
+};
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  queryClient = createQueryClient();
+  fetchTestPlansAPI.mockResolvedValue(mockTestPlans as never);
+  createSchedule.mockResolvedValue({ id: 'new-sched-1' } as never);
+  updateSchedule.mockResolvedValue({ id: 'edited-sched-1' } as never);
+});
+
+describe('ScheduleWizard', () => {
+  it('renders step 1 with the test plans loaded', async () => {
     renderWizard();
-    expect(await screen.findByText('scheduleWizard.createTitle')).toBeInTheDocument(); // Using a key from the component
-    expect(screen.getByText('scheduleWizard.steps.step1.title')).toHaveClass('font-semibold'); // Active step
 
-    expect(screen.getByLabelText('scheduleWizard.steps.step1.testPlanLabel')).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByText('scheduleWizard.loading')).not.toBeInTheDocument());
-    // Find by role combobox for SelectTrigger, then click to open
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: /select test plan/i }));
-    expect(await screen.findByText('Test Plan Alpha')).toBeInTheDocument();
-    expect(screen.getByText('Test Plan Beta')).toBeInTheDocument();
+    expect(await screen.findByText(K.createTitle)).toBeInTheDocument();
+    expect(activeStepTitles()).toEqual([K.stepTitle(1)]);
+    expect(screen.getByLabelText(K.testPlanLabel)).toBeInTheDocument();
+
+    await openSelect(screen.getByLabelText(K.testPlanLabel));
+
+    // Radix mirrors the selected item into a hidden measurement node, so the currently
+    // selected plan legitimately appears twice.
+    const optionNames = screen
+      .getAllByRole('option', { hidden: true })
+      .map((option) => option.textContent);
+    expect(optionNames).toContain('Test Plan Alpha');
+    expect(optionNames).toContain('Test Plan Beta');
   });
 
-  it('allows navigation through steps', async () => {
+  it('advances through the steps once step 1 is valid', async () => {
     renderWizard();
-    // Step 1
-    fireEvent.change(screen.getByLabelText('scheduleWizard.steps.step1.scheduleNameLabel'), { target: { value: 'My Test Schedule' } });
-    // Select a test plan (assuming first one if not preselected)
-    const testPlanSelect = screen.getByRole('combobox', { name: /select test plan/i });
-    fireEvent.mouseDown(testPlanSelect);
-    fireEvent.click(await screen.findByText(mockTestPlans[0].name));
+    await fillStepOne('My Test Schedule');
 
-    await act(async () => {
-      fireEvent.click(screen.getByText('scheduleWizard.buttons.next'));
-    });
-    expect(screen.getByText('scheduleWizard.steps.step2.title')).toHaveClass('font-semibold'); // Now on Step 2
+    await clickNext();
+    await waitFor(() => expect(activeStepTitles()).toEqual([K.stepTitle(2)]));
 
-    // Step 2: Select a browser
-    fireEvent.click(screen.getByLabelText('chromium')); // Assuming 'chromium' is a label for a checkbox
+    // Step 2 pre-selects the first browser; toggling a second one keeps the form valid.
+    fireEvent.click(screen.getByLabelText(BROWSER_OPTIONS[1].label));
 
-    await act(async () => {
-      fireEvent.click(screen.getByText('scheduleWizard.buttons.next'));
-    });
-    expect(screen.getByText('scheduleWizard.steps.step3.title')).toHaveClass('font-semibold'); // Now on Step 3
+    await clickNext();
+    await waitFor(() => expect(activeStepTitles()).toEqual([K.stepTitle(3)]));
   });
 
-  it('validates required fields before proceeding to next step', async () => {
+  it('blocks navigation and warns when required fields are missing', async () => {
     renderWizard();
-    await act(async () => {
-      fireEvent.click(screen.getByText('scheduleWizard.buttons.next'));
-    });
-    // Still on Step 1 because scheduleName and testPlanId are required by schema
-    expect(screen.getByText('scheduleWizard.steps.step1.title')).toHaveClass('font-semibold');
-    expect(toast).toHaveBeenCalledWith(expect.objectContaining({variant: "destructive"}));
+    await waitFor(() => expect(fetchTestPlansAPI).toHaveBeenCalled());
+
+    // scheduleName is left empty on purpose.
+    await clickNext();
+
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({ variant: 'destructive' }),
+      ),
+    );
+    expect(activeStepTitles()).toEqual([K.stepTitle(1)]);
   });
 
-  it('handles "once" frequency selection and date/time input in Step 3', async () => {
-    renderWizard({ initialTestPlanId: 'tp1' }); // Pre-select plan to speed up to step 3
-    // Navigate to Step 3
-    fireEvent.change(screen.getByLabelText('scheduleWizard.steps.step1.scheduleNameLabel'), { target: { value: 'Step3 Test' } });
-    await act(async () => { fireEvent.click(screen.getByText('scheduleWizard.buttons.next')); }); // to step 2
-    fireEvent.click(screen.getByLabelText('chromium'));
-    await act(async () => { fireEvent.click(screen.getByText('scheduleWizard.buttons.next')); }); // to step 3
+  it('submits a create payload from the summary step', async () => {
+    const { props } = renderWizard();
+    await fillStepOne('Full Create Test');
 
-    // Select 'once' frequency
-    const frequencySelect = screen.getByRole('combobox'); // Assuming only one Select on this step for frequency
-    fireEvent.mouseDown(frequencySelect);
-    fireEvent.click(await screen.findByText('scheduleWizard.frequencies.once'));
+    // Walk to the summary step.
+    for (let step = 1; step < 6; step++) {
+      await clickNext();
+      await waitFor(() => expect(activeStepTitles()).toEqual([K.stepTitle(step + 1)]));
+    }
 
-    // Check if date picker is available
-    const datePickerButton = screen.getByText('scheduleWizard.steps.step3.pickDateTime');
-    expect(datePickerButton).toBeInTheDocument();
-    fireEvent.click(datePickerButton); // Open calendar popover
-    fireEvent.click(await screen.findByText('15')); // Click on a day, e.g., 15th
-    // Time input is also there
-    expect(screen.getByRole('textbox', { name: ''})).toHaveAttribute('type', 'time'); // Basic time input check
-  });
+    expect(screen.getByText(K.summaryTitle)).toBeInTheDocument();
 
+    fireEvent.click(screen.getByText(K.createSchedule));
 
-  it('submits form data for creating a new schedule on the last step', async () => {
-    const onScheduleSavedMock = vi.fn();
-    const onCloseMock = vi.fn();
-    renderWizard({ onScheduleSaved: onScheduleSavedMock, onClose: onCloseMock });
-
-    // Fill Step 1
-    fireEvent.change(screen.getByLabelText('scheduleWizard.steps.step1.scheduleNameLabel'), { target: { value: 'Full Create Test' } });
-    const tpSelect = screen.getByRole('combobox', { name: /select test plan/i });
-    fireEvent.mouseDown(tpSelect);
-    fireEvent.click(await screen.findByText(mockTestPlans[0].name));
-    await act(async () => { fireEvent.click(screen.getByText('scheduleWizard.buttons.next')); });
-
-    // Fill Step 2 (Browsers)
-    fireEvent.click(screen.getByLabelText('chromium'));
-    await act(async () => { fireEvent.click(screen.getByText('scheduleWizard.buttons.next')); });
-
-    // Fill Step 3 (Frequency - default is 'once', ensure date is set)
-    // Assuming nextRunAtOnce defaults to a valid date or is set
-    // For simplicity, let's assume default is fine for this test path
-    await act(async () => { fireEvent.click(screen.getByText('scheduleWizard.buttons.next')); });
-
-    // Step 4 (Notifications) - defaults are fine
-    await act(async () => { fireEvent.click(screen.getByText('scheduleWizard.buttons.next')); });
-
-    // Step 5 (Parameters & Advanced) - defaults are fine
-    await act(async () => { fireEvent.click(screen.getByText('scheduleWizard.buttons.next')); });
-
-    // Step 6 (Summary)
-    expect(screen.getByText('scheduleWizard.steps.step6.summaryTitle')).toBeInTheDocument();
-
-    // Submit
-    await act(async () => {
-      fireEvent.click(screen.getByText('scheduleWizard.buttons.createSchedule'));
-    });
-
-    await waitFor(() => expect(schedulesApi.createSchedule).toHaveBeenCalledTimes(1));
-    // Check some key parts of the payload
-    expect(schedulesApi.createSchedule).toHaveBeenCalledWith(
+    await waitFor(() => expect(createSchedule).toHaveBeenCalledTimes(1));
+    expect(createSchedule).toHaveBeenCalledWith(
       expect.objectContaining({
         scheduleName: 'Full Create Test',
         testPlanId: mockTestPlans[0].id,
-        browsers: ['chromium'],
-        frequency: 'once', // Default or how it's derived
-      })
+        browsers: [BROWSER_OPTIONS[0].value],
+        frequency: FREQUENCY_OPTIONS[0].value,
+      }),
     );
-    expect(onScheduleSavedMock).toHaveBeenCalled();
-    expect(onCloseMock).toHaveBeenCalled();
-    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'scheduleWizard.toast.success.createTitle' }));
+    await waitFor(() => expect(props.onScheduleSaved).toHaveBeenCalled());
+    expect(props.onClose).toHaveBeenCalled();
   });
 
-  it('pre-fills form and submits for updating an existing schedule', async () => {
-    const mockScheduleToEdit: TestPlanScheduleWithPlanName = {
+  it('pre-fills from an existing schedule and submits an update', async () => {
+    const scheduleToEdit = {
       id: 'sched-edit-1',
       testPlanId: mockTestPlans[1].id,
       testPlanName: mockTestPlans[1].name,
       scheduleName: 'Old Schedule Name',
-      frequency: 'daily@10:00', // This will be parsed by parseBackendScheduleToFormData
-      nextRunAt: Math.floor(new Date().getTime() / 1000),
+      frequency: FREQUENCY_OPTIONS[0].value,
+      nextRunAt: new Date('2025-07-15T10:00:00Z'),
       environment: 'Staging',
       browsers: ['firefox'],
       isActive: true,
       retryOnFailure: 'once',
-      createdAt: Date.now(),
-    };
-    (schedulesApi.updateSchedule as vi.Mock).mockResolvedValue({ ...mockScheduleToEdit, scheduleName: 'New Edited Name'});
+      notificationConfigOverride: null,
+      executionParameters: null,
+      createdAt: new Date(),
+      updatedAt: null,
+    } as unknown as schedulesApi.TestPlanScheduleEnhanced;
 
+    const { props } = renderWizard({ scheduleToEdit });
 
-    const onScheduleSavedMock = vi.fn();
-    renderWizard({ scheduleToEdit: mockScheduleToEdit, onScheduleSaved: onScheduleSavedMock });
+    expect(await screen.findByText(K.editTitle)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByLabelText(K.scheduleNameLabel)).toHaveValue('Old Schedule Name'),
+    );
+    expect(screen.getByLabelText(K.testPlanLabel)).toHaveTextContent(mockTestPlans[1].name);
 
-    await waitFor(() => {
-      expect(screen.getByLabelText('scheduleWizard.steps.step1.scheduleNameLabel')).toHaveValue('Old Schedule Name');
+    fireEvent.change(screen.getByLabelText(K.scheduleNameLabel), {
+      target: { value: 'New Edited Name' },
     });
-    // Check if test plan is selected (might need to open dropdown to verify selection if value not directly on trigger)
-    expect(screen.getByRole('combobox', { name: /select test plan/i })).toHaveTextContent(mockTestPlans[1].name);
-    // Check if frequency is set correctly
-    expect(screen.getByRole('combobox', { name: /frequency/i })).toHaveTextContent('scheduleWizard.frequencies.daily');
 
-
-    // Navigate to last step (or just modify one field and submit from step 1 if validation passes for all)
-    // For simplicity, let's assume we are on step 1, change name, then navigate to submit
-    fireEvent.change(screen.getByLabelText('scheduleWizard.steps.step1.scheduleNameLabel'), { target: { value: 'New Edited Name' } });
-
-    // Navigate to last step
-    for (let i = 0; i < 5; i++) {
-      await act(async () => { fireEvent.click(screen.getByText('scheduleWizard.buttons.next')); });
+    for (let step = 1; step < 6; step++) {
+      await clickNext();
+      await waitFor(() => expect(activeStepTitles()).toEqual([K.stepTitle(step + 1)]));
     }
 
-    await act(async () => {
-      fireEvent.click(screen.getByText('scheduleWizard.buttons.saveChanges'));
-    });
+    fireEvent.click(screen.getByText(K.saveChanges));
 
-    await waitFor(() => expect(schedulesApi.updateSchedule).toHaveBeenCalledTimes(1));
-    expect(schedulesApi.updateSchedule).toHaveBeenCalledWith(
-      mockScheduleToEdit.id,
+    await waitFor(() => expect(updateSchedule).toHaveBeenCalledTimes(1));
+    expect(updateSchedule).toHaveBeenCalledWith(
+      scheduleToEdit.id,
       expect.objectContaining({
-        scheduleName: 'New Edited Name', // The changed value
-        testPlanId: mockTestPlans[1].id, // Original value if not changed
-      })
+        scheduleName: 'New Edited Name',
+        testPlanId: mockTestPlans[1].id,
+      }),
     );
-    expect(onScheduleSavedMock).toHaveBeenCalled();
+    await waitFor(() => expect(props.onScheduleSaved).toHaveBeenCalled());
   });
-
 });

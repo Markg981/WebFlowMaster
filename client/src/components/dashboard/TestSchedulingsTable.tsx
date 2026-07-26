@@ -39,7 +39,7 @@ const TestSchedulingsTable: React.FC = () => {
         </div>
 
       { isLoading && (
-      <div className="flex items-center justify-center h-40">
+      <div className="flex items-center justify-center h-40" role="status">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="ml-2">{t('dashboard.testSchedulingsTable.loading.text')}</p>
       </div>

@@ -13,21 +13,25 @@ import type { TestPlanSchedule } from '@shared/schema';
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-const mockBaseScheduleFromServer: TestPlanSchedule = {
+// `nextRunAt`/`createdAt` are Postgres `timestamp` columns and `browsers` is `jsonb`, so
+// over the wire they arrive as ISO strings and a real array — not unix seconds and not a
+// JSON-encoded string. The mocks below mirror that; they used to encode the older shape,
+// which is why the parsed dates came out as 1970.
+const mockBaseScheduleFromServer = {
   id: 'sched1',
   scheduleName: 'Test Schedule 1',
   testPlanId: 'plan1',
   frequency: 'daily',
-  nextRunAt: Math.floor(new Date('2024-01-01T10:00:00Z').getTime() / 1000),
+  nextRunAt: new Date('2024-01-01T10:00:00Z').toISOString(),
   environment: 'QA',
-  browsers: JSON.stringify(['chromium']),
+  browsers: ['chromium'],
   isActive: true,
   retryOnFailure: 'none',
   notificationConfigOverride: null,
   executionParameters: null,
-  createdAt: Math.floor(new Date('2024-01-01T00:00:00Z').getTime() / 1000),
+  createdAt: new Date('2024-01-01T00:00:00Z').toISOString(),
   updatedAt: null,
-};
+} as unknown as TestPlanSchedule;
 
 // Server often joins testPlanName
 const mockScheduleWithPlanNameFromServer = {
@@ -80,7 +84,7 @@ describe('Schedule API Client', () => {
         expect(mockFetch).toHaveBeenCalledWith(`/api/test-plan-schedules/plan/${planId}`);
         expect(result.length).toBe(1);
         expect(result[0].id).toBe(mockScheduleWithPlanNameFromServer.id);
-        expect(result[0].nextRunAt).toEqual(new Date(mockBaseScheduleFromServer.nextRunAt * 1000));
+        expect(result[0].nextRunAt).toEqual(new Date('2024-01-01T10:00:00Z'));
     });
   });
 
@@ -99,21 +103,21 @@ describe('Schedule API Client', () => {
         executionParameters: { tag: 'nightly' },
       };
 
-      const expectedServerResponse: TestPlanSchedule = {
+      const expectedServerResponse = {
         ...mockBaseScheduleFromServer, // Use as a base
         id: 'schedNew', // Assume server returns a new ID
         scheduleName: newSchedulePayload.scheduleName,
         testPlanId: newSchedulePayload.testPlanId,
         frequency: newSchedulePayload.frequency,
-        nextRunAt: Math.floor(newSchedulePayload.nextRunAt.getTime() / 1000),
+        nextRunAt: newSchedulePayload.nextRunAt.toISOString(),
         environment: newSchedulePayload.environment,
-        browsers: JSON.stringify(newSchedulePayload.browsers),
+        browsers: newSchedulePayload.browsers,
         isActive: newSchedulePayload.isActive,
         retryOnFailure: newSchedulePayload.retryOnFailure,
-        notificationConfigOverride: JSON.stringify(newSchedulePayload.notificationConfigOverride),
-        executionParameters: JSON.stringify(newSchedulePayload.executionParameters),
-        createdAt: Math.floor(Date.now() / 1000), // Assume server sets this
-      };
+        notificationConfigOverride: newSchedulePayload.notificationConfigOverride,
+        executionParameters: newSchedulePayload.executionParameters,
+        createdAt: new Date().toISOString(), // Assume server sets this
+      } as unknown as TestPlanSchedule;
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -125,10 +129,9 @@ describe('Schedule API Client', () => {
       expect(mockFetch).toHaveBeenCalledWith('/api/test-plan-schedules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...newSchedulePayload,
-          nextRunAt: Math.floor(newSchedulePayload.nextRunAt.getTime() / 1000), // Timestamped
-        }),
+        // prepareSchedulePayloadForServer keeps the Date, and JSON.stringify renders it
+        // as an ISO string — which is what the server's timestamp column expects.
+        body: JSON.stringify(newSchedulePayload),
       });
       expect(result.id).toBe('schedNew');
       expect(result.scheduleName).toBe(newSchedulePayload.scheduleName);
@@ -162,14 +165,14 @@ describe('Schedule API Client', () => {
         nextRunAt: new Date('2024-03-01T14:00:00Z'),
       };
 
-      const expectedServerResponse: TestPlanSchedule = {
+      const expectedServerResponse = {
         ...mockBaseScheduleFromServer,
         id: scheduleIdToUpdate,
         scheduleName: updatePayload.scheduleName!,
         isActive: updatePayload.isActive!,
-        nextRunAt: Math.floor(updatePayload.nextRunAt!.getTime() / 1000),
-        updatedAt: Math.floor(Date.now() / 1000),
-      };
+        nextRunAt: updatePayload.nextRunAt!.toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as unknown as TestPlanSchedule;
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -181,10 +184,7 @@ describe('Schedule API Client', () => {
       expect(mockFetch).toHaveBeenCalledWith(`/api/test-plan-schedules/${scheduleIdToUpdate}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...updatePayload,
-          nextRunAt: Math.floor(updatePayload.nextRunAt!.getTime() / 1000),
-        }),
+        body: JSON.stringify(updatePayload),
       });
       expect(result.scheduleName).toBe('Updated Daily Run');
       expect(result.isActive).toBe(false);

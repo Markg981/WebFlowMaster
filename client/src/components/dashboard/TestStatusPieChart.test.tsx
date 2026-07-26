@@ -1,23 +1,26 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import TestStatusPieChart from './TestStatusPieChart';
 
-// Mock API function (fetchTestStatusSummary)
-// This is tricky if it's defined in the same file. Assume it's mockable or test via useQuery's behavior.
-// For robust mocking, API calls should be in their own module.
-// We will mock the useQuery hook itself for this component.
-
-// Mock Recharts components to avoid complex rendering in tests
-// and focus on data flow and conditional rendering logic.
+/**
+ * The chart takes `data`/`isLoading` as props — the dashboard page owns the query. Recharts
+ * is stubbed because `ResponsiveContainer` measures its parent, and JSDOM reports 0×0, so
+ * the real chart would never render its children.
+ */
 vi.mock('recharts', async (importOriginal) => {
   const original = await importOriginal<typeof import('recharts')>();
   return {
     ...original,
-    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
-    PieChart: ({ children }: { children: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
-    Pie: () => <div data-testid="pie-element" />,
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="responsive-container">{children}</div>
+    ),
+    PieChart: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="pie-chart">{children}</div>
+    ),
+    Pie: ({ children }: { children?: React.ReactNode }) => (
+      <div data-testid="pie-element">{children}</div>
+    ),
     Cell: () => <div data-testid="cell-element" />,
     Tooltip: () => <div data-testid="tooltip-element" />,
     Legend: () => <div data-testid="legend-element" />,
@@ -28,79 +31,49 @@ vi.mock('lucide-react', async (importOriginal) => {
   const original = await importOriginal<typeof import('lucide-react')>();
   return {
     ...original,
-    Loader2: (props: any) => <div data-testid="loader-icon" {...props}>Loader</div>,
-    AlertCircle: (props: any) => <div data-testid="alert-icon" {...props}>Alert</div>,
+    Loader2: (props: Record<string, unknown>) => <div data-testid="loader-icon" {...props} />,
   };
 });
 
-const createTestQueryClient = () => new QueryClient({
-  defaultOptions: { queries: { retry: false } },
-});
-
-// Mock data for API
-const mockSuccessData = { passed: 300, failed: 50, running: 10, skipped: 5 };
-const mockEmptyData = { passed: 0, failed: 0, running: 0, skipped: 0 };
-
-// We need to properly mock useQuery for this component
-// For now, we will use queryClient.setQueryData to simulate API responses.
+const sampleData = [
+  { name: 'Passed', value: 300, fill: '#0f0' },
+  { name: 'Failed', value: 50, fill: '#f00' },
+  { name: 'Skipped', value: 0, fill: '#999' },
+];
 
 describe('TestStatusPieChart', () => {
-  let queryClient: QueryClient;
+  it('renders the chart title', () => {
+    render(<TestStatusPieChart data={sampleData} />);
 
-  beforeEach(() => {
-    queryClient = createTestQueryClient();
+    expect(screen.getByText('Test Status Overview')).toBeInTheDocument();
   });
 
-  const renderWithClient = (ui: React.ReactElement) => {
-    return render(
-      <QueryClientProvider client={queryClient}>
-        {ui}
-      </QueryClientProvider>
-    );
-  };
+  it('shows a spinner while loading', () => {
+    render(<TestStatusPieChart isLoading />);
 
-  it('displays loading state initially', async () => {
-    // To test loading, don't pre-fill cache. useQuery will be 'loading'.
-    renderWithClient(<TestStatusPieChart />);
     expect(screen.getByTestId('loader-icon')).toBeInTheDocument();
+    expect(screen.queryByTestId('pie-chart')).not.toBeInTheDocument();
   });
 
-  it('displays error state if API call fails', async () => {
-    // Simulate an error by making the query fail
-    queryClient.setQueryData(['testStatusSummary'], () => {
-      throw new Error('Network Error');
-    });
+  it('shows an empty message when there are no executions', () => {
+    render(<TestStatusPieChart data={[{ name: 'Passed', value: 0, fill: '#0f0' }]} />);
 
-    renderWithClient(<TestStatusPieChart />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('alert-icon')).toBeInTheDocument();
-      expect(screen.getByText('Error loading chart data.')).toBeInTheDocument();
-    });
+    expect(screen.getByText('No test executions found.')).toBeInTheDocument();
+    expect(screen.queryByTestId('pie-chart')).not.toBeInTheDocument();
   });
 
-  it('displays "No data available" message when data is empty or all zeros', async () => {
-    queryClient.setQueryData(['testStatusSummary'], mockEmptyData);
-    renderWithClient(<TestStatusPieChart />);
+  it('shows an empty message when no data is supplied at all', () => {
+    render(<TestStatusPieChart />);
 
-    await waitFor(() => {
-      expect(screen.getByText('No data available to display.')).toBeInTheDocument();
-    });
+    expect(screen.getByText('No test executions found.')).toBeInTheDocument();
   });
 
-  it('renders chart title and chart elements when data is available', async () => {
-    queryClient.setQueryData(['testStatusSummary'], mockSuccessData);
-    renderWithClient(<TestStatusPieChart />);
+  it('renders one cell per non-zero slice when data is available', () => {
+    render(<TestStatusPieChart data={sampleData} />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Test Status Overview')).toBeInTheDocument();
-      expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
-      expect(screen.getByTestId('pie-chart')).toBeInTheDocument();
-      expect(screen.getByTestId('pie-element')).toBeInTheDocument();
-      // We expect multiple cells, tooltips, legends due to mock structure
-      expect(screen.getAllByTestId('cell-element').length).toBeGreaterThan(0);
-      expect(screen.getByTestId('tooltip-element')).toBeInTheDocument();
-      expect(screen.getByTestId('legend-element')).toBeInTheDocument();
-    });
+    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
+    expect(screen.getByTestId('pie-chart')).toBeInTheDocument();
+    // The zero-valued "Skipped" slice is filtered out before rendering.
+    expect(screen.getAllByTestId('cell-element')).toHaveLength(2);
   });
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import RunTestNowButton from './RunTestNowButton'; // Adjust path as needed
 // To verify toast calls
@@ -40,8 +40,13 @@ describe('RunTestNowButton', () => {
   beforeEach(() => {
     queryClient = createTestQueryClient();
     mockedToast.mockClear(); // Clear toast mock calls before each test
-    // vi.spyOn(console, 'log').mockImplementation(() => {}); // Optional: spy on console.log
-    // vi.spyOn(console, 'error').mockImplementation(() => {});// Optional: spy on console.error
+    // The component's placeholder API fails on `Math.random() > 0.9`; pin it so the suite
+    // is deterministic instead of failing roughly one run in ten.
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   const renderWithClient = (ui: React.ReactElement) => {
@@ -67,8 +72,8 @@ describe('RunTestNowButton', () => {
     // as it's defined inside the component. We test its effects.
     fireEvent.click(button);
 
-    // Check for loading state
-    expect(button).toBeDisabled();
+    // `isPending` flips in a subsequent render, so the loading state has to be awaited.
+    await waitFor(() => expect(button).toBeDisabled());
     expect(screen.getByTestId('loader-icon')).toBeInTheDocument();
     expect(screen.queryByTestId('play-icon')).not.toBeInTheDocument();
 

@@ -112,7 +112,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
           control={control}
           render={({ field }) => (
             <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingTestPlans}>
-              <SelectTrigger>
+              <SelectTrigger id="testPlanId">
                 <SelectValue placeholder="Select a test plan..." />
               </SelectTrigger>
               <SelectContent>
@@ -140,7 +140,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
             control={control}
             render={({ field }) => (
               <Select onValueChange={field.onChange} value={field.value}>
-                <SelectTrigger>
+                <SelectTrigger id="frequency">
                   <SelectValue placeholder="Select frequency..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -191,6 +191,8 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
             <Popover>
               <PopoverTrigger asChild>
                 <Button
+                  id="nextRunAt"
+                  type="button"
                   variant="outline"
                   className={cn(
                     'w-full justify-start text-left font-normal',
@@ -282,7 +284,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
           control={control}
           render={({ field }) => (
             <Select onValueChange={field.onChange} value={field.value}>
-              <SelectTrigger>
+              <SelectTrigger id="retryOnFailure">
                 <SelectValue placeholder="Select retry behavior..." />
               </SelectTrigger>
               <SelectContent>

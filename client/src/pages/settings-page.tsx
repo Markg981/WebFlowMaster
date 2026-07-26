@@ -448,7 +448,14 @@ export default function SettingsPage() {
                   {projectsData.map((project) => (
                     <li key={project.id} className="flex items-center justify-between p-2 border rounded-md">
                       <span className="text-sm">{project.name}</span>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteProject(project)} disabled={deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id || isPageDisabled}>
+                      {/* Icon-only control: without an aria-label it has no accessible name. */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={t('settingsPage.deleteProject.ariaLabel', 'Delete project {{name}}', { name: project.name })}
+                        onClick={() => handleDeleteProject(project)}
+                        disabled={deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id || isPageDisabled}
+                      >
                         {(deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-red-500" />}
                       </Button>
                     </li>))}
