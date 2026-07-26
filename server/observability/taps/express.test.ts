@@ -6,6 +6,7 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import request from 'supertest';
 import { incidentErrorHandler, buildServerApiTrigger } from './express';
 import { configureIncidents } from '../incident';
+import * as incidentModule from '../incident';
 import { IncidentStore } from '../store';
 
 let root: string;
@@ -79,6 +80,27 @@ describe('incidentErrorHandler', () => {
 
     expect(response.status).toBe(500);
   });
+
+  it('reports to console.error, and nothing else, if recordIncident ever broke its "never throws" contract', async () => {
+    // recordIncident is documented to never throw, so this simulates that contract being
+    // violated — the one scenario the local .catch() in the tap exists to guard against.
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const recordIncidentSpy = vi
+      .spyOn(incidentModule, 'recordIncident')
+      .mockRejectedValueOnce(new Error('simulated recordIncident rejection'));
+
+    const response = await request(appThatThrows()).post('/api/boom').send({});
+
+    expect(response.status).toBe(500);
+    await vi.waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[observability] recordIncident rejected unexpectedly:',
+        expect.any(Error),
+      );
+    });
+
+    recordIncidentSpy.mockRestore();
+  });
 });
 
 describe('buildServerApiTrigger', () => {
@@ -88,11 +110,24 @@ describe('buildServerApiTrigger', () => {
       path: '/api/x',
       query: {},
       body: undefined,
-      headers: { 'content-type': 'application/json', cookie: 'session=abc', 'x-correlation-id': 'c-1' },
+      headers: {
+        'content-type': 'application/json',
+        cookie: 'session=abc',
+        'x-correlation-id': 'c-1',
+        // Ours, unmistakably named — kept.
+        'x-wfm-session-id': 's-a1b2c3d4',
+        // The conventional name a real session token would arrive under — dropped
+        // alongside cookie, same as if a proxy or another client sent a credential here.
+        'x-session-id': 'a-real-session-token',
+      },
     } as unknown as Request;
 
     const trigger = buildServerApiTrigger(req);
 
-    expect(trigger.headers).toEqual({ 'content-type': 'application/json', 'x-correlation-id': 'c-1' });
+    expect(trigger.headers).toEqual({
+      'content-type': 'application/json',
+      'x-correlation-id': 'c-1',
+      'x-wfm-session-id': 's-a1b2c3d4',
+    });
   });
 });

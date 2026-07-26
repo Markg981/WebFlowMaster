@@ -9,7 +9,20 @@ import winston from 'winston';
  * the decryptSecret() flow used during test plan execution.
  */
 
-const SENSITIVE_KEYS = /^(password|passwd|secret|token|authorization|cookie|apikey|api_key|encryptedvalue|iv|authtag|credit_?card|ssn|session_?id|x-api-key)$/i;
+// Exact key names only — deliberately, not "contains X" substring matching. A handful of
+// compound credential names (access_token, refresh_token, apiToken, client_secret,
+// private_key, pwd) are listed explicitly below via the same optional-underscore idiom
+// already used for credit_card/session_id, so both snake_case and camelCase spellings match
+// case-insensitively without a single character of separator being required.
+//
+// A generic "contains 'auth'" or "contains 'token'" rule was considered and rejected: it
+// would also catch `author`, `authType` (names an auth *scheme*, not a secret), and
+// `tokenCount` (a number, not a token) — real field names in this codebase — and mask them
+// for no security benefit. Enumerating the known-dangerous compounds instead means a name we
+// didn't anticipate could still slip through; that is an accepted, documented gap, not an
+// oversight — see redactString below and recordIncident's use of redactObject for where this
+// matters most.
+const SENSITIVE_KEYS = /^(password|passwd|pwd|secret|token|authorization|cookie|apikey|api_key|api_?token|access_?token|refresh_?token|client_?secret|private_?key|encryptedvalue|iv|authtag|credit_?card|ssn|session_?id|x-api-key)$/i;
 
 const REDACTED = '[REDACTED]';
 const MAX_DEPTH = 6;
