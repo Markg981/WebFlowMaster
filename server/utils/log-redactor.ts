@@ -53,3 +53,11 @@ export const redactSensitiveData = winston.format((info) => {
   const redactedMeta = redactValue(metadata);
   return { level, message, timestamp, ...redactedMeta } as winston.Logform.TransformableInfo;
 });
+
+/**
+ * Redacts an arbitrary object with the same rules the winston format uses.
+ * Exported so incident triggers go through one implementation, not a second copy.
+ */
+export function redactObject(value: unknown): unknown {
+  return redactValue(value, 0);
+}
