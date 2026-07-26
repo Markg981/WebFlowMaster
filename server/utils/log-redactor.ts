@@ -61,3 +61,33 @@ export const redactSensitiveData = winston.format((info) => {
 export function redactObject(value: unknown): unknown {
   return redactValue(value, 0);
 }
+
+// Derived from SENSITIVE_KEYS (stripping the `^(` / `)$` anchors) so the free-text scrubber
+// below can never drift into a second, divergent list of sensitive key names.
+const SENSITIVE_KEY_ALTERNATION = SENSITIVE_KEYS.source.replace(/^\^\(/, '').replace(/\)\$$/, '');
+
+/** Matches `key: value` / `key=value` where key is one of SENSITIVE_KEYS, capturing the key
+ * and separator so the replacement can keep them and only blank the value. */
+const KEY_VALUE_PATTERN = new RegExp(
+  `\\b(${SENSITIVE_KEY_ALTERNATION})(\\s*[:=]\\s*)("[^"]*"|'[^']*'|\\S+)`,
+  'gi',
+);
+
+/** Bearer tokens don't have a "key" at all, but the scheme name is a reliable enough marker. */
+const BEARER_TOKEN_PATTERN = /\bBearer\s+\S+/gi;
+
+/**
+ * Scrubs secrets out of free text — an error message, a title — that redactObject cannot
+ * reach because there is no object key to match against, only prose.
+ *
+ * This is deliberately narrow and covers exactly two shapes: an explicit `key: value` /
+ * `key=value` pair naming a sensitive key, and a bearer token. A secret embedded in prose
+ * with no key at all (e.g. "the value is hunter2") is indistinguishable from any other word
+ * and is NOT caught here — there is no general fix for that short of not logging free text.
+ */
+export function redactString(value: string): string {
+  if (!value) return value;
+  return value
+    .replace(KEY_VALUE_PATTERN, (_match, key: string, sep: string) => `${key}${sep}${REDACTED}`)
+    .replace(BEARER_TOKEN_PATTERN, `Bearer ${REDACTED}`);
+}

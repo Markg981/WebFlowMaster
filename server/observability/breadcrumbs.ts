@@ -31,7 +31,8 @@ export class BreadcrumbRing {
 
     let bucket = this.buckets.get(correlationId);
     if (bucket) {
-      // Re-insert so Map iteration order tracks recency, making the first key the LRU.
+      // Re-insert so Map iteration order tracks least-recently-written, making the first
+      // key the LRU (only push touches this ordering; take() is a read and leaves it alone).
       this.buckets.delete(correlationId);
     } else {
       bucket = { crumbs: [], touchedAt: 0 };

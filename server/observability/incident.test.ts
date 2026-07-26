@@ -91,6 +91,48 @@ describe('recordIncident', () => {
     expect(JSON.stringify(incident!.trigger)).toContain('marco');
   });
 
+  it('redacts secrets from breadcrumbs and the error message in the incident actually written to disk', async () => {
+    const secret = 'hunter2-do-not-leak';
+    serverBreadcrumbs.push('c-secret', { step: 'auth', password: secret });
+
+    const error = new Error(`login failed for password: ${secret}`);
+    error.stack = `Error: ${error.message}\n    at run (${path.join(repoRoot, 'server/thing.ts')}:3:5)`;
+
+    const incident = await recordIncident({
+      kind: 'server-api',
+      error,
+      trigger: {},
+      correlationId: 'c-secret',
+    });
+
+    expect(incident).not.toBeNull();
+    const store = new IncidentStore(root);
+    const written = await store.read(incident!.id);
+
+    expect(JSON.stringify(written)).not.toContain(secret);
+    // Sanity check the redaction actually ran rather than the field being empty.
+    expect(written!.title).toContain('login failed for password');
+    expect(written!.breadcrumbs).toEqual([{ step: 'auth', password: '[REDACTED]' }]);
+  });
+
+  it('folds occurrences suppressed by the rate limit into the next persisted count', async () => {
+    vi.useFakeTimers();
+    const error = errorFrom('server/thing.ts', 3);
+
+    const first = await recordIncident({ kind: 'job', error, trigger: {} });
+    expect(first).not.toBeNull();
+
+    // Both land inside the 1s gate and would otherwise vanish entirely.
+    await recordIncident({ kind: 'job', error, trigger: {} });
+    await recordIncident({ kind: 'job', error, trigger: {} });
+
+    vi.advanceTimersByTime(1001);
+    const second = await recordIncident({ kind: 'job', error, trigger: {} });
+
+    expect(second).not.toBeNull();
+    expect(second!.count).toBe(4);
+  });
+
   it('rate-limits repeats of the same fingerprint within a second', async () => {
     const first = await recordIncident({ kind: 'job', error: errorFrom('server/thing.ts', 3), trigger: {} });
     const second = await recordIncident({ kind: 'job', error: errorFrom('server/thing.ts', 3), trigger: {} });
@@ -108,5 +150,48 @@ describe('recordIncident', () => {
     await expect(
       recordIncident({ kind: 'runner', error: errorFrom('server/thing.ts', 3), trigger: {} }),
     ).resolves.toBeNull();
+  });
+
+  describe('recursion guard', () => {
+    it('refuses a nested recordIncident call reachable from within the same recording path', async () => {
+      let nestedPromise: Promise<unknown> | undefined;
+      configureIncidents({
+        rootDir: root,
+        repoRoot,
+        logger: {
+          error: () => {
+            // Simulates something inside recordIncident (e.g. the logger transport itself)
+            // failing and trying to record its own incident — still on the same async
+            // chain as the outer call, so it must be refused, not queued behind it.
+            nestedPromise = recordIncident({
+              kind: 'runner',
+              error: errorFrom('server/thing.ts', 5),
+              trigger: {},
+            });
+          },
+        },
+      });
+
+      const outer = await recordIncident({
+        kind: 'server-api',
+        error: errorFrom('server/thing.ts', 3),
+        trigger: {},
+      });
+
+      expect(outer).not.toBeNull();
+      expect(nestedPromise).toBeDefined();
+      await expect(nestedPromise).resolves.toBeNull();
+    });
+
+    it('records two independent concurrent incidents instead of dropping the second', async () => {
+      const [a, b] = await Promise.all([
+        recordIncident({ kind: 'server-api', error: errorFrom('server/thing.ts', 3), trigger: {} }),
+        recordIncident({ kind: 'job', error: errorFrom('server/thing.ts', 5), trigger: {} }),
+      ]);
+
+      expect(a).not.toBeNull();
+      expect(b).not.toBeNull();
+      expect(a!.id).not.toBe(b!.id);
+    });
   });
 });
