@@ -1,11 +1,10 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { I18nextProvider } from 'react-i18next';
-import i18n from '@/i18n'; // Your i18n instance
+import { format } from 'date-fns';
 import TestSchedulingsTable from './TestSchedulingsTable';
 import * as schedulesApi from '@/lib/api/schedules';
-import { MemoryRouter } from 'wouter'; // To handle <Link> components
+import { TestRouter } from '@/test-utils/router';
 
 // Mocks
 vi.mock('@/lib/api/schedules');
@@ -21,33 +20,33 @@ const queryClient = new QueryClient({
 
 const AllTheProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <MemoryRouter> {/* Added MemoryRouter */}
-      <QueryClientProvider client={queryClient}>
-        <I18nextProvider i18n={i18n}>
-          {children}
-        </I18nextProvider>
-      </QueryClientProvider>
-    </MemoryRouter>
+    <TestRouter>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </TestRouter>
   );
 };
 
-const mockSchedules: schedulesApi.TestPlanScheduleWithPlanName[] = [
+const fetchAllSchedules = vi.mocked(schedulesApi.fetchAllSchedules);
+
+// `fetchAllSchedules` parses `nextRunAt` into a Date before returning; the component relies
+// on that (`nextRunAt instanceof Date`), so the mock has to hand back the parsed shape too.
+const mockSchedules = [
   {
     id: 'sched1', testPlanId: 'tp1', testPlanName: 'Alpha Plan', scheduleName: 'Daily QA',
-    frequency: 'daily@10:00', nextRunAt: Math.floor(new Date('2024-08-15T10:00:00Z').getTime() / 1000),
-    environment: 'QA', browsers: ['chromium'], isActive: true, retryOnFailure: 'none', createdAt: Date.now()
+    frequency: 'daily@10:00', nextRunAt: new Date('2024-08-15T10:00:00Z'),
+    environment: 'QA', browsers: ['chromium'], isActive: true, retryOnFailure: 'none', createdAt: new Date(),
   },
   {
     id: 'sched2', testPlanId: 'tp2', testPlanName: 'Beta Plan', scheduleName: 'Weekly Staging',
-    frequency: 'weekly@Mon,14:30', nextRunAt: Math.floor(new Date('2024-08-19T14:30:00Z').getTime() / 1000),
-    environment: 'Staging', browsers: ['firefox', 'webkit'], isActive: true, retryOnFailure: 'once', createdAt: Date.now()
+    frequency: 'weekly@Mon,14:30', nextRunAt: new Date('2024-08-19T14:30:00Z'),
+    environment: 'Staging', browsers: ['firefox', 'webkit'], isActive: true, retryOnFailure: 'once', createdAt: new Date(),
   },
   {
     id: 'sched3', testPlanId: 'tp3', testPlanName: 'Gamma Plan', scheduleName: 'Nightly Inactive',
-    frequency: 'daily@01:00', nextRunAt: Math.floor(new Date('2024-08-16T01:00:00Z').getTime() / 1000),
-    environment: 'Production', browsers: ['chromium'], isActive: false, retryOnFailure: 'none', createdAt: Date.now()
+    frequency: 'daily@01:00', nextRunAt: new Date('2024-08-16T01:00:00Z'),
+    environment: 'Production', browsers: ['chromium'], isActive: false, retryOnFailure: 'none', createdAt: new Date(),
   },
-];
+] as unknown as schedulesApi.TestPlanScheduleEnhanced[];
 
 describe('TestSchedulingsTable', () => {
   beforeEach(() => {
@@ -56,83 +55,81 @@ describe('TestSchedulingsTable', () => {
   });
 
   it('renders loading state initially', () => {
-    (schedulesApi.fetchAllSchedules as vi.Mock).mockReturnValue(new Promise(() => {})); // Never resolves
+    fetchAllSchedules.mockReturnValue(new Promise(() => {})); // Never resolves
     render(<TestSchedulingsTable />, { wrapper: AllTheProviders });
-    expect(screen.getByText('dashboard.testSchedulingsTable.loading.text')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toBeInTheDocument(); // Assuming Loader2 has role="status" or similar accessibility attribute
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
   it('renders error state if fetching schedules fails', async () => {
     const errorMessage = 'Failed to fetch';
-    (schedulesApi.fetchAllSchedules as vi.Mock).mockRejectedValue(new Error(errorMessage));
+    fetchAllSchedules.mockRejectedValue(new Error(errorMessage));
     render(<TestSchedulingsTable />, { wrapper: AllTheProviders });
 
-    expect(await screen.findByText('dashboard.testSchedulingsTable.error.text')).toBeInTheDocument();
+    expect(await screen.findByText('Error loading schedules.')).toBeInTheDocument();
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
   });
 
   it('renders "no upcoming schedules" message when no active schedules are returned', async () => {
-    (schedulesApi.fetchAllSchedules as vi.Mock).mockResolvedValue(
-        mockSchedules.filter(s => !s.isActive) // Return only inactive schedules
-    );
+    fetchAllSchedules.mockResolvedValue(mockSchedules.filter((s) => !s.isActive));
     render(<TestSchedulingsTable />, { wrapper: AllTheProviders });
-    expect(await screen.findByText('dashboard.testSchedulingsTable.noUpcomingSchedules.text')).toBeInTheDocument();
+    expect(await screen.findByText('No upcoming active schedules.')).toBeInTheDocument();
   });
 
   it('renders table with active schedules sorted by nextRunAt', async () => {
-    // Ensure mocks return schedules that will be filtered and sorted correctly
-    const activeSchedules = mockSchedules.filter(s => s.isActive);
-    (schedulesApi.fetchAllSchedules as vi.Mock).mockResolvedValue([...mockSchedules]); // mix of active/inactive
+    const activeSchedules = mockSchedules.filter((s) => s.isActive);
+    fetchAllSchedules.mockResolvedValue([...mockSchedules]); // mix of active/inactive
 
     render(<TestSchedulingsTable />, { wrapper: AllTheProviders });
 
-    // Wait for the first active schedule to appear (sorted by nextRunAt)
-    // mockSchedules[0] is 'Daily QA' at 2024-08-15T10:00:00Z
-    // mockSchedules[1] is 'Weekly Staging' at 2024-08-19T14:30:00Z
-    // The table should display 'Daily QA' first.
+    // 'Daily QA' runs before 'Weekly Staging', so it is rendered first.
     expect(await screen.findByText('Daily QA')).toBeInTheDocument();
     expect(screen.getByText('Alpha Plan')).toBeInTheDocument(); // Test Plan Name
     expect(screen.getByText('QA')).toBeInTheDocument(); // Environment
-    expect(screen.getByText(format(new Date(mockSchedules[0].nextRunAt! * 1000), 'PPpp'))).toBeInTheDocument();
+    expect(
+      screen.getByText(format(mockSchedules[0].nextRunAt as Date, 'PPpp')),
+    ).toBeInTheDocument();
     expect(screen.getByText('daily@10:00')).toBeInTheDocument(); // Frequency
 
-    const activeBadges = screen.getAllByText('dashboard.testSchedulingsTable.status.active');
+    const activeBadges = screen.getAllByText('Active');
     expect(activeBadges.length).toBe(activeSchedules.length); // Only active schedules shown
 
-    // Check that the inactive schedule is not rendered
+    // The inactive schedule must not be rendered.
     expect(screen.queryByText('Nightly Inactive')).not.toBeInTheDocument();
 
-    // Check link to test suites page
-    const viewAllLink = screen.getByText('dashboard.testSchedulingsTable.viewAll.link');
-    expect(viewAllLink).toBeInTheDocument();
+    const viewAllLink = screen.getByText('View All');
     expect(viewAllLink.closest('a')).toHaveAttribute('href', '/test-suites');
 
-    // Check link from Test Plan Name to specific plan schedules
     const planLink = screen.getByText('Alpha Plan');
-    expect(planLink.closest('a')).toHaveAttribute('href', `/test-suites?planId=${mockSchedules[0].testPlanId}&tab=schedules`);
+    expect(planLink.closest('a')).toHaveAttribute(
+      'href',
+      `/test-suites?planId=${mockSchedules[0].testPlanId}&tab=schedules`,
+    );
   });
 
   it('displays only top 5 upcoming active schedules', async () => {
-    const manyActiveSchedules: schedulesApi.TestPlanScheduleWithPlanName[] = [];
-    for (let i = 0; i < 10; i++) {
-      manyActiveSchedules.push({
-        id: `sched${i}`, testPlanId: `tp${i}`, testPlanName: `Plan ${i}`, scheduleName: `Schedule ${i}`,
-        frequency: 'daily', nextRunAt: Math.floor(new Date().getTime() / 1000) + (i * 3600), // Runs every hour from now
-        isActive: true, retryOnFailure: 'none', createdAt: Date.now()
-      });
-    }
-    (schedulesApi.fetchAllSchedules as vi.Mock).mockResolvedValue(manyActiveSchedules);
+    const manyActiveSchedules = Array.from({ length: 10 }, (_unused, i) => ({
+      id: `sched${i}`,
+      testPlanId: `tp${i}`,
+      testPlanName: `Plan ${i}`,
+      scheduleName: `Schedule ${i}`,
+      frequency: 'daily',
+      nextRunAt: new Date(Date.now() + i * 3600_000), // one per hour from now
+      isActive: true,
+      retryOnFailure: 'none',
+      createdAt: new Date(),
+    })) as unknown as schedulesApi.TestPlanScheduleEnhanced[];
+
+    fetchAllSchedules.mockResolvedValue(manyActiveSchedules);
     render(<TestSchedulingsTable />, { wrapper: AllTheProviders });
 
     await waitFor(() => {
-        expect(screen.getByText('Schedule 0')).toBeInTheDocument(); // First one
+      expect(screen.getByText('Schedule 0')).toBeInTheDocument();
     });
-    // Should display 5 schedules
-    const rows = screen.getAllByRole('row'); // Includes header row
+
+    const rows = screen.getAllByRole('row');
     expect(rows.length).toBe(5 + 1); // 5 data rows + 1 header row
 
-    // The 6th schedule (index 5) should not be present
     expect(screen.queryByText('Schedule 5')).not.toBeInTheDocument();
   });
-
 });

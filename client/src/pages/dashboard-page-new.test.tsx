@@ -1,247 +1,251 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import DashboardPageNew from './dashboard-page-new';
-import { MemoryRouter } from 'wouter';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import DashboardPageNew from './dashboard-page-new';
 
-// Define Project type locally for the test
-interface Project {
-  id: number;
-  name: string;
-}
-
-// Mock lucide-react icons
-vi.mock('lucide-react', async (importOriginal) => {
-  const original = await importOriginal() as any;
-  const genericIcon = (props: any) => React.createElement('svg', { 'data-testid': `icon-${props.name || 'generic'}` , ...props });
-  const icons: Record<string, React.FC<any>> = {};
-  const originalIcons = [
-    'Globe', 'Search', 'CheckCircle', 'Settings', 'Bell', 'User', 'Loader2',
-    'Play', 'Pause', 'StopCircle', 'ArrowLeft', 'XCircle', 'PlusSquare',
-    'TestTube', 'MousePointerSquare', 'Trash2', 'GripVertical',
-    'Keyboard', 'Clock', 'Scroll', 'CheckSquare', 'ListChecks', 'Hand', 'ChevronDown'
-  ];
-  originalIcons.forEach(iconName => {
-    icons[iconName] = (props: any) => genericIcon({...props, name: iconName.toLowerCase()});
-  });
-  return { ...original, ...icons, default: (props: any) => genericIcon({...props, name: 'default-icon'}) };
-});
-
-// Mock API calls & react-query
-const mockInvalidateQueries = vi.fn();
-const mockSaveTestMutateSpy = vi.fn();
-const mockCreateProjectMutateSpy = vi.fn(); // For SaveTestModal's own mutation
-
-let mockProjectsQueryData: { data: Project[] | undefined; isLoading: boolean; isError: boolean; error: Error | null } = {
-  data: [], isLoading: false, isError: false, error: null,
-};
-let mockSettingsQueryData: { data: any; isLoading: boolean; isError: boolean; error: Error | null } = {
-  data: { defaultTestUrl: 'http://default.com', theme: 'light' },
-  isLoading: false, isError: false, error: null,
-};
-
-// Store the actual options passed to useMutation by the component
-let actualSaveTestMutationOptions: any = null;
-
-vi.mock('@tanstack/react-query', async () => {
-  const original = await vi.importActual('@tanstack/react-query') as any;
-  return {
-    ...original,
-    useQuery: (options: { queryKey: string[] }) => {
-      if (options.queryKey[0] === 'projects') return mockProjectsQueryData;
-      if (options.queryKey[0] === 'settings') return mockSettingsQueryData;
-      return { data: undefined, isLoading: false, isError: false, error: null };
-    },
-    useMutation: (options: any) => {
-      // Check if this is the saveTestMutation from DashboardPageNew
-      // This check might need to be more robust, e.g., based on a mutationKey if used
-      const mutationFnString = options.mutationFn.toString();
-      if (mutationFnString.includes('/api/tests')) { // Heuristic for saveTestMutation
-        actualSaveTestMutationOptions = options; // Store the component's options
-        return { mutate: mockSaveTestMutateSpy, isPending: false, data: undefined, error: null };
-      }
-      // Fallback for other mutations (e.g., createProject in SaveTestModal, though that's better mocked in its own test file)
-      return { mutate: mockCreateProjectMutateSpy, isPending: false, data: undefined, error: null };
-    },
-    useQueryClient: () => ({
-      invalidateQueries: mockInvalidateQueries,
-    }),
-  };
-});
+/**
+ * Covers the "Create Test" page at the seam that matters: what the page hands to the API
+ * when the user saves, and what it does with the recorder.
+ *
+ * Only the leaves are stubbed (React Flow builder, save modal, preconditions panel);
+ * react-query itself runs for real, so mutation wiring is exercised rather than mocked
+ * away — the previous version of this file replaced `useMutation` with a spy and could not
+ * have caught a broken payload.
+ */
 
 const mockToast = vi.fn();
-vi.mock('@/hooks/use-toast', () => ({ toast: mockToast }));
-
-vi.mock('@/hooks/use-auth', () => ({
-  useAuth: () => ({
-    user: { id: 1, username: 'testuser' },
-    logoutMutation: { mutate: vi.fn(), isPending: false },
-  }),
+vi.mock('@/hooks/use-toast', () => ({
+  toast: (...args: unknown[]) => mockToast(...args),
+  useToast: () => ({ toast: mockToast }),
 }));
 
 const mockApiRequest = vi.fn();
-vi.mock('@/lib/queryClient', () => ({ apiRequest: mockApiRequest }));
+vi.mock('@/lib/queryClient', () => ({
+  apiRequest: (...args: unknown[]) => mockApiRequest(...args),
+}));
 
-const createTestQueryClient = () => new QueryClient({
-  defaultOptions: { queries: { retry: false, staleTime: Infinity } },
-});
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    // Return the key (or the provided default) so assertions do not depend on translations.
+    t: (key: string, fallback?: unknown) =>
+      typeof fallback === 'string' ? fallback : key,
+  }),
+}));
 
-const AllTheProviders: React.FC<{ children: React.ReactNode, client?: QueryClient }> = ({ children, client }) => {
-  const [queryClient] = React.useState(() => client || createTestQueryClient());
-  return (
-    <MemoryRouter>
-      <QueryClientProvider client={queryClient}>
-        <DndProvider backend={HTML5Backend}>{children}</DndProvider>
-      </QueryClientProvider>
-    </MemoryRouter>
+const SAVE_NAME = 'Checkout smoke test';
+const SAVE_PROJECT_ID = 7;
+
+vi.mock('@/components/SaveTestModal', () => ({
+  default: ({
+    isOpen,
+    onSave,
+  }: {
+    isOpen: boolean;
+    onSave: (name: string, projectId?: number) => void;
+  }) =>
+    isOpen ? (
+      <div data-testid="save-modal">
+        <button data-testid="modal-confirm" onClick={() => onSave(SAVE_NAME, SAVE_PROJECT_ID)}>
+          confirm
+        </button>
+      </div>
+    ) : null,
+}));
+
+vi.mock('@/components/PreconditionsPanel', () => ({
+  PreconditionsPanel: () => <div data-testid="preconditions-panel" />,
+}));
+
+vi.mock('@/components/visual-builder/VisualTestBuilder', () => ({
+  VisualTestBuilder: ({
+    testSequence,
+    onUpdateSequence,
+    onSaveTest,
+    onExecuteTest,
+  }: {
+    testSequence: unknown[];
+    onUpdateSequence: (sequence: unknown[]) => void;
+    onSaveTest: () => void;
+    onExecuteTest: () => void;
+  }) => (
+    <div>
+      <span data-testid="step-count">{testSequence.length}</span>
+      <button
+        data-testid="add-step"
+        onClick={() =>
+          onUpdateSequence([
+            {
+              id: 'step-1',
+              action: {
+                id: 'click',
+                type: 'click',
+                name: 'click',
+                icon: 'mouse-pointer',
+                description: 'click',
+              },
+              targetElement: {
+                id: 'el-1',
+                type: 'button',
+                selector: '#submit',
+                text: 'Submit',
+                tag: 'button',
+                attributes: {},
+              },
+              value: '',
+            },
+          ])
+        }
+      >
+        add step
+      </button>
+      <button data-testid="save-test" onClick={onSaveTest}>
+        save
+      </button>
+      <button data-testid="execute-test" onClick={onExecuteTest}>
+        execute
+      </button>
+    </div>
+  ),
+}));
+
+const renderPage = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <DndProvider backend={HTML5Backend}>
+        <DashboardPageNew />
+      </DndProvider>
+    </QueryClientProvider>,
   );
 };
 
-const renderDashboardPageNew = (client?: QueryClient) => {
-  return render(<DashboardPageNew />, { wrapper: ({children}) => <AllTheProviders client={client}>{children}</AllTheProviders> });
-};
+const urlInput = (container: HTMLElement) =>
+  container.querySelector('#urlInput') as HTMLInputElement;
 
-const sampleProjectsData: Project[] = [ { id: 1, name: 'Project Alpha' }, { id: 2, name: 'Project Beta' }];
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () =>
+      new Response(JSON.stringify({ defaultTestUrl: null, theme: 'light' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ),
+  );
+});
 
-describe('DashboardPageNew - General Test Saving', () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-    mockProjectsQueryData = { data: sampleProjectsData, isLoading: false, isError: false, error: null };
-    mockSettingsQueryData = { data: { defaultTestUrl: 'http://default.com', theme: 'light' }, isLoading: false, isError: false, error: null };
-    actualSaveTestMutationOptions = null;
-    mockSaveTestMutateSpy.mockClear(); // Clear spy calls
-    mockApiRequest.mockClear(); // Clear apiRequest calls
-    mockToast.mockClear(); // Clear toast calls
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe('DashboardPageNew — saving a test', () => {
+  it('refuses to open the save modal with an empty sequence', async () => {
+    renderPage();
+
+    fireEvent.click(screen.getByTestId('save-test'));
+
+    expect(screen.queryByTestId('save-modal')).not.toBeInTheDocument();
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({ variant: 'destructive' }),
+    );
   });
 
-  it('saveTestMutation is called with projectId from modal and shows success toast', async () => {
-    const testNameFromModal = "Test With Project ID";
-    const projectIdFromModal = sampleProjectsData[1].id;
-    const testUrl = "http://currenturl.com";
+  it('posts the current URL, sequence and project id', async () => {
+    mockApiRequest.mockResolvedValue({ id: 12345, name: SAVE_NAME });
 
-    // Mock SaveTestModal to call its onSave prop
-    vi.mock('@/components/SaveTestModal', () => ({
-      default: ({ isOpen, onSave }: {
-        isOpen: boolean;
-        onSave: (name: string, projectId?: number) => void;
-      }) => {
-        useEffect(() => {
-          if (isOpen) { // When DashboardPageNew sets isSaveModalOpen to true
-            onSave(testNameFromModal, projectIdFromModal); // Simulate modal save
-          }
-        }, [isOpen, onSave]);
-        return isOpen ? <div data-testid="mocked-save-test-modal-open" /> : null;
-      },
-    }));
+    const { container } = renderPage();
 
-    // Mock TestSequenceBuilder to allow opening the modal via onSaveTest
-    // The button needs to be clickable, so testSequence.length > 0 is assumed by component
-    // For the test, we'll just make the button call onSaveTest directly.
-    vi.mock('@/components/TestSequenceBuilder', () => ({
-        TestSequenceBuilder: ({ onSaveTest }: { onSaveTest: () => void; }) => (
-            <button data-testid="tsb-save-button" onClick={onSaveTest}>Save Test in TSB</button>
-        )
-    }));
+    fireEvent.change(urlInput(container), { target: { value: 'https://shop.test' } });
+    fireEvent.click(screen.getByTestId('add-step'));
+    fireEvent.click(screen.getByTestId('save-test'));
 
-    mockApiRequest.mockImplementation(async (method: string, url: string, payload: any) => {
-      if (url === '/api/tests' && method === 'POST') {
-        return Promise.resolve({ id: 12345, ...payload }); // Simulate successful save
-      }
-      return Promise.resolve({});
+    await screen.findByTestId('save-modal');
+    fireEvent.click(screen.getByTestId('modal-confirm'));
+
+    await waitFor(() => expect(mockApiRequest).toHaveBeenCalled());
+
+    const [method, url, payload] = mockApiRequest.mock.calls[0];
+    expect(method).toBe('POST');
+    expect(url).toBe('/api/tests');
+    expect(payload).toMatchObject({
+      name: SAVE_NAME,
+      projectId: SAVE_PROJECT_ID,
+      url: 'https://shop.test',
+      status: 'draft',
     });
-
-    renderDashboardPageNew();
-
-    // Simulate changing URL in the page to match what we expect in payload
-    const urlInput = screen.getByPlaceholderText('https://example.com');
-    fireEvent.change(urlInput, { target: { value: testUrl } });
-
-    // Click the mocked TestSequenceBuilder's save button
-    // This calls `handleSaveTest` in DashboardPageNew, which sets `isSaveModalOpen = true`
-    // This, in turn, makes the mocked SaveTestModal call its `onSave` prop (which is `handleConfirmSaveTest`)
-    fireEvent.click(screen.getByTestId('tsb-save-button'));
-
-    // Assert that saveTestMutation.mutate (mockSaveTestMutateSpy) was called with the correct payload
-    await waitFor(() => {
-      expect(mockSaveTestMutateSpy).toHaveBeenCalledWith(expect.objectContaining({
-        name: testNameFromModal,
-        projectId: projectIdFromModal,
-        url: testUrl,
-        // sequence and elements will be DashboardPageNew's current state (empty arrays in this test setup)
-      }));
-    });
-
-    // Now, simulate the success of the mutation by calling the stored onSuccess handler
-    // This is to check if DashboardPageNew's own onSuccess logic (showing toast) works.
-    const mockSavedTestData = { id: 12345, name: testNameFromModal, projectId: projectIdFromModal };
-    if (actualSaveTestMutationOptions && actualSaveTestMutationOptions.onSuccess) {
-        act(() => {
-            actualSaveTestMutationOptions.onSuccess(mockSavedTestData, {/* variables */}, {/* context */});
-        });
-    }
-
-    await waitFor(() => {
-      expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
-        title: "Test saved",
-      }));
-    });
-
-    // Assert that the modal is closed
-    await waitFor(() => {
-      expect(screen.queryByTestId("mocked-save-test-modal-open")).not.toBeInTheDocument();
-    });
+    expect(payload.sequence).toHaveLength(1);
+    expect(payload.sequence[0].targetElement.selector).toBe('#submit');
   });
 
-  it('shows error toast when saveTestMutation (POST /api/tests) fails', async () => {
-    const testNameFromModal = "My Failing Test";
-    const projectIdFromModal = sampleProjectsData[1].id;
-    const errorMessage = "Simulated Server Error For Save";
+  it('reports a failed save', async () => {
+    mockApiRequest.mockRejectedValue(new Error('Simulated server error'));
 
-    vi.mock('@/components/SaveTestModal', () => ({
-      default: ({ isOpen, onSave }: { isOpen: boolean; onSave: (name: string, projectId?: number) => void; }) => {
-        useEffect(() => { if (isOpen) { onSave(testNameFromModal, projectIdFromModal); } }, [isOpen, onSave]);
-        return isOpen ? <div data-testid="mocked-save-test-modal-open" /> : null;
-      },
-    }));
-    vi.mock('@/components/TestSequenceBuilder', () => ({
-      TestSequenceBuilder: ({ onSaveTest }: { onSaveTest: () => void; }) => (
-          <button data-testid="tsb-save-button" onClick={onSaveTest}>Save Test in TSB</button>
-      )
-    }));
+    const { container } = renderPage();
 
-    mockApiRequest.mockImplementation(async (method: string, url: string) => {
-      if (url === '/api/tests' && method === 'POST') {
-        return Promise.reject(new Error(errorMessage)); // Simulate failed save
-      }
-      return Promise.resolve({});
+    fireEvent.change(urlInput(container), { target: { value: 'https://shop.test' } });
+    fireEvent.click(screen.getByTestId('add-step'));
+    fireEvent.click(screen.getByTestId('save-test'));
+
+    await screen.findByTestId('save-modal');
+    fireEvent.click(screen.getByTestId('modal-confirm'));
+
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: 'Simulated server error',
+          variant: 'destructive',
+        }),
+      ),
+    );
+  });
+});
+
+describe('DashboardPageNew — recording mode', () => {
+  const switchToRecordMode = async () => {
+    // The mode <select> is a Radix trigger; drive the page through it by role.
+    const trigger = screen.getByRole('combobox');
+    fireEvent.keyDown(trigger, { key: 'Enter' });
+    const recordOption = await screen.findByText(
+      'dashboardPageNew.registraAzioniUtenteAutorecord.text',
+    );
+    fireEvent.click(recordOption);
+  };
+
+  it('starts a recording for the current URL without requiring a preview load', async () => {
+    mockApiRequest.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true, sessionId: 'sess-1' }),
     });
 
-    renderDashboardPageNew();
-    fireEvent.click(screen.getByTestId('tsb-save-button'));
+    const { container } = renderPage();
+    fireEvent.change(urlInput(container), { target: { value: 'https://shop.test' } });
+    await switchToRecordMode();
 
-    await waitFor(() => {
-      expect(mockSaveTestMutateSpy).toHaveBeenCalledWith(expect.objectContaining({
-        name: testNameFromModal,
-        projectId: projectIdFromModal,
-      }));
-    });
+    const startButton = await screen.findByText('dashboardPageNew.iniziaRegistrazione.button');
+    expect(startButton.closest('button')).not.toBeDisabled();
 
-    // Simulate the error of the mutation by calling the stored onError handler
-    if (actualSaveTestMutationOptions && actualSaveTestMutationOptions.onError) {
-        act(() => {
-            actualSaveTestMutationOptions.onError(new Error(errorMessage), {/* variables */}, {/* context */});
-        });
-    }
+    fireEvent.click(startButton);
 
-    await waitFor(() => {
-      expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
-        title: "Failed to save test",
-        description: errorMessage,
-        variant: "destructive",
-      }));
-    });
+    await waitFor(() =>
+      expect(mockApiRequest).toHaveBeenCalledWith('POST', '/api/start-recording', {
+        url: 'https://shop.test',
+      }),
+    );
+  });
+
+  it('keeps the start button disabled while no URL is entered', async () => {
+    const { container } = renderPage();
+    fireEvent.change(urlInput(container), { target: { value: '' } });
+    await switchToRecordMode();
+
+    const startButton = await screen.findByText('dashboardPageNew.iniziaRegistrazione.button');
+    expect(startButton.closest('button')).toBeDisabled();
   });
 });

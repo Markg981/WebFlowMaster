@@ -3,13 +3,16 @@ import { v4 as uuidv4 } from 'uuid'; // For generating session IDs
 import loggerPromise from './logger';
 import type { Logger as WinstonLogger } from 'winston';
 import { storage } from './storage'; // To fetch user settings
-import type { Test } from '@shared/schema'; // Import Test and UserSettings type
+import type { Test, Precondition } from '@shared/schema'; // Import Test and UserSettings type
+import { type RecordedAction, RecordedActionSchema } from '@shared/recording';
+import { RECORDER_SCRIPT } from './recorder-script';
+import { runPreconditions } from './precondition-runner';
 import fs from 'fs-extra';
 import path from 'path';
 import { PlaywrightReporter } from './playwright-reporter';
 import { browserPool } from './browser-pool';
 import { getWsEmitter } from './websocket';
-import { allowsSelfSignedCertificate, substituteVariables } from './outbound-http';
+import { allowsSelfSignedCertificate, substituteVariables, requestVariables } from './outbound-http';
 
 // Default settings if not found or incomplete
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
@@ -103,22 +106,8 @@ interface AdhocSequencePayload {
   sequence: TestStep[];
   elements: DetectedElement[]; // Currently for context, not actively used in loop logic by default
   name?: string;
-}
-
-// Interface for recorded actions
-export interface RecordedAction { // Exporting to be potentially used by routes.ts if strict typing is desired there
-  type: 'click' | 'input' | 'select' | 'navigate' | 'keypress' | 'assertion'; // Added keypress, assertion
-  selector?: string | null; // Optional for actions like navigate or generic assertions
-  value?: string | null;
-  timestamp: number;
-  url?: string; // URL at the time of action
-  key?: string; // For keypress events
-  targetTag?: string; // HTML tag of the target element (e.g., 'input', 'button')
-  targetId?: string; // ID of the target element
-  targetClass?: string; // Classes of the target element
-  targetText?: string | null; // Inner text or value of the element, truncated
-  assertType?: string; // e.g., 'containsText', 'elementCount'
-  assertValue?: string; // e.g., the text to contain, or '==5'
+  /** Same setup calls the scheduled runner performs, so the preview matches the real run. */
+  preconditions?: Precondition[] | null;
 }
 
 interface ActiveSession {
@@ -129,202 +118,24 @@ interface ActiveSession {
   userId?: number; // Store the user ID associated with the session
   targetUrl: string; // The initial URL the recording started on
   pageClosedByEventHandler?: boolean; // Flag to indicate if page was closed by event handler
+  lastActivityAt: number; // Drives the idle sweeper
 }
 
-const RECORDER_SCRIPT = `
-(function() {
-  if (window.hasInjectedWebTestRecorderScript) {
-    console.log('WebTest Recorder script already injected. Skipping.');
-    return;
-  }
-  window.hasInjectedWebTestRecorderScript = true;
-  console.log('Injecting WebTest Recorder Script...');
-
-  function generateSelector(el) {
-    try {
-      if (!el || !(el instanceof Element)) {
-        return null; // Not a valid element
-      }
-
-      // 1. ID
-      if (el.id) {
-        // Check if ID is unique enough. Some frameworks generate dynamic IDs.
-        // A simple check: if document.querySelectorAll for this ID returns only this element.
-        if (document.querySelectorAll('#' + CSS.escape(el.id)).length === 1) {
-          return '#' + CSS.escape(el.id);
-        }
-      }
-
-      // 2. Data-testid or data-test
-      const testId = el.getAttribute('data-testid');
-      if (testId) {
-        return \`[data-testid="\${testId}"]\`;
-      }
-      const testAttr = el.getAttribute('data-test');
-      if (testAttr) {
-        return \`[data-test="\${testAttr}"]\`;
-      }
-
-      // 3. Name attribute (common for form elements)
-      const nameAttr = el.getAttribute('name');
-      if (nameAttr) {
-         // Check if unique enough with tag and name
-        const tagName = el.tagName.toLowerCase();
-        if (document.querySelectorAll(\`\${tagName}[name="\${nameAttr}"]\`).length === 1) {
-           return \`\${tagName}[name="\${nameAttr}"]\`;
-        }
-      }
-
-      // 4. Tag + Class combination (simplified)
-      //    Avoid overly generic tags like div/span without specific classes.
-      //    Focus on more interactive tags or those with distinctive classes.
-      const tagName = el.tagName.toLowerCase();
-      let classSelector = '';
-      if (el.classList && el.classList.length > 0) {
-        // Filter out common, non-descriptive, or dynamically generated classes if possible
-        const significantClasses = Array.from(el.classList)
-          .filter(cls => cls && !cls.startsWith('ng-') && !cls.includes(':') && !cls.includes('(') && !cls.includes('active')); // Basic filtering
-        if (significantClasses.length > 0) {
-          classSelector = '.' + significantClasses.join('.');
-        }
-      }
-
-      if (classSelector && !['div', 'span', 'p', 'li'].includes(tagName) ) { // Avoid for very generic tags unless classes are very specific
-         const combinedSelector = tagName + classSelector;
-         if (document.querySelectorAll(combinedSelector).length === 1) {
-            return combinedSelector;
-         }
-      }
-
-      // Fallback: A more robust XPath-like or unique attribute selector would be better here.
-      // For this version, we'll keep it simple. If no good selector is found, we might not record the action
-      // or use a very basic tagName selector if absolutely necessary (but it's often not unique).
-      // A truly robust solution often involves traversing up the DOM tree.
-      // console.warn('Could not generate a high-quality unique selector for:', el);
-
-      // Basic path (less ideal, but a fallback)
-      let path = '';
-      let currentElement = el;
-      while (currentElement && currentElement.parentElement && currentElement.tagName.toLowerCase() !== 'body') {
-        const tagName = currentElement.tagName.toLowerCase();
-        let siblingIndex = 1;
-        let sibling = currentElement.previousElementSibling;
-        while (sibling) {
-          if (sibling.tagName === currentElement.tagName) {
-            siblingIndex++;
-          }
-          sibling = sibling.previousElementSibling;
-        }
-        const segment = \`\${tagName}:nth-of-type(\${siblingIndex})\`; // nth-of-type is often more stable than nth-child
-        path = '>' + segment + path;
-        currentElement = currentElement.parentElement;
-      }
-      return path ? 'body ' + path.substring(1) : tagName; // if path is empty, just return tagName (e.g. for body itself or direct child)
-
-    } catch (e) {
-      console.error('Error in generateSelector:', e);
-      return null; // Fallback if selector generation itself fails
-    }
-  }
-
-  function getElementDetails(el) {
-    if (!el || !(el instanceof Element)) return {};
-    let textContent = el.innerText || el.textContent || '';
-    if (el.value) { // For input elements, value might be more relevant than innerText
-      textContent = el.value;
-    }
-    return {
-      targetTag: el.tagName.toLowerCase(),
-      targetId: el.id,
-      targetClass: el.className,
-      targetText: textContent.substring(0, 100).trim(), // Get some text, truncate, and trim
-    };
-  }
-
-  document.addEventListener('click', function(event) {
-    try {
-      const el = event.target;
-      if (!el || !(el instanceof Element) || el.closest('[data-webtest-platform-ignore="true"]')) {
-        // Example: Ignore clicks on elements with a specific attribute if we add UI for that
-        return;
-      }
-
-      // Prevent clicks on the test runner's own UI if it were part of the page
-      // if (el.closest('#webtest-runner-ui')) return;
-
-      const selector = generateSelector(el);
-      if (!selector) {
-        console.warn('No selector generated for click on:', el);
-        return;
-      }
-
-      const action = {
-        type: 'click',
-        selector: selector,
-        timestamp: Date.now(),
-        url: window.location.href,
-        ...getElementDetails(el)
-      };
-      console.log('Recorded click:', action);
-      window.sendActionToBackend(action);
-    } catch (e) {
-      console.error('Error recording click:', e);
-    }
-  }, true); // Use capture phase to catch events early
-
-
-  document.addEventListener('change', function(event) { // Handles input, textarea, select
-    try {
-      const el = event.target;
-      if (!el || !(el instanceof Element) || !['input', 'textarea', 'select'].includes(el.tagName.toLowerCase())) {
-        return;
-      }
-      // Ignore hidden inputs or other specific types if needed
-      if (el.type === 'hidden' || el.closest('[data-webtest-platform-ignore="true"]')) {
-        return;
-      }
-
-      const selector = generateSelector(el);
-      if (!selector) {
-        console.warn('No selector generated for change on:', el);
-        return;
-      }
-
-      const actionType = el.tagName.toLowerCase() === 'select' ? 'select' : 'input';
-      let value = el.value;
-
-      if (el.type === 'checkbox' || el.type === 'radio') {
-        value = el.checked ? 'true' : 'false';
-      }
-
-
-      const action = {
-        type: actionType,
-        selector: selector,
-        value: value,
-        timestamp: Date.now(),
-        url: window.location.href,
-        ...getElementDetails(el)
-      };
-      console.log('Recorded change/input:', action);
-      window.sendActionToBackend(action);
-    } catch (e) {
-      console.error('Error recording change/input:', e);
-    }
-  }, true); // Use capture phase
-
-  // You could add more listeners here, e.g., for 'keypress' or specific focus/blur events if needed.
-  // For 'keypress', you might want to record individual key presses, especially for special keys.
-  // For navigations, the backend can infer them by observing URL changes between actions,
-  // or you could try to listen for 'popstate' or 'hashchange' and beforeunload.
-
-  console.log('WebTest Recorder Script Injected and Initialized.');
-})();
-`;
-
+/** Idle recording sessions are reaped so an abandoned browser cannot leak forever. */
+const RECORDING_SESSION_IDLE_MS = 30 * 60 * 1000;
+const RECORDING_SWEEP_INTERVAL_MS = 60 * 1000;
+/** Hard cap on buffered actions: the page can call the binding as often as it likes. */
+const MAX_RECORDED_ACTIONS = 2000;
+/**
+ * A navigation that lands within this window after a click/keypress is a *consequence* of
+ * that interaction, so replaying it as its own goto() would be redundant (and would turn a
+ * POST-redirect result into a plain GET). Standalone navigations are still recorded.
+ */
+const IMPLICIT_NAVIGATION_WINDOW_MS = 3000;
 
 export class PlaywrightService {
   private activeSessions: Map<string, ActiveSession> = new Map();
+  private sweepTimer: ReturnType<typeof setInterval> | null = null;
 
   // Removing shared browser instance to allow per-execution settings
   // private browser: Browser | null = null;
@@ -398,6 +209,144 @@ export class PlaywrightService {
     }
   }
 
+  /**
+   * Buffers one action coming from the in-page recorder.
+   *
+   * Everything crossing this boundary is produced by JavaScript running inside the page
+   * under test, so it is schema-validated and capped rather than trusted.
+   */
+  private pushAction(sessionId: string, raw: unknown): void {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      resolvedLogger.warn({ message: "PS:pushAction - Action received for non-existent session", sessionId });
+      return;
+    }
+
+    const parsed = RecordedActionSchema.safeParse(raw);
+    if (!parsed.success) {
+      resolvedLogger.warn({ message: "PS:pushAction - Discarded malformed action from page", sessionId, issues: parsed.error.flatten() });
+      return;
+    }
+
+    const action = parsed.data;
+    action.timestamp = Date.now();
+    if (!action.url && session.page && !session.page.isClosed()) {
+      action.url = session.page.url();
+    }
+    session.lastActivityAt = action.timestamp;
+
+    if (action.type === 'navigate' && this.isRedundantNavigation(session, action)) {
+      resolvedLogger.verbose({ message: "PS:pushAction - Skipped redundant navigation", sessionId, url: action.url });
+      return;
+    }
+
+    if (session.actions.length >= MAX_RECORDED_ACTIONS) {
+      resolvedLogger.warn({ message: "PS:pushAction - Action buffer full, dropping action", sessionId, cap: MAX_RECORDED_ACTIONS });
+      return;
+    }
+
+    session.actions.push(action);
+    resolvedLogger.verbose({ message: "PS:pushAction - Action recorded", sessionId, actionType: action.type, total: session.actions.length });
+  }
+
+  /**
+   * True when a navigation should not become its own replay step: either it repeats the URL
+   * we are already on, or it is the direct consequence of the interaction just recorded.
+   */
+  private isRedundantNavigation(session: ActiveSession, action: RecordedAction): boolean {
+    const previous = [...session.actions].reverse().find(a => !a.meta);
+    if (!previous) {
+      // First real action: the initial page load is already implied by the test's own URL.
+      return true;
+    }
+    if (previous.type === 'navigate' && previous.url === action.url) return true;
+    if (
+      (previous.type === 'click' || previous.type === 'keypress') &&
+      action.timestamp - previous.timestamp < IMPLICIT_NAVIGATION_WINDOW_MS
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  /** Starts the idle sweeper on demand; it never keeps the process alive on its own. */
+  private ensureSweeper(): void {
+    if (this.sweepTimer) return;
+    this.sweepTimer = setInterval(() => {
+      void this.sweepIdleSessions();
+    }, RECORDING_SWEEP_INTERVAL_MS);
+    this.sweepTimer.unref?.();
+  }
+
+  private stopSweeperIfIdle(): void {
+    if (this.activeSessions.size === 0 && this.sweepTimer) {
+      clearInterval(this.sweepTimer);
+      this.sweepTimer = null;
+    }
+  }
+
+  private async sweepIdleSessions(): Promise<void> {
+    const now = Date.now();
+    for (const [sessionId, session] of [...this.activeSessions.entries()]) {
+      if (now - session.lastActivityAt < RECORDING_SESSION_IDLE_MS) continue;
+      resolvedLogger.warn({ message: "PS:sweepIdleSessions - Reaping idle recording session", sessionId, idleMs: now - session.lastActivityAt });
+      await this.disposeSessionResources(session, sessionId);
+      this.activeSessions.delete(sessionId);
+    }
+    this.stopSweeperIfIdle();
+  }
+
+  /** Closes page/context/browser of a session, never throwing. */
+  private async disposeSessionResources(session: ActiveSession, sessionId: string): Promise<void> {
+    if (session.page && !session.page.isClosed()) {
+      await session.page.close().catch(e => resolvedLogger.warn({ message: "PS:disposeSessionResources - Error closing page", sessionId, error: e.message }));
+    }
+    if (session.context) {
+      await session.context.close().catch(e => resolvedLogger.warn({ message: "PS:disposeSessionResources - Error closing context", sessionId, error: e.message }));
+    }
+    if (session.browser && session.browser.isConnected()) {
+      await session.browser.close().catch(e => resolvedLogger.warn({ message: "PS:disposeSessionResources - Error closing browser", sessionId, error: e.message }));
+    }
+  }
+
+  /** Stops the sweeper and tears down every live session. Used on shutdown and in tests. */
+  async disposeAllRecordingSessions(): Promise<void> {
+    for (const [sessionId, session] of [...this.activeSessions.entries()]) {
+      await this.disposeSessionResources(session, sessionId);
+      this.activeSessions.delete(sessionId);
+    }
+    if (this.sweepTimer) {
+      clearInterval(this.sweepTimer);
+      this.sweepTimer = null;
+    }
+  }
+
+  /**
+   * Installs the recorder into a browser context.
+   *
+   * Both the binding and the script go on the CONTEXT, before any page exists, so they apply
+   * to every document and every tab — including ones the site opens itself. The previous
+   * `page.addScriptTag()` only lived in the first document and died on the first navigation.
+   *
+   * Exposed (rather than inlined in startRecordingSession) so the integration test can drive
+   * the exact same wiring headlessly; recording sessions themselves are always headed.
+   */
+  async installRecorder(context: BrowserContext, sessionId: string): Promise<void> {
+    await context.exposeBinding('__wfmRecordAction', (_source, action: unknown) => {
+      this.pushAction(sessionId, action);
+    });
+    await context.addInitScript({ content: RECORDER_SCRIPT });
+  }
+
+  /** Registers a session record without launching a browser. Used by installRecorder callers. */
+  registerSession(sessionId: string, session: Omit<ActiveSession, 'actions' | 'lastActivityAt'> & Partial<Pick<ActiveSession, 'actions'>>): void {
+    this.activeSessions.set(sessionId, {
+      actions: session.actions ?? [],
+      lastActivityAt: Date.now(),
+      ...session,
+    } as ActiveSession);
+  }
+
   async startRecordingSession(url: string, userId?: number): Promise<{ success: boolean, sessionId?: string, error?: string }> {
     resolvedLogger.http({ message: "PlaywrightService: startRecordingSession called", url, userId });
     const targetUrl = substituteVariables(url);
@@ -405,96 +354,74 @@ export class PlaywrightService {
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
     let page: Page | null = null;
-    resolvedLogger.debug({ message: "PS:startRecordingSession - Initial state", sessionId, url, userId });
 
-    let browserType: 'chromium' | 'firefox' | 'webkit' = DEFAULT_BROWSER; // Define here for catch block visibility
+    let browserType: 'chromium' | 'firefox' | 'webkit' = DEFAULT_BROWSER; // Defined here for catch-block visibility
 
     try {
-      resolvedLogger.debug({ message: "PS:startRecordingSession - Fetching user settings...", sessionId, userId });
       const userSettings = userId ? await storage.getUserSettings(userId) : undefined;
-      const userSettingsSummary = userSettings ? { browser: userSettings.playwrightBrowser, timeout: userSettings.playwrightDefaultTimeout, waitTime: userSettings.playwrightWaitTime } : {};
-      resolvedLogger.debug({ message: "PS:startRecordingSession - User settings fetched", sessionId, settingsSummary: userSettingsSummary });
-
       browserType = (userSettings?.playwrightBrowser as any) || DEFAULT_BROWSER;
-      const effectiveHeadlessMode = false; // Force headless to false for interactive recording sessions
       const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
       const specificWaitTime = userSettings?.playwrightWaitTime || DEFAULT_WAIT_TIME;
-      resolvedLogger.debug({ message: `PS:startRecordingSession - Effective settings for RECORDING`, browserType, effectiveHeadlessMode, pageTimeout, specificWaitTime, sessionId });
+      // Recording is interactive by definition: the user drives a real, visible window.
+      const effectiveHeadlessMode = false;
+      resolvedLogger.debug({ message: "PS:startRecordingSession - Effective settings", sessionId, browserType, effectiveHeadlessMode, pageTimeout, specificWaitTime });
 
-      const browserLaunchOptions = { headless: effectiveHeadlessMode };
-      resolvedLogger.debug({ message: `PS:startRecordingSession - Attempting to launch browser`, browserType, options: browserLaunchOptions, sessionId });
       const browserEngine = (playwright as any)[browserType];
       if (!browserEngine) throw new Error(`Invalid browser type: ${browserType}`);
-      browser = await browserEngine.launch(browserLaunchOptions);
+      browser = await browserEngine.launch({ headless: effectiveHeadlessMode });
       if (!browser) throw new Error("Failed to launch browser for recording.");
-      resolvedLogger.debug({ message: `PS:startRecordingSession - Browser launched`, sessionId, connected: browser?.isConnected(), type: browser?.browserType?.().name() });
 
-      const contextOptions = {
+      context = await browser.newContext({
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         viewport: { width: 1280, height: 720 },
         ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl)
-      };
-      resolvedLogger.debug({ message: `PS:startRecordingSession - Attempting to create new browser context`, options: contextOptions, sessionId });
-      context = await browser.newContext(contextOptions);
-      resolvedLogger.debug({ message: "PS:startRecordingSession - Browser context created", sessionId });
+      });
 
-      resolvedLogger.debug({ message: "PS:startRecordingSession - Attempting to create new page...", sessionId });
+      await this.installRecorder(context, sessionId);
+
       page = await context.newPage();
-      resolvedLogger.debug({ message: "PS:startRecordingSession - New page created", sessionId, pageClosed: page?.isClosed() });
-
-      resolvedLogger.debug({ message: `PS:startRecordingSession - Setting default timeout to ${pageTimeout}ms...`, sessionId });
       page.setDefaultTimeout(pageTimeout);
 
-      const gotoOptions = { waitUntil: 'domcontentloaded' as const };
-      resolvedLogger.debug({ message: `PS:startRecordingSession - Navigating to URL`, url: targetUrl, options: gotoOptions, sessionId, pageClosed: page?.isClosed() });
-      await page.goto(targetUrl, gotoOptions);
-      resolvedLogger.debug({ message: "PS:startRecordingSession - Navigation complete.", sessionId });
+      const sessionData: ActiveSession = {
+        browser,
+        context,
+        page,
+        actions: [],
+        userId,
+        targetUrl: url,
+        lastActivityAt: Date.now(),
+      };
+      // Registered before navigating, so actions fired during the initial load are not lost.
+      this.activeSessions.set(sessionId, sessionData);
+      sessionData.actions.push({
+        type: 'navigate',
+        url: targetUrl,
+        value: targetUrl,
+        timestamp: Date.now(),
+        meta: 'session-started',
+      });
+      this.ensureSweeper();
 
-      resolvedLogger.debug({ message: `PS:startRecordingSession - Waiting for timeout: ${specificWaitTime}ms.`, sessionId, pageClosed: page?.isClosed() });
+      // When the user closes the last tab the session is over, even if Stop was never pressed.
+      const markClosedIfLastPage = () => {
+        const session = this.activeSessions.get(sessionId);
+        if (!session) return;
+        const stillOpen = session.context.pages().filter(p => !p.isClosed());
+        if (stillOpen.length === 0) {
+          session.pageClosedByEventHandler = true;
+          resolvedLogger.info({ message: "PS:startRecordingSession - All pages closed; session marked as ended", sessionId });
+        }
+      };
+      context.on('page', newPage => {
+        newPage.on('close', markClosedIfLastPage);
+      });
+      page.on('close', markClosedIfLastPage);
+
+      await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(specificWaitTime);
-
-      resolvedLogger.debug({ message: "PS:startRecordingSession - Bringing page to front...", sessionId });
       await page.bringToFront();
 
-      resolvedLogger.debug({ message: "PS:startRecordingSession - Exposing 'sendActionToBackend' function...", sessionId });
-      await page.exposeFunction('sendActionToBackend', (action: RecordedAction) => {
-        const session = this.activeSessions.get(sessionId);
-        if (session) {
-          action.timestamp = Date.now();
-          action.url = action.url || session.page.url(); // Ensure URL is current
-          session.actions.push(action);
-          resolvedLogger.verbose({ message: `PS:startRecordingSession - Action received for session`, sessionId, actionType: action.type });
-        } else {
-          resolvedLogger.warn({ message: `PS:startRecordingSession - Action received for non-existent session`, sessionId, actionType: action.type });
-        }
-      });
-
-      resolvedLogger.debug({ message: "PS:startRecordingSession - Injecting recorder script...", sessionId });
-      await page.addScriptTag({ content: RECORDER_SCRIPT });
-
-      const sessionData: ActiveSession = { browser, context, page, actions: [], userId, targetUrl: url };
-      resolvedLogger.debug({ message: "PS:startRecordingSession - SessionData created.", sessionId });
-
-      page.on('close', async () => {
-        resolvedLogger.info({ message: `PS:startRecordingSession - page.on('close') triggered for session. Page has been closed externally.`, sessionId });
-        const session = this.activeSessions.get(sessionId);
-        if (session) {
-          session.pageClosedByEventHandler = true;
-          resolvedLogger.debug({ message: `PS:startRecordingSession - Session marked as pageClosedByEventHandler.`, sessionId });
-        } else {
-          resolvedLogger.debug({ message: `PS:startRecordingSession - Session already stopped/cleaned up when page.on('close') triggered (session not found in activeSessions).`, sessionId });
-        }
-      });
-      resolvedLogger.debug({ message: "PS:startRecordingSession - page.on('close') handler set up.", sessionId });
-
-      this.activeSessions.set(sessionId, sessionData);
-      resolvedLogger.debug({ message: `PS:startRecordingSession - Session added to activeSessions map.`, sessionId });
-
-      const initialAction: RecordedAction = { type: 'navigate', url: page.url(), timestamp: Date.now(), value: 'Recording session started' };
-      sessionData.actions.push(initialAction);
-      resolvedLogger.debug({ message: "PS:startRecordingSession - Initial action pushed to sessionData.actions.", sessionId, action: initialAction });
-
-      resolvedLogger.info({ message: `PS:startRecordingSession - Recording session started successfully`, sessionId, url, userId: userId || 'anonymous' });
+      resolvedLogger.info({ message: "PS:startRecordingSession - Recording session started successfully", sessionId, url, userId: userId || 'anonymous' });
       return { success: true, sessionId };
 
     } catch (error: any) {
@@ -505,119 +432,92 @@ export class PlaywrightService {
       else if (page.isClosed()) stage = "page operation on closed page";
       else stage = "page navigation/setup";
 
-      resolvedLogger.error({ message: `PS:startRecordingSession - CRITICAL ERROR during session setup`, sessionId, stage, url, error: error.message, stack: error.stack, browserLaunched: !!browser, browserConnected: browser?.isConnected() });
+      resolvedLogger.error({ message: "PS:startRecordingSession - CRITICAL ERROR during session setup", sessionId, stage, url, error: error.message, stack: error.stack });
 
       if (browser && browser.isConnected()) {
-        resolvedLogger.debug({ message: `PS:startRecordingSession - Attempting to close browser in catch block`, sessionId });
-        await browser.close().catch(err => resolvedLogger.error({ message: `PS:startRecordingSession - Failed to close browser during error handling`, sessionId, error: err.message, stack: err.stack }));
-        resolvedLogger.debug({ message: `PS:startRecordingSession - Browser close attempt in catch block finished`, sessionId });
-      } else if (browser) {
-        resolvedLogger.debug({ message: `PS:startRecordingSession - Browser exists but is not connected in catch block. No close attempt.`, sessionId });
-      } else {
-        resolvedLogger.debug({ message: `PS:startRecordingSession - Browser is null in catch block. No close attempt.`, sessionId });
+        await browser.close().catch(err => resolvedLogger.error({ message: "PS:startRecordingSession - Failed to close browser during error handling", sessionId, error: err.message }));
       }
-
-      if (this.activeSessions.has(sessionId)) {
-        this.activeSessions.delete(sessionId);
-        resolvedLogger.debug({ message: `PS:startRecordingSession - Session removed from activeSessions due to error.`, sessionId });
-      }
+      this.activeSessions.delete(sessionId);
+      this.stopSweeperIfIdle();
       return { success: false, error: `Failed during ${stage}: ${error.message}` };
     }
   }
 
-  async stopRecordingSession(sessionId: string, userId?: number): Promise<{ success: boolean, actions?: RecordedAction[], error?: string }> {
+  async stopRecordingSession(sessionId: string, userId?: number): Promise<{ success: boolean, sequence?: RecordedAction[], error?: string }> {
     resolvedLogger.http({ message: "PlaywrightService: stopRecordingSession called", sessionId, userId });
     const session = this.activeSessions.get(sessionId);
 
     if (!session) {
-      resolvedLogger.warn({ message: `PS:stopRecordingSession - Session not found or already stopped.`, sessionId, userId });
+      resolvedLogger.warn({ message: "PS:stopRecordingSession - Session not found or already stopped.", sessionId, userId });
       return { success: false, error: "Recording session not found or already stopped." };
     }
 
     if (userId && session.userId && session.userId !== userId) {
-      resolvedLogger.warn({ message: `User ID mismatch attempting to stop session`, sessionId, requestUserId: userId, sessionUserId: session.userId });
+      resolvedLogger.warn({ message: "User ID mismatch attempting to stop session", sessionId, requestUserId: userId, sessionUserId: session.userId });
       return { success: false, error: "Unauthorized to stop this recording session." };
     }
 
-    if (session.pageClosedByEventHandler) {
-      resolvedLogger.info({ message: `PS:stopRecordingSession - Session was previously marked as pageClosedByEventHandler. Proceeding to finalize and retrieve actions.`, sessionId });
-    }
-
     try {
-      if (session.page && !session.page.isClosed()) {
-        const finalAction: RecordedAction = { type: 'navigate', url: session.page.url(), timestamp: Date.now(), value: 'Recording session stopped' };
-        session.actions.push(finalAction);
-      } else {
-        let lastUrl = session.targetUrl;
-        if (session.actions.length > 0) {
-          const lastRecordedActionWithUrl = session.actions.slice().reverse().find(a => a.url);
-          if (lastRecordedActionWithUrl) lastUrl = lastRecordedActionWithUrl.url as string;
-        }
-        const finalAction: RecordedAction = { type: 'navigate', url: lastUrl, timestamp: Date.now(), value: 'Recording session stopped (page was already closed)' };
-        session.actions.push(finalAction);
-        resolvedLogger.info({ message: `PS:stopRecordingSession - Page for session was already closed. Final action URL uses a fallback.`, sessionId, fallbackUrl: lastUrl });
-      }
+      const pageOpen = !!session.page && !session.page.isClosed();
+      const lastUrl = pageOpen
+        ? session.page.url()
+        : ([...session.actions].reverse().find(a => a.url)?.url ?? session.targetUrl);
 
-      if (session.page && !session.page.isClosed()) {
-        resolvedLogger.debug({ message: `PS:stopRecordingSession - Attempting to close page`, sessionId });
-        await session.page.close().catch(e => resolvedLogger.warn({ message: `PS:stopRecordingSession - Error closing page resource`, sessionId, error: e.message, stack: e.stack }));
-      } else {
-        resolvedLogger.debug({ message: `PS:stopRecordingSession - Page for session was already closed or did not exist.`, sessionId });
-      }
+      session.actions.push({
+        type: 'navigate',
+        url: lastUrl,
+        value: lastUrl,
+        timestamp: Date.now(),
+        meta: 'session-stopped',
+      });
 
-      if (session.context) {
-        resolvedLogger.debug({ message: `PS:stopRecordingSession - Attempting to close context`, sessionId });
-        await session.context.close().catch(e => resolvedLogger.warn({ message: `PS:stopRecordingSession - Error closing context resource`, sessionId, error: e.message, stack: e.stack }));
-      } else {
-        resolvedLogger.debug({ message: `PS:stopRecordingSession - Context for session did not exist.`, sessionId });
-      }
-
-      if (session.browser && session.browser.isConnected()) {
-        resolvedLogger.debug({ message: `PS:stopRecordingSession - Attempting to close browser`, sessionId });
-        await session.browser.close().catch(e => resolvedLogger.warn({ message: `PS:stopRecordingSession - Error closing browser resource`, sessionId, error: e.message, stack: e.stack }));
-      } else {
-        resolvedLogger.debug({ message: `PS:stopRecordingSession - Browser for session was already closed, not connected, or did not exist.`, sessionId });
-      }
+      await this.disposeSessionResources(session, sessionId);
 
       const recordedActions = session.actions;
-      if (recordedActions.length === 0) {
-        resolvedLogger.warn({ message: `PS:stopRecordingSession - Session is being stopped with an empty action list.`, sessionId });
-      } else if (recordedActions.length === 1 && (recordedActions[0].value === 'Recording session stopped' || recordedActions[0].value === 'Recording session stopped (page was already closed)')) {
-        if (session.actions.find(action => action.value === 'Recording session started' && action.type === 'navigate')) {
-          resolvedLogger.warn({ message: `PS:stopRecordingSession - Session stopped with only the final 'stop' action, initial navigation was present but no user actions.`, sessionId });
-        } else {
-          resolvedLogger.warn({ message: `PS:stopRecordingSession - Session stopped with only the final 'stop' action. No user or initial navigation actions recorded/persisted.`, sessionId });
-        }
+      const userActionCount = recordedActions.filter(a => !a.meta).length;
+      if (userActionCount === 0) {
+        resolvedLogger.warn({ message: "PS:stopRecordingSession - Session stopped without any user action.", sessionId });
       }
 
-      resolvedLogger.info({ message: `PS:stopRecordingSession - Session finalized. Returning actions.`, sessionId, actionCount: recordedActions.length });
       this.activeSessions.delete(sessionId);
-      resolvedLogger.debug({ message: `PS:stopRecordingSession - Session removed from activeSessions.`, sessionId });
+      this.stopSweeperIfIdle();
+      resolvedLogger.info({ message: "PS:stopRecordingSession - Session finalized.", sessionId, actionCount: recordedActions.length, userActionCount });
 
-      return { success: true, actions: recordedActions };
+      return { success: true, sequence: recordedActions };
 
     } catch (error: any) {
-      resolvedLogger.error({ message: `PS:stopRecordingSession - CRITICAL error during stop sequence`, sessionId, error: error.message, stack: error.stack });
+      resolvedLogger.error({ message: "PS:stopRecordingSession - CRITICAL error during stop sequence", sessionId, error: error.message, stack: error.stack });
       this.activeSessions.delete(sessionId);
-      resolvedLogger.debug({ message: `PS:stopRecordingSession - Session removed from activeSessions due to critical error during stop sequence.`, sessionId });
+      this.stopSweeperIfIdle();
       return { success: false, error: error.message || `Unknown error stopping recording session ${sessionId}` };
     }
   }
 
-  async getRecordedActions(sessionId: string, userId?: number): Promise<{ success: boolean, actions?: RecordedAction[], error?: string }> {
+  async getRecordedActions(sessionId: string, userId?: number): Promise<{ success: boolean, sequence?: RecordedAction[], error?: string, sessionEnded?: boolean }> {
     const session = this.activeSessions.get(sessionId);
     resolvedLogger.debug({ message: "PS:getRecordedActions called", sessionId, userId, sessionFound: !!session });
 
     if (!session) {
-      return { success: false, error: "Recording session not found or already stopped." };
+      return { success: false, sessionEnded: true, error: "Recording session not found or already stopped." };
     }
 
     if (userId && session.userId && session.userId !== userId) {
-      resolvedLogger.warn({ message: `User ID mismatch attempting to get actions for session`, sessionId, requestUserId: userId, sessionUserId: session.userId });
+      resolvedLogger.warn({ message: "User ID mismatch attempting to get actions for session", sessionId, requestUserId: userId, sessionUserId: session.userId });
       return { success: false, error: "Unauthorized to access this recording session." };
     }
-    resolvedLogger.debug({ message: `Retrieved actions for session`, sessionId, actionCount: session.actions.length });
-    return { success: true, actions: [...session.actions] };
+
+    // The browser window was closed without pressing Stop: hand back what we buffered and
+    // tell the client to stop polling instead of letting it spin against a dead session.
+    if (session.pageClosedByEventHandler) {
+      return {
+        success: true,
+        sequence: [...session.actions],
+        sessionEnded: true,
+        error: "The recording browser window was closed.",
+      };
+    }
+
+    return { success: true, sequence: [...session.actions] };
   }
 
   /**
@@ -727,6 +627,36 @@ export class PlaywrightService {
     let overallSuccess = true;
 
     try {
+      // Preconditions run before the browser is even launched, exactly as the scheduled
+      // runner does it (see test-execution-service). Fail-fast: a broken setup call makes
+      // the run blocked, never a misleading pass or a confusing mid-sequence failure.
+      if (payload.preconditions && payload.preconditions.length > 0) {
+        const preResult = await runPreconditions(payload.preconditions, requestVariables());
+        if (!preResult.ok) {
+          const reason = `Precondition failed at "${preResult.failedAt}": ${preResult.reason}`;
+          resolvedLogger.warn({ message: "PS:executeAdhocSequence - Blocked by precondition", testName, userId, failedAt: preResult.failedAt, reason: preResult.reason });
+          return {
+            success: false,
+            error: reason,
+            duration: Date.now() - startTime,
+            detectedElements: [],
+            steps: [{
+              name: `Precondition: ${preResult.failedAt ?? 'setup'}`,
+              type: 'precondition',
+              status: 'failed',
+              error: preResult.reason,
+              details: reason,
+            }],
+          };
+        }
+        stepResults.push({
+          name: 'Preconditions',
+          type: 'precondition',
+          status: 'passed',
+          details: `${preResult.ranCount} setup call(s) completed.`,
+        });
+      }
+
       resolvedLogger.debug({ message: "PS:executeAdhocSequence - Fetching user settings", testName, userId });
       const userSettings = await storage.getUserSettings(userId);
       const settingsSummary = userSettings ? { browser: userSettings.playwrightBrowser, headless: userSettings.playwrightHeadless, timeout: userSettings.playwrightDefaultTimeout } : {};
@@ -832,7 +762,10 @@ export class PlaywrightService {
               case 'input':
                 if (!step.targetElement?.selector) throw new Error('Selector missing for input action.');
                 if (typeof step.value !== 'string') throw new Error('Value missing for input action.');
-                await page.fill(step.targetElement.selector, step.value);
+                // Values go through variable substitution so a recorded password field —
+                // which is stored as a `{{secret_…}}` placeholder, never in clear text —
+                // resolves from the environment at replay time.
+                await page.fill(step.targetElement.selector, substituteVariables(step.value));
                 break;
               case 'wait':
                 if (typeof step.value !== 'string' || isNaN(parseInt(step.value))) throw new Error('Invalid or missing value for wait action.');
@@ -845,15 +778,29 @@ export class PlaywrightService {
                   await page.evaluate(() => window.scrollBy(0, 200));
                 }
                 break;
-              case 'assert':
-                resolvedLogger.warn({ message: `PS:executeAdhocSequence - Generic 'assert' action encountered. Consider using specific assertions.`, testName, actionName, selector: step.targetElement?.selector });
+              case 'navigate': {
+                // Only standalone navigations reach here: ones implied by a click are filtered
+                // out while recording (see isRedundantNavigation).
+                const destination = typeof step.value === 'string' ? step.value.trim() : '';
+                if (!destination) throw new Error('URL (value) missing for navigate action.');
+                await page.goto(substituteVariables(destination), { waitUntil: 'domcontentloaded' });
+                break;
+              }
+              case 'assert': {
+                // "Element is visible" — the assertion the recorder emits when the user picks
+                // the visibility check in the in-page assert panel.
                 if (!step.targetElement?.selector) {
-                  stepStatus = 'failed'; stepError = 'Selector missing for generic assert action.';
-                } else {
-                  const elementToAssert = await page.locator(step.targetElement.selector).count();
-                  if (elementToAssert === 0) { stepStatus = 'failed'; stepError = `Assertion Failed: Element "${step.targetElement.selector}" not found.`; }
+                  stepStatus = 'failed'; stepError = 'Selector missing for visibility assert action.';
+                  break;
+                }
+                const target = page.locator(step.targetElement.selector).first();
+                const isVisible = await target.isVisible().catch(() => false);
+                if (!isVisible) {
+                  stepStatus = 'failed';
+                  stepError = `Assertion Failed: Element "${step.targetElement.selector}" is not visible.`;
                 }
                 break;
+              }
               case 'assertTextContains': {
                 if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for assertTextContains action."; break; }
                 if (typeof step.value !== 'string' || step.value.trim() === '') { stepStatus = 'failed'; stepError = "Expected text (value) missing or empty for assertTextContains action."; break; }
@@ -889,7 +836,7 @@ export class PlaywrightService {
               case 'select':
                 if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for select action."; break; }
                 if (typeof step.value !== 'string' || step.value.trim() === '') { stepStatus = 'failed'; stepError = "Value missing for select action (expected option value)."; break; }
-                await page.selectOption(step.targetElement.selector, step.value);
+                await page.selectOption(step.targetElement.selector, substituteVariables(step.value));
                 break;
               default:
                 throw new Error(`Unsupported action ID: ${actionId}`);
@@ -1232,7 +1179,7 @@ export class PlaywrightService {
               case 'select':
                 if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for select action."; break; }
                 if (typeof step.value !== 'string' || step.value.trim() === '') { stepStatus = 'failed'; stepError = "Value missing for select action (expected option value)."; break; }
-                await page.selectOption(step.targetElement.selector, step.value);
+                await page.selectOption(step.targetElement.selector, substituteVariables(step.value));
                 break;
               default:
                 throw new Error(`Unsupported action ID: ${actionId}`);

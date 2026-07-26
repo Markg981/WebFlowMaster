@@ -23,7 +23,9 @@ export type TestNodeData = {
 export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
   const { t } = useTranslation();
 
-  const needsValue = ["input", "wait", "assert", "select", "assertTextContains", "assertElementCount"].includes(data.action.id);
+  // "assert" is the visibility check: it needs a target but no value. "navigate" is the
+  // opposite — a URL, no element.
+  const needsValue = ["input", "wait", "select", "navigate", "assertTextContains", "assertElementCount"].includes(data.action.id);
   const needsTarget = ["click", "input", "assert", "hover", "select", "assertTextContains", "assertElementCount"].includes(data.action.id);
 
   // Accept a detected element dropped from the "Detected Elements" panel and bind it as

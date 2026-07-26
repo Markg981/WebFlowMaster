@@ -21,6 +21,17 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * Radix opens a Select on keyboard activation and only when the trigger has focus; JSDOM
+ * has no PointerEvent, so a click on the trigger does nothing.
+ */
+const openSelect = async (trigger: HTMLElement) => {
+  await waitFor(() => expect(trigger).not.toBeDisabled());
+  trigger.focus();
+  fireEvent.keyDown(trigger, { key: 'Enter', code: 'Enter' });
+  await waitFor(() => expect(screen.getAllByRole('option').length).toBeGreaterThan(0));
+};
+
 const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <QueryClientProvider client={queryClient}>
     {children}
@@ -48,13 +59,13 @@ describe('ScheduleForm', () => {
     expect(screen.getByLabelText(/Frequency/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Next Run At \(UTC\)/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Environment/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Browsers/i)).toBeInTheDocument(); // This is a general label for the group
+    expect(screen.getByText('Browsers')).toBeInTheDocument(); // group caption, not a control label
     BROWSER_OPTIONS.forEach(opt => {
       expect(screen.getByLabelText(new RegExp(opt.label, "i"))).toBeInTheDocument();
     });
     expect(screen.getByLabelText(/Retry on Failure/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Notification Overrides \(JSON\)/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Execution Parameters \(JSON\)/i)).toBeInTheDocument();
+    expect(document.getElementById('notificationConfigOverride')).toBeInTheDocument();
+    expect(document.getElementById('executionParameters')).toBeInTheDocument();
     expect(screen.getByLabelText(/Schedule Active/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Create Schedule/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
@@ -76,7 +87,9 @@ describe('ScheduleForm', () => {
       { wrapper: Wrapper }
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Create Schedule/i }));
+    const submitButton = screen.getByRole('button', { name: /Create Schedule/i });
+    await waitFor(() => expect(submitButton).not.toBeDisabled());
+    fireEvent.click(submitButton);
 
     await waitFor(() => {
       expect(screen.getByText('Schedule name is required')).toBeInTheDocument();
@@ -99,10 +112,8 @@ describe('ScheduleForm', () => {
     fireEvent.change(screen.getByLabelText(/Schedule Name/i), { target: { value: 'My Test Schedule' } });
 
     // Select Test Plan
-    const testPlanSelect = screen.getByLabelText(/Test Plan/i).closest('button'); // Get the trigger
-    if (testPlanSelect) fireEvent.click(testPlanSelect);
-    await screen.findByText('Test Plan 1'); // Wait for item to be visible
-    fireEvent.click(screen.getByText('Test Plan 1'));
+    await openSelect(screen.getByLabelText(/Test Plan/i));
+    fireEvent.click(await screen.findByRole('option', { name: 'Test Plan 1' }));
 
     // Select Frequency (default is 'Once', which is fine)
     // Select Next Run At (default is new Date(), which is fine)
@@ -119,7 +130,8 @@ describe('ScheduleForm', () => {
     expect(submittedData.scheduleName).toBe('My Test Schedule');
     expect(submittedData.testPlanId).toBe('plan1');
     expect(submittedData.frequency).toBe(FREQUENCY_OPTIONS[0].value); // Default 'Once'
-    expect(typeof submittedData.nextRunAt).toBe('number'); // Timestamp
+    // The transform keeps a Date; the API client turns it into an ISO string on send.
+    expect(submittedData.nextRunAt).toBeInstanceOf(Date);
     expect(submittedData.isActive).toBe(true);
   });
 
@@ -129,17 +141,16 @@ describe('ScheduleForm', () => {
       { wrapper: Wrapper }
     );
 
-    const frequencySelect = screen.getByLabelText(/Frequency/i).closest('button');
-    if(frequencySelect) fireEvent.click(frequencySelect);
+    await openSelect(screen.getByLabelText(/Frequency/i));
+    fireEvent.click(await screen.findByRole('option', { name: 'Custom CRON' }));
 
-    await screen.findByText('Custom CRON'); // Wait for option
-    fireEvent.click(screen.getByText('Custom CRON'));
-
-    await waitFor(() => {
-      expect(screen.getByLabelText(/CRON Expression/i)).toBeInTheDocument();
+    const cronInput = await waitFor(() => {
+      const el = document.getElementById('customCronExpression');
+      expect(el).toBeInTheDocument();
+      return el as HTMLInputElement;
     });
 
-    fireEvent.change(screen.getByLabelText(/CRON Expression/i), { target: { value: '0 0 * * *' } });
+    fireEvent.change(cronInput, { target: { value: '0 0 * * *' } });
     // Submit and check payload
      fireEvent.click(screen.getByRole('button', { name: /Create Schedule/i }));
      // ... (add more assertions for valid submission with CRON)
@@ -178,17 +189,18 @@ describe('ScheduleForm', () => {
     expect(screen.getByLabelText(/Environment/i)).toHaveValue('QA');
 
     // Check if Firefox browser checkbox is checked
-    const firefoxCheckbox = screen.getByLabelText('Firefox') as HTMLInputElement;
-    expect(firefoxCheckbox.checked).toBe(true);
-
-    const activeCheckbox = screen.getByLabelText('Schedule Active') as HTMLInputElement;
-    expect(activeCheckbox.checked).toBe(false);
+    expect(screen.getByLabelText('Firefox')).toBeChecked();
+    expect(screen.getByLabelText('Schedule Active')).not.toBeChecked();
 
     // Check retry on failure selected value
     // Similar to test plan, need to interact or check displayed value.
 
-    expect(screen.getByLabelText(/Notification Overrides \(JSON\)/i)).toHaveValue(JSON.stringify({ emails: ['test@example.com'] }, null, 2));
-    expect(screen.getByLabelText(/Execution Parameters \(JSON\)/i)).toHaveValue(JSON.stringify({ custom: 'value' }, null, 2));
+    expect(document.getElementById('notificationConfigOverride')).toHaveValue(
+      JSON.stringify({ emails: ['test@example.com'] }, null, 2),
+    );
+    expect(document.getElementById('executionParameters')).toHaveValue(
+      JSON.stringify({ custom: 'value' }, null, 2),
+    );
 
     expect(screen.getByRole('button', { name: /Save Changes/i })).toBeInTheDocument();
   });

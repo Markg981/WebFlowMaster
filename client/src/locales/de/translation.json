@@ -1,4 +1,21 @@
 {
+  "recording": {
+    "opensOnServerMachine": "Der Recorder öffnet ein echtes Browserfenster auf dem Rechner, der WebFlowMaster ausführt — nicht in diesem Tab. Nutzen Sie ihn nur, wenn der Server auf Ihrem eigenen Rechner läuft.",
+    "unavailableOnServer": "Dieser Server hat keine Anzeige und kann daher kein Aufzeichnungsfenster öffnen. Führen Sie WebFlowMaster lokal aus, um einen Test aufzuzeichnen.",
+    "capturedCount_one": "{{count}} Aktion",
+    "capturedCount_other": "{{count}} Aktionen",
+    "waitingForActions": "Warte auf Ihre erste Aktion im Browserfenster…",
+    "assertHint": "Nutzen Sie die Schaltfläche „Add assert“ in der Recorder-Leiste, um ein erwartetes Ergebnis aufzuzeichnen.",
+    "overwriteConfirm": "Eine neue Aufzeichnung ersetzt die aktuellen Testschritte. Fortfahren?",
+    "sessionEnded": "Aufzeichnungssitzung beendet",
+    "pollFailed": "Verbindung zur Aufzeichnungssitzung verloren",
+    "start": {
+      "failed": "Aufzeichnung konnte nicht gestartet werden"
+    },
+    "stop": {
+      "failed": "Aufzeichnung konnte nicht beendet werden"
+    }
+  },
   "greeting": "Hallo",
   "settings": {
     "title": "Einstellungen",

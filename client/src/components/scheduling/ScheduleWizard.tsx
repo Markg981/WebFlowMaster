@@ -169,7 +169,7 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
                   control={form.control}
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value} disabled={!!initialTestPlanId || isLoadingTestPlans}>
-                      <SelectTrigger><SelectValue placeholder={t('scheduleWizard.steps.step1.selectTestPlanPlaceholder')} /></SelectTrigger>
+                      <SelectTrigger id="testPlanId"><SelectValue placeholder={t('scheduleWizard.steps.step1.selectTestPlanPlaceholder')} /></SelectTrigger>
                       <SelectContent>
                         {testPlansData?.map(plan => <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>)}
                       </SelectContent>
@@ -188,7 +188,7 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
                   control={form.control}
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value || undefined}>
-                      <SelectTrigger><SelectValue placeholder={t('scheduleWizard.steps.step1.selectEnvironmentPlaceholder')} /></SelectTrigger>
+                      <SelectTrigger id="environment"><SelectValue placeholder={t('scheduleWizard.steps.step1.selectEnvironmentPlaceholder')} /></SelectTrigger>
                       <SelectContent>
                         {ENVIRONMENT_OPTIONS.map(env => <SelectItem key={env.value} value={env.value}>{env.label}</SelectItem>)}
                       </SelectContent>
@@ -237,7 +237,7 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
                   control={form.control}
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger><SelectValue placeholder={t('scheduleWizard.steps.step3.selectFrequencyPlaceholder')} /></SelectTrigger>
+                      <SelectTrigger id="frequency"><SelectValue placeholder={t('scheduleWizard.steps.step3.selectFrequencyPlaceholder')} /></SelectTrigger>
                       <SelectContent>
                         {FREQUENCY_OPTIONS.map(freq => <SelectItem key={freq.value} value={freq.value}>{freq.label}</SelectItem>)}
                       </SelectContent>
@@ -325,7 +325,7 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
                 <Label htmlFor="retryOnFailure">{t('scheduleWizard.steps.step5.retryOnFailureLabel')}</Label>
                  <Controller name="retryOnFailure" control={form.control} render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger><SelectValue placeholder={t('scheduleWizard.steps.step5.selectRetryPlaceholder')} /></SelectTrigger>
+                        <SelectTrigger id="retryOnFailure"><SelectValue placeholder={t('scheduleWizard.steps.step5.selectRetryPlaceholder')} /></SelectTrigger>
                         <SelectContent>
                         {RETRY_ON_FAILURE_OPTIONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
                         </SelectContent>

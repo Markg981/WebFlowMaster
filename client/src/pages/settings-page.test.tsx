@@ -1,9 +1,16 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SettingsPage from './settings-page';
-import { MemoryRouter } from 'wouter';
+import { TestRouter } from '@/test-utils/router';
+
+/**
+ * The page talks to the API through the global `fetch`, so that is the only seam stubbed —
+ * react-query runs for real. The previous version replaced `useQuery`/`useMutation` with
+ * fakes and hand-invoked the captured `onSuccess`, which asserted on the test's own
+ * plumbing rather than on the page.
+ */
 
 interface Project {
   id: number;
@@ -12,78 +19,11 @@ interface Project {
   createdAt: string;
 }
 
-// Mock lucide-react icons
-vi.mock('lucide-react', async (importOriginal) => {
-  const original = await importOriginal() as any;
-  const genericIcon = (props: any) => React.createElement('svg', { 'data-testid': `icon-${props.name || 'generic'}` , ...props });
-  const icons: Record<string, React.FC<any>> = {};
-  const originalIconsList = [
-    'Moon', 'Sun', 'Globe', 'Monitor', 'Settings', 'Bell', 'User', 'Save',
-    'ArrowLeft', 'Loader2', 'ListTree', 'Trash2', 'PlusCircle', 'Archive'
-  ];
-  originalIconsList.forEach(iconName => {
-    icons[iconName] = (props: any) => genericIcon({...props, name: iconName.toLowerCase()});
-  });
-  return { ...original, ...icons, default: (props: any) => genericIcon({...props, name: 'default-icon'}) };
-});
-
-// Mocks for hooks and services
-const mockInvalidateQueries = vi.fn();
-const mockDeleteProjectMutate = vi.fn();
-const mockCreateProjectMutate = vi.fn();
-const mockUserSettingsMutate = vi.fn();
-const mockSaveSystemSettingMutate = vi.fn();
-
-let mockProjectsQuery: any = { data: [], isLoading: false, isError: false, error: null };
-let mockSettingsQuery: any = { data: {}, isLoading: false, isError: false, error: null };
-let mockSystemSettingsQuery: Record<string, any> = {};
-
-// Store actual mutation options from the component
-let actualDeleteProjectMutationOptions: any = null;
-let _actualCreateProjectMutationOptions: any = null;
-let _actualUserSettingsMutationOptions: any = null;
-let _actualSaveSystemSettingMutationOptions: any = null;
-
-
-vi.mock('@tanstack/react-query', async () => {
-  const original = await vi.importActual('@tanstack/react-query') as any;
-  return {
-    ...original,
-    useQuery: (options: { queryKey: string[] }) => {
-      const key = options.queryKey[0];
-      if (key === 'projects') return mockProjectsQuery;
-      if (key === 'settings') return mockSettingsQuery;
-      if (key === 'systemSetting') return mockSystemSettingsQuery[options.queryKey[1]] || { data: null, isLoading: false, isError: false, error: null };
-      return { data: undefined, isLoading: false, isError: false, error: null };
-    },
-    useMutation: (options: any) => {
-      // Store the component's options to allow tests to call onSuccess/onError
-      // This is a simplified way; a more complex app might need mutationKeys to differentiate
-      const fnStr = options.mutationFn.toString(); // Or use options.mutationKey if available
-      if (fnStr.includes('/api/projects') && fnStr.includes('DELETE')) {
-        actualDeleteProjectMutationOptions = options;
-        return { mutate: mockDeleteProjectMutate, isPending: false, data: undefined, error: null };
-      }
-      if (fnStr.includes('/api/projects') && fnStr.includes('POST')) {
-        _actualCreateProjectMutationOptions = options;
-        return { mutate: mockCreateProjectMutate, isPending: false, data: undefined, error: null };
-      }
-      if (fnStr.includes('/api/settings')) {
-        _actualUserSettingsMutationOptions = options;
-        return { mutate: mockUserSettingsMutate, isPending: false, data: undefined, error: null };
-      }
-      if (fnStr.includes('/api/system-settings')) {
-        _actualSaveSystemSettingMutationOptions = options;
-        return { mutate: mockSaveSystemSettingMutate, isPending: false, data: undefined, error: null };
-      }
-      return { mutate: vi.fn(), isPending: false, data: undefined, error: null };
-    },
-    useQueryClient: () => ({ invalidateQueries: mockInvalidateQueries }),
-  };
-});
-
 const mockToast = vi.fn();
-vi.mock('@/hooks/use-toast', () => ({ toast: mockToast }));
+vi.mock('@/hooks/use-toast', () => ({
+  toast: (...args: unknown[]) => mockToast(...args),
+  useToast: () => ({ toast: mockToast, dismiss: vi.fn(), toasts: [] }),
+}));
 
 vi.mock('@/hooks/use-auth', () => ({
   useAuth: () => ({
@@ -92,131 +32,159 @@ vi.mock('@/hooks/use-auth', () => ({
   }),
 }));
 
-vi.mock('../lib/settings', () => ({
-    fetchSettings: vi.fn().mockResolvedValue({
-        theme: "light", defaultTestUrl: "http://example.com", playwrightBrowser: "chromium",
-        playwrightHeadless: true, playwrightDefaultTimeout: 30000, playwrightWaitTime: 1000, language: "en"
-    }),
-}));
-
-
-const createTestQueryClient = () => new QueryClient({
-  defaultOptions: { queries: { retry: false, staleTime: Infinity } },
-});
-
-const AllTheProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const queryClient = createTestQueryClient();
-  return <MemoryRouter><QueryClientProvider client={queryClient}>{children}</QueryClientProvider></MemoryRouter>;
+const userSettings = {
+  theme: 'light',
+  defaultTestUrl: 'http://example.com',
+  playwrightBrowser: 'chromium',
+  playwrightHeadless: true,
+  playwrightDefaultTimeout: 30000,
+  playwrightWaitTime: 1000,
+  language: 'en',
 };
 
-const renderSettingsPage = () => render(<SettingsPage />, { wrapper: AllTheProviders });
+vi.mock('../lib/settings', () => ({
+  fetchSettings: vi.fn().mockResolvedValue({
+    theme: 'light',
+    defaultTestUrl: 'http://example.com',
+    playwrightBrowser: 'chromium',
+    playwrightHeadless: true,
+    playwrightDefaultTimeout: 30000,
+    playwrightWaitTime: 1000,
+    language: 'en',
+  }),
+}));
 
-const sampleProjectsData: Project[] = [
+const sampleProjects: Project[] = [
   { id: 1, name: 'Project Alpha', userId: 1, createdAt: new Date().toISOString() },
   { id: 2, name: 'Project Beta', userId: 1, createdAt: new Date().toISOString() },
 ];
 
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+let projects: Project[];
+let deleteResponder: (id: number) => Response;
+
+const installFetch = () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = (init?.method ?? 'GET').toUpperCase();
+
+      if (url === '/api/projects' && method === 'GET') return json(projects);
+      if (url === '/api/settings') return json(userSettings);
+      if (url.startsWith('/api/system-settings/')) {
+        const key = url.split('/').pop()!;
+        return json({ key, value: key === 'logRetentionDays' ? '7' : 'info' });
+      }
+      const deleteMatch = url.match(/^\/api\/projects\/(\d+)$/);
+      if (deleteMatch && method === 'DELETE') {
+        return deleteResponder(Number(deleteMatch[1]));
+      }
+      return json({}, 404);
+    }),
+  );
+};
+
+const renderSettingsPage = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <TestRouter>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </TestRouter>
+  );
+  return render(<SettingsPage />, { wrapper });
+};
+
+const openDeleteDialogFor = async (projectName: string) => {
+  const deleteButton = await screen.findByRole('button', {
+    name: `Delete project ${projectName}`,
+  });
+  fireEvent.click(deleteButton);
+  return screen.findByRole('alertdialog');
+};
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  projects = [...sampleProjects];
+  deleteResponder = () => new Response(null, { status: 204 });
+  installFetch();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe('SettingsPage - Project Deletion', () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-    mockProjectsQuery = { data: [...sampleProjectsData], isLoading: false, isError: false, error: null };
-    mockSettingsQuery = {
-      data: { theme: "light", defaultTestUrl: "", playwrightBrowser: "chromium", playwrightHeadless: true, playwrightDefaultTimeout: 30000, playwrightWaitTime: 1000, language: "en" },
-      isLoading: false, isError: false, error: null
-    };
-    mockSystemSettingsQuery = {
-        'logRetentionDays': { data: { key: 'logRetentionDays', value: '7' }, isLoading: false, isError: false, error: null },
-        'logLevel': { data: { key: 'logLevel', value: 'info' }, isLoading: false, isError: false, error: null },
-    };
-  });
-
-  it('opens AlertDialog with project name when delete icon is clicked', async () => {
+  it('opens the confirmation dialog naming the project', async () => {
     renderSettingsPage();
-    const projectToDelete = sampleProjectsData[0];
 
-    // Wait for projects to be loaded and displayed
-    await screen.findByText(projectToDelete.name);
+    await openDeleteDialogFor('Project Alpha');
 
-    const deleteButtons = screen.getAllByTestId('icon-trash2');
-    // Assuming the first delete button corresponds to the first project
-    fireEvent.click(deleteButtons[0].closest('button')!);
-
-    await waitFor(() => {
-      expect(screen.getByRole('alertdialog')).toBeInTheDocument();
-    });
     expect(screen.getByText(/Confirm Project Deletion/i)).toBeInTheDocument();
-    expect(screen.getByText(new RegExp(`Are you sure you want to delete project "${projectToDelete.name}"`, 'i'))).toBeInTheDocument();
+    expect(
+      screen.getByText(/Are you sure you want to delete project "Project Alpha"/i),
+    ).toBeInTheDocument();
   });
 
-  it('closes AlertDialog and does not call delete mutation when Cancel is clicked', async () => {
+  it('closes the dialog without deleting when Cancel is clicked', async () => {
     renderSettingsPage();
-    const projectToDelete = sampleProjectsData[0];
-    await screen.findByText(projectToDelete.name);
 
-    const deleteButtons = screen.getAllByTestId('icon-trash2');
-    fireEvent.click(deleteButtons[0].closest('button')!);
-
-    await waitFor(() => expect(screen.getByRole('alertdialog')).toBeInTheDocument());
+    await openDeleteDialogFor('Project Alpha');
     fireEvent.click(screen.getByRole('button', { name: /Cancel/i }));
 
-    await waitFor(() => {
-      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
-    });
-    expect(mockDeleteProjectMutate).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+
+    const deleteCalls = vi
+      .mocked(globalThis.fetch)
+      .mock.calls.filter(([, init]) => (init as RequestInit | undefined)?.method === 'DELETE');
+    expect(deleteCalls).toHaveLength(0);
   });
 
-  it('calls delete mutation, invalidates queries, shows success toast, and closes dialog on successful deletion', async () => {
+  it('deletes the project, refreshes the list and reports success', async () => {
     renderSettingsPage();
-    const projectToDelete = sampleProjectsData[0];
-    await screen.findByText(projectToDelete.name);
 
-    const deleteButtons = screen.getAllByTestId('icon-trash2');
-    fireEvent.click(deleteButtons[0].closest('button')!);
+    await openDeleteDialogFor('Project Alpha');
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete' }));
 
-    await waitFor(() => expect(screen.getByRole('alertdialog')).toBeInTheDocument());
-
-
-    // Simulate the component's mutate function being called
-    mockDeleteProjectMutate(projectToDelete.id);
-
-    // Now, manually trigger the component's onSuccess
-    if (actualDeleteProjectMutationOptions && actualDeleteProjectMutationOptions.onSuccess) {
-        await act(async () => {
-            actualDeleteProjectMutationOptions.onSuccess(null, projectToDelete.id, null);
-        });
-    } else {
-        throw new Error("onSuccess handler not captured for deleteProjectMutation");
-    }
-
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ["projects"] });
-    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Project Deleted" }));
+    await waitFor(() =>
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        '/api/projects/1',
+        expect.objectContaining({ method: 'DELETE' }),
+      ),
+    );
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Project Deleted' }),
+      ),
+    );
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 
-  it('shows error toast and closes dialog on failed deletion', async () => {
+  it('reports the server error when deletion fails', async () => {
+    const errorMessage = 'Failed to delete project spectacularly';
+    deleteResponder = () => json({ error: errorMessage }, 500);
+
     renderSettingsPage();
-    const projectToDelete = sampleProjectsData[0];
-    const errorMessage = "Failed to delete project spectacularly";
-    await screen.findByText(projectToDelete.name);
 
-    const deleteButtons = screen.getAllByTestId('icon-trash2');
-    fireEvent.click(deleteButtons[0].closest('button')!);
+    await openDeleteDialogFor('Project Alpha');
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete' }));
 
-    await waitFor(() => expect(screen.getByRole('alertdialog')).toBeInTheDocument());
-
-    // Simulate the component's mutate function being called
-    mockDeleteProjectMutate(projectToDelete.id);
-
-    // Manually trigger the component's onError
-    if (actualDeleteProjectMutationOptions && actualDeleteProjectMutationOptions.onError) {
-        await act(async () => {
-            actualDeleteProjectMutationOptions.onError(new Error(errorMessage), projectToDelete.id, null);
-        });
-    } else {
-        throw new Error("onError handler not captured for deleteProjectMutation");
-    }
-
-    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Error Deleting Project", description: errorMessage, variant: "destructive" }));
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Error Deleting Project',
+          description: errorMessage,
+          variant: 'destructive',
+        }),
+      ),
+    );
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 });

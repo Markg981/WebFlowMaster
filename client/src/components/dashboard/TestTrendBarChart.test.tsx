@@ -1,20 +1,27 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import TestTrendBarChart from './TestTrendBarChart';
 
-// Mock Recharts components
+/**
+ * The chart takes `data`/`isLoading` as props — the dashboard page owns the query. Recharts
+ * is stubbed because `ResponsiveContainer` measures its parent, and JSDOM reports 0×0, so
+ * the real chart would never render its children.
+ */
 vi.mock('recharts', async (importOriginal) => {
   const original = await importOriginal<typeof import('recharts')>();
   return {
     ...original,
-    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
-    BarChart: ({ children }: { children: React.ReactNode }) => <div data-testid="bar-chart">{children}</div>,
-    Bar: () => <div data-testid="bar-element" />,
-    XAxis: () => <div data-testid="xaxis-element" />,
-    YAxis: () => <div data-testid="yaxis-element" />,
-    CartesianGrid: () => <div data-testid="grid-element" />,
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="responsive-container">{children}</div>
+    ),
+    BarChart: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="bar-chart">{children}</div>
+    ),
+    Bar: ({ name }: { name?: string }) => <div data-testid={`bar-${name}`} />,
+    XAxis: () => <div data-testid="x-axis" />,
+    YAxis: () => <div data-testid="y-axis" />,
+    CartesianGrid: () => <div data-testid="cartesian-grid" />,
     Tooltip: () => <div data-testid="tooltip-element" />,
     Legend: () => <div data-testid="legend-element" />,
   };
@@ -24,78 +31,48 @@ vi.mock('lucide-react', async (importOriginal) => {
   const original = await importOriginal<typeof import('lucide-react')>();
   return {
     ...original,
-    Loader2: (props: any) => <div data-testid="loader-icon" {...props}>Loader</div>,
-    AlertCircle: (props: any) => <div data-testid="alert-icon" {...props}>Alert</div>,
+    Loader2: (props: Record<string, unknown>) => <div data-testid="loader-icon" {...props} />,
   };
 });
 
-const createTestQueryClient = () => new QueryClient({
-  defaultOptions: { queries: { retry: false } },
-});
-
-// Mock data for API
-const mockSuccessData = [
-  { date: 'Mon', passed: 60, failed: 8, running: 3 },
-  { date: 'Tue', passed: 55, failed: 5, running: 2 },
+const sampleData = [
+  { date: '2024-08-01', passed: 10, failed: 2, total: 12 },
+  { date: '2024-08-02', passed: 8, failed: 0, total: 8 },
 ];
-const mockEmptyData: any[] = [];
 
 describe('TestTrendBarChart', () => {
-  let queryClient: QueryClient;
+  it('renders the chart title', () => {
+    render(<TestTrendBarChart data={sampleData} />);
 
-  beforeEach(() => {
-    queryClient = createTestQueryClient();
+    expect(screen.getByText('Weekly Test Trends')).toBeInTheDocument();
   });
 
-  const renderWithClient = (ui: React.ReactElement) => {
-    return render(
-      <QueryClientProvider client={queryClient}>
-        {ui}
-      </QueryClientProvider>
-    );
-  };
+  it('shows a spinner while loading', () => {
+    render(<TestTrendBarChart isLoading />);
 
-  it('displays loading state initially', async () => {
-    renderWithClient(<TestTrendBarChart />);
     expect(screen.getByTestId('loader-icon')).toBeInTheDocument();
+    expect(screen.queryByTestId('bar-chart')).not.toBeInTheDocument();
   });
 
-  it('displays error state if API call fails', async () => {
-    queryClient.setQueryData(['testTrends'], () => {
-      throw new Error('Network Error');
-    });
-    renderWithClient(<TestTrendBarChart />);
+  it('shows an empty message for an empty series', () => {
+    render(<TestTrendBarChart data={[]} />);
 
-    await waitFor(() => {
-      expect(screen.getByTestId('alert-icon')).toBeInTheDocument();
-      expect(screen.getByText('Error loading chart data.')).toBeInTheDocument();
-    });
+    expect(screen.getByText('No trend data available.')).toBeInTheDocument();
+    expect(screen.queryByTestId('bar-chart')).not.toBeInTheDocument();
   });
 
-  it('displays "No data available" message when data is empty', async () => {
-    queryClient.setQueryData(['testTrends'], mockEmptyData);
-    renderWithClient(<TestTrendBarChart />);
+  it('shows an empty message when no data is supplied at all', () => {
+    render(<TestTrendBarChart />);
 
-    await waitFor(() => {
-      expect(screen.getByText('No data available to display.')).toBeInTheDocument();
-    });
+    expect(screen.getByText('No trend data available.')).toBeInTheDocument();
   });
 
-  it('renders chart title and chart elements when data is available', async () => {
-    queryClient.setQueryData(['testTrends'], mockSuccessData);
-    renderWithClient(<TestTrendBarChart />);
+  it('renders a stacked passed/failed series when data is available', () => {
+    render(<TestTrendBarChart data={sampleData} />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Weekly Test Trends')).toBeInTheDocument();
-      expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
-      expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
-      // Expect multiple bar elements (one for passed, one for failed, one for running per data entry - but mock is simplified)
-      expect(screen.getAllByTestId('bar-element').length).toBeGreaterThan(0);
-      expect(screen.getByTestId('xaxis-element')).toBeInTheDocument();
-      expect(screen.getByTestId('yaxis-element')).toBeInTheDocument();
-      expect(screen.getByTestId('grid-element')).toBeInTheDocument();
-      expect(screen.getByTestId('tooltip-element')).toBeInTheDocument();
-      expect(screen.getByTestId('legend-element')).toBeInTheDocument();
-    });
+    expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
+    expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('bar-Passed')).toBeInTheDocument();
+    expect(screen.getByTestId('bar-Failed')).toBeInTheDocument();
   });
 });

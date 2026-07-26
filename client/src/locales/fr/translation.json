@@ -1,4 +1,21 @@
 {
+  "recording": {
+    "opensOnServerMachine": "Le recorder ouvre une vraie fenêtre de navigateur sur la machine qui exécute WebFlowMaster, pas dans cet onglet. Ne l'utilisez que si le serveur tourne sur votre ordinateur.",
+    "unavailableOnServer": "Ce serveur n'a pas d'affichage et ne peut donc pas ouvrir de fenêtre d'enregistrement. Exécutez WebFlowMaster en local pour enregistrer un test.",
+    "capturedCount_one": "{{count}} action",
+    "capturedCount_other": "{{count}} actions",
+    "waitingForActions": "En attente de votre première action dans la fenêtre du navigateur…",
+    "assertHint": "Utilisez le bouton « Add assert » de la barre du recorder pour enregistrer un résultat attendu.",
+    "overwriteConfirm": "Démarrer un enregistrement remplace les étapes actuelles du test. Continuer ?",
+    "sessionEnded": "Session d'enregistrement terminée",
+    "pollFailed": "Contact perdu avec la session d'enregistrement",
+    "start": {
+      "failed": "Échec du démarrage de l'enregistrement"
+    },
+    "stop": {
+      "failed": "Échec de l'arrêt de l'enregistrement"
+    }
+  },
   "greeting": "Bonjour",
   "settings": {
     "title": "Paramètres",

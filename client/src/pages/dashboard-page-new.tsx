@@ -22,6 +22,8 @@ import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
 import SaveTestModal from "@/components/SaveTestModal"; // Import the modal
 import { PreconditionsPanel } from "@/components/PreconditionsPanel";
 import type { Precondition } from "@shared/schema";
+import { ACTION_I18N, ADHOC_ACTION_IDS } from "@shared/recording";
+import { useRecordingSession } from "@/hooks/useRecordingSession";
 import {
   Globe,
   Search,
@@ -29,79 +31,9 @@ import {
   Loader2,
   Play,
   StopCircle, // Add this if not present
+  Info,
   XCircle, // Added this icon
 } from "lucide-react";
-// import debounceFromLodash from 'lodash/debounce'; // Removed due to missing types
-
-// Interface for actions received from backend recording service
-interface BackendRecordedAction {
-  type: 'click' | 'input' | 'select' | 'navigate' | 'keypress' | 'assertion';
-  selector?: string;
-  value?: string;
-  timestamp: number;
-  url?: string;
-  key?: string;
-  targetTag?: string;
-  targetId?: string;
-  targetClass?: string;
-  targetText?: string;
-  // assertType and assertValue are for assertion actions, map them if you have assertion TestActions
-}
-
-// Fallback simple debounce function definition (if lodash is not used/available)
-function simpleDebounce<F extends (...args: any[]) => void>(func: F, waitFor: number): F & { cancel: () => void } {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  const debouncedFunc = (...args: Parameters<F>): void => {
-    if (timeoutId) clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => func(...args), waitFor);
-  };
-  (debouncedFunc as any).cancel = () => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      timeoutId = null;
-    }
-  };
-  return debouncedFunc as F & { cancel: () => void };
-}
-
-// Helper function to check if a test step is complete enough for real-time execution
-// Placed outside the component as it doesn't rely on component state/props directly.
-// Assumes DragDropTestStep structure has action.type, targetElement, and value.
-function isTestStepComplete(step: DragDropTestStep): boolean {
-  if (!step || !step.action || !step.action.type) {
-    return false; // Invalid step structure
-  }
-
-  const actionType = step.action.type; // Assuming action.type holds the string like 'input', 'click'
-
-  switch (actionType) {
-    case 'input':
-      // Requires a target element and a non-empty value
-      return !!step.targetElement && !!step.value && step.value.trim() !== "";
-    case 'select':
-      // Requires a target element and a non-empty value
-      return !!step.targetElement && !!step.value && step.value.trim() !== "";
-    case 'click':
-    case 'hover':
-    case 'assert': // Basic check for assert, might need more specifics depending on assertion types
-      // Require a target element
-      return !!step.targetElement;
-    case 'wait':
-      // Requires a non-empty value (server-side validates if it's numeric)
-      return !!step.value && step.value.trim() !== "";
-    case 'scroll':
-      // Assuming 'scroll' without targetElement means scroll window, which is always "complete"
-      // If scroll can target an element and that's a common case, this might need:
-      // return step.targetElement ? true : true; // Or more specific checks if target scroll needs validation
-      return true;
-    default:
-      // For actions not explicitly listed, default to false.
-      // This ensures any new action type must be explicitly considered here for completeness.
-      return false;
-  }
-}
-
-
 // Client-side StepResult interface matching backend
 interface StepResult {
   name: string;
@@ -162,29 +94,17 @@ export interface TestAction {
   description: string;
 }
 
-// Exporting availableActions for use in TestSequenceBuilder and potentially other components
-export const availableActions: TestAction[] = [
-  { id: "click", type: "click", name: "dashboardPageNew.actions.click.name", icon: "mouse-pointer", description: "dashboardPageNew.actions.click.description" },
-  { id: "input", type: "input", name: "dashboardPageNew.actions.input.name", icon: "keyboard", description: "dashboardPageNew.actions.input.description" },
-  { id: "wait", type: "wait", name: "dashboardPageNew.actions.wait.name", icon: "clock", description: "dashboardPageNew.actions.wait.description" },
-  { id: "scroll", type: "scroll", name: "dashboardPageNew.actions.scroll.name", icon: "scroll", description: "dashboardPageNew.actions.scroll.description" },
-  { id: "hover", type: "hover", name: "dashboardPageNew.actions.hover.name", icon: "hand", description: "dashboardPageNew.actions.hover.description" },
-  { id: "select", type: "select", name: "dashboardPageNew.actions.select.name", icon: "chevron-down", description: "dashboardPageNew.actions.select.description" },
-  {
-    id: "assertTextContains",
-    type: "assertTextContains",
-    name: "dashboardPageNew.actions.assertTextContains.name",
-    icon: "CheckSquare",
-    description: "dashboardPageNew.actions.assertTextContains.description"
-  },
-  {
-    id: "assertElementCount",
-    type: "assertElementCount",
-    name: "dashboardPageNew.actions.assertElementCount.name",
-    icon: "ListChecks",
-    description: "dashboardPageNew.actions.assertElementCount.description"
-  },
-];
+/**
+ * The action palette, derived from the shared action table so the manual builder and the
+ * recorder can never drift apart — a recorded action always has a palette entry to map to.
+ */
+export const availableActions: TestAction[] = ADHOC_ACTION_IDS.map((id) => ({
+  id,
+  type: id,
+  name: ACTION_I18N[id].name,
+  icon: ACTION_I18N[id].icon,
+  description: ACTION_I18N[id].description,
+}));
 
 export default function DashboardPage() {
   const { t } = useTranslation();
@@ -200,10 +120,6 @@ export default function DashboardPage() {
   const [websiteLoaded, setWebsiteLoaded] = useState(false);
   const [websiteScreenshot, setWebsiteScreenshot] = useState<string | null>(null); // This will now also be used for playback
   const [isInitialUrlPrefilled, setIsInitialUrlPrefilled] = useState(false);
-
-  // States for recording
-  const [isRecording, setIsRecording] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
 
   // States for test execution playback
   const [isExecutingPlayback, setIsExecutingPlayback] = useState(false);
@@ -224,6 +140,19 @@ export default function DashboardPage() {
     naturalHeight: number;
   } | null>(null);
 
+
+  // Can this server open the visible browser window a recording needs? Undefined until the
+  // check resolves, so the UI never flashes a false warning.
+  const { data: recordingCapability } = useQuery<{ supported: boolean }, Error>({
+    queryKey: ["recordingCapability"],
+    queryFn: async () => {
+      const res = await fetch("/api/recording-capability");
+      if (!res.ok) throw new Error("Failed to check recording capability");
+      return res.json();
+    },
+    staleTime: Infinity,
+  });
+  const recordingSupported = recordingCapability?.supported;
 
   // Fetch user settings
   const {
@@ -329,36 +258,21 @@ export default function DashboardPage() {
     const imgAspectRatio = naturalWidth / naturalHeight;
     const containerAspectRatio = containerWidth / containerHeight;
 
-    let visibleImgWidth, visibleImgHeight;
-    if (imgAspectRatio > containerAspectRatio) { // Image is wider than container (letterboxed)
-      visibleImgWidth = containerWidth;
-      visibleImgHeight = containerWidth / imgAspectRatio;
-    } else { // Image is taller than container (pillarboxed)
-      visibleImgHeight = containerHeight;
-      visibleImgWidth = containerHeight * imgAspectRatio;
-    }
+    // object-contain: the image is scaled to fit, so the rendered width is the container
+    // width when the image is the wider of the two, and derived from the height otherwise.
+    const visibleImgWidth = imgAspectRatio > containerAspectRatio
+      ? containerWidth
+      : containerHeight * imgAspectRatio;
 
+    // The overlay is positioned against the <img>, not the container, so the letterbox
+    // offsets are already absorbed by the image's own box and must not be added here.
     const scale = visibleImgWidth / naturalWidth;
-    const offsetX = (containerWidth - visibleImgWidth) / 2;
-    const offsetY = (containerHeight - visibleImgHeight) / 2;
-
     const { x, y, width, height } = elementToHighlight.boundingBox;
 
-    const finalScaledX = Math.round(x * scale); // Removed offsetX
-    const finalScaledY = Math.round(y * scale); // Removed offsetY
+    const finalScaledX = Math.round(x * scale);
+    const finalScaledY = Math.round(y * scale);
     const finalScaledWidth = Math.round(width * scale);
     const finalScaledHeight = Math.round(height * scale);
-
-    console.log("[Highlight Debug] Element ID:", elementToHighlight.id);
-    console.log("[Highlight Debug] Original BBox:", { x, y, width, height });
-    console.log("[Highlight Debug] Natural Dims (Img):", { naturalWidth, naturalHeight });
-    console.log("[Highlight Debug] Rendered Dims (Container):", { renderedWidth: containerWidth, renderedHeight: containerHeight });
-    console.log("[Highlight Debug] Img Aspect Ratio:", imgAspectRatio);
-    console.log("[Highlight Debug] Container Aspect Ratio:", containerAspectRatio);
-    console.log("[Highlight Debug] Visible Img Dims:", { visibleImgWidth, visibleImgHeight });
-    console.log("[Highlight Debug] Scale Factor:", scale);
-    console.log("[Highlight Debug] Offsets:", { offsetX, offsetY });
-    console.log("[Highlight Debug] Final Scaled BBox:", { top: finalScaledY, left: finalScaledX, width: finalScaledWidth, height: finalScaledHeight });
 
     return {
       top: finalScaledY,
@@ -382,7 +296,6 @@ export default function DashboardPage() {
         }
 
         const payload = { url: websiteUrl };
-        console.log("Attempting to load website with payload:", payload); // Diagnostic log
 
         const res = await apiRequest("POST", "/api/load-website", payload);
 
@@ -404,7 +317,6 @@ export default function DashboardPage() {
         }
 
         const jsonData = await res.json();
-        console.log("Response from /api/load-website:", jsonData); // Diagnostic log
         return jsonData;
 
       } catch (error) {
@@ -543,39 +455,19 @@ export default function DashboardPage() {
     // Or, if you want this function to control it: handleCloseSaveModal();
   };
 
-  const startRecordingMutation = useMutation({
-    mutationFn: async (payload: { url: string }) => {
-      const res = await apiRequest("POST", "/api/start-recording", payload);
-      // Assuming the backend returns { success: boolean, sessionId?: string, error?: string }
-      const result = await res.json();
-      if (!res.ok || !result.success) {
-        throw new Error(result.error || "Failed to start recording session.");
-      }
-      return result; // Expected: { success: true, sessionId: "some-session-id" }
-    },
-    onSuccess: (data) => {
-      setSessionId(data.sessionId);
-      setIsRecording(true);
-      toast({
-        title: t('dashboardPageNew.toasts.recordingStarted.title'),
-        description: t('dashboardPageNew.toasts.recordingStarted.description'),
-        duration: 7000,
-      });
-      // Polling will be started by useEffect based on isRecording and sessionId
-    },
-    onError: (error: Error) => {
-      setIsRecording(false); // Revert state on error
-      // Button states will be managed based on isRecording and mutation pending state
-      toast({
-        title: t('dashboardPageNew.toasts.failedToStartRecording'),
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+  // The whole record -> poll -> stop lifecycle lives in this hook; the page only reacts to
+  // the steps it produces.
+  const recording = useRecordingSession({
+    onStepsChange: (steps) => setTestSequence(steps as DragDropTestStep[]),
+    onError: (titleKey, description) =>
+      toast({ title: t(titleKey), description, variant: "destructive" }),
+    onNotice: (titleKey, description) =>
+      toast({ title: t(titleKey), description, duration: 7000 }),
   });
+  const isRecording = recording.isRecording;
 
-  const handleStartRecording = async () => {
-    if (!currentUrl || !websiteLoaded) {
+  const handleStartRecording = () => {
+    if (!currentUrl) {
       toast({
         title: t('dashboardPageNew.toasts.cannotStartRecording.title'),
         description: t('dashboardPageNew.toasts.cannotStartRecording.description'),
@@ -583,287 +475,24 @@ export default function DashboardPage() {
       });
       return;
     }
-    // Optimistically set isRecording to true to disable button immediately,
-    // but rely on onSuccess/onError for actual session ID and final state.
-    // setIsRecording(true); // This is handled by the mutation's lifecycle now.
-    startRecordingMutation.mutate({ url: currentUrl });
-  };
-
-  const stopRecordingMutation = useMutation({
-    mutationFn: async (payload: { sessionId: string | null }) => {
-      if (!payload.sessionId) {
-        throw new Error("No active recording session to stop.");
-      }
-      const res = await apiRequest("POST", "/api/stop-recording", payload);
-      // Backend returns { success: boolean, sequence?: BackendRecordedAction[], error?: string }
-      const result = await res.json();
-      if (!res.ok || !result.success) {
-        throw new Error(result.error || "Failed to stop recording session.");
-      }
-      return result; // Expected { success: true, sequence: BackendRecordedAction[] }
-    },
-    onSuccess: (data: { sequence?: BackendRecordedAction[] }) => {
-      console.log("[StopRecording onSuccess] Raw data received:", JSON.stringify(data, null, 2));
-      if (data.sequence) {
-        const newTestSequence: DragDropTestStep[] = data.sequence.map((recordedAction, index) => {
-          const correspondingAction = availableActions.find(a => a.id === recordedAction.type);
-
-          if (!correspondingAction) {
-            console.warn(`[StopRecording onSuccess MAP] No available action found for recorded type: '${recordedAction.type}'. Full action object:`, JSON.stringify(recordedAction, null, 2), '. This action will be SKIPPED.');
-            return null;
-          }
-
-          let targetElementPlaceholder: DetectedElement | undefined = undefined;
-          if (recordedAction.selector) {
-            targetElementPlaceholder = {
-              id: `recorded-elem-${Date.now()}-${index}`,
-              selector: recordedAction.selector,
-              type: recordedAction.targetTag || 'element',
-              text: recordedAction.targetText || recordedAction.selector,
-              tag: recordedAction.targetTag || 'unknown',
-              attributes: {},
-            };
-          }
-
-          return {
-            id: `step-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 7)}`,
-            action: correspondingAction,
-            targetElement: targetElementPlaceholder,
-            value: recordedAction.value || "",
-          };
-        }).filter(step => step !== null && step.action !== undefined) as DragDropTestStep[];
-
-        console.log("[StopRecording onSuccess] Mapped newTestSequence:", JSON.stringify(newTestSequence, null, 2));
-        console.log("[StopRecording onSuccess] Length of mapped newTestSequence:", newTestSequence.length);
-        setTestSequence(newTestSequence);
-        toast({
-          title: t('dashboardPageNew.toasts.recordingStopped.title'),
-          description: t('dashboardPageNew.toasts.recordingStopped.description', { count: newTestSequence.length }),
-        });
-      } else {
-        console.log("[StopRecording onSuccess] data.sequence is missing or empty. Clearing test sequence.");
-        setTestSequence([]);
-        toast({
-          title: "Recording Stopped",
-          description: "No actions were recorded or returned.",
-        });
-      }
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to Stop Recording",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-    // The malformed onSettled and duplicate onError that followed have been removed.
-    onSettled: () => {
-      // This block executes after onSuccess or onError
-      setIsRecording(false);
-      setSessionId(null);
-      // Button states are managed by isRecording and mutation pending states
-    },
-  });
-
-  const handleStopRecording = async () => {
-    if (!sessionId) {
-      toast({
-        title: "Error",
-        description: "No recording session is active.",
-        variant: "destructive",
-      });
-      // Ensure states are reset even if sessionId was somehow null
-      setIsRecording(false);
-      setSessionId(null);
+    if (testSequence.length > 0 && !window.confirm(t('recording.overwriteConfirm'))) {
       return;
     }
-    stopRecordingMutation.mutate({ sessionId });
+    setLastTestOverallResult(null);
+    recording.start(currentUrl);
+    toast({
+      title: t('dashboardPageNew.toasts.recordingStarted.title'),
+      description: t('dashboardPageNew.toasts.recordingStarted.description'),
+      duration: 7000,
+    });
   };
 
-  // Function to fetch recorded actions (not a useQuery hook, but a helper for polling)
-  const fetchRecordedActions = async (currentSessionId: string | null): Promise<DragDropTestStep[]> => {
-    if (!currentSessionId) {
-      return [];
-    }
-    try {
-      const res = await apiRequest("GET", `/api/get-recorded-actions?sessionId=${currentSessionId}`);
-
-      if (!res.ok) {
-        const errorText = await res.text().catch(() => "Errore sconosciuto dal server.");
-        console.warn(`Polling: API request failed with status ${res.status}. Session might have ended. Error: ${errorText}`);
-        if (isRecording && sessionId === currentSessionId) {
-          toast({
-            title: t('dashboardPageNew.toasts.networkError.title'),
-            description: t('dashboardPageNew.toasts.networkError.description', { status: res.status }),
-            variant: "destructive",
-            duration: 7000,
-          });
-          // Consider stopping if error is 404, indicating session truly not found
-          if (res.status === 404) {
-            setIsRecording(false);
-            setSessionId(null);
-          }
-        }
-        return testSequence; // Return current sequence to avoid clearing UI on temporary network issues
-      }
-
-      const result: {
-        success: boolean,
-        sequence?: BackendRecordedAction[],
-        error?: string,
-        sessionEnded?: boolean
-      } = await res.json();
-
-      if (!result.success) {
-        if (result.sessionEnded) {
-          if (isRecording && sessionId === currentSessionId) {
-            toast({
-              title: t('dashboardPageNew.toasts.sessionTerminated.title'),
-              description: result.error || t('dashboardPageNew.toasts.sessionTerminated.description'),
-              variant: "default",
-              duration: 7000,
-            });
-            setIsRecording(false);
-            setSessionId(null);
-            // If backend sends last batch of actions with sessionEnded=true, process them:
-            if (result.sequence && result.sequence.length > 0) {
-              const lastActions = result.sequence.map((recordedAction, index) => {
-                const correspondingAction = availableActions.find(a => a.id === recordedAction.type);
-                if (!correspondingAction) return null;
-                let targetElementPlaceholder: DetectedElement | undefined = undefined;
-                if (recordedAction.selector) {
-                  targetElementPlaceholder = {
-                    id: `polled-elem-${Date.now()}-${index}`, selector: recordedAction.selector,
-                    type: recordedAction.targetTag || 'element', text: recordedAction.targetText || recordedAction.selector,
-                    tag: recordedAction.targetTag || 'unknown', attributes: {},
-                  };
-                }
-                return {
-                  id: `polled-step-${Date.now()}-${index}`, action: correspondingAction,
-                  targetElement: targetElementPlaceholder, value: recordedAction.value || "",
-                };
-              }).filter(step => step !== null) as DragDropTestStep[];
-              return lastActions; // Return the final set of actions
-            }
-          }
-        } else {
-          if (isRecording && sessionId === currentSessionId) {
-            toast({
-              title: t('dashboardPageNew.toasts.sessionProblem.title'),
-              description: result.error || t('dashboardPageNew.toasts.sessionProblem.description'),
-              variant: "destructive",
-              duration: 7000,
-            });
-            // For non-session-ending errors, you might choose not to stop recording immediately
-            // unless the error is persistent or critical.
-          }
-        }
-        return testSequence; // Return current sequence to avoid clearing UI on non-fatal errors
-      }
-
-      // result.success === true
-      if (result.sequence) {
-        const newTestSequence: DragDropTestStep[] = result.sequence.map((recordedAction, index) => {
-          const correspondingAction = availableActions.find(a => a.id === recordedAction.type);
-          if (!correspondingAction) {
-            console.warn(`Polling: No available action for type: ${recordedAction.type}`);
-            return null;
-          }
-
-          let targetElementPlaceholder: DetectedElement | undefined = undefined;
-          if (recordedAction.selector) {
-            targetElementPlaceholder = {
-              id: `polled-elem-${Date.now()}-${index}`,
-              selector: recordedAction.selector,
-              type: recordedAction.targetTag || 'element',
-              text: recordedAction.targetText || recordedAction.selector,
-              tag: recordedAction.targetTag || 'unknown',
-              attributes: {},
-            };
-          }
-          return {
-            id: `polled-step-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 7)}`,
-            action: correspondingAction,
-            targetElement: targetElementPlaceholder,
-            value: recordedAction.value || "",
-          };
-        }).filter(step => step !== null && step.action !== undefined) as DragDropTestStep[];
-        return newTestSequence;
-      }
-      return [];
-    } catch (error) {
-      console.error("Polling: Error fetching recorded actions:", error);
-      return [];
-    }
+  const handleStopRecording = () => {
+    recording.stop();
   };
-
-  // useEffect for polling recorded actions
-  useEffect(() => {
-    let pollingIntervalId: NodeJS.Timeout | null = null;
-
-    if (isRecording && sessionId) {
-      pollingIntervalId = setInterval(async () => {
-        // console.log(`Polling for actions with sessionId: ${sessionId}`);
-        const actionsFromPolling = await fetchRecordedActions(sessionId);
-
-        if (actionsFromPolling.length > 0 || testSequence.length > 0) {
-          if (JSON.stringify(actionsFromPolling) !== JSON.stringify(testSequence)) {
-            setTestSequence(actionsFromPolling);
-          }
-        }
-      }, 3000);
-    } else {
-      if (pollingIntervalId) {
-        clearInterval(pollingIntervalId);
-      }
-    }
-
-    return () => {
-      if (pollingIntervalId) {
-        clearInterval(pollingIntervalId);
-      }
-    };
-    // fetchRecordedActions only reads its sessionId argument; listing it would restart the
-    // 3s polling interval on every render. The meaningful triggers are already listed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRecording, sessionId, testSequence]); // testSequence is now a dep for comparison
-
-  // This mutation is for executing saved tests by ID (currently not used by the main execute button)
-  const executeSavedTestMutation = useMutation({
-    mutationFn: async (testId: string) => {
-      const res = await apiRequest("POST", `/api/tests/${testId}/execute`);
-      const result = await res.json();
-      if (!res.ok) {
-        throw new Error(result.error || "Failed to execute test for saved test");
-      }
-      return result;
-    },
-    onSuccess: (data) => {
-      if (data.success && data.testRun?.results?.steps?.length) {
-        setPlaybackSteps(data.testRun.results.steps);
-        setCurrentPlaybackStepIndex(0);
-        setIsExecutingPlayback(true);
-        if (data.testRun.results.steps[0]?.screenshot) {
-          setWebsiteScreenshot(data.testRun.results.steps[0].screenshot);
-        }
-        toast({ title: "Saved Test Execution Started", description: "Playing back results..." });
-      } else {
-        setIsExecutingPlayback(false);
-        setCurrentPlaybackStepIndex(null);
-        setPlaybackSteps([]);
-        toast({ title: "Execution Failed", description: data.error || "No steps returned or execution failed.", variant: "destructive" });
-      }
-    },
-    onError: (error: Error) => {
-      setIsExecutingPlayback(false);
-      setCurrentPlaybackStepIndex(null);
-      setPlaybackSteps([]);
-      toast({ title: "Saved Test Execution Request Failed", description: error.message, variant: "destructive" });
-    },
-  });
 
   const executeDirectTestMutation = useMutation({
-    mutationFn: async (payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string }) => {
+    mutationFn: async (payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string, preconditions?: Precondition[] }) => {
       const res = await apiRequest("POST", "/api/execute-test-direct", payload);
       // The backend for /api/execute-test-direct should directly return { success: boolean; steps?: StepResult[]; error?: string; duration?: number }
       const result = await res.json();
@@ -879,8 +508,6 @@ export default function DashboardPage() {
       } else {
         setDetectedElements([]);
       }
-      console.log("[DashboardPage] executeDirectTestMutation onSuccess: Received data.steps:", data.steps);
-      console.log("[DashboardPage] executeDirectTestMutation onSuccess: Screenshot for first step:", data.steps?.[0]?.screenshot?.substring(0, 100));
 
 
       if (data.success && data.steps?.length) {
@@ -939,7 +566,6 @@ export default function DashboardPage() {
     if (stepIndex >= 0 && stepIndex < playbackSteps.length) {
       const currentStep = playbackSteps[stepIndex];
       if (currentStep.screenshot) {
-        console.log("[DashboardPage] Playback: Setting screenshot for step", stepIndex, currentStep.screenshot.substring(0, 100));
         setWebsiteScreenshot(currentStep.screenshot);
       }
       // Optionally, update other UI elements with currentStep.name, currentStep.details, etc.
@@ -1000,6 +626,8 @@ export default function DashboardPage() {
       url: currentUrl,
       sequence: testSequence,
       elements: detectedElements,
+      // Sent so the preview runs the same setup calls as a scheduled run would.
+      preconditions,
       name: testName || t('dashboardPageNew.toasts.adhocTestName', { url: currentUrl || t('dashboardPageNew.toasts.untitled') })
     };
     executeDirectTestMutation.mutate(payload);
@@ -1017,31 +645,10 @@ export default function DashboardPage() {
     // For now, just clearing the sequence state. The handleSequenceUpdated will manage effects.
   };
 
-  // New function to handle sequence updates and trigger real-time execution
-
-  const debouncedExecuteMutation = useMemo(() => {
-    return simpleDebounce((payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string }) => {
-      // Condition for execution is checked here, inside the debounced function,
-      // to ensure it's evaluated at the moment of potential execution, not when debouncing starts.
-      if (!executeDirectTestMutation.isPending && !isExecutingPlayback) {
-        executeDirectTestMutation.mutate(payload);
-      }
-    }, 750); // 750ms debounce delay
-    // Depends on the specific mutation fields used (isPending/mutate), not the whole
-    // mutation object, to avoid rebuilding the debounced fn on unrelated status changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [executeDirectTestMutation.isPending, isExecutingPlayback, executeDirectTestMutation.mutate]); // Add dependencies for the mutation status
-
+  // Tests run ONLY when the user clicks "Execute Test". Editing the sequence — adding an
+  // action or binding a target element — must never launch a run on its own.
   const handleSequenceUpdated = (newSequence: DragDropTestStep[]) => {
     setTestSequence(newSequence);
-
-    // Tests run ONLY when the user clicks "Execute Test". Editing the sequence — adding
-    // an action or binding a target element — must never launch a run on its own.
-    // (Previously, completing every step auto-triggered a debounced Playwright execution,
-    // which surprised users mid-edit and swapped the builder into playback view.)
-    if (typeof debouncedExecuteMutation.cancel === 'function') {
-      debouncedExecuteMutation.cancel();
-    }
 
     // If the sequence was cleared, make sure any in-progress playback stops and resets.
     if (newSequence.length === 0) {
@@ -1050,8 +657,6 @@ export default function DashboardPage() {
       setPlaybackSteps([]);
     }
   };
-
-  console.log("[DashboardPage] executeDirectTestMutation.isPending:", executeDirectTestMutation.isPending, "isExecutingPlayback:", isExecutingPlayback);
 
   return (
     <div className="min-h-full bg-background text-foreground">
@@ -1086,11 +691,11 @@ export default function DashboardPage() {
                   setPlaybackSteps([]); // Clear previous playback steps
                   setIsExecutingPlayback(false); // Stop any ongoing playback
                 }}
-                disabled={isRecording || startRecordingMutation.isPending}
+                disabled={isRecording || recording.isStarting}
               />
               <Button
                 onClick={handleLoadWebsite}
-                disabled={loadWebsiteMutation.isPending || isLoadingUserSettings || isRecording || startRecordingMutation.isPending}
+                disabled={loadWebsiteMutation.isPending || isLoadingUserSettings || isRecording || recording.isStarting}
               >
                 {loadWebsiteMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -1127,42 +732,60 @@ export default function DashboardPage() {
               </Select>
             </div>
             {creationMode === 'record' && (
-              <div className="mt-4 flex space-x-3">
+              <div className="mt-4 space-y-3">
+                {/* Recording drives a real browser window opened by the server process, so
+                    it only works when that process runs on the user's own machine. */}
+                <div
+                  className={`flex items-start gap-2 rounded-md border p-3 text-sm ${
+                    recordingSupported === false
+                      ? 'border-destructive/40 bg-destructive/10 text-destructive'
+                      : 'border-border bg-muted/50 text-muted-foreground'
+                  }`}
+                >
+                  <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>
+                    {recordingSupported === false
+                      ? t('recording.unavailableOnServer')
+                      : t('recording.opensOnServerMachine')}
+                  </span>
+                </div>
+                <div className="flex space-x-3">
                 <Button
                   onClick={handleStartRecording}
                   variant="outline"
-                  disabled={isRecording || startRecordingMutation.isPending || !websiteLoaded}
+                  disabled={isRecording || recording.isStarting || !currentUrl || recordingSupported === false}
                 >
-                  {startRecordingMutation.isPending ? (
+                  {recording.isStarting ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <Play className="h-4 w-4 mr-2" />
                   )}
-                  {startRecordingMutation.isPending ? t('dashboardPageNew.starting.button') : t('dashboardPageNew.iniziaRegistrazione.button')}
+                  {recording.isStarting ? t('dashboardPageNew.starting.button') : t('dashboardPageNew.iniziaRegistrazione.button')}
                 </Button>
                 <Button
                   onClick={handleStopRecording}
                   variant="outline"
-                  disabled={!isRecording || stopRecordingMutation.isPending}
+                  disabled={!isRecording || recording.isStopping}
                 >
-                  {stopRecordingMutation.isPending ? (
+                  {recording.isStopping ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
                     <StopCircle className="h-4 w-4 mr-2" />
                   )}
-                  {stopRecordingMutation.isPending ? t('dashboardPageNew.stopping.button') : t('dashboardPageNew.terminaRegistrazione.button')}
+                  {recording.isStopping ? t('dashboardPageNew.stopping.button') : t('dashboardPageNew.terminaRegistrazione.button')}
                 </Button>
+                </div>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Overall Test Result Display */}
+      {/* Overall Test Result Display — semantic tokens so it stays readable in dark mode */}
       {lastTestOverallResult !== null && (
         <div className="px-6 py-4">
           {lastTestOverallResult === true && (
-            <div className="p-3 rounded-md bg-green-100 border border-green-300 text-green-700">
+            <div className="p-3 rounded-md border border-success/40 bg-success/10 text-success">
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 mr-2" />
                 <span className="font-semibold">{t('dashboardPageNew.testResultPassed.text')}</span>
@@ -1170,7 +793,7 @@ export default function DashboardPage() {
             </div>
           )}
           {lastTestOverallResult === false && (
-            <div className="p-3 rounded-md bg-red-100 border border-red-300 text-red-700">
+            <div className="p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive">
               <div className="flex items-center">
                 <XCircle className="h-5 w-5 mr-2" />
                 <span className="font-semibold">{t('dashboardPageNew.testResultFailed.text')}</span>
@@ -1205,7 +828,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-2"> {/* Reduced mb */}
                 <h3 className="text-lg font-semibold text-card-foreground">{t('dashboardPageNew.websitePreview.title')}</h3>
                 <div className="flex items-center space-x-2">
-                  {(executeDirectTestMutation.isPending || executeSavedTestMutation.isPending) && (
+                  {(executeDirectTestMutation.isPending) && (
                     <Badge variant="outline" className="text-info border-info">
                       <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                       {t('dashboardPageNew.executing.text')}
@@ -1217,7 +840,7 @@ export default function DashboardPage() {
                       {t('dashboardPageNew.playback.text')}
                     </Badge>
                   )}
-                  {websiteLoaded && !isExecutingPlayback && !executeDirectTestMutation.isPending && !executeSavedTestMutation.isPending && (
+                  {websiteLoaded && !isExecutingPlayback && !executeDirectTestMutation.isPending && (
                     <Badge variant="secondary" className="bg-success text-success-foreground">
                       <CheckCircle className="h-3 w-3 mr-1" />
                       {t('dashboardPageNew.loaded.text')}
@@ -1245,17 +868,49 @@ export default function DashboardPage() {
               {/* This is the container whose dimensions are used for scaling calculations */}
               <div ref={imageContainerRef} className="flex-1 border-2 border-border rounded-lg overflow-hidden relative bg-muted flex items-center justify-center">
                 {creationMode === 'record' && isRecording ? (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                    <div className="text-center p-4">
-                      <Play className="h-12 w-12 mx-auto mb-4 opacity-70 text-primary" />
-                      <p className="text-lg font-semibold text-foreground">{t('dashboardPageNew.registrazioneInCorso.text')}</p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        {t('dashboardPageNew.utilizzaLaFinestraDelBrowser.description')}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {t('dashboardPageNew.leAzioniRegistrateApparirannoNella.description')}
-                      </p>
+                  <div className="h-full w-full flex flex-col p-4 text-left">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-destructive" />
+                      </span>
+                      <p className="font-semibold text-foreground">{t('dashboardPageNew.registrazioneInCorso.text')}</p>
+                      <Badge variant="secondary" className="ml-auto">
+                        {t('recording.capturedCount', { count: recording.recordedActions.filter(a => !a.meta).length })}
+                      </Badge>
                     </div>
+                    <p className="text-sm text-muted-foreground">
+                      {t('dashboardPageNew.utilizzaLaFinestraDelBrowser.description')}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1 mb-3">
+                      {t('recording.assertHint')}
+                    </p>
+                    <ScrollArea className="flex-1 rounded-md border border-border bg-background/60">
+                      <ol className="p-2 space-y-1">
+                        {recording.recordedActions.filter(a => !a.meta).map((action, index) => (
+                          <li
+                            key={`${action.timestamp}-${index}`}
+                            className="flex items-start gap-2 rounded px-2 py-1 text-xs"
+                          >
+                            <span className="text-muted-foreground tabular-nums w-5 shrink-0">{index + 1}.</span>
+                            <span className="font-medium shrink-0">{action.type}</span>
+                            <span className="font-mono text-[11px] text-muted-foreground truncate">
+                              {action.selector ?? action.url ?? ''}
+                            </span>
+                            {action.value ? (
+                              <span className="ml-auto shrink-0 max-w-[35%] truncate text-muted-foreground">
+                                {action.masked ? '••••••' : action.value}
+                              </span>
+                            ) : null}
+                          </li>
+                        ))}
+                        {recording.recordedActions.filter(a => !a.meta).length === 0 && (
+                          <li className="px-2 py-6 text-center text-xs text-muted-foreground">
+                            {t('recording.waitingForActions')}
+                          </li>
+                        )}
+                      </ol>
+                    </ScrollArea>
                   </div>
                 ) : (websiteLoaded || isExecutingPlayback) && websiteScreenshot ? (
                   <div className="relative">
