@@ -57,6 +57,10 @@ export class IncidentStore {
         // On Windows, an antivirus scanner or the file indexer can briefly hold a handle
         // open; a short bounded retry rides that out instead of losing the write.
         if ((code !== 'EPERM' && code !== 'EBUSY') || attempt >= maxAttempts) {
+          // The rename never happened, so the temp file is orphaned on disk. Best-effort
+          // clean it up; a failure here (e.g. the same lock that blocked the rename) must
+          // not replace the real error the caller needs to see.
+          await fs.rm(temp, { force: true }).catch(() => undefined);
           throw err;
         }
         await new Promise((resolve) => setTimeout(resolve, 20 * attempt));
@@ -102,6 +106,12 @@ export class IncidentStore {
     };
   }
 
+  // Shared by reindex() and the disk-rebuild path so "most recently seen first" can never
+  // drift between the two ways the index gets (re)built.
+  private compareByLastSeenDesc(a: IncidentIndexEntry, b: IncidentIndexEntry): number {
+    return b.lastSeen.localeCompare(a.lastSeen);
+  }
+
   private async rebuildIndexFromIncidents(): Promise<IncidentIndexEntry[]> {
     let files: string[];
     try {
@@ -121,7 +131,7 @@ export class IncidentStore {
         // One unreadable/unparseable incident file must not sink the whole rebuild.
       }
     }
-    entries.sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
+    entries.sort(this.compareByLastSeenDesc);
     return entries;
   }
 
@@ -150,7 +160,7 @@ export class IncidentStore {
   private async reindex(incident: Incident): Promise<void> {
     const index = (await this.readIndex()).filter((entry) => entry.id !== incident.id);
     index.push(this.toIndexEntry(incident));
-    index.sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
+    index.sort(this.compareByLastSeenDesc);
     await this.writeJson(this.indexPath, index);
   }
 
@@ -179,9 +189,21 @@ export class IncidentStore {
 
       const doomed = new Set([...tooOld, ...overflow]);
 
+      // Write the index without the doomed ids BEFORE deleting their files. The index must
+      // never promise a file that isn't there: if a deletion below fails partway through
+      // (or the process dies), an index written after deletion could still list an id whose
+      // file is already gone, and readIndex()'s rebuild net doesn't catch that because a
+      // stale-but-valid index.json still parses fine. The trade-off this accepts is the
+      // opposite, benign direction: a crash between this write and a deletion leaves an
+      // orphaned incident file that the index no longer lists — nobody ever chases a file
+      // that isn't there, and the next prune or a rebuild will pick the orphan back up.
+      if (doomed.size > 0) {
+        await this.writeJson(this.indexPath, index.filter((e) => !doomed.has(e.id)));
+      }
+
       // Attempt every deletion rather than bailing on the first failure, so one locked
       // file cannot leave the rest deleted-on-disk but still listed in the index (or vice
-      // versa). Ids whose file could not be removed stay in the index.
+      // versa). Ids whose file could not be removed need to be added back to the index.
       const failedToRemove = new Set<string>();
       let removedCount = 0;
       for (const id of doomed) {
@@ -192,15 +214,16 @@ export class IncidentStore {
           removedCount++;
         } catch (err) {
           if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-            // Already gone; the stale index entry should still be dropped below, but this
-            // call didn't remove anything.
+            // Already gone; nothing to add back for this id.
             continue;
           }
           failedToRemove.add(id);
         }
       }
 
-      if (doomed.size > 0) {
+      if (failedToRemove.size > 0) {
+        // The file survived deletion, so re-list its entry — otherwise the index would
+        // under-promise for an id whose file is still readable.
         await this.writeJson(
           this.indexPath,
           index.filter((e) => !doomed.has(e.id) || failedToRemove.has(e.id)),

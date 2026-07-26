@@ -183,3 +183,74 @@ describe('IncidentStore.prune', () => {
     expect(fs.existsSync(stuckPath)).toBe(true);
   });
 });
+
+describe('IncidentStore writeJson rename retry', () => {
+  // These exercise the write-then-rename retry loop directly, which is the regression
+  // guard for a Critical finding that the old code deleted the destination before
+  // renaming. Only fs.rename is mocked; writeFile/mkdir/readFile all run for real, so the
+  // rest of the write path is genuinely exercised.
+  const targetPath = (root: string) => path.join(root, 'incidents', 'inc_aaaaaa.json');
+
+  it('retries a transient EPERM and still writes the file once it clears', async () => {
+    const realRename = fsPromises.rename.bind(fsPromises);
+    const target = targetPath(root);
+    let attempts = 0;
+    vi.spyOn(fsPromises, 'rename').mockImplementation(async (...args: Parameters<typeof fsPromises.rename>) => {
+      if (args[1] === target) {
+        attempts++;
+        if (attempts <= 2) {
+          const err = new Error('EPERM: operation not permitted') as NodeJS.ErrnoException;
+          err.code = 'EPERM';
+          throw err;
+        }
+      }
+      return realRename(...args);
+    });
+
+    await store.upsert(incident());
+
+    // Two failed attempts, then the third succeeds.
+    expect(attempts).toBe(3);
+    const onDisk = await store.read('inc_aaaaaa');
+    expect(onDisk?.count).toBe(1);
+  });
+
+  it('propagates a persistent EPERM after exactly the bounded number of attempts, cleaning up the temp file', async () => {
+    const target = targetPath(root);
+    let attempts = 0;
+    vi.spyOn(fsPromises, 'rename').mockImplementation(async (...args: Parameters<typeof fsPromises.rename>) => {
+      if (args[1] === target) {
+        attempts++;
+        const err = new Error('EPERM: operation not permitted') as NodeJS.ErrnoException;
+        err.code = 'EPERM';
+        throw err;
+      }
+      throw new Error(`unexpected rename call for ${String(args[1])}`);
+    });
+
+    await expect(store.upsert(incident())).rejects.toMatchObject({ code: 'EPERM' });
+
+    // Bounded: neither one-shot nor unbounded — exactly the retry cap.
+    expect(attempts).toBe(5);
+    const leftoverTemps = fs.readdirSync(path.join(root, 'incidents')).filter((f) => f.endsWith('.tmp'));
+    expect(leftoverTemps).toEqual([]);
+  });
+
+  it('propagates a non-retryable EACCES on the first attempt without retrying', async () => {
+    const realRename = fsPromises.rename.bind(fsPromises);
+    const target = targetPath(root);
+    let attempts = 0;
+    vi.spyOn(fsPromises, 'rename').mockImplementation(async (...args: Parameters<typeof fsPromises.rename>) => {
+      if (args[1] === target) {
+        attempts++;
+        const err = new Error('EACCES: permission denied') as NodeJS.ErrnoException;
+        err.code = 'EACCES';
+        throw err;
+      }
+      return realRename(...args);
+    });
+
+    await expect(store.upsert(incident())).rejects.toMatchObject({ code: 'EACCES' });
+    expect(attempts).toBe(1);
+  });
+});
