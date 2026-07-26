@@ -6,7 +6,11 @@ const FRAMES_IN_FINGERPRINT = 3;
 
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const LONG_HEX = /\b[0-9a-f]{12,}\b/gi;
-const ABSOLUTE_PATH = /(?:[A-Za-z]:\\|\/)[^\s"')]+/g;
+// The lookbehind is what separates a filesystem path from the slashes inside a URL:
+// a real path never follows ":", a word character, or another "/". Without it the
+// pattern swallows "//host/api/orders" whole, and two different failing endpoints
+// collapse into one fingerprint.
+const ABSOLUTE_PATH = /(?<![:\w/])(?:[A-Za-z]:\\|\/)[^\s"')]+/g;
 // Intentionally unanchored: in "1523ms" the digits are followed by a word
 // character, so a word-boundary anchor would leave the number in place.
 const NUMBER = /\d+/g;

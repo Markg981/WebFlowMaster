@@ -22,6 +22,16 @@ describe('normaliseMessage', () => {
   it('keeps genuinely different messages different', () => {
     expect(normaliseMessage('Cannot read selector')).not.toBe(normaliseMessage('Cannot read value'));
   });
+
+  it('keeps different URLs apart while still collapsing ids inside one URL', () => {
+    // Different endpoints are different bugs and must not share a fingerprint.
+    expect(normaliseMessage('HTTP 500 from POST https://app.test/api/setup-user'))
+      .not.toBe(normaliseMessage('HTTP 404 from POST https://app.test/api/setup-order'));
+
+    // The same endpoint with different record ids is one bug.
+    expect(normaliseMessage('GET https://app.test/api/orders/1234 failed'))
+      .toBe(normaliseMessage('GET https://app.test/api/orders/9876 failed'));
+  });
 });
 
 describe('fingerprintError', () => {
