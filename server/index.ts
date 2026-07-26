@@ -1,4 +1,4 @@
-import express, { type Request, Response, NextFunction } from "express";
+import express from "express";
 import { registerRoutes } from "./routes";
 import schedulerService from "./scheduler-service"; // Import the scheduler service
 import { setupVite, serveStatic } from "./vite";
@@ -107,18 +107,9 @@ app.use(express.urlencoded({ extended: false }));
     // Decide if server should proceed or exit based on severity
   }
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    // Log the error instead of re-throwing (re-throwing after the response is sent
-    // triggers "Cannot set headers after they are sent").
-    logger.error("Unhandled request error", { status, message, stack: err.stack });
-
-    if (!res.headersSent) {
-      res.status(status).json({ message });
-    }
-  });
+  // Records an incident for every unhandled error, then answers as before.
+  const { incidentErrorHandler } = await import("./observability/taps/express");
+  app.use(incidentErrorHandler(logger));
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
