@@ -87,7 +87,11 @@ const BEARER_TOKEN_PATTERN = /\bBearer\s+\S+/gi;
  */
 export function redactString(value: string): string {
   if (!value) return value;
+  // Bearer first, and the order is load-bearing. Run the other way round, the key/value
+  // pattern treats the bare word "Bearer" as the value of the preceding sensitive key —
+  // "Authorization: Bearer abc.def" became "Authorization: [REDACTED] abc.def", consuming
+  // the word that BEARER_TOKEN_PATTERN needed to match and leaving the real token in clear.
   return value
-    .replace(KEY_VALUE_PATTERN, (_match, key: string, sep: string) => `${key}${sep}${REDACTED}`)
-    .replace(BEARER_TOKEN_PATTERN, `Bearer ${REDACTED}`);
+    .replace(BEARER_TOKEN_PATTERN, `Bearer ${REDACTED}`)
+    .replace(KEY_VALUE_PATTERN, (_match, key: string, sep: string) => `${key}${sep}${REDACTED}`);
 }

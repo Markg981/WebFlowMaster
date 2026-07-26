@@ -133,9 +133,13 @@ export async function recordIncident(input: RecordIncidentInput): Promise<Incide
 }
 
 async function doRecordIncident(input: RecordIncidentInput): Promise<Incident | null> {
+  // Declared outside the try so the catch can hand a failed write's suppressed tally back.
+  let fingerprint: string | undefined;
+  let suppressedSinceLastWrite = 0;
+
   try {
     const frames = parseStack(input.error.stack, repoRoot);
-    const fingerprint = fingerprintError({
+    fingerprint = fingerprintError({
       kind: input.kind,
       message: input.error.message,
       frames,
@@ -149,7 +153,7 @@ async function doRecordIncident(input: RecordIncidentInput): Promise<Incident | 
       return null;
     }
     state.lastRecordedAt = now;
-    const suppressedSinceLastWrite = state.suppressedCount;
+    suppressedSinceLastWrite = state.suppressedCount;
     state.suppressedCount = 0;
 
     const id = incidentIdFromFingerprint(fingerprint);
@@ -204,6 +208,13 @@ async function doRecordIncident(input: RecordIncidentInput): Promise<Incident | 
 
     return persisted;
   } catch (failure) {
+    // The suppressed tally was zeroed before the write on the assumption it would land.
+    // It didn't, so give those occurrences back to the next attempt rather than losing
+    // them — otherwise a transient disk error quietly undercounts a storm.
+    if (fingerprint !== undefined && suppressedSinceLastWrite > 0) {
+      const state = fingerprintState.get(fingerprint);
+      if (state) state.suppressedCount += suppressedSinceLastWrite;
+    }
     // Deliberately console, not the logger: the logger may be what is broken.
     console.error('[observability] failed to record incident:', failure);
     return null;
