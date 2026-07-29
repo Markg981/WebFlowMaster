@@ -114,7 +114,25 @@ export function configureIncidents(options: {
 // same way the existing catch already does (return null for the field), not hang instead.
 const GIT_COMMAND_TIMEOUT_MS = 2000;
 
+/**
+ * Git state is cached because collecting it costs three synchronous subprocess calls —
+ * measured at ~185ms on this machine — and `recordIncident`'s body runs synchronously up
+ * to its first await. Uncached, every caller that believes it is fire-and-forget (the
+ * Express error handler, the runner tap) actually blocks for that long: the handler would
+ * delay every 500 response by it, on a single-threaded process.
+ *
+ * The TTL is short so a commit or branch switch mid-session is still picked up, while a
+ * burst of incidents from one bug pays the cost once.
+ */
+const GIT_INFO_TTL_MS = 30_000;
+let gitInfoCache: { at: number; value: Record<string, unknown> } | null = null;
+
 function gitInfo(): Record<string, unknown> {
+  const now = Date.now();
+  if (gitInfoCache && now - gitInfoCache.at < GIT_INFO_TTL_MS) {
+    return gitInfoCache.value;
+  }
+
   const run = (args: string[]): string | null => {
     try {
       return execFileSync('git', args, {
@@ -129,11 +147,13 @@ function gitInfo(): Record<string, unknown> {
       return null;
     }
   };
-  return {
+  const value = {
     gitCommit: run(['rev-parse', '--short', 'HEAD']),
     gitBranch: run(['rev-parse', '--abbrev-ref', 'HEAD']),
     workingTreeDirty: run(['status', '--porcelain']) !== '',
   };
+  gitInfoCache = { at: now, value };
+  return value;
 }
 
 /**

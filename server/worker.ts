@@ -8,6 +8,7 @@ import { closeDb, db } from './db';
 import { TRIGGER_SCHEDULE_JOB, executeScheduledPlan } from './scheduler-service';
 import { testPlanSchedules, testPlans } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { withJobIncidents } from './observability/taps/jobs';
 import 'dotenv/config';
 
 (async () => {
@@ -15,7 +16,7 @@ import 'dotenv/config';
 
   const worker = new Worker(
     TEST_EXECUTION_QUEUE_NAME,
-    async (job: Job) => {
+    withJobIncidents(async (job: Job) => {
       logger.info(`Worker processing job ${job.id} of type ${job.name}`);
       
       if (job.name === 'execute-plan') {
@@ -56,7 +57,7 @@ import 'dotenv/config';
           await executeScheduledPlan(schedule, plan);
         });
       }
-    },
+    }),
     { connection, concurrency: 1 } // concurrency: 1 for safety with Playwright initially
   );
 
