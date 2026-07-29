@@ -7,6 +7,7 @@ import type { Test, Precondition } from '@shared/schema'; // Import Test and Use
 import { type RecordedAction, RecordedActionSchema } from '@shared/recording';
 import { RECORDER_SCRIPT } from './recorder-script';
 import { runPreconditions } from './precondition-runner';
+import { recordRunnerFailure } from './observability/taps/runner';
 import fs from 'fs-extra';
 import path from 'path';
 import { PlaywrightReporter } from './playwright-reporter';
@@ -433,6 +434,14 @@ export class PlaywrightService {
       else stage = "page navigation/setup";
 
       resolvedLogger.error({ message: "PS:startRecordingSession - CRITICAL ERROR during session setup", sessionId, stage, url, error: error.message, stack: error.stack });
+
+      // Infrastructure failure, not a test that legitimately failed — worth an incident.
+      recordRunnerFailure({
+        phase: `recording:${stage}`,
+        error,
+        context: { sessionId, url, browserType },
+        userId,
+      });
 
       if (browser && browser.isConnected()) {
         await browser.close().catch(err => resolvedLogger.error({ message: "PS:startRecordingSession - Failed to close browser during error handling", sessionId, error: err.message }));
@@ -893,6 +902,15 @@ export class PlaywrightService {
     } catch (error: any) {
       const duration = Date.now() - startTime;
       resolvedLogger.error({ message: `PS:executeAdhocSequence - CRITICAL ERROR in executeAdhocSequence`, testName, userId, error: error.message, stack: error.stack, browserExists: !!browser, contextExists: !!context, pageExists: !!page, pageClosed: page?.isClosed() });
+
+      // A step that fails its assertion is a normal product outcome and never lands here;
+      // this catch is reached only when the run itself could not be carried out.
+      recordRunnerFailure({
+        phase: 'adhoc-execution',
+        error,
+        context: { testName, url: payload.url, stepCount: payload.sequence?.length ?? 0 },
+        userId,
+      });
       let finalDetectedElementsCriticalError: DetectedElement[] = [];
       if (page && !page.isClosed()) {
         resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting element detection after critical error", testName, pageClosed: page?.isClosed() });

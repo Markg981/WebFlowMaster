@@ -20,6 +20,10 @@ import TestReportPage from './pages/TestReportPage';
 import GeneralReportsPage from './pages/GeneralReportsPage'; 
 import TestManager from './pages/TestManager'; 
 import { ProtectedRoute } from "./lib/protected-route";
+import { ObservabilityErrorBoundary } from "@/observability/error-boundary";
+import { installObservability } from "@/observability/install";
+import { setCurrentRoute } from "@/observability/logger";
+import { pushBreadcrumb } from "@/observability/breadcrumbs";
 // Imports for ThemeLoader
 import { useEffect } from 'react'; // useEffect already imported
 import { useQuery } from '@tanstack/react-query';
@@ -54,6 +58,18 @@ const SettingsEffectLoader = () => {
       }
     }
   }, [settingsData]);
+
+  return null;
+};
+
+/** Keeps the client logger's route field current and drops a breadcrumb per navigation. */
+const RouteTracker = () => {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    setCurrentRoute(location);
+    pushBreadcrumb({ type: 'navigation', to: location });
+  }, [location]);
 
   return null;
 };
@@ -98,14 +114,23 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    installObservability();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <SettingsEffectLoader />
+        <RouteTracker />
         <TooltipProvider>
           <DragDropProvider>
             <Toaster />
-            <Router />
+            {/* Inside the providers so the fallback can still render styled, but around the
+                routes so any page crash is caught rather than blanking the app. */}
+            <ObservabilityErrorBoundary>
+              <Router />
+            </ObservabilityErrorBoundary>
           </DragDropProvider>
         </TooltipProvider>
       </AuthProvider>

@@ -21,6 +21,7 @@ server/public
 
 # Logs
 logs/
+.observability/
 *.log
 
 # Test / reporting artifacts

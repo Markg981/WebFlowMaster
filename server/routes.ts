@@ -43,6 +43,7 @@ import testPlansRoutes from "./routes/test-plans.routes";
 import uploadsRoutes from "./routes/uploads.routes";
 import reportsRoutes from "./routes/reports.routes";
 import authRoutes from "./routes/auth.routes";
+import observabilityRoutes from "./routes/observability.routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
     const resolvedLogger = await loggerPromise;
@@ -85,6 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(testPlansRoutes);
     app.use(uploadsRoutes);
     app.use(reportsRoutes);
+    app.use(observabilityRoutes);
 
   app.post("/api/load-website", async (req, res) => {
     resolvedLogger.http(`POST /api/load-website - Handler reached. UserId: ${(req.user as any)?.id}`);

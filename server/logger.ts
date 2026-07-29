@@ -7,7 +7,7 @@ import { db } from './db';
 import { systemSettings } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { getCorrelationId } from './middleware/correlation';
-import { redactSensitiveData } from './utils/log-redactor';
+import { redactSensitiveData, scrubControlCharsFromMessage } from './utils/log-redactor';
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -35,6 +35,7 @@ const structuredFormat = winston.format.combine(
     return info;
   })(),
   redactSensitiveData(),                                               // Mask PII/secrets
+  scrubControlCharsFromMessage(),                                      // Strip CR/LF/NUL from message (see log-redactor.ts)
   winston.format.json()                                                // Output as JSON
 );
 
@@ -50,6 +51,7 @@ const devConsoleFormat = winston.format.combine(
     return info;
   })(),
   redactSensitiveData(),
+  scrubControlCharsFromMessage(), // Strip CR/LF/NUL from message — this is the format that interpolates it raw (see log-redactor.ts)
   winston.format.printf(({ timestamp, level, message, correlationId, service, ...metadata }) => {
     const cid = correlationId ? ` [${correlationId}]` : '';
     let metaString = '';
