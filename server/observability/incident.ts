@@ -8,6 +8,7 @@ import { parseStack, resolveOrigin } from './stack';
 import { IncidentStore } from './store';
 import { serverBreadcrumbs } from './breadcrumbs';
 import { redactObject, redactString } from '../utils/log-redactor';
+import { generateRepro } from './repro';
 
 export interface IncidentLogger {
   error: (message: string, meta?: Record<string, unknown>) => void;
@@ -231,6 +232,8 @@ async function doRecordIncident(input: RecordIncidentInput): Promise<Incident | 
       occurrences: [occurrence],
     };
 
+    // Written before persisting so the artifact records where its reproduction lives.
+    incident.repro = await generateRepro(incident, repoRoot);
     const persisted = await store.upsert(incident);
     await store.prune();
 

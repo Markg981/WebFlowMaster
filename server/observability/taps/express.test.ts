@@ -10,14 +10,19 @@ import * as incidentModule from '../incident';
 import { IncidentStore } from '../store';
 
 let root: string;
+// generateRepro writes under repoRoot, not rootDir. Without its own temp directory
+// these tests would scatter .repro.ts files across the real working tree.
+let reproRoot: string;
 
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'wfm-tap-'));
-  configureIncidents({ rootDir: root, logger: { error: () => {} } });
+  reproRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'wfm-reporoot-'));
+  configureIncidents({ rootDir: root, repoRoot: reproRoot, logger: { error: () => {} } });
 });
 
 afterEach(() => {
   fs.rmSync(root, { recursive: true, force: true });
+  fs.rmSync(reproRoot, { recursive: true, force: true });
   vi.restoreAllMocks();
 });
 

@@ -195,3 +195,16 @@ describe('recordIncident', () => {
     });
   });
 });
+
+describe('recordIncident reproduction generation', () => {
+  it('generates a reproduction alongside the incident', async () => {
+    const incident = await recordIncident({
+      kind: 'server-api',
+      error: errorFrom('server/thing.ts', 3),
+      trigger: { method: 'POST', path: '/api/x', body: {} },
+    });
+
+    expect(incident!.repro?.confidence).toBe('high');
+    expect(fs.existsSync(path.join(repoRoot, incident!.repro!.path))).toBe(true);
+  });
+});

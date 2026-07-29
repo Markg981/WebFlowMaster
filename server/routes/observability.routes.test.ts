@@ -26,12 +26,16 @@ vi.mock('../logger', () => {
 });
 
 let root: string;
+// generateRepro writes under repoRoot, not rootDir. Without its own temp directory
+// these tests would scatter .repro.ts files across the real working tree.
+let reproRoot: string;
 let app: express.Application;
 let authenticated = true;
 
 beforeEach(async () => {
   logged.length = 0;
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'wfm-ingest-'));
+  reproRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'wfm-reporoot-'));
 
   app = express();
   app.use(express.json());
@@ -48,13 +52,14 @@ beforeEach(async () => {
   // configureIncidents would point at the stale instance and the route would write
   // incidents into the real .observability/ instead of this test's temp directory.
   const { configureIncidents } = await import('../observability/incident');
-  configureIncidents({ rootDir: root, logger: { error: () => {} } });
+  configureIncidents({ rootDir: root, repoRoot: reproRoot, logger: { error: () => {} } });
 
   app.use(router);
 });
 
 afterEach(() => {
   fs.rmSync(root, { recursive: true, force: true });
+  fs.rmSync(reproRoot, { recursive: true, force: true });
   authenticated = true;
 });
 
