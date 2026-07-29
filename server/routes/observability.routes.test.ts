@@ -4,7 +4,9 @@ import os from 'node:os';
 import path from 'node:path';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import request from 'supertest';
-import { configureIncidents } from '../observability/incident';
+// configureIncidents is imported dynamically inside beforeEach, not here — see the comment
+// there. IncidentStore is safe to import statically: it holds no module-level state, taking
+// its root directory as a constructor argument.
 import { IncidentStore } from '../observability/store';
 
 const logged: { level: string; message: string; meta: Record<string, unknown> }[] = [];
@@ -30,7 +32,6 @@ let authenticated = true;
 beforeEach(async () => {
   logged.length = 0;
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'wfm-ingest-'));
-  configureIncidents({ rootDir: root, logger: { error: () => {} } });
 
   app = express();
   app.use(express.json());
@@ -39,7 +40,16 @@ beforeEach(async () => {
     req.isAuthenticated = (() => authenticated) as never;
     next();
   });
+
   const { default: router } = await import('./observability.routes');
+  // Configure the SAME incident module the router just bound to, not the statically
+  // imported one. The production-auth test below calls vi.resetModules(), so after it runs
+  // this dynamic import yields a fresh module graph; a statically imported
+  // configureIncidents would point at the stale instance and the route would write
+  // incidents into the real .observability/ instead of this test's temp directory.
+  const { configureIncidents } = await import('../observability/incident');
+  configureIncidents({ rootDir: root, logger: { error: () => {} } });
+
   app.use(router);
 });
 
@@ -94,6 +104,52 @@ describe('POST /api/client-logs', () => {
     });
 
     expect(response.status).toBe(202);
+  });
+});
+
+describe('production auth enforcement', () => {
+  // isProduction in observability.routes.ts is a module-level constant read once at import
+  // time, so exercising it for real (rather than trusting the `authenticated` flag alone,
+  // which the existing "outside production" test already covers) requires setting
+  // NODE_ENV *before* the module is evaluated and forcing that evaluation with
+  // vi.resetModules() + a fresh dynamic import. Without this, the production branch is
+  // never actually reached by any test — someone could invert or delete the check in
+  // allowAnonymousOutsideProduction and every existing test would still pass.
+  it('rejects unauthenticated requests and accepts authenticated ones', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    vi.resetModules();
+
+    try {
+      const { default: prodRouter } = await import('./observability.routes');
+      const prodApp = express();
+      prodApp.use(express.json());
+      prodApp.use((req: Request, _res: Response, next: NextFunction) => {
+        (req as Request & { user?: unknown }).user = authenticated ? { id: 7 } : undefined;
+        req.isAuthenticated = (() => authenticated) as never;
+        next();
+      });
+      prodApp.use(prodRouter);
+
+      authenticated = false;
+      const unauthResponse = await request(prodApp).post('/api/client-logs').send({
+        sessionId: 's-1',
+        entries: [{ level: 'info', message: 'x', clientTs: '2026-07-26T10:00:00.000Z' }],
+      });
+      expect(unauthResponse.status).toBe(401);
+
+      authenticated = true;
+      const authResponse = await request(prodApp).post('/api/client-logs').send({
+        sessionId: 's-1',
+        entries: [{ level: 'info', message: 'x', clientTs: '2026-07-26T10:00:00.000Z' }],
+      });
+      expect(authResponse.status).toBe(202);
+    } finally {
+      // Restore the env and drop the production-evaluated module from the cache so later
+      // tests' beforeEach import re-evaluates isProduction against the real test env.
+      process.env.NODE_ENV = originalNodeEnv;
+      vi.resetModules();
+    }
   });
 });
 

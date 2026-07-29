@@ -68,6 +68,37 @@ export const redactSensitiveData = winston.format((info) => {
 });
 
 /**
+ * Winston format that strips control characters (CR, LF, NUL) from `info.message` only.
+ *
+ * This lives in the shared format pipeline rather than at individual call sites (an earlier
+ * version of the /api/client-logs route sanitised its own message string before calling
+ * logger.log) on purpose: a caller-side sanitiser only protects the call sites someone
+ * remembered to add it to. `doRecordIncident`'s `logger.error(\`[incident] ${title}...\`)`
+ * call builds its message from browser-supplied text too and had no equivalent scrub, and
+ * the next call site to log external text would start out unprotected again. Putting the
+ * scrub here, next to redactSensitiveData, means every current and future caller gets it for
+ * free and there is exactly one place that does this job.
+ *
+ * `stack` is deliberately left untouched: a real stack trace's newlines are what make it
+ * readable, and collapsing them to close a console-formatting hole would be a bad trade for
+ * the most valuable part of an error log.
+ *
+ * The JSON file transport doesn't need this: winston.format.json() ends in JSON.stringify,
+ * which escapes \n, \r and \0 as \\n, \\r, \\u0000, so a forged newline can never split a
+ * JSON log record into two lines there. The forgeable surface is exclusively the
+ * human-readable dev console format (devConsoleFormat's printf), which interpolates
+ * `message` into a template string raw. This format still runs it too, both because the
+ * cost is negligible and so `message` doesn't end up in a different state depending on which
+ * format pipeline last touched it.
+ */
+export const scrubControlCharsFromMessage = winston.format((info) => {
+  if (typeof info.message === 'string') {
+    info.message = info.message.replace(/[\r\n\0]+/g, ' ');
+  }
+  return info;
+});
+
+/**
  * Redacts an arbitrary object with the same rules the winston format uses.
  * Exported so incident triggers go through one implementation, not a second copy.
  */

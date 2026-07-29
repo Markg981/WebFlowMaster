@@ -1,5 +1,49 @@
 import { describe, it, expect } from 'vitest';
-import { redactObject, redactString } from './log-redactor';
+import { redactObject, redactString, scrubControlCharsFromMessage } from './log-redactor';
+
+/**
+ * Runs the real winston format the logger installs, so these assertions exercise the
+ * shipped transform rather than a re-implementation of it. The route-level test for
+ * /api/client-logs mocks the whole logger away, so it structurally cannot cover this.
+ */
+const runScrub = (info: Record<string, unknown>) =>
+  scrubControlCharsFromMessage().transform(info as never) as Record<string, unknown>;
+
+describe('scrubControlCharsFromMessage', () => {
+  it('collapses newlines that would forge a second line in the console format', () => {
+    const forged = 'boom\n2026-07-26T00:00:00.000Z ERROR fake admin login succeeded';
+
+    const result = runScrub({ level: 'error', message: forged });
+
+    expect(result.message).not.toContain('\n');
+    expect(result.message).toBe('boom 2026-07-26T00:00:00.000Z ERROR fake admin login succeeded');
+  });
+
+  it('collapses carriage returns and NULs too', () => {
+    expect(runScrub({ message: 'a\rb\0c' }).message).toBe('a b c');
+  });
+
+  it('leaves an ordinary message untouched', () => {
+    const message = 'Cannot read properties of undefined (reading selector)';
+
+    expect(runScrub({ message }).message).toBe(message);
+  });
+
+  /**
+   * A stack trace's newlines are what make it readable, and it is the most valuable part of
+   * an error log. Closing a console-formatting hole is not worth mangling it.
+   */
+  it('does not touch the stack field', () => {
+    const stack = 'Error: boom\n    at run (server/x.ts:10:5)\n    at next (server/y.ts:3:1)';
+
+    expect(runScrub({ message: 'boom', stack }).stack).toBe(stack);
+  });
+
+  it('passes a non-string message through without throwing', () => {
+    expect(() => runScrub({ message: 42 })).not.toThrow();
+    expect(runScrub({ message: 42 }).message).toBe(42);
+  });
+});
 
 /**
  * The string scrubber exists for free text — an incident's `title` and `error.message` —

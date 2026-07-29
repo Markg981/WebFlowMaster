@@ -30,15 +30,13 @@ const ingestLimiter = rateLimit({
 });
 
 /**
- * The schema caps message length but does not forbid control characters. A message
- * containing "\n2026-...Z ERROR fake line" would otherwise forge additional log lines in
- * the file a human (or another tool) reads back — a log-injection vector, since the
- * browser fully controls this string. Collapsing CR/LF/NUL to spaces keeps each client
- * entry to the single line it re-emits as.
+ * The schema below caps a batch at 100 entries of up to 2000 chars each (~200KB of message
+ * text alone, before JSON overhead and the other fields), but that is not the operative
+ * ceiling: express.json() is mounted with no `limit` option (see server/index.ts), so its
+ * 100KB default rejects an oversized request body first. Don't assume the schema's numbers
+ * are the protection against a large-body DoS — they aren't reachable until a body has
+ * already cleared the smaller express.json() gate.
  */
-function sanitizeForLogLine(value: string): string {
-  return value.replace(/[\r\n\0]+/g, ' ');
-}
 
 router.post(
   '/api/client-logs',
@@ -54,15 +52,24 @@ router.post(
     const userId = (req as Request & { user?: { id?: number } }).user?.id;
 
     for (const entry of entries) {
-      // Re-emitted at the browser's own level so the file reads as one interleaved stream.
-      logger.log(entry.level, `[client] ${sanitizeForLogLine(entry.message)}`, {
+      // entry.meta is browser-controlled and must never be spread into the top-level meta
+      // object: winston's Logger.write concatenates a `message` key onto the log message
+      // (bypassing any sanitising done to the message argument above) and lets meta override
+      // defaultMeta, so a spread `meta: { message: ..., source: 'server', service: 'evil',
+      // userId: 1 }` could forge a line, impersonate the server, and misattribute it. Nesting
+      // it under `clientMeta` keeps it inert — it can only ever collide with a key named
+      // literally "clientMeta" — while source/sessionId/userId/correlationId/route/clientTs
+      // stay at the top level because the server, not the browser, set them.
+      // Control-character scrubbing of the message itself lives in the winston format
+      // pipeline now (see redactSensitiveData in log-redactor.ts), not here.
+      logger.log(entry.level, `[client] ${entry.message}`, {
         source: 'client',
         sessionId,
         userId,
         correlationId: entry.correlationId,
         route: entry.route,
         clientTs: entry.clientTs,
-        ...entry.meta,
+        clientMeta: entry.meta,
       });
     }
 

@@ -106,11 +106,26 @@ export function configureIncidents(options: {
   fingerprintState.clear();
 }
 
+// Local git plumbing commands (rev-parse, status --porcelain) normally return in single-digit
+// milliseconds. 2s is generous headroom for a slow disk while still bounding the worst case:
+// Node is single-threaded, so an untimed execFileSync blocking on lock contention or a stuck
+// credential prompt would stall this request — and everything else the process is doing —
+// indefinitely. recordIncident is documented to never throw; a timeout here must fail the
+// same way the existing catch already does (return null for the field), not hang instead.
+const GIT_COMMAND_TIMEOUT_MS = 2000;
+
 function gitInfo(): Record<string, unknown> {
   const run = (args: string[]): string | null => {
     try {
-      return execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+      return execFileSync('git', args, {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: GIT_COMMAND_TIMEOUT_MS,
+      }).trim();
     } catch {
+      // Covers both a real git failure and a timeout kill (execFileSync throws either way) —
+      // both are "we don't have this field", not an incident-recording failure.
       return null;
     }
   };
