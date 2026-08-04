@@ -3,6 +3,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Incident, IncidentKind, IncidentOccurrence } from '../../shared/observability';
+import { CURRENT_INCIDENT_SCHEMA_VERSION } from '../../shared/observability';
 import { fingerprintError, incidentIdFromFingerprint } from './fingerprint';
 import { parseStack, resolveOrigin } from './stack';
 import { IncidentStore } from './store';
@@ -214,6 +215,7 @@ async function doRecordIncident(input: RecordIncidentInput): Promise<Incident | 
       (input.correlationId ? serverBreadcrumbs.take(input.correlationId) : []);
 
     const incident: Incident = {
+      schemaVersion: CURRENT_INCIDENT_SCHEMA_VERSION,
       id,
       fingerprint,
       kind: input.kind,

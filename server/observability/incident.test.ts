@@ -178,6 +178,16 @@ describe('recordIncident', () => {
     expect(incident!.origin?.unresolved).toBeUndefined();
   });
 
+  it('stamps every incident with the current schema version', async () => {
+    const incident = await recordIncident({
+      kind: 'server-api',
+      error: errorFrom('server/thing.ts', 3),
+      trigger: {},
+    });
+
+    expect(incident!.schemaVersion).toBe(1);
+  });
+
   describe('recursion guard', () => {
     it('refuses a nested recordIncident call reachable from within the same recording path', async () => {
       let nestedPromise: Promise<unknown> | undefined;
