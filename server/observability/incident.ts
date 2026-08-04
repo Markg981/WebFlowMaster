@@ -176,8 +176,10 @@ async function doRecordIncident(input: RecordIncidentInput): Promise<Incident | 
 
   try {
     // Browser stack frames name files as Vite serves them (`/src/...`), not as filesystem
-    // paths — only client-runtime incidents need the rewrite; a server stack that happened
-    // to contain a literal "/src/" would not exist on this codebase's disk layout anyway.
+    // paths, so only client-runtime incidents opt into the rewrite. Server stacks never
+    // pass a browserSrcRoot at all, so the rewrite cannot reach them. What the rewrite
+    // does have to survive is a forged `/src/` frame from a browser-supplied report —
+    // rewriteBrowserPath contains that, see its comment.
     const browserSrcRoot =
       input.kind === 'client-runtime' ? path.join(repoRoot, 'client', 'src') : undefined;
     const frames = parseStack(input.error.stack, repoRoot, browserSrcRoot);

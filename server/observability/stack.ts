@@ -32,15 +32,26 @@ function toAbsolutePath(raw: string): string {
  * real absolute path under `browserSrcRoot` before classification means every downstream
  * function (isAppFile, toRepoRelative) keeps working exactly as it does for server stacks,
  * with no special case anywhere else.
+ *
+ * The containment check is load-bearing, not defensive style: this string arrives in a
+ * browser-supplied incident report, and `path.resolve` collapses `..` segments — so
+ * without the check, a forged frame like `/src/../../.env` would name a file OUTSIDE
+ * client/src, be classified as an app frame, and resolveOrigin would read its contents
+ * into the incident artifact. An escaped path is returned raw instead: raw bundler paths
+ * match nothing on disk, so the frame classifies as vendor and nothing is ever read.
  */
 function rewriteBrowserPath(raw: string, browserSrcRoot: string | undefined): string {
   if (!browserSrcRoot || !raw.startsWith('/src/')) return raw;
-  return path.join(browserSrcRoot, raw.slice('/src/'.length));
+  const joined = path.resolve(browserSrcRoot, raw.slice('/src/'.length));
+  const root = path.resolve(browserSrcRoot) + path.sep;
+  return joined.toLowerCase().startsWith(root.toLowerCase()) ? joined : raw;
 }
 
 function isAppFile(absolute: string, repoRoot: string): boolean {
   const normalised = path.resolve(absolute);
-  const root = path.resolve(repoRoot);
+  // The trailing separator is the boundary: without it, a sibling directory that merely
+  // starts with the repo's name (`WebFlowMaster-secrets`) would pass as inside the repo.
+  const root = path.resolve(repoRoot) + path.sep;
   // Case-insensitive because Windows reports drive letters inconsistently between the
   // stack trace and process.cwd().
   if (!normalised.toLowerCase().startsWith(root.toLowerCase())) return false;

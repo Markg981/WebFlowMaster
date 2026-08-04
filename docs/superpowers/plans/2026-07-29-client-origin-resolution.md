@@ -366,36 +366,20 @@ In `server/observability/incident.ts`, import the constant alongside the existin
 import { CURRENT_INCIDENT_SCHEMA_VERSION } from '../../shared/observability';
 ```
 
-Then find where `recordIncident` builds the `Incident` object literal (the block starting `const incident: Incident = {`) and add the field as the first property:
+Then find where `recordIncident` builds the `Incident` object literal — the block starting `const incident: Incident = {` and ending at its matching `};`. **Do not retype or reproduce this block from a template.** It has been hardened since this plan was drafted (rate-limit-aware counting, message/breadcrumb redaction) and a stale copy would silently undo that work. Instead, insert exactly one line, immediately after the opening `{`:
+
+```ts
+      schemaVersion: CURRENT_INCIDENT_SCHEMA_VERSION,
+```
+
+So the block's first two lines become:
 
 ```ts
     const incident: Incident = {
       schemaVersion: CURRENT_INCIDENT_SCHEMA_VERSION,
-      id,
-      fingerprint,
-      kind: input.kind,
-      status: 'open',
-      count: 1,
-      firstSeen: nowIso,
-      lastSeen: nowIso,
-      title: `${input.error.name}: ${input.error.message}`.slice(0, 300),
-      origin: resolveOrigin(frames, repoRoot),
-      error: { name: input.error.name, message: input.error.message, frames },
-      trigger: redactObject(input.trigger) as Record<string, unknown>,
-      state: {
-        ...gitInfo(),
-        nodeVersion: process.version,
-        platform: process.platform,
-        nodeEnv: process.env.NODE_ENV ?? 'development',
-      },
-      breadcrumbs:
-        input.breadcrumbs ??
-        (input.correlationId ? serverBreadcrumbs.take(input.correlationId) : []),
-      occurrences: [occurrence],
-    };
 ```
 
-(This reproduces the existing surrounding fields exactly as they are today — only the new `schemaVersion` line is added. Do not otherwise reorder or alter this object literal.)
+with every line that already exists after that — `id,`, `fingerprint,`, and everything through the closing `};` — left completely untouched, in whatever form they are currently in.
 
 - [ ] **Step 5: Run the tests to verify they pass**
 
@@ -449,7 +433,7 @@ A file already exists on disk from before this change (the real one found during
 - [ ] **Step 7: Run it to verify it passes without any store.ts change**
 
 Run: `npx vitest run server/observability/store.test.ts`
-Expected: PASS, 7 tests (6 existing + 1 new). `IncidentStore` never inspects `schemaVersion`, so a file missing it round-trips exactly as any other field would — this test exists to pin that fact as a guarantee, not because a fix was needed.
+Expected: PASS. This file has grown since this plan was drafted — confirm the count is one more than whatever `npx vitest run server/observability/store.test.ts` reports before this step (14 at time of writing, so 15 after). `IncidentStore` never inspects `schemaVersion`, so a file missing it round-trips exactly as any other field would — this test exists to pin that fact as a guarantee, not because a fix was needed.
 
 - [ ] **Step 8: Run the full suite and lint**
 

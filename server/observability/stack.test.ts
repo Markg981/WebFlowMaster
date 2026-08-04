@@ -179,7 +179,7 @@ describe('parseStack browser-relative paths', () => {
     expect(frames[0].app).toBe(true);
   });
 
-  it('leaves a vendor path served under /src/ neighbours alone if it does not exist on disk', () => {
+  it('classifies a nonexistent /src/ path as app anyway; resolveOrigin is what reports it missing', () => {
     const stack = `TypeError: boom\n    at x (/src/does/not/exist.tsx:1:1)`;
 
     const frames = parseStack(stack, repoRoot, browserSrcRoot());
@@ -189,5 +189,65 @@ describe('parseStack browser-relative paths', () => {
     expect(frames[0].app).toBe(true);
     const origin = resolveOrigin(frames, repoRoot);
     expect(origin?.unresolved).toContain('could not read');
+  });
+});
+
+describe('parseStack traversal containment', () => {
+  const browserSrcRoot = () => path.join(repoRoot, 'client', 'src');
+
+  /**
+   * The stack string is browser-supplied. Without containment, path.resolve collapses the
+   * `..` segments and a forged frame names a file outside client/src — .env being the
+   * obvious target — whose contents resolveOrigin would then copy into the artifact.
+   */
+  it('refuses a /src/ frame that escapes client/src via ..', () => {
+    const frames = parseStack(
+      'TypeError: x\n    at f (/src/../../.env:1:1)',
+      repoRoot,
+      browserSrcRoot(),
+    );
+
+    expect(frames[0].app).toBe(false);
+    expect(resolveOrigin(frames, repoRoot)).toBeNull();
+  });
+
+  it('refuses an escape aimed outside the repo entirely', () => {
+    const frames = parseStack(
+      'TypeError: x\n    at f (/src/../../../elsewhere/creds.ts:1:1)',
+      repoRoot,
+      browserSrcRoot(),
+    );
+
+    expect(frames[0].app).toBe(false);
+  });
+
+  it('still accepts .. segments that stay inside client/src', () => {
+    const frames = parseStack(
+      'TypeError: x\n    at f (/src/components/../components/ui/toaster.tsx:16:15)',
+      repoRoot,
+      browserSrcRoot(),
+    );
+
+    expect(frames[0].app).toBe(true);
+    expect(frames[0].file).toBe('client/src/components/ui/toaster.tsx');
+  });
+});
+
+describe('isAppFile sibling-directory boundary', () => {
+  it('does not classify a sibling directory sharing the repo name prefix as app code', () => {
+    const sibling = `${repoRoot}-secrets`;
+    fs.mkdirSync(sibling, { recursive: true });
+    fs.writeFileSync(path.join(sibling, 'creds.ts'), 'const x = 1;\n', 'utf8');
+
+    try {
+      const frames = parseStack(
+        `Error: x\n    at f (${path.join(sibling, 'creds.ts')}:1:1)`,
+        repoRoot,
+      );
+
+      expect(frames[0].app).toBe(false);
+    } finally {
+      fs.rmSync(sibling, { recursive: true, force: true });
+    }
   });
 });
