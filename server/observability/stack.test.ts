@@ -14,6 +14,13 @@ beforeAll(() => {
     Array.from({ length: 20 }, (_unused, i) => `const line${i + 1} = ${i + 1};`).join('\n'),
     'utf8',
   );
+
+  fs.mkdirSync(path.join(repoRoot, 'client', 'src', 'components', 'ui'), { recursive: true });
+  fs.writeFileSync(
+    path.join(repoRoot, 'client', 'src', 'components', 'ui', 'toaster.tsx'),
+    Array.from({ length: 20 }, (_unused, i) => `const line${i + 1} = ${i + 1};`).join('\n'),
+    'utf8',
+  );
 });
 
 afterAll(() => {
@@ -126,5 +133,61 @@ describe('resolveOrigin', () => {
       repoRoot,
     );
     expect(resolveOrigin(frames, repoRoot)).toBeNull();
+  });
+});
+
+describe('parseStack browser-relative paths', () => {
+  const browserSrcRoot = () => path.join(repoRoot, 'client', 'src');
+
+  it('resolves a Vite-style /src/... frame to the real file under client/src', () => {
+    const stack = `TypeError: boom\n    at Toaster (/src/components/ui/toaster.tsx:16:15)`;
+
+    const frames = parseStack(stack, repoRoot, browserSrcRoot());
+
+    expect(frames).toHaveLength(1);
+    expect(frames[0].app).toBe(true);
+    expect(frames[0].file).toBe('client/src/components/ui/toaster.tsx');
+    expect(frames[0].line).toBe(16);
+  });
+
+  it('lets resolveOrigin read the source snippet for a rewritten browser frame', () => {
+    const stack = `TypeError: boom\n    at Toaster (/src/components/ui/toaster.tsx:16:15)`;
+    const frames = parseStack(stack, repoRoot, browserSrcRoot());
+
+    const origin = resolveOrigin(frames, repoRoot);
+
+    expect(origin?.file).toBe('client/src/components/ui/toaster.tsx');
+    expect(origin?.line).toBe(16);
+    expect(origin?.source.join('\n')).toContain('const line16 = 16;');
+    expect(origin?.unresolved).toBeUndefined();
+  });
+
+  it('does not rewrite when no browserSrcRoot is given, matching today\'s server-only behaviour', () => {
+    const stack = `TypeError: boom\n    at Toaster (/src/components/ui/toaster.tsx:16:15)`;
+
+    const frames = parseStack(stack, repoRoot);
+
+    expect(frames[0].app).toBe(false);
+  });
+
+  it('leaves a real server absolute path untouched even when browserSrcRoot is supplied', () => {
+    const stack = `Error: boom\n    at run (${path.join(repoRoot, 'server', 'sample.ts')}:10:5)`;
+
+    const frames = parseStack(stack, repoRoot, browserSrcRoot());
+
+    expect(frames[0].file).toBe('server/sample.ts');
+    expect(frames[0].app).toBe(true);
+  });
+
+  it('leaves a vendor path served under /src/ neighbours alone if it does not exist on disk', () => {
+    const stack = `TypeError: boom\n    at x (/src/does/not/exist.tsx:1:1)`;
+
+    const frames = parseStack(stack, repoRoot, browserSrcRoot());
+
+    // It IS classified as an app path (the rewrite happens before the disk is checked —
+    // resolveOrigin is what reports a missing file, not parseStack).
+    expect(frames[0].app).toBe(true);
+    const origin = resolveOrigin(frames, repoRoot);
+    expect(origin?.unresolved).toContain('could not read');
   });
 });

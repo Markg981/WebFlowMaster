@@ -15,6 +15,12 @@ beforeEach(() => {
   repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'wfm-repo-'));
   fs.mkdirSync(path.join(repoRoot, 'server'), { recursive: true });
   fs.writeFileSync(path.join(repoRoot, 'server', 'thing.ts'), 'a\nb\nc\nd\ne\nf\ng\n', 'utf8');
+  fs.mkdirSync(path.join(repoRoot, 'client', 'src', 'components', 'ui'), { recursive: true });
+  fs.writeFileSync(
+    path.join(repoRoot, 'client', 'src', 'components', 'ui', 'toaster.tsx'),
+    Array.from({ length: 20 }, (_unused, i) => `const line${i + 1} = ${i + 1};`).join('\n'),
+    'utf8',
+  );
   logged.length = 0;
 
   configureIncidents({
@@ -33,6 +39,13 @@ afterEach(() => {
 const errorFrom = (file: string, line: number) => {
   const error = new Error('Cannot read properties of undefined (reading \'selector\')');
   error.stack = `TypeError: ${error.message}\n    at run (${path.join(repoRoot, file)}:${line}:5)`;
+  return error;
+};
+
+const clientErrorFrom = () => {
+  const error = new TypeError("Cannot read properties of undefined (reading 'map')");
+  error.name = 'TypeError';
+  error.stack = `TypeError: ${error.message}\n    at Toaster (/src/components/ui/toaster.tsx:16:15)`;
   return error;
 };
 
@@ -150,6 +163,19 @@ describe('recordIncident', () => {
     await expect(
       recordIncident({ kind: 'runner', error: errorFrom('server/thing.ts', 3), trigger: {} }),
     ).resolves.toBeNull();
+  });
+
+  it('resolves origin for a client-runtime incident from a Vite-style stack', async () => {
+    const incident = await recordIncident({
+      kind: 'client-runtime',
+      error: clientErrorFrom(),
+      trigger: { route: '/dashboard/create-test' },
+      correlationId: 'c-1',
+    });
+
+    expect(incident!.origin?.file).toBe('client/src/components/ui/toaster.tsx');
+    expect(incident!.origin?.line).toBe(16);
+    expect(incident!.origin?.unresolved).toBeUndefined();
   });
 
   describe('recursion guard', () => {

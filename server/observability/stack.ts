@@ -26,6 +26,18 @@ function toAbsolutePath(raw: string): string {
   return raw;
 }
 
+/**
+ * Vite serves everything under the app's `src/` directory at the URL path `/src/...`, so a
+ * browser stack trace names files that way — not as a filesystem path. Rewriting it to the
+ * real absolute path under `browserSrcRoot` before classification means every downstream
+ * function (isAppFile, toRepoRelative) keeps working exactly as it does for server stacks,
+ * with no special case anywhere else.
+ */
+function rewriteBrowserPath(raw: string, browserSrcRoot: string | undefined): string {
+  if (!browserSrcRoot || !raw.startsWith('/src/')) return raw;
+  return path.join(browserSrcRoot, raw.slice('/src/'.length));
+}
+
 function isAppFile(absolute: string, repoRoot: string): boolean {
   const normalised = path.resolve(absolute);
   const root = path.resolve(repoRoot);
@@ -46,7 +58,11 @@ function toRepoRelative(absolute: string, repoRoot: string): string {
  * repository. Lines that are not frames (the leading message, `Caused by:`, blank lines)
  * are skipped rather than producing junk entries.
  */
-export function parseStack(stack: string | undefined, repoRoot: string): StackFrame[] {
+export function parseStack(
+  stack: string | undefined,
+  repoRoot: string,
+  browserSrcRoot?: string,
+): StackFrame[] {
   if (!stack) return [];
 
   const frames: StackFrame[] = [];
@@ -55,7 +71,8 @@ export function parseStack(stack: string | undefined, repoRoot: string): StackFr
     if (!match) continue;
 
     const [, functionName, rawFile, line, column] = match;
-    const absolute = toAbsolutePath(rawFile.trim());
+    const rewritten = rewriteBrowserPath(rawFile.trim(), browserSrcRoot);
+    const absolute = toAbsolutePath(rewritten);
     const app = isAppFile(absolute, repoRoot);
 
     frames.push({

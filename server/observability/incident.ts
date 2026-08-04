@@ -174,7 +174,12 @@ async function doRecordIncident(input: RecordIncidentInput): Promise<Incident | 
   let suppressedSinceLastWrite = 0;
 
   try {
-    const frames = parseStack(input.error.stack, repoRoot);
+    // Browser stack frames name files as Vite serves them (`/src/...`), not as filesystem
+    // paths — only client-runtime incidents need the rewrite; a server stack that happened
+    // to contain a literal "/src/" would not exist on this codebase's disk layout anyway.
+    const browserSrcRoot =
+      input.kind === 'client-runtime' ? path.join(repoRoot, 'client', 'src') : undefined;
+    const frames = parseStack(input.error.stack, repoRoot, browserSrcRoot);
     fingerprint = fingerprintError({
       kind: input.kind,
       message: input.error.message,
