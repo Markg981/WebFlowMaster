@@ -328,11 +328,18 @@ the guarantee the RLS policies rest on."
 
 ---
 
-### Task 1b: Repair test fixtures for the tenancy column
+### Task 1b: Supply organizationId at every insert site
 
 **Files:**
 - Create: `server/tests/factories.ts`
-- Modify: `server/ai-automation-service.test.ts`, `server/api-tests.test.ts`, `server/general-tests.test.ts`, `server/projects.test.ts`, `server/scheduler-retry.test.ts`, `server/scheduler-service.test.ts`, `server/test-plan-executions.test.ts`, `server/test-plan-schedules.test.ts`, `server/test-plans.test.ts`
+- Modify (production, ~13 typecheck errors): `server/storage.ts`, `server/routes.ts`, `server/routes/projects.routes.ts`, `server/ai-automation-service.ts`, and the client files the typecheck names.
+- Modify (tests, ~39 insert sites across 12 suites): the suites Task 1's report lists.
+
+**Scope note.** This task was originally scoped as test-fixture repair only. Task 1's
+implementation proved that too narrow: `NOT NULL` breaks *every* insert, and `npx tsc -b`
+reports 13 errors in production code — the application does not compile. Splitting
+production and test repair across two tasks would leave the repository non-compiling in
+between, so both are done here.
 
 **Interfaces:**
 - Consumes: `organizations` and the `organizationId` columns from Task 1.
@@ -363,10 +370,79 @@ export async function createTestOrganization(name = 'Test Organization'): Promis
 
 `privilegedDb` is exported by `server/db.ts`. If Task 2 has not run yet and that export does not exist, import `db` instead and change it to `privilegedDb` when Task 2 renames it.
 
+- [ ] **Step 1b: Give registration an organization**
+
+`server/storage.ts:77` inserts a user with no `organizationId`, so `POST /api/register` now
+fails. A new user needs an organization, and the spec's model is one user per organization
+with self-service onboarding out of scope — so registration creates a fresh organization and
+makes the registrant its owner, exactly as the migration did for existing users. Being added
+to someone else's organization happens later, through the owner-only endpoints in Task 5.
+
+In `server/storage.ts`, replace the `createUser` implementation:
+
+```ts
+  async createUser(insertUser: InsertUser): Promise<User> {
+    // A user cannot exist without an organization, so registration creates one and makes
+    // the registrant its owner. Both rows are written in one transaction: a user pointing
+    // at an organization that failed to insert would be unusable, and an organization with
+    // no members is unreachable.
+    return db.transaction(async (tx) => {
+      const [organization] = await tx
+        .insert(organizations)
+        .values({ name: `${insertUser.username}'s organization` })
+        .returning();
+
+      const [user] = await tx
+        .insert(users)
+        .values({ ...insertUser, organizationId: organization.id, role: 'owner' })
+        .returning();
+
+      return user;
+    });
+  }
+```
+
+Add `organizations` to that file's import from `@shared/schema`.
+
+Add a test to `server/auth.test.ts`, inside its existing top-level `describe`:
+
+```ts
+  it('gives a newly registered user their own organization, as its owner', async () => {
+    const res = await request(app)
+      .post('/api/register')
+      .send({ username: `fresh-${Date.now()}`, password: 'correct horse battery staple' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.organizationId).toEqual(expect.any(Number));
+    expect(res.body.role).toBe('owner');
+  });
+```
+
+If that file's register test asserts a different status code than 201, match whatever the
+existing handler actually returns rather than changing the handler.
+
 - [ ] **Step 2: Run the suite to get the current failure list**
 
 Run: `npm test`
 Expected: FAIL. Note every failing suite — this is the working list for the next step.
+
+- [ ] **Step 2b: Repair the production insert sites**
+
+Run `npx tsc -b` and work through every error it reports. Each is the same shape: an
+`insert(...)` that no longer satisfies the type because `organizationId` is required.
+
+The value comes from the authenticated user, which carries it: `(req.user as { organizationId: number }).organizationId`.
+Where the insert is nested inside a service rather than a route handler (for example
+`server/ai-automation-service.ts:152`, which inserts detected elements for a test), take it
+from the parent row already in scope — a detected element belongs to the same organization as
+its test — rather than threading a new parameter through the call chain.
+
+For the three client files the typecheck names, the failure is in test-data or form-default
+literals typed against the schema. Add `organizationId` to those literals; the client already
+receives it on the objects the API returns.
+
+Re-run `npx tsc -b` until it is silent. That, not a test result, is this step's completion
+criterion — the application compiling again.
 
 - [ ] **Step 3: Repair each failing suite**
 
@@ -411,16 +487,22 @@ Expected: no output from either.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add server/tests/factories.ts server/*.test.ts
-git commit -m "test(tenancy): supply organizationId in existing fixtures
+git add -A
+git commit -m "fix(tenancy): supply organizationId at every insert site
 
-organizationId became NOT NULL on 16 tables in the previous commit, which left
-roughly 39 inserts across 9 suites failing. Each file now creates an organization
-in its setup and threads that id through its inserts, including the users it
-creates — a user in one organization owning a project in another is a state the
-application cannot produce, so a fixture should not either.
+organizationId became NOT NULL on 16 tables in the previous commit, which broke
+every insert: 13 typecheck errors in production code and roughly 39 inserts
+across 12 test suites. The application did not compile.
 
-No assertion was changed. The column was the only thing missing."
+Registration now creates an organization and makes the registrant its owner, in
+one transaction — a user pointing at an organization that failed to insert would
+be unusable, and an organization with no members is unreachable. This matches how
+the migration treated existing users.
+
+Test fixtures create an organization in setup and thread that id through their
+inserts, including the users they create: a user in one organization owning a
+project in another is a state the application cannot produce, so a fixture should
+not either. No assertion was changed."
 ```
 
 ---
