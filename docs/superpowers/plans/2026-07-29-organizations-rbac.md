@@ -25,6 +25,7 @@
 
 **Created**
 - `migrations/0003_organizations_and_rbac.sql` — hand-written migration: tables, columns, `app_user` role, grants, backfill, orphan check, `NOT NULL`, RLS policies. Hand-written rather than drizzle-kit generated because the backfill and the orphan check must sit between the column creation and the `NOT NULL`, which a generator will not produce.
+- `server/tests/factories.ts` — `createTestOrganization`, shared by every suite needing an organization.
 - `server/middleware/tenancy.ts` — `AsyncLocalStorage` tenant context + `withTenantTransaction`.
 - `server/middleware/require-role.ts` — the `requireRole` verb gate.
 - `server/routes/organization.routes.ts` — the four member-management endpoints.
@@ -291,15 +292,20 @@ Expected: FAIL — the migration has not been applied yet, so `organization_id` 
 Run: `npm test -- server/tests/schema-migration.test.ts`
 Expected: PASS, 3 tests. (`npm test` runs `test:setup-db` first, which recreates the test database and applies all migrations including the new one.)
 
-- [ ] **Step 6: Run the full suite**
+- [ ] **Step 6: Run the full suite and record what the NOT NULL broke**
 
 Run: `npm test`
-Expected: all suites pass. Existing tests that insert rows will now fail if they omit `organizationId` on an org-scoped table — fix each by adding the column to the inserted values, using an organization created in that test's own setup. Do not relax the `NOT NULL`.
+
+Expected: `server/tests/schema-migration.test.ts` passes, and a number of **other** suites now fail. This is expected and is not yours to fix — `organizationId` is `NOT NULL` on 16 tables, and roughly 39 `insert(...)` calls across 9 existing test files do not supply it. Task 1b repairs them.
+
+Do **not** relax the `NOT NULL` to make these pass. That column being non-nullable is what the RLS policies in Task 3 depend on; a nullable one would let rows exist that belong to no organization and are therefore invisible to every tenant query.
+
+Record the failing suite names in your report so Task 1b starts from a real list rather than a guess.
 
 - [ ] **Step 7: Typecheck and lint**
 
 Run: `npx tsc -b && npx eslint server/ shared/`
-Expected: no output from either.
+Expected: no output from either. (Typecheck may flag the same test files whose inserts now omit a required column — note them in the report alongside the failing suites; Task 1b fixes both together.)
 
 - [ ] **Step 8: Commit**
 
@@ -313,7 +319,108 @@ that user becoming its owner, so nobody loses access and nobody gains any.
 
 The migration refuses to continue if any row is left without an organization.
 An orphan would survive silently and then become invisible to everyone once RLS
-activates in a later task — not lost, but unfindable, with nothing reporting it."
+activates in a later task — not lost, but unfindable, with nothing reporting it.
+
+Existing test suites that insert without organizationId are left failing here on
+purpose; Task 1b repairs them. Relaxing the NOT NULL to green them would remove
+the guarantee the RLS policies rest on."
+```
+
+---
+
+### Task 1b: Repair test fixtures for the tenancy column
+
+**Files:**
+- Create: `server/tests/factories.ts`
+- Modify: `server/ai-automation-service.test.ts`, `server/api-tests.test.ts`, `server/general-tests.test.ts`, `server/projects.test.ts`, `server/scheduler-retry.test.ts`, `server/scheduler-service.test.ts`, `server/test-plan-executions.test.ts`, `server/test-plan-schedules.test.ts`, `server/test-plans.test.ts`
+
+**Interfaces:**
+- Consumes: `organizations` and the `organizationId` columns from Task 1.
+- Produces: `createTestOrganization(name?: string): Promise<number>` from `server/tests/factories.ts`, returning the new organization's id. Later tasks' tests use it instead of hand-rolling an `INSERT INTO organizations`.
+
+- [ ] **Step 1: Write the shared factory**
+
+Create `server/tests/factories.ts`:
+
+```ts
+import { sql } from 'drizzle-orm';
+import { privilegedDb } from '../db';
+
+/**
+ * Creates an organization and returns its id.
+ *
+ * Uses the privileged handle deliberately: fixtures run before any tenant context exists,
+ * and setting one up would make every test depend on the very isolation it is trying to
+ * exercise.
+ */
+export async function createTestOrganization(name = 'Test Organization'): Promise<number> {
+  const rows = await privilegedDb.execute(
+    sql`INSERT INTO organizations (name) VALUES (${name}) RETURNING id`,
+  );
+  return Number((rows.rows[0] as { id: number }).id);
+}
+```
+
+`privilegedDb` is exported by `server/db.ts`. If Task 2 has not run yet and that export does not exist, import `db` instead and change it to `privilegedDb` when Task 2 renames it.
+
+- [ ] **Step 2: Run the suite to get the current failure list**
+
+Run: `npm test`
+Expected: FAIL. Note every failing suite — this is the working list for the next step.
+
+- [ ] **Step 3: Repair each failing suite**
+
+For each failing test file, in its `beforeEach` (or `beforeAll`, matching what the file already uses), create an organization and reuse its id in every insert in that file:
+
+```ts
+import { createTestOrganization } from './tests/factories';
+
+let organizationId: number;
+
+beforeEach(async () => {
+  organizationId = await createTestOrganization();
+  // ... the file's existing setup, with organizationId added to each insert below
+});
+```
+
+Then add `organizationId` to every `insert(...)` on an org-scoped table in that file. For a Drizzle insert:
+
+```ts
+await db.insert(projects).values({ name: 'Test Project', userId: mockUser.id, organizationId });
+```
+
+For a raw SQL insert, add the column and the value to the existing statement.
+
+Two rules while doing this:
+
+- **Do not change what a test asserts.** The only change is supplying a column the schema now requires. If a test starts failing for a different reason after adding the column, that is a real finding — report it rather than adjusting the assertion.
+- **Where a file already creates users**, give those users the same `organizationId`, so the fixture is internally consistent: a user in one organization owning a project in another would be a state the application can never produce.
+
+The nine files, with the number of insert sites found in each: `test-plan-executions.test.ts` (9), `test-plans.test.ts` (7), `projects.test.ts` (6), `test-plan-schedules.test.ts` (6), `api-tests.test.ts` (4), `general-tests.test.ts` (2), `scheduler-retry.test.ts` (2), `scheduler-service.test.ts` (2), `ai-automation-service.test.ts` (1). Work through them one at a time, re-running that single file (`npx vitest run <path>`) before moving to the next.
+
+- [ ] **Step 4: Run the full suite**
+
+Run: `npm test`
+Expected: all suites pass, with the same test count as before Task 1 plus the 3 tests Task 1 added.
+
+- [ ] **Step 5: Typecheck and lint**
+
+Run: `npx tsc -b && npx eslint server/ shared/`
+Expected: no output from either.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add server/tests/factories.ts server/*.test.ts
+git commit -m "test(tenancy): supply organizationId in existing fixtures
+
+organizationId became NOT NULL on 16 tables in the previous commit, which left
+roughly 39 inserts across 9 suites failing. Each file now creates an organization
+in its setup and threads that id through its inserts, including the users it
+creates — a user in one organization owning a project in another is a state the
+application cannot produce, so a fixture should not either.
+
+No assertion was changed. The column was the only thing missing."
 ```
 
 ---
