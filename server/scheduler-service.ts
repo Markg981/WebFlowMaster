@@ -126,6 +126,8 @@ export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: Tes
   try {
     await db.insert(testPlanExecutions).values({
       id: executionId,
+      // Same organization as the plan being executed (and, transitively, the schedule).
+      organizationId: plan.organizationId,
       scheduleId: schedule.id,
       testPlanId: schedule.testPlanId,
       status: 'pending',

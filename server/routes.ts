@@ -450,6 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .values({
           name,
           userId,
+          organizationId: req.user.organizationId,
           // createdAt is handled by default in schema
         })
         .returning(); // Return all fields of the new project
@@ -578,6 +579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .insert(tests)
         .values({
           userId,
+          organizationId: req.user.organizationId,
           projectId,
           name,
           url,

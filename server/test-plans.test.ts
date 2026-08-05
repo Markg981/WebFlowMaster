@@ -5,6 +5,7 @@ import { db } from './db';
 import { testPlans, testPlanSchedules as schedules, users, type InsertTestPlan, type TestPlan } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { createTestOrganization } from './tests/factories';
 
 // --- Test Application Setup ---
 // Using a simplified app setup for tests. Ideally, export the main app from server/index.ts or app.ts.
@@ -55,6 +56,7 @@ beforeAll(async () => {
         name,
         description: description || null,
         userId: (req.user as Express.User).id, // required (FK to users)
+        organizationId: (req.user as { organizationId: number }).organizationId,
       };
       const result = await db.insert(testPlans).values(newPlan).returning();
       res.status(201).json(result[0]);
@@ -92,13 +94,17 @@ beforeAll(async () => {
   app.use(testPlanRouter);
 });
 
+let organizationId: number;
+
 beforeEach(async () => {
   // Clear related tables in FK order, then seed the mock user (id 1) the test
   // plans reference via their NOT NULL user_id.
   await db.delete(schedules);
   await db.delete(testPlans);
   await db.delete(users);
-  await db.insert(users).values({ id: mockUser.id, username: 'testuser', password: 'hashed' });
+  organizationId = await createTestOrganization();
+  (mockUser as any).organizationId = organizationId;
+  await db.insert(users).values({ id: mockUser.id, username: 'testuser', password: 'hashed', organizationId });
 });
 
 describe('Test Plans API (/api/test-plans)', () => {
@@ -138,8 +144,8 @@ describe('Test Plans API (/api/test-plans)', () => {
     });
 
     it('should return all test plans', async () => {
-      const plan1 = { id: uuidv4(), name: 'Plan A', description: 'First plan', userId: mockUser.id };
-      const plan2 = { id: uuidv4(), name: 'Plan B', description: 'Second plan', userId: mockUser.id };
+      const plan1 = { id: uuidv4(), name: 'Plan A', description: 'First plan', userId: mockUser.id, organizationId };
+      const plan2 = { id: uuidv4(), name: 'Plan B', description: 'Second plan', userId: mockUser.id, organizationId };
       await db.insert(testPlans).values([plan1, plan2]);
 
       const response = await request(app).get('/api/test-plans').expect(200);
@@ -151,7 +157,7 @@ describe('Test Plans API (/api/test-plans)', () => {
   describe('GET /api/test-plans/:id', () => {
     it('should return a single test plan if found', async () => {
       const planId = uuidv4();
-      const plan = { id: planId, name: 'Specific Plan', description: 'Details here', userId: mockUser.id };
+      const plan = { id: planId, name: 'Specific Plan', description: 'Details here', userId: mockUser.id, organizationId };
       await db.insert(testPlans).values(plan);
 
       const response = await request(app).get(`/api/test-plans/${planId}`).expect(200);
@@ -166,7 +172,7 @@ describe('Test Plans API (/api/test-plans)', () => {
   describe('PUT /api/test-plans/:id', () => {
     it('should update an existing test plan', async () => {
       const planId = uuidv4();
-      const initialPlan = { id: planId, name: 'Old Name', description: 'Old Desc', userId: mockUser.id };
+      const initialPlan = { id: planId, name: 'Old Name', description: 'Old Desc', userId: mockUser.id, organizationId };
       await db.insert(testPlans).values(initialPlan);
 
       const updatedPayload = { name: 'New Name', description: 'New Desc' };
@@ -197,7 +203,7 @@ describe('Test Plans API (/api/test-plans)', () => {
 
     it('should return 400 if no update data provided (name or description)', async () => {
       const planId = uuidv4();
-      const initialPlan = { id: planId, name: 'Old Name', description: 'Old Desc', userId: mockUser.id };
+      const initialPlan = { id: planId, name: 'Old Name', description: 'Old Desc', userId: mockUser.id, organizationId };
       await db.insert(testPlans).values(initialPlan);
       await request(app)
         .put(`/api/test-plans/${planId}`)
@@ -209,7 +215,7 @@ describe('Test Plans API (/api/test-plans)', () => {
   describe('DELETE /api/test-plans/:id', () => {
     it('should delete an existing test plan', async () => {
       const planId = uuidv4();
-      await db.insert(testPlans).values({ id: planId, name: 'To Delete', userId: mockUser.id });
+      await db.insert(testPlans).values({ id: planId, name: 'To Delete', userId: mockUser.id, organizationId });
 
       await request(app).delete(`/api/test-plans/${planId}`).expect(204);
 
@@ -224,13 +230,13 @@ describe('Test Plans API (/api/test-plans)', () => {
     // Cascade delete test
     it('should delete associated schedules when a test plan is deleted', async () => {
       const planId = uuidv4();
-      await db.insert(testPlans).values({ id: planId, name: 'Plan with Schedules', userId: mockUser.id });
+      await db.insert(testPlans).values({ id: planId, name: 'Plan with Schedules', userId: mockUser.id, organizationId });
 
       const scheduleId1 = uuidv4();
       const scheduleId2 = uuidv4();
       await db.insert(schedules).values([
-        { id: scheduleId1, scheduleName: 'Schedule 1 for Plan', testPlanId: planId, frequency: 'Daily', nextRunAt: new Date() },
-        { id: scheduleId2, scheduleName: 'Schedule 2 for Plan', testPlanId: planId, frequency: 'Weekly', nextRunAt: new Date() },
+        { id: scheduleId1, scheduleName: 'Schedule 1 for Plan', testPlanId: planId, organizationId, frequency: 'Daily', nextRunAt: new Date() },
+        { id: scheduleId2, scheduleName: 'Schedule 2 for Plan', testPlanId: planId, organizationId, frequency: 'Weekly', nextRunAt: new Date() },
       ]);
 
       // Verify schedules exist

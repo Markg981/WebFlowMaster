@@ -763,6 +763,9 @@ const ApiTesterPage: React.FC = () => {
     });
 
     const config: Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt'> = {
+      // Editing keeps the test's existing organization; the server is the source of truth
+      // for a genuinely new test (client-side org switching is not wired up yet).
+      organizationId: currentTestToEdit?.organizationId ?? 0,
       method, url,
       queryParams: currentParams,
       requestHeaders: currentHeaders,

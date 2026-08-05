@@ -52,9 +52,10 @@ router.post("/api/excel-mappings", async (req, res) => {
     if(!excelTestCaseId || !testId) return res.status(400).json({ error: "Missing required fields" });
 
     try {
-        await db.insert(excelSequencesMap).values({ 
-            excelTestCaseId, 
-            testId 
+        await db.insert(excelSequencesMap).values({
+            organizationId: (req.user as { organizationId: number }).organizationId,
+            excelTestCaseId,
+            testId
         }).onConflictDoNothing(); // Simple upsert logic
         
         res.json({ success: true });

@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { resolveUserId, findOrCreateProject, importApiTests } from './importer';
 import { mapEndpoints } from './map-to-apitests';
 import type { Endpoint } from './types';
+import { createTestOrganization } from '../../server/tests/factories';
 
 const EPS: Endpoint[] = [
   { httpMethod: 'GET', route: 'api/NetContentTareCheck/GetX', controller: 'TareCheck', action: 'GetX',
@@ -12,11 +13,14 @@ const EPS: Endpoint[] = [
   { httpMethod: 'POST', route: 'api/NetContentScale/SaveY', controller: 'Scale', action: 'SaveY', params: [] },
 ];
 
+let organizationId: number;
+
 beforeEach(async () => {
   await db.delete(apiTests);
   await db.delete(projects);
   await db.delete(users);
-  await db.insert(users).values({ id: 1, username: 'owner', password: 'x' });
+  organizationId = await createTestOrganization();
+  await db.insert(users).values({ id: 1, username: 'owner', password: 'x', organizationId });
 });
 
 // Clean up so leftover projects (FK -> users) don't break other suites' db.delete(users)
@@ -49,7 +53,7 @@ describe('findOrCreateProject', () => {
 describe('importApiTests (first run)', () => {
   it('inserts one apiTest per endpoint', async () => {
     const pid = await findOrCreateProject(db, 1, 'NetContent');
-    const records = mapEndpoints(EPS, { baseUrlVar: '{{baseUrl}}', projectId: pid, userId: 1 });
+    const records = mapEndpoints(EPS, { baseUrlVar: '{{baseUrl}}', projectId: pid, userId: 1, organizationId });
     const summary = await importApiTests(db, records, pid);
     expect(summary.created).toBe(2);
     expect(summary.updated).toBe(0);
@@ -62,7 +66,7 @@ describe('importApiTests (first run)', () => {
 describe('importApiTests (re-run)', () => {
   it('preserves edited assertions + filled param values, adds new params, reports orphans', async () => {
     const pid = await findOrCreateProject(db, 1, 'NetContent');
-    let records = mapEndpoints(EPS, { baseUrlVar: '{{baseUrl}}', projectId: pid, userId: 1 });
+    let records = mapEndpoints(EPS, { baseUrlVar: '{{baseUrl}}', projectId: pid, userId: 1, organizationId });
     await importApiTests(db, records, pid);
 
     // User edits GetX: fill the "id" value, add a custom assertion.
@@ -82,7 +86,7 @@ describe('importApiTests (re-run)', () => {
         ] },
       { httpMethod: 'GET', route: 'api/NetContentTareCheck/NewZ', controller: 'TareCheck', action: 'NewZ', params: [] },
     ];
-    records = mapEndpoints(eps2, { baseUrlVar: '{{baseUrl}}', projectId: pid, userId: 1 });
+    records = mapEndpoints(eps2, { baseUrlVar: '{{baseUrl}}', projectId: pid, userId: 1, organizationId });
     const summary = await importApiTests(db, records, pid);
 
     expect(summary.created).toBe(1); // NewZ

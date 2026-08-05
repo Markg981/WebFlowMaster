@@ -28,24 +28,29 @@ import {
   shutdownScheduler,
   frequencyToCronPatternForTest as frequencyToCronPattern,
 } from './scheduler-service';
+import { createTestOrganization } from './tests/factories';
 
 function rnd() {
   return Math.random().toString(36).slice(2);
 }
 
 async function seedPlan() {
-  const [user] = await db.insert(users).values({ username: `u_${rnd()}`, password: 'x' }).returning();
+  const organizationId = await createTestOrganization();
+  const [user] = await db.insert(users).values({ username: `u_${rnd()}`, password: 'x', organizationId }).returning();
   const planId = `plan_${rnd()}`;
-  await db.insert(testPlans).values({ id: planId, userId: user.id, name: 'Plan' }).returning();
-  return { userId: user.id, planId };
+  await db.insert(testPlans).values({ id: planId, userId: user.id, organizationId, name: 'Plan' }).returning();
+  return { userId: user.id, planId, organizationId };
 }
 
 async function seedSchedule(planId: number | string, userId: number, overrides: Partial<typeof testPlanSchedules.$inferInsert> = {}) {
+  // A schedule belongs to the same organization as the test plan it schedules.
+  const [plan] = await db.select({ organizationId: testPlans.organizationId }).from(testPlans).where(eq(testPlans.id, planId as string)).limit(1);
   const [s] = await db
     .insert(testPlanSchedules)
     .values({
       id: `sched_${rnd()}`,
       testPlanId: planId as string,
+      organizationId: plan.organizationId,
       userId,
       scheduleName: 'S',
       frequency: 'daily',

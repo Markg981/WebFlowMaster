@@ -6,6 +6,7 @@ import { users, testPlanSchedules, testPlans, type InsertTestPlanSchedule, type 
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import schedulerService from './scheduler-service'; // Import the actual service
+import { createTestOrganization } from './tests/factories';
 
 // Mock the schedulerService
 vi.mock('./scheduler-service', () => ({
@@ -44,6 +45,7 @@ async function setupTestApp() {
 
 let seededPlan1: TestPlan;
 let seededPlan2: TestPlan;
+let organizationId: number;
 
 beforeAll(async () => {
   app = await setupTestApp(); // Setup app with actual routes
@@ -54,14 +56,16 @@ beforeEach(async () => {
   await db.delete(testPlanSchedules);
   await db.delete(testPlans);
   await db.delete(users);
-  await db.insert(users).values({ id: mockUser.id, username: mockUser.username, password: 'hashed' });
+  organizationId = await createTestOrganization();
+  (mockUser as any).organizationId = organizationId;
+  await db.insert(users).values({ id: mockUser.id, username: mockUser.username, password: 'hashed', organizationId });
   vi.clearAllMocks(); // Clear mocks before each test
 
   // Seed Test Plans
   const planId1 = uuidv4();
   const planId2 = uuidv4();
-  [seededPlan1] = await db.insert(testPlans).values({ id: planId1, name: 'Default Test Plan 1', description: 'For general testing', userId: mockUser.id }).returning();
-  [seededPlan2] = await db.insert(testPlans).values({ id: planId2, name: 'Default Test Plan 2', description: 'Another plan', userId: mockUser.id }).returning();
+  [seededPlan1] = await db.insert(testPlans).values({ id: planId1, name: 'Default Test Plan 1', description: 'For general testing', userId: mockUser.id, organizationId }).returning();
+  [seededPlan2] = await db.insert(testPlans).values({ id: planId2, name: 'Default Test Plan 2', description: 'Another plan', userId: mockUser.id, organizationId }).returning();
 });
 
 afterAll(async () => {
@@ -79,6 +83,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
       const newSchedulePayload = {
         scheduleName: 'Nightly QA Run',
         testPlanId: seededPlan1.id,
+        organizationId,
         frequency: 'daily@02:00',
         nextRunAt: Math.floor(new Date('2025-01-01T02:00:00Z').getTime() / 1000),
         environment: 'QA',
@@ -127,7 +132,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
 
     it('should return 400 when creating a schedule with a non-existent testPlanId', async () => {
       const newSchedulePayload = {
-        scheduleName: 'Invalid Plan Run', testPlanId: uuidv4(), frequency: 'Daily',
+        scheduleName: 'Invalid Plan Run', testPlanId: uuidv4(), frequency: 'Daily', organizationId,
         nextRunAt: Math.floor(new Date().getTime() / 1000), environment: "QA", browsers: ["chromium"]
       };
       const response = await request(app)
@@ -142,7 +147,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
   describe('GET /api/test-plan-schedules', () => {
     it('should return all schedules with their testPlanName joined and JSON fields parsed', async () => {
       const schedule1Data: InsertTestPlanSchedule = {
-        id: uuidv4(), scheduleName: 'Schedule A', testPlanId: seededPlan1.id,
+        id: uuidv4(), scheduleName: 'Schedule A', testPlanId: seededPlan1.id, organizationId,
         frequency: 'Daily', nextRunAt: new Date(),
         browsers: JSON.stringify(['chromium']), isActive: true, retryOnFailure: 'none'
       };
@@ -165,8 +170,8 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
       const s1Id = uuidv4();
       const s2Id = uuidv4();
       await db.insert(testPlanSchedules).values([
-        { id: s1Id, scheduleName: 'Plan1 Sched1', testPlanId: seededPlan1.id, frequency: 'once', nextRunAt: new Date(), environment: 'QA', browsers: JSON.stringify(['chrome']) },
-        { id: s2Id, scheduleName: 'Plan2 Sched1', testPlanId: seededPlan2.id, frequency: 'daily', nextRunAt: new Date(), environment: 'Staging', browsers: JSON.stringify(['firefox']) },
+        { id: s1Id, scheduleName: 'Plan1 Sched1', testPlanId: seededPlan1.id, organizationId, frequency: 'once', nextRunAt: new Date(), environment: 'QA', browsers: JSON.stringify(['chrome']) },
+        { id: s2Id, scheduleName: 'Plan2 Sched1', testPlanId: seededPlan2.id, organizationId, frequency: 'daily', nextRunAt: new Date(), environment: 'Staging', browsers: JSON.stringify(['firefox']) },
       ]);
 
       const response = await request(app)
@@ -186,7 +191,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
     it('should update an existing schedule and call schedulerService.updateScheduleJob', async () => {
       const scheduleId = uuidv4();
       const initialSchedule: InsertTestPlanSchedule = {
-        id: scheduleId, scheduleName: 'Initial Name', testPlanId: seededPlan1.id,
+        id: scheduleId, scheduleName: 'Initial Name', testPlanId: seededPlan1.id, organizationId,
         frequency: 'Daily', nextRunAt: new Date(),
         environment: 'Dev', browsers: JSON.stringify(['webkit']), isActive: true, retryOnFailure: 'none'
       };
@@ -232,7 +237,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
     it('should delete an existing schedule and call schedulerService.removeScheduleJob', async () => {
       const scheduleId = uuidv4();
       const scheduleToDelete: InsertTestPlanSchedule = {
-        id: scheduleId, scheduleName: 'To Delete', testPlanId: seededPlan1.id,
+        id: scheduleId, scheduleName: 'To Delete', testPlanId: seededPlan1.id, organizationId,
         frequency: 'Once', nextRunAt: new Date(),
         environment: 'Prod', browsers: JSON.stringify(['all'])
       };

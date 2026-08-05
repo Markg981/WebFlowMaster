@@ -150,6 +150,8 @@ export class AIAutomationService {
                  this.logInfo("Normalized DB Update - Updated existing element", { testId, elementId });
              } else {
                  await db.insert(detectedElements).values({
+                     // A detected element belongs to the same organization as its test.
+                     organizationId: testRecord[0].organizationId,
                      testId,
                      elementId,
                      selector: newSelector,

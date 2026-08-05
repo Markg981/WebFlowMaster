@@ -24,6 +24,7 @@ const fetchTestPlanDetails = async (planId: string): Promise<TestPlan & { tests:
       id: 'plan-123',
       name: 'Login and Signup Flow',
       description: 'End-to-end tests for user authentication.',
+      organizationId: 1,
       userId: 1,
       createdAt: new Date(),
       updatedAt: new Date(),

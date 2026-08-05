@@ -4,6 +4,7 @@ import express, { type Application, type Request, type Response, type NextFuncti
 import { db } from './db';
 import { users } from '../shared/schema';
 import type { RecordedAction } from '../shared/recording';
+import { createTestOrganization } from './tests/factories';
 
 /**
  * Exercises the real route handlers registered by `registerRoutes`, with only the browser
@@ -55,7 +56,8 @@ beforeAll(async () => {
 beforeEach(async () => {
   vi.clearAllMocks();
   await db.delete(users);
-  await db.insert(users).values({ id: mockUser.id, username: mockUser.username, password: 'hashed' });
+  const organizationId = await createTestOrganization();
+  await db.insert(users).values({ id: mockUser.id, username: mockUser.username, password: 'hashed', organizationId });
 });
 
 describe('POST /api/start-recording', () => {

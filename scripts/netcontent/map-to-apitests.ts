@@ -6,6 +6,7 @@ export interface MapperConfig {
   baseUrlVar: string; // e.g. "{{baseUrl}}"
   projectId: number;
   userId: number;
+  organizationId: number;
 }
 
 export interface KeyValuePair {
@@ -41,6 +42,7 @@ export function mapEndpoint(ep: Endpoint, cfg: MapperConfig): InsertApiTest {
 
   return {
     userId: cfg.userId,
+    organizationId: cfg.organizationId,
     projectId: cfg.projectId,
     name: ep.action,
     method: ep.httpMethod,

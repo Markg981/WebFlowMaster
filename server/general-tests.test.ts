@@ -16,6 +16,7 @@ import {
 } from '../shared/schema';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
+import { createTestOrganization } from './tests/factories';
 
 // Mock logger
 vi.mock('./logger', () => ({
@@ -27,12 +28,14 @@ let app: Application;
 const mockUser1 = { id: 1, username: 'testuser1', password: 'password1' } as User;
 let currentMockUser: User = mockUser1;
 
-// Define the Zod schema for the POST /api/tests request body, mirroring server/routes.ts
+// Define the Zod schema for the POST /api/tests request body, mirroring server/routes.ts.
+// organizationId is also omitted here: like userId, it comes from the session (req.user),
+// not the client body.
 const createTestBodySchema = insertTestSchema.extend({
   projectId: z.number().int().positive(),
   sequence: z.array(AdhocTestStepSchema),
   elements: z.array(AdhocDetectedElementSchema),
-}).omit({ userId: true, id: true, createdAt: true, updatedAt: true });
+}).omit({ userId: true, organizationId: true, id: true, createdAt: true, updatedAt: true });
 
 
 beforeAll(async () => {
@@ -71,6 +74,7 @@ beforeAll(async () => {
         .insert(tests)
         .values({
           userId,
+          organizationId: (req.user as { organizationId: number }).organizationId,
           projectId,
           name,
           url,
@@ -108,8 +112,11 @@ beforeEach(async () => {
   await db.delete(projects); // Depends on users
   await db.delete(users);
 
-  [seededUser] = await db.insert(users).values({ id: mockUser1.id, username: mockUser1.username, password: 'hashed_password' } as InsertUser).returning();
-  [seededProject] = await db.insert(projects).values({ name: 'Test Project', userId: seededUser.id } as InsertProject).returning();
+  const organizationId = await createTestOrganization();
+  mockUser1.organizationId = organizationId;
+
+  [seededUser] = await db.insert(users).values({ id: mockUser1.id, username: mockUser1.username, password: 'hashed_password', organizationId } as InsertUser).returning();
+  [seededProject] = await db.insert(projects).values({ name: 'Test Project', userId: seededUser.id, organizationId } as InsertProject).returning();
 
   currentMockUser = mockUser1; // Reset to default mock user
 });

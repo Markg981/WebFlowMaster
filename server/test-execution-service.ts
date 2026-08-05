@@ -225,6 +225,8 @@ export async function runTestPlan(
     const inserted = await db.insert(testPlanExecutionsTable)
       .values({
         id: testPlanRunId,
+        // Same organization as the plan being run.
+        organizationId: planResult[0].organizationId,
         testPlanId: planId,
         status: 'pending', // Queue status
         startedAt: new Date(overallStartTime),
@@ -435,6 +437,8 @@ export async function processTestPlanJob(
     const reportCaseResultId = uuidv4();
     const newReportEntry: InsertReportTestCaseResult = {
       id: reportCaseResultId,
+      // Same organization as the test plan execution this result belongs to.
+      organizationId: executionRecord[0].organizationId,
       testPlanExecutionId: testPlanRunId,
       uiTestId: link.testType === 'ui' ? link.testId : null,
       apiTestId: link.testType === 'api' ? link.apiTestId : null,

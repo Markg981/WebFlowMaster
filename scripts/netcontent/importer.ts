@@ -28,7 +28,12 @@ export async function findOrCreateProject(
     .where(eq(projects.name, name))
     .limit(1);
   if (existing.length > 0) return existing[0].id;
-  const created = await database.insert(projects).values({ name, userId }).returning({ id: projects.id });
+
+  // A created project belongs to the same organization as the user who owns it.
+  const [owner] = await database.select({ organizationId: users.organizationId }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!owner) throw new Error(`No user found with id ${userId}; cannot determine organization for imported project.`);
+
+  const created = await database.insert(projects).values({ name, userId, organizationId: owner.organizationId }).returning({ id: projects.id });
   return created[0].id;
 }
 

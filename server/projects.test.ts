@@ -18,6 +18,7 @@ import {
   type InsertApiTest
 } from '../shared/schema';
 import { eq, and } from 'drizzle-orm';
+import { createTestOrganization } from './tests/factories';
 
 // Mock logger
 vi.mock('./logger', () => ({
@@ -66,7 +67,7 @@ beforeAll(async () => {
     }
     const { name } = parseResult.data;
     try {
-      const newProject = await db.insert(projects).values({ name, userId }).returning();
+      const newProject = await db.insert(projects).values({ name, userId, organizationId: (req.user as { organizationId: number }).organizationId }).returning();
       if (newProject.length === 0) {
         resolvedLogger.error({ message: "Project creation failed, no record returned (test).", name, userId });
         return res.status(500).json({ error: "Failed to create project." });
@@ -139,17 +140,21 @@ beforeEach(async () => {
   await db.delete(projects);
   await db.delete(users);
 
+  const organizationId = await createTestOrganization();
+  mockUser1.organizationId = organizationId;
+  mockUser2.organizationId = organizationId;
+
   // Seed Users
-  [seededUser1] = await db.insert(users).values({ id: mockUser1.id, username: mockUser1.username, password: 'password' } as InsertUser).returning();
-  [seededUser2] = await db.insert(users).values({ id: mockUser2.id, username: mockUser2.username, password: 'password' } as InsertUser).returning();
+  [seededUser1] = await db.insert(users).values({ id: mockUser1.id, username: mockUser1.username, password: 'password', organizationId } as InsertUser).returning();
+  [seededUser2] = await db.insert(users).values({ id: mockUser2.id, username: mockUser2.username, password: 'password', organizationId } as InsertUser).returning();
 
   // Seed Projects
-  [seededProject1User1] = await db.insert(projects).values({ name: 'U1 Project 1', userId: seededUser1.id } as InsertProject).returning();
-  [seededProject2User1] = await db.insert(projects).values({ name: 'U1 Project 2 (no tests)', userId: seededUser1.id } as InsertProject).returning();
-  [seededProject1User2] = await db.insert(projects).values({ name: 'U2 Project 1', userId: seededUser2.id } as InsertProject).returning();
+  [seededProject1User1] = await db.insert(projects).values({ name: 'U1 Project 1', userId: seededUser1.id, organizationId } as InsertProject).returning();
+  [seededProject2User1] = await db.insert(projects).values({ name: 'U1 Project 2 (no tests)', userId: seededUser1.id, organizationId } as InsertProject).returning();
+  [seededProject1User2] = await db.insert(projects).values({ name: 'U2 Project 1', userId: seededUser2.id, organizationId } as InsertProject).returning();
 
   // Seed general 'tests'
-  const generalTestData: Omit<InsertTest, 'userId' | 'projectId'> = {
+  const generalTestData: Omit<InsertTest, 'userId' | 'projectId' | 'organizationId'> = {
     name: 'General Test 1 for P1U1',
     url: 'http://example.com/gtest1',
     sequence: JSON.stringify([{ action: 'click' }]),
@@ -160,10 +165,11 @@ beforeEach(async () => {
     ...generalTestData,
     userId: seededUser1.id,
     projectId: seededProject1User1.id,
+    organizationId,
   }).returning();
 
   // Seed 'apiTests'
-  const apiTestData: Omit<InsertApiTest, 'userId' | 'projectId'> = {
+  const apiTestData: Omit<InsertApiTest, 'userId' | 'projectId' | 'organizationId'> = {
     name: 'API Test 1 for P1U1',
     method: 'GET',
     url: 'http://example.com/api/test1',
@@ -173,6 +179,7 @@ beforeEach(async () => {
     ...apiTestData,
     userId: seededUser1.id,
     projectId: seededProject1User1.id,
+    organizationId,
   }).returning();
 
   currentMockUser = mockUser1; // Default to user1 for tests

@@ -5,7 +5,8 @@ import { connection } from './redis';
 import { TEST_EXECUTION_QUEUE_NAME } from './queue';
 import loggerPromise from './logger';
 import { db } from './db';
-import { executionLogs } from '@shared/schema';
+import { executionLogs, testPlanExecutions } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 import { getCorrelationId } from './middleware/correlation';
 
 /**
@@ -124,17 +125,29 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
   // ─── Emitter for execution-specific logs ────────────────────────────────
   const emitter: WsEmitter = {
     emitExecutionLog(executionId: string, logEntry: ExecutionLogEntry) {
-      // 1. Persist to database (async, fire-and-forget)
-      db.insert(executionLogs).values({
-        testPlanExecutionId: executionId,
-        timestamp: new Date(logEntry.timestamp),
-        level: logEntry.level,
-        source: logEntry.source,
-        message: logEntry.message,
-        metadata: logEntry.metadata || null,
-        testCaseResultId: logEntry.testCaseResultId || null,
-        correlationId: getCorrelationId() || null,
-      }).catch(err => {
+      // 1. Persist to database (async, fire-and-forget). An execution log belongs to the
+      // same organization as its parent testPlanExecutions row; look it up rather than
+      // threading organizationId through every emitExecutionLog call site.
+      (async () => {
+        const [execution] = await db
+          .select({ organizationId: testPlanExecutions.organizationId })
+          .from(testPlanExecutions)
+          .where(eq(testPlanExecutions.id, executionId))
+          .limit(1);
+        if (!execution) return;
+
+        await db.insert(executionLogs).values({
+          organizationId: execution.organizationId,
+          testPlanExecutionId: executionId,
+          timestamp: new Date(logEntry.timestamp),
+          level: logEntry.level,
+          source: logEntry.source,
+          message: logEntry.message,
+          metadata: logEntry.metadata || null,
+          testCaseResultId: logEntry.testCaseResultId || null,
+          correlationId: getCorrelationId() || null,
+        });
+      })().catch(err => {
         // Don't let DB errors break log streaming
         logger.error('Failed to persist execution log', { executionId, error: (err as Error).message });
       });

@@ -30,7 +30,7 @@ router.post("/api/projects", async (req, res) => {
   }
 
   try {
-    const newProject = await db.insert(projects).values({ ...parseResult.data, userId: (req.user as any).id }).returning();
+    const newProject = await db.insert(projects).values({ ...parseResult.data, userId: (req.user as any).id, organizationId: (req.user as { organizationId: number }).organizationId }).returning();
     res.status(201).json(newProject[0]);
   } catch (error: any) {
     logger.error({ message: "Error creating project", error: error.message });

@@ -14,6 +14,7 @@ import { users, testPlans, testPlanSchedules, testPlanExecutions } from '@shared
 import { eq } from 'drizzle-orm';
 import { runTestPlan } from './test-execution-service';
 import { executeScheduledPlanForTest } from './scheduler-service';
+import { createTestOrganization } from './tests/factories';
 
 const mockRun = vi.mocked(runTestPlan);
 
@@ -22,14 +23,16 @@ function rnd() {
 }
 
 async function seedSchedule(retryOnFailure: string) {
-  const [user] = await db.insert(users).values({ username: `u_${rnd()}`, password: 'x' }).returning();
+  const organizationId = await createTestOrganization();
+  const [user] = await db.insert(users).values({ username: `u_${rnd()}`, password: 'x', organizationId }).returning();
   const planId = `plan_${rnd()}`;
-  const [plan] = await db.insert(testPlans).values({ id: planId, userId: user.id, name: 'Plan' }).returning();
+  const [plan] = await db.insert(testPlans).values({ id: planId, userId: user.id, organizationId, name: 'Plan' }).returning();
   const [schedule] = await db
     .insert(testPlanSchedules)
     .values({
       id: `sched_${rnd()}`,
       testPlanId: planId,
+      organizationId,
       userId: user.id,
       scheduleName: 'S',
       frequency: 'daily',

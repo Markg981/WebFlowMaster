@@ -106,6 +106,9 @@ export const transformFormValuesToApiPayload = (
   }
 
   return {
+    // The client does not yet have multi-org awareness; the server is the source of
+    // truth for which organization a schedule belongs to.
+    organizationId: 0,
     scheduleName: values.scheduleName,
     testPlanId: values.testPlanId,
     frequency: effectiveFrequency,

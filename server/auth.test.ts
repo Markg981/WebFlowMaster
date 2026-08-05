@@ -50,6 +50,16 @@ describe('POST /api/register', () => {
     await request(app).post('/api/register').send(validCreds).expect(201);
     await request(app).post('/api/register').send(validCreds).expect(400);
   });
+
+  it('gives a newly registered user their own organization, as its owner', async () => {
+    const res = await request(app)
+      .post('/api/register')
+      .send({ username: `fresh-${Date.now()}`, password: 'correct horse battery staple' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.organizationId).toEqual(expect.any(Number));
+    expect(res.body.role).toBe('owner');
+  });
 });
 
 describe('POST /api/login', () => {

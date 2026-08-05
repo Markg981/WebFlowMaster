@@ -1,4 +1,4 @@
-import { users, tests, testRuns, userSettings, sessions, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
+import { organizations, users, tests, testRuns, userSettings, sessions, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import session from "express-session";
@@ -75,11 +75,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(insertUser)
-      .returning();
-    return user;
+    // A user cannot exist without an organization, so registration creates one and makes
+    // the registrant its owner. Both rows are written in one transaction: a user pointing
+    // at an organization that failed to insert would be unusable, and an organization with
+    // no members is unreachable.
+    return db.transaction(async (tx) => {
+      const [organization] = await tx
+        .insert(organizations)
+        .values({ name: `${insertUser.username}'s organization` })
+        .returning();
+
+      const [user] = await tx
+        .insert(users)
+        .values({ ...insertUser, organizationId: organization.id, role: 'owner' })
+        .returning();
+
+      return user;
+    });
   }
 
   async getTest(id: number): Promise<Test | undefined> {

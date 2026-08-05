@@ -13,6 +13,7 @@ import {
   type InsertProject
 } from '../shared/schema';
 import { eq, and } from 'drizzle-orm';
+import { createTestOrganization } from './tests/factories';
 // Not strictly needed for these tests but good for consistency if IDs were strings
 
 // Mock logger to prevent console output during tests, unless explicitly needed
@@ -45,6 +46,7 @@ let seededProject1User1: Project;
 let seededApiTestUser1Project1: InsertApiTest;
 let _seededApiTestUser1NoProject: InsertApiTest;
 let seededApiTestUser2: InsertApiTest;
+let organizationId: number;
 
 
 beforeAll(async () => {
@@ -78,18 +80,21 @@ beforeEach(async () => {
   await db.delete(projects);
   await db.delete(users);
 
+  organizationId = await createTestOrganization();
+
   // Seed Users
   // Drizzle's .returning() gives an array, so destructure to get the object.
   // Do not specify IDs, let them be auto-generated.
-  [seededUser1] = await db.insert(users).values({ username: mockUser1Data.username, password: 'hashed_password1' } as Omit<InsertUser, 'id'>).returning();
-  [seededUser2] = await db.insert(users).values({ username: mockUser2Data.username, password: 'hashed_password2' } as Omit<InsertUser, 'id'>).returning();
+  [seededUser1] = await db.insert(users).values({ username: mockUser1Data.username, password: 'hashed_password1', organizationId } as Omit<InsertUser, 'id'>).returning();
+  [seededUser2] = await db.insert(users).values({ username: mockUser2Data.username, password: 'hashed_password2', organizationId } as Omit<InsertUser, 'id'>).returning();
 
   // Seed Projects
-  [seededProject1User1] = await db.insert(projects).values({ name: 'User1 Project1', userId: seededUser1.id } as Omit<InsertProject, 'id'>).returning();
+  [seededProject1User1] = await db.insert(projects).values({ name: 'User1 Project1', userId: seededUser1.id, organizationId } as Omit<InsertProject, 'id'>).returning();
 
   // Seed ApiTests
   const testDataUser1Project1 = {
     userId: seededUser1.id,
+    organizationId,
     projectId: seededProject1User1.id,
     name: 'Test for User1, Project1',
     method: 'GET',
@@ -108,6 +113,7 @@ beforeEach(async () => {
 
   const testDataUser1NoProject = {
     userId: seededUser1.id,
+    organizationId,
     name: 'Test for User1, No Project',
     method: 'POST',
     url: 'http://example.com/user1/noproj',
@@ -119,6 +125,7 @@ beforeEach(async () => {
 
   const testDataUser2 = {
     userId: seededUser2.id,
+    organizationId,
     name: 'Test for User2',
     method: 'PUT',
     url: 'http://example.com/user2',
@@ -231,17 +238,20 @@ describe('API Tests Endpoints', () => {
   });
 
   describe('POST /api/api-tests', () => {
-    const newTestPayload = {
+    // organizationId is part of the request body: insertApiTestSchema requires it, and the
+    // route does not derive it from the session (see task-1b-report.md, "Findings").
+    const newTestPayload = () => ({
       name: 'Created via API',
       method: 'GET',
       url: 'http://example.com/created',
-    };
+      organizationId,
+    });
 
     it('should persist the chosen projectId so the test stays grouped under its project', async () => {
       currentMockUser = seededUser1;
       const response = await request(app)
         .post('/api/api-tests')
-        .send({ ...newTestPayload, projectId: seededProject1User1.id })
+        .send({ ...newTestPayload(), projectId: seededProject1User1.id })
         .expect(201);
 
       expect(response.body.projectId).toBe(seededProject1User1.id);
@@ -256,7 +266,7 @@ describe('API Tests Endpoints', () => {
       const response = await request(app)
         .post('/api/api-tests')
         .send({
-          ...newTestPayload,
+          ...newTestPayload(),
           name: 'With query params',
           queryParams: { plant: 'P1', line: ['L1', 'L2'] },
           requestHeaders: { 'X-Api-Key': 'abc' },
@@ -271,7 +281,7 @@ describe('API Tests Endpoints', () => {
       currentMockUser = seededUser1;
       await request(app)
         .post('/api/api-tests')
-        .send({ ...newTestPayload, projectId: 999999 })
+        .send({ ...newTestPayload(), projectId: 999999 })
         .expect(400);
     });
 

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { db } from './db';
 import { tests, detectedElements, users } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
+import { createTestOrganization } from './tests/factories';
 
 // Mock only genuinely external / non-deterministic dependencies:
 //  - Google Gemini (a real network API we must not call in tests)
@@ -28,11 +29,13 @@ const { AIAutomationService } = await import('./ai-automation-service');
 
 describe('AIAutomationService', () => {
   let service: InstanceType<typeof AIAutomationService>;
+  let organizationId: number;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     process.env.GEMINI_API_KEY = 'test_key';
     service = new AIAutomationService();
+    organizationId = await createTestOrganization();
 
     // Clean slate (respect FK order: detected_elements -> tests -> users).
     await db.delete(detectedElements);
@@ -88,7 +91,7 @@ describe('AIAutomationService', () => {
       // Seed a real user + test.
       const [user] = await db
         .insert(users)
-        .values({ username: 'ai-heal-user', password: 'hashed' })
+        .values({ username: 'ai-heal-user', password: 'hashed', organizationId })
         .returning();
 
       const sequence = [
@@ -108,6 +111,7 @@ describe('AIAutomationService', () => {
         .insert(tests)
         .values({
           userId: user.id,
+          organizationId,
           name: 'Healing test',
           url: 'http://example.com',
           sequence, // jsonb column — pass the object directly (no JSON.stringify)
