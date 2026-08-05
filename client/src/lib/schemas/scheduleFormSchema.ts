@@ -98,7 +98,7 @@ export type ScheduleFormValues = z.infer<typeof scheduleFormSchema>;
 
 export const transformFormValuesToApiPayload = (
   values: ScheduleFormValues
-): Omit<InsertTestPlanSchedule, 'id' | 'createdAt' | 'updatedAt'> => {
+): Omit<InsertTestPlanSchedule, 'id' | 'createdAt' | 'updatedAt' | 'organizationId'> => {
 
   let effectiveFrequency = values.frequency;
   if (values.frequency === 'custom_cron' && values.customCronExpression) {
@@ -106,9 +106,6 @@ export const transformFormValuesToApiPayload = (
   }
 
   return {
-    // The client does not yet have multi-org awareness; the server is the source of
-    // truth for which organization a schedule belongs to.
-    organizationId: 0,
     scheduleName: values.scheduleName,
     testPlanId: values.testPlanId,
     frequency: effectiveFrequency,

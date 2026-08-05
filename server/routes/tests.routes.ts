@@ -33,7 +33,10 @@ router.post("/api/tests", async (req, res) => {
   }
 
   try {
-    const newTest = await db.insert(tests).values(parseResult.data).returning();
+    const newTest = await db
+      .insert(tests)
+      .values({ ...parseResult.data, organizationId: req.user!.organizationId })
+      .returning();
     res.status(201).json(newTest[0]);
   } catch (error: any) {
     logger.error({ message: "Error creating test", error: error.message });
@@ -142,7 +145,7 @@ router.post("/api/api-tests", async (req, res) => {
     }
 
     try {
-        const newTest = await db.insert(apiTests).values({ ...parseResult.data, userId: req.user!.id }).returning();
+        const newTest = await db.insert(apiTests).values({ ...parseResult.data, userId: req.user!.id, organizationId: req.user!.organizationId }).returning();
         res.status(201).json(newTest[0]);
     } catch (e: any) {
         logger.error({ message: "Error creating API test", error: e.message, userId: req.user?.id });

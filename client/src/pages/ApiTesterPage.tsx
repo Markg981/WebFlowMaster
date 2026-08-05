@@ -479,7 +479,7 @@ const ApiTesterPage: React.FC = () => {
     staleTime: 5 * 60 * 1000
   });
 
-  const saveApiTestMutation = useMutation<ApiTest, Error, { name: string, projectId?: number | null } & Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt'>>({
+  const saveApiTestMutation = useMutation<ApiTest, Error, { name: string, projectId?: number | null } & Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt' | 'organizationId'>>({
     mutationFn: async (testData) => {
       const endpoint = currentTestToEdit ? `/api/api-tests/${currentTestToEdit.id}` : '/api/api-tests';
       const httpMethod = currentTestToEdit ? 'PUT' : 'POST';
@@ -762,10 +762,7 @@ const ApiTesterPage: React.FC = () => {
       return field; // For text fields, keep as is (value is string)
     });
 
-    const config: Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt'> = {
-      // Editing keeps the test's existing organization; the server is the source of truth
-      // for a genuinely new test (client-side org switching is not wired up yet).
-      organizationId: currentTestToEdit?.organizationId ?? 0,
+    const config: Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt' | 'organizationId'> = {
       method, url,
       queryParams: currentParams,
       requestHeaders: currentHeaders,

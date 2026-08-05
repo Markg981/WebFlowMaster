@@ -111,6 +111,7 @@ router.post("/api/test-plan-schedules", async (req, res) => {
             notificationConfigOverride: data.notificationConfigOverride ? JSON.stringify(data.notificationConfigOverride) : null,
             executionParameters: data.executionParameters ? JSON.stringify(data.executionParameters) : null,
             userId: (req.user as any)?.id ?? null,
+            organizationId: (req.user as { organizationId: number }).organizationId,
             updatedAt: new Date()
         });
 

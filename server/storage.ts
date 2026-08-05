@@ -48,7 +48,7 @@ export interface IStorage {
 
   getTest(id: number): Promise<Test | undefined>;
   getTestsByUser(userId: number): Promise<Test[]>;
-  createTest(test: InsertTest): Promise<Test>;
+  createTest(test: InsertTest, organizationId: number): Promise<Test>;
   updateTest(id: number, test: Partial<InsertTest>): Promise<Test | undefined>;
   deleteTest(id: number): Promise<boolean>;
 
@@ -103,10 +103,12 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(tests).where(eq(tests.userId, userId)).orderBy(desc(tests.updatedAt));
   }
 
-  async createTest(test: InsertTest): Promise<Test> {
+  async createTest(test: InsertTest, organizationId: number): Promise<Test> {
+    // organizationId is the tenancy boundary: it comes from the caller's session, never
+    // from the InsertTest payload (insertTestSchema omits it for the same reason userId is).
     const [newTest] = await db
       .insert(tests)
-      .values(test)
+      .values({ ...test, organizationId })
       .returning();
     return newTest;
   }

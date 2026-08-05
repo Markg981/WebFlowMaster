@@ -29,13 +29,13 @@ const mockUser1 = { id: 1, username: 'testuser1', password: 'password1' } as Use
 let currentMockUser: User = mockUser1;
 
 // Define the Zod schema for the POST /api/tests request body, mirroring server/routes.ts.
-// organizationId is also omitted here: like userId, it comes from the session (req.user),
-// not the client body.
+// insertTestSchema already omits organizationId (like userId): it comes from the session
+// (req.user), never the client body.
 const createTestBodySchema = insertTestSchema.extend({
   projectId: z.number().int().positive(),
   sequence: z.array(AdhocTestStepSchema),
   elements: z.array(AdhocDetectedElementSchema),
-}).omit({ userId: true, organizationId: true, id: true, createdAt: true, updatedAt: true });
+}).omit({ userId: true, id: true, createdAt: true, updatedAt: true });
 
 
 beforeAll(async () => {

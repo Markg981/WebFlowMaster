@@ -238,13 +238,12 @@ describe('API Tests Endpoints', () => {
   });
 
   describe('POST /api/api-tests', () => {
-    // organizationId is part of the request body: insertApiTestSchema requires it, and the
-    // route does not derive it from the session (see task-1b-report.md, "Findings").
+    // organizationId is the tenancy boundary: insertApiTestSchema omits it from the
+    // request body (like userId), and the route derives it from the session instead.
     const newTestPayload = () => ({
       name: 'Created via API',
       method: 'GET',
       url: 'http://example.com/created',
-      organizationId,
     });
 
     it('should persist the chosen projectId so the test stays grouped under its project', async () => {
@@ -291,6 +290,22 @@ describe('API Tests Endpoints', () => {
         .post('/api/api-tests')
         .send({ method: 'GET', url: 'not-a-url' })
         .expect(400);
+    });
+
+    it('should ignore an organizationId in the request body and persist the row under the session organization', async () => {
+      currentMockUser = seededUser1;
+      const otherOrganizationId = await createTestOrganization('Other Organization');
+
+      const response = await request(app)
+        .post('/api/api-tests')
+        .send({ ...newTestPayload(), organizationId: otherOrganizationId })
+        .expect(201);
+
+      expect(response.body.organizationId).toBe(organizationId);
+      expect(response.body.organizationId).not.toBe(otherOrganizationId);
+
+      const [stored] = await db.select().from(apiTests).where(eq(apiTests.id, response.body.id));
+      expect(stored.organizationId).toBe(organizationId);
     });
   });
 

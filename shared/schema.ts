@@ -568,6 +568,9 @@ export const insertTestSchema = createInsertSchema(tests, {
   id: true,
   createdAt: true,
   updatedAt: true,
+  // The tenancy boundary: never accepted from the client, always derived server-side
+  // from the authenticated session (see the same treatment of organizationId elsewhere).
+  organizationId: true,
 });
 
 export const insertProjectSchema = createInsertSchema(projects, {
@@ -647,7 +650,14 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
     })
     .optional()
     .nullable(),
-}).omit({ id: true, createdAt: true, updatedAt: true });
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  // The tenancy boundary: never accepted from the client, always derived server-side
+  // from the authenticated session.
+  organizationId: true,
+});
 
 export const selectTestPlanSchema = createSelectSchema(testPlans);
 export const updateTestPlanSchema = insertTestPlanSchema.partial();
@@ -668,7 +678,14 @@ export const insertTestPlanScheduleSchema = createInsertSchema(
     isActive: z.boolean().default(true),
     retryOnFailure: z.enum(["none", "once", "twice"]).default("none"),
   },
-).omit({ id: true, createdAt: true, updatedAt: true });
+).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  // The tenancy boundary: never accepted from the client, always derived server-side
+  // from the authenticated session.
+  organizationId: true,
+});
 
 export const selectTestPlanScheduleSchema =
   createSelectSchema(testPlanSchedules);
@@ -890,7 +907,14 @@ export type FormDataFieldMetadata = z.infer<typeof FormDataFieldMetadataSchema>;
 export const insertApiTestHistorySchema = createInsertSchema(
   apiTestHistory,
   {},
-).omit({ id: true, createdAt: true, userId: true });
+).omit({
+  id: true,
+  createdAt: true,
+  userId: true,
+  // The tenancy boundary: never accepted from the client, always derived server-side
+  // from the authenticated session.
+  organizationId: true,
+});
 export type InsertApiTestHistoryPayload = z.infer<typeof insertApiTestHistorySchema>;
 
 export const insertApiTestSchema = createInsertSchema(apiTests, {
@@ -912,6 +936,9 @@ export const insertApiTestSchema = createInsertSchema(apiTests, {
     createdAt: true,
     updatedAt: true,
     userId: true,
+    // The tenancy boundary: never accepted from the client, always derived server-side
+    // from the authenticated session.
+    organizationId: true,
     projectId: true,
     queryParams: true,
     requestHeaders: true,

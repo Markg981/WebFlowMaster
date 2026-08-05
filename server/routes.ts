@@ -913,7 +913,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const parseResult = insertApiTestHistorySchema.safeParse(req.body);
     if (!parseResult.success) { resolvedLogger.warn({ message: "POST /api/api-test-history - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id }); return res.status(400).json({ error: "Invalid history data", details: parseResult.error.flatten() }); }
     try {
-      const newHistoryEntry = await db.insert(apiTestHistory).values({ ...parseResult.data, userId: req.user.id }).returning();
+      const newHistoryEntry = await db.insert(apiTestHistory).values({ ...parseResult.data, userId: req.user.id, organizationId: req.user.organizationId }).returning();
       res.status(201).json(newHistoryEntry[0]);
     } catch (error: any) { resolvedLogger.error({ message: "Error creating API test history entry", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to save API test history" }); }
   });
@@ -1055,6 +1055,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...newPlanData,
             id: planId,
             // userId: req.user.id, // Future consideration
+            organizationId: req.user.organizationId,
             // Ensure JSON fields are stringified if Zod schema returns them as objects
             testMachinesConfig: newPlanData.testMachinesConfig ? JSON.stringify(newPlanData.testMachinesConfig) : null,
             notificationSettings: newPlanData.notificationSettings ? JSON.stringify(newPlanData.notificationSettings) : null,
