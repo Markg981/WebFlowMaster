@@ -10,11 +10,15 @@ import {
   testPlans,
   testPlanSchedules,
   testPlanSelectedTests,
+  testPlanExecutions,
+  reportTestCaseResults,
+  executionLogs,
   excelSequencesMap,
   type User,
 } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 import { createTestOrganization } from './tests/factories';
+import { runTestPlan } from './test-execution-service';
 
 /**
  * `organizationId` is the tenancy boundary the Row-Level Security policies key off, so it
@@ -40,6 +44,13 @@ vi.mock('./scheduler-service', () => ({
     removeScheduleJob: vi.fn(),
     initializeScheduler: vi.fn(),
   },
+}));
+
+// C3 (POST /api/run-test-plan/:id): the ownership gate must reject a foreign plan before
+// this is ever reached. runTestPlan itself enqueues onto testExecutionQueue (BullMQ/Redis),
+// which has no place in a unit test, so it is mocked and its call count is the observable.
+vi.mock('./test-execution-service', () => ({
+  runTestPlan: vi.fn().mockResolvedValue({ id: 'mock-execution', status: 'pending' }),
 }));
 
 vi.mock('./playwright-service', () => ({
@@ -83,6 +94,9 @@ beforeAll(async () => {
  * never touched this data. Same reason scripts/netcontent/importer.test.ts cleans up.
  */
 async function clearAll() {
+  await privilegedDb.delete(executionLogs);
+  await privilegedDb.delete(reportTestCaseResults);
+  await privilegedDb.delete(testPlanExecutions);
   await privilegedDb.delete(excelSequencesMap);
   await privilegedDb.delete(testPlanSelectedTests);
   await privilegedDb.delete(testPlanSchedules);
@@ -341,5 +355,164 @@ describe('PUT /api/test-plan-schedules/:id', () => {
       .where(eq(testPlanSchedules.id, schedule.id));
     expect(stored.userId).toBe(sessionUser.id);
     expect(stored.scheduleName).toBe('Renamed');
+  });
+});
+
+/**
+ * C1-C4 from the final security review: legacy inline handlers in server/routes.ts that
+ * queried with privilegedDb and no organization filter. Every one of these shipped because
+ * no test exercised the production handler cross-tenant — RLS is silently inert under a
+ * superuser, so the bug is invisible unless something actually asks "can org A reach org
+ * B's row?" and checks the row afterwards, not just the status code.
+ */
+
+/** A minimal foreign test plan, owned by `foreignUser`/`foreignOrganizationId`. */
+async function seedForeignPlan(id: string, name = 'Foreign plan') {
+  const [plan] = await privilegedDb
+    .insert(testPlans)
+    .values({ id, name, userId: foreignUser.id, organizationId: foreignOrganizationId })
+    .returning();
+  return plan;
+}
+
+describe('GET /api/test-plan-schedules/plan/:planId (C1)', () => {
+  it("does not return another organization's schedules for its plan", async () => {
+    const foreignPlan = await seedForeignPlan('c1-foreign-plan');
+    const [foreignSchedule] = await privilegedDb
+      .insert(testPlanSchedules)
+      .values({
+        id: 'c1-foreign-schedule',
+        testPlanId: foreignPlan.id,
+        userId: foreignUser.id,
+        organizationId: foreignOrganizationId,
+        scheduleName: 'Foreign nightly run',
+        frequency: 'daily@02:00',
+        nextRunAt: new Date(),
+      })
+      .returning();
+
+    // Not 404/403: this is a list endpoint. RLS makes the foreign schedule simply absent.
+    const response = await request(app)
+      .get(`/api/test-plan-schedules/plan/${foreignPlan.id}`)
+      .expect(200);
+    expect(response.body).toHaveLength(0);
+
+    // Unchanged: the foreign row was never touched, only invisible to this session.
+    const [stored] = await privilegedDb
+      .select()
+      .from(testPlanSchedules)
+      .where(eq(testPlanSchedules.id, foreignSchedule.id));
+    expect(stored.scheduleName).toBe('Foreign nightly run');
+  });
+});
+
+describe('DELETE /api/test-plans/:id (C2)', () => {
+  it("cannot delete another organization's plan", async () => {
+    const foreignPlan = await seedForeignPlan('c2-foreign-plan');
+
+    await request(app).delete(`/api/test-plans/${foreignPlan.id}`).expect(404);
+
+    const [stored] = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, foreignPlan.id));
+    expect(stored).toBeDefined();
+    expect(stored.name).toBe('Foreign plan');
+  });
+
+  it('deletes a plan owned by the session organization', async () => {
+    const [ownPlan] = await privilegedDb
+      .insert(testPlans)
+      .values({ id: 'c2-own-plan', name: 'Own plan', userId: sessionUser.id, organizationId: sessionOrganizationId })
+      .returning();
+
+    await request(app).delete(`/api/test-plans/${ownPlan.id}`).expect(204);
+
+    const stored = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, ownPlan.id));
+    expect(stored).toHaveLength(0);
+  });
+});
+
+describe('POST /api/run-test-plan/:id (C3)', () => {
+  it("cannot execute another organization's plan", async () => {
+    const foreignPlan = await seedForeignPlan('c3-foreign-plan');
+
+    await request(app).post(`/api/run-test-plan/${foreignPlan.id}`).expect(404);
+
+    // The decisive assertion: the runner was never reached. Before the fix, runTestPlan
+    // (and everything it kicks off downstream, all unfiltered privilegedDb queries) ran
+    // against the foreign plan and stamped a new execution row with its organizationId.
+    expect(runTestPlan).not.toHaveBeenCalled();
+  });
+
+  it('executes a plan owned by the session organization', async () => {
+    const [ownPlan] = await privilegedDb
+      .insert(testPlans)
+      .values({ id: 'c3-own-plan', name: 'Own plan', userId: sessionUser.id, organizationId: sessionOrganizationId })
+      .returning();
+
+    await request(app).post(`/api/run-test-plan/${ownPlan.id}`).expect(200);
+
+    expect(runTestPlan).toHaveBeenCalledWith(ownPlan.id, sessionUser.id);
+  });
+});
+
+describe('GET /api/test-plan-executions/:executionId/logs (C4)', () => {
+  it("does not return another organization's execution logs", async () => {
+    const foreignPlan = await seedForeignPlan('c4-logs-foreign-plan');
+    const [foreignExecution] = await privilegedDb
+      .insert(testPlanExecutions)
+      .values({ id: 'c4-foreign-execution', testPlanId: foreignPlan.id, organizationId: foreignOrganizationId })
+      .returning();
+    const [foreignLog] = await privilegedDb
+      .insert(executionLogs)
+      .values({
+        testPlanExecutionId: foreignExecution.id,
+        organizationId: foreignOrganizationId,
+        level: 'info',
+        source: 'system',
+        message: 'substituted secret value for foreign org',
+      })
+      .returning();
+
+    const response = await request(app)
+      .get(`/api/test-plan-executions/${foreignExecution.id}/logs`)
+      .expect(200);
+    expect(response.body).toHaveLength(0);
+
+    const [stored] = await privilegedDb.select().from(executionLogs).where(eq(executionLogs.id, foreignLog.id));
+    expect(stored.message).toBe('substituted secret value for foreign org');
+  });
+});
+
+describe('GET /api/test-plan-executions/:executionId/report (C4)', () => {
+  it("404s on another organization's execution report and leaks nothing from it", async () => {
+    const foreignPlan = await seedForeignPlan('c4-report-foreign-plan');
+    const [foreignExecution] = await privilegedDb
+      .insert(testPlanExecutions)
+      .values({ id: 'c4-foreign-report-execution', testPlanId: foreignPlan.id, organizationId: foreignOrganizationId })
+      .returning();
+    const [foreignResult] = await privilegedDb
+      .insert(reportTestCaseResults)
+      .values({
+        id: 'c4-foreign-result',
+        testPlanExecutionId: foreignExecution.id,
+        organizationId: foreignOrganizationId,
+        testType: 'ui',
+        testName: 'Foreign confidential test case',
+        status: 'Passed',
+        startedAt: new Date(),
+      })
+      .returning();
+
+    const response = await request(app)
+      .get(`/api/test-plan-executions/${foreignExecution.id}/report`)
+      .expect(404);
+    expect(response.body.error).toMatch(/not found/i);
+    // The response body must not carry the foreign test name anywhere.
+    expect(JSON.stringify(response.body)).not.toContain('Foreign confidential test case');
+
+    const [stored] = await privilegedDb
+      .select()
+      .from(reportTestCaseResults)
+      .where(eq(reportTestCaseResults.id, foreignResult.id));
+    expect(stored.testName).toBe('Foreign confidential test case');
   });
 });
