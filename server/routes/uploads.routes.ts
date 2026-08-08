@@ -3,7 +3,8 @@ import multer from "multer";
 import { excelService } from "../excel-service";
 import fs from "fs-extra";
 import loggerPromise from "../logger";
-import { excelSequencesMap } from "@shared/schema";
+import { excelSequencesMap, tests } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { db } from "../db";
 
 const router = Router();
@@ -52,12 +53,21 @@ router.post("/api/excel-mappings", async (req, res) => {
     if(!excelTestCaseId || !testId) return res.status(400).json({ error: "Missing required fields" });
 
     try {
+        // testId names a row in another tenant-scoped table. Take organizationId from that
+        // parent row (never from the session, and never from the body) so a caller cannot
+        // bind a foreign org's test into a mapping stamped with their own organizationId.
+        const [test] = await db.select({ organizationId: tests.organizationId }).from(tests).where(eq(tests.id, testId)).limit(1);
+        if (!test) return res.status(404).json({ error: "Test not found" });
+        if (test.organizationId !== (req.user as { organizationId: number }).organizationId) {
+            return res.status(403).json({ error: "Forbidden" });
+        }
+
         await db.insert(excelSequencesMap).values({
-            organizationId: (req.user as { organizationId: number }).organizationId,
+            organizationId: test.organizationId,
             excelTestCaseId,
             testId
         }).onConflictDoNothing(); // Simple upsert logic
-        
+
         res.json({ success: true });
     } catch(e: any) {
         logger.error({ message: "Error saving mapping", error: e.message });
