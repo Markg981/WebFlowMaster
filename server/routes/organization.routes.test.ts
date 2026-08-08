@@ -62,7 +62,14 @@ describe('GET /api/organization', () => {
 });
 
 describe('POST /api/organization/members', () => {
-  it('adds an existing user from another organization as a member', async () => {
+  /**
+   * The theft case. The handler looks the target up by id, so without an organization check
+   * an owner could enumerate ids and re-parent anyone in the system into their own
+   * organization — taking that person's access to their own organization's data away and
+   * handing them this one's. Ownership is authority over an organization's membership, not
+   * over other people's accounts.
+   */
+  it('refuses to pull a user out of another organization', async () => {
     const otherOrg = await privilegedDb.execute(
       sql`INSERT INTO organizations (name) VALUES ('Other') RETURNING id`,
     );
@@ -77,20 +84,28 @@ describe('POST /api/organization/members', () => {
       .post('/api/organization/members')
       .send({ userId: otherUserId, role: 'viewer' });
 
-    expect(res.status).toBe(201);
-    expect(res.body).toMatchObject({ id: otherUserId, username: 'other-editor', role: 'viewer' });
-    expect(JSON.stringify(res.body)).not.toContain('password');
+    expect(res.status).toBe(409);
 
+    // Not merely refused — untouched. An earlier version of this handler moved the row.
     const rows = await privilegedDb.execute(
       sql`SELECT organization_id, role FROM users WHERE id = ${otherUserId}`,
     );
     const row = rows.rows[0] as { organization_id: number; role: string };
-    expect(row.organization_id).toBe(orgId);
-    expect(row.role).toBe('viewer');
+    expect(row.organization_id).toBe(otherOrgId);
+    expect(row.role).toBe('editor');
 
-    // Moved into orgId, so the shared afterEach's `WHERE organization_id = orgId` sweep
-    // now catches this row; only the now-empty other organization needs its own cleanup.
+    await privilegedDb.execute(sql`DELETE FROM users WHERE id = ${otherUserId}`);
     await privilegedDb.execute(sql`DELETE FROM organizations WHERE id = ${otherOrgId}`);
+  });
+
+  it('sets the role of a user already in the organization', async () => {
+    const res = await request(app)
+      .post('/api/organization/members')
+      .send({ userId: editorId, role: 'viewer' });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({ id: editorId, role: 'viewer' });
+    expect(JSON.stringify(res.body)).not.toContain('password');
   });
 
   it('rejects an invalid role', async () => {
@@ -110,10 +125,10 @@ describe('POST /api/organization/members', () => {
   });
 
   /**
-   * The target of this endpoint can be the last owner of a *different* organization. Moving
-   * them here would strip that organization of its only owner in the same stroke — the same
-   * lockout the PATCH/DELETE last-owner checks guard against, just reached by pulling the
-   * owner out from the other side instead of demoting or removing them directly.
+   * Subsumed by the cross-organization refusal above, and kept deliberately: it asserts the
+   * specific consequence that made the old behaviour dangerous rather than merely wrong, so
+   * it fails loudly if someone ever reopens cross-organization moves without also restoring
+   * a last-owner guard.
    */
   it('refuses to move the last owner out of their organization', async () => {
     const otherOrg = await privilegedDb.execute(

@@ -54,25 +54,26 @@ router.post("/api/organization/members", requireRole("owner"), async (req: Reque
 
     if (!target) return { status: 404 as const };
 
-    // The target may already be the last owner of a *different* organization. Re-parenting
-    // them here would strip that organization of its only owner in the same stroke — the
-    // same lockout the last-owner checks below guard against, just reached from the other
-    // organization's side. Counted inside the transaction for the same reason as those
-    // checks: a read-then-write gap would let a concurrent second move race past it.
-    if (target.role === "owner" && target.organizationId !== organizationId) {
-      const [{ others }] = await tx
-        .select({ others: sql<number>`count(*)::int` })
-        .from(users)
-        .where(
-          and(
-            eq(users.organizationId, target.organizationId),
-            eq(users.role, "owner"),
-            ne(users.id, target.id),
-          ),
-        );
-      if (others === 0) {
-        return { status: 409 as const, error: "Cannot move the last owner out of their organization" };
-      }
+    // A user who already belongs to another organization cannot be pulled into this one.
+    //
+    // Without this the endpoint is a cross-tenant member-theft vector: the lookup above is by
+    // id alone, so an owner could enumerate ids and re-parent anyone in the system into their
+    // own organization — stripping that person of access to their own organization's data and
+    // handing them this one's. Ownership of an organization is authority over its membership,
+    // not authority over other people's accounts.
+    //
+    // Note this currently makes the endpoint inert in practice: registration gives every new
+    // user their own organization and makes them its owner (server/storage.ts createUser), so
+    // there are no unaffiliated users to add. Adding a member to someone else's organization
+    // requires that member's consent, which means an invitation flow this plan does not yet
+    // have. Refusing is the fail-closed half of that gap; see the note in the report.
+    if (target.organizationId !== organizationId) {
+      return {
+        status: 409 as const,
+        error:
+          "That user already belongs to another organization. Moving a member between " +
+          "organizations requires their consent, which this endpoint cannot obtain.",
+      };
     }
 
     // .returning() takes no column-list argument here: TenantTx is typed as a union across
