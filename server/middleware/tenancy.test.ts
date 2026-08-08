@@ -35,9 +35,36 @@ afterEach(async () => {
   // behind here become another suite's problem (e.g. a bare db.delete(users) failing on a
   // leftover FK it never created). See server/tenancy-routes.test.ts's clearAll and
   // scripts/netcontent/importer.test.ts for the same cleanup.
-  await privilegedDb.execute(sql`DELETE FROM projects WHERE organization_id IN (${orgA}, ${orgB})`);
-  await privilegedDb.execute(sql`DELETE FROM users WHERE id IN (${userA}, ${userB})`);
-  await privilegedDb.execute(sql`DELETE FROM organizations WHERE id IN (${orgA}, ${orgB})`);
+  //
+  // beforeEach seeds four rows in sequence (two organizations, then two users, then two
+  // projects). If it throws partway through, some of orgA/orgB/userA/userB are still
+  // undefined; deleting with an undefined id would itself throw, which would replace the
+  // original beforeEach failure with a confusing afterEach one instead of surfacing it. So
+  // each statement below only runs when it has at least one real id to delete.
+  const orgIds = [orgA, orgB].filter((id): id is number => id !== undefined);
+  const userIds = [userA, userB].filter((id): id is number => id !== undefined);
+
+  if (orgIds.length > 0) {
+    const idList = sql.join(
+      orgIds.map((id) => sql`${id}`),
+      sql`, `,
+    );
+    await privilegedDb.execute(sql`DELETE FROM projects WHERE organization_id IN (${idList})`);
+  }
+  if (userIds.length > 0) {
+    const idList = sql.join(
+      userIds.map((id) => sql`${id}`),
+      sql`, `,
+    );
+    await privilegedDb.execute(sql`DELETE FROM users WHERE id IN (${idList})`);
+  }
+  if (orgIds.length > 0) {
+    const idList = sql.join(
+      orgIds.map((id) => sql`${id}`),
+      sql`, `,
+    );
+    await privilegedDb.execute(sql`DELETE FROM organizations WHERE id IN (${idList})`);
+  }
 });
 
 describe('withTenantTransaction', () => {
@@ -61,6 +88,18 @@ describe('withTenantTransaction', () => {
    * The setting must not outlive the transaction. server/db.ts uses a connection pool, so a
    * value that survives would be inherited by whichever request gets that connection next —
    * a cross-tenant leak created by the anti-leak mechanism itself.
+   *
+   * Caveat: this reads back through `privilegedDb.execute`, not through the connection the
+   * transaction actually used. Under PGlite (what CI runs) that is the same connection —
+   * there is only one — so the assertion is meaningful here. Under node-postgres in
+   * production, `privilegedDb.execute` draws an arbitrary client from the pool, which need
+   * not be the one the transaction held, so the same assertion there would be vacuous: it
+   * could pass by virtue of reading a *different*, never-touched connection rather than by
+   * the setting actually having reverted. The real guarantee against a production leak is
+   * structural, not something this test observes: the `LOCAL` keyword scopes the `SET`/
+   * `set_config` to the transaction itself, and drizzle only releases a node-postgres client
+   * back to the pool after COMMIT/ROLLBACK completes, so no other request can observe the
+   * binding mid-transaction. Don't read more into a green run of this test than that.
    */
   it('does not leak the role or the org past the transaction', async () => {
     await runWithTenant(orgA, () => withTenantTransaction(async (tx) => tx.execute(sql`SELECT 1`)));
@@ -77,6 +116,9 @@ describe('withTenantTransaction', () => {
     // ever happened on that backend, so a pooled connection sees '' forever after its first
     // tenant transaction. Both mean "no organization bound"; neither is the org we set.
     expect(row.org === null || row.org === '').toBe(true);
+    // Redundant given the check above (neither null nor '' can equal String(orgA)), kept
+    // anyway because it states the actual security property under test — the org value does
+    // not survive — rather than just its two allowed encodings.
     expect(row.org).not.toBe(String(orgA));
   });
 
