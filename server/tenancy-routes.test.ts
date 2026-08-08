@@ -29,6 +29,19 @@ import { createTestOrganization } from './tests/factories';
  * test.
  */
 
+// The schedule route calls updateScheduleJob for real otherwise. Today that registers
+// nothing only because 'daily@02:00' is an unparseable frequency — change the fixture to
+// 'daily' and it puts a node-cron task into activeCronJobs that nothing stops, keeping the
+// event loop alive. server/test-plan-schedules.test.ts mocks it for the same reason.
+vi.mock('./scheduler-service', () => ({
+  default: {
+    addScheduleJob: vi.fn(),
+    updateScheduleJob: vi.fn(),
+    removeScheduleJob: vi.fn(),
+    initializeScheduler: vi.fn(),
+  },
+}));
+
 vi.mock('./playwright-service', () => ({
   playwrightService: {
     loadWebsite: vi.fn(),
@@ -170,11 +183,7 @@ describe('PUT /api/test-plans/:id', () => {
     expect(links[0].organizationId).toBe(sessionOrganizationId);
   });
 
-  it('takes the join row’s organization from the parent plan, not from the session', async () => {
-    // A plan owned by the other tenant. That this PUT succeeds at all is a separate, still
-    // open finding — the handler has no ownership check — so this test pins only what the
-    // fix decides: which organization the join row is stamped with. When the ownership
-    // check lands, this becomes a 403 and the assertions below move with it.
+  it('cannot reach another organization’s plan', async () => {
     const [foreignPlan] = await db
       .insert(testPlans)
       .values({
@@ -184,22 +193,46 @@ describe('PUT /api/test-plans/:id', () => {
         organizationId: foreignOrganizationId,
       })
       .returning();
-    const foreignTest = await seedTest(foreignUser, 'Foreign linked test');
+    const ownTest = await seedTest(sessionUser, 'Own linked test');
 
+    // Not 403: whether a plan id exists is itself another tenant's business.
     await request(app)
       .put(`/api/test-plans/${foreignPlan.id}`)
-      .send({ selectedTests: [{ id: foreignTest.id, type: 'ui' }] })
-      .expect(200);
+      .send({ name: 'Hijacked', selectedTests: [{ id: ownTest.id, type: 'ui' }] })
+      .expect(404);
 
-    const [link] = await db
+    const [stored] = await db.select().from(testPlans).where(eq(testPlans.id, foreignPlan.id));
+    expect(stored.name).toBe('Foreign plan');
+
+    // The row this used to write was internally cross-tenant: stamped with the foreign
+    // plan's organization while naming a test from the caller's.
+    const links = await db
       .select()
       .from(testPlanSelectedTests)
       .where(eq(testPlanSelectedTests.testPlanId, foreignPlan.id));
+    expect(links).toHaveLength(0);
+  });
 
-    // The parent's organization. Sourcing this from the session would have written a row
-    // that claims to belong to the caller while hanging off another tenant's plan.
-    expect(link.organizationId).toBe(foreignOrganizationId);
-    expect(link.organizationId).not.toBe(sessionOrganizationId);
+  it('refuses to link another organization’s test into a plan of your own', async () => {
+    const foreignTest = await seedTest(foreignUser, 'Foreign test');
+    const created = await request(app)
+      .post('/api/test-plans')
+      .send({ name: 'Plan of my own' })
+      .expect(201);
+
+    // Nothing downstream re-checks these ids: test-execution-service loads them with
+    // inArray and no organization filter, so an accepted foreign id means the runner
+    // executes another tenant's test.
+    await request(app)
+      .put(`/api/test-plans/${created.body.id}`)
+      .send({ selectedTests: [{ id: foreignTest.id, type: 'ui' }] })
+      .expect(400);
+
+    const links = await db
+      .select()
+      .from(testPlanSelectedTests)
+      .where(eq(testPlanSelectedTests.testPlanId, created.body.id));
+    expect(links).toHaveLength(0);
   });
 
   it('updates a plain plan field without failing on updatedAt', async () => {

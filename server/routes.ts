@@ -31,7 +31,7 @@ import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { db } from "./db";
-import { eq, and, desc, sql, getTableColumns, asc, ilike } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
+import { eq, and, desc, sql, getTableColumns, asc, ilike, inArray } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
 import { fetchTarget, requestVariables, substituteInValues, substituteVariables } from "./outbound-http";
 // Import schedulerService
@@ -981,6 +981,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // testPlanApiPayloadSchema / updateTestPlanApiPayloadSchema now live in shared/schema.ts
   // so server/routes/test-plans.routes.ts can validate against the same shape.
 
+  /** Matches the error assertSelectedTestsBelongTo throws, so the catch can map it to a 400. */
+  const SELECTED_TESTS_NOT_FOUND = /selected tests do not exist/i;
+
+  /**
+   * Throws unless every selected test belongs to `organizationId`.
+   *
+   * The ids arrive from the request body, and nothing downstream re-checks them:
+   * test-execution-service loads them with `inArray(tests.id, ...)` and no organization
+   * filter, so an unvalidated foreign id means the runner executes and reports on another
+   * tenant's test.
+   */
+  async function assertSelectedTestsBelongTo(
+    tx: { select: typeof db.select },
+    organizationId: number,
+    selectedTests: { id: number; type: 'ui' | 'api' }[],
+  ): Promise<void> {
+    for (const [type, table] of [['ui', tests], ['api', apiTests]] as const) {
+      const ids = selectedTests.filter((st) => st.type === type).map((st) => st.id);
+      if (ids.length === 0) continue;
+
+      const found = await tx
+        .select({ id: table.id })
+        .from(table)
+        .where(and(inArray(table.id, ids), eq(table.organizationId, organizationId)));
+
+      if (found.length !== new Set(ids).size) {
+        throw new Error("One or more selected tests do not exist.");
+      }
+    }
+  }
+
 
   // --- Test Plans API Endpoints ---
 
@@ -1057,6 +1088,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const mainPlan = insertedPlan[0];
 
         if (selectedTests && selectedTests.length > 0) {
+          await assertSelectedTestsBelongTo(tx, req.user.organizationId, selectedTests);
           const selectedTestValues = selectedTests.map((st) => ({
             testPlanId: mainPlan.id,
             // Taken from the plan these rows hang off, not from the session: a join row must
@@ -1145,7 +1177,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // PUT that touched a plan field fail with "value.toISOString is not a function".
               updatedAt: new Date(),
             })
-            .where(eq(testPlans.id, testPlanId))
+            // Scoped to the caller's organization, so another tenant's plan is simply not
+            // there. Without this the handler would happily update any plan by id, and the
+            // join rows below would then be stamped with the foreign plan's organization
+            // while naming tests from the caller's — a row that is internally cross-tenant.
+            // Scoped to the caller's organization, so another tenant's plan is simply not
+            // there. Without this the handler would happily update any plan by id, and the
+            // join rows below would then be stamped with the foreign plan's organization
+            // while naming tests from the caller's — a row that is internally cross-tenant.
+            .where(and(eq(testPlans.id, testPlanId), eq(testPlans.organizationId, req.user.organizationId)))
             .returning();
 
           if (mainPlanUpdated.length === 0) {
@@ -1153,8 +1193,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             throw new Error("Test plan not found or no changes to main record."); // Will be caught and result in 404 like
           }
         } else {
-          // If only selectedTests are being updated, fetch the current plan to return
-          const currentPlan = await tx.select().from(testPlans).where(eq(testPlans.id, testPlanId));
+          // If only selectedTests are being updated, fetch the current plan to return.
+          // Same organization scope as the update branch above.
+          const currentPlan = await tx
+            .select()
+            .from(testPlans)
+            .where(and(eq(testPlans.id, testPlanId), eq(testPlans.organizationId, req.user.organizationId)));
           if (currentPlan.length === 0) {
             throw new Error("Test plan not found.");
           }
@@ -1166,6 +1210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await tx.delete(testPlanSelectedTests).where(eq(testPlanSelectedTests.testPlanId, testPlanId));
 
           if (selectedTests.length > 0) {
+            await assertSelectedTestsBelongTo(tx, req.user.organizationId, selectedTests);
             const selectedTestValues = selectedTests.map((st) => ({
               testPlanId: testPlanId,
               // Taken from the plan these rows hang off, not from the session: a join row must
@@ -1192,7 +1237,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
        if (error.message.toLowerCase().includes("test plan not found")) { // Custom error from transaction
         return res.status(404).json({ error: "Test plan not found." });
       }
-      if (/foreign key/i.test(error.message || '')) {
+      // Either the DB rejected an id that doesn't exist at all, or assertSelectedTestsBelongTo
+      // rejected one that exists in another organization. Both are the caller naming a test
+      // that is not theirs to name, and both answer the same way — a distinct message for the
+      // second would tell them which ids exist in other tenants.
+      if (/foreign key/i.test(error.message || '') || SELECTED_TESTS_NOT_FOUND.test(error.message || '')) {
         return res.status(400).json({ error: "One or more selected tests do not exist."})
       }
       res.status(500).json({ error: "Failed to update test plan" });
