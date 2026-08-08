@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
 import { db } from './db';
@@ -8,6 +8,7 @@ import {
   projects,
   tests,
   testPlans,
+  testPlanSchedules,
   testPlanSelectedTests,
   excelSequencesMap,
   type User,
@@ -62,14 +63,27 @@ beforeAll(async () => {
   app = tempApp;
 });
 
-beforeEach(async () => {
+/**
+ * Every suite here shares one file-backed PGlite database and they run sequentially, so
+ * rows left behind become the next suite's problem: several of them start with a bare
+ * `db.delete(users)`, which a leftover FK reference turns into a failure in a file that
+ * never touched this data. Same reason scripts/netcontent/importer.test.ts cleans up.
+ */
+async function clearAll() {
   await db.delete(excelSequencesMap);
   await db.delete(testPlanSelectedTests);
+  await db.delete(testPlanSchedules);
   await db.delete(testPlans);
   await db.delete(tests);
   await db.delete(projects);
   await db.delete(users);
   await db.delete(organizations);
+}
+
+afterAll(clearAll);
+
+beforeEach(async () => {
+  await clearAll();
 
   sessionOrganizationId = await createTestOrganization('Session Organization');
   foreignOrganizationId = await createTestOrganization('Foreign Organization');
@@ -155,10 +169,59 @@ describe('PUT /api/test-plans/:id', () => {
     expect(links[0].testId).toBe(uiTest.id);
     expect(links[0].organizationId).toBe(sessionOrganizationId);
   });
+
+  it('takes the join row’s organization from the parent plan, not from the session', async () => {
+    // A plan owned by the other tenant. That this PUT succeeds at all is a separate, still
+    // open finding — the handler has no ownership check — so this test pins only what the
+    // fix decides: which organization the join row is stamped with. When the ownership
+    // check lands, this becomes a 403 and the assertions below move with it.
+    const [foreignPlan] = await db
+      .insert(testPlans)
+      .values({
+        id: 'foreign-plan',
+        name: 'Foreign plan',
+        userId: foreignUser.id,
+        organizationId: foreignOrganizationId,
+      })
+      .returning();
+    const foreignTest = await seedTest(foreignUser, 'Foreign linked test');
+
+    await request(app)
+      .put(`/api/test-plans/${foreignPlan.id}`)
+      .send({ selectedTests: [{ id: foreignTest.id, type: 'ui' }] })
+      .expect(200);
+
+    const [link] = await db
+      .select()
+      .from(testPlanSelectedTests)
+      .where(eq(testPlanSelectedTests.testPlanId, foreignPlan.id));
+
+    // The parent's organization. Sourcing this from the session would have written a row
+    // that claims to belong to the caller while hanging off another tenant's plan.
+    expect(link.organizationId).toBe(foreignOrganizationId);
+    expect(link.organizationId).not.toBe(sessionOrganizationId);
+  });
+
+  it('updates a plain plan field without failing on updatedAt', async () => {
+    const created = await request(app)
+      .post('/api/test-plans')
+      .send({ name: 'Original name' })
+      .expect(201);
+
+    // This branch used to 500: updatedAt was set to unix seconds on a `timestamp` column,
+    // and drizzle calls .toISOString() on whatever it is handed. Only the
+    // selectedTests-only branch was covered, so the failure was invisible.
+    const response = await request(app)
+      .put(`/api/test-plans/${created.body.id}`)
+      .send({ name: 'Renamed' })
+      .expect(200);
+
+    expect(response.body.name).toBe('Renamed');
+  });
 });
 
 describe('POST /api/excel-mappings', () => {
-  it('takes organizationId from the parent test rather than from the session', async () => {
+  it('stamps the parent test’s organization on the mapping', async () => {
     const ownTest = await seedTest(sessionUser, 'Own test');
 
     await request(app)
@@ -173,13 +236,15 @@ describe('POST /api/excel-mappings', () => {
     expect(mapping.organizationId).toBe(sessionOrganizationId);
   });
 
-  it('refuses to map another organization’s test', async () => {
+  it('refuses to map another organization’s test, and says no more than "not found"', async () => {
     const foreignTest = await seedTest(foreignUser, 'Foreign test');
 
+    // The same 404 an unknown id gets: a distinct 403 would answer "does test N exist?"
+    // for every id in the table, across tenants.
     await request(app)
       .post('/api/excel-mappings')
       .send({ excelTestCaseId: 'TC-200', testId: foreignTest.id })
-      .expect(403);
+      .expect(404);
 
     // The decisive assertion: no mapping row exists at all. Before the fix one was
     // written, stamped with the caller's organization while pointing at a foreign test —
@@ -196,5 +261,52 @@ describe('POST /api/excel-mappings', () => {
       .post('/api/excel-mappings')
       .send({ excelTestCaseId: 'TC-300', testId: 999999 })
       .expect(404);
+  });
+
+  it('400s on a non-numeric testId instead of letting it reach the query', async () => {
+    await request(app)
+      .post('/api/excel-mappings')
+      .send({ excelTestCaseId: 'TC-400', testId: 'not-a-number' })
+      .expect(400);
+  });
+});
+
+describe('PUT /api/test-plan-schedules/:id', () => {
+  it('ignores a userId in the request body', async () => {
+    const [plan] = await db
+      .insert(testPlans)
+      .values({
+        id: 'plan-for-schedule',
+        name: 'Scheduled plan',
+        userId: sessionUser.id,
+        organizationId: sessionOrganizationId,
+      })
+      .returning();
+
+    const [schedule] = await db
+      .insert(testPlanSchedules)
+      .values({
+        id: 'schedule-for-userid-test',
+        testPlanId: plan.id,
+        userId: sessionUser.id,
+        organizationId: sessionOrganizationId,
+        scheduleName: 'Nightly',
+        frequency: 'daily@02:00',
+        nextRunAt: new Date(),
+      })
+      .returning();
+
+    await request(app)
+      .put(`/api/test-plan-schedules/${schedule.id}`)
+      .send({ scheduleName: 'Renamed', userId: foreignUser.id })
+      .expect(200);
+
+    // The owner decides who the scheduler runs the plan as, so it must not be wire-writable.
+    const [stored] = await db
+      .select()
+      .from(testPlanSchedules)
+      .where(eq(testPlanSchedules.id, schedule.id));
+    expect(stored.userId).toBe(sessionUser.id);
+    expect(stored.scheduleName).toBe('Renamed');
   });
 });
