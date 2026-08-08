@@ -1,5 +1,5 @@
 import { and, asc, eq } from 'drizzle-orm';
-import type { db as DbType } from '../../server/db';
+import type { privilegedDb as DbType } from '../../server/db';
 import { users, projects, apiTests, type InsertApiTest } from '@shared/schema';
 
 type Database = typeof DbType;
@@ -42,7 +42,7 @@ export async function findOrCreateProject(
     .limit(1);
   if (existing.length > 0) return { projectId: existing[0].id, organizationId: owner.organizationId };
 
-  // Plain .returning(): db is a union of the node-postgres and PGlite drivers, and the
+  // Plain .returning(): privilegedDb is a union of the node-postgres and PGlite drivers, and the
   // selective form does not resolve across it. Every other call site in the repo does the
   // same.
   const created = await database.insert(projects).values({ name, userId, organizationId: owner.organizationId }).returning();

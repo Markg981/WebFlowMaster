@@ -6,7 +6,7 @@ import loggerPromise from "../logger";
 import { excelSequencesMap, tests } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "../db";
+import { privilegedDb } from "../db";
 
 /**
  * `testId` reaches a query, so it has to be a number before it gets there — an unvalidated
@@ -68,14 +68,14 @@ router.post("/api/excel-mappings", async (req, res) => {
         // testId names a row in another tenant-scoped table. Take organizationId from that
         // parent row (never from the session, and never from the body) so a caller cannot
         // bind a foreign org's test into a mapping stamped with their own organizationId.
-        const [test] = await db.select({ organizationId: tests.organizationId }).from(tests).where(eq(tests.id, testId)).limit(1);
+        const [test] = await privilegedDb.select({ organizationId: tests.organizationId }).from(tests).where(eq(tests.id, testId)).limit(1);
         // One 404 for both "no such test" and "not yours". Distinguishing them would answer
         // "does test N exist?" for every id in the table, across tenants.
         if (!test || test.organizationId !== (req.user as { organizationId: number }).organizationId) {
             return res.status(404).json({ error: "Test not found" });
         }
 
-        await db.insert(excelSequencesMap).values({
+        await privilegedDb.insert(excelSequencesMap).values({
             organizationId: test.organizationId,
             excelTestCaseId,
             testId
@@ -92,7 +92,7 @@ router.post("/api/excel-mappings", async (req, res) => {
 router.get("/api/excel-mappings", async (req, res) => {
    if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
    try {
-       const mappings = await db.select().from(excelSequencesMap);
+       const mappings = await privilegedDb.select().from(excelSequencesMap);
        res.json(mappings);
    } catch(e: any) {
        res.status(500).json({ error: "Error fetching mappings" });

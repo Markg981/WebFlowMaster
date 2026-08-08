@@ -1,5 +1,5 @@
 import { organizations, users, tests, testRuns, userSettings, sessions, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
-import { db } from "./db";
+import { privilegedDb } from "./db";
 import { eq, desc } from "drizzle-orm";
 import session from "express-session";
 // import connectPg from "connect-pg-simple";
@@ -12,7 +12,7 @@ export class DatabaseSessionStore extends session.Store {
   }
 
   get(sid: string, callback: (err: any, session?: session.SessionData | null) => void) {
-    db.select().from(sessions).where(eq(sessions.sid, sid))
+    privilegedDb.select().from(sessions).where(eq(sessions.sid, sid))
       .then((rows) => {
         if (rows.length === 0) return callback(null, null);
         callback(null, rows[0].sess as session.SessionData);
@@ -22,7 +22,7 @@ export class DatabaseSessionStore extends session.Store {
 
   set(sid: string, sess: session.SessionData, callback?: (err?: any) => void) {
     const expire = sess.cookie?.expires ? new Date(sess.cookie.expires) : new Date(Date.now() + 86400000);
-    db.insert(sessions).values({
+    privilegedDb.insert(sessions).values({
       sid,
       sess: sess as any, // Drizzle expects generic JSON
       expire
@@ -35,7 +35,7 @@ export class DatabaseSessionStore extends session.Store {
   }
 
   destroy(sid: string, callback?: (err?: any) => void) {
-    db.delete(sessions).where(eq(sessions.sid, sid))
+    privilegedDb.delete(sessions).where(eq(sessions.sid, sid))
       .then(() => callback && callback())
       .catch((err) => callback && callback(err));
   }
@@ -65,12 +65,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await privilegedDb.select().from(users).where(eq(users.id, id));
     return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await privilegedDb.select().from(users).where(eq(users.username, username));
     return user || undefined;
   }
 
@@ -79,7 +79,7 @@ export class DatabaseStorage implements IStorage {
     // the registrant its owner. Both rows are written in one transaction: a user pointing
     // at an organization that failed to insert would be unusable, and an organization with
     // no members is unreachable.
-    return db.transaction(async (tx) => {
+    return privilegedDb.transaction(async (tx) => {
       const [organization] = await tx
         .insert(organizations)
         .values({ name: `${insertUser.username}'s organization` })
@@ -95,18 +95,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTest(id: number): Promise<Test | undefined> {
-    const [test] = await db.select().from(tests).where(eq(tests.id, id));
+    const [test] = await privilegedDb.select().from(tests).where(eq(tests.id, id));
     return test || undefined;
   }
 
   async getTestsByUser(userId: number): Promise<Test[]> {
-    return await db.select().from(tests).where(eq(tests.userId, userId)).orderBy(desc(tests.updatedAt));
+    return await privilegedDb.select().from(tests).where(eq(tests.userId, userId)).orderBy(desc(tests.updatedAt));
   }
 
   async createTest(test: InsertTest, organizationId: number): Promise<Test> {
     // organizationId is the tenancy boundary: it comes from the caller's session, never
     // from the InsertTest payload (insertTestSchema omits it for the same reason userId is).
-    const [newTest] = await db
+    const [newTest] = await privilegedDb
       .insert(tests)
       .values({ ...test, organizationId })
       .returning();
@@ -114,7 +114,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateTest(id: number, test: Partial<InsertTest>): Promise<Test | undefined> {
-    const [updatedTest] = await db
+    const [updatedTest] = await privilegedDb
       .update(tests)
       .set({ ...test, updatedAt: new Date() })
       .where(eq(tests.id, id))
@@ -123,12 +123,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteTest(id: number): Promise<boolean> {
-    const deleted = await db.delete(tests).where(eq(tests.id, id)).returning();
+    const deleted = await privilegedDb.delete(tests).where(eq(tests.id, id)).returning();
     return deleted.length > 0;
   }
 
   async createTestRun(testRun: InsertTestRun): Promise<TestRun> {
-    const [newTestRun] = await db
+    const [newTestRun] = await privilegedDb
       .insert(testRuns)
       .values(testRun)
       .returning();
@@ -136,11 +136,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTestRuns(testId: number): Promise<TestRun[]> {
-    return await db.select().from(testRuns).where(eq(testRuns.testId, testId)).orderBy(desc(testRuns.startedAt));
+    return await privilegedDb.select().from(testRuns).where(eq(testRuns.testId, testId)).orderBy(desc(testRuns.startedAt));
   }
 
   async updateTestRun(id: number, testRun: Partial<InsertTestRun>): Promise<TestRun | undefined> {
-    const [updatedTestRun] = await db
+    const [updatedTestRun] = await privilegedDb
       .update(testRuns)
       .set(testRun)
       .where(eq(testRuns.id, id))
@@ -149,14 +149,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserSettings(userId: number): Promise<UserSettings | undefined> {
-    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, userId)).limit(1);
+    const [settings] = await privilegedDb.select().from(userSettings).where(eq(userSettings.userId, userId)).limit(1);
     return settings || undefined;
   }
 
   async upsertUserSettings(userId: number, settingsData: Partial<Omit<InsertUserSettings, 'userId'>>): Promise<UserSettings> {
     // Ensure that userId from the path is used, and settingsData does not accidentally override it for the row identity.
     // For the 'set' part of onConflictDoUpdate, we use settingsData which should not contain userId.
-    const [result] = await db
+    const [result] = await privilegedDb
       .insert(userSettings)
       .values({ userId, ...settingsData })
       .onConflictDoUpdate({

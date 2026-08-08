@@ -3,7 +3,7 @@ import 'winston-daily-rotate-file';
 import LokiTransport from 'winston-loki';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { db } from './db';
+import { privilegedDb } from './db';
 import { systemSettings } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { getCorrelationId } from './middleware/correlation';
@@ -70,7 +70,7 @@ const devConsoleFormat = winston.format.combine(
 
 async function getLogRetentionDaysSetting(): Promise<string | null> {
   try {
-    const setting = await db
+    const setting = await privilegedDb
       .select({ value: systemSettings.value })
       .from(systemSettings)
       .where(eq(systemSettings.key, 'logRetentionDays'))
@@ -94,7 +94,7 @@ const VALID_LOG_LEVELS = ['error', 'warn', 'info', 'http', 'verbose', 'debug', '
 
 async function getLogLevelSetting(): Promise<string> {
   try {
-    const setting = await db
+    const setting = await privilegedDb
       .select({ value: systemSettings.value })
       .from(systemSettings)
       .where(eq(systemSettings.key, 'logLevel'))

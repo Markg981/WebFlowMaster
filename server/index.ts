@@ -4,7 +4,7 @@ import schedulerService from "./scheduler-service"; // Import the scheduler serv
 import { setupVite, serveStatic } from "./vite";
 import 'dotenv/config';
 import loggerPromise from './logger'; // Import Winston logger promise
-import { db, closeDb } from './db'; // Import db instance
+import { privilegedDb, closeDb } from './db'; // Import db instance
 import { systemSettings } from '@shared/schema'; // Import systemSettings table
 import { eq } from 'drizzle-orm'; // Import eq operator
 import { setupWebSockets } from './websocket';
@@ -62,13 +62,13 @@ app.use(express.urlencoded({ extended: false }));
 
     for (const settingToEnsure of settingsToEnsure) {
       try {
-        const existingSetting = await db.select()
+        const existingSetting = await privilegedDb.select()
           .from(systemSettings)
           .where(eq(systemSettings.key, settingToEnsure.key))
           .limit(1);
 
         if (existingSetting.length === 0) {
-          await db.insert(systemSettings).values(settingToEnsure);
+          await privilegedDb.insert(systemSettings).values(settingToEnsure);
           logger.info(`Initialized default system setting: ${settingToEnsure.key}=${settingToEnsure.value}`);
         }
       } catch (error) {

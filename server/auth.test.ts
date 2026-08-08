@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express } from 'express';
-import { db } from './db';
+import { privilegedDb } from './db';
 import { users } from '@shared/schema';
 
 // Only the logger is mocked; auth runs against the real (PGlite) test database
@@ -22,7 +22,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await db.delete(users);
+  await privilegedDb.delete(users);
 });
 
 const validCreds = { username: 'alice', password: 'password123' };
@@ -33,7 +33,7 @@ describe('POST /api/register', () => {
     expect(res.body.username).toBe('alice');
     expect(res.body.password).toBeUndefined();
 
-    const rows = await db.select().from(users);
+    const rows = await privilegedDb.select().from(users);
     expect(rows).toHaveLength(1);
     expect(rows[0].password).not.toBe('password123'); // stored hashed
   });

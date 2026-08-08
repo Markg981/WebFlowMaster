@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
-import { db } from './db';
+import { privilegedDb } from './db';
 import { users } from '../shared/schema';
 import type { RecordedAction } from '../shared/recording';
 import { createTestOrganization } from './tests/factories';
@@ -55,9 +55,9 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   vi.clearAllMocks();
-  await db.delete(users);
+  await privilegedDb.delete(users);
   const organizationId = await createTestOrganization();
-  await db.insert(users).values({ id: mockUser.id, username: mockUser.username, password: 'hashed', organizationId });
+  await privilegedDb.insert(users).values({ id: mockUser.id, username: mockUser.username, password: 'hashed', organizationId });
 });
 
 describe('POST /api/start-recording', () => {

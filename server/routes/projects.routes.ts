@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "../db";
+import { privilegedDb } from "../db";
 import { projects, insertProjectSchema } from "@shared/schema";
 import { desc } from "drizzle-orm";
 import loggerPromise from "../logger";
@@ -12,7 +12,7 @@ router.get("/api/projects", async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
 
   try {
-    const allProjects = await db.select().from(projects).orderBy(desc(projects.createdAt));
+    const allProjects = await privilegedDb.select().from(projects).orderBy(desc(projects.createdAt));
     res.json(allProjects);
   } catch (error: any) {
     logger.error({ message: "Error fetching projects", error: error.message, stack: error.stack });
@@ -30,7 +30,7 @@ router.post("/api/projects", async (req, res) => {
   }
 
   try {
-    const newProject = await db.insert(projects).values({ ...parseResult.data, userId: (req.user as any).id, organizationId: (req.user as { organizationId: number }).organizationId }).returning();
+    const newProject = await privilegedDb.insert(projects).values({ ...parseResult.data, userId: (req.user as any).id, organizationId: (req.user as { organizationId: number }).organizationId }).returning();
     res.status(201).json(newProject[0]);
   } catch (error: any) {
     logger.error({ message: "Error creating project", error: error.message });

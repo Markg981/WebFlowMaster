@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import ExcelJS from 'exceljs';
 import { and, eq, asc } from 'drizzle-orm';
-import { db } from '../../server/db';
+import { privilegedDb } from '../../server/db';
 import { users, projects, tests, apiTests } from '@shared/schema';
 import { buildViewInventory, type UiElement } from './parse-views';
 import { mapSteps, splitSteps, type MappedStep } from './map-steps';
@@ -126,21 +126,21 @@ async function main() {
   }
 
   // The importing user also determines the organization every imported row belongs to.
-  const owner = (await db.select({ id: users.id, organizationId: users.organizationId }).from(users).orderBy(asc(users.id)).limit(1))[0];
+  const owner = (await privilegedDb.select({ id: users.id, organizationId: users.organizationId }).from(users).orderBy(asc(users.id)).limit(1))[0];
   if (!owner) throw new Error('No users in DB.');
   const { id: userId, organizationId } = owner;
-  const allApiTests = await db.select().from(apiTests);
+  const allApiTests = await privilegedDb.select().from(apiTests);
 
   let projectId: number | null = null;
   if (!dryRun) {
     // Match on name AND organization: a same-named project owned by another tenant must
     // not collect this run's tests.
-    const existing = await db
+    const existing = await privilegedDb
       .select({ id: projects.id })
       .from(projects)
       .where(and(eq(projects.name, PROJECT_NAME), eq(projects.organizationId, organizationId)))
       .limit(1);
-    projectId = existing[0]?.id ?? (await db.insert(projects).values({ name: PROJECT_NAME, userId, organizationId }).returning())[0].id;
+    projectId = existing[0]?.id ?? (await privilegedDb.insert(projects).values({ name: PROJECT_NAME, userId, organizationId }).returning())[0].id;
   }
 
   let grandTotal = 0;
@@ -200,10 +200,10 @@ async function main() {
     if (dryRun) continue;
 
     // Idempotent: replace this feature's tests in the project.
-    await db.delete(tests).where(and(eq(tests.projectId, projectId!), eq(tests.module, feature)));
+    await privilegedDb.delete(tests).where(and(eq(tests.projectId, projectId!), eq(tests.module, feature)));
     for (const rec of records) {
       const seq = rec.sequence.map((s: any) => ({ action: s.action, targetElement: s.targetElement, value: s.value }));
-      await db.insert(tests).values({ ...rec, projectId, organizationId, sequence: seq } as any);
+      await privilegedDb.insert(tests).values({ ...rec, projectId, organizationId, sequence: seq } as any);
     }
   }
 

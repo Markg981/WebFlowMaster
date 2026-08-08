@@ -9,7 +9,7 @@ vi.mock('./logger', () => ({
   default: Promise.resolve({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-import { db } from './db';
+import { privilegedDb } from './db';
 import { users, testPlans, testPlanSchedules, testPlanExecutions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { runTestPlan } from './test-execution-service';
@@ -24,10 +24,10 @@ function rnd() {
 
 async function seedSchedule(retryOnFailure: string) {
   const organizationId = await createTestOrganization();
-  const [user] = await db.insert(users).values({ username: `u_${rnd()}`, password: 'x', organizationId }).returning();
+  const [user] = await privilegedDb.insert(users).values({ username: `u_${rnd()}`, password: 'x', organizationId }).returning();
   const planId = `plan_${rnd()}`;
-  const [plan] = await db.insert(testPlans).values({ id: planId, userId: user.id, organizationId, name: 'Plan' }).returning();
-  const [schedule] = await db
+  const [plan] = await privilegedDb.insert(testPlans).values({ id: planId, userId: user.id, organizationId, name: 'Plan' }).returning();
+  const [schedule] = await privilegedDb
     .insert(testPlanSchedules)
     .values({
       id: `sched_${rnd()}`,
@@ -44,10 +44,10 @@ async function seedSchedule(retryOnFailure: string) {
 }
 
 async function cleanup() {
-  await db.delete(testPlanExecutions);
-  await db.delete(testPlanSchedules);
-  await db.delete(testPlans);
-  await db.delete(users);
+  await privilegedDb.delete(testPlanExecutions);
+  await privilegedDb.delete(testPlanSchedules);
+  await privilegedDb.delete(testPlans);
+  await privilegedDb.delete(users);
 }
 
 describe('scheduler retry-on-failure', () => {
@@ -64,7 +64,7 @@ describe('scheduler retry-on-failure', () => {
     await executeScheduledPlanForTest(schedule, plan);
 
     expect(mockRun).toHaveBeenCalledTimes(1);
-    const [exec] = await db.select().from(testPlanExecutions).where(eq(testPlanExecutions.scheduleId, schedule.id));
+    const [exec] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.scheduleId, schedule.id));
     expect(exec.status).toBe('failed');
   });
 
@@ -75,7 +75,7 @@ describe('scheduler retry-on-failure', () => {
     await executeScheduledPlanForTest(schedule, plan);
 
     expect(mockRun).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
-    const [exec] = await db.select().from(testPlanExecutions).where(eq(testPlanExecutions.scheduleId, schedule.id));
+    const [exec] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.scheduleId, schedule.id));
     expect(exec.status).toBe('failed');
   });
 
@@ -88,7 +88,7 @@ describe('scheduler retry-on-failure', () => {
     await executeScheduledPlanForTest(schedule, plan);
 
     expect(mockRun).toHaveBeenCalledTimes(2); // failed, then passed → stop
-    const [exec] = await db.select().from(testPlanExecutions).where(eq(testPlanExecutions.scheduleId, schedule.id));
+    const [exec] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.scheduleId, schedule.id));
     expect(exec.status).toBe('passed');
   });
 });

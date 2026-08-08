@@ -30,7 +30,7 @@ import {
 import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
-import { db } from "./db";
+import { privilegedDb } from "./db";
 import { eq, and, desc, sql, getTableColumns, asc, ilike, inArray } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
 import { fetchTarget, requestVariables, substituteInValues, substituteVariables } from "./outbound-http";
@@ -372,7 +372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = req.user.id;
 
     try {
-      const userProjects = await db
+      const userProjects = await privilegedDb
         .select()
         .from(projects)
         .where(eq(projects.userId, userId))
@@ -445,7 +445,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { name } = parseResult.data;
 
     try {
-      const newProject = await db
+      const newProject = await privilegedDb
         .insert(projects)
         .values({
           name,
@@ -476,7 +476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   app.delete("/api/projects/:projectId", async (req, res) => {
-    // Ensure 'projects', 'eq', 'and', 'db', 'resolvedLogger' are correctly imported/available in scope.
+    // Ensure 'projects', 'eq', 'and', 'privilegedDb', 'resolvedLogger' are correctly imported/available in scope.
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -489,7 +489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const projectToDelete = await db
+      const projectToDelete = await privilegedDb
         .select({ id: projects.id })
         .from(projects)
         .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)))
@@ -499,7 +499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Project not found or not owned by user." });
       }
 
-      await db
+      await privilegedDb
         .delete(projects)
         .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)));
 
@@ -522,7 +522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = req.user.id;
 
     try {
-      const userInterfaceTests = await db
+      const userInterfaceTests = await privilegedDb
         .select({
           ...getTableColumns(tests),
           projectName: projects.name,
@@ -575,7 +575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { name, url, sequence, elements, projectId, status } = parseResult.data;
 
     try {
-      const newTest = await db
+      const newTest = await privilegedDb
         .insert(tests)
         .values({
           userId,
@@ -617,7 +617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const settings = await db.select().from(userSettings).where(eq(userSettings.userId, req.user.id)).limit(1);
+      const settings = await privilegedDb.select().from(userSettings).where(eq(userSettings.userId, req.user.id)).limit(1);
 
       if (settings.length > 0) {
         return res.json(settings[0]);
@@ -634,7 +634,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           language: "en",
         };
 
-        const newSettings = await db.insert(userSettings).values(defaultSettings).returning();
+        const newSettings = await privilegedDb.insert(userSettings).values(defaultSettings).returning();
         return res.json(newSettings[0]);
       }
     } catch (error: any) {
@@ -655,18 +655,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const existingSettings = await db.select().from(userSettings).where(eq(userSettings.userId, req.user.id)).limit(1);
+      const existingSettings = await privilegedDb.select().from(userSettings).where(eq(userSettings.userId, req.user.id)).limit(1);
 
       if (existingSettings.length > 0) {
         // Update existing settings
-        const updatedSettings = await db.update(userSettings)
+        const updatedSettings = await privilegedDb.update(userSettings)
           .set({ ...parseResult.data, updatedAt: new Date() })
           .where(eq(userSettings.userId, req.user.id))
           .returning();
         return res.json(updatedSettings[0]);
       } else {
         // Insert new settings
-        const newSettings = await db.insert(userSettings)
+        const newSettings = await privilegedDb.insert(userSettings)
           .values({ ...parseResult.data, userId: req.user.id })
           .returning();
         return res.json(newSettings[0]);
@@ -913,7 +913,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const parseResult = insertApiTestHistorySchema.safeParse(req.body);
     if (!parseResult.success) { resolvedLogger.warn({ message: "POST /api/api-test-history - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id }); return res.status(400).json({ error: "Invalid history data", details: parseResult.error.flatten() }); }
     try {
-      const newHistoryEntry = await db.insert(apiTestHistory).values({ ...parseResult.data, userId: req.user.id, organizationId: req.user.organizationId }).returning();
+      const newHistoryEntry = await privilegedDb.insert(apiTestHistory).values({ ...parseResult.data, userId: req.user.id, organizationId: req.user.organizationId }).returning();
       res.status(201).json(newHistoryEntry[0]);
     } catch (error: any) { resolvedLogger.error({ message: "Error creating API test history entry", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to save API test history" }); }
   });
@@ -924,8 +924,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = (page - 1) * limit;
     try {
-      const historyEntries = await db.select().from(apiTestHistory).where(eq(apiTestHistory.userId, req.user.id)).orderBy(desc(apiTestHistory.createdAt)).limit(limit).offset(offset);
-      const totalResult = await db.select({ count: sql`count(*)` }).from(apiTestHistory).where(eq(apiTestHistory.userId, req.user.id));
+      const historyEntries = await privilegedDb.select().from(apiTestHistory).where(eq(apiTestHistory.userId, req.user.id)).orderBy(desc(apiTestHistory.createdAt)).limit(limit).offset(offset);
+      const totalResult = await privilegedDb.select({ count: sql`count(*)` }).from(apiTestHistory).where(eq(apiTestHistory.userId, req.user.id));
       const total = totalResult[0]?.count || 0;
       res.json({ items: historyEntries, page, limit, totalItems: Number(total), totalPages: Math.ceil(Number(total) / limit) });
     } catch (error: any) { resolvedLogger.error({ message: "Error fetching API test history", error: error.message, stack: error.stack, userId: (req.user as any)?.id, query: req.query }); res.status(500).json({ error: "Failed to fetch API test history" }); }
@@ -936,7 +936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { return res.status(400).json({ error: "Invalid history ID" }); }
     try {
-      const result = await db.delete(apiTestHistory).where(and(eq(apiTestHistory.id, id), eq(apiTestHistory.userId, req.user.id))).returning();
+      const result = await privilegedDb.delete(apiTestHistory).where(and(eq(apiTestHistory.id, id), eq(apiTestHistory.userId, req.user.id))).returning();
       if (result.length === 0) { return res.status(404).json({ error: "History entry not found or not owned by user" }); }
       res.status(204).send();
     } catch (error: any) { resolvedLogger.error({ message: `Error deleting API test history entry ${id}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to delete history entry" }); }
@@ -955,7 +955,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const result = await db
+      const result = await privilegedDb
         .select({
           ...getTableColumns(testPlanSchedules),
           testPlanName: testPlans.name,
@@ -993,7 +993,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
    * tenant's test.
    */
   async function assertSelectedTestsBelongTo(
-    tx: { select: typeof db.select },
+    tx: { select: typeof privilegedDb.select },
     organizationId: number,
     selectedTests: { id: number; type: 'ui' | 'api' }[],
   ): Promise<void> {
@@ -1022,7 +1022,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     try {
       // Add .where(eq(testPlans.userId, req.user.id)) if userId is added to testPlans table for multi-tenancy
-      const allTestPlans = await db.select().from(testPlans).orderBy(desc(testPlans.createdAt));
+      const allTestPlans = await privilegedDb.select().from(testPlans).orderBy(desc(testPlans.createdAt));
       res.json(allTestPlans);
     } catch (error: any) {
       resolvedLogger.error({ message: "Error fetching test plans", error: error.message, stack: error.stack, userId: (req.user as any)?.id });
@@ -1038,7 +1038,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const testPlanId = req.params.id;
     try {
       // Add .where(and(eq(testPlans.id, testPlanId), eq(testPlans.userId, req.user.id))) if user-specific
-      const result = await db.select().from(testPlans).where(eq(testPlans.id, testPlanId));
+      const result = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, testPlanId));
       if (result.length === 0) {
         return res.status(404).json({ error: "Test plan not found" });
       }
@@ -1065,7 +1065,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { selectedTests, ...newPlanData } = parseResult.data;
       const planId = uuidv4(); // Generate new UUID
 
-      const createdPlanResult = await db.transaction(async (tx) => {
+      const createdPlanResult = await privilegedDb.transaction(async (tx) => {
         const insertedPlan = await tx
           .insert(testPlans)
           .values({
@@ -1148,14 +1148,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if there's anything to update for the main plan or selected tests
       if (Object.keys(planUpdates).length === 0 && selectedTests === undefined) {
         // Check if the plan exists first to return 404 if not, otherwise 400 for no data
-        const existingPlanCheck = await db.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId));
+        const existingPlanCheck = await privilegedDb.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId));
         if (existingPlanCheck.length === 0) {
             return res.status(404).json({ error: "Test plan not found." });
         }
         return res.status(400).json({ error: "No update data provided." });
       }
 
-      const updatedPlanResult = await db.transaction(async (tx) => {
+      const updatedPlanResult = await privilegedDb.transaction(async (tx) => {
         let mainPlanUpdated;
         if (Object.keys(planUpdates).length > 0) {
           // Stringify JSON fields before updating: both columns are typed as their parsed
@@ -1259,7 +1259,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // onDelete: 'cascade' is defined in the schedules.testPlanId FK.
       // This means deleting a test plan will automatically delete associated schedules.
       // Also, test_plan_selected_tests and test_plan_runs have onDelete: 'cascade' for testPlanId.
-      const result = await db
+      const result = await privilegedDb
         .delete(testPlans)
         .where(eq(testPlans.id, testPlanId))
         // Add .where(and(eq(testPlans.id, testPlanId), eq(testPlans.userId, req.user.id))) if user-specific
@@ -1339,7 +1339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Execute queries
-      const uiTestResults = await db.select({
+      const uiTestResults = await privilegedDb.select({
           id: tests.id,
           name: tests.name,
           description: sql<string>`null`.as('description'),
@@ -1349,7 +1349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(tests)
         .where(and(...uiConditions));
 
-      const apiTestResults = await db.select({
+      const apiTestResults = await privilegedDb.select({
           id: apiTests.id,
           name: apiTests.name,
           description: sql<string>`null`.as('description'),
@@ -1396,7 +1396,7 @@ app.get("/api/test-plan-executions/:executionId/logs", async (req, res) => {
   const { executionId } = req.params;
 
   try {
-    const logs = await db
+    const logs = await privilegedDb
       .select()
       .from(executionLogs)
       .where(eq(executionLogs.testPlanExecutionId, executionId))
@@ -1425,7 +1425,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
 
   try {
     // 1. Fetch the main TestPlanExecution record and its associated TestPlan
-    const executionDetailsResult = await db
+    const executionDetailsResult = await privilegedDb
       .select({
         execution: getTableColumns(testPlanExecutions),
         plan: getTableColumns(testPlans),
@@ -1446,7 +1446,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
 
     // 2. Fetch all reportTestCaseResults for this execution
     // Ensure reportTestCaseResults is imported from @shared/schema
-    const testCaseResults: ReportTestCaseResult[] = await db
+    const testCaseResults: ReportTestCaseResult[] = await privilegedDb
       .select()
       .from(reportTestCaseResults)
       .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
@@ -1608,7 +1608,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
     try {
-      const settings = await db.select().from(systemSettings);
+      const settings = await privilegedDb.select().from(systemSettings);
       res.json(settings);
     } catch (error: any) {
       resolvedLogger.error({ message: "Error fetching system settings", error: error.message, stack: error.stack, userId: (req.user as any)?.id });
@@ -1623,7 +1623,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
     }
     const { key } = req.params;
     try {
-      const result = await db.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
+      const result = await privilegedDb.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
       if (result.length === 0) {
         return res.status(404).json({ error: "Setting not found" });
       }
@@ -1650,7 +1650,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
 
       // For SQLite, Drizzle's .onConflictDoUpdate().returning() might not return the inserted/updated row directly in all cases.
       // It's safer to perform the upsert and then select the row.
-      await db.insert(systemSettings)
+      await privilegedDb.insert(systemSettings)
         .values({ key, value })
         .onConflictDoUpdate({
           target: systemSettings.key,
@@ -1658,7 +1658,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
         });
 
       // Fetch the (potentially) updated or newly inserted row
-      const finalResult = await db.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
+      const finalResult = await privilegedDb.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
 
       if (finalResult.length === 0) {
          // This case should ideally not be reached if upsert is successful

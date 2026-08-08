@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
-import { db } from './db';
+import { privilegedDb } from './db';
 import { tests, detectedElements, users } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { createTestOrganization } from './tests/factories';
@@ -38,15 +38,15 @@ describe('AIAutomationService', () => {
     organizationId = await createTestOrganization();
 
     // Clean slate (respect FK order: detected_elements -> tests -> users).
-    await db.delete(detectedElements);
-    await db.delete(tests);
-    await db.delete(users);
+    await privilegedDb.delete(detectedElements);
+    await privilegedDb.delete(tests);
+    await privilegedDb.delete(users);
   });
 
   afterAll(async () => {
-    await db.delete(detectedElements);
-    await db.delete(tests);
-    await db.delete(users);
+    await privilegedDb.delete(detectedElements);
+    await privilegedDb.delete(tests);
+    await privilegedDb.delete(users);
     delete process.env.GEMINI_API_KEY;
   });
 
@@ -89,7 +89,7 @@ describe('AIAutomationService', () => {
   describe('updateSelectorInDb', () => {
     it('updates the sequence, the elements repository and upserts detected_elements', async () => {
       // Seed a real user + test.
-      const [user] = await db
+      const [user] = await privilegedDb
         .insert(users)
         .values({ username: 'ai-heal-user', password: 'hashed', organizationId })
         .returning();
@@ -107,7 +107,7 @@ describe('AIAutomationService', () => {
       ];
       const elements = [{ id: 'el1', selector: 'div.old' }];
 
-      const [seededTest] = await db
+      const [seededTest] = await privilegedDb
         .insert(tests)
         .values({
           userId: user.id,
@@ -122,14 +122,14 @@ describe('AIAutomationService', () => {
       await service.updateSelectorInDb(seededTest.id, 0, 'div.new');
 
       // The sequence step and the elements repository should now carry the healed selector.
-      const [updated] = await db.select().from(tests).where(eq(tests.id, seededTest.id)).limit(1);
+      const [updated] = await privilegedDb.select().from(tests).where(eq(tests.id, seededTest.id)).limit(1);
       const updatedSequence = updated.sequence as any[];
       const updatedElements = updated.elements as any[];
       expect(updatedSequence[0].targetElement.selector).toBe('div.new');
       expect(updatedElements[0].selector).toBe('div.new');
 
       // A normalized detected_elements row should have been inserted for the element.
-      const detected = await db
+      const detected = await privilegedDb
         .select()
         .from(detectedElements)
         .where(and(eq(detectedElements.testId, seededTest.id), eq(detectedElements.elementId, 'el1')))

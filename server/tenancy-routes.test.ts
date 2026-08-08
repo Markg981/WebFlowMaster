@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
-import { db } from './db';
+import { privilegedDb } from './db';
 import {
   users,
   organizations,
@@ -79,18 +79,18 @@ beforeAll(async () => {
 /**
  * Every suite here shares one file-backed PGlite database and they run sequentially, so
  * rows left behind become the next suite's problem: several of them start with a bare
- * `db.delete(users)`, which a leftover FK reference turns into a failure in a file that
+ * `privilegedDb.delete(users)`, which a leftover FK reference turns into a failure in a file that
  * never touched this data. Same reason scripts/netcontent/importer.test.ts cleans up.
  */
 async function clearAll() {
-  await db.delete(excelSequencesMap);
-  await db.delete(testPlanSelectedTests);
-  await db.delete(testPlanSchedules);
-  await db.delete(testPlans);
-  await db.delete(tests);
-  await db.delete(projects);
-  await db.delete(users);
-  await db.delete(organizations);
+  await privilegedDb.delete(excelSequencesMap);
+  await privilegedDb.delete(testPlanSelectedTests);
+  await privilegedDb.delete(testPlanSchedules);
+  await privilegedDb.delete(testPlans);
+  await privilegedDb.delete(tests);
+  await privilegedDb.delete(projects);
+  await privilegedDb.delete(users);
+  await privilegedDb.delete(organizations);
 }
 
 afterAll(clearAll);
@@ -101,11 +101,11 @@ beforeEach(async () => {
   sessionOrganizationId = await createTestOrganization('Session Organization');
   foreignOrganizationId = await createTestOrganization('Foreign Organization');
 
-  [sessionUser] = await db
+  [sessionUser] = await privilegedDb
     .insert(users)
     .values({ username: 'session_user', password: 'hashed', organizationId: sessionOrganizationId })
     .returning();
-  [foreignUser] = await db
+  [foreignUser] = await privilegedDb
     .insert(users)
     .values({ username: 'foreign_user', password: 'hashed', organizationId: foreignOrganizationId })
     .returning();
@@ -115,7 +115,7 @@ beforeEach(async () => {
 
 /** A `tests` row, owned by whichever user/organization is named. */
 async function seedTest(owner: User, name: string) {
-  const [row] = await db
+  const [row] = await privilegedDb
     .insert(tests)
     .values({
       userId: owner.id,
@@ -144,12 +144,12 @@ describe('POST /api/test-plans', () => {
     expect(response.body.organizationId).toBe(sessionOrganizationId);
     expect(response.body.userId).toBe(sessionUser.id);
 
-    const [stored] = await db.select().from(testPlans).where(eq(testPlans.id, response.body.id));
+    const [stored] = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, response.body.id));
     expect(stored.organizationId).toBe(sessionOrganizationId);
     expect(stored.userId).toBe(sessionUser.id);
 
     // Nothing at all landed in the other tenant.
-    const foreignPlans = await db
+    const foreignPlans = await privilegedDb
       .select()
       .from(testPlans)
       .where(eq(testPlans.organizationId, foreignOrganizationId));
@@ -173,7 +173,7 @@ describe('PUT /api/test-plans/:id', () => {
       .send({ selectedTests: [{ id: uiTest.id, type: 'ui' }] })
       .expect(200);
 
-    const links = await db
+    const links = await privilegedDb
       .select()
       .from(testPlanSelectedTests)
       .where(eq(testPlanSelectedTests.testPlanId, created.body.id));
@@ -184,7 +184,7 @@ describe('PUT /api/test-plans/:id', () => {
   });
 
   it('cannot reach another organization’s plan', async () => {
-    const [foreignPlan] = await db
+    const [foreignPlan] = await privilegedDb
       .insert(testPlans)
       .values({
         id: 'foreign-plan',
@@ -201,12 +201,12 @@ describe('PUT /api/test-plans/:id', () => {
       .send({ name: 'Hijacked', selectedTests: [{ id: ownTest.id, type: 'ui' }] })
       .expect(404);
 
-    const [stored] = await db.select().from(testPlans).where(eq(testPlans.id, foreignPlan.id));
+    const [stored] = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, foreignPlan.id));
     expect(stored.name).toBe('Foreign plan');
 
     // The row this used to write was internally cross-tenant: stamped with the foreign
     // plan's organization while naming a test from the caller's.
-    const links = await db
+    const links = await privilegedDb
       .select()
       .from(testPlanSelectedTests)
       .where(eq(testPlanSelectedTests.testPlanId, foreignPlan.id));
@@ -228,7 +228,7 @@ describe('PUT /api/test-plans/:id', () => {
       .send({ selectedTests: [{ id: foreignTest.id, type: 'ui' }] })
       .expect(400);
 
-    const links = await db
+    const links = await privilegedDb
       .select()
       .from(testPlanSelectedTests)
       .where(eq(testPlanSelectedTests.testPlanId, created.body.id));
@@ -262,7 +262,7 @@ describe('POST /api/excel-mappings', () => {
       .send({ excelTestCaseId: 'TC-100', testId: ownTest.id })
       .expect(200);
 
-    const [mapping] = await db
+    const [mapping] = await privilegedDb
       .select()
       .from(excelSequencesMap)
       .where(eq(excelSequencesMap.testId, ownTest.id));
@@ -282,7 +282,7 @@ describe('POST /api/excel-mappings', () => {
     // The decisive assertion: no mapping row exists at all. Before the fix one was
     // written, stamped with the caller's organization while pointing at a foreign test —
     // which under RLS would have been readable by the wrong tenant.
-    const mappings = await db
+    const mappings = await privilegedDb
       .select()
       .from(excelSequencesMap)
       .where(eq(excelSequencesMap.testId, foreignTest.id));
@@ -306,7 +306,7 @@ describe('POST /api/excel-mappings', () => {
 
 describe('PUT /api/test-plan-schedules/:id', () => {
   it('ignores a userId in the request body', async () => {
-    const [plan] = await db
+    const [plan] = await privilegedDb
       .insert(testPlans)
       .values({
         id: 'plan-for-schedule',
@@ -316,7 +316,7 @@ describe('PUT /api/test-plan-schedules/:id', () => {
       })
       .returning();
 
-    const [schedule] = await db
+    const [schedule] = await privilegedDb
       .insert(testPlanSchedules)
       .values({
         id: 'schedule-for-userid-test',
@@ -335,7 +335,7 @@ describe('PUT /api/test-plan-schedules/:id', () => {
       .expect(200);
 
     // The owner decides who the scheduler runs the plan as, so it must not be wire-writable.
-    const [stored] = await db
+    const [stored] = await privilegedDb
       .select()
       .from(testPlanSchedules)
       .where(eq(testPlanSchedules.id, schedule.id));

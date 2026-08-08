@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "../db";
+import { privilegedDb } from "../db";
 import { testPlans, testPlanSchedules, testPlanExecutions, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema, testPlanApiPayloadSchema } from "@shared/schema";
 import { eq, desc, and, getTableColumns } from "drizzle-orm";
 import { v4 as uuidv4 } from 'uuid';
@@ -12,7 +12,7 @@ const logger = await loggerPromise;
 // jsonb columns are stored via JSON.stringify (codebase convention) and parsed back
 // on read. Re-fetches a schedule joined with its test plan name, with JSON fields parsed.
 async function fetchScheduleWithPlanName(id: string) {
-    const rows = await db
+    const rows = await privilegedDb
         .select({ ...getTableColumns(testPlanSchedules), testPlanName: testPlans.name })
         .from(testPlanSchedules)
         .leftJoin(testPlans, eq(testPlanSchedules.testPlanId, testPlans.id))
@@ -36,7 +36,7 @@ function isForeignKeyError(e: any): boolean {
 
 router.get("/api/test-plans", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
-    const plans = await db.select().from(testPlans).orderBy(desc(testPlans.createdAt));
+    const plans = await privilegedDb.select().from(testPlans).orderBy(desc(testPlans.createdAt));
     res.json(plans);
 });
 
@@ -52,7 +52,7 @@ router.post("/api/test-plans", async (req, res) => {
 
     const planId = uuidv4();
     try {
-        const newPlan = await db.insert(testPlans).values({
+        const newPlan = await privilegedDb.insert(testPlans).values({
             ...planData,
             id: planId,
             // The tenancy boundary: always derived from the authenticated session, never
@@ -71,7 +71,7 @@ router.post("/api/test-plans", async (req, res) => {
 
 router.get("/api/test-plans/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
-    const plan = await db.select().from(testPlans).where(eq(testPlans.id, req.params.id)).limit(1);
+    const plan = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, req.params.id)).limit(1);
     if(plan.length === 0) return res.status(404).json({ error: "Not found" });
     res.json(plan[0]);
 });
@@ -81,7 +81,7 @@ router.get("/api/test-plans/:id", async (req, res) => {
 router.get("/api/test-plan-schedules", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
     
-    const results = await db.select({
+    const results = await privilegedDb.select({
         ...getTableColumns(testPlanSchedules),
         testPlanName: testPlans.name
     })
@@ -112,7 +112,7 @@ router.post("/api/test-plan-schedules", async (req, res) => {
         // nextRunAt arrives as a Date or a unix-seconds number (schema allows both).
         const nextRunAt = data.nextRunAt instanceof Date ? data.nextRunAt : new Date(data.nextRunAt * 1000);
 
-        await db.insert(testPlanSchedules).values({
+        await privilegedDb.insert(testPlanSchedules).values({
             ...data,
             id: scheduleId,
             nextRunAt,
@@ -157,7 +157,7 @@ router.put("/api/test-plan-schedules/:id", async (req, res) => {
         // Drop undefined keys so Drizzle doesn't try to set them.
         Object.keys(values).forEach(k => values[k] === undefined && delete values[k]);
 
-        const updated = await db.update(testPlanSchedules).set(values).where(eq(testPlanSchedules.id, id)).returning();
+        const updated = await privilegedDb.update(testPlanSchedules).set(values).where(eq(testPlanSchedules.id, id)).returning();
         if (updated.length === 0) return res.status(404).json({ error: "Schedule not found" });
 
         const result = await fetchScheduleWithPlanName(id);
@@ -177,7 +177,7 @@ router.delete("/api/test-plan-schedules/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
     const id = req.params.id;
     try {
-        const deleted = await db.delete(testPlanSchedules).where(eq(testPlanSchedules.id, id)).returning();
+        const deleted = await privilegedDb.delete(testPlanSchedules).where(eq(testPlanSchedules.id, id)).returning();
         if (deleted.length === 0) return res.status(404).json({ error: "Schedule not found" });
         schedulerService.removeScheduleJob(id);
         res.status(204).send();
@@ -200,7 +200,7 @@ router.get("/api/test-plan-executions", async (req, res) => {
     if (status && typeof status === 'string') conditions.push(eq(testPlanExecutions.status, status));
     if (triggeredBy && typeof triggeredBy === 'string') conditions.push(eq(testPlanExecutions.triggeredBy, triggeredBy));
 
-    let query = db.select({
+    let query = privilegedDb.select({
         ...getTableColumns(testPlanExecutions),
         testPlanName: testPlans.name,
         scheduleName: testPlanSchedules.scheduleName,

@@ -1,5 +1,5 @@
 import { Router, type Response } from "express";
-import { db } from "../db";
+import { privilegedDb } from "../db";
 import { tests, insertTestSchema, apiTests, insertApiTestSchema, updateApiTestSchema, users, projects } from "@shared/schema";
 import { eq, desc, and, getTableColumns } from "drizzle-orm";
 import { z } from "zod";
@@ -15,7 +15,7 @@ const logger = await loggerPromise;
 router.get("/api/tests", async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
   try {
-    const allTests = await db.select().from(tests).orderBy(desc(tests.createdAt));
+    const allTests = await privilegedDb.select().from(tests).orderBy(desc(tests.createdAt));
     res.json(allTests);
   } catch (error: any) {
     logger.error({ message: "Error fetching tests", error: error.message });
@@ -33,7 +33,7 @@ router.post("/api/tests", async (req, res) => {
   }
 
   try {
-    const newTest = await db
+    const newTest = await privilegedDb
       .insert(tests)
       .values({ ...parseResult.data, organizationId: req.user!.organizationId })
       .returning();
@@ -50,7 +50,7 @@ router.post("/api/tests/:id/run", async (req, res) => {
 
     const testId = parseInt(req.params.id);
     try {
-        const testRecord = await db.select().from(tests).where(eq(tests.id, testId)).limit(1);
+        const testRecord = await privilegedDb.select().from(tests).where(eq(tests.id, testId)).limit(1);
         if (testRecord.length === 0) return res.status(404).json({ error: "Test not found" });
 
         const result = await playwrightService.executeTestSequence(testRecord[0], (req.user as any).id);
@@ -80,7 +80,7 @@ const editApiTestSchema = updateApiTestSchema.extend({ projectId: projectIdField
 // Saved tests are returned with the creator/project names already resolved so the client
 // can group them without a second round-trip.
 const selectApiTestsWithNames = () =>
-    db
+    privilegedDb
         .select({
             ...getTableColumns(apiTests),
             creatorUsername: users.username,
@@ -145,7 +145,7 @@ router.post("/api/api-tests", async (req, res) => {
     }
 
     try {
-        const newTest = await db.insert(apiTests).values({ ...parseResult.data, userId: req.user!.id, organizationId: req.user!.organizationId }).returning();
+        const newTest = await privilegedDb.insert(apiTests).values({ ...parseResult.data, userId: req.user!.id, organizationId: req.user!.organizationId }).returning();
         res.status(201).json(newTest[0]);
     } catch (e: any) {
         logger.error({ message: "Error creating API test", error: e.message, userId: req.user?.id });
@@ -167,7 +167,7 @@ router.put("/api/api-tests/:id", async (req, res) => {
     }
 
     try {
-        const updated = await db.update(apiTests)
+        const updated = await privilegedDb.update(apiTests)
             .set({ ...parseResult.data, updatedAt: new Date() })
             .where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user!.id)))
             .returning();
@@ -189,7 +189,7 @@ router.delete("/api/api-tests/:id", async (req, res) => {
     try {
         // .returning() distinguishes "deleted" from "never existed / someone else's row",
         // which a bare delete cannot: it succeeds either way.
-        const deleted = await db.delete(apiTests)
+        const deleted = await privilegedDb.delete(apiTests)
             .where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user!.id)))
             .returning();
         if (deleted.length === 0) return res.status(404).json({ error: "API Test not found or not authorized" });

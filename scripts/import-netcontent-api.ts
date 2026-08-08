@@ -2,7 +2,7 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { db } from '../server/db';
+import { privilegedDb } from '../server/db';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 import { parseControllersDir } from './netcontent/parse-controllers';
@@ -33,10 +33,10 @@ async function main() {
     process.exit(0);
   }
 
-  const userId = await resolveUserId(db, userOverride);
-  const { projectId, organizationId } = await findOrCreateProject(db, userId, projectName);
+  const userId = await resolveUserId(privilegedDb, userOverride);
+  const { projectId, organizationId } = await findOrCreateProject(privilegedDb, userId, projectName);
   const records = mapEndpoints(endpoints, { baseUrlVar, projectId, userId, organizationId });
-  const summary = await importApiTests(db, records, projectId);
+  const summary = await importApiTests(privilegedDb, records, projectId);
 
   console.log(
     `Import complete -> project "${projectName}" (id=${projectId}, owner userId=${userId})\n` +

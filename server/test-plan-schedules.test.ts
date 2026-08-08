@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
-import { db } from './db'; // Main DB import
+import { privilegedDb } from './db'; // Main DB import
 import { users, testPlanSchedules, testPlans, type InsertTestPlanSchedule, type TestPlan } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -53,25 +53,25 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   // Clear tables: testPlanSchedules first due to FK, then testPlans
-  await db.delete(testPlanSchedules);
-  await db.delete(testPlans);
-  await db.delete(users);
+  await privilegedDb.delete(testPlanSchedules);
+  await privilegedDb.delete(testPlans);
+  await privilegedDb.delete(users);
   organizationId = await createTestOrganization();
   (mockUser as any).organizationId = organizationId;
-  await db.insert(users).values({ id: mockUser.id, username: mockUser.username, password: 'hashed', organizationId });
+  await privilegedDb.insert(users).values({ id: mockUser.id, username: mockUser.username, password: 'hashed', organizationId });
   vi.clearAllMocks(); // Clear mocks before each test
 
   // Seed Test Plans
   const planId1 = uuidv4();
   const planId2 = uuidv4();
-  [seededPlan1] = await db.insert(testPlans).values({ id: planId1, name: 'Default Test Plan 1', description: 'For general testing', userId: mockUser.id, organizationId }).returning();
-  [seededPlan2] = await db.insert(testPlans).values({ id: planId2, name: 'Default Test Plan 2', description: 'Another plan', userId: mockUser.id, organizationId }).returning();
+  [seededPlan1] = await privilegedDb.insert(testPlans).values({ id: planId1, name: 'Default Test Plan 1', description: 'For general testing', userId: mockUser.id, organizationId }).returning();
+  [seededPlan2] = await privilegedDb.insert(testPlans).values({ id: planId2, name: 'Default Test Plan 2', description: 'Another plan', userId: mockUser.id, organizationId }).returning();
 });
 
 afterAll(async () => {
   // Clean up seeded data
-  await db.delete(testPlanSchedules);
-  await db.delete(testPlans);
+  await privilegedDb.delete(testPlanSchedules);
+  await privilegedDb.delete(testPlans);
 });
 
 
@@ -108,7 +108,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
       expect(response.body.isActive).toBe(true);
       expect(response.body.retryOnFailure).toBe('once');
 
-      const dbSchedule = await db.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId));
+      const dbSchedule = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId));
       expect(dbSchedule.length).toBe(1);
       expect(dbSchedule[0].testPlanId).toBe(newSchedulePayload.testPlanId);
       expect(dbSchedule[0].environment).toBe('QA');
@@ -150,7 +150,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
         frequency: 'Daily', nextRunAt: new Date(),
         browsers: JSON.stringify(['chromium']), isActive: true, retryOnFailure: 'none'
       };
-      await db.insert(testPlanSchedules).values(schedule1Data);
+      await privilegedDb.insert(testPlanSchedules).values(schedule1Data);
 
       const response = await request(app)
         .get('/api/test-plan-schedules')
@@ -168,7 +168,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
     it('should return schedules for a specific test planId', async () => {
       const s1Id = uuidv4();
       const s2Id = uuidv4();
-      await db.insert(testPlanSchedules).values([
+      await privilegedDb.insert(testPlanSchedules).values([
         { id: s1Id, scheduleName: 'Plan1 Sched1', testPlanId: seededPlan1.id, organizationId, frequency: 'once', nextRunAt: new Date(), environment: 'QA', browsers: JSON.stringify(['chrome']) },
         { id: s2Id, scheduleName: 'Plan2 Sched1', testPlanId: seededPlan2.id, organizationId, frequency: 'daily', nextRunAt: new Date(), environment: 'Staging', browsers: JSON.stringify(['firefox']) },
       ]);
@@ -194,7 +194,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
         frequency: 'Daily', nextRunAt: new Date(),
         environment: 'Dev', browsers: JSON.stringify(['webkit']), isActive: true, retryOnFailure: 'none'
       };
-      await db.insert(testPlanSchedules).values(initialSchedule);
+      await privilegedDb.insert(testPlanSchedules).values(initialSchedule);
 
       const updatedData = {
         scheduleName: 'Updated Schedule Name',
@@ -220,7 +220,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
       expect(response.body.isActive).toBe(false);
       expect(response.body.retryOnFailure).toBe('twice');
 
-      const dbSchedule = await db.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId));
+      const dbSchedule = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId));
       expect(dbSchedule[0].testPlanId).toBe(updatedData.testPlanId);
       expect(dbSchedule[0].environment).toBe('Staging');
       expect(dbSchedule[0].isActive).toBe(false); // Postgres boolean column
@@ -240,13 +240,13 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
         frequency: 'Once', nextRunAt: new Date(),
         environment: 'Prod', browsers: JSON.stringify(['all'])
       };
-      await db.insert(testPlanSchedules).values(scheduleToDelete);
+      await privilegedDb.insert(testPlanSchedules).values(scheduleToDelete);
 
       await request(app)
         .delete(`/api/test-plan-schedules/${scheduleId}`)
         .expect(204);
 
-      const dbSchedule = await db.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId));
+      const dbSchedule = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId));
       expect(dbSchedule.length).toBe(0);
       expect(schedulerService.removeScheduleJob).toHaveBeenCalledTimes(1);
       expect(schedulerService.removeScheduleJob).toHaveBeenCalledWith(scheduleId);

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { sql } from 'drizzle-orm';
-import { db } from '../db';
+import { privilegedDb } from '../db';
 import { ORG_SCOPED_TABLES } from '@shared/schema';
 
 /**
@@ -9,7 +9,7 @@ import { ORG_SCOPED_TABLES } from '@shared/schema';
  */
 describe('organizations migration', () => {
   it('creates an organization for every user and makes them its owner', async () => {
-    const rows = await db.execute(
+    const rows = await privilegedDb.execute(
       sql`SELECT count(*) FILTER (WHERE organization_id IS NULL) AS orphans FROM users`,
     );
     expect(Number((rows.rows[0] as { orphans: string }).orphans)).toBe(0);
@@ -17,7 +17,7 @@ describe('organizations migration', () => {
 
   it('leaves no org-scoped row without an organization', async () => {
     for (const table of ORG_SCOPED_TABLES) {
-      const rows = await db.execute(
+      const rows = await privilegedDb.execute(
         sql.raw(`SELECT count(*) AS orphans FROM "${table}" WHERE organization_id IS NULL`),
       );
       expect(
@@ -28,7 +28,7 @@ describe('organizations migration', () => {
   });
 
   it('creates the app_user role', async () => {
-    const rows = await db.execute(sql`SELECT rolname FROM pg_roles WHERE rolname = 'app_user'`);
+    const rows = await privilegedDb.execute(sql`SELECT rolname FROM pg_roles WHERE rolname = 'app_user'`);
     expect(rows.rows).toHaveLength(1);
   });
 });

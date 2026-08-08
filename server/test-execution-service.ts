@@ -3,7 +3,7 @@ import type { Test, ApiTest, TestPlanExecution, InsertReportTestCaseResult, Prec
 import { runPreconditions } from './precondition-runner';
 import type { StepResult } from './playwright-service'; // Import StepResult type
 import loggerPromise from './logger';
-import { db } from './db';
+import { privilegedDb } from './db';
 import {
   tests as testsTable,
   apiTests as apiTestsTable,
@@ -214,7 +214,7 @@ export async function runTestPlan(
 
   resolvedLogger.info({ message: `Enqueueing test plan execution`, planId, testPlanRunId, userId });
 
-  const planResult = await db.select().from(testPlans).where(eq(testPlans.id, planId)).limit(1);
+  const planResult = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, planId)).limit(1);
   if (!planResult || planResult.length === 0) {
     resolvedLogger.error({ message: `Test Plan not found`, planId, testPlanRunId });
     return { error: 'Test Plan not found', status: 404 };
@@ -222,7 +222,7 @@ export async function runTestPlan(
 
   let currentTestPlanRun: TestPlanExecution;
   try {
-    const inserted = await db.insert(testPlanExecutionsTable)
+    const inserted = await privilegedDb.insert(testPlanExecutionsTable)
       .values({
         id: testPlanRunId,
         // Same organization as the plan being run.
@@ -272,7 +272,7 @@ export async function processTestPlanJob(
   wsEmitter.emitExecutionLog(testPlanRunId, startLog);
 
   // Update status to running
-  await db.update(testPlanExecutionsTable)
+  await privilegedDb.update(testPlanExecutionsTable)
     .set({ status: 'running' })
     .where(eq(testPlanExecutionsTable.id, testPlanRunId));
 
@@ -283,7 +283,7 @@ export async function processTestPlanJob(
     await fs.ensureDir(baseResultsDir);
   } catch (dirError: any) {
     resolvedLogger.error({ message: 'Failed to create base results directory', baseResultsDir, error: dirError.message });
-    await db.update(testPlanExecutionsTable).set({
+    await privilegedDb.update(testPlanExecutionsTable).set({
       status: 'error',
       completedAt: new Date(),
       results: JSON.stringify([{ error: `Failed to create results directory: ${dirError.message}` }]),
@@ -293,7 +293,7 @@ export async function processTestPlanJob(
   }
 
   // Phase 8: Fetch Environment and Secrets
-  const executionRecord = await db.select().from(testPlanExecutionsTable).where(eq(testPlanExecutionsTable.id, testPlanRunId)).limit(1);
+  const executionRecord = await privilegedDb.select().from(testPlanExecutionsTable).where(eq(testPlanExecutionsTable.id, testPlanRunId)).limit(1);
   if (executionRecord.length === 0) {
     resolvedLogger.error({ message: 'Test plan execution record not found after creation', testPlanRunId });
     return { error: `Test plan execution ${testPlanRunId} not found.`, status: 500, testPlanRunId };
@@ -302,7 +302,7 @@ export async function processTestPlanJob(
   const secretsMap: Record<string, string> = {};
 
   if (environmentId && !isNaN(environmentId)) {
-    const environmentSecrets = await db.select().from(secretsTable).where(eq(secretsTable.environmentId, environmentId));
+    const environmentSecrets = await privilegedDb.select().from(secretsTable).where(eq(secretsTable.environmentId, environmentId));
     for (const secret of environmentSecrets) {
       try {
         secretsMap[secret.keyName] = decryptSecret(secret.encryptedValue, secret.iv, secret.authTag);
@@ -321,7 +321,7 @@ export async function processTestPlanJob(
     wsEmitter.emitExecutionLog(testPlanRunId, envLog);
   }
 
-  const selectedTestsLinks = await db
+  const selectedTestsLinks = await privilegedDb
     .select()
     .from(testPlanSelectedTests)
     .where(eq(testPlanSelectedTests.testPlanId, planId));
@@ -342,13 +342,13 @@ export async function processTestPlanJob(
 
   const uiTestsMap = new Map<number, Test>();
   if (uiTestIds.length > 0) {
-    const uiTests = await db.select().from(testsTable).where(inArray(testsTable.id, uiTestIds));
+    const uiTests = await privilegedDb.select().from(testsTable).where(inArray(testsTable.id, uiTestIds));
     uiTests.forEach(t => uiTestsMap.set(t.id, t as Test));
   }
 
   const apiTestsMap = new Map<number, ApiTest>();
   if (apiTestIds.length > 0) {
-    const apiTests = await db.select().from(apiTestsTable).where(inArray(apiTestsTable.id, apiTestIds));
+    const apiTests = await privilegedDb.select().from(apiTestsTable).where(inArray(apiTestsTable.id, apiTestIds));
     apiTests.forEach(t => apiTestsMap.set(t.id, t as ApiTest));
   }
 
@@ -464,7 +464,7 @@ export async function processTestPlanJob(
     };
 
     try {
-      await db.insert(reportTestCaseResultsTable).values(newReportEntry);
+      await privilegedDb.insert(reportTestCaseResultsTable).values(newReportEntry);
     } catch (dbInsertError: any) {
       resolvedLogger.error({ message: 'Failed to insert into reportTestCaseResultsTable', entry: newReportEntry, error: dbInsertError.message });
       // Continue execution, this test result might be missing from detailed report but plan will complete.
@@ -472,7 +472,7 @@ export async function processTestPlanJob(
   } // End of loop for selectedTestsLinks
 
   // After all tests have run, calculate final aggregates from reportTestCaseResultsTable
-  const finalDetailedResults = await db.select()
+  const finalDetailedResults = await privilegedDb.select()
     .from(reportTestCaseResultsTable)
     .where(eq(reportTestCaseResultsTable.testPlanExecutionId, testPlanRunId));
 
@@ -506,7 +506,7 @@ export async function processTestPlanJob(
   const overallExecutionDurationMs = overallCompletedAt - overallStartTime;
 
   try {
-    const finalUpdateResult = await db.update(testPlanExecutionsTable)
+    const finalUpdateResult = await privilegedDb.update(testPlanExecutionsTable)
       .set({
         status: finalOverallStatus,
         results: JSON.stringify(legacyIndividualTestResultsForJsonBlob), // Keep the old JSON blob for now

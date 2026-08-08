@@ -2,7 +2,7 @@ import * as cron from 'node-cron';
 // cron-parser v4 is CommonJS; under Node ESM (tsx) only the default import exposes
 // its members — a named `{ parseExpression }` import throws at runtime.
 import cronParser from 'cron-parser';
-import { db } from './db';
+import { privilegedDb } from './db';
 import { testPlanSchedules, testPlanExecutions, testPlans } from '@shared/schema';
 import type { TestPlanSchedule, TestPlanExecution, TestPlan } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
@@ -124,7 +124,7 @@ export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: Tes
   let executionStatus: TestPlanExecution['status'] = 'pending';
 
   try {
-    await db.insert(testPlanExecutions).values({
+    await privilegedDb.insert(testPlanExecutions).values({
       id: executionId,
       // Same organization as the plan being executed (and, transitively, the schedule).
       organizationId: plan.organizationId,
@@ -142,7 +142,7 @@ export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: Tes
     // userId column may be null; fall back to the test plan's owner in that case.
     let ownerUserId = schedule.userId ?? null;
     if (ownerUserId == null) {
-      const planOwner = await db
+      const planOwner = await privilegedDb
         .select({ userId: testPlans.userId })
         .from(testPlans)
         .where(eq(testPlans.id, schedule.testPlanId))
@@ -170,7 +170,7 @@ export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: Tes
     }
 
     // Update testPlanExecutions with the final status and results (jsonb — no stringify).
-    await db.update(testPlanExecutions)
+    await privilegedDb.update(testPlanExecutions)
       .set({
         status: executionStatus,
         results: result?.results ?? null,
@@ -184,7 +184,7 @@ export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: Tes
     resolvedLogger.error(`[SchedulerService] Error executing scheduled plan ${schedule.testPlanId} (Schedule ID: ${schedule.id}): ${error.message}`, { stack: error.stack, scheduleId: schedule.id, executionId });
     executionStatus = 'error';
     try {
-      await db.update(testPlanExecutions)
+      await privilegedDb.update(testPlanExecutions)
         .set({
           status: 'error',
           results: JSON.stringify({ error: error.message, stack: error.stack }),
@@ -201,7 +201,7 @@ export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: Tes
         // Calculate and persist the next run time so it survives restarts and is shown in the UI.
         const newNextRunAt = calculateNextRunTime(schedule.frequency, new Date());
         if (newNextRunAt) {
-          await db.update(testPlanSchedules)
+          await privilegedDb.update(testPlanSchedules)
             .set({ nextRunAt: newNextRunAt, updatedAt: new Date() })
             .where(eq(testPlanSchedules.id, schedule.id));
           resolvedLogger.info(`[SchedulerService] Updated nextRunAt for recurring schedule ${schedule.id} to ${newNextRunAt.toISOString()}`);
@@ -213,7 +213,7 @@ export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: Tes
       }
     } else {
       // For 'once' schedules, deactivate it after execution
-      await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
+      await privilegedDb.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
       resolvedLogger.info(`[SchedulerService] Deactivated 'once' schedule ${schedule.id} after execution.`);
       await removeScheduleJob(schedule.id); // Remove it from active cron jobs
     }
@@ -235,7 +235,7 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
     removeScheduleJob(schedule.id);
   }
 
-  const planResult = await db.select().from(testPlans).where(eq(testPlans.id, schedule.testPlanId)).limit(1);
+  const planResult = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, schedule.testPlanId)).limit(1);
   if (!planResult.length) {
     resolvedLogger.error(`[SchedulerService] Test Plan ${schedule.testPlanId} not found for schedule ${schedule.id}. Cannot add job.`);
     return;
@@ -274,7 +274,7 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
       resolvedLogger.info(`[SchedulerService] 'Once' schedule ${schedule.id} has a nextRunAt in the past. Not scheduling.`);
       // Optionally, deactivate it here if it wasn't already.
       if (schedule.isActive) {
-        await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
+        await privilegedDb.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
       }
       return;
     }
@@ -328,7 +328,7 @@ export async function initializeScheduler() {
   activeCronJobs.clear();
 
   try {
-    const schedulesToLoad = await db
+    const schedulesToLoad = await privilegedDb
       .select()
       .from(testPlanSchedules)
       .where(and(
@@ -345,7 +345,7 @@ export async function initializeScheduler() {
       // If it's a 'once' schedule and its time has passed, deactivate it and skip.
       if (schedule.frequency === 'once' && schedule.nextRunAt.getTime() <= Date.now()) {
         resolvedLogger.info(`[SchedulerService] 'Once' schedule ${schedule.id} has past. Deactivating.`);
-        await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
+        await privilegedDb.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
         continue;
       }
       await addScheduleJob(schedule);
@@ -359,7 +359,7 @@ export async function initializeScheduler() {
 // Call initializeScheduler on application startup.
 // This should be done in your main server file (e.g., index.ts) after DB is ready.
 // For example:
-// db.sync().then(() => { // Or however DB readiness is determined
+// privilegedDb.sync().then(() => { // Or however DB readiness is determined
 //   initializeScheduler();
 //   app.listen(...);
 // });
@@ -391,7 +391,7 @@ export async function initializeScheduler() {
 // 9. The `executeScheduledPlan` function should fetch the LATEST schedule details from DB before execution,
 //    in case it was updated since the job was initially created in memory.
 //    The `schedule` object passed to `cron.schedule` callback is a snapshot from when the job was defined.
-//    Inside the callback: `const currentScheduleDetails = await db.select()...where(id = schedule.id)`
+//    Inside the callback: `const currentScheduleDetails = await privilegedDb.select()...where(id = schedule.id)`
 //    Then use `currentScheduleDetails` for execution.
 // 10. Error handling in `frequencyToCronPattern` for invalid cron strings in `custom_cron`.
 //     `cron.validate()` should be used before scheduling.
@@ -427,7 +427,7 @@ export async function bullmqAddScheduleJob(schedule: TestPlanSchedule): Promise<
     const delayMs = runAtMs - Date.now();
     if (delayMs <= 0) {
       resolvedLogger.info(`[SchedulerService/bullmq] 'once' schedule ${schedule.id} is in the past. Deactivating.`);
-      await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
+      await privilegedDb.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
       return;
     }
     await testExecutionQueue.add(TRIGGER_SCHEDULE_JOB, data, { delay: delayMs, jobId: onceJobId(schedule.id) });
@@ -464,7 +464,7 @@ export async function bullmqUpdateScheduleJob(schedule: TestPlanSchedule): Promi
 export async function bullmqInitializeScheduler(): Promise<void> {
   const resolvedLogger = await logger;
   resolvedLogger.info('[SchedulerService/bullmq] Initializing BullMQ schedulers...');
-  const activeSchedules = await db.select().from(testPlanSchedules).where(eq(testPlanSchedules.isActive, true));
+  const activeSchedules = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.isActive, true));
   const activeIds = new Set(activeSchedules.map((s) => s.id));
 
   // Reconcile: drop any Redis job schedulers that no longer map to an active schedule.
@@ -481,7 +481,7 @@ export async function bullmqInitializeScheduler(): Promise<void> {
 
   for (const schedule of activeSchedules) {
     if (schedule.frequency === 'once' && new Date(schedule.nextRunAt).getTime() <= Date.now()) {
-      await db.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
+      await privilegedDb.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
       continue;
     }
     await bullmqAddScheduleJob(schedule);

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "./db";
+import { privilegedDb } from "./db";
 import { testPlanWebhooks, testPlans } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { runTestPlan } from "./test-execution-service";
@@ -18,7 +18,7 @@ webhooksRouter.post("/execute/:token", async (req, res) => {
 
   try {
     // 1. Validate the webhook token
-    const webhookResult = await db.select().from(testPlanWebhooks).where(eq(testPlanWebhooks.token, token)).limit(1);
+    const webhookResult = await privilegedDb.select().from(testPlanWebhooks).where(eq(testPlanWebhooks.token, token)).limit(1);
     
     if (webhookResult.length === 0) {
       resolvedLogger.warn({ message: "Invalid webhook token used", token });
@@ -28,12 +28,12 @@ webhooksRouter.post("/execute/:token", async (req, res) => {
     const webhook = webhookResult[0];
 
     // 2. Update the last used timestamp
-    await db.update(testPlanWebhooks)
+    await privilegedDb.update(testPlanWebhooks)
       .set({ lastUsedAt: new Date() })
       .where(eq(testPlanWebhooks.id, webhook.id));
 
     // 3. Verify the Test Plan still exists
-    const planResult = await db.select().from(testPlans).where(eq(testPlans.id, webhook.testPlanId)).limit(1);
+    const planResult = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, webhook.testPlanId)).limit(1);
     if (planResult.length === 0) {
       return res.status(404).json({ success: false, error: "Associated Test Plan no longer exists" });
     }

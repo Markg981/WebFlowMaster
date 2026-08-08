@@ -4,7 +4,7 @@ import { QueueEvents } from 'bullmq';
 import { connection } from './redis';
 import { TEST_EXECUTION_QUEUE_NAME } from './queue';
 import loggerPromise from './logger';
-import { db } from './db';
+import { privilegedDb } from './db';
 import { executionLogs, testPlanExecutions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { getCorrelationId } from './middleware/correlation';
@@ -138,7 +138,7 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
       (async () => {
         let organizationId = executionOrgCache.get(executionId);
         if (organizationId === undefined) {
-          const [execution] = await db
+          const [execution] = await privilegedDb
             .select({ organizationId: testPlanExecutions.organizationId })
             .from(testPlanExecutions)
             .where(eq(testPlanExecutions.id, executionId))
@@ -152,7 +152,7 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
           executionOrgCache.set(executionId, organizationId);
         }
 
-        await db.insert(executionLogs).values({
+        await privilegedDb.insert(executionLogs).values({
           organizationId,
           testPlanExecutionId: executionId,
           timestamp: new Date(logEntry.timestamp),

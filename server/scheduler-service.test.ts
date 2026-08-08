@@ -17,7 +17,7 @@ vi.mock('./logger', () => ({
   default: Promise.resolve({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), http: vi.fn() }),
 }));
 
-import { db } from './db';
+import { privilegedDb } from './db';
 import { users, testPlans, testPlanSchedules, testPlanExecutions, type TestPlanSchedule } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import {
@@ -36,16 +36,16 @@ function rnd() {
 
 async function seedPlan() {
   const organizationId = await createTestOrganization();
-  const [user] = await db.insert(users).values({ username: `u_${rnd()}`, password: 'x', organizationId }).returning();
+  const [user] = await privilegedDb.insert(users).values({ username: `u_${rnd()}`, password: 'x', organizationId }).returning();
   const planId = `plan_${rnd()}`;
-  await db.insert(testPlans).values({ id: planId, userId: user.id, organizationId, name: 'Plan' }).returning();
+  await privilegedDb.insert(testPlans).values({ id: planId, userId: user.id, organizationId, name: 'Plan' }).returning();
   return { userId: user.id, planId, organizationId };
 }
 
 async function seedSchedule(planId: number | string, userId: number, overrides: Partial<typeof testPlanSchedules.$inferInsert> = {}) {
   // A schedule belongs to the same organization as the test plan it schedules.
-  const [plan] = await db.select({ organizationId: testPlans.organizationId }).from(testPlans).where(eq(testPlans.id, planId as string)).limit(1);
-  const [s] = await db
+  const [plan] = await privilegedDb.select({ organizationId: testPlans.organizationId }).from(testPlans).where(eq(testPlans.id, planId as string)).limit(1);
+  const [s] = await privilegedDb
     .insert(testPlanSchedules)
     .values({
       id: `sched_${rnd()}`,
@@ -64,10 +64,10 @@ async function seedSchedule(planId: number | string, userId: number, overrides: 
 }
 
 async function cleanup() {
-  await db.delete(testPlanExecutions);
-  await db.delete(testPlanSchedules);
-  await db.delete(testPlans);
-  await db.delete(users);
+  await privilegedDb.delete(testPlanExecutions);
+  await privilegedDb.delete(testPlanSchedules);
+  await privilegedDb.delete(testPlans);
+  await privilegedDb.delete(users);
 }
 
 describe('Scheduler Service', () => {
@@ -195,7 +195,7 @@ describe('Scheduler Service', () => {
       await initializeScheduler();
 
       expect(scheduleSpy).not.toHaveBeenCalled();
-      const [row] = await db.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, past.id));
+      const [row] = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, past.id));
       expect(row.isActive).toBe(false);
     });
   });

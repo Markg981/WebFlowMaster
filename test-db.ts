@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { db } from './server/db';
+import { privilegedDb } from './server/db';
 import { sql } from 'drizzle-orm';
 import * as schema from './shared/schema';
 
@@ -23,7 +23,7 @@ async function checkAllTables() {
     console.log(`\n--- Checking ${table.name} ---`);
     for (const col of table.columns) {
       try {
-        await db.execute(sql`SELECT ${sql.identifier(col)} FROM ${sql.identifier(table.name)} LIMIT 1`);
+        await privilegedDb.execute(sql`SELECT ${sql.identifier(col)} FROM ${sql.identifier(table.name)} LIMIT 1`);
         // console.log(`  ${col}: OK`);
       } catch (e) {
         console.log(`  ${col}: MISSING!`);

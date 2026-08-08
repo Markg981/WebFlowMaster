@@ -1,6 +1,6 @@
 import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
 import { migrate as migratePglite } from 'drizzle-orm/pglite/migrator';
-import { db } from '../server/db'; // Reuses the driver selection logic (Postgres vs PGlite)
+import { privilegedDb } from '../server/db'; // Reuses the driver selection logic (Postgres vs PGlite)
 import * as path from 'path';
 
 // Ensure DATABASE_URL is set
@@ -21,9 +21,9 @@ async function runMigrations() {
   try {
     console.log('Starting schema migrations...');
     if (isPostgres) {
-      await migratePg(db as any, { migrationsFolder });
+      await migratePg(privilegedDb as any, { migrationsFolder });
     } else {
-      await migratePglite(db as any, { migrationsFolder });
+      await migratePglite(privilegedDb as any, { migrationsFolder });
     }
     console.log('Schema migrations applied successfully!');
   } catch (error) {
