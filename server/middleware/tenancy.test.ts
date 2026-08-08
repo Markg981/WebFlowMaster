@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { privilegedDb } from '../db';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { withTenantTransaction, runWithTenant, getTenantOrgId } from './tenancy';
+import { withTenantTransaction, runWithTenant, getTenantOrgId, TenantConflictError } from './tenancy';
 
 let orgA: number;
 let orgB: number;
@@ -82,5 +82,60 @@ describe('withTenantTransaction', () => {
   it('exposes the current org id inside the context', async () => {
     const seen = await runWithTenant(orgB, async () => getTenantOrgId());
     expect(seen).toBe(orgB);
+  });
+});
+
+describe('withTenantTransaction reentrancy', () => {
+  /**
+   * Nesting withTenantTransaction inside itself must not open a second transaction: under
+   * PGlite that deadlocks forever on the client's single-writer mutex (and wedges the shared
+   * connection for every later test in the file); under node-postgres it silently takes a
+   * second pool client, losing atomicity. This test pins "the inner call reuses the outer
+   * transaction" as observable behavior — the same `tx` handle is seen by both levels.
+   */
+  it('a nested call joins the outer transaction instead of opening a second one', async () => {
+    let outerTx: unknown;
+    let innerTx: unknown;
+
+    await runWithTenant(orgA, () =>
+      withTenantTransaction(async (tx) => {
+        outerTx = tx;
+        await withTenantTransaction(async (nestedTx) => {
+          innerTx = nestedTx;
+        });
+      }),
+    );
+
+    expect(innerTx).toBe(outerTx);
+  });
+
+  it('a rollback in the outer transaction undoes work done by a nested call', async () => {
+    const orgName = `tenancy-reentrancy-rollback-${orgA}-${orgB}`;
+
+    await expect(
+      runWithTenant(orgA, () =>
+        withTenantTransaction(async () => {
+          await withTenantTransaction(async (nestedTx) => {
+            await nestedTx.execute(sql`INSERT INTO organizations (name) VALUES (${orgName})`);
+          });
+          throw new Error('force rollback');
+        }),
+      ),
+    ).rejects.toThrow('force rollback');
+
+    const rows = await privilegedDb.execute(sql`SELECT id FROM organizations WHERE name = ${orgName}`);
+    expect(rows.rows).toHaveLength(0);
+  });
+
+  it('throws TenantConflictError when a nested call would bind a different organization', async () => {
+    await expect(
+      runWithTenant(orgA, () =>
+        withTenantTransaction(async () => {
+          // orgB differs from the orgA binding the outer transaction already opened; joining
+          // it would silently run orgB's work under orgA's SET LOCAL ROLE / app.current_org.
+          await runWithTenant(orgB, () => withTenantTransaction(async () => {}));
+        }),
+      ),
+    ).rejects.toThrow(TenantConflictError);
   });
 });
