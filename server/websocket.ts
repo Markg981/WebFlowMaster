@@ -54,6 +54,12 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
   // All connected clients (for backward-compatible broadcast)
   const allClients = new Set<WebSocket>();
 
+  // Memoizes executionId -> organizationId lookups for emitExecutionLog, which fires once
+  // per emitted log line on the execution hot path. Without this, every log line would
+  // cost its own SELECT; an execution's organizationId never changes, so the first lookup
+  // is reused for the rest of that execution's logs.
+  const executionOrgCache = new Map<string, number>();
+
   wss.on('connection', (ws) => {
     logger.info('WebSocket client connected');
     allClients.add(ws);
@@ -126,18 +132,28 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
   const emitter: WsEmitter = {
     emitExecutionLog(executionId: string, logEntry: ExecutionLogEntry) {
       // 1. Persist to database (async, fire-and-forget). An execution log belongs to the
-      // same organization as its parent testPlanExecutions row; look it up rather than
-      // threading organizationId through every emitExecutionLog call site.
+      // same organization as its parent testPlanExecutions row; look it up (once per
+      // execution, via executionOrgCache) rather than threading organizationId through
+      // every emitExecutionLog call site.
       (async () => {
-        const [execution] = await db
-          .select({ organizationId: testPlanExecutions.organizationId })
-          .from(testPlanExecutions)
-          .where(eq(testPlanExecutions.id, executionId))
-          .limit(1);
-        if (!execution) return;
+        let organizationId = executionOrgCache.get(executionId);
+        if (organizationId === undefined) {
+          const [execution] = await db
+            .select({ organizationId: testPlanExecutions.organizationId })
+            .from(testPlanExecutions)
+            .where(eq(testPlanExecutions.id, executionId))
+            .limit(1);
+          if (!execution) {
+            // Preserve pre-lookup behavior: a log for an execution that doesn't exist is a
+            // persistence failure worth surfacing via the catch below, not a silent no-op.
+            throw new Error(`No test plan execution found for id ${executionId}`);
+          }
+          organizationId = execution.organizationId;
+          executionOrgCache.set(executionId, organizationId);
+        }
 
         await db.insert(executionLogs).values({
-          organizationId: execution.organizationId,
+          organizationId,
           testPlanExecutionId: executionId,
           timestamp: new Date(logEntry.timestamp),
           level: logEntry.level,

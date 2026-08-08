@@ -294,7 +294,11 @@ export async function processTestPlanJob(
 
   // Phase 8: Fetch Environment and Secrets
   const executionRecord = await db.select().from(testPlanExecutionsTable).where(eq(testPlanExecutionsTable.id, testPlanRunId)).limit(1);
-  const environmentId = executionRecord[0]?.environment ? parseInt(executionRecord[0].environment) : null;
+  if (executionRecord.length === 0) {
+    resolvedLogger.error({ message: 'Test plan execution record not found after creation', testPlanRunId });
+    return { error: `Test plan execution ${testPlanRunId} not found.`, status: 500, testPlanRunId };
+  }
+  const environmentId = executionRecord[0].environment ? parseInt(executionRecord[0].environment) : null;
   const secretsMap: Record<string, string> = {};
 
   if (environmentId && !isNaN(environmentId)) {
