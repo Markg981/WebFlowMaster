@@ -1,8 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { sql } from 'drizzle-orm';
+import type { Request, Response } from 'express';
 import { privilegedDb } from '../db';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { withTenantTransaction, runWithTenant, getTenantOrgId, TenantConflictError } from './tenancy';
+import {
+  withTenantTransaction,
+  runWithTenant,
+  getTenantOrgId,
+  tenancyMiddleware,
+  TenantConflictError,
+} from './tenancy';
 
 let orgA: number;
 let orgB: number;
@@ -137,5 +144,56 @@ describe('withTenantTransaction reentrancy', () => {
         }),
       ),
     ).rejects.toThrow(TenantConflictError);
+  });
+});
+
+describe('tenancyMiddleware', () => {
+  function fakeReqRes(user: { organizationId: number } | undefined) {
+    const req = { user } as unknown as Request;
+    const res = {} as Response;
+    return { req, res };
+  }
+
+  it('binds req.user.organizationId so a downstream async handler observes it via getTenantOrgId', async () => {
+    const { req, res } = fakeReqRes({ organizationId: orgA });
+
+    const seen = await new Promise<number | undefined>((resolve) => {
+      tenancyMiddleware(req, res, () => {
+        // A real Express handler observes the binding across an async boundary, not just
+        // synchronously inside next() — AsyncLocalStorage needs to survive that for this
+        // middleware to be useful at all. Simulate it with an awaited microtask.
+        void (async () => {
+          await Promise.resolve();
+          resolve(getTenantOrgId());
+        })();
+      });
+    });
+
+    expect(seen).toBe(orgA);
+  });
+
+  it('leaves no tenant bound for a request with no req.user, so a downstream transaction rejects', async () => {
+    const { req, res } = fakeReqRes(undefined);
+
+    let seenOrgId: number | undefined;
+    let rejection: unknown;
+
+    await new Promise<void>((resolve) => {
+      tenancyMiddleware(req, res, () => {
+        void (async () => {
+          seenOrgId = getTenantOrgId();
+          try {
+            await withTenantTransaction(async (tx) => tx.execute(sql`SELECT 1`));
+          } catch (err) {
+            rejection = err;
+          }
+          resolve();
+        })();
+      });
+    });
+
+    expect(seenOrgId).toBeUndefined();
+    expect(rejection).toBeInstanceOf(Error);
+    expect((rejection as Error).message).toMatch(/tenant context/i);
   });
 });
