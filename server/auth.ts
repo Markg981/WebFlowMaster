@@ -81,30 +81,35 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
+// Built once, on the first setupAuth(app) call, and reused after — see getSessionMiddleware.
+let sharedSessionMiddleware: RequestHandler | undefined;
+
 export function setupAuth(app: Express) {
   if (!process.env.SESSION_SECRET) {
     throw new Error("SESSION_SECRET must be set for session security.");
   }
 
-  const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store: createSessionStore(),
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    },
-  };
+  if (!sharedSessionMiddleware) {
+    sharedSessionMiddleware = session({
+      secret: process.env.SESSION_SECRET,
+      resave: false,
+      saveUninitialized: false,
+      store: createSessionStore(),
+      cookie: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      },
+    });
+  }
 
   // Baseline HTTP hardening. CSP is disabled because the SPA (Vite dev server /
   // bundled client) needs inline assets; enable a tailored CSP separately if required.
   app.use(helmet({ contentSecurityPolicy: false }));
 
   app.set("trust proxy", 1);
-  app.use(session(sessionSettings));
+  app.use(sharedSessionMiddleware);
   app.use(passport.initialize());
   app.use(passport.session());
 
@@ -178,4 +183,23 @@ export function setupAuth(app: Express) {
     const { password: _pw, ...safeUser } = req.user as SelectUser;
     res.json(safeUser);
   });
+}
+
+/**
+ * The exact session middleware `setupAuth` mounts on the Express app — same secret, same
+ * store (Redis in real deployments, memorystore otherwise). The WebSocket upgrade handler
+ * (server/websocket.ts) needs this to resolve `req.session`/`req.user` for a raw upgrade
+ * request; building a second `session(...)` instance would use a different store connection
+ * and a login made over HTTP would not be found when the socket looks up its session.
+ *
+ * Throws if called before setupAuth(app) has run once, since there is nothing to share yet.
+ */
+export function getSessionMiddleware(): RequestHandler {
+  if (!sharedSessionMiddleware) {
+    throw new Error(
+      "getSessionMiddleware() was called before setupAuth(app) ran — the shared session " +
+        "middleware is built there.",
+    );
+  }
+  return sharedSessionMiddleware;
 }
