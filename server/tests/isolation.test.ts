@@ -70,6 +70,40 @@ describe('row-level isolation', () => {
     expect(Number((rows.rows[0] as { n: string }).n)).toBe(1);
   });
 
+  it('refuses to INSERT a row into another organization', async () => {
+    // The policy's WITH CHECK clause, which USING does not cover: USING decides which rows
+    // you can see and modify, WITH CHECK decides what you are allowed to write. Without it a
+    // tenant could plant rows in another organization even while unable to read them.
+    await expect(
+      runWithTenant(orgA, () =>
+        withTenantTransaction((tx) =>
+          tx.execute(
+            sql`INSERT INTO projects (name, user_id, organization_id) VALUES ('planted', ${userA}, ${orgB})`,
+          ),
+        ),
+      ),
+    ).rejects.toThrow(/row-level security/i);
+
+    const rows = await privilegedDb.execute(
+      sql`SELECT count(*) AS n FROM projects WHERE organization_id = ${orgB}`,
+    );
+    expect(Number((rows.rows[0] as { n: string }).n)).toBe(1);
+  });
+
+  it('shows no rows to a connection with no organization bound, rather than raising', async () => {
+    // This is the behaviour the policy's NULLIF exists for. A custom GUC does not revert to
+    // unset when a LOCAL scope ends — it reads '' from then on (Postgres bug #15646) — so a
+    // bare current_setting(...)::int would raise a cast error here. Failing closed via an
+    // error is still safe, but an unbound connection should see nothing, not 500.
+    const rows = await privilegedDb.transaction(async (tx) => {
+      await tx.execute(sql`SET LOCAL ROLE app_user`);
+      await tx.execute(sql`SELECT set_config('app.current_org', '', true)`);
+      return tx.execute(sql`SELECT count(*) AS n FROM projects`);
+    });
+
+    expect(Number((rows.rows[0] as { n: string }).n)).toBe(0);
+  });
+
   it('still bypasses isolation for the privileged handle, as Postgres specifies', async () => {
     const rows = await privilegedDb.execute(sql`SELECT count(*) AS n FROM projects`);
     expect(Number((rows.rows[0] as { n: string }).n)).toBeGreaterThanOrEqual(2);
