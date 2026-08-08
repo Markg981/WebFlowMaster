@@ -27,7 +27,7 @@ export function runWithTenant<T>(organizationId: number, fn: () => Promise<T> | 
 }
 
 export function tenancyMiddleware(req: Request, res: Response, next: NextFunction): void {
-  const organizationId = (req.user as { organizationId?: number } | undefined)?.organizationId;
+  const organizationId = req.user?.organizationId;
   if (organizationId === undefined) {
     // Unauthenticated or pre-org routes (login, health) simply have no tenant; the
     // request proceeds and any tenant query inside it will refuse to run.
