@@ -3,6 +3,7 @@ import request from 'supertest';
 import express, { type Express } from 'express';
 import { privilegedDb } from './db';
 import { users } from '@shared/schema';
+import { storage } from './storage';
 
 // Only the logger is mocked; auth runs against the real (PGlite) test database
 // with an in-memory session store (NODE_ENV=test).
@@ -88,5 +89,19 @@ describe('GET /api/user', () => {
     const res = await agent.get('/api/user').expect(200);
     expect(res.body.username).toBe('alice');
     expect(res.body.password).toBeUndefined();
+  });
+});
+
+describe('session user shape', () => {
+  // storage.getUser backs passport's deserializeUser, so whatever it returns is exactly what
+  // tenancyMiddleware and requireRole read off req.user on every request. Creating a user here
+  // (rather than assuming a fixed id) keeps this independent of how many rows earlier tests in
+  // the shared test database left behind.
+  it('carries organizationId and role on the session user', async () => {
+    const created = await storage.createUser({ username: 'shape-check', password: 'password123' });
+    const user = await storage.getUser(created.id);
+    expect(user).toBeDefined();
+    expect(typeof user!.organizationId).toBe('number');
+    expect(['viewer', 'editor', 'owner']).toContain(user!.role);
   });
 });
