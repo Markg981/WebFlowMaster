@@ -44,6 +44,8 @@ import uploadsRoutes from "./routes/uploads.routes";
 import reportsRoutes from "./routes/reports.routes";
 import authRoutes from "./routes/auth.routes";
 import observabilityRoutes from "./routes/observability.routes";
+import organizationRoutes from "./routes/organization.routes";
+import { tenancyMiddleware } from "./middleware/tenancy";
 
 export async function registerRoutes(app: Express): Promise<Server> {
     const resolvedLogger = await loggerPromise;
@@ -78,9 +80,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Auth First
     setupAuth(app); // Attaches passport strategies
-    
+
+    // Before every router: establishes the ambient organization for the request, which
+    // withTenantTransaction requires and refuses to run without.
+    app.use(tenancyMiddleware);
+
     // API Routers
     app.use(authRoutes);
+    app.use(organizationRoutes);
     app.use(projectsRoutes);
     app.use(testsRoutes);
     app.use(testPlansRoutes);
