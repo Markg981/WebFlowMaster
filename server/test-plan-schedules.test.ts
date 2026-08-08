@@ -83,7 +83,6 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
       const newSchedulePayload = {
         scheduleName: 'Nightly QA Run',
         testPlanId: seededPlan1.id,
-        organizationId,
         frequency: 'daily@02:00',
         nextRunAt: Math.floor(new Date('2025-01-01T02:00:00Z').getTime() / 1000),
         environment: 'QA',
@@ -132,7 +131,7 @@ describe('Test Plan Schedules API (/api/test-plan-schedules)', () => {
 
     it('should return 400 when creating a schedule with a non-existent testPlanId', async () => {
       const newSchedulePayload = {
-        scheduleName: 'Invalid Plan Run', testPlanId: uuidv4(), frequency: 'Daily', organizationId,
+        scheduleName: 'Invalid Plan Run', testPlanId: uuidv4(), frequency: 'Daily',
         nextRunAt: Math.floor(new Date().getTime() / 1000), environment: "QA", browsers: ["chromium"]
       };
       const response = await request(app)

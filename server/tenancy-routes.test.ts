@@ -1,0 +1,200 @@
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import request from 'supertest';
+import express, { type Application, type Request, type Response, type NextFunction } from 'express';
+import { db } from './db';
+import {
+  users,
+  organizations,
+  projects,
+  tests,
+  testPlans,
+  testPlanSelectedTests,
+  excelSequencesMap,
+  type User,
+} from '../shared/schema';
+import { eq } from 'drizzle-orm';
+import { createTestOrganization } from './tests/factories';
+
+/**
+ * `organizationId` is the tenancy boundary the Row-Level Security policies key off, so it
+ * must never be reachable from the wire. These tests mount the REAL handlers registered by
+ * `registerRoutes` — including its router mount order, which decides which of two
+ * competing `/api/test-plans` handlers actually runs — and assert on the persisted row
+ * rather than the response body alone.
+ *
+ * Every case here corresponds to a defect that shipped because no test exercised the
+ * production handler: a body-trusted organizationId, a join-table insert missing the
+ * column, and a mapping row that stamped the caller's organization onto another tenant's
+ * test.
+ */
+
+vi.mock('./playwright-service', () => ({
+  playwrightService: {
+    loadWebsite: vi.fn(),
+    detectElements: vi.fn(),
+    executeAdhocSequence: vi.fn(),
+    executeTest: vi.fn(),
+    startRecordingSession: vi.fn(),
+    stopRecordingSession: vi.fn(),
+    getRecordedActions: vi.fn(),
+  },
+  PlaywrightService: class {},
+}));
+
+let app: Application;
+let currentUser: User;
+
+let sessionOrganizationId: number;
+let foreignOrganizationId: number;
+let sessionUser: User;
+let foreignUser: User;
+
+beforeAll(async () => {
+  const tempApp = express();
+  tempApp.use(express.json());
+  tempApp.use((req: Request, res: Response, next: NextFunction) => {
+    req.user = currentUser;
+    req.isAuthenticated = () => true;
+    next();
+  });
+  const { registerRoutes } = await import('./routes');
+  await registerRoutes(tempApp);
+  app = tempApp;
+});
+
+beforeEach(async () => {
+  await db.delete(excelSequencesMap);
+  await db.delete(testPlanSelectedTests);
+  await db.delete(testPlans);
+  await db.delete(tests);
+  await db.delete(projects);
+  await db.delete(users);
+  await db.delete(organizations);
+
+  sessionOrganizationId = await createTestOrganization('Session Organization');
+  foreignOrganizationId = await createTestOrganization('Foreign Organization');
+
+  [sessionUser] = await db
+    .insert(users)
+    .values({ username: 'session_user', password: 'hashed', organizationId: sessionOrganizationId })
+    .returning();
+  [foreignUser] = await db
+    .insert(users)
+    .values({ username: 'foreign_user', password: 'hashed', organizationId: foreignOrganizationId })
+    .returning();
+
+  currentUser = sessionUser;
+});
+
+/** A `tests` row, owned by whichever user/organization is named. */
+async function seedTest(owner: User, name: string) {
+  const [row] = await db
+    .insert(tests)
+    .values({
+      userId: owner.id,
+      organizationId: owner.organizationId,
+      name,
+      url: 'https://app.test',
+      sequence: [],
+      elements: [],
+    })
+    .returning();
+  return row;
+}
+
+describe('POST /api/test-plans', () => {
+  it('ignores userId and organizationId in the request body and persists the row under the session', async () => {
+    const response = await request(app)
+      .post('/api/test-plans')
+      .send({
+        name: 'Regression Plan',
+        description: 'created by the session user',
+        userId: foreignUser.id,
+        organizationId: foreignOrganizationId,
+      })
+      .expect(201);
+
+    expect(response.body.organizationId).toBe(sessionOrganizationId);
+    expect(response.body.userId).toBe(sessionUser.id);
+
+    const [stored] = await db.select().from(testPlans).where(eq(testPlans.id, response.body.id));
+    expect(stored.organizationId).toBe(sessionOrganizationId);
+    expect(stored.userId).toBe(sessionUser.id);
+
+    // Nothing at all landed in the other tenant.
+    const foreignPlans = await db
+      .select()
+      .from(testPlans)
+      .where(eq(testPlans.organizationId, foreignOrganizationId));
+    expect(foreignPlans).toHaveLength(0);
+  });
+});
+
+describe('PUT /api/test-plans/:id', () => {
+  it('stamps the session organization on the testPlanSelectedTests rows it writes', async () => {
+    const uiTest = await seedTest(sessionUser, 'Linked UI test');
+
+    const created = await request(app)
+      .post('/api/test-plans')
+      .send({ name: 'Plan with selections' })
+      .expect(201);
+
+    // Before the fix this returned 500: the join-table insert omitted the NOT NULL
+    // organizationId, and the `tx: any` annotation kept the compiler from noticing.
+    await request(app)
+      .put(`/api/test-plans/${created.body.id}`)
+      .send({ selectedTests: [{ id: uiTest.id, type: 'ui' }] })
+      .expect(200);
+
+    const links = await db
+      .select()
+      .from(testPlanSelectedTests)
+      .where(eq(testPlanSelectedTests.testPlanId, created.body.id));
+
+    expect(links).toHaveLength(1);
+    expect(links[0].testId).toBe(uiTest.id);
+    expect(links[0].organizationId).toBe(sessionOrganizationId);
+  });
+});
+
+describe('POST /api/excel-mappings', () => {
+  it('takes organizationId from the parent test rather than from the session', async () => {
+    const ownTest = await seedTest(sessionUser, 'Own test');
+
+    await request(app)
+      .post('/api/excel-mappings')
+      .send({ excelTestCaseId: 'TC-100', testId: ownTest.id })
+      .expect(200);
+
+    const [mapping] = await db
+      .select()
+      .from(excelSequencesMap)
+      .where(eq(excelSequencesMap.testId, ownTest.id));
+    expect(mapping.organizationId).toBe(sessionOrganizationId);
+  });
+
+  it('refuses to map another organization’s test', async () => {
+    const foreignTest = await seedTest(foreignUser, 'Foreign test');
+
+    await request(app)
+      .post('/api/excel-mappings')
+      .send({ excelTestCaseId: 'TC-200', testId: foreignTest.id })
+      .expect(403);
+
+    // The decisive assertion: no mapping row exists at all. Before the fix one was
+    // written, stamped with the caller's organization while pointing at a foreign test —
+    // which under RLS would have been readable by the wrong tenant.
+    const mappings = await db
+      .select()
+      .from(excelSequencesMap)
+      .where(eq(excelSequencesMap.testId, foreignTest.id));
+    expect(mappings).toHaveLength(0);
+  });
+
+  it('404s on a testId that does not exist', async () => {
+    await request(app)
+      .post('/api/excel-mappings')
+      .send({ excelTestCaseId: 'TC-300', testId: 999999 })
+      .expect(404);
+  });
+});
