@@ -1,10 +1,11 @@
 import { Router, type Response } from "express";
-import { privilegedDb } from "../db";
 import { tests, insertTestSchema, apiTests, insertApiTestSchema, updateApiTestSchema, users, projects } from "@shared/schema";
 import { eq, desc, and, getTableColumns } from "drizzle-orm";
 import { z } from "zod";
 import loggerPromise from "../logger";
 import { playwrightService } from "../playwright-service";
+import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
+import { requireRole } from "../middleware/require-role";
 
 const router = Router();
 const logger = await loggerPromise;
@@ -12,10 +13,14 @@ const logger = await loggerPromise;
 // --- UI Tests ---
 
 // GET /api/tests - List UI tests
-router.get("/api/tests", async (req, res) => {
+router.get("/api/tests", requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
   try {
-    const allTests = await privilegedDb.select().from(tests).orderBy(desc(tests.createdAt));
+    // No organization filter here on purpose: the RLS policy applies it. Adding one would
+    // be harmless but would suggest the isolation depends on remembering it.
+    const allTests = await withTenantTransaction((tx) =>
+      tx.select().from(tests).orderBy(desc(tests.createdAt)),
+    );
     res.json(allTests);
   } catch (error: any) {
     logger.error({ message: "Error fetching tests", error: error.message });
@@ -24,7 +29,7 @@ router.get("/api/tests", async (req, res) => {
 });
 
 // POST /api/tests - Create UI test
-router.post("/api/tests", async (req, res) => {
+router.post("/api/tests", requireRole('editor'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
 
   const parseResult = insertTestSchema.safeParse(req.body);
@@ -33,10 +38,12 @@ router.post("/api/tests", async (req, res) => {
   }
 
   try {
-    const newTest = await privilegedDb
-      .insert(tests)
-      .values({ ...parseResult.data, organizationId: req.user!.organizationId })
-      .returning();
+    const newTest = await withTenantTransaction((tx) =>
+      tx
+        .insert(tests)
+        .values({ ...parseResult.data, organizationId: req.user!.organizationId })
+        .returning(),
+    );
     res.status(201).json(newTest[0]);
   } catch (error: any) {
     logger.error({ message: "Error creating test", error: error.message });
@@ -44,13 +51,18 @@ router.post("/api/tests", async (req, res) => {
   }
 });
 
-// POST /api/tests/:id/run - Run UI Test
-router.post("/api/tests/:id/run", async (req, res) => {
+// Executing a test launches a browser, reaches external systems, writes execution_logs and
+// may run preconditions that mutate the system under test. It is a mutation, so editor.
+router.post("/api/tests/:id/run", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
 
     const testId = parseInt(req.params.id);
     try {
-        const testRecord = await privilegedDb.select().from(tests).where(eq(tests.id, testId)).limit(1);
+        // Under RLS this finds nothing for another organization's test, so the 404 below
+        // is the correct answer rather than a leak.
+        const testRecord = await withTenantTransaction((tx) =>
+          tx.select().from(tests).where(eq(tests.id, testId)).limit(1),
+        );
         if (testRecord.length === 0) return res.status(404).json({ error: "Test not found" });
 
         const result = await playwrightService.executeTestSequence(testRecord[0], (req.user as any).id);
@@ -79,8 +91,8 @@ const editApiTestSchema = updateApiTestSchema.extend({ projectId: projectIdField
 
 // Saved tests are returned with the creator/project names already resolved so the client
 // can group them without a second round-trip.
-const selectApiTestsWithNames = () =>
-    privilegedDb
+const selectApiTestsWithNames = (tx: TenantTx) =>
+    tx
         .select({
             ...getTableColumns(apiTests),
             creatorUsername: users.username,
@@ -104,12 +116,14 @@ function parseTestId(rawId: string, res: Response): number | null {
 const isForeignKeyError = (error: any) => /foreign key/i.test(error?.message ?? "");
 
 // GET /api/api-tests
-router.get("/api/api-tests", async (req, res) => {
+router.get("/api/api-tests", requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
     try {
-        const result = await selectApiTestsWithNames()
+        const result = await withTenantTransaction((tx) =>
+          selectApiTestsWithNames(tx)
             .where(eq(apiTests.userId, req.user!.id))
-            .orderBy(desc(apiTests.updatedAt));
+            .orderBy(desc(apiTests.updatedAt)),
+        );
         res.json(result);
     } catch (e: any) {
         logger.error({ message: "Error fetching API tests", error: e.message, userId: req.user?.id });
@@ -118,15 +132,17 @@ router.get("/api/api-tests", async (req, res) => {
 });
 
 // GET /api/api-tests/:id
-router.get("/api/api-tests/:id", async (req, res) => {
+router.get("/api/api-tests/:id", requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
     const id = parseTestId(req.params.id, res);
     if (id === null) return;
 
     try {
-        const result = await selectApiTestsWithNames()
+        const result = await withTenantTransaction((tx) =>
+          selectApiTestsWithNames(tx)
             .where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user!.id)))
-            .limit(1);
+            .limit(1),
+        );
         if (result.length === 0) return res.status(404).json({ error: "API Test not found or not authorized" });
         res.json(result[0]);
     } catch (e: any) {
@@ -136,7 +152,7 @@ router.get("/api/api-tests/:id", async (req, res) => {
 });
 
 // POST /api/api-tests
-router.post("/api/api-tests", async (req, res) => {
+router.post("/api/api-tests", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
     const parseResult = createApiTestSchema.safeParse(req.body);
     if (!parseResult.success) {
@@ -145,7 +161,12 @@ router.post("/api/api-tests", async (req, res) => {
     }
 
     try {
-        const newTest = await privilegedDb.insert(apiTests).values({ ...parseResult.data, userId: req.user!.id, organizationId: req.user!.organizationId }).returning();
+        const newTest = await withTenantTransaction((tx) =>
+          tx
+            .insert(apiTests)
+            .values({ ...parseResult.data, userId: req.user!.id, organizationId: req.user!.organizationId })
+            .returning(),
+        );
         res.status(201).json(newTest[0]);
     } catch (e: any) {
         logger.error({ message: "Error creating API test", error: e.message, userId: req.user?.id });
@@ -155,7 +176,7 @@ router.post("/api/api-tests", async (req, res) => {
 });
 
 // PUT /api/api-tests/:id
-router.put("/api/api-tests/:id", async (req, res) => {
+router.put("/api/api-tests/:id", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
     const id = parseTestId(req.params.id, res);
     if (id === null) return;
@@ -167,10 +188,12 @@ router.put("/api/api-tests/:id", async (req, res) => {
     }
 
     try {
-        const updated = await privilegedDb.update(apiTests)
+        const updated = await withTenantTransaction((tx) =>
+          tx.update(apiTests)
             .set({ ...parseResult.data, updatedAt: new Date() })
             .where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user!.id)))
-            .returning();
+            .returning(),
+        );
         if (updated.length === 0) return res.status(404).json({ error: "Test not found or not authorized" });
         res.json(updated[0]);
     } catch (e: any) {
@@ -181,7 +204,7 @@ router.put("/api/api-tests/:id", async (req, res) => {
 });
 
 // DELETE /api/api-tests/:id
-router.delete("/api/api-tests/:id", async (req, res) => {
+router.delete("/api/api-tests/:id", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
     const id = parseTestId(req.params.id, res);
     if (id === null) return;
@@ -189,9 +212,11 @@ router.delete("/api/api-tests/:id", async (req, res) => {
     try {
         // .returning() distinguishes "deleted" from "never existed / someone else's row",
         // which a bare delete cannot: it succeeds either way.
-        const deleted = await privilegedDb.delete(apiTests)
+        const deleted = await withTenantTransaction((tx) =>
+          tx.delete(apiTests)
             .where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user!.id)))
-            .returning();
+            .returning(),
+        );
         if (deleted.length === 0) return res.status(404).json({ error: "API Test not found or not authorized" });
         res.status(204).send();
     } catch (e: any) {

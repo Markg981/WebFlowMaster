@@ -43,6 +43,9 @@ beforeEach(async () => {
   await privilegedDb.delete(users);
   organizationId = await createTestOrganization();
   (mockUser as any).organizationId = organizationId;
+  // requireRole reads role off req.user directly (this app's mock auth middleware never
+  // loads it from the DB row below), so the mock object needs it set explicitly.
+  (mockUser as any).role = 'editor';
   await privilegedDb.insert(users).values({ id: mockUser.id, username: mockUser.username, password: 'hashed', organizationId });
   vi.clearAllMocks();
 

@@ -14,6 +14,7 @@ import {
 } from '../shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { createTestOrganization } from './tests/factories';
+import { tenancyMiddleware } from './middleware/tenancy';
 // Not strictly needed for these tests but good for consistency if IDs were strings
 
 // Mock logger to prevent console output during tests, unless explicitly needed
@@ -59,6 +60,9 @@ beforeAll(async () => {
     req.isAuthenticated = () => true;
     next();
   });
+  // Establishes the ambient organization from req.user, which withTenantTransaction
+  // requires — the same middleware server/routes.ts mounts before every router.
+  app.use(tenancyMiddleware);
 
   // Mount the REAL router. This suite used to re-implement the handlers inline, so it
   // validated a copy: the production route could (and did) drift — silently dropping
