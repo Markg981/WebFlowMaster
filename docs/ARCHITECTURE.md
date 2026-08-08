@@ -34,6 +34,8 @@ graph TD
 
 > **Note:** The persistence layer uses PostgreSQL in production (via Drizzle ORM `node-postgres`) and [PGlite](https://github.com/electric-sql/pglite) for local development. A `DATABASE_URL` starting with `postgres://` selects PostgreSQL; otherwise it is treated as a local PGlite data directory. (Earlier versions of the project used SQLite.)
 
+> **Multi-tenancy / RLS:** org-scoped tables are protected by Postgres Row-Level Security (`migrations/0004_enable_rls.sql`), enforced by having every request run its queries inside a transaction that issues `SET LOCAL ROLE app_user` (`server/middleware/tenancy.ts`). That role is `NOLOGIN` — the app never connects as it — so `SET ROLE` requires the connecting role (whatever user is in `DATABASE_URL`) to already be a member of `app_user`. `migrations/0005_grant_app_user_membership.sql` grants that membership to whichever role runs the migrations. **If the role in your production `DATABASE_URL` is not the same role that ran the migrations (and is not a superuser), grant it membership explicitly:** `GRANT app_user TO <your_app_role>;`. Nothing in CI can catch a missing grant, because PGlite always connects as a superuser.
+
 The core testing logic revolves around the `tests` table, managed via Drizzle ORM.
 
 ### Key Table: `tests`

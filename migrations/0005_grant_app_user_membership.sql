@@ -1,0 +1,14 @@
+-- app_user (created in 0003_organizations_and_rbac.sql) is NOLOGIN: the application never
+-- connects as it, it only reaches it via `SET LOCAL ROLE app_user` inside
+-- withTenantTransaction (server/middleware/tenancy.ts). SET ROLE requires the connecting
+-- role to already be a member of the target role (or be superuser) -- and nothing granted
+-- that membership. Nothing catches this in CI: PGlite always connects as `postgres`, a
+-- superuser, so SET ROLE trivially succeeds in dev and in every test run. On real Postgres,
+-- if the role in DATABASE_URL is not itself a superuser, every tenant-scoped query fails on
+-- its first statement, in production, on every request.
+--
+-- GRANT ... TO CURRENT_USER grants the membership to whichever role actually runs this
+-- migration, rather than hardcoding a role name that varies per environment. Granting a
+-- membership that already exists is defined by Postgres as a no-op, not an error, so this
+-- is safe to re-run.
+GRANT app_user TO CURRENT_USER;

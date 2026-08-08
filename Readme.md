@@ -70,6 +70,11 @@ Copia il template [`.env.example`](./.env.example) in `.env` e valorizza i param
 
 ```env
 # Database: connection string Postgres OPPURE percorso data dir PGlite locale
+# ATTENZIONE (produzione/Postgres): il ruolo isolato dalla Row-Level Security (app_user,
+# vedi migrations/0004_enable_rls.sql) è NOLOGIN; l'app lo raggiunge solo via SET LOCAL ROLE,
+# che richiede che il ruolo di connessione ne sia già membro. migrations/0005 concede questa
+# membership al ruolo che esegue le migration; se in produzione l'app si connette con un
+# ruolo diverso (e non superuser), va concessa a mano: GRANT app_user TO <ruolo_app>;
 DATABASE_URL=./data/local-pg
 
 # Redis (Sessioni e Worker BullMQ)
