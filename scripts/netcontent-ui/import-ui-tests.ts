@@ -125,14 +125,22 @@ async function main() {
     byFeature.get(feature)!.push({ id, steps, expected: cell(row, 14), precond: cell(row, 10), priority: cell(row, 2) || 'Medium', feature });
   }
 
-  const userId = (await db.select({ id: users.id }).from(users).orderBy(asc(users.id)).limit(1))[0]?.id;
-  if (!userId) throw new Error('No users in DB.');
+  // The importing user also determines the organization every imported row belongs to.
+  const owner = (await db.select({ id: users.id, organizationId: users.organizationId }).from(users).orderBy(asc(users.id)).limit(1))[0];
+  if (!owner) throw new Error('No users in DB.');
+  const { id: userId, organizationId } = owner;
   const allApiTests = await db.select().from(apiTests);
 
   let projectId: number | null = null;
   if (!dryRun) {
-    const existing = await db.select({ id: projects.id }).from(projects).where(eq(projects.name, PROJECT_NAME)).limit(1);
-    projectId = existing[0]?.id ?? (await db.insert(projects).values({ name: PROJECT_NAME, userId }).returning({ id: projects.id }))[0].id;
+    // Match on name AND organization: a same-named project owned by another tenant must
+    // not collect this run's tests.
+    const existing = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(and(eq(projects.name, PROJECT_NAME), eq(projects.organizationId, organizationId)))
+      .limit(1);
+    projectId = existing[0]?.id ?? (await db.insert(projects).values({ name: PROJECT_NAME, userId, organizationId }).returning({ id: projects.id }))[0].id;
   }
 
   let grandTotal = 0;
@@ -195,7 +203,7 @@ async function main() {
     await db.delete(tests).where(and(eq(tests.projectId, projectId!), eq(tests.module, feature)));
     for (const rec of records) {
       const seq = rec.sequence.map((s: any) => ({ action: s.action, targetElement: s.targetElement, value: s.value }));
-      await db.insert(tests).values({ ...rec, projectId, sequence: seq } as any);
+      await db.insert(tests).values({ ...rec, projectId, organizationId, sequence: seq } as any);
     }
   }
 

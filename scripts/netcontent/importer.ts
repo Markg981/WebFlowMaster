@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import type { db as DbType } from '../../server/db';
 import { users, projects, apiTests, type InsertApiTest } from '@shared/schema';
 
@@ -22,16 +22,19 @@ export async function findOrCreateProject(
   userId: number,
   name: string,
 ): Promise<number> {
-  const existing = await database
-    .select({ id: projects.id })
-    .from(projects)
-    .where(eq(projects.name, name))
-    .limit(1);
-  if (existing.length > 0) return existing[0].id;
-
   // A created project belongs to the same organization as the user who owns it.
   const [owner] = await database.select({ organizationId: users.organizationId }).from(users).where(eq(users.id, userId)).limit(1);
   if (!owner) throw new Error(`No user found with id ${userId}; cannot determine organization for imported project.`);
+
+  // Match by name AND organization: matching on name alone could attach this run's
+  // apiTests (stamped with the importer's org) to a same-named project owned by another
+  // tenant.
+  const existing = await database
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.name, name), eq(projects.organizationId, owner.organizationId)))
+    .limit(1);
+  if (existing.length > 0) return existing[0].id;
 
   const created = await database.insert(projects).values({ name, userId, organizationId: owner.organizationId }).returning({ id: projects.id });
   return created[0].id;
