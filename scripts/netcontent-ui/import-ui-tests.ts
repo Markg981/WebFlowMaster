@@ -140,7 +140,7 @@ async function main() {
       .from(projects)
       .where(and(eq(projects.name, PROJECT_NAME), eq(projects.organizationId, organizationId)))
       .limit(1);
-    projectId = existing[0]?.id ?? (await db.insert(projects).values({ name: PROJECT_NAME, userId, organizationId }).returning({ id: projects.id }))[0].id;
+    projectId = existing[0]?.id ?? (await db.insert(projects).values({ name: PROJECT_NAME, userId, organizationId }).returning())[0].id;
   }
 
   let grandTotal = 0;

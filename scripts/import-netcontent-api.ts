@@ -34,8 +34,8 @@ async function main() {
   }
 
   const userId = await resolveUserId(db, userOverride);
-  const projectId = await findOrCreateProject(db, userId, projectName);
-  const records = mapEndpoints(endpoints, { baseUrlVar, projectId, userId });
+  const { projectId, organizationId } = await findOrCreateProject(db, userId, projectName);
+  const records = mapEndpoints(endpoints, { baseUrlVar, projectId, userId, organizationId });
   const summary = await importApiTests(db, records, projectId);
 
   console.log(

@@ -44,15 +44,18 @@ describe('findOrCreateProject', () => {
   it('creates the project on first call and reuses it on the second', async () => {
     const a = await findOrCreateProject(db, 1, 'NetContent');
     const b = await findOrCreateProject(db, 1, 'NetContent');
-    expect(a).toBe(b);
+    expect(a).toEqual(b);
     const rows = await db.select().from(projects).where(eq(projects.name, 'NetContent'));
     expect(rows).toHaveLength(1);
+    // The organization comes back alongside the id so callers can stamp it on the rows
+    // they go on to write, rather than re-deriving it (and forgetting to).
+    expect(a.organizationId).toBe(rows[0].organizationId);
   });
 });
 
 describe('importApiTests (first run)', () => {
   it('inserts one apiTest per endpoint', async () => {
-    const pid = await findOrCreateProject(db, 1, 'NetContent');
+    const { projectId: pid } = await findOrCreateProject(db, 1, 'NetContent');
     const records = mapEndpoints(EPS, { baseUrlVar: '{{baseUrl}}', projectId: pid, userId: 1, organizationId });
     const summary = await importApiTests(db, records, pid);
     expect(summary.created).toBe(2);
@@ -65,7 +68,7 @@ describe('importApiTests (first run)', () => {
 
 describe('importApiTests (re-run)', () => {
   it('preserves edited assertions + filled param values, adds new params, reports orphans', async () => {
-    const pid = await findOrCreateProject(db, 1, 'NetContent');
+    const { projectId: pid } = await findOrCreateProject(db, 1, 'NetContent');
     let records = mapEndpoints(EPS, { baseUrlVar: '{{baseUrl}}', projectId: pid, userId: 1, organizationId });
     await importApiTests(db, records, pid);
 
