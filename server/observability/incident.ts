@@ -98,6 +98,13 @@ export function configureIncidents(options: {
   rootDir?: string;
   repoRoot?: string;
   logger?: IncidentLogger;
+  /**
+   * Replaces the git probe. Collecting git state costs three synchronous subprocess spawns,
+   * which is fine once per 30s in a server and ruinous in a test: recording four incidents
+   * against a fresh temp repoRoot meant up to twelve `git` spawns inside one 5s vitest
+   * budget, and the case that installs fake timers failed intermittently because of it.
+   */
+  gitInfo?: () => Record<string, unknown>;
 }): void {
   if (options.rootDir) {
     rootDir = options.rootDir;
@@ -105,7 +112,11 @@ export function configureIncidents(options: {
   }
   if (options.repoRoot) repoRoot = options.repoRoot;
   if (options.logger) logger = options.logger;
+  gitInfoProbe = options.gitInfo ?? gitInfoFromGit;
   fingerprintState.clear();
+  // The cache is keyed on time alone, so without this a repoRoot change would keep serving
+  // the previous root's data until the TTL expired.
+  gitInfoCache = null;
 }
 
 // Local git plumbing commands (rev-parse, status --porcelain) normally return in single-digit
@@ -128,6 +139,8 @@ const GIT_COMMAND_TIMEOUT_MS = 2000;
  */
 const GIT_INFO_TTL_MS = 30_000;
 let gitInfoCache: { at: number; value: Record<string, unknown> } | null = null;
+/** Swappable via configureIncidents so tests need not spawn subprocesses. */
+let gitInfoProbe: () => Record<string, unknown> = gitInfoFromGit;
 
 function gitInfo(): Record<string, unknown> {
   const now = Date.now();
@@ -135,6 +148,12 @@ function gitInfo(): Record<string, unknown> {
     return gitInfoCache.value;
   }
 
+  const value = gitInfoProbe();
+  gitInfoCache = { at: now, value };
+  return value;
+}
+
+function gitInfoFromGit(): Record<string, unknown> {
   const run = (args: string[]): string | null => {
     try {
       return execFileSync('git', args, {
@@ -149,13 +168,11 @@ function gitInfo(): Record<string, unknown> {
       return null;
     }
   };
-  const value = {
+  return {
     gitCommit: run(['rev-parse', '--short', 'HEAD']),
     gitBranch: run(['rev-parse', '--abbrev-ref', 'HEAD']),
     workingTreeDirty: run(['status', '--porcelain']) !== '',
   };
-  gitInfoCache = { at: now, value };
-  return value;
 }
 
 /**

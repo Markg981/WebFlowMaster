@@ -27,6 +27,10 @@ beforeEach(() => {
     rootDir: root,
     repoRoot,
     logger: { error: (message, meta) => logged.push({ level: 'error', message, meta }) },
+    // repoRoot is a bare mkdtemp directory, so the real probe spawns three `git` processes
+    // that all fail, per uncached call. That cost is what made the fake-timers case blow its
+    // 5s budget intermittently.
+    gitInfo: () => ({ gitCommit: 'abc1234', gitBranch: 'test-branch', workingTreeDirty: false }),
   });
 });
 
