@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { testPlans, testPlanSchedules, testPlanExecutions, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema, testPlanApiPayloadSchema } from "@shared/schema";
+import { testPlans, testPlanSchedules, testPlanExecutions, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema, testPlanApiPayloadSchema, type TestPlanSchedule } from "@shared/schema";
 import { eq, desc, and, getTableColumns, type SQL } from "drizzle-orm";
 import { v4 as uuidv4 } from 'uuid';
 import loggerPromise from "../logger";
@@ -177,15 +177,22 @@ router.put("/api/test-plan-schedules/:id", requireRole('editor'), async (req, re
         // ownership gap this handler used to have — an id from any tenant reached this
         // query with no organization filter at all), so the 404 below is the correct
         // answer rather than a cross-tenant write.
+        let updatedRow: TestPlanSchedule | undefined;
         const result = await withTenantTransaction(async (tx) => {
           const updated = await tx.update(testPlanSchedules).set(values).where(eq(testPlanSchedules.id, id)).returning();
           if (updated.length === 0) return null;
 
-          const withPlanName = await fetchScheduleWithPlanName(tx, id);
-          await schedulerService.updateScheduleJob(updated[0]);
-          return withPlanName;
+          updatedRow = updated[0];
+          return fetchScheduleWithPlanName(tx, id);
         });
         if (result === null) return res.status(404).json({ error: "Schedule not found" });
+
+        // Outside the transaction, like the sibling POST above: updateScheduleJob reaches
+        // scheduler-service.ts, which issues its own privilegedDb.select(). A second query on
+        // the handle while this transaction still holds the connection deadlocks the shared
+        // PGlite client under dev/test and, under node-postgres, takes a second pool client
+        // and runs outside RLS as superuser.
+        await schedulerService.updateScheduleJob(updatedRow!);
 
         res.json(result);
     } catch(e: any) {
