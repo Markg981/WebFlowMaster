@@ -45,7 +45,8 @@ import reportsRoutes from "./routes/reports.routes";
 import authRoutes from "./routes/auth.routes";
 import observabilityRoutes from "./routes/observability.routes";
 import organizationRoutes from "./routes/organization.routes";
-import { tenancyMiddleware } from "./middleware/tenancy";
+import { tenancyMiddleware, withTenantTransaction } from "./middleware/tenancy";
+import { requireRole } from "./middleware/require-role";
 
 export async function registerRoutes(app: Express): Promise<Server> {
     const resolvedLogger = await loggerPromise;
@@ -952,7 +953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // --- Test Plan Schedules API Endpoints (formerly /api/schedules) ---
 
   // GET /api/test-plan-schedules/plan/:planId - List schedules for a specific test plan
-  app.get("/api/test-plan-schedules/plan/:planId", async (req, res) => {
+  app.get("/api/test-plan-schedules/plan/:planId", requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -962,15 +963,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const result = await privilegedDb
-        .select({
-          ...getTableColumns(testPlanSchedules),
-          testPlanName: testPlans.name,
-        })
-        .from(testPlanSchedules)
-        .leftJoin(testPlans, eq(testPlanSchedules.testPlanId, testPlans.id))
-        .where(eq(testPlanSchedules.testPlanId, planId))
-        .orderBy(desc(testPlanSchedules.createdAt));
+      // Scoped to the ambient tenant transaction rather than privilegedDb: RLS is silently
+      // inert under a superuser, so an unscoped privilegedDb query here returned every
+      // organization's schedules for any plan id, including another tenant's.
+      const result = await withTenantTransaction((tx) =>
+        tx
+          .select({
+            ...getTableColumns(testPlanSchedules),
+            testPlanName: testPlans.name,
+          })
+          .from(testPlanSchedules)
+          .leftJoin(testPlans, eq(testPlanSchedules.testPlanId, testPlans.id))
+          .where(eq(testPlanSchedules.testPlanId, planId))
+          .orderBy(desc(testPlanSchedules.createdAt)),
+      );
 
       const parsedResults = result.map((schedule: any) => ({
         ...schedule,
@@ -1256,7 +1262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // DELETE /api/test-plans/:id - Delete a test plan
-  app.delete("/api/test-plans/:id", async (req, res) => {
+  app.delete("/api/test-plans/:id", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -1266,11 +1272,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // onDelete: 'cascade' is defined in the schedules.testPlanId FK.
       // This means deleting a test plan will automatically delete associated schedules.
       // Also, test_plan_selected_tests and test_plan_runs have onDelete: 'cascade' for testPlanId.
-      const result = await privilegedDb
-        .delete(testPlans)
-        .where(eq(testPlans.id, testPlanId))
-        // Add .where(and(eq(testPlans.id, testPlanId), eq(testPlans.userId, req.user.id))) if user-specific
-        .returning();
+      //
+      // Scoped to the caller's organization (matching the PUT handler above) and run inside
+      // the tenant transaction, so another tenant's plan is simply not there rather than
+      // being destroyed along with its schedules and execution history.
+      const result = await withTenantTransaction((tx) =>
+        tx
+          .delete(testPlans)
+          .where(and(eq(testPlans.id, testPlanId), eq(testPlans.organizationId, req.user!.organizationId)))
+          .returning(),
+      );
 
       if (result.length === 0) {
         return res.status(404).json({ error: "Test plan not found" });
@@ -1283,7 +1294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/run-test-plan/:id - Execute a test plan
-  app.post("/api/run-test-plan/:id", async (req, res) => {
+  app.post("/api/run-test-plan/:id", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -1293,6 +1304,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     resolvedLogger.http({ message: `POST /api/run-test-plan/${testPlanId} - Handler reached`, testPlanId, userId });
 
     try {
+      // Ownership gate: runTestPlan (test-execution-service.ts) and everything it kicks off
+      // — processTestPlanJob, the selected-tests and inArray test loads, the report writes —
+      // all query privilegedDb with no organization filter, and the execution row it inserts
+      // is stamped with *the plan's* organizationId, not the caller's. Without this check a
+      // session in one organization could execute, and receive results for, another tenant's
+      // test plan. Converting test-execution-service itself to run inside the tenant context
+      // is a larger change (it also runs as a background job with no ambient tenant) and is
+      // deliberately out of scope here; this closes the one wire-reachable entry point.
+      const owned = await withTenantTransaction((tx) =>
+        tx.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId)).limit(1),
+      );
+      if (owned.length === 0) {
+        return res.status(404).json({ error: "Test plan not found" });
+      }
+
       // Dynamically import runTestPlan to avoid circular dependencies if test-execution-service grows
       const { runTestPlan } = await import("./test-execution-service");
       const executionResult = await runTestPlan(testPlanId, userId);
@@ -1396,18 +1422,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 // --- Test Execution Logs API Endpoint ---
-app.get("/api/test-plan-executions/:executionId/logs", async (req, res) => {
+app.get("/api/test-plan-executions/:executionId/logs", requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   const { executionId } = req.params;
 
   try {
-    const logs = await privilegedDb
-      .select()
-      .from(executionLogs)
-      .where(eq(executionLogs.testPlanExecutionId, executionId))
-      .orderBy(asc(executionLogs.timestamp));
+    // Scoped to the tenant transaction: execution_logs carries test steps and substituted
+    // values, so an unscoped privilegedDb query here handed a foreign execution's full log
+    // body to any authenticated caller who guessed its id.
+    const logs = await withTenantTransaction((tx) =>
+      tx
+        .select()
+        .from(executionLogs)
+        .where(eq(executionLogs.testPlanExecutionId, executionId))
+        .orderBy(asc(executionLogs.timestamp)),
+    );
 
     res.json(logs);
   } catch (error: any) {
@@ -1417,7 +1448,7 @@ app.get("/api/test-plan-executions/:executionId/logs", async (req, res) => {
 });
 
 // --- Test Report Page API Endpoint ---
-app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
+app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ error: "Unauthorized" });
   }
@@ -1431,33 +1462,42 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
   }
 
   try {
-    // 1. Fetch the main TestPlanExecution record and its associated TestPlan
-    const executionDetailsResult = await privilegedDb
-      .select({
-        execution: getTableColumns(testPlanExecutions),
-        plan: getTableColumns(testPlans),
-      })
-      .from(testPlanExecutions)
-      .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
-      .where(eq(testPlanExecutions.id, executionId))
-      // Add user ID check if necessary: and(eq(testPlanExecutions.id, executionId), eq(testPlans.userId, userId)))
-      // Or if testPlanExecutions has a userId: and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.userId, userId)))
-      .limit(1);
+    // Both queries run inside the same tenant transaction: unscoped privilegedDb queries
+    // here returned a foreign execution's full report — including plan and test-case names
+    // — to any authenticated caller who guessed its id.
+    const reportSource = await withTenantTransaction(async (tx) => {
+      // 1. Fetch the main TestPlanExecution record and its associated TestPlan
+      const executionDetailsResult = await tx
+        .select({
+          execution: getTableColumns(testPlanExecutions),
+          plan: getTableColumns(testPlans),
+        })
+        .from(testPlanExecutions)
+        .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
+        .where(eq(testPlanExecutions.id, executionId))
+        .limit(1);
 
-    if (executionDetailsResult.length === 0) {
+      if (executionDetailsResult.length === 0) {
+        return null;
+      }
+
+      // 2. Fetch all reportTestCaseResults for this execution
+      // Ensure reportTestCaseResults is imported from @shared/schema
+      const testCaseResults: ReportTestCaseResult[] = await tx
+        .select()
+        .from(reportTestCaseResults)
+        .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
+        .orderBy(desc(reportTestCaseResults.status), asc(reportTestCaseResults.testName)); // Example ordering
+
+      return { ...executionDetailsResult[0], testCaseResults };
+    });
+
+    if (!reportSource) {
       resolvedLogger.warn({ message: `Execution ID ${executionId} not found.`, userId });
       return res.status(404).json({ error: "Test plan execution not found." });
     }
 
-    const { execution, plan } = executionDetailsResult[0];
-
-    // 2. Fetch all reportTestCaseResults for this execution
-    // Ensure reportTestCaseResults is imported from @shared/schema
-    const testCaseResults: ReportTestCaseResult[] = await privilegedDb
-      .select()
-      .from(reportTestCaseResults)
-      .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
-      .orderBy(desc(reportTestCaseResults.status), asc(reportTestCaseResults.testName)); // Example ordering
+    const { execution, plan, testCaseResults } = reportSource;
 
     // 3. Calculate Key Metrics
     const totalTests = testCaseResults.length;
@@ -1642,9 +1682,11 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
   });
 
   // POST /api/system-settings - Create or update a system setting (upsert)
-  app.post("/api/system-settings", async (req, res) => {
+  // system_settings is deliberately global (logRetentionDays, logLevel, clientLogLevel), so
+  // this is gated to owners rather than any authenticated user of any organization: a
+  // viewer or editor should not be able to reconfigure logging for every tenant.
+  app.post("/api/system-settings", requireRole('owner'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      // Potentially restrict this to admin users in a real application
       return res.status(401).json({ error: "Unauthorized" });
     }
     const parseResult = insertSystemSettingSchema.safeParse(req.body);
