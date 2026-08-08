@@ -15,8 +15,8 @@ import {
   insertApiTestHistorySchema,
   AssertionSchema,
   testPlans,
-  insertTestPlanSchema,
-  updateTestPlanSchema,
+  testPlanApiPayloadSchema,
+  updateTestPlanApiPayloadSchema,
   testPlanSelectedTests,
   systemSettings,
   insertSystemSettingSchema,
@@ -978,22 +978,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
-
-  // Zod Schema for Test Plan API Payloads (including selected tests)
-  const testPlanApiPayloadSchema = insertTestPlanSchema.extend({
-    selectedTests: z.array(z.object({
-      id: z.number().int(), // This will be either tests.id or apiTests.id
-      type: z.enum(['ui', 'api'])
-    })).optional().default([])
-  });
-
-  const updateTestPlanApiPayloadSchema = updateTestPlanSchema.extend({
-    selectedTests: z.array(z.object({
-      id: z.number().int(),
-      type: z.enum(['ui', 'api'])
-    })).optional() // On update, if not provided, selected tests are not changed. If an empty array is provided, all are removed.
-  });
+  // testPlanApiPayloadSchema / updateTestPlanApiPayloadSchema now live in shared/schema.ts
+  // so server/routes/test-plans.routes.ts can validate against the same shape.
 
 
   // --- Test Plans API Endpoints ---
@@ -1048,13 +1034,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { selectedTests, ...newPlanData } = parseResult.data;
       const planId = uuidv4(); // Generate new UUID
 
-      const createdPlanResult = await db.transaction(async (tx: any) => {
+      const createdPlanResult = await db.transaction(async (tx) => {
         const insertedPlan = await tx
           .insert(testPlans)
           .values({
             ...newPlanData,
             id: planId,
-            // userId: req.user.id, // Future consideration
+            // Derived server-side, same as organizationId: insertTestPlanSchema omits both
+            // (see shared/schema.ts), so they are never sourced from the request body.
+            userId: req.user.id,
             organizationId: req.user.organizationId,
             // Ensure JSON fields are stringified if Zod schema returns them as objects
             testMachinesConfig: newPlanData.testMachinesConfig ? JSON.stringify(newPlanData.testMachinesConfig) : null,
@@ -1069,8 +1057,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const mainPlan = insertedPlan[0];
 
         if (selectedTests && selectedTests.length > 0) {
-          const selectedTestValues = selectedTests.map((st: any) => ({
+          const selectedTestValues = selectedTests.map((st) => ({
             testPlanId: mainPlan.id,
+            // Same tenancy boundary as the plan itself — never from the request body.
+            organizationId: req.user.organizationId,
             testId: st.type === 'ui' ? st.id : null,
             apiTestId: st.type === 'api' ? st.id : null,
             testType: st.type,
@@ -1131,7 +1121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No update data provided." });
       }
 
-      const updatedPlanResult = await db.transaction(async (tx: any) => {
+      const updatedPlanResult = await db.transaction(async (tx) => {
         let mainPlanUpdated;
         if (Object.keys(planUpdates).length > 0) {
           // Stringify JSON fields before updating
@@ -1170,8 +1160,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await tx.delete(testPlanSelectedTests).where(eq(testPlanSelectedTests.testPlanId, testPlanId));
 
           if (selectedTests.length > 0) {
-            const selectedTestValues = selectedTests.map((st: any) => ({
+            const selectedTestValues = selectedTests.map((st) => ({
               testPlanId: testPlanId,
+              // Same tenancy boundary as the plan itself — never from the request body.
+              organizationId: req.user.organizationId,
               testId: st.type === 'ui' ? st.id : null,
               apiTestId: st.type === 'api' ? st.id : null,
               testType: st.type,

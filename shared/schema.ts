@@ -657,10 +657,32 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
   // The tenancy boundary: never accepted from the client, always derived server-side
   // from the authenticated session.
   organizationId: true,
+  // Same reasoning as organizationId: the owning user is derived from the authenticated
+  // session (req.user.id), never trusted from the request body.
+  userId: true,
 });
 
 export const selectTestPlanSchema = createSelectSchema(testPlans);
 export const updateTestPlanSchema = insertTestPlanSchema.partial();
+
+// Test plan create/update payloads also carry the set of tests to link, which live in a
+// separate join table (testPlanSelectedTests) rather than as a column on testPlans.
+// Shared here so every route that accepts a test-plan payload (currently
+// server/routes/test-plans.routes.ts and server/routes.ts) validates against the same
+// shape instead of maintaining duplicate, possibly-drifting copies.
+export const testPlanApiPayloadSchema = insertTestPlanSchema.extend({
+  selectedTests: z.array(z.object({
+    id: z.number().int(), // This will be either tests.id or apiTests.id
+    type: z.enum(['ui', 'api'])
+  })).optional().default([])
+});
+
+export const updateTestPlanApiPayloadSchema = updateTestPlanSchema.extend({
+  selectedTests: z.array(z.object({
+    id: z.number().int(),
+    type: z.enum(['ui', 'api'])
+  })).optional() // On update, if not provided, selected tests are not changed. If an empty array is provided, all are removed.
+});
 
 export type TestPlan = typeof testPlans.$inferSelect;
 export type InsertTestPlan = typeof testPlans.$inferInsert;

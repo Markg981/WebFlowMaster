@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../db";
-import { testPlans, testPlanSchedules, testPlanExecutions, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema } from "@shared/schema";
+import { testPlans, testPlanSchedules, testPlanExecutions, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema, testPlanApiPayloadSchema } from "@shared/schema";
 import { eq, desc, and, getTableColumns } from "drizzle-orm";
 import { v4 as uuidv4 } from 'uuid';
 import loggerPromise from "../logger";
@@ -41,17 +41,26 @@ router.get("/api/test-plans", async (req, res) => {
 });
 
 router.post("/api/test-plans", async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
-    
-    // Simplified schema handling for refactor brevity - in real migration ensure Zod schemas match 100%
-    // Assuming `insertTestPlanSchema` handles most fields, special handling for selectedTests is needed as per original routes
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
+
+    const parseResult = testPlanApiPayloadSchema.safeParse(req.body);
+    if (!parseResult.success) return res.status(400).json({ error: "Invalid data", details: parseResult.error.flatten() });
+
+    // selectedTests lives in a separate join table (testPlanSelectedTests); not a column
+    // on testPlans, so it is not part of the insert below.
+    const { selectedTests: _selectedTests, ...planData } = parseResult.data;
+
     const planId = uuidv4();
     try {
         const newPlan = await db.insert(testPlans).values({
-            ...req.body,
+            ...planData,
             id: planId,
-            testMachinesConfig: req.body.testMachinesConfig ? JSON.stringify(req.body.testMachinesConfig) : null,
-            notificationSettings: req.body.notificationSettings ? JSON.stringify(req.body.notificationSettings) : null
+            // The tenancy boundary: always derived from the authenticated session, never
+            // trusted from the request body (testPlanApiPayloadSchema omits both fields).
+            userId: req.user.id,
+            organizationId: req.user.organizationId,
+            testMachinesConfig: planData.testMachinesConfig ? JSON.stringify(planData.testMachinesConfig) : null,
+            notificationSettings: planData.notificationSettings ? JSON.stringify(planData.notificationSettings) : null
         }).returning();
         res.status(201).json(newPlan[0]);
     } catch(e: any) {
