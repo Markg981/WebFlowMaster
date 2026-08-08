@@ -1059,8 +1059,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (selectedTests && selectedTests.length > 0) {
           const selectedTestValues = selectedTests.map((st) => ({
             testPlanId: mainPlan.id,
-            // Same tenancy boundary as the plan itself — never from the request body.
-            organizationId: req.user.organizationId,
+            // Taken from the plan these rows hang off, not from the session: a join row must
+            // belong to the same organization as its parent, and those can differ whenever
+            // the caller reaches a plan that isn't theirs.
+            organizationId: mainPlan.organizationId,
             testId: st.type === 'ui' ? st.id : null,
             apiTestId: st.type === 'api' ? st.id : null,
             testType: st.type,
@@ -1124,8 +1126,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedPlanResult = await db.transaction(async (tx) => {
         let mainPlanUpdated;
         if (Object.keys(planUpdates).length > 0) {
-          // Stringify JSON fields before updating
-          const updatesToApply = { ...planUpdates } as any;
+          // Stringify JSON fields before updating: both columns are typed as their parsed
+          // object shape while the DB stores them as text.
+          const updatesToApply = { ...planUpdates } as Record<string, unknown>;
           if (planUpdates.testMachinesConfig !== undefined) {
             updatesToApply.testMachinesConfig = planUpdates.testMachinesConfig ? JSON.stringify(planUpdates.testMachinesConfig) : null;
           }
@@ -1137,7 +1140,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .update(testPlans)
             .set({
               ...updatesToApply,
-              updatedAt: Math.floor(Date.now() / 1000),
+              // A Date, not unix seconds: updatedAt is a `timestamp` column, and drizzle
+              // calls .toISOString() on whatever it is given. The previous number made every
+              // PUT that touched a plan field fail with "value.toISOString is not a function".
+              updatedAt: new Date(),
             })
             .where(eq(testPlans.id, testPlanId))
             .returning();
@@ -1162,8 +1168,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (selectedTests.length > 0) {
             const selectedTestValues = selectedTests.map((st) => ({
               testPlanId: testPlanId,
-              // Same tenancy boundary as the plan itself — never from the request body.
-              organizationId: req.user.organizationId,
+              // Taken from the plan these rows hang off, not from the session: a join row must
+              // belong to the same organization as its parent, and those can differ whenever
+              // the caller reaches a plan that isn't theirs.
+              organizationId: mainPlanUpdated[0].organizationId,
               testId: st.type === 'ui' ? st.id : null,
               apiTestId: st.type === 'api' ? st.id : null,
               testType: st.type,

@@ -707,6 +707,10 @@ export const insertTestPlanScheduleSchema = createInsertSchema(
   // The tenancy boundary: never accepted from the client, always derived server-side
   // from the authenticated session.
   organizationId: true,
+  // Same category as organizationId. POST already overrode a body-supplied userId after
+  // the spread, but PUT did not — so a schedule's owner was wire-writable, and
+  // scheduler-service.ts then ran the plan on behalf of whoever the body named.
+  userId: true,
 });
 
 export const selectTestPlanScheduleSchema =
