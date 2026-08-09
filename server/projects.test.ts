@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
-import { db } from './db';
+import { privilegedDb } from './db';
 import {
   projects,
   users,
@@ -18,6 +18,7 @@ import {
   type InsertApiTest
 } from '../shared/schema';
 import { eq, and } from 'drizzle-orm';
+import { createTestOrganization } from './tests/factories';
 
 // Mock logger
 vi.mock('./logger', () => ({
@@ -66,7 +67,7 @@ beforeAll(async () => {
     }
     const { name } = parseResult.data;
     try {
-      const newProject = await db.insert(projects).values({ name, userId }).returning();
+      const newProject = await privilegedDb.insert(projects).values({ name, userId, organizationId: (req.user as { organizationId: number }).organizationId }).returning();
       if (newProject.length === 0) {
         resolvedLogger.error({ message: "Project creation failed, no record returned (test).", name, userId });
         return res.status(500).json({ error: "Failed to create project." });
@@ -92,7 +93,7 @@ beforeAll(async () => {
 
     try {
         // Check if the project exists and belongs to the user
-        const projectToDelete = await db.select()
+        const projectToDelete = await privilegedDb.select()
             .from(projects)
             .where(and(eq(projects.id, projectId), eq(projects.userId, userId)))
             .limit(1);
@@ -106,7 +107,7 @@ beforeAll(async () => {
         // For SQLite, PRAGMA foreign_keys=ON; must be active.
         // We assume it is for this test. Drizzle will just issue the DELETE.
 
-        await db.delete(projects).where(eq(projects.id, projectId)); // No .returning() needed for DELETE in this case for supertest
+        await privilegedDb.delete(projects).where(eq(projects.id, projectId)); // No .returning() needed for DELETE in this case for supertest
 
         res.status(204).send();
     } catch (error: any) {
@@ -134,55 +135,61 @@ let seededApiTest1ForP1U1: ApiTest;
 
 beforeEach(async () => {
   // Clear tables in order of dependency
-  await db.delete(tests);
-  await db.delete(apiTests);
-  await db.delete(projects);
-  await db.delete(users);
+  await privilegedDb.delete(tests);
+  await privilegedDb.delete(apiTests);
+  await privilegedDb.delete(projects);
+  await privilegedDb.delete(users);
+
+  const organizationId = await createTestOrganization();
+  mockUser1.organizationId = organizationId;
+  mockUser2.organizationId = organizationId;
 
   // Seed Users
-  [seededUser1] = await db.insert(users).values({ id: mockUser1.id, username: mockUser1.username, password: 'password' } as InsertUser).returning();
-  [seededUser2] = await db.insert(users).values({ id: mockUser2.id, username: mockUser2.username, password: 'password' } as InsertUser).returning();
+  [seededUser1] = await privilegedDb.insert(users).values({ id: mockUser1.id, username: mockUser1.username, password: 'password', organizationId } as InsertUser).returning();
+  [seededUser2] = await privilegedDb.insert(users).values({ id: mockUser2.id, username: mockUser2.username, password: 'password', organizationId } as InsertUser).returning();
 
   // Seed Projects
-  [seededProject1User1] = await db.insert(projects).values({ name: 'U1 Project 1', userId: seededUser1.id } as InsertProject).returning();
-  [seededProject2User1] = await db.insert(projects).values({ name: 'U1 Project 2 (no tests)', userId: seededUser1.id } as InsertProject).returning();
-  [seededProject1User2] = await db.insert(projects).values({ name: 'U2 Project 1', userId: seededUser2.id } as InsertProject).returning();
+  [seededProject1User1] = await privilegedDb.insert(projects).values({ name: 'U1 Project 1', userId: seededUser1.id, organizationId } as InsertProject).returning();
+  [seededProject2User1] = await privilegedDb.insert(projects).values({ name: 'U1 Project 2 (no tests)', userId: seededUser1.id, organizationId } as InsertProject).returning();
+  [seededProject1User2] = await privilegedDb.insert(projects).values({ name: 'U2 Project 1', userId: seededUser2.id, organizationId } as InsertProject).returning();
 
   // Seed general 'tests'
-  const generalTestData: Omit<InsertTest, 'userId' | 'projectId'> = {
+  const generalTestData: Omit<InsertTest, 'userId' | 'projectId' | 'organizationId'> = {
     name: 'General Test 1 for P1U1',
     url: 'http://example.com/gtest1',
     sequence: JSON.stringify([{ action: 'click' }]),
     elements: JSON.stringify([{ id: 'el1' }]),
     status: 'draft',
   };
-  [seededGeneralTest1ForP1U1] = await db.insert(tests).values({
+  [seededGeneralTest1ForP1U1] = await privilegedDb.insert(tests).values({
     ...generalTestData,
     userId: seededUser1.id,
     projectId: seededProject1User1.id,
+    organizationId,
   }).returning();
 
   // Seed 'apiTests'
-  const apiTestData: Omit<InsertApiTest, 'userId' | 'projectId'> = {
+  const apiTestData: Omit<InsertApiTest, 'userId' | 'projectId' | 'organizationId'> = {
     name: 'API Test 1 for P1U1',
     method: 'GET',
     url: 'http://example.com/api/test1',
     assertions: JSON.stringify([{id: 'a1', source: 'status_code', comparison: 'equals', targetValue: '200', enabled: true}]),
   };
-  [seededApiTest1ForP1U1] = await db.insert(apiTests).values({
+  [seededApiTest1ForP1U1] = await privilegedDb.insert(apiTests).values({
     ...apiTestData,
     userId: seededUser1.id,
     projectId: seededProject1User1.id,
+    organizationId,
   }).returning();
 
   currentMockUser = mockUser1; // Default to user1 for tests
 });
 
 afterAll(async () => {
-  await db.delete(tests);
-  await db.delete(apiTests);
-  await db.delete(projects);
-  await db.delete(users);
+  await privilegedDb.delete(tests);
+  await privilegedDb.delete(apiTests);
+  await privilegedDb.delete(projects);
+  await privilegedDb.delete(users);
 });
 
 describe('DELETE /api/projects/:projectId', () => {
@@ -190,11 +197,11 @@ describe('DELETE /api/projects/:projectId', () => {
     currentMockUser = seededUser1; // Ensure user1 is authenticated
 
     // Verify initial state: general test linked to project
-    const initialGeneralTest = await db.select().from(tests).where(eq(tests.id, seededGeneralTest1ForP1U1.id)).limit(1);
+    const initialGeneralTest = await privilegedDb.select().from(tests).where(eq(tests.id, seededGeneralTest1ForP1U1.id)).limit(1);
     expect(initialGeneralTest[0].projectId).toBe(seededProject1User1.id);
 
     // Verify initial state: API test linked to project
-    const initialApiTest = await db.select().from(apiTests).where(eq(apiTests.id, seededApiTest1ForP1U1.id)).limit(1);
+    const initialApiTest = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, seededApiTest1ForP1U1.id)).limit(1);
     expect(initialApiTest[0].projectId).toBe(seededProject1User1.id);
 
     await request(app)
@@ -202,16 +209,16 @@ describe('DELETE /api/projects/:projectId', () => {
       .expect(204);
 
     // Verify project is removed from DB
-    const projectInDb = await db.select().from(projects).where(eq(projects.id, seededProject1User1.id)).limit(1);
+    const projectInDb = await privilegedDb.select().from(projects).where(eq(projects.id, seededProject1User1.id)).limit(1);
     expect(projectInDb.length).toBe(0);
 
     // Verify tests.projectId is set to NULL
-    const updatedGeneralTest = await db.select().from(tests).where(eq(tests.id, seededGeneralTest1ForP1U1.id)).limit(1);
+    const updatedGeneralTest = await privilegedDb.select().from(tests).where(eq(tests.id, seededGeneralTest1ForP1U1.id)).limit(1);
     expect(updatedGeneralTest.length).toBe(1); // Test should still exist
     expect(updatedGeneralTest[0].projectId).toBeNull();
 
     // Verify apiTests.projectId is set to NULL
-    const updatedApiTest = await db.select().from(apiTests).where(eq(apiTests.id, seededApiTest1ForP1U1.id)).limit(1);
+    const updatedApiTest = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, seededApiTest1ForP1U1.id)).limit(1);
     expect(updatedApiTest.length).toBe(1); // API Test should still exist
     expect(updatedApiTest[0].projectId).toBeNull();
   });
@@ -222,7 +229,7 @@ describe('DELETE /api/projects/:projectId', () => {
       .delete(`/api/projects/${seededProject2User1.id}`) // This project has no tests linked initially
       .expect(204);
 
-    const projectInDb = await db.select().from(projects).where(eq(projects.id, seededProject2User1.id)).limit(1);
+    const projectInDb = await privilegedDb.select().from(projects).where(eq(projects.id, seededProject2User1.id)).limit(1);
     expect(projectInDb.length).toBe(0);
   });
 
@@ -235,7 +242,7 @@ describe('DELETE /api/projects/:projectId', () => {
       .expect(404); // Or 403, depending on how strict the "not authorized" vs "not found" is implemented
 
     // Verify project still exists
-    const projectInDb = await db.select().from(projects).where(eq(projects.id, projectOfUser2.id)).limit(1);
+    const projectInDb = await privilegedDb.select().from(projects).where(eq(projects.id, projectOfUser2.id)).limit(1);
     expect(projectInDb.length).toBe(1);
   });
 

@@ -28,6 +28,10 @@ const scryptAsync = promisify(scrypt);
 const registerSchema = z.object({
   username: z.string().trim().min(3, "Username must be at least 3 characters").max(64),
   password: z.string().min(8, "Password must be at least 8 characters").max(128),
+  // Optional. Present, it makes the new account a member of the inviting organization
+  // instead of the owner of a brand new one. 64 hex characters — see randomBytes(32) in
+  // server/routes/organization.routes.ts.
+  invitationToken: z.string().regex(/^[0-9a-f]{64}$/).optional(),
 });
 
 // Choose a session store: Redis for real deployments (shared across instances /
@@ -81,30 +85,35 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
+// Built once, on the first setupAuth(app) call, and reused after — see getSessionMiddleware.
+let sharedSessionMiddleware: RequestHandler | undefined;
+
 export function setupAuth(app: Express) {
   if (!process.env.SESSION_SECRET) {
     throw new Error("SESSION_SECRET must be set for session security.");
   }
 
-  const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store: createSessionStore(),
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    },
-  };
+  if (!sharedSessionMiddleware) {
+    sharedSessionMiddleware = session({
+      secret: process.env.SESSION_SECRET,
+      resave: false,
+      saveUninitialized: false,
+      store: createSessionStore(),
+      cookie: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      },
+    });
+  }
 
   // Baseline HTTP hardening. CSP is disabled because the SPA (Vite dev server /
   // bundled client) needs inline assets; enable a tailored CSP separately if required.
   app.use(helmet({ contentSecurityPolicy: false }));
 
   app.set("trust proxy", 1);
-  app.use(session(sessionSettings));
+  app.use(sharedSessionMiddleware);
   app.use(passport.initialize());
   app.use(passport.session());
 
@@ -135,7 +144,7 @@ export function setupAuth(app: Express) {
         });
         return;
       }
-      const { username, password } = parsed.data;
+      const { username, password, invitationToken } = parsed.data;
 
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
@@ -144,10 +153,26 @@ export function setupAuth(app: Express) {
       }
 
       // Only persist explicitly validated fields (no mass-assignment from req.body).
-      const user = await storage.createUser({
-        username,
-        password: await hashPassword(password),
-      });
+      const credentials = { username, password: await hashPassword(password) };
+
+      // With a token the account joins the inviting organization at the role the invitation
+      // named; without one it gets a fresh organization and owns it. The distinction is the
+      // whole point of invitations: a user belongs to exactly one organization, so joining
+      // someone else's has to happen at the moment the account is created rather than by
+      // moving an existing one.
+      let user;
+      if (invitationToken) {
+        const result = await storage.createUserFromInvitation(credentials, invitationToken);
+        if ('error' in result) {
+          // One message for all three cases. Distinguishing "no such token" from "expired"
+          // from "already used" would let someone probe the token space for near-misses.
+          res.status(400).json({ message: "That invitation is not valid." });
+          return;
+        }
+        user = result;
+      } else {
+        user = await storage.createUser(credentials);
+      }
 
       req.login(user, (err) => {
         if (err) return next(err);
@@ -178,4 +203,23 @@ export function setupAuth(app: Express) {
     const { password: _pw, ...safeUser } = req.user as SelectUser;
     res.json(safeUser);
   });
+}
+
+/**
+ * The exact session middleware `setupAuth` mounts on the Express app — same secret, same
+ * store (Redis in real deployments, memorystore otherwise). The WebSocket upgrade handler
+ * (server/websocket.ts) needs this to resolve `req.session`/`req.user` for a raw upgrade
+ * request; building a second `session(...)` instance would use a different store connection
+ * and a login made over HTTP would not be found when the socket looks up its session.
+ *
+ * Throws if called before setupAuth(app) has run once, since there is nothing to share yet.
+ */
+export function getSessionMiddleware(): RequestHandler {
+  if (!sharedSessionMiddleware) {
+    throw new Error(
+      "getSessionMiddleware() was called before setupAuth(app) ran — the shared session " +
+        "middleware is built there.",
+    );
+  }
+  return sharedSessionMiddleware;
 }

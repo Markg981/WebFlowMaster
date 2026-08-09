@@ -38,4 +38,10 @@ export async function closeDb(): Promise<void> {
   await closeDbImpl();
 }
 
-export { db };
+/**
+ * The superuser handle. It BYPASSES row-level security, so it is correct only for
+ * migrations, bootstrap and tests. Application code must go through
+ * withTenantTransaction in server/middleware/tenancy.ts instead — an architecture test
+ * in Task 6 fails if a route imports this.
+ */
+export { db as privilegedDb };

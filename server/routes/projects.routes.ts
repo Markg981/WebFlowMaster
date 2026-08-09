@@ -1,18 +1,22 @@
 import { Router } from "express";
-import { db } from "../db";
 import { projects, insertProjectSchema } from "@shared/schema";
 import { desc } from "drizzle-orm";
 import loggerPromise from "../logger";
+import { withTenantTransaction } from "../middleware/tenancy";
+import { requireRole } from "../middleware/require-role";
 
 const router = Router();
 const logger = await loggerPromise;
 
 // GET /api/projects - List all projects
-router.get("/api/projects", async (req, res) => {
+router.get("/api/projects", requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
 
   try {
-    const allProjects = await db.select().from(projects).orderBy(desc(projects.createdAt));
+    // No organization filter here on purpose: the RLS policy applies it.
+    const allProjects = await withTenantTransaction((tx) =>
+      tx.select().from(projects).orderBy(desc(projects.createdAt)),
+    );
     res.json(allProjects);
   } catch (error: any) {
     logger.error({ message: "Error fetching projects", error: error.message, stack: error.stack });
@@ -21,7 +25,7 @@ router.get("/api/projects", async (req, res) => {
 });
 
 // POST /api/projects - Create a new project
-router.post("/api/projects", async (req, res) => {
+router.post("/api/projects", requireRole('editor'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
 
   const parseResult = insertProjectSchema.safeParse(req.body);
@@ -30,7 +34,12 @@ router.post("/api/projects", async (req, res) => {
   }
 
   try {
-    const newProject = await db.insert(projects).values({ ...parseResult.data, userId: (req.user as any).id }).returning();
+    const newProject = await withTenantTransaction((tx) =>
+      tx
+        .insert(projects)
+        .values({ ...parseResult.data, userId: (req.user as any).id, organizationId: (req.user as { organizationId: number }).organizationId })
+        .returning(),
+    );
     res.status(201).json(newProject[0]);
   } catch (error: any) {
     logger.error({ message: "Error creating project", error: error.message });

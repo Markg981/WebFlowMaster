@@ -1,4 +1,4 @@
-import { db } from './db';
+import { privilegedDb } from './db';
 import { testPlanExecutions, testPlans } from '@shared/schema';
 import { eq, desc, sql, gte, and } from 'drizzle-orm';
 import resolveLogger from './logger';
@@ -11,7 +11,7 @@ export async function getDashboardMetrics(userId: number) {
     // For this, we join testPlanExecutions with testPlans.
     
     // Total Runs & Stats
-    const statsQuery = await db
+    const statsQuery = await privilegedDb
       .select({
         total: sql<number>`count(*)`,
         passed: sql<number>`sum(case when ${testPlanExecutions.status} = 'completed' then 1 else 0 end)`,
@@ -32,7 +32,7 @@ export async function getDashboardMetrics(userId: number) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    const trendQuery = await db
+    const trendQuery = await privilegedDb
       .select({
         date: sql<string>`date(${testPlanExecutions.startedAt})`,
         passed: sql<number>`sum(case when ${testPlanExecutions.status} = 'completed' then 1 else 0 end)`,
@@ -67,7 +67,7 @@ export async function getDashboardMetrics(userId: number) {
     ];
 
     // Recent Executions
-    const recentExecutions = await db
+    const recentExecutions = await privilegedDb
       .select({
         id: testPlanExecutions.id,
         planName: testPlans.name,

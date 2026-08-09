@@ -98,7 +98,7 @@ export type ScheduleFormValues = z.infer<typeof scheduleFormSchema>;
 
 export const transformFormValuesToApiPayload = (
   values: ScheduleFormValues
-): Omit<InsertTestPlanSchedule, 'id' | 'createdAt' | 'updatedAt'> => {
+): Omit<InsertTestPlanSchedule, 'id' | 'createdAt' | 'updatedAt' | 'organizationId'> => {
 
   let effectiveFrequency = values.frequency;
   if (values.frequency === 'custom_cron' && values.customCronExpression) {

@@ -1,6 +1,6 @@
 import { migrate as migratePglite } from 'drizzle-orm/pglite/migrator';
 import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
-import { db } from '../db'; // Reuses the driver selection logic (Postgres vs PGlite)
+import { privilegedDb } from '../db'; // Reuses the driver selection logic (Postgres vs PGlite)
 import path from 'path';
 import { fileURLToPath } from 'url'; // Added for ES Module equivalent of __dirname
 
@@ -27,9 +27,9 @@ async function globalSetup() {
     const dbUrl = process.env.DATABASE_URL;
     const isPostgres = dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://');
     if (isPostgres) {
-      await migratePg(db as any, { migrationsFolder: migrationsPath });
+      await migratePg(privilegedDb as any, { migrationsFolder: migrationsPath });
     } else {
-      await migratePglite(db as any, { migrationsFolder: migrationsPath });
+      await migratePglite(privilegedDb as any, { migrationsFolder: migrationsPath });
     }
     console.log('Test database migrations completed successfully.');
   } catch (error) {

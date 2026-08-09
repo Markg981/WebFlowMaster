@@ -4,7 +4,7 @@ import { TEST_EXECUTION_QUEUE_NAME } from './queue';
 import { processTestPlanJob } from './test-execution-service';
 import loggerPromise from './logger';
 import { correlationStore } from './middleware/correlation';
-import { closeDb, db } from './db';
+import { closeDb, privilegedDb } from './db';
 import { TRIGGER_SCHEDULE_JOB, executeScheduledPlan } from './scheduler-service';
 import { testPlanSchedules, testPlans } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -40,7 +40,7 @@ import 'dotenv/config';
         const { scheduleId } = job.data;
         const cid = `sched-${String(scheduleId).slice(0, 8)}`;
         await correlationStore.run({ correlationId: cid }, async () => {
-          const [schedule] = await db.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId)).limit(1);
+          const [schedule] = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleId)).limit(1);
           if (!schedule) {
             logger.warn(`Scheduled trigger for unknown/removed schedule ${scheduleId}; skipping.`);
             return;
@@ -49,7 +49,7 @@ import 'dotenv/config';
             logger.info(`Scheduled trigger for inactive schedule ${scheduleId}; skipping.`);
             return;
           }
-          const [plan] = await db.select().from(testPlans).where(eq(testPlans.id, schedule.testPlanId)).limit(1);
+          const [plan] = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, schedule.testPlanId)).limit(1);
           if (!plan) {
             logger.warn(`Scheduled trigger for schedule ${scheduleId}: test plan ${schedule.testPlanId} not found; skipping.`);
             return;

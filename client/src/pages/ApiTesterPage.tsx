@@ -479,7 +479,7 @@ const ApiTesterPage: React.FC = () => {
     staleTime: 5 * 60 * 1000
   });
 
-  const saveApiTestMutation = useMutation<ApiTest, Error, { name: string, projectId?: number | null } & Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt'>>({
+  const saveApiTestMutation = useMutation<ApiTest, Error, { name: string, projectId?: number | null } & Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt' | 'organizationId'>>({
     mutationFn: async (testData) => {
       const endpoint = currentTestToEdit ? `/api/api-tests/${currentTestToEdit.id}` : '/api/api-tests';
       const httpMethod = currentTestToEdit ? 'PUT' : 'POST';
@@ -762,7 +762,7 @@ const ApiTesterPage: React.FC = () => {
       return field; // For text fields, keep as is (value is string)
     });
 
-    const config: Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt'> = {
+    const config: Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt' | 'organizationId'> = {
       method, url,
       queryParams: currentParams,
       requestHeaders: currentHeaders,

@@ -1,0 +1,44 @@
+{
+  // scripts/ used to sit outside every tsconfig project, so `npx tsc -b` could not see it.
+  // Two live NOT NULL violations shipped through that gap when organizationId became a
+  // required column: the importers compiled clean because nothing was compiling them.
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    "types": [
+      "node"
+    ],
+    "composite": true,
+    "tsBuildInfoFile": "../node_modules/.cache/tsbuildinfo.scripts.json"
+  },
+  // Deliberately file-by-file rather than "**/*.ts", for two reasons:
+  //
+  //   - `../server/**/*.ts` would drag in every server test file. The inherited
+  //     `**/*.test.ts` exclude is resolved relative to THIS directory, so it does not match
+  //     anything reached through `../`. Naming ../server/db.ts pulls in only its own
+  //     (non-test) transitive imports.
+  //
+  // Project references would express the server/shared dependency better, but
+  // tsconfig.base.json sets noEmit and a referenced project may not disable emit.
+  // ../test-db.ts is a root-level dev utility, not a script — it lives here because this is
+  // the only project that compiles standalone entry points. The remaining root *.ts files are
+  // build configs (vite, vitest, drizzle, tailwind, playwright), which tsc has no reason to
+  // typecheck as application code.
+  "include": [
+    "import-netcontent-api.ts",
+    "apply-migrations.ts",
+    "netcontent/**/*.ts",
+    "netcontent-ui/**/*.ts",
+    "../test-db.ts",
+    "../server/db.ts",
+    "../shared/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts"
+  ]
+}

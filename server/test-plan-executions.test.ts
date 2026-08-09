@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
-import { db } from './db';
+import { privilegedDb } from './db';
 import {
   users,
   testPlans, type TestPlan,
@@ -9,9 +9,11 @@ import {
   testPlanExecutions, type InsertTestPlanExecution
 } from '../shared/schema';
 import { v4 as uuidv4 } from 'uuid';
+import { createTestOrganization } from './tests/factories';
 
 let app: Application;
 const mockUser = { id: 1, username: 'testuser_exec' };
+let organizationId: number;
 
 async function setupTestAppForExecutions() {
   const tempApp = express();
@@ -35,44 +37,49 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await db.delete(testPlanExecutions);
-  await db.delete(testPlanSchedules);
-  await db.delete(testPlans);
-  await db.delete(users);
-  await db.insert(users).values({ id: mockUser.id, username: mockUser.username, password: 'hashed' });
+  await privilegedDb.delete(testPlanExecutions);
+  await privilegedDb.delete(testPlanSchedules);
+  await privilegedDb.delete(testPlans);
+  await privilegedDb.delete(users);
+  organizationId = await createTestOrganization();
+  (mockUser as any).organizationId = organizationId;
+  // requireRole reads role off req.user directly (this app's mock auth middleware never
+  // loads it from the DB row below), so the mock object needs it set explicitly.
+  (mockUser as any).role = 'editor';
+  await privilegedDb.insert(users).values({ id: mockUser.id, username: mockUser.username, password: 'hashed', organizationId });
   vi.clearAllMocks();
 
   const planId = uuidv4();
-  [seededPlan] = await db.insert(testPlans).values({ id: planId, name: 'Execution Test Plan', userId: mockUser.id }).returning();
+  [seededPlan] = await privilegedDb.insert(testPlans).values({ id: planId, name: 'Execution Test Plan', userId: mockUser.id, organizationId }).returning();
 
   seededSchedule1 = {
-    id: uuidv4(), testPlanId: seededPlan.id, scheduleName: 'Exec Sched 1',
+    id: uuidv4(), testPlanId: seededPlan.id, organizationId, scheduleName: 'Exec Sched 1',
     frequency: 'daily', nextRunAt: new Date(), environment: 'QA', browsers: JSON.stringify(['chrome'])
   };
   seededSchedule2 = {
-    id: uuidv4(), testPlanId: seededPlan.id, scheduleName: 'Exec Sched 2',
+    id: uuidv4(), testPlanId: seededPlan.id, organizationId, scheduleName: 'Exec Sched 2',
     frequency: 'weekly', nextRunAt: new Date(), environment: 'Staging', browsers: JSON.stringify(['firefox'])
   };
-  await db.insert(testPlanSchedules).values([seededSchedule1, seededSchedule2]);
+  await privilegedDb.insert(testPlanSchedules).values([seededSchedule1, seededSchedule2]);
 });
 
 afterAll(async () => {
-  await db.delete(testPlanExecutions);
-  await db.delete(testPlanSchedules);
-  await db.delete(testPlans);
+  await privilegedDb.delete(testPlanExecutions);
+  await privilegedDb.delete(testPlanSchedules);
+  await privilegedDb.delete(testPlans);
 });
 
 describe('Test Plan Executions API (/api/test-plan-executions)', () => {
   it('should get all executions, parsing JSON fields', async () => {
     const exec1: InsertTestPlanExecution = {
-      id: uuidv4(), testPlanId: seededPlan.id, scheduleId: seededSchedule1.id, status: 'completed',
+      id: uuidv4(), testPlanId: seededPlan.id, organizationId, scheduleId: seededSchedule1.id, status: 'completed',
       results: JSON.stringify({ steps: 5, outcome: 'passed' }), browsers: JSON.stringify(['chrome']), environment: 'QA', triggeredBy: 'scheduled'
     };
     const exec2: InsertTestPlanExecution = {
-      id: uuidv4(), testPlanId: seededPlan.id, scheduleId: seededSchedule2.id, status: 'failed',
+      id: uuidv4(), testPlanId: seededPlan.id, organizationId, scheduleId: seededSchedule2.id, status: 'failed',
       results: JSON.stringify({ steps: 2, error: 'assertion failed' }), browsers: JSON.stringify(['firefox']), environment: 'Staging', triggeredBy: 'manual'
     };
-    await db.insert(testPlanExecutions).values([exec1, exec2]);
+    await privilegedDb.insert(testPlanExecutions).values([exec1, exec2]);
 
     const response = await request(app)
       .get('/api/test-plan-executions')
@@ -95,10 +102,10 @@ describe('Test Plan Executions API (/api/test-plan-executions)', () => {
 
   it('should filter executions by planId', async () => {
     const otherPlanId = uuidv4();
-    await db.insert(testPlans).values({ id: otherPlanId, name: 'Other Plan', userId: mockUser.id });
-    const exec1: InsertTestPlanExecution = { id: uuidv4(), testPlanId: seededPlan.id, status: 'completed' };
-    const exec2: InsertTestPlanExecution = { id: uuidv4(), testPlanId: otherPlanId, status: 'pending' };
-    await db.insert(testPlanExecutions).values([exec1, exec2]);
+    await privilegedDb.insert(testPlans).values({ id: otherPlanId, name: 'Other Plan', userId: mockUser.id, organizationId });
+    const exec1: InsertTestPlanExecution = { id: uuidv4(), testPlanId: seededPlan.id, organizationId, status: 'completed' };
+    const exec2: InsertTestPlanExecution = { id: uuidv4(), testPlanId: otherPlanId, organizationId, status: 'pending' };
+    await privilegedDb.insert(testPlanExecutions).values([exec1, exec2]);
 
     const response = await request(app)
       .get(`/api/test-plan-executions?planId=${seededPlan.id}`)
@@ -109,9 +116,9 @@ describe('Test Plan Executions API (/api/test-plan-executions)', () => {
   });
 
   it('should filter executions by scheduleId', async () => {
-    const exec1: InsertTestPlanExecution = { id: uuidv4(), testPlanId: seededPlan.id, scheduleId: seededSchedule1.id, status: 'completed' };
-    const exec2: InsertTestPlanExecution = { id: uuidv4(), testPlanId: seededPlan.id, scheduleId: seededSchedule2.id, status: 'running' };
-    await db.insert(testPlanExecutions).values([exec1, exec2]);
+    const exec1: InsertTestPlanExecution = { id: uuidv4(), testPlanId: seededPlan.id, organizationId, scheduleId: seededSchedule1.id, status: 'completed' };
+    const exec2: InsertTestPlanExecution = { id: uuidv4(), testPlanId: seededPlan.id, organizationId, scheduleId: seededSchedule2.id, status: 'running' };
+    await privilegedDb.insert(testPlanExecutions).values([exec1, exec2]);
 
     const response = await request(app)
       .get(`/api/test-plan-executions?scheduleId=${seededSchedule1.id}`)
@@ -122,9 +129,9 @@ describe('Test Plan Executions API (/api/test-plan-executions)', () => {
   });
 
   it('should filter executions by status', async () => {
-    const exec1: InsertTestPlanExecution = { id: uuidv4(), testPlanId: seededPlan.id, status: 'completed' };
-    const exec2: InsertTestPlanExecution = { id: uuidv4(), testPlanId: seededPlan.id, status: 'failed' };
-    await db.insert(testPlanExecutions).values([exec1, exec2]);
+    const exec1: InsertTestPlanExecution = { id: uuidv4(), testPlanId: seededPlan.id, organizationId, status: 'completed' };
+    const exec2: InsertTestPlanExecution = { id: uuidv4(), testPlanId: seededPlan.id, organizationId, status: 'failed' };
+    await privilegedDb.insert(testPlanExecutions).values([exec1, exec2]);
 
     const response = await request(app)
       .get(`/api/test-plan-executions?status=failed`)
@@ -135,9 +142,9 @@ describe('Test Plan Executions API (/api/test-plan-executions)', () => {
   });
 
   it('should filter executions by triggeredBy', async () => {
-    const exec1: InsertTestPlanExecution = { id: uuidv4(), testPlanId: seededPlan.id, triggeredBy: 'scheduled', status: 'completed' };
-    const exec2: InsertTestPlanExecution = { id: uuidv4(), testPlanId: seededPlan.id, triggeredBy: 'manual', status: 'completed' };
-    await db.insert(testPlanExecutions).values([exec1, exec2]);
+    const exec1: InsertTestPlanExecution = { id: uuidv4(), testPlanId: seededPlan.id, organizationId, triggeredBy: 'scheduled', status: 'completed' };
+    const exec2: InsertTestPlanExecution = { id: uuidv4(), testPlanId: seededPlan.id, organizationId, triggeredBy: 'manual', status: 'completed' };
+    await privilegedDb.insert(testPlanExecutions).values([exec1, exec2]);
 
     const response = await request(app)
       .get(`/api/test-plan-executions?triggeredBy=manual`)
@@ -150,9 +157,9 @@ describe('Test Plan Executions API (/api/test-plan-executions)', () => {
   it('should handle pagination with limit and offset', async () => {
     const execs: InsertTestPlanExecution[] = [];
     for (let i = 0; i < 15; i++) {
-      execs.push({ id: uuidv4(), testPlanId: seededPlan.id, status: 'pending', startedAt: new Date(Date.now() + i) }); // Ensure different startedAt for consistent order
+      execs.push({ id: uuidv4(), testPlanId: seededPlan.id, organizationId, status: 'pending', startedAt: new Date(Date.now() + i) }); // Ensure different startedAt for consistent order
     }
-    await db.insert(testPlanExecutions).values(execs);
+    await privilegedDb.insert(testPlanExecutions).values(execs);
 
     // Get first page
     let response = await request(app)

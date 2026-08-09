@@ -14,7 +14,7 @@ const ep: Endpoint = {
 };
 
 describe('mapEndpoint', () => {
-  const cfg = { baseUrlVar: '{{baseUrl}}', projectId: 7, userId: 3 };
+  const cfg = { baseUrlVar: '{{baseUrl}}', projectId: 7, userId: 3, organizationId: 11 };
 
   it('maps method, url, module, featureArea, owner and project', () => {
     const t = mapEndpoint(ep, cfg);

@@ -15,12 +15,22 @@ beforeEach(() => {
   repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'wfm-repo-'));
   fs.mkdirSync(path.join(repoRoot, 'server'), { recursive: true });
   fs.writeFileSync(path.join(repoRoot, 'server', 'thing.ts'), 'a\nb\nc\nd\ne\nf\ng\n', 'utf8');
+  fs.mkdirSync(path.join(repoRoot, 'client', 'src', 'components', 'ui'), { recursive: true });
+  fs.writeFileSync(
+    path.join(repoRoot, 'client', 'src', 'components', 'ui', 'toaster.tsx'),
+    Array.from({ length: 20 }, (_unused, i) => `const line${i + 1} = ${i + 1};`).join('\n'),
+    'utf8',
+  );
   logged.length = 0;
 
   configureIncidents({
     rootDir: root,
     repoRoot,
     logger: { error: (message, meta) => logged.push({ level: 'error', message, meta }) },
+    // repoRoot is a bare mkdtemp directory, so the real probe spawns three `git` processes
+    // that all fail, per uncached call. That cost is what made the fake-timers case blow its
+    // 5s budget intermittently.
+    gitInfo: () => ({ gitCommit: 'abc1234', gitBranch: 'test-branch', workingTreeDirty: false }),
   });
 });
 
@@ -33,6 +43,13 @@ afterEach(() => {
 const errorFrom = (file: string, line: number) => {
   const error = new Error('Cannot read properties of undefined (reading \'selector\')');
   error.stack = `TypeError: ${error.message}\n    at run (${path.join(repoRoot, file)}:${line}:5)`;
+  return error;
+};
+
+const clientErrorFrom = () => {
+  const error = new TypeError("Cannot read properties of undefined (reading 'map')");
+  error.name = 'TypeError';
+  error.stack = `TypeError: ${error.message}\n    at Toaster (/src/components/ui/toaster.tsx:16:15)`;
   return error;
 };
 
@@ -116,7 +133,12 @@ describe('recordIncident', () => {
   });
 
   it('folds occurrences suppressed by the rate limit into the next persisted count', async () => {
-    vi.useFakeTimers();
+    // Only the clock. vi.useFakeTimers() with no argument also fakes setImmediate,
+    // process.nextTick and queueMicrotask, and recordIncident does real filesystem I/O whose
+    // completion is dispatched through those — so the bare call made this test hang until its
+    // 5s budget expired, roughly one run in three, in isolation as well as in the full suite.
+    // The rate limit this test is about is a Date.now() comparison, so Date is all it needs.
+    vi.useFakeTimers({ toFake: ['Date'] });
     const error = errorFrom('server/thing.ts', 3);
 
     const first = await recordIncident({ kind: 'job', error, trigger: {} });
@@ -150,6 +172,29 @@ describe('recordIncident', () => {
     await expect(
       recordIncident({ kind: 'runner', error: errorFrom('server/thing.ts', 3), trigger: {} }),
     ).resolves.toBeNull();
+  });
+
+  it('resolves origin for a client-runtime incident from a Vite-style stack', async () => {
+    const incident = await recordIncident({
+      kind: 'client-runtime',
+      error: clientErrorFrom(),
+      trigger: { route: '/dashboard/create-test' },
+      correlationId: 'c-1',
+    });
+
+    expect(incident!.origin?.file).toBe('client/src/components/ui/toaster.tsx');
+    expect(incident!.origin?.line).toBe(16);
+    expect(incident!.origin?.unresolved).toBeUndefined();
+  });
+
+  it('stamps every incident with the current schema version', async () => {
+    const incident = await recordIncident({
+      kind: 'server-api',
+      error: errorFrom('server/thing.ts', 3),
+      trigger: {},
+    });
+
+    expect(incident!.schemaVersion).toBe(1);
   });
 
   describe('recursion guard', () => {

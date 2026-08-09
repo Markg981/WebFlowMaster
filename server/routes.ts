@@ -2,10 +2,8 @@ import { createServer, type Server } from "http";
 import { Express } from "express";
 import { setupAuth } from "./auth";
 import {
-  insertTestSchema,
   userSettings,
   projects,
-  insertProjectSchema,
   tests,
   AdhocTestStepSchema,
   AdhocDetectedElementSchema,
@@ -15,8 +13,7 @@ import {
   insertApiTestHistorySchema,
   AssertionSchema,
   testPlans,
-  insertTestPlanSchema,
-  updateTestPlanSchema,
+  updateTestPlanApiPayloadSchema,
   testPlanSelectedTests,
   systemSettings,
   insertSystemSettingSchema,
@@ -28,9 +25,9 @@ import {
   executionLogs
 } from "@shared/schema";
 import { z } from "zod";
-import { v4 as uuidv4 } from 'uuid'; // For generating IDs
+// For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
-import { db } from "./db";
+import { privilegedDb } from "./db";
 import { eq, and, desc, sql, getTableColumns, asc, ilike } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
 import { fetchTarget, requestVariables, substituteInValues, substituteVariables } from "./outbound-http";
@@ -44,6 +41,10 @@ import uploadsRoutes from "./routes/uploads.routes";
 import reportsRoutes from "./routes/reports.routes";
 import authRoutes from "./routes/auth.routes";
 import observabilityRoutes from "./routes/observability.routes";
+import organizationRoutes from "./routes/organization.routes";
+import { tenancyMiddleware, withTenantTransaction } from "./middleware/tenancy";
+import { requireRole } from "./middleware/require-role";
+import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from "./routes/selected-tests";
 
 export async function registerRoutes(app: Express): Promise<Server> {
     const resolvedLogger = await loggerPromise;
@@ -78,9 +79,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Auth First
     setupAuth(app); // Attaches passport strategies
-    
+
+    // Before every router: establishes the ambient organization for the request, which
+    // withTenantTransaction requires and refuses to run without.
+    app.use(tenancyMiddleware);
+
     // API Routers
     app.use(authRoutes);
+    app.use(organizationRoutes);
     app.use(projectsRoutes);
     app.use(testsRoutes);
     app.use(testPlansRoutes);
@@ -365,29 +371,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/projects", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const userId = req.user.id;
-
-    try {
-      const userProjects = await db
-        .select()
-        .from(projects)
-        .where(eq(projects.userId, userId))
-        .orderBy(asc(projects.name)); // Order by project name ascending
-
-      res.status(200).json(userProjects);
-    } catch (error: any) {
-      resolvedLogger.error({ // Ensure resolvedLogger is defined in this scope or use logger directly
-        message: `Error fetching projects for user ${userId}`,
-        error: error.message,
-        stack: error.stack,
-      });
-      res.status(500).json({ error: "Failed to fetch projects" });
-    }
-  });
 
   const detectElementsBodySchema = z.object({
     url: z.string().url({ message: "Invalid URL for element detection" }),
@@ -422,60 +405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const userId = req.user.id;
-
-    // Validate payload using insertProjectSchema (which expects 'name')
-    // insertProjectSchema already has .pick({ name: true })
-    // and also validates name: z.string().min(1, "Project name cannot be empty")
-    const parseResult = insertProjectSchema.safeParse(req.body);
-
-    if (!parseResult.success) {
-      resolvedLogger.warn({
-        message: "POST /api/projects - Invalid payload",
-        errors: parseResult.error.flatten(),
-        userId,
-      });
-      return res.status(400).json({ error: "Invalid project data", details: parseResult.error.flatten() });
-    }
-
-    const { name } = parseResult.data;
-
-    try {
-      const newProject = await db
-        .insert(projects)
-        .values({
-          name,
-          userId,
-          // createdAt is handled by default in schema
-        })
-        .returning(); // Return all fields of the new project
-
-      if (newProject.length === 0) {
-        resolvedLogger.error({ message: "Project creation failed, no record returned.", name, userId });
-        return res.status(500).json({ error: "Failed to create project." });
-      }
-      res.status(201).json(newProject[0]);
-    } catch (error: any) {
-      resolvedLogger.error({
-        message: "Error creating project",
-        userId,
-        projectName: name,
-        error: error.message,
-        stack: error.stack,
-      });
-      // Check for unique constraint errors if project names must be unique per user (not explicitly defined but common)
-      // if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') { // Example for SQLite
-      //   return res.status(409).json({ error: "A project with this name already exists." });
-      // }
-      res.status(500).json({ error: "Failed to create project" });
-    }
-  });
-  app.delete("/api/projects/:projectId", async (req, res) => {
-    // Ensure 'projects', 'eq', 'and', 'db', 'resolvedLogger' are correctly imported/available in scope.
+  app.delete("/api/projects/:projectId", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -488,19 +418,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const projectToDelete = await db
-        .select({ id: projects.id })
-        .from(projects)
-        .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)))
-        .limit(1);
+      // Inside the tenant transaction, so RLS bounds both statements to the caller's
+      // organization. The userId predicate stays as the ownership rule it always was —
+      // organizationId is the security boundary, userId is attribution, and this handler
+      // previously relied on the latter for both.
+      const deleted = await withTenantTransaction(async (tx) => {
+        const projectToDelete = await tx
+          .select({ id: projects.id })
+          .from(projects)
+          .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)))
+          .limit(1);
 
-      if (projectToDelete.length === 0) {
+        if (projectToDelete.length === 0) return false;
+
+        await tx
+          .delete(projects)
+          .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)));
+        return true;
+      });
+
+      if (!deleted) {
         return res.status(404).json({ error: "Project not found or not owned by user." });
       }
-
-      await db
-        .delete(projects)
-        .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)));
 
       res.status(204).send();
 
@@ -514,108 +453,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/tests", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const userId = req.user.id;
-
-    try {
-      const userInterfaceTests = await db
-        .select({
-          ...getTableColumns(tests),
-          projectName: projects.name,
-          // creatorUsername: users.username, // Temporarily removed
-        })
-        .from(tests)
-        .leftJoin(projects, eq(tests.projectId, projects.id))
-        // .leftJoin(users, eq(tests.userId, users.id)) // Temporarily removed
-        .where(eq(tests.userId, userId))
-        .orderBy(desc(tests.updatedAt));
-
-      // No manual JSON.parse needed here if tests.sequence and tests.elements are { mode: 'json' }
-      // Drizzle should handle the parsing.
-      res.json(userInterfaceTests);
-    } catch (error: any) {
-      resolvedLogger.error({
-        message: `Error fetching UI tests for user ${userId}`,
-        error: error.message,
-        stack: error.stack,
-      });
-      res.status(500).json({ error: "Failed to fetch UI tests" });
-    }
-  });
-
-  // Schema for creating a new test (general UI test, not API test)
-  const createTestBodySchema = insertTestSchema.extend({
-    projectId: z.number().int().positive(), // Make projectId explicitly required
-    sequence: z.array(AdhocTestStepSchema), // Expect an array of AdhocTestStepSchema
-    elements: z.array(AdhocDetectedElementSchema), // Expect an array of AdhocDetectedElementSchema
-    // name and url are already required by insertTestSchema via the base 'tests' table definition
-  }).omit({ userId: true }); // userId will come from the session
-
-  app.post("/api/tests", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const userId = req.user.id;
-
-    const parseResult = createTestBodySchema.safeParse(req.body);
-
-    if (!parseResult.success) {
-      resolvedLogger.warn({
-        message: "POST /api/tests - Invalid payload",
-        errors: parseResult.error.flatten(),
-        userId,
-      });
-      return res.status(400).json({ error: "Invalid test data", details: parseResult.error.flatten() });
-    }
-
-    const { name, url, sequence, elements, projectId, status } = parseResult.data;
-
-    try {
-      const newTest = await db
-        .insert(tests)
-        .values({
-          userId,
-          projectId,
-          name,
-          url,
-          sequence: JSON.stringify(sequence), // Stringify sequence array
-          elements: JSON.stringify(elements), // Stringify elements array
-          status: status || "draft", // Default to draft if not provided
-          // createdAt and updatedAt are handled by default in schema
-        })
-        .returning();
-
-      if (newTest.length === 0) {
-        resolvedLogger.error({ message: "Test creation failed, no record returned.", name, userId });
-        return res.status(500).json({ error: "Failed to create test." });
-      }
-      res.status(201).json(newTest[0]);
-    } catch (error: any) {
-      resolvedLogger.error({
-        message: "Error creating test",
-        userId,
-        testName: name,
-        error: error.message,
-        stack: error.stack,
-      });
-      if (error.message && /foreign key/i.test(error.message || '')) {
-        return res.status(400).json({ error: "Invalid project ID or project does not exist." });
-      }
-      res.status(500).json({ error: "Failed to create test" });
-    }
-  });
-  app.put("/api/tests/:id", async (_req, _res) => { /* ... existing code ... */ });
-  app.post("/api/tests/:id/execute", async (_req, _res) => { /* ... existing code ... */ });
   app.get("/api/settings", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
     try {
-      const settings = await db.select().from(userSettings).where(eq(userSettings.userId, req.user.id)).limit(1);
+      const settings = await privilegedDb.select().from(userSettings).where(eq(userSettings.userId, req.user.id)).limit(1);
 
       if (settings.length > 0) {
         return res.json(settings[0]);
@@ -632,7 +476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           language: "en",
         };
 
-        const newSettings = await db.insert(userSettings).values(defaultSettings).returning();
+        const newSettings = await privilegedDb.insert(userSettings).values(defaultSettings).returning();
         return res.json(newSettings[0]);
       }
     } catch (error: any) {
@@ -653,18 +497,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const existingSettings = await db.select().from(userSettings).where(eq(userSettings.userId, req.user.id)).limit(1);
+      const existingSettings = await privilegedDb.select().from(userSettings).where(eq(userSettings.userId, req.user.id)).limit(1);
 
       if (existingSettings.length > 0) {
         // Update existing settings
-        const updatedSettings = await db.update(userSettings)
+        const updatedSettings = await privilegedDb.update(userSettings)
           .set({ ...parseResult.data, updatedAt: new Date() })
           .where(eq(userSettings.userId, req.user.id))
           .returning();
         return res.json(updatedSettings[0]);
       } else {
         // Insert new settings
-        const newSettings = await db.insert(userSettings)
+        const newSettings = await privilegedDb.insert(userSettings)
           .values({ ...parseResult.data, userId: req.user.id })
           .returning();
         return res.json(newSettings[0]);
@@ -911,7 +755,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const parseResult = insertApiTestHistorySchema.safeParse(req.body);
     if (!parseResult.success) { resolvedLogger.warn({ message: "POST /api/api-test-history - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id }); return res.status(400).json({ error: "Invalid history data", details: parseResult.error.flatten() }); }
     try {
-      const newHistoryEntry = await db.insert(apiTestHistory).values({ ...parseResult.data, userId: req.user.id }).returning();
+      const newHistoryEntry = await withTenantTransaction((tx) =>
+        tx.insert(apiTestHistory).values({ ...parseResult.data, userId: req.user!.id, organizationId: req.user!.organizationId }).returning(),
+      );
       res.status(201).json(newHistoryEntry[0]);
     } catch (error: any) { resolvedLogger.error({ message: "Error creating API test history entry", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to save API test history" }); }
   });
@@ -922,8 +768,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = (page - 1) * limit;
     try {
-      const historyEntries = await db.select().from(apiTestHistory).where(eq(apiTestHistory.userId, req.user.id)).orderBy(desc(apiTestHistory.createdAt)).limit(limit).offset(offset);
-      const totalResult = await db.select({ count: sql`count(*)` }).from(apiTestHistory).where(eq(apiTestHistory.userId, req.user.id));
+      // Both inside one tenant transaction: RLS bounds them to the caller's organization, and
+      // the count must be taken under the same binding as the page it describes.
+      const { historyEntries, totalResult } = await withTenantTransaction(async (tx) => ({
+        historyEntries: await tx.select().from(apiTestHistory).where(eq(apiTestHistory.userId, req.user!.id)).orderBy(desc(apiTestHistory.createdAt)).limit(limit).offset(offset),
+        totalResult: await tx.select({ count: sql`count(*)` }).from(apiTestHistory).where(eq(apiTestHistory.userId, req.user!.id)),
+      }));
       const total = totalResult[0]?.count || 0;
       res.json({ items: historyEntries, page, limit, totalItems: Number(total), totalPages: Math.ceil(Number(total) / limit) });
     } catch (error: any) { resolvedLogger.error({ message: "Error fetching API test history", error: error.message, stack: error.stack, userId: (req.user as any)?.id, query: req.query }); res.status(500).json({ error: "Failed to fetch API test history" }); }
@@ -934,7 +784,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { return res.status(400).json({ error: "Invalid history ID" }); }
     try {
-      const result = await db.delete(apiTestHistory).where(and(eq(apiTestHistory.id, id), eq(apiTestHistory.userId, req.user.id))).returning();
+      const result = await withTenantTransaction((tx) =>
+        tx.delete(apiTestHistory).where(and(eq(apiTestHistory.id, id), eq(apiTestHistory.userId, req.user!.id))).returning(),
+      );
       if (result.length === 0) { return res.status(404).json({ error: "History entry not found or not owned by user" }); }
       res.status(204).send();
     } catch (error: any) { resolvedLogger.error({ message: `Error deleting API test history entry ${id}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to delete history entry" }); }
@@ -943,7 +795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // --- Test Plan Schedules API Endpoints (formerly /api/schedules) ---
 
   // GET /api/test-plan-schedules/plan/:planId - List schedules for a specific test plan
-  app.get("/api/test-plan-schedules/plan/:planId", async (req, res) => {
+  app.get("/api/test-plan-schedules/plan/:planId", requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -953,15 +805,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const result = await db
-        .select({
-          ...getTableColumns(testPlanSchedules),
-          testPlanName: testPlans.name,
-        })
-        .from(testPlanSchedules)
-        .leftJoin(testPlans, eq(testPlanSchedules.testPlanId, testPlans.id))
-        .where(eq(testPlanSchedules.testPlanId, planId))
-        .orderBy(desc(testPlanSchedules.createdAt));
+      // Scoped to the ambient tenant transaction rather than privilegedDb: RLS is silently
+      // inert under a superuser, so an unscoped privilegedDb query here returned every
+      // organization's schedules for any plan id, including another tenant's.
+      const result = await withTenantTransaction((tx) =>
+        tx
+          .select({
+            ...getTableColumns(testPlanSchedules),
+            testPlanName: testPlans.name,
+          })
+          .from(testPlanSchedules)
+          .leftJoin(testPlans, eq(testPlanSchedules.testPlanId, testPlans.id))
+          .where(eq(testPlanSchedules.testPlanId, planId))
+          .orderBy(desc(testPlanSchedules.createdAt)),
+      );
 
       const parsedResults = result.map((schedule: any) => ({
         ...schedule,
@@ -976,131 +833,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
-
-  // Zod Schema for Test Plan API Payloads (including selected tests)
-  const testPlanApiPayloadSchema = insertTestPlanSchema.extend({
-    selectedTests: z.array(z.object({
-      id: z.number().int(), // This will be either tests.id or apiTests.id
-      type: z.enum(['ui', 'api'])
-    })).optional().default([])
-  });
-
-  const updateTestPlanApiPayloadSchema = updateTestPlanSchema.extend({
-    selectedTests: z.array(z.object({
-      id: z.number().int(),
-      type: z.enum(['ui', 'api'])
-    })).optional() // On update, if not provided, selected tests are not changed. If an empty array is provided, all are removed.
-  });
+  // testPlanApiPayloadSchema / updateTestPlanApiPayloadSchema now live in shared/schema.ts
+  // so server/routes/test-plans.routes.ts can validate against the same shape.
 
 
   // --- Test Plans API Endpoints ---
 
   // GET /api/test-plans - List all test plans
-  app.get("/api/test-plans", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    try {
-      // Add .where(eq(testPlans.userId, req.user.id)) if userId is added to testPlans table for multi-tenancy
-      const allTestPlans = await db.select().from(testPlans).orderBy(desc(testPlans.createdAt));
-      res.json(allTestPlans);
-    } catch (error: any) {
-      resolvedLogger.error({ message: "Error fetching test plans", error: error.message, stack: error.stack, userId: (req.user as any)?.id });
-      res.status(500).json({ error: "Failed to fetch test plans" });
-    }
-  });
 
   // GET /api/test-plans/:id - Get a single test plan by ID
-  app.get("/api/test-plans/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const testPlanId = req.params.id;
-    try {
-      // Add .where(and(eq(testPlans.id, testPlanId), eq(testPlans.userId, req.user.id))) if user-specific
-      const result = await db.select().from(testPlans).where(eq(testPlans.id, testPlanId));
-      if (result.length === 0) {
-        return res.status(404).json({ error: "Test plan not found" });
-      }
-      res.json(result[0]);
-    } catch (error: any) {
-      resolvedLogger.error({ message: `Error fetching test plan ${testPlanId}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id });
-      res.status(500).json({ error: "Failed to fetch test plan" });
-    }
-  });
 
   // POST /api/test-plans - Create a new test plan
-  app.post("/api/test-plans", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    const parseResult = testPlanApiPayloadSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      resolvedLogger.warn({message: "POST /api/test-plans - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
-      return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
-    }
-
-    try {
-      const { selectedTests, ...newPlanData } = parseResult.data;
-      const planId = uuidv4(); // Generate new UUID
-
-      const createdPlanResult = await db.transaction(async (tx: any) => {
-        const insertedPlan = await tx
-          .insert(testPlans)
-          .values({
-            ...newPlanData,
-            id: planId,
-            // userId: req.user.id, // Future consideration
-            // Ensure JSON fields are stringified if Zod schema returns them as objects
-            testMachinesConfig: newPlanData.testMachinesConfig ? JSON.stringify(newPlanData.testMachinesConfig) : null,
-            notificationSettings: newPlanData.notificationSettings ? JSON.stringify(newPlanData.notificationSettings) : null,
-          })
-          .returning();
-
-        if (insertedPlan.length === 0) {
-          resolvedLogger.error("Test plan main record creation failed within transaction.");
-          throw new Error("Failed to create test plan main record.");
-        }
-        const mainPlan = insertedPlan[0];
-
-        if (selectedTests && selectedTests.length > 0) {
-          const selectedTestValues = selectedTests.map((st: any) => ({
-            testPlanId: mainPlan.id,
-            testId: st.type === 'ui' ? st.id : null,
-            apiTestId: st.type === 'api' ? st.id : null,
-            testType: st.type,
-          }));
-          await tx.insert(testPlanSelectedTests).values(selectedTestValues);
-        }
-        return mainPlan;
-      });
-
-      // Fetch the full plan with selected tests to return
-      // (This might be complex if we need to join with tests/apiTests names, for now just return the created plan object)
-      // For simplicity, returning the direct result from the transaction.
-      // Client might need to re-fetch or this endpoint could be enhanced to return joined data.
-      res.status(201).json(createdPlanResult);
-
-    } catch (error: any) {
-      // Enhanced error logging
-      const errorDetails = {
-        messageFromError: error.message,
-        stackTrace: error.stack,
-        errorCode: (error as any).code, // For SQLite errors like SQLITE_CONSTRAINT
-        requestBodyAttempted: req.body,
-        userId: (req.user as any)?.id,
-      };
-      resolvedLogger.error({ message: "Critical error creating test plan with selected tests", details: errorDetails });
-
-      if (/foreign key/i.test(error.message || '')) {
-        return res.status(400).json({ error: "Invalid reference: One or more selected tests, or the project ID, do not exist."});
-      }
-      // Generic error for client, specific details logged on server
-      res.status(500).json({ error: "Failed to create test plan due to an internal server error." });
-    }
-  });
 
   // PUT /api/test-plans/:id - Update an existing test plan
   app.put("/api/test-plans/:id", async (req, res) => {
@@ -1121,18 +864,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if there's anything to update for the main plan or selected tests
       if (Object.keys(planUpdates).length === 0 && selectedTests === undefined) {
         // Check if the plan exists first to return 404 if not, otherwise 400 for no data
-        const existingPlanCheck = await db.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId));
+        const existingPlanCheck = await withTenantTransaction((tx) =>
+          tx.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId)),
+        );
         if (existingPlanCheck.length === 0) {
             return res.status(404).json({ error: "Test plan not found." });
         }
         return res.status(400).json({ error: "No update data provided." });
       }
 
-      const updatedPlanResult = await db.transaction(async (tx: any) => {
+      // withTenantTransaction, not privilegedDb.transaction: RLS is silently inert under a
+      // superuser, so the explicit organizationId predicates below were the only thing scoping
+      // this handler. They stay, but they are now belt as well as braces.
+      const updatedPlanResult = await withTenantTransaction(async (tx) => {
         let mainPlanUpdated;
         if (Object.keys(planUpdates).length > 0) {
-          // Stringify JSON fields before updating
-          const updatesToApply = { ...planUpdates } as any;
+          // Stringify JSON fields before updating: both columns are typed as their parsed
+          // object shape while the DB stores them as text.
+          const updatesToApply = { ...planUpdates } as Record<string, unknown>;
           if (planUpdates.testMachinesConfig !== undefined) {
             updatesToApply.testMachinesConfig = planUpdates.testMachinesConfig ? JSON.stringify(planUpdates.testMachinesConfig) : null;
           }
@@ -1144,9 +893,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .update(testPlans)
             .set({
               ...updatesToApply,
-              updatedAt: Math.floor(Date.now() / 1000),
+              // A Date, not unix seconds: updatedAt is a `timestamp` column, and drizzle
+              // calls .toISOString() on whatever it is given. The previous number made every
+              // PUT that touched a plan field fail with "value.toISOString is not a function".
+              updatedAt: new Date(),
             })
-            .where(eq(testPlans.id, testPlanId))
+            // Scoped to the caller's organization, so another tenant's plan is simply not
+            // there. Without this the handler would happily update any plan by id, and the
+            // join rows below would then be stamped with the foreign plan's organization
+            // while naming tests from the caller's — a row that is internally cross-tenant.
+            // Scoped to the caller's organization, so another tenant's plan is simply not
+            // there. Without this the handler would happily update any plan by id, and the
+            // join rows below would then be stamped with the foreign plan's organization
+            // while naming tests from the caller's — a row that is internally cross-tenant.
+            .where(and(eq(testPlans.id, testPlanId), eq(testPlans.organizationId, req.user.organizationId)))
             .returning();
 
           if (mainPlanUpdated.length === 0) {
@@ -1154,8 +914,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             throw new Error("Test plan not found or no changes to main record."); // Will be caught and result in 404 like
           }
         } else {
-          // If only selectedTests are being updated, fetch the current plan to return
-          const currentPlan = await tx.select().from(testPlans).where(eq(testPlans.id, testPlanId));
+          // If only selectedTests are being updated, fetch the current plan to return.
+          // Same organization scope as the update branch above.
+          const currentPlan = await tx
+            .select()
+            .from(testPlans)
+            .where(and(eq(testPlans.id, testPlanId), eq(testPlans.organizationId, req.user.organizationId)));
           if (currentPlan.length === 0) {
             throw new Error("Test plan not found.");
           }
@@ -1167,8 +931,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await tx.delete(testPlanSelectedTests).where(eq(testPlanSelectedTests.testPlanId, testPlanId));
 
           if (selectedTests.length > 0) {
-            const selectedTestValues = selectedTests.map((st: any) => ({
+            await assertSelectedTestsBelongTo(tx, req.user.organizationId, selectedTests);
+            const selectedTestValues = selectedTests.map((st) => ({
               testPlanId: testPlanId,
+              // Taken from the plan these rows hang off, not from the session: a join row must
+              // belong to the same organization as its parent, and those can differ whenever
+              // the caller reaches a plan that isn't theirs.
+              organizationId: mainPlanUpdated[0].organizationId,
               testId: st.type === 'ui' ? st.id : null,
               apiTestId: st.type === 'api' ? st.id : null,
               testType: st.type,
@@ -1189,7 +958,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
        if (error.message.toLowerCase().includes("test plan not found")) { // Custom error from transaction
         return res.status(404).json({ error: "Test plan not found." });
       }
-      if (/foreign key/i.test(error.message || '')) {
+      // Either the DB rejected an id that doesn't exist at all, or assertSelectedTestsBelongTo
+      // rejected one that exists in another organization. Both are the caller naming a test
+      // that is not theirs to name, and both answer the same way — a distinct message for the
+      // second would tell them which ids exist in other tenants.
+      if (/foreign key/i.test(error.message || '') || SELECTED_TESTS_NOT_FOUND.test(error.message || '')) {
         return res.status(400).json({ error: "One or more selected tests do not exist."})
       }
       res.status(500).json({ error: "Failed to update test plan" });
@@ -1197,7 +970,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // DELETE /api/test-plans/:id - Delete a test plan
-  app.delete("/api/test-plans/:id", async (req, res) => {
+  app.delete("/api/test-plans/:id", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -1207,11 +980,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // onDelete: 'cascade' is defined in the schedules.testPlanId FK.
       // This means deleting a test plan will automatically delete associated schedules.
       // Also, test_plan_selected_tests and test_plan_runs have onDelete: 'cascade' for testPlanId.
-      const result = await db
-        .delete(testPlans)
-        .where(eq(testPlans.id, testPlanId))
-        // Add .where(and(eq(testPlans.id, testPlanId), eq(testPlans.userId, req.user.id))) if user-specific
-        .returning();
+      //
+      // Scoped to the caller's organization (matching the PUT handler above) and run inside
+      // the tenant transaction, so another tenant's plan is simply not there rather than
+      // being destroyed along with its schedules and execution history.
+      const result = await withTenantTransaction((tx) =>
+        tx
+          .delete(testPlans)
+          .where(and(eq(testPlans.id, testPlanId), eq(testPlans.organizationId, req.user!.organizationId)))
+          .returning(),
+      );
 
       if (result.length === 0) {
         return res.status(404).json({ error: "Test plan not found" });
@@ -1224,7 +1002,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/run-test-plan/:id - Execute a test plan
-  app.post("/api/run-test-plan/:id", async (req, res) => {
+  app.post("/api/run-test-plan/:id", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -1234,6 +1012,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     resolvedLogger.http({ message: `POST /api/run-test-plan/${testPlanId} - Handler reached`, testPlanId, userId });
 
     try {
+      // Ownership gate: runTestPlan (test-execution-service.ts) and everything it kicks off
+      // — processTestPlanJob, the selected-tests and inArray test loads, the report writes —
+      // all query privilegedDb with no organization filter, and the execution row it inserts
+      // is stamped with *the plan's* organizationId, not the caller's. Without this check a
+      // session in one organization could execute, and receive results for, another tenant's
+      // test plan. Converting test-execution-service itself to run inside the tenant context
+      // is a larger change (it also runs as a background job with no ambient tenant) and is
+      // deliberately out of scope here; this closes the one wire-reachable entry point.
+      const owned = await withTenantTransaction((tx) =>
+        tx.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId)).limit(1),
+      );
+      if (owned.length === 0) {
+        return res.status(404).json({ error: "Test plan not found" });
+      }
+
       // Dynamically import runTestPlan to avoid circular dependencies if test-execution-service grows
       const { runTestPlan } = await import("./test-execution-service");
       const executionResult = await runTestPlan(testPlanId, userId);
@@ -1287,25 +1080,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Execute queries
-      const uiTestResults = await db.select({
-          id: tests.id,
-          name: tests.name,
-          description: sql<string>`null`.as('description'),
-          type: sql<string>`'ui'`.as('type'),
-          updatedAt: tests.updatedAt
-        })
-        .from(tests)
-        .where(and(...uiConditions));
-
-      const apiTestResults = await db.select({
-          id: apiTests.id,
-          name: apiTests.name,
-          description: sql<string>`null`.as('description'),
-          type: sql<string>`'api'`.as('type'),
-          updatedAt: apiTests.updatedAt
-        })
-        .from(apiTests)
-        .where(and(...apiConditions));
+      // One tenant transaction for both: RLS bounds them to the caller's organization. The
+      // userId predicates stay as the ownership filter they were, but they are no longer what
+      // keeps another tenant's rows out — organizationId is the boundary, userId attribution.
+      const { uiTestResults, apiTestResults } = await withTenantTransaction(async (tx) => ({
+        uiTestResults: await tx.select({
+            id: tests.id,
+            name: tests.name,
+            description: sql<string>`null`.as('description'),
+            type: sql<string>`'ui'`.as('type'),
+            updatedAt: tests.updatedAt
+          })
+          .from(tests)
+          .where(and(...uiConditions)),
+        apiTestResults: await tx.select({
+            id: apiTests.id,
+            name: apiTests.name,
+            description: sql<string>`null`.as('description'),
+            type: sql<string>`'api'`.as('type'),
+            updatedAt: apiTests.updatedAt
+          })
+          .from(apiTests)
+          .where(and(...apiConditions)),
+      }));
 
       // Combine results
       const combinedResults = [...uiTestResults, ...apiTestResults];
@@ -1337,18 +1134,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 // --- Test Execution Logs API Endpoint ---
-app.get("/api/test-plan-executions/:executionId/logs", async (req, res) => {
+app.get("/api/test-plan-executions/:executionId/logs", requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   const { executionId } = req.params;
 
   try {
-    const logs = await db
-      .select()
-      .from(executionLogs)
-      .where(eq(executionLogs.testPlanExecutionId, executionId))
-      .orderBy(asc(executionLogs.timestamp));
+    // Scoped to the tenant transaction: execution_logs carries test steps and substituted
+    // values, so an unscoped privilegedDb query here handed a foreign execution's full log
+    // body to any authenticated caller who guessed its id.
+    const logs = await withTenantTransaction((tx) =>
+      tx
+        .select()
+        .from(executionLogs)
+        .where(eq(executionLogs.testPlanExecutionId, executionId))
+        .orderBy(asc(executionLogs.timestamp)),
+    );
 
     res.json(logs);
   } catch (error: any) {
@@ -1358,7 +1160,7 @@ app.get("/api/test-plan-executions/:executionId/logs", async (req, res) => {
 });
 
 // --- Test Report Page API Endpoint ---
-app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
+app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ error: "Unauthorized" });
   }
@@ -1372,33 +1174,42 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
   }
 
   try {
-    // 1. Fetch the main TestPlanExecution record and its associated TestPlan
-    const executionDetailsResult = await db
-      .select({
-        execution: getTableColumns(testPlanExecutions),
-        plan: getTableColumns(testPlans),
-      })
-      .from(testPlanExecutions)
-      .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
-      .where(eq(testPlanExecutions.id, executionId))
-      // Add user ID check if necessary: and(eq(testPlanExecutions.id, executionId), eq(testPlans.userId, userId)))
-      // Or if testPlanExecutions has a userId: and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.userId, userId)))
-      .limit(1);
+    // Both queries run inside the same tenant transaction: unscoped privilegedDb queries
+    // here returned a foreign execution's full report — including plan and test-case names
+    // — to any authenticated caller who guessed its id.
+    const reportSource = await withTenantTransaction(async (tx) => {
+      // 1. Fetch the main TestPlanExecution record and its associated TestPlan
+      const executionDetailsResult = await tx
+        .select({
+          execution: getTableColumns(testPlanExecutions),
+          plan: getTableColumns(testPlans),
+        })
+        .from(testPlanExecutions)
+        .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
+        .where(eq(testPlanExecutions.id, executionId))
+        .limit(1);
 
-    if (executionDetailsResult.length === 0) {
+      if (executionDetailsResult.length === 0) {
+        return null;
+      }
+
+      // 2. Fetch all reportTestCaseResults for this execution
+      // Ensure reportTestCaseResults is imported from @shared/schema
+      const testCaseResults: ReportTestCaseResult[] = await tx
+        .select()
+        .from(reportTestCaseResults)
+        .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
+        .orderBy(desc(reportTestCaseResults.status), asc(reportTestCaseResults.testName)); // Example ordering
+
+      return { ...executionDetailsResult[0], testCaseResults };
+    });
+
+    if (!reportSource) {
       resolvedLogger.warn({ message: `Execution ID ${executionId} not found.`, userId });
       return res.status(404).json({ error: "Test plan execution not found." });
     }
 
-    const { execution, plan } = executionDetailsResult[0];
-
-    // 2. Fetch all reportTestCaseResults for this execution
-    // Ensure reportTestCaseResults is imported from @shared/schema
-    const testCaseResults: ReportTestCaseResult[] = await db
-      .select()
-      .from(reportTestCaseResults)
-      .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
-      .orderBy(desc(reportTestCaseResults.status), asc(reportTestCaseResults.testName)); // Example ordering
+    const { execution, plan, testCaseResults } = reportSource;
 
     // 3. Calculate Key Metrics
     const totalTests = testCaseResults.length;
@@ -1556,7 +1367,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
     try {
-      const settings = await db.select().from(systemSettings);
+      const settings = await privilegedDb.select().from(systemSettings);
       res.json(settings);
     } catch (error: any) {
       resolvedLogger.error({ message: "Error fetching system settings", error: error.message, stack: error.stack, userId: (req.user as any)?.id });
@@ -1571,7 +1382,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
     }
     const { key } = req.params;
     try {
-      const result = await db.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
+      const result = await privilegedDb.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
       if (result.length === 0) {
         return res.status(404).json({ error: "Setting not found" });
       }
@@ -1583,9 +1394,11 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
   });
 
   // POST /api/system-settings - Create or update a system setting (upsert)
-  app.post("/api/system-settings", async (req, res) => {
+  // system_settings is deliberately global (logRetentionDays, logLevel, clientLogLevel), so
+  // this is gated to owners rather than any authenticated user of any organization: a
+  // viewer or editor should not be able to reconfigure logging for every tenant.
+  app.post("/api/system-settings", requireRole('owner'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
-      // Potentially restrict this to admin users in a real application
       return res.status(401).json({ error: "Unauthorized" });
     }
     const parseResult = insertSystemSettingSchema.safeParse(req.body);
@@ -1598,7 +1411,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
 
       // For SQLite, Drizzle's .onConflictDoUpdate().returning() might not return the inserted/updated row directly in all cases.
       // It's safer to perform the upsert and then select the row.
-      await db.insert(systemSettings)
+      await privilegedDb.insert(systemSettings)
         .values({ key, value })
         .onConflictDoUpdate({
           target: systemSettings.key,
@@ -1606,7 +1419,7 @@ app.get("/api/test-plan-executions/:executionId/report", async (req, res) => {
         });
 
       // Fetch the (potentially) updated or newly inserted row
-      const finalResult = await db.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
+      const finalResult = await privilegedDb.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1);
 
       if (finalResult.length === 0) {
          // This case should ideally not be reached if upsert is successful

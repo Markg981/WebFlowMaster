@@ -276,8 +276,14 @@ const FRAMES_IN_FINGERPRINT = 3;
 
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const LONG_HEX = /\b[0-9a-f]{12,}\b/gi;
-const ABSOLUTE_PATH = /(?:[A-Za-z]:\\|\/)[^\s"')]+/g;
-const NUMBER = /\b\d+\b/g;
+// The lookbehind is what separates a filesystem path from the slashes inside a URL:
+// a real path never follows ":", a word character, or another "/". Without it the
+// pattern swallows "//host/api/orders" whole, and two different failing endpoints
+// collapse into one fingerprint.
+const ABSOLUTE_PATH = /(?<![:\w/])(?:[A-Za-z]:\\|\/)[^\s"')]+/g;
+// Intentionally unanchored: in "1523ms" the digits are followed by a word
+// character, so a word-boundary anchor would leave the number in place.
+const NUMBER = /\d+/g;
 
 /**
  * Collapses the parts of a message that vary between occurrences of the same bug —
@@ -428,8 +434,10 @@ describe('resolveOrigin', () => {
 
     expect(origin?.file).toBe('server/sample.ts');
     expect(origin?.line).toBe(10);
-    expect(origin?.source).toContain('  10 > const line10 = 10;');
-    expect(origin?.source).toContain('   9 | const line9 = 9;');
+    // Line numbers are right-aligned to the widest one in the window, so a two-digit
+    // window pads to five columns; the failing line is marked with ">" not "|".
+    expect(origin?.source).toContain('   10 > const line10 = 10;');
+    expect(origin?.source).toContain('    9 | const line9 = 9;');
     expect(origin?.unresolved).toBeUndefined();
   });
 
@@ -1406,19 +1414,30 @@ describe('incidentErrorHandler', () => {
   it('records an incident and still answers the request', async () => {
     const response = await request(appThatThrows()).post('/api/boom').send({ url: 'https://x.test' });
 
+    // Asserted before the poll below: the handler must answer without waiting on disk I/O.
     expect(response.status).toBe(500);
 
-    const index = await new IncidentStore(root).readIndex();
-    expect(index).toHaveLength(1);
-    expect(index[0].kind).toBe('server-api');
+    // The tap records fire-and-forget by design, so poll for the artifact rather than
+    // assuming the write has already landed — on a real filesystem it usually has not.
+    await vi.waitFor(async () => {
+      const index = await new IncidentStore(root).readIndex();
+      expect(index).toHaveLength(1);
+      expect(index[0].kind).toBe('server-api');
+    }, { timeout: 2000 });
   });
 
   it('captures the request as the trigger', async () => {
     await request(appThatThrows()).post('/api/boom?debug=1').send({ url: 'https://x.test' });
 
     const store = new IncidentStore(root);
-    const [entry] = await store.readIndex();
-    const incident = await store.read(entry.id);
+    // Same race as above: the recording is asynchronous, so wait for it to appear.
+    const incident = await vi.waitFor(async () => {
+      const [entry] = await store.readIndex();
+      expect(entry).toBeDefined();
+      const found = await store.read(entry.id);
+      expect(found).not.toBeNull();
+      return found;
+    }, { timeout: 2000 });
 
     expect(incident!.trigger).toMatchObject({
       method: 'POST',
@@ -1470,7 +1489,10 @@ import { getCorrelationId } from '../../middleware/correlation';
 import { recordIncident, type IncidentLogger } from '../incident';
 
 /** Headers worth keeping. Everything else is either noise or a credential. */
-const HEADER_ALLOWLIST = ['content-type', 'accept', 'user-agent', 'x-correlation-id', 'x-session-id'];
+// Deliberately NOT 'x-session-id': that conventional name could carry a real session
+// credential from a proxy or another client, and the redactor does not match it.
+// Our own per-tab correlation id travels under an unmistakably ours name instead.
+const HEADER_ALLOWLIST = ['content-type', 'accept', 'user-agent', 'x-correlation-id', 'x-wfm-session-id'];
 
 export function buildServerApiTrigger(req: Request): Record<string, unknown> {
   const headers: Record<string, unknown> = {};
@@ -2183,7 +2205,9 @@ async function throwIfResNotOk(res: Response) {
 
 /** Correlation headers let a UI action and the server work it triggers share one id. */
 function tracingHeaders(correlationId: string): Record<string, string> {
-  return { "X-Correlation-Id": correlationId, "X-Session-Id": getSessionId() };
+  // X-Wfm-Session-Id, not X-Session-Id: the tap refuses to capture the conventional
+  // name because it could hold a real credential. Ours is a random per-tab id.
+  return { "X-Correlation-Id": correlationId, "X-Wfm-Session-Id": getSessionId() };
 }
 
 export async function apiRequest(
@@ -2831,7 +2855,20 @@ beforeEach(() => {
 
 afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
+/**
+ * recordRunnerFailure records fire-and-forget on purpose, so these tests poll for the
+ * artifact. A fixed sleep would be a flake waiting to happen: the write is several real
+ * filesystem round-trips and a slow machine will not finish inside any constant you pick.
+ */
+const waitForIncident = async (root: string) =>
+  vi.waitFor(async () => {
+    const store = new IncidentStore(root);
+    const [entry] = await store.readIndex();
+    expect(entry).toBeDefined();
+    const incident = await store.read(entry.id);
+    expect(incident).not.toBeNull();
+    return incident!;
+  }, { timeout: 2000 });
 
 describe('recordRunnerFailure', () => {
   it('records the phase and context', async () => {
@@ -2840,24 +2877,20 @@ describe('recordRunnerFailure', () => {
       error: new Error('Failed to launch browser for recording.'),
       context: { browserType: 'chromium', url: 'https://app.test' },
     });
-    await settle();
 
-    const store = new IncidentStore(root);
-    const [entry] = await store.readIndex();
-    const incident = await store.read(entry.id);
+    const incident = await waitForIncident(root);
 
-    expect(incident!.kind).toBe('runner');
-    expect(incident!.trigger).toMatchObject({ phase: 'browser-launch', browserType: 'chromium' });
+    expect(incident.kind).toBe('runner');
+    expect(incident.trigger).toMatchObject({ phase: 'browser-launch', browserType: 'chromium' });
   });
 
   it('accepts a non-Error rejection without throwing', async () => {
     expect(() =>
       recordRunnerFailure({ phase: 'goto', error: 'string failure', context: {} }),
     ).not.toThrow();
-    await settle();
 
-    const [entry] = await new IncidentStore(root).readIndex();
-    expect(entry.title).toContain('string failure');
+    const incident = await waitForIncident(root);
+    expect(incident.title).toContain('string failure');
   });
 });
 ```
@@ -3451,18 +3484,22 @@ describe('the incident loop', () => {
       .post('/api/execute-test-direct')
       .send({ url: 'https://app.test', sequence: [{ id: 'step-1', action: { id: 'click' } }] });
 
-    // The index alone must be enough to know what happened.
+    // The index alone must be enough to know what happened. The tap records
+    // fire-and-forget, so poll rather than assume the write has landed.
     const store = new IncidentStore(root);
-    const index = await store.readIndex();
-    expect(index).toHaveLength(1);
-    expect(index[0].title).toContain('selector');
-
-    const incident = await store.read(index[0].id);
+    const incident = await vi.waitFor(async () => {
+      const index = await store.readIndex();
+      expect(index).toHaveLength(1);
+      expect(index[0].title).toContain('selector');
+      const found = await store.read(index[0].id);
+      expect(found).not.toBeNull();
+      return found!;
+    }, { timeout: 2000 });
 
     // 1. Where it broke, with the code in hand.
-    expect(incident!.origin?.file).toBe('server/broken.ts');
-    expect(incident!.origin?.line).toBe(3);
-    expect(incident!.origin?.source.join('\n')).toContain('return step.targetElement.selector;');
+    expect(incident.origin?.file).toBe('server/broken.ts');
+    expect(incident.origin?.line).toBe(3);
+    expect(incident.origin?.source.join('\n')).toContain('return step.targetElement.selector;');
 
     // 2. What caused it.
     expect(incident!.trigger).toMatchObject({

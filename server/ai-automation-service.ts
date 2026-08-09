@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
 import loggerPromise from "./logger";
-import { db } from "./db";
+import { privilegedDb } from "./db";
 import { tests, detectedElements } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 
@@ -88,7 +88,7 @@ export class AIAutomationService {
   async updateSelectorInDb(testId: number, stepIndex: number, newSelector: string) {
     try {
       // Fetch current test
-      const testRecord = await db.select().from(tests).where(eq(tests.id, testId)).limit(1);
+      const testRecord = await privilegedDb.select().from(tests).where(eq(tests.id, testId)).limit(1);
       if (testRecord.length === 0) return;
 
       const sequence = testRecord[0].sequence as any[];
@@ -125,7 +125,7 @@ export class AIAutomationService {
             }
         } 
         
-        await db.update(tests)
+        await privilegedDb.update(tests)
           .set({ 
               sequence: sequence,
               elements: updatedElements ? elements : undefined // Update elements only if changed
@@ -138,10 +138,10 @@ export class AIAutomationService {
         if (sequence[stepIndex].targetElement && sequence[stepIndex].targetElement.id) {
             const elementId = sequence[stepIndex].targetElement.id;
              // Check if exists
-             const existingElement = await db.select().from(detectedElements).where(and(eq(detectedElements.testId, testId), eq(detectedElements.elementId, elementId))).limit(1);
+             const existingElement = await privilegedDb.select().from(detectedElements).where(and(eq(detectedElements.testId, testId), eq(detectedElements.elementId, elementId))).limit(1);
              
              if (existingElement.length > 0) {
-                 await db.update(detectedElements)
+                 await privilegedDb.update(detectedElements)
                     .set({ 
                         selector: newSelector,
                         originalSelector: existingElement[0].originalSelector || existingElement[0].selector // Keep origin if exists
@@ -149,7 +149,9 @@ export class AIAutomationService {
                     .where(eq(detectedElements.id, existingElement[0].id));
                  this.logInfo("Normalized DB Update - Updated existing element", { testId, elementId });
              } else {
-                 await db.insert(detectedElements).values({
+                 await privilegedDb.insert(detectedElements).values({
+                     // A detected element belongs to the same organization as its test.
+                     organizationId: testRecord[0].organizationId,
                      testId,
                      elementId,
                      selector: newSelector,

@@ -1,14 +1,24 @@
-import { pgTable, text, integer, serial, timestamp, boolean, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, serial, timestamp, boolean, jsonb, index, unique } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations } from 'drizzle-orm';
 import { ADHOC_ACTION_IDS } from './recording';
 
 // Table Definitions
+export const organizations = pgTable("organizations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  // The tenancy boundary. One user belongs to exactly one organization.
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  // Verbs, not rows: RLS decides which rows are visible, this decides what may be done to them.
+  role: text("role").notNull().default('editor'),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -28,14 +38,17 @@ export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("projects_user_id_idx").on(table.userId),
+  index("projects_organization_id_idx").on(table.organizationId),
 ]);
 
 export const tests = pgTable("tests", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
   projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
   name: text("name").notNull(),
   url: text("url").notNull(),
@@ -60,22 +73,26 @@ export const tests = pgTable("tests", {
   index("tests_user_id_idx").on(table.userId),
   index("tests_project_id_idx").on(table.projectId),
   index("tests_status_idx").on(table.status),
+  index("tests_organization_id_idx").on(table.organizationId),
 ]);
 
 export const testRuns = pgTable("test_runs", {
   id: serial("id").primaryKey(),
   testId: integer("test_id").notNull().references(() => tests.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
   status: text("status").notNull(),
   results: jsonb("results"),
   startedAt: timestamp("started_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
 }, (table) => [
   index("test_runs_test_id_idx").on(table.testId),
+  index("test_runs_organization_id_idx").on(table.organizationId),
 ]);
 
 export const detectedElements = pgTable("detected_elements", {
   id: serial("id").primaryKey(),
   testId: integer("test_id").notNull().references(() => tests.id, { onDelete: 'cascade' }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
   elementId: text("element_id").notNull(), // Client-side ID like elem-button-1
   selector: text("selector").notNull(),
   originalSelector: text("original_selector"),
@@ -87,11 +104,13 @@ export const detectedElements = pgTable("detected_elements", {
 }, (table) => [
   index("detected_elements_test_id_idx").on(table.testId),
   index("detected_elements_test_id_element_id_idx").on(table.testId, table.elementId),
+  index("detected_elements_organization_id_idx").on(table.organizationId),
 ]);
 
 export const apiTestHistory = pgTable("api_test_history", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
   method: text("method").notNull(),
   url: text("url").notNull(),
   queryParams: jsonb("query_params"),
@@ -104,11 +123,13 @@ export const apiTestHistory = pgTable("api_test_history", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("api_test_history_user_id_idx").on(table.userId),
+  index("api_test_history_organization_id_idx").on(table.organizationId),
 ]);
 
 export const apiTests = pgTable("api_tests", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
   projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
   name: text("name").notNull(),
   method: text("method").notNull(),
@@ -138,6 +159,7 @@ export const apiTests = pgTable("api_tests", {
 }, (table) => [
   index("api_tests_user_id_idx").on(table.userId),
   index("api_tests_project_id_idx").on(table.projectId),
+  index("api_tests_organization_id_idx").on(table.organizationId),
 ]);
 
 export const systemSettings = pgTable('system_settings', {
@@ -149,6 +171,7 @@ export const systemSettings = pgTable('system_settings', {
 export const testPlans = pgTable("test_plans", {
   id: text('id').primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer('organization_id').notNull().references(() => organizations.id),
   name: text('name').notNull(),
   description: text('description'),
   testMachinesConfig: jsonb('test_machines_config'),
@@ -167,11 +190,13 @@ export const testPlans = pgTable("test_plans", {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
   index("test_plans_user_id_idx").on(table.userId),
+  index("test_plans_organization_id_idx").on(table.organizationId),
 ]);
 
 export const testPlanSchedules = pgTable("test_plan_schedules", {
   id: text('id').primaryKey(),
   testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
+  organizationId: integer('organization_id').notNull().references(() => organizations.id),
   // Owner of the schedule; scheduled executions run on behalf of this user.
   // Nullable so pre-existing rows migrate cleanly (the scheduler falls back for them).
   userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
@@ -190,12 +215,14 @@ export const testPlanSchedules = pgTable("test_plan_schedules", {
   index("test_plan_schedules_test_plan_id_idx").on(table.testPlanId),
   index("test_plan_schedules_user_id_idx").on(table.userId),
   index("test_plan_schedules_active_next_run_idx").on(table.isActive, table.nextRunAt),
+  index("test_plan_schedules_organization_id_idx").on(table.organizationId),
 ]);
 
 export const testPlanExecutions = pgTable("test_plan_executions", {
   id: text('id').primaryKey(),
   scheduleId: text('schedule_id').references(() => testPlanSchedules.id, { onDelete: 'set null' }),
   testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
+  organizationId: integer('organization_id').notNull().references(() => organizations.id),
   status: text('status').notNull().default('pending'),
   results: jsonb("results"),
   startedAt: timestamp('started_at').notNull().defaultNow(),
@@ -213,11 +240,13 @@ export const testPlanExecutions = pgTable("test_plan_executions", {
   index("test_plan_executions_schedule_id_idx").on(table.scheduleId),
   index("test_plan_executions_status_idx").on(table.status),
   index("test_plan_executions_started_at_idx").on(table.startedAt),
+  index("test_plan_executions_organization_id_idx").on(table.organizationId),
 ]);
 
 export const reportTestCaseResults = pgTable("report_test_case_results", {
   id: text("id").primaryKey(),
   testPlanExecutionId: text("test_plan_execution_id").notNull().references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
   uiTestId: integer("ui_test_id").references(() => tests.id, { onDelete: 'set null' }),
   apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'set null' }),
   testType: text("test_type").notNull(),
@@ -239,6 +268,7 @@ export const reportTestCaseResults = pgTable("report_test_case_results", {
   index("report_test_case_results_execution_id_idx").on(table.testPlanExecutionId),
   index("report_test_case_results_ui_test_id_idx").on(table.uiTestId),
   index("report_test_case_results_api_test_id_idx").on(table.apiTestId),
+  index("report_test_case_results_organization_id_idx").on(table.organizationId),
 ]);
 
 // ─── Execution Logs (User-Facing Console) ─────────────────────────────────────
@@ -248,6 +278,7 @@ export const executionLogs = pgTable("execution_logs", {
   id: serial('id').primaryKey(),
   testPlanExecutionId: text('test_plan_execution_id').notNull()
     .references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
+  organizationId: integer('organization_id').notNull().references(() => organizations.id),
   timestamp: timestamp('timestamp').defaultNow().notNull(),
   level: text('level').notNull(),               // 'info' | 'warn' | 'error' | 'step' | 'debug'
   source: text('source').notNull(),             // 'playwright' | 'api-runner' | 'system' | 'worker'
@@ -258,6 +289,7 @@ export const executionLogs = pgTable("execution_logs", {
 }, (table) => [
   index("execution_logs_execution_id_idx").on(table.testPlanExecutionId),
   index("execution_logs_correlation_id_idx").on(table.correlationId),
+  index("execution_logs_organization_id_idx").on(table.organizationId),
 ]);
 
 export const environments = pgTable("environments", {
@@ -265,9 +297,11 @@ export const environments = pgTable("environments", {
   name: text('name').notNull().unique(),
   description: text('description'),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  organizationId: integer('organization_id').notNull().references(() => organizations.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => [
   index("environments_user_id_idx").on(table.userId),
+  index("environments_organization_id_idx").on(table.organizationId),
 ]);
 
 export const secrets = pgTable("secrets", {
@@ -278,27 +312,32 @@ export const secrets = pgTable("secrets", {
   iv: text('iv').notNull(),
   authTag: text('auth_tag').notNull(),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  organizationId: integer('organization_id').notNull().references(() => organizations.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (table) => [
   index("secrets_environment_id_idx").on(table.environmentId),
   index("secrets_user_id_idx").on(table.userId),
+  index("secrets_organization_id_idx").on(table.organizationId),
 ]);
 
 export const testPlanWebhooks = pgTable("test_plan_webhooks", {
   id: serial('id').primaryKey(),
   testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
+  organizationId: integer('organization_id').notNull().references(() => organizations.id),
   token: text('token').notNull().unique(),
   name: text('name').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   lastUsedAt: timestamp('last_used_at'),
 }, (table) => [
   index("test_plan_webhooks_test_plan_id_idx").on(table.testPlanId),
+  index("test_plan_webhooks_organization_id_idx").on(table.organizationId),
 ]);
 
 export const testPlanSelectedTests = pgTable("test_plan_selected_tests", {
   id: serial('id').primaryKey(),
   testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
+  organizationId: integer('organization_id').notNull().references(() => organizations.id),
   testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }),
   apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }),
   testType: text('test_type').notNull(),
@@ -306,6 +345,7 @@ export const testPlanSelectedTests = pgTable("test_plan_selected_tests", {
   index("test_plan_selected_tests_test_plan_id_idx").on(table.testPlanId),
   index("test_plan_selected_tests_test_id_idx").on(table.testId),
   index("test_plan_selected_tests_api_test_id_idx").on(table.apiTestId),
+  index("test_plan_selected_tests_organization_id_idx").on(table.organizationId),
 ]);
 
 // Excel Sequences Map Table
@@ -314,12 +354,54 @@ export const excelSequencesMap = pgTable("excel_sequences_map", {
   testId: integer("test_id")
     .notNull()
     .references(() => tests.id, { onDelete: "cascade" }),
-  excelTestCaseId: text("excel_test_case_id").notNull().unique(), // Assuming one Excel ID maps to one Sequence
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  // Unique per organization, not globally: the id comes from a customer's own spreadsheet, so
+  // two tenants using the same one is ordinary. See the unique constraint below.
+  excelTestCaseId: text("excel_test_case_id").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("excel_sequences_map_test_id_idx").on(table.testId),
+  index("excel_sequences_map_organization_id_idx").on(table.organizationId),
+  unique("excel_sequences_map_org_excel_test_case_id_unique").on(table.organizationId, table.excelTestCaseId),
 ]);
 
+
+/**
+ * A standing offer for a named username to join an organization.
+ *
+ * A user belongs to exactly one organization, so "adding a member" cannot mean moving an
+ * existing account — that would take away their own organization's data without their say.
+ * An invitation therefore names a username that does not exist yet: whoever registers with
+ * the token lands in this organization instead of getting one of their own.
+ *
+ * Deliberately NOT in ORG_SCOPED_TABLES, for the same reason `users` is not: registration has
+ * to look an invitation up by token before any tenant context exists, and an RLS policy would
+ * make that impossible. Every query from a route therefore carries its own organizationId
+ * predicate, and app_user's grants on this table are narrow (see the migration).
+ */
+export const invitations = pgTable("invitations", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  /** The username the invitation is for. Checked as still-unregistered at accept time too. */
+  username: text("username").notNull(),
+  /** The role the invitee gets on arrival. Never 'owner' — see the route. */
+  role: text("role").notNull().default('editor'),
+  /** Unguessable, and the only thing needed to accept. Unique so a lookup cannot be ambiguous. */
+  token: text("token").notNull().unique(),
+  invitedByUserId: integer("invited_by_user_id").notNull().references(() => users.id),
+  expiresAt: timestamp("expires_at").notNull(),
+  /** Set once used. A used invitation is kept for the audit trail rather than deleted. */
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("invitations_organization_id_idx").on(table.organizationId),
+  // One live invitation per username per organization. Two organizations may both invite the
+  // same username; whichever token is used first wins, and the other is then unacceptable
+  // because the username exists.
+  unique("invitations_org_username_unique").on(table.organizationId, table.username),
+]);
+
+export type Invitation = typeof invitations.$inferSelect;
 
 export const sessions = pgTable("sessions", {
   sid: text("sid").primaryKey(),
@@ -526,6 +608,9 @@ export const insertTestSchema = createInsertSchema(tests, {
   id: true,
   createdAt: true,
   updatedAt: true,
+  // The tenancy boundary: never accepted from the client, always derived server-side
+  // from the authenticated session (see the same treatment of organizationId elsewhere).
+  organizationId: true,
 });
 
 export const insertProjectSchema = createInsertSchema(projects, {
@@ -605,10 +690,39 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
     })
     .optional()
     .nullable(),
-}).omit({ id: true, createdAt: true, updatedAt: true });
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  // The tenancy boundary: never accepted from the client, always derived server-side
+  // from the authenticated session.
+  organizationId: true,
+  // Same reasoning as organizationId: the owning user is derived from the authenticated
+  // session (req.user.id), never trusted from the request body.
+  userId: true,
+});
 
 export const selectTestPlanSchema = createSelectSchema(testPlans);
 export const updateTestPlanSchema = insertTestPlanSchema.partial();
+
+// Test plan create/update payloads also carry the set of tests to link, which live in a
+// separate join table (testPlanSelectedTests) rather than as a column on testPlans.
+// Shared here so every route that accepts a test-plan payload (currently
+// server/routes/test-plans.routes.ts and server/routes.ts) validates against the same
+// shape instead of maintaining duplicate, possibly-drifting copies.
+export const testPlanApiPayloadSchema = insertTestPlanSchema.extend({
+  selectedTests: z.array(z.object({
+    id: z.number().int(), // This will be either tests.id or apiTests.id
+    type: z.enum(['ui', 'api'])
+  })).optional().default([])
+});
+
+export const updateTestPlanApiPayloadSchema = updateTestPlanSchema.extend({
+  selectedTests: z.array(z.object({
+    id: z.number().int(),
+    type: z.enum(['ui', 'api'])
+  })).optional() // On update, if not provided, selected tests are not changed. If an empty array is provided, all are removed.
+});
 
 export type TestPlan = typeof testPlans.$inferSelect;
 export type InsertTestPlan = typeof testPlans.$inferInsert;
@@ -626,7 +740,18 @@ export const insertTestPlanScheduleSchema = createInsertSchema(
     isActive: z.boolean().default(true),
     retryOnFailure: z.enum(["none", "once", "twice"]).default("none"),
   },
-).omit({ id: true, createdAt: true, updatedAt: true });
+).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  // The tenancy boundary: never accepted from the client, always derived server-side
+  // from the authenticated session.
+  organizationId: true,
+  // Same category as organizationId. POST already overrode a body-supplied userId after
+  // the spread, but PUT did not — so a schedule's owner was wire-writable, and
+  // scheduler-service.ts then ran the plan on behalf of whoever the body named.
+  userId: true,
+});
 
 export const selectTestPlanScheduleSchema =
   createSelectSchema(testPlanSchedules);
@@ -848,7 +973,14 @@ export type FormDataFieldMetadata = z.infer<typeof FormDataFieldMetadataSchema>;
 export const insertApiTestHistorySchema = createInsertSchema(
   apiTestHistory,
   {},
-).omit({ id: true, createdAt: true, userId: true });
+).omit({
+  id: true,
+  createdAt: true,
+  userId: true,
+  // The tenancy boundary: never accepted from the client, always derived server-side
+  // from the authenticated session.
+  organizationId: true,
+});
 export type InsertApiTestHistoryPayload = z.infer<typeof insertApiTestHistorySchema>;
 
 export const insertApiTestSchema = createInsertSchema(apiTests, {
@@ -870,6 +1002,9 @@ export const insertApiTestSchema = createInsertSchema(apiTests, {
     createdAt: true,
     updatedAt: true,
     userId: true,
+    // The tenancy boundary: never accepted from the client, always derived server-side
+    // from the authenticated session.
+    organizationId: true,
     projectId: true,
     queryParams: true,
     requestHeaders: true,
@@ -1034,3 +1169,15 @@ export type AdhocTestStep = z.infer<typeof AdhocTestStepSchema>;
 
 export const insertSystemSettingSchema = createInsertSchema(systemSettings);
 export const selectSystemSettingSchema = createSelectSchema(systemSettings);
+
+/**
+ * Tables whose rows belong to exactly one organization and are therefore protected by an
+ * RLS policy. Exported so tests can enumerate them from the schema rather than from a
+ * hand-maintained list, which would be forgotten the first time a table is added.
+ */
+export const ORG_SCOPED_TABLES = [
+  'projects', 'tests', 'test_runs', 'detected_elements', 'api_tests', 'api_test_history',
+  'test_plans', 'test_plan_schedules', 'test_plan_executions', 'test_plan_selected_tests',
+  'test_plan_webhooks', 'report_test_case_results', 'execution_logs', 'environments',
+  'secrets', 'excel_sequences_map',
+] as const;

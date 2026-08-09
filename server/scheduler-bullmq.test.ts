@@ -16,7 +16,7 @@ vi.mock('./queue', () => ({
 vi.mock('./test-execution-service', () => ({ runTestPlan: vi.fn() }));
 vi.mock('./logger', () => ({ default: Promise.resolve({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }) }));
 vi.mock('./db', () => ({
-  db: { update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn().mockResolvedValue(undefined) })) })) },
+  privilegedDb: { update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn().mockResolvedValue(undefined) })) })) },
 }));
 
 import {

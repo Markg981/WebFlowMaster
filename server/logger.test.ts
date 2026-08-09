@@ -3,14 +3,14 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { initializeLogger } from './logger';
-import { db } from './db';
+import { privilegedDb } from './db';
 import { systemSettings } from '@shared/schema';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // These tests exercise logger initialization against the REAL (PGlite) test database.
-// Instead of mocking `db`, we seed the `system_settings` table to control what the
+// Instead of mocking `privilegedDb`, we seed the `system_settings` table to control what the
 // logger reads — this keeps the tests aligned with production behaviour and avoids
 // brittle mocks that inspect Drizzle internals.
 
@@ -23,12 +23,12 @@ describe('Logger Configuration', () => {
 
   beforeEach(async () => {
     // Start each test from a clean settings table and env.
-    await db.delete(systemSettings);
+    await privilegedDb.delete(systemSettings);
     delete process.env.LOG_RETENTION_DAYS;
   });
 
   afterAll(async () => {
-    await db.delete(systemSettings);
+    await privilegedDb.delete(systemSettings);
     if (originalRetention === undefined) {
       delete process.env.LOG_RETENTION_DAYS;
     } else {
@@ -62,7 +62,7 @@ describe('Logger Configuration', () => {
 
   it('uses the DB setting for logRetentionDays, overriding the env var', async () => {
     process.env.LOG_RETENTION_DAYS = '5'; // should be overridden by the DB value
-    await db.insert(systemSettings).values({ key: 'logRetentionDays', value: '15' });
+    await privilegedDb.insert(systemSettings).values({ key: 'logRetentionDays', value: '15' });
 
     const logger = await initializeLogger();
     const transport = getDailyRotateFileTransport(logger);

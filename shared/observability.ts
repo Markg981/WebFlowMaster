@@ -45,6 +45,12 @@ export interface IncidentRepro {
 }
 
 export interface Incident {
+  /**
+   * Bumped only when the shape of this interface changes in a way an old file on disk
+   * would not satisfy. Nothing branches on it yet; it exists so that day has somewhere to
+   * check, instead of every incident ever written silently being assumed current-shape.
+   */
+  schemaVersion: number;
   id: string;
   fingerprint: string;
   kind: IncidentKind;
@@ -61,6 +67,9 @@ export interface Incident {
   occurrences: IncidentOccurrence[];
   repro?: IncidentRepro;
 }
+
+/** The schemaVersion every incident written by this build of the code carries. */
+export const CURRENT_INCIDENT_SCHEMA_VERSION = 1;
 
 /** Compact row in `.observability/index.json`. */
 export interface IncidentIndexEntry {

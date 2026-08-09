@@ -3,6 +3,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Incident, IncidentKind, IncidentOccurrence } from '../../shared/observability';
+import { CURRENT_INCIDENT_SCHEMA_VERSION } from '../../shared/observability';
 import { fingerprintError, incidentIdFromFingerprint } from './fingerprint';
 import { parseStack, resolveOrigin } from './stack';
 import { IncidentStore } from './store';
@@ -97,6 +98,13 @@ export function configureIncidents(options: {
   rootDir?: string;
   repoRoot?: string;
   logger?: IncidentLogger;
+  /**
+   * Replaces the git probe. Collecting git state costs three synchronous subprocess spawns,
+   * which is fine once per 30s in a server and ruinous in a test: recording four incidents
+   * against a fresh temp repoRoot meant up to twelve `git` spawns inside one 5s vitest
+   * budget, and the case that installs fake timers failed intermittently because of it.
+   */
+  gitInfo?: () => Record<string, unknown>;
 }): void {
   if (options.rootDir) {
     rootDir = options.rootDir;
@@ -104,7 +112,11 @@ export function configureIncidents(options: {
   }
   if (options.repoRoot) repoRoot = options.repoRoot;
   if (options.logger) logger = options.logger;
+  gitInfoProbe = options.gitInfo ?? gitInfoFromGit;
   fingerprintState.clear();
+  // The cache is keyed on time alone, so without this a repoRoot change would keep serving
+  // the previous root's data until the TTL expired.
+  gitInfoCache = null;
 }
 
 // Local git plumbing commands (rev-parse, status --porcelain) normally return in single-digit
@@ -127,6 +139,8 @@ const GIT_COMMAND_TIMEOUT_MS = 2000;
  */
 const GIT_INFO_TTL_MS = 30_000;
 let gitInfoCache: { at: number; value: Record<string, unknown> } | null = null;
+/** Swappable via configureIncidents so tests need not spawn subprocesses. */
+let gitInfoProbe: () => Record<string, unknown> = gitInfoFromGit;
 
 function gitInfo(): Record<string, unknown> {
   const now = Date.now();
@@ -134,6 +148,12 @@ function gitInfo(): Record<string, unknown> {
     return gitInfoCache.value;
   }
 
+  const value = gitInfoProbe();
+  gitInfoCache = { at: now, value };
+  return value;
+}
+
+function gitInfoFromGit(): Record<string, unknown> {
   const run = (args: string[]): string | null => {
     try {
       return execFileSync('git', args, {
@@ -148,13 +168,11 @@ function gitInfo(): Record<string, unknown> {
       return null;
     }
   };
-  const value = {
+  return {
     gitCommit: run(['rev-parse', '--short', 'HEAD']),
     gitBranch: run(['rev-parse', '--abbrev-ref', 'HEAD']),
     workingTreeDirty: run(['status', '--porcelain']) !== '',
   };
-  gitInfoCache = { at: now, value };
-  return value;
 }
 
 /**
@@ -174,7 +192,14 @@ async function doRecordIncident(input: RecordIncidentInput): Promise<Incident | 
   let suppressedSinceLastWrite = 0;
 
   try {
-    const frames = parseStack(input.error.stack, repoRoot);
+    // Browser stack frames name files as Vite serves them (`/src/...`), not as filesystem
+    // paths, so only client-runtime incidents opt into the rewrite. Server stacks never
+    // pass a browserSrcRoot at all, so the rewrite cannot reach them. What the rewrite
+    // does have to survive is a forged `/src/` frame from a browser-supplied report —
+    // rewriteBrowserPath contains that, see its comment.
+    const browserSrcRoot =
+      input.kind === 'client-runtime' ? path.join(repoRoot, 'client', 'src') : undefined;
+    const frames = parseStack(input.error.stack, repoRoot, browserSrcRoot);
     fingerprint = fingerprintError({
       kind: input.kind,
       message: input.error.message,
@@ -209,6 +234,7 @@ async function doRecordIncident(input: RecordIncidentInput): Promise<Incident | 
       (input.correlationId ? serverBreadcrumbs.take(input.correlationId) : []);
 
     const incident: Incident = {
+      schemaVersion: CURRENT_INCIDENT_SCHEMA_VERSION,
       id,
       fingerprint,
       kind: input.kind,

@@ -98,6 +98,41 @@ describe('IncidentStore.upsert', () => {
       confidence: 'high',
     });
   });
+
+  it('tolerates reading and merging a legacy file written before schemaVersion existed', async () => {
+    const legacyPath = path.join(root, 'incidents', 'inc_legacy0.json');
+    fs.mkdirSync(path.dirname(legacyPath), { recursive: true });
+    // Deliberately built by hand, NOT via the incident() helper above, and with no
+    // schemaVersion key at all — this is what a file written by the previous version of
+    // the code actually looks like on disk.
+    fs.writeFileSync(
+      legacyPath,
+      JSON.stringify({
+        id: 'inc_legacy0',
+        fingerprint: 'legacy0',
+        kind: 'server-api',
+        status: 'open',
+        count: 1,
+        firstSeen: '2026-07-01T00:00:00.000Z',
+        lastSeen: '2026-07-01T00:00:00.000Z',
+        title: 'Old incident',
+        origin: null,
+        error: { name: 'Error', message: 'old', frames: [] },
+        trigger: {},
+        state: {},
+        breadcrumbs: [],
+        occurrences: [],
+      }),
+      'utf8',
+    );
+
+    const read = await store.read('inc_legacy0');
+    expect(read).not.toBeNull();
+    expect(read!.schemaVersion).toBeUndefined(); // exactly what the file on disk says — no silent invention of data
+
+    const merged = await store.upsert(incident({ id: 'inc_legacy0', fingerprint: 'legacy0' }));
+    expect(merged.count).toBe(2); // still merges as a recurrence of the same incident
+  });
 });
 
 describe('IncidentStore.readIndex', () => {

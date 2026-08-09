@@ -3,7 +3,8 @@ import type { Test, ApiTest, TestPlanExecution, InsertReportTestCaseResult, Prec
 import { runPreconditions } from './precondition-runner';
 import type { StepResult } from './playwright-service'; // Import StepResult type
 import loggerPromise from './logger';
-import { db } from './db';
+import { privilegedDb } from './db';
+import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import {
   tests as testsTable,
   apiTests as apiTestsTable,
@@ -12,7 +13,7 @@ import {
   testPlanExecutions as testPlanExecutionsTable,
   reportTestCaseResults as reportTestCaseResultsTable // Added
 } from '@shared/schema';
-import { eq, inArray } from 'drizzle-orm'; // Added sql
+import { and, eq, inArray } from 'drizzle-orm'; // Added sql
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs-extra';
 import path from 'path';
@@ -214,7 +215,11 @@ export async function runTestPlan(
 
   resolvedLogger.info({ message: `Enqueueing test plan execution`, planId, testPlanRunId, userId });
 
-  const planResult = await db.select().from(testPlans).where(eq(testPlans.id, planId)).limit(1);
+  // The other tenant-context boundary, alongside processTestPlanJob's. This is called both
+  // from a route (which has an ambient organization and has already checked the caller owns
+  // this plan) and from the scheduler (which has neither), so the lookup that establishes the
+  // organization runs privileged in both cases and the insert below is stamped from it.
+  const planResult = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, planId)).limit(1);
   if (!planResult || planResult.length === 0) {
     resolvedLogger.error({ message: `Test Plan not found`, planId, testPlanRunId });
     return { error: 'Test Plan not found', status: 404 };
@@ -222,9 +227,11 @@ export async function runTestPlan(
 
   let currentTestPlanRun: TestPlanExecution;
   try {
-    const inserted = await db.insert(testPlanExecutionsTable)
+    const inserted = await privilegedDb.insert(testPlanExecutionsTable)
       .values({
         id: testPlanRunId,
+        // Same organization as the plan being run.
+        organizationId: planResult[0].organizationId,
         testPlanId: planId,
         status: 'pending', // Queue status
         startedAt: new Date(overallStartTime),
@@ -250,7 +257,43 @@ export async function runTestPlan(
   }
 }
 
+/**
+ * Establishes the tenant context for a queue job, then runs it.
+ *
+ * A BullMQ worker has no Express request, so `tenancyMiddleware` never ran and there is no
+ * ambient organization to inherit. Exactly one lookup therefore has to run privileged — the
+ * one that answers "which organization is this job for?" — and everything after it runs under
+ * that organization's RLS binding. This function is that boundary, and it is the only place in
+ * the execution path that reaches an org-scoped table outside the tenant context.
+ *
+ * Deliberately NOT one long transaction around the whole job: a plan execution drives a real
+ * browser for minutes, and holding a pooled connection open for its duration would starve the
+ * pool. `runWithTenant` establishes the ambient organization; each query inside opens its own
+ * short `withTenantTransaction`.
+ */
 export async function processTestPlanJob(
+  planId: string,
+  testPlanRunId: string,
+  userId: number
+): Promise<any> {
+  const bootstrapLogger = await loggerPromise;
+  const [execution] = await privilegedDb
+    .select({ organizationId: testPlanExecutionsTable.organizationId })
+    .from(testPlanExecutionsTable)
+    .where(eq(testPlanExecutionsTable.id, testPlanRunId))
+    .limit(1);
+
+  if (!execution) {
+    bootstrapLogger.error({ message: 'Test plan execution record not found', testPlanRunId });
+    return { error: `Test plan execution ${testPlanRunId} not found.`, status: 500, testPlanRunId };
+  }
+
+  return runWithTenant(execution.organizationId, () =>
+    runTestPlanJobInTenant(planId, testPlanRunId, userId),
+  );
+}
+
+async function runTestPlanJobInTenant(
   planId: string,
   testPlanRunId: string,
   userId: number
@@ -270,9 +313,11 @@ export async function processTestPlanJob(
   wsEmitter.emitExecutionLog(testPlanRunId, startLog);
 
   // Update status to running
-  await db.update(testPlanExecutionsTable)
-    .set({ status: 'running' })
-    .where(eq(testPlanExecutionsTable.id, testPlanRunId));
+  await withTenantTransaction(async (tx) => {
+    await tx.update(testPlanExecutionsTable)
+      .set({ status: 'running' })
+      .where(eq(testPlanExecutionsTable.id, testPlanRunId));
+  });
 
   const currentTestPlanRun: any = { startedAt: Math.floor(overallStartTime / 1000) };
 
@@ -281,22 +326,44 @@ export async function processTestPlanJob(
     await fs.ensureDir(baseResultsDir);
   } catch (dirError: any) {
     resolvedLogger.error({ message: 'Failed to create base results directory', baseResultsDir, error: dirError.message });
-    await db.update(testPlanExecutionsTable).set({
-      status: 'error',
-      completedAt: new Date(),
-      results: JSON.stringify([{ error: `Failed to create results directory: ${dirError.message}` }]),
-      executionDurationMs: Date.now() - overallStartTime,
-    }).where(eq(testPlanExecutionsTable.id, testPlanRunId));
+    await withTenantTransaction(async (tx) => {
+      await tx.update(testPlanExecutionsTable).set({
+        status: 'error',
+        completedAt: new Date(),
+        results: JSON.stringify([{ error: `Failed to create results directory: ${dirError.message}` }]),
+        executionDurationMs: Date.now() - overallStartTime,
+      }).where(eq(testPlanExecutionsTable.id, testPlanRunId));
+    });
     return { error: `Failed to create results directory: ${dirError.message}`, status: 500, testPlanRunId };
   }
 
   // Phase 8: Fetch Environment and Secrets
-  const executionRecord = await db.select().from(testPlanExecutionsTable).where(eq(testPlanExecutionsTable.id, testPlanRunId)).limit(1);
-  const environmentId = executionRecord[0]?.environment ? parseInt(executionRecord[0].environment) : null;
+  const executionRecord = await withTenantTransaction((tx) =>
+    tx.select().from(testPlanExecutionsTable).where(eq(testPlanExecutionsTable.id, testPlanRunId)).limit(1),
+  );
+  if (executionRecord.length === 0) {
+    resolvedLogger.error({ message: 'Test plan execution record not found after creation', testPlanRunId });
+    return { error: `Test plan execution ${testPlanRunId} not found.`, status: 500, testPlanRunId };
+  }
+  const environmentId = executionRecord[0].environment ? parseInt(executionRecord[0].environment) : null;
   const secretsMap: Record<string, string> = {};
 
   if (environmentId && !isNaN(environmentId)) {
-    const environmentSecrets = await db.select().from(secretsTable).where(eq(secretsTable.environmentId, environmentId));
+    // These values are decrypted and injected into the running test, and environmentId comes
+    // off the execution row, which a caller can influence — so an id belonging to another
+    // tenant would exfiltrate their secrets. RLS now bounds this to the job's organization;
+    // the explicit organizationId predicate stays as the second lock.
+    const environmentSecrets = await withTenantTransaction((tx) =>
+      tx
+        .select()
+        .from(secretsTable)
+        .where(
+          and(
+            eq(secretsTable.environmentId, environmentId),
+            eq(secretsTable.organizationId, executionRecord[0].organizationId),
+          ),
+        ),
+    );
     for (const secret of environmentSecrets) {
       try {
         secretsMap[secret.keyName] = decryptSecret(secret.encryptedValue, secret.iv, secret.authTag);
@@ -315,10 +382,12 @@ export async function processTestPlanJob(
     wsEmitter.emitExecutionLog(testPlanRunId, envLog);
   }
 
-  const selectedTestsLinks = await db
-    .select()
-    .from(testPlanSelectedTests)
-    .where(eq(testPlanSelectedTests.testPlanId, planId));
+  const selectedTestsLinks = await withTenantTransaction((tx) =>
+    tx
+      .select()
+      .from(testPlanSelectedTests)
+      .where(eq(testPlanSelectedTests.testPlanId, planId)),
+  );
 
   wsEmitter.emitExecutionLog(testPlanRunId, {
     level: 'info',
@@ -336,13 +405,20 @@ export async function processTestPlanJob(
 
   const uiTestsMap = new Map<number, Test>();
   if (uiTestIds.length > 0) {
-    const uiTests = await db.select().from(testsTable).where(inArray(testsTable.id, uiTestIds));
+    // No organization predicate: RLS supplies it. These ids come from the join rows above, and
+    // the create/update handlers validate them against the caller's organization, but this is
+    // the query that used to make an unvalidated foreign id executable.
+    const uiTests = await withTenantTransaction((tx) =>
+      tx.select().from(testsTable).where(inArray(testsTable.id, uiTestIds)),
+    );
     uiTests.forEach(t => uiTestsMap.set(t.id, t as Test));
   }
 
   const apiTestsMap = new Map<number, ApiTest>();
   if (apiTestIds.length > 0) {
-    const apiTests = await db.select().from(apiTestsTable).where(inArray(apiTestsTable.id, apiTestIds));
+    const apiTests = await withTenantTransaction((tx) =>
+      tx.select().from(apiTestsTable).where(inArray(apiTestsTable.id, apiTestIds)),
+    );
     apiTests.forEach(t => apiTestsMap.set(t.id, t as ApiTest));
   }
 
@@ -435,6 +511,8 @@ export async function processTestPlanJob(
     const reportCaseResultId = uuidv4();
     const newReportEntry: InsertReportTestCaseResult = {
       id: reportCaseResultId,
+      // Same organization as the test plan execution this result belongs to.
+      organizationId: executionRecord[0].organizationId,
       testPlanExecutionId: testPlanRunId,
       uiTestId: link.testType === 'ui' ? link.testId : null,
       apiTestId: link.testType === 'api' ? link.apiTestId : null,
@@ -456,7 +534,7 @@ export async function processTestPlanJob(
     };
 
     try {
-      await db.insert(reportTestCaseResultsTable).values(newReportEntry);
+      await withTenantTransaction((tx) => tx.insert(reportTestCaseResultsTable).values(newReportEntry));
     } catch (dbInsertError: any) {
       resolvedLogger.error({ message: 'Failed to insert into reportTestCaseResultsTable', entry: newReportEntry, error: dbInsertError.message });
       // Continue execution, this test result might be missing from detailed report but plan will complete.
@@ -464,9 +542,11 @@ export async function processTestPlanJob(
   } // End of loop for selectedTestsLinks
 
   // After all tests have run, calculate final aggregates from reportTestCaseResultsTable
-  const finalDetailedResults = await db.select()
-    .from(reportTestCaseResultsTable)
-    .where(eq(reportTestCaseResultsTable.testPlanExecutionId, testPlanRunId));
+  const finalDetailedResults = await withTenantTransaction((tx) =>
+    tx.select()
+      .from(reportTestCaseResultsTable)
+      .where(eq(reportTestCaseResultsTable.testPlanExecutionId, testPlanRunId)),
+  );
 
   const calculatedTotalTests = finalDetailedResults.length;
   const calculatedPassedTests = finalDetailedResults.filter((r: any) => r.status === 'Passed').length;
@@ -498,19 +578,21 @@ export async function processTestPlanJob(
   const overallExecutionDurationMs = overallCompletedAt - overallStartTime;
 
   try {
-    const finalUpdateResult = await db.update(testPlanExecutionsTable)
-      .set({
-        status: finalOverallStatus,
-        results: JSON.stringify(legacyIndividualTestResultsForJsonBlob), // Keep the old JSON blob for now
-        completedAt: new Date(overallCompletedAt),
-        totalTests: calculatedTotalTests,
-        passedTests: calculatedPassedTests,
-        failedTests: calculatedFailedTests,
-        skippedTests: calculatedSkippedTests,
-        executionDurationMs: overallExecutionDurationMs,
-      })
-      .where(eq(testPlanExecutionsTable.id, testPlanRunId))
-      .returning();
+    const finalUpdateResult = await withTenantTransaction((tx) =>
+      tx.update(testPlanExecutionsTable)
+        .set({
+          status: finalOverallStatus,
+          results: JSON.stringify(legacyIndividualTestResultsForJsonBlob), // Keep the old JSON blob for now
+          completedAt: new Date(overallCompletedAt),
+          totalTests: calculatedTotalTests,
+          passedTests: calculatedPassedTests,
+          failedTests: calculatedFailedTests,
+          skippedTests: calculatedSkippedTests,
+          executionDurationMs: overallExecutionDurationMs,
+        })
+        .where(eq(testPlanExecutionsTable.id, testPlanRunId))
+        .returning(),
+    );
 
     if (finalUpdateResult.length > 0) {
       resolvedLogger.info({ message: `Test plan execution COMPLETED and DB updated`, planId, testPlanRunId, overallStatus: finalOverallStatus, testsRun: calculatedTotalTests });

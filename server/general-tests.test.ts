@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Application, type Request, type Response, type NextFunction } from 'express';
-import { db } from './db';
+import { privilegedDb } from './db';
 import {
   tests,
   users,
@@ -16,6 +16,7 @@ import {
 } from '../shared/schema';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
+import { createTestOrganization } from './tests/factories';
 
 // Mock logger
 vi.mock('./logger', () => ({
@@ -27,7 +28,9 @@ let app: Application;
 const mockUser1 = { id: 1, username: 'testuser1', password: 'password1' } as User;
 let currentMockUser: User = mockUser1;
 
-// Define the Zod schema for the POST /api/tests request body, mirroring server/routes.ts
+// Define the Zod schema for the POST /api/tests request body, mirroring server/routes.ts.
+// insertTestSchema already omits organizationId (like userId): it comes from the session
+// (req.user), never the client body.
 const createTestBodySchema = insertTestSchema.extend({
   projectId: z.number().int().positive(),
   sequence: z.array(AdhocTestStepSchema),
@@ -67,10 +70,11 @@ beforeAll(async () => {
     const { name, url, sequence, elements, projectId, status } = parseResult.data;
 
     try {
-      const newTestResult = await db
+      const newTestResult = await privilegedDb
         .insert(tests)
         .values({
           userId,
+          organizationId: (req.user as { organizationId: number }).organizationId,
           projectId,
           name,
           url,
@@ -104,20 +108,23 @@ let seededUser: User;
 let seededProject: Project;
 
 beforeEach(async () => {
-  await db.delete(tests); // Depends on projects and users
-  await db.delete(projects); // Depends on users
-  await db.delete(users);
+  await privilegedDb.delete(tests); // Depends on projects and users
+  await privilegedDb.delete(projects); // Depends on users
+  await privilegedDb.delete(users);
 
-  [seededUser] = await db.insert(users).values({ id: mockUser1.id, username: mockUser1.username, password: 'hashed_password' } as InsertUser).returning();
-  [seededProject] = await db.insert(projects).values({ name: 'Test Project', userId: seededUser.id } as InsertProject).returning();
+  const organizationId = await createTestOrganization();
+  mockUser1.organizationId = organizationId;
+
+  [seededUser] = await privilegedDb.insert(users).values({ id: mockUser1.id, username: mockUser1.username, password: 'hashed_password', organizationId } as InsertUser).returning();
+  [seededProject] = await privilegedDb.insert(projects).values({ name: 'Test Project', userId: seededUser.id, organizationId } as InsertProject).returning();
 
   currentMockUser = mockUser1; // Reset to default mock user
 });
 
 afterAll(async () => {
-  await db.delete(tests);
-  await db.delete(projects);
-  await db.delete(users);
+  await privilegedDb.delete(tests);
+  await privilegedDb.delete(projects);
+  await privilegedDb.delete(users);
 });
 
 describe('POST /api/tests', () => {
@@ -147,7 +154,7 @@ describe('POST /api/tests', () => {
     expect(response.body.status).toBe('draft');
 
     // Verify data in DB
-    const dbTest = await db.select().from(tests).where(eq(tests.id, response.body.id)).limit(1);
+    const dbTest = await privilegedDb.select().from(tests).where(eq(tests.id, response.body.id)).limit(1);
     expect(dbTest.length).toBe(1);
     expect(dbTest[0].name).toBe(testPayload.name);
     // jsonb columns are returned already parsed as objects/arrays (no JSON.parse needed).
