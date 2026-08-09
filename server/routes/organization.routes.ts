@@ -7,6 +7,8 @@ import { storage } from "../storage";
 import { requireRole } from "../middleware/require-role";
 import { withTenantTransaction, getTenantOrgId } from "../middleware/tenancy";
 import { recordAudit } from "../audit";
+import { exportOrganization, eraseOrganization } from "../organization-lifecycle";
+import loggerPromise from "../logger";
 
 const router = Router();
 
@@ -71,6 +73,68 @@ router.get("/api/organization/audit-log", requireRole("owner"), async (req: Requ
   );
 
   res.json({ entries, limit: parsed.data.limit, offset: parsed.data.offset });
+});
+
+/**
+ * Data portability. Owner-only, and it is the whole organization: members, tests, plans,
+ * executions, the audit trail. Credentials are excluded by exportOrganization — this is a
+ * customer taking their data with them, not a credential dump, and the file will be emailed.
+ */
+router.get("/api/organization/export", requireRole("owner"), async (_req: Request, res: Response) => {
+  const organizationId = getTenantOrgId()!;
+  const payload = await exportOrganization(organizationId);
+
+  res.setHeader('Content-Disposition', `attachment; filename="organization-${organizationId}-export.json"`);
+  res.json(payload);
+});
+
+/**
+ * Erasure. Irreversible, and it takes every member account with it.
+ *
+ * Requires the organization's own name in the body. Not security — an owner is already
+ * authorised — but a deliberate pause: this is the one endpoint whose accidental success cannot
+ * be undone, and `DELETE /api/organization` is two characters away from `DELETE
+ * /api/organization/members/:id`.
+ *
+ * Recorded in the application log rather than the audit trail: an audit entry about erasing an
+ * organization would be erased along with it. The log outlives the tenant.
+ */
+router.delete("/api/organization", requireRole("owner"), async (req: Request, res: Response) => {
+  const organizationId = getTenantOrgId()!;
+  const parsed = z.object({ confirmName: z.string() }).safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Provide confirmName, the organization's name." });
+  }
+
+  const [organization] = await withTenantTransaction((tx) =>
+    tx.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, organizationId)),
+  );
+  if (!organization) return res.status(404).json({ error: "Organization not found" });
+
+  if (parsed.data.confirmName !== organization.name) {
+    return res.status(400).json({ error: "confirmName does not match the organization's name." });
+  }
+
+  const logger = await loggerPromise;
+  logger.warn({
+    message: 'Organization erased',
+    organizationId,
+    organizationName: organization.name,
+    byUserId: req.user!.id,
+    byUsername: req.user!.username,
+  });
+
+  const { deleted } = await eraseOrganization(organizationId);
+
+  // The caller's own account is among the rows just deleted, so their session now points at
+  // nothing. Ending it is tidier than letting the next request fail to deserialise a user — but
+  // the response must not depend on it: the erasure has already committed, and reporting it is
+  // the last thing anyone will ever learn about this organization. Guarded because req.logout
+  // only exists where passport is mounted.
+  if (typeof req.logout === 'function') {
+    req.logout(() => undefined);
+  }
+  res.json({ erased: true, deleted });
 });
 
 /**

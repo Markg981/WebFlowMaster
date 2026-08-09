@@ -44,6 +44,48 @@ afterEach(async () => {
   await privilegedDb.execute(sql`DELETE FROM organizations WHERE id = ${orgId}`);
 });
 
+describe('export and erasure', () => {
+  it('exports the organization, without credentials, to an owner only', async () => {
+    const res = await request(app).get('/api/organization/export');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-disposition']).toContain('attachment');
+    expect(res.body.organization.id).toBe(orgId);
+    expect(res.body.data.users).toHaveLength(2);
+    expect(JSON.stringify(res.body)).not.toContain('password');
+
+    currentUser = { id: editorId, role: 'editor', organizationId: orgId };
+    expect((await request(app).get('/api/organization/export')).status).toBe(403);
+  });
+
+  it('refuses erasure without the organization’s name, and without owner', async () => {
+    expect((await request(app).delete('/api/organization').send({})).status).toBe(400);
+    expect(
+      (await request(app).delete('/api/organization').send({ confirmName: 'Not Acme' })).status,
+    ).toBe(400);
+
+    // Nothing was touched by either refusal.
+    const still = await privilegedDb.execute(sql`SELECT id FROM organizations WHERE id = ${orgId}`);
+    expect(still.rows).toHaveLength(1);
+
+    currentUser = { id: editorId, role: 'editor', organizationId: orgId };
+    expect(
+      (await request(app).delete('/api/organization').send({ confirmName: 'Acme' })).status,
+    ).toBe(403);
+  });
+
+  it('erases the organization when the name matches', async () => {
+    const res = await request(app).delete('/api/organization').send({ confirmName: 'Acme' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.erased).toBe(true);
+    expect(res.body.deleted.users).toBe(2);
+
+    const gone = await privilegedDb.execute(sql`SELECT id FROM organizations WHERE id = ${orgId}`);
+    expect(gone.rows).toHaveLength(0);
+  });
+});
+
 describe('the audit trail records what the member routes do', () => {
   const auditFor = () =>
     privilegedDb.execute(
