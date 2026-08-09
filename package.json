@@ -15,7 +15,7 @@
     "db:migrate": "tsx --require dotenv/config scripts/apply-migrations.ts",
     "test:migrate": "tsx server/tests/setup.ts",
     "test": "vitest run",
-    "test:rls": "cross-env vitest run server/tests/isolation.test.ts server/middleware/tenancy.test.ts server/middleware/tenancy-reentrancy.test.ts server/audit.test.ts",
+    "test:rls": "vitest run --no-file-parallelism server/tests/isolation.test.ts server/middleware/tenancy.test.ts server/middleware/tenancy-reentrancy.test.ts server/audit.test.ts",
     "test:ui": "vitest --ui",
     "install-client": "npm install --prefix client",
     "dev:client": "npm run dev --prefix client",

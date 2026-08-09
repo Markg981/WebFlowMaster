@@ -4,7 +4,7 @@ import schedulerService from "./scheduler-service"; // Import the scheduler serv
 import { setupVite, serveStatic } from "./vite";
 import 'dotenv/config';
 import loggerPromise from './logger'; // Import Winston logger promise
-import { privilegedDb, closeDb } from './db'; // Import db instance
+import { privilegedDb, closeDb, assertTenancyPreconditions } from './db';
 import { systemSettings } from '@shared/schema'; // Import systemSettings table
 import { eq } from 'drizzle-orm'; // Import eq operator
 import { setupWebSockets } from './websocket';
@@ -18,6 +18,12 @@ app.use(express.urlencoded({ extended: false }));
 
 (async () => {
   const logger = await loggerPromise; // Resolve the logger promise
+
+  // Before anything serves a request: confirm the database is actually configured for tenant
+  // isolation. None of it can be checked by the test suite, which runs on PGlite as a
+  // superuser, and a misconfiguration here does not fail loudly at the boundary — it either
+  // 500s every request or, worse, stops isolating without saying so. Throws with what to fix.
+  await assertTenancyPreconditions();
 
   // ─── Correlation ID middleware (must be FIRST) ──────────────────────────
   // Generates a unique trace ID for each request and propagates it
