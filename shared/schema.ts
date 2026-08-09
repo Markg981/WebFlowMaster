@@ -403,6 +403,59 @@ export const invitations = pgTable("invitations", {
 
 export type Invitation = typeof invitations.$inferSelect;
 
+/**
+ * Append-only record of who changed what, within one organization.
+ *
+ * Two properties make this an audit log rather than a table of log lines:
+ *
+ * It is append-only at the database level, not by convention — app_user is granted SELECT and
+ * INSERT and nothing else (see the migration), so the application physically cannot rewrite
+ * or erase history. A log the application can edit is not evidence of anything.
+ *
+ * And an entry is written in the same transaction as the change it describes, so the two
+ * commit or roll back together. An entry that survives a failed change is a false record; a
+ * change with no entry is an invisible one.
+ *
+ * `actorUserId` is nullable and ON DELETE SET NULL: removing a member must not erase what they
+ * did, and must not be blocked by the fact that they did it.
+ */
+export const auditLog = pgTable("audit_log", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  /** Null once the actor's account is gone, or for an action taken before one existed. */
+  actorUserId: integer("actor_user_id").references(() => users.id, { onDelete: 'set null' }),
+  /** Kept alongside actorUserId so the entry still names someone after the account is deleted. */
+  actorUsername: text("actor_username"),
+  /** Dotted verb, e.g. 'member.role_changed'. See AUDIT_ACTIONS. */
+  action: text("action").notNull(),
+  /** What the action was done to: 'user', 'invitation', 'organization'. */
+  targetType: text("target_type"),
+  /** Text rather than integer: targets are variously serial ids and uuids. */
+  targetId: text("target_id"),
+  /** Before/after values and anything else needed to understand the entry. Never secrets. */
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("audit_log_organization_id_idx").on(table.organizationId),
+  index("audit_log_created_at_idx").on(table.createdAt),
+]);
+
+export type AuditLogEntry = typeof auditLog.$inferSelect;
+
+/**
+ * The actions worth recording, as a closed set: a free-text action column drifts into
+ * near-duplicates ('member.removed' and 'member.remove') that nobody can query reliably.
+ */
+export const AUDIT_ACTIONS = {
+  MEMBER_ROLE_CHANGED: 'member.role_changed',
+  MEMBER_REMOVED: 'member.removed',
+  INVITATION_CREATED: 'invitation.created',
+  INVITATION_REVOKED: 'invitation.revoked',
+  INVITATION_ACCEPTED: 'invitation.accepted',
+} as const;
+
+export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
+
 export const sessions = pgTable("sessions", {
   sid: text("sid").primaryKey(),
   sess: jsonb("sess").notNull(),
@@ -1180,4 +1233,7 @@ export const ORG_SCOPED_TABLES = [
   'test_plans', 'test_plan_schedules', 'test_plan_executions', 'test_plan_selected_tests',
   'test_plan_webhooks', 'report_test_case_results', 'execution_logs', 'environments',
   'secrets', 'excel_sequences_map',
+  // audit_log is org-scoped like the rest, but its grants are narrower: SELECT and INSERT
+  // only, so the application cannot rewrite history. See migration 0009.
+  'audit_log',
 ] as const;

@@ -21,8 +21,11 @@ jobs:
           --health-retries 5
 
     env:
-      # PGlite local data dir (no external Postgres needed for CI)
-      DATABASE_URL: data/test.db
+      # Each test file gets its own in-memory PGlite instance (server/tests/setup.ts), so there
+      # is no shared database to point at. Note what this job therefore CANNOT prove: PGlite
+      # connects as a superuser, and row-level security is inert under one. That is the
+      # rls-on-real-postgres job below, not this one.
+      DATABASE_URL: 'memory://'
       REDIS_URL: redis://localhost:6379
       SESSION_SECRET: ci-test-session-secret
       # 32-byte hex key required by crypto.ts
@@ -51,5 +54,102 @@ jobs:
       # - name: Format check
       #   run: npm run format:check
 
-      - name: Unit tests
+      - name: Server tests
         run: npm test
+
+      # Was missing: the client suite existed and CI never ran it.
+      - name: Client tests
+        run: npm test --prefix client
+
+  # The suite above runs on PGlite, which connects as `postgres` — a superuser. Row-level
+  # security is SILENTLY INERT under a superuser: with ENABLE, FORCE and a correct policy in
+  # place, a superuser still sees every organization's rows and can UPDATE across them, with no
+  # error and no warning. And `SET LOCAL ROLE app_user`, which the whole tenancy design rests
+  # on, trivially succeeds for a superuser whether or not the membership grant exists.
+  #
+  # So the job above cannot tell a working isolation boundary from an absent one. This job can:
+  # a real Postgres, reached as a role that is not a superuser, which is what production looks
+  # like. It is the only place the feature is actually proved.
+  rls-on-real-postgres:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      # CREATEROLE but NOT superuser: migration 0003 creates the app_user role and 0005 grants
+      # membership in it, both of which a CREATEROLE owner can do. Needing superuser here would
+      # itself be a finding.
+      DATABASE_URL: postgresql://wfm_app:wfm_app@localhost:5432/webflowmaster
+      SESSION_SECRET: ci-test-session-secret
+      ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000
+      LOG_LEVEL: error
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # BYPASSRLS is load-bearing and not optional. FORCE ROW LEVEL SECURITY subjects the table
+      # OWNER to the policies, and this role owns the tables — so without it the handful of
+      # deliberate privileged bootstraps (the queue worker learning which organization a job is
+      # for, emitExecutionLog writing a log row, the audit entry written as an invitation is
+      # accepted) would all be filtered to nothing, with no organization bound. app_user must
+      # NOT have it, which is what makes SET LOCAL ROLE app_user meaningful.
+      #
+      # Granting BYPASSRLS needs superuser, so a migration cannot grant it to itself: it is a
+      # deployment prerequisite. See the startup check in server/db.ts, which refuses to boot
+      # rather than discovering this on the first request.
+      - name: Create the non-superuser application role and its database
+        run: |
+          psql "$ADMIN_URL" -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE wfm_app LOGIN PASSWORD 'wfm_app' CREATEROLE BYPASSRLS;"
+          psql "$ADMIN_URL" -v ON_ERROR_STOP=1 \
+            -c "CREATE DATABASE webflowmaster OWNER wfm_app;"
+
+      # Without this the job could silently degrade into the same blind spot it exists to
+      # cover: connect as a superuser by accident and every assertion below passes for the
+      # wrong reason.
+      - name: Refuse to continue if the connection role is a superuser
+        run: |
+          is_super=$(psql "$DATABASE_URL" -tAc "SELECT rolsuper FROM pg_roles WHERE rolname = current_user;")
+          echo "current_user rolsuper = $is_super"
+          test "$is_super" = "f"
+
+      - name: Apply migrations as that role
+        run: npm run test:migrate
+
+      # Proves 0005 did its job. SET ROLE requires membership or superuser, so on a real
+      # Postgres a missing grant means every tenant-scoped query fails on its first statement —
+      # in production, on every request. No test on PGlite can catch that.
+      - name: Confirm SET ROLE app_user works without superuser
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+            -c "BEGIN; SET LOCAL ROLE app_user; SELECT current_user; COMMIT;"
+
+      # The other half: app_user must not be able to opt out of the policies it exists to be
+      # bound by. If this ever becomes true, RLS is inert again and nothing else would say so.
+      - name: Confirm app_user cannot bypass RLS
+        run: |
+          bypasses=$(psql "$DATABASE_URL" -tAc "SELECT rolbypassrls FROM pg_roles WHERE rolname = 'app_user';")
+          echo "app_user rolbypassrls = $bypasses"
+          test "$bypasses" = "f"
+
+      - name: Isolation, tenancy and audit suites against real Postgres
+        run: npm run test:rls

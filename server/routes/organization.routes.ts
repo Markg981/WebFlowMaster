@@ -1,11 +1,14 @@
 import { Router, type Request, type Response } from "express";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
-import { and, eq, ne, sql } from "drizzle-orm";
-import { organizations, users, invitations } from "@shared/schema";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { organizations, users, invitations, auditLog, AUDIT_ACTIONS } from "@shared/schema";
 import { storage } from "../storage";
 import { requireRole } from "../middleware/require-role";
 import { withTenantTransaction, getTenantOrgId } from "../middleware/tenancy";
+import { recordAudit } from "../audit";
+import { exportOrganization, eraseOrganization } from "../organization-lifecycle";
+import loggerPromise from "../logger";
 
 const router = Router();
 
@@ -39,6 +42,99 @@ router.get("/api/organization", requireRole("viewer"), async (_req: Request, res
   });
 
   res.json(result);
+});
+
+/**
+ * The audit trail. Owner-only: it names who did what, which is exactly the information a
+ * viewer or editor has no business enumerating.
+ *
+ * No organizationId predicate — audit_log IS an RLS table (unlike users and invitations), so
+ * the policy scopes this. Nothing here can write, either: app_user holds SELECT and INSERT on
+ * this table and nothing more, so there is no route that could erase an entry even by mistake.
+ */
+router.get("/api/organization/audit-log", requireRole("owner"), async (req: Request, res: Response) => {
+  const parsed = z
+    .object({
+      limit: z.coerce.number().int().min(1).max(200).default(50),
+      offset: z.coerce.number().int().min(0).default(0),
+    })
+    .safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid query", details: parsed.error.flatten() });
+  }
+
+  const entries = await withTenantTransaction((tx) =>
+    tx
+      .select()
+      .from(auditLog)
+      .orderBy(desc(auditLog.createdAt), desc(auditLog.id))
+      .limit(parsed.data.limit)
+      .offset(parsed.data.offset),
+  );
+
+  res.json({ entries, limit: parsed.data.limit, offset: parsed.data.offset });
+});
+
+/**
+ * Data portability. Owner-only, and it is the whole organization: members, tests, plans,
+ * executions, the audit trail. Credentials are excluded by exportOrganization — this is a
+ * customer taking their data with them, not a credential dump, and the file will be emailed.
+ */
+router.get("/api/organization/export", requireRole("owner"), async (_req: Request, res: Response) => {
+  const organizationId = getTenantOrgId()!;
+  const payload = await exportOrganization(organizationId);
+
+  res.setHeader('Content-Disposition', `attachment; filename="organization-${organizationId}-export.json"`);
+  res.json(payload);
+});
+
+/**
+ * Erasure. Irreversible, and it takes every member account with it.
+ *
+ * Requires the organization's own name in the body. Not security — an owner is already
+ * authorised — but a deliberate pause: this is the one endpoint whose accidental success cannot
+ * be undone, and `DELETE /api/organization` is two characters away from `DELETE
+ * /api/organization/members/:id`.
+ *
+ * Recorded in the application log rather than the audit trail: an audit entry about erasing an
+ * organization would be erased along with it. The log outlives the tenant.
+ */
+router.delete("/api/organization", requireRole("owner"), async (req: Request, res: Response) => {
+  const organizationId = getTenantOrgId()!;
+  const parsed = z.object({ confirmName: z.string() }).safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Provide confirmName, the organization's name." });
+  }
+
+  const [organization] = await withTenantTransaction((tx) =>
+    tx.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, organizationId)),
+  );
+  if (!organization) return res.status(404).json({ error: "Organization not found" });
+
+  if (parsed.data.confirmName !== organization.name) {
+    return res.status(400).json({ error: "confirmName does not match the organization's name." });
+  }
+
+  const logger = await loggerPromise;
+  logger.warn({
+    message: 'Organization erased',
+    organizationId,
+    organizationName: organization.name,
+    byUserId: req.user!.id,
+    byUsername: req.user!.username,
+  });
+
+  const { deleted } = await eraseOrganization(organizationId);
+
+  // The caller's own account is among the rows just deleted, so their session now points at
+  // nothing. Ending it is tidier than letting the next request fail to deserialise a user — but
+  // the response must not depend on it: the erasure has already committed, and reporting it is
+  // the last thing anyone will ever learn about this organization. Guarded because req.logout
+  // only exists where passport is mounted.
+  if (typeof req.logout === 'function') {
+    req.logout(() => undefined);
+  }
+  res.json({ erased: true, deleted });
 });
 
 /**
@@ -116,6 +212,17 @@ router.post("/api/organization/invitations", requireRole("owner"), async (req: R
           expiresAt,
         })
         .returning();
+
+      // The token is deliberately not in the metadata: this table is readable by every owner
+      // and cannot be redacted afterwards.
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.INVITATION_CREATED,
+        actor: req.user!,
+        targetType: 'invitation',
+        targetId: row.id,
+        metadata: { username: row.username, role: row.role, expiresAt: row.expiresAt.toISOString() },
+      });
+
       return row;
     });
 
@@ -146,7 +253,16 @@ router.delete("/api/organization/invitations/:id", requireRole("owner"), async (
       .delete(invitations)
       .where(and(eq(invitations.id, id), eq(invitations.organizationId, organizationId)))
       .returning();
-    return deleted.length > 0;
+    if (deleted.length === 0) return false;
+
+    await recordAudit(tx, {
+      action: AUDIT_ACTIONS.INVITATION_REVOKED,
+      actor: req.user!,
+      targetType: 'invitation',
+      targetId: id,
+      metadata: { username: deleted[0].username, role: deleted[0].role },
+    });
+    return true;
   });
 
   if (!removed) return res.status(404).json({ error: "Invitation not found" });
@@ -257,6 +373,15 @@ router.patch(
         .returning();
       const updated = { id: updatedRow.id, username: updatedRow.username, role: updatedRow.role };
 
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.MEMBER_ROLE_CHANGED,
+        actor: req.user!,
+        targetType: 'user',
+        targetId: userId,
+        // Both sides: "changed to editor" is not answerable without knowing what it was.
+        metadata: { username: updatedRow.username, from: target.role, to: parsed.data.role },
+      });
+
       return { status: 200 as const, body: updated };
     });
 
@@ -278,7 +403,7 @@ router.delete(
 
     const outcome = await withTenantTransaction(async (tx) => {
       const [target] = await tx
-        .select({ id: users.id, role: users.role })
+        .select({ id: users.id, role: users.role, username: users.username })
         .from(users)
         .where(and(eq(users.id, userId), eq(users.organizationId, organizationId)));
 
@@ -297,6 +422,18 @@ router.delete(
           );
         if (others === 0) return { status: 409 as const };
       }
+
+      // Audit before the delete, not after: actor_user_id is ON DELETE SET NULL, and an owner
+      // removing themselves would otherwise null out the actor on their own entry. The
+      // denormalised actor_username survives either way, but the id is worth keeping when it
+      // can be.
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.MEMBER_REMOVED,
+        actor: req.user!,
+        targetType: 'user',
+        targetId: userId,
+        metadata: { username: target.username, role: target.role },
+      });
 
       await tx.delete(users).where(and(eq(users.id, userId), eq(users.organizationId, organizationId)));
       return { status: 204 as const };
