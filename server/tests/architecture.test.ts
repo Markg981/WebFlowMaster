@@ -66,19 +66,54 @@ describe('route modules cannot query outside the tenant context', () => {
    * assembled across several statements, and it can be fooled. It is a tripwire for the
    * obvious mistake, which is the mistake that was actually made five times.
    */
-  it('server/routes.ts never reaches an org-scoped table through the privileged handle', () => {
-    const source = fs.readFileSync(path.join(serverDir, 'routes.ts'), 'utf8');
+  /**
+   * The files that legitimately hold the privileged handle, each with a budget of how many
+   * privileged statements may name an org-scoped table, and why.
+   *
+   * A budget rather than a ban because two of these genuinely need one: a queue worker and a
+   * WebSocket message have no Express request, so `tenancyMiddleware` never ran and there is
+   * no ambient organization to inherit. Something has to answer "which organization is this
+   * for?" before the tenant context can be established, and that something cannot itself be
+   * inside the context.
+   *
+   * A budget rather than nothing because "this file is allowed to bypass RLS" is how five
+   * cross-tenant leaks lived in server/routes.ts unnoticed. Adding a privileged query here
+   * now fails this test until someone raises the number deliberately and writes down why.
+   */
+  const PRIVILEGED_BOOTSTRAP_BUDGET: Record<string, { max: number; why: string }> = {
+    'routes.ts': {
+      max: 0,
+      why: 'Every handler here is inside a request, so it always has an ambient organization.',
+    },
+    'websocket.ts': {
+      max: 2,
+      why:
+        'emitExecutionLog resolves the parent execution\'s organization and then writes the log ' +
+        'row. It is called from the runner, not from a socket message, so there is no ambient ' +
+        'tenant to inherit. Subscription authorisation, which IS reachable from the wire, goes ' +
+        'through runWithTenant + withTenantTransaction instead.',
+    },
+    'test-execution-service.ts': {
+      max: 3,
+      why:
+        'Two tenant-context boundaries: runTestPlan reads the plan to learn its organization ' +
+        'and stamps the execution row from it, and processTestPlanJob reads that execution row ' +
+        'to establish the context the rest of the job runs in. Everything after either boundary ' +
+        'is under withTenantTransaction.',
+    },
+  };
 
-    // snake_case table name -> the camelCase identifier shared/schema.ts exports for it.
-    const identifierFor = (table: string) =>
-      table.replace(/_([a-z])/g, (_full, c: string) => c.toUpperCase());
+  // snake_case table name -> the camelCase identifier shared/schema.ts exports for it.
+  const identifierFor = (table: string) =>
+    table.replace(/_([a-z])/g, (_full, c: string) => c.toUpperCase());
 
-    const offenders: string[] = [];
-
-    // Comments first: this file explains at length why particular handlers moved OFF
+  /** Counts statements that name both the privileged handle and an org-scoped table. */
+  function privilegedOrgScopedStatements(source: string): string[] {
+    // Comments first: these files explain at length why particular queries moved OFF
     // privilegedDb, and that prose names both the handle and the tables. Matching it would
     // report the explanation as the offence.
     const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    const found: string[] = [];
 
     // Statements, not lines: a drizzle query is routinely chained across many lines.
     for (const statement of code.split(';')) {
@@ -89,17 +124,32 @@ describe('route modules cannot query outside the tenant context', () => {
         const identifier = identifierFor(table);
         // Word-boundary match on the schema identifier as it is used in a query: `.from(x)`,
         // `.insert(x)`, `.update(x)`, `.delete(x)`, or a column reference `x.someColumn`.
-        if (new RegExp(`\\b${identifier}\\b`).test(statement)) {
-          offenders.push(identifier);
+        // Table objects are sometimes imported under an alias (testPlanExecutionsTable), so
+        // match the identifier as a prefix of a longer one too.
+        if (new RegExp(`\\b${identifier}(Table)?\\b`).test(statement)) {
+          found.push(identifier);
+          break;
         }
       }
     }
 
-    expect(
-      [...new Set(offenders)],
-      `org-scoped tables reached via privilegedDb in server/routes.ts: ${[...new Set(offenders)].join(', ')}`,
-    ).toEqual([]);
-  });
+    return found;
+  }
+
+  it.each(Object.entries(PRIVILEGED_BOOTSTRAP_BUDGET))(
+    'server/%s stays within its privileged-bootstrap budget',
+    (file, { max, why }) => {
+      const source = fs.readFileSync(path.join(serverDir, file), 'utf8');
+      const found = privilegedOrgScopedStatements(source);
+
+      expect(
+        found.length,
+        `server/${file} has ${found.length} privileged statements naming an org-scoped table ` +
+          `(${found.join(', ')}), budget is ${max}. ${why} If a new one is genuinely a tenant-context ` +
+          'boundary, raise the budget here and say why; otherwise move it under withTenantTransaction.',
+      ).toBeLessThanOrEqual(max);
+    },
+  );
 
   /**
    * Scoped to route files that can reach the database at all, not to every mutating route in

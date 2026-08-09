@@ -129,7 +129,7 @@ error → tap → recordIncident()
 
 Deliberately small and localised:
 
-- `client/src/lib/queryClient.ts` — send `X-Correlation-Id` and `X-Session-Id`.
+- `client/src/lib/queryClient.ts` — send `X-Correlation-Id` and `X-Wfm-Session-Id`.
 - `client/src/App.tsx` — wrap the router in the error boundary; install global handlers.
 - `server/index.ts` — the existing error handler also calls `recordIncident`.
 - BullMQ job registration — wrap handlers with the job tap.

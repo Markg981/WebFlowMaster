@@ -23,11 +23,16 @@
   //
   // Project references would express the server/shared dependency better, but
   // tsconfig.base.json sets noEmit and a referenced project may not disable emit.
+  // ../test-db.ts is a root-level dev utility, not a script — it lives here because this is
+  // the only project that compiles standalone entry points. The remaining root *.ts files are
+  // build configs (vite, vitest, drizzle, tailwind, playwright), which tsc has no reason to
+  // typecheck as application code.
   "include": [
     "import-netcontent-api.ts",
     "apply-migrations.ts",
     "netcontent/**/*.ts",
     "netcontent-ui/**/*.ts",
+    "../test-db.ts",
     "../server/db.ts",
     "../shared/**/*.ts"
   ],
