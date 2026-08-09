@@ -159,20 +159,27 @@ describe('withTenantTransaction reentrancy', () => {
   });
 
   it('a rollback in the outer transaction undoes work done by a nested call', async () => {
-    const orgName = `tenancy-reentrancy-rollback-${orgA}-${orgB}`;
+    // Writes a project rather than an organization: app_user deliberately holds no INSERT on
+    // organizations (migration 0006 narrowed the grants on the five tables RLS does not
+    // cover), so an organization insert here would fail on permissions before it ever
+    // reached the rollback this test is about. projects is org-scoped and is a table the
+    // application really does write inside a tenant transaction.
+    const projectName = `tenancy-reentrancy-rollback-${orgA}`;
 
     await expect(
       runWithTenant(orgA, () =>
         withTenantTransaction(async () => {
           await withTenantTransaction(async (nestedTx) => {
-            await nestedTx.execute(sql`INSERT INTO organizations (name) VALUES (${orgName})`);
+            await nestedTx.execute(
+              sql`INSERT INTO projects (name, user_id, organization_id) VALUES (${projectName}, ${userA}, ${orgA})`,
+            );
           });
           throw new Error('force rollback');
         }),
       ),
     ).rejects.toThrow('force rollback');
 
-    const rows = await privilegedDb.execute(sql`SELECT id FROM organizations WHERE name = ${orgName}`);
+    const rows = await privilegedDb.execute(sql`SELECT id FROM projects WHERE name = ${projectName}`);
     expect(rows.rows).toHaveLength(0);
   });
 

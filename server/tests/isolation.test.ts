@@ -109,6 +109,57 @@ describe('row-level isolation', () => {
     expect(Number((rows.rows[0] as { n: string }).n)).toBeGreaterThanOrEqual(2);
   });
 
+  /**
+   * Five tables carry no RLS policy — users, sessions, organizations, system_settings,
+   * user_settings — because auth has to read a user by username before any tenant context
+   * exists. On those five the grant is the only boundary, and 0003 originally handed
+   * app_user full DML on every table in the schema: a probe from inside an ordinary tenant
+   * transaction read every organization's password hashes and moved another organization's
+   * owner into the caller's org.
+   *
+   * These assert the narrowed grants from 0006. They are about what app_user *cannot* do, so
+   * they hold regardless of whether any route currently tries.
+   */
+  describe('grants on the tables RLS does not cover', () => {
+    const asAppUser = <T>(fn: (tx: { execute: (q: unknown) => Promise<unknown> }) => Promise<T>) =>
+      privilegedDb.transaction(async (tx) => {
+        await tx.execute(sql`SET LOCAL ROLE app_user`);
+        return fn(tx as never);
+      });
+
+    it('cannot write to the users table beyond updating and removing a member', async () => {
+      await expect(
+        asAppUser((tx) =>
+          tx.execute(sql`INSERT INTO users (username, password, organization_id) VALUES ('smuggled', 'x', ${orgA})`),
+        ),
+      ).rejects.toThrow(/permission denied/i);
+    });
+
+    it('cannot read the session table', async () => {
+      await expect(asAppUser((tx) => tx.execute(sql`SELECT * FROM sessions LIMIT 1`))).rejects.toThrow(
+        /permission denied/i,
+      );
+    });
+
+    it('cannot rewrite global settings', async () => {
+      await expect(
+        asAppUser((tx) => tx.execute(sql`SELECT * FROM system_settings LIMIT 1`)),
+      ).rejects.toThrow(/permission denied/i);
+      await expect(
+        asAppUser((tx) => tx.execute(sql`SELECT * FROM user_settings LIMIT 1`)),
+      ).rejects.toThrow(/permission denied/i);
+    });
+
+    it('cannot create or destroy an organization', async () => {
+      await expect(
+        asAppUser((tx) => tx.execute(sql`INSERT INTO organizations (name) VALUES ('rogue')`)),
+      ).rejects.toThrow(/permission denied/i);
+      await expect(
+        asAppUser((tx) => tx.execute(sql`DELETE FROM organizations WHERE id = ${orgB}`)),
+      ).rejects.toThrow(/permission denied/i);
+    });
+  });
+
   it('protects every org-scoped table, enumerated from the schema', async () => {
     const rows = await privilegedDb.execute(sql`
       SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity

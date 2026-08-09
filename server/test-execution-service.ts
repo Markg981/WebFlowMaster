@@ -12,7 +12,7 @@ import {
   testPlanExecutions as testPlanExecutionsTable,
   reportTestCaseResults as reportTestCaseResultsTable // Added
 } from '@shared/schema';
-import { eq, inArray } from 'drizzle-orm'; // Added sql
+import { and, eq, inArray } from 'drizzle-orm'; // Added sql
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs-extra';
 import path from 'path';
@@ -302,7 +302,20 @@ export async function processTestPlanJob(
   const secretsMap: Record<string, string> = {};
 
   if (environmentId && !isNaN(environmentId)) {
-    const environmentSecrets = await privilegedDb.select().from(secretsTable).where(eq(secretsTable.environmentId, environmentId));
+    // Scoped to the execution's organization as well as its environment. environmentId comes
+    // off the execution row, which a caller can influence, and these values are decrypted and
+    // injected into the running test — so an id belonging to another tenant would exfiltrate
+    // their secrets. This job runs on privilegedDb with no ambient tenant, so RLS is not
+    // filtering it: the predicate is the only thing here.
+    const environmentSecrets = await privilegedDb
+      .select()
+      .from(secretsTable)
+      .where(
+        and(
+          eq(secretsTable.environmentId, environmentId),
+          eq(secretsTable.organizationId, executionRecord[0].organizationId),
+        ),
+      );
     for (const secret of environmentSecrets) {
       try {
         secretsMap[secret.keyName] = decryptSecret(secret.encryptedValue, secret.iv, secret.authTag);

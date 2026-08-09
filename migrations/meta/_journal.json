@@ -43,6 +43,13 @@
       "when": 1785200000000,
       "tag": "0005_grant_app_user_membership",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785300000000,
+      "tag": "0006_narrow_app_user_grants",
+      "breakpoints": true
     }
   ]
 }
