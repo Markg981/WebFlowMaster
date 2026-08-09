@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ORG_SCOPED_TABLES } from '@shared/schema';
 
 /**
  * Governs every file directly under server/routes/ named *.routes.ts — the Express router
@@ -35,11 +36,69 @@ describe('route modules cannot query outside the tenant context', () => {
    * there is nothing to carve out.
    */
   it('no route module imports the privileged database handle', () => {
+    // Any import form, not just a braced one: a namespace import (`import * as dbmod from
+    // '../db'`) and a dynamic `import('../db')` both reach privilegedDb, and an earlier
+    // version of this rule matched only `import { ... } from '...db'` — verified by adding a
+    // namespace import to a route file and watching the rule still pass.
+    const reachesDbModule = /(?:from|import)\s*\(?\s*['"][^'"]*\/db['"]/;
+
     const offenders = routeFiles()
-      .filter(({ source }) => /import\s*\{[^}]*\b(db|privilegedDb)\b[^}]*\}\s*from\s*['"][^'"]*db['"]/.test(source))
+      .filter(({ source }) => reachesDbModule.test(source))
       .map(({ name }) => name);
 
     expect(offenders, `these route modules bypass RLS: ${offenders.join(', ')}`).toEqual([]);
+  });
+
+  /**
+   * server/routes.ts is the legacy file of inline handlers, and it is deliberately outside
+   * routeFiles() above: it still reaches privilegedDb on purpose for user_settings and
+   * system_settings, neither of which is org-scoped and neither of which app_user is even
+   * granted access to any more (migration 0006).
+   *
+   * That exemption must not become a hiding place. Every cross-tenant leak the final review
+   * found lived in this file — five of them, all reading or deleting another tenant's rows
+   * through an unscoped privilegedDb query, in the one file the rule above cannot see. So
+   * rather than exempt the file wholesale, forbid the thing that actually went wrong: an
+   * org-scoped table reached through the privileged handle.
+   *
+   * The check is textual and therefore approximate — it looks for a table's schema
+   * identifier appearing in the same statement as `privilegedDb`. It will not catch a query
+   * assembled across several statements, and it can be fooled. It is a tripwire for the
+   * obvious mistake, which is the mistake that was actually made five times.
+   */
+  it('server/routes.ts never reaches an org-scoped table through the privileged handle', () => {
+    const source = fs.readFileSync(path.join(serverDir, 'routes.ts'), 'utf8');
+
+    // snake_case table name -> the camelCase identifier shared/schema.ts exports for it.
+    const identifierFor = (table: string) =>
+      table.replace(/_([a-z])/g, (_full, c: string) => c.toUpperCase());
+
+    const offenders: string[] = [];
+
+    // Comments first: this file explains at length why particular handlers moved OFF
+    // privilegedDb, and that prose names both the handle and the tables. Matching it would
+    // report the explanation as the offence.
+    const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+
+    // Statements, not lines: a drizzle query is routinely chained across many lines.
+    for (const statement of code.split(';')) {
+      if (!/\bprivilegedDb\b/.test(statement)) continue;
+      if (/^\s*import\b/.test(statement)) continue;
+
+      for (const table of ORG_SCOPED_TABLES) {
+        const identifier = identifierFor(table);
+        // Word-boundary match on the schema identifier as it is used in a query: `.from(x)`,
+        // `.insert(x)`, `.update(x)`, `.delete(x)`, or a column reference `x.someColumn`.
+        if (new RegExp(`\\b${identifier}\\b`).test(statement)) {
+          offenders.push(identifier);
+        }
+      }
+    }
+
+    expect(
+      [...new Set(offenders)],
+      `org-scoped tables reached via privilegedDb in server/routes.ts: ${[...new Set(offenders)].join(', ')}`,
+    ).toEqual([]);
   });
 
   /**

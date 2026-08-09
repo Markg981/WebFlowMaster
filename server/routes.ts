@@ -405,8 +405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/projects/:projectId", async (req, res) => {
-    // Ensure 'projects', 'eq', 'and', 'privilegedDb', 'resolvedLogger' are correctly imported/available in scope.
+  app.delete("/api/projects/:projectId", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -419,19 +418,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const projectToDelete = await privilegedDb
-        .select({ id: projects.id })
-        .from(projects)
-        .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)))
-        .limit(1);
+      // Inside the tenant transaction, so RLS bounds both statements to the caller's
+      // organization. The userId predicate stays as the ownership rule it always was —
+      // organizationId is the security boundary, userId is attribution, and this handler
+      // previously relied on the latter for both.
+      const deleted = await withTenantTransaction(async (tx) => {
+        const projectToDelete = await tx
+          .select({ id: projects.id })
+          .from(projects)
+          .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)))
+          .limit(1);
 
-      if (projectToDelete.length === 0) {
+        if (projectToDelete.length === 0) return false;
+
+        await tx
+          .delete(projects)
+          .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)));
+        return true;
+      });
+
+      if (!deleted) {
         return res.status(404).json({ error: "Project not found or not owned by user." });
       }
-
-      await privilegedDb
-        .delete(projects)
-        .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)));
 
       res.status(204).send();
 
@@ -747,7 +755,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const parseResult = insertApiTestHistorySchema.safeParse(req.body);
     if (!parseResult.success) { resolvedLogger.warn({ message: "POST /api/api-test-history - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id }); return res.status(400).json({ error: "Invalid history data", details: parseResult.error.flatten() }); }
     try {
-      const newHistoryEntry = await privilegedDb.insert(apiTestHistory).values({ ...parseResult.data, userId: req.user.id, organizationId: req.user.organizationId }).returning();
+      const newHistoryEntry = await withTenantTransaction((tx) =>
+        tx.insert(apiTestHistory).values({ ...parseResult.data, userId: req.user!.id, organizationId: req.user!.organizationId }).returning(),
+      );
       res.status(201).json(newHistoryEntry[0]);
     } catch (error: any) { resolvedLogger.error({ message: "Error creating API test history entry", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to save API test history" }); }
   });
@@ -758,8 +768,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = (page - 1) * limit;
     try {
-      const historyEntries = await privilegedDb.select().from(apiTestHistory).where(eq(apiTestHistory.userId, req.user.id)).orderBy(desc(apiTestHistory.createdAt)).limit(limit).offset(offset);
-      const totalResult = await privilegedDb.select({ count: sql`count(*)` }).from(apiTestHistory).where(eq(apiTestHistory.userId, req.user.id));
+      // Both inside one tenant transaction: RLS bounds them to the caller's organization, and
+      // the count must be taken under the same binding as the page it describes.
+      const { historyEntries, totalResult } = await withTenantTransaction(async (tx) => ({
+        historyEntries: await tx.select().from(apiTestHistory).where(eq(apiTestHistory.userId, req.user!.id)).orderBy(desc(apiTestHistory.createdAt)).limit(limit).offset(offset),
+        totalResult: await tx.select({ count: sql`count(*)` }).from(apiTestHistory).where(eq(apiTestHistory.userId, req.user!.id)),
+      }));
       const total = totalResult[0]?.count || 0;
       res.json({ items: historyEntries, page, limit, totalItems: Number(total), totalPages: Math.ceil(Number(total) / limit) });
     } catch (error: any) { resolvedLogger.error({ message: "Error fetching API test history", error: error.message, stack: error.stack, userId: (req.user as any)?.id, query: req.query }); res.status(500).json({ error: "Failed to fetch API test history" }); }
@@ -770,7 +784,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const id = parseInt(req.params.id);
     if (isNaN(id)) { return res.status(400).json({ error: "Invalid history ID" }); }
     try {
-      const result = await privilegedDb.delete(apiTestHistory).where(and(eq(apiTestHistory.id, id), eq(apiTestHistory.userId, req.user.id))).returning();
+      const result = await withTenantTransaction((tx) =>
+        tx.delete(apiTestHistory).where(and(eq(apiTestHistory.id, id), eq(apiTestHistory.userId, req.user!.id))).returning(),
+      );
       if (result.length === 0) { return res.status(404).json({ error: "History entry not found or not owned by user" }); }
       res.status(204).send();
     } catch (error: any) { resolvedLogger.error({ message: `Error deleting API test history entry ${id}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to delete history entry" }); }
@@ -848,14 +864,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if there's anything to update for the main plan or selected tests
       if (Object.keys(planUpdates).length === 0 && selectedTests === undefined) {
         // Check if the plan exists first to return 404 if not, otherwise 400 for no data
-        const existingPlanCheck = await privilegedDb.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId));
+        const existingPlanCheck = await withTenantTransaction((tx) =>
+          tx.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, testPlanId)),
+        );
         if (existingPlanCheck.length === 0) {
             return res.status(404).json({ error: "Test plan not found." });
         }
         return res.status(400).json({ error: "No update data provided." });
       }
 
-      const updatedPlanResult = await privilegedDb.transaction(async (tx) => {
+      // withTenantTransaction, not privilegedDb.transaction: RLS is silently inert under a
+      // superuser, so the explicit organizationId predicates below were the only thing scoping
+      // this handler. They stay, but they are now belt as well as braces.
+      const updatedPlanResult = await withTenantTransaction(async (tx) => {
         let mainPlanUpdated;
         if (Object.keys(planUpdates).length > 0) {
           // Stringify JSON fields before updating: both columns are typed as their parsed
@@ -1059,25 +1080,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Execute queries
-      const uiTestResults = await privilegedDb.select({
-          id: tests.id,
-          name: tests.name,
-          description: sql<string>`null`.as('description'),
-          type: sql<string>`'ui'`.as('type'),
-          updatedAt: tests.updatedAt
-        })
-        .from(tests)
-        .where(and(...uiConditions));
-
-      const apiTestResults = await privilegedDb.select({
-          id: apiTests.id,
-          name: apiTests.name,
-          description: sql<string>`null`.as('description'),
-          type: sql<string>`'api'`.as('type'),
-          updatedAt: apiTests.updatedAt
-        })
-        .from(apiTests)
-        .where(and(...apiConditions));
+      // One tenant transaction for both: RLS bounds them to the caller's organization. The
+      // userId predicates stay as the ownership filter they were, but they are no longer what
+      // keeps another tenant's rows out — organizationId is the boundary, userId attribution.
+      const { uiTestResults, apiTestResults } = await withTenantTransaction(async (tx) => ({
+        uiTestResults: await tx.select({
+            id: tests.id,
+            name: tests.name,
+            description: sql<string>`null`.as('description'),
+            type: sql<string>`'ui'`.as('type'),
+            updatedAt: tests.updatedAt
+          })
+          .from(tests)
+          .where(and(...uiConditions)),
+        apiTestResults: await tx.select({
+            id: apiTests.id,
+            name: apiTests.name,
+            description: sql<string>`null`.as('description'),
+            type: sql<string>`'api'`.as('type'),
+            updatedAt: apiTests.updatedAt
+          })
+          .from(apiTests)
+          .where(and(...apiConditions)),
+      }));
 
       // Combine results
       const combinedResults = [...uiTestResults, ...apiTestResults];
