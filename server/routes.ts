@@ -94,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(reportsRoutes);
     app.use(observabilityRoutes);
 
-  app.post("/api/load-website", async (req, res) => {
+  app.post("/api/load-website", requireRole('editor'), async (req, res) => {
     resolvedLogger.http(`POST /api/load-website - Handler reached. UserId: ${(req.user as any)?.id}`);
     resolvedLogger.debug({ message: "POST /api/load-website - Request body:", body: req.body });
 
@@ -126,7 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/proxy-api-request", async (req, res) => {
+  app.post("/api/proxy-api-request", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -375,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const detectElementsBodySchema = z.object({
     url: z.string().url({ message: "Invalid URL for element detection" }),
   });
-  app.post("/api/detect-elements", async (req, res) => {
+  app.post("/api/detect-elements", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) { // Ensure user is authenticated
       return res.status(401).json({ success: false, error: "Unauthorized" });
     }
@@ -453,7 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/settings", async (req, res) => {
+  app.get("/api/settings", requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -485,7 +485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/settings", async (req, res) => {
+  app.post("/api/settings", requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -519,7 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/execute-test-direct", async (req, res) => {
+  app.post("/api/execute-test-direct", requireRole('editor'), async (req, res) => {
     const userId = (req.user as any)?.id;
     resolvedLogger.http({ message: "POST /api/execute-test-direct - Handler Reached.", userId });
     resolvedLogger.debug({ message: "POST /api/execute-test-direct - Request body:", body: req.body, userId });
@@ -604,7 +604,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
    * is whether it has a display at all — a Linux container without DISPLAY never will — so
    * the UI can disable the button with a real reason instead of failing at launch time.
    */
-  app.get("/api/recording-capability", async (req, res) => {
+  app.get("/api/recording-capability", requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -619,7 +619,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  app.post("/api/start-recording", async (req, res) => {
+  app.post("/api/start-recording", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -660,7 +660,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/stop-recording", async (req, res) => {
+  app.post("/api/stop-recording", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -701,7 +701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/get-recorded-actions", async (req, res) => {
+  app.get("/api/get-recorded-actions", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -750,7 +750,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // --- API Test History Endpoints ---
-  app.post("/api/api-test-history", async (req, res) => {
+  app.post("/api/api-test-history", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) { return res.status(401).json({ error: "Unauthorized" }); }
     const parseResult = insertApiTestHistorySchema.safeParse(req.body);
     if (!parseResult.success) { resolvedLogger.warn({ message: "POST /api/api-test-history - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id }); return res.status(400).json({ error: "Invalid history data", details: parseResult.error.flatten() }); }
@@ -762,7 +762,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) { resolvedLogger.error({ message: "Error creating API test history entry", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to save API test history" }); }
   });
 
-  app.get("/api/api-test-history", async (req, res) => {
+  app.get("/api/api-test-history", requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) { return res.status(401).json({ error: "Unauthorized" }); }
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -779,7 +779,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) { resolvedLogger.error({ message: "Error fetching API test history", error: error.message, stack: error.stack, userId: (req.user as any)?.id, query: req.query }); res.status(500).json({ error: "Failed to fetch API test history" }); }
   });
 
-  app.delete("/api/api-test-history/:id", async (req, res) => {
+  app.delete("/api/api-test-history/:id", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) { return res.status(401).json({ error: "Unauthorized" }); }
     const id = parseInt(req.params.id);
     if (isNaN(id)) { return res.status(400).json({ error: "Invalid history ID" }); }
@@ -846,7 +846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/test-plans - Create a new test plan
 
   // PUT /api/test-plans/:id - Update an existing test plan
-  app.put("/api/test-plans/:id", async (req, res) => {
+  app.put("/api/test-plans/:id", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -1057,7 +1057,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // GET /api/selectable-tests - List UI and API tests for selection in Test Plans
-  app.get("/api/selectable-tests", async (req, res) => {
+  app.get("/api/selectable-tests", requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -1360,7 +1360,7 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
   // --- System Settings API Endpoints ---
 
   // GET /api/system-settings - List all system settings
-  app.get("/api/system-settings", async (req, res) => {
+  app.get("/api/system-settings", requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       // Assuming admin rights might be needed here, or specific user settings vs system settings
       // For now, just basic auth check
@@ -1376,7 +1376,7 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
   });
 
   // GET /api/system-settings/:key - Get a single system setting by key
-  app.get("/api/system-settings/:key", async (req, res) => {
+  app.get("/api/system-settings/:key", requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }

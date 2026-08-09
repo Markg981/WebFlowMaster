@@ -1,4 +1,4 @@
-import { organizations, users, invitations, tests, testRuns, userSettings, sessions, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
+import { organizations, users, invitations, auditLog, AUDIT_ACTIONS, tests, testRuns, userSettings, sessions, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
 import { privilegedDb } from "./db";
 import { eq, desc } from "drizzle-orm";
 import session from "express-session";
@@ -141,6 +141,21 @@ export class DatabaseStorage implements IStorage {
         .update(invitations)
         .set({ acceptedAt: new Date() })
         .where(eq(invitations.id, invitation.id));
+
+      // Written here rather than through recordAudit: that helper takes the organization from
+      // the ambient tenant context, and there is none — this runs before the account exists,
+      // so there is no session to establish one. The organization comes from the invitation
+      // row instead, which is the only trustworthy source at this point. Same transaction as
+      // the account creation, which is the property that matters.
+      await tx.insert(auditLog).values({
+        organizationId: invitation.organizationId,
+        actorUserId: user.id,
+        actorUsername: user.username,
+        action: AUDIT_ACTIONS.INVITATION_ACCEPTED,
+        targetType: 'invitation',
+        targetId: String(invitation.id),
+        metadata: { role: invitation.role, invitedByUserId: invitation.invitedByUserId },
+      });
 
       return user;
     });

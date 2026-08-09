@@ -136,6 +136,35 @@ describe('route modules cannot query outside the tenant context', () => {
     return found;
   }
 
+  /**
+   * The requireRole rule above governs only server/routes/*.routes.ts, and only mutating
+   * routes. server/routes.ts was outside it entirely, which left sixteen live handlers with no
+   * role check at all — a viewer could delete API-test history, drive a browser, or proxy an
+   * arbitrary outbound request.
+   *
+   * Every route in this file is checked, reads included. A read is not automatically harmless:
+   * GET /api/selectable-tests enumerates an organization's tests, and the audit trail is
+   * owner-only precisely because reading who-did-what is a privilege. Deciding a role for a new
+   * handler is a two-second judgement; forgetting to decide one is how this happened.
+   */
+  it('every route in server/routes.ts declares a required role', () => {
+    const source = fs.readFileSync(path.join(serverDir, 'routes.ts'), 'utf8');
+    const lines = source.split('\n');
+    const offenders: string[] = [];
+
+    lines.forEach((line, index) => {
+      const match = /app\.(get|post|put|patch|delete)\("(\/api\/[^"]*)"/.exec(line);
+      if (!match) return;
+      // The handler chain can wrap onto following lines; look at a small window.
+      const window = lines.slice(index, index + 4).join(' ');
+      if (!window.includes('requireRole')) {
+        offenders.push(`${match[1].toUpperCase()} ${match[2]} (line ${index + 1})`);
+      }
+    });
+
+    expect(offenders, `routes with no requireRole: ${offenders.join(', ')}`).toEqual([]);
+  });
+
   it.each(Object.entries(PRIVILEGED_BOOTSTRAP_BUDGET))(
     'server/%s stays within its privileged-bootstrap budget',
     (file, { max, why }) => {

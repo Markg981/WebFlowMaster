@@ -38,9 +38,68 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  await privilegedDb.execute(sql`DELETE FROM audit_log WHERE organization_id = ${orgId}`);
   await privilegedDb.execute(sql`DELETE FROM invitations WHERE organization_id = ${orgId}`);
   await privilegedDb.execute(sql`DELETE FROM users WHERE organization_id = ${orgId}`);
   await privilegedDb.execute(sql`DELETE FROM organizations WHERE id = ${orgId}`);
+});
+
+describe('the audit trail records what the member routes do', () => {
+  const auditFor = () =>
+    privilegedDb.execute(
+      sql`SELECT action, actor_username, target_id, metadata FROM audit_log WHERE organization_id = ${orgId} ORDER BY id`,
+    );
+
+  it('records a role change with both the old and the new role', async () => {
+    await request(app).patch(`/api/organization/members/${editorId}`).send({ role: 'viewer' }).expect(200);
+
+    const rows = (await auditFor()).rows as { action: string; actor_username: string; target_id: string; metadata: Record<string, unknown> }[];
+    expect(rows).toHaveLength(1);
+    expect(rows[0].action).toBe('member.role_changed');
+    expect(rows[0].target_id).toBe(String(editorId));
+    // Both sides: "changed to viewer" is not answerable without knowing what it was before.
+    expect(rows[0].metadata).toMatchObject({ from: 'editor', to: 'viewer' });
+  });
+
+  it('records a removal, and keeps it after the member is gone', async () => {
+    await request(app).delete(`/api/organization/members/${editorId}`).expect(204);
+
+    const rows = (await auditFor()).rows as { action: string; target_id: string }[];
+    expect(rows).toHaveLength(1);
+    expect(rows[0].action).toBe('member.removed');
+    expect(rows[0].target_id).toBe(String(editorId));
+  });
+
+  it('writes no entry when the change is refused', async () => {
+    // The last-owner guard rejects this. An audit log that records attempts as if they were
+    // changes is worse than none: it makes the trail unreadable.
+    await request(app).patch(`/api/organization/members/${ownerId}`).send({ role: 'viewer' }).expect(409);
+    expect((await auditFor()).rows).toHaveLength(0);
+  });
+
+  it('records invitation creation and revocation, never the token', async () => {
+    const created = await request(app)
+      .post('/api/organization/invitations')
+      .send({ username: 'audited-newcomer' })
+      .expect(201);
+    await request(app).delete(`/api/organization/invitations/${created.body.id}`).expect(204);
+
+    const rows = (await auditFor()).rows as { action: string; metadata: Record<string, unknown> }[];
+    expect(rows.map((r) => r.action)).toEqual(['invitation.created', 'invitation.revoked']);
+    // The token is a bearer credential and this table cannot be redacted afterwards.
+    expect(JSON.stringify(rows)).not.toContain(created.body.token);
+  });
+
+  it('is readable by an owner and refused to an editor', async () => {
+    await request(app).post('/api/organization/invitations').send({ username: 'audited-newcomer' }).expect(201);
+
+    const asOwner = await request(app).get('/api/organization/audit-log');
+    expect(asOwner.status).toBe(200);
+    expect(asOwner.body.entries).toHaveLength(1);
+
+    currentUser = { id: editorId, role: 'editor', organizationId: orgId };
+    expect((await request(app).get('/api/organization/audit-log')).status).toBe(403);
+  });
 });
 
 describe('organization invitations', () => {

@@ -31,7 +31,10 @@ vi.mock('./playwright-service', () => ({
 }));
 
 let app: Application;
-const mockUser = { id: 1, username: 'recorder_user' };
+// The recording endpoints are gated at 'editor' (they drive a browser). requireRole reads the
+// role off req.user, and this suite's fake auth middleware never loads the DB row, so the mock
+// object has to carry it explicitly.
+const mockUser = { id: 1, username: 'recorder_user', role: 'editor' };
 
 const sampleSequence: RecordedAction[] = [
   { type: 'navigate', url: 'https://app.test', timestamp: 1, meta: 'session-started' },

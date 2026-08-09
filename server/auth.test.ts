@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express, { type Express } from 'express';
 import { privilegedDb } from './db';
-import { users, organizations, invitations } from '@shared/schema';
+import { users, organizations, invitations, auditLog } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { storage } from './storage';
 
@@ -24,7 +24,10 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  // invitations first: it FKs both users (invited_by) and organizations.
+  // FK order. audit_log first: accepting an invitation writes an entry, and audit_log
+  // references organizations with no cascade, so leaving one behind blocks the organizations
+  // delete on the *next* run of this hook — which surfaces as unrelated tests failing.
+  await privilegedDb.delete(auditLog);
   await privilegedDb.delete(invitations);
   await privilegedDb.delete(users);
   await privilegedDb.delete(organizations);
