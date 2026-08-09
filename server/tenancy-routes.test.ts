@@ -144,6 +144,45 @@ async function seedTest(owner: User, name: string) {
 }
 
 describe('POST /api/test-plans', () => {
+  it('links the selected tests it was sent', async () => {
+    // CreateTestPlanWizard always sends selectedTests. The live handler used to destructure
+    // it out and insert only the plan, so every plan created from the UI had zero linked
+    // tests — while a second, complete implementation of this endpoint sat in routes.ts,
+    // shadowed by mount order and never executing.
+    const uiTest = await seedTest(sessionUser, 'Linked at creation');
+
+    const response = await request(app)
+      .post('/api/test-plans')
+      .send({ name: 'Plan created with tests', selectedTests: [{ id: uiTest.id, type: 'ui' }] })
+      .expect(201);
+
+    const links = await privilegedDb
+      .select()
+      .from(testPlanSelectedTests)
+      .where(eq(testPlanSelectedTests.testPlanId, response.body.id));
+
+    expect(links).toHaveLength(1);
+    expect(links[0].testId).toBe(uiTest.id);
+    expect(links[0].testType).toBe('ui');
+    // From the parent plan, not the session — the same rule the PUT handler follows.
+    expect(links[0].organizationId).toBe(sessionOrganizationId);
+  });
+
+  it('refuses to link another organization’s test at creation', async () => {
+    const foreignTest = await seedTest(foreignUser, 'Foreign test');
+
+    await request(app)
+      .post('/api/test-plans')
+      .send({ name: 'Plan with a stolen test', selectedTests: [{ id: foreignTest.id, type: 'ui' }] })
+      .expect(400);
+
+    const links = await privilegedDb
+      .select()
+      .from(testPlanSelectedTests)
+      .where(eq(testPlanSelectedTests.testId, foreignTest.id));
+    expect(links).toHaveLength(0);
+  });
+
   it('ignores userId and organizationId in the request body and persists the row under the session', async () => {
     const response = await request(app)
       .post('/api/test-plans')

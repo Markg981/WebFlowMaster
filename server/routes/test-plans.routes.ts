@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { testPlans, testPlanSchedules, testPlanExecutions, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema, testPlanApiPayloadSchema, type TestPlanSchedule } from "@shared/schema";
+import { testPlans, testPlanSchedules, testPlanExecutions, testPlanSelectedTests, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema, testPlanApiPayloadSchema, type TestPlanSchedule } from "@shared/schema";
 import { eq, desc, and, getTableColumns, type SQL } from "drizzle-orm";
 import { v4 as uuidv4 } from 'uuid';
 import loggerPromise from "../logger";
 import schedulerService from "../scheduler-service";
 import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
+import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from "./selected-tests";
 
 const router = Router();
 const logger = await loggerPromise;
@@ -53,14 +54,16 @@ router.post("/api/test-plans", requireRole('editor'), async (req, res) => {
     const parseResult = testPlanApiPayloadSchema.safeParse(req.body);
     if (!parseResult.success) return res.status(400).json({ error: "Invalid data", details: parseResult.error.flatten() });
 
-    // selectedTests lives in a separate join table (testPlanSelectedTests); not a column
-    // on testPlans, so it is not part of the insert below.
-    const { selectedTests: _selectedTests, ...planData } = parseResult.data;
+    // selectedTests lives in a separate join table (testPlanSelectedTests) rather than as a
+    // column on testPlans, so it is inserted separately below — not dropped. It used to be
+    // destructured away and discarded here, which meant every plan created from the UI had
+    // zero linked tests: CreateTestPlanWizard always sends this field.
+    const { selectedTests, ...planData } = parseResult.data;
 
     const planId = uuidv4();
     try {
-        const newPlan = await withTenantTransaction((tx) =>
-          tx.insert(testPlans).values({
+        const newPlan = await withTenantTransaction(async (tx) => {
+          const inserted = await tx.insert(testPlans).values({
             ...planData,
             id: planId,
             // The tenancy boundary: always derived from the authenticated session, never
@@ -69,10 +72,39 @@ router.post("/api/test-plans", requireRole('editor'), async (req, res) => {
             organizationId: req.user!.organizationId,
             testMachinesConfig: planData.testMachinesConfig ? JSON.stringify(planData.testMachinesConfig) : null,
             notificationSettings: planData.notificationSettings ? JSON.stringify(planData.notificationSettings) : null
-          }).returning(),
-        );
-        res.status(201).json(newPlan[0]);
+          }).returning();
+
+          const mainPlan = inserted[0];
+
+          if (selectedTests && selectedTests.length > 0) {
+            // Nothing downstream re-checks these ids — test-execution-service loads them with
+            // inArray and no organization filter — so an unvalidated foreign id would mean the
+            // runner executes another tenant's test.
+            await assertSelectedTestsBelongTo(tx, req.user!.organizationId, selectedTests);
+            await tx.insert(testPlanSelectedTests).values(
+              selectedTests.map((st) => ({
+                testPlanId: mainPlan.id,
+                // From the plan these rows hang off, not from the session: a join row belongs
+                // to the same organization as its parent.
+                organizationId: mainPlan.organizationId,
+                testId: st.type === 'ui' ? st.id : null,
+                apiTestId: st.type === 'api' ? st.id : null,
+                testType: st.type,
+              })),
+            );
+          }
+
+          return mainPlan;
+        });
+        res.status(201).json(newPlan);
     } catch(e: any) {
+        // Either the DB rejected an id that does not exist at all, or the check above rejected
+        // one that exists in another organization. Both are the caller naming a test that is
+        // not theirs to name, and both answer the same way — a distinct message for the second
+        // would tell them which ids exist in other tenants.
+        if (SELECTED_TESTS_NOT_FOUND.test(e.message || '') || isForeignKeyError(e)) {
+            return res.status(400).json({ error: "One or more selected tests do not exist." });
+        }
         logger.error({ message: "Plan creation failed", error: e.message });
         res.status(500).json({ error: "Failed to create plan" });
     }

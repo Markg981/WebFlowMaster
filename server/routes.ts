@@ -2,10 +2,8 @@ import { createServer, type Server } from "http";
 import { Express } from "express";
 import { setupAuth } from "./auth";
 import {
-  insertTestSchema,
   userSettings,
   projects,
-  insertProjectSchema,
   tests,
   AdhocTestStepSchema,
   AdhocDetectedElementSchema,
@@ -15,7 +13,6 @@ import {
   insertApiTestHistorySchema,
   AssertionSchema,
   testPlans,
-  testPlanApiPayloadSchema,
   updateTestPlanApiPayloadSchema,
   testPlanSelectedTests,
   systemSettings,
@@ -28,10 +25,10 @@ import {
   executionLogs
 } from "@shared/schema";
 import { z } from "zod";
-import { v4 as uuidv4 } from 'uuid'; // For generating IDs
+// For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { privilegedDb } from "./db";
-import { eq, and, desc, sql, getTableColumns, asc, ilike, inArray } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
+import { eq, and, desc, sql, getTableColumns, asc, ilike } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
 import { fetchTarget, requestVariables, substituteInValues, substituteVariables } from "./outbound-http";
 // Import schedulerService
@@ -47,6 +44,7 @@ import observabilityRoutes from "./routes/observability.routes";
 import organizationRoutes from "./routes/organization.routes";
 import { tenancyMiddleware, withTenantTransaction } from "./middleware/tenancy";
 import { requireRole } from "./middleware/require-role";
+import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from "./routes/selected-tests";
 
 export async function registerRoutes(app: Express): Promise<Server> {
     const resolvedLogger = await loggerPromise;
@@ -373,29 +371,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/projects", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const userId = req.user.id;
-
-    try {
-      const userProjects = await privilegedDb
-        .select()
-        .from(projects)
-        .where(eq(projects.userId, userId))
-        .orderBy(asc(projects.name)); // Order by project name ascending
-
-      res.status(200).json(userProjects);
-    } catch (error: any) {
-      resolvedLogger.error({ // Ensure resolvedLogger is defined in this scope or use logger directly
-        message: `Error fetching projects for user ${userId}`,
-        error: error.message,
-        stack: error.stack,
-      });
-      res.status(500).json({ error: "Failed to fetch projects" });
-    }
-  });
 
   const detectElementsBodySchema = z.object({
     url: z.string().url({ message: "Invalid URL for element detection" }),
@@ -430,59 +405,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const userId = req.user.id;
-
-    // Validate payload using insertProjectSchema (which expects 'name')
-    // insertProjectSchema already has .pick({ name: true })
-    // and also validates name: z.string().min(1, "Project name cannot be empty")
-    const parseResult = insertProjectSchema.safeParse(req.body);
-
-    if (!parseResult.success) {
-      resolvedLogger.warn({
-        message: "POST /api/projects - Invalid payload",
-        errors: parseResult.error.flatten(),
-        userId,
-      });
-      return res.status(400).json({ error: "Invalid project data", details: parseResult.error.flatten() });
-    }
-
-    const { name } = parseResult.data;
-
-    try {
-      const newProject = await privilegedDb
-        .insert(projects)
-        .values({
-          name,
-          userId,
-          organizationId: req.user.organizationId,
-          // createdAt is handled by default in schema
-        })
-        .returning(); // Return all fields of the new project
-
-      if (newProject.length === 0) {
-        resolvedLogger.error({ message: "Project creation failed, no record returned.", name, userId });
-        return res.status(500).json({ error: "Failed to create project." });
-      }
-      res.status(201).json(newProject[0]);
-    } catch (error: any) {
-      resolvedLogger.error({
-        message: "Error creating project",
-        userId,
-        projectName: name,
-        error: error.message,
-        stack: error.stack,
-      });
-      // Check for unique constraint errors if project names must be unique per user (not explicitly defined but common)
-      // if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') { // Example for SQLite
-      //   return res.status(409).json({ error: "A project with this name already exists." });
-      // }
-      res.status(500).json({ error: "Failed to create project" });
-    }
-  });
   app.delete("/api/projects/:projectId", async (req, res) => {
     // Ensure 'projects', 'eq', 'and', 'privilegedDb', 'resolvedLogger' are correctly imported/available in scope.
     if (!req.isAuthenticated() || !req.user) {
@@ -523,102 +445,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/tests", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const userId = req.user.id;
-
-    try {
-      const userInterfaceTests = await privilegedDb
-        .select({
-          ...getTableColumns(tests),
-          projectName: projects.name,
-          // creatorUsername: users.username, // Temporarily removed
-        })
-        .from(tests)
-        .leftJoin(projects, eq(tests.projectId, projects.id))
-        // .leftJoin(users, eq(tests.userId, users.id)) // Temporarily removed
-        .where(eq(tests.userId, userId))
-        .orderBy(desc(tests.updatedAt));
-
-      // No manual JSON.parse needed here if tests.sequence and tests.elements are { mode: 'json' }
-      // Drizzle should handle the parsing.
-      res.json(userInterfaceTests);
-    } catch (error: any) {
-      resolvedLogger.error({
-        message: `Error fetching UI tests for user ${userId}`,
-        error: error.message,
-        stack: error.stack,
-      });
-      res.status(500).json({ error: "Failed to fetch UI tests" });
-    }
-  });
-
-  // Schema for creating a new test (general UI test, not API test)
-  const createTestBodySchema = insertTestSchema.extend({
-    projectId: z.number().int().positive(), // Make projectId explicitly required
-    sequence: z.array(AdhocTestStepSchema), // Expect an array of AdhocTestStepSchema
-    elements: z.array(AdhocDetectedElementSchema), // Expect an array of AdhocDetectedElementSchema
-    // name and url are already required by insertTestSchema via the base 'tests' table definition
-  }).omit({ userId: true }); // userId will come from the session
-
-  app.post("/api/tests", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const userId = req.user.id;
-
-    const parseResult = createTestBodySchema.safeParse(req.body);
-
-    if (!parseResult.success) {
-      resolvedLogger.warn({
-        message: "POST /api/tests - Invalid payload",
-        errors: parseResult.error.flatten(),
-        userId,
-      });
-      return res.status(400).json({ error: "Invalid test data", details: parseResult.error.flatten() });
-    }
-
-    const { name, url, sequence, elements, projectId, status } = parseResult.data;
-
-    try {
-      const newTest = await privilegedDb
-        .insert(tests)
-        .values({
-          userId,
-          organizationId: req.user.organizationId,
-          projectId,
-          name,
-          url,
-          sequence: JSON.stringify(sequence), // Stringify sequence array
-          elements: JSON.stringify(elements), // Stringify elements array
-          status: status || "draft", // Default to draft if not provided
-          // createdAt and updatedAt are handled by default in schema
-        })
-        .returning();
-
-      if (newTest.length === 0) {
-        resolvedLogger.error({ message: "Test creation failed, no record returned.", name, userId });
-        return res.status(500).json({ error: "Failed to create test." });
-      }
-      res.status(201).json(newTest[0]);
-    } catch (error: any) {
-      resolvedLogger.error({
-        message: "Error creating test",
-        userId,
-        testName: name,
-        error: error.message,
-        stack: error.stack,
-      });
-      if (error.message && /foreign key/i.test(error.message || '')) {
-        return res.status(400).json({ error: "Invalid project ID or project does not exist." });
-      }
-      res.status(500).json({ error: "Failed to create test" });
-    }
-  });
-  app.put("/api/tests/:id", async (_req, _res) => { /* ... existing code ... */ });
-  app.post("/api/tests/:id/execute", async (_req, _res) => { /* ... existing code ... */ });
   app.get("/api/settings", async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -994,153 +820,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // testPlanApiPayloadSchema / updateTestPlanApiPayloadSchema now live in shared/schema.ts
   // so server/routes/test-plans.routes.ts can validate against the same shape.
 
-  /** Matches the error assertSelectedTestsBelongTo throws, so the catch can map it to a 400. */
-  const SELECTED_TESTS_NOT_FOUND = /selected tests do not exist/i;
-
-  /**
-   * Throws unless every selected test belongs to `organizationId`.
-   *
-   * The ids arrive from the request body, and nothing downstream re-checks them:
-   * test-execution-service loads them with `inArray(tests.id, ...)` and no organization
-   * filter, so an unvalidated foreign id means the runner executes and reports on another
-   * tenant's test.
-   */
-  async function assertSelectedTestsBelongTo(
-    tx: { select: typeof privilegedDb.select },
-    organizationId: number,
-    selectedTests: { id: number; type: 'ui' | 'api' }[],
-  ): Promise<void> {
-    for (const [type, table] of [['ui', tests], ['api', apiTests]] as const) {
-      const ids = selectedTests.filter((st) => st.type === type).map((st) => st.id);
-      if (ids.length === 0) continue;
-
-      const found = await tx
-        .select({ id: table.id })
-        .from(table)
-        .where(and(inArray(table.id, ids), eq(table.organizationId, organizationId)));
-
-      if (found.length !== new Set(ids).size) {
-        throw new Error("One or more selected tests do not exist.");
-      }
-    }
-  }
-
 
   // --- Test Plans API Endpoints ---
 
   // GET /api/test-plans - List all test plans
-  app.get("/api/test-plans", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    try {
-      // Add .where(eq(testPlans.userId, req.user.id)) if userId is added to testPlans table for multi-tenancy
-      const allTestPlans = await privilegedDb.select().from(testPlans).orderBy(desc(testPlans.createdAt));
-      res.json(allTestPlans);
-    } catch (error: any) {
-      resolvedLogger.error({ message: "Error fetching test plans", error: error.message, stack: error.stack, userId: (req.user as any)?.id });
-      res.status(500).json({ error: "Failed to fetch test plans" });
-    }
-  });
 
   // GET /api/test-plans/:id - Get a single test plan by ID
-  app.get("/api/test-plans/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const testPlanId = req.params.id;
-    try {
-      // Add .where(and(eq(testPlans.id, testPlanId), eq(testPlans.userId, req.user.id))) if user-specific
-      const result = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, testPlanId));
-      if (result.length === 0) {
-        return res.status(404).json({ error: "Test plan not found" });
-      }
-      res.json(result[0]);
-    } catch (error: any) {
-      resolvedLogger.error({ message: `Error fetching test plan ${testPlanId}`, error: error.message, stack: error.stack, userId: (req.user as any)?.id });
-      res.status(500).json({ error: "Failed to fetch test plan" });
-    }
-  });
 
   // POST /api/test-plans - Create a new test plan
-  app.post("/api/test-plans", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    const parseResult = testPlanApiPayloadSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      resolvedLogger.warn({message: "POST /api/test-plans - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id });
-      return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
-    }
-
-    try {
-      const { selectedTests, ...newPlanData } = parseResult.data;
-      const planId = uuidv4(); // Generate new UUID
-
-      const createdPlanResult = await privilegedDb.transaction(async (tx) => {
-        const insertedPlan = await tx
-          .insert(testPlans)
-          .values({
-            ...newPlanData,
-            id: planId,
-            // Derived server-side, same as organizationId: insertTestPlanSchema omits both
-            // (see shared/schema.ts), so they are never sourced from the request body.
-            userId: req.user.id,
-            organizationId: req.user.organizationId,
-            // Ensure JSON fields are stringified if Zod schema returns them as objects
-            testMachinesConfig: newPlanData.testMachinesConfig ? JSON.stringify(newPlanData.testMachinesConfig) : null,
-            notificationSettings: newPlanData.notificationSettings ? JSON.stringify(newPlanData.notificationSettings) : null,
-          })
-          .returning();
-
-        if (insertedPlan.length === 0) {
-          resolvedLogger.error("Test plan main record creation failed within transaction.");
-          throw new Error("Failed to create test plan main record.");
-        }
-        const mainPlan = insertedPlan[0];
-
-        if (selectedTests && selectedTests.length > 0) {
-          await assertSelectedTestsBelongTo(tx, req.user.organizationId, selectedTests);
-          const selectedTestValues = selectedTests.map((st) => ({
-            testPlanId: mainPlan.id,
-            // Taken from the plan these rows hang off, not from the session: a join row must
-            // belong to the same organization as its parent, and those can differ whenever
-            // the caller reaches a plan that isn't theirs.
-            organizationId: mainPlan.organizationId,
-            testId: st.type === 'ui' ? st.id : null,
-            apiTestId: st.type === 'api' ? st.id : null,
-            testType: st.type,
-          }));
-          await tx.insert(testPlanSelectedTests).values(selectedTestValues);
-        }
-        return mainPlan;
-      });
-
-      // Fetch the full plan with selected tests to return
-      // (This might be complex if we need to join with tests/apiTests names, for now just return the created plan object)
-      // For simplicity, returning the direct result from the transaction.
-      // Client might need to re-fetch or this endpoint could be enhanced to return joined data.
-      res.status(201).json(createdPlanResult);
-
-    } catch (error: any) {
-      // Enhanced error logging
-      const errorDetails = {
-        messageFromError: error.message,
-        stackTrace: error.stack,
-        errorCode: (error as any).code, // For SQLite errors like SQLITE_CONSTRAINT
-        requestBodyAttempted: req.body,
-        userId: (req.user as any)?.id,
-      };
-      resolvedLogger.error({ message: "Critical error creating test plan with selected tests", details: errorDetails });
-
-      if (/foreign key/i.test(error.message || '')) {
-        return res.status(400).json({ error: "Invalid reference: One or more selected tests, or the project ID, do not exist."});
-      }
-      // Generic error for client, specific details logged on server
-      res.status(500).json({ error: "Failed to create test plan due to an internal server error." });
-    }
-  });
 
   // PUT /api/test-plans/:id - Update an existing test plan
   app.put("/api/test-plans/:id", async (req, res) => {
