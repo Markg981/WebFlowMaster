@@ -50,6 +50,13 @@
       "when": 1785300000000,
       "tag": "0006_narrow_app_user_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785400000000,
+      "tag": "0007_excel_mapping_unique_per_org",
+      "breakpoints": true
     }
   ]
 }

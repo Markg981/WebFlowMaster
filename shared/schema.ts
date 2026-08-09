@@ -1,4 +1,4 @@
-import { pgTable, text, integer, serial, timestamp, boolean, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, serial, timestamp, boolean, jsonb, index, unique } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations } from 'drizzle-orm';
@@ -355,11 +355,14 @@ export const excelSequencesMap = pgTable("excel_sequences_map", {
     .notNull()
     .references(() => tests.id, { onDelete: "cascade" }),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  excelTestCaseId: text("excel_test_case_id").notNull().unique(), // Assuming one Excel ID maps to one Sequence
+  // Unique per organization, not globally: the id comes from a customer's own spreadsheet, so
+  // two tenants using the same one is ordinary. See the unique constraint below.
+  excelTestCaseId: text("excel_test_case_id").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("excel_sequences_map_test_id_idx").on(table.testId),
   index("excel_sequences_map_organization_id_idx").on(table.organizationId),
+  unique("excel_sequences_map_org_excel_test_case_id_unique").on(table.organizationId, table.excelTestCaseId),
 ]);
 
 

@@ -29,7 +29,6 @@ module.exports = {
     'coverage/',
     '*.config.js',
     '*.config.ts',
-    'scripts/',
   ],
   rules: {
     // The codebase leans heavily on `any`; keep it as a warning rather than an error

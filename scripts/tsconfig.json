@@ -20,10 +20,6 @@
   //     `**/*.test.ts` exclude is resolved relative to THIS directory, so it does not match
   //     anything reached through `../`. Naming ../server/db.ts pulls in only its own
   //     (non-test) transitive imports.
-  //   - scripts/migrate-data.ts is an abandoned Neon->SQLite one-off (single commit, wired
-  //     to no npm script) that inserts into a SQLite target using the Postgres schema
-  //     definitions. It has never typechecked and making it do so is unrelated to anything
-  //     these scripts are for.
   //
   // Project references would express the server/shared dependency better, but
   // tsconfig.base.json sets noEmit and a referenced project may not disable emit.

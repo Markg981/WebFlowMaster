@@ -112,7 +112,26 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
   // per emitted log line on the execution hot path. Without this, every log line would
   // cost its own SELECT; an execution's organizationId never changes, so the first lookup
   // is reused for the rest of that execution's logs.
+  //
+  // Bounded with LRU eviction, the same rule the rest of this codebase's long-lived maps
+  // follow (see BreadcrumbRing and fingerprintState in server/observability): this map is
+  // keyed by "every execution this process has ever emitted a log for" and the server runs
+  // indefinitely, so without a cap it only grows. Evicting a key costs one SELECT the next
+  // time that execution logs anything, which is the correct trade.
+  const MAX_CACHED_EXECUTIONS = 500;
   const executionOrgCache = new Map<string, number>();
+
+  function rememberExecutionOrg(executionId: string, organizationId: number) {
+    // Re-insert to mark most-recently-used: Map iterates in insertion order, so the first key
+    // is the oldest.
+    executionOrgCache.delete(executionId);
+    executionOrgCache.set(executionId, organizationId);
+    while (executionOrgCache.size > MAX_CACHED_EXECUTIONS) {
+      const oldest = executionOrgCache.keys().next();
+      if (oldest.done) break;
+      executionOrgCache.delete(oldest.value);
+    }
+  }
 
   /** Sends a message only to sockets subscribed to this execution's room. */
   function broadcastToExecution(executionId: string, message: any) {
@@ -287,8 +306,8 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
             throw new Error(`No test plan execution found for id ${executionId}`);
           }
           organizationId = execution.organizationId;
-          executionOrgCache.set(executionId, organizationId);
         }
+        rememberExecutionOrg(executionId, organizationId);
 
         await privilegedDb.insert(executionLogs).values({
           organizationId,

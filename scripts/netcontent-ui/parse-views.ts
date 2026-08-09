@@ -51,7 +51,7 @@ function classify(el: HTMLElement): { role: UiElement['role']; action: UiElement
   return { role: 'clickable', action: 'click' }; // any [ng-click] element
 }
 
-export function parseView(html: string, viewName: string): UiElement[] {
+export function parseView(html: string, _viewName: string): UiElement[] {
   const root = parse(html, { lowerCaseTagName: false, comment: false });
   const nodes = root.querySelectorAll('button, input, select, textarea, a, [ng-click]');
   const seen = new Set<HTMLElement>();

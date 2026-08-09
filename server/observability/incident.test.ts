@@ -133,7 +133,12 @@ describe('recordIncident', () => {
   });
 
   it('folds occurrences suppressed by the rate limit into the next persisted count', async () => {
-    vi.useFakeTimers();
+    // Only the clock. vi.useFakeTimers() with no argument also fakes setImmediate,
+    // process.nextTick and queueMicrotask, and recordIncident does real filesystem I/O whose
+    // completion is dispatched through those — so the bare call made this test hang until its
+    // 5s budget expired, roughly one run in three, in isolation as well as in the full suite.
+    // The rate limit this test is about is a Date.now() comparison, so Date is all it needs.
+    vi.useFakeTimers({ toFake: ['Date'] });
     const error = errorFrom('server/thing.ts', 3);
 
     const first = await recordIncident({ kind: 'job', error, trigger: {} });
