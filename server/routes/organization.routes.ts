@@ -1,7 +1,9 @@
 import { Router, type Request, type Response } from "express";
+import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { and, eq, ne, sql } from "drizzle-orm";
-import { organizations, users } from "@shared/schema";
+import { organizations, users, invitations } from "@shared/schema";
+import { storage } from "../storage";
 import { requireRole } from "../middleware/require-role";
 import { withTenantTransaction, getTenantOrgId } from "../middleware/tenancy";
 
@@ -39,6 +41,118 @@ router.get("/api/organization", requireRole("viewer"), async (_req: Request, res
   res.json(result);
 });
 
+/**
+ * How someone actually joins an organization they did not create.
+ *
+ * POST /api/organization/members cannot do it: a user belongs to exactly one organization, so
+ * moving an existing account would take that person's own data away from them. An invitation
+ * names a username that does not exist yet, and registration with the token puts the new
+ * account here instead of in an organization of its own.
+ */
+const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+router.get("/api/organization/invitations", requireRole("owner"), async (_req: Request, res: Response) => {
+  const organizationId = getTenantOrgId()!;
+
+  // invitations has no RLS policy (registration must read it before any tenant context
+  // exists), so the organizationId predicate here is the isolation, not a belt-and-braces.
+  const pending = await withTenantTransaction((tx) =>
+    tx
+      .select({
+        id: invitations.id,
+        username: invitations.username,
+        role: invitations.role,
+        expiresAt: invitations.expiresAt,
+        acceptedAt: invitations.acceptedAt,
+        createdAt: invitations.createdAt,
+      })
+      .from(invitations)
+      .where(eq(invitations.organizationId, organizationId)),
+  );
+
+  // The token is deliberately absent: it is a bearer credential, and this endpoint exists to
+  // show who has been invited, not to re-read secrets. It is returned once, at creation.
+  res.json(pending);
+});
+
+router.post("/api/organization/invitations", requireRole("owner"), async (req: Request, res: Response) => {
+  const organizationId = getTenantOrgId()!;
+  const parsed = z
+    .object({
+      username: z.string().min(3),
+      // No 'owner': granting ownership is a deliberate act on an existing member (PATCH), not
+      // something an unaccepted invitation can pre-authorise.
+      role: z.enum(["viewer", "editor"]).default("editor"),
+    })
+    .safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+  }
+
+  // Privileged and outside the tenant transaction: this asks a question about the global
+  // username namespace, which is not org-scoped and which app_user cannot read anyway.
+  const existing = await storage.getUserByUsername(parsed.data.username);
+  if (existing) {
+    return res.status(409).json({
+      error:
+        "That username already exists. An invitation can only create a new account; an " +
+        "existing user cannot be moved between organizations.",
+    });
+  }
+
+  const token = randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + INVITATION_TTL_MS);
+
+  try {
+    const created = await withTenantTransaction(async (tx) => {
+      const [row] = await tx
+        .insert(invitations)
+        .values({
+          organizationId,
+          username: parsed.data.username,
+          role: parsed.data.role,
+          token,
+          invitedByUserId: req.user!.id,
+          expiresAt,
+        })
+        .returning();
+      return row;
+    });
+
+    // The only time the token is ever returned. Whoever calls this has to deliver it to the
+    // invitee themselves — there is no mail transport in this application.
+    res.status(201).json({
+      id: created.id,
+      username: created.username,
+      role: created.role,
+      token: created.token,
+      expiresAt: created.expiresAt,
+    });
+  } catch (e: unknown) {
+    if (/unique/i.test((e as Error).message ?? "")) {
+      return res.status(409).json({ error: "That username has already been invited." });
+    }
+    throw e;
+  }
+});
+
+router.delete("/api/organization/invitations/:id", requireRole("owner"), async (req: Request, res: Response) => {
+  const organizationId = getTenantOrgId()!;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid invitation id" });
+
+  const removed = await withTenantTransaction(async (tx) => {
+    const deleted = await tx
+      .delete(invitations)
+      .where(and(eq(invitations.id, id), eq(invitations.organizationId, organizationId)))
+      .returning();
+    return deleted.length > 0;
+  });
+
+  if (!removed) return res.status(404).json({ error: "Invitation not found" });
+  res.status(204).end();
+});
+
 router.post("/api/organization/members", requireRole("owner"), async (req: Request, res: Response) => {
   const organizationId = getTenantOrgId()!;
   const parsed = z.object({ userId: z.number().int().positive(), role: RoleSchema }).safeParse(req.body);
@@ -62,17 +176,17 @@ router.post("/api/organization/members", requireRole("owner"), async (req: Reque
     // handing them this one's. Ownership of an organization is authority over its membership,
     // not authority over other people's accounts.
     //
-    // Note this currently makes the endpoint inert in practice: registration gives every new
-    // user their own organization and makes them its owner (server/storage.ts createUser), so
-    // there are no unaffiliated users to add. Adding a member to someone else's organization
-    // requires that member's consent, which means an invitation flow this plan does not yet
-    // have. Refusing is the fail-closed half of that gap; see the note in the report.
+    // Which leaves this endpoint able only to set the role of someone already here — growing
+    // an organization is what POST /api/organization/invitations is for. An invitation names
+    // a username that does not exist yet, so the new account is created inside this
+    // organization rather than moved into it, and nobody loses their own.
     if (target.organizationId !== organizationId) {
       return {
         status: 409 as const,
         error:
-          "That user already belongs to another organization. Moving a member between " +
-          "organizations requires their consent, which this endpoint cannot obtain.",
+          "That user already belongs to another organization. Invite a new user instead: " +
+          "moving an existing member between organizations would take away their access to " +
+          "their own organization's data.",
       };
     }
 

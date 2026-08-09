@@ -28,6 +28,10 @@ const scryptAsync = promisify(scrypt);
 const registerSchema = z.object({
   username: z.string().trim().min(3, "Username must be at least 3 characters").max(64),
   password: z.string().min(8, "Password must be at least 8 characters").max(128),
+  // Optional. Present, it makes the new account a member of the inviting organization
+  // instead of the owner of a brand new one. 64 hex characters — see randomBytes(32) in
+  // server/routes/organization.routes.ts.
+  invitationToken: z.string().regex(/^[0-9a-f]{64}$/).optional(),
 });
 
 // Choose a session store: Redis for real deployments (shared across instances /
@@ -140,7 +144,7 @@ export function setupAuth(app: Express) {
         });
         return;
       }
-      const { username, password } = parsed.data;
+      const { username, password, invitationToken } = parsed.data;
 
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
@@ -149,10 +153,26 @@ export function setupAuth(app: Express) {
       }
 
       // Only persist explicitly validated fields (no mass-assignment from req.body).
-      const user = await storage.createUser({
-        username,
-        password: await hashPassword(password),
-      });
+      const credentials = { username, password: await hashPassword(password) };
+
+      // With a token the account joins the inviting organization at the role the invitation
+      // named; without one it gets a fresh organization and owns it. The distinction is the
+      // whole point of invitations: a user belongs to exactly one organization, so joining
+      // someone else's has to happen at the moment the account is created rather than by
+      // moving an existing one.
+      let user;
+      if (invitationToken) {
+        const result = await storage.createUserFromInvitation(credentials, invitationToken);
+        if ('error' in result) {
+          // One message for all three cases. Distinguishing "no such token" from "expired"
+          // from "already used" would let someone probe the token space for near-misses.
+          res.status(400).json({ message: "That invitation is not valid." });
+          return;
+        }
+        user = result;
+      } else {
+        user = await storage.createUser(credentials);
+      }
 
       req.login(user, (err) => {
         if (err) return next(err);

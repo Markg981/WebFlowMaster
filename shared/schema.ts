@@ -366,6 +366,43 @@ export const excelSequencesMap = pgTable("excel_sequences_map", {
 ]);
 
 
+/**
+ * A standing offer for a named username to join an organization.
+ *
+ * A user belongs to exactly one organization, so "adding a member" cannot mean moving an
+ * existing account — that would take away their own organization's data without their say.
+ * An invitation therefore names a username that does not exist yet: whoever registers with
+ * the token lands in this organization instead of getting one of their own.
+ *
+ * Deliberately NOT in ORG_SCOPED_TABLES, for the same reason `users` is not: registration has
+ * to look an invitation up by token before any tenant context exists, and an RLS policy would
+ * make that impossible. Every query from a route therefore carries its own organizationId
+ * predicate, and app_user's grants on this table are narrow (see the migration).
+ */
+export const invitations = pgTable("invitations", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  /** The username the invitation is for. Checked as still-unregistered at accept time too. */
+  username: text("username").notNull(),
+  /** The role the invitee gets on arrival. Never 'owner' — see the route. */
+  role: text("role").notNull().default('editor'),
+  /** Unguessable, and the only thing needed to accept. Unique so a lookup cannot be ambiguous. */
+  token: text("token").notNull().unique(),
+  invitedByUserId: integer("invited_by_user_id").notNull().references(() => users.id),
+  expiresAt: timestamp("expires_at").notNull(),
+  /** Set once used. A used invitation is kept for the audit trail rather than deleted. */
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("invitations_organization_id_idx").on(table.organizationId),
+  // One live invitation per username per organization. Two organizations may both invite the
+  // same username; whichever token is used first wins, and the other is then unacceptable
+  // because the username exists.
+  unique("invitations_org_username_unique").on(table.organizationId, table.username),
+]);
+
+export type Invitation = typeof invitations.$inferSelect;
+
 export const sessions = pgTable("sessions", {
   sid: text("sid").primaryKey(),
   sess: jsonb("sess").notNull(),

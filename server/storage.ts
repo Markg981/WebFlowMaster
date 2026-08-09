@@ -1,4 +1,4 @@
-import { organizations, users, tests, testRuns, userSettings, sessions, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
+import { organizations, users, invitations, tests, testRuns, userSettings, sessions, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
 import { privilegedDb } from "./db";
 import { eq, desc } from "drizzle-orm";
 import session from "express-session";
@@ -45,6 +45,10 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  createUserFromInvitation(
+    user: InsertUser,
+    token: string,
+  ): Promise<User | { error: 'invalid' | 'expired' | 'used' }>;
 
   getTest(id: number): Promise<Test | undefined>;
   getTestsByUser(userId: number): Promise<Test[]>;
@@ -89,6 +93,54 @@ export class DatabaseStorage implements IStorage {
         .insert(users)
         .values({ ...insertUser, organizationId: organization.id, role: 'owner' })
         .returning();
+
+      return user;
+    });
+  }
+
+  /**
+   * Registration by invitation: the new account joins the inviting organization instead of
+   * getting one of its own, with the role the invitation named.
+   *
+   * Privileged, and necessarily so — this runs before the user exists, so there is no session
+   * and no tenant context to bind. That is the same reason `invitations` carries no RLS policy.
+   *
+   * The token check, the expiry check, the username check and the two writes are all inside
+   * one transaction: a token validated and then used a moment later is a token two concurrent
+   * registrations could both pass. Marking it accepted in the same transaction as the insert
+   * is what makes it single-use.
+   */
+  async createUserFromInvitation(
+    insertUser: InsertUser,
+    token: string,
+  ): Promise<User | { error: 'invalid' | 'expired' | 'used' }> {
+    return privilegedDb.transaction(async (tx) => {
+      const [invitation] = await tx
+        .select()
+        .from(invitations)
+        .where(eq(invitations.token, token))
+        .limit(1);
+
+      if (!invitation) return { error: 'invalid' as const };
+      if (invitation.acceptedAt) return { error: 'used' as const };
+      if (invitation.expiresAt.getTime() <= Date.now()) return { error: 'expired' as const };
+      // The invitation names a username; registering under a different one with someone else's
+      // token would let a stranger consume an invitation meant for a colleague.
+      if (invitation.username !== insertUser.username) return { error: 'invalid' as const };
+
+      const [user] = await tx
+        .insert(users)
+        .values({
+          ...insertUser,
+          organizationId: invitation.organizationId,
+          role: invitation.role,
+        })
+        .returning();
+
+      await tx
+        .update(invitations)
+        .set({ acceptedAt: new Date() })
+        .where(eq(invitations.id, invitation.id));
 
       return user;
     });

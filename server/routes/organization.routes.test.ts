@@ -38,8 +38,122 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  await privilegedDb.execute(sql`DELETE FROM invitations WHERE organization_id = ${orgId}`);
   await privilegedDb.execute(sql`DELETE FROM users WHERE organization_id = ${orgId}`);
   await privilegedDb.execute(sql`DELETE FROM organizations WHERE id = ${orgId}`);
+});
+
+describe('organization invitations', () => {
+  const invite = (body: Record<string, unknown>) =>
+    request(app).post('/api/organization/invitations').send(body);
+
+  it('creates an invitation and returns the token exactly once', async () => {
+    const res = await invite({ username: 'newcomer', role: 'editor' });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({ username: 'newcomer', role: 'editor' });
+    expect(res.body.token).toMatch(/^[0-9a-f]{64}$/);
+
+    // The listing deliberately omits the token: it is a bearer credential, handed back once
+    // at creation. An endpoint that re-reads it turns any owner session into a way to
+    // retrieve every outstanding one.
+    const list = await request(app).get('/api/organization/invitations');
+    expect(list.status).toBe(200);
+    expect(list.body).toHaveLength(1);
+    expect(list.body[0]).toMatchObject({ username: 'newcomer', role: 'editor' });
+    expect(list.body[0].token).toBeUndefined();
+  });
+
+  it('refuses to invite a username that already exists', async () => {
+    // The whole reason invitations exist: an existing account cannot be moved between
+    // organizations, so it cannot be invited into one either.
+    const res = await invite({ username: 'org-editor' });
+    expect(res.status).toBe(409);
+  });
+
+  it('refuses to invite someone straight to owner', async () => {
+    const res = await invite({ username: 'newcomer', role: 'owner' });
+    expect(res.status).toBe(400);
+  });
+
+  it('refuses a second invitation for the same username', async () => {
+    expect((await invite({ username: 'newcomer' })).status).toBe(201);
+    expect((await invite({ username: 'newcomer' })).status).toBe(409);
+  });
+
+  it('refuses invitation management to an editor', async () => {
+    currentUser = { id: editorId, role: 'editor', organizationId: orgId };
+    expect((await invite({ username: 'newcomer' })).status).toBe(403);
+    expect((await request(app).get('/api/organization/invitations')).status).toBe(403);
+  });
+
+  it('revokes an invitation', async () => {
+    const created = await invite({ username: 'newcomer' });
+    const del = await request(app).delete(`/api/organization/invitations/${created.body.id}`);
+
+    expect(del.status).toBe(204);
+    expect((await request(app).get('/api/organization/invitations')).body).toHaveLength(0);
+  });
+
+  it('cannot revoke another organization’s invitation', async () => {
+    const otherOrg = await privilegedDb.execute(
+      sql`INSERT INTO organizations (name) VALUES ('Other') RETURNING id`,
+    );
+    const otherOrgId = Number((otherOrg.rows[0] as { id: number }).id);
+    const [otherOwner] = (
+      await privilegedDb.execute(sql`
+        INSERT INTO users (username, password, organization_id, role)
+        VALUES ('other-owner', 'x', ${otherOrgId}, 'owner') RETURNING id
+      `)
+    ).rows as { id: number }[];
+    const theirInvite = await privilegedDb.execute(sql`
+      INSERT INTO invitations (organization_id, username, role, token, invited_by_user_id, expires_at)
+      VALUES (${otherOrgId}, 'their-newcomer', 'editor', 'f'||repeat('0', 63), ${otherOwner.id}, now() + interval '7 days')
+      RETURNING id
+    `);
+    const theirInviteId = Number((theirInvite.rows[0] as { id: number }).id);
+
+    // invitations has no RLS policy, so this is the explicit organizationId predicate in the
+    // handler doing the work — the same shape as the member routes against `users`.
+    const res = await request(app).delete(`/api/organization/invitations/${theirInviteId}`);
+    expect(res.status).toBe(404);
+
+    const stillThere = await privilegedDb.execute(
+      sql`SELECT id FROM invitations WHERE id = ${theirInviteId}`,
+    );
+    expect(stillThere.rows).toHaveLength(1);
+
+    await privilegedDb.execute(sql`DELETE FROM invitations WHERE organization_id = ${otherOrgId}`);
+    await privilegedDb.execute(sql`DELETE FROM users WHERE organization_id = ${otherOrgId}`);
+    await privilegedDb.execute(sql`DELETE FROM organizations WHERE id = ${otherOrgId}`);
+  });
+
+  it('does not list another organization’s invitations', async () => {
+    const otherOrg = await privilegedDb.execute(
+      sql`INSERT INTO organizations (name) VALUES ('Other') RETURNING id`,
+    );
+    const otherOrgId = Number((otherOrg.rows[0] as { id: number }).id);
+    const [otherOwner] = (
+      await privilegedDb.execute(sql`
+        INSERT INTO users (username, password, organization_id, role)
+        VALUES ('other-owner-2', 'x', ${otherOrgId}, 'owner') RETURNING id
+      `)
+    ).rows as { id: number }[];
+    await privilegedDb.execute(sql`
+      INSERT INTO invitations (organization_id, username, role, token, invited_by_user_id, expires_at)
+      VALUES (${otherOrgId}, 'their-newcomer', 'editor', 'e'||repeat('0', 63), ${otherOwner.id}, now() + interval '7 days')
+    `);
+
+    await invite({ username: 'my-newcomer' });
+    const list = await request(app).get('/api/organization/invitations');
+
+    expect(list.body).toHaveLength(1);
+    expect(list.body[0].username).toBe('my-newcomer');
+
+    await privilegedDb.execute(sql`DELETE FROM invitations WHERE organization_id = ${otherOrgId}`);
+    await privilegedDb.execute(sql`DELETE FROM users WHERE organization_id = ${otherOrgId}`);
+    await privilegedDb.execute(sql`DELETE FROM organizations WHERE id = ${otherOrgId}`);
+  });
 });
 
 describe('GET /api/organization', () => {
