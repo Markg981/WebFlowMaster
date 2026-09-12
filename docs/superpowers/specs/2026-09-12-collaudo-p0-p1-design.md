@@ -414,3 +414,66 @@ Un commit per punto, con il test che riproduce il difetto scritto **prima** dell
   `grainy-gradients.vercel.app`: packaging e ambiente, indipendenti dal motore.
 - **F-12** fuso orario nelle schedulazioni e BullMQ come backend predefinito: il secondo
   interagisce con la scelta di rendere Redis opzionale (punto 2) e merita una decisione a sé.
+
+---
+
+## Esito (aggiornato al 12/09/2026, branch `fix/collaudo-p0-p1`)
+
+Tutto lo scope P0/P1 è stato implementato. Nove commit, 29 file, `npm run check` pulito,
+`npm run lint` senza warning, **438 test verdi su 51 file** (erano 393 su 46) più 93 test
+client.
+
+| Punto | Difetti | Esito |
+| :--- | :--- | :--- |
+| 1. Un solo esecutore | F-01, F-05 | Fatto. `server/step-executor.ts`, mappa di handler tipizzata |
+| 2. Avvio senza Redis | F-02, F-03 | Fatto |
+| 3. Una sola sorgente di variabili | F-04 | Fatto. `server/variables.ts` |
+| 4. Preview con evidenziazione | F-06, F-08 | Fatto |
+| 5. Attese condizionali | F-07 | Fatto. Tre azioni nuove |
+| 6. Riuso dello stato di login | — | Fatto. Migrazione 0010, cifrato |
+| 7. Dropdown Angular Material | — | Fatto. Azione `selectByText` |
+| 8. Selettori per ruolo e testo | — | Fatto |
+
+### Scoperto durante il lavoro, non nel collaudo
+
+- **La pipeline di logging era morta.** `redactSensitiveData` ricostruiva l'oggetto info di
+  winston con `Object.entries`, che non enumera le chiavi Symbol, e winston instrada su
+  `Symbol.for('level')`. Ogni transport scartava ogni voce: **nessuna** chiamata `logger.*`
+  del processo raggiungeva console, file o Loki. È anche il motivo per cui nel collaudo il
+  file di log a 0 byte sembrava una conseguenza del blocco all'avvio.
+- **Il guard di copertura delle azioni era circolare.** La prima versione derivava
+  `HANDLED_ACTION_IDS` da `ADHOC_ACTION_IDS`, cioè confrontava la lista con se stessa. Ora
+  la garanzia è a compile-time: la mappa di handler è `Record<AdhocActionId, …>`, quindi
+  dichiarare un'azione senza implementarla rompe `npm run check`.
+- **La suite era instabile sotto carico.** `hookTimeout` era il default di 10 s, mentre ogni
+  file applica dieci migrazioni alla propria istanza PGlite (Postgres in WASM). Con un fork
+  per file e qualche test che guida un browser reale, il timeout scattava e vitest riportava
+  il *file* come fallito con tutti i test skipped — leggibile come suite rotta invece che
+  come macchina occupata.
+- **I file del working tree sono CRLF** mentre l'indice git è LF. Tre modifiche multilinea
+  applicate via script sono fallite in silenzio per questo motivo, ed erano state date per
+  fatte in due messaggi di commit; sono state individuate rileggendo il codice e completate
+  nei commit successivi. Per modifiche programmatiche su questo repo, normalizzare i line
+  ending e **verificare che l'ancora sia stata trovata** invece di assumerlo.
+
+### Scelte diverse dal disegno iniziale
+
+- **`baseUrl` per ambiente senza nuova colonna.** Il disegno prevedeva un campo dedicato; si
+  risolve invece come un normale segreto dell'ambiente, quindi la UI dei segreti esistente lo
+  gestisce già e non serve migrazione.
+- **Timeout delle attese condizionali fisso a 15 s** anziché preso dalle impostazioni utente.
+  Il valore utente predefinito è 30 s, che raddoppia la durata dei test di timeout senza
+  migliorare il comportamento in esercizio. Da riprendere se un caso reale lo richiede.
+- **L'ispettore interattivo non è stato costruito.** Alla domanda sul punto F-08 la risposta
+  è stata un'altra: evidenziare nella preview l'elemento corrispondente alla riga sotto il
+  cursore. Quel macchinario esisteva già lato client e non funzionava perché immagine e
+  coordinate venivano da due caricamenti distinti — è stato corretto, non riscritto.
+- **I test API conservano l'iniezione anticipata dei segreti.** Il loro runner non ha un
+  passo di risoluzione per campo a cui passare la mappa; farlo rientra in F-10.
+
+### Resta fuori
+
+F-09 (percorso di primo avvio: `db:push` lascia un database su cui `db:migrate` non gira
+più), F-10 (estrazione e chaining nell'API Tester), F-11 (`Dockerfile` mancante, porta 5000
+cablata, texture di login da CDN esterna), F-12 (fuso orario nelle schedulazioni, BullMQ come
+backend predefinito).
