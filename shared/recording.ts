@@ -22,6 +22,14 @@ export const ADHOC_ACTION_IDS = [
   "navigate",
   "assertTextContains",
   "assertElementCount",
+  // Conditional waits. DMO pushes UI updates over SignalR, so a fixed `wait` is a guess
+  // about timing — and the AI healing pass then gets asked to cover for the guess.
+  "waitForElement",
+  "waitForText",
+  "waitForNetworkIdle",
+  // Angular Material renders a mat-select as a div plus a CDK overlay, which selectOption
+  // cannot drive. This opens the trigger and clicks the option by its text.
+  "selectByText",
 ] as const;
 export type AdhocActionId = (typeof ADHOC_ACTION_IDS)[number];
 
@@ -140,6 +148,26 @@ export const ACTION_I18N: Record<
     name: "dashboardPageNew.actions.assertElementCount.name",
     description: "dashboardPageNew.actions.assertElementCount.description",
     icon: "ListChecks",
+  },
+  waitForElement: {
+    name: "dashboardPageNew.actions.waitForElement.name",
+    description: "dashboardPageNew.actions.waitForElement.description",
+    icon: "Eye",
+  },
+  waitForText: {
+    name: "dashboardPageNew.actions.waitForText.name",
+    description: "dashboardPageNew.actions.waitForText.description",
+    icon: "Type",
+  },
+  waitForNetworkIdle: {
+    name: "dashboardPageNew.actions.waitForNetworkIdle.name",
+    description: "dashboardPageNew.actions.waitForNetworkIdle.description",
+    icon: "Activity",
+  },
+  selectByText: {
+    name: "dashboardPageNew.actions.selectByText.name",
+    description: "dashboardPageNew.actions.selectByText.description",
+    icon: "List",
   },
 };
 

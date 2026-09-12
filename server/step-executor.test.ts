@@ -26,6 +26,45 @@ const PAGES: Record<string, string> = {
         <span id="echo"></span>
         <select id="native"><option value="a">A</option><option value="b">B</option></select>`,
   '/second': `<!doctype html><title>Second</title><h1 id="title">Second page</h1>`,
+
+  // Everything here appears *after* a delay, which is the shape of a DMO page: the shell
+  // renders, then SignalR pushes the content. A fixed `wait` can only guess how long.
+  '/late': `<!doctype html><title>Late</title>
+    <h1 id="title">Loading…</h1>
+    <div id="panel" style="display:none">ready</div>
+    <script>
+      setTimeout(function () {
+        document.getElementById('panel').style.display = 'block';
+        document.getElementById('title').textContent = 'Order 4711 confirmed';
+      }, 700);
+    </script>`,
+
+  // A mat-select in miniature: the trigger is a div, and the options are mounted in a
+  // CDK-style overlay that is a sibling of the trigger's container, not a child of it.
+  // page.selectOption() cannot see any of this.
+  '/material': `<!doctype html><title>Material</title>
+    <h1 id="title">Material page</h1>
+    <div id="site-select" role="combobox" tabindex="0" class="mat-mdc-select">
+      <span id="site-value" class="mat-mdc-select-value">Choose a site</span>
+    </div>
+    <div id="overlay-root"></div>
+    <script>
+      document.getElementById('site-select').addEventListener('click', function () {
+        var root = document.getElementById('overlay-root');
+        if (root.childElementCount > 0) { root.innerHTML = ''; return; }
+        ['Henniez', 'Nespresso', 'Zoegas'].forEach(function (name) {
+          var opt = document.createElement('div');
+          opt.setAttribute('role', 'option');
+          opt.className = 'mat-mdc-option';
+          opt.textContent = name;
+          opt.addEventListener('click', function () {
+            document.getElementById('site-value').textContent = name;
+            root.innerHTML = '';
+          });
+          root.appendChild(opt);
+        });
+      });
+    </script>`,
 };
 
 beforeAll(async () => {
@@ -64,14 +103,14 @@ const step = (
   value: opts.value,
 });
 
-const savedTest = (sequence: MappedTestStep[]) =>
+const savedTest = (sequence: MappedTestStep[], path = '/') =>
   ({
     id: 1,
     userId: 1,
     organizationId: 1,
     projectId: null,
     name: 'persisted-path',
-    url: baseUrl,
+    url: `${baseUrl}${path}`,
     sequence,
     elements: [],
     preconditions: null,
@@ -172,12 +211,93 @@ describe('unresolved variables', () => {
   }, 60_000);
 });
 
+describe('waiting for something to happen instead of for a duration', () => {
+  const runOnLatePage = async (sequence: MappedTestStep[]) => {
+    const { playwrightService } = await import('./playwright-service');
+    return playwrightService.executeTestSequence(savedTest(sequence, '/late'), 1);
+  };
+
+  it('waits for an element to become visible', async () => {
+    const result = await runOnLatePage([
+      step('waitForElement', { selector: '#panel', value: 'visible' }),
+      step('assert', { selector: '#panel' }),
+    ]);
+
+    const failures = (result.steps ?? []).filter((s) => s.status === 'failed');
+    expect(failures.map((f) => `${f.type}: ${f.error}`)).toEqual([]);
+  }, 60_000);
+
+  it('waits for an element to contain text', async () => {
+    const result = await runOnLatePage([
+      step('waitForText', { selector: '#title', value: 'Order 4711 confirmed' }),
+    ]);
+
+    const waitStep = (result.steps ?? []).find((s) => s.type === 'waitForText');
+    expect(waitStep?.status).toBe('passed');
+  }, 60_000);
+
+  it('names the selector and the state when the wait times out', async () => {
+    const result = await runOnLatePage([
+      step('waitForElement', { selector: '#never-appears', value: 'visible' }),
+    ]);
+
+    const waitStep = (result.steps ?? []).find((s) => s.type === 'waitForElement');
+    expect(waitStep?.status).toBe('failed');
+    // A bare Playwright timeout says nothing about what the test was waiting for.
+    expect(waitStep?.error).toContain('#never-appears');
+    expect(waitStep?.error).toContain('visible');
+  }, 60_000);
+
+  it('waits for the network to settle', async () => {
+    const result = await runOnLatePage([step('waitForNetworkIdle')]);
+
+    const waitStep = (result.steps ?? []).find((s) => s.type === 'waitForNetworkIdle');
+    expect(waitStep?.status).toBe('passed');
+  }, 60_000);
+});
+
+describe('a dropdown that is not a <select>', () => {
+  it('opens a Material-style combobox and picks the option by text', async () => {
+    const { playwrightService } = await import('./playwright-service');
+
+    const result = await playwrightService.executeTestSequence(
+      savedTest(
+        [
+          step('selectByText', { selector: '#site-select', value: 'Nespresso' }),
+          step('assertTextContains', { selector: '#site-value', value: 'Nespresso' }),
+        ],
+        '/material',
+      ),
+      1,
+    );
+
+    const failures = (result.steps ?? []).filter((s) => s.status === 'failed');
+    expect(failures.map((f) => `${f.type}: ${f.error}`)).toEqual([]);
+    expect(result.success).toBe(true);
+  }, 60_000);
+
+  it('reports the options it could see when the wanted one is absent', async () => {
+    const { playwrightService } = await import('./playwright-service');
+
+    const result = await playwrightService.executeTestSequence(
+      savedTest([step('selectByText', { selector: '#site-select', value: 'Konolfingen' })], '/material'),
+      1,
+    );
+
+    const selectStep = (result.steps ?? []).find((s) => s.type === 'selectByText');
+    expect(selectStep?.status).toBe('failed');
+    expect(selectStep?.error).toContain('Konolfingen');
+  }, 60_000);
+});
+
 describe('action coverage', () => {
   it('handles every action the builder and recorder can produce', async () => {
     const { HANDLED_ACTION_IDS } = await import('./step-executor');
 
-    // Two executors meant two lists to keep in step, and one fell behind. With a single
-    // executor this assertion is what keeps the next new action from being half-added.
+    // The real guarantee is a compile-time one: the executor's handler map is typed
+    // `Record<AdhocActionId, …>`, so declaring an action without writing its handler fails
+    // `npm run check`. This asserts the same thing at runtime, and exists because the
+    // previous version of it derived the set from ADHOC_ACTION_IDS and so proved nothing.
     expect([...HANDLED_ACTION_IDS].sort()).toEqual([...ADHOC_ACTION_IDS].sort());
   });
 });

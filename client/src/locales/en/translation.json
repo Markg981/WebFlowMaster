@@ -43,7 +43,7 @@
       "selectPlaceholder": "Select language",
       "english": "English (US)",
       "italian": "Italiano (Italia)",
-      "french": "Fran\u00e7ais (France)",
+      "french": "Français (France)",
       "german": "Deutsch (Deutschland)",
       "selectHint": "This will change the language of the user interface."
     },
@@ -76,7 +76,93 @@
     }
   },
   "dashboard": {
-    "title": "Dashboard"
+    "kpiPanel": {
+      "totalTests": {
+        "title": "Total Tests"
+      },
+      "successRate": {
+        "title": "Success Rate"
+      },
+      "avgDuration": {
+        "title": "Avg. Duration"
+      },
+      "lastRun": {
+        "title": "Last Run"
+      }
+    },
+    "quickAccessReports": {
+      "recentTestReports": {
+        "title": "Recent Test Reports"
+      },
+      "reportDataWillBeAvailable": {
+        "description": "Report data will be available soon."
+      }
+    },
+    "runTestNowButton": {
+      "eseguiTestOra": {
+        "button": "Esegui test ora"
+      }
+    },
+    "testSchedulingsTable": {
+      "upcomingActiveSchedules": {
+        "title": "Upcoming Active Schedules"
+      },
+      "viewAll": {
+        "link": "View All"
+      },
+      "loading": {
+        "text": "Loading..."
+      },
+      "error": {
+        "text": "Error loading schedules."
+      },
+      "noUpcomingSchedules": {
+        "text": "No upcoming active schedules."
+      },
+      "table": {
+        "testPlan": {
+          "header": "Test Plan"
+        },
+        "scheduleName": {
+          "header": "Schedule Name"
+        },
+        "environment": {
+          "header": "Environment"
+        },
+        "nextRun": {
+          "header": "Next Run"
+        },
+        "frequency": {
+          "header": "Frequency"
+        },
+        "status": {
+          "header": "Status"
+        }
+      },
+      "notSet": {
+        "text": "Not Set"
+      },
+      "notScheduled": {
+        "text": "Not Scheduled"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      }
+    },
+    "testStatusPieChart": {
+      "testStatusOverview": {
+        "title": "Test Status Overview"
+      },
+      "chartDataWillBeAvailable": {
+        "description": "Chart data will be available soon."
+      }
+    },
+    "testTrendBarChart": {
+      "weeklyTestTrends": {
+        "title": "Weekly Test Trends"
+      }
+    }
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -91,44 +177,8 @@
     "backToDashboard": "Back to Dashboard"
   },
   "dashboardPage": {
-    "headerTitle": "WebTest Platform",
-    "navCreateTest": "Create Test",
-    "navMyTests": "My Tests",
-    "navReports": "Reports",
-    "signOutButton": "Sign Out",
-    "urlInputLabel": "Website URL to Test",
-    "loadWebsiteButton": "Load Website",
-    "loadingWebsiteButton": "Loading...",
-    "detectElementsButton": "Detect Elements",
-    "detectingElementsButton": "Detecting...",
-    "availableActionsTitle": "Available Actions",
-    "websitePreviewTitle": "Website Preview",
-    "previewLoadedBadge": "Loaded",
-    "previewLoadPrompt": "Load a website to see the preview",
-    "previewScreenshotHint": "Real website screenshots will appear here",
-    "detectedElementsTitle": "Detected Elements",
-    "elementsFoundBadge": "{{count}} found",
-    "noElementsDetected": "No elements detected yet",
-    "detectElementsPrompt": "Click \"Detect Elements\" to scan the loaded website",
-    "testSequenceTitle": "Test Sequence",
-    "executeTestButton": "Execute Test",
-    "executingTestButton": "Executing...",
-    "saveTestButton": "Save Test",
-    "savingTestButton": "Saving...",
-    "clearSequenceButton": "Clear",
-    "dropActionsPrompt": "Drop actions here to build your test",
-    "dropActionsHint": "Drag actions from the left sidebar, then add elements to complete each step",
-    "toast": {
-      "websiteLoadedTitle": "Website Loaded",
-      "websiteLoadedDesc": "The website has been loaded successfully.",
-      "websiteLoadErrorTitle": "Error Loading Website",
-      "elementsDetectedTitle": "Elements Detected",
-      "elementsDetectedDesc": "{{count}} elements found on the page.",
-      "elementsDetectErrorTitle": "Error Detecting Elements",
-      "defaultTestName": "Test for {{url}}",
-      "testSavedTitle": "Test Saved",
-      "testSavedDesc": "Your test sequence has been saved.",
-      "testSaveErrorTitle": "Error Saving Test"
+    "user": {
+      "text": "User"
     }
   },
   "apiTesterPage": {
@@ -714,17 +764,42 @@
       "assertElementCount": {
         "name": "Assert Element Count",
         "description": "Checks how many elements match a selector."
+      },
+      "waitForElement": {
+        "name": "Wait For Element",
+        "description": "Wait until an element is visible or hidden"
+      },
+      "waitForText": {
+        "name": "Wait For Text",
+        "description": "Wait until an element contains the given text"
+      },
+      "waitForNetworkIdle": {
+        "name": "Wait For Network",
+        "description": "Wait until in-flight requests have settled"
+      },
+      "selectByText": {
+        "name": "Pick From Dropdown",
+        "description": "Open a non-native dropdown and pick an option by its text"
       }
     },
     "playbackStatus": "Step {{current}}/{{total}}: {{name}} - {{details}}",
     "playbackFailed": "(Failed: {{error}})",
     "toasts": {
-      "directExecutionStarted": { "title": "Direct Test Execution Started", "description": "Playing back results..." },
+      "directExecutionStarted": {
+        "title": "Direct Test Execution Started",
+        "description": "Playing back results..."
+      },
       "executionNote": "Execution Note",
       "testFailed": "Test Failed",
       "testPassed": "Test Passed",
-      "playbackComplete": { "title": "Playback Complete", "description": "Finished playing back all test steps." },
-      "emptySequence": { "title": "Empty Sequence", "description": "Please add steps to your test sequence." },
+      "playbackComplete": {
+        "title": "Playback Complete",
+        "description": "Finished playing back all test steps."
+      },
+      "emptySequence": {
+        "title": "Empty Sequence",
+        "description": "Please add steps to your test sequence."
+      },
       "noStepsToPlayback": "No steps to play back.",
       "executionFailed": "Execution failed or no steps returned.",
       "adhocTestName": "Adhoc Test for {{url}}",
@@ -755,11 +830,6 @@
         "title": "Problem with Recording Session",
         "description": "An error occurred while retrieving actions."
       }
-    }
-  },
-  "dashboardPage": {
-    "user": {
-      "text": "User"
     }
   },
   "notFoundPage": {
@@ -1290,103 +1360,6 @@
       "next": "Next",
       "page": "Page",
       "of": "of"
-    }
-  },
-  "dashboard": {
-    "kpiPanel": {
-      "totalTests": {
-        "title": "Total Tests"
-      },
-      "successRate": {
-        "title": "Success Rate"
-      },
-      "avgDuration": {
-        "title": "Avg. Duration"
-      },
-      "lastRun": {
-        "title": "Last Run"
-      }
-    },
-    "quickAccessReports": {
-      "recentTestReports": {
-        "title": "Recent Test Reports"
-      },
-      "reportDataWillBeAvailable": {
-        "description": "Report data will be available soon."
-      }
-    },
-    "runTestNowButton": {
-      "eseguiTestOra": {
-        "button": "Esegui test ora"
-      }
-    },
-    "testSchedulingsTable": {
-      "upcomingRecentSchedulings": {
-        "title": "Upcoming & Recent Schedulings"
-      },
-      "schedulingDataWillBeAvailable": {
-        "description": "Scheduling data will be available soon."
-      }
-    },
-    "testStatusPieChart": {
-      "testStatusOverview": {
-        "title": "Test Status Overview"
-      },
-      "chartDataWillBeAvailable": {
-        "description": "Chart data will be available soon."
-      }
-    },
-    "testTrendBarChart": {
-      "weeklyTestTrends": {
-        "title": "Weekly Test Trends"
-      }
-    },
-    "testSchedulingsTable": {
-      "upcomingActiveSchedules": {
-        "title": "Upcoming Active Schedules"
-      },
-      "viewAll": {
-        "link": "View All"
-      },
-      "loading": {
-        "text": "Loading..."
-      },
-      "error": {
-        "text": "Error loading schedules."
-      },
-      "noUpcomingSchedules": {
-        "text": "No upcoming active schedules."
-      },
-      "table": {
-        "testPlan": {
-          "header": "Test Plan"
-        },
-        "scheduleName": {
-          "header": "Schedule Name"
-        },
-        "environment": {
-          "header": "Environment"
-        },
-        "nextRun": {
-          "header": "Next Run"
-        },
-        "frequency": {
-          "header": "Frequency"
-        },
-        "status": {
-          "header": "Status"
-        }
-      },
-      "notSet": {
-        "text": "Not Set"
-      },
-      "notScheduled": {
-        "text": "Not Scheduled"
-      },
-      "status": {
-        "active": "Active",
-        "inactive": "Inactive"
-      }
     }
   },
   "testPlanExecutionPage": {
