@@ -23,6 +23,27 @@ const DEFAULT_HEADLESS = true;
 const DEFAULT_TIMEOUT = 30000;
 const DEFAULT_WAIT_TIME = 2000;
 
+/**
+ * How many detected elements to return.
+ *
+ * Was a hard-coded 50, which is plenty for a landing page and a fraction of a DMO grid —
+ * and it truncated silently, so the Detected Elements panel looked complete while missing
+ * most of the page. The cap still exists (an unbounded list would be unusable in the UI and
+ * slow to verify), but it is raised, configurable, and reported: see lastDetectionSummary.
+ */
+function detectionLimit(): number {
+  const configured = parseInt(process.env.ELEMENT_DETECTION_LIMIT || '', 10);
+  return Number.isFinite(configured) && configured > 0 ? configured : 300;
+}
+
+/** What the last detection run found, so a caller can tell the user it was truncated. */
+export interface DetectionSummary {
+  totalFound: number;
+  returned: number;
+  truncated: boolean;
+  pageSize: { width: number; height: number };
+}
+
 let resolvedLogger: WinstonLogger;
 (async () => {
   try {
@@ -125,6 +146,16 @@ const MAX_RECORDED_ACTIONS = 2000;
 const IMPLICIT_NAVIGATION_WINDOW_MS = 3000;
 
 export class PlaywrightService {
+  /**
+   * Set by every detection run. Read by the routes so the interface can say "showing 300 of
+   * 812" instead of presenting a truncated list as if it were the whole page.
+   */
+  private lastDetectionSummary: DetectionSummary | undefined;
+
+  getLastDetectionSummary(): DetectionSummary | undefined {
+    return this.lastDetectionSummary;
+  }
+
   private activeSessions: Map<string, ActiveSession> = new Map();
   private sweepTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -528,22 +559,46 @@ export class PlaywrightService {
    * like `button.mat-mdc-menu-item`, which Playwright could not click unambiguously).
    */
   private async detectElementsOnPage(page: Page): Promise<DetectedElement[]> {
-    return await page.evaluate(() => {
+    const candidates = await page.evaluate(() => {
       // esbuild/tsx (keepNames) wraps named functions in `__name(fn, "…")`; that helper only
       // exists in the Node bundle, so provide a harmless identity shim for the browser page.
       (globalThis as any).__name = (globalThis as any).__name || ((fn: any) => fn);
 
       const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
 
+      /**
+       * Ids a framework generated rather than a developer chose.
+       *
+       * Angular Material stamps `mat-input-3`, `mat-select-value-5`, `mat-button-9` in render
+       * order, so they shift as soon as anything above the element changes. Radix and React's
+       * useId produce `:r1a:`. Preferring one of these over a label is what makes a recorded
+       * test fail the next day against an application nobody touched.
+       */
+      const isVolatileId = (id: string) => {
+        if (/^(mat|mdc|cdk|ng|dx|p|ui|kendo)[-_]/i.test(id) && /\d+$/.test(id)) return true;
+        if (/^:[a-z0-9]+:$/i.test(id)) return true;
+        if (/^[0-9a-f]{12,}$/i.test(id)) return true;
+        return /^[a-z-]*\d{4,}$/i.test(id);
+      };
+
       const isUnique = (sel: string) => {
         try { return document.querySelectorAll(sel).length === 1; } catch { return false; }
       };
+
+      const isVolatileClass = (c: string) =>
+        !c ||
+        /[:()[\]/.]/.test(c) ||
+        /^(ng|cdk|mat|mdc)-/.test(c) ||
+        /(focus|active|hover|selected|touched|dirty|pristine|disabled|expanded)/i.test(c);
 
       const structuralPath = (el: Element): string => {
         const parts: string[] = [];
         let node: Element | null = el;
         while (node && node.nodeType === 1 && node.tagName.toLowerCase() !== 'html') {
-          if (node.id && isUnique(`#${CSS.escape(node.id)}`)) { parts.unshift(`#${CSS.escape(node.id)}`); break; }
+          if (node.id && !isVolatileId(node.id) && isUnique(`#${CSS.escape(node.id)}`)) {
+            parts.unshift(`#${CSS.escape(node.id)}`);
+            break;
+          }
           let part = node.tagName.toLowerCase();
           const parent: Element | null = node.parentElement;
           if (parent) {
@@ -556,61 +611,241 @@ export class PlaywrightService {
         return parts.join(' > ');
       };
 
-      const buildUniqueSelector = (el: Element): string => {
+      /**
+       * The first CSS selector that identifies this element on its own, or null.
+       *
+       * Ordered by how long the thing it keys on tends to survive: a developer-chosen id,
+       * then a test id, then the accessible label, then non-framework classes. A generated id
+       * is skipped rather than ranked last, because it looks perfectly unique today — which
+       * is exactly why it used to win.
+       */
+      const buildCssSelector = (el: Element): string | null => {
         const tag = el.tagName.toLowerCase();
-        if (el.id && isUnique(`#${CSS.escape(el.id)}`)) return `#${CSS.escape(el.id)}`;
-        for (const attr of ['data-testid', 'data-test', 'name', 'aria-label']) {
+
+        if (el.id && !isVolatileId(el.id) && isUnique(`#${CSS.escape(el.id)}`)) {
+          return `#${CSS.escape(el.id)}`;
+        }
+        for (const attr of ['data-testid', 'data-test', 'name', 'aria-label', 'placeholder']) {
           const v = el.getAttribute(attr);
-          if (v) { const s = `${tag}[${attr}="${v.replace(/"/g, '\\"')}"]`; if (isUnique(s)) return s; }
+          if (v) {
+            const s = `${tag}[${attr}="${v.replace(/"/g, '\\"')}"]`;
+            if (isUnique(s)) return s;
+          }
         }
         if (typeof el.className === 'string' && el.className.trim()) {
-          const classes = el.className.split(/\s+/).filter((c) =>
-            c && !/[:()[\]/.]/.test(c) && !/^(ng|cdk)-/.test(c) && !/(focus|active|hover|selected|touched|dirty|pristine)/i.test(c));
+          const classes = el.className.split(/\s+/).filter((c) => !isVolatileClass(c));
           for (let n = classes.length; n >= 1; n--) {
             const s = `${tag}.${classes.slice(0, n).join('.')}`;
             if (isUnique(s)) return s;
           }
         }
-        return structuralPath(el);
+        return null;
+      };
+
+      /** The ARIA role: explicit, or the obvious one implied by the tag. */
+      const roleOf = (el: Element): string | null => {
+        const explicit = el.getAttribute('role');
+        if (explicit) return explicit;
+        const tag = el.tagName.toLowerCase();
+        if (tag === 'button') return 'button';
+        if (tag === 'a') return 'link';
+        if (tag === 'select') return 'combobox';
+        if (tag === 'textarea') return 'textbox';
+        if (/^h[1-6]$/.test(tag)) return 'heading';
+        if (tag === 'img') return 'img';
+        if (tag === 'input') {
+          const type = (el.getAttribute('type') || 'text').toLowerCase();
+          if (type === 'checkbox') return 'checkbox';
+          if (type === 'radio') return 'radio';
+          if (type === 'submit' || type === 'button') return 'button';
+          if (['text', 'email', 'tel', 'url', 'password', 'search'].indexOf(type) !== -1) return 'textbox';
+        }
+        return null;
+      };
+
+      /** Close enough to the accessible name for Playwright's `role=…[name=…]` engine. */
+      const accessibleNameOf = (el: Element): string | null => {
+        const label = el.getAttribute('aria-label');
+        if (label && label.trim()) return label.trim();
+        const alt = el.getAttribute('alt');
+        if (alt && alt.trim()) return alt.trim();
+        const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+        if (text && text.length <= 80) return text;
+        const placeholder = el.getAttribute('placeholder');
+        if (placeholder && placeholder.trim()) return placeholder.trim();
+        return null;
       };
 
       const detectedElements: any[] = [];
       const seen = new Set<Element>();
       let globalElementCounter = 0;
+
       interactiveSelectors.forEach((selector) => {
         document.querySelectorAll(selector).forEach((element, index) => {
           if (seen.has(element)) return; // an element can match several selectors — keep one entry
           const rect = element.getBoundingClientRect();
-          if (rect.width > 0 && rect.height > 0 && rect.top >= 0) {
-            seen.add(element);
-            const tagName = element.tagName.toLowerCase();
-            const text = element.textContent?.trim() || '';
-            const placeholder = element.getAttribute('placeholder') || '';
-            const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
-            const uniqueSelector = buildUniqueSelector(element);
-            let elementType = 'element';
-            if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
-            else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
-            else if (tagName === 'a') elementType = 'link';
-            else if (tagName.match(/h[1-6]/)) elementType = 'heading';
-            else if (tagName === 'select') elementType = 'select';
-            else if (tagName === 'textarea') elementType = 'textarea';
-            const attributes: Record<string, string> = {};
-            Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; });
-            detectedElements.push({
-              id: `elem-${tagName}-${globalElementCounter++}`,
-              type: elementType,
-              selector: uniqueSelector,
-              text: displayText.substring(0, 100),
-              tag: tagName,
-              attributes,
-              boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) },
-            });
-          }
+          if (rect.width === 0 || rect.height === 0) return;
+          seen.add(element);
+
+          const tagName = element.tagName.toLowerCase();
+          const text = element.textContent?.trim() || '';
+          const placeholder = element.getAttribute('placeholder') || '';
+          const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
+          let elementType = 'element';
+          if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
+          else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
+          else if (tagName === 'a') elementType = 'link';
+          else if (tagName.match(/h[1-6]/)) elementType = 'heading';
+          else if (tagName === 'select') elementType = 'select';
+          else if (tagName === 'textarea') elementType = 'textarea';
+          const attributes: Record<string, string> = {};
+          Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; });
+
+          const exactText = text.replace(/\s+/g, ' ').trim();
+
+          detectedElements.push({
+            id: `elem-${tagName}-${globalElementCounter++}`,
+            type: elementType,
+            text: displayText.substring(0, 100),
+            tag: tagName,
+            attributes,
+            // Document-relative, not viewport-relative: the preview is a full-page
+            // screenshot, and an element below the fold has to be drawable on it.
+            boundingBox: {
+              x: Math.round(rect.x + window.scrollX),
+              y: Math.round(rect.y + window.scrollY),
+              width: Math.round(rect.width),
+              height: Math.round(rect.height),
+            },
+            cssSelector: buildCssSelector(element),
+            role: roleOf(element),
+            accessibleName: accessibleNameOf(element),
+            exactText: exactText && exactText.length <= 80 ? exactText : null,
+            structuralPath: structuralPath(element),
+          });
         });
       });
-      return detectedElements.slice(0, 50) as DetectedElement[];
+
+      return {
+        elements: detectedElements,
+        totalFound: detectedElements.length,
+        pageSize: {
+          width: Math.max(document.documentElement.scrollWidth, window.innerWidth),
+          height: Math.max(document.documentElement.scrollHeight, window.innerHeight),
+        },
+      };
     });
+
+    const limit = detectionLimit();
+    const chosen: DetectedElement[] = [];
+
+    for (const candidate of candidates.elements.slice(0, limit)) {
+      chosen.push({
+        id: candidate.id,
+        type: candidate.type,
+        selector: await this.pickSelector(page, candidate),
+        text: candidate.text,
+        tag: candidate.tag,
+        attributes: candidate.attributes,
+        boundingBox: candidate.boundingBox,
+      });
+    }
+
+    if (candidates.totalFound > limit) {
+      resolvedLogger.info({
+        message: 'PS:detectElementsOnPage - element list truncated',
+        totalFound: candidates.totalFound,
+        returned: chosen.length,
+        limit,
+      });
+    }
+
+    this.lastDetectionSummary = {
+      totalFound: candidates.totalFound,
+      returned: chosen.length,
+      truncated: candidates.totalFound > limit,
+      pageSize: candidates.pageSize,
+    };
+
+    return chosen;
+  }
+
+  /**
+   * Chooses the selector to store for a detected element.
+   *
+   * CSS candidates were already checked for uniqueness inside the page, where it costs one
+   * `querySelectorAll`. Playwright's own engines — `role=` and `text=` — cannot be evaluated
+   * there, so they are verified here, and only for the elements that had no unique CSS. That
+   * keeps the round-trips proportional to the awkward elements rather than to all of them.
+   */
+  private async pickSelector(
+    page: Page,
+    candidate: {
+      cssSelector: string | null;
+      role: string | null;
+      accessibleName: string | null;
+      exactText: string | null;
+      structuralPath: string;
+    },
+  ): Promise<string> {
+    if (candidate.cssSelector) return candidate.cssSelector;
+
+    const engineCandidates: string[] = [];
+    if (candidate.role && candidate.accessibleName) {
+      engineCandidates.push(
+        `role=${candidate.role}[name=${JSON.stringify(candidate.accessibleName)}]`,
+      );
+    }
+    if (candidate.exactText) {
+      engineCandidates.push(`text=${JSON.stringify(candidate.exactText)}`);
+    }
+
+    for (const selector of engineCandidates) {
+      try {
+        if ((await page.locator(selector).count()) === 1) return selector;
+      } catch {
+        // An unusable selector is simply a candidate that lost.
+      }
+    }
+
+    // Last resort: brittle against markup changes, but unambiguous today, which is the
+    // property the engine needs in order to act at all.
+    return candidate.structuralPath;
+  }
+
+  /**
+   * How many elements each selector matches on a page.
+   *
+   * A selector matching zero or several elements cannot be clicked, and discovering that
+   * during replay instead of during authoring is the expensive order of events.
+   */
+  async countSelectorMatches(
+    url: string,
+    selectors: string[],
+  ): Promise<Array<{ selector: string; count: number }>> {
+    const targetUrl = substituteVariables(url);
+    const browser = await playwright.chromium.launch({ headless: true });
+    try {
+      const context = await browser.newContext({
+        ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl),
+      });
+      const page = await context.newPage();
+      await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
+      const results: Array<{ selector: string; count: number }> = [];
+      for (const selector of selectors) {
+        let count = -1;
+        try {
+          count = await page.locator(selector).count();
+        } catch {
+          count = -1; // malformed selector: reported, not thrown
+        }
+        results.push({ selector, count });
+      }
+      return results;
+    } finally {
+      await browser.close().catch(() => {});
+    }
   }
 
   async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detectedElements?: DetectedElement[] }> {
