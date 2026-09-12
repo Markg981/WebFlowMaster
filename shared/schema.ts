@@ -299,6 +299,18 @@ export const environments = pgTable("environments", {
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   organizationId: integer('organization_id').notNull().references(() => organizations.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  /**
+   * A saved browser session (Playwright `storageState`), so a test can start already
+   * authenticated instead of logging in through the UI first.
+   *
+   * Encrypted with the same AES-256-GCM scheme as `secrets`, and for the same reason: the
+   * payload is cookies and session tokens, which are credentials for the system under test.
+   * See migrations/0010_environment_login_state.sql.
+   */
+  loginState: text('login_state'),
+  loginStateIv: text('login_state_iv'),
+  loginStateAuthTag: text('login_state_auth_tag'),
+  loginStateCapturedAt: timestamp('login_state_captured_at'),
 }, (table) => [
   index("environments_user_id_idx").on(table.userId),
   index("environments_organization_id_idx").on(table.organizationId),

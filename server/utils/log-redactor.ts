@@ -64,7 +64,15 @@ export const redactSensitiveData = winston.format((info) => {
   // Redact all metadata fields (everything except level, message, timestamp)
   const { level, message, timestamp, ...metadata } = info;
   const redactedMeta = redactValue(metadata);
-  return { level, message, timestamp, ...redactedMeta } as winston.Logform.TransformableInfo;
+
+  // Assign onto the original `info` rather than returning a fresh object. Winston carries
+  // the routing level and the serialised line under Symbol.for('level') and
+  // Symbol.for('message'), and redactValue rebuilds objects with Object.entries, which does
+  // not enumerate symbol keys. Returning `{ level, message, ...redactedMeta }` therefore
+  // handed every transport an entry with no symbol level — and a transport with no level to
+  // compare against its own silently discards the entry. The effect was total: not one
+  // logger call in the process reached the console, the log file or Loki.
+  return Object.assign(info, { level, message, timestamp }, redactedMeta);
 });
 
 /**

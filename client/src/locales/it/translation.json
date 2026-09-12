@@ -809,6 +809,22 @@
       "assertElementCount": {
         "name": "Verifica Conteggio Elementi",
         "description": "Controlla quanti elementi corrispondono a un selettore."
+      },
+      "waitForElement": {
+        "name": "Attendi Elemento",
+        "description": "Attende che un elemento sia visibile o nascosto"
+      },
+      "waitForText": {
+        "name": "Attendi Testo",
+        "description": "Attende che un elemento contenga il testo indicato"
+      },
+      "waitForNetworkIdle": {
+        "name": "Attendi Rete",
+        "description": "Attende che le richieste in corso si siano concluse"
+      },
+      "selectByText": {
+        "name": "Scegli Da Menu",
+        "description": "Apre un menu non nativo e scegli un'opzione dal testo"
       }
     },
     "testSequenceBuilder": {
@@ -871,12 +887,21 @@
     "playbackStatus": "Passaggio {{current}}/{{total}}: {{name}} - {{details}}",
     "playbackFailed": "(Fallito: {{error}})",
     "toasts": {
-      "directExecutionStarted": { "title": "Esecuzione Diretta Avviata", "description": "Riproduzione dei risultati..." },
+      "directExecutionStarted": {
+        "title": "Esecuzione Diretta Avviata",
+        "description": "Riproduzione dei risultati..."
+      },
       "executionNote": "Nota di Esecuzione",
       "testFailed": "Test Fallito",
       "testPassed": "Test Superato",
-      "playbackComplete": { "title": "Riproduzione Completata", "description": "Riproduzione di tutti i passaggi terminata." },
-      "emptySequence": { "title": "Sequenza Vuota", "description": "Aggiungi dei passaggi alla sequenza prima di eseguire il test." },
+      "playbackComplete": {
+        "title": "Riproduzione Completata",
+        "description": "Riproduzione di tutti i passaggi terminata."
+      },
+      "emptySequence": {
+        "title": "Sequenza Vuota",
+        "description": "Aggiungi dei passaggi alla sequenza prima di eseguire il test."
+      },
       "noStepsToPlayback": "Nessun passaggio da riprodurre.",
       "executionFailed": "Esecuzione fallita o nessun passaggio restituito.",
       "adhocTestName": "Test Adhoc per {{url}}",

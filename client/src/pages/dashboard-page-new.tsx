@@ -117,6 +117,13 @@ export default function DashboardPage() {
     "manual"
   );
   const [highlightedElement, setHighlightedElement] = useState<string | null>(null);
+  /** What the last detection found, so the panel can admit when the list is partial. */
+  const [detectionSummary, setDetectionSummary] = useState<{
+    totalFound: number;
+    returned: number;
+    truncated: boolean;
+    pageSize: { width: number; height: number };
+  } | null>(null);
   const [websiteLoaded, setWebsiteLoaded] = useState(false);
   const [websiteScreenshot, setWebsiteScreenshot] = useState<string | null>(null); // This will now also be used for playback
   const [isInitialUrlPrefilled, setIsInitialUrlPrefilled] = useState(false);
@@ -199,9 +206,14 @@ export default function DashboardPage() {
 
     const updateDimensions = () => {
       if (imgElement && imgElement.complete && imgElement.naturalWidth > 0 && container) {
+        // The image's own rendered box, not the container's. With `w-full h-auto` the image
+        // is scaled by width alone, so one ratio positions every highlight — and there are
+        // no letterbox offsets to reason about, which is what the previous object-contain
+        // arithmetic existed to undo.
+        const rendered = imgElement.getBoundingClientRect();
         setImageRenderDimensions({
-          renderedWidth: container.clientWidth,
-          renderedHeight: container.clientHeight,
+          renderedWidth: rendered.width,
+          renderedHeight: rendered.height,
           naturalWidth: imgElement.naturalWidth,
           naturalHeight: imgElement.naturalHeight,
         });
@@ -248,25 +260,11 @@ export default function DashboardPage() {
     const elementToHighlight = detectedElements.find(el => el.id === highlightedElement);
     if (!elementToHighlight?.boundingBox) return null;
 
-    const {
-      naturalWidth,
-      naturalHeight,
-      renderedWidth: containerWidth, // Renamed for clarity within this scope
-      renderedHeight: containerHeight // Renamed for clarity
-    } = imageRenderDimensions;
+    const { naturalWidth, renderedWidth } = imageRenderDimensions;
 
-    const imgAspectRatio = naturalWidth / naturalHeight;
-    const containerAspectRatio = containerWidth / containerHeight;
-
-    // object-contain: the image is scaled to fit, so the rendered width is the container
-    // width when the image is the wider of the two, and derived from the height otherwise.
-    const visibleImgWidth = imgAspectRatio > containerAspectRatio
-      ? containerWidth
-      : containerHeight * imgAspectRatio;
-
-    // The overlay is positioned against the <img>, not the container, so the letterbox
-    // offsets are already absorbed by the image's own box and must not be added here.
-    const scale = visibleImgWidth / naturalWidth;
+    // One ratio. The image is scaled by width (`w-full h-auto`) and the overlay is
+    // positioned against the image itself, so there is nothing else to correct for.
+    const scale = renderedWidth / naturalWidth;
     const { x, y, width, height } = elementToHighlight.boundingBox;
 
     const finalScaledX = Math.round(x * scale);
@@ -281,6 +279,30 @@ export default function DashboardPage() {
       height: finalScaledHeight,
     };
   }, [highlightedElement, imageRenderDimensions, detectedElements]);
+
+  /**
+   * Brings the highlighted element into view in the preview.
+   *
+   * Without this, hovering a row for an element 12,000px down the page draws a box the
+   * tester cannot see — and "which element is this one?" is the whole point of hovering.
+   */
+  useEffect(() => {
+    const container = imageContainerRef.current;
+    if (!container || !scaledHighlightedBoundingBox) return;
+
+    const { top, height } = scaledHighlightedBoundingBox;
+    const viewTop = container.scrollTop;
+    const viewBottom = viewTop + container.clientHeight;
+
+    // Leave it alone when it is already visible: scrolling on every hover would make the
+    // preview jitter as the pointer moves down a list.
+    if (top >= viewTop && top + height <= viewBottom) return;
+
+    container.scrollTo({
+      top: Math.max(0, top - container.clientHeight / 2 + height / 2),
+      behavior: 'smooth',
+    });
+  }, [scaledHighlightedBoundingBox]);
 
 
   const loadWebsiteMutation = useMutation({
@@ -356,9 +378,23 @@ export default function DashboardPage() {
     },
     onSuccess: (data) => {
       setDetectedElements(data.elements);
+      setDetectionSummary(data.summary ?? null);
+
+      // Show the screenshot detection itself took, not the one the earlier "Load Website"
+      // call produced in a different browser: the highlight boxes are measured against
+      // this image, and a page that renders differently twice would put them on the wrong
+      // elements. It is full-page, so elements below the fold can be highlighted at all.
+      if (data.screenshot) {
+        setImageRenderDimensions(null);
+        setWebsiteScreenshot(data.screenshot);
+        setWebsiteLoaded(true);
+      }
+
       toast({
         title: "Elements detected",
-        description: `Found ${data.elements.length} elements on the page`,
+        description: data.summary?.truncated
+          ? `Showing ${data.summary.returned} of ${data.summary.totalFound} elements found on the page`
+          : `Found ${data.elements.length} elements on the page`,
       });
     },
     onError: (error: Error) => {
@@ -866,7 +902,11 @@ export default function DashboardPage() {
               )}
 
               {/* This is the container whose dimensions are used for scaling calculations */}
-              <div ref={imageContainerRef} className="flex-1 border-2 border-border rounded-lg overflow-hidden relative bg-muted flex items-center justify-center">
+              {/* Scrolls rather than shrinks: the preview is a full-page screenshot, and a
+                  DMO grid is several thousand pixels tall. Fitting that into the panel would
+                  scale it down to an unreadable strip, so it is scaled to the panel's width
+                  and scrolled vertically instead. */}
+              <div ref={imageContainerRef} className="flex-1 border-2 border-border rounded-lg overflow-auto relative bg-muted">
                 {creationMode === 'record' && isRecording ? (
                   <div className="h-full w-full flex flex-col p-4 text-left">
                     <div className="flex items-center gap-2 mb-3">
@@ -918,7 +958,7 @@ export default function DashboardPage() {
                       ref={imageRef}
                       src={websiteScreenshot}
                       alt={isExecutingPlayback ? t('dashboardPageNew.testStepScreenshot.text') : t('dashboardPageNew.websiteScreenshot.text')}
-                      className="block max-w-full max-h-full object-contain"
+                      className="block w-full h-auto"
                     />
                     {/* Element highlighting overlay - shown only when NOT in playback mode to avoid confusion */}
                     {!isExecutingPlayback && scaledHighlightedBoundingBox && (
@@ -951,7 +991,13 @@ export default function DashboardPage() {
             <div className="w-80 bg-card p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-card-foreground">{t('dashboardPageNew.detectedElements.title')}</h3>
-                <Badge variant="secondary">{detectedElements.length} {t('dashboardPageNew.found.text')}</Badge>
+                {/* When the list is capped, say so here rather than letting a partial list
+                    read as the whole page — which is how a missing element used to look. */}
+                <Badge variant={detectionSummary?.truncated ? 'destructive' : 'secondary'}>
+                  {detectionSummary?.truncated
+                    ? `${detectionSummary.returned} / ${detectionSummary.totalFound}`
+                    : `${detectedElements.length} ${t('dashboardPageNew.found.text')}`}
+                </Badge>
               </div>
 
               <ScrollArea className="h-full">

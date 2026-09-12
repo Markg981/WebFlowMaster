@@ -6,6 +6,7 @@ import loggerPromise from "../logger";
 import { playwrightService } from "../playwright-service";
 import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
+import { resolveVariables } from "../variables";
 
 const router = Router();
 const logger = await loggerPromise;
@@ -65,7 +66,29 @@ router.post("/api/tests/:id/run", requireRole('editor'), async (req, res) => {
         );
         if (testRecord.length === 0) return res.status(404).json({ error: "Test not found" });
 
-        const result = await playwrightService.executeTestSequence(testRecord[0], (req.user as any).id);
+        // The environment is the caller's choice, but the organization it must belong to is
+        // the session's — never the body's, or an id from another tenant would resolve.
+        const environmentId = Number.isInteger(req.body?.environmentId)
+          ? (req.body.environmentId as number)
+          : null;
+        const vars = await resolveVariables({
+          userId: (req.user as any).id,
+          organizationId: (req.user as any).organizationId,
+          environmentId,
+        });
+
+        const result = await playwrightService.executeTestSequence(
+          testRecord[0],
+          (req.user as any).id,
+          undefined,
+          undefined,
+          vars,
+          // Same environment supplies the variables and the saved browser session, so a
+          // test cannot resolve one site's secrets while reusing another's login.
+          environmentId
+            ? { environmentId, organizationId: (req.user as any).organizationId }
+            : undefined,
+        );
         res.json(result);
     } catch (e: any) {
         logger.error({ message: "Test execution failed", error: e.message });

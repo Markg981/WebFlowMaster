@@ -22,6 +22,7 @@ import { testExecutionQueue } from './queue';
 import { secrets as secretsTable } from '@shared/schema';
 import { decryptSecret } from './crypto';
 import { getCorrelationId } from './middleware/correlation';
+import { defaultVariables } from './variables';
 
 // Helper to interpolate {{SECRET_KEY}} in strings
 function interpolateSecrets(str: string, secretsMap: Record<string, string>): string {
@@ -67,7 +68,13 @@ export async function runTest(
   userId: number,
   planId: string,
   runId: string, // This is the testPlanRun.id
-  testType: 'ui' | 'api'
+  testType: 'ui' | 'api',
+  // Resolved `{{name}}` values for this run's environment. One resolution feeds both the
+  // preconditions and the step executor, so a placeholder cannot mean two different things
+  // depending on which of them reads it.
+  vars: Record<string, string> = defaultVariables(),
+  // The environment whose saved browser session to start from, when it has one.
+  environment?: { environmentId: number; organizationId: number },
 ): Promise<IndividualTestRunResult> {
   const resolvedLogger = await loggerPromise;
   const startTime = Date.now();
@@ -87,7 +94,7 @@ export async function runTest(
       // is blocked (reported as 'error'), not a misleading pass/fail.
       const preResult = await runPreconditions(
         (uiTest as unknown as { preconditions?: Precondition[] | null }).preconditions,
-        { baseUrl: process.env.DMO_BASE_URL || 'http://localhost:7000' },
+        vars,
       );
       if (!preResult.ok) {
         const durationMs = Date.now() - startTime;
@@ -106,7 +113,7 @@ export async function runTest(
         };
       }
 
-      const result = await playwrightService.executeTestSequence(uiTest, userId, screenshotBaseDir, runId);
+      const result = await playwrightService.executeTestSequence(uiTest, userId, screenshotBaseDir, runId, vars, environment);
       const durationMs = Date.now() - startTime;
 
       // Determine overall test status
@@ -347,6 +354,16 @@ async function runTestPlanJobInTenant(
   }
   const environmentId = executionRecord[0].environment ? parseInt(executionRecord[0].environment) : null;
   const secretsMap: Record<string, string> = {};
+  // The defaults underneath, the environment's secrets on top — so an environment can
+  // override `baseUrl` like any other name, and a run against site B does not depend on
+  // what a process env var happened to hold.
+  const runVariables = (): Record<string, string> => ({ ...defaultVariables(), ...secretsMap });
+  // The same environment supplies the variables and the saved login, so a scheduled run
+  // cannot resolve one site's secrets while reusing another site's session.
+  const planEnvironment = () =>
+    environmentId && !isNaN(environmentId)
+      ? { environmentId, organizationId: executionRecord[0].organizationId }
+      : undefined;
 
   if (environmentId && !isNaN(environmentId)) {
     // These values are decrypted and injected into the running test, and environmentId comes
@@ -459,12 +476,23 @@ async function runTestPlanJobInTenant(
         catch (e) { resolvedLogger.warn("Failed to parse UI test elements"); }
       }
 
-      // Inject secrets
-      if (Object.keys(secretsMap).length > 0) {
+      // API tests still have their `{{KEY}}` placeholders substituted into the request
+      // object up front: the API runner has no per-field resolution step to hand a variable
+      // map to. UI tests no longer need it — the shared step executor resolves them from the
+      // same map — and doing both would hide an unresolved name instead of reporting it.
+      if (testTypeForRun === 'api' && Object.keys(secretsMap).length > 0) {
         testObjectDefinition = injectSecretsIntoTest(testObjectDefinition, secretsMap);
       }
 
-      const resultFromRunTest = await runTest(testObjectDefinition!, userId, planId, testPlanRunId, testTypeForRun);
+      const resultFromRunTest = await runTest(
+        testObjectDefinition!,
+        userId,
+        planId,
+        testPlanRunId,
+        testTypeForRun,
+        runVariables(),
+        planEnvironment(),
+      );
       legacyIndividualTestResultsForJsonBlob.push(resultFromRunTest); // Keep populating the old JSON blob for now
 
       // Map runTest result to reportTestCaseResults status

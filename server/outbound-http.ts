@@ -1,4 +1,5 @@
 import { Agent } from 'undici';
+import { defaultVariables } from './variables';
 
 /**
  * Outbound HTTP for the systems under test (DMO and friends).
@@ -8,11 +9,16 @@ import { Agent } from 'undici';
  * host is allowed to present a certificate Node would otherwise reject.
  */
 
-const DEFAULT_BASE_URL = 'http://localhost:7000';
-
-/** Variables available to saved tests, e.g. `{{baseUrl}}/api/NetContent/GetEquipment`. */
+/**
+ * Variables available to saved tests, e.g. `{{baseUrl}}/api/NetContent/GetEquipment`.
+ *
+ * Only the defaults — no environment is known at this level. A caller that has a user and
+ * an environment should use `resolveVariables` in ./variables, which layers that
+ * environment's decrypted secrets on top of these. This stays as the fallback for the few
+ * call sites with no scope to resolve against.
+ */
 export function requestVariables(): Record<string, string> {
-  return { baseUrl: process.env.DMO_BASE_URL || DEFAULT_BASE_URL };
+  return defaultVariables();
 }
 
 /**

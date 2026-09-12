@@ -12,6 +12,13 @@ export default defineConfig({
     // corrupts it, which is why this used to be singleFork + fileParallelism:false. Separate
     // instances in separate forks have nothing to contend over.
     pool: 'forks',
+    // Every file's beforeAll applies the ten migrations to its own PGlite instance, which is
+    // Postgres compiled to WASM — seconds of CPU, not milliseconds. With one fork per file
+    // competing for cores (and some files driving a real browser), that setup regularly ran
+    // past vitest's 10s default and vitest reported it as the *file* failing with every test
+    // skipped, which reads like a broken suite rather than a loaded machine. The work is
+    // legitimately slow; only the ceiling was wrong.
+    hookTimeout: 60_000,
     // setupFiles: ['./server/tests/setup.ts'], // Optional: for global test setup
     // reporters: ['default', 'html'], // Optional: for UI reporting via @vitest/ui
     // coverage: { // Optional: configure coverage

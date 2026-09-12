@@ -14,12 +14,51 @@ import { PlaywrightReporter } from './playwright-reporter';
 import { browserPool } from './browser-pool';
 import { getWsEmitter } from './websocket';
 import { allowsSelfSignedCertificate, substituteVariables, requestVariables } from './outbound-http';
+import { executeStep } from './step-executor';
+import { resolveVariables } from './variables';
+import { loadLoginState, saveLoginState, type EnvironmentScope } from './login-state';
 
 // Default settings if not found or incomplete
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
 const DEFAULT_HEADLESS = true;
 const DEFAULT_TIMEOUT = 30000;
 const DEFAULT_WAIT_TIME = 2000;
+
+/**
+ * How many detected elements to return.
+ *
+ * Was a hard-coded 50, which is plenty for a landing page and a fraction of a DMO grid —
+ * and it truncated silently, so the Detected Elements panel looked complete while missing
+ * most of the page. The cap still exists (an unbounded list would be unusable in the UI and
+ * slow to verify), but it is raised, configurable, and reported: see lastDetectionSummary.
+ */
+function detectionLimit(): number {
+  const configured = parseInt(process.env.ELEMENT_DETECTION_LIMIT || '', 10);
+  return Number.isFinite(configured) && configured > 0 ? configured : 300;
+}
+
+/** What a detection run found, so a caller can tell the user it was truncated. */
+export interface DetectionSummary {
+  totalFound: number;
+  returned: number;
+  truncated: boolean;
+  pageSize: { width: number; height: number };
+}
+
+/**
+ * A detection run: the elements, and the picture the highlighting is drawn on.
+ *
+ * The screenshot belongs here rather than coming from loadWebsite() because the two used to
+ * be separate browser sessions with separate navigations. On any page that renders
+ * differently twice — a carousel, a grid ordered by time, anything with an ad — the image
+ * and the boxes described two different pages, and the highlight landed on the wrong
+ * element. It is full-page so that an element below the fold is on the image at all.
+ */
+export interface DetectionResult {
+  elements: DetectedElement[];
+  screenshot: string;
+  summary: DetectionSummary;
+}
 
 let resolvedLogger: WinstonLogger;
 (async () => {
@@ -48,22 +87,6 @@ interface TestAction {
   name: string;
   icon: string;
   description: string;
-}
-
-// Helper function to parse assertElementCount value
-function parseAssertionValue(value: string): { operator: string; count: number } | null {
-  const match = value.match(/^(==|>=|<=|>|<|!=)?\s*(\d+)$/);
-  if (!match) {
-    // Try to parse just a number, defaulting to '=='
-    const singleNumberMatch = value.match(/^\s*(\d+)\s*$/);
-    if (singleNumberMatch) {
-      return { operator: '==', count: parseInt(singleNumberMatch[1], 10) };
-    }
-    return null;
-  }
-  const operator = match[1] || '=='; // Default to '==' if only number is present
-  const count = parseInt(match[2], 10);
-  return { operator, count };
 }
 
 export interface DetectedElement { // Exporting if it's used elsewhere, or keep private
@@ -109,6 +132,10 @@ interface AdhocSequencePayload {
   name?: string;
   /** Same setup calls the scheduled runner performs, so the preview matches the real run. */
   preconditions?: Precondition[] | null;
+  /** Environment whose secrets resolve `{{name}}` placeholders, as picked in the builder. */
+  environmentId?: number | null;
+  /** Organization the environment must belong to — set by the route, never by the client. */
+  organizationId?: number;
 }
 
 interface ActiveSession {
@@ -135,6 +162,16 @@ const MAX_RECORDED_ACTIONS = 2000;
 const IMPLICIT_NAVIGATION_WINDOW_MS = 3000;
 
 export class PlaywrightService {
+  /**
+   * Set by every detection run. Read by the routes so the interface can say "showing 300 of
+   * 812" instead of presenting a truncated list as if it were the whole page.
+   */
+  private lastDetectionSummary: DetectionSummary | undefined;
+
+  getLastDetectionSummary(): DetectionSummary | undefined {
+    return this.lastDetectionSummary;
+  }
+
   private activeSessions: Map<string, ActiveSession> = new Map();
   private sweepTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -311,6 +348,56 @@ export class PlaywrightService {
   }
 
   /** Stops the sweeper and tears down every live session. Used on shutdown and in tests. */
+  /**
+   * Saves the recording browser's current session against an environment.
+   *
+   * Called once the tester has signed in inside the recorder window. From then on, runs
+   * against that environment start authenticated instead of replaying the login — which is
+   * both the slowest part of a DMO test and the part most likely to fail for a reason the
+   * test was not written to check.
+   *
+   * Returns false for a session that is not open, rather than storing an empty state: an
+   * empty cookie jar would silently turn "reuse the login" into "log in every time", and
+   * the tester would have no way to tell which they had.
+   */
+  async captureLoginState(sessionId: string, environment: EnvironmentScope): Promise<boolean> {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      resolvedLogger.warn({
+        message: 'PS:captureLoginState - no such recording session',
+        sessionId,
+        environmentId: environment.environmentId,
+      });
+      return false;
+    }
+
+    const state = await session.context.storageState();
+    await saveLoginState(environment, state as any);
+    resolvedLogger.info({
+      message: 'PS:captureLoginState - login state saved',
+      sessionId,
+      environmentId: environment.environmentId,
+      cookieCount: state.cookies?.length ?? 0,
+    });
+    return true;
+  }
+
+  /**
+   * Runs a function against a live recording session's browser context.
+   *
+   * Exists so tests can put a session into the recorder's browser the way a tester would by
+   * signing in, without the context itself leaking out of this class.
+   */
+  async withRecordingContext(
+    sessionId: string,
+    fn: (context: BrowserContext) => Promise<void>,
+  ): Promise<boolean> {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) return false;
+    await fn(session.context);
+    return true;
+  }
+
   async disposeAllRecordingSessions(): Promise<void> {
     for (const [sessionId, session] of [...this.activeSessions.entries()]) {
       await this.disposeSessionResources(session, sessionId);
@@ -538,22 +625,46 @@ export class PlaywrightService {
    * like `button.mat-mdc-menu-item`, which Playwright could not click unambiguously).
    */
   private async detectElementsOnPage(page: Page): Promise<DetectedElement[]> {
-    return await page.evaluate(() => {
+    const candidates = await page.evaluate(() => {
       // esbuild/tsx (keepNames) wraps named functions in `__name(fn, "…")`; that helper only
       // exists in the Node bundle, so provide a harmless identity shim for the browser page.
       (globalThis as any).__name = (globalThis as any).__name || ((fn: any) => fn);
 
       const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
 
+      /**
+       * Ids a framework generated rather than a developer chose.
+       *
+       * Angular Material stamps `mat-input-3`, `mat-select-value-5`, `mat-button-9` in render
+       * order, so they shift as soon as anything above the element changes. Radix and React's
+       * useId produce `:r1a:`. Preferring one of these over a label is what makes a recorded
+       * test fail the next day against an application nobody touched.
+       */
+      const isVolatileId = (id: string) => {
+        if (/^(mat|mdc|cdk|ng|dx|p|ui|kendo)[-_]/i.test(id) && /\d+$/.test(id)) return true;
+        if (/^:[a-z0-9]+:$/i.test(id)) return true;
+        if (/^[0-9a-f]{12,}$/i.test(id)) return true;
+        return /^[a-z-]*\d{4,}$/i.test(id);
+      };
+
       const isUnique = (sel: string) => {
         try { return document.querySelectorAll(sel).length === 1; } catch { return false; }
       };
+
+      const isVolatileClass = (c: string) =>
+        !c ||
+        /[:()[\]/.]/.test(c) ||
+        /^(ng|cdk|mat|mdc)-/.test(c) ||
+        /(focus|active|hover|selected|touched|dirty|pristine|disabled|expanded)/i.test(c);
 
       const structuralPath = (el: Element): string => {
         const parts: string[] = [];
         let node: Element | null = el;
         while (node && node.nodeType === 1 && node.tagName.toLowerCase() !== 'html') {
-          if (node.id && isUnique(`#${CSS.escape(node.id)}`)) { parts.unshift(`#${CSS.escape(node.id)}`); break; }
+          if (node.id && !isVolatileId(node.id) && isUnique(`#${CSS.escape(node.id)}`)) {
+            parts.unshift(`#${CSS.escape(node.id)}`);
+            break;
+          }
           let part = node.tagName.toLowerCase();
           const parent: Element | null = node.parentElement;
           if (parent) {
@@ -566,67 +677,256 @@ export class PlaywrightService {
         return parts.join(' > ');
       };
 
-      const buildUniqueSelector = (el: Element): string => {
+      /**
+       * The first CSS selector that identifies this element on its own, or null.
+       *
+       * Ordered by how long the thing it keys on tends to survive: a developer-chosen id,
+       * then a test id, then the accessible label, then non-framework classes. A generated id
+       * is skipped rather than ranked last, because it looks perfectly unique today — which
+       * is exactly why it used to win.
+       */
+      const buildCssSelector = (el: Element): string | null => {
         const tag = el.tagName.toLowerCase();
-        if (el.id && isUnique(`#${CSS.escape(el.id)}`)) return `#${CSS.escape(el.id)}`;
-        for (const attr of ['data-testid', 'data-test', 'name', 'aria-label']) {
+
+        if (el.id && !isVolatileId(el.id) && isUnique(`#${CSS.escape(el.id)}`)) {
+          return `#${CSS.escape(el.id)}`;
+        }
+        for (const attr of ['data-testid', 'data-test', 'name', 'aria-label', 'placeholder']) {
           const v = el.getAttribute(attr);
-          if (v) { const s = `${tag}[${attr}="${v.replace(/"/g, '\\"')}"]`; if (isUnique(s)) return s; }
+          if (v) {
+            const s = `${tag}[${attr}="${v.replace(/"/g, '\\"')}"]`;
+            if (isUnique(s)) return s;
+          }
         }
         if (typeof el.className === 'string' && el.className.trim()) {
-          const classes = el.className.split(/\s+/).filter((c) =>
-            c && !/[:()[\]/.]/.test(c) && !/^(ng|cdk)-/.test(c) && !/(focus|active|hover|selected|touched|dirty|pristine)/i.test(c));
+          const classes = el.className.split(/\s+/).filter((c) => !isVolatileClass(c));
           for (let n = classes.length; n >= 1; n--) {
             const s = `${tag}.${classes.slice(0, n).join('.')}`;
             if (isUnique(s)) return s;
           }
         }
-        return structuralPath(el);
+        return null;
+      };
+
+      /** The ARIA role: explicit, or the obvious one implied by the tag. */
+      const roleOf = (el: Element): string | null => {
+        const explicit = el.getAttribute('role');
+        if (explicit) return explicit;
+        const tag = el.tagName.toLowerCase();
+        if (tag === 'button') return 'button';
+        if (tag === 'a') return 'link';
+        if (tag === 'select') return 'combobox';
+        if (tag === 'textarea') return 'textbox';
+        if (/^h[1-6]$/.test(tag)) return 'heading';
+        if (tag === 'img') return 'img';
+        if (tag === 'input') {
+          const type = (el.getAttribute('type') || 'text').toLowerCase();
+          if (type === 'checkbox') return 'checkbox';
+          if (type === 'radio') return 'radio';
+          if (type === 'submit' || type === 'button') return 'button';
+          if (['text', 'email', 'tel', 'url', 'password', 'search'].indexOf(type) !== -1) return 'textbox';
+        }
+        return null;
+      };
+
+      /** Close enough to the accessible name for Playwright's `role=…[name=…]` engine. */
+      const accessibleNameOf = (el: Element): string | null => {
+        const label = el.getAttribute('aria-label');
+        if (label && label.trim()) return label.trim();
+        const alt = el.getAttribute('alt');
+        if (alt && alt.trim()) return alt.trim();
+        const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+        if (text && text.length <= 80) return text;
+        const placeholder = el.getAttribute('placeholder');
+        if (placeholder && placeholder.trim()) return placeholder.trim();
+        return null;
       };
 
       const detectedElements: any[] = [];
       const seen = new Set<Element>();
       let globalElementCounter = 0;
+
       interactiveSelectors.forEach((selector) => {
         document.querySelectorAll(selector).forEach((element, index) => {
           if (seen.has(element)) return; // an element can match several selectors — keep one entry
           const rect = element.getBoundingClientRect();
-          if (rect.width > 0 && rect.height > 0 && rect.top >= 0) {
-            seen.add(element);
-            const tagName = element.tagName.toLowerCase();
-            const text = element.textContent?.trim() || '';
-            const placeholder = element.getAttribute('placeholder') || '';
-            const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
-            const uniqueSelector = buildUniqueSelector(element);
-            let elementType = 'element';
-            if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
-            else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
-            else if (tagName === 'a') elementType = 'link';
-            else if (tagName.match(/h[1-6]/)) elementType = 'heading';
-            else if (tagName === 'select') elementType = 'select';
-            else if (tagName === 'textarea') elementType = 'textarea';
-            const attributes: Record<string, string> = {};
-            Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; });
-            detectedElements.push({
-              id: `elem-${tagName}-${globalElementCounter++}`,
-              type: elementType,
-              selector: uniqueSelector,
-              text: displayText.substring(0, 100),
-              tag: tagName,
-              attributes,
-              boundingBox: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) },
-            });
-          }
+          if (rect.width === 0 || rect.height === 0) return;
+          seen.add(element);
+
+          const tagName = element.tagName.toLowerCase();
+          const text = element.textContent?.trim() || '';
+          const placeholder = element.getAttribute('placeholder') || '';
+          const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
+          let elementType = 'element';
+          if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
+          else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
+          else if (tagName === 'a') elementType = 'link';
+          else if (tagName.match(/h[1-6]/)) elementType = 'heading';
+          else if (tagName === 'select') elementType = 'select';
+          else if (tagName === 'textarea') elementType = 'textarea';
+          const attributes: Record<string, string> = {};
+          Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; });
+
+          const exactText = text.replace(/\s+/g, ' ').trim();
+
+          detectedElements.push({
+            id: `elem-${tagName}-${globalElementCounter++}`,
+            type: elementType,
+            text: displayText.substring(0, 100),
+            tag: tagName,
+            attributes,
+            // Document-relative, not viewport-relative: the preview is a full-page
+            // screenshot, and an element below the fold has to be drawable on it.
+            boundingBox: {
+              x: Math.round(rect.x + window.scrollX),
+              y: Math.round(rect.y + window.scrollY),
+              width: Math.round(rect.width),
+              height: Math.round(rect.height),
+            },
+            cssSelector: buildCssSelector(element),
+            role: roleOf(element),
+            accessibleName: accessibleNameOf(element),
+            exactText: exactText && exactText.length <= 80 ? exactText : null,
+            structuralPath: structuralPath(element),
+          });
         });
       });
-      return detectedElements.slice(0, 50) as DetectedElement[];
+
+      return {
+        elements: detectedElements,
+        totalFound: detectedElements.length,
+        pageSize: {
+          width: Math.max(document.documentElement.scrollWidth, window.innerWidth),
+          height: Math.max(document.documentElement.scrollHeight, window.innerHeight),
+        },
+      };
     });
+
+    const limit = detectionLimit();
+    const chosen: DetectedElement[] = [];
+
+    for (const candidate of candidates.elements.slice(0, limit)) {
+      chosen.push({
+        id: candidate.id,
+        type: candidate.type,
+        selector: await this.pickSelector(page, candidate),
+        text: candidate.text,
+        tag: candidate.tag,
+        attributes: candidate.attributes,
+        boundingBox: candidate.boundingBox,
+      });
+    }
+
+    if (candidates.totalFound > limit) {
+      resolvedLogger.info({
+        message: 'PS:detectElementsOnPage - element list truncated',
+        totalFound: candidates.totalFound,
+        returned: chosen.length,
+        limit,
+      });
+    }
+
+    this.lastDetectionSummary = {
+      totalFound: candidates.totalFound,
+      returned: chosen.length,
+      truncated: candidates.totalFound > limit,
+      pageSize: candidates.pageSize,
+    };
+
+    return chosen;
+  }
+
+  /**
+   * Chooses the selector to store for a detected element.
+   *
+   * CSS candidates were already checked for uniqueness inside the page, where it costs one
+   * `querySelectorAll`. Playwright's own engines — `role=` and `text=` — cannot be evaluated
+   * there, so they are verified here, and only for the elements that had no unique CSS. That
+   * keeps the round-trips proportional to the awkward elements rather than to all of them.
+   */
+  private async pickSelector(
+    page: Page,
+    candidate: {
+      cssSelector: string | null;
+      role: string | null;
+      accessibleName: string | null;
+      exactText: string | null;
+      structuralPath: string;
+    },
+  ): Promise<string> {
+    if (candidate.cssSelector) return candidate.cssSelector;
+
+    const engineCandidates: string[] = [];
+    if (candidate.role && candidate.accessibleName) {
+      engineCandidates.push(
+        `role=${candidate.role}[name=${JSON.stringify(candidate.accessibleName)}]`,
+      );
+    }
+    if (candidate.exactText) {
+      engineCandidates.push(`text=${JSON.stringify(candidate.exactText)}`);
+    }
+
+    for (const selector of engineCandidates) {
+      try {
+        if ((await page.locator(selector).count()) === 1) return selector;
+      } catch {
+        // An unusable selector is simply a candidate that lost.
+      }
+    }
+
+    // Last resort: brittle against markup changes, but unambiguous today, which is the
+    // property the engine needs in order to act at all.
+    return candidate.structuralPath;
+  }
+
+  /**
+   * How many elements each selector matches on a page.
+   *
+   * A selector matching zero or several elements cannot be clicked, and discovering that
+   * during replay instead of during authoring is the expensive order of events.
+   */
+  async countSelectorMatches(
+    url: string,
+    selectors: string[],
+  ): Promise<Array<{ selector: string; count: number }>> {
+    const targetUrl = substituteVariables(url);
+    const browser = await playwright.chromium.launch({ headless: true });
+    try {
+      const context = await browser.newContext({
+        ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl),
+      });
+      const page = await context.newPage();
+      await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
+      const results: Array<{ selector: string; count: number }> = [];
+      for (const selector of selectors) {
+        let count = -1;
+        try {
+          count = await page.locator(selector).count();
+        } catch {
+          count = -1; // malformed selector: reported, not thrown
+        }
+        results.push({ selector, count });
+      }
+      return results;
+    } finally {
+      await browser.close().catch(() => {});
+    }
   }
 
   async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detectedElements?: DetectedElement[] }> {
     const testName = payload.name || "Ad-hoc Test";
     resolvedLogger.http({ message: "PlaywrightService: executeAdhocSequence called", testName, userId, url: payload.url });
-    const targetUrl = payload.url ? substituteVariables(payload.url) : payload.url;
+    // The preview resolves variables the same way a scheduled run does, so a test that
+    // works here is not relying on something only this path provides.
+    const vars = payload.organizationId
+      ? await resolveVariables({
+          userId,
+          organizationId: payload.organizationId,
+          environmentId: payload.environmentId,
+        })
+      : requestVariables();
+    const targetUrl = payload.url ? substituteVariables(payload.url, vars) : payload.url;
     const startTime = Date.now();
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
@@ -763,92 +1063,10 @@ export class PlaywrightService {
 
             resolvedLogger.verbose({ message: `PS:executeAdhocSequence - Executing step`, testName, actionName, actionId, selector: step.targetElement?.selector, value: step.value });
 
-            switch (actionId) {
-              case 'click':
-                if (!step.targetElement?.selector) throw new Error('Selector missing for click action.');
-                await page.click(step.targetElement.selector);
-                break;
-              case 'input':
-                if (!step.targetElement?.selector) throw new Error('Selector missing for input action.');
-                if (typeof step.value !== 'string') throw new Error('Value missing for input action.');
-                // Values go through variable substitution so a recorded password field —
-                // which is stored as a `{{secret_…}}` placeholder, never in clear text —
-                // resolves from the environment at replay time.
-                await page.fill(step.targetElement.selector, substituteVariables(step.value));
-                break;
-              case 'wait':
-                if (typeof step.value !== 'string' || isNaN(parseInt(step.value))) throw new Error('Invalid or missing value for wait action.');
-                await page.waitForTimeout(parseInt(step.value));
-                break;
-              case 'scroll':
-                if (step.targetElement?.selector) {
-                  await page.locator(step.targetElement.selector).scrollIntoViewIfNeeded();
-                } else {
-                  await page.evaluate(() => window.scrollBy(0, 200));
-                }
-                break;
-              case 'navigate': {
-                // Only standalone navigations reach here: ones implied by a click are filtered
-                // out while recording (see isRedundantNavigation).
-                const destination = typeof step.value === 'string' ? step.value.trim() : '';
-                if (!destination) throw new Error('URL (value) missing for navigate action.');
-                await page.goto(substituteVariables(destination), { waitUntil: 'domcontentloaded' });
-                break;
-              }
-              case 'assert': {
-                // "Element is visible" — the assertion the recorder emits when the user picks
-                // the visibility check in the in-page assert panel.
-                if (!step.targetElement?.selector) {
-                  stepStatus = 'failed'; stepError = 'Selector missing for visibility assert action.';
-                  break;
-                }
-                const target = page.locator(step.targetElement.selector).first();
-                const isVisible = await target.isVisible().catch(() => false);
-                if (!isVisible) {
-                  stepStatus = 'failed';
-                  stepError = `Assertion Failed: Element "${step.targetElement.selector}" is not visible.`;
-                }
-                break;
-              }
-              case 'assertTextContains': {
-                if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for assertTextContains action."; break; }
-                if (typeof step.value !== 'string' || step.value.trim() === '') { stepStatus = 'failed'; stepError = "Expected text (value) missing or empty for assertTextContains action."; break; }
-                const elementForText = page.locator(step.targetElement.selector);
-                const actualText = await elementForText.textContent();
-                if (actualText === null || !actualText.includes(step.value)) { stepStatus = 'failed'; stepError = `Assertion Failed: Element "${step.targetElement.selector}" did not contain text "${step.value}". Actual: "${actualText === null ? 'null' : actualText}".`; }
-                break;
-              }
-              case 'assertElementCount': {
-                if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for assertElementCount action."; break; }
-                if (typeof step.value !== 'string' || step.value.trim() === '') { stepStatus = 'failed'; stepError = "Expected count (value) missing or empty for assertElementCount action."; break; }
-                const parsedAssertion = parseAssertionValue(step.value);
-                if (!parsedAssertion) { stepStatus = 'failed'; stepError = `Invalid format for assertElementCount value: "${step.value}". Expected format like "==5", ">=2", or "3".`; break; }
-                const elementsToCount = page.locator(step.targetElement.selector);
-                const actualCount = await elementsToCount.count();
-                let countMatch = false;
-                switch (parsedAssertion.operator) {
-                  case '==': countMatch = actualCount === parsedAssertion.count; break;
-                  case '>=': countMatch = actualCount >= parsedAssertion.count; break;
-                  case '<=': countMatch = actualCount <= parsedAssertion.count; break;
-                  case '>': countMatch = actualCount > parsedAssertion.count; break;
-                  case '<': countMatch = actualCount < parsedAssertion.count; break;
-                  case '!=': countMatch = actualCount !== parsedAssertion.count; break;
-                  default: stepStatus = 'failed'; stepError = `Unknown operator "${parsedAssertion.operator}" for assertElementCount.`; break;
-                }
-                if (!countMatch && stepStatus === 'passed') { stepStatus = 'failed'; stepError = `Assertion Failed: Element count for selector "${step.targetElement.selector}" did not match. Expected ${parsedAssertion.operator} ${parsedAssertion.count}, Actual: ${actualCount}.`; }
-                break;
-              }
-              case 'hover':
-                if (!step.targetElement?.selector) throw new Error('Selector missing for hover action.');
-                await page.hover(step.targetElement.selector);
-                break;
-              case 'select':
-                if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for select action."; break; }
-                if (typeof step.value !== 'string' || step.value.trim() === '') { stepStatus = 'failed'; stepError = "Value missing for select action (expected option value)."; break; }
-                await page.selectOption(step.targetElement.selector, substituteVariables(step.value));
-                break;
-              default:
-                throw new Error(`Unsupported action ID: ${actionId}`);
+            const outcome = await executeStep({ page, vars }, step);
+            if (outcome.status === 'failed') {
+              stepStatus = 'failed';
+              stepError = outcome.error;
             }
             // Let the UI settle before capturing: a click often dismisses a menu and opens a
             // dialog with an animation, and may fire XHRs. Without this the screenshot catches a
@@ -941,7 +1159,7 @@ export class PlaywrightService {
     }
   }
 
-  async detectElements(url: string, userId?: number): Promise<DetectedElement[]> {
+  async detectElements(url: string, userId?: number): Promise<DetectionResult> {
     resolvedLogger.http({ message: "PlaywrightService: detectElements called", url, userId });
     const targetUrl = substituteVariables(url);
     let browser: Browser | null = null;
@@ -997,7 +1215,20 @@ export class PlaywrightService {
       }
       resolvedLogger.info({ message: `PS:detectElements - Element detection script completed.`, foundCount: elements?.length, url, userId });
 
-      return elements;
+      // Taken from this page, after this detection: the boxes and the picture have to agree.
+      const screenshotBuffer = await page.screenshot({ type: 'png', fullPage: true });
+      const summary = this.getLastDetectionSummary() ?? {
+        totalFound: elements.length,
+        returned: elements.length,
+        truncated: false,
+        pageSize: { width: 1280, height: 720 },
+      };
+
+      return {
+        elements,
+        screenshot: `data:image/png;base64,${screenshotBuffer.toString('base64')}`,
+        summary,
+      };
     } catch (error: any) {
       resolvedLogger.error({ message: "PS:detectElements - Error caught during element detection", url, userId, error: error.message, stack: error.stack, pageExists: !!page, pageClosed: page?.isClosed() });
       throw error;
@@ -1025,12 +1256,18 @@ export class PlaywrightService {
     test: Test,
     userId: number,
     screenshotBaseDir?: string, // Optional base directory for screenshots
-    executionId?: string // Optional execution ID for real-time logging
+    executionId?: string, // Optional execution ID for real-time logging
+    // Resolved `{{name}}` values. Supplied by the caller that knows which environment
+    // applies; falls back to the defaults so existing callers keep working.
+    vars: Record<string, string> = requestVariables(),
+    // The environment whose saved browser session to start from, when it has one. Without
+    // it the run starts signed out, exactly as it always did.
+    environment?: EnvironmentScope,
   ): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number }> {
     const startTime = Date.now();
     const wsEmitter = getWsEmitter();
     resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url, screenshotBaseDir });
-    const targetUrl = test.url ? substituteVariables(test.url) : test.url;
+    const targetUrl = test.url ? substituteVariables(test.url, vars) : test.url;
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
     let page: Page | null = null;
@@ -1049,7 +1286,23 @@ export class PlaywrightService {
       browser = await browserEngine.launch({ headless: headlessMode });
       if (!browser) throw new Error("Failed to launch browser for executeApiDirect.");
       const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-      context = await browser.newContext({ userAgent, ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl ?? '') });
+      // Start from the environment's saved session when there is one, so the test does not
+      // spend its first thirty seconds logging in — and does not fail for a reason that has
+      // nothing to do with what it checks.
+      const storageState = environment ? await loadLoginState(environment) : undefined;
+      if (storageState) {
+        resolvedLogger.debug({
+          message: 'PS:executeTestSequence - starting from the saved login state',
+          testName: test.name,
+          environmentId: environment?.environmentId,
+        });
+      }
+
+      context = await browser.newContext({
+        userAgent,
+        ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl ?? ''),
+        ...(storageState ? { storageState: storageState as any } : {}),
+      });
       page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
       await page.setViewportSize({ width: 1280, height: 720 });
@@ -1133,74 +1386,10 @@ export class PlaywrightService {
           try {
             if (!actionId) throw new Error('Step action ID is missing.');
 
-            switch (actionId) {
-              case 'click':
-                if (!step.targetElement?.selector) throw new Error('Selector missing for click action.');
-                await reporter.click(step.targetElement.selector, actionName);
-                break;
-              case 'input':
-                if (!step.targetElement?.selector) throw new Error('Selector missing for input action.');
-                await reporter.fill(step.targetElement.selector, typeof step.value === 'string' ? step.value : '', actionName);
-                break;
-              case 'wait':
-                if (typeof step.value !== 'string' || isNaN(parseInt(step.value))) throw new Error('Invalid or missing value for wait action.');
-                await page.waitForTimeout(parseInt(step.value));
-                break;
-              case 'scroll':
-                if (step.targetElement?.selector) {
-                  await page.locator(step.targetElement.selector).scrollIntoViewIfNeeded();
-                } else {
-                  await page.evaluate(() => window.scrollBy(0, 200));
-                }
-                break;
-              case 'assert':
-                resolvedLogger.warn({ message: `Generic 'assert' action encountered in test sequence. Consider using specific assertions.`, testName: test.name, actionName, selector: step.targetElement?.selector });
-                if (!step.targetElement?.selector) {
-                  stepStatus = 'failed'; stepError = 'Selector missing for generic assert action.';
-                } else {
-                  const elementToAssert = await page.locator(step.targetElement.selector).count();
-                  if (elementToAssert === 0) { stepStatus = 'failed'; stepError = `Assertion Failed: Element "${step.targetElement.selector}" not found.`; }
-                }
-                break;
-              case 'assertTextContains': {
-                if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for assertTextContains action."; break; }
-                if (typeof step.value !== 'string' || step.value.trim() === '') { stepStatus = 'failed'; stepError = "Expected text (value) missing or empty for assertTextContains action."; break; }
-                const elementForText = page.locator(step.targetElement.selector);
-                const actualText = await elementForText.textContent();
-                if (actualText === null || !actualText.includes(step.value)) { stepStatus = 'failed'; stepError = `Assertion Failed: Element "${step.targetElement.selector}" did not contain text "${step.value}". Actual: "${actualText === null ? 'null' : actualText}".`; }
-                break;
-              }
-              case 'assertElementCount': {
-                if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for assertElementCount action."; break; }
-                if (typeof step.value !== 'string' || step.value.trim() === '') { stepStatus = 'failed'; stepError = "Expected count (value) missing or empty for assertElementCount action."; break; }
-                const parsedAssertion = parseAssertionValue(step.value);
-                if (!parsedAssertion) { stepStatus = 'failed'; stepError = `Invalid format for assertElementCount value: "${step.value}". Expected format like "==5", ">=2", or "3".`; break; }
-                const elementsToCount = page.locator(step.targetElement.selector);
-                const actualCount = await elementsToCount.count();
-                let countMatch = false;
-                switch (parsedAssertion.operator) {
-                  case '==': countMatch = actualCount === parsedAssertion.count; break;
-                  case '>=': countMatch = actualCount >= parsedAssertion.count; break;
-                  case '<=': countMatch = actualCount <= parsedAssertion.count; break;
-                  case '>': countMatch = actualCount > parsedAssertion.count; break;
-                  case '<': countMatch = actualCount < parsedAssertion.count; break;
-                  case '!=': countMatch = actualCount !== parsedAssertion.count; break;
-                  default: stepStatus = 'failed'; stepError = `Unknown operator "${parsedAssertion.operator}" for assertElementCount.`; break;
-                }
-                if (!countMatch && stepStatus === 'passed') { stepStatus = 'failed'; stepError = `Assertion Failed: Element count for selector "${step.targetElement.selector}" did not match. Expected ${parsedAssertion.operator} ${parsedAssertion.count}, Actual: ${actualCount}.`; }
-                break;
-              }
-              case 'hover':
-                if (!step.targetElement?.selector) throw new Error('Selector missing for hover action.');
-                await page.hover(step.targetElement.selector);
-                break;
-              case 'select':
-                if (!step.targetElement?.selector) { stepStatus = 'failed'; stepError = "Selector missing for select action."; break; }
-                if (typeof step.value !== 'string' || step.value.trim() === '') { stepStatus = 'failed'; stepError = "Value missing for select action (expected option value)."; break; }
-                await page.selectOption(step.targetElement.selector, substituteVariables(step.value));
-                break;
-              default:
-                throw new Error(`Unsupported action ID: ${actionId}`);
+            const outcome = await executeStep({ page, reporter, vars }, step);
+            if (outcome.status === 'failed') {
+              stepStatus = 'failed';
+              stepError = outcome.error;
             }
 
             // Screenshot logic for successful step
