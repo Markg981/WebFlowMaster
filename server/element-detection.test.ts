@@ -56,7 +56,7 @@ afterAll(async () => {
 /** Detected elements keyed by their visible text, which is how a tester recognises them. */
 async function detectByText() {
   const { playwrightService } = await import('./playwright-service');
-  const elements = await playwrightService.detectElements(baseUrl);
+  const { elements } = await playwrightService.detectElements(baseUrl);
   return { elements, find: (text: string) => elements.find((e) => e.text.includes(text)) };
 }
 
@@ -116,5 +116,59 @@ describe('selectors for Angular-generated markup', () => {
     // Whatever strategy wins, the two must not collide.
     const selectors = new Set(cells.map((e) => e.selector));
     expect(selectors.size).toBe(cells.length);
+  }, 60_000);
+});
+
+describe('the preview the highlighting is drawn on', () => {
+  it('returns the screenshot from the same page load as the boxes', async () => {
+    const { playwrightService } = await import('./playwright-service');
+
+    const result = await playwrightService.detectElements(baseUrl);
+
+    // The screenshot used to come from loadWebsite() — a second browser, a second
+    // navigation. On anything that renders differently twice (a carousel, an ad, a grid
+    // sorted by time) the image and the boxes described two different pages, and the
+    // highlight landed on the wrong thing.
+    expect(result.screenshot).toMatch(/^data:image\/png;base64,/);
+    expect(result.summary.pageSize.width).toBeGreaterThan(0);
+    expect(result.summary.pageSize.height).toBeGreaterThan(0);
+  }, 60_000);
+
+  it('keeps every box inside the screenshot it will be drawn on', async () => {
+    const { playwrightService } = await import('./playwright-service');
+
+    const { elements, summary } = await playwrightService.detectElements(baseUrl);
+
+    // A box outside the image is a highlight the tester cannot see — which is what a
+    // viewport screenshot plus a document-relative box produced for anything below the
+    // fold. The screenshot is full-page so that every detected element is on it.
+    const outside = elements.filter(
+      (e) =>
+        !e.boundingBox ||
+        e.boundingBox.x < 0 ||
+        e.boundingBox.y < 0 ||
+        e.boundingBox.x + e.boundingBox.width > summary.pageSize.width + 1 ||
+        e.boundingBox.y + e.boundingBox.height > summary.pageSize.height + 1,
+    );
+
+    expect(outside.map((e) => `${e.tag}:${e.text}`)).toEqual([]);
+  }, 60_000);
+
+  it('says how many elements it left out instead of truncating in silence', async () => {
+    const saved = process.env.ELEMENT_DETECTION_LIMIT;
+    process.env.ELEMENT_DETECTION_LIMIT = '2';
+    try {
+      const { playwrightService } = await import('./playwright-service');
+
+      const { elements, summary } = await playwrightService.detectElements(baseUrl);
+
+      expect(elements).toHaveLength(2);
+      expect(summary.truncated).toBe(true);
+      expect(summary.totalFound).toBeGreaterThan(2);
+      expect(summary.returned).toBe(2);
+    } finally {
+      if (saved === undefined) delete process.env.ELEMENT_DETECTION_LIMIT;
+      else process.env.ELEMENT_DETECTION_LIMIT = saved;
+    }
   }, 60_000);
 });

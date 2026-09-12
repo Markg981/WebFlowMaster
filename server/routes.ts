@@ -397,10 +397,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       resolvedLogger.debug({ message: `POST /api/detect-elements - Calling playwrightService.detectElements`, url, userId });
-      const elements = await playwrightService.detectElements(url, userId);
-      resolvedLogger.debug({ message: `POST /api/detect-elements - playwrightService.detectElements returned`, elementCount: elements?.length, url, userId });
+      const detection = await playwrightService.detectElements(url, userId);
+      resolvedLogger.debug({ message: `POST /api/detect-elements - playwrightService.detectElements returned`, elementCount: detection.elements.length, url, userId });
 
-      res.json({ success: true, elements: elements });
+      // The screenshot travels with the elements so the preview and the boxes drawn on it
+      // come from one page load. `summary` lets the panel say "showing 300 of 812" rather
+      // than presenting a truncated list as though it were the whole page.
+      res.json({
+        success: true,
+        elements: detection.elements,
+        screenshot: detection.screenshot,
+        summary: detection.summary,
+      });
     } catch (error: any) {
       resolvedLogger.error({ message: "POST /api/detect-elements - Error in route handler", error: error.message, stack: error.stack, url, userId });
       const errorMessage = error instanceof Error ? error.message : 'Unknown internal server error';

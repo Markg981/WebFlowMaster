@@ -36,12 +36,27 @@ function detectionLimit(): number {
   return Number.isFinite(configured) && configured > 0 ? configured : 300;
 }
 
-/** What the last detection run found, so a caller can tell the user it was truncated. */
+/** What a detection run found, so a caller can tell the user it was truncated. */
 export interface DetectionSummary {
   totalFound: number;
   returned: number;
   truncated: boolean;
   pageSize: { width: number; height: number };
+}
+
+/**
+ * A detection run: the elements, and the picture the highlighting is drawn on.
+ *
+ * The screenshot belongs here rather than coming from loadWebsite() because the two used to
+ * be separate browser sessions with separate navigations. On any page that renders
+ * differently twice — a carousel, a grid ordered by time, anything with an ad — the image
+ * and the boxes described two different pages, and the highlight landed on the wrong
+ * element. It is full-page so that an element below the fold is on the image at all.
+ */
+export interface DetectionResult {
+  elements: DetectedElement[];
+  screenshot: string;
+  summary: DetectionSummary;
 }
 
 let resolvedLogger: WinstonLogger;
@@ -1093,7 +1108,7 @@ export class PlaywrightService {
     }
   }
 
-  async detectElements(url: string, userId?: number): Promise<DetectedElement[]> {
+  async detectElements(url: string, userId?: number): Promise<DetectionResult> {
     resolvedLogger.http({ message: "PlaywrightService: detectElements called", url, userId });
     const targetUrl = substituteVariables(url);
     let browser: Browser | null = null;
@@ -1149,7 +1164,20 @@ export class PlaywrightService {
       }
       resolvedLogger.info({ message: `PS:detectElements - Element detection script completed.`, foundCount: elements?.length, url, userId });
 
-      return elements;
+      // Taken from this page, after this detection: the boxes and the picture have to agree.
+      const screenshotBuffer = await page.screenshot({ type: 'png', fullPage: true });
+      const summary = this.getLastDetectionSummary() ?? {
+        totalFound: elements.length,
+        returned: elements.length,
+        truncated: false,
+        pageSize: { width: 1280, height: 720 },
+      };
+
+      return {
+        elements,
+        screenshot: `data:image/png;base64,${screenshotBuffer.toString('base64')}`,
+        summary,
+      };
     } catch (error: any) {
       resolvedLogger.error({ message: "PS:detectElements - Error caught during element detection", url, userId, error: error.message, stack: error.stack, pageExists: !!page, pageClosed: page?.isClosed() });
       throw error;
