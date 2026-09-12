@@ -676,11 +676,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  /**
+   * Saves the recorder browser's current session against an environment.
+   *
+   * Called after the tester has signed in inside the recorder window, so runs against that
+   * environment start authenticated instead of replaying the login every time.
+   */
+  app.post("/api/recording-login-state", requireRole('editor'), async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const schema = z.object({
+      sessionId: z.string().min(1, "Session ID is required"),
+      environmentId: z.number().int().positive(),
+    });
+    const parseResult = schema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ error: "Invalid request data", details: parseResult.error.flatten() });
+    }
+
+    try {
+      const { sessionId, environmentId } = parseResult.data;
+      // organizationId comes from the session: the environment written to has to be one
+      // this caller's tenant owns, whatever id the body names.
+      const saved = await playwrightService.captureLoginState(sessionId, {
+        environmentId,
+        organizationId: req.user.organizationId,
+      });
+
+      if (!saved) {
+        return res.status(404).json({
+          success: false,
+          error: "That recording session is not open, so there was no browser session to save.",
+        });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      resolvedLogger.error({ message: "Error capturing login state", error: error.message, stack: error.stack, userId: (req.user as any)?.id });
+      res.status(500).json({ success: false, error: "Failed to save the login state" });
+    }
+  });
+
   app.post("/api/stop-recording", requireRole('editor'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    
+
     const stopRecordingSchema = z.object({
       sessionId: z.string().min(1, "Session ID is required")
     });

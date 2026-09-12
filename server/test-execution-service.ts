@@ -73,6 +73,8 @@ export async function runTest(
   // preconditions and the step executor, so a placeholder cannot mean two different things
   // depending on which of them reads it.
   vars: Record<string, string> = defaultVariables(),
+  // The environment whose saved browser session to start from, when it has one.
+  environment?: { environmentId: number; organizationId: number },
 ): Promise<IndividualTestRunResult> {
   const resolvedLogger = await loggerPromise;
   const startTime = Date.now();
@@ -111,7 +113,7 @@ export async function runTest(
         };
       }
 
-      const result = await playwrightService.executeTestSequence(uiTest, userId, screenshotBaseDir, runId, vars);
+      const result = await playwrightService.executeTestSequence(uiTest, userId, screenshotBaseDir, runId, vars, environment);
       const durationMs = Date.now() - startTime;
 
       // Determine overall test status
@@ -356,6 +358,12 @@ async function runTestPlanJobInTenant(
   // override `baseUrl` like any other name, and a run against site B does not depend on
   // what a process env var happened to hold.
   const runVariables = (): Record<string, string> => ({ ...defaultVariables(), ...secretsMap });
+  // The same environment supplies the variables and the saved login, so a scheduled run
+  // cannot resolve one site's secrets while reusing another site's session.
+  const planEnvironment = () =>
+    environmentId && !isNaN(environmentId)
+      ? { environmentId, organizationId: executionRecord[0].organizationId }
+      : undefined;
 
   if (environmentId && !isNaN(environmentId)) {
     // These values are decrypted and injected into the running test, and environmentId comes
@@ -468,12 +476,23 @@ async function runTestPlanJobInTenant(
         catch (e) { resolvedLogger.warn("Failed to parse UI test elements"); }
       }
 
-      // Inject secrets
-      if (Object.keys(secretsMap).length > 0) {
+      // API tests still have their `{{KEY}}` placeholders substituted into the request
+      // object up front: the API runner has no per-field resolution step to hand a variable
+      // map to. UI tests no longer need it — the shared step executor resolves them from the
+      // same map — and doing both would hide an unresolved name instead of reporting it.
+      if (testTypeForRun === 'api' && Object.keys(secretsMap).length > 0) {
         testObjectDefinition = injectSecretsIntoTest(testObjectDefinition, secretsMap);
       }
 
-      const resultFromRunTest = await runTest(testObjectDefinition!, userId, planId, testPlanRunId, testTypeForRun);
+      const resultFromRunTest = await runTest(
+        testObjectDefinition!,
+        userId,
+        planId,
+        testPlanRunId,
+        testTypeForRun,
+        runVariables(),
+        planEnvironment(),
+      );
       legacyIndividualTestResultsForJsonBlob.push(resultFromRunTest); // Keep populating the old JSON blob for now
 
       // Map runTest result to reportTestCaseResults status

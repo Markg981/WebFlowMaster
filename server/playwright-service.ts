@@ -16,6 +16,7 @@ import { getWsEmitter } from './websocket';
 import { allowsSelfSignedCertificate, substituteVariables, requestVariables } from './outbound-http';
 import { executeStep } from './step-executor';
 import { resolveVariables } from './variables';
+import { loadLoginState, saveLoginState, type EnvironmentScope } from './login-state';
 
 // Default settings if not found or incomplete
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
@@ -347,6 +348,56 @@ export class PlaywrightService {
   }
 
   /** Stops the sweeper and tears down every live session. Used on shutdown and in tests. */
+  /**
+   * Saves the recording browser's current session against an environment.
+   *
+   * Called once the tester has signed in inside the recorder window. From then on, runs
+   * against that environment start authenticated instead of replaying the login — which is
+   * both the slowest part of a DMO test and the part most likely to fail for a reason the
+   * test was not written to check.
+   *
+   * Returns false for a session that is not open, rather than storing an empty state: an
+   * empty cookie jar would silently turn "reuse the login" into "log in every time", and
+   * the tester would have no way to tell which they had.
+   */
+  async captureLoginState(sessionId: string, environment: EnvironmentScope): Promise<boolean> {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      resolvedLogger.warn({
+        message: 'PS:captureLoginState - no such recording session',
+        sessionId,
+        environmentId: environment.environmentId,
+      });
+      return false;
+    }
+
+    const state = await session.context.storageState();
+    await saveLoginState(environment, state as any);
+    resolvedLogger.info({
+      message: 'PS:captureLoginState - login state saved',
+      sessionId,
+      environmentId: environment.environmentId,
+      cookieCount: state.cookies?.length ?? 0,
+    });
+    return true;
+  }
+
+  /**
+   * Runs a function against a live recording session's browser context.
+   *
+   * Exists so tests can put a session into the recorder's browser the way a tester would by
+   * signing in, without the context itself leaking out of this class.
+   */
+  async withRecordingContext(
+    sessionId: string,
+    fn: (context: BrowserContext) => Promise<void>,
+  ): Promise<boolean> {
+    const session = this.activeSessions.get(sessionId);
+    if (!session) return false;
+    await fn(session.context);
+    return true;
+  }
+
   async disposeAllRecordingSessions(): Promise<void> {
     for (const [sessionId, session] of [...this.activeSessions.entries()]) {
       await this.disposeSessionResources(session, sessionId);
@@ -1209,6 +1260,9 @@ export class PlaywrightService {
     // Resolved `{{name}}` values. Supplied by the caller that knows which environment
     // applies; falls back to the defaults so existing callers keep working.
     vars: Record<string, string> = requestVariables(),
+    // The environment whose saved browser session to start from, when it has one. Without
+    // it the run starts signed out, exactly as it always did.
+    environment?: EnvironmentScope,
   ): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number }> {
     const startTime = Date.now();
     const wsEmitter = getWsEmitter();
@@ -1232,7 +1286,23 @@ export class PlaywrightService {
       browser = await browserEngine.launch({ headless: headlessMode });
       if (!browser) throw new Error("Failed to launch browser for executeApiDirect.");
       const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-      context = await browser.newContext({ userAgent, ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl ?? '') });
+      // Start from the environment's saved session when there is one, so the test does not
+      // spend its first thirty seconds logging in — and does not fail for a reason that has
+      // nothing to do with what it checks.
+      const storageState = environment ? await loadLoginState(environment) : undefined;
+      if (storageState) {
+        resolvedLogger.debug({
+          message: 'PS:executeTestSequence - starting from the saved login state',
+          testName: test.name,
+          environmentId: environment?.environmentId,
+        });
+      }
+
+      context = await browser.newContext({
+        userAgent,
+        ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl ?? ''),
+        ...(storageState ? { storageState: storageState as any } : {}),
+      });
       page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
       await page.setViewportSize({ width: 1280, height: 720 });

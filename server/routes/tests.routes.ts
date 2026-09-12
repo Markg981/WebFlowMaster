@@ -83,6 +83,11 @@ router.post("/api/tests/:id/run", requireRole('editor'), async (req, res) => {
           undefined,
           undefined,
           vars,
+          // Same environment supplies the variables and the saved browser session, so a
+          // test cannot resolve one site's secrets while reusing another's login.
+          environmentId
+            ? { environmentId, organizationId: (req.user as any).organizationId }
+            : undefined,
         );
         res.json(result);
     } catch (e: any) {
