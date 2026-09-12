@@ -30,10 +30,14 @@
   "include": [
     "import-netcontent-api.ts",
     "apply-migrations.ts",
+    "schema-doctor.ts",
     "netcontent/**/*.ts",
     "netcontent-ui/**/*.ts",
     "../test-db.ts",
     "../server/db.ts",
+    // apply-migrations diagnoses the schema before touching it; same rule as db.ts — named
+    // explicitly so only its own non-test imports come along.
+    "../server/schema-state.ts",
     "../shared/**/*.ts"
   ],
   "exclude": [

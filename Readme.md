@@ -55,8 +55,20 @@ Assicurati di avere installato sul tuo sistema:
 
 4. **Inizializza il database:**
    ```bash
-   npm run db:push
+   npm run db:migrate
    ```
+
+   > **Non usare `npm run db:push` per inizializzare.** `db:push` crea le tabelle a partire
+   > da `shared/schema.ts` senza registrare nulla nel journal delle migrazioni, e questo
+   > produce due conseguenze che non si annunciano: `db:migrate` non potrà più girare (si
+   > ferma sulla prima tabella che trova già presente), e le migrazioni non derivabili dallo
+   > schema — la Row-Level Security in `0004`-`0006` e i grant append-only dell'audit in
+   > `0009` — restano non applicate. L'isolamento fra organizzazioni dipende da quelle, e la
+   > sua assenza è silenziosa.
+   >
+   > `db:push` serve a iterare sullo schema contro un database usa-e-getta, mai contro uno
+   > che poi vorrai migrare. Il server e `db:migrate` riconoscono un database in questo
+   > stato e si rifiutano di procedere spiegando come uscirne.
 
 5. **Avvia l'ambiente di sviluppo:**
    Apri due terminali e lancia:

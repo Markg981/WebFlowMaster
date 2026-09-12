@@ -12,6 +12,7 @@ import { correlationMiddleware } from './middleware/correlation';
 import { csrfOriginCheck } from './middleware/csrf';
 import { connection as redisConnection, connectSessionRedis, sessionRedis } from './redis';
 import { resolvePort } from './config';
+import { inspectSchemaState, describeSchemaState } from './schema-state';
 
 const app = express();
 app.use(express.json());
@@ -25,6 +26,16 @@ app.use(express.urlencoded({ extended: false }));
   // superuser, and a misconfiguration here does not fail loudly at the boundary — it either
   // 500s every request or, worse, stops isolating without saying so. Throws with what to fix.
   await assertTenancyPreconditions();
+
+  // And confirm the schema came from the migrations rather than from `db:push`. This is the
+  // half of the same question that the check above cannot answer on PGlite, where it returns
+  // early: a pushed database has the tables from shared/schema.ts and none of the migrations
+  // that are not derivable from it — row-level security among them — so it starts, serves
+  // requests, and does not isolate tenants, without a word about any of it.
+  const schemaState = await inspectSchemaState();
+  if (schemaState.kind === 'unmanaged' || schemaState.kind === 'behind') {
+    throw new Error(describeSchemaState(schemaState));
+  }
 
   // ─── Correlation ID middleware (must be FIRST) ──────────────────────────
   // Generates a unique trace ID for each request and propagates it
