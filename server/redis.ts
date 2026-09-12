@@ -79,25 +79,24 @@ function describeError(error: Error): string {
   return error.message || aggregate.code || error.name;
 }
 
-let ioredisEverConnected = false;
-
 export const connection = new Redis(redisUrl, {
   maxRetriesPerRequest: null,
   // Connect on first command rather than at import time, so modules that import
   // this (e.g. auth for sessions) don't force a Redis connection when none is used
   // (e.g. tests using an in-memory session store).
   lazyConnect: true,
-  retryStrategy: (retries) => {
-    const decision = reconnectDecision(retries, ioredisEverConnected);
-    // ioredis stops retrying when the strategy returns a non-number.
-    return decision instanceof Error ? null : decision;
-  },
+  // Deliberately unbounded, unlike the session client below. Nothing awaits this client
+  // during startup — it is lazy and BullMQ drives it — so giving up buys no unblocking,
+  // and it costs plenty: ioredis then rejects the queued commands, and an enqueue nobody
+  // awaited becomes an unhandled rejection that takes the whole process (or, in CI, a
+  // whole test file) down. A queue waiting for Redis to come back is the wanted
+  // behaviour; only the capped backoff is worth borrowing.
+  retryStrategy: (retries) => reconnectDecision(retries, true) as number,
 });
 
 connection.on('error', throttledErrorLogger('Redis connection error'));
 
 connection.on('ready', async () => {
-  ioredisEverConnected = true;
   const logger = await loggerPromise;
   logger.info('Redis connection established successfully.');
 });
