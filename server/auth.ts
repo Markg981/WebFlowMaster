@@ -36,12 +36,14 @@ const registerSchema = z.object({
 
 // Choose a session store: Redis for real deployments (shared across instances /
 // the worker process), in-memory only where no Redis is required. This runs after
-// index.ts has attempted connectSessionRedis(), so sessionRedis.isOpen is authoritative.
-function createSessionStore(): session.Store {
+// index.ts has attempted connectSessionRedis(). `isOpen` is NOT authoritative here:
+// node-redis sets it on entry to connect(), before a socket exists, so it is true even
+// when the connection was refused. Only `isReady` means the handshake completed.
+export function createSessionStore(): session.Store {
   if (process.env.NODE_ENV === "test") {
     return new MemoryStore({ checkPeriod: 86400000 });
   }
-  if (sessionRedis.isOpen) {
+  if (sessionRedis.isReady) {
     // Uses the node-redis client (sessionRedis), not the ioredis one: connect-redis peer-
     // depends on `redis` >= 5 and calls set(key, val, {EX}), mGet() and scanIterator().
     return new RedisStore({ client: sessionRedis, prefix: "wfm:sess:" });
