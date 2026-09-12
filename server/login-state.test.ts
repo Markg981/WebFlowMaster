@@ -58,7 +58,7 @@ async function makeEnvironment(name = 'Acceptance'): Promise<number> {
 }
 
 /** A minimal but real Playwright storageState carrying the cookie the page looks for. */
-const sessionState = (host: string, port: number) => ({
+const sessionState = (host: string) => ({
   cookies: [
     {
       name: 'wfm_session',
@@ -77,7 +77,7 @@ const sessionState = (host: string, port: number) => ({
 describe('saving and loading a login state', () => {
   it('round-trips the state through the environment', async () => {
     const environmentId = await makeEnvironment();
-    const state = sessionState('127.0.0.1', 0);
+    const state = sessionState('127.0.0.1');
 
     await saveLoginState({ environmentId, organizationId }, state);
     const loaded = await loadLoginState({ environmentId, organizationId });
@@ -87,7 +87,7 @@ describe('saving and loading a login state', () => {
 
   it('stores it encrypted, not as readable JSON', async () => {
     const environmentId = await makeEnvironment();
-    await saveLoginState({ environmentId, organizationId }, sessionState('127.0.0.1', 0));
+    await saveLoginState({ environmentId, organizationId }, sessionState('127.0.0.1'));
 
     const [row] = await privilegedDb
       .select()
@@ -112,7 +112,7 @@ describe('saving and loading a login state', () => {
       .returning();
     await saveLoginState(
       { environmentId: foreign.id, organizationId: otherOrg },
-      sessionState('127.0.0.1', 0),
+      sessionState('127.0.0.1'),
     );
 
     const loaded = await loadLoginState({ environmentId: foreign.id, organizationId });
@@ -130,9 +130,8 @@ describe('saving and loading a login state', () => {
 describe('running a test with a saved login state', () => {
   it('arrives at the page already authenticated', async () => {
     const { playwrightService } = await import('./playwright-service');
-    const port = (server.address() as AddressInfo).port;
     const environmentId = await makeEnvironment();
-    await saveLoginState({ environmentId, organizationId }, sessionState('127.0.0.1', port));
+    await saveLoginState({ environmentId, organizationId }, sessionState('127.0.0.1'));
 
     const result = await playwrightService.executeTestSequence(
       {
