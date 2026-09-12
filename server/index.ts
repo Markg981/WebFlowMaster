@@ -11,6 +11,7 @@ import { setupWebSockets } from './websocket';
 import { correlationMiddleware } from './middleware/correlation';
 import { csrfOriginCheck } from './middleware/csrf';
 import { connection as redisConnection, connectSessionRedis, sessionRedis } from './redis';
+import { resolvePort } from './config';
 
 const app = express();
 app.use(express.json());
@@ -128,10 +129,9 @@ app.use(express.urlencoded({ extended: false }));
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // One process serves both the API and the client. PORT overrides the default of 5000,
+  // which is what the Vite dev proxy and existing deployments assume.
+  const port = resolvePort();
   server.listen({
     port,
     host: "0.0.0.0",
