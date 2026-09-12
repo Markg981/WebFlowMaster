@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { redactObject, redactString, scrubControlCharsFromMessage } from './log-redactor';
+import { redactObject, redactString, redactSensitiveData, scrubControlCharsFromMessage } from './log-redactor';
 
 /**
  * Runs the real winston format the logger installs, so these assertions exercise the
@@ -172,5 +172,62 @@ describe('redactObject', () => {
     expect(redacted.authType).toBe('bearer');
     expect(redacted.tokenCount).toBe(42);
     expect(redacted.passwordConfirmed).toBe(true);
+  });
+});
+
+describe('format pipeline integrity', () => {
+  const LEVEL = Symbol.for('level');
+  const MESSAGE = Symbol.for('message');
+
+  it('preserves the symbol keys winston routes on', () => {
+    const info: any = { level: 'info', message: 'hello', [LEVEL]: 'info', [MESSAGE]: 'hello' };
+
+    const out: any = redactSensitiveData().transform(info);
+
+    // Winston's transports decide whether an entry passes the level filter by reading
+    // info[Symbol.for('level')]. Rebuilding the info object with Object.entries drops it,
+    // and every transport then discards the entry without a word.
+    expect(out[LEVEL]).toBe('info');
+    expect(out[MESSAGE]).toBe('hello');
+  });
+
+  it('still redacts metadata while preserving them', () => {
+    const info: any = { level: 'warn', message: 'auth', password: 'hunter2', [LEVEL]: 'warn' };
+
+    const out: any = redactSensitiveData().transform(info);
+
+    expect(out.password).toBe('[REDACTED]');
+    expect(out[LEVEL]).toBe('warn');
+  });
+
+  it('delivers a log entry all the way to a transport', async () => {
+    const winston = (await import('winston')).default;
+    const received: any[] = [];
+
+    class CaptureTransport extends (await import('winston-transport')).default {
+      log(info: any, next: () => void) {
+        received.push(info);
+        next();
+      }
+    }
+
+    const logger = winston.createLogger({
+      level: 'info',
+      format: winston.format.combine(
+        winston.format.timestamp(),
+        redactSensitiveData(),
+        scrubControlCharsFromMessage(),
+        winston.format.json(),
+      ),
+      transports: [new CaptureTransport()],
+    });
+
+    logger.info('reaches the transport', { password: 'hunter2', userId: 7 });
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(received).toHaveLength(1);
+    expect(received[0].message).toBe('reaches the transport');
+    expect(received[0].password).toBe('[REDACTED]');
+    expect(received[0].userId).toBe(7);
   });
 });
