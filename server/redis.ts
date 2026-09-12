@@ -39,8 +39,12 @@ function throttledErrorLogger(prefix: string, windowMs = 30_000) {
   let lastAt = 0;
   let suppressed = 0;
 
-  return async (error: Error) => {
-    const logger = await loggerPromise;
+  // Returns void rather than a promise on purpose. An `async` listener on an 'error' event
+  // turns any failure inside it — including the logger's own import settling during a test
+  // teardown — into an unhandled rejection attributed to whatever happened to be running,
+  // which is a genuinely confusing way to lose a test run. Nothing here needs to be awaited
+  // by the emitter, so nothing here returns a promise to it.
+  return (error: Error): void => {
     const detail = describeError(error);
     const key = `${error.name}:${detail}`;
     const now = Date.now();
@@ -50,13 +54,23 @@ function throttledErrorLogger(prefix: string, windowMs = 30_000) {
       return;
     }
 
-    if (suppressed > 0) {
-      logger.warn(`${prefix}: previous error repeated ${suppressed} more time(s).`);
-      suppressed = 0;
-    }
+    const repeated = suppressed;
+    suppressed = 0;
     lastKey = key;
     lastAt = now;
-    logger.error(`${prefix}: ${detail}`);
+
+    // Promise.resolve, not loggerPromise.then: several suites mock the logger module with a
+    // plain object rather than a promise, which `await` tolerated and a bare `.then` does not.
+    void Promise.resolve(loggerPromise)
+      .then((logger) => {
+        if (repeated > 0) {
+          logger.warn(`${prefix}: previous error repeated ${repeated} more time(s).`);
+        }
+        logger.error(`${prefix}: ${detail}`);
+      })
+      .catch(() => {
+        // Logging a connection error must never become a second failure.
+      });
   };
 }
 
@@ -96,9 +110,11 @@ export const connection = new Redis(redisUrl, {
 
 connection.on('error', throttledErrorLogger('Redis connection error'));
 
-connection.on('ready', async () => {
-  const logger = await loggerPromise;
-  logger.info('Redis connection established successfully.');
+// Synchronous for the same reason as the error listener above.
+connection.on('ready', () => {
+  void Promise.resolve(loggerPromise)
+    .then((logger) => logger.info('Redis connection established successfully.'))
+    .catch(() => {});
 });
 
 // Separate client for the express-session store: connect-redis targets node-redis
