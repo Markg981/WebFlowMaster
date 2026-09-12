@@ -2,6 +2,7 @@ import type { Page } from 'playwright';
 import type { PlaywrightReporter } from './playwright-reporter';
 import { ADHOC_ACTION_IDS, type AdhocActionId } from '@shared/recording';
 import { requestVariables, substituteVariables } from './outbound-http';
+import { findUnresolvedVariables } from './variables';
 
 /**
  * The single implementation of "run one step of a test sequence".
@@ -53,6 +54,31 @@ export interface ExecutableStep {
 const passed: StepOutcome = { status: 'passed' };
 const failed = (error: string): StepOutcome => ({ status: 'failed', error });
 
+/** Marks the message so callers and tests can recognise this specific failure. */
+export const UNRESOLVED_VARIABLE_ERROR = 'Unresolved variable(s)';
+
+/**
+ * Substitution deliberately leaves an unknown `{{name}}` in place rather than blanking it.
+ * That is right for a URL, where a wrong address is obvious, and wrong for a value typed
+ * into the page: a literal `{{secret_password}}` entered into a login form looks like a
+ * failed login, and the tester has no way to tell the two apart. Anything sent to the
+ * system under test is checked first, and reported by name.
+ */
+function resolveValue(
+  raw: string,
+  vars: Record<string, string>,
+): { value: string } | { error: string } {
+  const missing = findUnresolvedVariables(raw, vars);
+  if (missing.length > 0) {
+    return {
+      error:
+        `${UNRESOLVED_VARIABLE_ERROR} ${missing.join(', ')}. ` +
+        'Select an environment that defines them, or write the value in full.',
+    };
+  }
+  return { value: substituteVariables(raw, vars) };
+}
+
 /** Parses the `assertElementCount` value: `"==5"`, `">=2"`, or a bare `"3"`. */
 export function parseAssertionValue(value: string): { operator: string; count: number } | null {
   const match = value.match(/^(==|>=|<=|>|<|!=)?\s*(\d+)$/);
@@ -92,7 +118,6 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
   const actionName = step.action?.name || 'Unnamed Action';
   const vars = ctx.vars ?? requestVariables();
   const selector = step.targetElement?.selector;
-  const subst = (value: string) => substituteVariables(value, vars);
 
   // Routed through the reporter when there is one, so AI healing still wraps the two
   // actions it knows how to repair.
@@ -114,7 +139,9 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
       if (typeof step.value !== 'string') throw new Error('Value missing for input action.');
       // Substitution applies on every path. A recorded password is stored as a
       // `{{secret_…}}` placeholder, never in clear text, and has to resolve here.
-      await fill(selector, subst(step.value));
+      const typed = resolveValue(step.value, vars);
+      if ('error' in typed) return failed(typed.error);
+      await fill(selector, typed.value);
       return passed;
     }
 
@@ -140,7 +167,9 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
       // while recording (see isRedundantNavigation).
       const destination = typeof step.value === 'string' ? step.value.trim() : '';
       if (!destination) throw new Error('URL (value) missing for navigate action.');
-      await page.goto(subst(destination), { waitUntil: 'domcontentloaded' });
+      const target = resolveValue(destination, vars);
+      if ('error' in target) return failed(target.error);
+      await page.goto(target.value, { waitUntil: 'domcontentloaded' });
       return passed;
     }
 
@@ -158,7 +187,9 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
       if (typeof step.value !== 'string' || step.value.trim() === '') {
         return failed('Expected text (value) missing or empty for assertTextContains action.');
       }
-      const expected = subst(step.value);
+      const expectedValue = resolveValue(step.value, vars);
+      if ('error' in expectedValue) return failed(expectedValue.error);
+      const expected = expectedValue.value;
       const actualText = await page.locator(selector).textContent();
       if (actualText === null || !actualText.includes(expected)) {
         return failed(
@@ -206,7 +237,9 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
       if (typeof step.value !== 'string' || step.value.trim() === '') {
         return failed('Value missing for select action (expected option value).');
       }
-      await page.selectOption(selector, subst(step.value));
+      const option = resolveValue(step.value, vars);
+      if ('error' in option) return failed(option.error);
+      await page.selectOption(selector, option.value);
       return passed;
     }
 

@@ -75,6 +75,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // ad-hoc preview must accept and run them too — otherwise "Execute Test" exercises a
     // different setup than the real run.
     preconditions: z.array(PreconditionSchema).optional().nullable(),
+    // Which environment resolves `{{name}}` placeholders. The organization it must belong
+    // to is taken from the session, so naming another tenant's environment resolves nothing.
+    environmentId: z.number().int().positive().optional().nullable(),
   });
 
     // Auth First
@@ -540,7 +543,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       resolvedLogger.debug({ message: "POST /api/execute-test-direct - Calling playwrightService.executeAdhocSequence.", userId, testName: payload.name });
-      resultFromService = await playwrightService.executeAdhocSequence(payload, userId);
+      // organizationId comes from the session, not the payload: the schema does not accept
+      // it, so a client cannot name a tenant whose environment secrets it would resolve.
+      resultFromService = await playwrightService.executeAdhocSequence(
+        { ...payload, organizationId: (req.user as any).organizationId },
+        userId,
+      );
       resolvedLogger.debug({ message: "POST /api/execute-test-direct - playwrightService.executeAdhocSequence returned.", userId, testName: payload.name, serviceSuccess: resultFromService?.success });
       resolvedLogger.debug({ message: "POST /api/execute-test-direct - Result from service:", result: resultFromService, userId });
 

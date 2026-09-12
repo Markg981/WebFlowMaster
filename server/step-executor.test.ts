@@ -122,6 +122,56 @@ describe('a saved test replayed through executeTestSequence', () => {
   }, 60_000);
 });
 
+describe('unresolved variables', () => {
+  it('fails the step instead of typing the placeholder into the page', async () => {
+    const { playwrightService } = await import('./playwright-service');
+
+    const result = await playwrightService.executeTestSequence(
+      savedTest([step('input', { selector: '#field', value: '{{secret_password}}' })]),
+      1,
+    );
+
+    const inputStep = (result.steps ?? []).find((s) => s.type === 'input');
+    expect(inputStep?.status).toBe('failed');
+    // The message has to name what to define: the tester's fix is to pick an environment
+    // that carries this secret, and "the step failed" does not say that.
+    expect(inputStep?.error).toContain('secret_password');
+    expect(result.success).toBe(false);
+  }, 60_000);
+
+  it('resolves an environment secret handed to it by the caller', async () => {
+    const { playwrightService } = await import('./playwright-service');
+
+    const result = await playwrightService.executeTestSequence(
+      savedTest([
+        step('input', { selector: '#field', value: '{{secret_password}}' }),
+        step('assertTextContains', { selector: '#echo', value: 'hunter2' }),
+      ]),
+      1,
+      undefined,
+      undefined,
+      { baseUrl, secret_password: 'hunter2' },
+    );
+
+    const failures = (result.steps ?? []).filter((s) => s.status === 'failed');
+    expect(failures.map((f) => `${f.type}: ${f.error}`)).toEqual([]);
+    expect(result.success).toBe(true);
+  }, 60_000);
+
+  it('reports an unresolved URL in a navigate step the same way', async () => {
+    const { playwrightService } = await import('./playwright-service');
+
+    const result = await playwrightService.executeTestSequence(
+      savedTest([step('navigate', { value: '{{missingHost}}/orders' })]),
+      1,
+    );
+
+    const navStep = (result.steps ?? []).find((s) => s.type === 'navigate');
+    expect(navStep?.status).toBe('failed');
+    expect(navStep?.error).toContain('Unresolved variable(s) missingHost');
+  }, 60_000);
+});
+
 describe('action coverage', () => {
   it('handles every action the builder and recorder can produce', async () => {
     const { HANDLED_ACTION_IDS } = await import('./step-executor');

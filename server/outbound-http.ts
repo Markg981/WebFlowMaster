@@ -1,4 +1,5 @@
 import { Agent } from 'undici';
+import { defaultVariables } from './variables';
 
 /**
  * Outbound HTTP for the systems under test (DMO and friends).

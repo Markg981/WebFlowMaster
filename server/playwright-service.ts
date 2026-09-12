@@ -15,6 +15,7 @@ import { browserPool } from './browser-pool';
 import { getWsEmitter } from './websocket';
 import { allowsSelfSignedCertificate, substituteVariables, requestVariables } from './outbound-http';
 import { executeStep } from './step-executor';
+import { resolveVariables } from './variables';
 
 // Default settings if not found or incomplete
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
@@ -94,6 +95,10 @@ interface AdhocSequencePayload {
   name?: string;
   /** Same setup calls the scheduled runner performs, so the preview matches the real run. */
   preconditions?: Precondition[] | null;
+  /** Environment whose secrets resolve `{{name}}` placeholders, as picked in the builder. */
+  environmentId?: number | null;
+  /** Organization the environment must belong to — set by the route, never by the client. */
+  organizationId?: number;
 }
 
 interface ActiveSession {
@@ -611,7 +616,16 @@ export class PlaywrightService {
   async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detectedElements?: DetectedElement[] }> {
     const testName = payload.name || "Ad-hoc Test";
     resolvedLogger.http({ message: "PlaywrightService: executeAdhocSequence called", testName, userId, url: payload.url });
-    const targetUrl = payload.url ? substituteVariables(payload.url) : payload.url;
+    // The preview resolves variables the same way a scheduled run does, so a test that
+    // works here is not relying on something only this path provides.
+    const vars = payload.organizationId
+      ? await resolveVariables({
+          userId,
+          organizationId: payload.organizationId,
+          environmentId: payload.environmentId,
+        })
+      : requestVariables();
+    const targetUrl = payload.url ? substituteVariables(payload.url, vars) : payload.url;
     const startTime = Date.now();
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
@@ -748,7 +762,7 @@ export class PlaywrightService {
 
             resolvedLogger.verbose({ message: `PS:executeAdhocSequence - Executing step`, testName, actionName, actionId, selector: step.targetElement?.selector, value: step.value });
 
-            const outcome = await executeStep({ page }, step);
+            const outcome = await executeStep({ page, vars }, step);
             if (outcome.status === 'failed') {
               stepStatus = 'failed';
               stepError = outcome.error;
@@ -928,12 +942,15 @@ export class PlaywrightService {
     test: Test,
     userId: number,
     screenshotBaseDir?: string, // Optional base directory for screenshots
-    executionId?: string // Optional execution ID for real-time logging
+    executionId?: string, // Optional execution ID for real-time logging
+    // Resolved `{{name}}` values. Supplied by the caller that knows which environment
+    // applies; falls back to the defaults so existing callers keep working.
+    vars: Record<string, string> = requestVariables(),
   ): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number }> {
     const startTime = Date.now();
     const wsEmitter = getWsEmitter();
     resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url, screenshotBaseDir });
-    const targetUrl = test.url ? substituteVariables(test.url) : test.url;
+    const targetUrl = test.url ? substituteVariables(test.url, vars) : test.url;
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
     let page: Page | null = null;
@@ -1036,7 +1053,7 @@ export class PlaywrightService {
           try {
             if (!actionId) throw new Error('Step action ID is missing.');
 
-            const outcome = await executeStep({ page, reporter }, step);
+            const outcome = await executeStep({ page, reporter, vars }, step);
             if (outcome.status === 'failed') {
               stepStatus = 'failed';
               stepError = outcome.error;
