@@ -502,6 +502,10 @@ export const RECORDER_SCRIPT = `
     for (var i = pendingHovers.length - 1; i >= 0; i--) {
       var p = pendingHovers[i];
       if (now - p.at >= PENDING_HOVER_TTL_MS) continue;
+      // A step cannot hover something that has since left the document. Without this, a menu
+      // entry that was clicked and then removed still counted as the thing that revealed
+      // whatever rendered next.
+      if (!document.contains(p.host)) continue;
       if (p.root.contains(clicked) && !p.host.contains(clicked)) return p.host;
     }
     return null;
@@ -597,6 +601,11 @@ export const RECORDER_SCRIPT = `
   /* ------------------------------------------------------------------- navigations */
 
   function reportNavigation() {
+    // A route change replaces most of the document, and whatever the pointer happened to be
+    // over at that moment would otherwise be credited with having revealed all of it — so
+    // the next click anywhere on the new screen produced a hover step for a menu entry that
+    // had just been clicked and was already gone.
+    pendingHovers = [];
     send({ type: 'navigate', url: window.location.href, value: window.location.href, timestamp: Date.now() });
   }
 

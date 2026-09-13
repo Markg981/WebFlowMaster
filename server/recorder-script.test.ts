@@ -118,17 +118,40 @@ const PAGE_FLYOUT = `<!doctype html>
   <div id="flyout-slot"></div>
   <div id="tip-slot"></div>
   <button id="plain">Plain</button>
+  <div id="screen"><button id="stay">Stay</button></div>
   <script>
+    // Clicking the menu entry swaps the screen and pushes a route, the way a single-page
+    // application does — which replaces most of the document while the pointer is still
+    // sitting on the entry that has just been removed.
+    document.addEventListener('click', function (ev) {
+      if (!ev.target.closest || !ev.target.closest('#menu-item-nav')) return;
+      var screen = document.getElementById('screen');
+      var next = document.createElement('button');
+      next.id = 'on-new-screen';
+      next.textContent = 'On the new screen';
+      screen.innerHTML = '';
+      screen.appendChild(next);
+      document.getElementById('flyout-slot').innerHTML = '';
+      history.pushState({}, '', '/flyout?page=2');
+    });
     var slot = document.getElementById('flyout-slot');
     document.getElementById('rail').addEventListener('mouseover', function () {
       if (slot.firstChild) return;
       var nav = document.createElement('nav');
       nav.id = 'flyout';
-      var link = document.createElement('a');
-      link.id = 'menu-item';
-      link.href = '#';
-      link.textContent = 'Operator Console Listing';
-      nav.appendChild(link);
+      // Three entries: two inert, so a test can pick twice from one menu, and one that
+      // changes the screen the way a route does.
+      [
+        ['menu-item', 'Operator Console Listing'],
+        ['menu-item-2', 'Current Executions'],
+        ['menu-item-nav', 'Go to the next screen'],
+      ].forEach(function (pair) {
+        var link = document.createElement('a');
+        link.id = pair[0];
+        link.href = '#';
+        link.textContent = pair[1];
+        nav.appendChild(link);
+      });
       slot.appendChild(nav);
     });
     var tipSlot = document.getElementById('tip-slot');
@@ -417,7 +440,7 @@ describe('a menu that only exists while the pointer is over it', () => {
 
     await page.hover('#rail');
     await page.click('#menu-item');
-    await page.click('#menu-item');
+    await page.click('#menu-item-2');
     await settle();
 
     const actions = await recordedActions(sessionId);
@@ -494,6 +517,32 @@ describe('a label wrapped the way Angular Material wraps it', () => {
     // Playwright resolves to two elements would fail replay in strict mode; one it resolves
     // to none would fail even sooner.
     expect(await page.locator('span:text-is("Current Executions")').count()).toBe(1);
+
+    await context.close();
+  }, 60_000);
+});
+
+describe('after the screen changes', () => {
+  it('does not credit the entry that was just clicked with revealing the next screen', async () => {
+    const sessionId = 'it-after-nav';
+    const context = await startRecording(sessionId);
+    const page = await context.newPage();
+    await page.goto(`${baseUrl}/flyout`);
+
+    await page.hover('#rail');
+    await page.click('#menu-item-nav'); // swaps the screen and pushes a route
+    await settle();
+    await page.click('#on-new-screen');
+    await settle();
+
+    const actions = await recordedActions(sessionId);
+    const hovers = actions.filter((a) => a.type === 'hover').map((a) => a.selector);
+
+    // One hover, for the rail that opened the menu. The menu entry is gone by the time the
+    // new screen renders, and a step cannot hover something that has left the document —
+    // which is exactly what the replay of the DMO recording tripped over: a second hover
+    // aimed at a menu item that no longer existed, timing out after thirty seconds.
+    expect(hovers).toEqual(['#rail']);
 
     await context.close();
   }, 60_000);
