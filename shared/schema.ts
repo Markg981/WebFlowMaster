@@ -203,6 +203,15 @@ export const testPlanSchedules = pgTable("test_plan_schedules", {
   scheduleName: text('schedule_name').notNull(),
   frequency: text('frequency').notNull(),
   nextRunAt: timestamp('next_run_at').notNull(),
+  /**
+   * IANA zone the schedule's time is meant in, e.g. 'Europe/Rome'.
+   *
+   * An offset cannot express "02:00 local all year round", which is what people actually
+   * want from a nightly job — and deriving everything from UTC, as this used to, moved such
+   * a job by an hour twice a year without anything having changed but the clocks.
+   * Defaults to 'UTC', which is what every pre-existing row already meant.
+   */
+  timezone: text('timezone').notNull().default('UTC'),
   environment: text('environment'),
   browsers: jsonb('browsers'),
   notificationConfigOverride: jsonb('notification_config_override'),

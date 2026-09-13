@@ -57,7 +57,9 @@ describe('ScheduleForm', () => {
     expect(screen.getByLabelText(/Schedule Name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Test Plan/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Frequency/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Next Run At \(UTC\)/i)).toBeInTheDocument();
+    // The label names the zone the schedule is actually in, which is no longer always UTC.
+    expect(screen.getByLabelText(/Next Run At/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Timezone/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Environment/i)).toBeInTheDocument();
     expect(screen.getByText('Browsers')).toBeInTheDocument(); // group caption, not a control label
     BROWSER_OPTIONS.forEach(opt => {
@@ -205,4 +207,50 @@ describe('ScheduleForm', () => {
     expect(screen.getByRole('button', { name: /Save Changes/i })).toBeInTheDocument();
   });
 
+});
+
+describe('ScheduleForm timezone', () => {
+  const onSubmit = vi.fn(() => Promise.resolve());
+  const onCancel = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    queryClient.clear();
+  });
+
+  it('defaults to the browser timezone, which is what the tester means by "02:00"', async () => {
+    render(
+      <ScheduleForm onSubmit={onSubmit} onCancel={onCancel} isSubmitting={false} />,
+      { wrapper: Wrapper },
+    );
+
+    // Not UTC. Everything used to be UTC and the form said so — honest, but it pushed a
+    // twice-yearly conversion onto whoever set the schedule, and they got it wrong.
+    const expected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    expect((screen.getByLabelText(/Timezone/i) as HTMLInputElement).value).toBe(expected);
+  });
+
+  it('keeps the timezone a schedule was saved with when editing it', async () => {
+    render(
+      <ScheduleForm
+        onSubmit={onSubmit}
+        onCancel={onCancel}
+        isSubmitting={false}
+        initialData={{
+          scheduleName: 'Nightly',
+          testPlanId: 'plan-1',
+          frequency: 'daily',
+          nextRunAt: new Date('2024-01-15T01:00:00Z'),
+          timezone: 'Europe/Rome',
+          isActive: true,
+          retryOnFailure: 'none',
+        } as never}
+      />,
+      { wrapper: Wrapper },
+    );
+
+    await waitFor(() => {
+      expect((screen.getByLabelText(/Timezone/i) as HTMLInputElement).value).toBe('Europe/Rome');
+    });
+  });
 });

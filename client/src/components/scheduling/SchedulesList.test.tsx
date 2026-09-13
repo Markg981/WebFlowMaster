@@ -2,7 +2,6 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import SchedulesList from './SchedulesList';
 import type { TestPlanScheduleEnhanced } from '@/lib/api/schedules';
-import { format } from 'date-fns';
 
 const mockSchedules: TestPlanScheduleEnhanced[] = [
   {
@@ -93,11 +92,13 @@ describe('SchedulesList', () => {
     expect(screen.getByText('Daily Smoke Test')).toBeInTheDocument();
     expect(screen.getByText('Main Test Plan')).toBeInTheDocument();
     expect(screen.getByText('Daily')).toBeInTheDocument(); // Formatted frequency
-    // `format` renders in local time, so derive the expectation the same way rather
-    // than hard-coding a UTC string that only matches on a UTC machine.
-    expect(
-      screen.getByText(format(mockSchedules[0].nextRunAt, 'yyyy-MM-dd HH:mm')),
-    ).toBeInTheDocument();
+    // Rendered in the schedule's own timezone — which these mocks leave unset, so UTC —
+    // rather than in whatever zone the machine running the tests is in. The column used to
+    // be headed "(UTC)" while formatting locally, so the heading and the number disagreed
+    // for every reader outside UTC.
+    expect(screen.getByText('2024-08-01 09:00')).toBeInTheDocument();
+    // And the zone is named next to it, because a time without one is ambiguous.
+    expect(screen.getAllByText('UTC').length).toBeGreaterThan(0);
     expect(screen.getByText('QA')).toBeInTheDocument();
     expect(screen.getByText('chromium, firefox')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();

@@ -78,6 +78,13 @@
       "when": 1785700000000,
       "tag": "0010_environment_login_state",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1785800000000,
+      "tag": "0011_schedule_timezone",
+      "breakpoints": true
     }
   ]
 }

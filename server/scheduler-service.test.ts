@@ -27,6 +27,7 @@ import {
   initializeScheduler,
   shutdownScheduler,
   frequencyToCronPatternForTest as frequencyToCronPattern,
+  calculateNextRunTimeForTest as calculateNextRunTime,
 } from './scheduler-service';
 import { createTestOrganization } from './tests/factories';
 
@@ -98,6 +99,57 @@ describe('Scheduler Service', () => {
       expect(frequencyToCronPattern('every_30_minutes', new Date())).toBe('*/30 * * * *');
       expect(frequencyToCronPattern('every_2_hours', new Date())).toBe('0 */2 * * *');
       expect(frequencyToCronPattern('every_3_days', new Date('2023-01-01T08:15:00Z'))).toBe('0 8 */3 * *');
+    });
+
+    it('reads the wall-clock time in the schedule timezone, not in UTC', () => {
+      // 01:30 UTC in January is 02:30 in Rome. A schedule the tester set to run at 02:30
+      // has to produce 30 2, not 30 1 — otherwise the interface says one time and the
+      // scheduler means another.
+      expect(frequencyToCronPattern('daily', new Date('2024-01-15T01:30:00Z'), 'Europe/Rome'))
+        .toBe('30 2 * * *');
+    });
+
+    it('still reads UTC when no timezone is given, so existing schedules do not move', () => {
+      expect(frequencyToCronPattern('daily', new Date('2024-01-15T01:30:00Z'))).toBe('30 1 * * *');
+    });
+
+    it('takes the weekday in the schedule timezone too', () => {
+      // 23:00 UTC on Monday is already Tuesday in Rome. Deriving the weekday in UTC would
+      // schedule a "weekly on Tuesday" run for Monday.
+      expect(frequencyToCronPattern('weekly', new Date('2024-01-15T23:00:00Z'), 'Europe/Rome'))
+        .toBe('0 0 * * 2');
+    });
+  });
+
+  describe('daylight saving time', () => {
+    /** The wall-clock hour a moment falls on, as read in a given zone. */
+    const hourIn = (date: Date, timeZone: string) =>
+      Number(
+        new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', hour12: false })
+          .format(date),
+      );
+
+    it('keeps a daily run at the same local hour on both sides of the change', () => {
+      // The defect: everything resolved against UTC, so a 02:00 Europe/Rome nightly
+      // regression silently ran at 03:00 for half the year and 02:00 for the other half.
+      // Nobody changed anything; the clocks did.
+      const winter = calculateNextRunTime('daily', new Date('2024-01-15T01:00:00Z'), 'Europe/Rome');
+      const summer = calculateNextRunTime('daily', new Date('2024-07-15T00:00:00Z'), 'Europe/Rome');
+
+      expect(winter).not.toBeNull();
+      expect(summer).not.toBeNull();
+      // Same wall-clock hour in Rome, despite Rome being UTC+1 in January and UTC+2 in July.
+      expect(hourIn(winter!, 'Europe/Rome')).toBe(2);
+      expect(hourIn(summer!, 'Europe/Rome')).toBe(2);
+      // And therefore genuinely different UTC hours — which is the whole point.
+      expect(winter!.getUTCHours()).toBe(1);
+      expect(summer!.getUTCHours()).toBe(0);
+    });
+
+    it('rejects a timezone the platform does not know rather than silently using UTC', () => {
+      expect(() => frequencyToCronPattern('daily', new Date(), 'Mars/Olympus_Mons')).toThrow(
+        /timezone/i,
+      );
     });
   });
 
