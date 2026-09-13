@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AuthType, AuthTypeSchema } from '@shared/schema';
+import { AuthType, AuthTypeSchema, isImplementedAuthType } from '@shared/schema';
 
 interface AuthTypeDropdownProps {
   authType: AuthType;
@@ -15,7 +15,11 @@ interface AuthTypeDropdownProps {
   disabled?: boolean;
 }
 
-const authTypeDisplayMap: Record<AuthType, string> = {
+/**
+ * Exported because the panel beside this one needs the same names, and kept its own copy
+ * until they were a rename apart from disagreeing.
+ */
+export const authTypeDisplayMap: Record<AuthType, string> = {
   inherit: 'Inherit from Parent',
   none: 'No Auth',
   basic: 'Basic Auth',
@@ -48,11 +52,27 @@ export const AuthTypeDropdown: React.FC<AuthTypeDropdownProps> = ({
         <SelectValue placeholder={t('apiTester.authTypeDropdown.selectAuthType.placeholder')} />
       </SelectTrigger>
       <SelectContent>
-        {AuthTypeSchema.options.map((type) => (
-          <SelectItem key={type} value={type}>
-            {authTypeDisplayMap[type] || type}
-          </SelectItem>
-        ))}
+        {AuthTypeSchema.options.map((type) => {
+          const implemented = isImplementedAuthType(type);
+          return (
+            <SelectItem
+              key={type}
+              value={type}
+              // Eight of these have never done anything: choosing one sent the request with
+              // no credentials at all. Saying so in the list is the only place the tester
+              // can learn it before spending time on a test that could not have worked.
+              // Still rendered, so a saved test that names one can be opened and changed.
+              disabled={!implemented && type !== authType}
+            >
+              {authTypeDisplayMap[type] || type}
+              {!implemented && (
+                <span className="ml-2 text-xs text-muted-foreground">
+                  {t('apiTester.authTypeDropdown.notAvailable.suffix')}
+                </span>
+              )}
+            </SelectItem>
+          );
+        })}
       </SelectContent>
     </Select>
   );

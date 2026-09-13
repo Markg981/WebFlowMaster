@@ -408,3 +408,37 @@ describe('the lockfile can be installed somewhere other than the machine that wr
     expect(missing).toEqual([]);
   });
 });
+
+describe('the suite that needs a browser can get one', () => {
+  it('CI installs the browsers before running the tests that launch them', () => {
+    const workflowDir = path.join(repoRoot, '.github', 'workflows');
+    const workflows = fs.readdirSync(workflowDir).filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'));
+    expect(workflows.length).toBeGreaterThan(0);
+
+    // `npm ci` does not bring the browsers down — the `playwright` package carries no
+    // install script in this lockfile — so a job that runs the suite without an explicit
+    // install fails every browser-driven test with "Executable doesn't exist at
+    // ~/.cache/ms-playwright/…". That is what this workflow did from the day it was written:
+    // for months the only such file was recorder-script.test.ts, whose six tests reported as
+    // skipped and were easy to read past. Once element detection, the step executor, saved
+    // login states and frames each grew a real-browser suite it became 28 failures at once.
+    //
+    // This is about the suites that prove the product's whole purpose. Left unrun they are
+    // worse than absent, because the workflow is green beside them.
+    const offenders: string[] = [];
+    for (const file of workflows) {
+      const source = fs.readFileSync(path.join(workflowDir, file), 'utf8');
+      // Anywhere in the command, not anchored to the start of it: the step is wrapped in
+      // `xvfb-run -a` so the one headed suite has a display. An anchored match would have
+      // stopped recognising the step the moment that wrapper was added, and this whole
+      // check would have gone quietly vacuous — which is the failure it exists to prevent.
+      const runsTheSuite = /run:.*\bnpm test\b/.test(source);
+      if (!runsTheSuite) continue;
+
+      const installsBrowsers = /playwright install/.test(source);
+      if (!installsBrowsers) offenders.push(file);
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});

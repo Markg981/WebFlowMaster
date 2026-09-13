@@ -949,6 +949,9 @@
       },
       "atlassianAsap": {
         "text": "[TRANSLATE] Atlassian ASAP"
+      },
+      "notAvailable": {
+        "suffix": "(indisponible)"
       }
     },
     "authorizationPanel": {
@@ -960,6 +963,9 @@
       },
       "parametersAreNotYetConfigurable": {
         "description": "[TRANSLATE] parameters are not yet configurable."
+      },
+      "schemeUnavailable": {
+        "text": "{{scheme}} n'est pas implémenté. Une requête qui l'utilise partirait sans identifiants, le runner la refuse donc. Utilisez Bearer Token, Basic Auth, API Key ou OAuth 2.0, ou définissez vous-même l'en-tête Authorization dans l'onglet Headers."
       }
     },
     "historyPanel": {
@@ -1091,6 +1097,66 @@
       },
       "enterBearerToken": {
         "placeholder": "[TRANSLATE] Enter bearer token"
+      }
+    },
+    "oauth2AuthForm": {
+      "grantType": {
+        "label": "Type de grant"
+      },
+      "clientCredentials": {
+        "text": "Client Credentials"
+      },
+      "passwordGrant": {
+        "text": "Password"
+      },
+      "noAuthorizationCode": {
+        "help": "Le grant authorization code exige une personne devant un navigateur ; une exécution planifiée ne peut pas l'effectuer."
+      },
+      "tokenUrl": {
+        "label": "URL du token"
+      },
+      "enterTokenUrl": {
+        "placeholder": "https://login.example.com/oauth2/token"
+      },
+      "clientId": {
+        "label": "Client ID"
+      },
+      "enterClientId": {
+        "placeholder": "Saisir le client ID"
+      },
+      "clientSecret": {
+        "label": "Client secret"
+      },
+      "enterClientSecret": {
+        "placeholder": "Saisir le client secret"
+      },
+      "username": {
+        "label": "Nom d'utilisateur"
+      },
+      "enterUsername": {
+        "placeholder": "Saisir le nom d'utilisateur"
+      },
+      "password": {
+        "label": "Mot de passe"
+      },
+      "enterPassword": {
+        "placeholder": "Saisir le mot de passe"
+      },
+      "scope": {
+        "label": "Scope"
+      },
+      "enterScope": {
+        "placeholder": "Facultatif, séparés par des espaces"
+      },
+      "clientAuth": {
+        "label": "Envoyer les identifiants client",
+        "help": "Chaque champ accepte les espaces réservés de l'environnement, résolus depuis l'environnement sélectionné au moment de la requête."
+      },
+      "sendAsBasicHeader": {
+        "text": "Dans un en-tête Authorization Basic"
+      },
+      "sendInBody": {
+        "text": "Dans le corps de la requête"
       }
     }
   },

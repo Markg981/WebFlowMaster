@@ -949,6 +949,9 @@
       },
       "atlassianAsap": {
         "text": "[TRANSLATE] Atlassian ASAP"
+      },
+      "notAvailable": {
+        "suffix": "(nicht verfügbar)"
       }
     },
     "authorizationPanel": {
@@ -960,6 +963,9 @@
       },
       "parametersAreNotYetConfigurable": {
         "description": "[TRANSLATE] parameters are not yet configurable."
+      },
+      "schemeUnavailable": {
+        "text": "{{scheme}} ist nicht implementiert. Eine Anfrage damit ginge ohne Zugangsdaten hinaus, daher lehnt der Runner sie ab. Verwenden Sie Bearer Token, Basic Auth, API Key oder OAuth 2.0, oder setzen Sie den Authorization-Header selbst im Tab Headers."
       }
     },
     "historyPanel": {
@@ -1091,6 +1097,66 @@
       },
       "enterBearerToken": {
         "placeholder": "[TRANSLATE] Enter bearer token"
+      }
+    },
+    "oauth2AuthForm": {
+      "grantType": {
+        "label": "Grant-Typ"
+      },
+      "clientCredentials": {
+        "text": "Client Credentials"
+      },
+      "passwordGrant": {
+        "text": "Password"
+      },
+      "noAuthorizationCode": {
+        "help": "Der Authorization-Code-Grant erfordert eine Person am Browser, ein geplanter Lauf kann ihn daher nicht abschließen."
+      },
+      "tokenUrl": {
+        "label": "Token-URL"
+      },
+      "enterTokenUrl": {
+        "placeholder": "https://login.example.com/oauth2/token"
+      },
+      "clientId": {
+        "label": "Client-ID"
+      },
+      "enterClientId": {
+        "placeholder": "Client-ID eingeben"
+      },
+      "clientSecret": {
+        "label": "Client Secret"
+      },
+      "enterClientSecret": {
+        "placeholder": "Client Secret eingeben"
+      },
+      "username": {
+        "label": "Benutzername"
+      },
+      "enterUsername": {
+        "placeholder": "Benutzernamen eingeben"
+      },
+      "password": {
+        "label": "Passwort"
+      },
+      "enterPassword": {
+        "placeholder": "Passwort eingeben"
+      },
+      "scope": {
+        "label": "Scope"
+      },
+      "enterScope": {
+        "placeholder": "Optional, durch Leerzeichen getrennt"
+      },
+      "clientAuth": {
+        "label": "Client-Zugangsdaten senden",
+        "help": "Jedes Feld akzeptiert Umgebungs-Platzhalter, aufgelöst aus der gewählten Umgebung beim Absenden der Anfrage."
+      },
+      "sendAsBasicHeader": {
+        "text": "Als Basic-Authorization-Header"
+      },
+      "sendInBody": {
+        "text": "Im Anfragetext"
       }
     }
   },

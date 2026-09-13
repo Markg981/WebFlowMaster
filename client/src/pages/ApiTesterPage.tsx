@@ -28,7 +28,7 @@ import { AssertionEditor } from '@/components/api-tester/AssertionEditor';
 import { ExtractionEditor } from '@/components/api-tester/ExtractionEditor';
 import { EnvironmentSelect } from '@/components/EnvironmentSelect';
 import { NO_ENVIRONMENT, environmentIdFor } from '@/hooks/use-environments';
-import { AuthorizationPanel } from '@/components/api-tester/AuthorizationPanel';
+import { AuthorizationPanel, emptyAuthParamsFor } from '@/components/api-tester/AuthorizationPanel';
 import { ApiTestHistoryEntry, InsertApiTestHistoryPayload, ApiTest, InsertApiTest, Assertion, Extraction, AuthType, AuthParams } from '@shared/schema';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { v4 as uuidv4 } from 'uuid';
@@ -248,7 +248,7 @@ const ApiTesterPage: React.FC = () => {
   const apiProxyMutation = useMutation<
     ProxyResponse,
     Error,
-    { method: string; url: string; queryParams?: Record<string, string | string[]>; headers?: Record<string, string>; body?: any; assertions?: Assertion[]; extractions?: Extraction[]; environmentId?: number }
+    { method: string; url: string; queryParams?: Record<string, string | string[]>; headers?: Record<string, string>; body?: any; assertions?: Assertion[]; extractions?: Extraction[]; environmentId?: number; auth?: AuthParams }
   >({
     mutationFn: async (variables) => {
       setResponseStatus(null); setResponseHeaders(null); setResponseBody(null); setDuration(null); setAssertionResults(null);
@@ -334,7 +334,7 @@ const ApiTesterPage: React.FC = () => {
       .filter(h => h.enabled && h.key.trim())
       .reduce((acc, h) => { acc[h.key] = h.value; return acc; }, {} as Record<string, string>);
 
-    let processedQueryParams = queryParams
+    const processedQueryParams = queryParams
       .filter(p => p.enabled && p.key.trim())
       .reduce((acc, p) => {
         if (acc[p.key]) {
@@ -344,43 +344,17 @@ const ApiTesterPage: React.FC = () => {
         return acc;
       }, {} as Record<string, string | string[]>);
 
-    // Apply authentication
-    if (authParams && authParams.type) {
-      switch (authParams.type) {
-        case 'basic':
-          if (authParams.params.username) {
-            const credentials = btoa(`${authParams.params.username}:${authParams.params.password || ''}`);
-            processedHeaders['Authorization'] = `Basic ${credentials}`;
-          }
-          break;
-        case 'bearer':
-          if (authParams.params.token) {
-            processedHeaders['Authorization'] = `Bearer ${authParams.params.token}`;
-          }
-          break;
-        case 'apiKey':
-          if (authParams.params.key && authParams.params.value) {
-            if (authParams.params.addTo === 'header') {
-              processedHeaders[authParams.params.key] = authParams.params.value;
-            } else if (authParams.params.addTo === 'query') {
-              // Add to a copy of processedQueryParams
-              const queryParamsWithApiKey = { ...processedQueryParams };
-              if (queryParamsWithApiKey[authParams.params.key]) {
-                if (Array.isArray(queryParamsWithApiKey[authParams.params.key])) {
-                  (queryParamsWithApiKey[authParams.params.key] as string[]).push(authParams.params.value);
-                } else {
-                  queryParamsWithApiKey[authParams.params.key] = [queryParamsWithApiKey[authParams.params.key] as string, authParams.params.value];
-                }
-              } else {
-                queryParamsWithApiKey[authParams.params.key] = authParams.params.value;
-              }
-              processedQueryParams = queryParamsWithApiKey;
-            }
-          }
-          break;
-        // Other auth types can be added here
-      }
-    }
+    // Authentication is applied by the server, not here.
+    //
+    // This used to build the Authorization header in the browser and send only the result,
+    // which had three consequences. `{{name}}` in a token or a password was sent to the
+    // target literally, because the environment's values live on the server and this page
+    // has never had them. The same test authenticated one way from this page and another
+    // way from a plan, since a scheduled run goes through the runner's own implementation.
+    // And OAuth 2.0 could not be added at all: the token endpoint is a different origin,
+    // and the client secret would be handed to anyone with the developer tools open.
+    //
+    // So the settings go to the server as settings, and one implementation applies them.
 
     let finalBody: any = undefined;
     let finalContentType: string | undefined = undefined;
@@ -478,6 +452,7 @@ const ApiTesterPage: React.FC = () => {
       assertions: assertions.filter(a => a.enabled),
       extractions: extractions.filter(e => e.name.trim() !== ''),
       environmentId: environmentIdFor(selectedEnvironment),
+      auth: authParams,
     });
   };
 
@@ -622,8 +597,6 @@ const ApiTesterPage: React.FC = () => {
   const loadTestState = useCallback((test: ApiTest) => {
     setMethod(test.method);
     setUrl(test.url);
-    if (test.authType) setAuthType(test.authType as AuthType);
-    if (test.authParams) setAuthParams(test.authParams as AuthParams);
     if (test.bodyType) setSelectedBodyType(test.bodyType as BodyType);
 
     const parseKeyValuePairs = (jsonStringOrArray: string | KeyValuePair[] | null | undefined, prefix: 'qp' | 'rh'): KeyValuePair[] => {
@@ -663,14 +636,19 @@ const ApiTesterPage: React.FC = () => {
       setAssertions([]);
     }
 
-    // Load new fields
-    setAuthType((test.authType as AuthType) || 'none');
-    setAuthType((test.authType as AuthType) || 'none');
+    // The scheme and its parameters are set together, always. Setting only the ones the
+    // saved test happens to carry left the previous test's credentials in place behind the
+    // new test's scheme — and it is the parameters that are sent.
+    const loadedType = (test.authType as AuthType) || 'none';
+    setAuthType(loadedType);
     try {
-      setAuthParams(test.authParams ? (typeof test.authParams === 'string' ? JSON.parse(test.authParams) : test.authParams) : undefined);
+      const saved = test.authParams
+        ? (typeof test.authParams === 'string' ? JSON.parse(test.authParams) : test.authParams)
+        : null;
+      setAuthParams(saved ?? emptyAuthParamsFor(loadedType));
     } catch (e) {
       console.error("Error parsing authParams from saved test:", e);
-      setAuthParams(undefined);
+      setAuthParams(emptyAuthParamsFor(loadedType));
     }
     setSelectedBodyType((test.bodyType as BodyType) || 'raw');
     setSelectedBodyType((test.bodyType as BodyType) || 'raw');
