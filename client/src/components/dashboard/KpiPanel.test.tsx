@@ -47,13 +47,24 @@ describe('KpiPanel', () => {
     expect(card('last-run').textContent).toContain('SUCCESS');
   });
 
-  it('renders neutral placeholders when no data is available', () => {
+  it('does not report a rate or a duration when nothing has run', () => {
+    // "0%" is a lie that looks like a measurement: it reads as "everything failed" when
+    // the truth is that there is nothing to measure. Only the count is honestly zero.
     render(<KpiPanel />);
 
-    expect(card('success-rate').textContent).toContain('0%');
+    expect(card('success-rate').textContent).toContain('—');
+    expect(card('success-rate').textContent).not.toContain('0%');
     expect(card('total-tests').textContent).toContain('0');
-    expect(card('avg-duration').textContent).toContain('0s');
-    expect(card('last-run').textContent).toContain('N/A');
+    expect(card('avg-duration').textContent).toContain('—');
+    expect(card('last-run').textContent).toContain('—');
+  });
+
+  it('reports a genuine zero rate when runs exist and all of them failed', () => {
+    render(<KpiPanel data={{ totalRuns: 4, successRate: 0, avgDuration: 1200, lastRun: { status: 'failed' } }} />);
+
+    expect(card('success-rate').textContent).toContain('0%');
+    expect(card('avg-duration').textContent).toContain('1.2s');
+    expect(card('last-run').textContent).toContain('FAILED');
   });
 
   it('shows sub-second durations in milliseconds', () => {

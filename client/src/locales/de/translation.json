@@ -88,7 +88,8 @@
       },
       "lastRun": {
         "title": "Letzte Ausführung"
-      }
+      },
+      "noRunsHint": "Keine Ausführungen zum Messen"
     },
     "quickAccessReports": {
       "recentTestReports": {
@@ -96,7 +97,9 @@
       },
       "reportDataWillBeAvailable": {
         "description": "Die Berichtsdaten sind in Kürze verfügbar."
-      }
+      },
+      "open": "Öffnen",
+      "unnamedPlan": "Plan ohne Namen"
     },
     "runTestNowButton": {
       "eseguiTestOra": {
@@ -158,7 +161,7 @@
     },
     "testStatusPieChart": {
       "testStatusOverview": {
-        "title": "Übersicht der Status"
+        "title": "Status der Ausführungen"
       },
       "chartDataWillBeAvailable": {
         "description": "Die Diagrammdaten sind in Kürze verfügbar."
@@ -166,8 +169,30 @@
     },
     "testTrendBarChart": {
       "weeklyTestTrends": {
-        "title": "Wöchentliche Entwicklung"
+        "title": "Letzte 30 Tage"
       }
+    },
+    "executionStatus": {
+      "passed": "Bestanden",
+      "failed": "Fehlgeschlagen",
+      "pending": "Laufend oder in Warteschlange"
+    },
+    "emptyExecutions": {
+      "title": "Es wurde noch nichts ausgeführt",
+      "description": "Erstellen Sie einen Test für eine Ihrer Webanwendungen und führen Sie ihn aus. Die Ergebnisse erscheinen hier.",
+      "action": "Test erstellen"
+    },
+    "emptyTrend": {
+      "title": "Keine Ausführungen in den letzten 30 Tagen",
+      "description": "Sobald Tests laufen, sehen Sie hier, wie viele pro Tag bestehen und fehlschlagen."
+    },
+    "emptySchedules": {
+      "description": "Eine Planung führt einen Testplan selbstständig zu den von Ihnen gewählten Zeiten aus.",
+      "action": "Planung anlegen"
+    },
+    "emptyReports": {
+      "title": "Noch keine Berichte",
+      "description": "Jede abgeschlossene Ausführung hinterlässt hier einen Bericht mit Schritten, Zeiten und Aufnahmen."
     }
   },
   "nav": {
@@ -350,7 +375,9 @@
     "dashboardOverview": {
       "title": "Übersicht"
     },
-    "description": "Wie Ihre Tests laufen und was als Nächstes geplant ist."
+    "description": "Wie Ihre Tests laufen und was als Nächstes geplant ist.",
+    "loadFailed": "Die Kennzahlen konnten nicht geladen werden; die Bereiche unten sind möglicherweise leer oder veraltet.",
+    "retry": "Erneut versuchen"
   },
   "testSuitesPage": {
     "testSuites": {

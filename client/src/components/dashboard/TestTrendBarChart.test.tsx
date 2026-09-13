@@ -44,7 +44,7 @@ describe('TestTrendBarChart', () => {
   it('renders the chart title', () => {
     render(<TestTrendBarChart data={sampleData} />);
 
-    expect(screen.getByText('Weekly Test Trends')).toBeInTheDocument();
+    expect(screen.getByText('Last 30 days')).toBeInTheDocument();
   });
 
   it('shows a spinner while loading', () => {
@@ -57,14 +57,31 @@ describe('TestTrendBarChart', () => {
   it('shows an empty message for an empty series', () => {
     render(<TestTrendBarChart data={[]} />);
 
-    expect(screen.getByText('No trend data available.')).toBeInTheDocument();
+    expect(screen.getByText('No runs in the last 30 days')).toBeInTheDocument();
+    expect(screen.queryByTestId('bar-chart')).not.toBeInTheDocument();
+  });
+
+  it('treats thirty zero-filled days as empty, not as a trend', () => {
+    // The aggregation fills in every day of the window, so a full array of zeroes is exactly
+    // what an account with no executions receives. Drawing thirty empty columns and calling
+    // it a trend is worse than saying plainly that nothing has run.
+    const zeroFilled = Array.from({ length: 30 }, (_, index) => ({
+      date: `2024-08-${String(index + 1).padStart(2, '0')}`,
+      passed: 0,
+      failed: 0,
+      total: 0,
+    }));
+
+    render(<TestTrendBarChart data={zeroFilled} />);
+
+    expect(screen.getByText('No runs in the last 30 days')).toBeInTheDocument();
     expect(screen.queryByTestId('bar-chart')).not.toBeInTheDocument();
   });
 
   it('shows an empty message when no data is supplied at all', () => {
     render(<TestTrendBarChart />);
 
-    expect(screen.getByText('No trend data available.')).toBeInTheDocument();
+    expect(screen.getByText('No runs in the last 30 days')).toBeInTheDocument();
   });
 
   it('renders a stacked passed/failed series when data is available', () => {

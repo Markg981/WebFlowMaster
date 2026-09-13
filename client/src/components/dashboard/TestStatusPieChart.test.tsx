@@ -35,17 +35,23 @@ vi.mock('lucide-react', async (importOriginal) => {
   };
 });
 
+/**
+ * The aggregation sends a stable status id per slice and nothing else. It used to send a
+ * `fill` hex and an English `name`, which put the palette and the wording of the interface
+ * in the query layer: the slices could not follow the theme and the legend read "Passed" in
+ * every language the product ships.
+ */
 const sampleData = [
-  { name: 'Passed', value: 300, fill: '#0f0' },
-  { name: 'Failed', value: 50, fill: '#f00' },
-  { name: 'Skipped', value: 0, fill: '#999' },
+  { status: 'passed' as const, value: 300 },
+  { status: 'failed' as const, value: 50 },
+  { status: 'pending' as const, value: 0 },
 ];
 
 describe('TestStatusPieChart', () => {
   it('renders the chart title', () => {
     render(<TestStatusPieChart data={sampleData} />);
 
-    expect(screen.getByText('Test Status Overview')).toBeInTheDocument();
+    expect(screen.getByText('Execution status')).toBeInTheDocument();
   });
 
   it('shows a spinner while loading', () => {
@@ -55,17 +61,24 @@ describe('TestStatusPieChart', () => {
     expect(screen.queryByTestId('pie-chart')).not.toBeInTheDocument();
   });
 
-  it('shows an empty message when there are no executions', () => {
-    render(<TestStatusPieChart data={[{ name: 'Passed', value: 0, fill: '#0f0' }]} />);
+  it('offers a way forward when there are no executions', () => {
+    render(<TestStatusPieChart data={[{ status: 'passed', value: 0 }]} />);
 
-    expect(screen.getByText('No test executions found.')).toBeInTheDocument();
+    expect(screen.getByText('Nothing has run yet')).toBeInTheDocument();
     expect(screen.queryByTestId('pie-chart')).not.toBeInTheDocument();
+    // The first panel a new account sees is the one moment the product knows exactly what
+    // the person should do next, so it says so rather than reporting an empty query.
+    expect(screen.getByRole('link', { name: 'Create a test' })).toHaveAttribute(
+      'href',
+      '/dashboard/create-test',
+    );
   });
 
-  it('shows an empty message when no data is supplied at all', () => {
+  it('offers a way forward when no data is supplied at all', () => {
     render(<TestStatusPieChart />);
 
-    expect(screen.getByText('No test executions found.')).toBeInTheDocument();
+    expect(screen.getByText('Nothing has run yet')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Create a test' })).toBeInTheDocument();
   });
 
   it('renders one cell per non-zero slice when data is available', () => {
@@ -73,7 +86,7 @@ describe('TestStatusPieChart', () => {
 
     expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
     expect(screen.getByTestId('pie-chart')).toBeInTheDocument();
-    // The zero-valued "Skipped" slice is filtered out before rendering.
+    // The zero-valued "pending" slice is filtered out before rendering.
     expect(screen.getAllByTestId('cell-element')).toHaveLength(2);
   });
 });

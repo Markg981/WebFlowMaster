@@ -89,7 +89,8 @@
       },
       "lastRun": {
         "title": "Ultima esecuzione"
-      }
+      },
+      "noRunsHint": "Nessuna esecuzione da misurare"
     },
     "quickAccessReports": {
       "recentTestReports": {
@@ -97,7 +98,9 @@
       },
       "reportDataWillBeAvailable": {
         "description": "I dati del report saranno disponibili a breve."
-      }
+      },
+      "open": "Apri",
+      "unnamedPlan": "Piano senza nome"
     },
     "runTestNowButton": {
       "eseguiTestOra": {
@@ -155,7 +158,7 @@
     },
     "testStatusPieChart": {
       "testStatusOverview": {
-        "title": "Panoramica degli stati"
+        "title": "Stato delle esecuzioni"
       },
       "chartDataWillBeAvailable": {
         "description": "I dati del grafico saranno disponibili a breve."
@@ -163,8 +166,30 @@
     },
     "testTrendBarChart": {
       "weeklyTestTrends": {
-        "title": "Andamento settimanale"
+        "title": "Ultimi 30 giorni"
       }
+    },
+    "executionStatus": {
+      "passed": "Superati",
+      "failed": "Falliti",
+      "pending": "In corso o in coda"
+    },
+    "emptyExecutions": {
+      "title": "Non è ancora stato eseguito niente",
+      "description": "Costruisci un test su una delle tue applicazioni web ed eseguilo. I risultati compaiono qui.",
+      "action": "Crea un test"
+    },
+    "emptyTrend": {
+      "title": "Nessuna esecuzione negli ultimi 30 giorni",
+      "description": "Quando i test cominciano a girare, qui vedi quanti passano e quanti falliscono ogni giorno."
+    },
+    "emptySchedules": {
+      "description": "Una schedulazione esegue un piano di test da sola, agli orari che decidi tu.",
+      "action": "Crea una schedulazione"
+    },
+    "emptyReports": {
+      "title": "Nessun report",
+      "description": "Ogni esecuzione conclusa lascia qui un report, con passi, tempi e schermate."
     }
   },
   "nav": {
@@ -386,7 +411,9 @@
     "dashboardOverview": {
       "title": "Panoramica"
     },
-    "description": "Come stanno andando i tuoi test e che cosa è in programma."
+    "description": "Come stanno andando i tuoi test e che cosa è in programma.",
+    "loadFailed": "Non è stato possibile caricare i dati della dashboard: i pannelli qui sotto possono essere vuoti o non aggiornati.",
+    "retry": "Riprova"
   },
   "testSuitesPage": {
     "testSuites": {

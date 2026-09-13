@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/layout/PageHeader';
+import { useTheme } from '@/hooks/use-theme';
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -194,7 +195,8 @@ export default function SettingsPage() {
     setDeletingProjectName(null);
   };
 
-  const [darkMode, setDarkMode] = useState(false);
+  // Owned by useTheme, which reads the document rather than a cached copy of the settings.
+  const { isDark, setTheme } = useTheme();
   const [defaultUrl, setDefaultUrl] = useState("");
   const [browser, setBrowser] = useState<"chromium" | "firefox" | "webkit">("chromium");
   const [headless, setHeadless] = useState(true);
@@ -219,7 +221,10 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (settingsData) {
-      setDarkMode(settingsData.theme === "dark");
+      // The theme is deliberately not read back here. It is owned by useTheme, which follows
+      // the document; taking it from this query is what let a cached "light" — never
+      // refetched, because the query client sets staleTime: Infinity — undo a choice the
+      // user had just made from the topbar.
       setDefaultUrl(settingsData.defaultTestUrl || "");
       setBrowser(settingsData.playwrightBrowser);
       setHeadless(settingsData.playwrightHeadless);
@@ -246,11 +251,6 @@ export default function SettingsPage() {
       setLogLevel("info");
     }
   }, [logLevelSettingData, isLoadingLogLevelSetting]);
-
-  useEffect(() => {
-    if (darkMode) document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
-  }, [darkMode]);
 
   useEffect(() => {
     i18n.changeLanguage(language);
@@ -314,7 +314,7 @@ export default function SettingsPage() {
 
   const handleSaveUserSettings = () => {
     const settingsToSave: Partial<UserSettings> = {
-      theme: darkMode ? "dark" : "light",
+      theme: isDark ? "dark" : "light",
       defaultTestUrl: defaultUrl === "" ? null : defaultUrl,
       playwrightBrowser: browser,
       playwrightHeadless: headless,
@@ -334,7 +334,7 @@ export default function SettingsPage() {
   };
 
   const handleResetSettings = () => {
-    setDarkMode(false);
+    setTheme("light");
     setDefaultUrl("");
     setBrowser("chromium");
     setHeadless(true);
@@ -395,7 +395,7 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground">{t('settings.appearance.darkModeDescription')}</p>
               </div>
               <div className="flex items-center space-x-2">
-                <Sun className="h-4 w-4" /><Switch checked={darkMode} onCheckedChange={setDarkMode} disabled={isPageDisabled} /><Moon className="h-4 w-4" />
+                <Sun className="h-4 w-4" /><Switch checked={isDark} onCheckedChange={(on) => setTheme(on ? "dark" : "light")} disabled={isPageDisabled} /><Moon className="h-4 w-4" />
               </div>
             </div>
           </CardContent>

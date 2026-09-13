@@ -88,7 +88,8 @@
       },
       "lastRun": {
         "title": "Dernière exécution"
-      }
+      },
+      "noRunsHint": "Aucune exécution à mesurer"
     },
     "quickAccessReports": {
       "recentTestReports": {
@@ -96,7 +97,9 @@
       },
       "reportDataWillBeAvailable": {
         "description": "Les données du rapport seront bientôt disponibles."
-      }
+      },
+      "open": "Ouvrir",
+      "unnamedPlan": "Plan sans nom"
     },
     "runTestNowButton": {
       "eseguiTestOra": {
@@ -158,7 +161,7 @@
     },
     "testStatusPieChart": {
       "testStatusOverview": {
-        "title": "Vue d’ensemble des états"
+        "title": "État des exécutions"
       },
       "chartDataWillBeAvailable": {
         "description": "Les données du graphique seront bientôt disponibles."
@@ -166,8 +169,30 @@
     },
     "testTrendBarChart": {
       "weeklyTestTrends": {
-        "title": "Tendances hebdomadaires"
+        "title": "30 derniers jours"
       }
+    },
+    "executionStatus": {
+      "passed": "Réussis",
+      "failed": "En échec",
+      "pending": "En cours ou en file"
+    },
+    "emptyExecutions": {
+      "title": "Rien n’a encore été exécuté",
+      "description": "Créez un test sur une de vos applications web et exécutez-le. Les résultats apparaissent ici.",
+      "action": "Créer un test"
+    },
+    "emptyTrend": {
+      "title": "Aucune exécution ces 30 derniers jours",
+      "description": "Dès que les tests s’exécutent, vous voyez ici combien réussissent et échouent chaque jour."
+    },
+    "emptySchedules": {
+      "description": "Une planification exécute un plan de test toute seule, aux heures que vous fixez.",
+      "action": "Créer une planification"
+    },
+    "emptyReports": {
+      "title": "Aucun rapport",
+      "description": "Chaque exécution terminée laisse ici un rapport, avec ses étapes, durées et captures."
     }
   },
   "nav": {
@@ -350,7 +375,9 @@
     "dashboardOverview": {
       "title": "Vue d’ensemble"
     },
-    "description": "Où en sont vos tests et ce qui est prévu ensuite."
+    "description": "Où en sont vos tests et ce qui est prévu ensuite.",
+    "loadFailed": "Les chiffres du tableau de bord n’ont pas pu être chargés : les panneaux ci-dessous peuvent être vides ou périmés.",
+    "retry": "Réessayer"
   },
   "testSuitesPage": {
     "testSuites": {

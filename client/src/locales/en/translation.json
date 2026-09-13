@@ -88,7 +88,8 @@
       },
       "lastRun": {
         "title": "Last Run"
-      }
+      },
+      "noRunsHint": "No executions to measure"
     },
     "quickAccessReports": {
       "recentTestReports": {
@@ -96,7 +97,9 @@
       },
       "reportDataWillBeAvailable": {
         "description": "Report data will be available soon."
-      }
+      },
+      "open": "Open",
+      "unnamedPlan": "Unnamed plan"
     },
     "runTestNowButton": {
       "eseguiTestOra": {
@@ -152,7 +155,7 @@
     },
     "testStatusPieChart": {
       "testStatusOverview": {
-        "title": "Test Status Overview"
+        "title": "Execution status"
       },
       "chartDataWillBeAvailable": {
         "description": "Chart data will be available soon."
@@ -160,8 +163,30 @@
     },
     "testTrendBarChart": {
       "weeklyTestTrends": {
-        "title": "Weekly Test Trends"
+        "title": "Last 30 days"
       }
+    },
+    "executionStatus": {
+      "passed": "Passed",
+      "failed": "Failed",
+      "pending": "Running or queued"
+    },
+    "emptyExecutions": {
+      "title": "Nothing has run yet",
+      "description": "Build a test against one of your web applications and run it. Results show up here.",
+      "action": "Create a test"
+    },
+    "emptyTrend": {
+      "title": "No runs in the last 30 days",
+      "description": "Once tests start running, this shows how many pass and fail each day."
+    },
+    "emptySchedules": {
+      "description": "A schedule runs a test plan on its own, at the times you set.",
+      "action": "Set up a schedule"
+    },
+    "emptyReports": {
+      "title": "No reports yet",
+      "description": "Every finished run leaves a report here, with its steps, timings and screenshots."
     }
   },
   "nav": {
@@ -344,7 +369,9 @@
     "dashboardOverview": {
       "title": "Dashboard Overview"
     },
-    "description": "How your tests have been doing, and what is scheduled to run next."
+    "description": "How your tests have been doing, and what is scheduled to run next.",
+    "loadFailed": "The dashboard figures could not be loaded, so the panels below may be empty or out of date.",
+    "retry": "Try again"
   },
   "testSuitesPage": {
     "testSuites": {

@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { useWorkspaceName } from '@/hooks/use-workspace-name';
 import { PRODUCT_NAME } from '@/lib/brand';
+import { useTheme } from '@/hooks/use-theme';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
@@ -60,19 +61,6 @@ function usePageTitle(location: string, sections: NavSection[]): string {
   if (location.includes('/executions/')) return t('nav.executionReport');
   if (location.includes('/run')) return t('nav.runTestPlan');
   return PRODUCT_NAME;
-}
-
-function applyTheme(dark: boolean) {
-  document.documentElement.classList.toggle('dark', dark);
-}
-
-function persistTheme(theme: 'light' | 'dark') {
-  // Best-effort: the toggle takes effect immediately regardless of the network call.
-  fetch('/api/settings', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ theme }),
-  }).catch(() => {});
 }
 
 const SidebarNav: React.FC<{ collapsed: boolean; onNavigate?: () => void }> = ({ collapsed, onNavigate }) => {
@@ -166,28 +154,15 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem(COLLAPSE_KEY) === '1');
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isDark, setIsDark] = useState<boolean>(() => document.documentElement.classList.contains('dark'));
+  // One owner for the theme — see hooks/use-theme.ts. The toggle used to write the class and
+  // POST without telling either settings cache, so opening Settings afterwards undid it.
+  const { isDark, toggle: toggleTheme } = useTheme();
 
   useEffect(() => {
     localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
   }, [collapsed]);
 
-  // Keep the toggle icon in sync if the theme is changed elsewhere (e.g. Settings page).
-  useEffect(() => {
-    const el = document.documentElement;
-    const obs = new MutationObserver(() => setIsDark(el.classList.contains('dark')));
-    obs.observe(el, { attributes: true, attributeFilter: ['class'] });
-    return () => obs.disconnect();
-  }, []);
-
   useEffect(() => { setMobileOpen(false); }, [location]);
-
-  const toggleTheme = () => {
-    const next = !isDark;
-    setIsDark(next);
-    applyTheme(next);
-    persistTheme(next ? 'dark' : 'light');
-  };
 
   // Initials from first + last name, derived from the email local part
   // ("marco.oliva@…" → "MO"). Falls back to the first two letters when there's
