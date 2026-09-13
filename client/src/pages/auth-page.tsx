@@ -1,3 +1,4 @@
+import { PRODUCT_NAME_PREFIX, PRODUCT_NAME_SUFFIX } from '@/lib/brand';
 import { useState, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
 import { useAuth } from "@/hooks/use-auth";
@@ -79,7 +80,7 @@ export default function AuthPage() {
               <TestTube className="h-10 w-10 text-primary animate-pulse" />
             </div>
             <h1 className="text-4xl font-extrabold tracking-tight text-foreground mb-2">
-              WebFlow<span className="text-primary">Master</span>
+              {PRODUCT_NAME_PREFIX}<span className="text-primary">{PRODUCT_NAME_SUFFIX}</span>
             </h1>
             <p className="text-muted-foreground font-medium uppercase tracking-widest text-xs">
               {t('authPage.automatedWebTestingMadeSimple.text')}
@@ -267,7 +268,7 @@ export default function AuthPage() {
           >
             <div className="flex items-center space-x-2 mb-8 justify-center lg:justify-start">
               <Zap className="h-6 w-6 text-accent" />
-              <span className="text-sm font-bold tracking-widest uppercase text-accent/80">Premium Enterprise Edition</span>
+              <span className="text-sm font-bold tracking-widest uppercase text-accent/80">{t('authPage.edition.text')}</span>
             </div>
             
             <h2 className="text-5xl font-extrabold mb-6 leading-tight text-center lg:text-left">
@@ -280,10 +281,10 @@ export default function AuthPage() {
 
             <div className="grid grid-cols-2 gap-8">
               {[
-                { icon: ShieldCheck, title: t('authPage.visualElementDetection.text'), desc: "Precision engine" },
-                { icon: Zap, title: t('authPage.draganddropTestBuilding.text'), desc: "Fast workflow" },
-                { icon: CheckCircle2, title: t('authPage.realtimeTestExecution.text'), desc: "Instant results" },
-                { icon: BarChart3, title: t('authPage.comprehensiveReporting.text'), desc: "Deep analytics" },
+                { icon: ShieldCheck, title: t('authPage.visualElementDetection.text') },
+                { icon: Zap, title: t('authPage.draganddropTestBuilding.text') },
+                { icon: CheckCircle2, title: t('authPage.realtimeTestExecution.text') },
+                { icon: BarChart3, title: t('authPage.comprehensiveReporting.text') },
               ].map((feature, idx) => (
                 <motion.div 
                   key={idx}
@@ -296,7 +297,6 @@ export default function AuthPage() {
                     <feature.icon className="h-6 w-6 text-accent" />
                   </div>
                   <h3 className="font-bold text-zinc-100 group-hover:text-accent transition-colors">{feature.title}</h3>
-                  <p className="text-sm text-zinc-500">{feature.desc}</p>
                 </motion.div>
               ))}
             </div>

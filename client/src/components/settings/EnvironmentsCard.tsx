@@ -142,7 +142,7 @@ export default function EnvironmentsCard() {
                     <span className="font-semibold">{env.name}</span>
                   </div>
                   <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); deleteEnvMutation.mutate(env.id); }}>
-                    <Trash2 className="h-4 w-4 text-red-500" />
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
                 
@@ -164,7 +164,7 @@ export default function EnvironmentsCard() {
                             <div className="flex items-center space-x-4">
                               <span className="text-xs text-muted-foreground">Encrypted</span>
                               <Button variant="ghost" size="sm" onClick={() => deleteSecretMutation.mutate(sec.id)}>
-                                <Trash2 className="h-4 w-4 text-red-500" />
+                                <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             </div>
                           </div>

@@ -96,7 +96,7 @@ const TestSuiteSelectorModal: React.FC<TestSuiteSelectorModalProps> = ({ isOpen,
                 <span className="ml-2">{t('testSuiteSelectorModal.loading', 'Loading tests...')}</span>
               </div>
             )}
-            {error && <p className="text-red-500">{t('testSuiteSelectorModal.error', 'Error loading tests:')} {error.message}</p>}
+            {error && <p className="text-destructive">{t('testSuiteSelectorModal.error', 'Error loading tests:')} {error.message}</p>}
             {!isLoading && !error && selectableItems.length === 0 && (
               <p className="text-muted-foreground text-center py-4">{t('testSuiteSelectorModal.noTestsFound', 'No tests found or all available tests are already selected.')}</p>
             )}

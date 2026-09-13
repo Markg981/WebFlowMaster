@@ -180,7 +180,9 @@
     "settings": "Paramètres",
     "backToDashboard": "Retour au Tableau de bord",
     "apiTester": "Testeur d’API",
-    "scheduling": "Planification"
+    "scheduling": "Planification",
+    "executionReport": "Rapport d’exécution",
+    "runTestPlan": "Exécution du plan"
   },
   "dashboardPage": {
     "user": {
@@ -332,7 +334,8 @@
     },
     "runningAssertions": {
       "text": "Exécution des assertions…"
-    }
+    },
+    "title": "Testeur d’API"
   },
   "dashboardOverviewPage": {
     "webtestPlatform": {
@@ -346,7 +349,8 @@
     },
     "dashboardOverview": {
       "title": "Vue d’ensemble"
-    }
+    },
+    "description": "Où en sont vos tests et ce qui est prévu ensuite."
   },
   "testSuitesPage": {
     "testSuites": {
@@ -407,14 +411,15 @@
     "noTestPlansFound": {
       "text": "Aucun plan de test trouvé."
     },
-    "description": {
-      "label": "Description"
-    },
     "testingType": {
       "label": "Type de test"
     },
     "crossBrowserTesting": {
       "text": "Tests multi-navigateurs"
+    },
+    "pageDescription": "Regroupez les tests en plans, puis exécutez un plan entier sur un environnement.",
+    "description": {
+      "label": "Description"
     }
   },
   "testsPage": {
@@ -637,6 +642,9 @@
     },
     "webtestPlatform": {
       "text": "WebTest Platform"
+    },
+    "edition": {
+      "text": "Édition Premium Enterprise"
     }
   },
   "dashboardPageNew": {
@@ -910,7 +918,8 @@
     },
     "webkitSafari": {
       "text": "WebKit (Safari)"
-    }
+    },
+    "description": "Apparence, langue, projets, moteur d’automatisation et secrets utilisés par les tests."
   },
   "saveTestModal": {
     "saveTest": {
@@ -1346,35 +1355,67 @@
     }
   },
   "testPlanExecutionPage": {
-    "loadingPlan.text": "Chargement du plan de test…",
-    "errorLoadingPlan.text": "Impossible de charger le plan de test",
-    "backToTestSuites.button": "Retour aux suites de tests",
-    "planNotFound.text": "Plan de test introuvable.",
-    "runningTestPlan.text": "Exécution du plan de test",
-    "startExecution.button": "Lancer l’exécution",
-    "runAgain.button": "Exécuter à nouveau",
-    "running.button": "En cours…",
-    "overallProgress.title": "Avancement global",
-    "overallProgress.description": "{{completed}} tests sur {{total}} terminés.",
-    "status.passed": "Réussi",
-    "status.failed": "Échec",
-    "status.pending": "En attente",
-    "tests.title": "Tests du plan",
-    "tests.description": "État de chaque test de {{planName}}.",
-    "noDescription.text": "Ce test n’a pas de description.",
-    "statusLabels.running": "En cours",
-    "statusLabels.passed": "Réussi",
-    "statusLabels.failed": "Échec",
-    "statusLabels.pending": "En attente",
-    "noTestsInPlan.text": "Ce plan ne contient encore aucun test.",
-    "executionLog.title": "Journal d’exécution",
-    "executionLog.description": "Mises à jour en temps réel pendant l’exécution du plan.",
-    "executionLog.noLogsYet.text": "Le journal apparaîtra ici dès le démarrage.",
     "logs": {
       "startingExecution": "Lancement de l’exécution du plan : {{planName}}",
       "runningTest": "Exécution du test : {{testName}}",
       "testCompleted": "Le test {{testName}} s’est terminé avec l’état : {{status}}",
       "executionFinished": "Exécution du plan de test terminée."
+    },
+    "loadingPlan": {
+      "text": "Chargement du plan de test…"
+    },
+    "errorLoadingPlan": {
+      "text": "Impossible de charger le plan de test"
+    },
+    "backToTestSuites": {
+      "button": "Retour aux suites de tests"
+    },
+    "planNotFound": {
+      "text": "Plan de test introuvable."
+    },
+    "runningTestPlan": {
+      "text": "Exécution du plan de test"
+    },
+    "startExecution": {
+      "button": "Lancer l’exécution"
+    },
+    "runAgain": {
+      "button": "Exécuter à nouveau"
+    },
+    "running": {
+      "button": "En cours…"
+    },
+    "overallProgress": {
+      "title": "Avancement global",
+      "description": "{{completed}} tests sur {{total}} terminés."
+    },
+    "status": {
+      "passed": "Réussi",
+      "failed": "Échec",
+      "pending": "En attente"
+    },
+    "tests": {
+      "title": "Tests du plan",
+      "description": "État de chaque test de {{planName}}."
+    },
+    "noDescription": {
+      "text": "Ce test n’a pas de description."
+    },
+    "statusLabels": {
+      "running": "En cours",
+      "passed": "Réussi",
+      "failed": "Échec",
+      "pending": "En attente"
+    },
+    "noTestsInPlan": {
+      "text": "Ce plan ne contient encore aucun test."
+    },
+    "executionLog": {
+      "title": "Journal d’exécution",
+      "description": "Mises à jour en temps réel pendant l’exécution du plan.",
+      "noLogsYet": {
+        "text": "Le journal apparaîtra ici dès le démarrage."
+      }
     }
   },
   "createTestPlanWizard": {
@@ -1548,5 +1589,48 @@
       "page": "Page",
       "of": "sur"
     }
+  },
+  "filePicker": {
+    "empty": "Aucun fichier choisi",
+    "browse": "Parcourir",
+    "clear": "Retirer le fichier choisi"
+  },
+  "testManager": {
+    "title": "Gestion des tests",
+    "subtitle": "Importez les cas de test depuis Excel et associez chaque ligne à une séquence enregistrée.",
+    "uploading": "Téléversement…",
+    "uploadExcel": "Téléverser l’Excel",
+    "rowCount_one": "{{count}} cas de test importé",
+    "rowCount_other": "{{count}} cas de test importés",
+    "runSelected": "Exécuter la sélection ({{n}})",
+    "selectRow": "Sélectionner le cas de test {{id}}",
+    "selectSequence": "Choisissez une séquence",
+    "columns": {
+      "select": "Sélection",
+      "excelId": "ID Excel",
+      "priority": "Priorité",
+      "objective": "Objectif",
+      "mappedSequence": "Séquence associée",
+      "status": "État"
+    },
+    "empty": {
+      "title": "Commencez par un fichier Excel",
+      "description": "Choisissez un fichier .xlsx ou .xls de cas de test. Chaque ligne devient un cas à associer à une séquence enregistrée et à exécuter."
+    },
+    "viewLatestReport": "Voir le dernier rapport"
+  },
+  "generalReportsPage": {
+    "description": "Toutes les exécutions terminées, avec leurs étapes, durées et captures."
+  },
+  "schedulingPage": {
+    "description": "Exécutez un plan de test à heures fixes et soyez prévenu en cas d’échec."
+  },
+  "environmentSelect": {
+    "label": "Environnement",
+    "loading": "Chargement…",
+    "none": "Aucun environnement",
+    "defaultsOnly": "Aucun environnement (valeurs par défaut)",
+    "signedIn": "connexion enregistrée",
+    "emptyHint": "Aucun pour l’instant. Créez-en un dans les Paramètres pour utiliser les secrets et une connexion enregistrée."
   }
 }

@@ -180,7 +180,9 @@
     "settings": "Einstellungen",
     "backToDashboard": "Zurück zum Dashboard",
     "apiTester": "API-Tester",
-    "scheduling": "Planung"
+    "scheduling": "Planung",
+    "executionReport": "Ausführungsbericht",
+    "runTestPlan": "Testplan ausführen"
   },
   "dashboardPage": {
     "user": {
@@ -332,7 +334,8 @@
     },
     "runningAssertions": {
       "text": "Prüfungen werden ausgeführt…"
-    }
+    },
+    "title": "API-Tester"
   },
   "dashboardOverviewPage": {
     "webtestPlatform": {
@@ -346,7 +349,8 @@
     },
     "dashboardOverview": {
       "title": "Übersicht"
-    }
+    },
+    "description": "Wie Ihre Tests laufen und was als Nächstes geplant ist."
   },
   "testSuitesPage": {
     "testSuites": {
@@ -407,14 +411,15 @@
     "noTestPlansFound": {
       "text": "Keine Testpläne gefunden."
     },
-    "description": {
-      "label": "Beschreibung"
-    },
     "testingType": {
       "label": "Testart"
     },
     "crossBrowserTesting": {
       "text": "Browserübergreifende Tests"
+    },
+    "pageDescription": "Fassen Sie Tests zu Plänen zusammen und führen Sie einen ganzen Plan gegen eine Umgebung aus.",
+    "description": {
+      "label": "Beschreibung"
     }
   },
   "testsPage": {
@@ -637,6 +642,9 @@
     },
     "webtestPlatform": {
       "text": "WebTest Platform"
+    },
+    "edition": {
+      "text": "Premium Enterprise Edition"
     }
   },
   "dashboardPageNew": {
@@ -910,7 +918,8 @@
     },
     "webkitSafari": {
       "text": "WebKit (Safari)"
-    }
+    },
+    "description": "Darstellung, Sprache, Projekte, Automatisierungs-Engine und die Geheimnisse Ihrer Tests."
   },
   "saveTestModal": {
     "saveTest": {
@@ -1346,35 +1355,67 @@
     }
   },
   "testPlanExecutionPage": {
-    "loadingPlan.text": "Testplan wird geladen…",
-    "errorLoadingPlan.text": "Testplan konnte nicht geladen werden",
-    "backToTestSuites.button": "Zurück zu den Test-Suiten",
-    "planNotFound.text": "Testplan nicht gefunden.",
-    "runningTestPlan.text": "Testplan wird ausgeführt",
-    "startExecution.button": "Ausführung starten",
-    "runAgain.button": "Erneut ausführen",
-    "running.button": "Läuft…",
-    "overallProgress.title": "Gesamtfortschritt",
-    "overallProgress.description": "{{completed}} von {{total}} Tests abgeschlossen.",
-    "status.passed": "Bestanden",
-    "status.failed": "Fehlgeschlagen",
-    "status.pending": "Ausstehend",
-    "tests.title": "Tests im Plan",
-    "tests.description": "Status der einzelnen Tests von {{planName}}.",
-    "noDescription.text": "Für diesen Test gibt es keine Beschreibung.",
-    "statusLabels.running": "Läuft",
-    "statusLabels.passed": "Bestanden",
-    "statusLabels.failed": "Fehlgeschlagen",
-    "statusLabels.pending": "Ausstehend",
-    "noTestsInPlan.text": "Dieser Plan enthält noch keine Tests.",
-    "executionLog.title": "Ausführungsprotokoll",
-    "executionLog.description": "Aktualisierungen in Echtzeit, während der Plan läuft.",
-    "executionLog.noLogsYet.text": "Das Protokoll erscheint hier, sobald die Ausführung startet.",
     "logs": {
       "startingExecution": "Ausführung des Plans wird gestartet: {{planName}}",
       "runningTest": "Test wird ausgeführt: {{testName}}",
       "testCompleted": "Test {{testName}} beendet mit Status: {{status}}",
       "executionFinished": "Ausführung des Testplans abgeschlossen."
+    },
+    "loadingPlan": {
+      "text": "Testplan wird geladen…"
+    },
+    "errorLoadingPlan": {
+      "text": "Testplan konnte nicht geladen werden"
+    },
+    "backToTestSuites": {
+      "button": "Zurück zu den Test-Suiten"
+    },
+    "planNotFound": {
+      "text": "Testplan nicht gefunden."
+    },
+    "runningTestPlan": {
+      "text": "Testplan wird ausgeführt"
+    },
+    "startExecution": {
+      "button": "Ausführung starten"
+    },
+    "runAgain": {
+      "button": "Erneut ausführen"
+    },
+    "running": {
+      "button": "Läuft…"
+    },
+    "overallProgress": {
+      "title": "Gesamtfortschritt",
+      "description": "{{completed}} von {{total}} Tests abgeschlossen."
+    },
+    "status": {
+      "passed": "Bestanden",
+      "failed": "Fehlgeschlagen",
+      "pending": "Ausstehend"
+    },
+    "tests": {
+      "title": "Tests im Plan",
+      "description": "Status der einzelnen Tests von {{planName}}."
+    },
+    "noDescription": {
+      "text": "Für diesen Test gibt es keine Beschreibung."
+    },
+    "statusLabels": {
+      "running": "Läuft",
+      "passed": "Bestanden",
+      "failed": "Fehlgeschlagen",
+      "pending": "Ausstehend"
+    },
+    "noTestsInPlan": {
+      "text": "Dieser Plan enthält noch keine Tests."
+    },
+    "executionLog": {
+      "title": "Ausführungsprotokoll",
+      "description": "Aktualisierungen in Echtzeit, während der Plan läuft.",
+      "noLogsYet": {
+        "text": "Das Protokoll erscheint hier, sobald die Ausführung startet."
+      }
     }
   },
   "createTestPlanWizard": {
@@ -1548,5 +1589,48 @@
       "page": "Seite",
       "of": "von"
     }
+  },
+  "filePicker": {
+    "empty": "Keine Datei gewählt",
+    "browse": "Durchsuchen",
+    "clear": "Gewählte Datei entfernen"
+  },
+  "testManager": {
+    "title": "Testverwaltung",
+    "subtitle": "Importieren Sie Testfälle aus Excel und ordnen Sie jede Zeile einer gespeicherten Sequenz zu.",
+    "uploading": "Wird hochgeladen…",
+    "uploadExcel": "Excel hochladen",
+    "rowCount_one": "{{count}} Testfall importiert",
+    "rowCount_other": "{{count}} Testfälle importiert",
+    "runSelected": "Auswahl ausführen ({{n}})",
+    "selectRow": "Testfall {{id}} auswählen",
+    "selectSequence": "Sequenz wählen",
+    "columns": {
+      "select": "Auswahl",
+      "excelId": "Excel-ID",
+      "priority": "Priorität",
+      "objective": "Ziel",
+      "mappedSequence": "Zugeordnete Sequenz",
+      "status": "Status"
+    },
+    "empty": {
+      "title": "Beginnen Sie mit einer Excel-Datei",
+      "description": "Wählen Sie eine .xlsx- oder .xls-Datei mit Testfällen. Jede Zeile wird zu einem Fall, den Sie einer gespeicherten Sequenz zuordnen und ausführen können."
+    },
+    "viewLatestReport": "Letzten Bericht ansehen"
+  },
+  "generalReportsPage": {
+    "description": "Alle abgeschlossenen Ausführungen mit Schritten, Zeiten und Aufnahmen."
+  },
+  "schedulingPage": {
+    "description": "Führen Sie einen Testplan nach Zeitplan aus und werden Sie bei Fehlschlägen benachrichtigt."
+  },
+  "environmentSelect": {
+    "label": "Umgebung",
+    "loading": "Wird geladen…",
+    "none": "Keine Umgebung",
+    "defaultsOnly": "Keine Umgebung (nur Standardwerte)",
+    "signedIn": "mit gespeicherter Anmeldung",
+    "emptyHint": "Noch keine. Legen Sie in den Einstellungen eine an, um Geheimnisse und eine gespeicherte Anmeldung zu nutzen."
   }
 }

@@ -142,11 +142,11 @@ const TestPlanExecutionPage: React.FC = () => {
   const getStatusIcon = (status: TestStatus) => {
     switch (status) {
       case 'pending':
-        return <Clock className="h-5 w-5 text-gray-400" />;
+        return <Clock className="h-5 w-5 text-muted-foreground" />;
       case 'running':
         return <Loader2 className="h-5 w-5 animate-spin text-blue-500" />;
       case 'passed':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-5 w-5 text-success" />;
       case 'failed':
         return <XCircle className="h-5 w-5 text-destructive" />;
       default:
@@ -227,7 +227,7 @@ const TestPlanExecutionPage: React.FC = () => {
             <Button
               onClick={executePlan}
               disabled={isExecuting || !testsToRun.length}
-              className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-md flex items-center space-x-2"
+              className="bg-success hover:bg-success/90 text-white px-6 py-2 rounded-md flex items-center space-x-2"
             >
               {isExecuting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />

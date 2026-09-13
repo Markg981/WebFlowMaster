@@ -207,7 +207,7 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
                     {t('saveTestModal.loadingProjects.text')}
                   </div>
                 ) : isErrorProjects ? (
-                  <div className="p-2 text-red-500 text-sm">{t('saveTestModal.errorLoadingProjects.text')}</div>
+                  <div className="p-2 text-destructive text-sm">{t('saveTestModal.errorLoadingProjects.text')}</div>
                 ) : projectsData && projectsData.length > 0 ? (
                   projectsData.map((project, index) => {
                     // Ensure project object itself is valid and has a usable id and name

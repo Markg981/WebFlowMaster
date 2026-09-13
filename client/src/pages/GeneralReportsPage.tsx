@@ -1,4 +1,5 @@
 // client/src/pages/GeneralReportsPage.tsx
+import { PageHeader } from '@/components/layout/PageHeader';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'wouter';
@@ -133,14 +134,11 @@ const GeneralReportsPage: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-[1400px] p-6">
-      <header className="mb-6">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {t('generalReportsPage.eyebrow', 'Execution history')}
-        </div>
-        <h1 className="mt-0.5 text-2xl font-bold tracking-tight">
-          {t('generalReportsPage.title', 'Test Execution Reports')}
-        </h1>
-      </header>
+      <PageHeader
+        className="mb-6"
+        title={t('generalReportsPage.title', 'Test Execution Reports')}
+        description={t('generalReportsPage.description')}
+      />
 
       <div className="space-y-6">
           <Card>
@@ -191,7 +189,7 @@ const GeneralReportsPage: React.FC = () => {
             </CardHeader>
             <CardContent className="overflow-x-auto">
               {isLoading && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="ml-2">Loading executions...</p></div>}
-              {error && <div className="text-red-500 text-center py-10"><AlertCircle className="mx-auto h-8 w-8 mb-2" />Error loading executions: {error.message}</div>}
+              {error && <div className="text-destructive text-center py-10"><AlertCircle className="mx-auto h-8 w-8 mb-2" />Error loading executions: {error.message}</div>}
               {!isLoading && !error && executionsResponse?.items.length === 0 && (
                 <p className="text-muted-foreground text-center py-10">{t('generalReportsPage.executionsList.noResults', 'No executions found matching your criteria.')}</p>
               )}

@@ -175,8 +175,8 @@ export function VisualTestBuilder({
 
       <Separator className="my-4" />
       <div className="flex items-center space-x-3">
-        {lastTestOutcome === true && <CheckCircle2 className="mr-2 h-5 w-5 text-green-500" />}
-        {lastTestOutcome === false && <XCircle className="mr-2 h-5 w-5 text-red-500" />}
+        {lastTestOutcome === true && <CheckCircle2 className="mr-2 h-5 w-5 text-success" />}
+        {lastTestOutcome === false && <XCircle className="mr-2 h-5 w-5 text-destructive" />}
         <Button onClick={onExecuteTest} disabled={isExecuting} className="flex-1">
           {isExecuting ? t('apiTesterPage.loading.button') : t('testSequenceBuilder.executeTest.button')}
         </Button>

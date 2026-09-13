@@ -9,6 +9,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { useWorkspaceName } from '@/hooks/use-workspace-name';
+import { PRODUCT_NAME } from '@/lib/brand';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
@@ -46,13 +47,19 @@ function isActive(location: string, item: NavItem): boolean {
   return item.exact ? location === item.href : location === item.href || location.startsWith(item.href + '/');
 }
 
-/** Page title shown in the topbar, derived from the active route. */
-function pageTitle(location: string, sections: NavSection[], settingsLabel: string): string {
+/**
+ * Page title shown in the topbar, derived from the active route.
+ *
+ * The routes with no nav entry used to return their titles as English literals, so a French
+ * user reading a breadcrumb in French hit "Execution report" the moment they opened a run.
+ */
+function usePageTitle(location: string, sections: NavSection[]): string {
+  const { t } = useTranslation();
   for (const s of sections) for (const it of s.items) if (isActive(location, it)) return it.label;
-  if (location.startsWith('/settings')) return settingsLabel;
-  if (location.includes('/executions/')) return 'Execution report';
-  if (location.includes('/run')) return 'Run test plan';
-  return 'WebTest Platform';
+  if (location.startsWith('/settings')) return t('nav.settings');
+  if (location.includes('/executions/')) return t('nav.executionReport');
+  if (location.includes('/run')) return t('nav.runTestPlan');
+  return PRODUCT_NAME;
 }
 
 function applyTheme(dark: boolean) {
@@ -129,11 +136,21 @@ const Brand: React.FC<{ collapsed: boolean; workspaceName: string }> = ({ collap
     <BrandMark className="h-8 w-8" />
     {!collapsed && (
       <div className="min-w-0">
-        <div className="truncate text-sm font-semibold leading-tight tracking-tight">WebTest Platform</div>
+        {/* The product's own name — the one on the sign-in screen. A second name here
+            ("WebTest Platform") meant the sidebar, the breadcrumb and the login page each
+            called the application something different. */}
+        <div className="truncate text-sm font-semibold leading-tight tracking-tight">
+          {PRODUCT_NAME}
+        </div>
         {/* The installation's own name, from a system setting. Hard-coding a customer here
             is what made a product meant to test any web application look like one team's
-            internal tool. */}
-        <div className="truncate text-[11px] font-medium text-muted-foreground">{workspaceName} · QA Platform</div>
+            internal tool. The "· QA Platform" that used to follow it only pushed the part
+            that identifies the workspace out of the 200px the sidebar gives it.
+            When the setting is unset it falls back to the product name, and printing that
+            twice, one line under the other, says nothing — so the line is dropped. */}
+        {workspaceName !== PRODUCT_NAME && (
+          <div className="truncate text-[11px] font-medium text-muted-foreground">{workspaceName}</div>
+        )}
       </div>
     )}
   </div>
@@ -145,6 +162,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [location] = useLocation();
   const sections = useNav();
   const workspaceName = useWorkspaceName();
+  const title = usePageTitle(location, sections);
 
   const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem(COLLAPSE_KEY) === '1');
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -256,7 +274,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <div className="min-w-0 truncate text-sm">
               <span className="text-muted-foreground">{workspaceName}</span>
               <span className="mx-1.5 text-border">/</span>
-              <span className="font-semibold text-foreground">{pageTitle(location, sections, t('nav.settings'))}</span>
+              <span className="font-semibold text-foreground">{title}</span>
             </div>
           </div>
 

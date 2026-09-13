@@ -86,29 +86,29 @@ const TestReportPage: React.FC = () => {
 
   // Helper functions
   const getStatusIcon = (status: string | null | undefined, sizeClass = "h-5 w-5") => {
-    if (!status) return <AlertCircle className={`${sizeClass} text-gray-500`} />;
+    if (!status) return <AlertCircle className={`${sizeClass} text-muted-foreground`} />;
     switch (status.toLowerCase()) {
-      case 'passed': case 'completed': return <CheckCircle2 className={`${sizeClass} text-green-500`} />;
-      case 'failed': case 'error': return <XCircle className={`${sizeClass} text-red-500`} />;
+      case 'passed': case 'completed': return <CheckCircle2 className={`${sizeClass} text-success`} />;
+      case 'failed': case 'error': return <XCircle className={`${sizeClass} text-destructive`} />;
       case 'skipped': return <SkipForward className={`${sizeClass} text-yellow-500`} />;
       case 'running': case 'pending': return <Clock className={`${sizeClass} text-blue-500 animate-spin`} />;
       case 'cancelled': return <AlertCircle className={`${sizeClass} text-orange-500`} />;
-      default: return <AlertCircle className={`${sizeClass} text-gray-500`} />;
+      default: return <AlertCircle className={`${sizeClass} text-muted-foreground`} />;
     }
   };
 
   const getStatusColor = (status: string | null | undefined) => {
-    if (!status) return "text-gray-600 dark:text-gray-400";
+    if (!status) return "text-muted-foreground";
     switch (status.toLowerCase()) {
-      case 'passed': return "text-green-600 dark:text-green-400";
-      case 'completed': return "text-green-600 dark:text-green-400";
-      case 'failed': return "text-red-600 dark:text-red-400";
-      case 'error': return "text-red-600 dark:text-red-400";
+      case 'passed': return "text-success";
+      case 'completed': return "text-success";
+      case 'failed': return "text-destructive";
+      case 'error': return "text-destructive";
       case 'skipped': return "text-yellow-600 dark:text-yellow-400";
       case 'running': return "text-blue-600 dark:text-blue-400";
       case 'pending': return "text-blue-600 dark:text-blue-400";
       case 'cancelled': return "text-orange-600 dark:text-orange-400";
-      default: return "text-gray-600 dark:text-gray-400";
+      default: return "text-muted-foreground";
     }
   };
 
@@ -124,7 +124,7 @@ const TestReportPage: React.FC = () => {
 
   const pageContent = () => {
     if (isLoading) return <div className="p-6 text-center">Loading test report...</div>;
-    if (error) return <div className="p-6 text-red-500 text-center">Error loading report: {error.message} <Button onClick={() => refetch()} disabled={isFetching}><RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />Retry</Button></div>;
+    if (error) return <div className="p-6 text-destructive text-center">Error loading report: {error.message} <Button onClick={() => refetch()} disabled={isFetching}><RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />Retry</Button></div>;
     if (!reportData) return <div className="p-6 text-center">No report data found. <Button onClick={() => refetch()} disabled={isFetching}><RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />Refresh</Button></div>;
 
     const { header, keyMetrics, charts, failedTestDetails, testGroupings } = reportData as TestPlanExecutionReport;
@@ -169,8 +169,8 @@ const TestReportPage: React.FC = () => {
         {/* Key Metrics Overview */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card><CardHeader className="pb-2"><CardDescription>Total Tests</CardDescription><CardTitle className="text-4xl">{keyMetrics.totalTests}</CardTitle></CardHeader><CardContent><Progress value={keyMetrics.totalTests > 0 ? 100 : 0} aria-label="Total tests" /></CardContent></Card>
-          <Card className="border-green-500/50 dark:border-green-700/50"><CardHeader className="pb-2"><CardDescription>Passed</CardDescription><CardTitle className={`text-4xl ${getStatusColor('passed')}`}>{keyMetrics.passedTests}</CardTitle></CardHeader><CardContent><Progress value={keyMetrics.passRate} className="[&>div]:bg-green-500" /><p className="text-xs text-muted-foreground mt-1">{keyMetrics.passRate.toFixed(2)}% Pass Rate</p></CardContent></Card>
-          <Card className="border-red-500/50 dark:border-red-700/50"><CardHeader className="pb-2"><CardDescription>Failed</CardDescription><CardTitle className={`text-4xl ${getStatusColor('failed')}`}>{keyMetrics.failedTests}</CardTitle></CardHeader><CardContent><Progress value={keyMetrics.totalTests > 0 ? (keyMetrics.failedTests / keyMetrics.totalTests) * 100 : 0} className="[&>div]:bg-red-500" /><p className="text-xs text-muted-foreground mt-1">{keyMetrics.totalTests > 0 ? ((keyMetrics.failedTests / keyMetrics.totalTests) * 100).toFixed(2) : '0.00'}% Failure Rate</p></CardContent></Card>
+          <Card className="border-success/50"><CardHeader className="pb-2"><CardDescription>Passed</CardDescription><CardTitle className={`text-4xl ${getStatusColor('passed')}`}>{keyMetrics.passedTests}</CardTitle></CardHeader><CardContent><Progress value={keyMetrics.passRate} className="[&>div]:bg-success" /><p className="text-xs text-muted-foreground mt-1">{keyMetrics.passRate.toFixed(2)}% Pass Rate</p></CardContent></Card>
+          <Card className="border-destructive/50"><CardHeader className="pb-2"><CardDescription>Failed</CardDescription><CardTitle className={`text-4xl ${getStatusColor('failed')}`}>{keyMetrics.failedTests}</CardTitle></CardHeader><CardContent><Progress value={keyMetrics.totalTests > 0 ? (keyMetrics.failedTests / keyMetrics.totalTests) * 100 : 0} className="[&>div]:bg-destructive" /><p className="text-xs text-muted-foreground mt-1">{keyMetrics.totalTests > 0 ? ((keyMetrics.failedTests / keyMetrics.totalTests) * 100).toFixed(2) : '0.00'}% Failure Rate</p></CardContent></Card>
           <Card className="border-yellow-500/50 dark:border-yellow-600/50"><CardHeader className="pb-2"><CardDescription>Skipped / Avg. Test Time</CardDescription><div className="flex justify-between items-baseline"><CardTitle className={`text-4xl ${getStatusColor('skipped')}`}>{keyMetrics.skippedTests}</CardTitle><span className="text-sm text-muted-foreground">{formatDuration(keyMetrics.averageTimePerTestMs)}/test</span></div></CardHeader><CardContent><Progress value={keyMetrics.totalTests > 0 ? (keyMetrics.skippedTests / keyMetrics.totalTests) * 100 : 0} className="[&>div]:bg-yellow-500" /><p className="text-xs text-muted-foreground mt-1">Sum of test durations: {formatDuration(keyMetrics.totalTestCasesDurationMs)}</p></CardContent></Card>
         </div>
 

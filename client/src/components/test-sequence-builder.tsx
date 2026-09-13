@@ -154,7 +154,7 @@ export function TestSequenceBuilder({
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">{t('testSequenceBuilder.testSequence.title')}</h3>
+        <h3 className="text-lg font-semibold text-foreground">{t('testSequenceBuilder.testSequence.title')}</h3>
         <div className="flex items-center space-x-2">
           <Badge variant="secondary">{testSequence.length} {t('testSequenceBuilder.steps.text')}</Badge>
           <Button
@@ -214,7 +214,7 @@ export function TestSequenceBuilder({
                     <div className="flex-shrink-0 mt-3 ml-1">
                       <div className={`w-6 h-6 text-xs ${
                           actionId && needsTargetElement(actionId) && !step.targetElement ? "bg-destructive" :
-                          step.targetElement ? "bg-green-600" : "bg-primary"
+                          step.targetElement ? "bg-success" : "bg-primary"
                         } text-primary-foreground rounded-full flex items-center justify-center font-medium`}>
                         {index + 1}
                       </div>
@@ -315,10 +315,10 @@ export function TestSequenceBuilder({
       <Separator className="my-4" /> {/* Separator component from ui/ is theme-aware */}
       <div className="flex items-center space-x-3"> {/* Added items-center for vertical alignment */}
         {lastTestOutcome === true && (
-          <CheckCircle2 className="mr-2 h-5 w-5 text-green-500" />
+          <CheckCircle2 className="mr-2 h-5 w-5 text-success" />
         )}
         {lastTestOutcome === false && (
-          <XCircle className="mr-2 h-5 w-5 text-red-500" />
+          <XCircle className="mr-2 h-5 w-5 text-destructive" />
         )}
         <Button
           onClick={onExecuteTest}

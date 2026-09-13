@@ -83,7 +83,7 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
                   : 'bg-muted/50 border-destructive/40 border-dashed'
             }`}
           >
-            <Link2 className={`h-4 w-4 shrink-0 ${data.targetElement ? 'text-green-500' : 'text-muted-foreground'}`} />
+            <Link2 className={`h-4 w-4 shrink-0 ${data.targetElement ? 'text-success' : 'text-muted-foreground'}`} />
             <span className="text-xs truncate max-w-[180px]">
               {data.targetElement ? data.targetElement.text : t('dashboardPage.dropActionsPrompt')}
             </span>

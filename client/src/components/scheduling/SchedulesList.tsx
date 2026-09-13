@@ -34,7 +34,7 @@ const SchedulesList: React.FC<SchedulesListProps> = ({ schedules, onEdit, onDele
   }
 
   if (error) {
-    return <p className="text-red-500">Error loading schedules: {error.message}</p>;
+    return <p className="text-destructive">Error loading schedules: {error.message}</p>;
   }
 
   if (!schedules || schedules.length === 0) {
@@ -83,7 +83,7 @@ const SchedulesList: React.FC<SchedulesListProps> = ({ schedules, onEdit, onDele
               </TableCell>
               <TableCell>
                 <Badge variant={schedule.isActive ? 'default' : 'outline'}
-                       className={schedule.isActive ? 'bg-green-500 hover:bg-green-600 text-white' : ''}>
+                       className={schedule.isActive ? 'bg-success hover:bg-success/90 text-white' : ''}>
                   {schedule.isActive ? 'Active' : 'Inactive'}
                 </Badge>
               </TableCell>
@@ -92,7 +92,7 @@ const SchedulesList: React.FC<SchedulesListProps> = ({ schedules, onEdit, onDele
                   <FileEdit className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="icon" onClick={() => onDelete(schedule.id)} title="Delete Schedule">
-                  <Trash2 className="h-4 w-4 text-red-500" />
+                  <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </TableCell>
             </TableRow>

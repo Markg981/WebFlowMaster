@@ -94,7 +94,7 @@ const TestSchedulingsTable: React.FC = () => {
               </TableCell>
               <TableCell className="text-xs">{schedule.frequency}</TableCell>
               <TableCell>
-                <Badge variant={schedule.isActive ? 'default' : 'secondary'} className={schedule.isActive ? 'bg-green-500 hover:bg-green-600' : ''}>
+                <Badge variant={schedule.isActive ? 'default' : 'secondary'} className={schedule.isActive ? 'bg-success hover:bg-success/90' : ''}>
                   {schedule.isActive ? t('dashboard.testSchedulingsTable.status.active') : t('dashboard.testSchedulingsTable.status.inactive')}
                 </Badge>
               </TableCell>

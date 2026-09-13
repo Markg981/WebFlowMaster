@@ -889,9 +889,9 @@ const ApiTesterPage: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-background text-foreground">
       <header className="flex items-center justify-between gap-2 border-b border-border bg-card px-4 py-2">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {t('apiTesterPage.requestBuilder.eyebrow', 'Request builder')}
-        </div>
+        <h1 className="truncate text-sm font-semibold tracking-tight">
+          {t('apiTesterPage.title')}
+        </h1>
         <Button variant="default" size="sm" onClick={() => handleOpenSaveModal()} disabled={apiProxyMutation.isPending}>
           <Save className="mr-2 h-4 w-4" />
           {currentTestToEdit ? t('apiTesterPage.saveChanges.button') : t('apiTesterPage.saveTest.button')}
@@ -1268,7 +1268,7 @@ const ApiTesterPage: React.FC = () => {
               <h2 className="text-xl font-semibold mb-2">{t('apiTesterPage.response.label')}</h2>
               <div className={`p-4 border rounded-md bg-muted min-h-[200px] ${apiProxyMutation.isPending ? 'opacity-50 animate-pulse' : ''}`}>
                 <div className="flex justify-between items-center mb-2">
-                  <div><span className="font-semibold">{t('apiTesterPage.status.label')}</span>{' '}{responseStatus !== null ? (<span className={responseStatus >= 200 && responseStatus < 300 ? 'text-green-500 font-bold' : 'text-red-500 font-bold'}>{responseStatus}</span>) : (t('apiTesterPage.text1'))}</div>
+                  <div><span className="font-semibold">{t('apiTesterPage.status.label')}</span>{' '}{responseStatus !== null ? (<span className={responseStatus >= 200 && responseStatus < 300 ? 'text-success font-bold' : 'text-destructive font-bold'}>{responseStatus}</span>) : (t('apiTesterPage.text1'))}</div>
                   <div><span className="font-semibold">{t('apiTesterPage.time.label')}</span> {duration !== null ? `${duration} ms` : (apiProxyMutation.isPending ? t('apiTesterPage.loading.button') : t('apiTesterPage.text1'))}</div>
                 </div>
                 <Tabs defaultValue="responseBody" className="w-full">
@@ -1302,11 +1302,11 @@ const ApiTesterPage: React.FC = () => {
                               {' '}{result.assertion.comparison.replace(/_/g, ' ')}
                               {result.assertion.targetValue !== undefined && result.assertion.targetValue !== '' && <span className="text-primary/80"> "{result.assertion.targetValue}"</span>}
                             </div>
-                            {result.pass ? (<CheckCircle className="h-4 w-4 text-green-500" />) : (<XCircleIcon className="h-4 w-4 text-red-500" />)}
+                            {result.pass ? (<CheckCircle className="h-4 w-4 text-success" />) : (<XCircleIcon className="h-4 w-4 text-destructive" />)}
                           </div>
                           <div className="text-muted-foreground mt-1">
                             {result.pass ? 'Passed.' : `Failed. (Actual: ${JSON.stringify(result.actualValue)})`}
-                            {result.error && <span className="text-red-600 ml-1">(Error: {result.error})</span>}
+                            {result.error && <span className="text-destructive ml-1">(Error: {result.error})</span>}
                           </div>
                         </div>
                       ))}

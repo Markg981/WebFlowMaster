@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/layout/PageHeader';
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -375,12 +376,11 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-4xl p-6">
-      <header className="mb-6">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {t('settingsPage.eyebrow', 'Preferences')}
-        </div>
-        <h1 className="mt-0.5 text-2xl font-bold tracking-tight">{t('settings.pageTitle', 'Settings')}</h1>
-      </header>
+      <PageHeader
+        className="mb-6"
+        title={t('settings.pageTitle', 'Settings')}
+        description={t('settingsPage.description')}
+      />
 
       <div className="space-y-6">
         <Card>
@@ -442,7 +442,7 @@ export default function SettingsPage() {
             <div className="space-y-2">
               <h3 className="text-md font-medium">{t('settingsPage.existingProjects.title')}</h3>
               {isLoadingProjects ? <div className="flex items-center space-x-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>{t('settingsPage.loadingProjects.text')}</span></div>
-                : isErrorProjects ? <p className="text-red-600">Error: {projectsError?.message}</p>
+                : isErrorProjects ? <p className="text-destructive">Error: {projectsError?.message}</p>
                 : projectsData && projectsData.length > 0 ? (
                 <ul className="space-y-2">
                   {projectsData.map((project) => (
@@ -456,7 +456,7 @@ export default function SettingsPage() {
                         onClick={() => handleDeleteProject(project)}
                         disabled={deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id || isPageDisabled}
                       >
-                        {(deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-red-500" />}
+                        {(deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive" />}
                       </Button>
                     </li>))}
                 </ul>) : (<p className="text-sm text-muted-foreground">{t('settingsPage.noProjectsFound.text')}</p>)}
@@ -524,7 +524,7 @@ export default function SettingsPage() {
               <Label htmlFor="logRetentionDays">{t('settings.system.logRetentionLabel', 'Log Retention Period (days)')}</Label>
               <Input id="logRetentionDays" type="number" value={logRetentionDays} onChange={(e) => setLogRetentionDays(e.target.value)} disabled={isLoadingLogRetentionSetting || saveLogRetentionMutation.isPending} min="1"/>
               <p className="text-sm text-muted-foreground">{t('settings.system.logRetentionDescription', 'Number of days to keep server logs. Older logs are compressed and then deleted.')}</p>
-              {isErrorLogRetentionSetting && (<p className="text-sm text-red-600">{logRetentionSettingError?.message || t('settings.system.fetchError', 'Failed to fetch log retention setting.')}</p>)}
+              {isErrorLogRetentionSetting && (<p className="text-sm text-destructive">{logRetentionSettingError?.message || t('settings.system.fetchError', 'Failed to fetch log retention setting.')}</p>)}
             </div>
             <Button onClick={handleSaveLogRetentionSetting} disabled={isLoadingLogRetentionSetting || saveLogRetentionMutation.isPending || (logRetentionSettingData?.value === logRetentionDays && logRetentionSettingData !== null && !isErrorLogRetentionSetting)}>
               {saveLogRetentionMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
@@ -544,7 +544,7 @@ export default function SettingsPage() {
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">{t('settings.system.logLevelDescription', 'Select the minimum level of logs to record. Dynamic update is attempted, otherwise requires application restart.')}</p>
-              {isErrorLogLevelSetting && (<p className="text-sm text-red-600">{logLevelSettingError?.message || t('settings.system.fetchErrorLogLevel', 'Failed to fetch log level setting.')}</p>)}
+              {isErrorLogLevelSetting && (<p className="text-sm text-destructive">{logLevelSettingError?.message || t('settings.system.fetchErrorLogLevel', 'Failed to fetch log level setting.')}</p>)}
             </div>
             <Button onClick={handleSaveLogLevelSetting} disabled={isLoadingLogLevelSetting || saveLogLevelMutation.isPending || (logLevelSettingData?.value === logLevel && logLevelSettingData !== null && !isErrorLogLevelSetting)}>
               {saveLogLevelMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}

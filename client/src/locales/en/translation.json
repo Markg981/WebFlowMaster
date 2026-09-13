@@ -174,7 +174,9 @@
     "scheduling": "Scheduling",
     "reports": "Reports",
     "settings": "Settings",
-    "backToDashboard": "Back to Dashboard"
+    "backToDashboard": "Back to Dashboard",
+    "executionReport": "Execution report",
+    "runTestPlan": "Run test plan"
   },
   "dashboardPage": {
     "user": {
@@ -326,7 +328,8 @@
     },
     "runningAssertions": {
       "text": "Running assertions..."
-    }
+    },
+    "title": "API Tester"
   },
   "dashboardOverviewPage": {
     "webtestPlatform": {
@@ -340,7 +343,8 @@
     },
     "dashboardOverview": {
       "title": "Dashboard Overview"
-    }
+    },
+    "description": "How your tests have been doing, and what is scheduled to run next."
   },
   "testSuitesPage": {
     "testSuites": {
@@ -392,12 +396,25 @@
     "schedulesContentGoesHere": {
       "text": "Schedules content goes here."
     },
-    "loadingTestPlans.text": "Loading Test Plans...",
-    "errorLoadingTestPlans.text": "Error loading Test Plans",
-    "noTestPlansFound.text": "No Test Plans found.",
-    "description.label": "Description",
-    "testingType.label": "Testing Type",
-    "crossBrowserTesting.text": "Cross Browser Testing"
+    "pageDescription": "Group tests into plans, then run a whole plan against an environment.",
+    "loadingTestPlans": {
+      "text": "Loading Test Plans..."
+    },
+    "errorLoadingTestPlans": {
+      "text": "Error loading Test Plans"
+    },
+    "noTestPlansFound": {
+      "text": "No Test Plans found."
+    },
+    "description": {
+      "label": "Description"
+    },
+    "testingType": {
+      "label": "Testing Type"
+    },
+    "crossBrowserTesting": {
+      "text": "Cross Browser Testing"
+    }
   },
   "testsPage": {
     "testManagement": {
@@ -619,6 +636,9 @@
     },
     "comprehensiveReporting": {
       "text": "Comprehensive reporting"
+    },
+    "edition": {
+      "text": "Premium Enterprise Edition"
     }
   },
   "dashboardPageNew": {
@@ -892,7 +912,8 @@
     },
     "webkitSafari": {
       "text": "WebKit (Safari)"
-    }
+    },
+    "description": "Appearance, language, projects, the automation engine and the secrets your tests use."
   },
   "saveTestModal": {
     "saveTest": {
@@ -1332,85 +1353,149 @@
       "title": "Step 1: Create Test Plan",
       "description": "Provide basic details for your new test plan.",
       "fieldsPlaceholder": "Fields for Test Plan Name, Description, Test Lab, Testing Type will go here.",
-      "name.label": "Test Plan Name",
-      "name.placeholder": "e.g., End-to-End Checkout Flow",
-      "descriptionField.label": "Description (Optional)",
-      "descriptionField.placeholder": "A brief summary of what this test plan covers.",
-      "testLab.label": "Select Test Lab",
-      "testingType.label": "Testing Type",
       "validation": {
         "nameRequired": "Test Plan Name is required."
+      },
+      "name": {
+        "label": "Test Plan Name",
+        "placeholder": "e.g., End-to-End Checkout Flow"
+      },
+      "descriptionField": {
+        "label": "Description (Optional)",
+        "placeholder": "A brief summary of what this test plan covers."
+      },
+      "testLab": {
+        "label": "Select Test Lab"
+      },
+      "testingType": {
+        "label": "Testing Type"
       }
     },
     "step2": {
       "title": "Step 2: Test Machines & Suites",
       "description": "Configure test machines and select test suites.",
       "fieldsPlaceholder": "UI for Test Machines and Test Suites selection will go here.",
-      "testMachinesConfig.title": "Test Machines Configuration",
-      "os.label": "Operating System",
-      "os.placeholder": "Select OS",
-      "osVersion.label": "OS Version",
-      "osVersion.placeholder": "e.g., 10, 11, Sonoma",
-      "browser.label": "Browser",
-      "browser.placeholder": "Select Browser",
-      "browserVersion.label": "Browser Version",
-      "browserVersion.placeholder": "e.g., latest, 120.0",
-      "headless.label": "Headless",
-      "desiredCapabilities.link": "Desired Capabilities (Optional)",
-      "desiredCapabilities.alertNotImplemented": "Desired Capabilities configuration is not yet implemented.",
       "addMachineButton": "Add Machine Configuration",
-      "addedMachines.title": "Added Configurations:",
       "validation": {
         "machineFieldsRequired": "All machine configuration fields are required.",
         "atLeastOneMachineOrSuite": "Please add at least one machine configuration or select at least one test suite."
       },
-      "testSuitesSelection.title": "Test Suites Selection",
       "noTestSuitesSelected": "No test suites selected yet.",
-      "addTestSuitesButton": "Add Test Suites"
+      "addTestSuitesButton": "Add Test Suites",
+      "testMachinesConfig": {
+        "title": "Test Machines Configuration"
+      },
+      "os": {
+        "label": "Operating System",
+        "placeholder": "Select OS"
+      },
+      "osVersion": {
+        "label": "OS Version",
+        "placeholder": "e.g., 10, 11, Sonoma"
+      },
+      "browser": {
+        "label": "Browser",
+        "placeholder": "Select Browser"
+      },
+      "browserVersion": {
+        "label": "Browser Version",
+        "placeholder": "e.g., latest, 120.0"
+      },
+      "headless": {
+        "label": "Headless"
+      },
+      "desiredCapabilities": {
+        "link": "Desired Capabilities (Optional)",
+        "alertNotImplemented": "Desired Capabilities configuration is not yet implemented."
+      },
+      "addedMachines": {
+        "title": "Added Configurations:"
+      },
+      "testSuitesSelection": {
+        "title": "Test Suites Selection"
+      }
     },
     "step3": {
       "title": "Step 3: Test Plan Settings",
       "description": "Adjust advanced settings for the test plan execution.",
       "fieldsPlaceholder": "Configuration fields for screenshots, timeouts, error handling etc. will go here.",
-      "captureScreenshots.label": "Capture Screenshots",
-      "captureScreenshots.options.always": "Always",
-      "captureScreenshots.options.on_failed_steps": "On Failed Steps (default)",
-      "captureScreenshots.options.never": "Never",
-      "visualTesting.label": "Visual Testing (Experimental)",
-      "pageLoadTimeout.label": "Page Load Timeout (seconds)",
-      "elementTimeout.label": "Element Timeout (seconds)",
-      "onMajorStepFailure.label": "On Major Step Failure",
-      "onMajorStepFailure.options.abort_run_next": "Abort and run next Test Case (default)",
-      "onMajorStepFailure.options.stop": "Stop Execution",
-      "onMajorStepFailure.options.retry": "Retry Step",
-      "onAbortedTestCase.label": "On Aborted Test Case",
-      "onAbortedTestCase.options.delete_cookies_reuse_session": "Delete cookies and reuse session (default)",
-      "onAbortedTestCase.options.stop": "Stop Execution",
-      "onTestSuitePreRequisiteFailure.label": "On Test Suite Pre Requisite Failure",
-      "onTestSuitePreRequisiteFailure.options.stop": "Stop Execution (default)",
-      "onTestSuitePreRequisiteFailure.options.skip_suite": "Skip Test Suite",
-      "onTestSuitePreRequisiteFailure.options.continue": "Continue Anyway",
-      "onTestCasePreRequisiteFailure.label": "On Test Case Pre Requisite Failure",
-      "onTestCasePreRequisiteFailure.options.stop": "Stop Execution (default)",
-      "onTestCasePreRequisiteFailure.options.skip_case": "Skip Test Case",
-      "onTestCasePreRequisiteFailure.options.continue": "Continue Anyway",
-      "onTestStepPreRequisiteFailure.label": "On Test Step Pre Requisite Failure",
-      "onTestStepPreRequisiteFailure.options.abort_run_next": "Abort and run next Test Case (default)",
-      "onTestStepPreRequisiteFailure.options.stop": "Stop Execution",
-      "onTestStepPreRequisiteFailure.options.skip_step": "Skip Test Step",
-      "reRunOnFailure.label": "Re-Run On Failure",
-      "reRunOnFailure.options.none": "None (default)",
-      "reRunOnFailure.options.once": "Once",
-      "reRunOnFailure.options.twice": "Twice",
-      "reRunOnFailure.options.thrice": "Thrice",
-      "sendNotificationWhen.label": "Send Notification When",
-      "sendNotificationWhen.options.passed": "Passed",
-      "sendNotificationWhen.options.failed": "Failed",
-      "sendNotificationWhen.options.notExecuted": "Not Executed",
-      "sendNotificationWhen.options.stopped": "Stopped",
       "validation": {
         "pageLoadTimeoutRequired": "Page Load Timeout must be a positive number.",
         "elementTimeoutRequired": "Element Timeout must be a positive number."
+      },
+      "captureScreenshots": {
+        "label": "Capture Screenshots",
+        "options": {
+          "always": "Always",
+          "on_failed_steps": "On Failed Steps (default)",
+          "never": "Never"
+        }
+      },
+      "visualTesting": {
+        "label": "Visual Testing (Experimental)"
+      },
+      "pageLoadTimeout": {
+        "label": "Page Load Timeout (seconds)"
+      },
+      "elementTimeout": {
+        "label": "Element Timeout (seconds)"
+      },
+      "onMajorStepFailure": {
+        "label": "On Major Step Failure",
+        "options": {
+          "abort_run_next": "Abort and run next Test Case (default)",
+          "stop": "Stop Execution",
+          "retry": "Retry Step"
+        }
+      },
+      "onAbortedTestCase": {
+        "label": "On Aborted Test Case",
+        "options": {
+          "delete_cookies_reuse_session": "Delete cookies and reuse session (default)",
+          "stop": "Stop Execution"
+        }
+      },
+      "onTestSuitePreRequisiteFailure": {
+        "label": "On Test Suite Pre Requisite Failure",
+        "options": {
+          "stop": "Stop Execution (default)",
+          "skip_suite": "Skip Test Suite",
+          "continue": "Continue Anyway"
+        }
+      },
+      "onTestCasePreRequisiteFailure": {
+        "label": "On Test Case Pre Requisite Failure",
+        "options": {
+          "stop": "Stop Execution (default)",
+          "skip_case": "Skip Test Case",
+          "continue": "Continue Anyway"
+        }
+      },
+      "onTestStepPreRequisiteFailure": {
+        "label": "On Test Step Pre Requisite Failure",
+        "options": {
+          "abort_run_next": "Abort and run next Test Case (default)",
+          "stop": "Stop Execution",
+          "skip_step": "Skip Test Step"
+        }
+      },
+      "reRunOnFailure": {
+        "label": "Re-Run On Failure",
+        "options": {
+          "none": "None (default)",
+          "once": "Once",
+          "twice": "Twice",
+          "thrice": "Thrice"
+        }
+      },
+      "sendNotificationWhen": {
+        "label": "Send Notification When",
+        "options": {
+          "passed": "Passed",
+          "failed": "Failed",
+          "notExecuted": "Not Executed",
+          "stopped": "Stopped"
+        }
       }
     },
     "cancel": "Cancel",
@@ -1436,35 +1521,110 @@
     }
   },
   "testPlanExecutionPage": {
-    "loadingPlan.text": "Loading Test Plan Details...",
-    "errorLoadingPlan.text": "Error loading test plan",
-    "backToTestSuites.button": "Back to Test Suites",
-    "planNotFound.text": "Test Plan not found.",
-    "runningTestPlan.text": "Running Test Plan",
-    "startExecution.button": "Start Execution",
-    "runAgain.button": "Run Again",
-    "running.button": "Running...",
-    "overallProgress.title": "Overall Progress",
-    "overallProgress.description": "{{completed}} of {{total}} tests completed.",
-    "status.passed": "Passed",
-    "status.failed": "Failed",
-    "status.pending": "Pending",
-    "tests.title": "Tests in Plan",
-    "tests.description": "Individual test statuses for {{planName}}.",
-    "noDescription.text": "No description provided for this test.",
-    "statusLabels.running": "Running",
-    "statusLabels.passed": "Passed",
-    "statusLabels.failed": "Failed",
-    "statusLabels.pending": "Pending",
-    "noTestsInPlan.text": "This test plan does not contain any tests yet.",
-    "executionLog.title": "Execution Log",
-    "executionLog.description": "Real-time updates as the test plan executes.",
-    "executionLog.noLogsYet.text": "Execution logs will appear here once started.",
     "logs": {
       "startingExecution": "Starting execution for plan: {{planName}}",
       "runningTest": "Running test: {{testName}}",
       "testCompleted": "Test {{testName}} completed with status: {{status}}",
       "executionFinished": "Test plan execution finished."
+    },
+    "loadingPlan": {
+      "text": "Loading Test Plan Details..."
+    },
+    "errorLoadingPlan": {
+      "text": "Error loading test plan"
+    },
+    "backToTestSuites": {
+      "button": "Back to Test Suites"
+    },
+    "planNotFound": {
+      "text": "Test Plan not found."
+    },
+    "runningTestPlan": {
+      "text": "Running Test Plan"
+    },
+    "startExecution": {
+      "button": "Start Execution"
+    },
+    "runAgain": {
+      "button": "Run Again"
+    },
+    "running": {
+      "button": "Running..."
+    },
+    "overallProgress": {
+      "title": "Overall Progress",
+      "description": "{{completed}} of {{total}} tests completed."
+    },
+    "status": {
+      "passed": "Passed",
+      "failed": "Failed",
+      "pending": "Pending"
+    },
+    "tests": {
+      "title": "Tests in Plan",
+      "description": "Individual test statuses for {{planName}}."
+    },
+    "noDescription": {
+      "text": "No description provided for this test."
+    },
+    "statusLabels": {
+      "running": "Running",
+      "passed": "Passed",
+      "failed": "Failed",
+      "pending": "Pending"
+    },
+    "noTestsInPlan": {
+      "text": "This test plan does not contain any tests yet."
+    },
+    "executionLog": {
+      "title": "Execution Log",
+      "description": "Real-time updates as the test plan executes.",
+      "noLogsYet": {
+        "text": "Execution logs will appear here once started."
+      }
     }
+  },
+  "filePicker": {
+    "empty": "No file chosen",
+    "browse": "Browse",
+    "clear": "Remove the chosen file"
+  },
+  "testManager": {
+    "title": "Test Manager",
+    "subtitle": "Import test cases from Excel and map each row to a saved sequence.",
+    "uploading": "Uploading…",
+    "uploadExcel": "Upload Excel",
+    "rowCount_one": "{{count}} test case imported",
+    "rowCount_other": "{{count}} test cases imported",
+    "runSelected": "Run selected ({{n}})",
+    "selectRow": "Select test case {{id}}",
+    "selectSequence": "Choose a sequence",
+    "columns": {
+      "select": "Select",
+      "excelId": "Excel ID",
+      "priority": "Priority",
+      "objective": "Objective",
+      "mappedSequence": "Mapped sequence",
+      "status": "Status"
+    },
+    "empty": {
+      "title": "Start from an Excel file",
+      "description": "Choose a .xlsx or .xls file of test cases. Each row becomes a case you can map to a saved sequence and run."
+    },
+    "viewLatestReport": "View latest report"
+  },
+  "generalReportsPage": {
+    "description": "Every run that has finished, with its steps, timings and screenshots."
+  },
+  "schedulingPage": {
+    "description": "Run a test plan on a timetable, and be told when it fails."
+  },
+  "environmentSelect": {
+    "label": "Environment",
+    "loading": "Loading…",
+    "none": "No environment",
+    "defaultsOnly": "No environment (defaults only)",
+    "signedIn": "signed in",
+    "emptyHint": "None yet. Create one in Settings to use secrets and a saved login."
   }
 }

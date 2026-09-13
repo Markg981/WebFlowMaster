@@ -789,26 +789,23 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-full bg-background text-foreground">
-      {/* Page header */}
-      <header className="border-b border-border bg-card px-6 py-4">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {t('dashboardPageNew.eyebrow', 'Author a UI test')}
-        </div>
-        <h1 className="mt-0.5 text-xl font-bold tracking-tight text-card-foreground">
-          {t('dashboardPageNew.createWebTest.title')}
-        </h1>
-      </header>
-
-      {/* URL Input Section */}
-      <div className="bg-card border-b border-border px-6 py-4 relative z-40">
-        <div className="flex items-center space-x-4">
-          <div className="flex-grow">
-            <Label htmlFor="urlInput" className="block text-sm font-medium text-card-foreground mb-1">{t('dashboardPageNew.websiteUrlToTest.label')}</Label>
-            <div className="flex space-x-3">
+      {/* One toolbar, not a page header stacked on a form.
+          The header, the URL field, the environment and the creation mode used to occupy
+          370px of a 900px window in a single narrow column, which pushed the three-pane
+          workspace — the part of this screen you actually work in — below the fold, and left
+          the right 60% of the header empty while doing it. They are all controls that say
+          how this run happens, so they belong on one line each, across the width. */}
+      <div className="relative z-40 space-y-3 border-b border-border bg-card px-6 py-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="shrink-0 text-base font-semibold tracking-tight text-card-foreground">
+            {t('dashboardPageNew.createWebTest.title')}
+          </h1>
+          <div className="flex min-w-[320px] flex-1 items-center gap-2">
               <Input
                 id="urlInput"
                 type="url"
                 className="flex-1"
+                aria-label={t('dashboardPageNew.websiteUrlToTest.label')}
                 placeholder={t('dashboardPageNew.httpsexamplecom.placeholder')}
                 value={currentUrl}
                 onChange={(e) => {
@@ -848,28 +845,35 @@ export default function DashboardPage() {
                 </Button>
               )}
             </div>
-            <div className="mt-4 w-[280px]">
-              {/* Next to the creation mode, because both describe how this run happens. */}
-              <EnvironmentSelect
-                value={selectedEnvironment}
-                onChange={setSelectedEnvironment}
-                disabled={executeDirectTestMutation.isPending || isExecutingPlayback}
-              />
-            </div>
-            <div className="mt-4">
-              <Label htmlFor="creationModeSelect" className="block text-sm font-medium text-card-foreground mb-1">{t('dashboardPageNew.modalitDiCreazioneTest.label')}</Label>
-              <Select value={creationMode} onValueChange={(value: "manual" | "record") => setCreationMode(value)}>
-                <SelectTrigger id="creationModeSelect" className="w-[280px]">
-                  <SelectValue placeholder={t('dashboardPageNew.selezionaModalit.placeholder')} />
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-background opacity-100 shadow-2xl border-2">
-                  <SelectItem value="manual">{t('dashboardPageNew.creaTestManualeDragDrop.text')}</SelectItem>
-                  <SelectItem value="record">{t('dashboardPageNew.registraAzioniUtenteAutorecord.text')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          </div>
+
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="w-[260px] space-y-1">
+            <Label htmlFor="creationModeSelect" className="text-sm font-medium text-card-foreground">
+              {t('dashboardPageNew.modalitDiCreazioneTest.label')}
+            </Label>
+            <Select value={creationMode} onValueChange={(value: "manual" | "record") => setCreationMode(value)}>
+              <SelectTrigger id="creationModeSelect">
+                <SelectValue placeholder={t('dashboardPageNew.selezionaModalit.placeholder')} />
+              </SelectTrigger>
+              <SelectContent className="z-50 bg-background opacity-100 shadow-2xl border-2">
+                <SelectItem value="manual">{t('dashboardPageNew.creaTestManualeDragDrop.text')}</SelectItem>
+                <SelectItem value="record">{t('dashboardPageNew.registraAzioniUtenteAutorecord.text')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-[260px]">
+            {/* Next to the creation mode, because both describe how this run happens. */}
+            <EnvironmentSelect
+              value={selectedEnvironment}
+              onChange={setSelectedEnvironment}
+              disabled={executeDirectTestMutation.isPending || isExecutingPlayback}
+            />
+          </div>
+        </div>
+
             {creationMode === 'record' && (
-              <div className="mt-4 space-y-3">
+              <div className="space-y-3">
                 {/* Recording drives a real browser window opened by the server process, so
                     it only works when that process runs on the user's own machine. */}
                 <div
@@ -944,8 +948,6 @@ export default function DashboardPage() {
                 )}
               </div>
             )}
-          </div>
-        </div>
       </div>
 
       {/* Overall Test Result Display — semantic tokens so it stays readable in dark mode */}
@@ -1159,7 +1161,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Bottom section: Test Sequence Builder (40% of viewport) */}
-        <div className="h-[40vh] bg-card p-6"> {/* Changed bg-white to bg-card */}
+        <div className="h-[40vh] bg-card p-6"> {/* Changed bg-card to bg-card */}
           <VisualTestBuilder
             testSequence={testSequence}
             onUpdateSequence={handleSequenceUpdated}

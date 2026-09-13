@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/layout/PageHeader';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -38,14 +39,12 @@ const DashboardOverviewPage: React.FC = () => {
       animate="visible"
       className="flex w-full flex-col gap-6 p-6 xl:p-8"
     >
-      <motion.header variants={itemVariants}>
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {t('dashboardOverviewPage.overview.eyebrow', 'Overview')}
-        </div>
-        <h1 className="mt-0.5 text-2xl font-bold tracking-tight">
-          {t('dashboardOverviewPage.dashboardOverview.title')}
-        </h1>
-      </motion.header>
+      <motion.div variants={itemVariants}>
+        <PageHeader
+          title={t('dashboardOverviewPage.dashboardOverview.title')}
+          description={t('dashboardOverviewPage.description')}
+        />
+      </motion.div>
 
       <motion.div variants={itemVariants}>
         <KpiPanel data={analyticsData?.kpis} isLoading={isLoadingAnalytics} />

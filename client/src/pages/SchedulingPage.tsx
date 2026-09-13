@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/layout/PageHeader';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -120,19 +121,16 @@ const SchedulingPage: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-[1400px] p-6">
-      <header className="mb-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {t('schedulingPage.eyebrow', 'Automation')}
-            </div>
-            <h1 className="mt-0.5 text-2xl font-bold tracking-tight">{t('schedulingPage.title', 'Scheduling')}</h1>
-          </div>
+      <PageHeader
+        className="mb-6"
+        title={t('schedulingPage.title', 'Scheduling')}
+        description={t('schedulingPage.description')}
+        actions={
           <Button variant="default" size="sm" onClick={handleOpenCreateForm}>
             <PlusCircle className="mr-2 h-4 w-4" /> {t('schedulingPage.createSchedule.button', 'Create Schedule')}
           </Button>
-        </div>
-      </header>
+        }
+      />
 
       {/* Main content area */}
       <div>

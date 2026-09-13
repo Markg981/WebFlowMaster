@@ -21,12 +21,12 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const getStatusColor = (status?: number | null) => {
-    if (status === null || status === undefined) return 'bg-gray-400';
-    if (status >= 200 && status < 300) return 'bg-green-500';
+    if (status === null || status === undefined) return 'bg-muted-foreground';
+    if (status >= 200 && status < 300) return 'bg-success';
     if (status >= 300 && status < 400) return 'bg-yellow-500';
-    if (status >= 400 && status < 500) return 'bg-red-500';
+    if (status >= 400 && status < 500) return 'bg-destructive';
     if (status >= 500) return 'bg-purple-500';
-    return 'bg-gray-400';
+    return 'bg-muted-foreground';
   };
 
   return (

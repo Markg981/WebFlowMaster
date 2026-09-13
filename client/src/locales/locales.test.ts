@@ -56,6 +56,22 @@ describe.each(BUNDLES.map(([lang]) => lang))('%s translation bundle', (lang) => 
     expect(blank.map(([key]) => key)).toEqual([]);
   });
 
+  it('writes nested keys as nesting, not as a dotted name', () => {
+    // i18next resolves both `{"a": {"b": …}}` and `{"a.b": …}`, so the two forms coexisted
+    // here — until a new `testSuitesPage.description` string was written on top of an
+    // existing `testSuitesPage.description.label` and neither the writer nor i18next said
+    // anything. One form removes that collision entirely.
+    const dotted: string[] = [];
+    const walk = (node: Bundle, prefix = '') => {
+      for (const [key, value] of Object.entries(node)) {
+        if (key.includes('.')) dotted.push(`${prefix}${key}`);
+        if (value !== null && typeof value === 'object') walk(value as Bundle, `${prefix}${key}.`);
+      }
+    };
+    walk(BUNDLES.find(([name]) => name === lang)![1]);
+    expect(dotted).toEqual([]);
+  });
+
   it('covers every key English has', () => {
     const missing = [...english.keys()].filter((key) => !bundle.has(key));
     expect(missing).toEqual([]);
