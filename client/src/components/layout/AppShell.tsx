@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
+import { useWorkspaceName } from '@/hooks/use-workspace-name';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
@@ -123,13 +124,16 @@ const BrandMark: React.FC<{ className?: string }> = ({ className }) => (
   </div>
 );
 
-const Brand: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
+const Brand: React.FC<{ collapsed: boolean; workspaceName: string }> = ({ collapsed, workspaceName }) => (
   <div className={cn('flex items-center gap-2.5 px-2 py-1', collapsed && 'justify-center px-0')}>
     <BrandMark className="h-8 w-8" />
     {!collapsed && (
       <div className="min-w-0">
         <div className="truncate text-sm font-semibold leading-tight tracking-tight">WebTest Platform</div>
-        <div className="truncate text-[11px] font-medium text-muted-foreground">DMO · QA Platform</div>
+        {/* The installation's own name, from a system setting. Hard-coding a customer here
+            is what made a product meant to test any web application look like one team's
+            internal tool. */}
+        <div className="truncate text-[11px] font-medium text-muted-foreground">{workspaceName} · QA Platform</div>
       </div>
     )}
   </div>
@@ -140,6 +144,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
   const sections = useNav();
+  const workspaceName = useWorkspaceName();
 
   const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem(COLLAPSE_KEY) === '1');
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -178,7 +183,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const sidebarInner = (
     <div className="flex h-full flex-col gap-4 p-3">
-      <Brand collapsed={collapsed} />
+      <Brand collapsed={collapsed} workspaceName={workspaceName} />
       <div className="min-h-0 flex-1 overflow-y-auto">
         <SidebarNav collapsed={collapsed} onNavigate={() => setMobileOpen(false)} />
       </div>
@@ -249,7 +254,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               {collapsed ? <PanelLeftOpen className="h-[18px] w-[18px]" /> : <PanelLeftClose className="h-[18px] w-[18px]" />}
             </button>
             <div className="min-w-0 truncate text-sm">
-              <span className="text-muted-foreground">DMO</span>
+              <span className="text-muted-foreground">{workspaceName}</span>
               <span className="mx-1.5 text-border">/</span>
               <span className="font-semibold text-foreground">{pageTitle(location, sections, t('nav.settings'))}</span>
             </div>

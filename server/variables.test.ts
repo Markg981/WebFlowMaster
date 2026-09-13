@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import { privilegedDb } from './db';
 import { environments, secrets } from '@shared/schema';
 import { encryptSecret } from './crypto';
@@ -115,5 +115,45 @@ describe('unresolved secret placeholders', () => {
       'secret_password',
     ]);
     expect(findUnresolvedVariables('{{baseUrl}}/orders', { baseUrl: 'x' })).toEqual([]);
+  });
+});
+
+describe('the base URL is not tied to one customer', () => {
+  const saved = { app: process.env.APP_BASE_URL, dmo: process.env.DMO_BASE_URL };
+
+  afterEach(() => {
+    for (const [key, value] of [['APP_BASE_URL', saved.app], ['DMO_BASE_URL', saved.dmo]] as const) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+
+  it('reads APP_BASE_URL', async () => {
+    delete process.env.DMO_BASE_URL;
+    process.env.APP_BASE_URL = 'https://shop.example.test';
+
+    const { defaultVariables } = await import('./variables');
+
+    expect(defaultVariables().baseUrl).toBe('https://shop.example.test');
+  });
+
+  it('still honours DMO_BASE_URL, so existing installations keep working', async () => {
+    delete process.env.APP_BASE_URL;
+    process.env.DMO_BASE_URL = 'https://dmo.internal.test';
+
+    const { defaultVariables } = await import('./variables');
+
+    // Renaming an environment variable out from under a running deployment is a silent
+    // breakage: the tests would simply start hitting the default host instead.
+    expect(defaultVariables().baseUrl).toBe('https://dmo.internal.test');
+  });
+
+  it('prefers the new name when both are set', async () => {
+    process.env.APP_BASE_URL = 'https://new.test';
+    process.env.DMO_BASE_URL = 'https://old.test';
+
+    const { defaultVariables } = await import('./variables');
+
+    expect(defaultVariables().baseUrl).toBe('https://new.test');
   });
 });
