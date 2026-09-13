@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ORG_SCOPED_TABLES } from '@shared/schema';
+import { CLIENT_BUILD_DIRNAME } from '../static';
 
 /**
  * Governs every file directly under server/routes/ named *.routes.ts — the Express router
@@ -276,5 +277,134 @@ describe('the client does not depend on third-party asset hosts', () => {
     }
 
     expect(offenders).toEqual([]);
+  });
+});
+
+// ─── The production entry point ─────────────────────────────────────────────
+//
+// Both of these were found by running the built image for the first time. Neither is
+// reachable from the dev server, the test suite or a type check, which is why the container
+// crashed on its first start with an error about a missing package.
+
+describe('the production bundle only needs production dependencies', () => {
+  it('server/index.ts does not statically import the vite module', () => {
+    const source = fs.readFileSync(path.join(serverDir, 'index.ts'), 'utf8');
+
+    // `import … from "./vite"` is evaluated when dist/index.js loads, whatever branch later
+    // decides to call setupVite. server/vite.ts imports vite itself, and vite is a dev
+    // dependency that `npm prune --omit=dev` removes — so the built image died with
+    // "Cannot find package 'vite'" before reaching a single line of its own code.
+    const staticViteImport = /^\s*import\s[^;]*from\s+["']\.\/vite["']/m;
+    expect(staticViteImport.test(source)).toBe(false);
+
+    // It must still be reachable in development, just not at load time.
+    expect(/import\(["']\.\/vite["']\)/.test(source)).toBe(true);
+  });
+});
+
+describe('the server serves the client from where the client is built', () => {
+  it('the static path and the client build output are the same directory', () => {
+    const viteConfig = fs.readFileSync(path.join(repoRoot, 'client', 'vite.config.ts'), 'utf8');
+    const staticModule = fs.readFileSync(path.join(serverDir, 'static.ts'), 'utf8');
+
+    // These two are set in different files, by different people, at different times. When
+    // they drifted the symptom was a container that started and then answered every page
+    // request with "Could not find the build directory" — with the build sitting happily in
+    // another folder. Naming the same constant in both is what keeps them together.
+    const outDir = viteConfig.match(/outDir:\s*[^'"]*['"]([^'"]+)['"]/)?.[1];
+    expect(outDir).toBeTruthy();
+    expect(outDir).toContain('dist/public');
+    expect(staticModule).toContain(CLIENT_BUILD_DIRNAME);
+  });
+});
+
+describe('the browser image matches the browser library', () => {
+  it('every Playwright base image is tagged with the version the lockfile resolves', () => {
+    const lock = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package-lock.json'), 'utf8'));
+    const resolved = lock.packages?.['node_modules/playwright']?.version;
+    expect(resolved).toBeTruthy();
+
+    const dockerfiles = fs
+      .readdirSync(repoRoot)
+      .filter((f) => f === 'Dockerfile' || f.startsWith('Dockerfile.'));
+    expect(dockerfiles.length).toBeGreaterThan(0);
+
+    // The image ships browsers built for one version of the library, and Playwright refuses
+    // to launch a mismatched pair — with a message telling you to update the image, which
+    // nobody sees until a container tries to run a test. `playwright` is declared with a
+    // caret, so the resolved version moves on its own while the tag does not: a routine
+    // dependency bump silently breaks every browser-driven run in production and nothing
+    // here notices. This is that notice.
+    for (const file of dockerfiles) {
+      const source = fs.readFileSync(path.join(repoRoot, file), 'utf8');
+      const tag = source.match(/FROM\s+mcr\.microsoft\.com\/playwright:v([\d.]+)/)?.[1];
+      if (!tag) continue; // a Dockerfile not based on the Playwright image has nothing to match
+      expect({ file, tag }).toEqual({ file, tag: resolved });
+    }
+  });
+});
+
+
+describe('the lockfile can be installed somewhere other than the machine that wrote it', () => {
+  it('defines every dependency it names, for every platform', () => {
+    const lock = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package-lock.json'), 'utf8'));
+    const packages: Record<string, any> = lock.packages;
+
+    // How `require` finds a package: walk up the node_modules folders from the dependent.
+    const resolveFrom = (dependent: string, name: string): string | null => {
+      let base = dependent;
+      for (;;) {
+        const candidate = `${base ? `${base}/` : ''}node_modules/${name}`;
+        if (candidate in packages) return candidate;
+        if (!base) return null;
+        const nested = base.lastIndexOf('/node_modules/');
+        if (nested >= 0) base = base.slice(0, nested);
+        else if (base.startsWith('node_modules/')) base = '';
+        else return null;
+      }
+    };
+
+    // `npm ci` refuses, with EUSAGE, to install a lockfile that names a dependency it does
+    // not define — and it counts dependencies this machine will never install: the binaries
+    // for other platforms, and the peers of those binaries. That is the whole point of
+    // recording them. The lockfile is written on a developer's Windows machine and installed
+    // in a Linux image, so the entries that decide whether production builds at all are
+    // exactly the ones no local install ever needs, and no local command ever exercises.
+    //
+    // Both halves have already broken this build. `lightningcss` was missing its ten
+    // platform binaries, and `@napi-rs/wasm-runtime` was missing the three `@emnapi`
+    // packages it declares as ordinary peers — each stopped `docker compose build` at
+    // `npm ci` with a list of names and no explanation of where they had gone.
+    //
+    // Where they had gone: npm on Windows drops them. Regenerating the lockfile here does
+    // not repair it and makes it worse — it also discards the ~200 esbuild and rollup
+    // binaries for other platforms, moving the same failure onto every machine that is not
+    // this one. The repair is to regenerate inside the Linux image, which records the whole
+    // matrix, and then commit that file:
+    //
+    //   docker run --rm -v "$PWD:/src:ro" -v "$PWD/out:/out" \
+    //     mcr.microsoft.com/playwright:v<version> sh -c \
+    //     'mkdir -p /app/client && cp /src/package.json /src/package-lock.json /app/ \
+    //      && cp /src/client/package.json /app/client/ && cd /app \
+    //      && npm install --package-lock-only && cp package-lock.json /out/'
+    const missing: string[] = [];
+    for (const [dependent, meta] of Object.entries(packages)) {
+      const required = {
+        ...(meta.optionalDependencies ?? {}),
+        // Optional peers are genuinely optional; the rest npm insists on.
+        ...Object.fromEntries(
+          Object.entries(meta.peerDependencies ?? {}).filter(
+            ([name]) => !meta.peerDependenciesMeta?.[name]?.optional,
+          ),
+        ),
+      };
+      for (const [name, range] of Object.entries(required)) {
+        if (!resolveFrom(dependent, name)) {
+          missing.push(`${dependent || '(root)'} needs ${name}@${range}`);
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
   });
 });

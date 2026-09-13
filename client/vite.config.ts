@@ -18,6 +18,14 @@ export default defineConfig({
       '@shared': path.resolve(__dirname, '../shared'),
     },
   },
+  build: {
+    // Beside the bundled server, which is where server/static.ts looks for it. These two
+    // were set in different files and drifted: the server looked in `public` at the
+    // repository root while this wrote to `client/dist`, so the built container answered
+    // every page request with "Could not find the build directory".
+    outDir: path.resolve(__dirname, '../dist/public'),
+    emptyOutDir: true,
+  },
   server: {
     proxy: {
       '/api': {

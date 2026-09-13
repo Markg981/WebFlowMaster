@@ -34,3 +34,24 @@ export function resolvePort(env: NodeJS.ProcessEnv = process.env): number {
   }
   return port;
 }
+
+/**
+ * Whether the session cookie is marked `Secure`, and so only sent over HTTPS.
+ *
+ * On in production, because a session cookie travelling in plaintext is a session anyone on
+ * the path can take. But it used to be *only* that, with no way to say otherwise — and the
+ * consequence was that the shipped docker-compose stack, which serves plain HTTP on
+ * localhost, could not be logged into at all: the browser drops the cookie, `/api/login`
+ * answers 200, and every request after it is anonymous with nothing anywhere saying why.
+ *
+ * `SESSION_COOKIE_SECURE` makes that a decision rather than an accident. A value that is
+ * neither "true" nor "false" is ignored: guessing is worse than the default in both
+ * directions — reading "yes" as false would quietly expose the cookie, and reading it as
+ * true would quietly break every login.
+ */
+export function sessionCookieSecure(env: NodeJS.ProcessEnv = process.env): boolean {
+  const configured = env.SESSION_COOKIE_SECURE?.trim().toLowerCase();
+  if (configured === 'true') return true;
+  if (configured === 'false') return false;
+  return env.NODE_ENV === 'production';
+}

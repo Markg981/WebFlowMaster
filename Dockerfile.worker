@@ -1,18 +1,33 @@
-FROM mcr.microsoft.com/playwright:v1.53.0-jammy
+# The worker process: drains the BullMQ queue and runs test plans.
+#
+# Same base image as the web process, and for the same reason: a test plan runs its UI tests
+# in a real browser, so the worker needs the browsers and their system libraries rather than
+# just Node.
+#
+# The tag must equal the version the lockfile resolves for playwright — see the note in
+# Dockerfile, and the architecture test that keeps the two from drifting apart again.
+FROM mcr.microsoft.com/playwright:v1.61.1-jammy
 
 WORKDIR /app
 
-# Install Node.js dependencies first for better caching
-COPY package*.json ./
-RUN npm install --production
+ENV NODE_ENV=production
 
-# Copy the rest of the application
+# Dependencies first, and as their own layer: application code changes on every build,
+# package-lock.json rarely.
+#
+# `--include=dev` is not optional here, whatever NODE_ENV says. The previous version ran
+# `npm install --production` and then `npm run build`, which cannot work: the build needs
+# esbuild and the TypeScript compiler, both dev dependencies, so it failed with exit 127 —
+# `esbuild: not found`. Like the missing Dockerfile beside it, this had evidently never been
+# built.
+COPY package*.json ./
+COPY client/package*.json ./client/
+RUN npm ci --include=dev
+
 COPY . .
 
-# Build the worker script (assuming we compile it, or use tsx directly)
-# Since we are using tsx in dev, we can just use tsx in production or precompile.
-# For a production worker, we should compile server/worker.ts to JS.
-RUN npm run build
+# The root build script emits both entry points; the worker only needs dist/worker.js, but
+# they are produced by one esbuild invocation. Dev dependencies go once it is done.
+RUN npm run build && npm prune --omit=dev
 
-# Start the worker
 CMD ["node", "dist/worker.js"]

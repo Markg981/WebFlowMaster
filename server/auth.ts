@@ -12,6 +12,7 @@ import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import createMemoryStore from "memorystore";
 import { sessionRedis } from "./redis";
+import { sessionCookieSecure } from "./config";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -96,6 +97,17 @@ export function setupAuth(app: Express) {
   }
 
   if (!sharedSessionMiddleware) {
+    // Said out loud, because the symptom of getting this wrong is a 200 from /api/login
+    // followed by silence: the browser drops the cookie and every later request is
+    // anonymous, with nothing in any log connecting the two.
+    if (process.env.NODE_ENV === "production" && !sessionCookieSecure()) {
+      console.warn(
+        "[auth] SESSION_COOKIE_SECURE=false: the session cookie will be sent over plain " +
+          "HTTP. Acceptable for a local stack; put TLS in front of this before anyone else " +
+          "can reach it.",
+      );
+    }
+
     sharedSessionMiddleware = session({
       secret: process.env.SESSION_SECRET,
       resave: false,
@@ -104,7 +116,7 @@ export function setupAuth(app: Express) {
       cookie: {
         httpOnly: true,
         sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
+        secure: sessionCookieSecure(),
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       },
     });

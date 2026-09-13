@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolvePort } from './config';
+import { resolvePort, sessionCookieSecure } from './config';
 
 /**
  * The port the server listens on.
@@ -38,5 +38,34 @@ describe('resolvePort', () => {
   it('accepts the edges of the valid range', () => {
     expect(resolvePort({ PORT: '1' })).toBe(1);
     expect(resolvePort({ PORT: '65535' })).toBe(65535);
+  });
+});
+
+describe('sessionCookieSecure', () => {
+  it('is on in production, because a session cookie over plaintext is a session anyone can take', () => {
+    expect(sessionCookieSecure({ NODE_ENV: 'production' })).toBe(true);
+  });
+
+  it('is off in development, where there is no TLS to require', () => {
+    expect(sessionCookieSecure({ NODE_ENV: 'development' })).toBe(false);
+    expect(sessionCookieSecure({})).toBe(false);
+  });
+
+  it('can be turned off deliberately for a stack served over plain HTTP', () => {
+    // Without this the shipped docker-compose stack cannot be logged into at all: the
+    // browser drops the cookie, /api/login answers 200, and every request after it is
+    // anonymous with nothing anywhere saying why.
+    expect(sessionCookieSecure({ NODE_ENV: 'production', SESSION_COOKIE_SECURE: 'false' })).toBe(false);
+  });
+
+  it('can be turned on in development, for testing behind a TLS proxy', () => {
+    expect(sessionCookieSecure({ NODE_ENV: 'development', SESSION_COOKIE_SECURE: 'true' })).toBe(true);
+  });
+
+  it('ignores a value it does not understand rather than guessing', () => {
+    // Guessing either way is worse than the default: "yes" reading as false would silently
+    // expose the cookie, and reading as true would silently break every login.
+    expect(sessionCookieSecure({ NODE_ENV: 'production', SESSION_COOKIE_SECURE: 'yes' })).toBe(true);
+    expect(sessionCookieSecure({ NODE_ENV: 'development', SESSION_COOKIE_SECURE: 'yes' })).toBe(false);
   });
 });

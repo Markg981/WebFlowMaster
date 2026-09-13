@@ -1,4 +1,11 @@
-version: '3.8'
+# The product as it is meant to run: a web process, a queue worker that can be scaled, and
+# the two stores they share.
+#
+# Everything here was verified by building and running it, which had never been done before:
+# the api service named a Dockerfile that did not exist, the worker's could not build, the
+# server bundle imported a pruned dev dependency, the client was built into a directory the
+# server did not look in, and nothing applied the migrations. Each of those only appears in
+# a real production start — none is reachable from the dev server, the tests or a typecheck.
 
 services:
   redis:
@@ -7,34 +14,13 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-
-  api:
-    build: 
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "5000:5000"
-    environment:
-      - NODE_ENV=production
-      - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=postgres://postgres:password@postgres:5432/webflowmaster
-      - SESSION_SECRET=7G823eU1afEmmjSg73Juk_wRoVPt6mqbjBXliA6XXNg
-    depends_on:
-      - redis
-      - postgres
-
-  worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.worker
-    environment:
-      - NODE_ENV=production
-      - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=postgres://postgres:password@postgres:5432/webflowmaster
-    depends_on:
-      - redis
-      - postgres
-    # You can scale this service: docker-compose up --scale worker=5
+    # Depended on with service_healthy below, so the app is not started against a store that
+    # is listening but not ready.
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   postgres:
     image: postgres:15-alpine
@@ -45,6 +31,82 @@ services:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d webflowmaster"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Runs once and exits. Without it the app starts against an empty database and dies on the
+  # first query — which is what happened: "relation system_settings does not exist", and
+  # then a tenancy precondition failure, because the app_user role that migration 0004
+  # creates was not there either.
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # node, not `npm run db:migrate`: that script runs tsx, a dev dependency the image
+    # prunes, so it exited 127 — `tsx: not found`. The migrator is bundled like the two
+    # server entry points, and run the same way.
+    command: ["node", "dist/apply-migrations.js"]
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/webflowmaster
+      # Required by server/crypto.ts at import time, even though migrating encrypts nothing.
+      - ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/webflowmaster
+      # Change all three before this is reachable by anyone else. They are here so the stack
+      # starts out of the box, not because these values are fit to deploy.
+      - SESSION_SECRET=7G823eU1afEmmjSg73Juk_wRoVPt6mqbjBXliA6XXNg
+      - ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
+      # The fallback {{baseUrl}} for a run with no environment selected.
+      - APP_BASE_URL=http://localhost:7000
+      # This stack serves plain HTTP on localhost, so a Secure cookie would be dropped by
+      # the browser: /api/login would answer 200 and every request after it would be
+      # anonymous, with nothing saying why. Put TLS in front of this and remove the line
+      # before anyone else can reach it.
+      - SESSION_COOKIE_SECURE=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/webflowmaster
+      - ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
+      - APP_BASE_URL=http://localhost:7000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    # Several of these are the point of splitting the worker out at all:
+    #   docker compose up --scale worker=5
 
 volumes:
   redis_data:

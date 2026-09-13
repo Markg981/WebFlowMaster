@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import { type Express } from "express";
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -74,23 +74,4 @@ export async function setupVite(app: Express, server: Server) {
   });
 }
 
-export function serveStatic(app: Express) {
-  // Derive __dirname from the module-level file path
-  const __dirname_static = dirname(currentModuleFilePath);
-  // Assuming 'public' should be at the project root
-  const distPath = path.resolve(__dirname_static, "..", "public");
-
-  if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
-    );
-  }
-
-  app.use(express.static(distPath));
-
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    // For consistency, resolve distPath again or use it directly
-    res.sendFile(path.resolve(distPath, "index.html"));
-  });
-}
+// serveStatic moved to ./static: this module imports vite, which production does not have.

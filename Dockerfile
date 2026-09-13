@@ -8,10 +8,16 @@
 #
 # Based on the Playwright image for the same reason the worker is: the web process runs
 # element detection and the ad-hoc "Execute Test" preview in a real browser, so it needs
-# the browsers and their system libraries, not just Node. The tag is pinned to the
-# Playwright version in package.json — a browser build newer than the client library (or
-# older) fails at launch with a version mismatch.
-FROM mcr.microsoft.com/playwright:v1.53.0-jammy
+# the browsers and their system libraries, not just Node.
+#
+# The tag must equal the version the LOCKFILE resolves for playwright — the image ships
+# browsers built for exactly one, and Playwright refuses to launch a mismatched pair. It is
+# not tied to the range in package.json, and assuming it was is what broke this: "^1.53.1"
+# had resolved to 1.61.1 while this said 1.53.0, so the first real browser run in a
+# container failed with "Executable doesn't exist" and a message telling us to update the
+# image. An architecture test now compares the two, so a dependency bump fails a test
+# rather than production.
+FROM mcr.microsoft.com/playwright:v1.61.1-jammy
 
 WORKDIR /app
 
