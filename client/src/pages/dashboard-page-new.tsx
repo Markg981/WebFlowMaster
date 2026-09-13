@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { ApiError, apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -418,13 +418,29 @@ export default function DashboardPage() {
 
   const saveTestMutation = useMutation({
     mutationFn: async (payload: { name: string; url: string; sequence: DragDropTestStep[]; elements: DetectedElement[]; status: string; projectId?: number; preconditions?: Precondition[]; dataset?: DatasetRow[] | null }) => {
-      // No default payload here, it's fully constructed in handleConfirmSaveTest
-      const res = await apiRequest("POST", "/api/tests", payload);
-      // apiRequest should handle non-ok responses by throwing an error.
-      // It should also parse JSON response.
-      return res; // Assuming apiRequest returns parsed JSON directly
+      // Saving under a name that already exists used to quietly create a second test, so
+      // refining a recording left a pile of rows with one name between them. The server
+      // answers 409 with the id of the one already there; the choice of what to do about it
+      // belongs to the person who typed the name.
+      try {
+        return await apiRequest("POST", "/api/tests", payload);
+      } catch (error) {
+        if (!(error instanceof ApiError) || error.status !== 409) throw error;
+
+        const conflict = error.body as { existingTestId?: number; name?: string };
+        const overwrite = window.confirm(
+          t('dashboardPageNew.saveTest.overwriteConfirm', { name: conflict?.name ?? payload.name }),
+        );
+        if (!overwrite) return null;
+
+        return apiRequest("PUT", `/api/tests/${conflict.existingTestId}`, payload);
+      }
     },
     onSuccess: (data: any) => { // data should be the saved test object
+      // null means the overwrite prompt was declined: nothing was written, so nothing here
+      // should claim otherwise or close the dialog the person is still looking at.
+      if (!data) return;
+
       toast({
         title: "Test saved",
         description: "Your test has been saved successfully.",

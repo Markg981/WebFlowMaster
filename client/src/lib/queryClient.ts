@@ -2,10 +2,35 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { clientLogger, setCurrentCorrelationId } from "@/observability/logger";
 import { getSessionId, newCorrelationId } from "@/observability/session";
 
+/**
+ * An error a caller can act on, not just display.
+ *
+ * The message stays `"<status>: <body>"`, which is what several toasts already show. What is
+ * new is that the status and the parsed body ride along, so a caller that wants to treat one
+ * status differently — a 409 offering to overwrite, say — does not have to pick the number
+ * back out of a string and hope the format never changes.
+ */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: unknown,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let body: unknown;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = text; // not JSON; the message below still carries it
+    }
+    throw new ApiError(res.status, body, `${res.status}: ${text}`);
   }
 }
 

@@ -670,6 +670,9 @@
         "name": "Aus Liste Wählen",
         "description": "Öffnet eine nicht-native Liste und wählt eine Option über ihren Text"
       }
+    },
+    "saveTest": {
+      "overwriteConfirm": "Ein Test namens „{{name}}“ existiert bereits. Mit dem angezeigten überschreiben?"
     }
   },
   "notFoundPage": {

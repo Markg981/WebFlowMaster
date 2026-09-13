@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import DashboardPageNew from './dashboard-page-new';
+// The real class, reached through the mock below, which spreads the original module: the
+// save path checks `instanceof`, so a stand-in would make the overwrite prompt unreachable.
+import { ApiError } from '@/lib/queryClient';
 
 /**
  * Covers the "Create Test" page at the seam that matters: what the page hands to the API
@@ -23,9 +26,15 @@ vi.mock('@/hooks/use-toast', () => ({
 }));
 
 const mockApiRequest = vi.fn();
-vi.mock('@/lib/queryClient', () => ({
-  apiRequest: (...args: unknown[]) => mockApiRequest(...args),
-}));
+vi.mock('@/lib/queryClient', async (importOriginal) => {
+  // ApiError comes from the real module: the save path tests whether a rejection is one, and
+  // a stand-in class would make `instanceof` false and the overwrite prompt unreachable.
+  const actual = await importOriginal<typeof import('@/lib/queryClient')>();
+  return {
+    ...actual,
+    apiRequest: (...args: unknown[]) => mockApiRequest(...args),
+  };
+});
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -253,5 +262,78 @@ describe('DashboardPageNew — recording mode', () => {
 
     const startButton = await screen.findByText('dashboardPageNew.iniziaRegistrazione.button');
     expect(startButton.closest('button')).toBeDisabled();
+  });
+});
+
+/**
+ * Saving under a name that is already taken.
+ *
+ * Refining a recording means saving the same test over and over, and every save used to
+ * insert a new row: same name, nothing to tell them apart, and no way to delete any of them.
+ * The server now reports the collision with the id of the test already there, and the person
+ * who typed the name decides.
+ */
+describe('DashboardPageNew — overwriting a test', () => {
+  /**
+   * Rejects the POST to /api/tests and nothing else.
+   *
+   * Keyed on the endpoint rather than on call order: the page fetches the environment list
+   * on mount, so `mockRejectedValueOnce` is spent before the save ever happens — which is
+   * the same trap the comment in the test above this one records.
+   */
+  const failSaveWithConflict = () => {
+    mockApiRequest.mockImplementation((method: string, url: string) => {
+      if (method === 'POST' && url === '/api/tests') {
+        return Promise.reject(
+          new ApiError(409, { existingTestId: 77, name: SAVE_NAME }, '409: conflict'),
+        );
+      }
+      if (method === 'PUT') return Promise.resolve({ id: 77, name: SAVE_NAME });
+      return Promise.resolve([]);
+    });
+  };
+
+  const saveOnce = async () => {
+    const { container } = renderPage();
+    fireEvent.change(urlInput(container), { target: { value: 'https://shop.test' } });
+    fireEvent.click(screen.getByTestId('add-step'));
+    fireEvent.click(screen.getByTestId('save-test'));
+    await screen.findByTestId('save-modal');
+    fireEvent.click(screen.getByTestId('modal-confirm'));
+  };
+
+  it('asks before replacing, then replaces the one that exists', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    failSaveWithConflict();
+
+    await saveOnce();
+
+    await waitFor(() =>
+      expect(mockApiRequest.mock.calls.some((c) => c[0] === 'PUT')).toBe(true),
+    );
+
+    expect(confirm).toHaveBeenCalled();
+    const put = mockApiRequest.mock.calls.find((c) => c[0] === 'PUT')!;
+    // The id from the conflict, so nobody has to go and look the test up first.
+    expect(put[1]).toBe('/api/tests/77');
+    expect(put[2]).toMatchObject({ name: SAVE_NAME, url: 'https://shop.test' });
+
+    confirm.mockRestore();
+  });
+
+  it('writes nothing when the prompt is declined', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    failSaveWithConflict();
+
+    await saveOnce();
+
+    await waitFor(() => expect(confirm).toHaveBeenCalled());
+
+    // No second request, and — the part that would be worst — no "Test saved" telling
+    // someone their work is stored when it is not.
+    expect(mockApiRequest.mock.calls.filter((c) => c[1]?.toString().startsWith('/api/tests'))).toHaveLength(1);
+    expect(mockToast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'Test saved' }));
+
+    confirm.mockRestore();
   });
 });
