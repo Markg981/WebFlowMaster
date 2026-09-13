@@ -70,6 +70,38 @@ export const UNRESOLVED_VARIABLE_ERROR = 'Unresolved variable(s)';
  * that a genuinely missing element fails the step rather than stalling the run. */
 const DEFAULT_WAIT_TIMEOUT_MS = 15_000;
 
+/**
+ * How long an assertion keeps looking before it gives up.
+ *
+ * Shorter than the explicit waits above, and deliberately so. `waitForElement` is the tester
+ * saying "this takes time"; an assertion is the tester saying "this should be true by now".
+ * Some patience covers the gap between a click returning and the screen catching up — an
+ * Angular tab strip re-renders after its click handler resolves — but matching the explicit
+ * wait would make those actions pointless and would make every genuine failure take fifteen
+ * seconds, which is what turns a red suite into one nobody runs.
+ *
+ * Without any patience the assertions were worse than flaky, they were wrong: replaying a
+ * recorded DMO test, the tab existed a moment later and the step reported it missing in 16ms.
+ */
+const ASSERTION_TIMEOUT_MS = 5_000;
+
+/**
+ * Retries a check until it holds, or the deadline passes.
+ *
+ * Polling rather than Playwright's own waiting because each assertion decides what "true"
+ * means — a substring that is case-sensitive, a count compared with an operator — and
+ * expressing those through `waitFor` would change what they assert. `filter({ hasText })`,
+ * for one, matches case-insensitively, so a test that should fail would start passing.
+ */
+async function holdsWithin(check: () => Promise<boolean>, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    if (await check().catch(() => false)) return true;
+    if (Date.now() >= deadline) return false;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+}
+
 /** Where non-native dropdowns put their options, across the libraries DMO actually uses. */
 const OPTION_SELECTOR = '[role="option"], .mat-mdc-option, .mat-option, .ng-option';
 
@@ -143,6 +175,8 @@ interface StepRuntime {
   /** Same, for Playwright's role engine, which also needs the frame. */
   byRole: (role: string, name: string) => Locator;
   timeoutMs: number;
+  /** Shorter than timeoutMs, and separate on purpose — see ASSERTION_TIMEOUT_MS. */
+  assertionTimeoutMs: number;
 }
 
 /** Reads the step's value as a non-empty string, or explains what is missing. */
@@ -215,10 +249,18 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     // nodes, so an element present but hidden passed there and failed in the preview.
     const target = requireSelector(rt, 'visibility assert');
     if ('error' in target) return failed(target.error);
-    const isVisible = await rt.locator(target.selector).first().isVisible().catch(() => false);
-    return isVisible
+
+    const visible = await holdsWithin(
+      () => rt.locator(target.selector).first().isVisible(),
+      rt.assertionTimeoutMs,
+    );
+
+    return visible
       ? passed
-      : failed(`Assertion Failed: Element "${target.selector}" is not visible.`);
+      : failed(
+          `Assertion Failed: Element "${target.selector}" was not visible within ` +
+            `${rt.assertionTimeoutMs}ms.`,
+        );
   },
 
   assertTextContains: async (rt) => {
@@ -226,11 +268,22 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if ('error' in target) return failed(target.error);
     const expected = requireValue(rt, 'assertTextContains');
     if ('error' in expected) return failed(expected.error);
-    const actualText = await rt.locator(target.selector).textContent();
-    if (actualText === null || !actualText.includes(expected.value)) {
+
+    // Kept so the failure can say what it saw, rather than only what it wanted.
+    let actualText: string | null = null;
+
+    const contains = await holdsWithin(async () => {
+      actualText = await rt.locator(target.selector).first().textContent();
+      // Case-sensitive, as before. This is why the check is written out rather than handed
+      // to `filter({ hasText })`, which would quietly start accepting the wrong case.
+      return actualText !== null && actualText.includes(expected.value);
+    }, rt.assertionTimeoutMs);
+
+    if (!contains) {
       return failed(
         `Assertion Failed: Element "${target.selector}" did not contain text ` +
-          `"${expected.value}". Actual: "${actualText === null ? 'null' : actualText}".`,
+          `"${expected.value}" within ${rt.assertionTimeoutMs}ms. ` +
+          `Actual: "${actualText === null ? 'null' : actualText}".`,
       );
     }
     return passed;
@@ -249,14 +302,23 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
           'Expected format like "==5", ">=2", or "3".',
       );
     }
-    const actualCount = await rt.locator(target.selector).count();
-    const matched = compareCount(parsed.operator, actualCount, parsed.count);
-    if (matched === null) {
+    // An unknown operator is a broken step, not a state to wait for: say so immediately
+    // rather than spending the assertion's patience discovering it again every 100ms.
+    if (compareCount(parsed.operator, 0, parsed.count) === null) {
       return failed(`Unknown operator "${parsed.operator}" for assertElementCount.`);
     }
+
+    let actualCount = 0;
+
+    const matched = await holdsWithin(async () => {
+      actualCount = await rt.locator(target.selector).count();
+      return compareCount(parsed.operator, actualCount, parsed.count) === true;
+    }, rt.assertionTimeoutMs);
+
     if (!matched) {
       return failed(
-        `Assertion Failed: Element count for selector "${target.selector}" did not match. ` +
+        `Assertion Failed: Element count for selector "${target.selector}" did not match ` +
+          `within ${rt.assertionTimeoutMs}ms. ` +
           `Expected ${parsed.operator} ${parsed.count}, Actual: ${actualCount}.`,
       );
     }
@@ -449,6 +511,7 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
     locator: (sel) => scope.locator(sel),
     byRole: (role, name) => scope.getByRole(role as any, { name, exact: false }),
     timeoutMs: DEFAULT_WAIT_TIMEOUT_MS,
+    assertionTimeoutMs: ASSERTION_TIMEOUT_MS,
   };
 
   return handler(rt);

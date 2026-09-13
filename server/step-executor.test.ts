@@ -32,10 +32,18 @@ const PAGES: Record<string, string> = {
   '/late': `<!doctype html><title>Late</title>
     <h1 id="title">Loading…</h1>
     <div id="panel" style="display:none">ready</div>
+    <ul id="rows"></ul>
     <script>
       setTimeout(function () {
         document.getElementById('panel').style.display = 'block';
         document.getElementById('title').textContent = 'Order 4711 confirmed';
+        var rows = document.getElementById('rows');
+        for (var i = 0; i < 3; i++) {
+          var li = document.createElement('li');
+          li.className = 'row';
+          li.textContent = 'Row ' + (i + 1);
+          rows.appendChild(li);
+        }
       }, 700);
     </script>`,
 
@@ -304,4 +312,72 @@ describe('action coverage', () => {
     // previous version of it derived the set from ADHOC_ACTION_IDS and so proved nothing.
     expect([...HANDLED_ACTION_IDS].sort()).toEqual([...ADHOC_ACTION_IDS].sort());
   });
+});
+
+/**
+ * Assertions on a screen that has not finished rendering.
+ *
+ * None of the three waited. Replaying a recorded DMO test, the click on a tab returned, the
+ * assertion on the tab's content ran against the DOM as it was that instant, and the step
+ * failed in 16ms — against a tab that was there a moment later. That is not flakiness, it is
+ * an assertion that reports the wrong answer whenever the application renders after the fact,
+ * which an Angular application does constantly. The fix cost a `waitForElement` inserted by
+ * hand in front of every assertion, which is not something a recording can be expected to do.
+ */
+describe('an assertion on a screen that is still rendering', () => {
+  const runOnLatePage = async (sequence: MappedTestStep[]) => {
+    const { playwrightService } = await import('./playwright-service');
+    return playwrightService.executeTestSequence(savedTest(sequence, '/late'), 1);
+  };
+
+  it('waits for an element to become visible instead of judging it at once', async () => {
+    // #panel is display:none for 700ms. No explicit wait in front of it — that is the point.
+    const result = await runOnLatePage([step('assert', { selector: '#panel' })]);
+
+    const failures = (result.steps ?? []).filter((s) => s.status === 'failed');
+    expect(failures.map((f) => f.error)).toEqual([]);
+    expect(result.success).toBe(true);
+  }, 60_000);
+
+  it('waits for the text to arrive', async () => {
+    const result = await runOnLatePage([
+      step('assertTextContains', { selector: '#title', value: 'Order 4711 confirmed' }),
+    ]);
+
+    expect(result.success).toBe(true);
+  }, 60_000);
+
+  it('waits for the rows to be rendered before counting them', async () => {
+    const result = await runOnLatePage([
+      step('assertElementCount', { selector: '.row', value: '==3' }),
+    ]);
+
+    expect(result.success).toBe(true);
+  }, 60_000);
+
+  it('still fails when the thing never arrives, and says it waited', async () => {
+    const started = Date.now();
+    const result = await runOnLatePage([step('assert', { selector: '#never-there' })]);
+    const elapsed = Date.now() - started;
+
+    const failure = (result.steps ?? []).find((s) => s.status === 'failed');
+    expect(failure?.error).toContain('#never-there');
+    // Patience is not the same as hanging: a genuine failure has to stay quick enough that a
+    // suite full of them still finishes, which is why assertions wait for less time than the
+    // explicit waits do.
+    expect(elapsed).toBeLessThan(20_000);
+  }, 60_000);
+
+  it('does not turn a wrong expectation into a passing one by waiting', async () => {
+    // The text does change, but never to this. Waiting must not become "eventually accept
+    // whatever is there".
+    const result = await runOnLatePage([
+      step('assertTextContains', { selector: '#title', value: 'Order 9999 confirmed' }),
+    ]);
+
+    expect(result.success).toBe(false);
+    const failure = (result.steps ?? []).find((s) => s.status === 'failed');
+    // And the message reports what was actually on screen, not only what was wanted.
+    expect(failure?.error).toContain('Order 4711 confirmed');
+  }, 60_000);
 });
