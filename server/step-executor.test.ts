@@ -225,6 +225,10 @@ describe('waiting for something to happen instead of for a duration', () => {
 
     const failures = (result.steps ?? []).filter((s) => s.status === 'failed');
     expect(failures.map((f) => `${f.type}: ${f.error}`)).toEqual([]);
+    // Not redundant. "No step failed" is also true of a run that produced no steps at all,
+    // so on a machine with no browser installed this test passed in 18ms while proving
+    // nothing — which is how it stayed green in CI for as long as CI had no browsers.
+    expect(result.success).toBe(true);
   }, 60_000);
 
   it('waits for an element to contain text', async () => {

@@ -123,6 +123,9 @@ describe('acting on an element inside an iframe', () => {
 
     const failures = (result.steps ?? []).filter((s) => s.status === 'failed');
     expect(failures.map((f) => `${f.type}: ${f.error}`)).toEqual([]);
+    // Not redundant: an empty failure list is also what a run that never started produces,
+    // so without this the test passed in 15ms on a machine with no browser.
+    expect(result.success).toBe(true);
   }, 60_000);
 });
 

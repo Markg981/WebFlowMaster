@@ -43,6 +43,37 @@ jobs:
       - name: Install dependencies (root + client workspace)
         run: npm ci
 
+      # Without this the whole point of the product goes untested here.
+      #
+      # `npm ci` does not bring the browsers: the `playwright` package has no install script
+      # in this lockfile, so nothing downloaded them and every browser-driven test failed
+      # with "Executable doesn't exist at ~/.cache/ms-playwright/chromium_headless_shell-…".
+      # That was true from the first day this workflow existed — recorder-script.test.ts has
+      # never run in CI — and stayed quiet while that was the only such file. It stopped
+      # being quiet once element detection, the step executor, saved login states and frames
+      # each grew a suite that drives a real browser: 28 failures, all the same cause.
+      #
+      # Chromium only, and deliberately: it is the one the tests launch. `firefox` and
+      # `webkit` appear in the suite as *stored values* on a schedule row, never as a browser
+      # anything opens, so downloading them would add minutes per run to prove nothing.
+      - name: Resolve the Playwright version the lockfile pins
+        id: playwright
+        run: |
+          version=$(node -p "require('./package-lock.json').packages['node_modules/playwright'].version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # Keyed on that version, because the browser build is tied to it — Playwright refuses
+      # to launch a mismatched pair, which is the same trap the Dockerfile's image tag fell
+      # into. A dependency bump misses the cache and downloads, which is correct.
+      - name: Cache the browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install the browser the tests drive
+        run: npx playwright install --with-deps chromium
+
       - name: Type check
         run: npm run check
 
