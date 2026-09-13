@@ -141,13 +141,12 @@ export const RECORDER_SCRIPT = `
       // A menu entry, a tab, a dialog button: each carries text a person chose, and Playwright
       // matches it directly. Element detection has always preferred this; the recorder went
       // straight from classes to geometry.
-      var ownText = (el.innerText || el.textContent || '').replace(/\\s+/g, ' ').trim();
+      var ownText = ownTextOf(el);
       if (ownText && ownText.length <= 60) {
         var matches = 0;
         var all = document.querySelectorAll(tagName);
         for (var t = 0; t < all.length && matches < 2; t++) {
-          var candidateText = (all[t].innerText || all[t].textContent || '').replace(/\\s+/g, ' ').trim();
-          if (candidateText === ownText) matches++;
+          if (ownTextOf(all[t]) === ownText) matches++;
         }
         // Only when it identifies exactly one element, or the step would be ambiguous and
         // Playwright would refuse to act on it.
@@ -181,6 +180,24 @@ export const RECORDER_SCRIPT = `
     } catch (e) {
       return null;
     }
+  }
+
+  /**
+   * The text an element owns, rather than everything under it.
+   *
+   * Only its direct text nodes, which is how Playwright's :text-is() decides. innerText adds
+   * up the descendants, so by that measure a menu label and every wrapper above it all "have"
+   * the same text — the uniqueness check then called a selector ambiguous that the engine
+   * resolves to exactly one element, and the recorder fell back to counting divs from body.
+   * Measured on the real page: span:text-is(label) matched 1, a:text-is(label) matched 0,
+   * while innerText said two spans and one anchor carried it.
+   */
+  function ownTextOf(node) {
+    var out = '';
+    for (var c = 0; c < node.childNodes.length; c++) {
+      if (node.childNodes[c].nodeType === 3) out += node.childNodes[c].nodeValue;
+    }
+    return out.replace(/\\s+/g, ' ').trim();
   }
 
   function getElementDetails(el) {
@@ -485,6 +502,10 @@ export const RECORDER_SCRIPT = `
     for (var i = pendingHovers.length - 1; i >= 0; i--) {
       var p = pendingHovers[i];
       if (now - p.at >= PENDING_HOVER_TTL_MS) continue;
+      // A step cannot hover something that has since left the document. Without this, a menu
+      // entry that was clicked and then removed still counted as the thing that revealed
+      // whatever rendered next.
+      if (!document.contains(p.host)) continue;
       if (p.root.contains(clicked) && !p.host.contains(clicked)) return p.host;
     }
     return null;
@@ -580,6 +601,11 @@ export const RECORDER_SCRIPT = `
   /* ------------------------------------------------------------------- navigations */
 
   function reportNavigation() {
+    // A route change replaces most of the document, and whatever the pointer happened to be
+    // over at that moment would otherwise be credited with having revealed all of it — so
+    // the next click anywhere on the new screen produced a hover step for a menu entry that
+    // had just been clicked and was already gone.
+    pendingHovers = [];
     send({ type: 'navigate', url: window.location.href, value: window.location.href, timestamp: Date.now() });
   }
 
