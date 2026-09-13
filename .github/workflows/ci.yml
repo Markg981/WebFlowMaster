@@ -85,8 +85,17 @@ jobs:
       # - name: Format check
       #   run: npm run format:check
 
+      # Under a virtual display, because one suite drives a HEADED browser and a runner has
+      # no X server: `startRecordingSession` sets `headless: false` on purpose — a recording
+      # session is a window the tester watches and clicks in — so it died with "Missing X
+      # server or $DISPLAY". Making it headless to suit CI would test something other than
+      # what ships, so CI grows a display instead.
+      #
+      # The wrapper is harmless to everything else: a headless launch ignores DISPLAY. xvfb
+      # itself arrives with `playwright install --with-deps`, which lists it among the tools
+      # it installs on Ubuntu.
       - name: Server tests
-        run: npm test
+        run: xvfb-run -a npm test
 
       # Was missing: the client suite existed and CI never ran it.
       - name: Client tests

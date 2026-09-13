@@ -428,7 +428,11 @@ describe('the suite that needs a browser can get one', () => {
     const offenders: string[] = [];
     for (const file of workflows) {
       const source = fs.readFileSync(path.join(workflowDir, file), 'utf8');
-      const runsTheSuite = /run:\s*npm test\b/.test(source);
+      // Anywhere in the command, not anchored to the start of it: the step is wrapped in
+      // `xvfb-run -a` so the one headed suite has a display. An anchored match would have
+      // stopped recognising the step the moment that wrapper was added, and this whole
+      // check would have gone quietly vacuous — which is the failure it exists to prevent.
+      const runsTheSuite = /run:.*\bnpm test\b/.test(source);
       if (!runsTheSuite) continue;
 
       const installsBrowsers = /playwright install/.test(source);
