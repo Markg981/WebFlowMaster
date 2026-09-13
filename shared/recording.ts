@@ -36,6 +36,12 @@ export type AdhocActionId = (typeof ADHOC_ACTION_IDS)[number];
 /** Action kinds the in-page recorder can emit. */
 export const RECORDED_ACTION_TYPES = [
   "click",
+  // Recorded only when hovering something is what revealed what happens next — see the
+  // pending-hover logic in server/recorder-script.ts. DMO's navigation is a flyout that
+  // opens on hover and closes when the pointer leaves, so a recording that captured only
+  // clicks was missing the step that made the menu exist: replay found nothing to click and
+  // timed out on the first action, whatever the selector said.
+  "hover",
   "input",
   "select",
   "navigate",
@@ -85,6 +91,7 @@ export const RECORDED_TYPE_TO_ACTION_ID: Record<
   AdhocActionId | null
 > = {
   click: "click",
+  hover: "hover",
   input: "input",
   select: "select",
   navigate: "navigate",

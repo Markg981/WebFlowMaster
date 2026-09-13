@@ -6,6 +6,7 @@ import { storage } from './storage'; // To fetch user settings
 import type { Test, Precondition } from '@shared/schema'; // Import Test and UserSettings type
 import { type RecordedAction, RecordedActionSchema } from '@shared/recording';
 import { RECORDER_SCRIPT } from './recorder-script';
+import { VOLATILE_ID_PATTERNS } from '@shared/selectors';
 import { runPreconditions } from './precondition-runner';
 import { recordRunnerFailure } from './observability/taps/runner';
 import fs from 'fs-extra';
@@ -181,7 +182,7 @@ const IMPLICIT_NAVIGATION_WINDOW_MS = 3000;
  * inside an iframe was invisible to detection entirely, since page.evaluate only reaches the
  * top document and page.locator does not cross the boundary either.
  */
-function collectCandidatesInFrame() {
+function collectCandidatesInFrame(volatileIdPatterns: readonly string[]) {
     // esbuild/tsx (keepNames) wraps named functions in `__name(fn, "…")`; that helper only
     // exists in the Node bundle, so provide a harmless identity shim for the browser page.
     (globalThis as any).__name = (globalThis as any).__name || ((fn: any) => fn);
@@ -195,13 +196,14 @@ function collectCandidatesInFrame() {
      * order, so they shift as soon as anything above the element changes. Radix and React's
      * useId produce `:r1a:`. Preferring one of these over a label is what makes a recorded
      * test fail the next day against an application nobody touched.
+     *
+     * The rule itself now lives in shared/selectors.ts and arrives as an argument, because
+     * the recorder needs exactly the same one and had a weaker one of its own — which is
+     * how a recording of an Angular Material application came back anchored on
+     * `#cdk-overlay-0` and could not be replayed even once.
      */
-    const isVolatileId = (id: string) => {
-      if (/^(mat|mdc|cdk|ng|dx|p|ui|kendo)[-_]/i.test(id) && /\d+$/.test(id)) return true;
-      if (/^:[a-z0-9]+:$/i.test(id)) return true;
-      if (/^[0-9a-f]{12,}$/i.test(id)) return true;
-      return /^[a-z-]*\d{4,}$/i.test(id);
-    };
+    const volatileIdRes = volatileIdPatterns.map((pattern) => new RegExp(pattern, 'i'));
+    const isVolatileId = (id: string) => volatileIdRes.some((re) => re.test(id));
 
     /**
      * Every document-like root, including open shadow roots.
@@ -753,12 +755,22 @@ export class PlaywrightService {
 
       const browserEngine = (playwright as any)[browserType];
       if (!browserEngine) throw new Error(`Invalid browser type: ${browserType}`);
-      browser = await browserEngine.launch({ headless: effectiveHeadlessMode });
+      // Maximised, and the viewport left to follow the window.
+      //
+      // A recording window is one a person works in: at 1280x720 an enterprise screen is
+      // cramped, tables scroll sideways, and menus that would be open on the tester's own
+      // monitor are collapsed — so the recording captures a path through a layout nobody
+      // uses. `--start-maximized` only has an effect with `viewport: null`, which tells
+      // Playwright to stop pinning the page to a fixed size and let it fill the window.
+      browser = await browserEngine.launch({
+        headless: effectiveHeadlessMode,
+        args: effectiveHeadlessMode ? undefined : ['--start-maximized'],
+      });
       if (!browser) throw new Error("Failed to launch browser for recording.");
 
       context = await browser.newContext({
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        viewport: { width: 1280, height: 720 },
+        viewport: null,
         ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl)
       });
 
@@ -983,7 +995,12 @@ export class PlaywrightService {
         if (!frameSelector) continue;
       }
       try {
-        perFrame.push({ frameSelector, data: await frame.evaluate(collectCandidatesInFrame) });
+        perFrame.push({
+          frameSelector,
+          // The patterns travel as data: this function is serialised into the page, so it
+          // cannot close over the import. See shared/selectors.ts.
+          data: await frame.evaluate(collectCandidatesInFrame, VOLATILE_ID_PATTERNS),
+        });
       } catch {
         // A frame can navigate or detach mid-scan, and a cross-origin one cannot be read
         // at all. Neither is a reason to fail the whole detection.

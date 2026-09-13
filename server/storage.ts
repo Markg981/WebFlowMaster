@@ -52,7 +52,7 @@ export interface IStorage {
 
   getTest(id: number): Promise<Test | undefined>;
   getTestsByUser(userId: number): Promise<Test[]>;
-  createTest(test: InsertTest, organizationId: number): Promise<Test>;
+  createTest(test: InsertTest, userId: number, organizationId: number): Promise<Test>;
   updateTest(id: number, test: Partial<InsertTest>): Promise<Test | undefined>;
   deleteTest(id: number): Promise<boolean>;
 
@@ -170,12 +170,13 @@ export class DatabaseStorage implements IStorage {
     return await privilegedDb.select().from(tests).where(eq(tests.userId, userId)).orderBy(desc(tests.updatedAt));
   }
 
-  async createTest(test: InsertTest, organizationId: number): Promise<Test> {
-    // organizationId is the tenancy boundary: it comes from the caller's session, never
-    // from the InsertTest payload (insertTestSchema omits it for the same reason userId is).
+  async createTest(test: InsertTest, userId: number, organizationId: number): Promise<Test> {
+    // Both come from the caller's session, never from the InsertTest payload, which omits
+    // them. The comment here already claimed that of userId while the schema still accepted
+    // it — which is what made every save from the page fail with `userId: ["Required"]`.
     const [newTest] = await privilegedDb
       .insert(tests)
-      .values({ ...test, organizationId })
+      .values({ ...test, userId, organizationId })
       .returning();
     return newTest;
   }
