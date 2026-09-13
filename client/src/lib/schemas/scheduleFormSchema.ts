@@ -55,12 +55,48 @@ export const ENVIRONMENT_OPTIONS = [
 export const ENVIRONMENT_VALUES = ENVIRONMENT_OPTIONS.map(o => o.value);
 
 
+/**
+ * Suggestions only — the field accepts any IANA name.
+ *
+ * The browser's own zone leads, because it is the one the person filling the form is
+ * thinking in; UTC stays available because that is what every schedule made before this
+ * field existed means.
+ */
+export const TIMEZONE_SUGGESTIONS: string[] = Array.from(
+  new Set([
+    browserTimezone(),
+    'UTC',
+    'Europe/Rome',
+    'Europe/London',
+    'Europe/Zurich',
+    'America/New_York',
+    'America/Chicago',
+    'America/Sao_Paulo',
+    'Asia/Shanghai',
+    'Asia/Tokyo',
+    'Australia/Sydney',
+  ]),
+);
+
+/** The zone this browser is in, or UTC where the platform will not say. */
+export function browserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
 export const scheduleFormSchema = z.object({
   scheduleName: z.string().min(1, 'Schedule name is required'),
   testPlanId: z.string().min(1, 'Test plan is required'),
   frequency: z.string().min(1, 'Frequency is required'),
   customCronExpression: z.string().optional(),
   nextRunAt: z.date({ required_error: 'Next run date and time is required' }),
+  // IANA name. Defaults to the browser's zone rather than UTC: "02:00" means 02:00 where
+  // the tester is, and making them convert it twice a year is how a nightly job ends up
+  // running an hour off for half the year.
+  timezone: z.string().min(1, 'Timezone is required').default(browserTimezone()),
   environment: z.string().optional(), // Free text, or use z.enum(ENVIRONMENT_OPTIONS.map(e => e.value)) if you want a select
   browsers: z.array(z.enum(BROWSER_OPTIONS.map(b => b.value) as [string, ...string[]]))
               .min(1, 'At least one browser must be selected').optional().nullable(),
@@ -110,6 +146,7 @@ export const transformFormValuesToApiPayload = (
     testPlanId: values.testPlanId,
     frequency: effectiveFrequency,
     nextRunAt: values.nextRunAt,
+    timezone: values.timezone,
     environment: values.environment || null,
     browsers: values.browsers && values.browsers.length > 0 ? values.browsers : null,
     isActive: values.isActive,
@@ -135,6 +172,9 @@ export const transformApiDataToFormValues = (
     frequency: frequency,
     customCronExpression: customCronExpression,
     nextRunAt: apiData.nextRunAt ? (apiData.nextRunAt instanceof Date ? apiData.nextRunAt : new Date(apiData.nextRunAt)) : undefined,
+    // A saved schedule keeps the zone it was saved with — editing it must not silently
+    // reinterpret its time in whatever zone the editor happens to be sitting in.
+    timezone: apiData.timezone || browserTimezone(),
     environment: apiData.environment || '',
     browsers: apiData.browsers || [],
     isActive: apiData.isActive !== undefined ? apiData.isActive : true,

@@ -22,6 +22,8 @@ import {
   BROWSER_OPTIONS,
   transformFormValuesToApiPayload,
   transformApiDataToFormValues,
+  browserTimezone,
+  TIMEZONE_SUGGESTIONS,
 } from '@/lib/schemas/scheduleFormSchema';
 import type { CreateScheduleClientPayload, TestPlanScheduleEnhanced } from '@/lib/api/schedules';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -56,6 +58,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
       frequency: FREQUENCY_OPTIONS[0].value,
       customCronExpression: '',
       nextRunAt: new Date(),
+      timezone: browserTimezone(),
       environment: '',
       browsers: [BROWSER_OPTIONS[0].value],
       isActive: true,
@@ -75,6 +78,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
         frequency: FREQUENCY_OPTIONS[0].value,
         customCronExpression: '',
         nextRunAt: new Date(),
+        timezone: browserTimezone(),
         environment: '',
         browsers: [BROWSER_OPTIONS[0].value],
         isActive: true,
@@ -170,7 +174,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
                             <p className="text-xs">
                                 Uses standard CRON format (minute, hour, day of month, month, day of week).
                                 Example: "0 2 * * *" for 2 AM daily.
-                                Use UTC time.
+                                Evaluated in the timezone selected below.
                             </p>
                         </TooltipContent>
                     </Tooltip>
@@ -183,7 +187,28 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
       </div>
 
       <div>
-        <Label htmlFor="nextRunAt">Next Run At (UTC)</Label>
+        <Label htmlFor="timezone">Timezone</Label>
+        <Input
+          id="timezone"
+          list="timezone-options"
+          placeholder="e.g. Europe/Rome"
+          {...register('timezone')}
+        />
+        {/* A datalist rather than a select: there are ~600 IANA zones, and the handful a
+            given team uses are worth suggesting without preventing any of the others. */}
+        <datalist id="timezone-options">
+          {TIMEZONE_SUGGESTIONS.map((zone) => (
+            <option key={zone} value={zone} />
+          ))}
+        </datalist>
+        <p className="text-xs text-muted-foreground mt-1">
+          The schedule runs at this local time all year — daylight saving included.
+        </p>
+        {errors.timezone && <p className="text-sm text-red-500 mt-1">{errors.timezone.message}</p>}
+      </div>
+
+      <div>
+        <Label htmlFor="nextRunAt">Next Run At</Label>
         <Controller
           name="nextRunAt"
           control={control}
@@ -219,7 +244,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
                   initialFocus
                 />
                 <div className="p-3 border-t border-border">
-                    <Label htmlFor="time">Time (UTC)</Label>
+                    <Label htmlFor="time">Time</Label>
                     <Input
                         type="time"
                         id="time"
@@ -228,8 +253,11 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
                             const newTime = e.target.value;
                             const [hours, minutes] = newTime.split(':').map(Number);
                             const newDate = field.value ? new Date(field.value) : new Date();
-                            newDate.setUTCHours(hours); // Assuming input is UTC
-                            newDate.setUTCMinutes(minutes);
+                            // Local, matching the calendar above and the Timezone field.
+                            // This used to set UTC hours while the calendar set local ones,
+                            // so picking a date and then a time moved the date.
+                            newDate.setHours(hours);
+                            newDate.setMinutes(minutes);
                             field.onChange(newDate);
                         }}
                     />

@@ -170,4 +170,14 @@
   .border-warning { border-color: hsl(var(--warning)); }
   .border-error   { border-color: hsl(var(--destructive)); }
 
+  /* Film-grain texture for the auth page panel.
+   *
+   * Inline, because it used to be fetched from grainy-gradients.vercel.app: behind a
+   * corporate proxy or on an air-gapped network that is a 404, and a decorative asset
+   * fails silently — so the page quietly lost its texture wherever this tool is actually
+   * deployed. Generating the same noise with feTurbulence costs a few hundred bytes and
+   * no request at all. */
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
 }

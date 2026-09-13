@@ -1,0 +1,18 @@
+-- Values an API test captures from its response, for the requests that come after it.
+--
+-- The API Tester could assert on a response — status, headers, a JSONPath, the elapsed time
+-- — but never take anything out of one. So a test could only ever check a single endpoint in
+-- isolation, while a real API test is a flow: authenticate, create, read back, delete. Every
+-- step after the first needs something the previous one returned, and there was no way to
+-- carry it.
+--
+-- Shape mirrors `assertions`: a jsonb array of rows with a client-generated id, the name the
+-- value is bound to, and where to read it from — reusing the assertion vocabulary
+-- (status_code, header, body_json_path, body_text) rather than inventing a second one for
+-- the same job.
+--
+--   [{ "id": "...", "name": "orderId", "source": "body_json_path", "property": "id" }]
+--
+-- Captured values become `{{orderId}}` for the rest of the plan run, alongside the
+-- environment's variables and secrets.
+ALTER TABLE "api_tests" ADD COLUMN "extractions" jsonb;

@@ -46,27 +46,106 @@ function retriesForPolicy(policy: string | null | undefined): number {
 }
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+/** The zone a schedule with no timezone of its own runs in — what every existing row means. */
+export const DEFAULT_SCHEDULE_TIMEZONE = 'UTC';
+
+const WEEKDAY_TO_CRON: Record<string, number> = {
+  Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+};
+
+/**
+ * The wall-clock parts of a moment, as read in a given zone.
+ *
+ * Everything used to be derived with getUTCHours(), so a nightly regression a tester set to
+ * 02:00 Italian time ran at 02:00 UTC — 03:00 locally in summer and 02:00 in winter. It
+ * moved by an hour twice a year with nobody changing anything, which is the hardest kind of
+ * scheduling bug to attribute because the schedule is not what changed.
+ */
+function zonedParts(date: Date, timeZone: string) {
+  let parts;
+  try {
+    parts = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hourCycle: 'h23', // not hour12:false: that yields "24" for midnight on some ICU builds
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      weekday: 'short',
+    }).formatToParts(date);
+  } catch {
+    // Falling back to UTC here would move every run of this schedule by the offset without
+    // telling anyone — the same silent drift this function exists to remove.
+    throw new Error(
+      `Unknown timezone "${timeZone}". Use an IANA name such as "Europe/Rome" or "UTC".`,
+    );
+  }
+
+  const value = (type: string) => parts.find((part) => part.type === type)?.value ?? '';
+  return {
+    hours: Number(value('hour')),
+    minutes: Number(value('minute')),
+    dayOfMonth: Number(value('day')),
+    weekday: WEEKDAY_TO_CRON[value('weekday')] ?? 0,
+  };
+}
+
+/** The month number (1-12) of a moment, read in a given zone. */
+function zonedMonth(date: Date, timeZone: string): number {
+  return Number(
+    new Intl.DateTimeFormat('en-US', { timeZone, month: 'numeric' }).format(date),
+  );
+}
+
+/**
+ * The zone a schedule runs in.
+ *
+ * Rows written before the timezone column existed read 'UTC' from its default, which is
+ * exactly what they always meant — so no existing scheduled run moves.
+ */
+function scheduleZone(schedule: { timezone?: string | null }): string {
+  return schedule.timezone || DEFAULT_SCHEDULE_TIMEZONE;
+}
+
+/** Rejects a zone this platform cannot resolve, at the point a schedule is saved. */
+export function assertValidTimezone(timeZone: string): void {
+  zonedParts(new Date(), timeZone);
+}
+
 // Helper to convert frequency to cron pattern
 // This is a simplified version. A more robust solution would parse more complex frequencies.
 // For 'once', it's handled by nextRunAt and then the schedule should be deactivated or deleted.
 // 'custom_cron' will expect a valid cron string.
-function frequencyToCronPattern(frequency: string, nextRunAt: Date): string | null {
+//
+// `timeZone` is the zone the resulting pattern is meant to be interpreted in — node-cron and
+// cron-parser are both told the same thing, so the numbers here and the evaluation there
+// agree. A cron pattern carries no zone of its own, which is exactly how these drifted apart.
+function frequencyToCronPattern(
+  frequency: string,
+  nextRunAt: Date,
+  timeZone: string = DEFAULT_SCHEDULE_TIMEZONE,
+): string | null {
   if (frequency.startsWith('cron:')) {
+    // Validate even here: a custom pattern still gets evaluated in the schedule's zone.
+    assertValidTimezone(timeZone);
     return frequency.substring(5).trim();
   }
 
-  const hours = nextRunAt.getUTCHours();
-  const minutes = nextRunAt.getUTCMinutes();
+  const zoned = zonedParts(nextRunAt, timeZone);
+  const hours = zoned.hours;
+  const minutes = zoned.minutes;
 
   switch (frequency) {
     case 'daily':
       return `${minutes} ${hours} * * *`;
     case 'weekly':
-      // This would run every week on the day of nextRunAt
-      return `${minutes} ${hours} * * ${nextRunAt.getUTCDay()}`;
+      // The weekday in the schedule's zone, not in UTC: 23:00 Monday UTC is already Tuesday
+      // in Rome, so deriving it from UTC would schedule a Tuesday run for Monday.
+      return `${minutes} ${hours} * * ${zoned.weekday}`;
     case 'monthly':
-      // This would run every month on the date of nextRunAt
-      return `${minutes} ${hours} ${nextRunAt.getUTCDate()} * *`;
+      // Likewise the day of the month.
+      return `${minutes} ${hours} ${zoned.dayOfMonth} * *`;
     // 'once' type schedules are not recurring, so they don't get a cron pattern here.
     // They are executed once then typically deactivated or deleted.
     // Or, if they should run at a specific future time and then stop,
@@ -90,11 +169,15 @@ function frequencyToCronPattern(frequency: string, nextRunAt: Date): string | nu
 
 // Compute the next run time for a recurring schedule from its frequency, using a
 // real cron parser so the stored `nextRunAt` stays accurate for persistence and the UI.
-function calculateNextRunTime(frequency: string, from: Date): Date | null {
-  const pattern = frequencyToCronPattern(frequency, from);
+function calculateNextRunTime(
+  frequency: string,
+  from: Date,
+  timeZone: string = DEFAULT_SCHEDULE_TIMEZONE,
+): Date | null {
+  const pattern = frequencyToCronPattern(frequency, from, timeZone);
   if (!pattern) return null;
   try {
-    const interval = cronParser.parseExpression(pattern, { currentDate: from, tz: 'UTC' });
+    const interval = cronParser.parseExpression(pattern, { currentDate: from, tz: timeZone });
     return interval.next().toDate();
   } catch {
     return null;
@@ -102,13 +185,21 @@ function calculateNextRunTime(frequency: string, from: Date): Date | null {
 }
 
 // Exported for testing purposes
-export function frequencyToCronPatternForTest(frequency: string, nextRunAt: Date): string | null {
-  return frequencyToCronPattern(frequency, nextRunAt);
+export function frequencyToCronPatternForTest(
+  frequency: string,
+  nextRunAt: Date,
+  timeZone?: string,
+): string | null {
+  return frequencyToCronPattern(frequency, nextRunAt, timeZone);
 }
 
 // Exported for testing purposes
-export function calculateNextRunTimeForTest(frequency: string, from: Date): Date | null {
-  return calculateNextRunTime(frequency, from);
+export function calculateNextRunTimeForTest(
+  frequency: string,
+  from: Date,
+  timeZone?: string,
+): Date | null {
+  return calculateNextRunTime(frequency, from, timeZone);
 }
 
 // Exported for testing purposes
@@ -199,7 +290,7 @@ export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: Tes
     if (schedule.frequency !== 'once') {
       try {
         // Calculate and persist the next run time so it survives restarts and is shown in the UI.
-        const newNextRunAt = calculateNextRunTime(schedule.frequency, new Date());
+        const newNextRunAt = calculateNextRunTime(schedule.frequency, new Date(), scheduleZone(schedule));
         if (newNextRunAt) {
           await privilegedDb.update(testPlanSchedules)
             .set({ nextRunAt: newNextRunAt, updatedAt: new Date() })
@@ -255,7 +346,12 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
       // or a more sophisticated scheduler that handles one-time future tasks.
       // Or, if `node-cron` is used, schedule it for the specific time and ensure the job unschedules itself.
       const runAtDate = new Date(schedule.nextRunAt);
-      const cronTimeForOnce = `${runAtDate.getUTCMinutes()} ${runAtDate.getUTCHours()} ${runAtDate.getUTCDate()} ${runAtDate.getUTCMonth() + 1} *`; // Runs once on this date/time
+      // The parts are read in the schedule's own zone, because node-cron is told to
+      // evaluate the pattern in that zone below. Mixing the two — UTC numbers evaluated in
+      // Europe/Rome — is what made a "once" job fire an hour or two off its stated time.
+      const onceParts = zonedParts(runAtDate, scheduleZone(schedule));
+      const onceMonth = zonedMonth(runAtDate, scheduleZone(schedule));
+      const cronTimeForOnce = `${onceParts.minutes} ${onceParts.hours} ${onceParts.dayOfMonth} ${onceMonth} *`; // Runs once on this date/time
 
       try {
         task = cron.schedule(cronTimeForOnce, async () => {
@@ -263,8 +359,8 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
           await executeScheduledPlan(schedule, plan);
           // After execution, the 'once' job should ideally unschedule itself or be marked.
           // The executeScheduledPlan already deactivates 'once' schedules.
-        }, { timezone: "UTC" }); // Assuming all times are UTC
-        resolvedLogger.info(`[SchedulerService] Scheduled 'once' job for schedule ${schedule.id} at ${runAtDate.toISOString()}`);
+        }, { timezone: scheduleZone(schedule) });
+        resolvedLogger.info(`[SchedulerService] Scheduled 'once' job for schedule ${schedule.id} at ${runAtDate.toISOString()} (${scheduleZone(schedule)})`);
       } catch (e: any) {
         resolvedLogger.error(`[SchedulerService] Invalid cron pattern for 'once' schedule ${schedule.id} (${cronTimeForOnce}): ${e.message}`);
         return;
@@ -280,7 +376,7 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
     }
   } else {
     // For recurring tasks
-    const cronPattern = frequencyToCronPattern(schedule.frequency, new Date(schedule.nextRunAt));
+    const cronPattern = frequencyToCronPattern(schedule.frequency, new Date(schedule.nextRunAt), scheduleZone(schedule));
     if (!cronPattern || !cron.validate(cronPattern)) {
       resolvedLogger.error(`[SchedulerService] Invalid or null cron pattern '${cronPattern}' for schedule ${schedule.id} (Frequency: ${schedule.frequency}). Not adding job.`);
       return;
@@ -288,8 +384,8 @@ export async function addScheduleJob(schedule: TestPlanSchedule) {
     try {
       task = cron.schedule(cronPattern, async () => {
         await executeScheduledPlan(schedule, plan);
-      }, { timezone: "UTC" }); // Assuming all times are UTC
-      resolvedLogger.info(`[SchedulerService] Added cron job for schedule ${schedule.id} with pattern: ${cronPattern}`);
+      }, { timezone: scheduleZone(schedule) });
+      resolvedLogger.info(`[SchedulerService] Added cron job for schedule ${schedule.id} with pattern: ${cronPattern} (${scheduleZone(schedule)})`);
     } catch (e: any) {
       resolvedLogger.error(`[SchedulerService] Failed to schedule job for schedule ${schedule.id} with pattern ${cronPattern}: ${e.message}`);
       return;
@@ -435,7 +531,7 @@ export async function bullmqAddScheduleJob(schedule: TestPlanSchedule): Promise<
     return;
   }
 
-  const pattern = frequencyToCronPattern(schedule.frequency, new Date(schedule.nextRunAt));
+  const pattern = frequencyToCronPattern(schedule.frequency, new Date(schedule.nextRunAt), scheduleZone(schedule));
   if (!pattern) {
     resolvedLogger.error(`[SchedulerService/bullmq] Could not derive a cron pattern for schedule ${schedule.id} (frequency: ${schedule.frequency}). Not adding job.`);
     return;
@@ -443,7 +539,7 @@ export async function bullmqAddScheduleJob(schedule: TestPlanSchedule): Promise<
   // The job-scheduler id is the schedule id, so upsert is idempotent (safe re-runs).
   await testExecutionQueue.upsertJobScheduler(
     schedule.id,
-    { pattern, tz: 'UTC' },
+    { pattern, tz: scheduleZone(schedule) },
     { name: TRIGGER_SCHEDULE_JOB, data },
   );
   resolvedLogger.info(`[SchedulerService/bullmq] Upserted job scheduler for ${schedule.id} with pattern: ${pattern}`);

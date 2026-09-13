@@ -11,6 +11,7 @@
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc -b",
     "db:push": "drizzle-kit push",
+    "db:doctor": "tsx --require dotenv/config scripts/schema-doctor.ts",
     "db:studio": "drizzle-kit studio",
     "db:migrate": "tsx --require dotenv/config scripts/apply-migrations.ts",
     "test:migrate": "tsx server/tests/setup.ts",

@@ -12,6 +12,7 @@ import {
   apiTests,
   insertApiTestHistorySchema,
   AssertionSchema,
+  ExtractionSchema,
   testPlans,
   updateTestPlanApiPayloadSchema,
   testPlanSelectedTests,
@@ -30,7 +31,6 @@ import { createInsertSchema } from 'drizzle-zod';
 import { privilegedDb } from "./db";
 import { eq, and, desc, sql, getTableColumns, asc, ilike } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
-import { fetchTarget, requestVariables, substituteInValues, substituteVariables } from "./outbound-http";
 // Import schedulerService
 import loggerPromise, { updateLogLevel } from "./logger";
 
@@ -43,6 +43,8 @@ import authRoutes from "./routes/auth.routes";
 import observabilityRoutes from "./routes/observability.routes";
 import organizationRoutes from "./routes/organization.routes";
 import { tenancyMiddleware, withTenantTransaction } from "./middleware/tenancy";
+import { runApiRequest } from "./api-test-runner";
+import { resolveVariables } from "./variables";
 import { requireRole } from "./middleware/require-role";
 import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from "./routes/selected-tests";
 
@@ -62,6 +64,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     headers: z.record(z.string()).optional(),
     body: z.any().optional(),
     assertions: z.array(AssertionSchema).optional(),
+    // Captured here as well as in a plan, so the tester can see what a request would hand
+    // to the next one rather than finding out only when the plan runs.
+    extractions: z.array(ExtractionSchema).optional(),
+    // Which environment resolves `{{name}}`. The organization it must belong to comes from
+    // the session, so naming another tenant's environment resolves nothing.
+    environmentId: z.number().int().positive().optional().nullable(),
   });
 
   const userSettingsBodySchema = createInsertSchema(userSettings).omit({ userId: true, updatedAt: true });
@@ -140,238 +148,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
-    const { method, url: rawUrl, queryParams: rawQueryParams, headers: rawHeaders, body: requestBody, assertions } = parseResult.data;
-    const startTime = Date.now();
-    let timeoutId: NodeJS.Timeout | undefined = undefined;
+    const { method, url, queryParams, headers, body, assertions, extractions, environmentId } = parseResult.data;
 
-    // Saved tests store portable URLs like {{baseUrl}}/api/... — resolve them here so the
-    // imported catalog runs as-is, the same way the UI-test and precondition runners do.
-    const vars = requestVariables();
-    const baseUrl = substituteVariables(rawUrl, vars);
-    const queryParams = substituteInValues(rawQueryParams, vars);
-    const customHeaders = substituteInValues(rawHeaders, vars);
+    // The environment supplies the variables here exactly as it does for a scheduled run,
+    // so a request that works in the tester works in a plan. Its id is the caller's; the
+    // organization it must belong to is the session's.
+    const vars = await resolveVariables({
+      userId: req.user.id,
+      organizationId: req.user.organizationId,
+      environmentId: Number.isInteger(environmentId) ? environmentId : null,
+    });
 
-    if (!z.string().url().safeParse(baseUrl).success) {
-      const unresolved = baseUrl.match(/\{\{\s*[\w.]+\s*\}\}/g);
-      return res.status(400).json({
-        error: unresolved
-          ? `Unresolved variable(s) ${unresolved.join(", ")} in the URL. Set them in the environment (baseUrl comes from DMO_BASE_URL) or write the address in full.`
-          : `Invalid target URL: "${baseUrl}"`,
+    // One implementation, shared with the scheduled runner. Keeping a second copy here is
+    // what let the two drift until test-execution-service gave up and shipped
+    // `Math.random() > 0.2` in place of executing anything at all.
+    const result = await runApiRequest(
+      { method, url, queryParams, headers, body, assertions, extractions },
+      vars,
+    );
+
+    if (result.error) {
+      resolvedLogger.error("Error in /api/proxy-api-request:", { error: result.error, url, method });
+      return res.status(500).json({
+        success: false,
+        error: result.error,
+        details: result.error,
+        duration: result.durationMs,
       });
     }
 
-    try {
-      const targetUrl = new URL(baseUrl);
-      if (queryParams) {
-        Object.entries(queryParams).forEach(([key, value]) => {
-          if (Array.isArray(value)) { value.forEach(v => targetUrl.searchParams.append(key, v)); }
-          else { targetUrl.searchParams.set(key, value); }
-        });
-      }
-
-      const requestOptions: RequestInit = { method, headers: customHeaders ? { ...customHeaders } : {} };
-      if (requestOptions.headers) {
-        delete (requestOptions.headers as Record<string, string>)['host'];
-        delete (requestOptions.headers as Record<string, string>)['Host'];
-        delete (requestOptions.headers as Record<string, string>)['content-length'];
-        delete (requestOptions.headers as Record<string, string>)['Content-Length'];
-      }
-      if (method !== "GET" && method !== "HEAD" && requestBody !== undefined) {
-        if (typeof requestBody === 'object' && requestBody !== null) {
-          requestOptions.body = JSON.stringify(requestBody);
-          if (requestOptions.headers && !(requestOptions.headers as Record<string, string>)['content-type'] && !(requestOptions.headers as Record<string, string>)['Content-Type']) {
-            (requestOptions.headers as Record<string, string>)['Content-Type'] = 'application/json';
-          }
-        } else if (typeof requestBody === 'string') {
-          requestOptions.body = requestBody;
-        }
-      }
-
-      const controller = new AbortController();
-      timeoutId = setTimeout(() => controller.abort(), 30000);
-      requestOptions.signal = controller.signal;
-
-      const apiResponse = await fetchTarget(targetUrl.toString(), requestOptions);
-      clearTimeout(timeoutId);
-      timeoutId = undefined;
-
-      const duration = Date.now() - startTime;
-      const responseStatus = apiResponse.status;
-      const responseHeaders: Record<string, string> = {};
-      apiResponse.headers.forEach((value, key) => { responseHeaders[key] = value; });
-
-      let responseBodyContent: any;
-      const contentType = apiResponse.headers.get("content-type");
-      const responseText = await apiResponse.text();
-      try {
-        if (contentType && contentType.includes("application/json") && responseText) {
-          responseBodyContent = JSON.parse(responseText);
-        } else {
-          responseBodyContent = responseText;
-        }
-      } catch (parseError) {
-        resolvedLogger.warn("Failed to parse response body as JSON, falling back to text", { url: targetUrl.toString(), contentType, error: parseError });
-        responseBodyContent = responseText;
-      }
-
-      const assertionResults: Array<{ assertion: z.infer<typeof AssertionSchema>; pass: boolean; actualValue: any; error?: string }> = [];
-      if (assertions && assertions.length > 0) {
-        assertions.forEach(assertion => {
-          if (!assertion.enabled) return;
-          let pass = false;
-          let actualValue: any = undefined;
-          let evalError: string | undefined = undefined;
-          try {
-            switch (assertion.source) {
-              case 'status_code': {
-                actualValue = responseStatus;
-                const expectedStatus = parseInt(assertion.targetValue || '');
-                if (isNaN(expectedStatus)) { evalError = "Target value is not a number"; break; }
-                switch (assertion.comparison) {
-                  case 'equals': pass = actualValue === expectedStatus; break;
-                  case 'not_equals': pass = actualValue !== expectedStatus; break;
-                  case 'greater_than': pass = actualValue > expectedStatus; break;
-                  case 'less_than': pass = actualValue < expectedStatus; break;
-                  case 'greater_than_or_equals': pass = actualValue >= expectedStatus; break;
-                  case 'less_than_or_equals': pass = actualValue <= expectedStatus; break;
-                  default: evalError = `Unsupported comparison for status_code: ${assertion.comparison}`;
-                }
-                break;
-              }
-              case 'header':
-                actualValue = responseHeaders[assertion.property?.toLowerCase() || ''];
-                switch (assertion.comparison) {
-                  case 'exists': pass = actualValue !== undefined; break;
-                  case 'not_exists': pass = actualValue === undefined; break;
-                  case 'equals': pass = actualValue === assertion.targetValue; break;
-                  case 'not_equals': pass = actualValue !== assertion.targetValue; break;
-                  case 'contains': pass = typeof actualValue === 'string' && actualValue.includes(assertion.targetValue || ''); break;
-                  case 'not_contains': pass = typeof actualValue === 'string' && !actualValue.includes(assertion.targetValue || ''); break;
-                  default: evalError = `Unsupported comparison for header: ${assertion.comparison}`;
-                }
-                break;
-              case 'body_json_path':
-                if (typeof responseBodyContent === 'object' && responseBodyContent !== null) {
-                  actualValue = getValueByPath(responseBodyContent, assertion.property || '$');
-                  const target = assertion.targetValue;
-                  let parsedTarget: any = target;
-                  if ( (typeof actualValue === 'number' || ['greater_than', 'less_than', 'greater_than_or_equals', 'less_than_or_equals'].includes(assertion.comparison)) &&
-                       assertion.comparison !== 'exists' && assertion.comparison !== 'not_exists' &&
-                       assertion.comparison !== 'is_empty' && assertion.comparison !== 'is_not_empty') {
-                      parsedTarget = parseFloat(target || '');
-                      if (isNaN(parsedTarget) && (target !== undefined && target !== null && target !== '')) { evalError = "Target value is not a number for numerical comparison"; break; }
-                  } else if (typeof actualValue === 'boolean' && (target?.toLowerCase() === 'true' || target?.toLowerCase() === 'false')) {
-                      if (target?.toLowerCase() === 'true') parsedTarget = true;
-                      else if (target?.toLowerCase() === 'false') parsedTarget = false;
-                  }
-                  switch (assertion.comparison) {
-                    case 'exists': pass = actualValue !== undefined; break;
-                    case 'not_exists': pass = actualValue === undefined; break;
-                    case 'equals': pass = actualValue == parsedTarget; break;
-                    case 'not_equals': pass = actualValue != parsedTarget; break;
-                    case 'contains':
-                      if (typeof actualValue === 'string') pass = actualValue.includes(target || '');
-                      else if (Array.isArray(actualValue)) pass = actualValue.some(item => item == target);
-                      else evalError = "Actual value is not a string or array for 'contains'";
-                      break;
-                    case 'not_contains':
-                      if (typeof actualValue === 'string') pass = !actualValue.includes(target || '');
-                      else if (Array.isArray(actualValue)) pass = !actualValue.some(item => item == target);
-                      else evalError = "Actual value is not a string or array for 'not_contains'";
-                      break;
-                    case 'is_empty':
-                        if (actualValue === undefined || actualValue === null) { pass = true; }
-                        else if (typeof actualValue === 'string' || Array.isArray(actualValue)) pass = actualValue.length === 0;
-                        else if (typeof actualValue === 'object') pass = Object.keys(actualValue).length === 0;
-                        else evalError = "Actual value type cannot be checked for emptiness";
-                        break;
-                    case 'is_not_empty':
-                        if (actualValue === undefined || actualValue === null) { pass = false; }
-                        else if (typeof actualValue === 'string' || Array.isArray(actualValue)) pass = actualValue.length > 0;
-                        else if (typeof actualValue === 'object') pass = Object.keys(actualValue).length > 0;
-                        else evalError = "Actual value type cannot be checked for non-emptiness";
-                        break;
-                    case 'greater_than': pass = typeof actualValue === 'number' && !isNaN(parsedTarget) && actualValue > parsedTarget; break;
-                    case 'less_than': pass = typeof actualValue === 'number' && !isNaN(parsedTarget) && actualValue < parsedTarget; break;
-                    case 'greater_than_or_equals': pass = typeof actualValue === 'number' && !isNaN(parsedTarget) && actualValue >= parsedTarget; break;
-                    case 'less_than_or_equals': pass = typeof actualValue === 'number' && !isNaN(parsedTarget) && actualValue <= parsedTarget; break;
-                    default: evalError = `Unsupported comparison for body_json_path: ${assertion.comparison}`;
-                  }
-                } else {
-                  evalError = "Response body is not JSON or path is invalid";
-                   if (assertion.comparison === 'not_exists' && assertion.property && getValueByPath(responseBodyContent, assertion.property) === undefined) {
-                        pass = true; actualValue = undefined; evalError = undefined;
-                   } else if (assertion.comparison === 'is_empty' && (!responseBodyContent || (typeof responseBodyContent === 'object' && Object.keys(responseBodyContent).length === 0) || (typeof responseBodyContent === 'string' && responseBodyContent === ''))) {
-                        pass = true; actualValue = responseBodyContent; evalError = undefined;
-                   }
-                }
-                break;
-              case 'body_text': {
-                const bodyAsString = typeof responseBodyContent === 'string' ? responseBodyContent : JSON.stringify(responseBodyContent);
-                actualValue = bodyAsString;
-                const targetStr = assertion.targetValue || '';
-                switch (assertion.comparison) {
-                  case 'equals': pass = actualValue === targetStr; break;
-                  case 'not_equals': pass = actualValue !== targetStr; break;
-                  case 'contains': pass = actualValue.includes(targetStr); break;
-                  case 'not_contains': pass = !actualValue.includes(targetStr); break;
-                  case 'is_empty': pass = actualValue === ''; break;
-                  case 'is_not_empty': pass = actualValue !== ''; break;
-                  case 'matches_regex':
-                    try { const regex = new RegExp(targetStr); pass = regex.test(actualValue); }
-                    catch (e: any) { evalError = `Invalid regex: ${e.message}`; }
-                    break;
-                  case 'not_matches_regex':
-                    try { const regex = new RegExp(targetStr); pass = !regex.test(actualValue); }
-                    catch (e: any) { evalError = `Invalid regex: ${e.message}`; }
-                    break;
-                  default: evalError = `Unsupported comparison for body_text: ${assertion.comparison}`;
-                }
-                break;
-              }
-              case 'response_time': {
-                actualValue = duration;
-                const expectedTime = parseInt(assertion.targetValue || '');
-                if (isNaN(expectedTime)) { evalError = "Target value is not a number for response_time"; break; }
-                switch (assertion.comparison) {
-                  case 'greater_than': pass = actualValue > expectedTime; break;
-                  case 'less_than': pass = actualValue < expectedTime; break;
-                  case 'greater_than_or_equals': pass = actualValue >= expectedTime; break;
-                  case 'less_than_or_equals': pass = actualValue <= expectedTime; break;
-                  default: evalError = `Unsupported comparison for response_time: ${assertion.comparison}`;
-                }
-                break;
-              }
-              default: evalError = `Unknown assertion source: ${(assertion as any).source}`;
-            }
-          } catch (e: any) {
-            resolvedLogger.error("Error during assertion evaluation:", { assertion, error: e.message });
-            evalError = `Evaluation error: ${e.message}`;
-          }
-          assertionResults.push({ assertion, pass, actualValue, error: evalError });
-        });
-      }
-
-      res.status(200).json({
-        success: true, status: responseStatus, headers: responseHeaders,
-        body: responseBodyContent, duration: duration, assertionResults: assertionResults,
-      });
-
-    } catch (error: any) {
-      if (timeoutId) clearTimeout(timeoutId);
-      const duration = Date.now() - startTime;
-      resolvedLogger.error("Error in /api/proxy-api-request:", {
-        message: error.message, stack: error.stack, url: baseUrl, method: method, type: error.name, cause: error.cause
-      });
-      let errorMessage = "Failed to make API request.";
-      if (error.name === 'AbortError') { errorMessage = "Request timed out after 30 seconds."; }
-      else if (error instanceof TypeError && error.message.includes('Invalid URL')) { errorMessage = "Invalid URL provided."; }
-      else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') { errorMessage = `Could not connect to the server at ${baseUrl}. Please check the URL and network.`; }
-      else if (error.cause && typeof error.cause === 'object' && 'code' in error.cause) { // More specific network errors
-        errorMessage = `Network error: ${error.cause.code}`;
-      }
-      res.status(500).json({ success: false, error: errorMessage, details: error.message, duration: duration });
-    }
+    res.status(200).json({
+      success: true,
+      status: result.status,
+      headers: result.headers,
+      body: result.body,
+      duration: result.durationMs,
+      assertionResults: result.assertions,
+      // Present so the tester can see what a request would hand to the next one in a plan,
+      // rather than finding out only when the plan runs.
+      extracted: result.extracted,
+      extractionErrors: result.extractionErrors,
+    });
   });
 
 
@@ -1512,24 +1329,3 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
     return httpServer;
 }
 
-function getValueByPath(obj: any, path: string): any {
-  if (!path || path === '$' || path === '') return obj;
-  const parts = path.replace(/^\$\.?/, '').split('.');
-  let current = obj;
-  for (const part of parts) {
-    if (current === null || current === undefined) return undefined;
-    const arrayMatch = part.match(/^(\w+)\[(\d+)\]$/);
-    if (arrayMatch) {
-      const [_, prop, index] = arrayMatch;
-      current = current[prop];
-      if (Array.isArray(current)) {
-        current = current[parseInt(index)];
-      } else {
-        return undefined;
-      }
-    } else {
-      current = current[part];
-    }
-  }
-  return current;
-}

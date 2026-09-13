@@ -3,7 +3,7 @@ import { testPlans, testPlanSchedules, testPlanExecutions, testPlanSelectedTests
 import { eq, desc, and, getTableColumns, type SQL } from "drizzle-orm";
 import { v4 as uuidv4 } from 'uuid';
 import loggerPromise from "../logger";
-import schedulerService from "../scheduler-service";
+import schedulerService, { assertValidTimezone } from "../scheduler-service";
 import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
 import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from "./selected-tests";
@@ -155,6 +155,17 @@ router.post("/api/test-plan-schedules", requireRole('editor'), async (req, res) 
     const data = parseResult.data;
 
     try {
+        // Reject an unresolvable zone here, at the point the schedule is saved. Doing it
+        // later, when the scheduler builds the pattern, would leave a row in the database
+        // that can never be scheduled and whose failure appears in a worker log.
+        if (data.timezone) {
+          try {
+            assertValidTimezone(data.timezone);
+          } catch (e: any) {
+            return res.status(400).json({ error: e.message });
+          }
+        }
+
         // nextRunAt arrives as a Date or a unix-seconds number (schema allows both).
         const nextRunAt = data.nextRunAt instanceof Date ? data.nextRunAt : new Date(data.nextRunAt * 1000);
 
@@ -195,6 +206,16 @@ router.put("/api/test-plan-schedules/:id", requireRole('editor'), async (req, re
     const updates = parseResult.data;
 
     try {
+        // Same check as on create: a zone the platform cannot resolve is the caller's
+        // mistake, and saying so now beats a row that silently never runs.
+        if (updates.timezone) {
+          try {
+            assertValidTimezone(updates.timezone);
+          } catch (e: any) {
+            return res.status(400).json({ error: e.message });
+          }
+        }
+
         const values: Record<string, any> = { ...updates, updatedAt: new Date() };
         if (updates.nextRunAt !== undefined) {
             values.nextRunAt = updates.nextRunAt instanceof Date ? updates.nextRunAt : new Date((updates.nextRunAt as number) * 1000);

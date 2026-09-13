@@ -221,3 +221,60 @@ describe('route modules cannot query outside the tenant context', () => {
     expect(offenders, `mutating routes with no requireRole: ${offenders.join(', ')}`).toEqual([]);
   });
 });
+
+// ─── Deployment and asset invariants ────────────────────────────────────────────
+//
+// Two defects the audit found were not logic errors but broken references that nothing
+// checked: docker-compose built a service from a Dockerfile that did not exist, and the
+// login page pulled a decorative texture from a public CDN. Both are the kind of thing a
+// reader's eye slides over and a test catches for free.
+
+const repoRoot = path.resolve(serverDir, '..');
+
+describe('docker-compose references files that exist', () => {
+  it('every service that builds names a Dockerfile present in the repository', () => {
+    const compose = fs.readFileSync(path.join(repoRoot, 'docker-compose.yml'), 'utf8');
+
+    // Deliberately a text scan rather than a YAML parse: the point is to notice a
+    // dangling filename, and adding a YAML dependency to assert one would be a poor trade.
+    const named = [...compose.matchAll(/dockerfile:\s*(\S+)/g)].map((m) => m[1]);
+    // A `build:` stanza with a context and no `dockerfile:` key means ./Dockerfile.
+    const buildBlocks = compose.match(/build:/g)?.length ?? 0;
+    const implicit = buildBlocks > named.length ? ['Dockerfile'] : [];
+
+    const missing = [...named, ...implicit].filter(
+      (f) => !fs.existsSync(path.join(repoRoot, f)),
+    );
+
+    expect(missing).toEqual([]);
+  });
+});
+
+describe('the client does not depend on third-party asset hosts', () => {
+  it('loads no image, font or stylesheet from an external origin', () => {
+    const clientSrc = path.join(repoRoot, 'client', 'src');
+
+    const walk = (dir: string): string[] =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) return walk(full);
+        return /\.(tsx?|css)$/.test(entry.name) ? [full] : [];
+      });
+
+    // An asset behind a corporate proxy or an air-gapped network is a 404, and a decorative
+    // one fails silently — which is how a texture from grainy-gradients.vercel.app sat on
+    // the login page of an enterprise tool. Anything the page needs is served by the app.
+    const offenders: string[] = [];
+    for (const file of walk(clientSrc)) {
+      const source = fs.readFileSync(file, 'utf8');
+      for (const match of source.matchAll(/url\(\s*['"]?(https?:\/\/[^'")\s]+)/g)) {
+        offenders.push(`${path.relative(repoRoot, file)}: ${match[1]}`);
+      }
+      for (const match of source.matchAll(/<(?:img|link)[^>]+(?:src|href)=["'](https?:\/\/[^"']+)/g)) {
+        offenders.push(`${path.relative(repoRoot, file)}: ${match[1]}`);
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});

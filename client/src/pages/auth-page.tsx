@@ -239,7 +239,7 @@ export default function AuthPage() {
         {/* Abstract animated background */}
         <div className="absolute inset-0 z-0">
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(67,56,202,0.2),transparent_70%)]" />
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150" />
+          <div className="absolute inset-0 bg-noise opacity-20 brightness-100 contrast-150" />
           <motion.div 
             animate={{ 
               scale: [1, 1.2, 1],
