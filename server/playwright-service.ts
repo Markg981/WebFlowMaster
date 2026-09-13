@@ -145,6 +145,10 @@ interface AdhocSequencePayload {
   environmentId?: number | null;
   /** Organization the environment must belong to — set by the route, never by the client. */
   organizationId?: number;
+  /** Rows to run over, so the preview runs as many times as the saved test will. */
+  dataset?: Array<Record<string, string>> | null;
+  /** One row's values, set by the loop above when it calls back in for a single pass. */
+  rowVariables?: Record<string, string> | null;
 }
 
 interface ActiveSession {
@@ -413,6 +417,37 @@ function datasetRows(test: { dataset?: unknown }): Array<Record<string, string>>
         ]),
       ),
     );
+}
+
+/**
+ * Runs `once` for each row, labelling and merging the results.
+ *
+ * Shared by the saved-test path and the builder preview so the two cannot disagree about how
+ * many times a test runs — which is precisely how the two step executors drifted.
+ */
+async function runOverDataset<T extends { success: boolean; steps?: StepResult[] }>(
+  rows: Array<Record<string, string>>,
+  once: (row: Record<string, string>, index: number) => Promise<T>,
+): Promise<{ success: boolean; steps: StepResult[] }> {
+  const allSteps: StepResult[] = [];
+  let allPassed = true;
+
+  for (const [index, row] of rows.entries()) {
+    const label = `Row ${index + 1} of ${rows.length}`;
+    const result = await once(row, index);
+
+    // Prefixed, because "assertion failed" repeated twenty times says nothing about which
+    // input broke it — and finding that out by rerunning the set by hand is the cost this
+    // feature exists to remove.
+    for (const step of result.steps ?? []) {
+      allSteps.push({ ...step, name: `${label} — ${step.name}` });
+    }
+    if (!result.success) allPassed = false;
+    // Deliberately no early exit: stopping at the first bad row would hide whatever else is
+    // broken, and the next run would find it one row at a time.
+  }
+
+  return { success: allPassed, steps: allSteps };
 }
 
 function safeParseJson(value: string): unknown {
@@ -1087,15 +1122,31 @@ export class PlaywrightService {
   async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detectedElements?: DetectedElement[] }> {
     const testName = payload.name || "Ad-hoc Test";
     resolvedLogger.http({ message: "PlaywrightService: executeAdhocSequence called", testName, userId, url: payload.url });
+
+    // Same rows, same loop, same labels as a saved run. A preview that runs once while the
+    // saved test runs twenty is the same class of divergence as the two step executors:
+    // it passes where the real thing fails.
+    const adhocRows = datasetRows(payload);
+    if (adhocRows) {
+      const adhocStart = Date.now();
+      const merged = await runOverDataset(adhocRows, (row) =>
+        this.executeAdhocSequence({ ...payload, dataset: null, rowVariables: row }, userId),
+      );
+      return { ...merged, duration: Date.now() - adhocStart };
+    }
     // The preview resolves variables the same way a scheduled run does, so a test that
     // works here is not relying on something only this path provides.
-    const vars = payload.organizationId
-      ? await resolveVariables({
-          userId,
-          organizationId: payload.organizationId,
-          environmentId: payload.environmentId,
-        })
-      : requestVariables();
+    const vars = {
+      ...(payload.organizationId
+        ? await resolveVariables({
+            userId,
+            organizationId: payload.organizationId,
+            environmentId: payload.environmentId,
+          })
+        : requestVariables()),
+      // The dataset row for this pass, layered over the environment's values.
+      ...(payload.rowVariables ?? {}),
+    };
     const targetUrl = payload.url ? substituteVariables(payload.url, vars) : payload.url;
     const startTime = Date.now();
     let browser: Browser | null = null;
@@ -1442,32 +1493,17 @@ export class PlaywrightService {
     // otherwise decide the outcome of the next.
     const rows = datasetRows(test);
     if (rows) {
-      const allSteps: StepResult[] = [];
-      let allPassed = true;
-
-      for (const [index, row] of rows.entries()) {
-        const label = `Row ${index + 1} of ${rows.length}`;
-        const rowResult = await this.executeTestSequence(
+      const merged = await runOverDataset(rows, (row, index) =>
+        this.executeTestSequence(
           { ...test, dataset: null } as Test,
           userId,
           screenshotBaseDir ? path.join(screenshotBaseDir, `row_${index + 1}`) : undefined,
           executionId,
           { ...vars, ...row },
           environment,
-        );
-
-        // Prefixed, because "assertion failed" repeated twenty times says nothing about
-        // which input broke it — and finding that out by rerunning the set by hand is the
-        // cost this feature exists to remove.
-        for (const step of rowResult.steps ?? []) {
-          allSteps.push({ ...step, name: `${label} — ${step.name}` });
-        }
-        if (!rowResult.success) allPassed = false;
-        // Deliberately no early exit: stopping at the first bad row would hide whatever
-        // else is broken, and the next run would find it one row at a time.
-      }
-
-      return { success: allPassed, steps: allSteps, duration: Date.now() - startTime };
+        ),
+      );
+      return { ...merged, duration: Date.now() - startTime };
     }
     const wsEmitter = getWsEmitter();
     resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url, screenshotBaseDir });

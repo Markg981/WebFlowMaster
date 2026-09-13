@@ -165,3 +165,30 @@ describe('a test with a dataset', () => {
     expect(result.success).toBe(true);
   }, 60_000);
 });
+
+describe('the builder preview with a dataset', () => {
+  it('runs once per row too, so the preview and the saved test agree', async () => {
+    const result = await playwrightService.executeAdhocSequence(
+      {
+        name: 'preview with rows',
+        url: baseUrl,
+        elements: [],
+        dataset: [{ sku: 'P-1' }, { sku: 'P-2' }],
+        sequence: [
+          {
+            id: 's1',
+            action: { id: 'navigate', type: 'navigate', name: 'Go', icon: 'g', description: 'x' },
+            targetElement: undefined,
+            value: `${baseUrl}/?sku={{sku}}`,
+          },
+        ],
+      } as never,
+      userId,
+    );
+
+    // A preview that runs once while the saved test runs twice is the same class of
+    // divergence as the two step executors: it passes where the real thing fails.
+    expect(submitted).toEqual(['P-1', 'P-2']);
+    expect(result.success).toBe(true);
+  }, 120_000);
+});
