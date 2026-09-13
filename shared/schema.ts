@@ -138,6 +138,13 @@ export const apiTests = pgTable("api_tests", {
   requestHeaders: jsonb("request_headers"),
   requestBody: text("request_body"),
   assertions: jsonb("assertions"),
+  /**
+   * Values to capture from the response for later requests in the same plan run.
+   *
+   * Assertions could read a response but nothing could take a value out of one, so a test
+   * could only check one endpoint in isolation — never a flow. See ExtractionSchema.
+   */
+  extractions: jsonb('extractions'),
   authType: text("auth_type"),
   authParams: jsonb("auth_params"),
   bodyType: text("body_type"),
@@ -946,6 +953,39 @@ export const AssertionSchema = z.object({
 });
 export type Assertion = z.infer<typeof AssertionSchema>;
 
+// --- Extraction Schemas ---
+//
+// An assertion reads a response; an extraction takes a value out of one and binds it to a
+// name, so the requests that follow in the same plan run can use it as `{{name}}`. Without
+// it an API test can only check a single endpoint in isolation, and a real API test is a
+// flow — authenticate, create, read back, delete.
+
+/** Deliberately the assertion vocabulary: the same places, read for a different purpose. */
+export const ExtractionSourceSchema = z.enum([
+  "status_code",
+  "header",
+  "body_json_path",
+  "body_text",
+]);
+
+export const ExtractionSchema = z.object({
+  id: z.string().uuid().describe("Client-generated unique ID for the extraction row"),
+  name: z
+    .string()
+    .min(1)
+    .regex(
+      /^[A-Za-z_][A-Za-z0-9_]*$/,
+      "Use letters, digits and underscores, starting with a letter or underscore",
+    )
+    .describe("The name the captured value is bound to, used as {{name}} later"),
+  source: ExtractionSourceSchema,
+  property: z
+    .string()
+    .optional()
+    .describe("Header name or JSONPath; unused for status_code and body_text"),
+});
+export type Extraction = z.infer<typeof ExtractionSchema>;
+
 // --- API Authentication Schemas ---
 export const AuthTypeSchema = z.enum([
   "inherit",
@@ -1070,6 +1110,9 @@ export const insertApiTestSchema = createInsertSchema(apiTests, {
     .enum(["Blocker", "Critical", "Major", "Minor"])
     .optional()
     .nullable(),
+  // Typed rather than left as raw jsonb: a malformed extraction is only discovered at run
+  // time otherwise, in a worker, halfway through a scheduled plan.
+  extractions: z.array(ExtractionSchema).optional().nullable(),
 })
   .omit({
     id: true,

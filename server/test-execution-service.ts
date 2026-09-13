@@ -23,6 +23,8 @@ import { secrets as secretsTable } from '@shared/schema';
 import { decryptSecret } from './crypto';
 import { getCorrelationId } from './middleware/correlation';
 import { defaultVariables } from './variables';
+import { runApiRequest, type Extraction } from './api-test-runner';
+import type { Assertion } from '@shared/schema';
 
 // Helper to interpolate {{SECRET_KEY}} in strings
 function interpolateSecrets(str: string, secretsMap: Record<string, string>): string {
@@ -59,6 +61,9 @@ export interface IndividualTestRunResult {
   steps?: StepResult[]; // from playwright-service
   error?: string; // For errors during test execution itself (e.g., Playwright internal error)
   durationMs: number;
+  /** Values an API test captured, for the requests that come after it in the plan. */
+  extracted?: Record<string, string>;
+  extractionErrors?: Array<{ name: string; reason: string }>;
   screenshotPath?: string; // General screenshot for API tests if applicable, or last step for UI
 }
 
@@ -164,30 +169,57 @@ export async function runTest(
   } else if (testType === 'api') {
     const apiTest = test as ApiTest; // Cast to ApiTest
     resolvedLogger.info({ message: `API Test execution starting`, testId: apiTest.id, testName: apiTest.name, planId, runId });
-    // Placeholder for API test execution logic
-    // This should be implemented based on how API tests are defined and run.
-    // For now, we'll simulate a simple execution.
-    // Potentially reuse logic from `server/routes.ts` proxyApiRequest or a dedicated service method.
 
-    // TODO: Implement actual API test execution logic here.
-    // Example:
-    // const apiExecutionResult = await executeApiTestInternal(apiTest, userId);
-    // For now, simulate a pass/fail
-    const success = Math.random() > 0.2; // Simulate 80% pass rate
-    const durationMs = Math.floor(Math.random() * 1000) + 200; // Simulate duration
+    // This used to be `Math.random() > 0.2` under a TODO: no request was made, and every
+    // API test in a plan reported a fabricated result that looked exactly like a real one.
+    const result = await runApiRequest(
+      {
+        method: apiTest.method,
+        url: apiTest.url,
+        queryParams: apiTest.queryParams as Record<string, string> | null,
+        headers: apiTest.requestHeaders as Record<string, string> | null,
+        body: apiTest.requestBody ?? undefined,
+        assertions: (apiTest.assertions as Assertion[] | null) ?? [],
+        extractions: (apiTest.extractions as Extraction[] | null) ?? [],
+      },
+      vars,
+    );
 
-    resolvedLogger.info({ message: `API Test completed`, testId: apiTest.id, testName: apiTest.name, planId, runId, success, durationMs });
+    const durationMs = Date.now() - startTime;
+    const failedAssertions = result.assertions.filter((a) => !a.pass);
+    const success = result.passed && !result.error;
+
+    resolvedLogger.info({
+      message: `API Test completed`,
+      testId: apiTest.id, testName: apiTest.name, planId, runId,
+      success, durationMs, status: result.status,
+      assertionsRun: result.assertions.length,
+      extracted: Object.keys(result.extracted),
+    });
+
     return {
       testId: apiTest.id,
       testType: 'api',
       name: apiTest.name,
-      success: success,
-      status: success ? 'passed' : 'failed',
-      error: success ? undefined : 'Simulated API test failure',
+      success,
+      // A request that could not be made at all is an error, not a failed assertion: the
+      // test did not get far enough to say anything about the system under test.
+      status: result.error ? 'error' : success ? 'passed' : 'failed',
+      error:
+        result.error ??
+        (failedAssertions.length > 0
+          ? failedAssertions
+              .map(
+                (a) =>
+                  `${a.assertion.source}${a.assertion.property ? ` "${a.assertion.property}"` : ''} ` +
+                  `${a.assertion.comparison} "${a.assertion.targetValue ?? ''}" — actual: ${JSON.stringify(a.actualValue)}` +
+                  (a.error ? ` (${a.error})` : ''),
+              )
+              .join('; ')
+          : undefined),
       durationMs,
-      // API tests might not have steps or screenshots in the same way UI tests do,
-      // but could have request/response logs or assertion results.
-      // The `results` field in `testPlanRuns` can store this detailed JSON.
+      extracted: result.extracted,
+      extractionErrors: result.extractionErrors,
     };
   } else {
     const durationMs = Date.now() - startTime;
@@ -357,7 +389,23 @@ async function runTestPlanJobInTenant(
   // The defaults underneath, the environment's secrets on top — so an environment can
   // override `baseUrl` like any other name, and a run against site B does not depend on
   // what a process env var happened to hold.
-  const runVariables = (): Record<string, string> => ({ ...defaultVariables(), ...secretsMap });
+  const runVariables = (): Record<string, string> => ({
+    ...defaultVariables(),
+    ...secretsMap,
+    // Values captured by tests that already ran in this plan. Last write wins, so a later
+    // request can refresh a token an earlier one obtained.
+    ...capturedInThisRun,
+  });
+
+  /**
+   * What the tests in this run have extracted so far.
+   *
+   * This is what makes a plan a flow rather than a list: the id the create returned is the
+   * id the read-back and the delete need, and nothing could carry it between them before.
+   * Scoped to the run — never to the environment — because a value captured at 02:00 says
+   * nothing about the state of the system at 03:00.
+   */
+  const capturedInThisRun: Record<string, string> = {};
   // The same environment supplies the variables and the saved login, so a scheduled run
   // cannot resolve one site's secrets while reusing another site's session.
   const planEnvironment = () =>
@@ -494,6 +542,25 @@ async function runTestPlanJobInTenant(
         planEnvironment(),
       );
       legacyIndividualTestResultsForJsonBlob.push(resultFromRunTest); // Keep populating the old JSON blob for now
+
+      if (resultFromRunTest.extracted) {
+        Object.assign(capturedInThisRun, resultFromRunTest.extracted);
+      }
+      // Surfaced on the run's console rather than only in the result blob: an extraction
+      // that found nothing is the reason the *next* test fails, and reading that in the
+      // right order is the difference between a five-minute diagnosis and an hour's.
+      for (const failure of resultFromRunTest.extractionErrors ?? []) {
+        const entry: ExecutionLogEntry = {
+          level: 'warn',
+          source: 'system',
+          message: `Could not capture "${failure.name}" from ${testName}: ${failure.reason}. ` +
+            `Later requests using {{${failure.name}}} will fail.`,
+          timestamp: new Date().toISOString(),
+          metadata: { testId: resultFromRunTest.testId, variable: failure.name },
+        };
+        resolvedLogger.warn(entry);
+        wsEmitter.emitExecutionLog(testPlanRunId, entry);
+      }
 
       // Map runTest result to reportTestCaseResults status
       if (resultFromRunTest.status === 'passed') reportStatus = 'Passed';
