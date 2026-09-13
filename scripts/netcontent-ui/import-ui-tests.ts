@@ -11,7 +11,7 @@ import { mapSteps, splitSteps, type MappedStep } from './map-steps';
 
 const DEFAULT_XLSX = String.raw`C:\Users\marco.oliva\Downloads\DMO NCC Test Scripts.xlsx`;
 const DEFAULT_VIEWS = String.raw`C:\Users\marco.oliva\source\repos\DMO_3\DMO.NetContent\Templates\Views`;
-const BASE_URL = process.env.DMO_BASE_URL || 'http://localhost:7000';
+const BASE_URL = process.env.APP_BASE_URL || process.env.DMO_BASE_URL || 'http://localhost:7000';
 const PROJECT_NAME = 'NetContent UI';
 
 // Steps that leave the NetContent pages -> cross-module, not automatable here.

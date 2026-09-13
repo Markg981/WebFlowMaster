@@ -1,4 +1,4 @@
-import playwright, { Browser, Page, BrowserContext } from 'playwright';
+import playwright, { Browser, Page, BrowserContext, Frame } from 'playwright';
 import { v4 as uuidv4 } from 'uuid'; // For generating session IDs
 import loggerPromise from './logger';
 import type { Logger as WinstonLogger } from 'winston';
@@ -93,6 +93,15 @@ export interface DetectedElement { // Exporting if it's used elsewhere, or keep 
   id: string;
   type: string;
   selector: string;
+  /**
+   * The iframe chain this element's selector is relative to, ' >> ' separated, or absent
+   * for the top document.
+   *
+   * page.locator() does not cross an iframe boundary, so an element inside one needs both
+   * halves to be reachable: which frame, and where in it. Without this the element was not
+   * merely unclickable — detection never saw it, which reads as the page not having it.
+   */
+  frameSelector?: string | null;
   text?: string | null;
   tag: string;
   attributes: Record<string, string>;
@@ -160,6 +169,259 @@ const MAX_RECORDED_ACTIONS = 2000;
  * POST-redirect result into a plain GET). Standalone navigations are still recorded.
  */
 const IMPLICIT_NAVIGATION_WINDOW_MS = 3000;
+
+/**
+ * Collects the interactive elements of ONE document — a frame, not necessarily the page.
+ *
+ * Module-level because it is now run once per frame rather than once per page: an element
+ * inside an iframe was invisible to detection entirely, since page.evaluate only reaches the
+ * top document and page.locator does not cross the boundary either.
+ */
+function collectCandidatesInFrame() {
+    // esbuild/tsx (keepNames) wraps named functions in `__name(fn, "…")`; that helper only
+    // exists in the Node bundle, so provide a harmless identity shim for the browser page.
+    (globalThis as any).__name = (globalThis as any).__name || ((fn: any) => fn);
+
+    const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
+
+    /**
+     * Ids a framework generated rather than a developer chose.
+     *
+     * Angular Material stamps `mat-input-3`, `mat-select-value-5`, `mat-button-9` in render
+     * order, so they shift as soon as anything above the element changes. Radix and React's
+     * useId produce `:r1a:`. Preferring one of these over a label is what makes a recorded
+     * test fail the next day against an application nobody touched.
+     */
+    const isVolatileId = (id: string) => {
+      if (/^(mat|mdc|cdk|ng|dx|p|ui|kendo)[-_]/i.test(id) && /\d+$/.test(id)) return true;
+      if (/^:[a-z0-9]+:$/i.test(id)) return true;
+      if (/^[0-9a-f]{12,}$/i.test(id)) return true;
+      return /^[a-z-]*\d{4,}$/i.test(id);
+    };
+
+    /**
+     * Every document-like root, including open shadow roots.
+     *
+     * querySelectorAll stops at a shadow boundary; Playwright's CSS engine pierces open
+     * roots on its own. Walking only the light DOM therefore left the element missing from
+     * the list while being perfectly clickable — and made the uniqueness check disagree
+     * with the engine that would later act on the selector.
+     */
+    const roots: Array<Document | ShadowRoot> = [document];
+    (function collectRoots(root: Document | ShadowRoot) {
+      root.querySelectorAll('*').forEach((el) => {
+        if (el.shadowRoot) {
+          roots.push(el.shadowRoot);
+          collectRoots(el.shadowRoot);
+        }
+      });
+    })(document);
+
+    const queryAll = (sel: string): Element[] =>
+      roots.flatMap((root) => {
+        try { return Array.from(root.querySelectorAll(sel)); } catch { return []; }
+      });
+
+    const isUnique = (sel: string) => queryAll(sel).length === 1;
+
+    const isVolatileClass = (c: string) =>
+      !c ||
+      /[:()[\]/.]/.test(c) ||
+      /^(ng|cdk|mat|mdc)-/.test(c) ||
+      /(focus|active|hover|selected|touched|dirty|pristine|disabled|expanded)/i.test(c);
+
+    const structuralPath = (el: Element): string => {
+      const parts: string[] = [];
+      let node: Element | null = el;
+      while (node && node.nodeType === 1 && node.tagName.toLowerCase() !== 'html') {
+        if (node.id && !isVolatileId(node.id) && isUnique(`#${CSS.escape(node.id)}`)) {
+          parts.unshift(`#${CSS.escape(node.id)}`);
+          break;
+        }
+        let part = node.tagName.toLowerCase();
+        const parent: Element | null = node.parentElement;
+        if (parent) {
+          const sameTag = Array.from(parent.children).filter((c) => c.tagName === node!.tagName);
+          if (sameTag.length > 1) part += `:nth-of-type(${sameTag.indexOf(node) + 1})`;
+        }
+        parts.unshift(part);
+        node = parent;
+      }
+      return parts.join(' > ');
+    };
+
+    /**
+     * The first CSS selector that identifies this element on its own, or null.
+     *
+     * Ordered by how long the thing it keys on tends to survive: a developer-chosen id,
+     * then a test id, then the accessible label, then non-framework classes. A generated id
+     * is skipped rather than ranked last, because it looks perfectly unique today — which
+     * is exactly why it used to win.
+     */
+    const buildCssSelector = (el: Element): string | null => {
+      const tag = el.tagName.toLowerCase();
+
+      if (el.id && !isVolatileId(el.id) && isUnique(`#${CSS.escape(el.id)}`)) {
+        return `#${CSS.escape(el.id)}`;
+      }
+      for (const attr of ['data-testid', 'data-test', 'name', 'aria-label', 'placeholder']) {
+        const v = el.getAttribute(attr);
+        if (v) {
+          const s = `${tag}[${attr}="${v.replace(/"/g, '\\"')}"]`;
+          if (isUnique(s)) return s;
+        }
+      }
+      if (typeof el.className === 'string' && el.className.trim()) {
+        const classes = el.className.split(/\s+/).filter((c) => !isVolatileClass(c));
+        for (let n = classes.length; n >= 1; n--) {
+          const s = `${tag}.${classes.slice(0, n).join('.')}`;
+          if (isUnique(s)) return s;
+        }
+      }
+      return null;
+    };
+
+    /** The ARIA role: explicit, or the obvious one implied by the tag. */
+    const roleOf = (el: Element): string | null => {
+      const explicit = el.getAttribute('role');
+      if (explicit) return explicit;
+      const tag = el.tagName.toLowerCase();
+      if (tag === 'button') return 'button';
+      if (tag === 'a') return 'link';
+      if (tag === 'select') return 'combobox';
+      if (tag === 'textarea') return 'textbox';
+      if (/^h[1-6]$/.test(tag)) return 'heading';
+      if (tag === 'img') return 'img';
+      if (tag === 'input') {
+        const type = (el.getAttribute('type') || 'text').toLowerCase();
+        if (type === 'checkbox') return 'checkbox';
+        if (type === 'radio') return 'radio';
+        if (type === 'submit' || type === 'button') return 'button';
+        if (['text', 'email', 'tel', 'url', 'password', 'search'].indexOf(type) !== -1) return 'textbox';
+      }
+      return null;
+    };
+
+    /** Close enough to the accessible name for Playwright's `role=…[name=…]` engine. */
+    const accessibleNameOf = (el: Element): string | null => {
+      const label = el.getAttribute('aria-label');
+      if (label && label.trim()) return label.trim();
+      const alt = el.getAttribute('alt');
+      if (alt && alt.trim()) return alt.trim();
+      const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+      if (text && text.length <= 80) return text;
+      const placeholder = el.getAttribute('placeholder');
+      if (placeholder && placeholder.trim()) return placeholder.trim();
+      return null;
+    };
+
+    const detectedElements: any[] = [];
+    const seen = new Set<Element>();
+    let globalElementCounter = 0;
+
+    interactiveSelectors.forEach((selector) => {
+      queryAll(selector).forEach((element, index) => {
+        if (seen.has(element)) return; // an element can match several selectors — keep one entry
+        const rect = element.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+        seen.add(element);
+
+        const tagName = element.tagName.toLowerCase();
+        const text = element.textContent?.trim() || '';
+        const placeholder = element.getAttribute('placeholder') || '';
+        const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
+        let elementType = 'element';
+        if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
+        else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
+        else if (tagName === 'a') elementType = 'link';
+        else if (tagName.match(/h[1-6]/)) elementType = 'heading';
+        else if (tagName === 'select') elementType = 'select';
+        else if (tagName === 'textarea') elementType = 'textarea';
+        const attributes: Record<string, string> = {};
+        Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; });
+
+        const exactText = text.replace(/\s+/g, ' ').trim();
+
+        detectedElements.push({
+          id: `elem-${tagName}-${globalElementCounter++}`,
+          type: elementType,
+          text: displayText.substring(0, 100),
+          tag: tagName,
+          attributes,
+          // Document-relative, not viewport-relative: the preview is a full-page
+          // screenshot, and an element below the fold has to be drawable on it.
+          boundingBox: {
+            x: Math.round(rect.x + window.scrollX),
+            y: Math.round(rect.y + window.scrollY),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+          },
+          cssSelector: buildCssSelector(element),
+          role: roleOf(element),
+          accessibleName: accessibleNameOf(element),
+          exactText: exactText && exactText.length <= 80 ? exactText : null,
+          structuralPath: structuralPath(element),
+        });
+      });
+    });
+
+    return {
+      elements: detectedElements,
+      totalFound: detectedElements.length,
+      pageSize: {
+        width: Math.max(document.documentElement.scrollWidth, window.innerWidth),
+        height: Math.max(document.documentElement.scrollHeight, window.innerHeight),
+      },
+    };
+}
+
+/**
+ * Where a selector should be looked up: the page, or a chain of iframes within it.
+ *
+ * page.locator() does not cross an iframe boundary, so an element inside one needs both
+ * halves — which frame, and where in it. The chain is ' >> ' separated and outermost first,
+ * which is how frameChainFor writes it.
+ */
+export function scopeFor(page: Page, frameSelector?: string | null) {
+  if (!frameSelector) return page;
+  return frameSelector
+    .split(' >> ')
+    .filter(Boolean)
+    .reduce<any>((scope, step) => scope.frameLocator(step), page);
+}
+
+/**
+ * The rows a test runs over, or null when it runs once.
+ *
+ * An empty array counts as none: it is a dataset someone started and did not fill in, and
+ * running zero times while reporting success would be a green result for a test that never
+ * executed. Values are coerced to strings because that is what `{{variable}}` substitution
+ * puts into a URL or a form field.
+ */
+function datasetRows(test: { dataset?: unknown }): Array<Record<string, string>> | null {
+  const raw = (test as { dataset?: unknown }).dataset;
+  const parsed = typeof raw === 'string' ? safeParseJson(raw) : raw;
+  if (!Array.isArray(parsed) || parsed.length === 0) return null;
+
+  return parsed
+    .filter((row): row is Record<string, unknown> => !!row && typeof row === 'object' && !Array.isArray(row))
+    .map((row) =>
+      Object.fromEntries(
+        Object.entries(row).map(([key, value]) => [
+          key,
+          typeof value === 'string' ? value : String(value ?? ''),
+        ]),
+      ),
+    );
+}
+
+function safeParseJson(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
 
 export class PlaywrightService {
   /**
@@ -624,183 +886,83 @@ export class PlaywrightService {
    * never drift apart (previously they did: execution produced non-unique class selectors
    * like `button.mat-mdc-menu-item`, which Playwright could not click unambiguously).
    */
+  /**
+   * How to address a frame from the top document: ' >> ' separated, outermost first.
+   *
+   * Returns null when any link in the chain cannot be addressed. A frame with no id, no
+   * name and no stable position is one whose elements could never be acted on, and
+   * listing them would be a promise the runner cannot keep.
+   */
+  private async frameChainFor(frame: Frame): Promise<string | null> {
+    const chain: string[] = [];
+    let current: Frame | null = frame;
+
+    while (current && current.parentFrame()) {
+      let element;
+      try {
+        element = await current.frameElement();
+      } catch {
+        return null; // detached mid-scan
+      }
+
+      const selector = await element
+        .evaluate((el: Element) => {
+          const escape = (value: string) => (window as any).CSS.escape(value);
+          const tag = el.tagName.toLowerCase(); // iframe, or the older frame
+          const doc = el.ownerDocument!;
+          const unique = (sel: string) => doc.querySelectorAll(sel).length === 1;
+
+          if (el.id && unique(tag + '#' + escape(el.id))) return tag + '#' + escape(el.id);
+          const name = el.getAttribute('name');
+          if (name && unique(tag + '[name="' + name + '"]')) return tag + '[name="' + name + '"]';
+          const title = el.getAttribute('title');
+          if (title && unique(tag + '[title="' + title + '"]')) return tag + '[title="' + title + '"]';
+
+          // Position among the same tag in its own document: stable as long as the
+          // surrounding markup is, which is the same bargain the structural path makes.
+          const index = Array.from(doc.querySelectorAll(tag)).indexOf(el);
+          return index >= 0 ? tag + ' >> nth=' + index : null;
+        })
+        .catch(() => null);
+
+      await element.dispose().catch(() => {});
+      if (!selector) return null;
+
+      chain.unshift(selector);
+      current = current.parentFrame();
+    }
+
+    return chain.length > 0 ? chain.join(' >> ') : null;
+  }
+
   private async detectElementsOnPage(page: Page): Promise<DetectedElement[]> {
-    const candidates = await page.evaluate(() => {
-      // esbuild/tsx (keepNames) wraps named functions in `__name(fn, "…")`; that helper only
-      // exists in the Node bundle, so provide a harmless identity shim for the browser page.
-      (globalThis as any).__name = (globalThis as any).__name || ((fn: any) => fn);
+    // One pass per frame. page.frames() is flat and already includes nested ones, so a
+    // frame three levels down is reached the same way as a direct child.
+    const perFrame: Array<{ frameSelector: string | null; data: any }> = [];
+    for (const frame of page.frames()) {
+      let frameSelector: string | null = null;
+      if (frame !== page.mainFrame()) {
+        frameSelector = await this.frameChainFor(frame);
+        // A frame whose own <iframe> cannot be addressed from its parent is one whose
+        // elements could never be acted on, so reporting them would be a false promise.
+        if (!frameSelector) continue;
+      }
+      try {
+        perFrame.push({ frameSelector, data: await frame.evaluate(collectCandidatesInFrame) });
+      } catch {
+        // A frame can navigate or detach mid-scan, and a cross-origin one cannot be read
+        // at all. Neither is a reason to fail the whole detection.
+      }
+    }
 
-      const interactiveSelectors = ['input:not([type="hidden"])', 'button', 'a[href]', 'select', 'textarea', '[onclick]', '[role="button"]', '[tabindex]:not([tabindex="-1"])', 'h1, h2, h3, h4, h5, h6', 'img[alt]', 'form', '[data-testid]', '[data-test]'];
-
-      /**
-       * Ids a framework generated rather than a developer chose.
-       *
-       * Angular Material stamps `mat-input-3`, `mat-select-value-5`, `mat-button-9` in render
-       * order, so they shift as soon as anything above the element changes. Radix and React's
-       * useId produce `:r1a:`. Preferring one of these over a label is what makes a recorded
-       * test fail the next day against an application nobody touched.
-       */
-      const isVolatileId = (id: string) => {
-        if (/^(mat|mdc|cdk|ng|dx|p|ui|kendo)[-_]/i.test(id) && /\d+$/.test(id)) return true;
-        if (/^:[a-z0-9]+:$/i.test(id)) return true;
-        if (/^[0-9a-f]{12,}$/i.test(id)) return true;
-        return /^[a-z-]*\d{4,}$/i.test(id);
-      };
-
-      const isUnique = (sel: string) => {
-        try { return document.querySelectorAll(sel).length === 1; } catch { return false; }
-      };
-
-      const isVolatileClass = (c: string) =>
-        !c ||
-        /[:()[\]/.]/.test(c) ||
-        /^(ng|cdk|mat|mdc)-/.test(c) ||
-        /(focus|active|hover|selected|touched|dirty|pristine|disabled|expanded)/i.test(c);
-
-      const structuralPath = (el: Element): string => {
-        const parts: string[] = [];
-        let node: Element | null = el;
-        while (node && node.nodeType === 1 && node.tagName.toLowerCase() !== 'html') {
-          if (node.id && !isVolatileId(node.id) && isUnique(`#${CSS.escape(node.id)}`)) {
-            parts.unshift(`#${CSS.escape(node.id)}`);
-            break;
-          }
-          let part = node.tagName.toLowerCase();
-          const parent: Element | null = node.parentElement;
-          if (parent) {
-            const sameTag = Array.from(parent.children).filter((c) => c.tagName === node!.tagName);
-            if (sameTag.length > 1) part += `:nth-of-type(${sameTag.indexOf(node) + 1})`;
-          }
-          parts.unshift(part);
-          node = parent;
-        }
-        return parts.join(' > ');
-      };
-
-      /**
-       * The first CSS selector that identifies this element on its own, or null.
-       *
-       * Ordered by how long the thing it keys on tends to survive: a developer-chosen id,
-       * then a test id, then the accessible label, then non-framework classes. A generated id
-       * is skipped rather than ranked last, because it looks perfectly unique today — which
-       * is exactly why it used to win.
-       */
-      const buildCssSelector = (el: Element): string | null => {
-        const tag = el.tagName.toLowerCase();
-
-        if (el.id && !isVolatileId(el.id) && isUnique(`#${CSS.escape(el.id)}`)) {
-          return `#${CSS.escape(el.id)}`;
-        }
-        for (const attr of ['data-testid', 'data-test', 'name', 'aria-label', 'placeholder']) {
-          const v = el.getAttribute(attr);
-          if (v) {
-            const s = `${tag}[${attr}="${v.replace(/"/g, '\\"')}"]`;
-            if (isUnique(s)) return s;
-          }
-        }
-        if (typeof el.className === 'string' && el.className.trim()) {
-          const classes = el.className.split(/\s+/).filter((c) => !isVolatileClass(c));
-          for (let n = classes.length; n >= 1; n--) {
-            const s = `${tag}.${classes.slice(0, n).join('.')}`;
-            if (isUnique(s)) return s;
-          }
-        }
-        return null;
-      };
-
-      /** The ARIA role: explicit, or the obvious one implied by the tag. */
-      const roleOf = (el: Element): string | null => {
-        const explicit = el.getAttribute('role');
-        if (explicit) return explicit;
-        const tag = el.tagName.toLowerCase();
-        if (tag === 'button') return 'button';
-        if (tag === 'a') return 'link';
-        if (tag === 'select') return 'combobox';
-        if (tag === 'textarea') return 'textbox';
-        if (/^h[1-6]$/.test(tag)) return 'heading';
-        if (tag === 'img') return 'img';
-        if (tag === 'input') {
-          const type = (el.getAttribute('type') || 'text').toLowerCase();
-          if (type === 'checkbox') return 'checkbox';
-          if (type === 'radio') return 'radio';
-          if (type === 'submit' || type === 'button') return 'button';
-          if (['text', 'email', 'tel', 'url', 'password', 'search'].indexOf(type) !== -1) return 'textbox';
-        }
-        return null;
-      };
-
-      /** Close enough to the accessible name for Playwright's `role=…[name=…]` engine. */
-      const accessibleNameOf = (el: Element): string | null => {
-        const label = el.getAttribute('aria-label');
-        if (label && label.trim()) return label.trim();
-        const alt = el.getAttribute('alt');
-        if (alt && alt.trim()) return alt.trim();
-        const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
-        if (text && text.length <= 80) return text;
-        const placeholder = el.getAttribute('placeholder');
-        if (placeholder && placeholder.trim()) return placeholder.trim();
-        return null;
-      };
-
-      const detectedElements: any[] = [];
-      const seen = new Set<Element>();
-      let globalElementCounter = 0;
-
-      interactiveSelectors.forEach((selector) => {
-        document.querySelectorAll(selector).forEach((element, index) => {
-          if (seen.has(element)) return; // an element can match several selectors — keep one entry
-          const rect = element.getBoundingClientRect();
-          if (rect.width === 0 || rect.height === 0) return;
-          seen.add(element);
-
-          const tagName = element.tagName.toLowerCase();
-          const text = element.textContent?.trim() || '';
-          const placeholder = element.getAttribute('placeholder') || '';
-          const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
-          let elementType = 'element';
-          if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
-          else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
-          else if (tagName === 'a') elementType = 'link';
-          else if (tagName.match(/h[1-6]/)) elementType = 'heading';
-          else if (tagName === 'select') elementType = 'select';
-          else if (tagName === 'textarea') elementType = 'textarea';
-          const attributes: Record<string, string> = {};
-          Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; });
-
-          const exactText = text.replace(/\s+/g, ' ').trim();
-
-          detectedElements.push({
-            id: `elem-${tagName}-${globalElementCounter++}`,
-            type: elementType,
-            text: displayText.substring(0, 100),
-            tag: tagName,
-            attributes,
-            // Document-relative, not viewport-relative: the preview is a full-page
-            // screenshot, and an element below the fold has to be drawable on it.
-            boundingBox: {
-              x: Math.round(rect.x + window.scrollX),
-              y: Math.round(rect.y + window.scrollY),
-              width: Math.round(rect.width),
-              height: Math.round(rect.height),
-            },
-            cssSelector: buildCssSelector(element),
-            role: roleOf(element),
-            accessibleName: accessibleNameOf(element),
-            exactText: exactText && exactText.length <= 80 ? exactText : null,
-            structuralPath: structuralPath(element),
-          });
-        });
-      });
-
-      return {
-        elements: detectedElements,
-        totalFound: detectedElements.length,
-        pageSize: {
-          width: Math.max(document.documentElement.scrollWidth, window.innerWidth),
-          height: Math.max(document.documentElement.scrollHeight, window.innerHeight),
-        },
-      };
-    });
+    const candidates = {
+      elements: perFrame.flatMap((f) =>
+        f.data.elements.map((e: any) => ({ ...e, frameSelector: f.frameSelector })),
+      ),
+      totalFound: perFrame.reduce((n, f) => n + f.data.totalFound, 0),
+      // The top document decides the picture the highlighting is drawn on.
+      pageSize: perFrame[0]?.data.pageSize ?? { width: 1280, height: 720 },
+    };
 
     const limit = detectionLimit();
     const chosen: DetectedElement[] = [];
@@ -810,6 +972,8 @@ export class PlaywrightService {
         id: candidate.id,
         type: candidate.type,
         selector: await this.pickSelector(page, candidate),
+        // Which frame that selector is relative to, so the step can be replayed.
+        frameSelector: candidate.frameSelector ?? null,
         text: candidate.text,
         tag: candidate.tag,
         attributes: candidate.attributes,
@@ -852,9 +1016,15 @@ export class PlaywrightService {
       accessibleName: string | null;
       exactText: string | null;
       structuralPath: string;
+      frameSelector?: string | null;
     },
   ): Promise<string> {
     if (candidate.cssSelector) return candidate.cssSelector;
+
+    // Counted inside the frame the element lives in. Against the top document a selector
+    // unique in its own frame would look like zero matches, and lose to the structural
+    // path for no reason.
+    const scope = scopeFor(page, candidate.frameSelector);
 
     const engineCandidates: string[] = [];
     if (candidate.role && candidate.accessibleName) {
@@ -868,7 +1038,7 @@ export class PlaywrightService {
 
     for (const selector of engineCandidates) {
       try {
-        if ((await page.locator(selector).count()) === 1) return selector;
+        if ((await scope.locator(selector).count()) === 1) return selector;
       } catch {
         // An unusable selector is simply a candidate that lost.
       }
@@ -1265,6 +1435,40 @@ export class PlaywrightService {
     environment?: EnvironmentScope,
   ): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number }> {
     const startTime = Date.now();
+
+    // A test with rows of input runs once per row, with that row's values layered over the
+    // environment's. Each row gets its own browser rather than sharing one: a row is an
+    // independent case, and one leaving a modal open or a session half-established would
+    // otherwise decide the outcome of the next.
+    const rows = datasetRows(test);
+    if (rows) {
+      const allSteps: StepResult[] = [];
+      let allPassed = true;
+
+      for (const [index, row] of rows.entries()) {
+        const label = `Row ${index + 1} of ${rows.length}`;
+        const rowResult = await this.executeTestSequence(
+          { ...test, dataset: null } as Test,
+          userId,
+          screenshotBaseDir ? path.join(screenshotBaseDir, `row_${index + 1}`) : undefined,
+          executionId,
+          { ...vars, ...row },
+          environment,
+        );
+
+        // Prefixed, because "assertion failed" repeated twenty times says nothing about
+        // which input broke it — and finding that out by rerunning the set by hand is the
+        // cost this feature exists to remove.
+        for (const step of rowResult.steps ?? []) {
+          allSteps.push({ ...step, name: `${label} — ${step.name}` });
+        }
+        if (!rowResult.success) allPassed = false;
+        // Deliberately no early exit: stopping at the first bad row would hide whatever
+        // else is broken, and the next run would find it one row at a time.
+      }
+
+      return { success: allPassed, steps: allSteps, duration: Date.now() - startTime };
+    }
     const wsEmitter = getWsEmitter();
     resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url, screenshotBaseDir });
     const targetUrl = test.url ? substituteVariables(test.url, vars) : test.url;

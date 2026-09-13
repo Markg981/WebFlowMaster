@@ -76,6 +76,10 @@ app.use(express.urlencoded({ extended: false }));
       // Separate from logLevel on purpose: turning the server up to debug should not also
       // flood the ingest endpoint with browser traffic.
       { key: 'clientLogLevel', value: process.env.CLIENT_LOG_LEVEL || 'info' },
+      // What the sidebar and the breadcrumb call this installation. It used to read "DMO"
+      // in two places in AppShell.tsx, written by hand — which made a product meant to test
+      // any web application present itself as the tool of a single customer.
+      { key: 'workspaceName', value: process.env.WORKSPACE_NAME || 'WebFlowMaster' },
     ];
 
     for (const settingToEnsure of settingsToEnsure) {

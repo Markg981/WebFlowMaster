@@ -29,9 +29,17 @@ export interface VariableScope {
   environmentId?: number | null;
 }
 
-/** The values that resolve with no environment selected. */
+/**
+ * The values that resolve with no environment selected.
+ *
+ * `APP_BASE_URL` is the name to use. `DMO_BASE_URL` is still honoured because renaming an
+ * environment variable out from under a running deployment is a silent breakage — the tests
+ * would simply start hitting the default host and failing for a reason nobody would connect
+ * to a rename. Prefer per-environment values over either: this is the fallback for a
+ * process that has no environment selected, not the way to configure a site.
+ */
 export function defaultVariables(): Record<string, string> {
-  return { baseUrl: process.env.DMO_BASE_URL || DEFAULT_BASE_URL };
+  return { baseUrl: process.env.APP_BASE_URL || process.env.DMO_BASE_URL || DEFAULT_BASE_URL };
 }
 
 export async function resolveVariables(scope: VariableScope): Promise<Record<string, string>> {

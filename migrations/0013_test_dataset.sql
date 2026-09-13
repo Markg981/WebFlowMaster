@@ -1,0 +1,16 @@
+-- Rows of input a single test runs over.
+--
+-- The same check against twenty inputs could only be expressed by uploading a spreadsheet to
+-- the Test Manager, which maps each row to a *different* saved test. There was no way to say
+-- "this one test, these twenty inputs", so the alternative was twenty near-identical tests —
+-- and a change to the flow meant editing all twenty, which is how a suite stops being
+-- maintained.
+--
+-- A jsonb array of flat objects. Each key becomes a `{{variable}}` for that run, layered over
+-- the environment's values:
+--
+--   [{ "sku": "A-1", "qty": "2" }, { "sku": "B-2", "qty": "5" }]
+--
+-- Nullable, and an empty array is treated as absent: a test with no dataset runs once,
+-- exactly as every test did before this column existed.
+ALTER TABLE "tests" ADD COLUMN "dataset" jsonb;
