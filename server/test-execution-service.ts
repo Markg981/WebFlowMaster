@@ -24,7 +24,7 @@ import { decryptSecret } from './crypto';
 import { getCorrelationId } from './middleware/correlation';
 import { defaultVariables } from './variables';
 import { runApiRequest, type Extraction } from './api-test-runner';
-import type { Assertion } from '@shared/schema';
+import type { Assertion, AuthParams } from '@shared/schema';
 
 // Helper to interpolate {{SECRET_KEY}} in strings
 function interpolateSecrets(str: string, secretsMap: Record<string, string>): string {
@@ -181,6 +181,9 @@ export async function runTest(
         body: apiTest.requestBody ?? undefined,
         assertions: (apiTest.assertions as Assertion[] | null) ?? [],
         extractions: (apiTest.extractions as Extraction[] | null) ?? [],
+        // The test's own auth settings, which only the API Tester page used to apply — so a
+        // scheduled run sent the request anonymous and failed for the wrong reason.
+        auth: apiTest.authParams as AuthParams | null,
       },
       vars,
     );
