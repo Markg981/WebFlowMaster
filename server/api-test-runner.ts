@@ -1,4 +1,4 @@
-import type { Assertion } from '@shared/schema';
+import type { Assertion, AuthParams } from '@shared/schema';
 import { fetchTarget, substituteInValues, substituteVariables } from './outbound-http';
 import { findUnresolvedVariables } from './variables';
 
@@ -44,6 +44,14 @@ export interface ApiRequestSpec {
   body?: unknown;
   assertions?: Assertion[] | null;
   extractions?: Extraction[] | null;
+  /**
+   * The authentication the saved test carries.
+   *
+   * The API Tester page built these headers in the browser, so a test's own auth settings
+   * were ignored the moment anything else ran it: a plan sent the request anonymous and the
+   * test failed for a reason unrelated to what it checked.
+   */
+  auth?: AuthParams | null;
 }
 
 export interface AssertionOutcome {
@@ -144,6 +152,59 @@ function valueFrom(
   }
 }
 
+/**
+ * Adds whatever the test's auth settings imply, to the headers or the query.
+ *
+ * Only the three schemes the product actually implements: the enum declares eleven more
+ * (digest, oauth1/2, ntlm, aws, hawk…) and the interface has never built a single one of
+ * them. Pretending otherwise here would mean a request that silently goes out unauthorised
+ * while the test claims a scheme is in force.
+ *
+ * Values go through substitution because the token usually comes from an earlier request
+ * in the same plan.
+ */
+function applyAuth(
+  auth: AuthParams | null | undefined,
+  headers: Record<string, string>,
+  url: URL,
+  vars: Record<string, string>,
+): void {
+  if (!auth?.type) return;
+
+  // A header the tester wrote by hand is more specific than a setting on the test;
+  // overwriting it would make a deliberate override look broken.
+  const hasAuthorization = Object.keys(headers).some((h) => h.toLowerCase() === 'authorization');
+
+  switch (auth.type) {
+    case 'basic': {
+      if (hasAuthorization) return;
+      const username = substituteVariables(auth.params.username ?? '', vars);
+      if (!username) return;
+      const password = substituteVariables(auth.params.password ?? '', vars);
+      headers.Authorization = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+      return;
+    }
+    case 'bearer': {
+      if (hasAuthorization) return;
+      const token = substituteVariables(auth.params.token ?? '', vars);
+      if (!token) return;
+      headers.Authorization = `Bearer ${token}`;
+      return;
+    }
+    case 'apiKey': {
+      const key = substituteVariables(auth.params.key ?? '', vars);
+      const value = substituteVariables(auth.params.value ?? '', vars);
+      if (!key || !value) return;
+      if (auth.params.addTo === 'query') url.searchParams.append(key, value);
+      else if (!Object.keys(headers).some((h) => h.toLowerCase() === key.toLowerCase())) headers[key] = value;
+      return;
+    }
+    default:
+      // 'none', 'inherit' and the schemes nothing implements: send the request as written.
+      return;
+  }
+}
+
 export async function runApiRequest(
   spec: ApiRequestSpec,
   vars: Record<string, string>,
@@ -188,6 +249,8 @@ export async function runApiRequest(
   const headers: Record<string, string> = { ...(substituteInValues(spec.headers, vars) ?? {}) };
   // Set by the transport, and wrong if carried over from a saved request.
   for (const forbidden of ['host', 'Host', 'content-length', 'Content-Length']) delete headers[forbidden];
+
+  applyAuth(spec.auth, headers, targetUrl, vars);
 
   const options: RequestInit = { method: spec.method, headers };
   if (spec.method !== 'GET' && spec.method !== 'HEAD' && spec.body !== undefined) {

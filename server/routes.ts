@@ -13,6 +13,7 @@ import {
   insertApiTestHistorySchema,
   AssertionSchema,
   ExtractionSchema,
+  AuthParamsSchema,
   testPlans,
   updateTestPlanApiPayloadSchema,
   testPlanSelectedTests,
@@ -41,6 +42,7 @@ import uploadsRoutes from "./routes/uploads.routes";
 import reportsRoutes from "./routes/reports.routes";
 import authRoutes from "./routes/auth.routes";
 import observabilityRoutes from "./routes/observability.routes";
+import environmentRoutes from "./routes/environments.routes";
 import organizationRoutes from "./routes/organization.routes";
 import { tenancyMiddleware, withTenantTransaction } from "./middleware/tenancy";
 import { runApiRequest } from "./api-test-runner";
@@ -67,6 +69,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Captured here as well as in a plan, so the tester can see what a request would hand
     // to the next one rather than finding out only when the plan runs.
     extractions: z.array(ExtractionSchema).optional(),
+    // Accepted so a saved test replays through the same path it was authored on. The page
+    // still builds these headers itself for the live preview; both end up here.
+    auth: AuthParamsSchema.optional().nullable(),
     // Which environment resolves `{{name}}`. The organization it must belong to comes from
     // the session, so naming another tenant's environment resolves nothing.
     environmentId: z.number().int().positive().optional().nullable(),
@@ -104,6 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(uploadsRoutes);
     app.use(reportsRoutes);
     app.use(observabilityRoutes);
+    app.use(environmentRoutes);
 
   app.post("/api/load-website", requireRole('editor'), async (req, res) => {
     resolvedLogger.http(`POST /api/load-website - Handler reached. UserId: ${(req.user as any)?.id}`);
@@ -148,7 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
-    const { method, url, queryParams, headers, body, assertions, extractions, environmentId } = parseResult.data;
+    const { method, url, queryParams, headers, body, assertions, extractions, auth, environmentId } = parseResult.data;
 
     // The environment supplies the variables here exactly as it does for a scheduled run,
     // so a request that works in the tester works in a plan. Its id is the caller's; the
@@ -163,7 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // what let the two drift until test-execution-service gave up and shipped
     // `Math.random() > 0.2` in place of executing anything at all.
     const result = await runApiRequest(
-      { method, url, queryParams, headers, body, assertions, extractions },
+      { method, url, queryParams, headers, body, assertions, extractions, auth },
       vars,
     );
 

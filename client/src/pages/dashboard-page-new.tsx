@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,8 @@ import { PreconditionsPanel } from "@/components/PreconditionsPanel";
 import type { Precondition } from "@shared/schema";
 import { ACTION_I18N, ADHOC_ACTION_IDS } from "@shared/recording";
 import { useRecordingSession } from "@/hooks/useRecordingSession";
+import { EnvironmentSelect } from "@/components/EnvironmentSelect";
+import { NO_ENVIRONMENT, environmentIdFor } from "@/hooks/use-environments";
 import {
   Globe,
   Search,
@@ -117,6 +119,10 @@ export default function DashboardPage() {
     "manual"
   );
   const [highlightedElement, setHighlightedElement] = useState<string | null>(null);
+  // Which environment resolves {{variables}} and supplies the saved login for this run.
+  // Without this the builder could only ever run against the process defaults, so a
+  // recorded `{{secret_…}}` password failed by name every time.
+  const [selectedEnvironment, setSelectedEnvironment] = useState<string>(NO_ENVIRONMENT);
   /** What the last detection found, so the panel can admit when the list is partial. */
   const [detectionSummary, setDetectionSummary] = useState<{
     totalFound: number;
@@ -527,8 +533,40 @@ export default function DashboardPage() {
     recording.stop();
   };
 
+  /**
+   * Saves the recorder browser's current session against the selected environment.
+   *
+   * The tester signs in inside the recorder window and presses this; from then on every run
+   * against that environment starts authenticated instead of replaying the login. The route
+   * has existed and been tested since the login-state work — nothing in the interface
+   * called it, so the capability was reachable only with curl.
+   */
+  const captureLoginStateMutation = useMutation({
+    mutationFn: async () => {
+      const environmentId = environmentIdFor(selectedEnvironment);
+      if (!environmentId) throw new Error('Pick an environment to save the login against.');
+      if (!recording.sessionId) throw new Error('Start a recording and sign in first.');
+      const res = await apiRequest('POST', '/api/recording-login-state', {
+        sessionId: recording.sessionId,
+        environmentId,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      // The picker labels an environment that has one, so refresh it.
+      queryClient.invalidateQueries({ queryKey: ['environments'] });
+      toast({
+        title: 'Login saved',
+        description: 'Runs against this environment will start already signed in.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Could not save the login', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const executeDirectTestMutation = useMutation({
-    mutationFn: async (payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string, preconditions?: Precondition[] }) => {
+    mutationFn: async (payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string, preconditions?: Precondition[], environmentId?: number }) => {
       const res = await apiRequest("POST", "/api/execute-test-direct", payload);
       // The backend for /api/execute-test-direct should directly return { success: boolean; steps?: StepResult[]; error?: string; duration?: number }
       const result = await res.json();
@@ -664,7 +702,10 @@ export default function DashboardPage() {
       elements: detectedElements,
       // Sent so the preview runs the same setup calls as a scheduled run would.
       preconditions,
-      name: testName || t('dashboardPageNew.toasts.adhocTestName', { url: currentUrl || t('dashboardPageNew.toasts.untitled') })
+      name: testName || t('dashboardPageNew.toasts.adhocTestName', { url: currentUrl || t('dashboardPageNew.toasts.untitled') }),
+      // Without this the preview resolves against the process defaults only, and would
+      // disagree with a scheduled run of the very same test.
+      environmentId: environmentIdFor(selectedEnvironment),
     };
     executeDirectTestMutation.mutate(payload);
   };
@@ -755,6 +796,14 @@ export default function DashboardPage() {
                 </Button>
               )}
             </div>
+            <div className="mt-4 w-[280px]">
+              {/* Next to the creation mode, because both describe how this run happens. */}
+              <EnvironmentSelect
+                value={selectedEnvironment}
+                onChange={setSelectedEnvironment}
+                disabled={executeDirectTestMutation.isPending || isExecutingPlayback}
+              />
+            </div>
             <div className="mt-4">
               <Label htmlFor="creationModeSelect" className="block text-sm font-medium text-card-foreground mb-1">{t('dashboardPageNew.modalitDiCreazioneTest.label')}</Label>
               <Select value={creationMode} onValueChange={(value: "manual" | "record") => setCreationMode(value)}>
@@ -811,6 +860,36 @@ export default function DashboardPage() {
                   {recording.isStopping ? t('dashboardPageNew.stopping.button') : t('dashboardPageNew.terminaRegistrazione.button')}
                 </Button>
                 </div>
+
+                {/* Only while a session is live: there is no browser to take a session from
+                    otherwise, and the route answers 404 for a session that is not open. */}
+                {isRecording && (
+                  <div className="rounded-md border border-border bg-muted/50 p-3 space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Signed in inside the recorder window? Save that session against the
+                      selected environment and later runs will start already authenticated.
+                    </p>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => captureLoginStateMutation.mutate()}
+                      disabled={
+                        captureLoginStateMutation.isPending ||
+                        !environmentIdFor(selectedEnvironment)
+                      }
+                    >
+                      {captureLoginStateMutation.isPending && (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      )}
+                      Save login for this environment
+                    </Button>
+                    {!environmentIdFor(selectedEnvironment) && (
+                      <p className="text-xs text-muted-foreground">
+                        Pick an environment above first — the session is stored against one.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>

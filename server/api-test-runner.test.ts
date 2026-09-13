@@ -192,3 +192,87 @@ describe('extracting values for the next request', () => {
     );
   }, 30_000);
 });
+
+describe('the authentication a saved test carries', () => {
+  it('applies basic auth', async () => {
+    await runApiRequest(
+      {
+        method: 'GET',
+        url: `${baseUrl}/ping`,
+        auth: { type: 'basic', params: { username: 'svc', password: 'hunter2' } },
+      },
+      {},
+    );
+
+    // The API Tester page built this header in the browser, so a saved test's own auth
+    // settings were simply ignored once a plan ran it — the request went out anonymous and
+    // the test failed for a reason that had nothing to do with what it checked.
+    const expected = 'Basic ' + Buffer.from('svc:hunter2').toString('base64');
+    expect(received[0].headers.authorization).toBe(expected);
+  }, 30_000);
+
+  it('applies a bearer token, resolving a variable in it', async () => {
+    await runApiRequest(
+      {
+        method: 'GET',
+        url: `${baseUrl}/ping`,
+        auth: { type: 'bearer', params: { token: '{{token}}' } },
+      },
+      { token: 'tok-from-an-earlier-request' },
+    );
+
+    // The token usually comes from an earlier request in the plan, so it has to go through
+    // the same substitution as everything else.
+    expect(received[0].headers.authorization).toBe('Bearer tok-from-an-earlier-request');
+  }, 30_000);
+
+  it('puts an api key in a header or in the query, as configured', async () => {
+    await runApiRequest(
+      {
+        method: 'GET',
+        url: `${baseUrl}/ping`,
+        auth: { type: 'apiKey', params: { key: 'X-Api-Key', value: 'k-1', addTo: 'header' } },
+      },
+      {},
+    );
+    expect(received[0].headers['x-api-key']).toBe('k-1');
+
+    received = [];
+    await runApiRequest(
+      {
+        method: 'GET',
+        url: `${baseUrl}/ping`,
+        auth: { type: 'apiKey', params: { key: 'api_key', value: 'k-2', addTo: 'query' } },
+      },
+      {},
+    );
+    expect(received[0].url).toBe('/ping?api_key=k-2');
+  }, 30_000);
+
+  it('leaves an explicit Authorization header alone', async () => {
+    await runApiRequest(
+      {
+        method: 'GET',
+        url: `${baseUrl}/ping`,
+        headers: { Authorization: 'Bearer written-by-hand' },
+        auth: { type: 'basic', params: { username: 'svc', password: 'x' } },
+      },
+      {},
+    );
+
+    // A header the tester wrote is more specific than a setting on the test, and silently
+    // overwriting it would make a deliberate override look broken.
+    expect(received[0].headers.authorization).toBe('Bearer written-by-hand');
+  }, 30_000);
+
+  it('sends nothing extra for none or for an unimplemented scheme', async () => {
+    for (const type of ['none', 'inherit', 'oauth2', 'ntlm'] as const) {
+      received = [];
+      await runApiRequest(
+        { method: 'GET', url: `${baseUrl}/ping`, auth: { type } as never },
+        {},
+      );
+      expect(received[0].headers.authorization).toBeUndefined();
+    }
+  }, 30_000);
+});
