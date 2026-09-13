@@ -25,8 +25,9 @@ import { HistoryPanel } from '@/components/api-tester/HistoryPanel';
 import { SavedTestsPanel } from '@/components/api-tester/SavedTestsPanel';
 import { SaveApiTestModal } from '@/components/api-tester/SaveApiTestModal';
 import { AssertionEditor } from '@/components/api-tester/AssertionEditor';
+import { ExtractionEditor } from '@/components/api-tester/ExtractionEditor';
 import { AuthorizationPanel } from '@/components/api-tester/AuthorizationPanel';
-import { ApiTestHistoryEntry, InsertApiTestHistoryPayload, ApiTest, InsertApiTest, Assertion, AuthType, AuthParams } from '@shared/schema';
+import { ApiTestHistoryEntry, InsertApiTestHistoryPayload, ApiTest, InsertApiTest, Assertion, Extraction, AuthType, AuthParams } from '@shared/schema';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -52,6 +53,9 @@ interface ProxyResponse {
   error?: string;
   details?: any;
   assertionResults?: Array<{ assertion: Assertion; pass: boolean; actualValue: any; error?: string }>;
+  /** What this run captured, and what it looked for and did not find. */
+  extracted?: Record<string, string>;
+  extractionErrors?: Array<{ name: string; reason: string }>;
 }
 
 interface KeyValuePair {
@@ -80,6 +84,11 @@ const ApiTesterPage: React.FC = () => {
   const [queryParams, setQueryParams] = useState<KeyValuePair[]>([{ id: `qp-${Date.now()}`, key: '', value: '', enabled: true }]);
   const [requestHeaders, setRequestHeaders] = useState<KeyValuePair[]>([{ id: `rh-${Date.now()}`, key: '', value: '', enabled: true }]);
   const [assertions, setAssertions] = useState<Assertion[]>([]);
+  // Values this request hands to the ones after it in a plan, and what the last run of it
+  // actually captured — so a capture can be confirmed here rather than when a plan fails.
+  const [extractions, setExtractions] = useState<Extraction[]>([]);
+  const [lastCaptured, setLastCaptured] = useState<Record<string, string> | null>(null);
+  const [lastCaptureErrors, setLastCaptureErrors] = useState<Array<{ name: string; reason: string }> | null>(null);
 
   // Auth state
   const [authType, setAuthType] = useState<AuthType>('none');
@@ -233,7 +242,7 @@ const ApiTesterPage: React.FC = () => {
   const apiProxyMutation = useMutation<
     ProxyResponse,
     Error,
-    { method: string; url: string; queryParams?: Record<string, string | string[]>; headers?: Record<string, string>; body?: any; assertions?: Assertion[] }
+    { method: string; url: string; queryParams?: Record<string, string | string[]>; headers?: Record<string, string>; body?: any; assertions?: Assertion[]; extractions?: Extraction[] }
   >({
     mutationFn: async (variables) => {
       setResponseStatus(null); setResponseHeaders(null); setResponseBody(null); setDuration(null); setAssertionResults(null);
@@ -249,6 +258,8 @@ const ApiTesterPage: React.FC = () => {
       setResponseBody(data.body ?? null);
       setDuration(data.duration ?? null);
       setAssertionResults(data.assertionResults || null);
+      setLastCaptured(data.extracted ?? null);
+      setLastCaptureErrors(data.extractionErrors ?? null);
 
       const hasAssertions = variables.assertions && variables.assertions.length > 0;
       const allAssertionsPassed = data.assertionResults?.every(r => r.pass) ?? true;
@@ -459,6 +470,7 @@ const ApiTesterPage: React.FC = () => {
       headers: processedHeaders,
       body: finalBody,
       assertions: assertions.filter(a => a.enabled),
+      extractions: extractions.filter(e => e.name.trim() !== ''),
     });
   };
 
@@ -638,6 +650,7 @@ const ApiTesterPage: React.FC = () => {
 
     try {
       setAssertions(test.assertions ? (typeof test.assertions === 'string' ? JSON.parse(test.assertions) : test.assertions) : []);
+      setExtractions((test as any).extractions ? (typeof (test as any).extractions === 'string' ? JSON.parse((test as any).extractions) : (test as any).extractions) : []);
     } catch (e) {
       console.error("Error parsing assertions from saved test:", e);
       setAssertions([]);
@@ -770,6 +783,7 @@ const ApiTesterPage: React.FC = () => {
       requestBody: selectedBodyType === 'raw' ? requestBodyValue :
         selectedBodyType === 'GraphQL' ? JSON.stringify({ query: graphqlQuery, variables: graphqlVariables }) : null,
       assertions: assertions,
+      extractions: extractions.filter(e => e.name.trim() !== ''),
       // New fields
       authType: authType,
       authParams: authParams,
@@ -964,6 +978,7 @@ const ApiTesterPage: React.FC = () => {
                 <TabsTrigger value="headers" disabled={apiProxyMutation.isPending}>{t('apiTesterPage.headers.label')}</TabsTrigger>
                 <TabsTrigger value="body" disabled={apiProxyMutation.isPending}>{t('apiTesterPage.body.label')}</TabsTrigger>
                 <TabsTrigger value="assertions" disabled={apiProxyMutation.isPending}>{t('apiTesterPage.assertions.label')}</TabsTrigger>
+                <TabsTrigger value="captures" disabled={apiProxyMutation.isPending}>Captures</TabsTrigger>
               </TabsList>
               <TabsContent value="params">
                 <div className="p-4 border rounded-md min-h-[200px] space-y-2">
@@ -1239,6 +1254,17 @@ const ApiTesterPage: React.FC = () => {
               <TabsContent value="assertions">
                 <div className="p-4 border rounded-md min-h-[240px]">
                   <AssertionEditor assertions={assertions} onChange={setAssertions} isExecuting={apiProxyMutation.isPending} />
+                </div>
+              </TabsContent>
+              <TabsContent value="captures">
+                <div className="p-4 border rounded-md min-h-[240px]">
+                  <ExtractionEditor
+                    extractions={extractions}
+                    onChange={setExtractions}
+                    isExecuting={apiProxyMutation.isPending}
+                    lastCaptured={lastCaptured}
+                    lastErrors={lastCaptureErrors}
+                  />
                 </div>
               </TabsContent>
             </Tabs>
