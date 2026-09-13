@@ -381,3 +381,110 @@ describe('an assertion on a screen that is still rendering', () => {
     expect(failure?.error).toContain('Order 4711 confirmed');
   }, 60_000);
 });
+
+/**
+ * The table the builder draws its fields from, against what the runner actually demands.
+ *
+ * Three copies of "which actions need an element, which need a value" had drifted: the
+ * builder node's two arrays, the schema's two refines, and the handlers themselves. The
+ * conditional waits and the Material dropdown were added to the action list and only the
+ * handlers learned about them, so `waitForElement` could be dragged into a sequence, drawn
+ * with no element to drop onto and no value to type, accepted by validation, and then fail at
+ * run time. Now there is one table — and this is the test that it tells the truth, because a
+ * shared table that nobody checks is just the same lie in one place.
+ */
+describe('what each action needs', () => {
+  const bare = (id: AdhocActionId): MappedTestStep => ({
+    id: `step-${id}`,
+    action: { id, type: id, name: id, icon: 'x', description: id },
+    targetElement: undefined,
+    value: undefined,
+  });
+
+  const withTarget = (id: AdhocActionId): MappedTestStep => ({
+    ...bare(id),
+    targetElement: {
+      id: 'e1', type: 'element', selector: '#title', text: '', tag: 'h1', attributes: {},
+    },
+  });
+
+  /**
+   * "It refused, and said why" — however the handler chose to say it.
+   *
+   * Some return a failed outcome and some throw: `assert` and the wait actions return,
+   * `click` and `input` throw. Both end up as a failed step because the callers wrap each
+   * one, so the difference is cosmetic — but it is a difference, and a test that knew about
+   * only one of them would have called the other a passing step.
+   */
+  const refusal = async (step: MappedTestStep, page: unknown): Promise<string | null> => {
+    const { executeStep } = await import('./step-executor');
+    try {
+      const outcome = await executeStep({ page } as never, step as never);
+      return outcome.status === 'failed' ? outcome.error ?? '' : null;
+    } catch (error) {
+      return (error as Error).message;
+    }
+  };
+
+  it('refuses a step with no element, for exactly the actions the table marks as needing one', async () => {
+    const { ACTION_REQUIREMENTS } = await import('@shared/recording');
+    const { chromium } = await import('playwright');
+
+    const browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+    await page.goto(`${baseUrl}/`);
+
+    const disagreed: string[] = [];
+    for (const id of ADHOC_ACTION_IDS) {
+      if (!ACTION_REQUIREMENTS[id].target) continue;
+      const error = await refusal(bare(id), page);
+      // In the runner's own words, so the message a tester reads is the one under test.
+      if (error === null || !/selector|element/i.test(error)) {
+        disagreed.push(`${id}: ${error === null ? 'passed' : error}`);
+      }
+    }
+
+    await browser.close();
+    expect(disagreed).toEqual([]);
+  }, 120_000);
+
+  it('refuses a step with no value, for exactly the actions the table marks as requiring one', async () => {
+    const { ACTION_REQUIREMENTS } = await import('@shared/recording');
+    const { chromium } = await import('playwright');
+
+    const browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+    await page.goto(`${baseUrl}/`);
+
+    const disagreed: string[] = [];
+    for (const id of ADHOC_ACTION_IDS) {
+      if (!ACTION_REQUIREMENTS[id].valueRequired) continue;
+      // Given the element it needs, so what is left is the missing value and nothing else.
+      const step = ACTION_REQUIREMENTS[id].target ? withTarget(id) : bare(id);
+      const error = await refusal(step, page);
+      if (error === null || !/value|url/i.test(error)) {
+        disagreed.push(`${id}: ${error === null ? 'passed' : error}`);
+      }
+    }
+
+    await browser.close();
+    expect(disagreed).toEqual([]);
+  }, 120_000);
+
+  it('lets waitForElement run without a value, which the table says is optional', async () => {
+    const { executeStep } = await import('./step-executor');
+    const { chromium } = await import('playwright');
+
+    const browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+    await page.goto(`${baseUrl}/`);
+
+    // It takes a value — "visible" or "hidden" — and means visible when left empty. The
+    // difference between `value` and `valueRequired` exists for this, and the builder has to
+    // draw the field without validation demanding it be filled.
+    const outcome = await executeStep({ page }, withTarget('waitForElement') as never);
+
+    await browser.close();
+    expect(outcome.status).toBe('passed');
+  }, 120_000);
+});

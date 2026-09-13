@@ -136,6 +136,15 @@ export default function DashboardPage() {
   } | null>(null);
   const [websiteLoaded, setWebsiteLoaded] = useState(false);
   const [websiteScreenshot, setWebsiteScreenshot] = useState<string | null>(null); // This will now also be used for playback
+  /**
+   * The picture the current element boxes were measured on.
+   *
+   * Kept apart from `websiteScreenshot` because that one is borrowed during playback to show
+   * each step in turn, and playback ends on the last step's frame. Without somewhere to put
+   * this back, the run finishes showing one moment while the palette describes another — and
+   * the highlight for an element lands wherever it happened to be in the older picture.
+   */
+  const [detectionScreenshot, setDetectionScreenshot] = useState<string | null>(null);
   const [isInitialUrlPrefilled, setIsInitialUrlPrefilled] = useState(false);
 
   // States for test execution playback
@@ -396,6 +405,8 @@ export default function DashboardPage() {
       // elements. It is full-page, so elements below the fold can be highlighted at all.
       if (data.screenshot) {
         setImageRenderDimensions(null);
+        // Remembered as well as shown, so playback has the matching picture to come back to.
+        setDetectionScreenshot(data.screenshot);
         setWebsiteScreenshot(data.screenshot);
         setWebsiteLoaded(true);
       }
@@ -598,12 +609,26 @@ export default function DashboardPage() {
       }
       return result; // This is the data structure: { success, steps, error, duration }
     },
-    onSuccess: (data) => { // data is { success, steps, error, duration, detectedElements }
-      // Always handle detectedElements first
-      if (data.detectedElements) {
-        setDetectedElements(data.detectedElements);
+    onSuccess: (data) => { // data is { success, steps, error, duration, detection }
+      // The list, the picture the boxes are drawn on, and how much was left out: one
+      // reading of the page the run ended on, applied together.
+      //
+      // This is how the palette follows the test — after a step opens a dialog or moves to
+      // the next page, the elements of that dialog or that page are what you build the next
+      // step from. Only the list used to be updated, so the highlight for a newly detected
+      // element was drawn over the previous screenshot at the previous page's scale, and a
+      // truncated list was presented as the whole page.
+      if (data.detection) {
+        setDetectedElements(data.detection.elements ?? []);
+        setDetectionSummary(data.detection.summary ?? null);
+        if (data.detection.screenshot) {
+          setDetectionScreenshot(data.detection.screenshot);
+          setWebsiteScreenshot(data.detection.screenshot);
+        }
       } else {
         setDetectedElements([]);
+        setDetectionSummary(null);
+        setDetectionScreenshot(null);
       }
 
 
@@ -612,9 +637,9 @@ export default function DashboardPage() {
         setPlaybackSteps(data.steps);
         setCurrentPlaybackStepIndex(0);
         setIsExecutingPlayback(true);
-        if (data.steps[0]?.screenshot) {
-          setWebsiteScreenshot(data.steps[data.steps.length - 1].screenshot);
-        }
+        // No jump to the last frame here: playback starts at step 0 on the next tick and
+        // sets it anyway, so this only ever showed the end of the run for an instant before
+        // rewinding — and it overwrote the picture the element boxes belong to.
         toast({
           title: t('dashboardPageNew.toasts.directExecutionStarted.title'),
           description: t('dashboardPageNew.toasts.directExecutionStarted.description')
@@ -696,10 +721,12 @@ export default function DashboardPage() {
           variant: "default",
         });
       }
-      // Optionally, restore the original website screenshot if available
-      // if (loadWebsiteMutation.data?.screenshot) {
-      //   setWebsiteScreenshot(loadWebsiteMutation.data.screenshot);
-      // }
+      // Back to the page the run ended on, which is the one the element list describes.
+      // Playback borrows this image to show each step in turn and stops on the last frame;
+      // leaving it there means the next element you hover is highlighted on the wrong
+      // picture. The original code left a note here wondering whether to restore the
+      // screenshot the page started with — the one that matches is the detection's.
+      if (detectionScreenshot) setWebsiteScreenshot(detectionScreenshot);
     }
     // Playback-completion effect; lastTestOverallResult is set before playback starts and
     // read here by design, and `t` is stable. Re-running on those would double-fire toasts.

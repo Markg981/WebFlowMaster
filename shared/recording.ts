@@ -101,6 +101,43 @@ export const RECORDED_TYPE_TO_ACTION_ID: Record<
   assertElementCount: "assertElementCount",
 };
 
+/**
+ * What each action needs before it can do anything.
+ *
+ * One table, because the answer was written down twice and the copies drifted. The builder
+ * node decided which fields to draw from its own hard-coded lists, and those lists predate
+ * the conditional waits and the Material dropdown: `waitForElement`, `waitForText` and
+ * `selectByText` were offered in the palette and then rendered with no element to drop onto
+ * and no value to type. They could be dragged in and never completed — which matters most
+ * for exactly the applications they exist for, since an explicit wait is what makes a test
+ * against an asynchronous screen reliable.
+ *
+ * `value` is whether the step takes one at all; `valueRequired` is whether it must have one.
+ * `waitForElement` is the case that needs both: it accepts "visible" or "hidden", and means
+ * "visible" when left empty.
+ *
+ * Keyed by AdhocActionId, so an action added without an entry here fails to compile.
+ */
+export const ACTION_REQUIREMENTS: Record<
+  AdhocActionId,
+  { target: boolean; value: boolean; valueRequired: boolean }
+> = {
+  click: { target: true, value: false, valueRequired: false },
+  input: { target: true, value: true, valueRequired: true },
+  wait: { target: false, value: true, valueRequired: true },
+  scroll: { target: false, value: false, valueRequired: false },
+  assert: { target: true, value: false, valueRequired: false },
+  hover: { target: true, value: false, valueRequired: false },
+  select: { target: true, value: true, valueRequired: true },
+  navigate: { target: false, value: true, valueRequired: true },
+  assertTextContains: { target: true, value: true, valueRequired: true },
+  assertElementCount: { target: true, value: true, valueRequired: true },
+  waitForElement: { target: true, value: true, valueRequired: false },
+  waitForText: { target: true, value: true, valueRequired: true },
+  waitForNetworkIdle: { target: false, value: false, valueRequired: false },
+  selectByText: { target: true, value: true, valueRequired: true },
+};
+
 /** i18n keys for the builder node label/description of each replay action. */
 export const ACTION_I18N: Record<
   AdhocActionId,

@@ -172,3 +172,141 @@ describe('the preview the highlighting is drawn on', () => {
     }
   }, 60_000);
 });
+
+/**
+ * The element list following the test as it is built.
+ *
+ * Building by drag and drop means picking from the list of what is on the page — so the list
+ * has to describe the page the sequence has reached, not the page it started on. The builder
+ * gets that by running the steps and detecting again at the end, and it already worked for
+ * the list itself: a step that opens a dialog or moves to another page produces the elements
+ * of that dialog or that page.
+ *
+ * What did not travel with it was everything the list is read against. The elements came
+ * back alone, while the picture the highlight is drawn on stayed at whatever the last step
+ * captured, and the count of what was left out was dropped entirely — so a truncated list
+ * was presented as the whole page. They are one reading now, and these tests are about it
+ * staying one.
+ */
+describe('the element list after the sequence has run', () => {
+  let appServer: http.Server;
+  let appUrl: string;
+
+  const START = `<!doctype html><html><body>
+    <h1 id="title">Start</h1>
+    <button id="open-modal">Open the dialog</button>
+    <a id="go-second" href="/second">Second page</a>
+    <div id="modal-root"></div>
+    <script>
+      document.getElementById('open-modal').addEventListener('click', function () {
+        var d = document.createElement('div');
+        d.setAttribute('role', 'dialog');
+        var ok = document.createElement('button');
+        ok.id = 'modal-confirm';
+        ok.textContent = 'Confirm';
+        var qty = document.createElement('input');
+        qty.id = 'modal-qty';
+        qty.placeholder = 'Quantity';
+        d.appendChild(ok); d.appendChild(qty);
+        document.getElementById('modal-root').appendChild(d);
+      });
+    </script>
+  </body></html>`;
+
+  const SECOND = `<!doctype html><html><body>
+    <h1 id="second-title">Second</h1>
+    <button id="only-on-second">Only here</button>
+  </body></html>`;
+
+  beforeAll(async () => {
+    appServer = http.createServer((req, res) => {
+      res
+        .writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+        .end((req.url ?? '/').startsWith('/second') ? SECOND : START);
+    });
+    await new Promise<void>((resolve) => appServer.listen(0, '127.0.0.1', resolve));
+    appUrl = `http://127.0.0.1:${(appServer.address() as AddressInfo).port}/`;
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve) => appServer.close(() => resolve()));
+  });
+
+  const clickStep = (selector: string) => ({
+    id: 'step-1',
+    action: { id: 'click', type: 'click', name: 'Click', icon: 'x', description: 'click' },
+    targetElement: { id: 'e1', type: 'button', selector, text: '', tag: 'button', attributes: {} },
+    value: '',
+  });
+
+  const runBuilderPreview = async (selector: string) => {
+    const { playwrightService } = await import('./playwright-service');
+    return playwrightService.executeAdhocSequence(
+      { name: 'builder preview', url: appUrl, elements: [], sequence: [clickStep(selector)] } as never,
+      1,
+    );
+  };
+
+  const ids = (result: { detection?: { elements: Array<{ attributes: Record<string, string> }> } }) =>
+    (result.detection?.elements ?? []).map((e) => e.attributes.id).filter(Boolean).sort();
+
+  it('offers the dialog the sequence opened', async () => {
+    const result = await runBuilderPreview('#open-modal');
+
+    expect(result.success).toBe(true);
+    // The point of the whole mechanism: the next step is built from what the last one
+    // revealed.
+    expect(ids(result)).toContain('modal-confirm');
+    expect(ids(result)).toContain('modal-qty');
+    // And what was already there stays: the dialog is on top of the page, not instead of it.
+    expect(ids(result)).toContain('open-modal');
+  }, 90_000);
+
+  it('offers the page the sequence moved to, and not the one it left', async () => {
+    const result = await runBuilderPreview('#go-second');
+
+    expect(ids(result)).toEqual(['only-on-second', 'second-title']);
+    expect(ids(result)).not.toContain('open-modal');
+  }, 90_000);
+
+  it('sends the picture and the count that go with that list', async () => {
+    const result = await runBuilderPreview('#open-modal');
+
+    // Not just present: measured at the same moment as the boxes. Without the screenshot the
+    // page draws the new highlights over the previous one; without the summary a list cut to
+    // its ceiling looks like the whole page.
+    expect(result.detection?.screenshot).toMatch(/^data:image\/png;base64,/);
+    expect(result.detection?.summary).toMatchObject({
+      truncated: false,
+      returned: result.detection?.elements.length,
+    });
+
+    // Every box has to fit the picture it will be drawn on, or the highlight lands elsewhere.
+    const { width, height } = result.detection!.summary.pageSize;
+    for (const element of result.detection!.elements) {
+      if (!element.boundingBox) continue;
+      expect(element.boundingBox.x + element.boundingBox.width).toBeLessThanOrEqual(width + 1);
+      expect(element.boundingBox.y + element.boundingBox.height).toBeLessThanOrEqual(height + 1);
+    }
+  }, 90_000);
+
+  it('still describes the page when a step failed on it', async () => {
+    const { playwrightService } = await import('./playwright-service');
+    const result = await playwrightService.executeAdhocSequence(
+      {
+        name: 'builder preview',
+        url: appUrl,
+        elements: [],
+        sequence: [clickStep('#open-modal'), clickStep('#not-here')],
+      } as never,
+      1,
+    );
+
+    expect(result.success).toBe(false);
+    // A failed run is when the list matters most — it is what the tester looks at to work
+    // out why. The picture has to come with it, and this is the path where only the list
+    // used to be replaced.
+    expect(ids(result)).toContain('modal-confirm');
+    expect(result.detection?.screenshot).toMatch(/^data:image\/png;base64,/);
+  }, 120_000);
+});
