@@ -1187,6 +1187,9 @@ export const AdhocDetectedElementSchema = z.object({
   id: z.string(),
   type: z.string(),
   selector: z.string(),
+  // The iframe chain the selector is relative to, ' >> ' separated. Absent for the top
+  // document, which is every element that existed before frames were supported.
+  frameSelector: z.string().optional().nullable(),
   text: z.string().optional().nullable(),
   tag: z.string(),
   attributes: z.record(z.string()),

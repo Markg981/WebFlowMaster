@@ -1,4 +1,4 @@
-import type { Page } from 'playwright';
+import type { Locator, Page } from 'playwright';
 import type { PlaywrightReporter } from './playwright-reporter';
 import { ADHOC_ACTION_IDS, type AdhocActionId } from '@shared/recording';
 import { requestVariables, substituteVariables } from './outbound-http';
@@ -43,8 +43,21 @@ export interface StepOutcome {
 /** The step shape both callers pass in — the builder's `TestStep`, structurally. */
 export interface ExecutableStep {
   action?: { id?: string; name?: string } | null;
-  targetElement?: { selector?: string } | null;
+  targetElement?: { selector?: string; frameSelector?: string | null } | null;
   value?: unknown;
+}
+
+/**
+ * Where a step's selectors resolve: the page, or a chain of iframes within it.
+ *
+ * The chain is ' >> ' separated and outermost first, as element detection records it.
+ */
+function frameScope(page: Page, frameSelector?: string | null) {
+  if (!frameSelector) return page;
+  return frameSelector
+    .split(' >> ')
+    .filter(Boolean)
+    .reduce<any>((scope, step) => scope.frameLocator(step), page);
 }
 
 const passed: StepOutcome = { status: 'passed' };
@@ -119,6 +132,16 @@ interface StepRuntime {
   /** Routed through the reporter when there is one, so AI healing still applies. */
   click: (selector: string) => Promise<void>;
   fill: (selector: string, value: string) => Promise<void>;
+  /**
+   * A locator for a selector, inside the step's frame when it has one.
+   *
+   * Every handler goes through this rather than `page.locator` directly: page.locator does
+   * not cross an iframe boundary, so an element inside one was unreachable however correct
+   * its selector was.
+   */
+  locator: (selector: string) => Locator;
+  /** Same, for Playwright's role engine, which also needs the frame. */
+  byRole: (role: string, name: string) => Locator;
   timeoutMs: number;
 }
 
@@ -168,7 +191,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
 
   scroll: async (rt) => {
     if (rt.selector) {
-      await rt.page.locator(rt.selector).scrollIntoViewIfNeeded();
+      await rt.locator(rt.selector).scrollIntoViewIfNeeded();
     } else {
       await rt.page.evaluate(() => window.scrollBy(0, 200));
     }
@@ -192,7 +215,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     // nodes, so an element present but hidden passed there and failed in the preview.
     const target = requireSelector(rt, 'visibility assert');
     if ('error' in target) return failed(target.error);
-    const isVisible = await rt.page.locator(target.selector).first().isVisible().catch(() => false);
+    const isVisible = await rt.locator(target.selector).first().isVisible().catch(() => false);
     return isVisible
       ? passed
       : failed(`Assertion Failed: Element "${target.selector}" is not visible.`);
@@ -203,7 +226,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if ('error' in target) return failed(target.error);
     const expected = requireValue(rt, 'assertTextContains');
     if ('error' in expected) return failed(expected.error);
-    const actualText = await rt.page.locator(target.selector).textContent();
+    const actualText = await rt.locator(target.selector).textContent();
     if (actualText === null || !actualText.includes(expected.value)) {
       return failed(
         `Assertion Failed: Element "${target.selector}" did not contain text ` +
@@ -226,7 +249,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
           'Expected format like "==5", ">=2", or "3".',
       );
     }
-    const actualCount = await rt.page.locator(target.selector).count();
+    const actualCount = await rt.locator(target.selector).count();
     const matched = compareCount(parsed.operator, actualCount, parsed.count);
     if (matched === null) {
       return failed(`Unknown operator "${parsed.operator}" for assertElementCount.`);
@@ -243,7 +266,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
   hover: async (rt) => {
     const target = requireSelector(rt, 'hover');
     if ('error' in target) throw new Error(target.error);
-    await rt.page.hover(target.selector);
+    await rt.locator(target.selector).first().hover();
     return passed;
   },
 
@@ -252,7 +275,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if ('error' in target) return failed(target.error);
     const option = requireValue(rt, 'select');
     if ('error' in option) return failed(option.error);
-    await rt.page.selectOption(target.selector, option.value);
+    await rt.locator(target.selector).first().selectOption(option.value);
     return passed;
   },
 
@@ -271,7 +294,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const state = wanted === 'hidden' ? 'hidden' : 'visible';
 
     try {
-      await rt.page.locator(target.selector).first().waitFor({ state, timeout: rt.timeoutMs });
+      await rt.locator(target.selector).first().waitFor({ state, timeout: rt.timeoutMs });
       return passed;
     } catch {
       // Playwright's own timeout message describes the locator machinery, not the intent.
@@ -291,14 +314,14 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     try {
       // `filter({ hasText })` takes the text as data, so it needs no escaping — unlike
       // building a `:has-text("…")` selector string out of whatever the tester typed.
-      await rt.page
+      await rt
         .locator(target.selector)
         .filter({ hasText: expected.value })
         .first()
         .waitFor({ state: 'attached', timeout: rt.timeoutMs });
       return passed;
     } catch {
-      const actual = await rt.page.locator(target.selector).first().textContent().catch(() => null);
+      const actual = await rt.locator(target.selector).first().textContent().catch(() => null);
       return failed(
         `Timed out after ${rt.timeoutMs}ms waiting for "${target.selector}" to contain ` +
           `"${expected.value}". Last seen: "${actual ?? 'nothing'}".`,
@@ -341,14 +364,10 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
 
     // One locator, one timeout. Trying the two strategies in sequence meant an option that
     // genuinely is not there cost two full timeouts before the step failed.
-    const option = rt.page
-      .getByRole('option', { name: wanted.value, exact: false })
+    const option = rt
+      .byRole('option', wanted.value)
       // Some overlays mark their options with a class instead of a role.
-      .or(
-        rt.page
-          .locator(OPTION_SELECTOR)
-          .filter({ hasText: wanted.value }),
-      )
+      .or(rt.locator(OPTION_SELECTOR).filter({ hasText: wanted.value }))
       .first();
 
     try {
@@ -361,7 +380,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
 
     // Report what was actually on offer: "option not found" sends the tester back to the
     // browser to find out, and the runner already knows.
-    const seen = await rt.page
+    const seen = await rt
       .locator(OPTION_SELECTOR)
       .allTextContents()
       .catch(() => [] as string[]);
@@ -405,15 +424,30 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
   const handler = HANDLERS[actionId as AdhocActionId];
   if (!handler) throw new Error(`Unsupported action ID: ${actionId}`);
 
+  // Where this step's selectors resolve: the page, or the iframe chain the element was
+  // detected in. page.locator does not cross that boundary, so without this an element
+  // inside a frame is unreachable however correct its selector is.
+  const scope = frameScope(page, step.targetElement?.frameSelector);
+
   const rt: StepRuntime = {
     page,
     vars: ctx.vars ?? requestVariables(),
     selector: step.targetElement?.selector,
     raw: step.value,
     actionName,
-    click: (sel) => (reporter ? reporter.click(sel, actionName) : page.click(sel)),
+    // The reporter drives the page directly and knows nothing about frames, so a step
+    // inside one goes straight to the locator. It loses AI healing for that step, which is
+    // the honest trade: healing a selector in the wrong document would be worse.
+    click: (sel) =>
+      reporter && scope === page
+        ? reporter.click(sel, actionName)
+        : scope.locator(sel).first().click(),
     fill: (sel, value) =>
-      reporter ? reporter.fill(sel, value, actionName) : page.fill(sel, value),
+      reporter && scope === page
+        ? reporter.fill(sel, value, actionName)
+        : scope.locator(sel).first().fill(value),
+    locator: (sel) => scope.locator(sel),
+    byRole: (role, name) => scope.getByRole(role as any, { name, exact: false }),
     timeoutMs: DEFAULT_WAIT_TIMEOUT_MS,
   };
 
