@@ -4,6 +4,7 @@ import express, { type Application, type Request, type Response, type NextFuncti
 import { privilegedDb } from './db';
 import {
   apiTests,
+  tests,
   users,
   projects,
   type InsertApiTest,
@@ -81,6 +82,10 @@ beforeAll(async () => {
 beforeEach(async () => {
   // Clear tables in reverse order of dependencies or specific order
   await privilegedDb.delete(apiTests);
+  // UI tests reference both users and projects, so they go before either. Nothing in this
+  // file wrote to this table until the POST /api/tests cases below, and the omission showed
+  // up as a foreign-key violation on the *next* test's cleanup rather than on the insert.
+  await privilegedDb.delete(tests);
   await privilegedDb.delete(projects);
   await privilegedDb.delete(users);
 
@@ -143,6 +148,8 @@ beforeEach(async () => {
 
 afterAll(async () => {
   await privilegedDb.delete(apiTests);
+  // Same ordering as beforeEach, and for the same foreign key.
+  await privilegedDb.delete(tests);
   await privilegedDb.delete(projects);
   await privilegedDb.delete(users);
 });
@@ -392,5 +399,47 @@ describe('API Tests Endpoints', () => {
               expect(res.body.error).toBe("Invalid test ID format");
           });
       });
+  });
+});
+
+/**
+ * Saving a UI test — the recorder's whole output has nowhere to go without this.
+ *
+ * insertTestSchema omitted organizationId but not userId, and the column is NOT NULL, so the
+ * schema demanded a userId the page had no business sending. Every "Save test" answered
+ * `400 {"fieldErrors":{"userId":["Required"]}}`, which is how a recorded walk through DMO
+ * ended up existing only in a browser tab. The sibling routes for API tests and test plans
+ * had both already been written the right way.
+ */
+describe('POST /api/tests', () => {
+  const recordedTest = () => ({
+    name: 'NCC_TC_00085 - Static Scale Check',
+    url: 'https://localhost:7000/home',
+    sequence: [],
+    elements: [],
+  });
+
+  it('saves a test without being told who owns it', async () => {
+    currentMockUser = seededUser1;
+
+    const response = await request(app).post('/api/tests').send(recordedTest()).expect(201);
+
+    expect(response.body.userId).toBe(seededUser1.id);
+    expect(response.body.organizationId).toBe(organizationId);
+  });
+
+  it('files it under the session, not under a userId the body asks for', async () => {
+    currentMockUser = seededUser1;
+
+    const response = await request(app)
+      .post('/api/tests')
+      .send({ ...recordedTest(), userId: seededUser2.id, organizationId: 99999 })
+      .expect(201);
+
+    // Honouring either would let a caller attribute its work to someone else — the reason
+    // both are derived rather than accepted, and why fixing the 400 by adding userId to the
+    // payload would have been the wrong repair.
+    expect(response.body.userId).toBe(seededUser1.id);
+    expect(response.body.organizationId).toBe(organizationId);
   });
 });

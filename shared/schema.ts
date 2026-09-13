@@ -702,6 +702,14 @@ export const insertTestSchema = createInsertSchema(tests, {
   // The tenancy boundary: never accepted from the client, always derived server-side
   // from the authenticated session (see the same treatment of organizationId elsewhere).
   organizationId: true,
+  // Who owns the test, on the same terms and for the same reasons. This was missing while
+  // organizationId was not, which broke saving outright: the column is NOT NULL, so the
+  // schema demanded a userId in the body, the page rightly did not send one, and every
+  // "Save test" answered 400 with `fieldErrors: { userId: ["Required"] }`. Accepting it
+  // would have been the worse outcome — a client could then file a test under another
+  // member of its organization. insertTestPlanSchema and insertApiTestSchema already omit
+  // both; this one had drifted.
+  userId: true,
 });
 
 export const insertProjectSchema = createInsertSchema(projects, {

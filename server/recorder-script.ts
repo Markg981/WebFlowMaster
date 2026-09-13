@@ -12,10 +12,16 @@
  *
  * Deliberately avoids template literals so the outer TS template literal needs no escaping.
  */
+import { VOLATILE_ID_PATTERNS } from '@shared/selectors';
+
 export const RECORDER_SCRIPT = `
 (function () {
   if (window.__wfmRecorderInstalled) return;
   window.__wfmRecorderInstalled = true;
+
+  // Interpolated, not duplicated: the same list element detection uses. JSON is a valid JS
+  // array literal, so this needs no escaping beyond what JSON.stringify already does.
+  var VOLATILE_ID_PATTERNS = ${JSON.stringify(VOLATILE_ID_PATTERNS)};
 
   var IGNORE_SELECTOR = '[data-wfm-recorder]';
   var ASSERT_MODE_KEY = '__wfm_assert_mode';
@@ -63,18 +69,39 @@ export const RECORDER_SCRIPT = `
     return /pass|secret|token|apikey|api-key|otp|cvv|\\bpin\\b/.test(haystack);
   }
 
+  // Rebuilt from the shared patterns rather than written twice; see shared/selectors.ts.
+  var VOLATILE_ID_RES = VOLATILE_ID_PATTERNS.map(function (p) { return new RegExp(p, 'i'); });
+
+  function isVolatileId(id) {
+    for (var vi = 0; vi < VOLATILE_ID_RES.length; vi++) {
+      if (VOLATILE_ID_RES[vi].test(id)) return true;
+    }
+    return false;
+  }
+
+  /** A unique id a developer chose. A generated one is worse than no id at all. */
+  function usableId(el) {
+    if (!el || !el.id) return null;
+    if (isVolatileId(el.id)) return null;
+    try {
+      if (document.querySelectorAll('#' + CSS.escape(el.id)).length !== 1) return null;
+    } catch (e) { return null; }
+    return '#' + CSS.escape(el.id);
+  }
+
   function generateSelector(el) {
     try {
       if (!el || !(el instanceof Element)) return null;
 
-      if (el.id && document.querySelectorAll('#' + CSS.escape(el.id)).length === 1) {
-        return '#' + CSS.escape(el.id);
-      }
-
+      // Before the id: a test id is something someone wrote down on purpose, and an id can
+      // be an accident of the framework. This order used to be the other way round.
       var testId = el.getAttribute('data-testid');
       if (testId) return '[data-testid="' + testId + '"]';
       var testAttr = el.getAttribute('data-test');
       if (testAttr) return '[data-test="' + testAttr + '"]';
+
+      var ownId = usableId(el);
+      if (ownId) return ownId;
 
       var tagName = el.tagName.toLowerCase();
 
@@ -105,12 +132,38 @@ export const RECORDER_SCRIPT = `
         }
       }
 
+      // Its own words, before its position in the document.
+      //
+      // The last resort below walks up to the nearest named ancestor, and for anything inside
+      // an overlay there is none — so it ends at body and the path begins
+      // "body > div:nth-of-type(8)", which counts the overlay containers that happened to
+      // exist at that moment. Replay opens a different number of them and clicks nothing.
+      // A menu entry, a tab, a dialog button: each carries text a person chose, and Playwright
+      // matches it directly. Element detection has always preferred this; the recorder went
+      // straight from classes to geometry.
+      var ownText = (el.innerText || el.textContent || '').replace(/\\s+/g, ' ').trim();
+      if (ownText && ownText.length <= 60) {
+        var matches = 0;
+        var all = document.querySelectorAll(tagName);
+        for (var t = 0; t < all.length && matches < 2; t++) {
+          var candidateText = (all[t].innerText || all[t].textContent || '').replace(/\\s+/g, ' ').trim();
+          if (candidateText === ownText) matches++;
+        }
+        // Only when it identifies exactly one element, or the step would be ambiguous and
+        // Playwright would refuse to act on it.
+        if (matches === 1) return tagName + ':text-is("' + ownText.replace(/"/g, '\\\\"') + '")';
+      }
+
       // Structural fallback: nth-of-type path, stopping at the closest unique ancestor id.
       var parts = [];
       var node = el;
       while (node && node.nodeType === 1 && node.tagName.toLowerCase() !== 'html') {
-        if (node.id && document.querySelectorAll('#' + CSS.escape(node.id)).length === 1) {
-          parts.unshift('#' + CSS.escape(node.id));
+        // The anchor matters as much as the leaf: a path rooted at #cdk-overlay-0 is exactly
+        // as unreplayable as a leaf selector of #cdk-overlay-0, and that is where most of
+        // them came from — an overlay is where a menu or a dialog lives.
+        var anchor = usableId(node);
+        if (anchor) {
+          parts.unshift(anchor);
           break;
         }
         var part = node.tagName.toLowerCase();
@@ -371,6 +424,74 @@ export const RECORDER_SCRIPT = `
     }
   }, true);
 
+  /**
+   * Hovers that revealed something, and only those.
+   *
+   * A flyout menu opens on mouseover and closes when the pointer leaves, so the click that
+   * follows it is on an element that does not exist on a freshly loaded page — replay times
+   * out on the first step. Recording every mouseover would drown the test; recording none
+   * loses the step that matters.
+   *
+   * So: remember what the pointer was over each time a subtree appears under it, and turn
+   * that into a hover step only if the next click lands INSIDE the subtree that appeared.
+   * A tooltip nobody clicks is forgotten; the menu you then pick an item from is kept.
+   */
+  var lastHovered = null;
+  var pendingHovers = [];
+  var PENDING_HOVER_TTL_MS = 15000;
+
+  document.addEventListener('mouseover', function (event) {
+    var el = event.target;
+    if (el && el instanceof Element && !isRecorderUi(el)) lastHovered = el;
+  }, true);
+
+  // Observed on the Document node, NOT on document.documentElement: this script is installed
+  // with addInitScript and therefore runs before the page has an html element, so observing
+  // the element throws — and, swallowed by the catch below, leaves no hover steps and no sign
+  // of why. The Document is there from the start and its subtree is the same one.
+  //
+  // (And no backticks in here: this whole script is one TypeScript template literal, as the
+  // note at the top of the file says. One in a comment ends the string and the build fails.)
+  try {
+    new MutationObserver(function (records) {
+      if (!lastHovered) return;
+      var now = Date.now();
+      for (var r = 0; r < records.length; r++) {
+        var added = records[r].addedNodes;
+        for (var a = 0; a < added.length; a++) {
+          var node = added[a];
+          if (!node || node.nodeType !== 1 || isRecorderUi(node)) continue;
+          // The pointer cannot have revealed something it is already inside.
+          if (node.contains(lastHovered)) continue;
+          pendingHovers.push({ host: lastHovered, root: node, at: now });
+        }
+      }
+      // Bounded, so a busy page cannot grow this without limit.
+      pendingHovers = pendingHovers.filter(function (p) { return now - p.at < PENDING_HOVER_TTL_MS; }).slice(-40);
+    }).observe(document, { childList: true, subtree: true });
+    // Says so, rather than leaving "no hover steps" to mean either "nothing to capture" or
+    // "the capture never started". The catch below swallowed a real failure once and the
+    // only symptom was an absence, which is the hardest kind of bug to look for.
+    window.__wfmRecorderHoverWatch = true;
+  } catch (e) {
+    window.__wfmRecorderHoverWatch = 'failed: ' + (e && e.message ? e.message : String(e));
+    // Visible in the recording window's console; the rest of the recorder is unaffected.
+    try { console.warn('[wfm recorder] hover capture unavailable:', e); } catch (e2) { /* ignore */ }
+  }
+
+  /** The hover that revealed the thing just clicked, if there was one. */
+  function hoverThatRevealed(clicked) {
+    var now = Date.now();
+    for (var i = pendingHovers.length - 1; i >= 0; i--) {
+      var p = pendingHovers[i];
+      if (now - p.at >= PENDING_HOVER_TTL_MS) continue;
+      if (p.root.contains(clicked) && !p.host.contains(clicked)) return p.host;
+    }
+    return null;
+  }
+
+  var lastHoverSelectorSent = null;
+
   document.addEventListener('click', function (event) {
     try {
       var el = event.target;
@@ -378,6 +499,27 @@ export const RECORDER_SCRIPT = `
 
       var selector = generateSelector(el);
       if (!selector) return;
+
+      var host = hoverThatRevealed(el);
+      if (host) {
+        var hostSelector = generateSelector(host);
+        // Not the same one twice running: picking two items from one menu is one hover.
+        if (hostSelector && hostSelector !== lastHoverSelectorSent) {
+          var hoverAction = {
+            type: 'hover',
+            selector: hostSelector,
+            timestamp: Date.now(),
+            url: window.location.href
+          };
+          var hostDetails = getElementDetails(host);
+          for (var hk in hostDetails) hoverAction[hk] = hostDetails[hk];
+          send(hoverAction);
+          lastHoverSelectorSent = hostSelector;
+        }
+      } else {
+        lastHoverSelectorSent = null;
+      }
+      pendingHovers = [];
 
       var action = {
         type: 'click',

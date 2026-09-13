@@ -42,7 +42,9 @@ router.post("/api/tests", requireRole('editor'), async (req, res) => {
     const newTest = await withTenantTransaction((tx) =>
       tx
         .insert(tests)
-        .values({ ...parseResult.data, organizationId: req.user!.organizationId })
+        // Both derived from the session, never from the body — the same treatment the API
+        // test route beside this one already gave them.
+        .values({ ...parseResult.data, userId: req.user!.id, organizationId: req.user!.organizationId })
         .returning(),
     );
     res.status(201).json(newTest[0]);
