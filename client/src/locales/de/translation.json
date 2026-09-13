@@ -669,6 +669,10 @@
       "selectByText": {
         "name": "Aus Liste Wählen",
         "description": "Öffnet eine nicht-native Liste und wählt eine Option über ihren Text"
+      },
+      "assertState": {
+        "name": "Zustand prüfen",
+        "description": "Prüft, ob ein Bedienelement aktiviert, freigegeben oder bearbeitbar ist — oder das Gegenteil"
       }
     },
     "saveTest": {

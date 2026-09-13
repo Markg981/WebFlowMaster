@@ -780,6 +780,10 @@
       "selectByText": {
         "name": "Pick From Dropdown",
         "description": "Open a non-native dropdown and pick an option by its text"
+      },
+      "assertState": {
+        "name": "Assert state",
+        "description": "Check that a control is checked, enabled, editable — or the opposite"
       }
     },
     "playbackStatus": "Step {{current}}/{{total}}: {{name}} - {{details}}",

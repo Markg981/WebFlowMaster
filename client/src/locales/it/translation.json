@@ -825,6 +825,10 @@
       "selectByText": {
         "name": "Scegli Da Menu",
         "description": "Apre un menu non nativo e scegli un'opzione dal testo"
+      },
+      "assertState": {
+        "name": "Verifica stato",
+        "description": "Controlla che un elemento sia selezionato, abilitato, modificabile — o il contrario"
       }
     },
     "testSequenceBuilder": {

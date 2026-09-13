@@ -1,6 +1,11 @@
 import type { Locator, Page } from 'playwright';
 import type { PlaywrightReporter } from './playwright-reporter';
-import { ADHOC_ACTION_IDS, type AdhocActionId } from '@shared/recording';
+import {
+  ADHOC_ACTION_IDS,
+  ASSERTABLE_STATES,
+  type AdhocActionId,
+  type AssertableState,
+} from '@shared/recording';
 import { requestVariables, substituteVariables } from './outbound-http';
 import { findUnresolvedVariables } from './variables';
 
@@ -261,6 +266,70 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
           `Assertion Failed: Element "${target.selector}" was not visible within ` +
             `${rt.assertionTimeoutMs}ms.`,
         );
+  },
+
+  /**
+   * The state of a control, rather than its presence.
+   *
+   * "Is this function enabled", "is this box ticked" had no action of its own, so the only
+   * way to check one was to fold it into the selector — matching an element that also
+   * carries `aria-checked="true"`. That works and reports badly: when the toggle is off the
+   * selector matches nothing, and the step says the element was not found. The tester is
+   * told to go looking for a control that is on screen in front of them.
+   *
+   * Reads through Playwright's own accessors, so an Angular Material toggle — a div with a
+   * role and aria-checked, not an <input> — answers the same way a checkbox does.
+   */
+  assertState: async (rt) => {
+    const target = requireSelector(rt, 'assertState');
+    if ('error' in target) return failed(target.error);
+    const wanted = requireValue(rt, 'assertState');
+    if ('error' in wanted) return failed(wanted.error);
+
+    const state = wanted.value.trim().toLowerCase() as AssertableState;
+    if (!(ASSERTABLE_STATES as readonly string[]).includes(state)) {
+      // Named rather than treated as "not true": a typo would otherwise fail the step with
+      // a message about the control instead of about the test.
+      return failed(
+        `Unknown state "${wanted.value}" for assertState. Expected one of: ` +
+          `${ASSERTABLE_STATES.join(', ')}.`,
+      );
+    }
+
+    const element = rt.locator(target.selector).first();
+    const read: Record<AssertableState, () => Promise<boolean>> = {
+      checked: () => element.isChecked(),
+      unchecked: async () => !(await element.isChecked()),
+      enabled: () => element.isEnabled(),
+      disabled: () => element.isDisabled(),
+      editable: () => element.isEditable(),
+      readonly: async () => !(await element.isEditable()),
+    };
+
+    // Reported separately from "it is not in that state", because they are different
+    // problems: isChecked() throws on an element that is not checkable at all, and calling
+    // that "unchecked" would hide a test pointed at the wrong element.
+    let lastError: string | null = null;
+    const held = await holdsWithin(async () => {
+      try {
+        lastError = null;
+        return await read[state]();
+      } catch (e: any) {
+        lastError = e?.message ?? String(e);
+        return false;
+      }
+    }, rt.assertionTimeoutMs);
+
+    if (!held) {
+      return failed(
+        lastError
+          ? `Assertion Failed: could not read the ${state} state of "${target.selector}" ` +
+              `within ${rt.assertionTimeoutMs}ms — ${lastError}`
+          : `Assertion Failed: Element "${target.selector}" was not ${state} within ` +
+              `${rt.assertionTimeoutMs}ms.`,
+      );
+    }
+    return passed;
   },
 
   assertTextContains: async (rt) => {
