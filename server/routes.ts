@@ -42,6 +42,7 @@ import uploadsRoutes from "./routes/uploads.routes";
 import reportsRoutes from "./routes/reports.routes";
 import authRoutes from "./routes/auth.routes";
 import observabilityRoutes from "./routes/observability.routes";
+import environmentRoutes from "./routes/environments.routes";
 import organizationRoutes from "./routes/organization.routes";
 import { tenancyMiddleware, withTenantTransaction } from "./middleware/tenancy";
 import { runApiRequest } from "./api-test-runner";
@@ -108,6 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(uploadsRoutes);
     app.use(reportsRoutes);
     app.use(observabilityRoutes);
+    app.use(environmentRoutes);
 
   app.post("/api/load-website", requireRole('editor'), async (req, res) => {
     resolvedLogger.http(`POST /api/load-website - Handler reached. UserId: ${(req.user as any)?.id}`);
