@@ -21,6 +21,7 @@ import { VisualTestBuilder } from "@/components/visual-builder/VisualTestBuilder
 import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
 import SaveTestModal from "@/components/SaveTestModal"; // Import the modal
 import { PreconditionsPanel } from "@/components/PreconditionsPanel";
+import { DatasetPanel, type DatasetRow } from "@/components/DatasetPanel";
 import type { Precondition } from "@shared/schema";
 import { ACTION_I18N, ADHOC_ACTION_IDS } from "@shared/recording";
 import { useRecordingSession } from "@/hooks/useRecordingSession";
@@ -115,6 +116,9 @@ export default function DashboardPage() {
   const [detectedElements, setDetectedElements] = useState<DetectedElement[]>([]);
   const [testSequence, setTestSequence] = useState<DragDropTestStep[]>([]);
   const [preconditions, setPreconditions] = useState<Precondition[]>([]);
+  // Rows this test runs over, one run each. Empty means a single run, which is what every
+  // test did before datasets existed.
+  const [dataset, setDataset] = useState<DatasetRow[]>([]);
   const [creationMode, setCreationMode] = useState<"manual" | "record">(
     "manual"
   );
@@ -413,7 +417,7 @@ export default function DashboardPage() {
   });
 
   const saveTestMutation = useMutation({
-    mutationFn: async (payload: { name: string; url: string; sequence: DragDropTestStep[]; elements: DetectedElement[]; status: string; projectId?: number; preconditions?: Precondition[] }) => {
+    mutationFn: async (payload: { name: string; url: string; sequence: DragDropTestStep[]; elements: DetectedElement[]; status: string; projectId?: number; preconditions?: Precondition[]; dataset?: DatasetRow[] | null }) => {
       // No default payload here, it's fully constructed in handleConfirmSaveTest
       const res = await apiRequest("POST", "/api/tests", payload);
       // apiRequest should handle non-ok responses by throwing an error.
@@ -491,6 +495,9 @@ export default function DashboardPage() {
       sequence: testSequence,
       elements: detectedElements,
       preconditions,
+      // Null rather than an empty array: the runner reads an empty one as "no dataset"
+      // anyway, and storing one would suggest a dataset exists where none does.
+      dataset: dataset.length > 0 ? dataset : null,
       status: "draft",
     });
     // Modal is closed by the SaveTestModal itself after its onSave is called if save is successful.
@@ -566,7 +573,7 @@ export default function DashboardPage() {
   });
 
   const executeDirectTestMutation = useMutation({
-    mutationFn: async (payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string, preconditions?: Precondition[], environmentId?: number }) => {
+    mutationFn: async (payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string, preconditions?: Precondition[], environmentId?: number, dataset?: DatasetRow[] }) => {
       const res = await apiRequest("POST", "/api/execute-test-direct", payload);
       // The backend for /api/execute-test-direct should directly return { success: boolean; steps?: StepResult[]; error?: string; duration?: number }
       const result = await res.json();
@@ -706,6 +713,8 @@ export default function DashboardPage() {
       // Without this the preview resolves against the process defaults only, and would
       // disagree with a scheduled run of the very same test.
       environmentId: environmentIdFor(selectedEnvironment),
+      // Sent so the preview runs the same number of times the saved test will.
+      dataset: dataset.length > 0 ? dataset : undefined,
     };
     executeDirectTestMutation.mutate(payload);
   };
@@ -1121,8 +1130,14 @@ export default function DashboardPage() {
           />
         </div>
       </div>
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-4 space-y-4">
         <PreconditionsPanel preconditions={preconditions} onChange={setPreconditions} />
+        {/* Below the preconditions, because both describe the run rather than the steps. */}
+        <DatasetPanel
+          dataset={dataset}
+          onChange={setDataset}
+          disabled={executeDirectTestMutation.isPending || isExecutingPlayback}
+        />
       </div>
       <SaveTestModal
         isOpen={isSaveModalOpen}
