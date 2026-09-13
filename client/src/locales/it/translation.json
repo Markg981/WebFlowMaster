@@ -932,6 +932,9 @@
         "title": "Problema con la Sessione di Registrazione",
         "description": "Si è verificato un errore recuperando le azioni."
       }
+    },
+    "saveTest": {
+      "overwriteConfirm": "Esiste già un test chiamato “{{name}}”. Vuoi sovrascriverlo con quello a schermo?"
     }
   },
   "notFoundPage": {

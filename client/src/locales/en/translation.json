@@ -830,6 +830,9 @@
         "title": "Problem with Recording Session",
         "description": "An error occurred while retrieving actions."
       }
+    },
+    "saveTest": {
+      "overwriteConfirm": "A test named “{{name}}” already exists. Overwrite it with what is on screen?"
     }
   },
   "notFoundPage": {

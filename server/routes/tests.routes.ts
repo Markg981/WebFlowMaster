@@ -39,18 +39,106 @@ router.post("/api/tests", requireRole('editor'), async (req, res) => {
   }
 
   try {
-    const newTest = await withTenantTransaction((tx) =>
-      tx
+    const created = await withTenantTransaction(async (tx) => {
+      // Saving the same test again must not silently make a second one. Recording is
+      // iterative — you walk the path, replay it, find a step wrong, walk it again — and
+      // every pass through that loop used to leave another row behind, all with the same
+      // name and nothing to tell them apart. The caller decides what to do about it, so this
+      // reports the collision and the id rather than overwriting on its own.
+      //
+      // Scoped to the organization by RLS, not by a where clause: a name belonging to
+      // another tenant is not a collision and must not even be visible as one.
+      const [existing] = await tx
+        .select({ id: tests.id })
+        .from(tests)
+        .where(eq(tests.name, parseResult.data.name))
+        .limit(1);
+
+      if (existing) return { conflict: existing.id };
+
+      const rows = await tx
         .insert(tests)
         // Both derived from the session, never from the body — the same treatment the API
         // test route beside this one already gave them.
         .values({ ...parseResult.data, userId: req.user!.id, organizationId: req.user!.organizationId })
-        .returning(),
-    );
-    res.status(201).json(newTest[0]);
+        .returning();
+      return { test: rows[0] };
+    });
+
+    if ('conflict' in created) {
+      return res.status(409).json({
+        error: "A test with this name already exists.",
+        existingTestId: created.conflict,
+        name: parseResult.data.name,
+      });
+    }
+
+    res.status(201).json(created.test);
   } catch (error: any) {
     logger.error({ message: "Error creating test", error: error.message });
     res.status(500).json({ error: "Failed to create test" });
+  }
+});
+
+// PUT /api/tests/:id - Replace an existing UI test
+//
+// There was no way to change a saved UI test at all: no PUT, no PATCH, not even a DELETE.
+// A test could be created and run and nothing else, so correcting one step meant recording
+// the whole walk again and saving it under a new name.
+router.put("/api/tests/:id", requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid test id" });
+
+  const parseResult = insertTestSchema.partial().safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({ error: "Invalid test data", details: parseResult.error.flatten() });
+  }
+
+  try {
+    const updated = await withTenantTransaction((tx) =>
+      tx
+        .update(tests)
+        // userId is not touched: the test keeps its author. organizationId is not in the
+        // payload at all, and RLS decides which rows this statement can see — so another
+        // organization's test simply is not found, which is the 404 below.
+        .set({ ...parseResult.data, updatedAt: new Date() })
+        .where(eq(tests.id, id))
+        .returning(),
+    );
+
+    if (updated.length === 0) return res.status(404).json({ error: "Test not found" });
+    res.json(updated[0]);
+  } catch (error: any) {
+    logger.error({ message: "Error updating test", error: error.message, testId: id });
+    res.status(500).json({ error: "Failed to update test" });
+  }
+});
+
+// DELETE /api/tests/:id - Remove a UI test
+//
+// The other half of the same omission. Without it a list of tests only ever grows, and the
+// duplicates the missing name check produced could not be cleared away. A request to this
+// path used to fall through the API router entirely and be answered by the single-page
+// application's catch-all — 200, with an HTML body, and nothing deleted.
+router.delete("/api/tests/:id", requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid test id" });
+
+  try {
+    const deleted = await withTenantTransaction((tx) =>
+      // Bare returning(): the tenant transaction's union type does not accept a projection.
+      tx.delete(tests).where(eq(tests.id, id)).returning(),
+    );
+
+    if (deleted.length === 0) return res.status(404).json({ error: "Test not found" });
+    res.status(204).end();
+  } catch (error: any) {
+    logger.error({ message: "Error deleting test", error: error.message, testId: id });
+    res.status(500).json({ error: "Failed to delete test" });
   }
 });
 

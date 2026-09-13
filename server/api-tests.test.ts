@@ -443,3 +443,115 @@ describe('POST /api/tests', () => {
     expect(response.body.organizationId).toBe(organizationId);
   });
 });
+
+/**
+ * Saving the same test twice, and changing one that exists.
+ *
+ * Recording is iterative: walk the path, replay it, find a step wrong, walk it again. Every
+ * pass used to leave another row behind — same name, nothing to tell them apart — because
+ * POST always inserted and there was no PUT, no PATCH and no DELETE for a UI test at all.
+ */
+describe('saving a UI test that already exists', () => {
+  const named = (name: string) => ({
+    name,
+    url: 'https://localhost:7000/home',
+    sequence: [],
+    elements: [],
+  });
+
+  it('refuses to make a second test with the same name, and says which one it means', async () => {
+    currentMockUser = seededUser1;
+    const first = await request(app).post('/api/tests').send(named('NCC_TC_00085')).expect(201);
+
+    const again = await request(app).post('/api/tests').send(named('NCC_TC_00085')).expect(409);
+
+    // The id is the point: the caller can offer to overwrite without having to go and look
+    // the test up first.
+    expect(again.body.existingTestId).toBe(first.body.id);
+    expect(again.body.name).toBe('NCC_TC_00085');
+  });
+
+  it('replaces the steps of an existing test', async () => {
+    currentMockUser = seededUser1;
+    const created = await request(app).post('/api/tests').send(named('Replaceable')).expect(201);
+
+    const response = await request(app)
+      .put(`/api/tests/${created.body.id}`)
+      .send({ sequence: [{ id: 'step-1', action: { id: 'click' } }] })
+      .expect(200);
+
+    expect(response.body.id).toBe(created.body.id);
+    expect(response.body.sequence).toHaveLength(1);
+
+    const [stored] = await privilegedDb.select().from(tests).where(eq(tests.id, created.body.id));
+    expect((stored.sequence as unknown[]).length).toBe(1);
+    // Still the same author: an update is not a change of ownership.
+    expect(stored.userId).toBe(seededUser1.id);
+  });
+
+  it('does not let another organization overwrite a test it cannot see', async () => {
+    currentMockUser = seededUser1;
+    const created = await request(app).post('/api/tests').send(named('Mine')).expect(201);
+
+    // A member of another organization. RLS makes the row invisible to the UPDATE, so the
+    // statement matches nothing and the answer is "not found" rather than a silent no-op
+    // reported as success.
+    const otherOrgId = await createTestOrganization();
+    const [outsider] = await privilegedDb
+      .insert(users)
+      .values({ username: 'outsider', password: 'hashed', organizationId: otherOrgId })
+      .returning();
+    currentMockUser = outsider;
+
+    await request(app).put(`/api/tests/${created.body.id}`).send({ name: 'Hijacked' }).expect(404);
+
+    currentMockUser = seededUser1;
+    const [stored] = await privilegedDb.select().from(tests).where(eq(tests.id, created.body.id));
+    expect(stored.name).toBe('Mine');
+  });
+
+  it('answers 404 for a test that is not there', async () => {
+    currentMockUser = seededUser1;
+    await request(app).put('/api/tests/999999').send({ name: 'x' }).expect(404);
+  });
+});
+
+describe('removing a UI test', () => {
+  it('deletes it, and says so a second time by not finding it', async () => {
+    currentMockUser = seededUser1;
+    const created = await request(app)
+      .post('/api/tests')
+      .send({ name: 'Disposable', url: 'https://x/', sequence: [], elements: [] })
+      .expect(201);
+
+    await request(app).delete(`/api/tests/${created.body.id}`).expect(204);
+
+    const remaining = await privilegedDb.select().from(tests).where(eq(tests.id, created.body.id));
+    expect(remaining).toHaveLength(0);
+
+    // Previously a DELETE to this path fell past the API router to the single-page
+    // application's catch-all, which answered 200 with an HTML page and deleted nothing.
+    await request(app).delete(`/api/tests/${created.body.id}`).expect(404);
+  });
+
+  it('will not delete another organization’s test', async () => {
+    currentMockUser = seededUser1;
+    const created = await request(app)
+      .post('/api/tests')
+      .send({ name: 'Not yours', url: 'https://x/', sequence: [], elements: [] })
+      .expect(201);
+
+    const otherOrgId = await createTestOrganization();
+    const [outsider] = await privilegedDb
+      .insert(users)
+      .values({ username: 'outsider-del', password: 'hashed', organizationId: otherOrgId })
+      .returning();
+    currentMockUser = outsider;
+
+    await request(app).delete(`/api/tests/${created.body.id}`).expect(404);
+
+    currentMockUser = seededUser1;
+    const [stored] = await privilegedDb.select().from(tests).where(eq(tests.id, created.body.id));
+    expect(stored.name).toBe('Not yours');
+  });
+});
