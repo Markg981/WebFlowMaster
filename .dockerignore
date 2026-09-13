@@ -1,0 +1,45 @@
+# What must never reach the build context.
+#
+# Without this, `COPY . .` copies the host's node_modules over the one npm ci just built —
+# and these are native modules (better-sqlite3, the PGlite wasm loader) compiled for
+# Windows, so the image would fail at require() time with an error naming an .node file
+# rather than anything about Docker. It also copies the Playwright browser cache, the git
+# history and every screenshot ever taken, which is most of the build time for none of the
+# benefit.
+node_modules
+**/node_modules
+
+# Built by the image itself, from source.
+dist
+client/dist
+
+.git
+.github
+.vscode
+.vs
+.jules
+.superpowers
+.claude
+
+# Local state, none of it meaningful inside a container.
+data
+logs
+results
+allure-results
+uploads
+.observability
+.playwright-mcp
+graphify-out
+attached_assets
+migrations_old
+coverage
+
+# Secrets never belong in an image layer; the compose file and the runtime supply them.
+.env
+.env.*
+!.env.example
+
+# Test artefacts and editor noise.
+**/*.repro.ts
+**/__repro__
+*.log

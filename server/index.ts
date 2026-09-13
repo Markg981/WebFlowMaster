@@ -1,7 +1,7 @@
 import express from "express";
 import { registerRoutes } from "./routes";
 import schedulerService from "./scheduler-service"; // Import the scheduler service
-import { setupVite, serveStatic } from "./vite";
+import { serveStatic } from "./static";
 import 'dotenv/config';
 import loggerPromise from './logger'; // Import Winston logger promise
 import { privilegedDb, closeDb, assertTenancyPreconditions } from './db';
@@ -139,6 +139,10 @@ app.use(express.urlencoded({ extended: false }));
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
+    // Imported here rather than at the top: server/vite.ts pulls in vite, a dev dependency
+    // that is pruned from the production image, and a static import would be evaluated on
+    // load whatever this branch decides.
+    const { setupVite } = await import("./vite");
     await setupVite(app, server);
   } else {
     serveStatic(app);
