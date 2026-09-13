@@ -58,6 +58,13 @@ export const tests = pgTable("tests", {
   // system under test is in the required state (e.g. a static scale check before a
   // tare check). Nullable: existing/most tests have none. See PreconditionSchema.
   preconditions: jsonb("preconditions"),
+  /**
+   * Rows of input this test runs over, one run each.
+   *
+   * Each key becomes a {{variable}} for that run, layered over the environment values.
+   * Null or empty means one run with no extra variables — what every test did before.
+   */
+  dataset: jsonb("dataset"),
   status: text("status").notNull().default("draft"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -680,6 +687,9 @@ export const insertTestSchema = createInsertSchema(tests, {
   scenario: z.string().optional().nullable(),
   component: z.string().optional().nullable(),
   preconditions: z.array(PreconditionSchema).optional().nullable(),
+  // Rows of input, each key a {{variable}} for that run. Typed rather than raw jsonb so a
+  // malformed dataset is refused at save time instead of halfway through a scheduled run.
+  dataset: z.array(z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))).optional().nullable(),
   priority: z.enum(["Critical", "High", "Medium", "Low"]).optional().nullable(),
   severity: z
     .enum(["Blocker", "Critical", "Major", "Minor"])

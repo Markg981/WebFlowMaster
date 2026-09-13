@@ -390,6 +390,39 @@ export function scopeFor(page: Page, frameSelector?: string | null) {
     .reduce<any>((scope, step) => scope.frameLocator(step), page);
 }
 
+/**
+ * The rows a test runs over, or null when it runs once.
+ *
+ * An empty array counts as none: it is a dataset someone started and did not fill in, and
+ * running zero times while reporting success would be a green result for a test that never
+ * executed. Values are coerced to strings because that is what `{{variable}}` substitution
+ * puts into a URL or a form field.
+ */
+function datasetRows(test: { dataset?: unknown }): Array<Record<string, string>> | null {
+  const raw = (test as { dataset?: unknown }).dataset;
+  const parsed = typeof raw === 'string' ? safeParseJson(raw) : raw;
+  if (!Array.isArray(parsed) || parsed.length === 0) return null;
+
+  return parsed
+    .filter((row): row is Record<string, unknown> => !!row && typeof row === 'object' && !Array.isArray(row))
+    .map((row) =>
+      Object.fromEntries(
+        Object.entries(row).map(([key, value]) => [
+          key,
+          typeof value === 'string' ? value : String(value ?? ''),
+        ]),
+      ),
+    );
+}
+
+function safeParseJson(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
 export class PlaywrightService {
   /**
    * Set by every detection run. Read by the routes so the interface can say "showing 300 of
@@ -1402,6 +1435,40 @@ export class PlaywrightService {
     environment?: EnvironmentScope,
   ): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number }> {
     const startTime = Date.now();
+
+    // A test with rows of input runs once per row, with that row's values layered over the
+    // environment's. Each row gets its own browser rather than sharing one: a row is an
+    // independent case, and one leaving a modal open or a session half-established would
+    // otherwise decide the outcome of the next.
+    const rows = datasetRows(test);
+    if (rows) {
+      const allSteps: StepResult[] = [];
+      let allPassed = true;
+
+      for (const [index, row] of rows.entries()) {
+        const label = `Row ${index + 1} of ${rows.length}`;
+        const rowResult = await this.executeTestSequence(
+          { ...test, dataset: null } as Test,
+          userId,
+          screenshotBaseDir ? path.join(screenshotBaseDir, `row_${index + 1}`) : undefined,
+          executionId,
+          { ...vars, ...row },
+          environment,
+        );
+
+        // Prefixed, because "assertion failed" repeated twenty times says nothing about
+        // which input broke it — and finding that out by rerunning the set by hand is the
+        // cost this feature exists to remove.
+        for (const step of rowResult.steps ?? []) {
+          allSteps.push({ ...step, name: `${label} — ${step.name}` });
+        }
+        if (!rowResult.success) allPassed = false;
+        // Deliberately no early exit: stopping at the first bad row would hide whatever
+        // else is broken, and the next run would find it one row at a time.
+      }
+
+      return { success: allPassed, steps: allSteps, duration: Date.now() - startTime };
+    }
     const wsEmitter = getWsEmitter();
     resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url, screenshotBaseDir });
     const targetUrl = test.url ? substituteVariables(test.url, vars) : test.url;
