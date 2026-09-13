@@ -102,11 +102,6 @@
       "open": "Apri",
       "unnamedPlan": "Piano senza nome"
     },
-    "runTestNowButton": {
-      "eseguiTestOra": {
-        "button": "Esegui test ora"
-      }
-    },
     "testSchedulingsTable": {
       "upcomingActiveSchedules": {
         "title": "Programmazioni attive"

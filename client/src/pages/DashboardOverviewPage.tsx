@@ -8,7 +8,6 @@ import TestStatusPieChart from '@/components/dashboard/TestStatusPieChart';
 import TestTrendBarChart from '@/components/dashboard/TestTrendBarChart';
 import TestSchedulingsTable from '@/components/dashboard/TestSchedulingsTable';
 import QuickAccessReports from '@/components/dashboard/QuickAccessReports';
-import RunTestNowButton from '@/components/dashboard/RunTestNowButton';
 import { motion } from 'framer-motion';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -96,10 +95,6 @@ const DashboardOverviewPage: React.FC = () => {
         {/* The five most recent executions arrive with the same query that feeds the charts;
             this panel used to be a placeholder while they were fetched and discarded. */}
         <QuickAccessReports data={analyticsData?.recent} isLoading={isLoadingAnalytics} />
-      </motion.div>
-
-      <motion.div variants={itemVariants}>
-        <RunTestNowButton />
       </motion.div>
     </motion.div>
   );

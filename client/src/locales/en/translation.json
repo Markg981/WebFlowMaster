@@ -101,11 +101,6 @@
       "open": "Open",
       "unnamedPlan": "Unnamed plan"
     },
-    "runTestNowButton": {
-      "eseguiTestOra": {
-        "button": "Esegui test ora"
-      }
-    },
     "testSchedulingsTable": {
       "upcomingActiveSchedules": {
         "title": "Upcoming Active Schedules"
