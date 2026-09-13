@@ -141,13 +141,12 @@ export const RECORDER_SCRIPT = `
       // A menu entry, a tab, a dialog button: each carries text a person chose, and Playwright
       // matches it directly. Element detection has always preferred this; the recorder went
       // straight from classes to geometry.
-      var ownText = (el.innerText || el.textContent || '').replace(/\\s+/g, ' ').trim();
+      var ownText = ownTextOf(el);
       if (ownText && ownText.length <= 60) {
         var matches = 0;
         var all = document.querySelectorAll(tagName);
         for (var t = 0; t < all.length && matches < 2; t++) {
-          var candidateText = (all[t].innerText || all[t].textContent || '').replace(/\\s+/g, ' ').trim();
-          if (candidateText === ownText) matches++;
+          if (ownTextOf(all[t]) === ownText) matches++;
         }
         // Only when it identifies exactly one element, or the step would be ambiguous and
         // Playwright would refuse to act on it.
@@ -181,6 +180,24 @@ export const RECORDER_SCRIPT = `
     } catch (e) {
       return null;
     }
+  }
+
+  /**
+   * The text an element owns, rather than everything under it.
+   *
+   * Only its direct text nodes, which is how Playwright's :text-is() decides. innerText adds
+   * up the descendants, so by that measure a menu label and every wrapper above it all "have"
+   * the same text — the uniqueness check then called a selector ambiguous that the engine
+   * resolves to exactly one element, and the recorder fell back to counting divs from body.
+   * Measured on the real page: span:text-is(label) matched 1, a:text-is(label) matched 0,
+   * while innerText said two spans and one anchor carried it.
+   */
+  function ownTextOf(node) {
+    var out = '';
+    for (var c = 0; c < node.childNodes.length; c++) {
+      if (node.childNodes[c].nodeType === 3) out += node.childNodes[c].nodeValue;
+    }
+    return out.replace(/\\s+/g, ' ').trim();
   }
 
   function getElementDetails(el) {

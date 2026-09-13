@@ -97,6 +97,12 @@ const PAGE_MATERIAL = `<!doctype html>
   <!-- An overlay: nothing above it is named, so a path would have to count from <body>. Its
        words are the only durable thing about it. -->
   <div><div><div><a class="mat-mdc-list-item">Operator Console Listing</a></div></div></div>
+
+  <!-- The same thing as Angular Material actually builds it: the label sits in a span inside
+       a span inside the anchor. By innerText all three "have" the text, so a uniqueness check
+       written that way calls it ambiguous — while Playwright's :text-is() resolves it to the
+       one element that owns the text. -->
+  <div><div><a class="mat-mdc-list-item"><span class="mdc-list-item__content"><span class="mat-mdc-list-item-title">Current Executions</span></span></a></div></div>
 </body></html>`;
 
 /**
@@ -451,6 +457,43 @@ describe('the recorder says whether it armed itself', () => {
     // The init script re-runs per document, so the flag has to be true in the second one too —
     // the same failure mode that once truncated every multi-page recording.
     expect(await page.evaluate(() => (window as any).__wfmRecorderHoverWatch)).toBe(true);
+
+    await context.close();
+  }, 60_000);
+});
+
+describe('a label wrapped the way Angular Material wraps it', () => {
+  const recordClickOn = async (sessionId: string, target: string): Promise<string | undefined> => {
+    const context = await startRecording(sessionId);
+    const page = await context.newPage();
+    await page.goto(`${baseUrl}/material`);
+    await page.click(target);
+    await settle();
+    const actions = await recordedActions(sessionId);
+    await context.close();
+    return actions.find((a) => a.type === 'click')?.selector;
+  };
+
+  it('still identifies it by its words, not by counting divs', async () => {
+    const selector = await recordClickOn('it-nested-text', '.mat-mdc-list-item-title');
+
+    // Measured on the real application, where this exact shape produced
+    // "body > div:nth-of-type(8) > ..." instead: the check counted with innerText, by which
+    // the label, the span around it and the anchor around that all carry the same text, so
+    // it declared the selector ambiguous. Playwright disagrees — :text-is() matched the span
+    // and nothing else — and the engine that acts on the selector is the one that decides.
+    expect(selector).toBe('span:text-is("Current Executions")');
+  }, 60_000);
+
+  it('and the selector it produces finds exactly that element', async () => {
+    const context = await startRecording('it-nested-text-check');
+    const page = await context.newPage();
+    await page.goto(`${baseUrl}/material`);
+
+    // The check and the engine, side by side. A selector the recorder calls unique and
+    // Playwright resolves to two elements would fail replay in strict mode; one it resolves
+    // to none would fail even sooner.
+    expect(await page.locator('span:text-is("Current Executions")').count()).toBe(1);
 
     await context.close();
   }, 60_000);
