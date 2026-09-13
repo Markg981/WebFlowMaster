@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TestAction } from '@/pages/dashboard-page-new';
 import { DetectedElement } from '@/components/drag-drop-provider';
+import { ACTION_REQUIREMENTS, type AdhocActionId } from '@shared/recording';
 import { useTranslation } from 'react-i18next';
 import { Trash2, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,10 +24,13 @@ export type TestNodeData = {
 export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
   const { t } = useTranslation();
 
-  // "assert" is the visibility check: it needs a target but no value. "navigate" is the
-  // opposite — a URL, no element.
-  const needsValue = ["input", "wait", "select", "navigate", "assertTextContains", "assertElementCount"].includes(data.action.id);
-  const needsTarget = ["click", "input", "assert", "hover", "select", "assertTextContains", "assertElementCount"].includes(data.action.id);
+  // From the shared table rather than a list kept here, which is how the conditional waits
+  // and the Material dropdown ended up in the palette with no fields to fill in: they were
+  // added to the action list and these two arrays were not. "assert" is the visibility
+  // check — a target but no value; "navigate" is the opposite.
+  const requirements = ACTION_REQUIREMENTS[data.action.id as AdhocActionId];
+  const needsValue = requirements?.value ?? false;
+  const needsTarget = requirements?.target ?? false;
 
   // Accept a detected element dropped from the "Detected Elements" panel and bind it as
   // this step's target. Without this drop target the dragged element had nowhere to land

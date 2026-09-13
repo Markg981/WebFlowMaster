@@ -982,6 +982,43 @@ export class PlaywrightService {
     return chain.length > 0 ? chain.join(' >> ') : null;
   }
 
+  /**
+   * One reading of a page: what is on it, the picture it was measured on, and how much was
+   * left out.
+   *
+   * The three travel together because they only mean anything together. The boxes are
+   * document coordinates measured against a particular render, so drawing them on a
+   * screenshot of a different moment puts the highlight on the wrong element; and a list
+   * silently cut to the first N is a list the panel would present as the whole page.
+   *
+   * `detectElements` already did this. The builder's "Execute Test" — which is how the
+   * element list follows the test into a dialog or onto the next page — did not: it took the
+   * elements and left the picture and the count behind, so after a step opened a modal the
+   * new boxes were drawn over the previous screenshot.
+   */
+  private async surveyPage(page: Page): Promise<DetectionResult> {
+    let elements: DetectedElement[] = [];
+    try {
+      elements = await this.detectElementsOnPage(page);
+    } catch (evalError: any) {
+      resolvedLogger.warn({ message: "PS:surveyPage - Evaluation failed", error: evalError.message });
+    }
+
+    const screenshotBuffer = await page.screenshot({ type: 'png', fullPage: true });
+    const summary = this.getLastDetectionSummary() ?? {
+      totalFound: elements.length,
+      returned: elements.length,
+      truncated: false,
+      pageSize: { width: 1280, height: 720 },
+    };
+
+    return {
+      elements,
+      screenshot: `data:image/png;base64,${screenshotBuffer.toString('base64')}`,
+      summary,
+    };
+  }
+
   private async detectElementsOnPage(page: Page): Promise<DetectedElement[]> {
     // One pass per frame. page.frames() is flat and already includes nested ones, so a
     // frame three levels down is reached the same way as a direct child.
@@ -1136,7 +1173,7 @@ export class PlaywrightService {
     }
   }
 
-  async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detectedElements?: DetectedElement[] }> {
+  async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detection?: DetectionResult }> {
     const testName = payload.name || "Ad-hoc Test";
     resolvedLogger.http({ message: "PlaywrightService: executeAdhocSequence called", testName, userId, url: payload.url });
 
@@ -1186,7 +1223,7 @@ export class PlaywrightService {
             success: false,
             error: reason,
             duration: Date.now() - startTime,
-            detectedElements: [],
+            detection: undefined,
             steps: [{
               name: `Precondition: ${preResult.failedAt ?? 'setup'}`,
               type: 'precondition',
@@ -1269,16 +1306,16 @@ export class PlaywrightService {
             details: `Failed to navigate to ${payload.url}: ${e.message}`,
           });
           const duration = Date.now() - startTime;
-          let finalDetectedElementsNavFail: DetectedElement[] = [];
+          let finalDetectionNavFail: DetectionResult | undefined;
           if (page && !page.isClosed()) {
             resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting element detection (due to navigation failure)", testName, pageClosed: page?.isClosed() });
             try {
-              finalDetectedElementsNavFail = await this.detectElementsOnPage(page);
+              finalDetectionNavFail = await this.surveyPage(page);
             } catch (detectionError: any) {
               resolvedLogger.warn({ message: `PS:executeAdhocSequence - Error during element detection (navigation fail path)`, testName, error: detectionError.message, stack: detectionError.stack });
             }
           }
-          return { success: false, steps: stepResults, error: `Initial navigation failed: ${e.message}`, duration, detectedElements: finalDetectedElementsNavFail };
+          return { success: false, steps: stepResults, error: `Initial navigation failed: ${e.message}`, duration, detection: finalDetectionNavFail };
         }
       } else {
         stepResults.push({ name: 'Initial State', type: 'setup', status: 'passed', details: 'No initial URL provided for ad-hoc sequence.' });
@@ -1344,16 +1381,16 @@ export class PlaywrightService {
       const duration = Date.now() - startTime;
       resolvedLogger.info({ message: `PS:executeAdhocSequence - Test completed.`, testName, overallSuccess, durationMs: duration, stepsExecuted: stepResults.length });
 
-      let finalDetectedElements: DetectedElement[] = [];
+      let finalDetection: DetectionResult | undefined;
       if (page && !page.isClosed()) {
         resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting final element detection (success path)", testName, pageClosed: page?.isClosed() });
         try {
-          finalDetectedElements = await this.detectElementsOnPage(page);
+          finalDetection = await this.surveyPage(page);
         } catch (detectionError: any) {
           resolvedLogger.warn({ message: `PS:executeAdhocSequence - Error during final element detection (success path)`, testName, error: detectionError.message, stack: detectionError.stack });
         }
       }
-      return { success: overallSuccess, steps: stepResults, duration, detectedElements: finalDetectedElements };
+      return { success: overallSuccess, steps: stepResults, duration, detection: finalDetection };
 
     } catch (error: any) {
       const duration = Date.now() - startTime;
@@ -1367,16 +1404,16 @@ export class PlaywrightService {
         context: { testName, url: payload.url, stepCount: payload.sequence?.length ?? 0 },
         userId,
       });
-      let finalDetectedElementsCriticalError: DetectedElement[] = [];
+      let finalDetectionCriticalError: DetectionResult | undefined;
       if (page && !page.isClosed()) {
         resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting element detection after critical error", testName, pageClosed: page?.isClosed() });
         try {
-          finalDetectedElementsCriticalError = await this.detectElementsOnPage(page);
+          finalDetectionCriticalError = await this.surveyPage(page);
         } catch (detectionError: any) {
           resolvedLogger.warn({ message: `PS:executeAdhocSequence - Error during element detection (critical error path)`, testName, error: detectionError.message, stack: detectionError.stack });
         }
       }
-      return { success: false, steps: stepResults, error: error.message || 'Unknown critical error during ad-hoc execution', duration, detectedElements: finalDetectedElementsCriticalError };
+      return { success: false, steps: stepResults, error: error.message || 'Unknown critical error during ad-hoc execution', duration, detection: finalDetectionCriticalError };
     } finally {
       resolvedLogger.debug({ message: "PS:executeAdhocSequence - Inside finally block.", testName });
       resolvedLogger.verbose({ message: "PS:executeAdhocSequence (finally) - State before closing page", testName, pageExists: !!page, pageClosed: page?.isClosed() });
@@ -1445,28 +1482,9 @@ export class PlaywrightService {
       resolvedLogger.debug({ message: `PS:detectElements - Waiting for timeout`, waitTime, pageClosed: page?.isClosed() });
       await page.waitForTimeout(waitTime);
 
-      let elements: DetectedElement[] = [];
-      try {
-        elements = await this.detectElementsOnPage(page);
-      } catch (evalError: any) {
-        resolvedLogger.warn({ message: "PS:detectElements - Evaluation failed", error: evalError.message });
-      }
-      resolvedLogger.info({ message: `PS:detectElements - Element detection script completed.`, foundCount: elements?.length, url, userId });
-
-      // Taken from this page, after this detection: the boxes and the picture have to agree.
-      const screenshotBuffer = await page.screenshot({ type: 'png', fullPage: true });
-      const summary = this.getLastDetectionSummary() ?? {
-        totalFound: elements.length,
-        returned: elements.length,
-        truncated: false,
-        pageSize: { width: 1280, height: 720 },
-      };
-
-      return {
-        elements,
-        screenshot: `data:image/png;base64,${screenshotBuffer.toString('base64')}`,
-        summary,
-      };
+      const detection = await this.surveyPage(page);
+      resolvedLogger.info({ message: `PS:detectElements - Element detection script completed.`, foundCount: detection.elements.length, url, userId });
+      return detection;
     } catch (error: any) {
       resolvedLogger.error({ message: "PS:detectElements - Error caught during element detection", url, userId, error: error.message, stack: error.stack, pageExists: !!page, pageClosed: page?.isClosed() });
       throw error;

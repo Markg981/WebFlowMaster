@@ -398,7 +398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           success: false,
           error: "Internal server error: Unexpected response from test execution service.",
           steps: [],
-          detectedElements: [],
+          detection: undefined,
           duration: 0
         });
       }

@@ -2,7 +2,7 @@ import { pgTable, text, integer, serial, timestamp, boolean, jsonb, index, uniqu
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations } from 'drizzle-orm';
-import { ADHOC_ACTION_IDS } from './recording';
+import { ACTION_REQUIREMENTS, ADHOC_ACTION_IDS } from './recording';
 
 // Table Definitions
 export const organizations = pgTable("organizations", {
@@ -1286,50 +1286,21 @@ export const AdhocTestStepSchema = z
     targetElement: AdhocDetectedElementSchema.optional(),
     value: z.string().optional().nullable(),
   })
+  // Both rules read the same table the builder draws its fields from. They used to carry
+  // their own copies of the lists, which is how a step could be accepted here with nothing
+  // for the runner to act on: the conditional waits were added to the action list and none
+  // of the three copies was updated, so `waitForElement` validated without a selector and
+  // then failed at run time with a message about a missing target.
+  .refine((data) => !ACTION_REQUIREMENTS[data.action.id]?.target || !!data.targetElement, {
+    message: "This action needs an element to act on.",
+    path: ["targetElement"],
+  })
   .refine(
-    (data) => {
-      if (
-        [
-          "click",
-          "input",
-          "hover",
-          "select",
-          "assert",
-          "assertTextContains",
-          "assertElementCount",
-        ].includes(data.action.id) &&
-        !data.targetElement
-      )
-        return false;
-      return true;
-    },
+    (data) =>
+      !ACTION_REQUIREMENTS[data.action.id]?.valueRequired ||
+      (typeof data.value === "string" && data.value.trim() !== ""),
     {
-      message:
-        "targetElement is required for actions like click, input, hover, select, assert, assertTextContains, assertElementCount",
-      path: ["targetElement"],
-    },
-  )
-  .refine(
-    (data) => {
-      if (
-        [
-          "input",
-          "wait",
-          "select",
-          "navigate",
-          "assertTextContains",
-          "assertElementCount",
-        ].includes(data.action.id) &&
-        (data.value === undefined ||
-          data.value === null ||
-          data.value.trim() === "")
-      )
-        return false;
-      return true;
-    },
-    {
-      message:
-        "A non-empty value is required for input, wait, select, navigate, assertTextContains, and assertElementCount actions",
+      message: "This action needs a non-empty value.",
       path: ["value"],
     },
   )
