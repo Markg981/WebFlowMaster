@@ -26,6 +26,8 @@ import { SavedTestsPanel } from '@/components/api-tester/SavedTestsPanel';
 import { SaveApiTestModal } from '@/components/api-tester/SaveApiTestModal';
 import { AssertionEditor } from '@/components/api-tester/AssertionEditor';
 import { ExtractionEditor } from '@/components/api-tester/ExtractionEditor';
+import { EnvironmentSelect } from '@/components/EnvironmentSelect';
+import { NO_ENVIRONMENT, environmentIdFor } from '@/hooks/use-environments';
 import { AuthorizationPanel } from '@/components/api-tester/AuthorizationPanel';
 import { ApiTestHistoryEntry, InsertApiTestHistoryPayload, ApiTest, InsertApiTest, Assertion, Extraction, AuthType, AuthParams } from '@shared/schema';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -87,6 +89,10 @@ const ApiTesterPage: React.FC = () => {
   // Values this request hands to the ones after it in a plan, and what the last run of it
   // actually captured — so a capture can be confirmed here rather than when a plan fails.
   const [extractions, setExtractions] = useState<Extraction[]>([]);
+  // Which environment resolves {{variables}} here. Saved tests legitimately hold
+  // {{baseUrl}}/… and {{secret_…}}, and without a choice they could only ever resolve
+  // against the process defaults — so a request that worked here could fail in a plan.
+  const [selectedEnvironment, setSelectedEnvironment] = useState<string>(NO_ENVIRONMENT);
   const [lastCaptured, setLastCaptured] = useState<Record<string, string> | null>(null);
   const [lastCaptureErrors, setLastCaptureErrors] = useState<Array<{ name: string; reason: string }> | null>(null);
 
@@ -242,7 +248,7 @@ const ApiTesterPage: React.FC = () => {
   const apiProxyMutation = useMutation<
     ProxyResponse,
     Error,
-    { method: string; url: string; queryParams?: Record<string, string | string[]>; headers?: Record<string, string>; body?: any; assertions?: Assertion[]; extractions?: Extraction[] }
+    { method: string; url: string; queryParams?: Record<string, string | string[]>; headers?: Record<string, string>; body?: any; assertions?: Assertion[]; extractions?: Extraction[]; environmentId?: number }
   >({
     mutationFn: async (variables) => {
       setResponseStatus(null); setResponseHeaders(null); setResponseBody(null); setDuration(null); setAssertionResults(null);
@@ -471,6 +477,7 @@ const ApiTesterPage: React.FC = () => {
       body: finalBody,
       assertions: assertions.filter(a => a.enabled),
       extractions: extractions.filter(e => e.name.trim() !== ''),
+      environmentId: environmentIdFor(selectedEnvironment),
     });
   };
 
@@ -964,6 +971,16 @@ const ApiTesterPage: React.FC = () => {
                 <Button size="lg" onClick={handleSendRequest} disabled={apiProxyMutation.isPending}>
                   {apiProxyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {t('apiTesterPage.send.button')}
                 </Button>
+              </div>
+              <div className="pt-2 max-w-xs">
+                {/* Beside the URL, because {{baseUrl}} in the URL is the most common reason
+                    to need one. */}
+                <EnvironmentSelect
+                  id="apiEnvironment"
+                  value={selectedEnvironment}
+                  onChange={setSelectedEnvironment}
+                  disabled={apiProxyMutation.isPending}
+                />
               </div>
               <div className="pt-2">
                 <Label htmlFor="effectiveUrlDisplay" className="text-xs text-muted-foreground">{t('apiTesterPage.effectiveUrlReadonly.label')}</Label>

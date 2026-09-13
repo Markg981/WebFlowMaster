@@ -170,7 +170,11 @@ describe('DashboardPageNew — saving a test', () => {
 
     await waitFor(() => expect(mockApiRequest).toHaveBeenCalled());
 
-    const [method, url, payload] = mockApiRequest.mock.calls[0];
+    // By endpoint, not by position: the page also fetches the environment list on mount,
+    // so the save is no longer the first call it makes.
+    const saveCall = mockApiRequest.mock.calls.find((c) => c[1] === '/api/tests');
+    expect(saveCall).toBeDefined();
+    const [method, url, payload] = saveCall!;
     expect(method).toBe('POST');
     expect(url).toBe('/api/tests');
     expect(payload).toMatchObject({
@@ -208,8 +212,10 @@ describe('DashboardPageNew — saving a test', () => {
 
 describe('DashboardPageNew — recording mode', () => {
   const switchToRecordMode = async () => {
-    // The mode <select> is a Radix trigger; drive the page through it by role.
-    const trigger = screen.getByRole('combobox');
+    // The mode <select> is a Radix trigger; drive the page through it by role. Named
+    // explicitly: the page carries more than one combobox now that a run can pick its
+    // environment, and an unqualified query matched whichever came first.
+    const trigger = document.getElementById('creationModeSelect')!;
     fireEvent.keyDown(trigger, { key: 'Enter' });
     const recordOption = await screen.findByText(
       'dashboardPageNew.registraAzioniUtenteAutorecord.text',
