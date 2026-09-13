@@ -669,6 +669,10 @@
       "selectByText": {
         "name": "Choisir Dans La Liste",
         "description": "Ouvre une liste non native et choisit une option par son texte"
+      },
+      "assertState": {
+        "name": "Vérifier l’état",
+        "description": "Vérifie qu’un contrôle est coché, activé, modifiable — ou l’inverse"
       }
     },
     "saveTest": {

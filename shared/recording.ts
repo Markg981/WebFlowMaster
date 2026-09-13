@@ -30,6 +30,12 @@ export const ADHOC_ACTION_IDS = [
   // Angular Material renders a mat-select as a div plus a CDK overlay, which selectOption
   // cannot drive. This opens the trigger and clicks the option by its text.
   "selectByText",
+  // Asserting the STATE of a control, not its presence. Checking that a function is
+  // enabled or a box is ticked had to be smuggled into the selector — matching only
+  // elements that also carry aria-checked="true" — which reads as a lookup and fails
+  // like one: the step says the element was not found, when what happened is that it was
+  // found and was off.
+  "assertState",
 ] as const;
 export type AdhocActionId = (typeof ADHOC_ACTION_IDS)[number];
 
@@ -136,7 +142,25 @@ export const ACTION_REQUIREMENTS: Record<
   waitForText: { target: true, value: true, valueRequired: true },
   waitForNetworkIdle: { target: false, value: false, valueRequired: false },
   selectByText: { target: true, value: true, valueRequired: true },
+  assertState: { target: true, value: true, valueRequired: true },
 };
+
+/**
+ * States `assertState` can check, and what each one means.
+ *
+ * Deliberately a closed list rather than free text: a typo in a value that the runner then
+ * treats as "unknown, so false" is a test that fails for a reason nobody can see. The
+ * builder offers these, and the runner refuses anything else by name.
+ */
+export const ASSERTABLE_STATES = [
+  "checked",
+  "unchecked",
+  "enabled",
+  "disabled",
+  "editable",
+  "readonly",
+] as const;
+export type AssertableState = (typeof ASSERTABLE_STATES)[number];
 
 /** i18n keys for the builder node label/description of each replay action. */
 export const ACTION_I18N: Record<
@@ -212,6 +236,11 @@ export const ACTION_I18N: Record<
     name: "dashboardPageNew.actions.selectByText.name",
     description: "dashboardPageNew.actions.selectByText.description",
     icon: "List",
+  },
+  assertState: {
+    name: "dashboardPageNew.actions.assertState.name",
+    description: "dashboardPageNew.actions.assertState.description",
+    icon: "ToggleRight",
   },
 };
 

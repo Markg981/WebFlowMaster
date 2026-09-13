@@ -47,6 +47,27 @@ const PAGES: Record<string, string> = {
       }, 700);
     </script>`,
 
+  // Controls in the two shapes an application actually uses: a real <input type=checkbox>,
+  // and the Angular Material arrangement DMO has — a div with a role and aria-checked, no
+  // input anywhere. A state assertion that only understood the first would be useless on
+  // the application it was written for.
+  '/controls': `<!doctype html><title>Controls</title>
+    <h1 id="title">Controls</h1>
+    <input id="native-on" type="checkbox" checked>
+    <input id="native-off" type="checkbox">
+    <div id="mat-toggle-on" role="switch" aria-checked="true" tabindex="0">NetContentMachine</div>
+    <div id="mat-toggle-off" role="switch" aria-checked="false" tabindex="0">NCC_RCP2</div>
+    <button id="live">Enabled</button>
+    <button id="dead" disabled>Disabled</button>
+    <input id="typable" type="text">
+    <input id="locked" type="text" readonly>
+    <script>
+      // Flips late, so the assertion has to be willing to look again.
+      setTimeout(function () {
+        document.getElementById('mat-toggle-off').setAttribute('aria-checked', 'true');
+      }, 700);
+    </script>`,
+
   // A mat-select in miniature: the trigger is a div, and the options are mounted in a
   // CDK-style overlay that is a sibling of the trigger's container, not a child of it.
   // page.selectOption() cannot see any of this.
@@ -487,4 +508,91 @@ describe('what each action needs', () => {
     await browser.close();
     expect(outcome.status).toBe('passed');
   }, 120_000);
+});
+
+/**
+ * Asserting the state of a control.
+ *
+ * Before this action existed the only way to check one was to fold the state into the
+ * selector — `[aria-checked="true"]` appended to whatever identified the element. That works
+ * and reports badly: when the toggle is off the selector matches nothing and the step says
+ * the element was not found, sending the tester to look for a control that is on screen in
+ * front of them. NCC_TC_00085 needs exactly this, to turn "enable the function" from a
+ * configuration change into a check that it is still enabled.
+ */
+describe('asserting the state of a control', () => {
+  const runOnControls = async (sequence: MappedTestStep[]) => {
+    const { playwrightService } = await import('./playwright-service');
+    return playwrightService.executeTestSequence(savedTest(sequence, '/controls'), 1);
+  };
+
+  const stateStep = (selector: string, value: string) =>
+    step('assertState', { selector, value });
+
+  it('reads a native checkbox', async () => {
+    const result = await runOnControls([
+      stateStep('#native-on', 'checked'),
+      stateStep('#native-off', 'unchecked'),
+    ]);
+
+    const failures = (result.steps ?? []).filter((s) => s.status === 'failed');
+    expect(failures.map((f) => f.error)).toEqual([]);
+  }, 90_000);
+
+  it('reads an Angular Material toggle, which has no input at all', async () => {
+    // A div with role=switch and aria-checked. This is the shape DMO uses for a function on
+    // a machine node, and the reason this action goes through Playwright's accessors rather
+    // than looking for a checked property.
+    const result = await runOnControls([stateStep('#mat-toggle-on', 'checked')]);
+
+    expect(result.success).toBe(true);
+  }, 90_000);
+
+  it('reads enabled, disabled, editable and readonly', async () => {
+    const result = await runOnControls([
+      stateStep('#live', 'enabled'),
+      stateStep('#dead', 'disabled'),
+      stateStep('#typable', 'editable'),
+      stateStep('#locked', 'readonly'),
+    ]);
+
+    const failures = (result.steps ?? []).filter((s) => s.status === 'failed');
+    expect(failures.map((f) => `${f.type}: ${f.error}`)).toEqual([]);
+  }, 90_000);
+
+  it('says the control was off, not that it was missing', async () => {
+    const result = await runOnControls([stateStep('#native-off', 'checked')]);
+
+    const failure = (result.steps ?? []).find((s) => s.status === 'failed');
+    // The whole point of the action. The old way — a selector with [aria-checked="true"] —
+    // could only ever report "not found".
+    expect(failure?.error).toContain('was not checked');
+    expect(failure?.error).not.toMatch(/not found|no element/i);
+  }, 90_000);
+
+  it('waits for a state that arrives late', async () => {
+    // #mat-toggle-off flips to checked after 700ms, with no explicit wait in front of it.
+    const result = await runOnControls([stateStep('#mat-toggle-off', 'checked')]);
+
+    expect(result.success).toBe(true);
+  }, 90_000);
+
+  it('names a state it does not understand instead of calling it false', async () => {
+    const result = await runOnControls([stateStep('#native-on', 'ticked')]);
+
+    const failure = (result.steps ?? []).find((s) => s.status === 'failed');
+    // A typo must not read as "the control is not in that state", which would send someone
+    // looking at the application instead of at their test.
+    expect(failure?.error).toContain('Unknown state');
+    expect(failure?.error).toContain('checked');
+  }, 90_000);
+
+  it('distinguishes "cannot be read" from "is off"', async () => {
+    // A heading is not a checkable thing. Reporting that as "unchecked" would hide a step
+    // pointed at the wrong element.
+    const result = await runOnControls([stateStep('#title', 'checked')]);
+
+    const failure = (result.steps ?? []).find((s) => s.status === 'failed');
+    expect(failure?.error).toContain('could not read');
+  }, 90_000);
 });
