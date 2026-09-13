@@ -1,6 +1,7 @@
 import type { Assertion, AuthParams } from '@shared/schema';
 import { fetchTarget, substituteInValues, substituteVariables } from './outbound-http';
 import { findUnresolvedVariables } from './variables';
+import { accessTokenFor } from './oauth2';
 
 /**
  * Running one API request, with its assertions and its extractions.
@@ -153,23 +154,39 @@ function valueFrom(
 }
 
 /**
+ * Display names for the schemes the enum offers and nothing implements, so the refusal can
+ * say which one was asked for in the words the dropdown used.
+ */
+const SCHEME_NAMES: Record<string, string> = {
+  jwtBearer: 'JWT Bearer',
+  digest: 'Digest',
+  oauth1: 'OAuth 1.0',
+  hawk: 'Hawk',
+  aws: 'AWS Signature',
+  ntlm: 'NTLM',
+  akamai: 'Akamai EdgeGrid',
+  asap: 'Atlassian ASAP',
+};
+
+/**
  * Adds whatever the test's auth settings imply, to the headers or the query.
  *
- * Only the three schemes the product actually implements: the enum declares eleven more
- * (digest, oauth1/2, ntlm, aws, hawk…) and the interface has never built a single one of
- * them. Pretending otherwise here would mean a request that silently goes out unauthorised
- * while the test claims a scheme is in force.
+ * Returns a message when the request must not be sent, and null when it may be. A scheme
+ * the enum offers but nothing implements is the first case: previously it fell through to
+ * "send it as written", so the request went out with no credentials at all, the target
+ * answered 401, and the report blamed the endpoint. A test that claims a scheme is in force
+ * and quietly runs anonymous is worse than one that refuses to run.
  *
  * Values go through substitution because the token usually comes from an earlier request
- * in the same plan.
+ * in the same plan, or from the environment.
  */
-function applyAuth(
+async function applyAuth(
   auth: AuthParams | null | undefined,
   headers: Record<string, string>,
   url: URL,
   vars: Record<string, string>,
-): void {
-  if (!auth?.type) return;
+): Promise<string | null> {
+  if (!auth?.type) return null;
 
   // A header the tester wrote by hand is more specific than a setting on the test;
   // overwriting it would make a deliberate override look broken.
@@ -177,31 +194,50 @@ function applyAuth(
 
   switch (auth.type) {
     case 'basic': {
-      if (hasAuthorization) return;
+      if (hasAuthorization) return null;
       const username = substituteVariables(auth.params.username ?? '', vars);
-      if (!username) return;
+      if (!username) return null;
       const password = substituteVariables(auth.params.password ?? '', vars);
       headers.Authorization = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
-      return;
+      return null;
     }
     case 'bearer': {
-      if (hasAuthorization) return;
+      if (hasAuthorization) return null;
       const token = substituteVariables(auth.params.token ?? '', vars);
-      if (!token) return;
+      if (!token) return null;
       headers.Authorization = `Bearer ${token}`;
-      return;
+      return null;
     }
     case 'apiKey': {
       const key = substituteVariables(auth.params.key ?? '', vars);
       const value = substituteVariables(auth.params.value ?? '', vars);
-      if (!key || !value) return;
+      if (!key || !value) return null;
       if (auth.params.addTo === 'query') url.searchParams.append(key, value);
       else if (!Object.keys(headers).some((h) => h.toLowerCase() === key.toLowerCase())) headers[key] = value;
-      return;
+      return null;
     }
-    default:
-      // 'none', 'inherit' and the schemes nothing implements: send the request as written.
-      return;
+    case 'oauth2': {
+      // A header written by hand still wins, the same way it does for the others: pasting a
+      // token in while debugging should not be overridden by the settings behind it.
+      if (hasAuthorization) return null;
+      const result = await accessTokenFor(auth.params, vars);
+      if ('error' in result) return result.error;
+      headers.Authorization = result.authorization;
+      return null;
+    }
+    case 'none':
+    case 'inherit':
+      // Deliberately no credentials. 'inherit' means the same here, because this runner has
+      // no collection above the request to inherit from.
+      return null;
+    default: {
+      const name = SCHEME_NAMES[auth.type] ?? auth.type;
+      return (
+        `${name} authentication is not implemented, so this request would go out with no ` +
+        `credentials. Use Bearer Token, Basic Auth, API Key or OAuth 2.0, or set the ` +
+        `Authorization header yourself on the Headers tab.`
+      );
+    }
   }
 }
 
@@ -250,7 +286,13 @@ export async function runApiRequest(
   // Set by the transport, and wrong if carried over from a saved request.
   for (const forbidden of ['host', 'Host', 'content-length', 'Content-Length']) delete headers[forbidden];
 
-  applyAuth(spec.auth, headers, targetUrl, vars);
+  // Before the request rather than after a 401: a scheme that cannot be satisfied is a
+  // problem with the test, and saying so beats reporting the target's refusal as if the
+  // endpoint were at fault.
+  const authError = await applyAuth(spec.auth, headers, targetUrl, vars);
+  if (authError) {
+    return { ...empty, passed: false, durationMs: Date.now() - startTime, error: authError };
+  }
 
   const options: RequestInit = { method: spec.method, headers };
   if (spec.method !== 'GET' && spec.method !== 'HEAD' && spec.body !== undefined) {

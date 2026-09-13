@@ -1109,6 +1109,9 @@
       },
       "atlassianAsap": {
         "text": "Atlassian ASAP"
+      },
+      "notAvailable": {
+        "suffix": "(not available)"
       }
     },
     "authorizationPanel": {
@@ -1120,6 +1123,9 @@
       },
       "parametersAreNotYetConfigurable": {
         "description": "parameters are not yet configurable."
+      },
+      "schemeUnavailable": {
+        "text": "{{scheme}} is not implemented. A request using it would be sent with no credentials, so the runner refuses it. Use Bearer Token, Basic Auth, API Key or OAuth 2.0, or set the Authorization header yourself on the Headers tab."
       }
     },
     "historyPanel": {
@@ -1251,6 +1257,66 @@
       },
       "enterBearerToken": {
         "placeholder": "Enter bearer token"
+      }
+    },
+    "oauth2AuthForm": {
+      "grantType": {
+        "label": "Grant type"
+      },
+      "clientCredentials": {
+        "text": "Client Credentials"
+      },
+      "passwordGrant": {
+        "text": "Password"
+      },
+      "noAuthorizationCode": {
+        "help": "The authorization-code grant needs a person at a browser, so a scheduled run cannot complete it."
+      },
+      "tokenUrl": {
+        "label": "Token URL"
+      },
+      "enterTokenUrl": {
+        "placeholder": "https://login.example.com/oauth2/token"
+      },
+      "clientId": {
+        "label": "Client ID"
+      },
+      "enterClientId": {
+        "placeholder": "Enter client ID"
+      },
+      "clientSecret": {
+        "label": "Client secret"
+      },
+      "enterClientSecret": {
+        "placeholder": "Enter client secret"
+      },
+      "username": {
+        "label": "Username"
+      },
+      "enterUsername": {
+        "placeholder": "Enter username"
+      },
+      "password": {
+        "label": "Password"
+      },
+      "enterPassword": {
+        "placeholder": "Enter password"
+      },
+      "scope": {
+        "label": "Scope"
+      },
+      "enterScope": {
+        "placeholder": "Optional, space separated"
+      },
+      "clientAuth": {
+        "label": "Send client credentials",
+        "help": "Every field accepts environment placeholders, resolved from the selected environment when the request runs."
+      },
+      "sendAsBasicHeader": {
+        "text": "As a Basic Authorization header"
+      },
+      "sendInBody": {
+        "text": "In the request body"
       }
     }
   },

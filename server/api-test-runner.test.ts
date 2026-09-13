@@ -265,8 +265,8 @@ describe('the authentication a saved test carries', () => {
     expect(received[0].headers.authorization).toBe('Bearer written-by-hand');
   }, 30_000);
 
-  it('sends nothing extra for none or for an unimplemented scheme', async () => {
-    for (const type of ['none', 'inherit', 'oauth2', 'ntlm'] as const) {
+  it('sends nothing extra for none or inherit', async () => {
+    for (const type of ['none', 'inherit'] as const) {
       received = [];
       await runApiRequest(
         { method: 'GET', url: `${baseUrl}/ping`, auth: { type } as never },
@@ -274,5 +274,22 @@ describe('the authentication a saved test carries', () => {
       );
       expect(received[0].headers.authorization).toBeUndefined();
     }
+  }, 30_000);
+
+  it('refuses a scheme nothing implements rather than sending the request bare', async () => {
+    // This used to be grouped with none and inherit, asserting that an unimplemented scheme
+    // also "sends nothing extra" — which was true and was the bug. The request went out with
+    // no credentials, the target answered 401, and the report blamed the endpoint. The rest
+    // of this behaviour is covered in oauth2.test.ts.
+    received = [];
+
+    const result = await runApiRequest(
+      { method: 'GET', url: `${baseUrl}/ping`, auth: { type: 'ntlm' } as never },
+      {},
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.error).toContain('NTLM');
+    expect(received).toHaveLength(0);
   }, 30_000);
 });

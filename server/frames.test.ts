@@ -125,3 +125,103 @@ describe('acting on an element inside an iframe', () => {
     expect(failures.map((f) => `${f.type}: ${f.error}`)).toEqual([]);
   }, 60_000);
 });
+
+/**
+ * The same two things, for a frame served by a different origin.
+ *
+ * Worth pinning separately, because the limit everyone expects here is the one the browser
+ * imposes on the page itself: script in the host document cannot reach into
+ * `iframe.contentDocument` across origins, so a detector written as one `page.evaluate`
+ * over the top document genuinely cannot see any of this — and that was assumed to be the
+ * ceiling for this product too.
+ *
+ * It is not. Playwright drives each frame over its own connection to the browser rather
+ * than from inside the page, so `page.frames()` and `frameLocator()` cross an origin
+ * boundary the way they cross any other. Nothing here needed fixing; what it needed was a
+ * test, so that the capability is not given up a second time — and so that a future change
+ * to how frames are scanned cannot quietly lose it.
+ *
+ * It matters for the real target: an embedded legacy screen or a report viewer is usually
+ * served from a different host than the shell that mounts it.
+ */
+describe('a frame from a different origin', () => {
+  let otherOrigin: http.Server;
+  let hostPage: http.Server;
+  let hostUrl: string;
+  let innerWasClicked = false;
+
+  beforeAll(async () => {
+    otherOrigin = http.createServer((req, res) => {
+      // The click reports itself back to its own server, so the assertion rests on the
+      // page having been driven rather than on the runner's account of itself.
+      if ((req.url ?? '').startsWith('/clicked')) {
+        innerWasClicked = true;
+        return res.writeHead(204).end();
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(
+        `<!doctype html><title>other</title>
+         <button id="x-button" onclick="fetch('/clicked')">Confirm across origins</button>`,
+      );
+    });
+    await new Promise<void>((resolve) => otherOrigin.listen(0, '127.0.0.1', resolve));
+    // A different port is a different origin, which is all the same-origin policy asks.
+    const otherUrl = `http://127.0.0.1:${(otherOrigin.address() as AddressInfo).port}/`;
+
+    hostPage = http.createServer((_req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(
+        `<!doctype html><title>host</title>
+         <iframe id="embedded" src="${otherUrl}" width="400" height="200"></iframe>`,
+      );
+    });
+    await new Promise<void>((resolve) => hostPage.listen(0, '127.0.0.1', resolve));
+    hostUrl = `http://127.0.0.1:${(hostPage.address() as AddressInfo).port}/`;
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve) => hostPage.close(() => resolve()));
+    await new Promise<void>((resolve) => otherOrigin.close(() => resolve()));
+  });
+
+  it('is detected, and says which frame its elements are in', async () => {
+    const { playwrightService } = await import('./playwright-service');
+
+    const { elements } = await playwrightService.detectElements(hostUrl);
+
+    const inner = elements.find((e) => e.text.includes('Confirm across origins'));
+    expect(inner).toBeDefined();
+    expect(inner!.frameSelector).toBe('iframe#embedded');
+  }, 60_000);
+
+  it('can be acted on, not merely listed', async () => {
+    const { playwrightService } = await import('./playwright-service');
+
+    const { elements } = await playwrightService.detectElements(hostUrl);
+    const inner = elements.find((e) => e.text.includes('Confirm across origins'));
+
+    const result = await playwrightService.executeTestSequence(
+      {
+        id: 1, userId: 1, organizationId: 1, projectId: null,
+        name: 'cross-origin-frame-click', url: hostUrl,
+        sequence: [
+          {
+            id: 's1',
+            action: { id: 'click', type: 'click', name: 'Click', icon: 'c', description: 'x' },
+            // Exactly what detection reported: listing an element the runner cannot then
+            // act on would be the false promise frameChainFor exists to avoid.
+            targetElement: inner as never,
+            value: undefined,
+          },
+        ],
+        elements: [], preconditions: null, status: 'draft',
+        createdAt: new Date(), updatedAt: new Date(),
+        module: null, featureArea: null, scenario: null, component: null,
+        priority: 'Medium', severity: 'Major',
+      } as never,
+      1,
+    );
+
+    const failures = (result.steps ?? []).filter((s) => s.status === 'failed');
+    expect(failures.map((f) => `${f.type}: ${f.error}`)).toEqual([]);
+    expect(innerWasClicked).toBe(true);
+  }, 60_000);
+});

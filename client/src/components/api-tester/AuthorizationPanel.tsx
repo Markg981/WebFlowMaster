@@ -7,11 +7,13 @@ import {
   BasicAuthParams,
   BearerTokenAuthParams,
   ApiKeyAuthParams,
+  OAuth2AuthParams,
 } from '@shared/schema';
-import { AuthTypeDropdown } from './AuthTypeDropdown';
+import { AuthTypeDropdown, authTypeDisplayMap } from './AuthTypeDropdown';
 import { BasicAuthForm } from './auth-forms/BasicAuthForm';
 import { BearerTokenAuthForm } from './auth-forms/BearerTokenAuthForm';
 import { ApiKeyAuthForm } from './auth-forms/ApiKeyAuthForm';
+import { OAuth2AuthForm } from './auth-forms/OAuth2AuthForm';
 import { Label } from '@/components/ui/label';
 
 interface AuthorizationPanelProps {
@@ -22,22 +24,40 @@ interface AuthorizationPanelProps {
   disabled?: boolean;
 }
 
-const authTypeDisplayMap: Record<AuthType, string> = {
-  inherit: 'Inherit from Parent',
-  none: 'No Auth',
-  basic: 'Basic Auth',
-  bearer: 'Bearer Token',
-  jwtBearer: 'JWT Bearer',
-  digest: 'Digest Auth',
-  oauth1: 'OAuth 1.0',
-  oauth2: 'OAuth 2.0',
-  hawk: 'Hawk Authentication',
-  aws: 'AWS Signature',
-  ntlm: 'NTLM Authentication',
-  apiKey: 'API Key',
-  akamai: 'Akamai EdgeGrid',
-  asap: 'Atlassian ASAP',
-};
+/**
+ * What the settings become when the scheme changes.
+ *
+ * The type and the parameters are two pieces of state, and nothing used to reset the second
+ * when the first changed: picking NTLM after filling in a bearer token left the token in
+ * place, and since it is the parameters that are sent, the request went out as Bearer while
+ * the page said NTLM.
+ */
+export function emptyAuthParamsFor(type: AuthType): AuthParams {
+  switch (type) {
+    case 'basic':
+      return { type, params: { username: '', password: '' } };
+    case 'bearer':
+      return { type, params: { token: '' } };
+    case 'apiKey':
+      return { type, params: { key: '', value: '', addTo: 'header' } };
+    case 'oauth2':
+      return {
+        type,
+        params: {
+          grantType: 'client_credentials',
+          tokenUrl: '',
+          clientId: '',
+          clientSecret: '',
+          scope: '',
+          username: '',
+          password: '',
+          clientAuth: 'header',
+        },
+      };
+    default:
+      return { type } as AuthParams;
+  }
+}
 
 
 export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
@@ -80,16 +100,36 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
             disabled={disabled}
           />
         );
+      case AuthTypeSchema.enum.oauth2:
+        return (
+          <OAuth2AuthForm
+            params={(authParams?.type === 'oauth2' ? authParams.params : {}) as OAuth2AuthParams}
+            onChange={(newParams) => onAuthParamsChange({ type: 'oauth2', params: newParams })}
+            disabled={disabled}
+          />
+        );
       case AuthTypeSchema.enum.none:
       case AuthTypeSchema.enum.inherit:
         return <p className="text-sm text-muted-foreground mt-2">No parameters for this auth type.</p>;
       default:
+        // Reached only by a saved test that named a scheme nothing implements. Say what will
+        // happen when it runs, rather than "not yet configurable", which reads as though the
+        // request would still be authenticated somehow.
         return (
-          <p className="text-sm text-muted-foreground mt-2">
-            {authTypeDisplayMap[authType] || authType} parameters are not yet configurable.
+          <p className="text-sm text-muted-foreground mt-2" role="note">
+            {t('apiTester.authorizationPanel.schemeUnavailable.text', {
+              scheme: authTypeDisplayMap[authType] || authType,
+            })}
           </p>
         );
     }
+  };
+
+  const handleTypeChange = (next: AuthType) => {
+    onAuthTypeChange(next);
+    // Parameters belong to one scheme; carrying the previous scheme's over would send
+    // credentials the panel is no longer showing.
+    onAuthParamsChange(emptyAuthParamsFor(next));
   };
 
   return (
@@ -98,7 +138,7 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
         <Label htmlFor="auth-type-dropdown">{t('apiTester.authorizationPanel.authorizationType.label')}</Label>
         <AuthTypeDropdown
           authType={authType}
-          onAuthTypeChange={onAuthTypeChange}
+          onAuthTypeChange={handleTypeChange}
           disabled={disabled}
         />
       </div>

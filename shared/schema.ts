@@ -1029,6 +1029,35 @@ export const ApiKeyAuthParamsSchema = z.object({
 });
 export type ApiKeyAuthParams = z.infer<typeof ApiKeyAuthParamsSchema>;
 
+/**
+ * OAuth 2.0, in the two grants a test runner can complete on its own.
+ *
+ * Not the authorization-code grant: that one requires a human at a browser consenting to a
+ * screen, which is not something a schedule at 3am can do. `client_credentials` is how a
+ * service authenticates to an enterprise API, and `password` covers the older deployments
+ * that still accept it — between them they reach most of what is worth testing.
+ *
+ * Every field defaults, so a saved test from before this existed — `{ type: 'oauth2' }`
+ * with no params at all — still parses. The runner refuses at send time and says which
+ * field is missing, which is a better place to find out than a schema error on load.
+ */
+export const OAuth2AuthParamsSchema = z.object({
+  grantType: z.enum(["client_credentials", "password"]).default("client_credentials"),
+  tokenUrl: z.string().default(""),
+  clientId: z.string().default(""),
+  clientSecret: z.string().default(""),
+  scope: z.string().default(""),
+  // `password` grant only.
+  username: z.string().default(""),
+  password: z.string().default(""),
+  /**
+   * Where the client credentials go. RFC 6749 §2.3.1 prefers the Basic header and requires
+   * servers to support it; some accept them only in the body, so both are offered.
+   */
+  clientAuth: z.enum(["header", "body"]).default("header"),
+});
+export type OAuth2AuthParams = z.infer<typeof OAuth2AuthParamsSchema>;
+
 export const AuthParamsSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal(AuthTypeSchema.enum.basic),
@@ -1047,7 +1076,10 @@ export const AuthParamsSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal(AuthTypeSchema.enum.jwtBearer) }),
   z.object({ type: z.literal(AuthTypeSchema.enum.digest) }),
   z.object({ type: z.literal(AuthTypeSchema.enum.oauth1) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.oauth2) }),
+  z.object({
+    type: z.literal(AuthTypeSchema.enum.oauth2),
+    params: OAuth2AuthParamsSchema.default({}),
+  }),
   z.object({ type: z.literal(AuthTypeSchema.enum.hawk) }),
   z.object({ type: z.literal(AuthTypeSchema.enum.aws) }),
   z.object({ type: z.literal(AuthTypeSchema.enum.ntlm) }),
@@ -1055,6 +1087,31 @@ export const AuthParamsSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal(AuthTypeSchema.enum.asap) }),
 ]);
 export type AuthParams = z.infer<typeof AuthParamsSchema>;
+
+/**
+ * The schemes the runner can actually satisfy.
+ *
+ * The enum above lists fourteen because the dropdown was built from a list of everything
+ * Postman offers, and the other eight have never done anything: the request went out with
+ * no credentials, the target answered 401, and the report blamed the endpoint. They stay in
+ * the enum so a saved test that names one still loads and can be read and changed — but the
+ * runner now refuses to send such a request, and the dropdown shows them as unavailable.
+ *
+ * Shared so those two cannot disagree about which is which; an architecture test pins the
+ * runner's own handling against this list.
+ */
+export const IMPLEMENTED_AUTH_TYPES = [
+  "none",
+  "inherit",
+  "basic",
+  "bearer",
+  "apiKey",
+  "oauth2",
+] as const satisfies readonly AuthType[];
+
+export function isImplementedAuthType(type: AuthType): boolean {
+  return (IMPLEMENTED_AUTH_TYPES as readonly AuthType[]).includes(type);
+}
 
 const bodyTypesArray = [
   "none",

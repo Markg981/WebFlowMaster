@@ -69,8 +69,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Captured here as well as in a plan, so the tester can see what a request would hand
     // to the next one rather than finding out only when the plan runs.
     extractions: z.array(ExtractionSchema).optional(),
-    // Accepted so a saved test replays through the same path it was authored on. The page
-    // still builds these headers itself for the live preview; both end up here.
+    // The settings, not the finished header. The page used to build the Authorization
+    // header in the browser and send only that, which meant `{{name}}` in a token reached
+    // the target literally — the environment's values are here, not there — and the same
+    // test authenticated one way from the page and another from a schedule.
     auth: AuthParamsSchema.optional().nullable(),
     // Which environment resolves `{{name}}`. The organization it must belong to comes from
     // the session, so naming another tenant's environment resolves nothing.

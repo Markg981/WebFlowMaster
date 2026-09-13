@@ -1211,6 +1211,9 @@
       },
       "atlassianAsap": {
         "text": "[TRANSLATE] Atlassian ASAP"
+      },
+      "notAvailable": {
+        "suffix": "(non disponibile)"
       }
     },
     "authorizationPanel": {
@@ -1222,6 +1225,9 @@
       },
       "parametersAreNotYetConfigurable": {
         "description": "[TRANSLATE] parameters are not yet configurable."
+      },
+      "schemeUnavailable": {
+        "text": "{{scheme}} non è implementato. Una richiesta che lo usa partirebbe senza credenziali, quindi il runner la rifiuta. Usa Bearer Token, Basic Auth, API Key oppure OAuth 2.0, o imposta tu l'header Authorization nella scheda Headers."
       }
     },
     "historyPanel": {
@@ -1461,6 +1467,66 @@
       },
       "enterBearerToken": {
         "placeholder": "[TRANSLATE] Enter bearer token"
+      }
+    },
+    "oauth2AuthForm": {
+      "grantType": {
+        "label": "Tipo di grant"
+      },
+      "clientCredentials": {
+        "text": "Client Credentials"
+      },
+      "passwordGrant": {
+        "text": "Password"
+      },
+      "noAuthorizationCode": {
+        "help": "Il grant authorization code richiede una persona davanti a un browser, quindi un'esecuzione schedulata non può completarlo."
+      },
+      "tokenUrl": {
+        "label": "URL del token"
+      },
+      "enterTokenUrl": {
+        "placeholder": "https://login.example.com/oauth2/token"
+      },
+      "clientId": {
+        "label": "Client ID"
+      },
+      "enterClientId": {
+        "placeholder": "Inserisci il client ID"
+      },
+      "clientSecret": {
+        "label": "Client secret"
+      },
+      "enterClientSecret": {
+        "placeholder": "Inserisci il client secret"
+      },
+      "username": {
+        "label": "Nome utente"
+      },
+      "enterUsername": {
+        "placeholder": "Inserisci il nome utente"
+      },
+      "password": {
+        "label": "Password"
+      },
+      "enterPassword": {
+        "placeholder": "Inserisci la password"
+      },
+      "scope": {
+        "label": "Scope"
+      },
+      "enterScope": {
+        "placeholder": "Facoltativo, separati da spazi"
+      },
+      "clientAuth": {
+        "label": "Invia le credenziali client",
+        "help": "Ogni campo accetta i segnaposto dell'ambiente, risolti dall'ambiente selezionato al momento della richiesta."
+      },
+      "sendAsBasicHeader": {
+        "text": "Come header Authorization Basic"
+      },
+      "sendInBody": {
+        "text": "Nel corpo della richiesta"
       }
     }
   },
