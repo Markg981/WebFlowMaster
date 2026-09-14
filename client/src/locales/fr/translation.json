@@ -73,6 +73,23 @@
       "logLevelDescription": "Choisissez à partir de quel niveau les journaux sont enregistrés.",
       "saveButton": "Enregistrer la conservation",
       "saveButtonLogLevel": "Enregistrer le niveau"
+    },
+    "sections": {
+      "navLabel": "Sections des paramètres",
+      "preferences": "Préférences",
+      "preferencesDescription": "L’apparence de l’interface et sa langue. Ne concernent que votre compte.",
+      "projects": "Projets",
+      "projectsDescription": "Les projets regroupent vos tests. Chaque test peut appartenir à l’un d’eux.",
+      "environments": "Environnements",
+      "environmentsDescription": "Un environnement contient l’URL de base, les variables et les secrets utilisés par une exécution, ainsi qu’une connexion enregistrée. Les secrets sont chiffrés en AES-256-GCM et déchiffrés uniquement pendant l’exécution : dans une étape, on y fait référence par {{token}}.",
+      "defaults": "Valeurs par défaut",
+      "defaultsDescription": "Ce dont part un nouveau test, et le comportement du navigateur pendant l’exécution.",
+      "system": "Système",
+      "systemDescription": "Configuration valable pour tout le serveur. Elle s’applique à tous les utilisateurs de cette installation.",
+      "notifications": "Notifications",
+      "notificationsDescription": "Les événements qui méritent de vous interrompre.",
+      "account": "Compte",
+      "accountDescription": "Vos informations de connexion et les actions irréversibles."
     }
   },
   "dashboard": {
@@ -1654,5 +1671,27 @@
     "defaultsOnly": "Aucun environnement (valeurs par défaut)",
     "signedIn": "connexion enregistrée",
     "emptyHint": "Aucun pour l’instant. Créez-en un dans les Paramètres pour utiliser les secrets et une connexion enregistrée."
+  },
+  "common": {
+    "error": "Erreur"
+  },
+  "environments": {
+    "newEnvironmentPlaceholder": "Nouvel environnement (ex. Staging)",
+    "add": "Ajouter",
+    "loading": "Chargement des environnements…",
+    "empty": "Aucun environnement pour l’instant.",
+    "noSecrets": "Aucun secret enregistré pour cet environnement.",
+    "encrypted": "Chiffré",
+    "keyNameLabel": "Nom de la clé",
+    "keyNamePlaceholder": "ex. ADMIN_PASSWORD",
+    "secretValueLabel": "Valeur du secret",
+    "secretValuePlaceholder": "Enregistré chiffré",
+    "addSecret": "Ajouter le secret",
+    "toast": {
+      "created": "Environnement créé",
+      "deleted": "Environnement supprimé",
+      "secretSaved": "Secret enregistré, chiffré",
+      "secretDeleted": "Secret supprimé"
+    }
   }
 }

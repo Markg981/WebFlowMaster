@@ -73,6 +73,23 @@
       "logLevelDescription": "Select the minimum level of logs to record.",
       "saveButton": "Save Log Retention",
       "saveButtonLogLevel": "Save Log Level"
+    },
+    "sections": {
+      "navLabel": "Settings sections",
+      "preferences": "Preferences",
+      "preferencesDescription": "How the interface looks and which language it speaks. These apply to your account only.",
+      "projects": "Projects",
+      "projectsDescription": "Projects group your tests. Every test can belong to one.",
+      "environments": "Environments",
+      "environmentsDescription": "An environment holds the base URL, the variables and the secrets a run resolves against, plus a saved login. Secrets are AES-256-GCM encrypted and decrypted only while a test runs — refer to one as {{token}} in a step.",
+      "defaults": "Test defaults",
+      "defaultsDescription": "What a new test starts from, and how the browser behaves while it runs.",
+      "system": "System",
+      "systemDescription": "Server-wide configuration. It applies to everyone using this installation.",
+      "notifications": "Notifications",
+      "notificationsDescription": "Which events are worth interrupting you for.",
+      "account": "Account",
+      "accountDescription": "Your sign-in details, and the actions that cannot be undone."
     }
   },
   "dashboard": {
@@ -1648,5 +1665,27 @@
     "defaultsOnly": "No environment (defaults only)",
     "signedIn": "signed in",
     "emptyHint": "None yet. Create one in Settings to use secrets and a saved login."
+  },
+  "common": {
+    "error": "Error"
+  },
+  "environments": {
+    "newEnvironmentPlaceholder": "New environment (e.g. Staging)",
+    "add": "Add",
+    "loading": "Loading environments…",
+    "empty": "No environments yet.",
+    "noSecrets": "No secrets saved for this environment.",
+    "encrypted": "Encrypted",
+    "keyNameLabel": "Key name",
+    "keyNamePlaceholder": "e.g. ADMIN_PASSWORD",
+    "secretValueLabel": "Secret value",
+    "secretValuePlaceholder": "Stored encrypted",
+    "addSecret": "Add secret",
+    "toast": {
+      "created": "Environment created",
+      "deleted": "Environment deleted",
+      "secretSaved": "Secret saved, encrypted",
+      "secretDeleted": "Secret deleted"
+    }
   }
 }

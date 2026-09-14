@@ -73,6 +73,23 @@
       "logLevelDescription": "Ab welcher Stufe Protokolle aufgezeichnet werden.",
       "saveButton": "Aufbewahrung speichern",
       "saveButtonLogLevel": "Protokollstufe speichern"
+    },
+    "sections": {
+      "navLabel": "Abschnitte der Einstellungen",
+      "preferences": "Einstellungen",
+      "preferencesDescription": "Aussehen und Sprache der Oberfläche. Gilt nur für Ihr Konto.",
+      "projects": "Projekte",
+      "projectsDescription": "Projekte gruppieren Ihre Tests. Jeder Test kann zu einem gehören.",
+      "environments": "Umgebungen",
+      "environmentsDescription": "Eine Umgebung enthält die Basis-URL, die Variablen und Geheimnisse einer Ausführung sowie eine gespeicherte Anmeldung. Geheimnisse sind AES-256-GCM-verschlüsselt und werden nur während eines Testlaufs entschlüsselt — in einem Schritt verweisen Sie mit {{token}} darauf.",
+      "defaults": "Standardwerte",
+      "defaultsDescription": "Womit ein neuer Test beginnt und wie sich der Browser dabei verhält.",
+      "system": "System",
+      "systemDescription": "Serverweite Konfiguration. Sie gilt für alle Nutzer dieser Installation.",
+      "notifications": "Benachrichtigungen",
+      "notificationsDescription": "Für welche Ereignisse Sie unterbrochen werden möchten.",
+      "account": "Konto",
+      "accountDescription": "Ihre Anmeldedaten und die Aktionen, die sich nicht rückgängig machen lassen."
     }
   },
   "dashboard": {
@@ -1654,5 +1671,27 @@
     "defaultsOnly": "Keine Umgebung (nur Standardwerte)",
     "signedIn": "mit gespeicherter Anmeldung",
     "emptyHint": "Noch keine. Legen Sie in den Einstellungen eine an, um Geheimnisse und eine gespeicherte Anmeldung zu nutzen."
+  },
+  "common": {
+    "error": "Fehler"
+  },
+  "environments": {
+    "newEnvironmentPlaceholder": "Neue Umgebung (z. B. Staging)",
+    "add": "Hinzufügen",
+    "loading": "Umgebungen werden geladen…",
+    "empty": "Noch keine Umgebungen.",
+    "noSecrets": "Für diese Umgebung sind keine Geheimnisse gespeichert.",
+    "encrypted": "Verschlüsselt",
+    "keyNameLabel": "Name des Schlüssels",
+    "keyNamePlaceholder": "z. B. ADMIN_PASSWORD",
+    "secretValueLabel": "Wert des Geheimnisses",
+    "secretValuePlaceholder": "Verschlüsselt gespeichert",
+    "addSecret": "Geheimnis hinzufügen",
+    "toast": {
+      "created": "Umgebung erstellt",
+      "deleted": "Umgebung gelöscht",
+      "secretSaved": "Geheimnis verschlüsselt gespeichert",
+      "secretDeleted": "Geheimnis gelöscht"
+    }
   }
 }

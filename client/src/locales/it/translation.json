@@ -73,6 +73,23 @@
       "logLevelDescription": "Seleziona il livello minimo di log da registrare.",
       "saveButton": "Salva Conservazione Log",
       "saveButtonLogLevel": "Salva Livello Log"
+    },
+    "sections": {
+      "navLabel": "Sezioni delle impostazioni",
+      "preferences": "Preferenze",
+      "preferencesDescription": "Come si presenta l’interfaccia e in che lingua parla. Valgono solo per il tuo account.",
+      "projects": "Progetti",
+      "projectsDescription": "I progetti raggruppano i test. Ogni test può appartenere a uno.",
+      "environments": "Ambienti",
+      "environmentsDescription": "Un ambiente contiene l’URL di base, le variabili e i segreti con cui si risolve un’esecuzione, più un accesso salvato. I segreti sono cifrati in AES-256-GCM e decifrati solo mentre un test gira: in un passo si richiamano con {{token}}.",
+      "defaults": "Valori predefiniti",
+      "defaultsDescription": "Da cosa parte un test nuovo e come si comporta il browser mentre gira.",
+      "system": "Sistema",
+      "systemDescription": "Configurazione valida per tutto il server. Vale per chiunque usi questa installazione.",
+      "notifications": "Notifiche",
+      "notificationsDescription": "Per quali eventi vale la pena interromperti.",
+      "account": "Account",
+      "accountDescription": "I dati del tuo accesso e le azioni che non si possono annullare."
     }
   },
   "dashboard": {
@@ -1773,5 +1790,27 @@
     "defaultsOnly": "Nessun ambiente (solo valori predefiniti)",
     "signedIn": "con accesso salvato",
     "emptyHint": "Non ce ne sono. Creane uno nelle Impostazioni per usare i segreti e un accesso salvato."
+  },
+  "common": {
+    "error": "Errore"
+  },
+  "environments": {
+    "newEnvironmentPlaceholder": "Nuovo ambiente (es. Staging)",
+    "add": "Aggiungi",
+    "loading": "Caricamento degli ambienti…",
+    "empty": "Non c’è ancora nessun ambiente.",
+    "noSecrets": "Nessun segreto salvato per questo ambiente.",
+    "encrypted": "Cifrato",
+    "keyNameLabel": "Nome della chiave",
+    "keyNamePlaceholder": "es. ADMIN_PASSWORD",
+    "secretValueLabel": "Valore del segreto",
+    "secretValuePlaceholder": "Salvato cifrato",
+    "addSecret": "Aggiungi il segreto",
+    "toast": {
+      "created": "Ambiente creato",
+      "deleted": "Ambiente eliminato",
+      "secretSaved": "Segreto salvato, cifrato",
+      "secretDeleted": "Segreto eliminato"
+    }
   }
 }
