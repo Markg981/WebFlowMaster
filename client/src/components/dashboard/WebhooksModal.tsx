@@ -116,7 +116,7 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
                         /execute/{wh.token.substring(0, 8)}...
                       </code>
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleCopy(wh.token)}>
-                        {copiedToken === wh.token ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                        {copiedToken === wh.token ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
                       </Button>
                     </div>
                   </TableCell>

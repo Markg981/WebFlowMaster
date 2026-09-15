@@ -102,7 +102,17 @@ const renderSettingsPage = () => {
   return render(<SettingsPage />, { wrapper });
 };
 
+/**
+ * Settings opens on Preferences now, so anything else is a click away on the section rail.
+ * The rail only exists once the settings query has settled, hence the find rather than a get.
+ */
+const openSection = async (label: string | RegExp) => {
+  const rail = await screen.findByRole('navigation');
+  fireEvent.click(within(rail).getByRole('button', { name: label }));
+};
+
 const openDeleteDialogFor = async (projectName: string) => {
+  await openSection('Projects');
   const deleteButton = await screen.findByRole('button', {
     name: `Delete project ${projectName}`,
   });
@@ -115,6 +125,9 @@ beforeEach(() => {
   projects = [...sampleProjects];
   deleteResponder = () => new Response(null, { status: 204 });
   installFetch();
+  // The active section lives in the URL fragment, so one test must not decide where the
+  // next one starts.
+  window.location.hash = '';
 });
 
 afterEach(() => {

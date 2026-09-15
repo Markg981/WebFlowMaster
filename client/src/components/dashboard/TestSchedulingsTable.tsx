@@ -4,9 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchAllSchedules, TestPlanScheduleEnhanced } from '@/lib/api/schedules';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertCircle, CalendarDays } from 'lucide-react';
+import { Loader2, AlertCircle, CalendarDays, CalendarClock } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'wouter';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 
 const TestSchedulingsTable: React.FC = () => {
   const { t } = useTranslation();
@@ -32,7 +34,7 @@ const TestSchedulingsTable: React.FC = () => {
     return(
     <div className = "bg-card text-card-foreground p-4 rounded-lg shadow" >
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">{t('dashboard.testSchedulingsTable.upcomingActiveSchedules.title')}</h3>
+          <h3 className="text-base font-semibold">{t('dashboard.testSchedulingsTable.upcomingActiveSchedules.title')}</h3>
           <Link href="/test-suites" className="text-sm text-primary hover:underline flex items-center">
             {t('dashboard.testSchedulingsTable.viewAll.link')} <CalendarDays className="ml-1 h-4 w-4" />
           </Link>
@@ -57,9 +59,17 @@ const TestSchedulingsTable: React.FC = () => {
 
 {
   !isLoading && !error && displayedSchedules.length === 0 && (
-    <div className="flex items-center justify-center h-40">
-      <p className="text-muted-foreground">{t('dashboard.testSchedulingsTable.noUpcomingSchedules.text')}</p>
-    </div>
+    <EmptyState
+      icon={CalendarClock}
+      title={t('dashboard.testSchedulingsTable.noUpcomingSchedules.text')}
+      description={t('dashboard.emptySchedules.description')}
+      action={
+        <Button asChild size="sm">
+          <Link href="/scheduling">{t('dashboard.emptySchedules.action')}</Link>
+        </Button>
+      }
+      className="min-h-[160px]"
+    />
   )
 }
 
@@ -94,7 +104,7 @@ const TestSchedulingsTable: React.FC = () => {
               </TableCell>
               <TableCell className="text-xs">{schedule.frequency}</TableCell>
               <TableCell>
-                <Badge variant={schedule.isActive ? 'default' : 'secondary'} className={schedule.isActive ? 'bg-green-500 hover:bg-green-600' : ''}>
+                <Badge variant={schedule.isActive ? 'default' : 'secondary'} className={schedule.isActive ? 'bg-success hover:bg-success/90' : ''}>
                   {schedule.isActive ? t('dashboard.testSchedulingsTable.status.active') : t('dashboard.testSchedulingsTable.status.inactive')}
                 </Badge>
               </TableCell>

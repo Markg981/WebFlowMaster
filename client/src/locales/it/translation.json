@@ -73,6 +73,23 @@
       "logLevelDescription": "Seleziona il livello minimo di log da registrare.",
       "saveButton": "Salva Conservazione Log",
       "saveButtonLogLevel": "Salva Livello Log"
+    },
+    "sections": {
+      "navLabel": "Sezioni delle impostazioni",
+      "preferences": "Preferenze",
+      "preferencesDescription": "Come si presenta l’interfaccia e in che lingua parla. Valgono solo per il tuo account.",
+      "projects": "Progetti",
+      "projectsDescription": "I progetti raggruppano i test. Ogni test può appartenere a uno.",
+      "environments": "Ambienti",
+      "environmentsDescription": "Un ambiente contiene l’URL di base, le variabili e i segreti con cui si risolve un’esecuzione, più un accesso salvato. I segreti sono cifrati in AES-256-GCM e decifrati solo mentre un test gira: in un passo si richiamano con {{token}}.",
+      "defaults": "Valori predefiniti",
+      "defaultsDescription": "Da cosa parte un test nuovo e come si comporta il browser mentre gira.",
+      "system": "Sistema",
+      "systemDescription": "Configurazione valida per tutto il server. Vale per chiunque usi questa installazione.",
+      "notifications": "Notifiche",
+      "notificationsDescription": "Per quali eventi vale la pena interromperti.",
+      "account": "Account",
+      "accountDescription": "I dati del tuo accesso e le azioni che non si possono annullare."
     }
   },
   "dashboard": {
@@ -89,7 +106,8 @@
       },
       "lastRun": {
         "title": "Ultima esecuzione"
-      }
+      },
+      "noRunsHint": "Nessuna esecuzione da misurare"
     },
     "quickAccessReports": {
       "recentTestReports": {
@@ -97,12 +115,9 @@
       },
       "reportDataWillBeAvailable": {
         "description": "I dati del report saranno disponibili a breve."
-      }
-    },
-    "runTestNowButton": {
-      "eseguiTestOra": {
-        "button": "Esegui test ora"
-      }
+      },
+      "open": "Apri",
+      "unnamedPlan": "Piano senza nome"
     },
     "testSchedulingsTable": {
       "upcomingActiveSchedules": {
@@ -155,7 +170,7 @@
     },
     "testStatusPieChart": {
       "testStatusOverview": {
-        "title": "Panoramica degli stati"
+        "title": "Stato delle esecuzioni"
       },
       "chartDataWillBeAvailable": {
         "description": "I dati del grafico saranno disponibili a breve."
@@ -163,8 +178,30 @@
     },
     "testTrendBarChart": {
       "weeklyTestTrends": {
-        "title": "Andamento settimanale"
+        "title": "Ultimi 30 giorni"
       }
+    },
+    "executionStatus": {
+      "passed": "Superati",
+      "failed": "Falliti",
+      "pending": "In corso o in coda"
+    },
+    "emptyExecutions": {
+      "title": "Non è ancora stato eseguito niente",
+      "description": "Costruisci un test su una delle tue applicazioni web ed eseguilo. I risultati compaiono qui.",
+      "action": "Crea un test"
+    },
+    "emptyTrend": {
+      "title": "Nessuna esecuzione negli ultimi 30 giorni",
+      "description": "Quando i test cominciano a girare, qui vedi quanti passano e quanti falliscono ogni giorno."
+    },
+    "emptySchedules": {
+      "description": "Una schedulazione esegue un piano di test da sola, agli orari che decidi tu.",
+      "action": "Crea una schedulazione"
+    },
+    "emptyReports": {
+      "title": "Nessun report",
+      "description": "Ogni esecuzione conclusa lascia qui un report, con passi, tempi e schermate."
     }
   },
   "nav": {
@@ -177,7 +214,9 @@
     "reports": "Report",
     "settings": "Impostazioni",
     "backToDashboard": "Torna alla Dashboard",
-    "scheduling": "Schedulazione"
+    "scheduling": "Schedulazione",
+    "executionReport": "Report di esecuzione",
+    "runTestPlan": "Esecuzione del piano"
   },
   "dashboardPage": {
     "headerTitle": "Piattaforma WebTest",
@@ -368,7 +407,8 @@
     },
     "runningAssertions": {
       "text": "Esecuzione delle asserzioni…"
-    }
+    },
+    "title": "API Tester"
   },
   "dashboardOverviewPage": {
     "webtestPlatform": {
@@ -382,7 +422,10 @@
     },
     "dashboardOverview": {
       "title": "Panoramica"
-    }
+    },
+    "description": "Come stanno andando i tuoi test e che cosa è in programma.",
+    "loadFailed": "Non è stato possibile caricare i dati della dashboard: i pannelli qui sotto possono essere vuoti o non aggiornati.",
+    "retry": "Riprova"
   },
   "testSuitesPage": {
     "testSuites": {
@@ -434,12 +477,25 @@
     "schedulesContentGoesHere": {
       "text": "Qui compariranno le schedulazioni."
     },
-    "loadingTestPlans.text": "Caricamento Test Plan in corso...",
-    "errorLoadingTestPlans.text": "Errore durante il caricamento dei Test Plan",
-    "noTestPlansFound.text": "Nessun Test Plan trovato.",
-    "description.label": "Descrizione",
-    "testingType.label": "Tipo Test",
-    "crossBrowserTesting.text": "Cross Browser Testing"
+    "pageDescription": "Raggruppa i test in piani ed esegui un piano intero su un ambiente.",
+    "loadingTestPlans": {
+      "text": "Caricamento Test Plan in corso..."
+    },
+    "errorLoadingTestPlans": {
+      "text": "Errore durante il caricamento dei Test Plan"
+    },
+    "noTestPlansFound": {
+      "text": "Nessun Test Plan trovato."
+    },
+    "description": {
+      "label": "Descrizione"
+    },
+    "testingType": {
+      "label": "Tipo Test"
+    },
+    "crossBrowserTesting": {
+      "text": "Cross Browser Testing"
+    }
   },
   "testsPage": {
     "testManagement": {
@@ -687,6 +743,9 @@
     },
     "comprehensiveReporting": {
       "text": "Report completi"
+    },
+    "edition": {
+      "text": "Premium Enterprise Edition"
     }
   },
   "dashboardPageNew": {
@@ -1017,7 +1076,8 @@
     },
     "webkitSafari": {
       "text": "WebKit (Safari)"
-    }
+    },
+    "description": "Aspetto, lingua, progetti, motore di automazione e i segreti usati dai test."
   },
   "saveTestModal": {
     "saveTest": {
@@ -1347,85 +1407,149 @@
       "title": "Step 1: Crea Test Plan",
       "description": "Fornisci i dettagli di base per il tuo nuovo piano di test.",
       "fieldsPlaceholder": "I campi per Nome Test Plan, Descrizione, Test Lab, Tipo Test andranno qui.",
-      "name.label": "Nome Test Plan",
-      "name.placeholder": "es. Flusso di Checkout End-to-End",
-      "descriptionField.label": "Descrizione (Opzionale)",
-      "descriptionField.placeholder": "Un breve riassunto di cosa copre questo piano di test.",
-      "testLab.label": "Seleziona Test Lab",
-      "testingType.label": "Tipo di Test",
       "validation": {
         "nameRequired": "Il Nome del Test Plan è obbligatorio."
+      },
+      "name": {
+        "label": "Nome Test Plan",
+        "placeholder": "es. Flusso di Checkout End-to-End"
+      },
+      "descriptionField": {
+        "label": "Descrizione (Opzionale)",
+        "placeholder": "Un breve riassunto di cosa copre questo piano di test."
+      },
+      "testLab": {
+        "label": "Seleziona Test Lab"
+      },
+      "testingType": {
+        "label": "Tipo di Test"
       }
     },
     "step2": {
       "title": "Step 2: Macchine di Test & Suite",
       "description": "Configura le macchine di test e seleziona le suite di test.",
       "fieldsPlaceholder": "L'UI per la selezione delle Macchine di Test e delle Suite di Test andrà qui.",
-      "testMachinesConfig.title": "Configurazione Macchine di Test",
-      "os.label": "Sistema Operativo",
-      "os.placeholder": "Seleziona OS",
-      "osVersion.label": "Versione OS",
-      "osVersion.placeholder": "es. 10, 11, Sonoma",
-      "browser.label": "Browser",
-      "browser.placeholder": "Seleziona Browser",
-      "browserVersion.label": "Versione Browser",
-      "browserVersion.placeholder": "es. latest, 120.0",
-      "headless.label": "Headless",
-      "desiredCapabilities.link": "Desired Capabilities (Opzionale)",
-      "desiredCapabilities.alertNotImplemented": "La configurazione delle Desired Capabilities non è ancora implementata.",
       "addMachineButton": "Aggiungi Configurazione Macchina",
-      "addedMachines.title": "Configurazioni Aggiunte:",
       "validation": {
         "machineFieldsRequired": "Tutti i campi di configurazione della macchina sono obbligatori.",
         "atLeastOneMachineOrSuite": "Aggiungi almeno una configurazione macchina o seleziona almeno una suite di test."
       },
-      "testSuitesSelection.title": "Selezione Suite di Test",
       "noTestSuitesSelected": "Nessuna suite di test ancora selezionata.",
-      "addTestSuitesButton": "Aggiungi Suite di Test"
+      "addTestSuitesButton": "Aggiungi Suite di Test",
+      "testMachinesConfig": {
+        "title": "Configurazione Macchine di Test"
+      },
+      "os": {
+        "label": "Sistema Operativo",
+        "placeholder": "Seleziona OS"
+      },
+      "osVersion": {
+        "label": "Versione OS",
+        "placeholder": "es. 10, 11, Sonoma"
+      },
+      "browser": {
+        "label": "Browser",
+        "placeholder": "Seleziona Browser"
+      },
+      "browserVersion": {
+        "label": "Versione Browser",
+        "placeholder": "es. latest, 120.0"
+      },
+      "headless": {
+        "label": "Headless"
+      },
+      "desiredCapabilities": {
+        "link": "Desired Capabilities (Opzionale)",
+        "alertNotImplemented": "La configurazione delle Desired Capabilities non è ancora implementata."
+      },
+      "addedMachines": {
+        "title": "Configurazioni Aggiunte:"
+      },
+      "testSuitesSelection": {
+        "title": "Selezione Suite di Test"
+      }
     },
     "step3": {
       "title": "Step 3: Impostazioni Test Plan",
       "description": "Regola le impostazioni avanzate per l'esecuzione del piano di test.",
       "fieldsPlaceholder": "I campi di configurazione per screenshot, timeout, gestione errori ecc. andranno qui.",
-      "captureScreenshots.label": "Cattura Screenshot",
-      "captureScreenshots.options.always": "Sempre",
-      "captureScreenshots.options.on_failed_steps": "Su Step Falliti (default)",
-      "captureScreenshots.options.never": "Mai",
-      "visualTesting.label": "Visual Testing (Sperimentale)",
-      "pageLoadTimeout.label": "Timeout Caricamento Pagina (secondi)",
-      "elementTimeout.label": "Timeout Elemento (secondi)",
-      "onMajorStepFailure.label": "In Caso di Fallimento Step Principale",
-      "onMajorStepFailure.options.abort_run_next": "Interrompi ed esegui Test Case successivo (default)",
-      "onMajorStepFailure.options.stop": "Interrompi Esecuzione",
-      "onMajorStepFailure.options.retry": "Riprova Step",
-      "onAbortedTestCase.label": "In Caso di Test Case Interrotto",
-      "onAbortedTestCase.options.delete_cookies_reuse_session": "Elimina cookie e riusa sessione (default)",
-      "onAbortedTestCase.options.stop": "Interrompi Esecuzione",
-      "onTestSuitePreRequisiteFailure.label": "In Caso di Fallimento Prerequisito Test Suite",
-      "onTestSuitePreRequisiteFailure.options.stop": "Interrompi Esecuzione (default)",
-      "onTestSuitePreRequisiteFailure.options.skip_suite": "Salta Test Suite",
-      "onTestSuitePreRequisiteFailure.options.continue": "Continua Comunque",
-      "onTestCasePreRequisiteFailure.label": "In Caso di Fallimento Prerequisito Test Case",
-      "onTestCasePreRequisiteFailure.options.stop": "Interrompi Esecuzione (default)",
-      "onTestCasePreRequisiteFailure.options.skip_case": "Salta Test Case",
-      "onTestCasePreRequisiteFailure.options.continue": "Continua Comunque",
-      "onTestStepPreRequisiteFailure.label": "In Caso di Fallimento Prerequisito Test Step",
-      "onTestStepPreRequisiteFailure.options.abort_run_next": "Interrompi ed esegui Test Case successivo (default)",
-      "onTestStepPreRequisiteFailure.options.stop": "Interrompi Esecuzione",
-      "onTestStepPreRequisiteFailure.options.skip_step": "Salta Test Step",
-      "reRunOnFailure.label": "Riesegui in Caso di Fallimento",
-      "reRunOnFailure.options.none": "Nessuna (default)",
-      "reRunOnFailure.options.once": "Una volta",
-      "reRunOnFailure.options.twice": "Due volte",
-      "reRunOnFailure.options.thrice": "Tre volte",
-      "sendNotificationWhen.label": "Invia Notifica Quando",
-      "sendNotificationWhen.options.passed": "Passato",
-      "sendNotificationWhen.options.failed": "Fallito",
-      "sendNotificationWhen.options.notExecuted": "Non Eseguito",
-      "sendNotificationWhen.options.stopped": "Interrotto",
       "validation": {
         "pageLoadTimeoutRequired": "Timeout Caricamento Pagina deve essere un numero positivo.",
         "elementTimeoutRequired": "Timeout Elemento deve essere un numero positivo."
+      },
+      "captureScreenshots": {
+        "label": "Cattura Screenshot",
+        "options": {
+          "always": "Sempre",
+          "on_failed_steps": "Su Step Falliti (default)",
+          "never": "Mai"
+        }
+      },
+      "visualTesting": {
+        "label": "Visual Testing (Sperimentale)"
+      },
+      "pageLoadTimeout": {
+        "label": "Timeout Caricamento Pagina (secondi)"
+      },
+      "elementTimeout": {
+        "label": "Timeout Elemento (secondi)"
+      },
+      "onMajorStepFailure": {
+        "label": "In Caso di Fallimento Step Principale",
+        "options": {
+          "abort_run_next": "Interrompi ed esegui Test Case successivo (default)",
+          "stop": "Interrompi Esecuzione",
+          "retry": "Riprova Step"
+        }
+      },
+      "onAbortedTestCase": {
+        "label": "In Caso di Test Case Interrotto",
+        "options": {
+          "delete_cookies_reuse_session": "Elimina cookie e riusa sessione (default)",
+          "stop": "Interrompi Esecuzione"
+        }
+      },
+      "onTestSuitePreRequisiteFailure": {
+        "label": "In Caso di Fallimento Prerequisito Test Suite",
+        "options": {
+          "stop": "Interrompi Esecuzione (default)",
+          "skip_suite": "Salta Test Suite",
+          "continue": "Continua Comunque"
+        }
+      },
+      "onTestCasePreRequisiteFailure": {
+        "label": "In Caso di Fallimento Prerequisito Test Case",
+        "options": {
+          "stop": "Interrompi Esecuzione (default)",
+          "skip_case": "Salta Test Case",
+          "continue": "Continua Comunque"
+        }
+      },
+      "onTestStepPreRequisiteFailure": {
+        "label": "In Caso di Fallimento Prerequisito Test Step",
+        "options": {
+          "abort_run_next": "Interrompi ed esegui Test Case successivo (default)",
+          "stop": "Interrompi Esecuzione",
+          "skip_step": "Salta Test Step"
+        }
+      },
+      "reRunOnFailure": {
+        "label": "Riesegui in Caso di Fallimento",
+        "options": {
+          "none": "Nessuna (default)",
+          "once": "Una volta",
+          "twice": "Due volte",
+          "thrice": "Tre volte"
+        }
+      },
+      "sendNotificationWhen": {
+        "label": "Invia Notifica Quando",
+        "options": {
+          "passed": "Passato",
+          "failed": "Fallito",
+          "notExecuted": "Non Eseguito",
+          "stopped": "Interrotto"
+        }
       }
     },
     "cancel": "Annulla",
@@ -1561,35 +1685,132 @@
     }
   },
   "testPlanExecutionPage": {
-    "loadingPlan.text": "Caricamento Dettagli Test Plan...",
-    "errorLoadingPlan.text": "Errore durante il caricamento del test plan",
-    "backToTestSuites.button": "Torna alle Test Suite",
-    "planNotFound.text": "Test Plan non trovato.",
-    "runningTestPlan.text": "Esecuzione Test Plan",
-    "startExecution.button": "Avvia Esecuzione",
-    "runAgain.button": "Esegui di Nuovo",
-    "running.button": "In Esecuzione...",
-    "overallProgress.title": "Progresso Generale",
-    "overallProgress.description": "{{completed}} di {{total}} test completati.",
-    "status.passed": "Passato",
-    "status.failed": "Fallito",
-    "status.pending": "In Attesa",
-    "tests.title": "Test nel Piano",
-    "tests.description": "Stato dei singoli test per {{planName}}.",
-    "noDescription.text": "Nessuna descrizione fornita per questo test.",
-    "statusLabels.running": "In Esecuzione",
-    "statusLabels.passed": "Passato",
-    "statusLabels.failed": "Fallito",
-    "statusLabels.pending": "In Attesa",
-    "noTestsInPlan.text": "Questo test plan non contiene ancora nessun test.",
-    "executionLog.title": "Log di Esecuzione",
-    "executionLog.description": "Aggiornamenti in tempo reale durante l'esecuzione del test plan.",
-    "executionLog.noLogsYet.text": "I log di esecuzione appariranno qui una volta avviata.",
     "logs": {
       "startingExecution": "Avvio esecuzione per il piano: {{planName}}",
       "runningTest": "Esecuzione test: {{testName}}",
       "testCompleted": "Test {{testName}} completato con stato: {{status}}",
       "executionFinished": "Esecuzione del test plan terminata."
+    },
+    "loadingPlan": {
+      "text": "Caricamento Dettagli Test Plan..."
+    },
+    "errorLoadingPlan": {
+      "text": "Errore durante il caricamento del test plan"
+    },
+    "backToTestSuites": {
+      "button": "Torna alle Test Suite"
+    },
+    "planNotFound": {
+      "text": "Test Plan non trovato."
+    },
+    "runningTestPlan": {
+      "text": "Esecuzione Test Plan"
+    },
+    "startExecution": {
+      "button": "Avvia Esecuzione"
+    },
+    "runAgain": {
+      "button": "Esegui di Nuovo"
+    },
+    "running": {
+      "button": "In Esecuzione..."
+    },
+    "overallProgress": {
+      "title": "Progresso Generale",
+      "description": "{{completed}} di {{total}} test completati."
+    },
+    "status": {
+      "passed": "Passato",
+      "failed": "Fallito",
+      "pending": "In Attesa"
+    },
+    "tests": {
+      "title": "Test nel Piano",
+      "description": "Stato dei singoli test per {{planName}}."
+    },
+    "noDescription": {
+      "text": "Nessuna descrizione fornita per questo test."
+    },
+    "statusLabels": {
+      "running": "In Esecuzione",
+      "passed": "Passato",
+      "failed": "Fallito",
+      "pending": "In Attesa"
+    },
+    "noTestsInPlan": {
+      "text": "Questo test plan non contiene ancora nessun test."
+    },
+    "executionLog": {
+      "title": "Log di Esecuzione",
+      "description": "Aggiornamenti in tempo reale durante l'esecuzione del test plan.",
+      "noLogsYet": {
+        "text": "I log di esecuzione appariranno qui una volta avviata."
+      }
+    }
+  },
+  "filePicker": {
+    "empty": "Nessun file scelto",
+    "browse": "Sfoglia",
+    "clear": "Togli il file scelto"
+  },
+  "testManager": {
+    "title": "Gestione dei test",
+    "subtitle": "Importa i casi di test da Excel e associa ogni riga a una sequenza salvata.",
+    "uploading": "Caricamento…",
+    "uploadExcel": "Carica l’Excel",
+    "rowCount_one": "{{count}} caso di test importato",
+    "rowCount_other": "{{count}} casi di test importati",
+    "runSelected": "Esegui i selezionati ({{n}})",
+    "selectRow": "Seleziona il caso di test {{id}}",
+    "selectSequence": "Scegli una sequenza",
+    "columns": {
+      "select": "Scegli",
+      "excelId": "ID Excel",
+      "priority": "Priorità",
+      "objective": "Obiettivo",
+      "mappedSequence": "Sequenza associata",
+      "status": "Stato"
+    },
+    "empty": {
+      "title": "Comincia da un file Excel",
+      "description": "Scegli un file .xlsx o .xls di casi di test. Ogni riga diventa un caso da associare a una sequenza salvata ed eseguire."
+    },
+    "viewLatestReport": "Vedi l’ultimo report"
+  },
+  "generalReportsPage": {
+    "description": "Tutte le esecuzioni concluse, con passi, tempi e schermate."
+  },
+  "schedulingPage": {
+    "description": "Esegui un piano di test a orari fissi e fatti avvisare quando fallisce."
+  },
+  "environmentSelect": {
+    "label": "Ambiente",
+    "loading": "Caricamento…",
+    "none": "Nessun ambiente",
+    "defaultsOnly": "Nessun ambiente (solo valori predefiniti)",
+    "signedIn": "con accesso salvato",
+    "emptyHint": "Non ce ne sono. Creane uno nelle Impostazioni per usare i segreti e un accesso salvato."
+  },
+  "common": {
+    "error": "Errore"
+  },
+  "environments": {
+    "newEnvironmentPlaceholder": "Nuovo ambiente (es. Staging)",
+    "add": "Aggiungi",
+    "loading": "Caricamento degli ambienti…",
+    "empty": "Non c’è ancora nessun ambiente.",
+    "noSecrets": "Nessun segreto salvato per questo ambiente.",
+    "encrypted": "Cifrato",
+    "keyNameLabel": "Nome della chiave",
+    "keyNamePlaceholder": "es. ADMIN_PASSWORD",
+    "secretValueLabel": "Valore del segreto",
+    "secretValuePlaceholder": "Salvato cifrato",
+    "addSecret": "Aggiungi il segreto",
+    "toast": {
+      "created": "Ambiente creato",
+      "deleted": "Ambiente eliminato",
+      "secretSaved": "Segreto salvato, cifrato",
+      "secretDeleted": "Segreto eliminato"
     }
   }
 }

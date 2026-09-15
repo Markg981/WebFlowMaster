@@ -106,7 +106,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
       <div>
         <Label htmlFor="scheduleName">Schedule Name</Label>
         <Input id="scheduleName" {...register('scheduleName')} />
-        {errors.scheduleName && <p className="text-sm text-red-500 mt-1">{errors.scheduleName.message}</p>}
+        {errors.scheduleName && <p className="text-sm text-destructive mt-1">{errors.scheduleName.message}</p>}
       </div>
 
       <div>
@@ -133,7 +133,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
             </Select>
           )}
         />
-        {errors.testPlanId && <p className="text-sm text-red-500 mt-1">{errors.testPlanId.message}</p>}
+        {errors.testPlanId && <p className="text-sm text-destructive mt-1">{errors.testPlanId.message}</p>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -157,7 +157,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
               </Select>
             )}
           />
-          {errors.frequency && <p className="text-sm text-red-500 mt-1">{errors.frequency.message}</p>}
+          {errors.frequency && <p className="text-sm text-destructive mt-1">{errors.frequency.message}</p>}
         </div>
 
         {watchedFrequency === 'custom_cron' && (
@@ -181,7 +181,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
                 </TooltipProvider>
             </Label>
             <Input id="customCronExpression" {...register('customCronExpression')} placeholder="e.g., 0 0 * * *" />
-            {errors.customCronExpression && <p className="text-sm text-red-500 mt-1">{errors.customCronExpression.message}</p>}
+            {errors.customCronExpression && <p className="text-sm text-destructive mt-1">{errors.customCronExpression.message}</p>}
           </div>
         )}
       </div>
@@ -204,7 +204,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
         <p className="text-xs text-muted-foreground mt-1">
           The schedule runs at this local time all year — daylight saving included.
         </p>
-        {errors.timezone && <p className="text-sm text-red-500 mt-1">{errors.timezone.message}</p>}
+        {errors.timezone && <p className="text-sm text-destructive mt-1">{errors.timezone.message}</p>}
       </div>
 
       <div>
@@ -266,13 +266,13 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
             </Popover>
           )}
         />
-        {errors.nextRunAt && <p className="text-sm text-red-500 mt-1">{errors.nextRunAt.message}</p>}
+        {errors.nextRunAt && <p className="text-sm text-destructive mt-1">{errors.nextRunAt.message}</p>}
       </div>
 
       <div>
         <Label htmlFor="environment">Environment</Label>
         <Input id="environment" {...register('environment')} placeholder="e.g., QA, Staging, Production" />
-        {errors.environment && <p className="text-sm text-red-500 mt-1">{errors.environment.message}</p>}
+        {errors.environment && <p className="text-sm text-destructive mt-1">{errors.environment.message}</p>}
       </div>
 
       <div>
@@ -302,7 +302,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
                 </div>
             )}
         />
-        {errors.browsers && <p className="text-sm text-red-500 mt-1">{errors.browsers.message}</p>}
+        {errors.browsers && <p className="text-sm text-destructive mt-1">{errors.browsers.message}</p>}
       </div>
 
       <div>
@@ -325,7 +325,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
             </Select>
           )}
         />
-        {errors.retryOnFailure && <p className="text-sm text-red-500 mt-1">{errors.retryOnFailure.message}</p>}
+        {errors.retryOnFailure && <p className="text-sm text-destructive mt-1">{errors.retryOnFailure.message}</p>}
       </div>
 
       <div>
@@ -352,7 +352,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
           rows={3}
           placeholder='e.g., { "emails": ["test@example.com"], "onSuccess": true }'
         />
-        {errors.notificationConfigOverride && <p className="text-sm text-red-500 mt-1">{errors.notificationConfigOverride.message}</p>}
+        {errors.notificationConfigOverride && <p className="text-sm text-destructive mt-1">{errors.notificationConfigOverride.message}</p>}
       </div>
 
       <div>
@@ -379,7 +379,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
           rows={3}
           placeholder='e.g., { "param1": "value1", "param2": true }'
         />
-        {errors.executionParameters && <p className="text-sm text-red-500 mt-1">{errors.executionParameters.message}</p>}
+        {errors.executionParameters && <p className="text-sm text-destructive mt-1">{errors.executionParameters.message}</p>}
       </div>
 
       <div className="flex items-center space-x-2">
@@ -395,7 +395,7 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
             )}
         />
         <Label htmlFor="isActive" className="font-normal">Schedule Active</Label>
-        {errors.isActive && <p className="text-sm text-red-500 mt-1">{errors.isActive.message}</p>}
+        {errors.isActive && <p className="text-sm text-destructive mt-1">{errors.isActive.message}</p>}
       </div>
 
       <div className="flex justify-end space-x-3">

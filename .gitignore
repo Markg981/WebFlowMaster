@@ -60,3 +60,8 @@ scripts/netcontent-ui/ui-tests.preview.json
 
 # Playwright MCP session artifacts
 .playwright-mcp/
+
+# Reproductions the observability pass writes from a live incident. They are scratch
+# until someone renames one to .test.ts to keep it; four landed here from a few seconds of
+# half-applied edits during a refactor.
+client/src/__repro__/*.repro.ts

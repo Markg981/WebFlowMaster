@@ -59,11 +59,16 @@ export async function getDashboardMetrics(userId: number) {
       });
     }
 
-    // Pie Chart Data
+    // Pie Chart Data.
+    //
+    // A stable id per slice, not a colour and not an English label. This used to send
+    // `fill: '#10b981'` and `name: 'Passed'`, which put the palette and the wording of the
+    // interface in the aggregation layer: the slice colours could not follow the theme, and
+    // the legend read "Passed" in every language the product ships.
     const pieData = [
-      { name: 'Passed', value: passedRuns, fill: '#10b981' }, // green-500
-      { name: 'Failed', value: Number(stats.failed) || 0, fill: '#ef4444' }, // red-500
-      { name: 'Running/Pending', value: totalRuns - passedRuns - (Number(stats.failed) || 0), fill: '#eab308' } // yellow-500
+      { status: 'passed' as const, value: passedRuns },
+      { status: 'failed' as const, value: Number(stats.failed) || 0 },
+      { status: 'pending' as const, value: totalRuns - passedRuns - (Number(stats.failed) || 0) },
     ];
 
     // Recent Executions

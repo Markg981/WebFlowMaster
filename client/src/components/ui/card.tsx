@@ -36,7 +36,12 @@ const CardTitle = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
+      // shadcn ships this at text-2xl, which is sized for a card that *is* the page — a
+      // sign-in box. Every other card here sits inside a section that already has a
+      // heading, and a 24px card title under an 18px section heading inverts the
+      // hierarchy: the smaller thing looks like the bigger one's parent. The handful of
+      // cards that really do own their page set their own size and are unaffected.
+      "text-base font-semibold leading-none tracking-tight",
       className
     )}
     {...props}

@@ -270,9 +270,9 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                     if (e.target.value.trim()) setTestPlanNameError('');
                   }}
                   placeholder={t('createTestPlanWizard.step1.name.placeholder', 'e.g., End-to-End Checkout Flow')}
-                  className={testPlanNameError ? "border-red-500" : ""}
+                  className={testPlanNameError ? "border-destructive" : ""}
                 />
-                {testPlanNameError && <p className="text-sm text-red-500 mt-1">{testPlanNameError}</p>}
+                {testPlanNameError && <p className="text-sm text-destructive mt-1">{testPlanNameError}</p>}
               </div>
               <div>
                 <Label htmlFor="description">{t('createTestPlanWizard.step1.descriptionField.label', 'Description (Optional)')}</Label>
@@ -344,7 +344,7 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                     </Button>
                   </div>
                 </div>
-                {testMachineFormError && <p className="text-sm text-red-500 mt-2">{testMachineFormError}</p>}
+                {testMachineFormError && <p className="text-sm text-destructive mt-2">{testMachineFormError}</p>}
                 <Button onClick={handleAddTestMachine} variant="outline" size="sm" className="mt-3">
                   <PlusCircle className="mr-2 h-4 w-4" /> {t('createTestPlanWizard.step2.addMachineButton', 'Add Machine Configuration')}
                 </Button>
@@ -356,7 +356,7 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                         <div key={machine.id} className="flex justify-between items-center p-1.5 border-b last:border-b-0 text-xs hover:bg-muted/50">
                           <span>{machine.os} {machine.osVersion} - {machine.browserName} {machine.browserVersion} ({machine.headless ? 'Headless' : 'UI'})</span>
                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveTestMachine(machine.id)}>
-                            <XCircle className="h-4 w-4 text-red-500" />
+                            <XCircle className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
                       ))}
@@ -382,7 +382,7 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                     <PlusCircle className="mr-2 h-4 w-4" /> {t('createTestPlanWizard.step2.addTestSuitesButton', 'Add Test Suites')}
                   </Button>
                 </div>
-                 {step2ValidationError && <p className="text-sm font-medium text-red-500 mt-2 text-center">{step2ValidationError}</p>}
+                 {step2ValidationError && <p className="text-sm font-medium text-destructive mt-2 text-center">{step2ValidationError}</p>}
               </section>
             </div>
             <TestSuiteSelectorModal
@@ -422,12 +422,12 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
               <div>
                 <Label htmlFor="pageLoadTimeout">{t('createTestPlanWizard.step3.pageLoadTimeout.label', 'Page Load Timeout (seconds)')}</Label>
                 <Input id="pageLoadTimeout" type="number" value={pageLoadTimeout} onChange={e => setPageLoadTimeout(e.target.value)} placeholder="30" />
-                {pageLoadTimeoutError && <p className="text-sm text-red-500 mt-1">{pageLoadTimeoutError}</p>}
+                {pageLoadTimeoutError && <p className="text-sm text-destructive mt-1">{pageLoadTimeoutError}</p>}
               </div>
               <div>
                 <Label htmlFor="elementTimeout">{t('createTestPlanWizard.step3.elementTimeout.label', 'Element Timeout (seconds)')}</Label>
                 <Input id="elementTimeout" type="number" value={elementTimeout} onChange={e => setElementTimeout(e.target.value)} placeholder="30" />
-                {elementTimeoutError && <p className="text-sm text-red-500 mt-1">{elementTimeoutError}</p>}
+                {elementTimeoutError && <p className="text-sm text-destructive mt-1">{elementTimeoutError}</p>}
               </div>
               <div>
                 <Label htmlFor="onMajorStepFailure">{t('createTestPlanWizard.step3.onMajorStepFailure.label', 'On Major Step Failure')}</Label>
@@ -574,16 +574,16 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
               <React.Fragment key={i}>
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center border-2
-                    ${i + 1 < currentStep ? 'bg-green-500 border-green-500 text-white' : ''}
-                    ${i + 1 === currentStep ? 'border-primary text-primary font-semibold scale-110' : 'border-gray-300'}
-                    ${i + 1 > currentStep ? 'border-gray-300 text-gray-400' : ''}
+                    ${i + 1 < currentStep ? 'bg-success border-success text-white' : ''}
+                    ${i + 1 === currentStep ? 'border-primary text-primary font-semibold scale-110' : 'border-border'}
+                    ${i + 1 > currentStep ? 'border-border text-muted-foreground' : ''}
                   `}
                 >
                   {i + 1 < currentStep ? '✔' : i + 1}
                 </div>
                 {i < totalSteps - 1 && (
                   <div className={`flex-auto border-t-2 mx-2
-                    ${i + 1 < currentStep ? 'border-green-500' : 'border-gray-300'}`}
+                    ${i + 1 < currentStep ? 'border-success' : 'border-border'}`}
                   />
                 )}
               </React.Fragment>
@@ -611,7 +611,7 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
               {currentStep === totalSteps && (
                 <Button
                   onClick={handleCreatePlan}
-                  className="bg-green-500 hover:bg-green-600"
+                  className="bg-success hover:bg-success/90"
                   disabled={isSubmitting}
                 >
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -620,7 +620,7 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
               )}
             </div>
           </div>
-          {submitError && <p className="text-sm text-red-500 mt-3 text-right w-full">{submitError}</p>}
+          {submitError && <p className="text-sm text-destructive mt-3 text-right w-full">{submitError}</p>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,3 +1,6 @@
+import { PageHeader } from '@/components/layout/PageHeader';
+import { SettingsLayout, type SettingsSection } from '@/components/layout/SettingsLayout';
+import { useTheme } from '@/hooks/use-theme';
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +26,8 @@ import {
   Trash2,
   PlusCircle,
   Archive,
+  KeyRound,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -193,7 +198,8 @@ export default function SettingsPage() {
     setDeletingProjectName(null);
   };
 
-  const [darkMode, setDarkMode] = useState(false);
+  // Owned by useTheme, which reads the document rather than a cached copy of the settings.
+  const { isDark, setTheme } = useTheme();
   const [defaultUrl, setDefaultUrl] = useState("");
   const [browser, setBrowser] = useState<"chromium" | "firefox" | "webkit">("chromium");
   const [headless, setHeadless] = useState(true);
@@ -218,7 +224,10 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (settingsData) {
-      setDarkMode(settingsData.theme === "dark");
+      // The theme is deliberately not read back here. It is owned by useTheme, which follows
+      // the document; taking it from this query is what let a cached "light" — never
+      // refetched, because the query client sets staleTime: Infinity — undo a choice the
+      // user had just made from the topbar.
       setDefaultUrl(settingsData.defaultTestUrl || "");
       setBrowser(settingsData.playwrightBrowser);
       setHeadless(settingsData.playwrightHeadless);
@@ -245,11 +254,6 @@ export default function SettingsPage() {
       setLogLevel("info");
     }
   }, [logLevelSettingData, isLoadingLogLevelSetting]);
-
-  useEffect(() => {
-    if (darkMode) document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
-  }, [darkMode]);
 
   useEffect(() => {
     i18n.changeLanguage(language);
@@ -313,7 +317,7 @@ export default function SettingsPage() {
 
   const handleSaveUserSettings = () => {
     const settingsToSave: Partial<UserSettings> = {
-      theme: darkMode ? "dark" : "light",
+      theme: isDark ? "dark" : "light",
       defaultTestUrl: defaultUrl === "" ? null : defaultUrl,
       playwrightBrowser: browser,
       playwrightHeadless: headless,
@@ -333,7 +337,7 @@ export default function SettingsPage() {
   };
 
   const handleResetSettings = () => {
-    setDarkMode(false);
+    setTheme("light");
     setDefaultUrl("");
     setBrowser("chromium");
     setHeadless(true);
@@ -373,19 +377,39 @@ export default function SettingsPage() {
     );
   }
 
-  return (
-    <div className="mx-auto max-w-4xl p-6">
-      <header className="mb-6">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {t('settingsPage.eyebrow', 'Preferences')}
-        </div>
-        <h1 className="mt-0.5 text-2xl font-bold tracking-tight">{t('settings.pageTitle', 'Settings')}</h1>
-      </header>
+  /**
+   * The save bar belongs to the two sections whose fields it writes.
+   *
+   * It sends the whole user-settings record — theme, language, default URL, browser,
+   * headless, timeouts — so it is the same bar in both places rather than two that disagree.
+   * Projects, environments and the log settings each save themselves where they are, and
+   * showing an unrelated "Save" under them only invited the question of what it would save.
+   */
+  const userSettingsFooter = (
+    <div className="flex flex-wrap justify-between gap-3 border-t pt-4">
+      <Button variant="outline" onClick={handleResetSettings} disabled={isPageDisabled}>{t('settings.buttons.resetForm')}</Button>
+      <div className="flex space-x-3">
+        <Link href="/"><Button variant="ghost" disabled={isPageDisabled}>{t('settings.buttons.cancel')}</Button></Link>
+        <Button onClick={handleSaveUserSettings} disabled={isPageDisabled}>
+          {userSettingsMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+          {userSettingsMutation.isPending ? t('settings.buttons.saving') : t('settings.buttons.saveUserSettings', 'Save User Settings')}
+        </Button>
+      </div>
+    </div>
+  );
 
-      <div className="space-y-6">
+  const sections: SettingsSection[] = [
+    {
+      id: 'preferences',
+      label: t('settings.sections.preferences'),
+      description: t('settings.sections.preferencesDescription'),
+      icon: Sun,
+      footer: userSettingsFooter,
+      content: (
+        <>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2"><Sun className="h-5 w-5" /><span>{t('settings.appearance.title')}</span></CardTitle>
+            <CardTitle className="flex items-center space-x-2"><Sun className="h-4 w-4 text-muted-foreground" /><span>{t('settings.appearance.title')}</span></CardTitle>
             <CardDescription>{t('settings.appearance.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -395,7 +419,7 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground">{t('settings.appearance.darkModeDescription')}</p>
               </div>
               <div className="flex items-center space-x-2">
-                <Sun className="h-4 w-4" /><Switch checked={darkMode} onCheckedChange={setDarkMode} disabled={isPageDisabled} /><Moon className="h-4 w-4" />
+                <Sun className="h-4 w-4" /><Switch checked={isDark} onCheckedChange={(on) => setTheme(on ? "dark" : "light")} disabled={isPageDisabled} /><Moon className="h-4 w-4" />
               </div>
             </div>
           </CardContent>
@@ -403,7 +427,7 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2"><Globe className="h-5 w-5" /><span>{t('settings.languageSettings.title')}</span></CardTitle>
+            <CardTitle className="flex items-center space-x-2"><Globe className="h-4 w-4 text-muted-foreground" /><span>{t('settings.languageSettings.title')}</span></CardTitle>
             <CardDescription>{t('settings.languageSettings.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -422,10 +446,19 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
-
+        </>
+      ),
+    },
+    {
+      id: 'projects',
+      label: t('settings.sections.projects'),
+      description: t('settings.sections.projectsDescription'),
+      icon: ListTree,
+      content: (
+        <>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2"><ListTree className="h-5 w-5" /><span>{t('settingsPage.projectManagement.title')}</span></CardTitle>
+            <CardTitle className="flex items-center space-x-2"><ListTree className="h-4 w-4 text-muted-foreground" /><span>{t('settingsPage.projectManagement.title')}</span></CardTitle>
             <CardDescription>{t('settingsPage.createAndManageYourProjects.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -442,7 +475,7 @@ export default function SettingsPage() {
             <div className="space-y-2">
               <h3 className="text-md font-medium">{t('settingsPage.existingProjects.title')}</h3>
               {isLoadingProjects ? <div className="flex items-center space-x-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>{t('settingsPage.loadingProjects.text')}</span></div>
-                : isErrorProjects ? <p className="text-red-600">Error: {projectsError?.message}</p>
+                : isErrorProjects ? <p className="text-destructive">Error: {projectsError?.message}</p>
                 : projectsData && projectsData.length > 0 ? (
                 <ul className="space-y-2">
                   {projectsData.map((project) => (
@@ -456,7 +489,7 @@ export default function SettingsPage() {
                         onClick={() => handleDeleteProject(project)}
                         disabled={deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id || isPageDisabled}
                       >
-                        {(deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-red-500" />}
+                        {(deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive" />}
                       </Button>
                     </li>))}
                 </ul>) : (<p className="text-sm text-muted-foreground">{t('settingsPage.noProjectsFound.text')}</p>)}
@@ -464,11 +497,27 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <EnvironmentsCard />
-
+        </>
+      ),
+    },
+    {
+      id: 'environments',
+      label: t('settings.sections.environments'),
+      description: t('settings.sections.environmentsDescription', { token: '{{KEY_NAME}}' }),
+      icon: KeyRound,
+      content: <EnvironmentsCard />,
+    },
+    {
+      id: 'defaults',
+      label: t('settings.sections.defaults'),
+      description: t('settings.sections.defaultsDescription'),
+      icon: SlidersHorizontal,
+      footer: userSettingsFooter,
+      content: (
+        <>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2"><Globe className="h-5 w-5" /><span>{t('settings.defaults.title',"Default Configuration")}</span></CardTitle>
+            <CardTitle className="flex items-center space-x-2"><Globe className="h-4 w-4 text-muted-foreground" /><span>{t('settings.defaults.title',"Default Configuration")}</span></CardTitle>
             <CardDescription>{t('settings.defaults.description',"Set default values for test creation")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -482,7 +531,7 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2"><Monitor className="h-5 w-5" /><span>{t('settings.playwright.title')}</span></CardTitle>
+            <CardTitle className="flex items-center space-x-2"><Monitor className="h-4 w-4 text-muted-foreground" /><span>{t('settings.playwright.title')}</span></CardTitle>
             <CardDescription>{t('settings.playwright.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -513,10 +562,19 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
-
+        </>
+      ),
+    },
+    {
+      id: 'system',
+      label: t('settings.sections.system'),
+      description: t('settings.sections.systemDescription'),
+      icon: Archive,
+      content: (
+        <>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2"><Archive className="h-5 w-5" /><span>{t('settings.system.title', 'System Settings')}</span></CardTitle>
+            <CardTitle className="flex items-center space-x-2"><Archive className="h-4 w-4 text-muted-foreground" /><span>{t('settings.system.title', 'System Settings')}</span></CardTitle>
             <CardDescription>{t('settings.system.description', 'Manage system-wide configurations.')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -524,7 +582,7 @@ export default function SettingsPage() {
               <Label htmlFor="logRetentionDays">{t('settings.system.logRetentionLabel', 'Log Retention Period (days)')}</Label>
               <Input id="logRetentionDays" type="number" value={logRetentionDays} onChange={(e) => setLogRetentionDays(e.target.value)} disabled={isLoadingLogRetentionSetting || saveLogRetentionMutation.isPending} min="1"/>
               <p className="text-sm text-muted-foreground">{t('settings.system.logRetentionDescription', 'Number of days to keep server logs. Older logs are compressed and then deleted.')}</p>
-              {isErrorLogRetentionSetting && (<p className="text-sm text-red-600">{logRetentionSettingError?.message || t('settings.system.fetchError', 'Failed to fetch log retention setting.')}</p>)}
+              {isErrorLogRetentionSetting && (<p className="text-sm text-destructive">{logRetentionSettingError?.message || t('settings.system.fetchError', 'Failed to fetch log retention setting.')}</p>)}
             </div>
             <Button onClick={handleSaveLogRetentionSetting} disabled={isLoadingLogRetentionSetting || saveLogRetentionMutation.isPending || (logRetentionSettingData?.value === logRetentionDays && logRetentionSettingData !== null && !isErrorLogRetentionSetting)}>
               {saveLogRetentionMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
@@ -544,7 +602,7 @@ export default function SettingsPage() {
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">{t('settings.system.logLevelDescription', 'Select the minimum level of logs to record. Dynamic update is attempted, otherwise requires application restart.')}</p>
-              {isErrorLogLevelSetting && (<p className="text-sm text-red-600">{logLevelSettingError?.message || t('settings.system.fetchErrorLogLevel', 'Failed to fetch log level setting.')}</p>)}
+              {isErrorLogLevelSetting && (<p className="text-sm text-destructive">{logLevelSettingError?.message || t('settings.system.fetchErrorLogLevel', 'Failed to fetch log level setting.')}</p>)}
             </div>
             <Button onClick={handleSaveLogLevelSetting} disabled={isLoadingLogLevelSetting || saveLogLevelMutation.isPending || (logLevelSettingData?.value === logLevel && logLevelSettingData !== null && !isErrorLogLevelSetting)}>
               {saveLogLevelMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
@@ -552,10 +610,19 @@ export default function SettingsPage() {
             </Button>
           </CardContent>
         </Card>
-
+        </>
+      ),
+    },
+    {
+      id: 'notifications',
+      label: t('settings.sections.notifications'),
+      description: t('settings.sections.notificationsDescription'),
+      icon: Bell,
+      content: (
+        <>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2"><Bell className="h-5 w-5" /><span>{t('settings.notifications.title',"Notifications")}</span></CardTitle>
+            <CardTitle className="flex items-center space-x-2"><Bell className="h-4 w-4 text-muted-foreground" /><span>{t('settings.notifications.title',"Notifications")}</span></CardTitle>
             <CardDescription>{t('settings.notifications.description',"Choose what notifications you want to receive (Not saved to backend)")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -574,10 +641,19 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
-
+        </>
+      ),
+    },
+    {
+      id: 'account',
+      label: t('settings.sections.account'),
+      description: t('settings.sections.accountDescription'),
+      icon: User,
+      content: (
+        <>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2"><User className="h-5 w-5" /><span>{t('settings.account.title',"Account")}</span></CardTitle>
+            <CardTitle className="flex items-center space-x-2"><User className="h-4 w-4 text-muted-foreground" /><span>{t('settings.account.title',"Account")}</span></CardTitle>
             <CardDescription>{t('settings.account.description',"Manage your account settings (Not saved to backend)")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -593,17 +669,23 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-between pt-4">
-          <Button variant="outline" onClick={handleResetSettings} disabled={isPageDisabled}>{t('settings.buttons.resetForm')}</Button>
-          <div className="flex space-x-3">
-            <Link href="/"><Button variant="ghost" disabled={isPageDisabled}>{t('settings.buttons.cancel')}</Button></Link>
-            <Button onClick={handleSaveUserSettings} disabled={isPageDisabled}>
-              {userSettingsMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-              {userSettingsMutation.isPending ? t('settings.buttons.saving') : t('settings.buttons.saveUserSettings', 'Save User Settings')}
-            </Button>
-          </div>
-        </div>
-      </div>
+        </>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <SettingsLayout
+        sections={sections}
+        navLabel={t('settings.sections.navLabel')}
+        header={
+          <PageHeader
+            title={t('settings.pageTitle', 'Settings')}
+            description={t('settingsPage.description')}
+          />
+        }
+      />
 
       <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
         <AlertDialogContent>
@@ -630,6 +712,6 @@ export default function SettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

@@ -30,6 +30,7 @@ import { useQuery } from '@tanstack/react-query';
 import { UserSettings, fetchSettings } from './lib/settings';
 // useAuth is already imported via AuthProvider line above
 import i18n from './i18n';
+import { applyThemeToDocument } from '@/hooks/use-theme';
 
 const SettingsEffectLoader = () => {
   const { user } = useAuth();
@@ -42,11 +43,11 @@ const SettingsEffectLoader = () => {
 
   useEffect(() => {
     if (settingsData) {
-      if (settingsData.theme === "dark") {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
+      // The cold-start applier: nothing else knows the stored theme before this query
+      // lands. Every later change goes through useTheme, which writes back into this
+      // query's cache — so this effect re-runs already agreeing with it rather than
+      // undoing it.
+      applyThemeToDocument(settingsData.theme === "dark" ? "dark" : "light");
       if (settingsData.language && i18n.language !== settingsData.language) {
         i18n.changeLanguage(settingsData.language).catch(err => {
             console.error("Error changing language in App.tsx:", err);

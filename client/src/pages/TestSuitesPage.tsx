@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/layout/PageHeader';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'wouter'; // Corrected import
@@ -71,12 +72,11 @@ const TestSuitesPage: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-[1400px] p-6">
-      <header className="mb-6">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {t('testSuitesPage.eyebrow', 'Test plans')}
-        </div>
-        <h1 className="mt-0.5 text-2xl font-bold tracking-tight">{t('testSuitesPage.testSuites.title')}</h1>
-      </header>
+      <PageHeader
+        className="mb-6"
+        title={t('testSuitesPage.testSuites.title')}
+        description={t('testSuitesPage.pageDescription')}
+      />
 
       {/* Content Wrapper for controls and tabs */}
       <div>
@@ -121,7 +121,7 @@ const TestSuitesPage: React.FC = () => {
                 <ChevronRight size={16} />
               </Button>
             </div>
-            <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={() => setIsCreatePlanWizardOpen(true)}>
+            <Button className="bg-success hover:bg-success/90 text-white" onClick={() => setIsCreatePlanWizardOpen(true)}>
               {t('testSuitesPage.testPlan.button')}
             </Button>
           </div>
@@ -147,7 +147,7 @@ const TestSuitesPage: React.FC = () => {
                 </div>
               )}
               {testPlansError && (
-                <div className="text-red-500 text-center py-10">
+                <div className="text-destructive text-center py-10">
                   {t('testSuitesPage.errorLoadingTestPlans.text')}: {testPlansError.message}
                 </div>
               )}

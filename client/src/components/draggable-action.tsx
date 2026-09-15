@@ -2,15 +2,7 @@ import { useDrag, useDrop } from "react-dnd"; // Added useDrop
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import type { DetectedElement } from "./drag-drop-provider"; // Corrected path
-import { 
-  MousePointer, 
-  Keyboard, 
-  Clock, 
-  Scroll, 
-  CheckCircle, 
-  Hand, 
-  ChevronDown 
-} from "lucide-react";
+import { ActionIcon } from "@/lib/action-icons";
 
 interface TestAction {
   id: string;
@@ -61,39 +53,31 @@ export function DraggableAction({
     }),
   }), [action, stepId, onDropElement]); // Added stepId to dependencies
 
-  const renderActionIcon = (iconName: string) => {
-    const iconProps = { className: "h-4 w-4" };
-    switch (iconName) {
-      case "mouse-pointer": return <MousePointer {...iconProps} />;
-      case "keyboard": return <Keyboard {...iconProps} />;
-      case "clock": return <Clock {...iconProps} />;
-      case "scroll": return <Scroll {...iconProps} />;
-      case "check-circle": return <CheckCircle {...iconProps} />;
-      case "hand": return <Hand {...iconProps} />;
-      case "chevron-down": return <ChevronDown {...iconProps} />;
-      default: return <MousePointer {...iconProps} />;
-    }
-  };
+  // In the palette there is no step to drop an element onto, so nothing accepts a drop here
+  // and the dashed border would be promising something that cannot happen.
+  const isDropTarget = Boolean(stepId && onDropElement);
 
   return (
     <div ref={(node) => drag(drop(node))} className="mb-2"> {/* Attach both drag and drop refs */}
       <Card
         // The refs are now on the wrapper div, Card does not need them directly unless it forwards refs.
         // If Card is a simple div, we can apply refs directly to it. For now, wrapper is safer.
-        className={`p-3 cursor-move hover:border-accent hover:bg-orange-50 transition-colors border-dashed ${
+        className={`p-3 cursor-grab active:cursor-grabbing transition-colors hover:border-primary/40 hover:bg-accent ${
+          isDropTarget ? "border-dashed" : ""
+        } ${
           isActionDragging ? "opacity-50" : "" // Use renamed isDragging state
-        } ${isOver && canDrop ? "bg-green-100 border-green-500" : ""} ${ // Visual feedback for drop target
-          !canDrop && isOver ? "bg-red-100 border-red-500" : "" // Visual feedback if cannot drop (e.g. wrong item type)
+        } ${isOver && canDrop ? "bg-success-weak border-success" : ""} ${ // Visual feedback for drop target
+          !canDrop && isOver ? "bg-destructive-weak border-destructive" : "" // Visual feedback if cannot drop (e.g. wrong item type)
         }`}
       >
         <div className="flex items-center space-x-3">
-          {renderActionIcon(action.icon)}
+          <ActionIcon action={action.id} className="h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
             <div className="font-medium text-foreground text-sm">{t(action.name)}</div>
             <div className="text-xs text-muted-foreground">{t(action.description)}</div>
             {/* Display info about the target element if it exists */}
             {targetElement && (
-              <div className="mt-1 pt-1 border-t border-gray-200">
+              <div className="mt-1 pt-1 border-t border-border">
                 <p className="text-xs text-primary truncate" title={targetElement.selector}>
                   {t('draggableAction.target.label')} {targetElement.text || targetElement.selector}
                 </p>
