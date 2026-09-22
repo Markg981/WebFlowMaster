@@ -28,6 +28,8 @@ import type { Assertion, AuthParams } from '@shared/schema';
 import { browsersForRun, describeBrowser, hasConfiguredBrowsers, launchBrowser, type BrowserChoice } from './browsers';
 import { effectiveConcurrency, runWithConcurrency } from './concurrency';
 import type { VisualContext } from './visual-testing';
+import { shouldRecord } from './run-evidence';
+import type { EvidenceCaptureMode } from '@shared/schema';
 import {
   describeUnsupported,
   mergeNotificationSettings,
@@ -90,6 +92,9 @@ export interface IndividualTestRunResult {
   extracted?: Record<string, string>;
   extractionErrors?: Array<{ name: string; reason: string }>;
   screenshotPath?: string; // General screenshot for API tests if applicable, or last step for UI
+  /** Kept only when the plan asked for them — see server/run-evidence.ts. */
+  videoPath?: string;
+  tracePath?: string;
 }
 
 
@@ -97,6 +102,8 @@ export interface IndividualTestRunResult {
 export interface RunTestOptions {
   browser?: BrowserChoice;
   visual?: Omit<VisualContext, 'testId' | 'browser'>;
+  /** Whether to keep a video and a trace of the run. The directory is this test's own. */
+  evidence?: { video?: EvidenceCaptureMode; trace?: EvidenceCaptureMode };
 }
 
 export async function runTest(
@@ -176,6 +183,9 @@ export async function runTest(
                 artifactDir: screenshotBaseDir,
               }
             : undefined,
+          evidence: options?.evidence
+            ? { ...options.evidence, artifactDir: screenshotBaseDir }
+            : undefined,
         },
       );
       const durationMs = Date.now() - startTime;
@@ -220,6 +230,8 @@ export async function runTest(
         error: result.error,
         durationMs,
         screenshotPath: lastScreenshotPath, // Or a specific error screenshot for the whole test
+        videoPath: result.evidence?.videoPath,
+        tracePath: result.evidence?.tracePath,
       };
     } catch (error: any) {
       const durationMs = Date.now() - startTime;
@@ -539,6 +551,31 @@ async function runTestPlanJobInTenant(
     });
   }
 
+  /**
+   * Whether this run keeps a video and a trace of itself.
+   *
+   * Undefined when the plan wants neither, so a run that records nothing does not even build
+   * the option — which is every plan until somebody turns it on.
+   */
+  const runEvidence: { video?: EvidenceCaptureMode; trace?: EvidenceCaptureMode } | undefined =
+    shouldRecord(plan?.captureVideo as EvidenceCaptureMode) || shouldRecord(plan?.captureTrace as EvidenceCaptureMode)
+      ? {
+          video: (plan?.captureVideo as EvidenceCaptureMode) ?? 'never',
+          trace: (plan?.captureTrace as EvidenceCaptureMode) ?? 'never',
+        }
+      : undefined;
+  if (runEvidence) {
+    wsEmitter.emitExecutionLog(testPlanRunId, {
+      level: 'info',
+      source: 'system',
+      message:
+        `Recording this run: video ${runEvidence.video}, trace ${runEvidence.trace}. ` +
+        `Kept files appear on each result in the report.`,
+      timestamp: new Date().toISOString(),
+      metadata: { ...runEvidence },
+    });
+  }
+
   const visualTesting = plan?.visualTestingEnabled === true;
   if (visualTesting) {
     wsEmitter.emitExecutionLog(testPlanRunId, {
@@ -732,6 +769,8 @@ async function runTestPlanJobInTenant(
     let reportStatus: InsertReportTestCaseResult['status'] = 'Pending'; // Default
     let failureReason: string | undefined = undefined;
     let screenshotFinalPath: string | undefined = undefined;
+    let videoFinalPath: string | undefined = undefined;
+    let traceFinalPath: string | undefined = undefined;
     let stepsOrLogData: string | undefined = undefined;
 
     const testName = testObjectDefinition?.name || `Unknown Test (ID: ${link.testId || link.apiTestId})`;
@@ -779,6 +818,7 @@ async function runTestPlanJobInTenant(
                   updateBaselines: jobOptions.updateBaselines === true,
                 }
               : undefined,
+          evidence: runEvidence,
         },
       );
       legacyIndividualTestResultsForJsonBlob.push(resultFromRunTest); // Keep populating the old JSON blob for now
@@ -810,6 +850,8 @@ async function runTestPlanJobInTenant(
 
       failureReason = resultFromRunTest.error;
       screenshotFinalPath = resultFromRunTest.screenshotPath; // This is a file path
+      videoFinalPath = resultFromRunTest.videoPath;
+      traceFinalPath = resultFromRunTest.tracePath;
       stepsOrLogData = resultFromRunTest.steps ? JSON.stringify(resultFromRunTest.steps) : undefined; // For UI tests
 
       const singleTestDurationMs = Date.now() - singleTestStartTime;
@@ -822,10 +864,13 @@ async function runTestPlanJobInTenant(
       });
 
       // Convert screenshotPath to a URL if needed, e.g., /results/planId/runId/testId/screenshot.png
-      if (screenshotFinalPath) {
-        // Assuming 'results' is served statically at /results
-        screenshotFinalPath = screenshotFinalPath.replace(/^\.?\/?results/, '/results').replace(/\\/g, '/');
-      }
+      // Stored the way the report reads them: the artifacts route turns one of these back
+      // into something a browser can open (see server/routes/artifacts.routes.ts).
+      const asResultsUrl = (filePath?: string) =>
+        filePath ? filePath.replace(/^\.?\/?results/, '/results').replace(/\\/g, '/') : undefined;
+      screenshotFinalPath = asResultsUrl(screenshotFinalPath);
+      videoFinalPath = asResultsUrl(videoFinalPath);
+      traceFinalPath = asResultsUrl(traceFinalPath);
 
 
     } else {
@@ -859,6 +904,8 @@ async function runTestPlanJobInTenant(
       status: reportStatus,
       reasonForFailure: failureReason,
       screenshotUrl: screenshotFinalPath,
+      videoUrl: videoFinalPath ?? null,
+      traceUrl: traceFinalPath ?? null,
       detailedLog: stepsOrLogData, // Or specific log for API tests
       startedAt: new Date(singleTestStartTime),
       completedAt: new Date(singleTestEndTime),

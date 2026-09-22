@@ -296,6 +296,47 @@ describe('visual testing', () => {
   });
 });
 
+describe('keeping a recording of the run', () => {
+  it('asks the runner for one only when the plan said so', async () => {
+    await seedPlan({ captureVideo: 'on_failure', captureTrace: 'always' });
+
+    await runPlan({ browsers: ['chromium'] });
+
+    expect(executeTestSequence.mock.calls[0][6]?.evidence).toEqual({
+      video: 'on_failure',
+      trace: 'always',
+      artifactDir: expect.any(String),
+    });
+  });
+
+  it('asks for nothing when the plan wants neither, which is every plan by default', async () => {
+    await seedPlan();
+
+    await runPlan({ browsers: ['chromium'] });
+
+    expect(executeTestSequence.mock.calls[0][6]?.evidence).toBeUndefined();
+  });
+
+  it('records where the kept files ended up, so the report can offer them', async () => {
+    await seedPlan({ captureVideo: 'always' });
+    executeTestSequence.mockResolvedValue({
+      success: true,
+      steps: [],
+      duration: 5,
+      evidence: {
+        videoPath: 'results/plan/exec/ui_1_chromium/run.webm',
+        tracePath: 'results/plan/exec/ui_1_chromium/trace.zip',
+      },
+    });
+
+    await runPlan({ browsers: ['chromium'] });
+
+    const [row] = await privilegedDb.select().from(reportTestCaseResults);
+    expect(row.videoUrl).toBe('/results/plan/exec/ui_1_chromium/run.webm');
+    expect(row.traceUrl).toBe('/results/plan/exec/ui_1_chromium/trace.zip');
+  });
+});
+
 describe('the notification a finished run sends', () => {
   it('posts to the configured webhook when the outcome is one the plan asked about', async () => {
     const fetchSpy = vi.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK' });
