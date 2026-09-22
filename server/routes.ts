@@ -916,7 +916,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Dynamically import runTestPlan to avoid circular dependencies if test-execution-service grows
       const { runTestPlan } = await import("./test-execution-service");
-      const executionResult = await runTestPlan(testPlanId, userId);
+      // `updateBaselines` is how a legitimate redesign gets a visually-tested plan out of red:
+      // this run's screenshots become the baselines the next one is measured against.
+      const executionResult = await runTestPlan(testPlanId, userId, {
+        environmentId: typeof req.body?.environmentId === 'number' ? req.body.environmentId : undefined,
+        updateBaselines: req.body?.updateBaselines === true,
+      });
 
       if ("error" in executionResult) {
         const errorResult = executionResult as { error: string; status?: number; testPlanRunId?: string };
@@ -1150,6 +1155,9 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
       .map(r => ({
         id: r.id,
         testName: r.testName,
+        // Which browser this failure came from. A plan covering two browsers fails a test on
+        // one and passes it on the other, and the two rows are otherwise identical.
+        browser: r.browser,
         reasonForFailure: r.reasonForFailure,
         screenshotUrl: r.screenshotUrl,
         detailedLog: r.detailedLog,

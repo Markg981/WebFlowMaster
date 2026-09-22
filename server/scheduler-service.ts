@@ -255,21 +255,32 @@ export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: Tes
         await delay(RETRY_DELAY_MS);
       }
       attempts = attempt;
-      result = (await runTestPlan(schedule.testPlanId, ownerUserId)) as any;
+      // Run the execution row inserted above, rather than letting runTestPlan create a second
+      // one: that row is where this schedule's environment and browsers are recorded, and a
+      // run that starts from a fresh row starts from neither.
+      result = (await runTestPlan(schedule.testPlanId, ownerUserId, { executionId })) as any;
       executionStatus = result?.status || 'error'; // runTestPlan returns a TestPlanRun-like object
       if (executionStatus !== 'failed' && executionStatus !== 'error') break;
     }
 
-    // Update testPlanExecutions with the final status and results (jsonb — no stringify).
-    await privilegedDb.update(testPlanExecutions)
-      .set({
-        status: executionStatus,
-        results: result?.results ?? null,
-        completedAt: new Date(),
-      })
-      .where(eq(testPlanExecutions.id, executionId));
+    // Record a verdict only if the run actually produced one.
+    //
+    // `runTestPlan` enqueues and returns immediately, so its answer is normally the row's
+    // queue status — and now that this is the row the worker goes on to execute, writing
+    // "pending, completed at 02:00:01" over it would overwrite the run in progress with a
+    // verdict nobody reached. The worker owns the row from the moment the job is enqueued.
+    const terminalStatuses = ['completed', 'failed', 'error', 'passed'];
+    if (terminalStatuses.includes(executionStatus)) {
+      await privilegedDb.update(testPlanExecutions)
+        .set({
+          status: executionStatus,
+          results: result?.results ?? null,
+          completedAt: new Date(),
+        })
+        .where(eq(testPlanExecutions.id, executionId));
+    }
 
-    resolvedLogger.info(`[SchedulerService] Execution completed for schedule ${schedule.id}, Plan ${plan.name}. Status: ${executionStatus} (after ${attempts} attempt(s)).`);
+    resolvedLogger.info(`[SchedulerService] Execution ${terminalStatuses.includes(executionStatus) ? 'completed' : 'enqueued'} for schedule ${schedule.id}, Plan ${plan.name}. Status: ${executionStatus} (after ${attempts} attempt(s)).`);
 
   } catch (error: any) {
     resolvedLogger.error(`[SchedulerService] Error executing scheduled plan ${schedule.testPlanId} (Schedule ID: ${schedule.id}): ${error.message}`, { stack: error.stack, scheduleId: schedule.id, executionId });

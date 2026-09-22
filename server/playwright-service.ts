@@ -18,6 +18,8 @@ import { allowsSelfSignedCertificate, substituteVariables, requestVariables } fr
 import { executeStep } from './step-executor';
 import { resolveVariables } from './variables';
 import { loadLoginState, saveLoginState, type EnvironmentScope } from './login-state';
+import { describeBrowser, launchBrowser, resolveBrowser, type BrowserChoice } from './browsers';
+import { compareStepScreenshot, isVisualFailure, type VisualContext } from './visual-testing';
 
 // Default settings if not found or incomplete
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
@@ -132,6 +134,32 @@ export interface StepResult {
   details: string;
   healed?: boolean;
   rca?: string;
+  /**
+   * What the visual comparison made of this step, when the plan asked for one.
+   *
+   * Kept beside the verdict rather than folded into `details`, so a report can show the
+   * baseline, the actual and the diff as three pictures instead of a sentence about them.
+   */
+  visual?: {
+    outcome: 'baseline-created' | 'baseline-updated' | 'match' | 'diff' | 'skipped';
+    detail: string;
+    diffRatio?: number;
+    baselineImage?: string;
+    actualImage?: string;
+    diffImage?: string;
+  };
+}
+
+/**
+ * What a test plan adds to a run that the test itself does not carry.
+ *
+ * Both of these are configuration the product collected and then ignored: the browser was
+ * read off the run owner's profile whatever the plan said, and the visual testing switch
+ * turned nothing on.
+ */
+export interface ExecuteSequenceOptions {
+  browser?: BrowserChoice;
+  visual?: VisualContext;
 }
 
 // Interface for the ad-hoc sequence payload
@@ -1538,6 +1566,10 @@ export class PlaywrightService {
     // The environment whose saved browser session to start from, when it has one. Without
     // it the run starts signed out, exactly as it always did.
     environment?: EnvironmentScope,
+    // What the plan asked for beyond the test itself: which browser to run on, and whether
+    // to compare each step against its visual baseline. Absent means what it has always
+    // meant — the user's own browser setting, and no visual comparison.
+    options?: ExecuteSequenceOptions,
   ): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number }> {
     const startTime = Date.now();
 
@@ -1555,6 +1587,11 @@ export class PlaywrightService {
           executionId,
           { ...vars, ...row },
           environment,
+          // Each row compares against its own baselines: row two renders row two's data, and
+          // measuring it against row one's screenshot would report the dataset working.
+          options?.visual
+            ? { ...options, visual: { ...options.visual, variant: `row_${index + 1}` } }
+            : options,
         ),
       );
       return { ...merged, duration: Date.now() - startTime };
@@ -1570,15 +1607,18 @@ export class PlaywrightService {
 
     try {
       const userSettings = await storage.getUserSettings(userId);
-      const browserType = userSettings?.playwrightBrowser || DEFAULT_BROWSER;
       const headlessMode = userSettings?.playwrightHeadless !== undefined ? userSettings.playwrightHeadless : DEFAULT_HEADLESS;
       const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
-      resolvedLogger.debug({ message: `PS:executeTestSequence - Effective settings`, testName: test.name, browserType, headlessMode, pageTimeout });
+      // The plan's browser when a plan is driving this, the user's own setting otherwise —
+      // which is what every run used before a plan's choice was honoured at all.
+      const browserChoice =
+        options?.browser ??
+        resolveBrowser(userSettings?.playwrightBrowser || DEFAULT_BROWSER, headlessMode) ??
+        { label: DEFAULT_BROWSER, engine: DEFAULT_BROWSER, headless: headlessMode };
+      resolvedLogger.debug({ message: `PS:executeTestSequence - Effective settings`, testName: test.name, browser: describeBrowser(browserChoice), pageTimeout });
 
-      const browserEngine = (playwright as any)[browserType];
-      if (!browserEngine) throw new Error(`Invalid browser type: ${browserType}`);
-      browser = await browserEngine.launch({ headless: headlessMode });
-      if (!browser) throw new Error("Failed to launch browser for executeApiDirect.");
+      browser = await launchBrowser(browserChoice);
+      if (!browser) throw new Error(`Failed to launch ${browserChoice.label}.`);
       const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
       // Start from the environment's saved session when there is one, so the test does not
       // spend its first thirty seconds logging in — and does not fail for a reason that has
@@ -1659,6 +1699,7 @@ export class PlaywrightService {
           let stepError: string | undefined;
           let stepScreenshot: string | undefined;
           let stepDetail: string | undefined;
+          let stepVisual: StepResult['visual'];
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
 
@@ -1690,17 +1731,51 @@ export class PlaywrightService {
             // that changed it both pass, and the report has to tell them apart.
             stepDetail = outcome.detail;
 
-            // Screenshot logic for successful step
+            // One screenshot, used twice: as the step's evidence, and — when the plan asked
+            // for visual testing — as the image compared against this step's baseline.
+            const screenshotBuffer = await page.screenshot({ type: 'png' });
             if (screenshotBaseDir) {
               await fs.ensureDir(screenshotBaseDir);
               // Sanitize actionName for use in filename
               const sanitizedActionName = actionName.replace(/[^a-z0-9_.-]/gi, '_').substring(0, 50);
               const screenshotFilePath = path.join(screenshotBaseDir, `step_${sanitizedActionName}_${Date.now()}.png`);
-              await page.screenshot({ type: 'png', path: screenshotFilePath });
+              await fs.writeFile(screenshotFilePath, screenshotBuffer);
               stepScreenshot = screenshotFilePath;
             } else {
-              const screenshotBuffer = await page.screenshot({ type: 'png' });
               stepScreenshot = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
+            }
+
+            if (options?.visual && stepStatus === 'passed') {
+              // Only for a step that did what it was asked. A step that already failed is
+              // being reported for that reason, and the page it left behind says nothing
+              // about whether the application looks right.
+              const visualOutcome = await compareStepScreenshot(options.visual, i, screenshotBuffer);
+              stepVisual = {
+                outcome: visualOutcome.kind,
+                detail: visualOutcome.kind === 'skipped' ? visualOutcome.reason : visualOutcome.detail,
+                ...(visualOutcome.kind === 'diff'
+                  ? {
+                      diffRatio: visualOutcome.diffRatio,
+                      baselineImage: visualOutcome.artifacts.baseline,
+                      actualImage: visualOutcome.artifacts.actual,
+                      diffImage: visualOutcome.artifacts.diff,
+                    }
+                  : {}),
+                ...(visualOutcome.kind === 'match' ? { diffRatio: visualOutcome.diffRatio } : {}),
+              };
+              if (isVisualFailure(visualOutcome)) {
+                stepStatus = 'failed';
+                stepError = visualOutcome.detail;
+              }
+              if (executionId) {
+                wsEmitter.emitExecutionLog(executionId, {
+                  level: isVisualFailure(visualOutcome) ? 'error' : 'info',
+                  source: 'playwright',
+                  message: `Visual check, step ${i + 1}: ${stepVisual.detail}`,
+                  timestamp: new Date().toISOString(),
+                  metadata: { stepIndex: i, visual: visualOutcome.kind },
+                });
+              }
             }
 
           } catch (e: any) {
@@ -1722,7 +1797,8 @@ export class PlaywrightService {
             error: stepError,
             details: stepStatus === 'passed' ? (stepDetail ?? 'Success') : stepError || 'Failed',
             healed: reporter.lastActionHealed,
-            rca: reporter.lastActionRca
+            rca: reporter.lastActionRca,
+            visual: stepVisual,
           });
 
           if (!overallSuccess) break;

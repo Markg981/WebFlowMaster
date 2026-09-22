@@ -489,7 +489,10 @@ describe('POST /api/run-test-plan/:id (C3)', () => {
 
     await request(app).post(`/api/run-test-plan/${ownPlan.id}`).expect(200);
 
-    expect(runTestPlan).toHaveBeenCalledWith(ownPlan.id, sessionUser.id);
+    expect(runTestPlan).toHaveBeenCalledWith(ownPlan.id, sessionUser.id, {
+      environmentId: undefined,
+      updateBaselines: false,
+    });
   });
 });
 
