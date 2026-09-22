@@ -20,6 +20,7 @@ import { resolveVariables } from './variables';
 import { loadLoginState, saveLoginState, type EnvironmentScope } from './login-state';
 import { describeBrowser, launchBrowser, resolveBrowser, type BrowserChoice } from './browsers';
 import { compareStepScreenshot, isVisualFailure, type VisualContext } from './visual-testing';
+import { expandSequenceForRun } from './step-groups';
 
 // Default settings if not found or incomplete
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
@@ -1362,9 +1363,19 @@ export class PlaywrightService {
         stepResults.push({ name: 'Initial State', type: 'setup', status: 'passed', details: 'No initial URL provided for ad-hoc sequence.' });
       }
 
-      if (overallSuccess && payload.sequence && Array.isArray(payload.sequence)) {
-        resolvedLogger.debug({ message: `PS:executeAdhocSequence - Starting execution of ${payload.sequence.length} steps.`, testName });
-        for (const step of payload.sequence) {
+      // The preview expands step groups exactly as a saved run does. A builder that ran the
+      // call as nothing, or refused it, would be exercising a different test than the one the
+      // schedule will run — and the preview exists to answer what the schedule will do.
+      const adhocExpansion = await expandSequenceForRun(payload.sequence);
+      if (adhocExpansion.errors.length > 0) {
+        const duration = Date.now() - startTime;
+        return { success: false, steps: stepResults, error: adhocExpansion.errors.join(' '), duration };
+      }
+      const adhocSequence = adhocExpansion.steps as unknown as TestStep[];
+
+      if (overallSuccess && adhocSequence.length > 0) {
+        resolvedLogger.debug({ message: `PS:executeAdhocSequence - Starting execution of ${adhocSequence.length} steps.`, testName });
+        for (const step of adhocSequence) {
           let stepStatus: 'passed' | 'failed' = 'passed';
           let stepError: string | undefined;
           let stepScreenshot: string | undefined;
@@ -1598,6 +1609,26 @@ export class PlaywrightService {
     }
     const wsEmitter = getWsEmitter();
     resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url, screenshotBaseDir });
+
+    // Calls to step groups become the steps those groups hold, before anything is launched.
+    // A call that cannot be expanded — a group deleted since the test was written — fails the
+    // test here rather than running a shorter test that would report as a pass.
+    const expansion = await expandSequenceForRun(test.sequence);
+    if (expansion.errors.length > 0) {
+      const message = expansion.errors.join(' ');
+      resolvedLogger.warn({ message: `PS:executeTestSequence - ${message}`, testName: test.name, testId: test.id });
+      return { success: false, steps: [], error: message, duration: Date.now() - startTime };
+    }
+    const sequenceToRun = expansion.steps as unknown as TestStep[];
+    if (expansion.expanded && executionId) {
+      wsEmitter.emitExecutionLog(executionId, {
+        level: 'info',
+        source: 'system',
+        message: `Expanded step groups: this test runs ${sequenceToRun.length} steps.`,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const targetUrl = test.url ? substituteVariables(test.url, vars) : test.url;
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
@@ -1691,10 +1722,10 @@ export class PlaywrightService {
 
       const reporter = new PlaywrightReporter(page); // Initialize reporter
 
-      if (overallSuccess && test.sequence && Array.isArray(test.sequence)) {
-        resolvedLogger.debug({ message: `PS:executeTestSequence - Starting execution of ${test.sequence.length} steps`, testName: test.name });
+      if (overallSuccess && sequenceToRun.length > 0) {
+        resolvedLogger.debug({ message: `PS:executeTestSequence - Starting execution of ${sequenceToRun.length} steps`, testName: test.name });
 
-        for (const [i, step] of (test.sequence as TestStep[]).entries()) {
+        for (const [i, step] of sequenceToRun.entries()) {
           let stepStatus: 'passed' | 'failed' = 'passed';
           let stepError: string | undefined;
           let stepScreenshot: string | undefined;

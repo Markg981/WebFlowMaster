@@ -12,7 +12,8 @@ import {
 import { Label } from '@/components/ui/label';
 import { TestAction } from '@/pages/dashboard-page-new';
 import { DetectedElement } from '@/components/drag-drop-provider';
-import { ACTION_REQUIREMENTS, ACTION_VALUE_OPTIONS, type AdhocActionId } from '@shared/recording';
+import { ACTION_REQUIREMENTS, ACTION_VALUE_OPTIONS, STEP_GROUP_ACTION_ID, type AdhocActionId } from '@shared/recording';
+import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
 import { Trash2, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,14 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
             <div className="w-4 h-4 rounded-full bg-primary" />
           </div>
           <span className="font-semibold text-sm">{t(data.action.name)}</span>
+          {/* A call to a step group is not an action on the page: it stands for however many
+              steps the group holds at the time the test runs. Saying so on the node is the
+              difference between "one step" and "six, and they may change". */}
+          {data.action.id === STEP_GROUP_ACTION_ID && (
+            <Badge variant="secondary" className="text-[10px]">
+              {t('testNode.stepGroup.badge', 'group')}
+            </Badge>
+          )}
         </div>
         <Button 
           variant="ghost" 

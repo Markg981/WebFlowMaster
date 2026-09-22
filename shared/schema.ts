@@ -2,7 +2,7 @@ import { pgTable, text, integer, serial, timestamp, boolean, jsonb, index, uniqu
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations } from 'drizzle-orm';
-import { ACTION_REQUIREMENTS, ADHOC_ACTION_IDS } from './recording';
+import { ACTION_REQUIREMENTS, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from './recording';
 
 // Table Definitions
 export const organizations = pgTable("organizations", {
@@ -493,6 +493,75 @@ export const auditLog = pgTable("audit_log", {
 ]);
 
 export type AuditLogEntry = typeof auditLog.$inferSelect;
+
+/**
+ * A named sequence of steps that many tests can call.
+ *
+ * A test's `sequence` is flat, so a login written once is written once per test: forty tests
+ * that log in hold forty copies of the same six steps, and a change to the login flow is
+ * thirty-nine edits and one test that fails next week for a reason nobody connects to it.
+ *
+ * Referenced rather than copied. A test holds one step naming the group and the runner expands
+ * it at execution time, which is the point: editing the group changes what every test does on
+ * its next run.
+ */
+export const stepGroups = pgTable("step_groups", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  /** Nullable like `tests.projectId`: a group may be one application's or the whole tenant's. */
+  projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
+  name: text("name").notNull(),
+  description: text("description"),
+  /** The same shape as a test's sequence, minus any call to another group — see step-groups.ts. */
+  sequence: jsonb("sequence").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("step_groups_organization_id_idx").on(table.organizationId),
+  index("step_groups_project_id_idx").on(table.projectId),
+]);
+
+export type StepGroup = typeof stepGroups.$inferSelect;
+export type InsertStepGroup = typeof stepGroups.$inferInsert;
+
+/**
+ * The elements of an application, in one place instead of inside each test.
+ *
+ * `detected_elements` belongs to a single test, so the same button is written down once per
+ * test that touches it. When the application moves that button every copy is wrong separately,
+ * and the healing pass repairs the copy in whichever test ran — leaving the others to fail one
+ * at a time, each looking like a new problem.
+ *
+ * Scoped to a project because a selector is a fact about one application.
+ */
+export const projectElements = pgTable("project_elements", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  /** How a person finds it. Unique within the project — see the migration. */
+  name: text("name").notNull(),
+  selector: text("selector").notNull(),
+  /** What it was before healing ever moved it, so "what did this used to be?" has an answer. */
+  originalSelector: text("original_selector"),
+  /** The iframe chain, ' >> ' separated and outermost first. */
+  frameSelector: text("frame_selector"),
+  tag: text("tag"),
+  elementType: text("element_type"),
+  text: text("text"),
+  attributes: jsonb("attributes"),
+  /** Set when the healing pass repaired it: what the application has been moving underneath. */
+  healedAt: timestamp("healed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("project_elements_organization_id_idx").on(table.organizationId),
+  index("project_elements_project_id_idx").on(table.projectId),
+  unique("project_elements_project_name_unique").on(table.projectId, table.name),
+]);
+
+export type ProjectElement = typeof projectElements.$inferSelect;
+export type InsertProjectElement = typeof projectElements.$inferInsert;
 
 /**
  * A credential for something that is not a person.
@@ -1368,7 +1437,13 @@ export type InsertApiTest = typeof apiTests.$inferInsert;
 export const AdhocTestActionSchema = z.object({
   // Keep in sync with ADHOC_ACTION_IDS in shared/recording.ts, which drives the
   // recorder → builder mapping.
-  id: z.enum(ADHOC_ACTION_IDS),
+  //
+  // Plus the one step that is not an action on a page: a call to a step group. It is accepted
+  // here because a test may hold one, and it is deliberately not in ADHOC_ACTION_IDS because
+  // the step executor's exhaustive table is what guarantees every *action* has an
+  // implementation — and this one is replaced by the group's own steps before the executor
+  // runs. See server/step-groups.ts.
+  id: z.union([z.enum(ADHOC_ACTION_IDS), z.literal(STEP_GROUP_ACTION_ID)]),
   type: z.string(),
   name: z.string(),
   icon: z.string(),
@@ -1397,6 +1472,11 @@ export const AdhocDetectedElementSchema = z.object({
 });
 export type AdhocDetectedElement = z.infer<typeof AdhocDetectedElementSchema>;
 
+/** The requirements of an action, or none for the one step that is not an action. */
+function requirementsFor(id: string) {
+  return (ACTION_REQUIREMENTS as Record<string, { target: boolean; value: boolean; valueRequired: boolean } | undefined>)[id];
+}
+
 export const AdhocTestStepSchema = z
   .object({
     id: z.string(),
@@ -1409,13 +1489,15 @@ export const AdhocTestStepSchema = z
   // for the runner to act on: the conditional waits were added to the action list and none
   // of the three copies was updated, so `waitForElement` validated without a selector and
   // then failed at run time with a message about a missing target.
-  .refine((data) => !ACTION_REQUIREMENTS[data.action.id]?.target || !!data.targetElement, {
+  // A call to a step group has no requirements of its own: what it needs is whatever the
+  // group’s own steps need, and those were validated when the group was saved.
+  .refine((data) => !requirementsFor(data.action.id)?.target || !!data.targetElement, {
     message: "This action needs an element to act on.",
     path: ["targetElement"],
   })
   .refine(
     (data) =>
-      !ACTION_REQUIREMENTS[data.action.id]?.valueRequired ||
+      !requirementsFor(data.action.id)?.valueRequired ||
       (typeof data.value === "string" && data.value.trim() !== ""),
     {
       message: "This action needs a non-empty value.",
@@ -1467,6 +1549,9 @@ export const ORG_SCOPED_TABLES = [
   // audit_log is org-scoped like the rest, but its grants are narrower: SELECT and INSERT
   // only, so the application cannot rewrite history. See migration 0009.
   'audit_log',
+  // Shared building blocks rather than per-test copies: a sequence many tests call, and the
+  // elements of one application. Org-scoped and policed like everything else.
+  'step_groups', 'project_elements',
   // api_keys is org-scoped and policed like the rest. Unlike `invitations`, which cannot be,
   // the one lookup that must happen before an organization is known — authenticating a
   // request that carries a key — is a privileged bootstrap read in middleware, the same shape

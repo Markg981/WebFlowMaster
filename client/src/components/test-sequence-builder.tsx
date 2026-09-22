@@ -19,7 +19,7 @@ import {
 import { availableActions, TestAction } from "@/pages/dashboard-page-new";
 import { TestStep, DetectedElement } from "@/components/drag-drop-provider"; // TestAction removed from here
 import { DraggableAction } from "./draggable-action"; // Import DraggableAction
-import { Trash2, Plus, RefreshCw, CheckCircle2, XCircle } from "lucide-react"; // Added Link2 for element icon, RefreshCw as an option
+import { Trash2, Plus, RefreshCw, CheckCircle2, XCircle, Layers } from "lucide-react"; // Added Link2 for element icon, RefreshCw as an option
 // Icons for actions are now rendered by DraggableAction, so they might not be needed here directly
 // unless used for other UI elements. Keeping them for now.
 // Specific action icons (MousePointer, Keyboard, etc.) might not be needed if DraggableAction handles icon display
@@ -45,6 +45,8 @@ interface TestSequenceBuilderProps {
   isSaving?: boolean;
   isRecordingActive?: boolean; // New prop
   lastTestOutcome?: boolean | null; // New prop for test outcome
+  /** Turns what is in the builder into a named group that other tests can call. */
+  onSaveAsGroup?: () => void;
 }
 
 export function TestSequenceBuilder({
@@ -57,6 +59,7 @@ export function TestSequenceBuilder({
   isSaving = false,
   isRecordingActive = false, // Default value for the new prop
   lastTestOutcome = null, // Default value for the new prop
+  onSaveAsGroup,
 }: TestSequenceBuilderProps) {
   const { t } = useTranslation();
   const [isReassociatingElementForStepId, setReassociatingElementForStepId] = useState<string | null>(null);
@@ -72,7 +75,10 @@ export function TestSequenceBuilder({
         id: `step-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, // More robust ID
         action: item.data, // Changed from item.action to item.data
         // targetElement will be added by dropping an element onto the DraggableAction for this step
-        value: ""
+        //
+        // A step group is dragged in the same way as an action, and the group it names travels
+        // in `value` — which is where the runner looks for it when it expands the call.
+        value: (item.data as { groupId?: string }).groupId ?? ""
       };
       onUpdateSequence([...testSequence, newStep]);
     },
@@ -157,6 +163,18 @@ export function TestSequenceBuilder({
         <h3 className="text-lg font-semibold text-foreground">{t('testSequenceBuilder.testSequence.title')}</h3>
         <div className="flex items-center space-x-2">
           <Badge variant="secondary">{testSequence.length} {t('testSequenceBuilder.steps.text')}</Badge>
+          {onSaveAsGroup && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onSaveAsGroup}
+              disabled={testSequence.length === 0 || isRecordingActive}
+              title={t('testSequenceBuilder.saveAsGroup.tooltip', 'Save these steps as a group other tests can call')}
+            >
+              <Layers className="h-4 w-4 mr-1" />
+              {t('testSequenceBuilder.saveAsGroup.button', 'Save as group')}
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
