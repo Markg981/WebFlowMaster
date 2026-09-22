@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useTranslation } from 'react-i18next';
 import {
-  LayoutDashboard, Network, PlusSquare, FileSpreadsheet, ListChecks,
+  LayoutDashboard, Network, PlusSquare, FileSpreadsheet, ListChecks, Library,
   CalendarClock, FileText, Settings as SettingsIcon, PanelLeftClose,
   PanelLeftOpen, Sun, Moon, LogOut, Menu, X,
 } from 'lucide-react';
@@ -30,6 +30,7 @@ function useNav(): NavSection[] {
         { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, exact: true },
         { href: '/dashboard/api-tester', label: t('nav.apiTester', 'API Tester'), icon: Network },
         { href: '/dashboard/create-test', label: t('nav.createTest'), icon: PlusSquare },
+        { href: '/tests', label: t('nav.testLibrary', 'Test Library'), icon: Library },
         { href: '/test-manager', label: t('nav.testManager', 'Test Manager'), icon: FileSpreadsheet },
         { href: '/test-suites', label: t('nav.suites'), icon: ListChecks },
       ],

@@ -7,6 +7,8 @@ import { playwrightService } from "../playwright-service";
 import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
 import { resolveVariables } from "../variables";
+import { recordTestVersion } from "../test-version-store";
+import { tagsOfTests } from "../test-tags";
 
 const router = Router();
 const logger = await loggerPromise;
@@ -19,9 +21,14 @@ router.get("/api/tests", requireRole('viewer'), async (req, res) => {
   try {
     // No organization filter here on purpose: the RLS policy applies it. Adding one would
     // be harmless but would suggest the isolation depends on remembering it.
-    const allTests = await withTenantTransaction((tx) =>
-      tx.select().from(tests).orderBy(desc(tests.createdAt)),
-    );
+    const allTests = await withTenantTransaction(async (tx) => {
+      const rows = await tx.select().from(tests).orderBy(desc(tests.createdAt));
+      // One query for every row's tags rather than one per row: this list is what the library
+      // and the pickers are built from, and per-row lookups is where a list becomes hundreds
+      // of queries.
+      const byTest = await tagsOfTests(tx, { testIds: rows.map((row) => row.id) });
+      return rows.map((row) => ({ ...row, tags: byTest.ui.get(row.id) ?? [] }));
+    });
     res.json(allTests);
   } catch (error: any) {
     logger.error({ message: "Error fetching tests", error: error.message });
@@ -62,6 +69,16 @@ router.post("/api/tests", requireRole('editor'), async (req, res) => {
         // test route beside this one already gave them.
         .values({ ...parseResult.data, userId: req.user!.id, organizationId: req.user!.organizationId })
         .returning();
+
+      // Version 1, in the same transaction as the insert: a history that can begin at version
+      // 2 is one that lost the original.
+      await recordTestVersion(tx, {
+        testId: rows[0].id,
+        organizationId: req.user!.organizationId,
+        userId: req.user!.id,
+        test: rows[0],
+      });
+
       return { test: rows[0] };
     });
 
@@ -97,16 +114,31 @@ router.put("/api/tests/:id", requireRole('editor'), async (req, res) => {
   }
 
   try {
-    const updated = await withTenantTransaction((tx) =>
-      tx
+    const updated = await withTenantTransaction(async (tx) => {
+      const rows = await tx
         .update(tests)
         // userId is not touched: the test keeps its author. organizationId is not in the
         // payload at all, and RLS decides which rows this statement can see — so another
         // organization's test simply is not found, which is the 404 below.
         .set({ ...parseResult.data, updatedAt: new Date() })
         .where(eq(tests.id, id))
-        .returning(),
-    );
+        .returning();
+
+      // What the test was before this save is already written down; this records what it has
+      // become. The builder turns a name collision into an overwrite of the existing test,
+      // which is the right thing to do while re-recording a flow and the wrong thing to be
+      // unable to undo — so every save leaves the previous walk recoverable.
+      if (rows.length > 0) {
+        await recordTestVersion(tx, {
+          testId: rows[0].id,
+          organizationId: req.user!.organizationId,
+          userId: req.user!.id,
+          test: rows[0],
+        });
+      }
+
+      return rows;
+    });
 
     if (updated.length === 0) return res.status(404).json({ error: "Test not found" });
     res.json(updated[0]);
