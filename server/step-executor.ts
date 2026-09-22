@@ -3,8 +3,10 @@ import type { PlaywrightReporter } from './playwright-reporter';
 import {
   ADHOC_ACTION_IDS,
   ASSERTABLE_STATES,
+  SETTABLE_STATES,
   type AdhocActionId,
   type AssertableState,
+  type SettableState,
 } from '@shared/recording';
 import { requestVariables, substituteVariables } from './outbound-http';
 import { findUnresolvedVariables } from './variables';
@@ -43,6 +45,15 @@ export interface StepContext {
 export interface StepOutcome {
   status: 'passed' | 'failed';
   error?: string;
+  /**
+   * What the step actually did, when that is not obvious from it having passed.
+   *
+   * `ensureState` needs this: "the function was already enabled" and "the function has been
+   * enabled" are both successes, and a report that shows them identically cannot answer the
+   * question people ask of a setup step — did this run change the system, or find it as it
+   * should be?
+   */
+  detail?: string;
 }
 
 /** The step shape both callers pass in — the builder's `TestStep`, structurally. */
@@ -330,6 +341,76 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
       );
     }
     return passed;
+  },
+
+  /**
+   * Bring a control to a state, rather than perform an operation on it.
+   *
+   * The step a test's preconditions actually mean. "Enable the NetContent function on this
+   * machine" is a statement about the starting point, and `click` cannot express it: a click
+   * on a checkbox is a toggle, so it means "enable" only while the box happens to be off.
+   * Against an environment where the function was already switched on — which is the normal
+   * case for a shared test system, and the case on the second run of the same test — the
+   * setup step switched it back off and the test then failed on a tab that never appeared.
+   *
+   * So: read first, click only on a difference, and report which of the two happened.
+   */
+  ensureState: async (rt) => {
+    const target = requireSelector(rt, 'ensureState');
+    if ('error' in target) return failed(target.error);
+    const wanted = requireValue(rt, 'ensureState');
+    if ('error' in wanted) return failed(wanted.error);
+
+    const state = wanted.value.trim().toLowerCase() as SettableState;
+    if (!(SETTABLE_STATES as readonly string[]).includes(state)) {
+      // Whether a control is enabled or read-only is the application's decision. A test
+      // asking to "set" one of those is describing something it cannot do, and saying so is
+      // more useful than clicking and reporting whatever happened next.
+      const assertOnly = ASSERTABLE_STATES.filter(
+        (s) => !(SETTABLE_STATES as readonly string[]).includes(s),
+      );
+      return failed(
+        `Unknown state "${wanted.value}" for ensureState. Expected one of: ` +
+          `${SETTABLE_STATES.join(', ')}. ` +
+          `${assertOnly.join(', ')} are decided by the application under test — ` +
+          `assert them with assertState instead of setting them.`,
+      );
+    }
+
+    const element = rt.locator(target.selector).first();
+    const wantChecked = state === 'checked';
+
+    let current: boolean;
+    try {
+      current = await element.isChecked();
+    } catch (e: any) {
+      // Distinct from "it is in the wrong state": isChecked() throws on an element that has
+      // no checked state at all, and clicking that would be a guess about what the test meant.
+      return failed(
+        `Could not read the checked state of "${target.selector}" — ${e?.message ?? String(e)}. ` +
+          `ensureState needs a checkbox, a radio, or an element that exposes aria-checked.`,
+      );
+    }
+
+    if (current === wantChecked) {
+      return { status: 'passed', detail: `Already ${state}. Nothing changed.` };
+    }
+
+    // Through rt.click rather than element.check(): check() insists on a real input or
+    // role="checkbox", which rules out the role="switch" toggles Angular Material renders,
+    // and going through rt.click keeps the AI healing pass in the loop on the persisted path.
+    await rt.click(target.selector);
+
+    const reached = await holdsWithin(
+      async () => (await element.isChecked()) === wantChecked,
+      rt.assertionTimeoutMs,
+    );
+    if (!reached) {
+      return failed(
+        `"${target.selector}" was still not ${state} ${rt.assertionTimeoutMs}ms after being clicked.`,
+      );
+    }
+    return { status: 'passed', detail: `Set to ${state}.` };
   },
 
   assertTextContains: async (rt) => {

@@ -849,6 +849,10 @@
       "assertElementCount": {
         "name": "Vérifier le nombre d’éléments",
         "description": "Vérifie combien d’éléments correspondent à un sélecteur."
+      },
+      "ensureState": {
+        "name": "Mettre dans l’état",
+        "description": "Active ou désactive un contrôle seulement s’il ne l’est pas déjà."
       }
     },
     "saveTest": {
