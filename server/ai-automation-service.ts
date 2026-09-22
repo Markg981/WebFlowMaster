@@ -37,6 +37,33 @@ export class AIAutomationService {
     return !!this.apiKey;
   }
 
+  /**
+   * Answers the authoring prompt, or nothing.
+   *
+   * Deliberately thin: everything that decides what may be asked and what may be believed
+   * lives in server/nl-authoring.ts, where it can be tested without a network. This only
+   * carries the text there and back, and returns null for every failure — a model that is
+   * unavailable degrades the feature to the phrasings the parser already understands.
+   *
+   * It does not reuse the model above. That one is pinned to "gemini-pro" for the healing
+   * pass, and quietly moving it would change a behaviour nothing here is asking to change;
+   * GEMINI_MODEL overrides the one used for authoring.
+   */
+  async proposeTestSteps(prompt: string): Promise<string | null> {
+    if (!this.isAvailable()) return null;
+
+    try {
+      const model = this.genAI.getGenerativeModel({
+        model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+      });
+      const result = await model.generateContent(prompt);
+      return result.response.text();
+    } catch (e: any) {
+      this.logError("AI step authoring failed", { error: e.message });
+      return null;
+    }
+  }
+
 
 
 

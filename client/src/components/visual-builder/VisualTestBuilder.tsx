@@ -19,7 +19,7 @@ import { TestStep, DetectedElement } from '@/components/drag-drop-provider';
 import { TestNode, TestNodeData } from './TestNode';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle, Layers } from 'lucide-react';
+import { CheckCircle2, XCircle, Layers, Wand2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useDrop } from 'react-dnd';
 
@@ -39,6 +39,8 @@ interface VisualTestBuilderProps {
   lastTestOutcome?: boolean | null;
   /** Turns what is on the canvas into a named group that other tests can call. */
   onSaveAsGroup?: () => void;
+  /** Starts from the description of the test instead of from an empty canvas. */
+  onDescribeTest?: () => void;
 }
 
 export function VisualTestBuilder({
@@ -52,6 +54,7 @@ export function VisualTestBuilder({
   isRecordingActive = false,
   lastTestOutcome = null,
   onSaveAsGroup,
+  onDescribeTest,
 }: VisualTestBuilderProps) {
   const { t } = useTranslation();
   const [nodes, setNodes] = useState<Node<TestNodeData>[]>([]);
@@ -153,6 +156,18 @@ export function VisualTestBuilder({
   return (
     <div className="h-full flex flex-col relative">
       <div className="absolute top-4 right-4 z-10 space-x-2">
+        {onDescribeTest && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDescribeTest}
+            disabled={isRecordingActive}
+            title={t('testSequenceBuilder.describe.tooltip', 'Write what the test does and turn it into steps')}
+          >
+            <Wand2 className="h-4 w-4 mr-1" />
+            {t('testSequenceBuilder.describe.button', 'Describe')}
+          </Button>
+        )}
         {onSaveAsGroup && (
           <Button
             variant="outline"
