@@ -13,6 +13,7 @@ import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, Refr
 import type { TestPlan } from '@shared/schema';
 import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard';
 import WebhooksModal from '@/components/dashboard/WebhooksModal';
+import EditTestPlanSettingsModal from '@/components/dashboard/EditTestPlanSettingsModal';
 import { fetchFullTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans'; // Renamed fetchTestPlans
 
 
@@ -25,6 +26,8 @@ const TestSuitesPage: React.FC = () => {
   const [isCreatePlanWizardOpen, setIsCreatePlanWizardOpen] = useState(false);
   const [isWebhooksModalOpen, setIsWebhooksModalOpen] = useState(false);
   const [selectedPlanForWebhooks, setSelectedPlanForWebhooks] = useState<{ id: string, name: string } | null>(null);
+  /** The plan whose run settings are open for editing, if any. */
+  const [planBeingEdited, setPlanBeingEdited] = useState<TestPlan | null>(null);
 
   const [runningPlanId] = useState<string | null>(null);
   const itemsPerPage = 5;
@@ -188,6 +191,9 @@ const TestSuitesPage: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <div className="space-x-2">
+                            <Button variant="outline" size="sm" onClick={() => setPlanBeingEdited(item)}>
+                              <Settings size={16} className="mr-1" /> {t('testSuitesPage.settings.button', 'Settings')}
+                            </Button>
                             <Button variant="outline" size="sm" onClick={openScheduling}>
                               <CalendarDays size={16} className="mr-1" /> {t('testSuitesPage.schedule.button')}
                             </Button>
@@ -233,6 +239,13 @@ const TestSuitesPage: React.FC = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        <EditTestPlanSettingsModal
+          isOpen={planBeingEdited !== null}
+          plan={planBeingEdited}
+          onClose={() => setPlanBeingEdited(null)}
+          onSaved={handlePlanCreated}
+        />
 
         {selectedPlanForWebhooks && (
           <WebhooksModal

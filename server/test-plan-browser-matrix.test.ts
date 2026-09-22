@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import path from 'path';
+import fs from 'fs-extra';
 import { v4 as uuidv4 } from 'uuid';
 import { privilegedDb } from './db';
 import {
@@ -107,8 +109,11 @@ beforeEach(async () => {
   launchBrowser.mockClear();
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals();
+  // Every run creates its screenshot directory for real, so a suite that does not clean up
+  // leaves one behind on every execution of itself.
+  if (planId) await fs.remove(path.resolve(process.cwd(), 'results', planId));
 });
 
 describe('the browsers a plan asks for', () => {

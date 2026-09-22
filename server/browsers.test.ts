@@ -68,6 +68,20 @@ describe('browsersForRun', () => {
     expect(warnings.join(' ')).toContain('WebKit');
   });
 
+  it('reads a jsonb column that came back as text, which is how these columns are written here', () => {
+    const { browsers } = browsersForRun({ executionBrowsers: JSON.stringify(['firefox', 'webkit']) });
+
+    expect(browsers.map((b) => b.label)).toEqual(['firefox', 'webkit']);
+  });
+
+  it('reads a machine configuration that came back as text too', () => {
+    const { browsers } = browsersForRun({
+      testMachines: JSON.stringify([{ browserName: 'webkit', headless: true }]),
+    });
+
+    expect(browsers.map((b) => b.label)).toEqual(['webkit']);
+  });
+
   it('never leaves a run with nothing to launch', () => {
     const { browsers } = browsersForRun({ executionBrowsers: ['netscape'] });
     expect(browsers).toHaveLength(1);

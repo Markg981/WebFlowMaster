@@ -74,6 +74,34 @@ export interface BrowserMatrix {
   warnings: string[];
 }
 
+/**
+ * The array a jsonb column holds, whether it comes back parsed or as text.
+ *
+ * Both happen here: rows written through the API are stringified on the way in (the
+ * codebase's convention for these columns) and some readers get the string straight back —
+ * `fetchScheduleWithPlanName` has always had to parse them by hand. A matrix that silently
+ * ignored a string would be this whole change failing quietly on exactly the schedules it
+ * exists for.
+ */
+function asArray(value: unknown): unknown[] | null {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/** Whether a stored value names any browser at all — see `asArray` on why it may be text. */
+export function hasConfiguredBrowsers(value: unknown): boolean {
+  const array = asArray(value);
+  return array !== null && array.length > 0;
+}
+
 export function resolveBrowser(name: string, headless: boolean): BrowserChoice | null {
   const key = name?.trim().toLowerCase();
   const mapped = key ? ENGINE_BY_NAME[key] : undefined;
@@ -102,6 +130,8 @@ export function browsersForRun(input: BrowserMatrixInput): BrowserMatrix {
   const warnings: string[] = [];
   const browsers: BrowserChoice[] = [];
   const seen = new Set<string>();
+  const scheduledBrowsers = asArray(input.executionBrowsers);
+  const machines = asArray(input.testMachines) as TestMachineConfig[] | null;
 
   const add = (choice: BrowserChoice | null, rawName: string) => {
     if (!choice) {
@@ -116,16 +146,14 @@ export function browsersForRun(input: BrowserMatrixInput): BrowserMatrix {
     browsers.push(choice);
   };
 
-  const scheduled = Array.isArray(input.executionBrowsers) ? input.executionBrowsers : null;
-  if (scheduled && scheduled.length > 0) {
-    for (const name of scheduled) {
+  if (scheduledBrowsers && scheduledBrowsers.length > 0) {
+    for (const name of scheduledBrowsers) {
       if (typeof name !== 'string') continue;
       // A schedule says which browsers, never whether to show them: a scheduled run has
       // nobody watching it, so it is headless whatever the plan's machines say.
       add(resolveBrowser(name, true), name);
     }
   } else {
-    const machines = Array.isArray(input.testMachines) ? (input.testMachines as TestMachineConfig[]) : null;
     if (machines && machines.length > 0) {
       for (const machine of machines) {
         const name = typeof machine?.browserName === 'string' ? machine.browserName : '';

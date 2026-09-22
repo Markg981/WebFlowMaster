@@ -25,7 +25,7 @@ import { getCorrelationId } from './middleware/correlation';
 import { defaultVariables } from './variables';
 import { runApiRequest, type Extraction } from './api-test-runner';
 import type { Assertion, AuthParams } from '@shared/schema';
-import { browsersForRun, describeBrowser, launchBrowser, type BrowserChoice } from './browsers';
+import { browsersForRun, describeBrowser, hasConfiguredBrowsers, launchBrowser, type BrowserChoice } from './browsers';
 import type { VisualContext } from './visual-testing';
 import {
   describeUnsupported,
@@ -500,8 +500,7 @@ async function runTestPlanJobInTenant(
   const plan = planRecord[0];
 
   const configuredBrowsers =
-    (Array.isArray(executionRecord[0].browsers) && executionRecord[0].browsers.length > 0) ||
-    (Array.isArray(plan?.testMachinesConfig) && (plan!.testMachinesConfig as unknown[]).length > 0);
+    hasConfiguredBrowsers(executionRecord[0].browsers) || hasConfiguredBrowsers(plan?.testMachinesConfig);
   const { browsers: browserMatrix, warnings: browserWarnings } = browsersForRun({
     executionBrowsers: executionRecord[0].browsers,
     testMachines: plan?.testMachinesConfig,
