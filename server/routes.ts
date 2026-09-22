@@ -44,6 +44,7 @@ import artifactsRoutes, { artifactUrl, stepsWithArtifactUrls } from "./routes/ar
 import apiKeysRoutes from "./routes/api-keys.routes";
 import stepGroupsRoutes from "./routes/step-groups.routes";
 import projectElementsRoutes from "./routes/project-elements.routes";
+import nlAuthoringRoutes from "./routes/nl-authoring.routes";
 import authRoutes from "./routes/auth.routes";
 import observabilityRoutes from "./routes/observability.routes";
 import environmentRoutes from "./routes/environments.routes";
@@ -128,6 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(apiKeysRoutes);
     app.use(stepGroupsRoutes);
     app.use(projectElementsRoutes);
+    app.use(nlAuthoringRoutes);
     app.use(observabilityRoutes);
     app.use(environmentRoutes);
     app.use(analyticsRoutes);

@@ -26,6 +26,7 @@ import type { Precondition } from "@shared/schema";
 import { ACTION_I18N, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from "@shared/recording";
 import SaveStepGroupModal from "@/components/SaveStepGroupModal";
 import KeepElementModal from "@/components/KeepElementModal";
+import AuthorStepsModal from "@/components/AuthorStepsModal";
 import { useRecordingSession } from "@/hooks/useRecordingSession";
 import { EnvironmentSelect } from "@/components/EnvironmentSelect";
 import { NO_ENVIRONMENT, environmentIdFor } from "@/hooks/use-environments";
@@ -123,6 +124,8 @@ export default function DashboardPage() {
   const [dataset, setDataset] = useState<DatasetRow[]>([]);
   /** Open while naming the sequence that is about to become a reusable group. */
   const [isSaveGroupModalOpen, setIsSaveGroupModalOpen] = useState(false);
+  /** Open while a description is being read into steps. Nothing it proposes is inserted unseen. */
+  const [isAuthorModalOpen, setIsAuthorModalOpen] = useState(false);
   /** The detected element about to be kept in a project's repository, if any. */
   const [elementBeingKept, setElementBeingKept] = useState<DetectedElement | null>(null);
   const [creationMode, setCreationMode] = useState<"manual" | "record">(
@@ -1284,6 +1287,7 @@ export default function DashboardPage() {
             isRecordingActive={isRecording} // Pass the isRecording state
             lastTestOutcome={lastTestOverallResult} // Pass the test outcome state
             onSaveAsGroup={() => setIsSaveGroupModalOpen(true)}
+            onDescribeTest={() => setIsAuthorModalOpen(true)}
           />
         </div>
       </div>
@@ -1307,6 +1311,24 @@ export default function DashboardPage() {
         onClose={() => setIsSaveGroupModalOpen(false)}
         stepCount={testSequence.length}
         onSave={handleSaveStepGroup}
+      />
+      <AuthorStepsModal
+        isOpen={isAuthorModalOpen}
+        onClose={() => setIsAuthorModalOpen(false)}
+        elements={detectedElements}
+        // Appended, never replacing: a description usually continues a sequence that was
+        // recorded or built by hand, and losing that to a paste would be unforgivable.
+        onInsert={(steps) => {
+          setTestSequence((current) => [...current, ...(steps as DragDropTestStep[])]);
+          toast({
+            title: t('dashboardPageNew.authoring.inserted.title', 'Steps added'),
+            description: t(
+              'dashboardPageNew.authoring.inserted.description',
+              '{{count}} steps were added to the end of the sequence.',
+              { count: steps.length },
+            ),
+          });
+        }}
       />
       <KeepElementModal
         isOpen={elementBeingKept !== null}
