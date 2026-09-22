@@ -23,7 +23,9 @@ import SaveTestModal from "@/components/SaveTestModal"; // Import the modal
 import { PreconditionsPanel } from "@/components/PreconditionsPanel";
 import { DatasetPanel, type DatasetRow } from "@/components/DatasetPanel";
 import type { Precondition } from "@shared/schema";
-import { ACTION_I18N, ADHOC_ACTION_IDS } from "@shared/recording";
+import { ACTION_I18N, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from "@shared/recording";
+import SaveStepGroupModal from "@/components/SaveStepGroupModal";
+import KeepElementModal from "@/components/KeepElementModal";
 import { useRecordingSession } from "@/hooks/useRecordingSession";
 import { EnvironmentSelect } from "@/components/EnvironmentSelect";
 import { NO_ENVIRONMENT, environmentIdFor } from "@/hooks/use-environments";
@@ -119,6 +121,10 @@ export default function DashboardPage() {
   // Rows this test runs over, one run each. Empty means a single run, which is what every
   // test did before datasets existed.
   const [dataset, setDataset] = useState<DatasetRow[]>([]);
+  /** Open while naming the sequence that is about to become a reusable group. */
+  const [isSaveGroupModalOpen, setIsSaveGroupModalOpen] = useState(false);
+  /** The detected element about to be kept in a project's repository, if any. */
+  const [elementBeingKept, setElementBeingKept] = useState<DetectedElement | null>(null);
   const [creationMode, setCreationMode] = useState<"manual" | "record">(
     "manual"
   );
@@ -179,6 +185,97 @@ export default function DashboardPage() {
     staleTime: Infinity,
   });
   const recordingSupported = recordingCapability?.supported;
+
+  /**
+   * The sequences this organization has already written down.
+   *
+   * They appear in the palette beside the actions and are dragged in the same way. What lands
+   * in the test is a reference: the runner expands it at execution time, so editing the group
+   * changes every test that calls it.
+   */
+  const { data: stepGroups = [], refetch: refetchStepGroups } = useQuery<
+    Array<{ id: string; name: string; description: string | null; sequence: unknown[] }>,
+    Error
+  >({
+    queryKey: ["stepGroups"],
+    queryFn: async () => {
+      const res = await fetch("/api/step-groups");
+      if (!res.ok) throw new Error("Failed to load step groups");
+      return res.json();
+    },
+  });
+
+  // Whatever the endpoint answered, the palette is a list. A builder that throws because a
+  // request returned an error object is a worse failure than a palette with no groups in it.
+  const stepGroupActions = (Array.isArray(stepGroups) ? stepGroups : []).map((group) => ({
+    id: STEP_GROUP_ACTION_ID,
+    type: "group",
+    name: group.name,
+    icon: "Layers",
+    description:
+      group.description || t('dashboardPageNew.stepGroups.stepCount', '{{count}} steps', { count: group.sequence?.length ?? 0 }),
+    // Travels with the drag and ends up in the step's `value`, which is where the runner
+    // looks for the group a call names.
+    groupId: group.id,
+  }));
+
+  /**
+   * Keeps a detected element in a project's repository.
+   *
+   * From here on that project owns where the element is: tests that name it read one selector,
+   * and the healing pass repairs it once for all of them rather than once per test, after each
+   * has failed.
+   */
+  const handleKeepElement = async ({ projectId, name }: { projectId: number; name: string }) => {
+    if (!elementBeingKept) return;
+    const response = await fetch(`/api/projects/${projectId}/elements`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        selector: elementBeingKept.selector,
+        frameSelector: (elementBeingKept as { frameSelector?: string | null }).frameSelector ?? null,
+        tag: elementBeingKept.tag,
+        elementType: elementBeingKept.type,
+        text: elementBeingKept.text,
+        attributes: elementBeingKept.attributes,
+      }),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.error || "Could not keep the element");
+    }
+    toast({
+      title: t('dashboardPageNew.elementRepository.kept.title', 'Element kept'),
+      description: t(
+        'dashboardPageNew.elementRepository.kept.description',
+        '"{{name}}" now belongs to the project. Steps that use it read its selector from there.',
+        { name },
+      ),
+    });
+  };
+
+  /** Saves what is in the builder as a group. The builder is the only place sequences exist. */
+  const handleSaveStepGroup = async ({ name, description }: { name: string; description?: string }) => {
+    const response = await fetch("/api/step-groups", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, description, sequence: testSequence }),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.error || "Could not save the step group");
+    }
+    await refetchStepGroups();
+    toast({
+      title: t('dashboardPageNew.stepGroups.saved.title', 'Step group saved'),
+      description: t(
+        'dashboardPageNew.stepGroups.saved.description',
+        '"{{name}}" is now in the palette, and any test can call it.',
+        { name },
+      ),
+    });
+  };
 
   // Fetch user settings
   const {
@@ -986,6 +1083,19 @@ export default function DashboardPage() {
                   {availableActions.map((action) => (
                     <DraggableAction key={action.id} action={action} stepId="library" onDropElement={() => { }} />
                   ))}
+
+                  {/* The sequences this organization has already written down. Dragged in like
+                      any action; what arrives in the test is a reference, not a copy. */}
+                  {stepGroupActions.length > 0 && (
+                    <>
+                      <h4 className="text-sm font-semibold text-muted-foreground pt-4">
+                        {t('dashboardPageNew.stepGroups.title', 'Step groups')}
+                      </h4>
+                      {stepGroupActions.map((action) => (
+                        <DraggableAction key={action.id} action={action} stepId="library" onDropElement={() => { }} />
+                      ))}
+                    </>
+                  )}
                 </div>
               </ScrollArea>
             </div>
@@ -1140,6 +1250,7 @@ export default function DashboardPage() {
                       key={element.id}
                       element={element}
                       onHover={setHighlightedElement}
+                      onKeep={setElementBeingKept}
                     />
                   ))}
 
@@ -1172,6 +1283,7 @@ export default function DashboardPage() {
             isSaving={saveTestMutation.isPending && !executeDirectTestMutation.isPending && !isExecutingPlayback}
             isRecordingActive={isRecording} // Pass the isRecording state
             lastTestOutcome={lastTestOverallResult} // Pass the test outcome state
+            onSaveAsGroup={() => setIsSaveGroupModalOpen(true)}
           />
         </div>
       </div>
@@ -1189,6 +1301,18 @@ export default function DashboardPage() {
         onClose={handleCloseSaveModal}
         onSave={handleConfirmSaveTest}
         initialTestName={testName}
+      />
+      <SaveStepGroupModal
+        isOpen={isSaveGroupModalOpen}
+        onClose={() => setIsSaveGroupModalOpen(false)}
+        stepCount={testSequence.length}
+        onSave={handleSaveStepGroup}
+      />
+      <KeepElementModal
+        isOpen={elementBeingKept !== null}
+        onClose={() => setElementBeingKept(null)}
+        element={elementBeingKept}
+        onKept={handleKeepElement}
       />
     </div>
   );

@@ -2,7 +2,8 @@ import { useDrag } from "react-dnd";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, MousePointer } from "lucide-react";
+import { Search, MousePointer, Bookmark } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface DetectedElement {
   id: string;
@@ -22,9 +23,11 @@ interface DetectedElement {
 interface DraggableElementProps {
   element: DetectedElement;
   onHover: (elementId: string | null) => void;
+  /** Offered when the page can keep this element in a project's repository. */
+  onKeep?: (element: DetectedElement) => void;
 }
 
-export function DraggableElement({ element, onHover }: DraggableElementProps) {
+export function DraggableElement({ element, onHover, onKeep }: DraggableElementProps) {
   const { t } = useTranslation();
   // `element` MUST be in the deps array: detected-element ids are positional
   // (regenerated from 0 on every detect), so React reuses the same DraggableElement
@@ -102,6 +105,24 @@ export function DraggableElement({ element, onHover }: DraggableElementProps) {
             {element.selector}
           </div>
         </div>
+        {/* Keeping an element means the project owns it: every test that names it reads one
+            selector, and a repair reaches all of them at once instead of one failure at a
+            time. Without this the only way in was the API. */}
+        {onKeep && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0"
+            title={t('draggableElement.keep.tooltip', 'Keep this element in the project repository')}
+            aria-label={t('draggableElement.keep.tooltip', 'Keep this element in the project repository')}
+            onClick={(event) => {
+              event.stopPropagation();
+              onKeep(element);
+            }}
+          >
+            <Bookmark className="h-3 w-3" />
+          </Button>
+        )}
       </div>
     </Card>
   );

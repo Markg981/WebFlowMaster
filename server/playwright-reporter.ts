@@ -1,21 +1,49 @@
 import { Page } from 'playwright';
 import { reportingService } from './reporting-service';
 import { aiService } from './ai-automation-service';
+import { recordHealedSelector } from './step-elements';
 
 export class PlaywrightReporter {
   // Context for DB updates
   private currentTestId?: number;
   private currentStepIndex?: number;
-  
+  /**
+   * The repository element this step points at, when it points at one.
+   *
+   * Healing a step used to rewrite the selector inside this one test's saved sequence, so the
+   * same moved button was repaired separately by every test that touched it — each after
+   * failing once. When the step names a shared element, the repair goes there instead, and
+   * every test that names it is fixed before it runs.
+   */
+  private currentElementId?: string | null;
+
   // State for AI Reporting
   public lastActionHealed: boolean = false;
   public lastActionRca: string | undefined;
 
   constructor(private page: Page) {}
 
-  setContext(testId: number, stepIndex: number) {
+  setContext(testId: number, stepIndex: number, elementId?: string | null) {
     this.currentTestId = testId;
     this.currentStepIndex = stepIndex;
+    this.currentElementId = elementId ?? null;
+  }
+
+  /**
+   * Writes a repaired selector where the tests that use it will read it.
+   *
+   * The repository when the step names one — a single row, read by every test that names it —
+   * and this test's own sequence otherwise, which is what healing has always done.
+   */
+  private async persistHealedSelector(healedSelector: string): Promise<void> {
+    if (this.currentElementId) {
+      const recorded = await recordHealedSelector(this.currentElementId, healedSelector).catch(() => false);
+      if (recorded) return;
+      // Fall through: an element that could not be written is no reason to lose the repair.
+    }
+    if (this.currentTestId !== undefined && this.currentStepIndex !== undefined) {
+      await aiService.updateSelectorInDb(this.currentTestId, this.currentStepIndex, healedSelector);
+    }
   }
   
   resetStepState() {
@@ -49,9 +77,7 @@ export class PlaywrightReporter {
                    await this.page.click(healedSelector);
                });
                 // If success, update DB and set state
-                if (this.currentTestId !== undefined && this.currentStepIndex !== undefined) {
-                    await aiService.updateSelectorInDb(this.currentTestId, this.currentStepIndex, healedSelector);
-                }
+                await this.persistHealedSelector(healedSelector);
                 this.lastActionHealed = true;
                 return; // Success
            } catch (retryError) {
@@ -77,9 +103,7 @@ export class PlaywrightReporter {
                     await this.highlight(healedSelector);
                     await this.page.fill(healedSelector, value);
                 });
-                if (this.currentTestId !== undefined && this.currentStepIndex !== undefined) {
-                    await aiService.updateSelectorInDb(this.currentTestId, this.currentStepIndex, healedSelector);
-                }
+                await this.persistHealedSelector(healedSelector);
                 this.lastActionHealed = true;
                 return;
             } catch { /* retry failed; fall through to failure handling */ }
@@ -103,9 +127,7 @@ export class PlaywrightReporter {
                     await this.highlight(healedSelector);
                     await this.page.selectOption(healedSelector, value);
                 });
-                if (this.currentTestId !== undefined && this.currentStepIndex !== undefined) {
-                    await aiService.updateSelectorInDb(this.currentTestId, this.currentStepIndex, healedSelector);
-                }
+                await this.persistHealedSelector(healedSelector);
                 this.lastActionHealed = true;
                 return;
             } catch { /* retry failed; fall through to failure handling */ }

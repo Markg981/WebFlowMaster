@@ -19,7 +19,7 @@ import { TestStep, DetectedElement } from '@/components/drag-drop-provider';
 import { TestNode, TestNodeData } from './TestNode';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Layers } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useDrop } from 'react-dnd';
 
@@ -37,6 +37,8 @@ interface VisualTestBuilderProps {
   isSaving?: boolean;
   isRecordingActive?: boolean;
   lastTestOutcome?: boolean | null;
+  /** Turns what is on the canvas into a named group that other tests can call. */
+  onSaveAsGroup?: () => void;
 }
 
 export function VisualTestBuilder({
@@ -49,6 +51,7 @@ export function VisualTestBuilder({
   isSaving = false,
   isRecordingActive = false,
   lastTestOutcome = null,
+  onSaveAsGroup,
 }: VisualTestBuilderProps) {
   const { t } = useTranslation();
   const [nodes, setNodes] = useState<Node<TestNodeData>[]>([]);
@@ -120,7 +123,9 @@ export function VisualTestBuilder({
       const newStep: TestStep = {
         id: `step-${Date.now()}`,
         action: item.data,
-        value: ""
+        // A step group is dragged like any action, and the group it names travels in `value` —
+        // which is where the runner looks when it expands the call.
+        value: item.data?.groupId ?? ""
       };
       onUpdateSequence([...testSequence, newStep]);
     },
@@ -148,6 +153,18 @@ export function VisualTestBuilder({
   return (
     <div className="h-full flex flex-col relative">
       <div className="absolute top-4 right-4 z-10 space-x-2">
+        {onSaveAsGroup && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSaveAsGroup}
+            disabled={testSequence.length === 0 || isRecordingActive}
+            title={t('testSequenceBuilder.saveAsGroup.tooltip', 'Save these steps as a group other tests can call')}
+          >
+            <Layers className="h-4 w-4 mr-1" />
+            {t('testSequenceBuilder.saveAsGroup.button', 'Save as group')}
+          </Button>
+        )}
         <Button variant="outline" size="sm" onClick={onClearSequence} disabled={testSequence.length === 0 || isRecordingActive}>
           {t('testSequenceBuilder.clear.button')}
         </Button>
