@@ -199,6 +199,15 @@ export const testPlans = pgTable("test_plans", {
   onTestCasePreRequisiteFailure: text('on_test_case_pre_requisite_failure').default('stop_execution'),
   onTestStepPreRequisiteFailure: text('on_test_step_pre_requisite_failure').default('abort_and_run_next_test_case'),
   reRunOnFailure: text('re_run_on_failure').default('none'),
+  /**
+   * How many of this plan's runs may be in flight at once, across all its browsers.
+   *
+   * 1 is what every plan did before this existed: one browser session at a time, so forty
+   * tests on three browsers were a hundred and twenty of them end to end. How high this can
+   * go is a fact about the machine the runner is on, which is why it is a setting and not a
+   * constant.
+   */
+  maxParallelTests: integer('max_parallel_tests').default(1).notNull(),
   notificationSettings: jsonb('notification_settings'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -486,6 +495,40 @@ export const auditLog = pgTable("audit_log", {
 export type AuditLogEntry = typeof auditLog.$inferSelect;
 
 /**
+ * A credential for something that is not a person.
+ *
+ * Everything here was behind a passport session, so a pipeline could only reach the API by
+ * holding somebody's password — which turns an account into a service account and makes a
+ * leaver break the build.
+ *
+ * The key is never stored: `hashedKey` is its SHA-256 and `prefix` is its first characters,
+ * kept only so a list of keys can be told apart. A key carries the role of the user who made
+ * it, so nothing downstream needs a second authorisation model.
+ */
+export const apiKeys = pgTable("api_keys", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  /** The key acts as this user. Deleting the member takes their keys with them. */
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  /** What it is for, in the words of whoever created it: "GitHub Actions", "nightly". */
+  name: text("name").notNull(),
+  prefix: text("prefix").notNull(),
+  hashedKey: text("hashed_key").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  /** Answers "is this key still in use?", which is what makes cleaning them up possible. */
+  lastUsedAt: timestamp("last_used_at"),
+  expiresAt: timestamp("expires_at"),
+  /** Set instead of deleting, so a key that ran ten thousand builds stays nameable. */
+  revokedAt: timestamp("revoked_at"),
+}, (table) => [
+  index("api_keys_organization_id_idx").on(table.organizationId),
+  index("api_keys_user_id_idx").on(table.userId),
+]);
+
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = typeof apiKeys.$inferInsert;
+
+/**
  * The actions worth recording, as a closed set: a free-text action column drifts into
  * near-duplicates ('member.removed' and 'member.remove') that nobody can query reliably.
  */
@@ -495,6 +538,8 @@ export const AUDIT_ACTIONS = {
   INVITATION_CREATED: 'invitation.created',
   INVITATION_REVOKED: 'invitation.revoked',
   INVITATION_ACCEPTED: 'invitation.accepted',
+  API_KEY_CREATED: 'api_key.created',
+  API_KEY_REVOKED: 'api_key.revoked',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
@@ -835,6 +880,9 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
     .enum(["abort_and_run_next_test_case", "stop_execution", "skip_test_step"])
     .default("abort_and_run_next_test_case"),
   reRunOnFailure: z.enum(["none", "once", "twice", "thrice"]).default("none"),
+  // Capped rather than open: each unit is a real browser, and a number typed into a form is
+  // not a statement about how much memory the runner has.
+  maxParallelTests: z.number().int().min(1).max(16).default(1),
   notificationSettings: z
     .object({
       passed: z.boolean().default(true),
@@ -1419,4 +1467,9 @@ export const ORG_SCOPED_TABLES = [
   // audit_log is org-scoped like the rest, but its grants are narrower: SELECT and INSERT
   // only, so the application cannot rewrite history. See migration 0009.
   'audit_log',
+  // api_keys is org-scoped and policed like the rest. Unlike `invitations`, which cannot be,
+  // the one lookup that must happen before an organization is known — authenticating a
+  // request that carries a key — is a privileged bootstrap read in middleware, the same shape
+  // as passport's deserializeUser. Every other access is an ordinary request.
+  'api_keys',
 ] as const;

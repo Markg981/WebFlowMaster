@@ -94,6 +94,15 @@ describe('route modules cannot query outside the tenant context', () => {
         'tenant to inherit. Subscription authorisation, which IS reachable from the wire, goes ' +
         'through runWithTenant + withTenantTransaction instead.',
     },
+    'middleware/api-key-auth.ts': {
+      max: 2,
+      why:
+        'Authenticating an API key is the query that answers "which organization is this request ' +
+        'for?", so it cannot run inside one — the same bootstrap shape as passport\'s ' +
+        'deserializeUser. Two statements name api_keys: the lookup, and the throttled ' +
+        'last_used_at touch that belongs to the same pre-tenant moment. Everything the key then ' +
+        'does is an ordinary request under RLS.',
+    },
     'test-execution-service.ts': {
       max: 3,
       why:

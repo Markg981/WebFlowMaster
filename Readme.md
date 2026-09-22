@@ -120,6 +120,45 @@ npm run test:client
 
 ---
 
+## 🤖 Eseguire un Test Plan dalla CI
+
+Una pipeline non ha un browser né una sessione: autentica con una **API key** (Settings → API keys)
+e parla con la CLI. La chiave agisce per conto di chi l'ha creata, con il suo ruolo, e si revoca
+senza toccare quell'account.
+
+```bash
+export WFM_URL=https://webflowmaster.example.com
+export WFM_API_KEY=wfm_...
+
+# Avvia il piano, aspetta l'esito, scrivi il report JUnit
+npm run cli -- run <planId> --wait --junit junit.xml
+```
+
+Il **codice di uscita è l'interfaccia**: `0` il run è passato, `1` il run è fallito, `2` il comando
+non è stato eseguibile (credenziali, rete, uso errato). Altri comandi: `status <executionId>` e
+`junit <executionId>`.
+
+Esempio per GitHub Actions:
+
+```yaml
+- name: Run E2E plan
+  env:
+    WFM_URL: ${{ secrets.WFM_URL }}
+    WFM_API_KEY: ${{ secrets.WFM_API_KEY }}
+  run: npx wfm run ${{ vars.WFM_PLAN_ID }} --wait --junit junit.xml
+- name: Publish results
+  if: always()
+  uses: mikepenz/action-junit-report@v4
+  with:
+    report_paths: junit.xml
+```
+
+Il report JUnit raggruppa i risultati **per browser**, così una matrice si legge come
+"firefox: 2 falliti" invece che come un elenco piatto. Quanti test girano insieme lo decide il
+piano (Settings del piano → *Run at most*), con il tetto dell'installazione in `RUN_MAX_PARALLEL`.
+
+---
+
 ## 📂 Struttura della Documentazione
 Per approfondimenti, consulta la cartella `docs/`:
 - [**User Guide**](./docs/USER_GUIDE.md): Manuale per tester e QA Engineer.

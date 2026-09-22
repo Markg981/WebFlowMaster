@@ -31,6 +31,7 @@ const fetchTestPlanDetails = async (planId: string): Promise<TestPlan & { tests:
       testMachinesConfig: null,
       captureScreenshots: null,
       visualTestingEnabled: false,
+      maxParallelTests: 1,
       pageLoadTimeout: null,
       elementTimeout: null,
       onMajorStepFailure: null,
