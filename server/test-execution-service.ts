@@ -25,6 +25,20 @@ import { getCorrelationId } from './middleware/correlation';
 import { defaultVariables } from './variables';
 import { runApiRequest, type Extraction } from './api-test-runner';
 import type { Assertion, AuthParams } from '@shared/schema';
+import { browsersForRun, describeBrowser, hasConfiguredBrowsers, launchBrowser, type BrowserChoice } from './browsers';
+import type { VisualContext } from './visual-testing';
+import {
+  describeUnsupported,
+  mergeNotificationSettings,
+  sendRunNotification,
+  type RunSummary,
+} from './notifications';
+import { testPlanSchedules } from '@shared/schema';
+
+/** Keeps a browser label from turning into a path when it names a directory. */
+function sanitizeSegment(value: string): string {
+  return value.replace(/[^a-z0-9_.-]/gi, '_').slice(0, 40) || 'browser';
+}
 
 // Helper to interpolate {{SECRET_KEY}} in strings
 function interpolateSecrets(str: string, secretsMap: Record<string, string>): string {
@@ -68,6 +82,12 @@ export interface IndividualTestRunResult {
 }
 
 
+/** What the plan adds to a single test run: which browser, and whether to compare it visually. */
+export interface RunTestOptions {
+  browser?: BrowserChoice;
+  visual?: Omit<VisualContext, 'testId' | 'browser'>;
+}
+
 export async function runTest(
   test: Test | ApiTest, // Test is from shared/schema, ApiTest would also be from there
   userId: number,
@@ -80,6 +100,9 @@ export async function runTest(
   vars: Record<string, string> = defaultVariables(),
   // The environment whose saved browser session to start from, when it has one.
   environment?: { environmentId: number; organizationId: number },
+  // Which browser, and whether to compare each step against its baseline. Both come from the
+  // plan, and both were collected by the product long before anything acted on them.
+  options?: RunTestOptions,
 ): Promise<IndividualTestRunResult> {
   const resolvedLogger = await loggerPromise;
   const startTime = Date.now();
@@ -90,7 +113,14 @@ export async function runTest(
 
   if (testType === 'ui') {
     const uiTest = test as Test;
-    const screenshotBaseDir = path.join('./results', planId, runId, `ui_${testId}`);
+    // One directory per browser, because a plan covering two browsers runs this test twice
+    // and the second run would otherwise overwrite the first one's evidence.
+    const screenshotBaseDir = path.join(
+      './results',
+      planId,
+      runId,
+      options?.browser ? `ui_${testId}_${sanitizeSegment(options.browser.label)}` : `ui_${testId}`,
+    );
     try {
       await fs.ensureDir(screenshotBaseDir);
 
@@ -118,7 +148,25 @@ export async function runTest(
         };
       }
 
-      const result = await playwrightService.executeTestSequence(uiTest, userId, screenshotBaseDir, runId, vars, environment);
+      const result = await playwrightService.executeTestSequence(
+        uiTest,
+        userId,
+        screenshotBaseDir,
+        runId,
+        vars,
+        environment,
+        {
+          browser: options?.browser,
+          visual: options?.visual
+            ? {
+                ...options.visual,
+                testId,
+                browser: options.browser?.label ?? 'default',
+                artifactDir: screenshotBaseDir,
+              }
+            : undefined,
+        },
+      );
       const durationMs = Date.now() - startTime;
 
       // Determine overall test status
@@ -138,6 +186,15 @@ export async function runTest(
             break;
           }
         }
+      }
+
+      // A test that failed on a visual comparison shows the diff, not the page. The page is
+      // what the report already has; the diff is the only picture that answers "what changed?".
+      const visualFailure = result.steps?.find(
+        (step) => step.status === 'failed' && step.visual?.outcome === 'diff' && step.visual.diffImage,
+      );
+      if (visualFailure?.visual?.diffImage) {
+        lastScreenshotPath = visualFailure.visual.diffImage;
       }
 
 
@@ -246,13 +303,37 @@ export async function runTest(
 //   return { success: true, details: { statusCode: 200, responseBody: { message: "ok"} } };
 // }
 
+/**
+ * What a caller can say about a run beyond which plan it is.
+ *
+ * `executionId` exists for the scheduler, which creates the execution row itself — with the
+ * schedule's environment, its browsers and its `scheduled` provenance — and then needs the
+ * job to run *that* row. Before this it did not: `runTestPlan` inserted a second row, and the
+ * run that actually happened was the second one, marked manual, with no environment and no
+ * browsers. The schedule's configuration was recorded on a row nothing ever executed.
+ */
+export interface RunTestPlanOptions {
+  environmentId?: number | null;
+  /** Accept this run's screenshots as the new visual baselines. */
+  updateBaselines?: boolean;
+  /** An execution row the caller has already created, to be run instead of a new one. */
+  executionId?: string;
+}
+
 export async function runTestPlan(
   planId: string,
   userId: number,
-  environmentId?: number
+  environmentIdOrOptions?: number | RunTestPlanOptions,
 ): Promise<TestPlanExecution | { error: string; status?: number; testPlanRunId?: string }> {
+  const options: RunTestPlanOptions =
+    typeof environmentIdOrOptions === 'number'
+      ? { environmentId: environmentIdOrOptions }
+      : (environmentIdOrOptions ?? {});
+  const environmentId = options.environmentId ?? undefined;
   const resolvedLogger = await loggerPromise;
-  const testPlanRunId = uuidv4();
+  // The caller's row when it made one, so the schedule's environment and browsers are on the
+  // row that actually runs rather than on a duplicate nothing executes.
+  const testPlanRunId = options.executionId ?? uuidv4();
   const overallStartTime = Date.now();
 
   resolvedLogger.info({ message: `Enqueueing test plan execution`, planId, testPlanRunId, userId });
@@ -269,25 +350,44 @@ export async function runTestPlan(
 
   let currentTestPlanRun: TestPlanExecution;
   try {
-    const inserted = await privilegedDb.insert(testPlanExecutionsTable)
-      .values({
-        id: testPlanRunId,
-        // Same organization as the plan being run.
-        organizationId: planResult[0].organizationId,
-        testPlanId: planId,
-        status: 'pending', // Queue status
-        startedAt: new Date(overallStartTime),
-        environment: environmentId ? environmentId.toString() : null, // Save environment ID here
-        triggeredBy: 'manual',
-      })
-      .returning();
-    currentTestPlanRun = inserted[0];
+    if (options.executionId) {
+      // Read under the plan's organization rather than privileged: the boundary that
+      // establishes which organization this is has already been crossed, three lines up.
+      const existing = await runWithTenant(planResult[0].organizationId, () =>
+        withTenantTransaction((tx) =>
+          tx
+            .select()
+            .from(testPlanExecutionsTable)
+            .where(eq(testPlanExecutionsTable.id, options.executionId as string))
+            .limit(1),
+        ),
+      );
+      if (existing.length === 0) {
+        return { error: `Test plan execution ${options.executionId} not found`, status: 404 };
+      }
+      currentTestPlanRun = existing[0];
+    } else {
+      const inserted = await privilegedDb.insert(testPlanExecutionsTable)
+        .values({
+          id: testPlanRunId,
+          // Same organization as the plan being run.
+          organizationId: planResult[0].organizationId,
+          testPlanId: planId,
+          status: 'pending', // Queue status
+          startedAt: new Date(overallStartTime),
+          environment: environmentId ? environmentId.toString() : null, // Save environment ID here
+          triggeredBy: 'manual',
+        })
+        .returning();
+      currentTestPlanRun = inserted[0];
+    }
 
     // Add job to Queue
     await testExecutionQueue.add('execute-plan', {
       planId,
       testPlanRunId,
       userId,
+      updateBaselines: options.updateBaselines === true,
       correlationId: getCorrelationId() || `job-${testPlanRunId.slice(0, 8)}`
     });
 
@@ -316,7 +416,8 @@ export async function runTestPlan(
 export async function processTestPlanJob(
   planId: string,
   testPlanRunId: string,
-  userId: number
+  userId: number,
+  jobOptions: { updateBaselines?: boolean } = {},
 ): Promise<any> {
   const bootstrapLogger = await loggerPromise;
   const [execution] = await privilegedDb
@@ -331,14 +432,15 @@ export async function processTestPlanJob(
   }
 
   return runWithTenant(execution.organizationId, () =>
-    runTestPlanJobInTenant(planId, testPlanRunId, userId),
+    runTestPlanJobInTenant(planId, testPlanRunId, userId, jobOptions),
   );
 }
 
 async function runTestPlanJobInTenant(
   planId: string,
   testPlanRunId: string,
-  userId: number
+  userId: number,
+  jobOptions: { updateBaselines?: boolean } = {},
 ): Promise<any> {
   const resolvedLogger = await loggerPromise;
   const wsEmitter = getWsEmitter();
@@ -388,6 +490,56 @@ async function runTestPlanJobInTenant(
     return { error: `Test plan execution ${testPlanRunId} not found.`, status: 500, testPlanRunId };
   }
   const environmentId = executionRecord[0].environment ? parseInt(executionRecord[0].environment) : null;
+
+  // The plan itself, for the three things it has always recorded and nothing ever read: the
+  // browsers to cover, whether to compare each step against its visual baseline, and who to
+  // tell when the run is over.
+  const planRecord = await withTenantTransaction((tx) =>
+    tx.select().from(testPlans).where(eq(testPlans.id, planId)).limit(1),
+  );
+  const plan = planRecord[0];
+
+  const configuredBrowsers =
+    hasConfiguredBrowsers(executionRecord[0].browsers) || hasConfiguredBrowsers(plan?.testMachinesConfig);
+  const { browsers: browserMatrix, warnings: browserWarnings } = browsersForRun({
+    executionBrowsers: executionRecord[0].browsers,
+    testMachines: plan?.testMachinesConfig,
+  });
+  // `undefined` means "whatever the runner would have used", which is the user's own setting
+  // — exactly what every plan did before its browser configuration was honoured.
+  const runPasses: Array<BrowserChoice | undefined> = configuredBrowsers ? browserMatrix : [undefined];
+  for (const warning of browserWarnings) {
+    const entry: ExecutionLogEntry = {
+      level: 'warn',
+      source: 'system',
+      message: warning,
+      timestamp: new Date().toISOString(),
+    };
+    resolvedLogger.warn(entry);
+    wsEmitter.emitExecutionLog(testPlanRunId, entry);
+  }
+  if (configuredBrowsers) {
+    wsEmitter.emitExecutionLog(testPlanRunId, {
+      level: 'info',
+      source: 'system',
+      message: `Running this plan on ${runPasses.length} browser(s): ${browserMatrix.map(describeBrowser).join(', ')}.`,
+      timestamp: new Date().toISOString(),
+      metadata: { browsers: browserMatrix.map((b) => b.label) },
+    });
+  }
+
+  const visualTesting = plan?.visualTestingEnabled === true;
+  if (visualTesting) {
+    wsEmitter.emitExecutionLog(testPlanRunId, {
+      level: 'info',
+      source: 'system',
+      message: jobOptions.updateBaselines
+        ? 'Visual testing: this run replaces the stored baselines with its own screenshots.'
+        : 'Visual testing: each step is compared against its stored baseline; a first run records one.',
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   const secretsMap: Record<string, string> = {};
   // The defaults underneath, the environment's secrets on top — so an environment can
   // override `baseUrl` like any other name, and a run against site B does not depend on
@@ -492,7 +644,74 @@ async function runTestPlanJobInTenant(
 
   const legacyIndividualTestResultsForJsonBlob: IndividualTestRunResult[] = [];
 
-  for (const link of selectedTestsLinks) {
+  /**
+   * Browsers the plan asked for that this runner cannot start.
+   *
+   * Checked once, before any test runs, rather than discovered by every test in turn: "Edge
+   * is not installed here" is one fact about the machine, and reporting it as forty failed
+   * logins sends forty people to read the login test.
+   */
+  const browserStartupFailures: string[] = [];
+  const usablePasses: Array<BrowserChoice | undefined> = [];
+  for (const pass of runPasses) {
+    if (!pass) {
+      usablePasses.push(pass);
+      continue;
+    }
+    try {
+      const probe = await launchBrowser(pass);
+      await probe.close();
+      usablePasses.push(pass);
+    } catch (error: any) {
+      // The plan wizard's machine configuration defaults to headed, and a runner in a
+      // container has no display to be headed on. Falling back is better than failing the
+      // whole pass over a checkbox nobody deliberately ticked — as long as the report says
+      // that is what happened.
+      if (pass.headless === false) {
+        try {
+          const probe = await launchBrowser({ ...pass, headless: true });
+          await probe.close();
+          usablePasses.push({ ...pass, headless: true });
+          const fallback: ExecutionLogEntry = {
+            level: 'warn',
+            source: 'system',
+            message: `${pass.label} could not start headed on this runner; it ran headless instead.`,
+            timestamp: new Date().toISOString(),
+            metadata: { browser: pass.label },
+          };
+          resolvedLogger.warn(fallback);
+          wsEmitter.emitExecutionLog(testPlanRunId, fallback);
+          continue;
+        } catch {
+          // Fall through to reporting the original failure.
+        }
+      }
+      const message = error?.message ?? String(error);
+      browserStartupFailures.push(message);
+      const entry: ExecutionLogEntry = {
+        level: 'error',
+        source: 'system',
+        message,
+        timestamp: new Date().toISOString(),
+        metadata: { browser: pass.label },
+      };
+      resolvedLogger.error(entry);
+      wsEmitter.emitExecutionLog(testPlanRunId, entry);
+    }
+  }
+
+  /**
+   * Every test, on every browser that starts.
+   *
+   * A pass is the whole plan, API tests included: a plan is a flow, and the ids one of its
+   * requests captured belong to the pass that captured them, not to the browser that ran
+   * first.
+   */
+  const runUnits = usablePasses.flatMap((browserChoice) =>
+    selectedTestsLinks.map((link) => ({ browserChoice, link })),
+  );
+
+  for (const { browserChoice, link } of runUnits) {
     let testObjectDefinition: Test | ApiTest | undefined;
     const testTypeForRun: 'ui' | 'api' | undefined = link.testType as ('ui' | 'api');
 
@@ -509,12 +728,13 @@ async function runTestPlanJobInTenant(
     let stepsOrLogData: string | undefined = undefined;
 
     const testName = testObjectDefinition?.name || `Unknown Test (ID: ${link.testId || link.apiTestId})`;
+    const onBrowser = browserChoice ? ` on ${describeBrowser(browserChoice)}` : '';
     wsEmitter.emitExecutionLog(testPlanRunId, {
       level: 'info',
       source: 'system',
-      message: `Starting test: ${testName} (${testTypeForRun})`,
+      message: `Starting test: ${testName} (${testTypeForRun})${onBrowser}`,
       timestamp: new Date(singleTestStartTime).toISOString(),
-      metadata: { testId: link.testId || link.apiTestId, testType: testTypeForRun }
+      metadata: { testId: link.testId || link.apiTestId, testType: testTypeForRun, browser: browserChoice?.label }
     });
 
     if (testObjectDefinition && testTypeForRun) {
@@ -543,6 +763,16 @@ async function runTestPlanJobInTenant(
         testTypeForRun,
         runVariables(),
         planEnvironment(),
+        {
+          browser: browserChoice,
+          visual:
+            visualTesting && testTypeForRun === 'ui'
+              ? {
+                  organizationId: executionRecord[0].organizationId,
+                  updateBaselines: jobOptions.updateBaselines === true,
+                }
+              : undefined,
+        },
       );
       legacyIndividualTestResultsForJsonBlob.push(resultFromRunTest); // Keep populating the old JSON blob for now
 
@@ -616,6 +846,9 @@ async function runTestPlanJobInTenant(
       apiTestId: link.testType === 'api' ? link.apiTestId : null,
       testType: link.testType as 'ui' | 'api',
       testName: testObjectDefinition?.name || `Unknown Test (ID: ${link.testId || link.apiTestId})`,
+      // Null when the plan named no browser, which is every run made before the matrix
+      // existed: the report should not claim to know something the run never decided.
+      browser: browserChoice?.label ?? null,
       status: reportStatus,
       reasonForFailure: failureReason,
       screenshotUrl: screenshotFinalPath,
@@ -671,6 +904,12 @@ async function runTestPlanJobInTenant(
     finalOverallStatus = 'error'; // Default to error if logic doesn't cover a state
   }
 
+  // A plan that asked for three browsers and got two did not do what it was asked, whatever
+  // the tests that did run reported. Saying "completed" there is how a gap in coverage comes
+  // to look like coverage.
+  if (browserStartupFailures.length > 0 && finalOverallStatus === 'completed') {
+    finalOverallStatus = 'error';
+  }
 
   const overallCompletedAt = Date.now();
   const overallExecutionDurationMs = overallCompletedAt - overallStartTime;
@@ -694,6 +933,23 @@ async function runTestPlanJobInTenant(
 
     if (finalUpdateResult.length > 0) {
       resolvedLogger.info({ message: `Test plan execution COMPLETED and DB updated`, planId, testPlanRunId, overallStatus: finalOverallStatus, testsRun: calculatedTotalTests });
+      await notifyRunFinished({
+        plan,
+        execution: executionRecord[0],
+        summary: {
+          planId,
+          planName: plan?.name ?? planId,
+          executionId: testPlanRunId,
+          status: finalOverallStatus,
+          totalTests: calculatedTotalTests,
+          passedTests: calculatedPassedTests,
+          failedTests: calculatedFailedTests,
+          skippedTests: calculatedSkippedTests,
+          durationMs: overallExecutionDurationMs,
+          triggeredBy: executionRecord[0].triggeredBy ?? 'manual',
+          browsers: usablePasses.filter(Boolean).map((b) => (b as BrowserChoice).label),
+        },
+      });
       return finalUpdateResult[0];
     } else {
       // This should not happen if the initial insert succeeded.
@@ -710,5 +966,74 @@ async function runTestPlanJobInTenant(
       completedAt: new Date(overallCompletedAt),
       error: `DB error during final aggregate update: ${dbError.message}`
     } as any;
+  }
+}
+
+/**
+ * Tells whoever the plan named that the run is over.
+ *
+ * Wrapped in its own try/catch and never allowed to throw: the run has already happened and
+ * its verdict has already been written, and a notification that cannot be delivered must not
+ * turn a recorded result into a crashed job.
+ */
+async function notifyRunFinished(input: {
+  plan: { notificationSettings?: unknown } | undefined;
+  execution: { scheduleId?: string | null };
+  summary: RunSummary;
+}): Promise<void> {
+  const resolvedLogger = await loggerPromise;
+  const wsEmitter = getWsEmitter();
+  try {
+    // A schedule may override the plan's settings — most usefully the destination, so a
+    // nightly run can report somewhere other than wherever manual runs report.
+    let override: unknown;
+    if (input.execution.scheduleId) {
+      const schedule = await withTenantTransaction((tx) =>
+        tx
+          .select({ notificationConfigOverride: testPlanSchedules.notificationConfigOverride })
+          .from(testPlanSchedules)
+          .where(eq(testPlanSchedules.id, input.execution.scheduleId as string))
+          .limit(1),
+      );
+      override = schedule[0]?.notificationConfigOverride;
+    }
+
+    const settings = mergeNotificationSettings(input.plan?.notificationSettings, override);
+    for (const note of describeUnsupported(settings)) {
+      resolvedLogger.warn({ message: note, executionId: input.summary.executionId });
+      wsEmitter.emitExecutionLog(input.summary.executionId, {
+        level: 'warn',
+        source: 'system',
+        message: note,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    const result = await sendRunNotification(settings, input.summary);
+    if (result.delivered) {
+      wsEmitter.emitExecutionLog(input.summary.executionId, {
+        level: 'info',
+        source: 'system',
+        message: 'Run notification delivered.',
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+    if (result.error) {
+      resolvedLogger.warn({ message: result.error, executionId: input.summary.executionId });
+      wsEmitter.emitExecutionLog(input.summary.executionId, {
+        level: 'warn',
+        source: 'system',
+        message: result.error,
+        timestamp: new Date().toISOString(),
+      });
+    } else if (result.reason) {
+      resolvedLogger.debug({ message: result.reason, executionId: input.summary.executionId });
+    }
+  } catch (error: any) {
+    resolvedLogger.warn({
+      message: `Run notification could not be attempted: ${error?.message ?? error}`,
+      executionId: input.summary.executionId,
+    });
   }
 }

@@ -274,6 +274,14 @@ export const reportTestCaseResults = pgTable("report_test_case_results", {
   apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'set null' }),
   testType: text("test_type").notNull(),
   testName: text("test_name").notNull(),
+  /**
+   * The browser this result came from, as the plan or schedule named it.
+   *
+   * A plan that asks for two browsers produces two rows per test, and without this they read
+   * as the same test disagreeing with itself. Null on rows written before runs covered more
+   * than one browser.
+   */
+  browser: text("browser"),
   status: text("status").notNull(),
   reasonForFailure: text("reason_for_failure"),
   screenshotUrl: text("screenshot_url"),
@@ -833,6 +841,21 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
       failed: z.boolean().default(true),
       notExecuted: z.boolean().default(true),
       stopped: z.boolean().default(true),
+      /**
+       * Where those four switches send to.
+       *
+       * They had no destination until now, which is why a plan set to notify on failure
+       * notified nobody. Zod strips what it does not declare, so this has to be named here
+       * for the wizard's value to survive as far as the column.
+       */
+      webhookUrl: z
+        .string()
+        .trim()
+        .refine((value) => value === '' || /^https?:\/\//i.test(value), {
+          message: 'Notification webhook URL must start with http:// or https://',
+        })
+        .nullable()
+        .optional(),
     })
     .optional()
     .nullable(),

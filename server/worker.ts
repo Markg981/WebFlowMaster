@@ -20,7 +20,7 @@ import 'dotenv/config';
       logger.info(`Worker processing job ${job.id} of type ${job.name}`);
       
       if (job.name === 'execute-plan') {
-        const { planId, testPlanRunId, userId, correlationId } = job.data;
+        const { planId, testPlanRunId, userId, correlationId, updateBaselines } = job.data;
 
         // Restore the correlation context from the original HTTP request
         // so all logs emitted during job processing share the same trace ID.
@@ -28,7 +28,7 @@ import 'dotenv/config';
 
         await correlationStore.run({ correlationId: cid }, async () => {
           try {
-            await processTestPlanJob(planId, testPlanRunId, userId);
+            await processTestPlanJob(planId, testPlanRunId, userId, { updateBaselines: updateBaselines === true });
           } catch (error: any) {
             logger.error(`Job ${job.id} failed:`, error);
             throw error; // Let BullMQ handle the failure

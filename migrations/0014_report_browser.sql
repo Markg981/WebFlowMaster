@@ -1,0 +1,11 @@
+-- Which browser produced this result.
+--
+-- Plans and schedules have always let people pick browsers, and the runner ignored the pick:
+-- every test ran once, on whatever engine the run's owner had selected in their own profile.
+-- Now a plan that asks for Chromium and Firefox runs each test on both, which means a report
+-- can hold two rows for one test — and without this column they are indistinguishable, so the
+-- report would show the same test passing and failing with no way to say where.
+--
+-- Nullable: every row written before the matrix existed came from a single, unrecorded
+-- browser, and inventing a value for those would be a guess.
+ALTER TABLE "report_test_case_results" ADD COLUMN "browser" text;

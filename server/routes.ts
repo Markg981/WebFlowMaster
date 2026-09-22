@@ -40,6 +40,7 @@ import testsRoutes from "./routes/tests.routes";
 import testPlansRoutes from "./routes/test-plans.routes";
 import uploadsRoutes from "./routes/uploads.routes";
 import reportsRoutes from "./routes/reports.routes";
+import artifactsRoutes, { artifactUrl, stepsWithArtifactUrls } from "./routes/artifacts.routes";
 import authRoutes from "./routes/auth.routes";
 import observabilityRoutes from "./routes/observability.routes";
 import environmentRoutes from "./routes/environments.routes";
@@ -113,6 +114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(testPlansRoutes);
     app.use(uploadsRoutes);
     app.use(reportsRoutes);
+    app.use(artifactsRoutes);
     app.use(observabilityRoutes);
     app.use(environmentRoutes);
     app.use(analyticsRoutes);
@@ -916,7 +918,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Dynamically import runTestPlan to avoid circular dependencies if test-execution-service grows
       const { runTestPlan } = await import("./test-execution-service");
-      const executionResult = await runTestPlan(testPlanId, userId);
+      // `updateBaselines` is how a legitimate redesign gets a visually-tested plan out of red:
+      // this run's screenshots become the baselines the next one is measured against.
+      const executionResult = await runTestPlan(testPlanId, userId, {
+        environmentId: typeof req.body?.environmentId === 'number' ? req.body.environmentId : undefined,
+        updateBaselines: req.body?.updateBaselines === true,
+      });
 
       if ("error" in executionResult) {
         const errorResult = executionResult as { error: string; status?: number; testPlanRunId?: string };
@@ -1150,9 +1157,15 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
       .map(r => ({
         id: r.id,
         testName: r.testName,
+        // Which browser this failure came from. A plan covering two browsers fails a test on
+        // one and passes it on the other, and the two rows are otherwise identical.
+        browser: r.browser,
         reasonForFailure: r.reasonForFailure,
-        screenshotUrl: r.screenshotUrl,
+        screenshotUrl: artifactUrl(executionId, r.screenshotUrl),
         detailedLog: r.detailedLog,
+        // The step list the runner already recorded, with its images made openable. The
+        // report had no way to show which step failed; the row's reason string was all of it.
+        steps: stepsWithArtifactUrls(executionId, r.detailedLog),
         component: r.component,
         priority: r.priority,
         severity: r.severity,
@@ -1184,7 +1197,13 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
 
       groupedByModule[moduleName].total++;
       groupedByModule[moduleName].components[componentName].total++;
-      groupedByModule[moduleName].components[componentName].tests.push(r);
+      // The row as stored, plus its steps and an openable screenshot: the grouped table is
+      // where a passing test's visual baselines are looked at, not only a failing one's.
+      groupedByModule[moduleName].components[componentName].tests.push({
+        ...r,
+        screenshotUrl: artifactUrl(executionId, r.screenshotUrl),
+        steps: stepsWithArtifactUrls(executionId, r.detailedLog),
+      } as typeof r);
 
       if (r.status === 'Passed') {
         groupedByModule[moduleName].passed++;

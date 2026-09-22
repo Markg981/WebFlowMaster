@@ -137,6 +137,15 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
     notExecuted: true,
     stopped: true,
   });
+  /**
+   * Where those notifications go.
+   *
+   * The switches above have existed since the wizard did, and named no destination — so a
+   * plan set to notify on failure notified nobody. A Slack or Teams incoming webhook, or
+   * anything else that accepts a POST.
+   */
+  const [notificationWebhookUrl, setNotificationWebhookUrl] = useState('');
+  const [notificationWebhookUrlError, setNotificationWebhookUrlError] = useState('');
   const [pageLoadTimeoutError, setPageLoadTimeoutError] = useState('');
   const [elementTimeoutError, setElementTimeoutError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -181,6 +190,15 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
     } else {
       setElementTimeoutError('');
     }
+
+    if (notificationWebhookUrl.trim() !== '' && !/^https?:\/\//i.test(notificationWebhookUrl.trim())) {
+      setNotificationWebhookUrlError(
+        t('createTestPlanWizard.step3.validation.webhookUrlInvalid', 'The notification URL must start with http:// or https://.'),
+      );
+      isValid = false;
+    } else {
+      setNotificationWebhookUrlError('');
+    }
     return isValid;
   };
 
@@ -221,7 +239,10 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
       onTestCasePreRequisiteFailure,
       onTestStepPreRequisiteFailure,
       reRunOnFailure,
-      notificationSettings,
+      notificationSettings: {
+        ...notificationSettings,
+        webhookUrl: notificationWebhookUrl.trim() || null,
+      },
       selectedTests: selectedTestSuites.map(st => ({ id: st.id, type: st.type })),
     };
 
@@ -513,6 +534,27 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
                     </div>
                   ))}
                 </div>
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="notificationWebhookUrl">
+                  {t('createTestPlanWizard.step3.notificationWebhook.label', 'Send Notifications To (webhook URL)')}
+                </Label>
+                <Input
+                  id="notificationWebhookUrl"
+                  value={notificationWebhookUrl}
+                  onChange={(e) => setNotificationWebhookUrl(e.target.value)}
+                  placeholder="https://hooks.slack.com/services/..."
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t(
+                    'createTestPlanWizard.step3.notificationWebhook.help',
+                    'A Slack or Microsoft Teams incoming webhook, or any URL that accepts a POST. Without one, the switches above have nowhere to send to and nothing is sent.',
+                  )}
+                </p>
+                {notificationWebhookUrlError && (
+                  <p className="text-sm text-destructive mt-1">{notificationWebhookUrlError}</p>
+                )}
               </div>
               <div className="md:col-span-2">
                 <Label htmlFor="step3Description">{t('createTestPlanWizard.step1.descriptionField.label', 'Description')}</Label>
