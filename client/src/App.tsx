@@ -18,7 +18,8 @@ import TestPlanExecutionPage from './pages/TestPlanExecutionPage'; // Using rela
 import SchedulingPage from './pages/SchedulingPage'; // Added SchedulingPage
 import TestReportPage from './pages/TestReportPage'; 
 import GeneralReportsPage from './pages/GeneralReportsPage'; 
-import TestManager from './pages/TestManager'; 
+import TestManager from './pages/TestManager';
+import TestLibraryPage from './pages/TestLibraryPage'; 
 import { ProtectedRoute } from "./lib/protected-route";
 import { ObservabilityErrorBoundary } from "@/observability/error-boundary";
 import { installObservability } from "@/observability/install";
@@ -104,6 +105,7 @@ function Router() {
       <ProtectedRoute path="/scheduling" component={SchedulingPage} />
       <ProtectedRoute path="/test-suites" component={TestSuitesPage} />
       <ProtectedRoute path="/test-manager" component={TestManager} />
+      <ProtectedRoute path="/tests" component={TestLibraryPage} />
       <ProtectedRoute path="/reports" component={GeneralReportsPage} /> {/* New route for general reports */}
       <ProtectedRoute path="/test-plan/:planId/run" component={TestPlanExecutionPage} />
       <ProtectedRoute path="/test-plans/:planId/executions/:executionId/report" component={TestReportPage} />

@@ -30,7 +30,7 @@ import { z } from "zod";
 // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { privilegedDb } from "./db";
-import { eq, and, desc, sql, getTableColumns, asc, ilike } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
+import { eq, and, desc, sql, getTableColumns, asc, ilike, inArray } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
 // Import schedulerService
 import loggerPromise, { updateLogLevel } from "./logger";
@@ -45,6 +45,9 @@ import apiKeysRoutes from "./routes/api-keys.routes";
 import stepGroupsRoutes from "./routes/step-groups.routes";
 import projectElementsRoutes from "./routes/project-elements.routes";
 import nlAuthoringRoutes from "./routes/nl-authoring.routes";
+import tagsRoutes from "./routes/tags.routes";
+import { tagsOfTests, testIdsWithTags } from "./test-tags";
+import testVersionsRoutes from "./routes/test-versions.routes";
 import authRoutes from "./routes/auth.routes";
 import observabilityRoutes from "./routes/observability.routes";
 import environmentRoutes from "./routes/environments.routes";
@@ -130,6 +133,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(stepGroupsRoutes);
     app.use(projectElementsRoutes);
     app.use(nlAuthoringRoutes);
+    app.use(tagsRoutes);
+    app.use(testVersionsRoutes);
     app.use(observabilityRoutes);
     app.use(environmentRoutes);
     app.use(analyticsRoutes);
@@ -977,6 +982,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const offset = (page - 1) * limit;
     const searchTerm = req.query.search as string | undefined;
 
+    // Which tags a test must carry to be offered. Every one of them, not any: "smoke and
+    // checkout" means the tests that are both, which is what narrowing a list down means.
+    const tagIds = String(req.query.tags ?? '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => id !== '');
+
     try {
       // Build conditions
       const uiConditions = [eq(tests.userId, userId)];
@@ -992,8 +1004,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // One tenant transaction for both: RLS bounds them to the caller's organization. The
       // userId predicates stay as the ownership filter they were, but they are no longer what
       // keeps another tenant's rows out — organizationId is the boundary, userId attribution.
-      const { uiTestResults, apiTestResults } = await withTenantTransaction(async (tx) => ({
-        uiTestResults: await tx.select({
+      const { uiTestResults, apiTestResults, tagsByTest } = await withTenantTransaction(async (tx) => {
+        if (tagIds.length > 0) {
+          // A tag filter that matches nothing must offer nothing. inArray on an empty list is
+          // not a predicate, so the empty case is answered here rather than by a query that
+          // would quietly return everything.
+          const [uiIds, apiIds] = await Promise.all([
+            testIdsWithTags(tx, { tagIds, testType: 'ui' }),
+            testIdsWithTags(tx, { tagIds, testType: 'api' }),
+          ]);
+          if (uiIds.length === 0) uiConditions.push(sql`false`);
+          else uiConditions.push(inArray(tests.id, uiIds));
+          if (apiIds.length === 0) apiConditions.push(sql`false`);
+          else apiConditions.push(inArray(apiTests.id, apiIds));
+        }
+
+        const uiTestResults = await tx.select({
             id: tests.id,
             name: tests.name,
             description: sql<string>`null`.as('description'),
@@ -1001,8 +1027,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             updatedAt: tests.updatedAt
           })
           .from(tests)
-          .where(and(...uiConditions)),
-        apiTestResults: await tx.select({
+          .where(and(...uiConditions));
+        const apiTestResults = await tx.select({
             id: apiTests.id,
             name: apiTests.name,
             description: sql<string>`null`.as('description'),
@@ -1010,11 +1036,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             updatedAt: apiTests.updatedAt
           })
           .from(apiTests)
-          .where(and(...apiConditions)),
-      }));
+          .where(and(...apiConditions));
+
+        return {
+          uiTestResults,
+          apiTestResults,
+          // Shown beside each name, so somebody picking tests can see what they are picking
+          // rather than recognising it from the name alone.
+          tagsByTest: await tagsOfTests(tx, {
+            testIds: uiTestResults.map((row) => row.id),
+            apiTestIds: apiTestResults.map((row) => row.id),
+          }),
+        };
+      });
 
       // Combine results
-      const combinedResults = [...uiTestResults, ...apiTestResults];
+      const combinedResults = [
+        ...uiTestResults.map((row) => ({ ...row, tags: tagsByTest.ui.get(row.id) ?? [] })),
+        ...apiTestResults.map((row) => ({ ...row, tags: tagsByTest.api.get(row.id) ?? [] })),
+      ];
 
       // Sort combined results (e.g., by name or updatedAt)
       combinedResults.sort((a, b) => {

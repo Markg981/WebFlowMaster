@@ -4,15 +4,23 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Loader2, Search } from 'lucide-react';
+
+interface TagRef {
+  id: string;
+  name: string;
+}
 
 interface SelectableTest {
   id: number;
   name: string;
   type: 'ui' | 'api';
   description?: string | null;
+  /** What the test is for, so a plan can be assembled by meaning instead of by remembering. */
+  tags?: TagRef[];
 }
 
 interface TestSuiteSelectorModalProps {
@@ -22,11 +30,25 @@ interface TestSuiteSelectorModalProps {
   alreadySelectedIds: string[]; // Array of "type-id" strings, e.g., ["ui-1", "api-2"]
 }
 
-const fetchSelectableTests = async (searchTerm: string = '', page: number = 1, limit: number = 20): Promise<{items: SelectableTest[], totalItems: number, totalPages: number}> => {
-  const response = await fetch(`/api/selectable-tests?search=${encodeURIComponent(searchTerm)}&page=${page}&limit=${limit}`);
+const fetchSelectableTests = async (
+  searchTerm: string = '',
+  page: number = 1,
+  limit: number = 20,
+  tagIds: string[] = [],
+): Promise<{items: SelectableTest[], totalItems: number, totalPages: number}> => {
+  const params = new URLSearchParams({ search: searchTerm, page: String(page), limit: String(limit) });
+  // Every tag, not any: two tags narrow the list to the tests that carry both.
+  if (tagIds.length > 0) params.set('tags', tagIds.join(','));
+  const response = await fetch(`/api/selectable-tests?${params.toString()}`);
   if (!response.ok) {
     throw new Error('Network response was not ok');
   }
+  return response.json();
+};
+
+const fetchTags = async (): Promise<TagRef[]> => {
+  const response = await fetch('/api/tags');
+  if (!response.ok) throw new Error('Could not load tags');
   return response.json();
 };
 
@@ -35,14 +57,24 @@ const TestSuiteSelectorModal: React.FC<TestSuiteSelectorModalProps> = ({ isOpen,
   const [searchTerm, setSearchTerm] = useState('');
   const [internalSelectedSuites, setInternalSelectedSuites] = useState<SelectableTest[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTagIds, setActiveTagIds] = useState<string[]>([]);
   const itemsPerPage = 10; // Or any other suitable limit
 
   const { data, isLoading, error, refetch } = useQuery<{items: SelectableTest[], totalItems: number, totalPages: number}>({
-    queryKey: ['selectableTests', searchTerm, currentPage],
-    queryFn: () => fetchSelectableTests(searchTerm, currentPage, itemsPerPage),
+    queryKey: ['selectableTests', searchTerm, currentPage, activeTagIds],
+    queryFn: () => fetchSelectableTests(searchTerm, currentPage, itemsPerPage, activeTagIds),
     enabled: isOpen, // Only fetch when the modal is open
     // keepPreviousData: true, // Consider this for smoother pagination UX
   });
+
+  // The search box has always offered to find tests "by name or tag". Until tags existed it
+  // could only ever do half of that.
+  const { data: tagsData } = useQuery<TagRef[]>({
+    queryKey: ['tags'],
+    queryFn: fetchTags,
+    enabled: isOpen,
+  });
+  const availableTags = Array.isArray(tagsData) ? tagsData : [];
 
   useEffect(() => {
     if (isOpen) {
@@ -88,6 +120,27 @@ const TestSuiteSelectorModal: React.FC<TestSuiteSelectorModalProps> = ({ isOpen,
             />
         </div>
 
+        {availableTags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1 mb-2" data-testid="selector-tag-filters">
+            {availableTags.map((tag) => (
+              <Badge
+                key={tag.id}
+                role="button"
+                className="cursor-pointer"
+                variant={activeTagIds.includes(tag.id) ? 'default' : 'outline'}
+                onClick={() => {
+                  setCurrentPage(1);
+                  setActiveTagIds((current) =>
+                    current.includes(tag.id) ? current.filter((id) => id !== tag.id) : [...current, tag.id],
+                  );
+                }}
+              >
+                {tag.name}
+              </Badge>
+            ))}
+          </div>
+        )}
+
         <ScrollArea className="flex-grow border rounded-md">
           <div className="p-4 space-y-2">
             {isLoading && (
@@ -110,6 +163,11 @@ const TestSuiteSelectorModal: React.FC<TestSuiteSelectorModalProps> = ({ isOpen,
                 <label htmlFor={`suite-${suite.type}-${suite.id}`} className="flex-grow text-sm font-medium leading-none cursor-pointer">
                   {suite.name}
                   <span className="ml-2 text-xs uppercase bg-accent px-1.5 py-0.5 rounded-sm text-accent-foreground">{suite.type}</span>
+                  {(suite.tags ?? []).map((tag) => (
+                    <Badge key={tag.id} variant="secondary" className="ml-1 font-normal">
+                      {tag.name}
+                    </Badge>
+                  ))}
                   {suite.description && <p className="text-xs text-muted-foreground mt-0.5">{suite.description}</p>}
                 </label>
               </div>

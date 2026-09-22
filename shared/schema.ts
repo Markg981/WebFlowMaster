@@ -583,6 +583,100 @@ export type ProjectElement = typeof projectElements.$inferSelect;
 export type InsertProjectElement = typeof projectElements.$inferInsert;
 
 /**
+ * A word an organization uses for a group of tests.
+ *
+ * A test could be filed under a project and nothing else, so "the smoke tests" and "everything
+ * that touches checkout" lived in people's heads and in the names they typed — and a plan was
+ * assembled by hand, one test at a time, and stayed assembled.
+ *
+ * The name is unique per organization and compared without case; the index that enforces that
+ * is on `lower(name)`, so it lives in the migration rather than here. "Smoke" and "smoke" are
+ * one tag two people typed differently, and two tags that look identical in a list are worse
+ * than none: a filter on one quietly omits the tests filed under the other.
+ */
+export const tags = pgTable("tags", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("tags_organization_id_idx").on(table.organizationId),
+]);
+
+export type Tag = typeof tags.$inferSelect;
+export type InsertTag = typeof tags.$inferInsert;
+
+/**
+ * Which tests carry which tag.
+ *
+ * Shaped like testPlanSelectedTests, and for the same reason: a plan may hold UI tests and API
+ * tests, so a tag that could only go on one of the two would describe half a suite. Exactly one
+ * of the two ids is set, which a CHECK constraint enforces rather than leaving it to whoever
+ * writes the next insert.
+ */
+export const testTags = pgTable("test_tags", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  tagId: text("tag_id").notNull().references(() => tags.id, { onDelete: 'cascade' }),
+  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
+  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
+  testType: text("test_type").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("test_tags_organization_id_idx").on(table.organizationId),
+  index("test_tags_tag_id_idx").on(table.tagId),
+  index("test_tags_test_id_idx").on(table.testId),
+  index("test_tags_api_test_id_idx").on(table.apiTestId),
+]);
+
+export type TestTag = typeof testTags.$inferSelect;
+export type InsertTestTag = typeof testTags.$inferInsert;
+
+/** Which kinds of test a tag can be put on. */
+export const TAGGABLE_TYPES = ['ui', 'api'] as const;
+export type TaggableType = (typeof TAGGABLE_TYPES)[number];
+
+/**
+ * What a test used to be.
+ *
+ * Saving overwrote the test and that was the whole history: re-record a flow, save over the old
+ * one, and yesterday's version was gone — which matters most exactly when it hurts most, with a
+ * test that passed last week and fails today and nothing to say whether the application changed
+ * or the test did.
+ *
+ * A row is written on every save, including the first, so version 1 is the test as created and
+ * the newest row always matches the live test. Restoring writes the old content back as a NEW
+ * version instead of deleting the ones after it, and app_user is granted SELECT and INSERT only
+ * (see the migration): a history the application can rewrite is not evidence of anything.
+ */
+export const testVersions = pgTable("test_versions", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  testId: integer("test_id").notNull().references(() => tests.id, { onDelete: 'cascade' }),
+  /** 1-based and per test, so "version 4" names one row. */
+  version: integer("version").notNull(),
+  name: text("name").notNull(),
+  url: text("url").notNull(),
+  sequence: jsonb("sequence").notNull(),
+  elements: jsonb("elements").notNull(),
+  preconditions: jsonb("preconditions"),
+  dataset: jsonb("dataset"),
+  /** What changed since the version before, worked out when the row is written. */
+  summary: text("summary"),
+  /** Set when this version exists because somebody restored an older one. */
+  restoredFromVersion: integer("restored_from_version"),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("test_versions_organization_id_idx").on(table.organizationId),
+  index("test_versions_test_id_idx").on(table.testId),
+  unique("test_versions_test_version_unique").on(table.testId, table.version),
+]);
+
+export type TestVersion = typeof testVersions.$inferSelect;
+export type InsertTestVersion = typeof testVersions.$inferInsert;
+
+/**
  * A credential for something that is not a person.
  *
  * Everything here was behind a passport session, so a pipeline could only reach the API by
@@ -1584,6 +1678,9 @@ export const ORG_SCOPED_TABLES = [
   // Shared building blocks rather than per-test copies: a sequence many tests call, and the
   // elements of one application. Org-scoped and policed like everything else.
   'step_groups', 'project_elements',
+  // What a test is for, and what it used to be. test_versions is granted SELECT and INSERT
+  // only — the application cannot rewrite its own history. See migration 0018.
+  'tags', 'test_tags', 'test_versions',
   // api_keys is org-scoped and policed like the rest. Unlike `invitations`, which cannot be,
   // the one lookup that must happen before an organization is known — authenticating a
   // request that carries a key — is a privileged bootstrap read in middleware, the same shape
