@@ -43,6 +43,7 @@ import reportsRoutes from "./routes/reports.routes";
 import artifactsRoutes, { artifactUrl, stepsWithArtifactUrls } from "./routes/artifacts.routes";
 import apiKeysRoutes from "./routes/api-keys.routes";
 import stepGroupsRoutes from "./routes/step-groups.routes";
+import projectElementsRoutes from "./routes/project-elements.routes";
 import authRoutes from "./routes/auth.routes";
 import observabilityRoutes from "./routes/observability.routes";
 import environmentRoutes from "./routes/environments.routes";
@@ -126,6 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(artifactsRoutes);
     app.use(apiKeysRoutes);
     app.use(stepGroupsRoutes);
+    app.use(projectElementsRoutes);
     app.use(observabilityRoutes);
     app.use(environmentRoutes);
     app.use(analyticsRoutes);

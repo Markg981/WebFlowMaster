@@ -20,7 +20,8 @@ import { resolveVariables } from './variables';
 import { loadLoginState, saveLoginState, type EnvironmentScope } from './login-state';
 import { describeBrowser, launchBrowser, resolveBrowser, type BrowserChoice } from './browsers';
 import { compareStepScreenshot, isVisualFailure, type VisualContext } from './visual-testing';
-import { expandSequenceForRun } from './step-groups';
+import { expandSequenceForRun, type SequenceStep } from './step-groups';
+import { elementIdOfStep, resolveSequenceForRun } from './step-elements';
 
 // Default settings if not found or incomplete
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
@@ -1371,7 +1372,7 @@ export class PlaywrightService {
         const duration = Date.now() - startTime;
         return { success: false, steps: stepResults, error: adhocExpansion.errors.join(' '), duration };
       }
-      const adhocSequence = adhocExpansion.steps as unknown as TestStep[];
+      const adhocSequence = (await resolveSequenceForRun(adhocExpansion.steps)).steps as unknown as TestStep[];
 
       if (overallSuccess && adhocSequence.length > 0) {
         resolvedLogger.debug({ message: `PS:executeAdhocSequence - Starting execution of ${adhocSequence.length} steps.`, testName });
@@ -1619,7 +1620,25 @@ export class PlaywrightService {
       resolvedLogger.warn({ message: `PS:executeTestSequence - ${message}`, testName: test.name, testId: test.id });
       return { success: false, steps: [], error: message, duration: Date.now() - startTime };
     }
-    const sequenceToRun = expansion.steps as unknown as TestStep[];
+    // Then the steps that name an element from the project's repository take its current
+    // selector. A step that names none keeps its own, which is every step written before the
+    // repository existed.
+    const resolution = await resolveSequenceForRun(expansion.steps);
+    const sequenceToRun = resolution.steps as unknown as TestStep[];
+    if (resolution.unresolved.length > 0) {
+      const message =
+        `${resolution.unresolved.length} step(s) name a shared element that is no longer in the ` +
+        `repository; they ran on the selector saved with the test.`;
+      resolvedLogger.warn({ message, testName: test.name, testId: test.id });
+      if (executionId) {
+        wsEmitter.emitExecutionLog(executionId, {
+          level: 'warn',
+          source: 'system',
+          message,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
     if (expansion.expanded && executionId) {
       wsEmitter.emitExecutionLog(executionId, {
         level: 'info',
@@ -1734,8 +1753,9 @@ export class PlaywrightService {
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
 
-          // Set context for AI Healing
-          reporter.setContext(test.id, i);
+          // Set context for AI Healing. The element id travels with it: when the step names a
+          // shared element, a repair belongs to that element and not to this one test's copy.
+          reporter.setContext(test.id, i, elementIdOfStep(step as unknown as SequenceStep));
 
           reporter.resetStepState();
 

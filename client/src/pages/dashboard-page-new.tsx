@@ -25,6 +25,7 @@ import { DatasetPanel, type DatasetRow } from "@/components/DatasetPanel";
 import type { Precondition } from "@shared/schema";
 import { ACTION_I18N, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from "@shared/recording";
 import SaveStepGroupModal from "@/components/SaveStepGroupModal";
+import KeepElementModal from "@/components/KeepElementModal";
 import { useRecordingSession } from "@/hooks/useRecordingSession";
 import { EnvironmentSelect } from "@/components/EnvironmentSelect";
 import { NO_ENVIRONMENT, environmentIdFor } from "@/hooks/use-environments";
@@ -122,6 +123,8 @@ export default function DashboardPage() {
   const [dataset, setDataset] = useState<DatasetRow[]>([]);
   /** Open while naming the sequence that is about to become a reusable group. */
   const [isSaveGroupModalOpen, setIsSaveGroupModalOpen] = useState(false);
+  /** The detected element about to be kept in a project's repository, if any. */
+  const [elementBeingKept, setElementBeingKept] = useState<DetectedElement | null>(null);
   const [creationMode, setCreationMode] = useState<"manual" | "record">(
     "manual"
   );
@@ -215,6 +218,42 @@ export default function DashboardPage() {
     // looks for the group a call names.
     groupId: group.id,
   }));
+
+  /**
+   * Keeps a detected element in a project's repository.
+   *
+   * From here on that project owns where the element is: tests that name it read one selector,
+   * and the healing pass repairs it once for all of them rather than once per test, after each
+   * has failed.
+   */
+  const handleKeepElement = async ({ projectId, name }: { projectId: number; name: string }) => {
+    if (!elementBeingKept) return;
+    const response = await fetch(`/api/projects/${projectId}/elements`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        selector: elementBeingKept.selector,
+        frameSelector: (elementBeingKept as { frameSelector?: string | null }).frameSelector ?? null,
+        tag: elementBeingKept.tag,
+        elementType: elementBeingKept.type,
+        text: elementBeingKept.text,
+        attributes: elementBeingKept.attributes,
+      }),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.error || "Could not keep the element");
+    }
+    toast({
+      title: t('dashboardPageNew.elementRepository.kept.title', 'Element kept'),
+      description: t(
+        'dashboardPageNew.elementRepository.kept.description',
+        '"{{name}}" now belongs to the project. Steps that use it read its selector from there.',
+        { name },
+      ),
+    });
+  };
 
   /** Saves what is in the builder as a group. The builder is the only place sequences exist. */
   const handleSaveStepGroup = async ({ name, description }: { name: string; description?: string }) => {
@@ -1211,6 +1250,7 @@ export default function DashboardPage() {
                       key={element.id}
                       element={element}
                       onHover={setHighlightedElement}
+                      onKeep={setElementBeingKept}
                     />
                   ))}
 
@@ -1267,6 +1307,12 @@ export default function DashboardPage() {
         onClose={() => setIsSaveGroupModalOpen(false)}
         stepCount={testSequence.length}
         onSave={handleSaveStepGroup}
+      />
+      <KeepElementModal
+        isOpen={elementBeingKept !== null}
+        onClose={() => setElementBeingKept(null)}
+        element={elementBeingKept}
+        onKept={handleKeepElement}
       />
     </div>
   );

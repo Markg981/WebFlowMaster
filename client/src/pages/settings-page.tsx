@@ -28,6 +28,7 @@ import {
   Archive,
   KeyRound,
   KeySquare,
+  Crosshair,
   SlidersHorizontal,
 } from "lucide-react";
 import {
@@ -44,6 +45,7 @@ import { Link } from "wouter";
 import { UserSettings, fetchSettings } from "../lib/settings";
 import EnvironmentsCard from "@/components/settings/EnvironmentsCard";
 import ApiKeysCard from "@/components/settings/ApiKeysCard";
+import ElementRepositoryCard from "@/components/settings/ElementRepositoryCard";
 
 interface Project {
   id: number;
@@ -508,6 +510,16 @@ export default function SettingsPage() {
       description: t('settings.sections.environmentsDescription', { token: '{{KEY_NAME}}' }),
       icon: KeyRound,
       content: <EnvironmentsCard />,
+    },
+    {
+      id: 'elements',
+      label: t('settings.sections.elements', 'Element repository'),
+      description: t(
+        'settings.sections.elementsDescription',
+        'One definition per element of an application, so a moved button is corrected once rather than in every test that copied it.',
+      ),
+      icon: Crosshair,
+      content: <ElementRepositoryCard />,
     },
     {
       id: 'apiKeys',
