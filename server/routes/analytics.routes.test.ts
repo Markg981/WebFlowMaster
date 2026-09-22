@@ -42,10 +42,15 @@ beforeAll(async () => {
 
   app = express();
   app.use(express.json());
+  const { runWithTenant } = await import('../middleware/tenancy');
+
   app.use((req, _res, next) => {
     (req as any).user = currentUser;
     (req as any).isAuthenticated = () => Boolean(currentUser);
-    next();
+    // The same binding tenancyMiddleware establishes in production. The dashboard route does
+    // not need it; the flaky analysis queries org-scoped tables under RLS and does.
+    if (!currentUser) return next();
+    runWithTenant(currentUser.organizationId, () => next());
   });
   app.use(analyticsRoutes);
 });
@@ -150,5 +155,89 @@ describe('GET /api/analytics/dashboard', () => {
 
     expect(res.body.recent).toHaveLength(2);
     expect(res.body.recent[0]).toMatchObject({ planName: 'Recent' });
+  });
+});
+
+/**
+ * Which tests disagree with themselves.
+ *
+ * Every run was readable on its own and nothing ever looked across them, so an unreliable test
+ * was investigated fresh each time it failed — and eventually believed less than it should be.
+ */
+describe('GET /api/analytics/flaky', () => {
+  async function recordResult(
+    planId: string,
+    input: { testName: string; status: string; browser?: string | null; daysAgo: number },
+  ) {
+    const executionId = nextId('exec');
+    const startedAt = new Date(Date.now() - input.daysAgo * 86_400_000);
+    await privilegedDb.execute(
+      sql`INSERT INTO test_plan_executions
+            (id, test_plan_id, organization_id, status, started_at)
+          VALUES (${executionId}, ${planId}, ${organizationId}, 'completed', ${startedAt})`,
+    );
+    await privilegedDb.execute(
+      sql`INSERT INTO report_test_case_results
+            (id, test_plan_execution_id, organization_id, test_type, test_name, browser, status, started_at)
+          VALUES (${nextId('rep')}, ${executionId}, ${organizationId}, 'ui', ${input.testName},
+                  ${input.browser ?? null}, ${input.status}, ${startedAt})`,
+    );
+  }
+
+  it('names the test that keeps changing its mind, and says how often', async () => {
+    const plan = await createPlan(userId, 'Nightly');
+    await recordResult(plan, { testName: 'Login', status: 'Passed', daysAgo: 4 });
+    await recordResult(plan, { testName: 'Login', status: 'Failed', daysAgo: 3 });
+    await recordResult(plan, { testName: 'Login', status: 'Passed', daysAgo: 2 });
+    await recordResult(plan, { testName: 'Steady', status: 'Passed', daysAgo: 4 });
+    await recordResult(plan, { testName: 'Steady', status: 'Passed', daysAgo: 3 });
+    await recordResult(plan, { testName: 'Steady', status: 'Passed', daysAgo: 2 });
+
+    const res = await request(app).get('/api/analytics/flaky').expect(200);
+
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0]).toMatchObject({ testName: 'Login', flips: 2, runs: 3 });
+    expect(res.body.window.days).toBe(30);
+  });
+
+  it('looks only as far back as it says it does', async () => {
+    const plan = await createPlan(userId, 'Nightly');
+    await recordResult(plan, { testName: 'Login', status: 'Passed', daysAgo: 40 });
+    await recordResult(plan, { testName: 'Login', status: 'Failed', daysAgo: 39 });
+    await recordResult(plan, { testName: 'Login', status: 'Passed', daysAgo: 38 });
+
+    const recent = await request(app).get('/api/analytics/flaky?days=7').expect(200);
+    const wider = await request(app).get('/api/analytics/flaky?days=60').expect(200);
+
+    expect(recent.body.items).toEqual([]);
+    expect(wider.body.items).toHaveLength(1);
+  });
+
+  it('can be narrowed to one plan', async () => {
+    const nightly = await createPlan(userId, 'Nightly');
+    const smoke = await createPlan(userId, 'Smoke');
+    await recordResult(nightly, { testName: 'Login', status: 'Passed', daysAgo: 4 });
+    await recordResult(nightly, { testName: 'Login', status: 'Failed', daysAgo: 3 });
+    await recordResult(nightly, { testName: 'Login', status: 'Passed', daysAgo: 2 });
+
+    const theirs = await request(app).get(`/api/analytics/flaky?planId=${smoke}`).expect(200);
+    const ours = await request(app).get(`/api/analytics/flaky?planId=${nightly}`).expect(200);
+
+    expect(theirs.body.items).toEqual([]);
+    expect(ours.body.items).toHaveLength(1);
+  });
+
+  it('refuses nonsense thresholds rather than trusting them', async () => {
+    const res = await request(app).get('/api/analytics/flaky?days=abc&minRuns=-5&limit=99999').expect(200);
+
+    expect(res.body.window.days).toBe(30);
+    expect(res.body.thresholds.minimumRuns).toBe(2);
+  });
+
+  it('says nothing, successfully, when nothing has run', async () => {
+    const res = await request(app).get('/api/analytics/flaky').expect(200);
+
+    expect(res.body.items).toEqual([]);
+    expect(res.body.window.resultsExamined).toBe(0);
   });
 });
