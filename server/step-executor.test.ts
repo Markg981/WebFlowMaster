@@ -68,6 +68,37 @@ const PAGES: Record<string, string> = {
       }, 700);
     </script>`,
 
+  // The precondition screen, in the two shapes that matter and with the toggles actually
+  // wired, because ensureState has to be able to change them and then read the change back.
+  //
+  // `#fn-already-on` is the case the whole action exists for: a function that someone — or
+  // a previous run of the same test — has already switched on. A `click` step here turns it
+  // off and the test then fails on a tab that never appears.
+  '/setup': `<!doctype html><title>Setup</title>
+    <h1 id="title">Machine setup</h1>
+    <div id="fn-already-on" role="switch" aria-checked="true" tabindex="0">NetContentMachine</div>
+    <div id="fn-off" role="switch" aria-checked="false" tabindex="0">NCC_RCP2</div>
+    <input id="box-on" type="checkbox" checked>
+    <input id="box-off" type="checkbox">
+    <span id="label">not a control</span>
+    <div id="tab" hidden>Static Scale Check</div>
+    <script>
+      // The switches behave like the real ones: a click flips aria-checked.
+      ['fn-already-on', 'fn-off'].forEach(function (id) {
+        var el = document.getElementById(id);
+        el.addEventListener('click', function () {
+          var on = el.getAttribute('aria-checked') === 'true';
+          el.setAttribute('aria-checked', on ? 'false' : 'true');
+          // The tab under test appears only while both functions are on — the same coupling
+          // the application has, so a setup step that toggles one off is visible in the result.
+          var both =
+            document.getElementById('fn-already-on').getAttribute('aria-checked') === 'true' &&
+            document.getElementById('fn-off').getAttribute('aria-checked') === 'true';
+          document.getElementById('tab').hidden = !both;
+        });
+      });
+    </script>`,
+
   // A mat-select in miniature: the trigger is a div, and the options are mounted in a
   // CDK-style overlay that is a sibling of the trigger's container, not a child of it.
   // page.selectOption() cannot see any of this.
@@ -594,5 +625,115 @@ describe('asserting the state of a control', () => {
 
     const failure = (result.steps ?? []).find((s) => s.status === 'failed');
     expect(failure?.error).toContain('could not read');
+  }, 90_000);
+});
+
+/**
+ * A precondition that is already satisfied.
+ *
+ * The case that prompted this: NCC_TC_00085 begins by enabling two functions on a machine,
+ * and on the machine it was to run against both were already enabled. Written with `click`
+ * — the only thing the builder could express — the setup step is a toggle, so it turned the
+ * first function back OFF, and the test then failed on a tab that legitimately was not
+ * there. The failure named the tab, which is three screens away from the mistake.
+ *
+ * The fix is not a smarter click. It is being able to say what state the test needs, and
+ * letting the runner decide whether anything has to happen.
+ */
+describe('a precondition that is already satisfied', () => {
+  const runOnSetup = async (sequence: MappedTestStep[]) => {
+    const { playwrightService } = await import('./playwright-service');
+    return playwrightService.executeTestSequence(savedTest(sequence, '/setup'), 1);
+  };
+
+  const ensure = (selector: string, value: string) => step('ensureState', { selector, value });
+
+  /** The sequence's own steps: result.steps opens with the navigation to the page. */
+  const details = (result: { steps?: Array<{ type?: string; details?: string }> }) =>
+    (result.steps ?? []).filter((s) => s.type === 'ensureState').map((s) => s.details);
+
+  it('leaves a control that is already in the wanted state alone', async () => {
+    const result = await runOnSetup([
+      ensure('#fn-already-on', 'checked'),
+      // If the step above had toggled, this assertion is what notices.
+      step('assertState', { selector: '#fn-already-on', value: 'checked' }),
+    ]);
+
+    expect(result.success).toBe(true);
+    expect(details(result)[0]).toContain('Already checked');
+  }, 90_000);
+
+  it('is what `click` cannot be: clicking the same control turns it off', async () => {
+    // The defect, reproduced. Without this the test above proves nothing — a control that
+    // ignored clicks would pass it just as well.
+    const result = await runOnSetup([
+      step('click', { selector: '#fn-already-on' }),
+      step('assertState', { selector: '#fn-already-on', value: 'checked' }),
+    ]);
+
+    expect(result.success).toBe(false);
+    const failure = (result.steps ?? []).find((s) => s.status === 'failed');
+    expect(failure?.error).toContain('not checked');
+  }, 90_000);
+
+  it('changes a control that is in the wrong state, and says so', async () => {
+    const result = await runOnSetup([
+      ensure('#fn-off', 'checked'),
+      step('assertState', { selector: '#fn-off', value: 'checked' }),
+    ]);
+
+    expect(result.success).toBe(true);
+    expect(details(result)[0]).toContain('Set to checked');
+  }, 90_000);
+
+  it('reaches the same state whether the setup had been done or not', async () => {
+    // The whole point, in one sequence: the two functions the test needs, one already on and
+    // one off, then the same two steps again. A toggle would have undone itself; this ends
+    // with the tab visible either way.
+    const result = await runOnSetup([
+      ensure('#fn-already-on', 'checked'),
+      ensure('#fn-off', 'checked'),
+      ensure('#fn-already-on', 'checked'),
+      ensure('#fn-off', 'checked'),
+      step('assert', { selector: '#tab' }),
+    ]);
+
+    expect(result.success).toBe(true);
+    expect(details(result)).toEqual([
+      expect.stringContaining('Already checked'),
+      expect.stringContaining('Set to checked'),
+      expect.stringContaining('Already checked'),
+      expect.stringContaining('Already checked'),
+    ]);
+  }, 90_000);
+
+  it('works on a native checkbox too, in both directions', async () => {
+    const result = await runOnSetup([
+      ensure('#box-on', 'unchecked'),
+      ensure('#box-off', 'checked'),
+      step('assertState', { selector: '#box-on', value: 'unchecked' }),
+      step('assertState', { selector: '#box-off', value: 'checked' }),
+    ]);
+
+    expect(result.success).toBe(true);
+  }, 90_000);
+
+  it('refuses a state the application decides, naming it', async () => {
+    // "enabled" is not something a test sets — it follows from permissions and from the
+    // record. Clicking and hoping would report whatever happened next as the outcome.
+    const result = await runOnSetup([ensure('#fn-off', 'enabled')]);
+
+    const failure = (result.steps ?? []).find((s) => s.status === 'failed');
+    expect(failure?.error).toContain('assertState');
+    expect(failure?.error).toContain('checked, unchecked');
+  }, 90_000);
+
+  it('says it cannot read the control rather than clicking a guess', async () => {
+    const result = await runOnSetup([ensure('#label', 'checked')]);
+
+    const failure = (result.steps ?? []).find((s) => s.status === 'failed');
+    expect(failure?.error).toContain('Could not read the checked state');
+    // And it must not have clicked anything in the meantime.
+    expect(failure?.error).not.toContain('after being clicked');
   }, 90_000);
 });

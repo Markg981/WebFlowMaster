@@ -1233,11 +1233,24 @@ export class PlaywrightService {
             }],
           };
         }
+        // Counted separately on purpose. "3 setup calls completed" and "1 call made, 2 were
+        // already in place" describe very different runs, and the second is the one that
+        // explains why a test passed against a system somebody had already configured.
+        const applied = preResult.ranCount;
+        const already = preResult.satisfiedCount;
+        const summary =
+          already === 0
+            ? `${applied} setup call(s) completed.`
+            : `${applied} setup call(s) completed, ${already} already satisfied.`;
         stepResults.push({
           name: 'Preconditions',
           type: 'precondition',
           status: 'passed',
-          details: `${preResult.ranCount} setup call(s) completed.`,
+          details: preResult.steps.length
+            ? `${summary} ${preResult.steps
+                .map((s) => `${s.name}: ${s.status}${s.detail ? ` (${s.detail})` : ''}`)
+                .join('; ')}`
+            : summary,
         });
       }
 
@@ -1327,6 +1340,7 @@ export class PlaywrightService {
           let stepStatus: 'passed' | 'failed' = 'passed';
           let stepError: string | undefined;
           let stepScreenshot: string | undefined;
+          let stepDetail: string | undefined;
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
           resolvedLogger.verbose({ message: `PS:executeAdhocSequence - LOOP START for step`, testName, actionName, actionId, pageClosed: page?.isClosed() });
@@ -1343,6 +1357,11 @@ export class PlaywrightService {
               stepStatus = 'failed';
               stepError = outcome.error;
             }
+            // What the step did, when it is not the same as having succeeded. A setup step
+            // that found the system already in the required state and one that changed it
+            // both pass, and a report that renders them identically cannot answer the
+            // question anyone asks of a precondition afterwards.
+            stepDetail = outcome.detail;
             // Let the UI settle before capturing: a click often dismisses a menu and opens a
             // dialog with an animation, and may fire XHRs. Without this the screenshot catches a
             // mid-transition frame (old menu overlapping a half-open dialog).
@@ -1370,7 +1389,7 @@ export class PlaywrightService {
           }
           if (stepStatus === 'failed') overallSuccess = false;
 
-          stepResults.push({ name: actionName, type: actionId || 'unknown', selector: step.targetElement?.selector, value: step.value, status: stepStatus, screenshot: stepScreenshot, error: stepError, details: stepStatus === 'passed' ? 'Action executed successfully.' : `Action failed: ${stepError || 'Unknown error'}`, });
+          stepResults.push({ name: actionName, type: actionId || 'unknown', selector: step.targetElement?.selector, value: step.value, status: stepStatus, screenshot: stepScreenshot, error: stepError, details: stepStatus === 'passed' ? (stepDetail ?? 'Action executed successfully.') : `Action failed: ${stepError || 'Unknown error'}`, });
           if (!overallSuccess) {
             resolvedLogger.info({ message: `PS:executeAdhocSequence - Step failed. Stopping sequence execution.`, testName, failedStep: actionName });
             break;
@@ -1639,6 +1658,7 @@ export class PlaywrightService {
           let stepStatus: 'passed' | 'failed' = 'passed';
           let stepError: string | undefined;
           let stepScreenshot: string | undefined;
+          let stepDetail: string | undefined;
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
 
@@ -1666,6 +1686,9 @@ export class PlaywrightService {
               stepStatus = 'failed';
               stepError = outcome.error;
             }
+            // See the ad-hoc path: a setup step that found the state already correct and one
+            // that changed it both pass, and the report has to tell them apart.
+            stepDetail = outcome.detail;
 
             // Screenshot logic for successful step
             if (screenshotBaseDir) {
@@ -1697,7 +1720,7 @@ export class PlaywrightService {
             status: stepStatus,
             screenshot: stepScreenshot,
             error: stepError,
-            details: stepStatus === 'passed' ? 'Success' : stepError || 'Failed',
+            details: stepStatus === 'passed' ? (stepDetail ?? 'Success') : stepError || 'Failed',
             healed: reporter.lastActionHealed,
             rca: reporter.lastActionRca
           });
@@ -1732,3 +1755,4 @@ export const playwrightService = new PlaywrightService();
 // Consider if this is still needed or how to manage orphaned browser processes if any.
 // process.on('SIGINT', () => playwrightService.close());
 // process.on('SIGTERM', () => playwrightService.close());
+

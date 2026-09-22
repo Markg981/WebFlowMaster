@@ -911,6 +911,10 @@
       "assertState": {
         "name": "Verifica stato",
         "description": "Controlla che un elemento sia selezionato, abilitato, modificabile — o il contrario"
+      },
+      "ensureState": {
+        "name": "Porta allo stato",
+        "description": "Accende o spegne un controllo solo se non lo è già."
       }
     },
     "testSequenceBuilder": {

@@ -660,6 +660,43 @@ export type InsertExcelSequencesMap = typeof excelSequencesMap.$inferInsert;
 // own API) before the UI sequence, to bring the system into the required state.
 // Its request shape mirrors an apiTests row; it may reference the saved apiTest it
 // was composed from.
+/**
+ * How to find out whether a precondition's setup call is needed at all.
+ *
+ * A precondition states a starting point — "this order exists", "this function is on" —
+ * and a POST that creates it is only one way to reach it. Run the same test twice, or run
+ * it against a system someone has already configured, and the call is at best wasted and at
+ * worst destructive: it 409s and blocks the test, or it creates a second copy of a thing
+ * the test then cannot identify.
+ *
+ * With a check, the runner asks first and calls only on a difference. Without one, nothing
+ * changes: the setup runs every time, as it always has.
+ */
+export const PreconditionCheckSchema = z.object({
+  method: z.string().optional().nullable(),
+  url: z.string(),
+  queryParams: z
+    .array(
+      z.object({
+        key: z.string(),
+        value: z.string(),
+        enabled: z.boolean().optional().default(true),
+      }),
+    )
+    .optional()
+    .nullable(),
+  requestHeaders: z.record(z.string()).optional().nullable(),
+  /** Response statuses that mean the state is already there. Defaults to 2xx. */
+  expectStatus: z.array(z.number().int()).optional().nullable(),
+  /** A dotted path into the JSON body, e.g. `functions.netContentMachine`. */
+  jsonPath: z.string().optional().nullable(),
+  /** What that path has to hold for the state to count as already reached. */
+  equals: z.union([z.string(), z.number(), z.boolean()]).optional().nullable(),
+  /** Or, for an API that answers in prose: a substring the body has to contain. */
+  bodyContains: z.string().optional().nullable(),
+});
+export type PreconditionCheck = z.infer<typeof PreconditionCheckSchema>;
+
 export const PreconditionSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -678,6 +715,16 @@ export const PreconditionSchema = z.object({
   requestHeaders: z.record(z.string()).optional().nullable(),
   requestBody: z.any().optional().nullable(),
   sourceApiTestId: z.number().int().optional().nullable(),
+  /** Asked before the setup call; when it holds, the call is skipped. */
+  check: PreconditionCheckSchema.optional().nullable(),
+  /**
+   * Statuses from the setup call itself that mean it had already been done.
+   *
+   * The common case is 409 Conflict on a create. Treating that as a failure blocks a test
+   * whose precondition is, in fact, satisfied — and the report then says the setup failed,
+   * which sends whoever reads it looking for a problem in the wrong place.
+   */
+  satisfiedStatuses: z.array(z.number().int()).optional().nullable(),
 });
 export type Precondition = z.infer<typeof PreconditionSchema>;
 

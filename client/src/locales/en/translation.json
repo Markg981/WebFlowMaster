@@ -843,6 +843,10 @@
       "assertState": {
         "name": "Assert state",
         "description": "Check that a control is checked, enabled, editable — or the opposite"
+      },
+      "ensureState": {
+        "name": "Ensure State",
+        "description": "Switches a control on or off only if it is not already."
       }
     },
     "playbackStatus": "Step {{current}}/{{total}}: {{name}} - {{details}}",

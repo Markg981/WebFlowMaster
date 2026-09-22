@@ -2,10 +2,17 @@ import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { useDrop } from 'react-dnd';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { TestAction } from '@/pages/dashboard-page-new';
 import { DetectedElement } from '@/components/drag-drop-provider';
-import { ACTION_REQUIREMENTS, type AdhocActionId } from '@shared/recording';
+import { ACTION_REQUIREMENTS, ACTION_VALUE_OPTIONS, type AdhocActionId } from '@shared/recording';
 import { useTranslation } from 'react-i18next';
 import { Trash2, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,6 +38,8 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
   const requirements = ACTION_REQUIREMENTS[data.action.id as AdhocActionId];
   const needsValue = requirements?.value ?? false;
   const needsTarget = requirements?.target ?? false;
+  // A closed list becomes a dropdown; everything else stays a free-text field.
+  const valueOptions = ACTION_VALUE_OPTIONS[data.action.id as AdhocActionId];
 
   // Accept a detected element dropped from the "Detected Elements" panel and bind it as
   // this step's target. Without this drop target the dragged element had nowhere to land
@@ -95,13 +104,34 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
             <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
               {t('testSequenceBuilder.value.label')}
             </Label>
-            <Input 
-              className="h-7 text-xs nodrag" 
-              value={data.value || ""}
-              onChange={(e) => data.onUpdateValue(id, e.target.value)}
-              disabled={data.isRecordingActive}
-              placeholder={t('testSequenceBuilder.value.placeholder')}
-            />
+            {valueOptions ? (
+              // The runner refuses a state it does not recognise, by name. Offering the list
+              // means nobody has to discover that rule by having a step fail on a typo.
+              <Select
+                value={data.value || ''}
+                onValueChange={(next) => data.onUpdateValue(id, next)}
+                disabled={data.isRecordingActive}
+              >
+                <SelectTrigger className="h-7 text-xs nodrag">
+                  <SelectValue placeholder={t('testSequenceBuilder.value.placeholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {valueOptions.map((option) => (
+                    <SelectItem key={option} value={option} className="text-xs">
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                className="h-7 text-xs nodrag"
+                value={data.value || ""}
+                onChange={(e) => data.onUpdateValue(id, e.target.value)}
+                disabled={data.isRecordingActive}
+                placeholder={t('testSequenceBuilder.value.placeholder')}
+              />
+            )}
           </div>
         )}
       </div>
@@ -110,3 +140,4 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
     </Card>
   );
 }
+

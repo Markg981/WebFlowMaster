@@ -1,5 +1,6 @@
 import {
   Activity,
+  CheckCheck,
   CheckSquare,
   ChevronDown,
   Clock,
@@ -43,6 +44,7 @@ const ACTION_ICONS: Record<AdhocActionId, LucideIcon> = {
   assertTextContains: CheckSquare,
   assertElementCount: ListChecks,
   assertState: ToggleRight,
+  ensureState: CheckCheck,
   waitForElement: Eye,
   waitForText: Type,
   waitForNetworkIdle: Activity,

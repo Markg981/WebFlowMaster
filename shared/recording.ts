@@ -36,6 +36,17 @@ export const ADHOC_ACTION_IDS = [
   // like one: the step says the element was not found, when what happened is that it was
   // found and was off.
   "assertState",
+  // Bringing a control TO a state, rather than performing an operation on it.
+  //
+  // A test's setup steps describe a starting point: "this function is enabled". `click`
+  // cannot express that, because a click on a checkbox is a toggle — it means "enabled" only
+  // if the box happened to be off. Run the same test twice, or run it against an environment
+  // where someone has already configured the thing, and the setup undoes itself: the second
+  // run turns the function back off and then fails on a screen that never appeared.
+  //
+  // `ensureState` reads the control first and clicks only when the state differs, so a
+  // precondition that is already satisfied costs nothing and changes nothing.
+  "ensureState",
 ] as const;
 export type AdhocActionId = (typeof ADHOC_ACTION_IDS)[number];
 
@@ -143,6 +154,7 @@ export const ACTION_REQUIREMENTS: Record<
   waitForNetworkIdle: { target: false, value: false, valueRequired: false },
   selectByText: { target: true, value: true, valueRequired: true },
   assertState: { target: true, value: true, valueRequired: true },
+  ensureState: { target: true, value: true, valueRequired: true },
 };
 
 /**
@@ -161,6 +173,33 @@ export const ASSERTABLE_STATES = [
   "readonly",
 ] as const;
 export type AssertableState = (typeof ASSERTABLE_STATES)[number];
+
+/**
+ * States a test can put a control INTO, as opposed to states it can only read.
+ *
+ * Deliberately a subset of ASSERTABLE_STATES. Whether a field is enabled, disabled,
+ * editable or read-only is the application's decision, derived from permissions and from
+ * the state of the record; a test that "sets" one of those is describing something it
+ * cannot do, and the runner says so by name rather than clicking and hoping.
+ */
+export const SETTABLE_STATES = ["checked", "unchecked"] as const;
+export type SettableState = (typeof SETTABLE_STATES)[number];
+
+/**
+ * Actions whose value is one of a fixed set, so the builder can offer it instead of asking.
+ *
+ * The runner has always refused an unrecognised state by name, and the comment above
+ * claimed the builder offered the list — it did not. The field was free text, so the only
+ * thing standing between "Checked " with a trailing space and a step that fails at run time
+ * for a reason nobody can see was the author typing it exactly right. One table, read by
+ * both sides, is what makes that claim true.
+ */
+export const ACTION_VALUE_OPTIONS: Partial<Record<AdhocActionId, readonly string[]>> = {
+  assertState: ASSERTABLE_STATES,
+  ensureState: SETTABLE_STATES,
+  // `waitForElement` has taken these two since it was added, also as free text.
+  waitForElement: ["visible", "hidden"],
+};
 
 /** i18n keys for the builder node label/description of each replay action. */
 export const ACTION_I18N: Record<
@@ -241,6 +280,11 @@ export const ACTION_I18N: Record<
     name: "dashboardPageNew.actions.assertState.name",
     description: "dashboardPageNew.actions.assertState.description",
     icon: "ToggleRight",
+  },
+  ensureState: {
+    name: "dashboardPageNew.actions.ensureState.name",
+    description: "dashboardPageNew.actions.ensureState.description",
+    icon: "CheckCheck",
   },
 };
 

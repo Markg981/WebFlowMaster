@@ -849,6 +849,10 @@
       "assertElementCount": {
         "name": "Anzahl der Elemente prüfen",
         "description": "Prüft, wie viele Elemente einem Selektor entsprechen."
+      },
+      "ensureState": {
+        "name": "Zustand herstellen",
+        "description": "Schaltet ein Element nur dann um, wenn es noch nicht im gewünschten Zustand ist."
       }
     },
     "saveTest": {
