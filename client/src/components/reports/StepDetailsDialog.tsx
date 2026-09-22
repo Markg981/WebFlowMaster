@@ -40,6 +40,10 @@ interface StepDetailsDialogProps {
   testName: string;
   browser?: string | null;
   steps: ReportStep[];
+  /** A recording of the run, when the plan kept one. */
+  videoUrl?: string | null;
+  /** A Playwright trace: the DOM, the network and the console at every step. */
+  traceUrl?: string | null;
 }
 
 /** The picture and what it is a picture of, since three unlabelled images say nothing. */
@@ -78,7 +82,15 @@ function VisualPanel({ visual }: { visual: ReportStepVisual }) {
   );
 }
 
-const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({ open, onOpenChange, testName, browser, steps }) => {
+const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
+  open,
+  onOpenChange,
+  testName,
+  browser,
+  steps,
+  videoUrl,
+  traceUrl,
+}) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
@@ -88,6 +100,27 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({ open, onOpenChang
             {browser ? `Steps recorded on ${browser}.` : 'Steps recorded during this run.'}
           </DialogDescription>
         </DialogHeader>
+
+        {(videoUrl || traceUrl) && (
+          <div className="rounded-md border p-3 space-y-2 dark:border-slate-700">
+            {videoUrl && (
+              <video src={videoUrl} controls className="w-full rounded max-h-72 bg-black" data-testid="run-video" />
+            )}
+            {traceUrl && (
+              <p className="text-xs text-muted-foreground">
+                <a href={traceUrl} className="underline" download>
+                  Download the Playwright trace
+                </a>{' '}
+                — it carries the DOM, the network and the console at every step. Open it with{' '}
+                <code>npx playwright show-trace &lt;file&gt;</code> or at{' '}
+                <a href="https://trace.playwright.dev" target="_blank" rel="noreferrer" className="underline">
+                  trace.playwright.dev
+                </a>
+                .
+              </p>
+            )}
+          </div>
+        )}
 
         {steps.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6">

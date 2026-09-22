@@ -190,6 +190,17 @@ export const testPlans = pgTable("test_plans", {
   description: text('description'),
   testMachinesConfig: jsonb('test_machines_config'),
   captureScreenshots: text('capture_screenshots').default('on_failed_steps'),
+  /**
+   * Whether to keep a video of the run, and a Playwright trace of it.
+   *
+   * A report holds one picture per step and the message the step died with, which answers
+   * "the button was not there" and nothing else. A test that failed because a request was
+   * slow, or because a dialog appeared and vanished, looks exactly like one with a wrong
+   * selector. 'never' | 'on_failure' | 'always'; both default to never, because both cost
+   * disk on every run.
+   */
+  captureVideo: text('capture_video').default('never').notNull(),
+  captureTrace: text('capture_trace').default('never').notNull(),
   visualTestingEnabled: boolean('visual_testing_enabled').default(false),
   pageLoadTimeout: integer('page_load_timeout').default(30000),
   elementTimeout: integer('element_timeout').default(30000),
@@ -294,6 +305,14 @@ export const reportTestCaseResults = pgTable("report_test_case_results", {
   status: text("status").notNull(),
   reasonForFailure: text("reason_for_failure"),
   screenshotUrl: text("screenshot_url"),
+  /**
+   * A recording of the run, and a Playwright trace of it, when the plan asked to keep them.
+   *
+   * The trace is the one that answers questions a screenshot cannot: it carries the DOM, the
+   * network and the console at every step, and opens in Playwright's own viewer.
+   */
+  videoUrl: text("video_url"),
+  traceUrl: text("trace_url"),
   detailedLog: text("detailed_log"),
   startedAt: timestamp("started_at").notNull(),
   completedAt: timestamp("completed_at"),
@@ -923,6 +942,15 @@ const TestMachineConfigSchema = z
   })
   .optional();
 
+/**
+ * When a run's video and trace are kept.
+ *
+ * 'on_failure' still records — Playwright writes a video when the context closes and cannot
+ * be asked for one afterwards — and decides only whether the file survives the run.
+ */
+export const EVIDENCE_CAPTURE_MODES = ["never", "on_failure", "always"] as const;
+export type EvidenceCaptureMode = (typeof EVIDENCE_CAPTURE_MODES)[number];
+
 export const insertTestPlanSchema = createInsertSchema(testPlans, {
   name: z.string().min(1, "Test Plan Name is required"),
   description: z.string().optional(),
@@ -930,6 +958,10 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
   captureScreenshots: z
     .enum(["always", "on_failed_steps", "never"])
     .default("on_failed_steps"),
+  // Kept in their own vocabulary rather than reusing the screenshots one: a video is of the
+  // run, not of a step, so "on failed steps" would be a promise neither can keep.
+  captureVideo: z.enum(EVIDENCE_CAPTURE_MODES).default("never"),
+  captureTrace: z.enum(EVIDENCE_CAPTURE_MODES).default("never"),
   visualTestingEnabled: z.boolean().default(false),
   pageLoadTimeout: z.number().int().positive().default(30000),
   elementTimeout: z.number().int().positive().default(30000),

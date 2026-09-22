@@ -22,6 +22,7 @@ import { describeBrowser, launchBrowser, resolveBrowser, type BrowserChoice } fr
 import { compareStepScreenshot, isVisualFailure, type VisualContext } from './visual-testing';
 import { expandSequenceForRun, type SequenceStep } from './step-groups';
 import { elementIdOfStep, resolveSequenceForRun } from './step-elements';
+import { captureRunEvidence, startTrace, videoContextOptions, type CapturedEvidence, type EvidenceOptions } from './run-evidence';
 
 // Default settings if not found or incomplete
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
@@ -162,6 +163,8 @@ export interface StepResult {
 export interface ExecuteSequenceOptions {
   browser?: BrowserChoice;
   visual?: VisualContext;
+  /** Whether to keep a video and a trace of this run, and where to put them. */
+  evidence?: EvidenceOptions;
 }
 
 // Interface for the ad-hoc sequence payload
@@ -1582,7 +1585,7 @@ export class PlaywrightService {
     // to compare each step against its visual baseline. Absent means what it has always
     // meant — the user's own browser setting, and no visual comparison.
     options?: ExecuteSequenceOptions,
-  ): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number }> {
+  ): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; evidence?: CapturedEvidence }> {
     const startTime = Date.now();
 
     // A test with rows of input runs once per row, with that row's values layered over the
@@ -1654,6 +1657,34 @@ export class PlaywrightService {
     let page: Page | null = null;
     const stepResults: StepResult[] = [];
     let overallSuccess = true;
+    /** Whether this run is being traced, which decides how its context has to be closed. */
+    let tracing = false;
+    let evidence: CapturedEvidence = {};
+    // Worked out once: the scratch directory a recording goes into is named when the context
+    // is created, and has to be the same one that is cleaned up afterwards.
+    const videoOptions = await videoContextOptions(options?.evidence);
+
+    /**
+     * Ends the run's recording and closes what was recording it.
+     *
+     * Called on every path that returns rather than from `finally`, because `finally` runs
+     * after the returned object has already been built: evidence assigned there would never
+     * reach the caller. Nulling the handles afterwards keeps the defensive closes below from
+     * closing a context twice.
+     */
+    const finishEvidence = async (passed: boolean) => {
+      evidence = await captureRunEvidence({
+        context,
+        page,
+        options: options?.evidence,
+        tracing,
+        passed,
+        label: `${test.name ?? 'test'}_${options?.browser?.label ?? 'default'}`,
+        scratchDir: videoOptions.recordVideo?.dir,
+      });
+      page = null;
+      context = null;
+    };
 
     try {
       const userSettings = await storage.getUserSettings(userId);
@@ -1686,7 +1717,11 @@ export class PlaywrightService {
         userAgent,
         ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl ?? ''),
         ...(storageState ? { storageState: storageState as any } : {}),
+        // Recording has to be asked for when the context is made; whether the file is kept is
+        // decided when the run ends. A plan that wants neither pays for neither.
+        ...videoOptions,
       });
+      tracing = await startTrace(context, options?.evidence);
       page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
       await page.setViewportSize({ width: 1280, height: 720 });
@@ -1733,7 +1768,10 @@ export class PlaywrightService {
           }
           stepResults.push({ name: 'Load Page', type: 'navigation', status: 'failed', error: e.message, screenshot: errorNavScreenshotPath, details: `Failed to navigate to ${test.url}` });
           const duration = Date.now() - startTime;
-          return { success: false, steps: stepResults, error: e.message, duration };
+          // A run that never got past the first navigation is exactly the run somebody will
+          // want the video of.
+          await finishEvidence(false);
+          return { success: false, steps: stepResults, error: e.message, duration, evidence };
         }
       } else {
         stepResults.push({ name: 'Initial State', type: 'setup', status: 'passed', details: 'No initial URL provided.' });
@@ -1857,12 +1895,16 @@ export class PlaywrightService {
       }
 
       const duration = Date.now() - startTime;
-      return { success: overallSuccess, steps: stepResults, duration };
+      await finishEvidence(overallSuccess);
+      return { success: overallSuccess, steps: stepResults, duration, evidence };
 
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      return { success: false, steps: stepResults, error: error.message || 'Unknown critical error', duration };
+      await finishEvidence(false);
+      return { success: false, steps: stepResults, error: error.message || 'Unknown critical error', duration, evidence };
     } finally {
+      // Defensive: finishEvidence has normally closed both already and nulled them, so these
+      // only fire on a path that returned without going through it.
       if (page) await page.close().catch(() => { });
       if (context) await context.close().catch(() => { });
       if (browser) await (await browserPool).release(browser);

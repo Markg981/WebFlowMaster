@@ -1175,6 +1175,11 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         browser: r.browser,
         reasonForFailure: r.reasonForFailure,
         screenshotUrl: artifactUrl(executionId, r.screenshotUrl),
+        // A recording of the run, and a trace of it, when the plan kept them. The trace is the
+        // one that answers what a screenshot cannot: the DOM, the network and the console at
+        // every step.
+        videoUrl: artifactUrl(executionId, r.videoUrl),
+        traceUrl: artifactUrl(executionId, r.traceUrl),
         detailedLog: r.detailedLog,
         // The step list the runner already recorded, with its images made openable. The
         // report had no way to show which step failed; the row's reason string was all of it.
@@ -1215,6 +1220,8 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
       groupedByModule[moduleName].components[componentName].tests.push({
         ...r,
         screenshotUrl: artifactUrl(executionId, r.screenshotUrl),
+        videoUrl: artifactUrl(executionId, r.videoUrl),
+        traceUrl: artifactUrl(executionId, r.traceUrl),
         steps: stepsWithArtifactUrls(executionId, r.detailedLog),
       } as typeof r);
 

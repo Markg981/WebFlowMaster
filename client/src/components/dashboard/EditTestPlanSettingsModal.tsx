@@ -44,6 +44,13 @@ interface EditTestPlanSettingsModalProps {
 
 const BROWSER_OPTIONS = ['chromium', 'chrome', 'firefox', 'webkit', 'edge'];
 
+/** The three answers to "keep a recording?", in the order they escalate. */
+const EVIDENCE_MODES = [
+  { value: 'never', label: 'Never' },
+  { value: 'on_failure', label: 'When the test fails' },
+  { value: 'always', label: 'Always' },
+];
+
 const NOTIFICATION_KEYS: Array<keyof Omit<NotificationSettingsShape, 'webhookUrl'>> = [
   'passed',
   'failed',
@@ -88,6 +95,9 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
   const { t } = useTranslation();
   const [machines, setMachines] = useState<MachineRow[]>([]);
   const [visualTestingEnabled, setVisualTestingEnabled] = useState(false);
+  /** Whether a video and a Playwright trace of each run survive it. */
+  const [captureVideo, setCaptureVideo] = useState<string>('never');
+  const [captureTrace, setCaptureTrace] = useState<string>('never');
   /** How many of this plan's runs may be in flight at once. 1 is what every plan did before. */
   const [maxParallelTests, setMaxParallelTests] = useState('1');
   const [maxParallelError, setMaxParallelError] = useState('');
@@ -102,6 +112,8 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
     if (!isOpen) return;
     setMachines(machinesFromPlan(plan));
     setVisualTestingEnabled(plan?.visualTestingEnabled === true);
+    setCaptureVideo((plan as { captureVideo?: string } | null)?.captureVideo ?? 'never');
+    setCaptureTrace((plan as { captureTrace?: string } | null)?.captureTrace ?? 'never');
     setMaxParallelTests(String(plan?.maxParallelTests ?? 1));
     setNotifications(notificationsFromPlan(plan));
     setWebhookError('');
@@ -151,6 +163,8 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
           // Only the run settings. Omitting selectedTests leaves the plan's tests as they are.
           testMachinesConfig: machines.map(({ browserName, headless }) => ({ browserName, headless })),
           visualTestingEnabled,
+          captureVideo,
+          captureTrace,
           maxParallelTests: parallel,
           notificationSettings: { ...notifications, webhookUrl: webhookUrl || null },
         }),
@@ -254,6 +268,52 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                 )}
               </p>
               {maxParallelError && <p className="text-sm text-destructive mt-1">{maxParallelError}</p>}
+            </section>
+
+            <section>
+              <Label>{t('editTestPlanSettings.evidence.label', 'Keep a recording of the run')}</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t(
+                  'editTestPlanSettings.evidence.help',
+                  'A report holds a picture per step and the message it died with. A video and a Playwright trace answer what that cannot — a slow request, a dialog that came and went, a page that moved under the click. Both cost disk on every run.',
+                )}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                <div>
+                  <Label htmlFor="editCaptureVideo" className="text-xs text-muted-foreground">
+                    {t('editTestPlanSettings.evidence.video', 'Video')}
+                  </Label>
+                  <Select value={captureVideo} onValueChange={setCaptureVideo}>
+                    <SelectTrigger id="editCaptureVideo" className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EVIDENCE_MODES.map((mode) => (
+                        <SelectItem key={mode.value} value={mode.value}>
+                          {t(`editTestPlanSettings.evidence.modes.${mode.value}`, mode.label)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="editCaptureTrace" className="text-xs text-muted-foreground">
+                    {t('editTestPlanSettings.evidence.trace', 'Trace')}
+                  </Label>
+                  <Select value={captureTrace} onValueChange={setCaptureTrace}>
+                    <SelectTrigger id="editCaptureTrace" className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EVIDENCE_MODES.map((mode) => (
+                        <SelectItem key={mode.value} value={mode.value}>
+                          {t(`editTestPlanSettings.evidence.modes.${mode.value}`, mode.label)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </section>
 
             <section className="flex items-center space-x-2">

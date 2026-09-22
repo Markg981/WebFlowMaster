@@ -74,6 +74,50 @@ describe('StepDetailsDialog', () => {
     expect(screen.getByAltText('Screenshot')).toHaveAttribute('src', '/shot.png');
   });
 
+  it('plays the run back when the plan kept a video of it', () => {
+    render(
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Login works"
+        browser="chromium"
+        steps={steps}
+        videoUrl="/api/test-plan-executions/exec-1/artifacts/ui_5/run.webm"
+      />,
+    );
+
+    expect(screen.getByTestId('run-video')).toHaveAttribute(
+      'src',
+      '/api/test-plan-executions/exec-1/artifacts/ui_5/run.webm',
+    );
+  });
+
+  it('offers the trace, and says what to open it with — a .zip is no use unexplained', () => {
+    render(
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Login works"
+        browser="chromium"
+        steps={steps}
+        traceUrl="/api/test-plan-executions/exec-1/artifacts/ui_5/trace.zip"
+      />,
+    );
+
+    expect(screen.getByText(/Download the Playwright trace/i)).toHaveAttribute(
+      'href',
+      '/api/test-plan-executions/exec-1/artifacts/ui_5/trace.zip',
+    );
+    expect(screen.getByText(/show-trace/)).toBeInTheDocument();
+  });
+
+  it('shows no recording section for a run that kept none', () => {
+    render(<StepDetailsDialog open onOpenChange={() => {}} testName="Login works" browser="chromium" steps={steps} />);
+
+    expect(screen.queryByTestId('run-video')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Download the Playwright trace/i)).not.toBeInTheDocument();
+  });
+
   it('says why there is nothing to show rather than opening empty', () => {
     render(<StepDetailsDialog open onOpenChange={() => {}} testName="Some API test" browser={null} steps={[]} />);
 
