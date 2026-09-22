@@ -314,4 +314,33 @@ router.get("/api/test-plan-executions", requireRole('viewer'), async (req, res) 
     res.json({ items: parsed, limit: pageLimit, offset: pageOffset });
 });
 
+/**
+ * One execution, by id.
+ *
+ * A pipeline starts a run and then has to wait for it, and the only way to ask "is it done
+ * yet?" was to fetch the whole report — every test case row, its steps and its screenshots —
+ * once every few seconds. This is the question it was actually asking.
+ */
+router.get("/api/test-plan-executions/:id", requireRole('viewer'), async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+
+    // No organization filter: RLS supplies it, so another tenant's run is simply not found.
+    const rows = await withTenantTransaction((tx) =>
+      tx
+        .select({ ...getTableColumns(testPlanExecutions), testPlanName: testPlans.name })
+        .from(testPlanExecutions)
+        .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
+        .where(eq(testPlanExecutions.id, req.params.id))
+        .limit(1),
+    );
+    if (rows.length === 0) return res.status(404).json({ error: "Test plan execution not found." });
+
+    const execution = rows[0];
+    res.json({
+      ...execution,
+      results: typeof execution.results === 'string' ? JSON.parse(execution.results) : execution.results,
+      browsers: typeof execution.browsers === 'string' ? JSON.parse(execution.browsers) : execution.browsers,
+    });
+});
+
 export default router;

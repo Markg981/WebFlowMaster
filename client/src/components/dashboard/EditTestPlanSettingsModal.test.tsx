@@ -59,6 +59,27 @@ describe('EditTestPlanSettingsModal', () => {
     expect(body.selectedTests).toBeUndefined();
   });
 
+  it('saves how many tests may run at once', async () => {
+    const onSaved = vi.fn();
+    render(<EditTestPlanSettingsModal isOpen plan={plan} onClose={() => {}} onSaved={onSaved} />);
+
+    fireEvent.change(screen.getByLabelText(/Run at most/i), { target: { value: '4' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).maxParallelTests).toBe(4);
+  });
+
+  it('refuses a parallelism that is not a usable number of browser sessions', async () => {
+    render(<EditTestPlanSettingsModal isOpen plan={plan} onClose={() => {}} onSaved={() => {}} />);
+
+    fireEvent.change(screen.getByLabelText(/Run at most/i), { target: { value: '40' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText(/between 1 and 16/i)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('refuses a webhook URL that is not http(s) instead of storing it', async () => {
     render(<EditTestPlanSettingsModal isOpen plan={plan} onClose={() => {}} onSaved={() => {}} />);
 

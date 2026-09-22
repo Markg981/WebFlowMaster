@@ -41,12 +41,14 @@ import testPlansRoutes from "./routes/test-plans.routes";
 import uploadsRoutes from "./routes/uploads.routes";
 import reportsRoutes from "./routes/reports.routes";
 import artifactsRoutes, { artifactUrl, stepsWithArtifactUrls } from "./routes/artifacts.routes";
+import apiKeysRoutes from "./routes/api-keys.routes";
 import authRoutes from "./routes/auth.routes";
 import observabilityRoutes from "./routes/observability.routes";
 import environmentRoutes from "./routes/environments.routes";
 import analyticsRoutes from "./routes/analytics.routes";
 import organizationRoutes from "./routes/organization.routes";
 import { tenancyMiddleware, withTenantTransaction } from "./middleware/tenancy";
+import { apiKeyAuth } from "./middleware/api-key-auth";
 import { runApiRequest } from "./api-test-runner";
 import { resolveVariables } from "./variables";
 import { requireRole } from "./middleware/require-role";
@@ -102,6 +104,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Auth First
     setupAuth(app); // Attaches passport strategies
 
+    // A request may authenticate as a person (the session passport just attached) or as a
+    // pipeline (an API key). This turns the second into the first, so everything after it —
+    // the tenancy binding, requireRole, every handler — has exactly one notion of who is
+    // calling, and no route has to be audited twice.
+    app.use(apiKeyAuth);
+
     // Before every router: establishes the ambient organization for the request, which
     // withTenantTransaction requires and refuses to run without.
     app.use(tenancyMiddleware);
@@ -115,6 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(uploadsRoutes);
     app.use(reportsRoutes);
     app.use(artifactsRoutes);
+    app.use(apiKeysRoutes);
     app.use(observabilityRoutes);
     app.use(environmentRoutes);
     app.use(analyticsRoutes);

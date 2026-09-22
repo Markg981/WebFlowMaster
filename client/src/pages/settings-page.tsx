@@ -27,6 +27,7 @@ import {
   PlusCircle,
   Archive,
   KeyRound,
+  KeySquare,
   SlidersHorizontal,
 } from "lucide-react";
 import {
@@ -42,6 +43,7 @@ import {
 import { Link } from "wouter";
 import { UserSettings, fetchSettings } from "../lib/settings";
 import EnvironmentsCard from "@/components/settings/EnvironmentsCard";
+import ApiKeysCard from "@/components/settings/ApiKeysCard";
 
 interface Project {
   id: number;
@@ -506,6 +508,16 @@ export default function SettingsPage() {
       description: t('settings.sections.environmentsDescription', { token: '{{KEY_NAME}}' }),
       icon: KeyRound,
       content: <EnvironmentsCard />,
+    },
+    {
+      id: 'apiKeys',
+      label: t('settings.sections.apiKeys', 'API keys'),
+      description: t(
+        'settings.sections.apiKeysDescription',
+        'Credentials for pipelines and scripts, so CI never needs somebody’s password.',
+      ),
+      icon: KeySquare,
+      content: <ApiKeysCard />,
     },
     {
       id: 'defaults',

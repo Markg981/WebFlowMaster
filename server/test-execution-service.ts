@@ -26,6 +26,7 @@ import { defaultVariables } from './variables';
 import { runApiRequest, type Extraction } from './api-test-runner';
 import type { Assertion, AuthParams } from '@shared/schema';
 import { browsersForRun, describeBrowser, hasConfiguredBrowsers, launchBrowser, type BrowserChoice } from './browsers';
+import { effectiveConcurrency, runWithConcurrency } from './concurrency';
 import type { VisualContext } from './visual-testing';
 import {
   describeUnsupported,
@@ -34,6 +35,16 @@ import {
   type RunSummary,
 } from './notifications';
 import { testPlanSchedules } from '@shared/schema';
+
+/** Reads a jsonb column that came back as text, as these columns sometimes do. */
+function safeJsonArray(value: string): unknown[] | null {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Keeps a browser label from turning into a path when it names a directory. */
 function sanitizeSegment(value: string): string {
@@ -544,23 +555,13 @@ async function runTestPlanJobInTenant(
   // The defaults underneath, the environment's secrets on top — so an environment can
   // override `baseUrl` like any other name, and a run against site B does not depend on
   // what a process env var happened to hold.
-  const runVariables = (): Record<string, string> => ({
+  const runVariables = (captured: Record<string, string>): Record<string, string> => ({
     ...defaultVariables(),
     ...secretsMap,
-    // Values captured by tests that already ran in this plan. Last write wins, so a later
+    // Values captured by tests that already ran in this pass. Last write wins, so a later
     // request can refresh a token an earlier one obtained.
-    ...capturedInThisRun,
+    ...captured,
   });
-
-  /**
-   * What the tests in this run have extracted so far.
-   *
-   * This is what makes a plan a flow rather than a list: the id the create returned is the
-   * id the read-back and the delete need, and nothing could carry it between them before.
-   * Scoped to the run — never to the environment — because a value captured at 02:00 says
-   * nothing about the state of the system at 03:00.
-   */
-  const capturedInThisRun: Record<string, string> = {};
   // The same environment supplies the variables and the saved login, so a scheduled run
   // cannot resolve one site's secrets while reusing another site's session.
   const planEnvironment = () =>
@@ -707,11 +708,17 @@ async function runTestPlanJobInTenant(
    * requests captured belong to the pass that captured them, not to the browser that ran
    * first.
    */
-  const runUnits = usablePasses.flatMap((browserChoice) =>
-    selectedTestsLinks.map((link) => ({ browserChoice, link })),
-  );
+  type RunUnit = { browserChoice?: BrowserChoice; link: (typeof selectedTestsLinks)[number] };
 
-  for (const { browserChoice, link } of runUnits) {
+  /**
+   * One test, on one browser.
+   *
+   * Extracted from the loop it used to be so that several can be in flight at once. It takes
+   * its pass's captured variables rather than reaching for a shared object: two browsers
+   * running the same flow each create their own records, and one pass reading the id the
+   * other captured is how a parallel run quietly tests the wrong thing.
+   */
+  const runUnit = async ({ browserChoice, link }: RunUnit, captured: Record<string, string>): Promise<void> => {
     let testObjectDefinition: Test | ApiTest | undefined;
     const testTypeForRun: 'ui' | 'api' | undefined = link.testType as ('ui' | 'api');
 
@@ -761,7 +768,7 @@ async function runTestPlanJobInTenant(
         planId,
         testPlanRunId,
         testTypeForRun,
-        runVariables(),
+        runVariables(captured),
         planEnvironment(),
         {
           browser: browserChoice,
@@ -777,7 +784,7 @@ async function runTestPlanJobInTenant(
       legacyIndividualTestResultsForJsonBlob.push(resultFromRunTest); // Keep populating the old JSON blob for now
 
       if (resultFromRunTest.extracted) {
-        Object.assign(capturedInThisRun, resultFromRunTest.extracted);
+        Object.assign(captured, resultFromRunTest.extracted);
       }
       // Surfaced on the run's console rather than only in the result blob: an extraction
       // that found nothing is the reason the *next* test fails, and reading that in the
@@ -870,7 +877,98 @@ async function runTestPlanJobInTenant(
       resolvedLogger.error({ message: 'Failed to insert into reportTestCaseResultsTable', entry: newReportEntry, error: dbInsertError.message });
       // Continue execution, this test result might be missing from detailed report but plan will complete.
     }
-  } // End of loop for selectedTestsLinks
+  }; // End of one run unit
+
+  /**
+   * One lane per browser: the whole plan, in order, with its own captured values.
+   *
+   * A pass is an independent run of the plan, so what one browser's flow created belongs to
+   * that browser's flow. Sharing the captured map across passes — which is what a single
+   * shared object did — meant the second browser read the first one's ids and never exercised
+   * its own creates.
+   */
+  const lanes = usablePasses.map((browserChoice) => ({
+    browserChoice,
+    units: selectedTestsLinks.map((link) => ({ browserChoice, link }) as RunUnit),
+    captured: {} as Record<string, string>,
+  }));
+
+  /**
+   * Whether the tests in a lane have to stay in order.
+   *
+   * An extraction is what makes a plan a flow: the id the create returned is the id the
+   * read-back needs. Those tests cannot be reordered or overlapped, and the plan that
+   * declares them is saying so. Everything else is a list of independent checks.
+   */
+  const laneIsChained = [...apiTestsMap.values()].some((apiTest) => {
+    const extractions = apiTest.extractions;
+    const parsed = typeof extractions === 'string' ? safeJsonArray(extractions) : extractions;
+    return Array.isArray(parsed) && parsed.length > 0;
+  });
+
+  const parallelism = effectiveConcurrency(plan?.maxParallelTests);
+  if (parallelism > 1) {
+    wsEmitter.emitExecutionLog(testPlanRunId, {
+      level: 'info',
+      source: 'system',
+      message: laneIsChained
+        ? `Running up to ${parallelism} browsers at once. This plan's API tests capture values for later ` +
+          `requests, so within each browser its tests stay in order.`
+        : `Running up to ${parallelism} tests at once.`,
+      timestamp: new Date().toISOString(),
+      metadata: { parallelism, chained: laneIsChained },
+    });
+  }
+
+  /** Surfaced like a browser that would not start: something ran, and it was not the test. */
+  const unitFailures: string[] = [];
+  const recordSettled = (settled: PromiseSettledResult<void>[]) => {
+    for (const outcome of settled) {
+      if (outcome.status !== 'rejected') continue;
+      const message = `A test in this run could not be executed: ${
+        (outcome.reason as any)?.message ?? String(outcome.reason)
+      }`;
+      unitFailures.push(message);
+      const entry: ExecutionLogEntry = {
+        level: 'error',
+        source: 'system',
+        message,
+        timestamp: new Date().toISOString(),
+      };
+      resolvedLogger.error(entry);
+      wsEmitter.emitExecutionLog(testPlanRunId, entry);
+    }
+  };
+
+  if (parallelism <= 1) {
+    // The order every plan has always run in: one browser at a time, its tests in sequence.
+    for (const lane of lanes) {
+      for (const unit of lane.units) {
+        try {
+          await runUnit(unit, lane.captured);
+        } catch (error: any) {
+          recordSettled([{ status: 'rejected', reason: error }]);
+        }
+      }
+    }
+  } else if (laneIsChained) {
+    // Browsers side by side; within each one, the flow keeps its order.
+    recordSettled(
+      await runWithConcurrency(
+        parallelism,
+        lanes.map((lane) => async () => {
+          for (const unit of lane.units) await runUnit(unit, lane.captured);
+        }),
+      ),
+    );
+  } else {
+    recordSettled(
+      await runWithConcurrency(
+        parallelism,
+        lanes.flatMap((lane) => lane.units.map((unit) => () => runUnit(unit, lane.captured))),
+      ),
+    );
+  }
 
   // After all tests have run, calculate final aggregates from reportTestCaseResultsTable
   const finalDetailedResults = await withTenantTransaction((tx) =>
@@ -905,9 +1003,9 @@ async function runTestPlanJobInTenant(
   }
 
   // A plan that asked for three browsers and got two did not do what it was asked, whatever
-  // the tests that did run reported. Saying "completed" there is how a gap in coverage comes
-  // to look like coverage.
-  if (browserStartupFailures.length > 0 && finalOverallStatus === 'completed') {
+  // the tests that did run reported — and neither did one whose test never executed at all.
+  // Saying "completed" for either is how a gap in coverage comes to look like coverage.
+  if ((browserStartupFailures.length > 0 || unitFailures.length > 0) && finalOverallStatus === 'completed') {
     finalOverallStatus = 'error';
   }
 

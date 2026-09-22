@@ -190,6 +190,91 @@ describe('the browsers a plan asks for', () => {
   });
 });
 
+describe('how much of a plan runs at once', () => {
+  it('runs one test at a time when the plan says so, which is what every plan said before', async () => {
+    await seedPlan({ maxParallelTests: 1 });
+    let inFlight = 0;
+    let peak = 0;
+    executeTestSequence.mockImplementation(async () => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      inFlight--;
+      return { success: true, steps: [], duration: 10 };
+    });
+
+    await runPlan({ browsers: ['chromium', 'firefox'] });
+
+    expect(peak).toBe(1);
+    expect(executeTestSequence).toHaveBeenCalledTimes(2);
+  });
+
+  it('runs browsers side by side when the plan allows it', async () => {
+    await seedPlan({ maxParallelTests: 3 });
+    let inFlight = 0;
+    let peak = 0;
+    executeTestSequence.mockImplementation(async () => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      inFlight--;
+      return { success: true, steps: [], duration: 10 };
+    });
+
+    await runPlan({ browsers: ['chromium', 'firefox', 'webkit'] });
+
+    expect(peak).toBeGreaterThan(1);
+    const rows = await privilegedDb.select().from(reportTestCaseResults);
+    expect(rows).toHaveLength(3);
+    expect(rows.map((r) => r.browser).sort()).toEqual(['chromium', 'firefox', 'webkit']);
+  });
+
+  it("does not exceed the machine's ceiling, whatever the plan asks for", async () => {
+    process.env.RUN_MAX_PARALLEL = '2';
+    await seedPlan({ maxParallelTests: 16 });
+    let inFlight = 0;
+    let peak = 0;
+    executeTestSequence.mockImplementation(async () => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      inFlight--;
+      return { success: true, steps: [], duration: 10 };
+    });
+
+    await runPlan({ browsers: ['chromium', 'firefox', 'webkit', 'edge'] });
+
+    expect(peak).toBeLessThanOrEqual(2);
+    delete process.env.RUN_MAX_PARALLEL;
+  });
+
+  it('gives each browser its own captured values, so one pass never reads the other’s ids', async () => {
+    await seedPlan({ maxParallelTests: 2 });
+    const seenVariables: Array<Record<string, string>> = [];
+    executeTestSequence.mockImplementation(async (_test: any, _userId: any, _dir: any, _id: any, vars: any) => {
+      seenVariables.push({ ...vars });
+      return { success: true, steps: [], duration: 1 };
+    });
+
+    await runPlan({ browsers: ['chromium', 'firefox'] });
+
+    expect(seenVariables).toHaveLength(2);
+    for (const vars of seenVariables) {
+      expect(Object.keys(vars)).not.toContain('createdId');
+    }
+  });
+
+  it('records a test that could not be executed at all, and does not call the run clean', async () => {
+    await seedPlan({ maxParallelTests: 2 });
+    executeTestSequence.mockRejectedValue(new Error('the runner exploded'));
+
+    const executionId = await runPlan({ browsers: ['chromium'] });
+
+    const [execution] = await privilegedDb.select().from(testPlanExecutions).where(eqId(executionId));
+    expect(['failed', 'error']).toContain(execution.status);
+  });
+});
+
 describe('visual testing', () => {
   it('asks for a comparison only when the plan turned it on', async () => {
     await seedPlan({ visualTestingEnabled: true });

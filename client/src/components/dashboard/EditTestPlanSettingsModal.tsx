@@ -88,6 +88,9 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
   const { t } = useTranslation();
   const [machines, setMachines] = useState<MachineRow[]>([]);
   const [visualTestingEnabled, setVisualTestingEnabled] = useState(false);
+  /** How many of this plan's runs may be in flight at once. 1 is what every plan did before. */
+  const [maxParallelTests, setMaxParallelTests] = useState('1');
+  const [maxParallelError, setMaxParallelError] = useState('');
   const [notifications, setNotifications] = useState<NotificationSettingsShape>(notificationsFromPlan(null));
   const [webhookError, setWebhookError] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -99,8 +102,10 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
     if (!isOpen) return;
     setMachines(machinesFromPlan(plan));
     setVisualTestingEnabled(plan?.visualTestingEnabled === true);
+    setMaxParallelTests(String(plan?.maxParallelTests ?? 1));
     setNotifications(notificationsFromPlan(plan));
     setWebhookError('');
+    setMaxParallelError('');
     setSubmitError(null);
   }, [isOpen, plan]);
 
@@ -125,6 +130,15 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
       return;
     }
     setWebhookError('');
+
+    const parallel = Number(maxParallelTests);
+    if (!Number.isInteger(parallel) || parallel < 1 || parallel > 16) {
+      setMaxParallelError(
+        t('editTestPlanSettings.validation.parallelInvalid', 'Run at most must be a whole number between 1 and 16.'),
+      );
+      return;
+    }
+    setMaxParallelError('');
     if (!plan) return;
 
     setIsSaving(true);
@@ -137,6 +151,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
           // Only the run settings. Omitting selectedTests leaves the plan's tests as they are.
           testMachinesConfig: machines.map(({ browserName, headless }) => ({ browserName, headless })),
           visualTestingEnabled,
+          maxParallelTests: parallel,
           notificationSettings: { ...notifications, webhookUrl: webhookUrl || null },
         }),
       });
@@ -220,6 +235,25 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                   <PlusCircle className="h-4 w-4 mr-1" /> {t('editTestPlanSettings.browsers.add', 'Add browser')}
                 </Button>
               </div>
+            </section>
+
+            <section>
+              <Label htmlFor="editMaxParallelTests">
+                {t('editTestPlanSettings.parallel.label', 'Run at most (tests at once)')}
+              </Label>
+              <Input
+                id="editMaxParallelTests"
+                value={maxParallelTests}
+                onChange={(e) => setMaxParallelTests(e.target.value)}
+                className="mt-1 w-32"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {t(
+                  'editTestPlanSettings.parallel.help',
+                  'Each one is a real browser session, so this is a statement about the runner. 1 runs the plan one test at a time, browser by browser. A plan whose API tests capture values for later requests keeps those in order within each browser.',
+                )}
+              </p>
+              {maxParallelError && <p className="text-sm text-destructive mt-1">{maxParallelError}</p>}
             </section>
 
             <section className="flex items-center space-x-2">
