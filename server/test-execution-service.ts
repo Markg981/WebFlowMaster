@@ -37,6 +37,7 @@ import {
 import { fileFailure, loadTracker, markResolved } from './issue-store';
 import { currentVersionsOf } from './test-version-store';
 import { publishedContentOf, reviewRequired } from './test-publishing';
+import { failuresOf, openQuarantinesOf, refKey } from './test-quarantine';
 import { takeExecution, transitionExecution } from './execution-state';
 import { artifactStore } from './artifact-store';
 import { watchRun } from './run-watch';
@@ -767,6 +768,26 @@ async function runTestPlanJobInTenant(
     apiTests.forEach(t => apiTestsMap.set(t.id, t as ApiTest));
   }
 
+  // Tests in quarantine run like the rest; their failures are recorded and do not count against
+  // the run (server/test-quarantine.ts). Read as the run starts, like the published versions above.
+  const quarantined = await withTenantTransaction((tx) =>
+    openQuarantinesOf(tx, [
+      ...uiTestIds.map((id) => ({ type: 'ui' as const, id })),
+      ...apiTestIds.map((id) => ({ type: 'api' as const, id })),
+    ]),
+  );
+  if (quarantined.size > 0) {
+    wsEmitter.emitExecutionLog(testPlanRunId, {
+      level: 'info',
+      source: 'system',
+      message:
+        `${quarantined.size} test(s) in this run are in quarantine: they run and their results are recorded, ` +
+        `but a failure of theirs does not fail the run.`,
+      timestamp: new Date().toISOString(),
+      metadata: { quarantined: [...quarantined.keys()] },
+    });
+  }
+
   const legacyIndividualTestResultsForJsonBlob: IndividualTestRunResult[] = [];
 
   /**
@@ -866,6 +887,10 @@ async function runTestPlanJobInTenant(
     // A plan policy, a cancellation or the time limit: either way this test does not start. Nor
     // does a test with no published version where the organization requires review.
     const notPublished = link.testType === 'ui' && link.testId ? unpublishedUnderPolicy.get(link.testId) : undefined;
+    const inQuarantine =
+      link.testType === 'ui'
+        ? !!link.testId && quarantined.has(refKey({ type: 'ui', id: link.testId }))
+        : !!link.apiTestId && quarantined.has(refKey({ type: 'api', id: link.apiTestId }));
     const haltedBy = stopReason ?? watch.stopReason ?? notPublished;
     if (haltedBy) {
       reportStatus = 'Skipped';
@@ -951,7 +976,9 @@ async function runTestPlanJobInTenant(
       // the pictures of what has finished.
       if (resultFromRunTest.artifactDir) await publishArtifacts(resultFromRunTest.artifactDir, testPlanRunId);
 
-      const reasonToStop = stopReasonAfter(
+      // A quarantined test's failure does not stop the plan: stopping on it would be failing
+      // the run by another route.
+      const reasonToStop = inQuarantine ? null : stopReasonAfter(
         {
           testName,
           status: resultFromRunTest.status,
@@ -1057,6 +1084,7 @@ async function runTestPlanJobInTenant(
       testVersion: link.testType === 'ui' && link.testId ? testVersionsInRun.get(link.testId) ?? null : null,
       status: reportStatus,
       attempts,
+      quarantined: inQuarantine,
       reasonForFailure: failureReason,
       screenshotUrl: screenshotFinalPath,
       videoUrl: videoFinalPath ?? null,
@@ -1187,6 +1215,7 @@ async function runTestPlanJobInTenant(
   const calculatedPassedTests = finalDetailedResults.filter((r: any) => r.status === 'Passed').length;
   const calculatedFailedTests = finalDetailedResults.filter((r: any) => r.status === 'Failed').length;
   const calculatedSkippedTests = finalDetailedResults.filter((r: any) => r.status === 'Skipped').length;
+  const failures = failuresOf(finalDetailedResults);
   // Consider 'Error' status as failures or a separate category if needed for overall status.
   // For overall status, let's say if any 'Failed' or 'Error', the whole run is 'failed'.
   // If any 'Skipped' and no 'Failed'/'Error', maybe 'partial' or 'completed_with_skipped'.
@@ -1197,7 +1226,8 @@ async function runTestPlanJobInTenant(
   let finalOverallStatus: 'completed' | 'failed' | 'error' = 'error';
   if (calculatedTotalTests === 0 && selectedTestsLinks.length > 0) {
     finalOverallStatus = 'error'; // No results recorded but tests were expected
-  } else if (calculatedFailedTests > 0 || finalDetailedResults.some((r: any) => r.status === 'Error')) {
+  } else if (failures.holding > 0) {
+    // Failures of quarantined tests are counted but do not decide the run.
     finalOverallStatus = 'failed';
   } else if (calculatedTotalTests === calculatedPassedTests && calculatedTotalTests > 0) {
     finalOverallStatus = 'completed';
@@ -1227,6 +1257,7 @@ async function runTestPlanJobInTenant(
       passedTests: calculatedPassedTests,
       failedTests: calculatedFailedTests,
       skippedTests: calculatedSkippedTests,
+      quarantinedFailures: failures.quarantined,
       executionDurationMs: overallExecutionDurationMs,
     };
 
@@ -1284,6 +1315,7 @@ async function runTestPlanJobInTenant(
           passedTests: calculatedPassedTests,
           failedTests: calculatedFailedTests,
           skippedTests: calculatedSkippedTests,
+          quarantinedFailures: failures.quarantined,
           durationMs: overallExecutionDurationMs,
           triggeredBy: executionRecord[0].triggeredBy ?? 'manual',
           browsers: usablePasses.filter(Boolean).map((b) => (b as BrowserChoice).label),
@@ -1337,6 +1369,7 @@ async function runTestPlanJobInTenant(
           passedTests: calculatedPassedTests,
           failedTests: calculatedFailedTests,
           skippedTests: calculatedSkippedTests,
+          quarantinedFailures: failures.quarantined,
           durationMs: overallExecutionDurationMs,
           triggeredBy: executionRecord[0].triggeredBy ?? 'manual',
           browsers: usablePasses.filter(Boolean).map((b) => (b as BrowserChoice).label),
@@ -1474,7 +1507,7 @@ async function fileFailuresIfConfigured(input: {
   planId: string;
   executionId: string;
   organizationId: number;
-  results: Array<{ testName: string; browser?: string | null; status: string; reasonForFailure?: string | null; startedAt?: Date | null; uiTestId?: number | null; testVersion?: number | null }>;
+  results: Array<{ testName: string; browser?: string | null; status: string; reasonForFailure?: string | null; startedAt?: Date | null; uiTestId?: number | null; testVersion?: number | null; quarantined?: boolean | null }>;
 }): Promise<void> {
   const resolvedLogger = await loggerPromise;
   const wsEmitter = getWsEmitter();
@@ -1508,6 +1541,9 @@ async function fileFailuresIfConfigured(input: {
 
       const status = String(row.status).toLowerCase();
       if (status === 'failed' || status === 'error') {
+        // Somebody already knows this test is unreliable, and said so by quarantining it: a new
+        // issue for each of its failures is the noise quarantine exists to stop.
+        if (row.quarantined) continue;
         const outcome = await fileFailure({
           organizationId: input.organizationId,
           tracker,

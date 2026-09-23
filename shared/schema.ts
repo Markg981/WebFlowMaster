@@ -417,6 +417,8 @@ export const testPlanExecutions = pgTable("test_plan_executions", {
   passedTests: integer("passed_tests"),
   failedTests: integer("failed_tests"),
   skippedTests: integer("skipped_tests"),
+  /** Of the failed and errored tests, those in quarantine: counted, shown, not held against the run. */
+  quarantinedFailures: integer("quarantined_failures").notNull().default(0),
   executionDurationMs: integer("execution_duration_ms"),
 }, (table) => [
   index("test_plan_executions_test_plan_id_idx").on(table.testPlanId),
@@ -458,6 +460,11 @@ export const reportTestCaseResults = pgTable("report_test_case_results", {
    * its own and not the same thing as a pass.
    */
   attempts: integer("attempts").notNull().default(1),
+  /**
+   * The test was in quarantine when it ran (see `testQuarantines`): its failure is recorded and
+   * shown, and did not count against the run.
+   */
+  quarantined: boolean("quarantined").notNull().default(false),
   reasonForFailure: text("reason_for_failure"),
   screenshotUrl: text("screenshot_url"),
   /**
@@ -933,6 +940,30 @@ export const testPlanSuites = pgTable("test_plan_suites", {
   index("test_plan_suites_suite_id_idx").on(table.suiteId),
 ]);
 
+/**
+ * A test set aside while it is unreliable: it still runs, and its result is still recorded, but
+ * its failures do not fail the run, stop the plan, file issues or break a pipeline. One row per
+ * time a test was quarantined; the open one has no releasedAt. See migrations/0035.
+ */
+export const testQuarantines = pgTable("test_quarantines", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  testType: text("test_type").$type<'ui' | 'api'>().notNull(),
+  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
+  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
+  /** Why, in words: the thing whoever releases it will want to know was dealt with. */
+  reason: text("reason").notNull(),
+  quarantinedBy: integer("quarantined_by").references(() => users.id, { onDelete: 'set null' }),
+  quarantinedAt: timestamp("quarantined_at").defaultNow().notNull(),
+  releasedBy: integer("released_by").references(() => users.id, { onDelete: 'set null' }),
+  releasedAt: timestamp("released_at"),
+  releaseNote: text("release_note"),
+}, (table) => [
+  index("test_quarantines_organization_id_idx").on(table.organizationId),
+]);
+
+export type TestQuarantine = typeof testQuarantines.$inferSelect;
+
 /** The trackers this build can actually file in. A provider with no implementation files nothing. */
 export const ISSUE_PROVIDERS = ['jira', 'azure_devops'] as const;
 export type IssueProvider = (typeof ISSUE_PROVIDERS)[number];
@@ -1110,6 +1141,9 @@ export const AUDIT_ACTIONS = {
   SUITE_UPDATED: 'suite.updated',
   SUITE_DELETED: 'suite.deleted',
   PLAN_SUITES_CHANGED: 'plan.suites_changed',
+  // Setting an unreliable test aside, and bringing it back.
+  TEST_QUARANTINED: 'test.quarantined',
+  TEST_QUARANTINE_RELEASED: 'test.quarantine_released',
   RUN_CANCELLED: 'run.cancelled',
   // Where tests run and with what. Secrets by name only — never a value.
   ENVIRONMENT_CREATED: 'environment.created',
@@ -2102,4 +2136,5 @@ export const ORG_SCOPED_TABLES = [
   'test_publications', 'test_reviews',
   // Suites, their tests, and the plans that include them (migration 0034).
   'test_suites', 'test_suite_items', 'test_plan_suites',
+  'test_quarantines',
 ] as const;

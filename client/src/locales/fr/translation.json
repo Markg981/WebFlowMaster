@@ -1778,7 +1778,8 @@
       "timedOut": "Délai dépassé",
       "error": "Non terminée"
     },
-    "purged": "Les captures, vidéos et traces de cette exécution ont été supprimées le {{date}} par la politique de rétention. Ses résultats sont conservés."
+    "purged": "Les captures, vidéos et traces de cette exécution ont été supprimées le {{date}} par la politique de rétention. Ses résultats sont conservés.",
+    "quarantinedFailures": "{{count}} des échecs ci-dessous concernent des tests en quarantaine : ils sont affichés et n'ont pas fait échouer cette exécution."
   },
   "scheduleEnvironment": {
     "label": "Environnement",
@@ -1889,7 +1890,9 @@
       "suite_created": "Suite créée",
       "suite_updated": "Suite modifiée",
       "suite_deleted": "Suite supprimée",
-      "plan_suites_changed": "Suites du plan modifiées"
+      "plan_suites_changed": "Suites du plan modifiées",
+      "test_quarantined": "Test mis en quarantaine",
+      "test_quarantine_released": "Test sorti de quarantaine"
     }
   },
   "security": {
@@ -2083,5 +2086,56 @@
     "tests": "{{count}} tests",
     "saved": "Suites enregistrées",
     "saveFailed": "Les suites n'ont pas été enregistrées"
+  },
+  "flakyTests": {
+    "title": "Tests qui se contredisent",
+    "description": "Sur les {{days}} derniers jours, les tests dont le verdict a changé d'une exécution à l'autre sans rien pour l'expliquer. Un test cassé puis corrigé n'est pas ici, ni un test dont le verdict a changé parce que quelqu'un l'a modifié.",
+    "loading": "Analyse des exécutions récentes…",
+    "empty": "Aucun test n'a changé de verdict sur cette période, sur {{count}} résultats examinés.",
+    "columns": {
+      "test": "Test",
+      "browser": "Navigateur",
+      "history": "Réussis / échoués",
+      "flips": "Changements de verdict",
+      "last": "Dernière exécution",
+      "quarantine": "Quarantaine"
+    },
+    "errored": "jamais exécutés",
+    "inRuns": "en {{runs}} exécutions",
+    "edited": "modifié",
+    "editedTitle": "Modifié pendant cette période (versions {{versions}}). Seuls les changements de verdict inexpliqués sont comptés.",
+    "inQuarantine": "En quarantaine",
+    "quarantine": "Mettre en quarantaine"
+  },
+  "quarantine": {
+    "title": "Mettre « {{name}} » en quarantaine",
+    "explain": "Il continue de s'exécuter et ses résultats sont conservés, pour voir quand il est corrigé. Ses échecs ne font plus échouer les exécutions, n'arrêtent plus les plans, n'ouvrent plus de tickets et ne cassent plus les pipelines tant que personne ne le libère.",
+    "reason": "Pourquoi",
+    "reasonPlaceholder": "p. ex. expire en attendant l'iframe de paiement environ une nuit sur trois",
+    "cancel": "Annuler",
+    "confirm": "Mettre en quarantaine",
+    "done": "« {{name}} » est en quarantaine",
+    "failed": "Le test n'a pas été mis en quarantaine",
+    "listTitle": "Tests en quarantaine",
+    "listDescription": "Ils s'exécutent toujours. Leurs échecs sont enregistrés mais ne font pas échouer les exécutions ni les pipelines. Libérez un test une fois qu'il réussit de nouveau.",
+    "error": "Impossible de charger les tests en quarantaine.",
+    "columns": {
+      "test": "Test",
+      "reason": "Pourquoi",
+      "since": "Depuis",
+      "evidence": "Depuis lors"
+    },
+    "hiddenTest": "Un test que vous ne pouvez pas voir",
+    "notRunSince": "Pas exécuté depuis",
+    "evidence": "{{passed}} réussis, {{failed}} échoués",
+    "ready": "A réussi ses {{count}} dernières exécutions : prêt à être libéré",
+    "streak": "{{count}} réussites d'affilée",
+    "notePlaceholder": "Ce qui l'a corrigé (facultatif)",
+    "note": "Note de libération",
+    "release": "Libérer",
+    "released": "« {{name}} » est de retour : ses échecs comptent de nouveau",
+    "releaseFailed": "Le test n'a pas été libéré",
+    "badge": "en quarantaine",
+    "badgeTitle": "Ce test était en quarantaine : son échec ne fait pas échouer l'exécution."
   }
 }

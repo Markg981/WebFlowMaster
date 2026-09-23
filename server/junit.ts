@@ -21,6 +21,8 @@ export interface JUnitResultRow {
   component?: string | null;
   testType?: string | null;
   startedAt?: Date | string | null;
+  /** In quarantine when it ran: a failure is reported as a skip, so it does not turn the build red. */
+  quarantined?: boolean | null;
 }
 
 export interface JUnitInput {
@@ -119,7 +121,11 @@ export function buildJUnitXml(input: JUnitInput): string {
     const cases: string[] = [];
 
     for (const row of rows) {
-      const verdict = verdictFor(row.status);
+      const raw = verdictFor(row.status);
+      // A quarantined test's failure is a skip to CI, with the failure in its message. A CI
+      // system has no "failed but does not count", and a failure it sees fails the build.
+      const quarantinedFailure = !!row.quarantined && (raw === 'failure' || raw === 'error');
+      const verdict: Verdict = quarantinedFailure ? 'skipped' : raw;
       const duration = typeof row.durationMs === 'number' ? row.durationMs : 0;
       counts.timeMs += duration;
       if (verdict === 'failure') counts.failures++;
@@ -132,6 +138,17 @@ export function buildJUnitXml(input: JUnitInput): string {
 
       if (verdict === 'passed') {
         cases.push(`    <testcase ${attributes} />`);
+        continue;
+      }
+      if (quarantinedFailure) {
+        const reason = row.reasonForFailure?.trim() || `Test ${row.status.toLowerCase()}`;
+        const message = `In quarantine; it ${row.status.toLowerCase()}: ${firstLine(reason)}`;
+        cases.push(
+          `    <testcase ${attributes}>\n` +
+            `      <skipped message="${escapeXml(firstLine(message))}" />\n` +
+            `      <system-out>${escapeXml(reason)}</system-out>\n` +
+            `    </testcase>`,
+        );
         continue;
       }
       if (verdict === 'skipped') {

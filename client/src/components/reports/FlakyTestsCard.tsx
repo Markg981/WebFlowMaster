@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Repeat } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import QuarantineDialog from './QuarantineDialog';
+import { Repeat, ShieldAlert } from 'lucide-react';
 
 /**
  * The tests that disagree with themselves.
@@ -19,6 +22,10 @@ import { Repeat } from 'lucide-react';
 
 export interface FlakySummary {
   testName: string;
+  /** The test behind the name; null when it has since been deleted. */
+  test?: { type: 'ui' | 'api'; id: number } | null;
+  /** Its open quarantine, if it is in one. */
+  quarantine?: { id: number; reason: string; since: string } | null;
   browser: string | null;
   runs: number;
   passed: number;
@@ -49,6 +56,10 @@ interface FlakyTestsCardProps {
 
 const FlakyTestsCard: React.FC<FlakyTestsCardProps> = ({ planId, days = 30 }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const canEdit = user?.role !== 'viewer';
+  /** The test whose quarantine is being asked for, if any. */
+  const [quarantining, setQuarantining] = useState<FlakySummary | null>(null);
 
   const { data, isLoading, error } = useQuery<FlakyResponse, Error>({
     queryKey: ['flakyTests', planId ?? 'all', days],
@@ -101,6 +112,7 @@ const FlakyTestsCard: React.FC<FlakyTestsCardProps> = ({ planId, days = 30 }) =>
                   <TableHead>{t('flakyTests.columns.history', 'Passed / failed')}</TableHead>
                   <TableHead>{t('flakyTests.columns.flips', 'Changed verdict')}</TableHead>
                   <TableHead>{t('flakyTests.columns.last', 'Last run')}</TableHead>
+                  <TableHead>{t('flakyTests.columns.quarantine', 'Quarantine')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -145,6 +157,18 @@ const FlakyTestsCard: React.FC<FlakyTestsCardProps> = ({ planId, days = 30 }) =>
                         {item.lastStatus}
                       </span>
                     </TableCell>
+                    <TableCell>
+                      {item.quarantine ? (
+                        <Badge variant="outline" title={item.quarantine.reason} className="whitespace-nowrap">
+                          <ShieldAlert className="mr-1 h-3 w-3" />
+                          {t('flakyTests.inQuarantine', 'In quarantine')}
+                        </Badge>
+                      ) : item.test && canEdit ? (
+                        <Button variant="outline" size="sm" onClick={() => setQuarantining(item)}>
+                          {t('flakyTests.quarantine', 'Quarantine')}
+                        </Button>
+                      ) : null}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -152,6 +176,11 @@ const FlakyTestsCard: React.FC<FlakyTestsCardProps> = ({ planId, days = 30 }) =>
           </div>
         )}
       </CardContent>
+      <QuarantineDialog
+        test={quarantining?.test ?? null}
+        testName={quarantining?.testName ?? ''}
+        onClose={() => setQuarantining(null)}
+      />
     </Card>
   );
 };

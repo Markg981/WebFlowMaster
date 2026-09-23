@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import GeneralReportsPage from './GeneralReportsPage';
 
+vi.mock('@/hooks/use-auth', () => ({ useAuth: () => ({ user: { id: 1, role: 'editor' } }) }));
+
 /**
  * A run the server has accepted and no worker has taken yet.
  *
@@ -61,6 +63,9 @@ describe('GeneralReportsPage', () => {
           currentPage: 1,
           itemsPerPage: 10,
         }), { status: 200 }));
+      }
+      if (url.startsWith('/api/quarantine')) {
+        return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
       }
       if (url.startsWith('/api/analytics/flaky')) {
         return Promise.resolve(new Response(JSON.stringify({

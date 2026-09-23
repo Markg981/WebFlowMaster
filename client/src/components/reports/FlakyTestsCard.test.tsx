@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import FlakyTestsCard from './FlakyTestsCard';
@@ -18,8 +18,12 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+let role = 'editor';
+vi.mock('@/hooks/use-auth', () => ({ useAuth: () => ({ user: { id: 1, role } }) }));
+
 /**
- * A run was only ever readable on its own. This is the one view that looks across them.
+ * A run was only ever readable on its own. This is the one view that looks across them — and
+ * where an unreliable test is put in quarantine.
  */
 
 const fetchMock = vi.fn();
@@ -30,6 +34,8 @@ const response = {
   items: [
     {
       testName: 'Login',
+      test: { type: 'ui' as const, id: 42 },
+      quarantine: null,
       browser: 'chromium',
       runs: 8,
       passed: 4,
@@ -57,6 +63,7 @@ function renderCard(props: { planId?: string | null } = {}) {
 }
 
 beforeEach(() => {
+  role = 'editor';
   fetchMock.mockReset();
   fetchMock.mockResolvedValue({ ok: true, json: async () => response });
   vi.stubGlobal('fetch', fetchMock);
@@ -101,6 +108,39 @@ describe('FlakyTestsCard', () => {
     renderCard();
 
     expect(await screen.findByText(/out of 120 results examined/)).toBeInTheDocument();
+  });
+
+  it('quarantines a test with the reason given, and not without one', async () => {
+    renderCard();
+    fireEvent.click(await screen.findByRole('button', { name: 'Quarantine' }));
+
+    const confirm = screen.getAllByRole('button', { name: 'Quarantine' }).at(-1)!;
+    expect(confirm).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Why'), { target: { value: 'Times out one night in three' } });
+    fireEvent.click(confirm);
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([url, init]: any[]) => url === '/api/quarantine' && init?.method === 'POST');
+      expect(call && JSON.parse(call[1].body)).toEqual({ testType: 'ui', testId: 42, reason: 'Times out one night in three' });
+    });
+  });
+
+  it('says a test is already in quarantine, and offers a viewer nothing', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...response,
+        items: [
+          { ...response.items[0], quarantine: { id: 3, reason: 'Flaky', since: '2026-09-20T00:00:00.000Z' } },
+          { ...response.items[0], testName: 'Search', browser: 'firefox', test: { type: 'ui', id: 43 } },
+        ],
+      }),
+    });
+    role = 'viewer';
+    renderCard();
+
+    expect(await screen.findByText('In quarantine')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Quarantine' })).toBeNull();
   });
 
   it('reports a failed analysis instead of showing an empty list', async () => {

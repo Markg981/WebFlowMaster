@@ -1778,7 +1778,8 @@
       "timedOut": "Zeitlimit überschritten",
       "error": "Nicht abgeschlossen"
     },
-    "purged": "Screenshots, Videos und Traces dieses Laufs wurden am {{date}} durch die Aufbewahrungsrichtlinie entfernt. Die Ergebnisse bleiben erhalten."
+    "purged": "Screenshots, Videos und Traces dieses Laufs wurden am {{date}} durch die Aufbewahrungsrichtlinie entfernt. Die Ergebnisse bleiben erhalten.",
+    "quarantinedFailures": "{{count}} der Fehlschläge unten stammen von Tests in Quarantäne: Sie werden angezeigt und haben diesen Lauf nicht fehlschlagen lassen."
   },
   "scheduleEnvironment": {
     "label": "Umgebung",
@@ -1889,7 +1890,9 @@
       "suite_created": "Suite erstellt",
       "suite_updated": "Suite geändert",
       "suite_deleted": "Suite gelöscht",
-      "plan_suites_changed": "Suiten des Plans geändert"
+      "plan_suites_changed": "Suiten des Plans geändert",
+      "test_quarantined": "Test in Quarantäne gestellt",
+      "test_quarantine_released": "Test aus der Quarantäne entlassen"
     }
   },
   "security": {
@@ -2083,5 +2086,56 @@
     "tests": "{{count}} Tests",
     "saved": "Suiten gespeichert",
     "saveFailed": "Die Suiten wurden nicht gespeichert"
+  },
+  "flakyTests": {
+    "title": "Tests, die sich widersprechen",
+    "description": "In den letzten {{days}} Tagen die Tests, deren Ergebnis sich von einem Lauf zum nächsten geändert hat, ohne dass etwas es erklärt. Ein Test, der kaputt war und behoben wurde, steht nicht hier, ebenso wenig einer, dessen Ergebnis sich geändert hat, weil jemand ihn bearbeitet hat.",
+    "loading": "Die letzten Läufe werden ausgewertet…",
+    "empty": "Kein Test hat in diesem Zeitraum sein Ergebnis geändert, bei {{count}} untersuchten Ergebnissen.",
+    "columns": {
+      "test": "Test",
+      "browser": "Browser",
+      "history": "Bestanden / fehlgeschlagen",
+      "flips": "Ergebniswechsel",
+      "last": "Letzter Lauf",
+      "quarantine": "Quarantäne"
+    },
+    "errored": "nie gelaufen",
+    "inRuns": "in {{runs}} Läufen",
+    "edited": "bearbeitet",
+    "editedTitle": "In diesem Zeitraum bearbeitet (Versionen {{versions}}). Gezählt werden nur die nicht erklärten Ergebniswechsel.",
+    "inQuarantine": "In Quarantäne",
+    "quarantine": "In Quarantäne stellen"
+  },
+  "quarantine": {
+    "title": "„{{name}}“ in Quarantäne stellen",
+    "explain": "Er läuft weiter und seine Ergebnisse bleiben erhalten, sodass man sieht, wann er behoben ist. Seine Fehlschläge lassen keine Läufe mehr fehlschlagen, stoppen keine Pläne, legen keine Issues an und brechen keine Pipelines, bis ihn jemand entlässt.",
+    "reason": "Warum",
+    "reasonPlaceholder": "z. B. Zeitüberschreitung beim Zahlungs-iframe etwa jede dritte Nacht",
+    "cancel": "Abbrechen",
+    "confirm": "In Quarantäne stellen",
+    "done": "„{{name}}“ ist in Quarantäne",
+    "failed": "Der Test wurde nicht in Quarantäne gestellt",
+    "listTitle": "Tests in Quarantäne",
+    "listDescription": "Sie laufen weiter. Ihre Fehlschläge werden aufgezeichnet, lassen aber weder Läufe noch Pipelines fehlschlagen. Entlassen Sie einen Test, sobald er wieder besteht.",
+    "error": "Die Tests in Quarantäne konnten nicht geladen werden.",
+    "columns": {
+      "test": "Test",
+      "reason": "Warum",
+      "since": "Seit",
+      "evidence": "Seitdem"
+    },
+    "hiddenTest": "Ein Test, den Sie nicht sehen können",
+    "notRunSince": "Seitdem nicht gelaufen",
+    "evidence": "{{passed}} bestanden, {{failed}} fehlgeschlagen",
+    "ready": "Hat die letzten {{count}} Läufe bestanden: bereit zur Entlassung",
+    "streak": "{{count}}-mal in Folge bestanden",
+    "notePlaceholder": "Was ihn behoben hat (optional)",
+    "note": "Entlassungsnotiz",
+    "release": "Entlassen",
+    "released": "„{{name}}“ ist zurück: seine Fehlschläge zählen wieder",
+    "releaseFailed": "Der Test wurde nicht entlassen",
+    "badge": "in Quarantäne",
+    "badgeTitle": "Dieser Test war in Quarantäne: Sein Fehlschlag lässt den Lauf nicht fehlschlagen."
   }
 }

@@ -238,7 +238,8 @@ describe('rows that point across organizations', () => {
       SELECT conname, convalidated FROM pg_constraint WHERE conname LIKE '%_same_org_fk'
     `);
     const rows = result.rows as Array<{ conname: string; convalidated: boolean }>;
-    expect(rows.length).toBe(42);
+    // 42 from migration 0034, and the two a quarantine's test carries (0035).
+    expect(rows.length).toBe(44);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });
 
@@ -263,6 +264,7 @@ describe('rows that point across organizations', () => {
       'test_plan_schedules.user_id', 'environments.user_id', 'secrets.user_id', 'invitations.invited_by_user_id',
       'audit_log.actor_user_id', 'step_groups.user_id', 'test_versions.created_by', 'test_publications.published_by',
       'test_reviews.requested_by', 'test_reviews.decided_by', 'issue_trackers.created_by', 'test_suites.created_by',
+      'test_quarantines.quarantined_by', 'test_quarantines.released_by',
     ]);
     const unguarded = (result.rows as Array<{ child: string; col: string; parent: string }>)
       .map((r) => `${r.child}.${r.col}`)

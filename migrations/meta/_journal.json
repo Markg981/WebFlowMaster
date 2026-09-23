@@ -246,6 +246,13 @@
       "when": 1788100000000,
       "tag": "0034_suites_and_tenant_constraints",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1788200000000,
+      "tag": "0035_test_quarantine",
+      "breakpoints": true
     }
   ]
 }

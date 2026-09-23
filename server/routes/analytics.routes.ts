@@ -3,6 +3,7 @@ import { and, desc, eq, gte } from "drizzle-orm";
 import { reportTestCaseResults, testPlanExecutions } from "@shared/schema";
 import { getDashboardMetrics } from "../analytics";
 import { summariseFlakiness } from "../flaky";
+import { openQuarantinesOf, refKey } from "../test-quarantine";
 import { withTenantTransaction } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
 import loggerPromise from "../logger";
@@ -75,6 +76,8 @@ router.get("/api/analytics/flaky", requireRole('viewer'), async (req, res) => {
           durationMs: reportTestCaseResults.durationMs,
           // What separates a test that disagrees with itself from one somebody edited.
           testVersion: reportTestCaseResults.testVersion,
+          uiTestId: reportTestCaseResults.uiTestId,
+          apiTestId: reportTestCaseResults.apiTestId,
         })
         .from(reportTestCaseResults)
         .innerJoin(testPlanExecutions, eq(reportTestCaseResults.testPlanExecutionId, testPlanExecutions.id))
@@ -82,11 +85,22 @@ router.get("/api/analytics/flaky", requireRole('viewer'), async (req, res) => {
         .orderBy(desc(reportTestCaseResults.startedAt));
     });
 
-    const summaries = summariseFlakiness(rows, { minimumRuns, minimumFlips });
+    const summaries = summariseFlakiness(rows, { minimumRuns, minimumFlips }).slice(0, limit);
+    // Which of them are already in quarantine, so the page offers releasing rather than quarantining.
+    const refs = summaries.flatMap((s) => (s.test ? [s.test] : []));
+    const open = await withTenantTransaction((tx) => openQuarantinesOf(tx, refs));
     res.json({
       window: { days, since: since.toISOString(), resultsExamined: rows.length },
       thresholds: { minimumRuns, minimumFlips },
-      items: summaries.slice(0, limit),
+      items: summaries.map((summary) => {
+        const quarantine = summary.test ? open.get(refKey(summary.test)) : undefined;
+        return {
+          ...summary,
+          quarantine: quarantine
+            ? { id: quarantine.id, reason: quarantine.reason, since: quarantine.quarantinedAt.toISOString() }
+            : null,
+        };
+      }),
     });
   } catch (e: any) {
     logger.error({ message: "Flaky analysis failed", error: e.message });
