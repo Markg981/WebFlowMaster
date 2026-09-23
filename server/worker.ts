@@ -11,6 +11,7 @@ import { eq } from 'drizzle-orm';
 import { withJobIncidents } from './observability/taps/jobs';
 import { artifactStore } from './artifact-store';
 import { BROWSER_TASK_QUEUE_NAME, performBrowserTask, type BrowserTaskEnvelope } from './browser-tasks';
+import { RunnerAgent, type PausableQueue } from './runner-registry';
 import 'dotenv/config';
 
 (async () => {
@@ -18,9 +19,35 @@ import 'dotenv/config';
   // A misconfigured artifact store fails here, not on the first screenshot of the first run.
   logger.info(`Artifact store: ${artifactStore().kind}`);
 
+  // Jobs in hand, on both queues, for the runner heartbeat: what a drained runner is waiting for.
+  let activeJobs = 0;
+  const activeJobCount = () => activeJobs;
+  const counted = <A extends unknown[], R>(handler: (...args: A) => Promise<R>) => async (...args: A): Promise<R> => {
+    activeJobs += 1;
+    try {
+      return await handler(...args);
+    } finally {
+      activeJobs -= 1;
+    }
+  };
+
+  // Registered before either queue is listened to, so the first run this process takes already
+  // names it.
+  const planConcurrency = Math.max(1, Number(process.env.WORKER_CONCURRENCY) || 1);
+  const browserTaskConcurrency = Math.max(1, Number(process.env.BROWSER_TASK_CONCURRENCY) || 2);
+  // The queues it pauses when drained, filled in as the workers are created below.
+  const drainable: PausableQueue[] = [];
+  const runner = new RunnerAgent({
+    description: { concurrency: planConcurrency, browserTaskConcurrency },
+    queues: drainable,
+    activeJobs: activeJobCount,
+    log: (message) => logger.info(message),
+  });
+  logger.info(`Registered as runner ${await runner.register()}`);
+
   const worker = new Worker(
     TEST_EXECUTION_QUEUE_NAME,
-    withJobIncidents(async (job: Job, token?: string) => {
+    withJobIncidents(counted(async (job: Job, token?: string) => {
       logger.info(`Worker processing job ${job.id} of type ${job.name}`);
 
       if (job.name === 'execute-plan') {
@@ -69,10 +96,10 @@ import 'dotenv/config';
           await executeScheduledPlan(schedule, plan, scheduledOccurrence(job));
         });
       }
-    }),
+    })),
     // How many plan runs this worker executes at once — each is a browser, so a statement about
     // the machine. One by default, as before; the per-organization limits share out whatever it is.
-    { connection, concurrency: Math.max(1, Number(process.env.WORKER_CONCURRENCY) || 1) }
+    { connection, concurrency: planConcurrency }
   );
 
   /**
@@ -80,14 +107,13 @@ import 'dotenv/config';
    * queue of its own. On the plan queue it would wait behind a forty-minute nightly run, and the
    * person who pressed Preview would wait with it.
    */
-  const browserTaskConcurrency = Math.max(1, Number(process.env.BROWSER_TASK_CONCURRENCY) || 2);
   const browserTaskWorker = new Worker(
     BROWSER_TASK_QUEUE_NAME,
-    withJobIncidents(async (job: Job) => {
+    withJobIncidents(counted(async (job: Job) => {
       const envelope = job.data as BrowserTaskEnvelope;
       const cid = envelope.correlationId || `task-${String(job.id).slice(0, 8)}`;
       return correlationStore.run({ correlationId: cid }, () => performBrowserTask(envelope));
-    }),
+    })),
     { connection, concurrency: browserTaskConcurrency },
   );
   browserTaskWorker.on('failed', (job: Job | undefined, err: Error) => {
@@ -105,6 +131,12 @@ import 'dotenv/config';
 
   logger.info(`Worker started and listening to queue: ${TEST_EXECUTION_QUEUE_NAME}`);
 
+  // ─── The runner registry ────────────────────────────────────────────────────
+  // Reports in on a timer with how many jobs it has, and hears back whether to take new ones.
+  // Drained, it pauses both queues without stopping the jobs in hand (see RunnerAgent).
+  drainable.push(worker, browserTaskWorker);
+  runner.start();
+
   // ─── Graceful shutdown ──────────────────────────────────────────────────────
   // worker.close() waits for the in-flight job to finish before resolving, so a
   // redeploy doesn't kill a running test execution mid-flight.
@@ -118,6 +150,8 @@ import 'dotenv/config';
     try {
       await worker.close(); // waits for the active job to complete
       await browserTaskWorker.close();
+      // Offline at once, rather than after three missed heartbeats.
+      await runner.stop();
       await connection.quit();
       await closeDb();
       logger.info('Worker graceful shutdown complete.');

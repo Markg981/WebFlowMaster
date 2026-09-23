@@ -30,7 +30,8 @@ export interface AuditEntry {
     | 'run'
     | 'environment'
     | 'secret'
-    | 'system_settings';
+    | 'system_settings'
+    | 'runner';
   /** Text because targets are variously serial ids and uuids. */
   targetId?: string | number;
   /**

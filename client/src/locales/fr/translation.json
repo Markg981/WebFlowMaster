@@ -95,7 +95,9 @@
       "auditLog": "Journal d’audit",
       "auditLogDescription": "Qui a modifié quoi, quand, d’où, et si c’était via une clé API.",
       "security": "Sécurité",
-      "securityDescription": "Votre second facteur à la connexion, et si l’organisation l’exige."
+      "securityDescription": "Votre second facteur à la connexion, et si l’organisation l’exige.",
+      "runners": "Runners",
+      "runnersDescription": "Les machines qui exécutent les plans : lesquelles sont en ligne, ce qu’elles ont, et comment en vider une avant une maintenance."
     },
     "apiKeys": {
       "openApi": "Référence de l'API (OpenAPI)",
@@ -1790,7 +1792,8 @@
     "runningHint": "Les exécutions au-delà de cette limite attendent dans la file et démarrent à mesure que les autres se terminent.",
     "queued": "En attente dans la file",
     "queuedHint": "À cette limite, les nouvelles exécutions sont refusées jusqu'à ce que certaines aient démarré.",
-    "operator": "Les limites sont définies par l'administrateur de cette installation."
+    "operator": "Les limites sont définies par l'administrateur de cette installation.",
+    "noRunner": "Aucun runner n’est en ligne : les exécutions attendent dans la file jusqu’au démarrage d’un runner."
   },
   "auditLog": {
     "filterLabel": "Afficher",
@@ -1826,7 +1829,8 @@
       "secret": "Secrets",
       "system_settings": "Paramètres système",
       "mfa": "Double authentification",
-      "test_review": "Relectures des tests"
+      "test_review": "Relectures des tests",
+      "runner": "Runners"
     },
     "actions": {
       "member_role_changed": "Rôle du membre modifié",
@@ -1877,7 +1881,9 @@
       "test_review_approved": "Relecture approuvée",
       "test_review_rejected": "Relecture refusée",
       "test_review_withdrawn": "Relecture retirée",
-      "test_review_policy_changed": "Règle de relecture modifiée"
+      "test_review_policy_changed": "Règle de relecture modifiée",
+      "runner_drained": "Runner vidé",
+      "runner_resumed": "Runner repris"
     }
   },
   "security": {
@@ -1984,5 +1990,28 @@
     "published": "Publiée",
     "rollback": "Revenir à celle-ci",
     "rollbackHint": "Les plans exécutent de nouveau cette version, déjà publiée auparavant."
+  },
+  "runners": {
+    "loading": "Chargement…",
+    "error": "Les runners n’ont pas pu être chargés.",
+    "none": "Aucun runner ne prend de travail : chaque nouvelle exécution attendra dans la file. Démarrez un worker (npm run dev:worker, ou le service worker).",
+    "summary": "{{online}} runners sur {{total}} prennent du travail.",
+    "columns": {
+      "runner": "Runner",
+      "status": "État",
+      "jobs": "Tâches",
+      "browsers": "Navigateurs",
+      "lastSeen": "Vu pour la dernière fois"
+    },
+    "status": {
+      "online": "en ligne",
+      "draining": "en vidage",
+      "offline": "hors ligne"
+    },
+    "noBrowsers": "aucun installé",
+    "drain": "Vider",
+    "resume": "Reprendre",
+    "drainHint": "Vider un runner lui laisse terminer ce qu’il exécute sans rien prendre de nouveau. Quand ses tâches atteignent zéro, il peut être arrêté sans risque.",
+    "ranOn": "Exécuté sur"
   }
 }

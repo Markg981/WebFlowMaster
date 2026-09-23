@@ -57,6 +57,13 @@ describe('RunUsageCard', () => {
     expect(within(screen.getByTestId('usage-queued')).getByText('0 / 100').className).not.toContain('text-amber-700');
   });
 
+  it('says why runs wait when no runner is online', async () => {
+    answer({ running: 0, queued: 3, maxConcurrentRuns: 2, maxQueuedRuns: 100, runnersOnline: 0 });
+    renderCard();
+
+    expect(await screen.findByTestId('usage-no-runner')).toBeInTheDocument();
+  });
+
   it('says so when the usage cannot be loaded', async () => {
     answer({ message: 'boom' }, false);
     renderCard();

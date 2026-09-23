@@ -95,7 +95,9 @@
       "auditLog": "Audit log",
       "auditLogDescription": "Who changed what, when, from where, and whether through an API key.",
       "security": "Security",
-      "securityDescription": "Your second factor at sign-in, and whether the organization requires one."
+      "securityDescription": "Your second factor at sign-in, and whether the organization requires one.",
+      "runners": "Runners",
+      "runnersDescription": "The machines that run plans: which are up, what they have, and draining one before maintenance."
     },
     "apiKeys": {
       "openApi": "API reference (OpenAPI)",
@@ -1784,7 +1786,8 @@
     "runningHint": "Runs past this limit wait in the queue and start as others finish.",
     "queued": "Waiting in the queue",
     "queuedHint": "At this limit, new runs are refused until some have started.",
-    "operator": "Limits are set by the administrator of this installation."
+    "operator": "Limits are set by the administrator of this installation.",
+    "noRunner": "No runner is online, so runs wait in the queue until one starts."
   },
   "auditLog": {
     "filterLabel": "Show",
@@ -1820,7 +1823,8 @@
       "secret": "Secrets",
       "system_settings": "System settings",
       "mfa": "Two-factor",
-      "test_review": "Test reviews"
+      "test_review": "Test reviews",
+      "runner": "Runners"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -1871,7 +1875,9 @@
       "test_review_approved": "Review approved",
       "test_review_rejected": "Review rejected",
       "test_review_withdrawn": "Review withdrawn",
-      "test_review_policy_changed": "Review policy changed"
+      "test_review_policy_changed": "Review policy changed",
+      "runner_drained": "Runner drained",
+      "runner_resumed": "Runner resumed"
     }
   },
   "security": {
@@ -1978,5 +1984,28 @@
     "published": "Published",
     "rollback": "Roll back to this",
     "rollbackHint": "Plans run this version again. It was live before."
+  },
+  "runners": {
+    "loading": "Loading…",
+    "error": "The runners could not be loaded.",
+    "none": "No runner is taking work: every new run will wait in the queue. Start a worker (npm run dev:worker, or the worker service).",
+    "summary": "{{online}} of {{total}} runners taking work.",
+    "columns": {
+      "runner": "Runner",
+      "status": "Status",
+      "jobs": "Jobs",
+      "browsers": "Browsers",
+      "lastSeen": "Last seen"
+    },
+    "status": {
+      "online": "online",
+      "draining": "draining",
+      "offline": "offline"
+    },
+    "noBrowsers": "none installed",
+    "drain": "Drain",
+    "resume": "Resume",
+    "drainHint": "Draining lets a runner finish what it is running and take nothing new. When its jobs reach zero it can be stopped safely.",
+    "ranOn": "Ran on"
   }
 }

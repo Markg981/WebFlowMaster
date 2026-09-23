@@ -7,6 +7,7 @@ import {
 } from '@shared/schema';
 import { withTenantTransaction, type TenantTx } from './middleware/tenancy';
 import { liveRunCounts, lockOrganizationRuns, quotasFor } from './tenant-quotas';
+import { currentRunnerId } from './runner-registry';
 
 /**
  * Which way a run may move, and the only code allowed to move it.
@@ -131,7 +132,8 @@ export async function takeExecution(executionId: string): Promise<TakeOutcome> {
     const now = new Date();
     const [taken] = await tx
       .update(testPlanExecutions)
-      .set({ status: 'running', startedAt: now, heartbeatAt: now })
+      // Which runner took it: the answer to "where did this run?" when a machine misbehaves.
+      .set({ status: 'running', startedAt: now, heartbeatAt: now, runnerId: currentRunnerId() })
       .where(and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.status, 'queued')))
       .returning();
     return taken ? ({ outcome: 'taken', execution: taken } as const) : ({ outcome: 'not_queued', status: 'unknown' } as const);

@@ -37,7 +37,7 @@ export interface TestPlanExecutionReport {
     completedAt: string | null; status: string;
     triggeredBy: 'scheduled' | 'manual' | 'api'; executionId: string; testPlanId: string;
     /** Which attempt of a scheduled occurrence this run is, out of how many its policy allows. */
-    attempt?: number; maxAttempts?: number;
+    attempt?: number; maxAttempts?: number; runnerId?: string | null;
     firstAttemptId?: string | null;
     nextAttempt?: { id: string; status: string; attempt: number } | null;
     /** Why the run ended the way it did, when that was not its tests. */
@@ -223,6 +223,7 @@ const TestReportPage: React.FC = () => {
             <div className="text-sm text-muted-foreground pt-2 grid grid-cols-1 md:grid-cols-2 gap-x-4">
               <p><strong>Environment:</strong> {header.environment || 'N/A'} {header.browsers && header.browsers.length > 0 ? `(${header.browsers.join(', ')})` : ''}</p>
               <p><strong>Triggered by:</strong> {header.triggeredBy || 'N/A'}</p>
+              {header.runnerId && <p><strong>{t('runners.ranOn', 'Ran on')}:</strong> <code className="text-xs">{header.runnerId}</code></p>}
               <p><strong>Started:</strong> {new Date(header.dateTime).toLocaleString()}</p>
               {header.completedAt ?
                 <p><strong>Completed:</strong> {new Date(header.completedAt).toLocaleString()}</p> :

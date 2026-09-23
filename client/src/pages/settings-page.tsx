@@ -34,6 +34,7 @@ import {
   SlidersHorizontal,
   ScrollText,
   ShieldCheck,
+  Server,
   Lock,
   Users,
 } from "lucide-react";
@@ -57,6 +58,7 @@ import ServiceAccountsCard from "@/components/settings/ServiceAccountsCard";
 import RunUsageCard from "@/components/settings/RunUsageCard";
 import AuditLogCard from "@/components/settings/AuditLogCard";
 import SecurityCard from "@/components/settings/SecurityCard";
+import RunnersCard from "@/components/settings/RunnersCard";
 import ElementRepositoryCard from "@/components/settings/ElementRepositoryCard";
 import IssueTrackersCard from "@/components/settings/IssueTrackersCard";
 
@@ -617,6 +619,18 @@ export default function SettingsPage() {
       icon: Gauge,
       content: <RunUsageCard />,
     },
+    // Owners only, like system settings: a runner serves the whole installation.
+    ...(user?.role === 'owner'
+      ? [
+          {
+            id: 'runners',
+            label: t('settings.sections.runners', 'Runners'),
+            description: t('settings.sections.runnersDescription', 'The machines that run plans: which are up, what they have, and draining one before maintenance.'),
+            icon: Server,
+            content: <RunnersCard />,
+          },
+        ]
+      : []),
     // Owners only: the trail names who did what, which the server shows no one else either.
     ...(user?.role === 'owner'
       ? [

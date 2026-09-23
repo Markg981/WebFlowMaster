@@ -95,7 +95,9 @@
       "auditLog": "Registro di audit",
       "auditLogDescription": "Chi ha cambiato cosa, quando, da dove, e se tramite una chiave API.",
       "security": "Sicurezza",
-      "securityDescription": "Il secondo fattore all’accesso, e se l’organizzazione lo richiede."
+      "securityDescription": "Il secondo fattore all’accesso, e se l’organizzazione lo richiede.",
+      "runners": "Runner",
+      "runnersDescription": "Le macchine che eseguono i piani: quali sono attive, cosa hanno, e come svuotarne una prima di una manutenzione."
     },
     "apiKeys": {
       "openApi": "Riferimento API (OpenAPI)",
@@ -1909,7 +1911,8 @@
     "runningHint": "I run oltre questo limite attendono in coda e partono man mano che gli altri finiscono.",
     "queued": "In attesa in coda",
     "queuedHint": "Raggiunto questo limite, i nuovi run vengono rifiutati finché alcuni non sono partiti.",
-    "operator": "I limiti sono impostati dall'amministratore di questa installazione."
+    "operator": "I limiti sono impostati dall'amministratore di questa installazione.",
+    "noRunner": "Nessun runner è attivo, quindi i run restano in coda finché uno non parte."
   },
   "auditLog": {
     "filterLabel": "Mostra",
@@ -1945,7 +1948,8 @@
       "secret": "Segreti",
       "system_settings": "Impostazioni di sistema",
       "mfa": "Due fattori",
-      "test_review": "Revisioni dei test"
+      "test_review": "Revisioni dei test",
+      "runner": "Runner"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
@@ -1996,7 +2000,9 @@
       "test_review_approved": "Revisione approvata",
       "test_review_rejected": "Revisione rifiutata",
       "test_review_withdrawn": "Revisione ritirata",
-      "test_review_policy_changed": "Criterio di revisione cambiato"
+      "test_review_policy_changed": "Criterio di revisione cambiato",
+      "runner_drained": "Runner svuotato",
+      "runner_resumed": "Runner ripreso"
     }
   },
   "security": {
@@ -2103,5 +2109,28 @@
     "published": "Pubblicata",
     "rollback": "Torna a questa",
     "rollbackHint": "I piani tornano a eseguire questa versione, già pubblicata in passato."
+  },
+  "runners": {
+    "loading": "Caricamento…",
+    "error": "Impossibile caricare i runner.",
+    "none": "Nessun runner sta prendendo lavoro: ogni nuovo run resterà in coda. Avvia un worker (npm run dev:worker, o il servizio worker).",
+    "summary": "{{online}} runner su {{total}} prendono lavoro.",
+    "columns": {
+      "runner": "Runner",
+      "status": "Stato",
+      "jobs": "Job",
+      "browsers": "Browser",
+      "lastSeen": "Ultimo contatto"
+    },
+    "status": {
+      "online": "attivo",
+      "draining": "in svuotamento",
+      "offline": "offline"
+    },
+    "noBrowsers": "nessuno installato",
+    "drain": "Svuota",
+    "resume": "Riprendi",
+    "drainHint": "Svuotare un runner gli fa finire ciò che sta eseguendo senza prendere altro. Quando i job arrivano a zero si può fermare in sicurezza.",
+    "ranOn": "Eseguito su"
   }
 }
