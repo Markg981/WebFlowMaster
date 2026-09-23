@@ -31,6 +31,7 @@ export interface CliOptions {
   environmentId?: number;
   updateBaselines: boolean;
   json: boolean;
+  idempotencyKey?: string;
 }
 
 export interface CliIo {
@@ -58,6 +59,9 @@ Options:
   --junit <file>         Write the run's JUnit XML here once it has finished
   --environment <id>     Run against this environment
   --update-baselines     Accept this run's screenshots as the new visual baselines
+  --idempotency-key <k>  Start at most one run for this key (default: $WFM_IDEMPOTENCY_KEY).
+                         Pass the build id, and a re-run of the same step follows the run
+                         it already started instead of starting another.
   --json                 Print the final execution record as JSON
 
 Exit codes: 0 passed · 1 the run failed · 2 the command could not be carried out
@@ -83,6 +87,7 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
     command,
     baseUrl: env.WFM_URL,
     apiKey: env.WFM_API_KEY,
+    idempotencyKey: env.WFM_IDEMPOTENCY_KEY || undefined,
     wait: false,
     timeoutSeconds: 1800,
     pollSeconds: 5,
@@ -104,6 +109,7 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
       case '--timeout': options.timeoutSeconds = Number(value()); break;
       case '--poll': options.pollSeconds = Number(value()); break;
       case '--environment': options.environmentId = Number(value()); break;
+      case '--idempotency-key': options.idempotencyKey = value(); break;
       default:
         if (argument.startsWith('-')) return { error: `Unknown option "${argument}".` };
         positional.push(argument);
@@ -120,6 +126,9 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
   }
   if (options.environmentId !== undefined && !Number.isFinite(options.environmentId)) {
     return { error: '--environment must be an environment id.' };
+  }
+  if (options.idempotencyKey !== undefined && !options.idempotencyKey.trim()) {
+    return { error: '--idempotency-key needs a value.' };
   }
   // Writing a JUnit file means knowing how the run ended, which means waiting for it.
   if (options.command === 'run' && options.junitPath) options.wait = true;
@@ -185,6 +194,7 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
     if (options.command === 'run') {
       const response = await call(`/api/run-test-plan/${encodeURIComponent(options.target!)}`, {
         method: 'POST',
+        ...(options.idempotencyKey ? { headers: { 'Idempotency-Key': options.idempotencyKey } } : {}),
         body: JSON.stringify({
           environmentId: options.environmentId,
           updateBaselines: options.updateBaselines,

@@ -155,6 +155,13 @@
       "when": 1786800000000,
       "tag": "0021_execution_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1786900000000,
+      "tag": "0022_execution_snapshot",
+      "breakpoints": true
     }
   ]
 }

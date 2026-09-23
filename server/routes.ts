@@ -940,6 +940,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Test plan not found" });
       }
 
+      // A pipeline that retries this request after a timeout sends the same key and gets the
+      // run it already started, instead of a second one.
+      const idempotencyKey = req.get('Idempotency-Key')?.trim() || undefined;
+      if (idempotencyKey && idempotencyKey.length > 255) {
+        return res.status(400).json({ success: false, error: "Idempotency-Key must be at most 255 characters." });
+      }
+
       // Dynamically import runTestPlan to avoid circular dependencies if test-execution-service grows
       const { runTestPlan } = await import("./test-execution-service");
       // `updateBaselines` is how a legitimate redesign gets a visually-tested plan out of red:
@@ -947,6 +954,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const executionResult = await runTestPlan(testPlanId, userId, {
         environmentId: typeof req.body?.environmentId === 'number' ? req.body.environmentId : undefined,
         updateBaselines: req.body?.updateBaselines === true,
+        ...(idempotencyKey ? { idempotencyKey } : {}),
       });
 
       if ("error" in executionResult) {

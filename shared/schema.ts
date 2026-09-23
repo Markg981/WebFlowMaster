@@ -304,6 +304,13 @@ export const testPlanExecutions = pgTable("test_plan_executions", {
   /** Why a run ended in `error`: a code to branch on, and a sentence for a person. */
   failureCode: text('failure_code'),
   failureMessage: text('failure_message'),
+  /**
+   * Every setting the run will use, taken when it was asked for — see server/execution-snapshot.ts.
+   * '{}' on rows from before this existed; the worker reads the plan for those.
+   */
+  configurationSnapshot: jsonb('configuration_snapshot').notNull().default({}),
+  /** Chosen by the caller, so asking twice returns the same run. Unique per organization. */
+  idempotencyKey: text('idempotency_key'),
   environment: text('environment'),
   browsers: jsonb('browsers'),
   triggeredBy: text('triggered_by').notNull().default('manual'),
