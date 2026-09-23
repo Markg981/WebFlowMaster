@@ -93,7 +93,9 @@
       "runUsage": "Ausführungsauslastung",
       "runUsageDescription": "Wie viele Ausführungen dieser Organisation laufen oder warten, gemessen an ihren Limits.",
       "auditLog": "Audit-Protokoll",
-      "auditLogDescription": "Wer was wann und von wo geändert hat, und ob über einen API-Schlüssel."
+      "auditLogDescription": "Wer was wann und von wo geändert hat, und ob über einen API-Schlüssel.",
+      "security": "Sicherheit",
+      "securityDescription": "Ihr zweiter Faktor bei der Anmeldung und ob die Organisation ihn verlangt."
     },
     "apiKeys": {
       "openApi": "API-Referenz (OpenAPI)",
@@ -1821,7 +1823,8 @@
       "run": "Ausführungen",
       "environment": "Umgebungen",
       "secret": "Geheimnisse",
-      "system_settings": "Systemeinstellungen"
+      "system_settings": "Systemeinstellungen",
+      "mfa": "Zwei-Faktor"
     },
     "actions": {
       "member_role_changed": "Rolle des Mitglieds geändert",
@@ -1858,7 +1861,60 @@
       "environment_deleted": "Umgebung gelöscht",
       "secret_set": "Geheimnis gesetzt",
       "secret_deleted": "Geheimnis gelöscht",
-      "system_settings_changed": "Systemeinstellung geändert"
+      "system_settings_changed": "Systemeinstellung geändert",
+      "mfa_enabled": "Zwei-Faktor aktiviert",
+      "mfa_disabled": "Zwei-Faktor deaktiviert",
+      "mfa_recovery_codes_regenerated": "Wiederherstellungscodes ersetzt",
+      "mfa_recovery_code_used": "Wiederherstellungscode verwendet",
+      "mfa_policy_changed": "Zwei-Faktor-Richtlinie geändert"
+    }
+  },
+  "security": {
+    "loading": "Wird geladen…",
+    "cancel": "Abbrechen",
+    "mfa": {
+      "title": "Zwei-Faktor-Authentifizierung",
+      "on": "aktiv",
+      "description": "Ein Code aus einer App auf Ihrem Telefon, abgefragt nach dem Passwort. Ein gestohlenes Passwort allein reicht dann nicht mehr.",
+      "start": "Zwei-Faktor-Authentifizierung einrichten",
+      "scan": "Scannen Sie ihn mit einer Authenticator-App (Google Authenticator, Microsoft Authenticator, 1Password…) und geben Sie den angezeigten Code ein.",
+      "qrAlt": "QR-Code für Ihre Authenticator-App",
+      "manual": "Oder geben Sie diesen Schlüssel von Hand ein:",
+      "codeLabel": "Code aus der App",
+      "confirm": "Aktivieren",
+      "enabledSince": "Aktiv seit {{date}}.",
+      "codesLeft": "Noch {{count}} Wiederherstellungscodes.",
+      "regenerate": "Neue Wiederherstellungscodes",
+      "regenerateConfirm": "Codes ersetzen",
+      "disable": "Deaktivieren",
+      "disableConfirm": "Deaktivieren",
+      "password": "Passwort",
+      "codeOrRecovery": "Code aus der App oder ein Wiederherstellungscode",
+      "requiredNote": "Ihre Organisation verlangt sie, daher kann sie nicht deaktiviert werden."
+    },
+    "recoveryCodes": {
+      "title": "Speichern Sie Ihre Wiederherstellungscodes",
+      "body": "Jeder meldet Sie einmal an, falls Sie Ihr Telefon verlieren. Sie werden nur dieses eine Mal angezeigt.",
+      "copy": "Kopieren",
+      "download": "Herunterladen",
+      "done": "Ich habe sie gespeichert"
+    },
+    "policy": {
+      "label": "Für alle Mitglieder verlangen",
+      "hint": "Mitglieder ohne sie müssen sie einrichten, bevor sie etwas anderes tun können. API-Schlüssel sind nicht betroffen.",
+      "needsOwn": "Aktivieren Sie sie zuerst für sich selbst."
+    },
+    "required": {
+      "title": "Zwei-Faktor-Authentifizierung einrichten",
+      "body": "Ihre Organisation verlangt bei jeder Anmeldung einen Code aus einer Authenticator-App. Richten Sie sie ein, um fortzufahren.",
+      "signOut": "Abmelden"
+    },
+    "challenge": {
+      "label": "Code aus Ihrer Authenticator-App",
+      "hint": "Telefon verloren? Geben Sie stattdessen einen Ihrer Wiederherstellungscodes ein.",
+      "submit": "Bestätigen",
+      "verifying": "Wird geprüft…",
+      "back": "Zurück zur Anmeldung"
     }
   }
 }

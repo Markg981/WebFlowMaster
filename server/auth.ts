@@ -13,6 +13,7 @@ import { AUDIT_ACTIONS, User as SelectUser, type AuditAction } from "@shared/sch
 import { recordAudit } from "./audit";
 import { runWithTenant, withTenantTransaction } from "./middleware/tenancy";
 import loggerPromise from "./logger";
+import { isMfaEnabled, mfaStatus, verifySecondFactor } from "./mfa";
 import createMemoryStore from "memorystore";
 import { sessionRedis } from "./redis";
 import { sessionCookieSecure } from "./config";
@@ -26,6 +27,29 @@ declare global {
 }
 
 const scryptAsync = promisify(scrypt);
+
+declare module "express-session" {
+  interface SessionData {
+    /** A password accepted, a second factor still owed. Not a login: req.user stays unset. */
+    mfaPending?: { userId: number; expiresAt: number; attempts: number };
+  }
+}
+
+/** How long a password step stays good for its code step. */
+const MFA_CHALLENGE_TTL_MS = 5 * 60 * 1000;
+/** Wrong codes allowed per challenge before the password must be typed again. */
+const MFA_MAX_ATTEMPTS = 5;
+
+/**
+ * The user as the client sees it: never the password hash, plus the two facts about the second
+ * factor the client acts on — whether it is on, and whether the organization insists on it and
+ * it is not (in which case every other request answers mfa_enrollment_required).
+ */
+async function publicUser(user: SelectUser) {
+  const { password: _pw, ...safeUser } = user;
+  const status = await mfaStatus(user.id, user.organizationId);
+  return { ...safeUser, mfaEnabled: status.enabled, mfaEnrollmentRequired: status.required && !status.enabled };
+}
 
 /**
  * Signing in and out, in the trail of the user's organization.
@@ -116,7 +140,7 @@ async function hashPassword(password: string) {
   return `${buf.toString("hex")}.${salt}`;
 }
 
-async function comparePasswords(supplied: string, stored: string) {
+export async function comparePasswords(supplied: string, stored: string) {
   const [hashed, salt] = stored.split(".");
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
@@ -234,10 +258,15 @@ export function setupAuth(app: Express) {
         user = await storage.createUser(credentials);
       }
 
-      req.login(user, (err) => {
+      // Joining an organization that requires a second factor means enrolling next, which the
+      // answer says through mfaEnrollmentRequired.
+      req.login(user, async (err) => {
         if (err) return next(err);
-        const { password: _pw, ...safeUser } = user;
-        res.status(201).json(safeUser);
+        try {
+          res.status(201).json(await publicUser(user));
+        } catch (error) {
+          next(error);
+        }
       });
     } catch (err) {
       next(err);
@@ -246,10 +275,74 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", authLimiter, registerHandler);
 
-  app.post("/api/login", authLimiter, passport.authenticate("local"), async (req, res) => {
-    const { password: _pw, ...safeUser } = req.user as SelectUser;
-    await recordAuthEvent(req.user as SelectUser, AUDIT_ACTIONS.LOGIN_SUCCEEDED, req.ip);
-    res.status(200).json(safeUser);
+  /**
+   * The password step. With no second factor it signs the user in, as it always did. With one
+   * it signs nobody in: it puts a short-lived challenge in the session and answers
+   * { mfaRequired: true }, and only POST /api/login/mfa with a valid code completes the login.
+   * Until then the session is as anonymous as it was — req.user is not set — so a password
+   * alone reaches nothing.
+   */
+  app.post("/api/login", authLimiter, (req, res, next) => {
+    passport.authenticate("local", async (err: unknown, user: SelectUser | false) => {
+      if (err) return next(err);
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+      try {
+        if (await isMfaEnabled(user.id)) {
+          req.session.mfaPending = { userId: user.id, expiresAt: Date.now() + MFA_CHALLENGE_TTL_MS, attempts: 0 };
+          return req.session.save((saveError) => (saveError ? next(saveError) : res.status(200).json({ mfaRequired: true })));
+        }
+        req.login(user, async (loginError) => {
+          if (loginError) return next(loginError);
+          await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_SUCCEEDED, req.ip);
+          res.status(200).json(await publicUser(user));
+        });
+      } catch (error) {
+        next(error);
+      }
+    })(req, res, next);
+  });
+
+  /**
+   * The second step: a code from the authenticator app, or a recovery code.
+   *
+   * Five wrong codes end the challenge and the password has to be typed again — the code space
+   * is a million, and without a limit per challenge the rate limiter alone would be the only
+   * thing between a stolen password and a guessed code.
+   */
+  app.post("/api/login/mfa", authLimiter, async (req, res, next) => {
+    const pending = req.session.mfaPending;
+    const code = typeof req.body?.code === "string" ? req.body.code : "";
+    if (!pending || pending.expiresAt < Date.now()) {
+      delete req.session.mfaPending;
+      return res.status(401).json({ message: "Sign in with your password again.", code: "mfa_challenge_expired" });
+    }
+    try {
+      const user = await storage.getUser(pending.userId);
+      if (!user || user.kind !== "person" || user.disabledAt) {
+        delete req.session.mfaPending;
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const method = await verifySecondFactor(user.id, user.organizationId, { id: user.id, username: user.username, ipAddress: req.ip ?? null }, code);
+      if (!method) {
+        pending.attempts += 1;
+        await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_FAILED, req.ip, { reason: "wrong_mfa_code" });
+        if (pending.attempts >= MFA_MAX_ATTEMPTS) {
+          delete req.session.mfaPending;
+          return res.status(401).json({ message: "Too many wrong codes. Sign in with your password again.", code: "mfa_challenge_expired" });
+        }
+        return res.status(401).json({ message: "That code is not valid.", code: "mfa_code_invalid" });
+      }
+      delete req.session.mfaPending;
+      // req.login regenerates the session: the challenge's session id does not become the
+      // signed-in one.
+      req.login(user, async (loginError) => {
+        if (loginError) return next(loginError);
+        await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_SUCCEEDED, req.ip, { mfa: method });
+        res.status(200).json(await publicUser(user));
+      });
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.post("/api/logout", async (req, res, next) => {
@@ -263,10 +356,13 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", async (req, res, next) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const { password: _pw, ...safeUser } = req.user as SelectUser;
-    res.json(safeUser);
+    try {
+      res.json(await publicUser(req.user as SelectUser));
+    } catch (error) {
+      next(error);
+    }
   });
 }
 
