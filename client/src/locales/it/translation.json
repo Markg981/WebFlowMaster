@@ -89,7 +89,9 @@
       "notifications": "Notifiche",
       "notificationsDescription": "Per quali eventi vale la pena interromperti.",
       "account": "Account",
-      "accountDescription": "I dati del tuo accesso e le azioni che non si possono annullare."
+      "accountDescription": "I dati del tuo accesso e le azioni che non si possono annullare.",
+      "runUsage": "Utilizzo dei run",
+      "runUsageDescription": "Quanti run di questa organizzazione sono in corso o in attesa, rispetto ai suoi limiti."
     }
   },
   "dashboard": {
@@ -1858,5 +1860,14 @@
     "placeholder": "Scegli un ambiente",
     "none": "Nessun ambiente (solo valori predefiniti)",
     "unknown": "{{name}} — non è un ambiente di questa organizzazione; non viene caricato nulla"
+  },
+  "runUsage": {
+    "loading": "Caricamento…",
+    "error": "Impossibile caricare l'utilizzo.",
+    "running": "In esecuzione ora",
+    "runningHint": "I run oltre questo limite attendono in coda e partono man mano che gli altri finiscono.",
+    "queued": "In attesa in coda",
+    "queuedHint": "Raggiunto questo limite, i nuovi run vengono rifiutati finché alcuni non sono partiti.",
+    "operator": "I limiti sono impostati dall'amministratore di questa installazione."
   }
 }

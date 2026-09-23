@@ -16,6 +16,7 @@ import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { transitionExecution } from './execution-state';
 import { buildExecutionSnapshot, readExecutionSnapshot, type SnapshotTestReference } from './execution-snapshot';
 import { testExecutionQueue } from './queue';
+import { fairPriority, liveRunCounts, lockOrganizationRuns, quotasFor } from './tenant-quotas';
 
 /**
  * The one place a run comes into existence.
@@ -36,7 +37,7 @@ import { testExecutionQueue } from './queue';
  */
 
 export interface ExecutionQueuePort {
-  add(name: string, data: Record<string, unknown>, options: { jobId: string; delay?: number }): Promise<unknown>;
+  add(name: string, data: Record<string, unknown>, options: { jobId: string; delay?: number; priority?: number }): Promise<unknown>;
 }
 
 export interface EnqueueExecutionInput {
@@ -68,6 +69,7 @@ export type EnqueueFailureCode =
   | 'plan_not_found'
   | 'requester_not_in_organization'
   | 'environment_not_found'
+  | 'queue_quota_exceeded'
   | 'queue_submission_failed';
 
 /** Why a run could not be created, with the HTTP status that says so. */
@@ -116,7 +118,7 @@ async function reclaimUnsubmittedRun(executionId: string): Promise<TestPlanExecu
 }
 
 export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
-  async function submit(execution: TestPlanExecution, delayMs = 0): Promise<TestPlanExecution> {
+  async function submit(execution: TestPlanExecution, delayMs = 0, priority = 1): Promise<TestPlanExecution> {
     try {
       await queue.add(
         'execute-plan',
@@ -130,7 +132,8 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
           updateBaselines: readExecutionSnapshot(execution.configurationSnapshot)?.visualTesting.updateBaselines === true,
           correlationId: getCorrelationId() ?? `job-${execution.id.slice(0, 8)}`,
         },
-        delayMs > 0 ? { jobId: execution.id, delay: delayMs } : { jobId: execution.id },
+        // The run's fair place in the queue — see server/tenant-quotas.ts.
+        delayMs > 0 ? { jobId: execution.id, delay: delayMs, priority } : { jobId: execution.id, priority },
       );
       return execution;
     } catch (error: any) {
@@ -171,7 +174,7 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
         return existing ?? null;
       };
 
-      let outcome: { execution: TestPlanExecution; created: boolean };
+      let outcome: { execution: TestPlanExecution; created: boolean; priority?: number };
       try {
         outcome = await withTenantTransaction(async (tx) => {
           // users is not org-scoped by policy, so the organization is named explicitly: a
@@ -194,6 +197,19 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
               .limit(1);
             if (existing) return { execution: existing, created: false };
           }
+
+          // Counted under the organization's lock, so two requests at the limit cannot both get
+          // through, and the count also gives the run its fair place in the queue.
+          await lockOrganizationRuns(tx, organizationId);
+          const [quotas, counts] = await Promise.all([quotasFor(tx, organizationId), liveRunCounts(tx, organizationId)]);
+          if (counts.queued >= quotas.maxQueuedRuns) {
+            throw new ExecutionEnqueueError(
+              'queue_quota_exceeded',
+              `This organization already has ${counts.queued} runs waiting, its limit. Try again when some have started.`,
+              429,
+            );
+          }
+          const priority = fairPriority(counts);
 
           const [plan] = await tx.select().from(testPlans).where(eq(testPlans.id, input.planId)).limit(1);
           if (!plan) throw new ExecutionEnqueueError('plan_not_found', 'Test plan not found', 404);
@@ -243,7 +259,7 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
               maxAttempts: Math.min(Math.max(Math.trunc(input.maxAttempts ?? 1), 1), MAX_ATTEMPTS_LIMIT),
             })
             .returning();
-          return { execution: inserted, created: true };
+          return { execution: inserted, created: true, priority };
         });
       } catch (error) {
         // Two requests with the same key at the same instant: the index lets one in, and the
@@ -255,7 +271,7 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
         throw error;
       }
 
-      if (outcome.created) return submit(outcome.execution);
+      if (outcome.created) return submit(outcome.execution, 0, outcome.priority);
 
       if (outcome.execution.status === 'error' && outcome.execution.failureCode === QUEUE_SUBMISSION_FAILED) {
         const reclaimed = await reclaimUnsubmittedRun(outcome.execution.id);
@@ -332,7 +348,9 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
       if (isUniqueViolation(error)) return findByKey();
       throw error;
     }
-    return submit(retry, delayMs);
+    // A retry takes its place like any run of its organization.
+    const counts = await withTenantTransaction((tx) => liveRunCounts(tx, retry.organizationId));
+    return submit(retry, delayMs, fairPriority(counts));
   }
 
   return { enqueue, retryFailedRun };

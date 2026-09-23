@@ -1,4 +1,4 @@
-import { Worker, type Job } from 'bullmq';
+import { DelayedError, Worker, type Job } from 'bullmq';
 import { connection } from './redis';
 import { TEST_EXECUTION_QUEUE_NAME } from './queue';
 import { processTestPlanJob } from './test-execution-service';
@@ -20,9 +20,9 @@ import 'dotenv/config';
 
   const worker = new Worker(
     TEST_EXECUTION_QUEUE_NAME,
-    withJobIncidents(async (job: Job) => {
+    withJobIncidents(async (job: Job, token?: string) => {
       logger.info(`Worker processing job ${job.id} of type ${job.name}`);
-      
+
       if (job.name === 'execute-plan') {
         // `executionId` from the orchestrator; `testPlanRunId` from jobs queued before it.
         const { planId, userId, correlationId, updateBaselines } = job.data;
@@ -32,14 +32,20 @@ import 'dotenv/config';
         // so all logs emitted during job processing share the same trace ID.
         const cid = correlationId || `worker-${testPlanRunId.slice(0, 8)}`;
 
-        await correlationStore.run({ correlationId: cid }, async () => {
+        const outcome = await correlationStore.run({ correlationId: cid }, async () => {
           try {
-            await processTestPlanJob(planId, testPlanRunId, userId, { updateBaselines: updateBaselines === true });
+            return await processTestPlanJob(planId, testPlanRunId, userId, { updateBaselines: updateBaselines === true });
           } catch (error: any) {
             logger.error(`Job ${job.id} failed:`, error);
             throw error; // Let BullMQ handle the failure
           }
         });
+        // Its organization is at its limit of runs at once: the run stays queued and the job goes
+        // back for a while, so this worker can serve somebody else's run in the meantime.
+        if (outcome?.deferred) {
+          await job.moveToDelayed(Date.now() + (outcome.retryInMs ?? 10_000), token);
+          throw new DelayedError();
+        }
       } else if (job.name === TRIGGER_SCHEDULE_JOB) {
         // Fired by a BullMQ job scheduler (SCHEDULER_BACKEND=bullmq). Load the latest
         // schedule + plan from the DB and run it via the shared execution logic.
@@ -64,7 +70,9 @@ import 'dotenv/config';
         });
       }
     }),
-    { connection, concurrency: 1 } // concurrency: 1 for safety with Playwright initially
+    // How many plan runs this worker executes at once — each is a browser, so a statement about
+    // the machine. One by default, as before; the per-organization limits share out whatever it is.
+    { connection, concurrency: Math.max(1, Number(process.env.WORKER_CONCURRENCY) || 1) }
   );
 
   /**

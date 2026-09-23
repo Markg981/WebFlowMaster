@@ -89,7 +89,9 @@
       "notifications": "Notifications",
       "notificationsDescription": "Les événements qui méritent de vous interrompre.",
       "account": "Compte",
-      "accountDescription": "Vos informations de connexion et les actions irréversibles."
+      "accountDescription": "Vos informations de connexion et les actions irréversibles.",
+      "runUsage": "Utilisation des exécutions",
+      "runUsageDescription": "Combien d'exécutions de cette organisation sont en cours ou en attente, par rapport à ses limites."
     }
   },
   "dashboard": {
@@ -1739,5 +1741,14 @@
     "placeholder": "Choisir un environnement",
     "none": "Aucun environnement (valeurs par défaut)",
     "unknown": "{{name}} — pas un environnement de cette organisation ; rien n’est chargé"
+  },
+  "runUsage": {
+    "loading": "Chargement…",
+    "error": "L'utilisation n'a pas pu être chargée.",
+    "running": "En cours",
+    "runningHint": "Les exécutions au-delà de cette limite attendent dans la file et démarrent à mesure que les autres se terminent.",
+    "queued": "En attente dans la file",
+    "queuedHint": "À cette limite, les nouvelles exécutions sont refusées jusqu'à ce que certaines aient démarré.",
+    "operator": "Les limites sont définies par l'administrateur de cette installation."
   }
 }

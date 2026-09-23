@@ -36,7 +36,7 @@ import {
 } from './notifications';
 import { fileFailure, loadTracker, markResolved } from './issue-store';
 import { currentVersionsOf } from './test-version-store';
-import { transitionExecution } from './execution-state';
+import { takeExecution, transitionExecution } from './execution-state';
 import { artifactStore } from './artifact-store';
 import { watchRun } from './run-watch';
 import {
@@ -473,29 +473,31 @@ async function runTestPlanJobInTenant(
     timestamp: new Date(overallStartTime).toISOString(),
     metadata: { planId, testPlanRunId, userId }
   };
-  resolvedLogger.info(startLog);
-  wsEmitter.emitExecutionLog(testPlanRunId, startLog);
-
   // Take the run. Only a run that is still queued can be taken, and the database lets exactly
   // one worker do it: a job BullMQ delivers twice, or a run somebody cancelled while it waited,
   // gets nothing back here and stops — instead of running the whole plan a second time over the
-  // results of the first.
-  const taken = await transitionExecution(testPlanRunId, 'running');
-  if (!taken) {
-    const [current] = await withTenantTransaction((tx) =>
-      tx
-        .select({ status: testPlanExecutionsTable.status })
-        .from(testPlanExecutionsTable)
-        .where(eq(testPlanExecutionsTable.id, testPlanRunId))
-        .limit(1),
-    );
+  // results of the first. And only while its organization is within its limit of runs at once
+  // (see server/tenant-quotas.ts): past it the run stays queued and the job comes back later.
+  const take = await takeExecution(testPlanRunId);
+  if (take.outcome === 'over_quota') {
+    resolvedLogger.info({
+      message: 'Test plan execution deferred: its organization is at its limit of runs at once',
+      testPlanRunId,
+      running: take.running,
+      maxConcurrentRuns: take.maxConcurrentRuns,
+    });
+    return { deferred: true, retryInMs: RUN_DEFERRAL_MS, testPlanRunId };
+  }
+  if (take.outcome !== 'taken') {
     resolvedLogger.warn({
       message: 'Test plan execution was not taken: it is no longer queued',
       testPlanRunId,
-      status: current?.status ?? 'missing',
+      status: take.status ?? 'missing',
     });
-    return { skipped: true, reason: `Execution is ${current?.status ?? 'missing'}, not queued.`, testPlanRunId };
+    return { skipped: true, reason: `Execution is ${take.status ?? 'missing'}, not queued.`, testPlanRunId };
   }
+  resolvedLogger.info(startLog);
+  wsEmitter.emitExecutionLog(testPlanRunId, startLog);
 
   // From here on the run is this worker's: it keeps a heartbeat on it, hears a cancellation, and
   // stops it at its time limit — see server/run-watch.ts. Stopped however the run ends.
@@ -1347,6 +1349,9 @@ async function publishArtifacts(localDir: string, executionId: string): Promise<
     getWsEmitter().emitExecutionLog(executionId, entry);
   }
 }
+
+/** How long a run over its organization's limit waits before a worker looks at it again. */
+export const RUN_DEFERRAL_MS = Number(process.env.RUN_DEFERRAL_MS) || 10_000;
 
 /** How long a failed scheduled attempt waits before the next: long enough for a blip to pass. */
 export const RETRY_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 30_000;

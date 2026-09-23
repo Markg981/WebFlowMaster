@@ -15,13 +15,16 @@ interface JobLike {
  * successful, so a broken job would silently never retry and never surface.
  */
 export function withJobIncidents<T extends JobLike, R = void>(
-  handler: (job: T) => Promise<R>,
-): (job: T) => Promise<R> {
-  return async (job: T) => {
+  handler: (job: T, token?: string) => Promise<R>,
+): (job: T, token?: string) => Promise<R> {
+  return async (job: T, token?: string) => {
     try {
       // Returned, not only awaited: a job's return value is its answer to whoever waits on it.
-      return await handler(job);
+      return await handler(job, token);
     } catch (error) {
+      // BullMQ's way of saying "put this back for later", thrown on purpose — a run deferred
+      // because its organization is at its limit. Not a failure, so not an incident.
+      if ((error as { name?: string } | null)?.name === 'DelayedError') throw error;
       await recordIncident({
         kind: 'job',
         error: error instanceof Error ? error : new Error(String(error)),

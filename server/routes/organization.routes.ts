@@ -9,10 +9,27 @@ import { withTenantTransaction, getTenantOrgId } from "../middleware/tenancy";
 import { recordAudit } from "../audit";
 import { exportOrganization, eraseOrganization } from "../organization-lifecycle";
 import loggerPromise from "../logger";
+import { liveRunCounts, quotasFor } from "../tenant-quotas";
 
 const router = Router();
 
 const RoleSchema = z.enum(["viewer", "editor", "owner"]);
+
+/**
+ * The organization's share of the execution plane: its limits and what it is using now.
+ *
+ * So a team whose run is "queued" for a while can see why — two already running, the limit is
+ * two — instead of wondering whether the system is broken. Read-only: the limits are the
+ * operator's to set (see server/tenant-quotas.ts).
+ */
+router.get("/api/organization/usage", requireRole("viewer"), async (_req: Request, res: Response) => {
+  const organizationId = getTenantOrgId()!;
+  const usage = await withTenantTransaction(async (tx) => {
+    const [quotas, counts] = await Promise.all([quotasFor(tx, organizationId), liveRunCounts(tx, organizationId)]);
+    return { ...counts, ...quotas };
+  });
+  res.json(usage);
+});
 
 /**
  * users is not an org-scoped RLS table (it holds the organization pointer itself), so these
