@@ -18,10 +18,8 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs-extra';
 import path from 'path';
 import { getWsEmitter, type ExecutionLogEntry } from './websocket';
-import { testExecutionQueue } from './queue';
 import { secrets as secretsTable } from '@shared/schema';
 import { decryptSecret } from './crypto';
-import { getCorrelationId } from './middleware/correlation';
 import { defaultVariables } from './variables';
 import { runApiRequest, type Extraction } from './api-test-runner';
 import type { Assertion, AuthParams } from '@shared/schema';
@@ -339,18 +337,13 @@ export async function runTest(
 /**
  * What a caller can say about a run beyond which plan it is.
  *
- * `executionId` exists for the scheduler, which creates the execution row itself — with the
- * schedule's environment, its browsers and its `scheduled` provenance — and then needs the
- * job to run *that* row. Before this it did not: `runTestPlan` inserted a second row, and the
- * run that actually happened was the second one, marked manual, with no environment and no
- * browsers. The schedule's configuration was recorded on a row nothing ever executed.
+ * Every run, whoever asks for it, is created by server/execution-orchestrator.ts; this is the
+ * shape the routes and webhooks have always called, over it.
  */
 export interface RunTestPlanOptions {
   environmentId?: number | null;
   /** Accept this run's screenshots as the new visual baselines. */
   updateBaselines?: boolean;
-  /** An execution row the caller has already created, to be run instead of a new one. */
-  executionId?: string;
   /** Asking again with the same key returns the first run instead of starting another. */
   idempotencyKey?: string | null;
   /** Who asked for it, when that is not a person pressing Run. */
@@ -368,82 +361,24 @@ export async function runTestPlan(
       : (environmentIdOrOptions ?? {});
   const resolvedLogger = await loggerPromise;
 
-  if (!options.executionId) {
-    // A new run: the orchestrator writes down what it will use, honours the idempotency key and
-    // submits exactly one job for it. See server/execution-orchestrator.ts.
-    try {
-      const execution = await executionOrchestrator.enqueue({
-        planId,
-        requestedByUserId: userId,
-        trigger: options.trigger ?? 'manual',
-        environmentId: options.environmentId ?? null,
-        updateBaselines: options.updateBaselines,
-        idempotencyKey: options.idempotencyKey,
-      });
-      resolvedLogger.info({ message: 'Test plan execution enqueued', planId, testPlanRunId: execution.id, userId });
-      return execution;
-    } catch (error: any) {
-      if (error instanceof ExecutionEnqueueError) {
-        resolvedLogger.warn({ message: 'Test plan execution not enqueued', planId, code: error.code, error: error.message });
-        return { error: error.message, status: error.status, testPlanRunId: error.executionId };
-      }
-      resolvedLogger.error({ message: 'Failed to enqueue test plan run', planId, error: error.message, stack: error.stack });
-      return { error: `Failed to initialize test plan run: ${error.message}`, status: 500 };
-    }
-  }
-
-  // The scheduler's row, created by the scheduler with the schedule's environment and browsers.
-  // It has no snapshot yet — the worker reads the plan for it, as every run used to — until the
-  // scheduler goes through the orchestrator as well.
-  const testPlanRunId = options.executionId;
-  resolvedLogger.info({ message: `Enqueueing scheduled test plan execution`, planId, testPlanRunId, userId });
-
-  // The other tenant-context boundary, alongside processTestPlanJob's: the scheduler has no
-  // ambient organization, so the lookup that establishes it runs privileged.
-  const planResult = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, planId)).limit(1);
-  if (!planResult || planResult.length === 0) {
-    resolvedLogger.error({ message: `Test Plan not found`, planId, testPlanRunId });
-    return { error: 'Test Plan not found', status: 404 };
-  }
-
-  let currentTestPlanRun: TestPlanExecution;
   try {
-    // Read under the plan's organization rather than privileged: the boundary that
-    // establishes which organization this is has already been crossed, above.
-    const existing = await runWithTenant(planResult[0].organizationId, () =>
-      withTenantTransaction((tx) =>
-        tx
-          .select()
-          .from(testPlanExecutionsTable)
-          .where(eq(testPlanExecutionsTable.id, testPlanRunId))
-          .limit(1),
-      ),
-    );
-    if (existing.length === 0) {
-      return { error: `Test plan execution ${testPlanRunId} not found`, status: 404 };
+    const execution = await executionOrchestrator.enqueue({
+      planId,
+      requestedByUserId: userId,
+      trigger: options.trigger ?? 'manual',
+      environmentId: options.environmentId ?? null,
+      updateBaselines: options.updateBaselines,
+      idempotencyKey: options.idempotencyKey,
+    });
+    resolvedLogger.info({ message: 'Test plan execution enqueued', planId, testPlanRunId: execution.id, userId });
+    return execution;
+  } catch (error: any) {
+    if (error instanceof ExecutionEnqueueError) {
+      resolvedLogger.warn({ message: 'Test plan execution not enqueued', planId, code: error.code, error: error.message });
+      return { error: error.message, status: error.status, testPlanRunId: error.executionId };
     }
-    currentTestPlanRun = existing[0];
-
-    // One job per run, named by the run, so a second submission of the same run is refused by
-    // the queue rather than executed.
-    await testExecutionQueue.add(
-      'execute-plan',
-      {
-        executionId: testPlanRunId,
-        planId,
-        testPlanRunId,
-        userId,
-        updateBaselines: options.updateBaselines === true,
-        correlationId: getCorrelationId() || `job-${testPlanRunId.slice(0, 8)}`,
-      },
-      { jobId: testPlanRunId },
-    );
-
-    resolvedLogger.info({ message: 'TestPlanRun job enqueued successfully', testPlanRunId, dbId: currentTestPlanRun.id });
-    return currentTestPlanRun;
-  } catch (dbError: any) {
-    resolvedLogger.error({ message: 'Failed to enqueue test plan run', planId, testPlanRunId, error: dbError.message, stack: dbError.stack });
-    return { error: `Failed to initialize test plan run: ${dbError.message}`, status: 500 };
+    resolvedLogger.error({ message: 'Failed to enqueue test plan run', planId, error: error.message, stack: error.stack });
+    return { error: `Failed to initialize test plan run: ${error.message}`, status: 500 };
   }
 }
 
@@ -1120,6 +1055,24 @@ async function runTestPlanJobInTenant(
 
     if (finalUpdateResult.length > 0) {
       resolvedLogger.info({ message: `Test plan execution COMPLETED and DB updated`, planId, testPlanRunId, overallStatus: finalOverallStatus, testsRun: calculatedTotalTests });
+
+      // A failed attempt with attempts left is not the verdict yet: the next attempt is queued,
+      // and the issues and the notification wait for the attempt that decides. Filing a bug for
+      // a failure the retry then clears is exactly the noise that gets retry policies switched off.
+      const retry = await queueRetryIfAllowed(finalUpdateResult[0]);
+      if (retry) {
+        wsEmitter.emitExecutionLog(testPlanRunId, {
+          level: 'info',
+          source: 'system',
+          message:
+            `Attempt ${finalUpdateResult[0].attempt} of ${finalUpdateResult[0].maxAttempts} ended ${finalOverallStatus}; ` +
+            `attempt ${retry.attempt} is queued as run ${retry.id}.`,
+          timestamp: new Date().toISOString(),
+          metadata: { retryExecutionId: retry.id, attempt: retry.attempt },
+        });
+        return finalUpdateResult[0];
+      }
+
       // Before the notification, so a message that says "3 failed" arrives after the issues
       // those failures produced already exist to be linked to.
       await fileFailuresIfConfigured({
@@ -1167,6 +1120,25 @@ async function runTestPlanJobInTenant(
       completedAt: new Date(overallCompletedAt),
       error: `DB error during final aggregate update: ${dbError.message}`
     } as any;
+  }
+}
+
+/** How long a failed scheduled attempt waits before the next: long enough for a blip to pass. */
+export const RETRY_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 30_000;
+
+/**
+ * Queues the next attempt of a run that ended failed, when its request allowed one.
+ *
+ * Never throws: the verdict of this attempt is already written, and a retry that cannot be
+ * queued leaves that verdict as the final one — which is then announced like any other.
+ */
+async function queueRetryIfAllowed(finished: TestPlanExecution): Promise<TestPlanExecution | null> {
+  try {
+    return await executionOrchestrator.retryFailedRun(finished, RETRY_DELAY_MS);
+  } catch (error: any) {
+    const resolvedLogger = await loggerPromise;
+    resolvedLogger.error({ message: 'Could not queue the retry of a failed run', executionId: finished.id, error: error?.message });
+    return null;
   }
 }
 

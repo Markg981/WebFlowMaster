@@ -3,17 +3,12 @@ import * as cron from 'node-cron';
 // its members — a named `{ parseExpression }` import throws at runtime.
 import cronParser from 'cron-parser';
 import { privilegedDb } from './db';
-import { testPlanSchedules, testPlanExecutions, testPlans } from '@shared/schema';
+import { environments, testPlanSchedules, testPlans } from '@shared/schema';
 import type { TestPlanSchedule, TestPlanExecution, TestPlan } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
-import { v4 as uuidv4 } from 'uuid';
 import logger from './logger';
-// Import runTestPlan function - assuming it's exported from test-execution-service
-// We need to be careful with circular dependencies if test-execution-service also imports this.
-// For now, let's assume it can be imported. If not, we might need to use an event emitter or refactor.
-import { runTestPlan } from './test-execution-service'; // Adjust path if necessary
-import { transitionExecution } from './execution-state';
-import { runWithTenant } from './middleware/tenancy';
+import { ExecutionEnqueueError, executionOrchestrator } from './execution-orchestrator';
+import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { testExecutionQueue } from './queue';
 
 interface ActiveJob {
@@ -34,19 +29,47 @@ export const TRIGGER_SCHEDULE_JOB = 'trigger-schedule';
 // NOTE: BullMQ custom job ids must NOT contain ':' — use a hyphen separator.
 const onceJobId = (scheduleId: string) => `once-${scheduleId}`;
 
-// Retry-on-failure policy: number of extra attempts after the first failed run.
-const RETRY_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 30_000;
-function retriesForPolicy(policy: string | null | undefined): number {
+/**
+ * How many runs one scheduled occurrence may take, counting the first.
+ *
+ * The retries themselves are the worker's: it queues the next attempt when one ends failed
+ * (see retryFailedRun in server/execution-orchestrator.ts). They used to be a loop here over the
+ * answer to an enqueue, which is never a verdict, so the policy never retried anything.
+ */
+export function attemptsForPolicy(policy: string | null | undefined): number {
   switch (policy) {
     case 'once':
-      return 1;
-    case 'twice':
       return 2;
+    case 'twice':
+      return 3;
     default:
-      return 0;
+      return 1;
   }
 }
-const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * The moment a BullMQ trigger job was meant for, which every delivery of it agrees on.
+ *
+ * A job scheduler's job carries its occurrence as `prevMillis`; a one-off trigger was added with a
+ * delay from its creation. The time a worker happens to pick the job up is neither, and a
+ * redelivered job would get a different one — and with it a second run.
+ */
+export function scheduledOccurrence(job: { timestamp: number; opts: object }): Date {
+  const opts = job.opts as { prevMillis?: number; delay?: number };
+  return new Date(opts.prevMillis ?? job.timestamp + (opts.delay ?? 0));
+}
+
+/**
+ * The key that makes one scheduled occurrence one run.
+ *
+ * Every replica running the in-process scheduler fires the same minute, and BullMQ can deliver a
+ * trigger twice; both derive this same key from the same occurrence, so the orchestrator creates
+ * the run once and hands the same one back to the rest.
+ */
+export function occurrenceKey(scheduleId: string, occurrence: Date): string {
+  const minute = new Date(Math.floor(occurrence.getTime() / 60_000) * 60_000);
+  return `schedule-${scheduleId}-${minute.toISOString()}`;
+}
 
 /** The zone a schedule with no timezone of its own runs in — what every existing row means. */
 export const DEFAULT_SCHEDULE_TIMEZONE = 'UTC';
@@ -205,130 +228,134 @@ export function calculateNextRunTimeForTest(
 }
 
 // Exported for testing purposes
-export async function executeScheduledPlanForTest(schedule: TestPlanSchedule, plan: TestPlan) {
-  return executeScheduledPlan(schedule, plan);
+export async function executeScheduledPlanForTest(schedule: TestPlanSchedule, plan: TestPlan, occurrence?: Date) {
+  return executeScheduledPlan(schedule, plan, occurrence);
 }
 
-export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: TestPlan) {
-  const resolvedLogger = await logger;
-  resolvedLogger.info(`[SchedulerService] Triggering job for schedule: ${schedule.scheduleName} (ID: ${schedule.id}), Plan: ${plan.name}`);
+/**
+ * The environment a schedule names, as an environment of its organization.
+ *
+ * Schedules store it as text, and the form offers names — "QA", "Staging" — while the runner
+ * wanted an id: it parsed "QA" as a number, got nothing, and every scheduled run went out with no
+ * environment's variables and no saved login, whatever the schedule said. An id is still read as
+ * an id; anything else is looked up by exact name, inside the schedule's organization. A name
+ * that matches nothing runs without an environment, as it always did, and keeps its label on the
+ * run so the report still says what was asked for.
+ */
+async function resolveScheduleEnvironment(value: string | null | undefined): Promise<{ environmentId: number | null; label: string | null }> {
+  const label = value?.trim() || null;
+  if (!label) return { environmentId: null, label: null };
+  const byId = /^\d+$/.test(label)
+    ? await withTenantTransaction((tx) =>
+        tx.select({ id: environments.id }).from(environments).where(eq(environments.id, Number(label))).limit(1),
+      )
+    : [];
+  if (byId[0]) return { environmentId: byId[0].id, label };
+  const byName = await withTenantTransaction((tx) =>
+    tx.select({ id: environments.id }).from(environments).where(eq(environments.name, label)).limit(1),
+  );
+  return { environmentId: byName[0]?.id ?? null, label };
+}
 
-  const executionId = uuidv4();
-  let executionStatus: TestPlanExecution['status'] = 'queued';
+/**
+ * Asks for the run of one scheduled occurrence.
+ *
+ * Only asks: the run is created by the orchestrator like any other — configuration written down,
+ * one job — and its verdict, and any retry, belong to the worker. It used to insert its own row,
+ * then call an enqueue that created a second one, and then write a verdict from the enqueue's
+ * answer, which is never one.
+ *
+ * `schedule` and `plan` may be the ones an in-process cron job captured when it was set up, so
+ * the schedule is read again: a schedule switched off, or pointed at another environment, since
+ * then is what it is now.
+ */
+export async function executeScheduledPlan(
+  scheduleAsLoaded: TestPlanSchedule,
+  plan: TestPlan,
+  occurrence: Date = new Date(),
+): Promise<TestPlanExecution | null> {
+  const resolvedLogger = await logger;
+  let schedule: TestPlanSchedule | undefined = scheduleAsLoaded;
 
   try {
-    await privilegedDb.insert(testPlanExecutions).values({
-      id: executionId,
-      // Same organization as the plan being executed (and, transitively, the schedule).
-      organizationId: plan.organizationId,
-      scheduleId: schedule.id,
-      testPlanId: schedule.testPlanId,
-      // Waiting for a worker; started_at is stamped when one takes it.
-      status: 'queued',
-      requestedByUserId: schedule.userId ?? null,
-      environment: schedule.environment,
-      browsers: schedule.browsers ?? null, // jsonb column — store the array directly
-      triggeredBy: 'scheduled',
-      // executionParameters from schedule can be passed to runTestPlan if it supports it
-    });
-
-    // Run on behalf of the schedule's owner. Legacy schedules created before the
-    // userId column may be null; fall back to the test plan's owner in that case.
-    let ownerUserId = schedule.userId ?? null;
-    if (ownerUserId == null) {
-      const planOwner = await privilegedDb
-        .select({ userId: testPlans.userId })
-        .from(testPlans)
-        .where(eq(testPlans.id, schedule.testPlanId))
-        .limit(1);
-      ownerUserId = planOwner[0]?.userId ?? null;
-      resolvedLogger.warn(`[SchedulerService] Schedule ${schedule.id} has no userId; falling back to the test plan owner (${ownerUserId}).`);
-    }
-    if (ownerUserId == null) {
-      throw new Error(`Cannot execute schedule ${schedule.id}: no owner user could be resolved.`);
-    }
-
-    // Run the plan, retrying on failure per the schedule's retryOnFailure policy.
-    const maxRetries = retriesForPolicy(schedule.retryOnFailure);
-    let result: any;
-    let attempts = 0;
-    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
-      if (attempt > 1) {
-        resolvedLogger.info(`[SchedulerService] Retry ${attempt - 1}/${maxRetries} for schedule ${schedule.id} after a failed attempt.`);
-        await delay(RETRY_DELAY_MS);
+    return await runWithTenant(scheduleAsLoaded.organizationId, async () => {
+      [schedule] = await withTenantTransaction((tx) =>
+        tx.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, scheduleAsLoaded.id)).limit(1),
+      );
+      if (!schedule || !schedule.isActive) {
+        resolvedLogger.info(`[SchedulerService] Schedule ${scheduleAsLoaded.id} is ${schedule ? 'inactive' : 'gone'}; not running it.`);
+        return null;
       }
-      attempts = attempt;
-      // Run the execution row inserted above, rather than letting runTestPlan create a second
-      // one: that row is where this schedule's environment and browsers are recorded, and a
-      // run that starts from a fresh row starts from neither.
-      result = (await runTestPlan(schedule.testPlanId, ownerUserId, { executionId })) as any;
-      executionStatus = result?.status || 'error'; // runTestPlan returns a TestPlanRun-like object
-      if (executionStatus !== 'failed' && executionStatus !== 'error') break;
-    }
+      resolvedLogger.info(`[SchedulerService] Triggering schedule ${schedule.scheduleName} (ID: ${schedule.id}) for ${occurrence.toISOString()}, Plan: ${plan.name}`);
 
-    // Record a verdict only if the run actually produced one.
-    //
-    // `runTestPlan` enqueues and returns immediately, so its answer is normally the row's
-    // queue status — and now that this is the row the worker goes on to execute, writing
-    // "pending, completed at 02:00:01" over it would overwrite the run in progress with a
-    // verdict nobody reached. The worker owns the row from the moment the job is enqueued.
-    //
-    // Through the state machine, which is what makes that rule hold rather than depend on this
-    // check: a verdict can only be written over a row that is running, never over one a worker
-    // has not taken yet or has already finished.
-    const terminalStatuses = ['completed', 'failed', 'error'];
-    if (terminalStatuses.includes(executionStatus)) {
-      await runWithTenant(plan.organizationId, () =>
-        transitionExecution(executionId, executionStatus as 'completed' | 'failed' | 'error', {
-          results: result?.results ?? null,
-        }),
-      );
-    }
+      // On behalf of the schedule's owner; schedules from before that was recorded fall back to
+      // the plan's owner.
+      let ownerUserId = schedule.userId ?? null;
+      if (ownerUserId == null) {
+        const planId = schedule.testPlanId;
+        const [planOwner] = await withTenantTransaction((tx) =>
+          tx.select({ userId: testPlans.userId }).from(testPlans).where(eq(testPlans.id, planId)).limit(1),
+        );
+        ownerUserId = planOwner?.userId ?? null;
+        resolvedLogger.warn(`[SchedulerService] Schedule ${schedule.id} has no userId; falling back to the test plan owner (${ownerUserId}).`);
+      }
+      if (ownerUserId == null) {
+        throw new Error(`Cannot execute schedule ${schedule.id}: no owner user could be resolved.`);
+      }
 
-    resolvedLogger.info(`[SchedulerService] Execution ${terminalStatuses.includes(executionStatus) ? 'completed' : 'enqueued'} for schedule ${schedule.id}, Plan ${plan.name}. Status: ${executionStatus} (after ${attempts} attempt(s)).`);
+      const environment = await resolveScheduleEnvironment(schedule.environment);
+      if (environment.label && environment.environmentId == null) {
+        resolvedLogger.warn(`[SchedulerService] Schedule ${schedule.id} names environment "${environment.label}", which is not an environment of its organization; running without one.`);
+      }
 
+      const execution = await executionOrchestrator.enqueue({
+        planId: schedule.testPlanId,
+        requestedByUserId: ownerUserId,
+        trigger: 'scheduled',
+        scheduleId: schedule.id,
+        environmentId: environment.environmentId,
+        environmentLabel: environment.label,
+        browsers: schedule.browsers ?? null,
+        maxAttempts: attemptsForPolicy(schedule.retryOnFailure),
+        idempotencyKey: occurrenceKey(schedule.id, occurrence),
+      });
+      resolvedLogger.info(`[SchedulerService] Run ${execution.id} queued for schedule ${schedule.id} (up to ${execution.maxAttempts} attempt(s)).`);
+      return execution;
+    });
   } catch (error: any) {
-    resolvedLogger.error(`[SchedulerService] Error executing scheduled plan ${schedule.testPlanId} (Schedule ID: ${schedule.id}): ${error.message}`, { stack: error.stack, scheduleId: schedule.id, executionId });
-    executionStatus = 'error';
-    try {
-      // Only a run nobody has finished yet can be marked as failed to start: if a worker took it
-      // and reached a verdict, that verdict is the truth and this error is not.
-      await runWithTenant(plan.organizationId, () =>
-        transitionExecution(executionId, 'error', {
-          failureCode: 'schedule_trigger_failed',
-          failureMessage: error.message,
-          results: JSON.stringify({ error: error.message, stack: error.stack }),
-        }),
-      );
-    } catch (dbError) {
-      resolvedLogger.error(`[SchedulerService] CRITICAL: Failed to update execution status to error after catching execution error. Execution ID: ${executionId}`, { dbError });
-    }
+    // A refused enqueue leaves its own record where there is a run to put it on (the queue
+    // refusing a job marks that run); one refused before a run existed has only this.
+    const code = error instanceof ExecutionEnqueueError ? error.code : 'schedule_trigger_failed';
+    resolvedLogger.error(`[SchedulerService] Schedule ${scheduleAsLoaded.id} could not queue its run (${code}): ${error.message}`, { stack: error.stack, scheduleId: scheduleAsLoaded.id });
+    return null;
   } finally {
-    // Update nextRunAt for recurring schedules (if not 'once')
+    // The schedule as it is now. One that is gone or switched off has nothing to advance.
+    if (schedule?.isActive) await advanceSchedule(schedule);
+  }
+}
+
+/** Moves a recurring schedule to its next occurrence, or retires a one-off one. */
+async function advanceSchedule(schedule: TestPlanSchedule): Promise<void> {
+  const resolvedLogger = await logger;
+  try {
     if (schedule.frequency !== 'once') {
-      try {
-        // Calculate and persist the next run time so it survives restarts and is shown in the UI.
-        const newNextRunAt = calculateNextRunTime(schedule.frequency, new Date(), scheduleZone(schedule));
-        if (newNextRunAt) {
-          await privilegedDb.update(testPlanSchedules)
-            .set({ nextRunAt: newNextRunAt, updatedAt: new Date() })
-            .where(eq(testPlanSchedules.id, schedule.id));
-          resolvedLogger.info(`[SchedulerService] Updated nextRunAt for recurring schedule ${schedule.id} to ${newNextRunAt.toISOString()}`);
-        } else {
-          resolvedLogger.warn(`[SchedulerService] Could not compute nextRunAt for schedule ${schedule.id} (frequency: ${schedule.frequency}).`);
-        }
-      } catch (e) {
-        resolvedLogger.error(`[SchedulerService] Failed to update nextRunAt for schedule ${schedule.id}`, e);
+      // Persisted so it survives restarts and is what the UI shows.
+      const newNextRunAt = calculateNextRunTime(schedule.frequency, new Date(), scheduleZone(schedule));
+      if (newNextRunAt) {
+        await privilegedDb.update(testPlanSchedules)
+          .set({ nextRunAt: newNextRunAt, updatedAt: new Date() })
+          .where(eq(testPlanSchedules.id, schedule.id));
+        resolvedLogger.info(`[SchedulerService] Updated nextRunAt for recurring schedule ${schedule.id} to ${newNextRunAt.toISOString()}`);
+      } else {
+        resolvedLogger.warn(`[SchedulerService] Could not compute nextRunAt for schedule ${schedule.id} (frequency: ${schedule.frequency}).`);
       }
     } else {
-      // For 'once' schedules, deactivate it after execution
       await privilegedDb.update(testPlanSchedules).set({ isActive: false, updatedAt: new Date() }).where(eq(testPlanSchedules.id, schedule.id));
       resolvedLogger.info(`[SchedulerService] Deactivated 'once' schedule ${schedule.id} after execution.`);
-      await removeScheduleJob(schedule.id); // Remove it from active cron jobs
+      await removeScheduleJob(schedule.id);
     }
-
-    // Placeholder for notifications
-    // sendNotification(plan, schedule, executionStatus, results);
+  } catch (e) {
+    resolvedLogger.error(`[SchedulerService] Failed to advance schedule ${schedule.id}`, e);
   }
 }
 

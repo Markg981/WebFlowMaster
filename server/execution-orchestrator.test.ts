@@ -8,12 +8,14 @@ import {
   environments,
   reportTestCaseResults,
   testPlanExecutions,
+  testPlanSchedules,
   testPlanSelectedTests,
   testPlans,
   tests as testsTable,
   users,
 } from '@shared/schema';
 import { createTestOrganization } from './tests/factories';
+import { runWithTenant } from './middleware/tenancy';
 
 /**
  * Creating a run: one row, one job, the configuration written down, and asking twice gets the
@@ -26,6 +28,18 @@ const launchBrowser = vi.fn(async () => ({ close: async () => {} }) as any);
 vi.mock('./playwright-service', () => ({
   playwrightService: {
     executeTestSequence: (...args: any[]) => executeTestSequence(...args),
+  },
+}));
+
+// The queue the worker's own retries go to; the enqueue tests use capturingQueue() instead.
+const productionQueueAdds: Array<{ name: string; data: Record<string, unknown>; options: Record<string, unknown> }> = [];
+vi.mock('./queue', () => ({
+  TEST_EXECUTION_QUEUE_NAME: 'test-queue',
+  testExecutionQueue: {
+    add: async (name: string, data: Record<string, unknown>, options: Record<string, unknown>) => {
+      productionQueueAdds.push({ name, data, options });
+      return { id: options?.jobId };
+    },
   },
 }));
 
@@ -127,6 +141,7 @@ beforeEach(async () => {
   executeTestSequence.mockReset();
   executeTestSequence.mockResolvedValue({ success: true, steps: [], duration: 5 });
   launchBrowser.mockClear();
+  productionQueueAdds.length = 0;
 });
 
 afterEach(async () => {
@@ -288,6 +303,135 @@ describe('enqueue', () => {
     await expect(
       orchestrator.enqueue({ planId: uuidv4(), requestedByUserId: userId, trigger: 'manual' }),
     ).rejects.toMatchObject({ code: 'plan_not_found', status: 404 });
+  });
+});
+
+describe('retrying a failed run', () => {
+  async function failedRun(maxAttempts: number, status: 'failed' | 'error' | 'cancelled' | 'timed_out' = 'failed') {
+    const queue = capturingQueue();
+    const orchestrator = createExecutionOrchestrator(queue);
+    const first = await orchestrator.enqueue({ planId, requestedByUserId: userId, trigger: 'scheduled', maxAttempts });
+    const [ended] = await privilegedDb
+      .update(testPlanExecutions)
+      .set({ status, completedAt: new Date() })
+      .where(eq(testPlanExecutions.id, first.id))
+      .returning();
+    return { queue, orchestrator, first: ended };
+  }
+
+  const inTenant = <T>(fn: () => Promise<T>) => runWithTenant(organizationId, fn);
+
+  it('queues the next attempt with the first attempt\'s configuration, after the delay', async () => {
+    const { queue, orchestrator, first } = await failedRun(3);
+    // The plan changes between the attempts; the retry tries the same thing again.
+    await privilegedDb.update(testPlans).set({ maxParallelTests: 9 }).where(eq(testPlans.id, planId));
+
+    const retry = await inTenant(() => orchestrator.retryFailedRun(first, 30_000));
+
+    expect(retry).toMatchObject({
+      status: 'queued',
+      attempt: 2,
+      maxAttempts: 3,
+      retryOfExecutionId: first.id,
+      triggeredBy: 'scheduled',
+      requestedByUserId: userId,
+    });
+    expect(retry!.configurationSnapshot).toEqual(first.configurationSnapshot);
+    expect(queue.jobs.at(-1)).toMatchObject({ options: { jobId: retry!.id, delay: 30_000 } });
+  });
+
+  it('queues one retry however many times the same attempt is reported finished', async () => {
+    const { queue, orchestrator, first } = await failedRun(2);
+
+    const a = await inTenant(() => orchestrator.retryFailedRun(first, 0));
+    const b = await inTenant(() => orchestrator.retryFailedRun(first, 0));
+
+    expect(b!.id).toBe(a!.id);
+    expect(queue.jobs).toHaveLength(2); // the first attempt and one retry
+  });
+
+  it('points every later attempt at the first, and stops at the last', async () => {
+    const { orchestrator, first } = await failedRun(3);
+    const second = await inTenant(() => orchestrator.retryFailedRun(first, 0));
+    const [secondFailed] = await privilegedDb
+      .update(testPlanExecutions)
+      .set({ status: 'error' })
+      .where(eq(testPlanExecutions.id, second!.id))
+      .returning();
+
+    const third = await inTenant(() => orchestrator.retryFailedRun(secondFailed, 0));
+    expect(third).toMatchObject({ attempt: 3, retryOfExecutionId: first.id });
+
+    const [thirdFailed] = await privilegedDb
+      .update(testPlanExecutions)
+      .set({ status: 'failed' })
+      .where(eq(testPlanExecutions.id, third!.id))
+      .returning();
+    expect(await inTenant(() => orchestrator.retryFailedRun(thirdFailed, 0))).toBeNull();
+  });
+
+  it('does not retry a run somebody cancelled or that ran out of time, or one allowed a single attempt', async () => {
+    for (const status of ['cancelled', 'timed_out'] as const) {
+      const { orchestrator, first } = await failedRun(3, status);
+      expect(await inTenant(() => orchestrator.retryFailedRun(first, 0))).toBeNull();
+    }
+    const { orchestrator, first } = await failedRun(1);
+    expect(await inTenant(() => orchestrator.retryFailedRun(first, 0))).toBeNull();
+  });
+
+  it('does not retry for a schedule that has been switched off since', async () => {
+    const [schedule] = await privilegedDb
+      .insert(testPlanSchedules)
+      .values({
+        id: uuidv4(),
+        testPlanId: planId,
+        organizationId,
+        userId,
+        scheduleName: 'Nightly',
+        frequency: 'daily',
+        nextRunAt: new Date(),
+        isActive: false,
+      })
+      .returning();
+    const queue = capturingQueue();
+    const orchestrator = createExecutionOrchestrator(queue);
+    const first = await orchestrator.enqueue({
+      planId,
+      requestedByUserId: userId,
+      trigger: 'scheduled',
+      scheduleId: schedule.id,
+      maxAttempts: 3,
+    });
+    const [failed] = await privilegedDb
+      .update(testPlanExecutions)
+      .set({ status: 'failed' })
+      .where(eq(testPlanExecutions.id, first.id))
+      .returning();
+
+    expect(await inTenant(() => orchestrator.retryFailedRun(failed, 0))).toBeNull();
+  });
+
+  it('is queued by the worker when an attempt fails, and not after the last one', async () => {
+    const execution = await runWithTenant(organizationId, async () => {
+      const { executionOrchestrator } = await import('./execution-orchestrator');
+      return executionOrchestrator.enqueue({ planId, requestedByUserId: userId, trigger: 'scheduled', maxAttempts: 2 });
+    });
+    executeTestSequence.mockResolvedValue({ success: false, error: 'Button not found', steps: [], duration: 5 });
+
+    await processTestPlanJob(planId, execution.id, userId);
+
+    expect((await executionRow(execution.id)).status).toBe('failed');
+    const [retry] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.retryOfExecutionId, execution.id));
+    expect(retry).toMatchObject({ status: 'queued', attempt: 2 });
+    expect(productionQueueAdds.map((job) => job.options.jobId)).toEqual([execution.id, retry.id]);
+
+    // The last attempt failing is the verdict: nothing further is queued.
+    await processTestPlanJob(planId, retry.id, userId);
+    expect((await executionRow(retry.id)).status).toBe('failed');
+    expect(await privilegedDb.select().from(testPlanExecutions)).toHaveLength(2);
   });
 });
 
