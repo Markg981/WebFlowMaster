@@ -255,7 +255,7 @@
     "dashboard": "Tableau de bord",
     "createTest": "Créer un Test",
     "tests": "Tests",
-    "suites": "Suites",
+    "suites": "Plans de test",
     "schedulazioni": "Planifications",
     "reports": "Rapports",
     "settings": "Paramètres",
@@ -264,7 +264,8 @@
     "scheduling": "Planification",
     "executionReport": "Rapport d’exécution",
     "runTestPlan": "Exécution du plan",
-    "reviews": "Relectures"
+    "reviews": "Relectures",
+    "testSuites": "Suites"
   },
   "dashboardPage": {
     "user": {
@@ -1830,7 +1831,8 @@
       "system_settings": "Paramètres système",
       "mfa": "Double authentification",
       "test_review": "Relectures des tests",
-      "runner": "Runners"
+      "runner": "Runners",
+      "suite": "Suites"
     },
     "actions": {
       "member_role_changed": "Rôle du membre modifié",
@@ -1883,7 +1885,11 @@
       "test_review_withdrawn": "Relecture retirée",
       "test_review_policy_changed": "Règle de relecture modifiée",
       "runner_drained": "Runner vidé",
-      "runner_resumed": "Runner repris"
+      "runner_resumed": "Runner repris",
+      "suite_created": "Suite créée",
+      "suite_updated": "Suite modifiée",
+      "suite_deleted": "Suite supprimée",
+      "plan_suites_changed": "Suites du plan modifiées"
     }
   },
   "security": {
@@ -2013,5 +2019,69 @@
     "resume": "Reprendre",
     "drainHint": "Vider un runner lui laisse terminer ce qu’il exécute sans rien prendre de nouveau. Quand ses tâches atteignent zéro, il peut être arrêté sans risque.",
     "ranOn": "Exécuté sur"
+  },
+  "suites": {
+    "title": "Suites",
+    "pageDescription": "Des listes de tests tenues une seule fois et partagées par les plans qui les incluent.",
+    "create": "Nouvelle suite",
+    "loading": "Chargement…",
+    "error": "Impossible de charger les suites.",
+    "empty": "Aucune suite pour l'instant. Une suite tient une liste de tests une seule fois, pour chaque plan qui en a besoin.",
+    "columns": {
+      "name": "Nom",
+      "kind": "Type",
+      "tests": "Tests",
+      "plans": "Plans",
+      "actions": "Actions"
+    },
+    "kind": {
+      "static": "Statique",
+      "dynamic": "Dynamique"
+    },
+    "kindHint": {
+      "static": "Ces tests, dans l'ordre où vous les choisissez.",
+      "dynamic": "Chaque test portant tous les tags choisis, déterminé à la création d'une exécution."
+    },
+    "fields": {
+      "name": "Nom",
+      "description": "Description",
+      "kind": "Type",
+      "tests": "Tests",
+      "tags": "Tags (un test doit tous les porter)"
+    },
+    "dialog": {
+      "createTitle": "Nouvelle suite",
+      "editTitle": "Modifier la suite",
+      "description": "Une suite est une liste de tests tenue une seule fois et incluse par autant de plans que nécessaire."
+    },
+    "filterTests": "Filtrer les tests…",
+    "noTests": "Aucun test.",
+    "noTags": "Aucun tag pour l'instant : ajoutez-en depuis la bibliothèque de tests.",
+    "preview": "Exécute actuellement",
+    "hiddenTest": "Un test dans un projet que vous ne pouvez pas voir",
+    "includedBy": "Incluse par : {{plans}}",
+    "edit": "Modifier",
+    "view": "Voir",
+    "delete": "Supprimer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saved": "Suite enregistrée",
+    "saveFailed": "La suite n'a pas été enregistrée",
+    "deleted": "Suite supprimée",
+    "deleteFailed": "La suite n'a pas été supprimée",
+    "loadFailed": "Impossible de charger la suite",
+    "deleteTitle": "Supprimer « {{name}} » ?",
+    "deleteInPlans": "{{count}} plans l'incluent ; ils cesseront d'exécuter ses tests. Les exécutions déjà faites gardent ce qu'elles ont exécuté.",
+    "deleteUnused": "Aucun plan ne l'inclut."
+  },
+  "planSuites": {
+    "button": "Suites",
+    "title": "Suites dans « {{name}} »",
+    "description": "Elles s'exécutent après les tests propres au plan, dans l'ordre où vous les cochez. Un test présent dans plusieurs suites s'exécute une fois.",
+    "none": "Aucune suite pour l'instant.",
+    "createOne": "En créer une",
+    "tests": "{{count}} tests",
+    "saved": "Suites enregistrées",
+    "saveFailed": "Les suites n'ont pas été enregistrées"
   }
 }

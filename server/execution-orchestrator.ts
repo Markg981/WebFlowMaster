@@ -12,7 +12,8 @@ import {
 } from '@shared/schema';
 import { privilegedDb } from './db';
 import { getCorrelationId } from './middleware/correlation';
-import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import { runAsOrganization, withTenantTransaction } from './middleware/tenancy';
+import { expandPlanTests, type TestReference } from './test-suites';
 import { transitionExecution } from './execution-state';
 import { buildExecutionSnapshot, readExecutionSnapshot, type SnapshotTestReference } from './execution-snapshot';
 import { testExecutionQueue } from './queue';
@@ -165,7 +166,9 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
     const organizationId = bootstrap.organizationId;
     const key = input.idempotencyKey?.trim() || null;
 
-    return runWithTenant(organizationId, async () => {
+    // For the organization, not the requester: a run of a plan contains the same tests whoever
+    // pressed Run (restricted projects narrow what a member sees, not what a plan is).
+    return runAsOrganization(organizationId, async () => {
       const findByKey = async () => {
         if (!key) return null;
         const [existing] = await withTenantTransaction((tx) =>
@@ -234,7 +237,11 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
             .where(eq(testPlanSelectedTests.testPlanId, plan.id))
             .orderBy(asc(testPlanSelectedTests.id));
 
-          const snapshot = buildExecutionSnapshot(plan, selected as SnapshotTestReference[], {
+          // The plan's own tests, then its suites' — worked out now, so the snapshot says exactly
+          // what this run executes even after a suite or a tag changes.
+          const expanded = await expandPlanTests(tx, plan.id, selected as TestReference[]);
+
+          const snapshot = buildExecutionSnapshot(plan, expanded as SnapshotTestReference[], {
             environmentId: input.environmentId ?? null,
             browsers: input.browsers,
             updateBaselines: input.updateBaselines,

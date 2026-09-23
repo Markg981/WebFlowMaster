@@ -52,6 +52,27 @@ export class TenantConflictError extends Error {
  */
 const tenantStore = new AsyncLocalStorage<TenantContext>();
 
+/**
+ * Runs `fn` for the organization itself rather than for whoever is asking: no principal, so the
+ * project policies of migration 0031 do not narrow what it reads.
+ *
+ * For work whose result must not depend on who triggered it — creating a run of a plan is the
+ * one: a plan is the organization's, and a run of it must contain the same tests whether a member
+ * on every project or on none pressed Run. Refuses when a transaction bound to a user is already
+ * open, because that binding cannot be undone from inside it.
+ */
+export async function runAsOrganization<T>(organizationId: number, fn: () => Promise<T> | T): Promise<T> {
+  const store = tenantStore.getStore();
+  if (store?.tx !== undefined) {
+    if (store.organizationId !== organizationId) throw new TenantConflictError(store.organizationId, organizationId);
+    if (store.principal) {
+      throw new Error('runAsOrganization called inside a transaction already bound to a user; call it before opening one.');
+    }
+    return tenantStore.run({ organizationId, tx: store.tx }, fn);
+  }
+  return tenantStore.run({ organizationId }, fn);
+}
+
 export function getTenantOrgId(): number | undefined {
   return tenantStore.getStore()?.organizationId;
 }

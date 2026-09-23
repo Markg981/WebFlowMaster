@@ -9,11 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 // Select component from shadcn/ui is not used in the current version of this file for project filtering.
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, Loader2, Link2 } from 'lucide-react';
+import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, Loader2, Link2, Layers } from 'lucide-react';
 import type { TestPlan } from '@shared/schema';
 import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard';
 import WebhooksModal from '@/components/dashboard/WebhooksModal';
 import EditTestPlanSettingsModal from '@/components/dashboard/EditTestPlanSettingsModal';
+import PlanSuitesDialog from '@/components/suites/PlanSuitesDialog';
 import { fetchFullTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans'; // Renamed fetchTestPlans
 
 
@@ -28,6 +29,8 @@ const TestSuitesPage: React.FC = () => {
   const [selectedPlanForWebhooks, setSelectedPlanForWebhooks] = useState<{ id: string, name: string } | null>(null);
   /** The plan whose run settings are open for editing, if any. */
   const [planBeingEdited, setPlanBeingEdited] = useState<TestPlan | null>(null);
+  /** The plan whose included suites are open for editing, if any. */
+  const [planForSuites, setPlanForSuites] = useState<{ id: string; name: string } | null>(null);
 
   const [runningPlanId] = useState<string | null>(null);
   const itemsPerPage = 5;
@@ -194,6 +197,9 @@ const TestSuitesPage: React.FC = () => {
                             <Button variant="outline" size="sm" onClick={() => setPlanBeingEdited(item)}>
                               <Settings size={16} className="mr-1" /> {t('testSuitesPage.settings.button', 'Settings')}
                             </Button>
+                            <Button variant="outline" size="sm" onClick={() => setPlanForSuites({ id: item.id, name: item.name })}>
+                              <Layers size={16} className="mr-1" /> {t('planSuites.button', 'Suites')}
+                            </Button>
                             <Button variant="outline" size="sm" onClick={openScheduling}>
                               <CalendarDays size={16} className="mr-1" /> {t('testSuitesPage.schedule.button')}
                             </Button>
@@ -246,6 +252,8 @@ const TestSuitesPage: React.FC = () => {
           onClose={() => setPlanBeingEdited(null)}
           onSaved={handlePlanCreated}
         />
+
+        <PlanSuitesDialog plan={planForSuites} onClose={() => setPlanForSuites(null)} />
 
         {selectedPlanForWebhooks && (
           <WebhooksModal

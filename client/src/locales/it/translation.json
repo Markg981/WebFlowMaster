@@ -252,7 +252,7 @@
     "dashboard": "Dashboard",
     "createTest": "Crea Test",
     "tests": "Test",
-    "suites": "Suite di Test",
+    "suites": "Piani di test",
     "apiTester": "Tester API",
     "schedulazioni": "Schedulazioni",
     "reports": "Report",
@@ -261,7 +261,8 @@
     "scheduling": "Schedulazione",
     "executionReport": "Report di esecuzione",
     "runTestPlan": "Esecuzione del piano",
-    "reviews": "Revisioni"
+    "reviews": "Revisioni",
+    "testSuites": "Suite"
   },
   "dashboardPage": {
     "headerTitle": "Piattaforma WebTest",
@@ -1949,7 +1950,8 @@
       "system_settings": "Impostazioni di sistema",
       "mfa": "Due fattori",
       "test_review": "Revisioni dei test",
-      "runner": "Runner"
+      "runner": "Runner",
+      "suite": "Suite"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
@@ -2002,7 +2004,11 @@
       "test_review_withdrawn": "Revisione ritirata",
       "test_review_policy_changed": "Criterio di revisione cambiato",
       "runner_drained": "Runner svuotato",
-      "runner_resumed": "Runner ripreso"
+      "runner_resumed": "Runner ripreso",
+      "suite_created": "Suite creata",
+      "suite_updated": "Suite modificata",
+      "suite_deleted": "Suite eliminata",
+      "plan_suites_changed": "Suite del piano modificate"
     }
   },
   "security": {
@@ -2132,5 +2138,69 @@
     "resume": "Riprendi",
     "drainHint": "Svuotare un runner gli fa finire ciò che sta eseguendo senza prendere altro. Quando i job arrivano a zero si può fermare in sicurezza.",
     "ranOn": "Eseguito su"
+  },
+  "suites": {
+    "title": "Suite",
+    "pageDescription": "Elenchi di test tenuti una volta sola e condivisi dai piani che li includono.",
+    "create": "Nuova suite",
+    "loading": "Caricamento…",
+    "error": "Impossibile caricare le suite.",
+    "empty": "Ancora nessuna suite. Una suite tiene un elenco di test una volta sola, per tutti i piani che ne hanno bisogno.",
+    "columns": {
+      "name": "Nome",
+      "kind": "Tipo",
+      "tests": "Test",
+      "plans": "Piani",
+      "actions": "Azioni"
+    },
+    "kind": {
+      "static": "Statica",
+      "dynamic": "Dinamica"
+    },
+    "kindHint": {
+      "static": "Questi test, nell'ordine in cui li scegli.",
+      "dynamic": "Tutti i test che hanno tutti i tag scelti, calcolati quando viene creata un'esecuzione."
+    },
+    "fields": {
+      "name": "Nome",
+      "description": "Descrizione",
+      "kind": "Tipo",
+      "tests": "Test",
+      "tags": "Tag (un test deve averli tutti)"
+    },
+    "dialog": {
+      "createTitle": "Nuova suite",
+      "editTitle": "Modifica suite",
+      "description": "Una suite è un elenco di test tenuto una volta sola e incluso da tutti i piani che ne hanno bisogno."
+    },
+    "filterTests": "Filtra i test…",
+    "noTests": "Nessun test.",
+    "noTags": "Ancora nessun tag: aggiungili dalla libreria dei test.",
+    "preview": "Esegue adesso",
+    "hiddenTest": "Un test in un progetto che non puoi vedere",
+    "includedBy": "Inclusa da: {{plans}}",
+    "edit": "Modifica",
+    "view": "Visualizza",
+    "delete": "Elimina",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "saved": "Suite salvata",
+    "saveFailed": "La suite non è stata salvata",
+    "deleted": "Suite eliminata",
+    "deleteFailed": "La suite non è stata eliminata",
+    "loadFailed": "Impossibile caricare la suite",
+    "deleteTitle": "Eliminare \"{{name}}\"?",
+    "deleteInPlans": "{{count}} piani la includono e smetteranno di eseguirne i test. Le esecuzioni già fatte conservano ciò che hanno eseguito.",
+    "deleteUnused": "Nessun piano la include."
+  },
+  "planSuites": {
+    "button": "Suite",
+    "title": "Suite in \"{{name}}\"",
+    "description": "Vengono eseguite dopo i test del piano, nell'ordine in cui le spunti. Un test presente in più suite viene eseguito una volta.",
+    "none": "Ancora nessuna suite.",
+    "createOne": "Creane una",
+    "tests": "{{count}} test",
+    "saved": "Suite salvate",
+    "saveFailed": "Le suite non sono state salvate"
   }
 }
