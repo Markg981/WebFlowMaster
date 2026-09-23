@@ -884,6 +884,55 @@ export const testReviews = pgTable("test_reviews", {
 
 export type TestReview = typeof testReviews.$inferSelect;
 
+export const TEST_SUITE_KINDS = ['static', 'dynamic'] as const;
+export type TestSuiteKind = (typeof TEST_SUITE_KINDS)[number];
+
+/**
+ * A named set of tests that plans share: chosen one by one (static), or every test carrying some
+ * tags (dynamic, worked out when a run is created). See migrations/0034.
+ */
+export const testSuites = pgTable("test_suites", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
+  name: text("name").notNull(),
+  description: text("description"),
+  kind: text("kind").$type<TestSuiteKind>().notNull().default('static'),
+  /** The dynamic rule: tags a test must all carry. */
+  tagIds: jsonb("tag_ids").$type<string[]>().notNull().default([]),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("test_suites_organization_id_idx").on(table.organizationId),
+]);
+
+export type TestSuite = typeof testSuites.$inferSelect;
+
+/** The tests of a static suite, in order. */
+export const testSuiteItems = pgTable("test_suite_items", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  suiteId: integer("suite_id").notNull().references(() => testSuites.id, { onDelete: 'cascade' }),
+  testType: text("test_type").$type<'ui' | 'api'>().notNull(),
+  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
+  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
+  position: integer("position").notNull(),
+}, (table) => [
+  index("test_suite_items_suite_id_idx").on(table.suiteId),
+]);
+
+/** The suites a plan includes, in order, after its own tests. */
+export const testPlanSuites = pgTable("test_plan_suites", {
+  testPlanId: text("test_plan_id").notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
+  suiteId: integer("suite_id").notNull().references(() => testSuites.id, { onDelete: 'cascade' }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  position: integer("position").notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.testPlanId, table.suiteId] }),
+  index("test_plan_suites_suite_id_idx").on(table.suiteId),
+]);
+
 /** The trackers this build can actually file in. A provider with no implementation files nothing. */
 export const ISSUE_PROVIDERS = ['jira', 'azure_devops'] as const;
 export type IssueProvider = (typeof ISSUE_PROVIDERS)[number];
@@ -1056,6 +1105,11 @@ export const AUDIT_ACTIONS = {
   // Taking a runner out of service, and putting it back.
   RUNNER_DRAINED: 'runner.drained',
   RUNNER_RESUMED: 'runner.resumed',
+  // Suites, and which plans include them.
+  SUITE_CREATED: 'suite.created',
+  SUITE_UPDATED: 'suite.updated',
+  SUITE_DELETED: 'suite.deleted',
+  PLAN_SUITES_CHANGED: 'plan.suites_changed',
   RUN_CANCELLED: 'run.cancelled',
   // Where tests run and with what. Secrets by name only — never a value.
   ENVIRONMENT_CREATED: 'environment.created',
@@ -2046,4 +2100,6 @@ export const ORG_SCOPED_TABLES = [
   // Which version of a test is live, and the reviews that put it there (migration 0032).
   // test_publications is SELECT and INSERT only: a publication history is evidence.
   'test_publications', 'test_reviews',
+  // Suites, their tests, and the plans that include them (migration 0034).
+  'test_suites', 'test_suite_items', 'test_plan_suites',
 ] as const;

@@ -255,7 +255,7 @@
     "dashboard": "Übersicht",
     "createTest": "Test erstellen",
     "tests": "Tests",
-    "suites": "Suiten",
+    "suites": "Testpläne",
     "schedulazioni": "Planungen",
     "reports": "Berichte",
     "settings": "Einstellungen",
@@ -264,7 +264,8 @@
     "scheduling": "Planung",
     "executionReport": "Ausführungsbericht",
     "runTestPlan": "Testplan ausführen",
-    "reviews": "Prüfungen"
+    "reviews": "Prüfungen",
+    "testSuites": "Suiten"
   },
   "dashboardPage": {
     "user": {
@@ -1830,7 +1831,8 @@
       "system_settings": "Systemeinstellungen",
       "mfa": "Zwei-Faktor",
       "test_review": "Testprüfungen",
-      "runner": "Runner"
+      "runner": "Runner",
+      "suite": "Suiten"
     },
     "actions": {
       "member_role_changed": "Rolle des Mitglieds geändert",
@@ -1883,7 +1885,11 @@
       "test_review_withdrawn": "Prüfung zurückgezogen",
       "test_review_policy_changed": "Prüfrichtlinie geändert",
       "runner_drained": "Runner geleert",
-      "runner_resumed": "Runner fortgesetzt"
+      "runner_resumed": "Runner fortgesetzt",
+      "suite_created": "Suite erstellt",
+      "suite_updated": "Suite geändert",
+      "suite_deleted": "Suite gelöscht",
+      "plan_suites_changed": "Suiten des Plans geändert"
     }
   },
   "security": {
@@ -2013,5 +2019,69 @@
     "resume": "Fortsetzen",
     "drainHint": "Beim Leeren beendet ein Runner, was er gerade ausführt, und nimmt nichts Neues an. Sobald seine Jobs bei null sind, kann er sicher gestoppt werden.",
     "ranOn": "Ausgeführt auf"
+  },
+  "suites": {
+    "title": "Suiten",
+    "pageDescription": "Testlisten, einmal gepflegt und von den Plänen geteilt, die sie einbinden.",
+    "create": "Neue Suite",
+    "loading": "Wird geladen…",
+    "error": "Die Suiten konnten nicht geladen werden.",
+    "empty": "Noch keine Suiten. Eine Suite pflegt eine Testliste einmal, für jeden Plan, der sie braucht.",
+    "columns": {
+      "name": "Name",
+      "kind": "Art",
+      "tests": "Tests",
+      "plans": "Pläne",
+      "actions": "Aktionen"
+    },
+    "kind": {
+      "static": "Statisch",
+      "dynamic": "Dynamisch"
+    },
+    "kindHint": {
+      "static": "Diese Tests, in der Reihenfolge, in der Sie sie wählen.",
+      "dynamic": "Jeder Test mit allen gewählten Tags, ermittelt, wenn ein Lauf erstellt wird."
+    },
+    "fields": {
+      "name": "Name",
+      "description": "Beschreibung",
+      "kind": "Art",
+      "tests": "Tests",
+      "tags": "Tags (ein Test muss alle tragen)"
+    },
+    "dialog": {
+      "createTitle": "Neue Suite",
+      "editTitle": "Suite bearbeiten",
+      "description": "Eine Suite ist eine Testliste, einmal gepflegt und von beliebig vielen Plänen eingebunden."
+    },
+    "filterTests": "Tests filtern…",
+    "noTests": "Keine Tests.",
+    "noTags": "Noch keine Tags: Fügen Sie sie in der Testbibliothek hinzu.",
+    "preview": "Führt derzeit aus",
+    "hiddenTest": "Ein Test in einem Projekt, das Sie nicht sehen können",
+    "includedBy": "Eingebunden von: {{plans}}",
+    "edit": "Bearbeiten",
+    "view": "Ansehen",
+    "delete": "Löschen",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "saved": "Suite gespeichert",
+    "saveFailed": "Die Suite wurde nicht gespeichert",
+    "deleted": "Suite gelöscht",
+    "deleteFailed": "Die Suite wurde nicht gelöscht",
+    "loadFailed": "Die Suite konnte nicht geladen werden",
+    "deleteTitle": "„{{name}}“ löschen?",
+    "deleteInPlans": "{{count}} Pläne binden sie ein; sie führen ihre Tests nicht mehr aus. Bereits erfolgte Läufe behalten, was sie ausgeführt haben.",
+    "deleteUnused": "Kein Plan bindet sie ein."
+  },
+  "planSuites": {
+    "button": "Suiten",
+    "title": "Suiten in „{{name}}“",
+    "description": "Sie laufen nach den eigenen Tests des Plans, in der Reihenfolge, in der Sie sie ankreuzen. Ein Test in mehreren Suiten läuft einmal.",
+    "none": "Noch keine Suiten.",
+    "createOne": "Eine erstellen",
+    "tests": "{{count}} Tests",
+    "saved": "Suiten gespeichert",
+    "saveFailed": "Die Suiten wurden nicht gespeichert"
   }
 }

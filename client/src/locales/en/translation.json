@@ -249,7 +249,7 @@
     "dashboard": "Dashboard",
     "createTest": "Create Test",
     "tests": "Tests",
-    "suites": "Test Suites",
+    "suites": "Test plans",
     "apiTester": "API Tester",
     "schedulazioni": "Schedulings",
     "scheduling": "Scheduling",
@@ -258,7 +258,8 @@
     "backToDashboard": "Back to Dashboard",
     "executionReport": "Execution report",
     "runTestPlan": "Run test plan",
-    "reviews": "Reviews"
+    "reviews": "Reviews",
+    "testSuites": "Suites"
   },
   "dashboardPage": {
     "user": {
@@ -1824,7 +1825,8 @@
       "system_settings": "System settings",
       "mfa": "Two-factor",
       "test_review": "Test reviews",
-      "runner": "Runners"
+      "runner": "Runners",
+      "suite": "Suites"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -1877,7 +1879,11 @@
       "test_review_withdrawn": "Review withdrawn",
       "test_review_policy_changed": "Review policy changed",
       "runner_drained": "Runner drained",
-      "runner_resumed": "Runner resumed"
+      "runner_resumed": "Runner resumed",
+      "suite_created": "Suite created",
+      "suite_updated": "Suite changed",
+      "suite_deleted": "Suite deleted",
+      "plan_suites_changed": "Plan's suites changed"
     }
   },
   "security": {
@@ -2007,5 +2013,69 @@
     "resume": "Resume",
     "drainHint": "Draining lets a runner finish what it is running and take nothing new. When its jobs reach zero it can be stopped safely.",
     "ranOn": "Ran on"
+  },
+  "suites": {
+    "title": "Suites",
+    "pageDescription": "Lists of tests kept once and shared by the plans that include them.",
+    "create": "New suite",
+    "loading": "Loading…",
+    "error": "The suites could not be loaded.",
+    "empty": "No suites yet. A suite keeps a list of tests once, for every plan that needs it.",
+    "columns": {
+      "name": "Name",
+      "kind": "Kind",
+      "tests": "Tests",
+      "plans": "Plans",
+      "actions": "Actions"
+    },
+    "kind": {
+      "static": "Static",
+      "dynamic": "Dynamic"
+    },
+    "kindHint": {
+      "static": "These tests, in the order you pick them.",
+      "dynamic": "Every test carrying all of the chosen tags, worked out when a run is created."
+    },
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "kind": "Kind",
+      "tests": "Tests",
+      "tags": "Tags (a test must carry all of them)"
+    },
+    "dialog": {
+      "createTitle": "New suite",
+      "editTitle": "Edit suite",
+      "description": "A suite is a list of tests kept once and included by as many plans as need it."
+    },
+    "filterTests": "Filter tests…",
+    "noTests": "No tests.",
+    "noTags": "No tags yet: add them from the test library.",
+    "preview": "Runs right now",
+    "hiddenTest": "A test in a project you cannot see",
+    "includedBy": "Included by: {{plans}}",
+    "edit": "Edit",
+    "view": "View",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saved": "Suite saved",
+    "saveFailed": "The suite was not saved",
+    "deleted": "Suite deleted",
+    "deleteFailed": "The suite was not deleted",
+    "loadFailed": "The suite could not be loaded",
+    "deleteTitle": "Delete \"{{name}}\"?",
+    "deleteInPlans": "{{count}} plans include it; they will stop running its tests. Runs already made keep what they ran.",
+    "deleteUnused": "No plan includes it."
+  },
+  "planSuites": {
+    "button": "Suites",
+    "title": "Suites in \"{{name}}\"",
+    "description": "They run after the plan's own tests, in the order you tick them. A test in more than one runs once.",
+    "none": "No suites yet.",
+    "createOne": "Create one",
+    "tests": "{{count}} tests",
+    "saved": "Suites saved",
+    "saveFailed": "The suites were not saved"
   }
 }
