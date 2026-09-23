@@ -174,7 +174,7 @@ export interface ExecuteSequenceOptions {
 }
 
 // Interface for the ad-hoc sequence payload
-interface AdhocSequencePayload {
+export interface AdhocSequencePayload {
   url: string;
   sequence: TestStep[];
   elements: DetectedElement[]; // Currently for context, not actively used in loop logic by default

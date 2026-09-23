@@ -14,12 +14,13 @@ interface JobLike {
  * Rethrowing is not optional: swallowing the error here would make BullMQ mark the job
  * successful, so a broken job would silently never retry and never surface.
  */
-export function withJobIncidents<T extends JobLike>(
-  handler: (job: T) => Promise<void>,
-): (job: T) => Promise<void> {
+export function withJobIncidents<T extends JobLike, R = void>(
+  handler: (job: T) => Promise<R>,
+): (job: T) => Promise<R> {
   return async (job: T) => {
     try {
-      await handler(job);
+      // Returned, not only awaited: a job's return value is its answer to whoever waits on it.
+      return await handler(job);
     } catch (error) {
       await recordIncident({
         kind: 'job',
