@@ -97,3 +97,68 @@ export async function transitionExecution(
 
   return moved ?? null;
 }
+
+export type CancellationOutcome =
+  | { outcome: 'cancelled'; execution: TestPlanExecution }
+  | { outcome: 'cancelling'; execution: TestPlanExecution }
+  | { outcome: 'already_ended'; status: string }
+  | { outcome: 'not_found' };
+
+/**
+ * Asks a run to stop.
+ *
+ * A run still waiting in the queue is cancelled on the spot: no worker has it, and none can take
+ * it once it is not `queued`, so there is nobody to wait for. A running one becomes `cancelling`
+ * and its worker, which hears it at its next heartbeat, finishes the test step it is on and ends
+ * the run as `cancelled`. Which of the two happens is decided by the database, one conditional
+ * update at a time, so a worker taking the run at the same moment cannot be cancelled "from the
+ * queue" behind its back.
+ */
+export async function requestCancellation(executionId: string, reason: string): Promise<CancellationOutcome> {
+  const now = new Date();
+  const move = (from: ExecutionStatus) =>
+    withTenantTransaction((tx) =>
+      tx
+        .update(testPlanExecutions)
+        .set({ status: 'cancelling', cancelRequestedAt: now, failureMessage: reason })
+        .where(and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.status, from)))
+        .returning(),
+    );
+
+  const [fromQueue] = await move('queued');
+  if (fromQueue) {
+    const cancelled = await transitionExecution(executionId, 'cancelled', { failureMessage: reason });
+    if (cancelled) return { outcome: 'cancelled', execution: cancelled };
+  }
+
+  const [fromRunning] = await move('running');
+  if (fromRunning) return { outcome: 'cancelling', execution: fromRunning };
+
+  const [current] = await withTenantTransaction((tx) =>
+    tx.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId)).limit(1),
+  );
+  if (!current) return { outcome: 'not_found' };
+  if (current.status === 'cancelling') return { outcome: 'cancelling', execution: current };
+  return { outcome: 'already_ended', status: current.status };
+}
+
+/** The states a worker is still responsible for, and so the ones it keeps a heartbeat on. */
+export const LIVE_EXECUTION_STATUSES = ['running', 'cancelling'] as const;
+
+/**
+ * Says the worker is still on this run, and hears back what the run is now.
+ *
+ * Returns the run's status — `cancelling` is how the worker learns somebody asked it to stop —
+ * or null when the run is no longer live: it ended, or was given up on by the recovery sweep,
+ * and whatever this worker does next is not recorded.
+ */
+export async function recordHeartbeat(executionId: string): Promise<'running' | 'cancelling' | null> {
+  const [row] = await withTenantTransaction((tx) =>
+    tx
+      .update(testPlanExecutions)
+      .set({ heartbeatAt: new Date() })
+      .where(and(eq(testPlanExecutions.id, executionId), inArray(testPlanExecutions.status, [...LIVE_EXECUTION_STATUSES])))
+      .returning(),
+  );
+  return row ? (row.status as 'running' | 'cancelling') : null;
+}

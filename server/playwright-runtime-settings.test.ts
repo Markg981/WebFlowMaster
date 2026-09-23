@@ -122,6 +122,22 @@ describe('screenshots', () => {
   });
 });
 
+describe('a run that is stopping', () => {
+  it('starts no further step, and says the test was stopped', async () => {
+    const controller = new AbortController();
+    controller.abort(new Error('Not run: the run was cancelled.'));
+
+    const result = await playwrightService.executeTestSequence(oneStepTest(), 1, undefined, undefined, {}, undefined, {
+      runtime: runtime(),
+      signal: controller.signal,
+    });
+
+    expect(mocks.executeStep).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(result.steps?.[1]).toMatchObject({ status: 'failed', error: 'Stopped: the run was cancelled.' });
+  });
+});
+
 describe('"Retry Step"', () => {
   it('tries a failed step once more, and a pass on the second try is a pass', async () => {
     mocks.executeStep.mockResolvedValueOnce({ status: 'failed', error: 'not yet' }).mockResolvedValueOnce({ status: 'passed' });

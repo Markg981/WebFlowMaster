@@ -1182,7 +1182,19 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
         .orderBy(desc(reportTestCaseResults.status), asc(reportTestCaseResults.testName)); // Example ordering
 
-      return { ...executionDetailsResult[0], testCaseResults };
+      // The attempt that followed this one, when a schedule's retry policy queued one — so a
+      // failed attempt's report can point at the run that decided the verdict.
+      const thisRun = executionDetailsResult[0].execution;
+      const [nextAttempt] = await tx
+        .select({ id: testPlanExecutions.id, status: testPlanExecutions.status, attempt: testPlanExecutions.attempt })
+        .from(testPlanExecutions)
+        .where(and(
+          eq(testPlanExecutions.retryOfExecutionId, thisRun.retryOfExecutionId ?? thisRun.id),
+          eq(testPlanExecutions.attempt, thisRun.attempt + 1),
+        ))
+        .limit(1);
+
+      return { ...executionDetailsResult[0], testCaseResults, nextAttempt: nextAttempt ?? null };
     });
 
     if (!reportSource) {
@@ -1190,7 +1202,7 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
       return res.status(404).json({ error: "Test plan execution not found." });
     }
 
-    const { execution, plan, testCaseResults } = reportSource;
+    const { execution, plan, testCaseResults, nextAttempt } = reportSource;
 
     // 3. Calculate Key Metrics
     const totalTests = testCaseResults.length;
@@ -1251,6 +1263,8 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         // and for API tests, which have no history to point at.
         testVersion: r.testVersion,
         reasonForFailure: r.reasonForFailure,
+        // How many times the plan ran it before this result stood.
+        attempts: r.attempts,
         screenshotUrl: artifactUrl(executionId, r.screenshotUrl),
         // A recording of the run, and a trace of it, when the plan kept them. The trace is the
         // one that answers what a screenshot cannot: the DOM, the network and the console at
@@ -1325,6 +1339,17 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         triggeredBy: execution.triggeredBy,
         executionId: execution.id,
         testPlanId: execution.testPlanId,
+        // Which attempt of its scheduled occurrence this run is, and where the others are.
+        attempt: execution.attempt,
+        maxAttempts: execution.maxAttempts,
+        firstAttemptId: execution.retryOfExecutionId,
+        nextAttempt,
+        // Why a run ended the way it did when that was not its tests: cancelled, out of time,
+        // its worker lost.
+        failureCode: execution.failureCode,
+        failureMessage: execution.failureMessage,
+        // Tests that passed only after being run again: a pass, and a finding of its own.
+        flakyTests: testCaseResults.filter((r) => r.status === 'Passed' && (r.attempts ?? 1) > 1).length,
       },
       keyMetrics: {
         totalTests: execution.totalTests ?? totalTests, // Prefer pre-calculated, fallback to fresh calculation

@@ -7,6 +7,7 @@ import schedulerService, { assertValidTimezone } from "../scheduler-service";
 import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
 import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from "./selected-tests";
+import { requestCancellation } from "../execution-state";
 
 const router = Router();
 const logger = await loggerPromise;
@@ -346,6 +347,35 @@ router.get("/api/test-plan-executions/:id", requireRole('viewer'), async (req, r
       results: typeof execution.results === 'string' ? JSON.parse(execution.results) : execution.results,
       browsers: typeof execution.browsers === 'string' ? JSON.parse(execution.browsers) : execution.browsers,
     });
+});
+
+/**
+ * Stops a run.
+ *
+ * A run that started wrong — the wrong environment, a plan somebody is still editing — used to
+ * run to its end, however long that was, holding a worker and a browser the whole time. One
+ * still in the queue is cancelled at once (200); a running one is asked to stop (202) and its
+ * worker ends it at its next step. Asking twice is harmless, and asking about a run that has
+ * already finished says so rather than pretending to have stopped it.
+ */
+router.post("/api/test-plan-executions/:id/cancel", requireRole('editor'), async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
+
+    const who = (req.user as { username?: string }).username ?? `user ${req.user.id}`;
+    const result = await requestCancellation(req.params.id, `Cancelled by ${who}.`);
+
+    switch (result.outcome) {
+      case 'not_found':
+        return res.status(404).json({ error: "Test plan execution not found." });
+      case 'already_ended':
+        return res.status(409).json({ error: `The run has already ended (${result.status}).`, status: result.status });
+      case 'cancelled':
+        logger.info({ message: 'Queued run cancelled', executionId: req.params.id, by: req.user.id });
+        return res.status(200).json({ status: 'cancelled', execution: result.execution });
+      case 'cancelling':
+        logger.info({ message: 'Running run asked to stop', executionId: req.params.id, by: req.user.id });
+        return res.status(202).json({ status: 'cancelling', execution: result.execution });
+    }
 });
 
 export default router;

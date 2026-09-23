@@ -27,6 +27,7 @@ import {
 } from '@/lib/schemas/scheduleFormSchema';
 import type { CreateScheduleClientPayload, TestPlanScheduleEnhanced } from '@/lib/api/schedules';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import ScheduleEnvironmentSelect from './ScheduleEnvironmentSelect';
 
 
 interface ScheduleFormProps {
@@ -271,7 +272,11 @@ const ScheduleForm: React.FC<ScheduleFormProps> = ({ initialData, onSubmit, onCa
 
       <div>
         <Label htmlFor="environment">Environment</Label>
-        <Input id="environment" {...register('environment')} placeholder="e.g., QA, Staging, Production" />
+        <Controller
+          name="environment"
+          control={control}
+          render={({ field }) => <ScheduleEnvironmentSelect value={field.value} onChange={field.onChange} />}
+        />
         {errors.environment && <p className="text-sm text-destructive mt-1">{errors.environment.message}</p>}
       </div>
 

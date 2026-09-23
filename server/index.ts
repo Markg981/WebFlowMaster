@@ -135,6 +135,11 @@ app.use(express.urlencoded({ extended: false }));
     // Decide if server should proceed or exit based on severity
   }
 
+  // Ends runs whose worker has stopped answering — see server/run-recovery.ts. Here rather than
+  // in the worker: when every worker is gone, somebody still has to say their runs are over.
+  const { startRunRecovery } = await import('./run-recovery');
+  const stopRunRecovery = process.env.NODE_ENV === 'test' ? () => {} : startRunRecovery();
+
   // Records an incident for every unhandled error, then answers as before.
   const { incidentErrorHandler } = await import("./observability/taps/express");
   app.use(incidentErrorHandler(logger));
@@ -182,6 +187,7 @@ app.use(express.urlencoded({ extended: false }));
     server.close(async () => {
       try {
         await schedulerService.shutdownScheduler();
+        stopRunRecovery();
         const { closeBrowserTasks } = await import('./browser-tasks');
         await closeBrowserTasks();
         await redisConnection.quit();
