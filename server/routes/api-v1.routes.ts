@@ -1,7 +1,8 @@
 import { Router, type Request } from "express";
 import { z } from "zod";
 import { and, desc, eq, sql, type SQL } from "drizzle-orm";
-import { testPlanExecutions, testPlans, type TestPlanExecution } from "@shared/schema";
+import { AUDIT_ACTIONS, testPlanExecutions, testPlans, type TestPlanExecution } from "@shared/schema";
+import { auditActor, recordAudit } from "../audit";
 import { EXECUTION_STATUSES } from "@shared/execution-status";
 import { withTenantTransaction } from "../middleware/tenancy";
 import { apiError, requireScope } from "../middleware/require-scope";
@@ -163,7 +164,15 @@ router.get("/api/v1/runs/:runId", requireScope('runs:read'), async (req, res) =>
 
 router.post("/api/v1/runs/:runId/cancel", requireScope('runs:write'), async (req, res) => {
   const who = req.user!.displayName ?? req.user!.username;
-  const result = await requestCancellation(req.params.runId, `Cancelled by ${who} through the API.`);
+  const result = await requestCancellation(req.params.runId, `Cancelled by ${who} through the API.`, (tx, execution) =>
+    recordAudit(tx, {
+      action: AUDIT_ACTIONS.RUN_CANCELLED,
+      actor: auditActor(req),
+      targetType: 'run',
+      targetId: execution.id,
+      metadata: { planId: execution.testPlanId },
+    }),
+  );
   switch (result.outcome) {
     case 'not_found':
       return apiError(res, 404, 'run_not_found', 'There is no such run in this organization.');

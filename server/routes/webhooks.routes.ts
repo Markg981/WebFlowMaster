@@ -4,7 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { AUDIT_ACTIONS, testPlans, testPlanWebhooks } from "@shared/schema";
 import { withTenantTransaction } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
-import { recordAudit } from "../audit";
+import { auditActor, recordAudit } from "../audit";
 import { generateWebhookToken } from "../webhook-tokens";
 import loggerPromise from "../logger";
 
@@ -83,7 +83,7 @@ router.post("/api/test-plans/:planId/webhooks", requireRole('editor'), async (re
 
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.WEBHOOK_CREATED,
-        actor: { id: req.user!.id, username: req.user!.username },
+        actor: auditActor(req),
         targetType: 'webhook',
         targetId: String(row.id),
         // The prefix, never the token and never its hash.
@@ -115,7 +115,7 @@ router.delete("/api/webhooks/:id", requireRole('editor'), async (req, res) => {
       if (!row) return null;
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.WEBHOOK_DELETED,
-        actor: { id: req.user!.id, username: req.user!.username },
+        actor: auditActor(req),
         targetType: 'webhook',
         targetId: String(row.id),
         metadata: { name: row.name, testPlanId: row.testPlanId, tokenPrefix: row.tokenPrefix },

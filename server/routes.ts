@@ -24,8 +24,10 @@ import {
   testPlanExecutions,
   reportTestCaseResults,
   ReportTestCaseResult,
-  executionLogs
+  executionLogs,
+  AUDIT_ACTIONS,
 } from "@shared/schema";
+import { auditActor, changedFields, recordAudit } from "./audit";
 import { z } from "zod";
 // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
@@ -312,7 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // previously relied on the latter for both.
       const deleted = await withTenantTransaction(async (tx) => {
         const projectToDelete = await tx
-          .select({ id: projects.id })
+          .select({ id: projects.id, name: projects.name })
           .from(projects)
           .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)))
           .limit(1);
@@ -322,6 +324,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await tx
           .delete(projects)
           .where(and(eq(projects.id, parsedProjectId), eq(projects.userId, userId)));
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.PROJECT_DELETED,
+          actor: auditActor(req),
+          targetType: 'project',
+          targetId: parsedProjectId,
+          metadata: { name: projectToDelete[0].name },
+        });
         return true;
       });
 
@@ -842,10 +851,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // there. Without this the handler would happily update any plan by id, and the
             // join rows below would then be stamped with the foreign plan's organization
             // while naming tests from the caller's — a row that is internally cross-tenant.
-            // Scoped to the caller's organization, so another tenant's plan is simply not
-            // there. Without this the handler would happily update any plan by id, and the
-            // join rows below would then be stamped with the foreign plan's organization
-            // while naming tests from the caller's — a row that is internally cross-tenant.
             .where(and(eq(testPlans.id, testPlanId), eq(testPlans.organizationId, req.user.organizationId)))
             .returning();
 
@@ -885,6 +890,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await tx.insert(testPlanSelectedTests).values(selectedTestValues);
           }
         }
+
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.PLAN_UPDATED,
+          actor: auditActor(req),
+          targetType: 'test_plan',
+          targetId: testPlanId,
+          metadata: {
+            name: mainPlanUpdated[0].name,
+            fields: changedFields(parseResult.data as Record<string, unknown>),
+            ...(selectedTests !== undefined ? { tests: selectedTests.length } : {}),
+          },
+        });
         return mainPlanUpdated[0]; // Return the first element of the (potentially) updated plan
       });
 
@@ -924,12 +941,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Scoped to the caller's organization (matching the PUT handler above) and run inside
       // the tenant transaction, so another tenant's plan is simply not there rather than
       // being destroyed along with its schedules and execution history.
-      const result = await withTenantTransaction((tx) =>
-        tx
+      const result = await withTenantTransaction(async (tx) => {
+        const rows = await tx
           .delete(testPlans)
           .where(and(eq(testPlans.id, testPlanId), eq(testPlans.organizationId, req.user!.organizationId)))
-          .returning(),
-      );
+          .returning();
+        if (rows.length > 0) {
+          await recordAudit(tx, {
+            action: AUDIT_ACTIONS.PLAN_DELETED,
+            actor: auditActor(req),
+            targetType: 'test_plan',
+            targetId: testPlanId,
+            // Its schedules and run history went with it (cascade), which is worth saying.
+            metadata: { name: rows[0].name },
+          });
+        }
+        return rows;
+      });
 
       if (result.length === 0) {
         return res.status(404).json({ error: "Test plan not found" });
@@ -1481,6 +1509,20 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
       // For simplicity, we'll just return 200/201 with the final state.
       // Checking if it was an insert or update might require another query or different DB driver behavior.
       const savedSetting = finalResult[0];
+
+      // In the owner's organization, since that is where an owner looks. Not in the same
+      // transaction as the change: system_settings is installation-wide and has no tenant, so
+      // the upsert above cannot run under one. The key and not the value, which may be anything.
+      await withTenantTransaction((tx) =>
+        recordAudit(tx, {
+          action: AUDIT_ACTIONS.SYSTEM_SETTINGS_CHANGED,
+          actor: auditActor(req),
+          targetType: 'system_settings',
+          targetId: key,
+          metadata: { key },
+        }),
+      );
+
       res.status(200).json(savedSetting); // Could be 201 if we knew it was an insert
 
       // After successfully saving, if the key is logLevel, update the logger instance

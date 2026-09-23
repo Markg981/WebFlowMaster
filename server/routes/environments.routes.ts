@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { environments, secrets } from "@shared/schema";
+import { environments, secrets, AUDIT_ACTIONS } from "@shared/schema";
+import { auditActor, recordAudit } from "../audit";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import loggerPromise from "../logger";
@@ -85,8 +86,8 @@ router.post("/api/environments", requireRole('editor'), async (req, res) => {
   }
 
   try {
-    const created = await withTenantTransaction((tx) =>
-      tx
+    const created = await withTenantTransaction(async (tx) => {
+      const rows = await tx
         .insert(environments)
         .values({
           name: parsed.data.name,
@@ -94,8 +95,16 @@ router.post("/api/environments", requireRole('editor'), async (req, res) => {
           userId: req.user!.id,
           organizationId: req.user!.organizationId,
         })
-        .returning(),
-    );
+        .returning();
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.ENVIRONMENT_CREATED,
+        actor: auditActor(req),
+        targetType: 'environment',
+        targetId: rows[0].id,
+        metadata: { name: rows[0].name },
+      });
+      return rows;
+    });
     const { id, name, description, createdAt } = created[0];
     res.status(201).json({ id, name, description, createdAt });
   } catch (error: any) {
@@ -115,11 +124,21 @@ router.delete("/api/environments/:id", requireRole('editor'), async (req, res) =
   if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid environment id" });
 
   try {
-    const deleted = await withTenantTransaction((tx) =>
+    const deleted = await withTenantTransaction(async (tx) => {
       // Secrets go with it through the FK's ON DELETE CASCADE: an orphaned secret could
       // not be deleted through the interface and would still be decryptable.
-      tx.delete(environments).where(eq(environments.id, id)).returning(),
-    );
+      const rows = await tx.delete(environments).where(eq(environments.id, id)).returning();
+      if (rows.length > 0) {
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.ENVIRONMENT_DELETED,
+          actor: auditActor(req),
+          targetType: 'environment',
+          targetId: id,
+          metadata: { name: rows[0].name },
+        });
+      }
+      return rows;
+    });
     // Under RLS another organization's row is simply not there, so 404 is the correct
     // answer rather than a leak.
     if (deleted.length === 0) return res.status(404).json({ error: "Environment not found" });
@@ -191,6 +210,15 @@ router.post("/api/environments/:id/secrets", requireRole('editor'), async (req, 
           organizationId: req.user!.organizationId,
         })
         .returning();
+      // The name and where it lives. Never the value, in any form: this table keeps
+      // everything for ever and every owner reads it.
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.SECRET_SET,
+        actor: auditActor(req),
+        targetType: 'secret',
+        targetId: rows[0].id,
+        metadata: { keyName: parsed.data.keyName, environmentId },
+      });
       // Never the ciphertext, the iv or the auth tag: a response is rendered in a browser
       // and passes through proxies, and encrypting the column buys nothing if the value
       // comes back out of the API.
@@ -213,9 +241,19 @@ router.delete("/api/secrets/:id", requireRole('editor'), async (req, res) => {
   if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid secret id" });
 
   try {
-    const deleted = await withTenantTransaction((tx) =>
-      tx.delete(secrets).where(eq(secrets.id, id)).returning(),
-    );
+    const deleted = await withTenantTransaction(async (tx) => {
+      const rows = await tx.delete(secrets).where(eq(secrets.id, id)).returning();
+      if (rows.length > 0) {
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.SECRET_DELETED,
+          actor: auditActor(req),
+          targetType: 'secret',
+          targetId: id,
+          metadata: { keyName: rows[0].keyName, environmentId: rows[0].environmentId },
+        });
+      }
+      return rows;
+    });
     if (deleted.length === 0) return res.status(404).json({ error: "Secret not found" });
     res.status(204).end();
   } catch (error: any) {

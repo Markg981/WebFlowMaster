@@ -32,6 +32,7 @@ import {
   Crosshair,
   Bug,
   SlidersHorizontal,
+  ScrollText,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -49,6 +50,7 @@ import EnvironmentsCard from "@/components/settings/EnvironmentsCard";
 import ApiKeysCard from "@/components/settings/ApiKeysCard";
 import ServiceAccountsCard from "@/components/settings/ServiceAccountsCard";
 import RunUsageCard from "@/components/settings/RunUsageCard";
+import AuditLogCard from "@/components/settings/AuditLogCard";
 import ElementRepositoryCard from "@/components/settings/ElementRepositoryCard";
 import IssueTrackersCard from "@/components/settings/IssueTrackersCard";
 
@@ -561,6 +563,21 @@ export default function SettingsPage() {
       icon: Gauge,
       content: <RunUsageCard />,
     },
+    // Owners only: the trail names who did what, which the server shows no one else either.
+    ...(user?.role === 'owner'
+      ? [
+          {
+            id: 'auditLog',
+            label: t('settings.sections.auditLog', 'Audit log'),
+            description: t(
+              'settings.sections.auditLogDescription',
+              'Who changed what, when, from where, and whether through an API key.',
+            ),
+            icon: ScrollText,
+            content: <AuditLogCard />,
+          },
+        ]
+      : []),
     {
       id: 'defaults',
       label: t('settings.sections.defaults'),

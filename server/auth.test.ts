@@ -160,6 +160,30 @@ describe('POST /api/login', () => {
     expect(res.body.password).toBeUndefined();
   });
 
+  it("records a sign-in, a wrong password and a sign-out in the user's organization", async () => {
+    await request(app).post('/api/register').send(validCreds).expect(201);
+    const [alice] = await privilegedDb.select().from(users).where(eq(users.username, 'alice'));
+    const agent = request.agent(app);
+
+    await agent.post('/api/login').send({ username: 'alice', password: 'Tr0ub4dor&3' }).expect(401);
+    await agent.post('/api/login').send(validCreds).expect(200);
+    await agent.post('/api/logout').expect(200);
+
+    const entries = await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, alice.organizationId));
+    const byAction = Object.fromEntries(entries.map((e) => [e.action, e]));
+    expect(Object.keys(byAction).sort()).toEqual(['auth.login', 'auth.login_failed', 'auth.logout']);
+    expect(byAction['auth.login_failed']).toMatchObject({ actorUserId: alice.id, metadata: { reason: 'wrong_password' } });
+    expect(byAction['auth.login'].ipAddress).toBeTruthy();
+    // The password tried is nowhere in it.
+    expect(JSON.stringify(entries)).not.toContain('Tr0ub4dor');
+  });
+
+  it('records nothing for a username that does not exist', async () => {
+    await request(app).post('/api/login').send({ username: 'nobody', password: 'guess' }).expect(401);
+
+    expect(await privilegedDb.select().from(auditLog)).toHaveLength(0);
+  });
+
   // Its password is random and unknown, but refused before comparing, so it stays refused even
   // if somebody sets one by hand.
   it('refuses a service account, whatever the password', async () => {

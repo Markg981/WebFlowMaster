@@ -176,7 +176,7 @@ export class DatabaseStorage implements IStorage {
     organizationId: number;
     displayName: string;
     role: 'viewer' | 'editor';
-    actor: { id: number; username: string };
+    actor: { id: number; username: string; apiKeyId?: string | null; ipAddress?: string | null };
   }): Promise<User> {
     return privilegedDb.transaction(async (tx) => {
       const [account] = await tx
@@ -195,6 +195,8 @@ export class DatabaseStorage implements IStorage {
         organizationId: input.organizationId,
         actorUserId: input.actor.id,
         actorUsername: input.actor.username,
+        apiKeyId: input.actor.apiKeyId ?? null,
+        ipAddress: input.actor.ipAddress ?? null,
         action: AUDIT_ACTIONS.SERVICE_ACCOUNT_CREATED,
         targetType: 'user',
         targetId: String(account.id),

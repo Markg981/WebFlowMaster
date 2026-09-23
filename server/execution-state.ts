@@ -5,7 +5,7 @@ import {
   type InsertTestPlanExecution,
   type TestPlanExecution,
 } from '@shared/schema';
-import { withTenantTransaction } from './middleware/tenancy';
+import { withTenantTransaction, type TenantTx } from './middleware/tenancy';
 import { liveRunCounts, lockOrganizationRuns, quotasFor } from './tenant-quotas';
 
 /**
@@ -154,16 +154,26 @@ export type CancellationOutcome =
  * update at a time, so a worker taking the run at the same moment cannot be cancelled "from the
  * queue" behind its back.
  */
-export async function requestCancellation(executionId: string, reason: string): Promise<CancellationOutcome> {
+export async function requestCancellation(
+  executionId: string,
+  reason: string,
+  /**
+   * Runs in the transaction that records the request, and only if this call is the one that
+   * made it — the audit entry for "somebody stopped this run" commits or rolls back with it.
+   */
+  onRequested?: (tx: TenantTx, execution: TestPlanExecution) => Promise<void>,
+): Promise<CancellationOutcome> {
   const now = new Date();
   const move = (from: ExecutionStatus) =>
-    withTenantTransaction((tx) =>
-      tx
+    withTenantTransaction(async (tx) => {
+      const rows = await tx
         .update(testPlanExecutions)
         .set({ status: 'cancelling', cancelRequestedAt: now, failureMessage: reason })
         .where(and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.status, from)))
-        .returning(),
-    );
+        .returning();
+      if (rows[0] && onRequested) await onRequested(tx, rows[0]);
+      return rows;
+    });
 
   const [fromQueue] = await move('queued');
   if (fromQueue) {

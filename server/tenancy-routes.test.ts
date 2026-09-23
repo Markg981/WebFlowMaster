@@ -5,6 +5,7 @@ import { privilegedDb } from './db';
 import {
   users,
   organizations,
+  auditLog,
   projects,
   tests,
   testPlans,
@@ -103,6 +104,9 @@ async function clearAll() {
   await privilegedDb.delete(testPlans);
   await privilegedDb.delete(tests);
   await privilegedDb.delete(projects);
+  // Before organizations, which it references with no cascade: creating a plan or a test
+  // records an entry now.
+  await privilegedDb.delete(auditLog);
   await privilegedDb.delete(users);
   await privilegedDb.delete(organizations);
 }

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { reportTestCaseResults, tests, testVersions, users } from "@shared/schema";
+import { AUDIT_ACTIONS, reportTestCaseResults, tests, testVersions, users } from "@shared/schema";
+import { auditActor, recordAudit } from "../audit";
 import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
 import { recordTestVersion } from "../test-version-store";
@@ -201,6 +202,14 @@ router.post("/api/tests/:id/versions/:version/restore", requireRole('editor'), a
         userId: req.user!.id,
         test: restored[0],
         restoredFromVersion: version,
+      });
+
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.TEST_VERSION_RESTORED,
+        actor: auditActor(req),
+        targetType: 'test',
+        targetId: testId,
+        metadata: { name: restored[0].name, restoredFromVersion: version },
       });
 
       return { missing: null, test: restored[0], recorded };

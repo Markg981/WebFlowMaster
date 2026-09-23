@@ -1,12 +1,12 @@
 import { Router, type Request, type Response } from "express";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
-import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, like, lte, ne, sql, type SQL } from "drizzle-orm";
 import { organizations, users, invitations, auditLog, AUDIT_ACTIONS } from "@shared/schema";
 import { storage } from "../storage";
 import { requireRole } from "../middleware/require-role";
 import { withTenantTransaction, getTenantOrgId } from "../middleware/tenancy";
-import { recordAudit } from "../audit";
+import { auditActor, recordAudit } from "../audit";
 import { exportOrganization, eraseOrganization } from "../organization-lifecycle";
 import loggerPromise from "../logger";
 import { liveRunCounts, quotasFor } from "../tenant-quotas";
@@ -70,27 +70,80 @@ router.get("/api/organization", requireRole("viewer"), async (_req: Request, res
  * the policy scopes this. Nothing here can write, either: app_user holds SELECT and INSERT on
  * this table and nothing more, so there is no route that could erase an entry even by mistake.
  */
+const AUDIT_ACTION_VALUES = Object.values(AUDIT_ACTIONS) as string[];
+/** 'test' for test.created, test.updated…: what a person filtering the trail thinks in. */
+const AUDIT_CATEGORIES = [...new Set(AUDIT_ACTION_VALUES.map((action) => action.split(".")[0]))];
+
+const auditQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+  action: z.string().refine((value) => AUDIT_ACTION_VALUES.includes(value), "Unknown action").optional(),
+  category: z.string().refine((value) => AUDIT_CATEGORIES.includes(value), "Unknown category").optional(),
+  actorUserId: z.coerce.number().int().positive().optional(),
+  targetType: z.string().max(40).optional(),
+  targetId: z.string().max(200).optional(),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  format: z.enum(["json", "csv"]).default("json"),
+});
+
+/** The most a CSV export holds. Past it, narrow the filter: the trail is not a backup. */
+const AUDIT_EXPORT_LIMIT = 10_000;
+
+function csvCell(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  const text = value instanceof Date ? value.toISOString() : typeof value === "object" ? JSON.stringify(value) : String(value);
+  // A cell starting with = + - @ is a formula to a spreadsheet; the trail is read in one.
+  const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
+  return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+}
+
 router.get("/api/organization/audit-log", requireRole("owner"), async (req: Request, res: Response) => {
-  const parsed = z
-    .object({
-      limit: z.coerce.number().int().min(1).max(200).default(50),
-      offset: z.coerce.number().int().min(0).default(0),
-    })
-    .safeParse(req.query);
+  const parsed = auditQuerySchema.safeParse(req.query);
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid query", details: parsed.error.flatten() });
   }
+  const query = parsed.data;
 
-  const entries = await withTenantTransaction((tx) =>
+  const conditions: SQL[] = [];
+  if (query.action) conditions.push(eq(auditLog.action, query.action));
+  if (query.category) conditions.push(like(auditLog.action, `${query.category}.%`));
+  if (query.actorUserId) conditions.push(eq(auditLog.actorUserId, query.actorUserId));
+  if (query.targetType) conditions.push(eq(auditLog.targetType, query.targetType));
+  if (query.targetId) conditions.push(eq(auditLog.targetId, query.targetId));
+  if (query.from) conditions.push(gte(auditLog.createdAt, query.from));
+  if (query.to) conditions.push(lte(auditLog.createdAt, query.to));
+
+  const exporting = query.format === "csv";
+  // One more than asked for, so the answer can say whether there is a next page without a count.
+  const take = exporting ? AUDIT_EXPORT_LIMIT : query.limit + 1;
+
+  const rows = await withTenantTransaction((tx) =>
     tx
       .select()
       .from(auditLog)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(auditLog.createdAt), desc(auditLog.id))
-      .limit(parsed.data.limit)
-      .offset(parsed.data.offset),
+      .limit(take)
+      .offset(exporting ? 0 : query.offset),
   );
 
-  res.json({ entries, limit: parsed.data.limit, offset: parsed.data.offset });
+  if (exporting) {
+    const columns = ["createdAt", "action", "actorUsername", "actorUserId", "apiKeyId", "ipAddress", "targetType", "targetId", "metadata"] as const;
+    const lines = [columns.join(","), ...rows.map((row) => columns.map((column) => csvCell(row[column])).join(","))];
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="audit-log-${new Date().toISOString().slice(0, 10)}.csv"`);
+    return res.send(lines.join("\r\n") + "\r\n");
+  }
+
+  const hasMore = rows.length > query.limit;
+  res.json({
+    entries: rows.slice(0, query.limit),
+    limit: query.limit,
+    offset: query.offset,
+    hasMore,
+    categories: AUDIT_CATEGORIES,
+  });
 });
 
 /**
@@ -235,7 +288,7 @@ router.post("/api/organization/invitations", requireRole("owner"), async (req: R
       // and cannot be redacted afterwards.
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.INVITATION_CREATED,
-        actor: req.user!,
+        actor: auditActor(req),
         targetType: 'invitation',
         targetId: row.id,
         metadata: { username: row.username, role: row.role, expiresAt: row.expiresAt.toISOString() },
@@ -275,7 +328,7 @@ router.delete("/api/organization/invitations/:id", requireRole("owner"), async (
 
     await recordAudit(tx, {
       action: AUDIT_ACTIONS.INVITATION_REVOKED,
-      actor: req.user!,
+      actor: auditActor(req),
       targetType: 'invitation',
       targetId: id,
       metadata: { username: deleted[0].username, role: deleted[0].role },
@@ -394,7 +447,7 @@ router.patch(
 
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.MEMBER_ROLE_CHANGED,
-        actor: req.user!,
+        actor: auditActor(req),
         targetType: 'user',
         targetId: userId,
         // Both sides: "changed to editor" is not answerable without knowing what it was.
@@ -448,7 +501,7 @@ router.delete(
       // can be.
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.MEMBER_REMOVED,
-        actor: req.user!,
+        actor: auditActor(req),
         targetType: 'user',
         targetId: userId,
         metadata: { username: target.username, role: target.role },
