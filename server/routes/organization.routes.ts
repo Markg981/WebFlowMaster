@@ -10,6 +10,7 @@ import { auditActor, recordAudit } from "../audit";
 import { exportOrganization, eraseOrganization } from "../organization-lifecycle";
 import loggerPromise from "../logger";
 import { liveRunCounts, quotasFor } from "../tenant-quotas";
+import { availableRunnerCount } from "../runner-registry";
 
 const router = Router();
 
@@ -28,7 +29,9 @@ router.get("/api/organization/usage", requireRole("viewer"), async (_req: Reques
     const [quotas, counts] = await Promise.all([quotasFor(tx, organizationId), liveRunCounts(tx, organizationId)]);
     return { ...counts, ...quotas };
   });
-  res.json(usage);
+  // Zero means every run will wait however much room the organization has: say so, since that
+  // is the question a run sitting in "queued" raises first.
+  res.json({ ...usage, runnersOnline: await availableRunnerCount() });
 });
 
 /**

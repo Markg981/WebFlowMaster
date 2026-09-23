@@ -47,6 +47,8 @@ function toRun(row: TestPlanExecution & { testPlanName?: string | null }) {
       skipped: row.skippedTests,
     },
     failure: row.failureCode ? { code: row.failureCode, message: row.failureMessage } : null,
+    /** Which runner took it (host:pid:suffix); null while it waits. */
+    runner: row.runnerId ?? null,
     links: {
       self: `/api/v1/runs/${row.id}`,
       junit: `/api/v1/runs/${row.id}/junit`,

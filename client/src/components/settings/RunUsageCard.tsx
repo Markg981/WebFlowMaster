@@ -10,6 +10,8 @@ export interface RunUsage {
   queued: number;
   maxConcurrentRuns: number;
   maxQueuedRuns: number;
+  /** Runners taking work across the installation. Zero: every run waits. */
+  runnersOnline?: number;
 }
 
 /**
@@ -46,6 +48,11 @@ export default function RunUsageCard() {
   return (
     <Card>
       <CardContent className="pt-6 space-y-5">
+        {data.runnersOnline === 0 && (
+          <p className="text-sm text-amber-700 dark:text-amber-400" data-testid="usage-no-runner">
+            {t('runUsage.noRunner', 'No runner is online, so runs wait in the queue until one starts.')}
+          </p>
+        )}
         {row(
           t('runUsage.running', 'Running now'),
           data.running,

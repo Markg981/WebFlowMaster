@@ -48,6 +48,7 @@ import apiKeysRoutes from "./routes/api-keys.routes";
 import serviceAccountsRoutes from "./routes/service-accounts.routes";
 import mfaRoutes from "./routes/mfa.routes";
 import testPublishingRoutes from "./routes/test-publishing.routes";
+import runnersRoutes from "./routes/runners.routes";
 import { requireMfaEnrollment } from "./middleware/require-mfa-enrollment";
 import apiV1Routes from "./routes/api-v1.routes";
 import webhookManagementRoutes from "./routes/webhooks.routes";
@@ -150,6 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(serviceAccountsRoutes);
     app.use(mfaRoutes);
     app.use(testPublishingRoutes);
+    app.use(runnersRoutes);
     app.use(webhookManagementRoutes);
     app.use(stepGroupsRoutes);
     app.use(projectElementsRoutes);
@@ -1395,6 +1397,8 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         completedAt: execution.completedAt ? execution.completedAt.toISOString() : null,
         status: execution.status,
         triggeredBy: execution.triggeredBy,
+        // Which runner took it: where to look when one machine is the one that fails.
+        runnerId: execution.runnerId ?? null,
         executionId: execution.id,
         testPlanId: execution.testPlanId,
         // Which attempt of its scheduled occurrence this run is, and where the others are.

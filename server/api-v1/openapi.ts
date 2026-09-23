@@ -106,6 +106,7 @@ export const openApiDocument = {
               skipped: { type: ['integer', 'null'] },
             },
           },
+          runner: { type: ['string', 'null'], description: 'The runner that took the run, as host:pid:suffix.' },
           failure: {
             type: ['object', 'null'],
             properties: { code: { type: 'string' }, message: { type: ['string', 'null'] } },

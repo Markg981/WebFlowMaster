@@ -246,6 +246,31 @@ export const systemSettings = pgTable('system_settings', {
   value: text('value'),
 });
 
+/**
+ * The worker processes that run plans, as they describe themselves. Installation-wide and
+ * outside RLS, like system_settings; see migrations/0033_runner_registry.sql.
+ */
+export const runners = pgTable('runners', {
+  id: text('id').primaryKey(),
+  hostname: text('hostname').notNull(),
+  pid: integer('pid').notNull(),
+  version: text('version'),
+  concurrency: integer('concurrency').notNull(),
+  browserTaskConcurrency: integer('browser_task_concurrency').notNull(),
+  browsers: jsonb('browsers').$type<string[]>().notNull().default([]),
+  activeJobs: integer('active_jobs').notNull().default(0),
+  /** 'drain' asks the runner to finish what it has and take nothing new. */
+  desiredState: text('desired_state').$type<'active' | 'drain'>().notNull().default('active'),
+  startedAt: timestamp('started_at').defaultNow().notNull(),
+  lastSeenAt: timestamp('last_seen_at').defaultNow().notNull(),
+  /** Set when the runner shut down cleanly. */
+  stoppedAt: timestamp('stopped_at'),
+}, (table) => [
+  index('runners_last_seen_at_idx').on(table.lastSeenAt),
+]);
+
+export type Runner = typeof runners.$inferSelect;
+
 // Test Plans Table
 export const testPlans = pgTable("test_plans", {
   id: text('id').primaryKey(),
@@ -383,6 +408,8 @@ export const testPlanExecutions = pgTable("test_plan_executions", {
   retryOfExecutionId: text('retry_of_execution_id'),
   /** When retention removed this run's screenshots, videos and traces; the results stay. */
   artifactsPurgedAt: timestamp('artifacts_purged_at'),
+  /** The runner that took the run (runners.id, host:pid:suffix). Readable after the runner is gone. */
+  runnerId: text('runner_id'),
   environment: text('environment'),
   browsers: jsonb('browsers'),
   triggeredBy: text('triggered_by').notNull().default('manual'),
@@ -1026,6 +1053,9 @@ export const AUDIT_ACTIONS = {
   TEST_REVIEW_REJECTED: 'test_review.rejected',
   TEST_REVIEW_WITHDRAWN: 'test_review.withdrawn',
   TEST_REVIEW_POLICY_CHANGED: 'test_review.policy_changed',
+  // Taking a runner out of service, and putting it back.
+  RUNNER_DRAINED: 'runner.drained',
+  RUNNER_RESUMED: 'runner.resumed',
   RUN_CANCELLED: 'run.cancelled',
   // Where tests run and with what. Secrets by name only — never a value.
   ENVIRONMENT_CREATED: 'environment.created',
