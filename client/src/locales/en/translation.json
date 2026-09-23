@@ -1860,7 +1860,8 @@
       "mfa_disabled": "Two-factor turned off",
       "mfa_recovery_codes_regenerated": "Recovery codes replaced",
       "mfa_recovery_code_used": "Recovery code used",
-      "mfa_policy_changed": "Two-factor policy changed"
+      "mfa_policy_changed": "Two-factor policy changed",
+      "project_access_changed": "Project access changed"
     }
   },
   "security": {
@@ -1910,5 +1911,24 @@
       "verifying": "Checking…",
       "back": "Back to sign in"
     }
+  },
+  "projectAccess": {
+    "title": "Who can reach {{name}}",
+    "description": "Restricted, the project and its tests are visible only to owners and the people listed here. A role here never gives more than the person’s role in the organization.",
+    "restricted": "Restricted",
+    "restrictedBadge": "restricted",
+    "readOnly": "read-only for you",
+    "open": "Access to {{name}}",
+    "roleFor": "Role of {{name}}",
+    "roles": {
+      "viewer": "viewer",
+      "editor": "editor"
+    },
+    "remove": "Remove {{name}}",
+    "onlyOwners": "Nobody is listed: only owners can reach it.",
+    "none": "Nobody is listed.",
+    "add": "Add a member",
+    "cancel": "Cancel",
+    "save": "Save"
   }
 }

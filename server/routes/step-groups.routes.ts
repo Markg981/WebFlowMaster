@@ -20,6 +20,13 @@ import loggerPromise from "../logger";
 const router = Router();
 const logger = await loggerPromise;
 
+/**
+ * A project the group cannot go into: one that does not exist (the foreign key), or one the
+ * requester cannot edit or see (row-level security, migration 0031). One answer for both, so it
+ * does not say whether a restricted project exists.
+ */
+const isUnreachableProject = (error: any) => /foreign key|row-level security/i.test(error?.message ?? "");
+
 const stepGroupBodySchema = z.object({
   name: z.string().trim().min(1, "A name is required").max(120),
   description: z.string().trim().max(500).optional().nullable(),
@@ -77,6 +84,7 @@ router.post("/api/step-groups", requireRole('editor'), async (req, res) => {
     });
     res.status(201).json({ ...created, sequence: asSteps(created.sequence) });
   } catch (error: any) {
+    if (isUnreachableProject(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
     logger.error({ message: 'Failed to create step group', error: error?.message ?? String(error) });
     res.status(500).json({ error: "Failed to create the step group." });
   }
@@ -115,6 +123,7 @@ router.put("/api/step-groups/:id", requireRole('editor'), async (req, res) => {
     if (!updated) return res.status(404).json({ error: "Step group not found." });
     res.json({ ...updated, sequence: asSteps(updated.sequence) });
   } catch (error: any) {
+    if (isUnreachableProject(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
     logger.error({ message: 'Failed to update step group', error: error?.message ?? String(error) });
     res.status(500).json({ error: "Failed to update the step group." });
   }

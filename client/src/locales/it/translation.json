@@ -1985,7 +1985,8 @@
       "mfa_disabled": "Due fattori disattivata",
       "mfa_recovery_codes_regenerated": "Codici di recupero sostituiti",
       "mfa_recovery_code_used": "Codice di recupero usato",
-      "mfa_policy_changed": "Criterio due fattori cambiato"
+      "mfa_policy_changed": "Criterio due fattori cambiato",
+      "project_access_changed": "Accesso al progetto modificato"
     }
   },
   "security": {
@@ -2035,5 +2036,24 @@
       "verifying": "Verifica…",
       "back": "Torna all’accesso"
     }
+  },
+  "projectAccess": {
+    "title": "Chi può accedere a {{name}}",
+    "description": "Se riservato, il progetto e i suoi test sono visibili solo agli owner e alle persone elencate qui. Un ruolo qui non dà mai più del ruolo della persona nell’organizzazione.",
+    "restricted": "Riservato",
+    "restrictedBadge": "riservato",
+    "readOnly": "sola lettura per te",
+    "open": "Accesso a {{name}}",
+    "roleFor": "Ruolo di {{name}}",
+    "roles": {
+      "viewer": "lettore",
+      "editor": "editor"
+    },
+    "remove": "Rimuovi {{name}}",
+    "onlyOwners": "Nessuno in elenco: solo gli owner possono accedervi.",
+    "none": "Nessuno in elenco.",
+    "add": "Aggiungi un membro",
+    "cancel": "Annulla",
+    "save": "Salva"
   }
 }

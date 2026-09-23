@@ -1866,7 +1866,8 @@
       "mfa_disabled": "Double authentification désactivée",
       "mfa_recovery_codes_regenerated": "Codes de récupération remplacés",
       "mfa_recovery_code_used": "Code de récupération utilisé",
-      "mfa_policy_changed": "Règle de double authentification modifiée"
+      "mfa_policy_changed": "Règle de double authentification modifiée",
+      "project_access_changed": "Accès au projet modifié"
     }
   },
   "security": {
@@ -1916,5 +1917,24 @@
       "verifying": "Vérification…",
       "back": "Retour à la connexion"
     }
+  },
+  "projectAccess": {
+    "title": "Qui peut accéder à {{name}}",
+    "description": "Restreint, le projet et ses tests ne sont visibles que des propriétaires et des personnes listées ici. Un rôle ici ne donne jamais plus que le rôle de la personne dans l’organisation.",
+    "restricted": "Restreint",
+    "restrictedBadge": "restreint",
+    "readOnly": "lecture seule pour vous",
+    "open": "Accès à {{name}}",
+    "roleFor": "Rôle de {{name}}",
+    "roles": {
+      "viewer": "lecteur",
+      "editor": "éditeur"
+    },
+    "remove": "Retirer {{name}}",
+    "onlyOwners": "Personne n’est listé : seuls les propriétaires y ont accès.",
+    "none": "Personne n’est listé.",
+    "add": "Ajouter un membre",
+    "cancel": "Annuler",
+    "save": "Enregistrer"
   }
 }

@@ -6,8 +6,19 @@ import { privilegedDb } from '../db';
 /** The Drizzle transaction handle, already scoped to one organization. */
 export type TenantTx = Parameters<Parameters<typeof privilegedDb.transaction>[0]>[0];
 
+/**
+ * Who is asking, inside the organization. Bound into each tenant transaction so row-level
+ * security can narrow what a member sees to the projects they are on (migration 0031). Absent
+ * for the system itself — the worker, a sweep — which sees the whole organization as before.
+ */
+export interface TenantPrincipal {
+  userId: number;
+  role: string;
+}
+
 interface TenantContext {
   organizationId: number;
+  principal?: TenantPrincipal;
   /**
    * The transaction opened by the outermost withTenantTransaction call currently in scope,
    * if one is open. A nested withTenantTransaction call reuses it instead of opening a
@@ -45,15 +56,30 @@ export function getTenantOrgId(): number | undefined {
   return tenantStore.getStore()?.organizationId;
 }
 
-/** Runs `fn` with the given organization as the ambient tenant. Used by tests and jobs. */
-export async function runWithTenant<T>(organizationId: number, fn: () => Promise<T> | T): Promise<T> {
+/**
+ * Runs `fn` with the given organization as the ambient tenant. Used by tests and jobs.
+ *
+ * With no principal, `fn` runs as the system. Inside a request for the same organization, the
+ * request's principal is kept: a nested call never widens what the requester can see.
+ */
+export async function runWithTenant<T>(
+  organizationId: number,
+  fn: () => Promise<T> | T,
+  principal?: TenantPrincipal,
+): Promise<T> {
   const store = tenantStore.getStore();
   if (store?.tx !== undefined && store.organizationId !== organizationId) {
     throw new TenantConflictError(store.organizationId, organizationId);
   }
+  const inherited = store?.organizationId === organizationId ? store.principal : undefined;
+  const nextPrincipal = principal ?? inherited;
   // Carry the open transaction forward when the organization is unchanged, so a
   // withTenantTransaction call inside fn still finds it and joins it instead of reopening.
-  const nextStore: TenantContext = store?.tx !== undefined ? { organizationId, tx: store.tx } : { organizationId };
+  const nextStore: TenantContext = {
+    organizationId,
+    ...(nextPrincipal ? { principal: nextPrincipal } : {}),
+    ...(store?.tx !== undefined ? { tx: store.tx } : {}),
+  };
   return tenantStore.run(nextStore, fn);
 }
 
@@ -64,7 +90,9 @@ export function tenancyMiddleware(req: Request, res: Response, next: NextFunctio
     // request proceeds and any tenant query inside it will refuse to run.
     return next();
   }
-  tenantStore.run({ organizationId }, () => next());
+  // The requester goes with the organization: RLS narrows what they see to their projects.
+  const principal = req.user ? { userId: req.user.id, role: req.user.role } : undefined;
+  tenantStore.run({ organizationId, ...(principal ? { principal } : {}) }, () => next());
 }
 
 /**
@@ -111,10 +139,15 @@ export async function withTenantTransaction<T>(fn: (tx: TenantTx) => Promise<T>)
   return privilegedDb.transaction(async (tx) => {
     await tx.execute(sql`SET LOCAL ROLE app_user`);
     await tx.execute(sql`SELECT set_config('app.current_org', ${String(organizationId)}, true)`);
+    // Who is asking, for the project policies (migration 0031). Left unset for the system.
+    if (store?.principal) {
+      await tx.execute(sql`SELECT set_config('app.current_user', ${String(store.principal.userId)}, true)`);
+      await tx.execute(sql`SELECT set_config('app.current_user_role', ${store.principal.role}, true)`);
+    }
     // Bind the transaction into context for the duration of fn so a nested
     // withTenantTransaction call (e.g. once Task 5 wraps handlers that already contain their
     // own privilegedDb.transaction calls, such as server/storage.ts's createUser) joins this
     // transaction instead of opening a second one.
-    return tenantStore.run({ organizationId, tx: tx as TenantTx }, () => fn(tx as TenantTx));
+    return tenantStore.run({ organizationId, principal: store?.principal, tx: tx as TenantTx }, () => fn(tx as TenantTx));
   });
 }
