@@ -5,7 +5,7 @@ import { processTestPlanJob } from './test-execution-service';
 import loggerPromise from './logger';
 import { correlationStore } from './middleware/correlation';
 import { closeDb, privilegedDb } from './db';
-import { TRIGGER_SCHEDULE_JOB, executeScheduledPlan } from './scheduler-service';
+import { TRIGGER_SCHEDULE_JOB, executeScheduledPlan, scheduledOccurrence } from './scheduler-service';
 import { testPlanSchedules, testPlans } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { withJobIncidents } from './observability/taps/jobs';
@@ -56,7 +56,7 @@ import 'dotenv/config';
             logger.warn(`Scheduled trigger for schedule ${scheduleId}: test plan ${schedule.testPlanId} not found; skipping.`);
             return;
           }
-          await executeScheduledPlan(schedule, plan);
+          await executeScheduledPlan(schedule, plan, scheduledOccurrence(job));
         });
       }
     }),

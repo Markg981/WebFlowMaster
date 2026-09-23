@@ -311,6 +311,11 @@ export const testPlanExecutions = pgTable("test_plan_executions", {
   configurationSnapshot: jsonb('configuration_snapshot').notNull().default({}),
   /** Chosen by the caller, so asking twice returns the same run. Unique per organization. */
   idempotencyKey: text('idempotency_key'),
+  /** Which attempt this run is, out of how many a schedule's retry policy allowed. */
+  attempt: integer('attempt').notNull().default(1),
+  maxAttempts: integer('max_attempts').notNull().default(1),
+  /** The first attempt, on every retry of it. The foreign key is in migration 0023. */
+  retryOfExecutionId: text('retry_of_execution_id'),
   environment: text('environment'),
   browsers: jsonb('browsers'),
   triggeredBy: text('triggered_by').notNull().default('manual'),

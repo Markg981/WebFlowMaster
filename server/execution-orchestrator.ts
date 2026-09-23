@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   environments,
   testPlanExecutions,
+  testPlanSchedules,
   testPlanSelectedTests,
   testPlans,
   users,
@@ -13,7 +14,7 @@ import { privilegedDb } from './db';
 import { getCorrelationId } from './middleware/correlation';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { transitionExecution } from './execution-state';
-import { buildExecutionSnapshot, type SnapshotTestReference } from './execution-snapshot';
+import { buildExecutionSnapshot, readExecutionSnapshot, type SnapshotTestReference } from './execution-snapshot';
 import { testExecutionQueue } from './queue';
 
 /**
@@ -35,7 +36,7 @@ import { testExecutionQueue } from './queue';
  */
 
 export interface ExecutionQueuePort {
-  add(name: string, data: Record<string, unknown>, options: { jobId: string }): Promise<unknown>;
+  add(name: string, data: Record<string, unknown>, options: { jobId: string; delay?: number }): Promise<unknown>;
 }
 
 export interface EnqueueExecutionInput {
@@ -48,7 +49,20 @@ export interface EnqueueExecutionInput {
   updateBaselines?: boolean;
   idempotencyKey?: string | null;
   scheduleId?: string | null;
+  /**
+   * How many runs this request may take, counting the first: a schedule's retry policy. A run
+   * that ends failed with attempts left is followed by another — see retryFailedRun.
+   */
+  maxAttempts?: number;
+  /**
+   * What to show as the run's environment when it names one that is not an environment of this
+   * organization — a schedule's free-text "QA". Recorded for the reports; nothing is loaded.
+   */
+  environmentLabel?: string | null;
 }
+
+/** More than this is not a retry policy, it is a loop. */
+export const MAX_ATTEMPTS_LIMIT = 5;
 
 export type EnqueueFailureCode =
   | 'plan_not_found'
@@ -102,7 +116,7 @@ async function reclaimUnsubmittedRun(executionId: string): Promise<TestPlanExecu
 }
 
 export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
-  async function submit(execution: TestPlanExecution, input: EnqueueExecutionInput): Promise<TestPlanExecution> {
+  async function submit(execution: TestPlanExecution, delayMs = 0): Promise<TestPlanExecution> {
     try {
       await queue.add(
         'execute-plan',
@@ -112,11 +126,11 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
           // through a rolling deploy. The row, not these, is what the worker trusts.
           testPlanRunId: execution.id,
           planId: execution.testPlanId,
-          userId: input.requestedByUserId,
-          updateBaselines: input.updateBaselines === true,
+          userId: execution.requestedByUserId,
+          updateBaselines: readExecutionSnapshot(execution.configurationSnapshot)?.visualTesting.updateBaselines === true,
           correlationId: getCorrelationId() ?? `job-${execution.id.slice(0, 8)}`,
         },
-        { jobId: execution.id },
+        delayMs > 0 ? { jobId: execution.id, delay: delayMs } : { jobId: execution.id },
       );
       return execution;
     } catch (error: any) {
@@ -221,10 +235,12 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
               status: 'queued',
               triggeredBy: input.trigger,
               // Kept on their own columns as well, because the reports list reads them there.
-              environment: input.environmentId != null ? String(input.environmentId) : null,
+              environment: input.environmentId != null ? String(input.environmentId) : (input.environmentLabel ?? null),
               browsers: input.browsers ?? null,
               configurationSnapshot: snapshot,
               idempotencyKey: key,
+              attempt: 1,
+              maxAttempts: Math.min(Math.max(Math.trunc(input.maxAttempts ?? 1), 1), MAX_ATTEMPTS_LIMIT),
             })
             .returning();
           return { execution: inserted, created: true };
@@ -239,17 +255,87 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
         throw error;
       }
 
-      if (outcome.created) return submit(outcome.execution, input);
+      if (outcome.created) return submit(outcome.execution);
 
       if (outcome.execution.status === 'error' && outcome.execution.failureCode === QUEUE_SUBMISSION_FAILED) {
         const reclaimed = await reclaimUnsubmittedRun(outcome.execution.id);
-        if (reclaimed) return submit(reclaimed, input);
+        if (reclaimed) return submit(reclaimed);
       }
       return outcome.execution;
     });
   }
 
-  return { enqueue };
+  /**
+   * The next attempt of a run that ended failed, when its request allowed another.
+   *
+   * Called by the worker, inside the run's organization, once the verdict is written. Null when
+   * there is nothing to retry: the run passed, was cancelled or timed out (a person or a limit
+   * ended it, not the application), used its last attempt, or belongs to a schedule that has since
+   * been switched off or deleted.
+   *
+   * The retry is a run of its own with the first run's configuration, so it tries the same thing
+   * again rather than whatever the plan says by now, and both attempts keep their reports. Its key
+   * is derived from the first run and the attempt number, so a worker that finishes the same run
+   * twice still queues one retry.
+   */
+  async function retryFailedRun(failed: TestPlanExecution, delayMs: number): Promise<TestPlanExecution | null> {
+    if (failed.status !== 'failed' && failed.status !== 'error') return null;
+    if (failed.attempt >= failed.maxAttempts) return null;
+
+    if (failed.scheduleId) {
+      const [schedule] = await withTenantTransaction((tx) =>
+        tx
+          .select({ isActive: testPlanSchedules.isActive })
+          .from(testPlanSchedules)
+          .where(eq(testPlanSchedules.id, failed.scheduleId as string))
+          .limit(1),
+      );
+      if (!schedule?.isActive) return null;
+    }
+
+    const firstAttemptId = failed.retryOfExecutionId ?? failed.id;
+    const key = `retry-${firstAttemptId}-${failed.attempt + 1}`;
+    const findByKey = async () => {
+      const [existing] = await withTenantTransaction((tx) =>
+        tx.select().from(testPlanExecutions).where(eq(testPlanExecutions.idempotencyKey, key)).limit(1),
+      );
+      return existing ?? null;
+    };
+
+    const existing = await findByKey();
+    if (existing) return existing;
+
+    let retry: TestPlanExecution;
+    try {
+      [retry] = await withTenantTransaction((tx) =>
+        tx
+          .insert(testPlanExecutions)
+          .values({
+            id: uuidv4(),
+            organizationId: failed.organizationId,
+            testPlanId: failed.testPlanId,
+            scheduleId: failed.scheduleId,
+            requestedByUserId: failed.requestedByUserId,
+            status: 'queued',
+            triggeredBy: failed.triggeredBy,
+            environment: failed.environment,
+            browsers: failed.browsers,
+            configurationSnapshot: failed.configurationSnapshot,
+            idempotencyKey: key,
+            attempt: failed.attempt + 1,
+            maxAttempts: failed.maxAttempts,
+            retryOfExecutionId: firstAttemptId,
+          })
+          .returning(),
+      );
+    } catch (error) {
+      if (isUniqueViolation(error)) return findByKey();
+      throw error;
+    }
+    return submit(retry, delayMs);
+  }
+
+  return { enqueue, retryFailedRun };
 }
 
 /** The orchestrator every caller uses; tests build their own over a queue they can inspect. */
