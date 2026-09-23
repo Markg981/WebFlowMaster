@@ -44,7 +44,7 @@ export interface ExecutionSnapshot {
   evidence: { video: EvidenceCaptureMode; trace: EvidenceCaptureMode };
   maxParallelTests: number;
   captureScreenshots: string;
-  /** Recorded now, applied by the runner when the plan's timeouts are wired to it. */
+  /** As the plan stored them; server/run-policies.ts reads them, units and all. */
   timeouts: { pageLoadMs: number; elementMs: number };
   failurePolicies: {
     onMajorStepFailure: string;

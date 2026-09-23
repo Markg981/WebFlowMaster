@@ -37,6 +37,13 @@ import {
 import { fileFailure, loadTracker, markResolved } from './issue-store';
 import { currentVersionsOf } from './test-version-store';
 import { transitionExecution } from './execution-state';
+import {
+  describePolicies,
+  runPoliciesFrom,
+  stopReasonAfter,
+  type PreconditionFailurePolicy,
+  type StepRuntime,
+} from './run-policies';
 import { ExecutionEnqueueError, executionOrchestrator } from './execution-orchestrator';
 import {
   buildExecutionSnapshot,
@@ -92,7 +99,9 @@ export interface IndividualTestRunResult {
   testType: 'ui' | 'api';
   name: string;
   success: boolean;
-  status: 'passed' | 'failed' | 'error'; // Add 'error' for execution errors before steps
+  status: 'passed' | 'failed' | 'error' | 'skipped'; // Add 'error' for execution errors before steps
+  /** Its preconditions failed — which the plan's prerequisite policy decides what to do about. */
+  blockedByPrecondition?: boolean;
   steps?: StepResult[]; // from playwright-service
   error?: string; // For errors during test execution itself (e.g., Playwright internal error)
   durationMs: number;
@@ -112,6 +121,10 @@ export interface RunTestOptions {
   visual?: Omit<VisualContext, 'testId' | 'browser'>;
   /** Whether to keep a video and a trace of the run. The directory is this test's own. */
   evidence?: { video?: EvidenceCaptureMode; trace?: EvidenceCaptureMode };
+  /** The plan's timeouts, screenshots and step retry — see server/run-policies.ts. */
+  runtime?: StepRuntime;
+  /** What a failed precondition means for this test. Absent: it is blocked, as it always was. */
+  onPreconditionFailure?: PreconditionFailurePolicy;
 }
 
 export async function runTest(
@@ -157,19 +170,34 @@ export async function runTest(
         (uiTest as unknown as { preconditions?: Precondition[] | null }).preconditions,
         vars,
       );
-      if (!preResult.ok) {
+      if (!preResult.ok && options?.onPreconditionFailure === 'continue') {
+        // "Continue Anyway": the test runs from whatever state the application is in, and
+        // says so, because a failure after this may be the setup's rather than the test's.
+        getWsEmitter().emitExecutionLog(runId, {
+          level: 'warn',
+          source: 'system',
+          message:
+            `"${uiTest.name}": precondition "${preResult.failedAt}" failed (${preResult.reason}); ` +
+            `running the test anyway, as this plan asks.`,
+          timestamp: new Date().toISOString(),
+        });
+      } else if (!preResult.ok) {
         const durationMs = Date.now() - startTime;
+        const reason = `Precondition failed at "${preResult.failedAt}": ${preResult.reason}`;
         resolvedLogger.warn({
           message: 'UI Test blocked: precondition failed',
           testId, testName, planId, runId, failedAt: preResult.failedAt, reason: preResult.reason,
         });
+        const skipped = options?.onPreconditionFailure === 'skip';
         return {
           testId,
           testType: 'ui',
           name: uiTest.name,
           success: false,
-          status: 'error',
-          error: `Precondition failed at "${preResult.failedAt}": ${preResult.reason}`,
+          // "Skip Test Case" says the test said nothing either way, which is what a skip is.
+          status: skipped ? 'skipped' : 'error',
+          blockedByPrecondition: true,
+          error: skipped ? `Skipped: ${reason}` : reason,
           durationMs,
         };
       }
@@ -194,6 +222,7 @@ export async function runTest(
           evidence: options?.evidence
             ? { ...options.evidence, artifactDir: screenshotBaseDir }
             : undefined,
+          runtime: options?.runtime,
         },
       );
       const durationMs = Date.now() - startTime;
@@ -540,6 +569,30 @@ async function runTestPlanJobInTenant(
     });
   }
 
+  const policies = runPoliciesFrom(snapshot);
+  wsEmitter.emitExecutionLog(testPlanRunId, {
+    level: 'info',
+    source: 'system',
+    message: describePolicies(policies),
+    timestamp: new Date().toISOString(),
+  });
+  for (const setting of policies.notApplied) {
+    wsEmitter.emitExecutionLog(testPlanRunId, {
+      level: 'warn',
+      source: 'system',
+      message: `${setting} has no effect on this run.`,
+      timestamp: new Date().toISOString(),
+    });
+  }
+  /**
+   * Set when a plan policy stops the run. Every test that has not started by then is recorded as
+   * skipped with this as its reason, rather than silently absent: a report with three results
+   * out of forty has to say why the other thirty-seven are not there. Tests already running when
+   * it is set — other browsers, parallel slots — finish, because stopping a browser mid-step
+   * leaves the application in a state nobody asked for.
+   */
+  let stopReason: string | null = null;
+
   const visualTesting = snapshot.visualTesting.enabled;
   const updateBaselines = snapshot.visualTesting.updateBaselines;
   if (visualTesting) {
@@ -740,10 +793,15 @@ async function runTestPlanJobInTenant(
     let videoFinalPath: string | undefined = undefined;
     let traceFinalPath: string | undefined = undefined;
     let stepsOrLogData: string | undefined = undefined;
+    let attempts = 1;
 
     const testName = testObjectDefinition?.name || `Unknown Test (ID: ${link.testId || link.apiTestId})`;
     const onBrowser = browserChoice ? ` on ${describeBrowser(browserChoice)}` : '';
-    wsEmitter.emitExecutionLog(testPlanRunId, {
+    if (stopReason) {
+      reportStatus = 'Skipped';
+      failureReason = stopReason;
+    }
+    if (!stopReason) wsEmitter.emitExecutionLog(testPlanRunId, {
       level: 'info',
       source: 'system',
       message: `Starting test: ${testName} (${testTypeForRun})${onBrowser}`,
@@ -751,7 +809,9 @@ async function runTestPlanJobInTenant(
       metadata: { testId: link.testId || link.apiTestId, testType: testTypeForRun, browser: browserChoice?.label }
     });
 
-    if (testObjectDefinition && testTypeForRun) {
+    if (reportStatus === 'Skipped') {
+      // Stopped before it started; recorded below with the reason.
+    } else if (testObjectDefinition && testTypeForRun) {
       if (testTypeForRun === 'ui' && typeof (testObjectDefinition as Test).sequence === 'string') {
         try { (testObjectDefinition as Test).sequence = JSON.parse((testObjectDefinition as Test).sequence as any); }
         catch (e) { resolvedLogger.warn("Failed to parse UI test sequence"); }
@@ -769,27 +829,71 @@ async function runTestPlanJobInTenant(
         testObjectDefinition = injectSecretsIntoTest(testObjectDefinition, secretsMap);
       }
 
-      const resultFromRunTest = await runTest(
-        testObjectDefinition!,
-        userId,
-        planId,
-        testPlanRunId,
-        testTypeForRun,
-        runVariables(captured),
-        planEnvironment(),
-        {
-          browser: browserChoice,
-          visual:
-            visualTesting && testTypeForRun === 'ui'
-              ? {
-                  organizationId: executionRecord[0].organizationId,
-                  updateBaselines,
-                }
-              : undefined,
-          evidence: runEvidence,
-        },
-      );
+      const attemptOnce = () =>
+        runTest(
+          testObjectDefinition!,
+          userId,
+          planId,
+          testPlanRunId,
+          testTypeForRun,
+          runVariables(captured),
+          planEnvironment(),
+          {
+            browser: browserChoice,
+            visual:
+              visualTesting && testTypeForRun === 'ui'
+                ? {
+                    organizationId: executionRecord[0].organizationId,
+                    updateBaselines,
+                  }
+                : undefined,
+            evidence: runEvidence,
+            runtime: policies.step,
+            onPreconditionFailure: policies.onPreconditionFailure,
+          },
+        );
+      let resultFromRunTest = await attemptOnce();
+      // "Re-Run On Failure": a test that failed or errored is run again, up to the plan's
+      // number, and the last attempt is its result. A skip is a decision, not a failure, and is
+      // not re-run. The attempts are recorded on the result, so a test that needed two to pass
+      // is visibly flaky rather than indistinguishable from one that passed first time.
+      while (
+        (resultFromRunTest.status === 'failed' || resultFromRunTest.status === 'error') &&
+        attempts <= policies.testReruns
+      ) {
+        attempts += 1;
+        wsEmitter.emitExecutionLog(testPlanRunId, {
+          level: 'warn',
+          source: 'system',
+          message: `${testName}${onBrowser} ${resultFromRunTest.status}; running it again (attempt ${attempts} of ${policies.testReruns + 1}).`,
+          timestamp: new Date().toISOString(),
+          metadata: { attempt: attempts },
+        });
+        resultFromRunTest = await attemptOnce();
+      }
       legacyIndividualTestResultsForJsonBlob.push(resultFromRunTest); // Keep populating the old JSON blob for now
+
+      const reasonToStop = stopReasonAfter(
+        {
+          testName,
+          status: resultFromRunTest.status,
+          cause: resultFromRunTest.blockedByPrecondition
+            ? 'precondition'
+            : resultFromRunTest.steps?.some((step) => step.status === 'failed')
+              ? 'step'
+              : 'other',
+        },
+        policies,
+      );
+      if (reasonToStop && !stopReason) {
+        stopReason = reasonToStop;
+        wsEmitter.emitExecutionLog(testPlanRunId, {
+          level: 'error',
+          source: 'system',
+          message: `Stopping the run: ${reasonToStop.replace(/^Not run: /, '')}`,
+          timestamp: new Date().toISOString(),
+        });
+      }
 
       if (resultFromRunTest.extracted) {
         Object.assign(captured, resultFromRunTest.extracted);
@@ -814,7 +918,7 @@ async function runTestPlanJobInTenant(
       if (resultFromRunTest.status === 'passed') reportStatus = 'Passed';
       else if (resultFromRunTest.status === 'failed') reportStatus = 'Failed';
       else if (resultFromRunTest.status === 'error') reportStatus = 'Error';
-      // 'Skipped' needs to be handled if runTest can produce it
+      else if (resultFromRunTest.status === 'skipped') reportStatus = 'Skipped';
 
       failureReason = resultFromRunTest.error;
       screenshotFinalPath = resultFromRunTest.screenshotPath; // This is a file path
@@ -874,6 +978,7 @@ async function runTestPlanJobInTenant(
       // claiming version 1.
       testVersion: link.testType === 'ui' && link.testId ? testVersionsInRun.get(link.testId) ?? null : null,
       status: reportStatus,
+      attempts,
       reasonForFailure: failureReason,
       screenshotUrl: screenshotFinalPath,
       videoUrl: videoFinalPath ?? null,

@@ -1608,6 +1608,7 @@
       },
       "validation": {
         "pageLoadTimeoutRequired": "Der Timeout beim Seitenaufbau muss eine positive Zahl sein.",
+        "timeoutRange": "Timeouts müssen zwischen 1 und 600 Sekunden liegen.",
         "elementTimeoutRequired": "Der Timeout für Elemente muss eine positive Zahl sein."
       }
     },

@@ -23,6 +23,7 @@ import { compareStepScreenshot, isVisualFailure, type VisualContext } from './vi
 import { expandSequenceForRun, type SequenceStep } from './step-groups';
 import { elementIdOfStep, resolveSequenceForRun } from './step-elements';
 import { captureRunEvidence, startTrace, videoContextOptions, type CapturedEvidence, type EvidenceOptions } from './run-evidence';
+import { keepsScreenshot, type StepRuntime } from './run-policies';
 
 // Default settings if not found or incomplete
 const DEFAULT_BROWSER: 'chromium' | 'firefox' | 'webkit' = 'chromium';
@@ -165,6 +166,11 @@ export interface ExecuteSequenceOptions {
   visual?: VisualContext;
   /** Whether to keep a video and a trace of this run, and where to put them. */
   evidence?: EvidenceOptions;
+  /**
+   * The plan's timeouts, screenshot policy and step retry — see server/run-policies.ts. Absent
+   * for a run no plan drives, which keeps the user's own timeout and a screenshot of every step.
+   */
+  runtime?: StepRuntime;
 }
 
 // Interface for the ad-hoc sequence payload
@@ -1689,7 +1695,8 @@ export class PlaywrightService {
     try {
       const userSettings = await storage.getUserSettings(userId);
       const headlessMode = userSettings?.playwrightHeadless !== undefined ? userSettings.playwrightHeadless : DEFAULT_HEADLESS;
-      const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
+      // The plan's element timeout when a plan is driving this, the user's own setting otherwise.
+      const pageTimeout = options?.runtime?.elementTimeoutMs ?? (userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT);
       // The plan's browser when a plan is driving this, the user's own setting otherwise —
       // which is what every run used before a plan's choice was honoured at all.
       const browserChoice =
@@ -1724,7 +1731,19 @@ export class PlaywrightService {
       tracing = await startTrace(context, options?.evidence);
       page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
+      if (options?.runtime) page.setDefaultNavigationTimeout(options.runtime.pageLoadTimeoutMs);
       await page.setViewportSize({ width: 1280, height: 720 });
+
+      // A run no plan drives keeps a picture of every step, as it always has.
+      const screenshots = options?.runtime?.screenshots ?? 'always';
+      const storeScreenshot = async (buffer: Buffer, label: string): Promise<string> => {
+        if (!screenshotBaseDir) return `data:image/png;base64,${buffer.toString('base64')}`;
+        await fs.ensureDir(screenshotBaseDir);
+        const sanitized = label.replace(/[^a-z0-9_.-]/gi, '_').substring(0, 50);
+        const filePath = path.join(screenshotBaseDir, `step_${sanitized}_${Date.now()}.png`);
+        await fs.writeFile(filePath, buffer);
+        return filePath;
+      };
 
       if (targetUrl) {
         try {
@@ -1740,22 +1759,15 @@ export class PlaywrightService {
             });
           }
           await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
-          let navScreenshotPath: string | undefined;
-          if (screenshotBaseDir) {
-            await fs.ensureDir(screenshotBaseDir);
-            const screenshotFilePath = path.join(screenshotBaseDir, `step_navigation_load_${Date.now()}.png`);
-            await page.screenshot({ type: 'png', path: screenshotFilePath });
-            navScreenshotPath = screenshotFilePath;
-          } else {
-            const screenshotBuffer = await page.screenshot({ type: 'png' });
-            navScreenshotPath = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
-          }
+          const navScreenshotPath = keepsScreenshot(screenshots, 'passed')
+            ? await storeScreenshot(await page.screenshot({ type: 'png' }), 'navigation_load')
+            : undefined;
           stepResults.push({ name: 'Load Page', type: 'navigation', status: 'passed', screenshot: navScreenshotPath, details: `Successfully navigated to ${test.url}` });
         } catch (e: any) {
           overallSuccess = false;
           resolvedLogger.error({ message: "PS:executeTestSequence - Failed initial navigation", testName: test.name, url: test.url, error: e.message, stack: e.stack });
           let errorNavScreenshotPath: string | undefined;
-          if (page && !page.isClosed()) {
+          if (page && !page.isClosed() && keepsScreenshot(screenshots, 'failed')) {
             if (screenshotBaseDir) {
               await fs.ensureDir(screenshotBaseDir);
               const errorScreenshotFilePath = path.join(screenshotBaseDir, `step_navigation_load_error_${Date.now()}.png`);
@@ -1811,7 +1823,30 @@ export class PlaywrightService {
           try {
             if (!actionId) throw new Error('Step action ID is missing.');
 
-            const outcome = await executeStep({ page, reporter, vars }, step);
+            let outcome: Awaited<ReturnType<typeof executeStep>>;
+            try {
+              outcome = await executeStep({ page, reporter, vars }, step);
+            } catch (firstError: any) {
+              // Retried below like a failed outcome; without the plan's retry it fails as it did.
+              if (!options?.runtime?.retryFailedStep) throw firstError;
+              outcome = { status: 'failed', error: firstError?.message ?? String(firstError) } as typeof outcome;
+            }
+            if (outcome.status === 'failed' && options?.runtime?.retryFailedStep) {
+              // "On Major Step Failure: Retry Step" — once. What the step reports is the second
+              // try: a step that passes on it passed, and one that fails again fails with its
+              // second error, which is the one closest to the state the test is now in.
+              if (executionId) {
+                wsEmitter.emitExecutionLog(executionId, {
+                  level: 'warn',
+                  source: 'playwright',
+                  message: `Step ${i + 1} (${actionName}) failed: ${outcome.error ?? 'no reason given'}. Trying it once more.`,
+                  timestamp: new Date().toISOString(),
+                  metadata: { stepIndex: i, retry: true },
+                });
+              }
+              reporter.resetStepState();
+              outcome = await executeStep({ page, reporter, vars }, step);
+            }
             if (outcome.status === 'failed') {
               stepStatus = 'failed';
               stepError = outcome.error;
@@ -1820,21 +1855,19 @@ export class PlaywrightService {
             // that changed it both pass, and the report has to tell them apart.
             stepDetail = outcome.detail;
 
-            // One screenshot, used twice: as the step's evidence, and — when the plan asked
-            // for visual testing — as the image compared against this step's baseline.
-            const screenshotBuffer = await page.screenshot({ type: 'png' });
-            if (screenshotBaseDir) {
-              await fs.ensureDir(screenshotBaseDir);
-              // Sanitize actionName for use in filename
-              const sanitizedActionName = actionName.replace(/[^a-z0-9_.-]/gi, '_').substring(0, 50);
-              const screenshotFilePath = path.join(screenshotBaseDir, `step_${sanitizedActionName}_${Date.now()}.png`);
-              await fs.writeFile(screenshotFilePath, screenshotBuffer);
-              stepScreenshot = screenshotFilePath;
-            } else {
-              stepScreenshot = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
+            // One screenshot, used twice: as the step's evidence when the plan keeps it, and —
+            // when the plan asked for visual testing — as the image compared against this
+            // step's baseline. Taken only when one of the two wants it.
+            const comparesVisually = !!options?.visual && stepStatus === 'passed';
+            const screenshotBuffer =
+              keepsScreenshot(screenshots, stepStatus) || comparesVisually
+                ? await page.screenshot({ type: 'png' })
+                : undefined;
+            if (screenshotBuffer && keepsScreenshot(screenshots, stepStatus)) {
+              stepScreenshot = await storeScreenshot(screenshotBuffer, actionName);
             }
 
-            if (options?.visual && stepStatus === 'passed') {
+            if (options?.visual && screenshotBuffer && comparesVisually) {
               // Only for a step that did what it was asked. A step that already failed is
               // being reported for that reason, and the page it left behind says nothing
               // about whether the application looks right.
@@ -1855,6 +1888,10 @@ export class PlaywrightService {
               if (isVisualFailure(visualOutcome)) {
                 stepStatus = 'failed';
                 stepError = visualOutcome.detail;
+                // Now a failed step: kept under "on failed steps" too.
+                if (!stepScreenshot && keepsScreenshot(screenshots, 'failed')) {
+                  stepScreenshot = await storeScreenshot(screenshotBuffer, actionName);
+                }
               }
               if (executionId) {
                 wsEmitter.emitExecutionLog(executionId, {
@@ -1873,8 +1910,12 @@ export class PlaywrightService {
             overallSuccess = false;
             resolvedLogger.error({ message: `Error in step "${actionName}"`, error: e.message });
 
-            // Reporter likely already captured screenshot on error inside its methods
-            // But we can ensure it here if we want to update the result object
+            // A step that threw is the step somebody will want the picture of. Only for a plan
+            // run, which decides screenshots: the other callers never took one here.
+            if (options?.runtime && !stepScreenshot && keepsScreenshot(screenshots, 'failed') && !page.isClosed()) {
+              const buffer = await page.screenshot({ type: 'png' }).catch(() => null);
+              if (buffer) stepScreenshot = await storeScreenshot(buffer, actionName).catch(() => undefined);
+            }
           }
 
           if (stepStatus === 'failed') overallSuccess = false;

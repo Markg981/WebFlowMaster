@@ -358,6 +358,12 @@ export const reportTestCaseResults = pgTable("report_test_case_results", {
    */
   testVersion: integer("test_version"),
   status: text("status").notNull(),
+  /**
+   * How many times the test ran in this run before this result stood: more than one when the
+   * plan re-runs failed tests. A pass with attempts > 1 is a flaky test, which is a finding of
+   * its own and not the same thing as a pass.
+   */
+  attempts: integer("attempts").notNull().default(1),
   reasonForFailure: text("reason_for_failure"),
   screenshotUrl: text("screenshot_url"),
   /**
@@ -1194,8 +1200,10 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
   captureVideo: z.enum(EVIDENCE_CAPTURE_MODES).default("never"),
   captureTrace: z.enum(EVIDENCE_CAPTURE_MODES).default("never"),
   visualTestingEnabled: z.boolean().default(false),
-  pageLoadTimeout: z.number().int().positive().default(30000),
-  elementTimeout: z.number().int().positive().default(30000),
+  // Milliseconds. A second at least: the wizard once sent seconds here, and a value that small
+  // is that mistake, not a timeout anybody wants.
+  pageLoadTimeout: z.number().int().min(1000).max(600000).default(30000),
+  elementTimeout: z.number().int().min(1000).max(600000).default(30000),
   onMajorStepFailure: z
     .enum(["abort_and_run_next_test_case", "stop_execution", "retry_step"])
     .default("abort_and_run_next_test_case"),
