@@ -83,8 +83,6 @@ async function runPlan(executionColumns: Record<string, unknown> = {}) {
     testPlanId: planId,
     // Waiting for a worker, which is the only state a worker may take a run from.
     status: 'queued',
-    // As the enqueue paths write it: from the application's clock, not the column default.
-    queuedAt: new Date(),
     triggeredBy: 'scheduled',
     ...executionColumns,
   } as any);
