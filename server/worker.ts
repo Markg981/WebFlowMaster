@@ -10,6 +10,7 @@ import { testPlanSchedules, testPlans } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { withJobIncidents } from './observability/taps/jobs';
 import { artifactStore } from './artifact-store';
+import { BROWSER_TASK_QUEUE_NAME, performBrowserTask, type BrowserTaskEnvelope } from './browser-tasks';
 import 'dotenv/config';
 
 (async () => {
@@ -66,6 +67,26 @@ import 'dotenv/config';
     { connection, concurrency: 1 } // concurrency: 1 for safety with Playwright initially
   );
 
+  /**
+   * The browser work a person is waiting for — previews, single test runs, page surveys — on a
+   * queue of its own. On the plan queue it would wait behind a forty-minute nightly run, and the
+   * person who pressed Preview would wait with it.
+   */
+  const browserTaskConcurrency = Math.max(1, Number(process.env.BROWSER_TASK_CONCURRENCY) || 2);
+  const browserTaskWorker = new Worker(
+    BROWSER_TASK_QUEUE_NAME,
+    withJobIncidents(async (job: Job) => {
+      const envelope = job.data as BrowserTaskEnvelope;
+      const cid = envelope.correlationId || `task-${String(job.id).slice(0, 8)}`;
+      return correlationStore.run({ correlationId: cid }, () => performBrowserTask(envelope));
+    }),
+    { connection, concurrency: browserTaskConcurrency },
+  );
+  browserTaskWorker.on('failed', (job: Job | undefined, err: Error) => {
+    logger.warn(`Browser task ${job?.id} (${job?.name}) failed: ${err.message}`);
+  });
+  logger.info(`Worker listening to queue: ${BROWSER_TASK_QUEUE_NAME} (concurrency ${browserTaskConcurrency})`);
+
   worker.on('completed', (job: Job) => {
     logger.info(`Job ${job.id} completed successfully`);
   });
@@ -88,6 +109,7 @@ import 'dotenv/config';
     forceTimer.unref();
     try {
       await worker.close(); // waits for the active job to complete
+      await browserTaskWorker.close();
       await connection.quit();
       await closeDb();
       logger.info('Worker graceful shutdown complete.');
