@@ -8,6 +8,15 @@ import {
   type AssertableState,
   type SettableState,
 } from '@shared/recording';
+import {
+  DEFAULT_ACCESSIBILITY_THRESHOLD,
+  describeFinding,
+  isAccessibilityImpact,
+  ACCESSIBILITY_IMPACTS,
+  type AccessibilityFinding,
+  type AccessibilityImpact,
+} from '@shared/accessibility';
+import { scanAccessibility } from './accessibility';
 import { requestVariables, substituteVariables } from './outbound-http';
 import { findUnresolvedVariables } from './variables';
 
@@ -54,6 +63,8 @@ export interface StepOutcome {
    * should be?
    */
   detail?: string;
+  /** What an `assertAccessible` step found, kept on the step for the report. */
+  accessibility?: AccessibilityFinding;
 }
 
 /** The step shape both callers pass in — the builder's `TestStep`, structurally. */
@@ -193,6 +204,8 @@ interface StepRuntime {
   timeoutMs: number;
   /** Shorter than timeoutMs, and separate on purpose — see ASSERTION_TIMEOUT_MS. */
   assertionTimeoutMs: number;
+  /** Runs axe-core on the page. A field rather than an import, so it can be stood in for. */
+  scanAccessibility: (threshold: AccessibilityImpact) => Promise<AccessibilityFinding>;
 }
 
 /** Reads the step's value as a non-empty string, or explains what is missing. */
@@ -558,6 +571,27 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
   },
 
   /**
+   * Checks the page, as it is at this point of the flow, with axe-core.
+   *
+   * The value is the least severe violation that fails the step; empty means "serious". Every
+   * violation is kept on the step whether it failed it or not, so the report shows the minor
+   * ones too without turning the build red over them.
+   */
+  assertAccessible: async (rt) => {
+    const wanted = typeof rt.raw === 'string' ? rt.raw.trim().toLowerCase() : '';
+    if (wanted !== '' && !isAccessibilityImpact(wanted)) {
+      return failed(`Unknown severity "${rt.raw}" for assertAccessible. Use one of: ${ACCESSIBILITY_IMPACTS.join(', ')}.`);
+    }
+    const threshold = wanted === '' ? DEFAULT_ACCESSIBILITY_THRESHOLD : wanted;
+    const finding = await rt.scanAccessibility(threshold);
+    return {
+      status: finding.blocking > 0 ? 'failed' : 'passed',
+      ...(finding.blocking > 0 ? { error: describeFinding(finding) } : { detail: describeFinding(finding) }),
+      accessibility: finding,
+    };
+  },
+
+  /**
    * Picks an option from a dropdown that is not a native `<select>`.
    *
    * `select` calls `page.selectOption`, which only drives real `<select>` elements. Angular
@@ -662,6 +696,9 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
     byRole: (role, name) => scope.getByRole(role as any, { name, exact: false }),
     timeoutMs: DEFAULT_WAIT_TIMEOUT_MS,
     assertionTimeoutMs: ASSERTION_TIMEOUT_MS,
+    // The whole page, not the step's frame: an accessibility check is about what a person
+    // meets, and they meet the page.
+    scanAccessibility: (threshold) => scanAccessibility(page, threshold),
   };
 
   return handler(rt);

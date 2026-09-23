@@ -899,6 +899,10 @@
       "ensureState": {
         "name": "Mettre dans l’état",
         "description": "Active ou désactive un contrôle seulement s’il ne l’est pas déjà."
+      },
+      "assertAccessible": {
+        "name": "Vérifier l'accessibilité",
+        "description": "Vérifie la page telle qu'elle est à ce stade avec axe-core, et échoue sur les violations de gravité égale ou supérieure à celle choisie (serious si vide)."
       }
     },
     "saveTest": {
@@ -2137,5 +2141,18 @@
     "releaseFailed": "Le test n'a pas été libéré",
     "badge": "en quarantaine",
     "badgeTitle": "Ce test était en quarantaine : son échec ne fait pas échouer l'exécution."
+  },
+  "accessibility": {
+    "title": "Vérification d'accessibilité",
+    "summary": "{{violations}} règles enfreintes, {{passes}} respectées, {{incomplete}} à vérifier par une personne · échoue à partir de {{threshold}}",
+    "clean": "Aucune règle enfreinte sur cette page.",
+    "elements": "{{count}} élément(s)",
+    "failedStep": "a fait échouer l'étape",
+    "impact": {
+      "minor": "mineure",
+      "moderate": "modérée",
+      "serious": "grave",
+      "critical": "critique"
+    }
   }
 }

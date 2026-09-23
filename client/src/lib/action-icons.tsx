@@ -1,4 +1,5 @@
 import {
+  Accessibility,
   Activity,
   CheckCheck,
   CheckSquare,
@@ -48,6 +49,7 @@ const ACTION_ICONS: Record<AdhocActionId, LucideIcon> = {
   waitForElement: Eye,
   waitForText: Type,
   waitForNetworkIdle: Activity,
+  assertAccessible: Accessibility,
 };
 
 export function ActionIcon({

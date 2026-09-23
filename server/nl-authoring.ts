@@ -334,6 +334,11 @@ const RULES: Rule[] = [
     },
   },
   {
+    // Before the general "check that X …" readings, which would take "the page" for an element.
+    regex: /^(?:check|assert|verify|make sure|ensure|verifica|controlla)\s+(?:that\s+|che\s+)?(?:the\s+page\s+is\s+|la\s+pagina\s+(?:sia|è)\s+)?(?:accessib(?:le|ility|ile|ilità)|a11y)(?:\s+(?:at|for|a livello|di livello)\s+(?<impact>minor|moderate|serious|critical))?$/i,
+    build: (g) => ({ action: 'assertAccessible', value: g.impact ? g.impact.toLowerCase() : null }),
+  },
+  {
     regex: /^(?:check|assert|verify|make sure|ensure|verifica|controlla)\s+(?:that\s+|che\s+)?(?<target>.+?)\s+(?:contains|shows|displays|contiene|contenga|mostra|mostri)\s+"?(?<value>[^"]+?)"?$/i,
     build: (g) => ({
       action: 'assertTextContains',

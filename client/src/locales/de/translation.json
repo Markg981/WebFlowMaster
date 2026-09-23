@@ -899,6 +899,10 @@
       "ensureState": {
         "name": "Zustand herstellen",
         "description": "Schaltet ein Element nur dann um, wenn es noch nicht im gewünschten Zustand ist."
+      },
+      "assertAccessible": {
+        "name": "Barrierefreiheit prüfen",
+        "description": "Prüft die Seite, wie sie an dieser Stelle ist, mit axe-core und schlägt bei Verstößen ab dem gewählten Schweregrad fehl (serious, wenn leer)."
       }
     },
     "saveTest": {
@@ -2137,5 +2141,18 @@
     "releaseFailed": "Der Test wurde nicht entlassen",
     "badge": "in Quarantäne",
     "badgeTitle": "Dieser Test war in Quarantäne: Sein Fehlschlag lässt den Lauf nicht fehlschlagen."
+  },
+  "accessibility": {
+    "title": "Barrierefreiheitsprüfung",
+    "summary": "{{violations}} Regeln verletzt, {{passes}} eingehalten, {{incomplete}} manuell zu prüfen · schlägt ab {{threshold}} fehl",
+    "clean": "Auf dieser Seite wurde keine Regel verletzt.",
+    "elements": "{{count}} Element(e)",
+    "failedStep": "ließ den Schritt fehlschlagen",
+    "impact": {
+      "minor": "gering",
+      "moderate": "mittel",
+      "serious": "schwer",
+      "critical": "kritisch"
+    }
   }
 }

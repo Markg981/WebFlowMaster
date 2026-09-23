@@ -85,6 +85,13 @@ describe('parseLine', () => {
     expect(parseLine('Verifica che il totale contenga "42"')).toMatchObject({ action: 'assertTextContains', value: '42' });
   });
 
+  it('reads an accessibility check, with or without a severity, and not as an element called "the page"', () => {
+    expect(parseLine('Check that the page is accessible')).toMatchObject({ action: 'assertAccessible', value: null });
+    expect(parseLine('Verify accessibility at critical')).toMatchObject({ action: 'assertAccessible', value: 'critical' });
+    expect(parseLine('Verifica che la pagina sia accessibile')).toMatchObject({ action: 'assertAccessible' });
+    expect(parseLine('Check that the banner is visible')).toMatchObject({ action: 'assert' });
+  });
+
   it('reads a bare number as seconds, because nobody means two milliseconds', () => {
     expect(parseLine('Wait 2')).toMatchObject({ action: 'wait', value: '2000' });
     expect(parseLine('Wait 500 ms')).toMatchObject({ action: 'wait', value: '500' });
