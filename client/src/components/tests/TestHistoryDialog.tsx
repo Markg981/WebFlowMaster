@@ -33,6 +33,17 @@ export interface TestVersionSummary {
   createdAt: string;
   authorName: string | null;
   stepCount: number;
+  /** How this version actually did, counted from the runs that named it. */
+  runs: number;
+  passed: number;
+  failed: number;
+  lastRunAt: string | null;
+}
+
+interface TestHistoryResponse {
+  versions: TestVersionSummary[];
+  /** Runs from before results carried a version. Reported, never attributed to a version. */
+  unversionedRuns: number;
 }
 
 interface TestHistoryDialogProps {
@@ -48,7 +59,7 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
   const [restoring, setRestoring] = useState<number | null>(null);
   const [error, setError] = useState('');
 
-  const { data, isLoading, error: loadError, refetch } = useQuery<TestVersionSummary[], Error>({
+  const { data, isLoading, error: loadError, refetch } = useQuery<TestHistoryResponse, Error>({
     queryKey: ['testVersions', test?.id],
     queryFn: async () => {
       const response = await fetch(`/api/tests/${test!.id}/versions`);
@@ -58,7 +69,8 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
     enabled: isOpen && test !== null,
   });
 
-  const versions = Array.isArray(data) ? data : [];
+  const versions = Array.isArray(data?.versions) ? data!.versions : [];
+  const unversionedRuns = data?.unversionedRuns ?? 0;
 
   const handleRestore = async (version: number) => {
     setError('');
@@ -123,6 +135,31 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
                     {new Date(version.createdAt).toLocaleString()} ·{' '}
                     {version.authorName ?? t('testHistory.unknownAuthor', 'a member who has left')}
                   </p>
+                  {/* How the version did, which is what turns a list of edits into something
+                      somebody can choose between. A version nobody ever ran says so. */}
+                  <p className="text-xs">
+                    {version.runs === 0 ? (
+                      <span className="text-muted-foreground">{t('testHistory.neverRan', 'Never run')}</span>
+                    ) : (
+                      <>
+                        <span className="text-green-600">
+                          {t('testHistory.passed', '{{count}} passed', { count: version.passed })}
+                        </span>
+                        {' · '}
+                        <span className={version.failed > 0 ? 'text-destructive' : 'text-muted-foreground'}>
+                          {t('testHistory.failed', '{{count}} failed', { count: version.failed })}
+                        </span>
+                        {version.runs > version.passed + version.failed && (
+                          <span className="text-muted-foreground">
+                            {' · '}
+                            {t('testHistory.noVerdict', '{{count}} never got to answer', {
+                              count: version.runs - version.passed - version.failed,
+                            })}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </p>
                 </div>
                 {index > 0 && (
                   <Button
@@ -142,6 +179,18 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
               </div>
             ))}
           </div>
+        )}
+
+        {unversionedRuns > 0 && (
+          // Runs from before results recorded a version. Said out loud rather than spread over
+          // the versions they might belong to: attributing them would be inventing history.
+          <p className="text-xs text-muted-foreground">
+            {t(
+              'testHistory.unversioned',
+              '{{count}} earlier runs of this test did not record which version they used.',
+              { count: unversionedRuns },
+            )}
+          </p>
         )}
 
         {error && <p className="text-sm text-destructive">{error}</p>}

@@ -92,8 +92,8 @@ describe('a version per save', () => {
 
     const history = await request(app).get(`/api/tests/${created.id}/versions`).expect(200);
 
-    expect(history.body).toHaveLength(1);
-    expect(history.body[0]).toMatchObject({
+    expect(history.body.versions).toHaveLength(1);
+    expect(history.body.versions[0]).toMatchObject({
       version: 1,
       summary: 'Created with 1 step.',
       stepCount: 1,
@@ -111,8 +111,8 @@ describe('a version per save', () => {
 
     const history = await request(app).get(`/api/tests/${created.id}/versions`).expect(200);
 
-    expect(history.body.map((row: any) => row.version)).toEqual([2, 1]);
-    expect(history.body[0].summary).toBe('1 step added.');
+    expect(history.body.versions.map((row: any) => row.version)).toEqual([2, 1]);
+    expect(history.body.versions[0].summary).toBe('1 step added.');
   });
 
   it('does not manufacture a version for a save that saved nothing', async () => {
@@ -123,7 +123,7 @@ describe('a version per save', () => {
     await request(app).put(`/api/tests/${created.id}`).send({ name: 'Checkout' }).expect(200);
 
     const history = await request(app).get(`/api/tests/${created.id}/versions`).expect(200);
-    expect(history.body).toHaveLength(1);
+    expect(history.body.versions).toHaveLength(1);
   });
 
   it('keeps a version whose author has since been removed', async () => {
@@ -134,8 +134,79 @@ describe('a version per save', () => {
 
     const history = await request(app).get(`/api/tests/${created.id}/versions`).expect(200);
 
-    expect(history.body).toHaveLength(1);
-    expect(history.body[0].authorName).toBeNull();
+    expect(history.body.versions).toHaveLength(1);
+    expect(history.body.versions[0].authorName).toBeNull();
+  });
+});
+
+/**
+ * How each version actually did.
+ *
+ * A history that only says what changed is a list of edits. The question somebody opens it with
+ * is which version was the one that worked, and every result records the version it ran — so
+ * that is a count rather than a guess.
+ */
+describe('what each version did when it ran', () => {
+  async function recordRun(testId: number, input: { status: string; testVersion: number | null }) {
+    const executionId = `exec-${Math.random().toString(36).slice(2)}`;
+    await privilegedDb.execute(
+      sql`INSERT INTO test_plans (id, name, user_id, organization_id)
+          VALUES ('plan-versions', 'Nightly', ${userId}, ${organizationId})
+          ON CONFLICT (id) DO NOTHING`,
+    );
+    await privilegedDb.execute(
+      sql`INSERT INTO test_plan_executions (id, test_plan_id, organization_id, status, started_at)
+          VALUES (${executionId}, 'plan-versions', ${organizationId}, 'completed', ${new Date()})`,
+    );
+    await privilegedDb.execute(
+      sql`INSERT INTO report_test_case_results
+            (id, test_plan_execution_id, organization_id, ui_test_id, test_type, test_name, status, started_at, test_version)
+          VALUES (${`rep-${Math.random().toString(36).slice(2)}`}, ${executionId}, ${organizationId}, ${testId},
+                  'ui', 'Checkout', ${input.status}, ${new Date()}, ${input.testVersion})`,
+    );
+  }
+
+  it('counts the runs of each version separately', async () => {
+    const created = await createTest();
+    await request(app).put(`/api/tests/${created.id}`).send({ sequence: [step('click', '#other')] }).expect(200);
+    await recordRun(created.id, { status: 'Passed', testVersion: 1 });
+    await recordRun(created.id, { status: 'Passed', testVersion: 1 });
+    await recordRun(created.id, { status: 'Failed', testVersion: 2 });
+
+    const history = await request(app).get(`/api/tests/${created.id}/versions`).expect(200);
+
+    expect(history.body.versions[0]).toMatchObject({ version: 2, runs: 1, passed: 0, failed: 1 });
+    expect(history.body.versions[1]).toMatchObject({ version: 1, runs: 2, passed: 2, failed: 0 });
+  });
+
+  it('says a version has never run rather than leaving it looking clean', async () => {
+    const created = await createTest();
+
+    const history = await request(app).get(`/api/tests/${created.id}/versions`).expect(200);
+
+    expect(history.body.versions[0]).toMatchObject({ runs: 0, passed: 0, failed: 0, lastRunAt: null });
+  });
+
+  it('counts a run that never reached a verdict as neither', async () => {
+    const created = await createTest();
+    await recordRun(created.id, { status: 'Error', testVersion: 1 });
+
+    const history = await request(app).get(`/api/tests/${created.id}/versions`).expect(200);
+
+    expect(history.body.versions[0]).toMatchObject({ runs: 1, passed: 0, failed: 0 });
+  });
+
+  it('reports runs from before versions were recorded instead of attributing them', async () => {
+    // Attributing them to whichever version happens to be first would be inventing history.
+    const created = await createTest();
+    await recordRun(created.id, { status: 'Passed', testVersion: null });
+    await recordRun(created.id, { status: 'Failed', testVersion: null });
+    await recordRun(created.id, { status: 'Passed', testVersion: 1 });
+
+    const history = await request(app).get(`/api/tests/${created.id}/versions`).expect(200);
+
+    expect(history.body.unversionedRuns).toBe(2);
+    expect(history.body.versions[0].runs).toBe(1);
   });
 });
 
@@ -181,8 +252,8 @@ describe('restoring', () => {
     await request(app).post(`/api/tests/${created.id}/versions/1/restore`).expect(200);
 
     const history = await request(app).get(`/api/tests/${created.id}/versions`).expect(200);
-    expect(history.body.map((row: any) => row.version)).toEqual([3, 2, 1]);
-    expect(history.body[0].restoredFromVersion).toBe(1);
+    expect(history.body.versions.map((row: any) => row.version)).toEqual([3, 2, 1]);
+    expect(history.body.versions[0].restoredFromVersion).toBe(1);
   });
 
   it('changes nothing, and records nothing, when the test already is that version', async () => {
@@ -192,7 +263,7 @@ describe('restoring', () => {
 
     expect(restored.body.newVersion).toBeNull();
     const history = await request(app).get(`/api/tests/${created.id}/versions`).expect(200);
-    expect(history.body).toHaveLength(1);
+    expect(history.body.versions).toHaveLength(1);
   });
 
   it('leaves the fields a version does not hold alone', async () => {
