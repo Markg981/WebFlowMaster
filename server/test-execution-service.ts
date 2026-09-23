@@ -37,6 +37,7 @@ import {
   type RunSummary,
 } from './notifications';
 import { fileFailure, loadTracker, markResolved } from './issue-store';
+import { currentVersionsOf } from './test-version-store';
 import { testPlanSchedules } from '@shared/schema';
 
 /** Reads a jsonb column that came back as text, as these columns sometimes do. */
@@ -673,6 +674,14 @@ async function runTestPlanJobInTenant(
     uiTests.forEach(t => uiTestsMap.set(t.id, t as Test));
   }
 
+  // Which version of each test this run is about to execute, read once and stamped on every
+  // result. Without it the history of a test and the runs of it sit side by side and never
+  // meet, so "did the application change, or did the test?" stays a question somebody has to
+  // answer by reading dates.
+  const testVersionsInRun = uiTestIds.length > 0
+    ? await withTenantTransaction((tx) => currentVersionsOf(tx, uiTestIds))
+    : new Map<number, number>();
+
   const apiTestsMap = new Map<number, ApiTest>();
   if (apiTestIds.length > 0) {
     const apiTests = await withTenantTransaction((tx) =>
@@ -902,6 +911,10 @@ async function runTestPlanJobInTenant(
       // Null when the plan named no browser, which is every run made before the matrix
       // existed: the report should not claim to know something the run never decided.
       browser: browserChoice?.label ?? null,
+      // Null for an API test, which has no version history, and for a UI test saved before
+      // versions were recorded. Either way the row says it does not know rather than
+      // claiming version 1.
+      testVersion: link.testType === 'ui' && link.testId ? testVersionsInRun.get(link.testId) ?? null : null,
       status: reportStatus,
       reasonForFailure: failureReason,
       screenshotUrl: screenshotFinalPath,
@@ -1144,7 +1157,7 @@ async function fileFailuresIfConfigured(input: {
   planId: string;
   executionId: string;
   organizationId: number;
-  results: Array<{ testName: string; browser?: string | null; status: string; reasonForFailure?: string | null; startedAt?: Date | null; uiTestId?: number | null }>;
+  results: Array<{ testName: string; browser?: string | null; status: string; reasonForFailure?: string | null; startedAt?: Date | null; uiTestId?: number | null; testVersion?: number | null }>;
 }): Promise<void> {
   const resolvedLogger = await loggerPromise;
   const wsEmitter = getWsEmitter();
@@ -1171,6 +1184,7 @@ async function fileFailuresIfConfigured(input: {
         testName: row.testName,
         browser: row.browser ?? null,
         status: row.status,
+        testVersion: row.testVersion ?? null,
         reason: row.reasonForFailure ?? null,
         startedAt: row.startedAt ?? null,
       };

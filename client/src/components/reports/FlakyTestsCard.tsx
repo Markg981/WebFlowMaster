@@ -25,6 +25,10 @@ export interface FlakySummary {
   failed: number;
   errored: number;
   flips: number;
+  /** The flips that happened without the test changing underneath — the unexplained ones. */
+  unexplainedFlips: number;
+  versions: number[];
+  changedDuringWindow: boolean;
   flakiness: number;
   lastStatus: 'passed' | 'failed';
   firstSeen: string;
@@ -69,7 +73,7 @@ const FlakyTestsCard: React.FC<FlakyTestsCardProps> = ({ planId, days = 30 }) =>
         <CardDescription>
           {t(
             'flakyTests.description',
-            'Over the last {{days}} days, the tests whose verdict changed from one run to the next. A test that broke and was fixed is not here; one that alternates is.',
+            'Over the last {{days}} days, the tests whose verdict changed from one run to the next with nothing to explain it. A test that broke and was fixed is not here, and neither is one whose verdict changed because somebody edited it.',
             { days: data?.window.days ?? days },
           )}
         </CardDescription>
@@ -102,7 +106,25 @@ const FlakyTestsCard: React.FC<FlakyTestsCardProps> = ({ planId, days = 30 }) =>
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={`${item.testName}-${item.browser ?? 'default'}`}>
-                    <TableCell className="font-medium">{item.testName}</TableCell>
+                    <TableCell className="font-medium">
+                      {item.testName}
+                      {/* A test somebody edited inside the window is not a test that cannot
+                          make up its mind, and the count beside it only shows the changes of
+                          verdict the edits do not account for. */}
+                      {item.changedDuringWindow && (
+                        <Badge
+                          variant="outline"
+                          className="ml-2 font-normal"
+                          title={t(
+                            'flakyTests.editedTitle',
+                            'Edited during this window (versions {{versions}}). Only the unexplained changes of verdict are counted.',
+                            { versions: item.versions.join(', ') },
+                          )}
+                        >
+                          {t('flakyTests.edited', 'edited')}
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs">{item.browser ?? '—'}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
                       {item.passed} / {item.failed}
@@ -115,7 +137,7 @@ const FlakyTestsCard: React.FC<FlakyTestsCardProps> = ({ planId, days = 30 }) =>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       <Badge variant={item.flakiness >= 0.5 ? 'destructive' : 'secondary'}>
-                        {item.flips}× {t('flakyTests.inRuns', 'in {{runs}} runs', { runs: item.runs })}
+                        {item.unexplainedFlips}× {t('flakyTests.inRuns', 'in {{runs}} runs', { runs: item.runs })}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">

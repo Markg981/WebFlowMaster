@@ -23,6 +23,14 @@ export interface FailureContext {
   status: string;
   reason?: string | null;
   startedAt?: Date | string | null;
+  /**
+   * Which version of the test produced this failure.
+   *
+   * In the issue because it is the first thing a reader needs in order to tell a broken
+   * application from a changed test — and on every recurrence comment, so a thread that starts
+   * at version 6 and is still going at version 9 says so without anybody going to look.
+   */
+  testVersion?: number | null;
 }
 
 /** How much of a stack trace or a Playwright message is worth putting in an issue. */
@@ -77,6 +85,7 @@ export function issueBody(failure: FailureContext, productName = 'WebFlowMaster'
       : `The test "${failure.testName}" failed.`,
   );
   if (failure.browser) lines.push(`Browser: ${failure.browser}`);
+  if (failure.testVersion != null) lines.push(`Test version: ${failure.testVersion}`);
   lines.push(`Status: ${failure.status}`);
   if (failure.startedAt) lines.push(`Started: ${asIsoString(failure.startedAt)}`);
 
@@ -112,6 +121,9 @@ export function recurrenceComment(failure: FailureContext, occurrences: number):
   const where = failure.browser ? ` on ${failure.browser}` : '';
   return [
     `Failed again${where} (occurrence ${occurrences}).`,
+    // Named on every recurrence, because a thread that opened at version 6 and is still going
+    // at version 9 is describing a test somebody has been changing, not one nobody has touched.
+    failure.testVersion != null ? `Test version: ${failure.testVersion}` : '',
     failure.reason ? `Reason: ${truncate(failure.reason.trim(), 500)}` : '',
     url ? `Report: ${url}` : `Run: ${failure.executionId}`,
   ]

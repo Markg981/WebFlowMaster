@@ -311,6 +311,15 @@ export const reportTestCaseResults = pgTable("report_test_case_results", {
    * than one browser.
    */
   browser: text("browser"),
+  /**
+   * Which version of the test this result came from — see `testVersions`.
+   *
+   * The history of a test and the runs of it existed side by side and were never connected, so
+   * "did the application change, or did the test?" had no answer in the data. Null on every row
+   * written before this was recorded, and on API tests, which have no version history: a result
+   * that does not know its version says so rather than claiming version 1.
+   */
+  testVersion: integer("test_version"),
   status: text("status").notNull(),
   reasonForFailure: text("reason_for_failure"),
   screenshotUrl: text("screenshot_url"),

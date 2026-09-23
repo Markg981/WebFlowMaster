@@ -135,6 +135,14 @@ describe('recurrenceComment', () => {
   it('counts, which is the argument seven separate issues cannot make', () => {
     expect(recurrenceComment(failure, 7)).toContain('occurrence 7');
   });
+
+  it('names the version each time, so a thread shows a test somebody kept changing', () => {
+    expect(recurrenceComment({ ...failure, testVersion: 9 }, 4)).toContain('Test version: 9');
+  });
+
+  it('says nothing about a version the result does not have', () => {
+    expect(recurrenceComment(failure, 2)).not.toContain('Test version');
+  });
 });
 
 describe('resolvedComment', () => {

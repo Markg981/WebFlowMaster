@@ -108,6 +108,7 @@ router.post("/api/issues", requireRole('editor'), async (req, res) => {
         testName: context.row.testName,
         browser: context.row.browser,
         status: context.row.status,
+        testVersion: context.row.testVersion,
         reason: context.row.reasonForFailure,
         startedAt: context.row.startedAt,
       },

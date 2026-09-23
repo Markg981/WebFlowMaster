@@ -1219,6 +1219,9 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         // Which browser this failure came from. A plan covering two browsers fails a test on
         // one and passes it on the other, and the two rows are otherwise identical.
         browser: r.browser,
+        // Which version of the test this was. Null for a result recorded before versions were,
+        // and for API tests, which have no history to point at.
+        testVersion: r.testVersion,
         reasonForFailure: r.reasonForFailure,
         screenshotUrl: artifactUrl(executionId, r.screenshotUrl),
         // A recording of the run, and a trace of it, when the plan kept them. The trace is the

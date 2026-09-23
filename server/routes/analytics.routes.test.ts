@@ -167,7 +167,7 @@ describe('GET /api/analytics/dashboard', () => {
 describe('GET /api/analytics/flaky', () => {
   async function recordResult(
     planId: string,
-    input: { testName: string; status: string; browser?: string | null; daysAgo: number },
+    input: { testName: string; status: string; browser?: string | null; daysAgo: number; testVersion?: number | null },
   ) {
     const executionId = nextId('exec');
     const startedAt = new Date(Date.now() - input.daysAgo * 86_400_000);
@@ -178,9 +178,9 @@ describe('GET /api/analytics/flaky', () => {
     );
     await privilegedDb.execute(
       sql`INSERT INTO report_test_case_results
-            (id, test_plan_execution_id, organization_id, test_type, test_name, browser, status, started_at)
+            (id, test_plan_execution_id, organization_id, test_type, test_name, browser, status, started_at, test_version)
           VALUES (${nextId('rep')}, ${executionId}, ${organizationId}, 'ui', ${input.testName},
-                  ${input.browser ?? null}, ${input.status}, ${startedAt})`,
+                  ${input.browser ?? null}, ${input.status}, ${startedAt}, ${input.testVersion ?? null})`,
     );
   }
 
@@ -232,6 +232,50 @@ describe('GET /api/analytics/flaky', () => {
 
     expect(res.body.window.days).toBe(30);
     expect(res.body.thresholds.minimumRuns).toBe(2);
+  });
+
+  it('does not call a test flaky when its own edits explain the change', async () => {
+    // The whole reason results carry a version: a test rewritten on Monday night and failing
+    // ever since is a changed test, not an unreliable one, and a list that cannot tell them
+    // apart is one people stop reading.
+    const plan = await createPlan(userId, 'Nightly');
+    await recordResult(plan, { testName: 'Checkout', status: 'Passed', daysAgo: 5, testVersion: 1 });
+    await recordResult(plan, { testName: 'Checkout', status: 'Passed', daysAgo: 4, testVersion: 1 });
+    await recordResult(plan, { testName: 'Checkout', status: 'Failed', daysAgo: 3, testVersion: 2 });
+    await recordResult(plan, { testName: 'Checkout', status: 'Failed', daysAgo: 2, testVersion: 2 });
+
+    const res = await request(app).get('/api/analytics/flaky').expect(200);
+
+    expect(res.body.items).toEqual([]);
+  });
+
+  it('reports the changes of verdict an edit does not account for, and says it was edited', async () => {
+    const plan = await createPlan(userId, 'Nightly');
+    await recordResult(plan, { testName: 'Checkout', status: 'Passed', daysAgo: 5, testVersion: 1 });
+    await recordResult(plan, { testName: 'Checkout', status: 'Failed', daysAgo: 4, testVersion: 1 });
+    await recordResult(plan, { testName: 'Checkout', status: 'Passed', daysAgo: 3, testVersion: 2 });
+    await recordResult(plan, { testName: 'Checkout', status: 'Failed', daysAgo: 2, testVersion: 2 });
+
+    const res = await request(app).get('/api/analytics/flaky').expect(200);
+
+    expect(res.body.items[0]).toMatchObject({
+      testName: 'Checkout',
+      flips: 3,
+      unexplainedFlips: 2,
+      versions: [1, 2],
+      changedDuringWindow: true,
+    });
+  });
+
+  it('counts a history with no versions exactly as it always did', async () => {
+    const plan = await createPlan(userId, 'Nightly');
+    await recordResult(plan, { testName: 'Login', status: 'Passed', daysAgo: 4 });
+    await recordResult(plan, { testName: 'Login', status: 'Failed', daysAgo: 3 });
+    await recordResult(plan, { testName: 'Login', status: 'Passed', daysAgo: 2 });
+
+    const res = await request(app).get('/api/analytics/flaky').expect(200);
+
+    expect(res.body.items[0]).toMatchObject({ unexplainedFlips: 2, changedDuringWindow: false, versions: [] });
   });
 
   it('says nothing, successfully, when nothing has run', async () => {
