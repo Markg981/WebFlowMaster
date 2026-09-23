@@ -1464,6 +1464,7 @@
       "fieldsPlaceholder": "Configuration fields for screenshots, timeouts, error handling etc. will go here.",
       "validation": {
         "pageLoadTimeoutRequired": "Page Load Timeout must be a positive number.",
+        "timeoutRange": "Timeouts must be between 1 and 600 seconds.",
         "elementTimeoutRequired": "Element Timeout must be a positive number."
       },
       "captureScreenshots": {

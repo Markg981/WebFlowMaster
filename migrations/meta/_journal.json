@@ -169,6 +169,13 @@
       "when": 1787000000000,
       "tag": "0023_execution_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1787100000000,
+      "tag": "0024_runtime_settings",
+      "breakpoints": true
     }
   ]
 }

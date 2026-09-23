@@ -177,8 +177,13 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
     const pLoadTimeout = parseInt(pageLoadTimeout, 10);
     const elTimeout = parseInt(elementTimeout, 10);
 
+    // Seconds, 1 to 600: the range the server accepts once they are milliseconds.
+    const timeoutRange = t('createTestPlanWizard.step3.validation.timeoutRange', 'Timeouts must be between 1 and 600 seconds.');
     if (pageLoadTimeout.trim() === '' || isNaN(pLoadTimeout) || pLoadTimeout <= 0) {
       setPageLoadTimeoutError(t('createTestPlanWizard.step3.validation.pageLoadTimeoutRequired', 'Page Load Timeout must be a positive number.'));
+      isValid = false;
+    } else if (pLoadTimeout > 600) {
+      setPageLoadTimeoutError(timeoutRange);
       isValid = false;
     } else {
       setPageLoadTimeoutError('');
@@ -186,6 +191,9 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
 
     if (elementTimeout.trim() === '' || isNaN(elTimeout) || elTimeout <= 0) {
       setElementTimeoutError(t('createTestPlanWizard.step3.validation.elementTimeoutRequired', 'Element Timeout must be a positive number.'));
+      isValid = false;
+    } else if (elTimeout > 600) {
+      setElementTimeoutError(timeoutRange);
       isValid = false;
     } else {
       setElementTimeoutError('');
@@ -231,8 +239,9 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
       testMachinesConfig: testMachines.map(({id, ...rest}) => rest),
       captureScreenshots,
       visualTestingEnabled,
-      pageLoadTimeout: parseInt(pageLoadTimeout, 10),
-      elementTimeout: parseInt(elementTimeout, 10),
+      // The form asks in seconds; the plan stores milliseconds, which is what the runner applies.
+      pageLoadTimeout: parseInt(pageLoadTimeout, 10) * 1000,
+      elementTimeout: parseInt(elementTimeout, 10) * 1000,
       onMajorStepFailure,
       onAbortedTestCase,
       onTestSuitePreRequisiteFailure,

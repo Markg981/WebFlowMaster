@@ -1608,6 +1608,7 @@
       },
       "validation": {
         "pageLoadTimeoutRequired": "Le délai de chargement de la page doit être un nombre positif.",
+        "timeoutRange": "Les délais doivent être compris entre 1 et 600 secondes.",
         "elementTimeoutRequired": "Le délai d’attente des éléments doit être un nombre positif."
       }
     },

@@ -1479,6 +1479,7 @@
       "fieldsPlaceholder": "I campi di configurazione per screenshot, timeout, gestione errori ecc. andranno qui.",
       "validation": {
         "pageLoadTimeoutRequired": "Timeout Caricamento Pagina deve essere un numero positivo.",
+        "timeoutRange": "I timeout devono essere compresi tra 1 e 600 secondi.",
         "elementTimeoutRequired": "Timeout Elemento deve essere un numero positivo."
       },
       "captureScreenshots": {
