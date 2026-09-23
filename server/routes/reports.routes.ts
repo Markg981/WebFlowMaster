@@ -1,9 +1,6 @@
 import { Router } from "express";
-import { asc, eq } from "drizzle-orm";
-import { reportTestCaseResults, testPlanExecutions, testPlans } from "@shared/schema";
 import { reportingService } from "../reporting-service";
-import { buildJUnitXml } from "../junit";
-import { withTenantTransaction } from "../middleware/tenancy";
+import { junitReportFor } from "../junit-report";
 import loggerPromise from "../logger";
 import { requireRole } from "../middleware/require-role";
 
@@ -22,37 +19,8 @@ router.get("/api/test-plan-executions/:executionId/junit", requireRole('viewer')
 
     const { executionId } = req.params;
     try {
-        // No organization filter: RLS applies it, so another tenant's run is simply absent.
-        const source = await withTenantTransaction(async (tx) => {
-            const [execution] = await tx
-                .select({
-                    id: testPlanExecutions.id,
-                    startedAt: testPlanExecutions.startedAt,
-                    planName: testPlans.name,
-                    testPlanId: testPlanExecutions.testPlanId,
-                })
-                .from(testPlanExecutions)
-                .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
-                .where(eq(testPlanExecutions.id, executionId))
-                .limit(1);
-            if (!execution) return null;
-
-            const results = await tx
-                .select()
-                .from(reportTestCaseResults)
-                .where(eq(reportTestCaseResults.testPlanExecutionId, executionId))
-                .orderBy(asc(reportTestCaseResults.startedAt));
-            return { execution, results };
-        });
-
-        if (!source) return res.status(404).json({ error: "Test plan execution not found." });
-
-        const xml = buildJUnitXml({
-            planName: source.execution.planName ?? source.execution.testPlanId,
-            executionId,
-            startedAt: source.execution.startedAt,
-            results: source.results,
-        });
+        const xml = await junitReportFor(executionId);
+        if (xml === null) return res.status(404).json({ error: "Test plan execution not found." });
 
         res.setHeader('Content-Type', 'application/xml; charset=utf-8');
         // Named after the run, because a pipeline that collects several of these needs them

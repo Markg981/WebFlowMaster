@@ -2,9 +2,10 @@ import { Router } from "express";
 import { z } from "zod";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { v4 as uuidv4 } from 'uuid';
-import { apiKeys, AUDIT_ACTIONS } from "@shared/schema";
+import { apiKeys, users, AUDIT_ACTIONS } from "@shared/schema";
+import { API_SCOPE_NAMES, type ApiScope } from "@shared/api-scopes";
 import { withTenantTransaction } from "../middleware/tenancy";
-import { requireRole } from "../middleware/require-role";
+import { requireRole, roleAllows } from "../middleware/require-role";
 import { recordAudit } from "../audit";
 import { generateApiKey } from "../api-keys";
 import loggerPromise from "../logger";
@@ -25,6 +26,13 @@ const createApiKeySchema = z.object({
   name: z.string().trim().min(1, "A name is required").max(80),
   /** Optional lifetime. A key with no expiry is valid until somebody revokes it. */
   expiresInDays: z.number().int().min(1).max(3650).optional(),
+  /**
+   * What the key may do, through /api/v1 only. Left out, the key acts as its account on every
+   * endpoint, as keys always have — kept for the pipelines that already use one that way.
+   */
+  scopes: z.array(z.enum(API_SCOPE_NAMES as [ApiScope, ...ApiScope[]])).min(1).optional(),
+  /** Issue the key to a service account instead of to the caller. Owners only. */
+  serviceAccountId: z.number().int().positive().optional(),
 });
 
 /** What a listing shows. Deliberately never `hashedKey`: a hash is still a secret's shadow. */
@@ -37,6 +45,7 @@ const listedColumns = {
   expiresAt: apiKeys.expiresAt,
   revokedAt: apiKeys.revokedAt,
   userId: apiKeys.userId,
+  scopes: apiKeys.scopes,
 };
 
 /**
@@ -56,6 +65,7 @@ function toListed(row: typeof apiKeys.$inferSelect) {
     expiresAt: row.expiresAt,
     revokedAt: row.revokedAt,
     userId: row.userId,
+    scopes: row.scopes,
   };
 }
 
@@ -64,8 +74,14 @@ router.get("/api/api-keys", requireRole('editor'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
 
   // No organization predicate: RLS supplies it.
+  // Who holds each key, so a key held by a service account reads as one. users has no RLS,
+  // but the join goes through api_keys, which does.
   const keys = await withTenantTransaction((tx) =>
-    tx.select(listedColumns).from(apiKeys).orderBy(desc(apiKeys.createdAt)),
+    tx
+      .select({ ...listedColumns, holder: { username: users.username, kind: users.kind, displayName: users.displayName } })
+      .from(apiKeys)
+      .leftJoin(users, eq(apiKeys.userId, users.id))
+      .orderBy(desc(apiKeys.createdAt)),
   );
   res.json(keys);
 });
@@ -77,6 +93,26 @@ router.post("/api/api-keys", requireRole('editor'), async (req, res) => {
   const parsed = createApiKeySchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid data", details: parsed.error.flatten() });
+  }
+
+  // Whose key it is. The caller's own, unless it is for a service account — which only an owner
+  // may issue, since the account's role, not the caller's, is what the key will carry.
+  let holderId = req.user.id;
+  if (parsed.data.serviceAccountId !== undefined) {
+    if (!roleAllows(req.user.role, 'owner')) {
+      return res.status(403).json({ error: "Only an owner can issue keys to a service account." });
+    }
+    const [account] = await withTenantTransaction((tx) =>
+      tx
+        .select({ id: users.id, kind: users.kind, disabledAt: users.disabledAt })
+        .from(users)
+        .where(and(eq(users.id, parsed.data.serviceAccountId!), eq(users.organizationId, req.user!.organizationId)))
+        .limit(1),
+    );
+    if (!account || account.kind !== 'service' || account.disabledAt) {
+      return res.status(404).json({ error: "Service account not found." });
+    }
+    holderId = account.id;
   }
 
   const { key, hashedKey, prefix } = generateApiKey();
@@ -94,8 +130,9 @@ router.post("/api/api-keys", requireRole('editor'), async (req, res) => {
           // Stamped from the session, never from the body: a key that could name its own
           // organization would be a way to issue credentials into somebody else's.
           organizationId: req.user!.organizationId,
-          userId: req.user!.id,
+          userId: holderId,
           name: parsed.data.name,
+          scopes: parsed.data.scopes ?? null,
           prefix,
           hashedKey,
           expiresAt,
@@ -110,7 +147,13 @@ router.post("/api/api-keys", requireRole('editor'), async (req, res) => {
         targetId: id,
         // The prefix, never the key and never its hash: this table is readable by every owner
         // and cannot be redacted afterwards.
-        metadata: { name: parsed.data.name, prefix, expiresAt: expiresAt?.toISOString() ?? null },
+        metadata: {
+          name: parsed.data.name,
+          prefix,
+          expiresAt: expiresAt?.toISOString() ?? null,
+          scopes: parsed.data.scopes ?? null,
+          ...(holderId !== req.user!.id ? { serviceAccountId: holderId } : {}),
+        },
       });
 
       return toListed(row);

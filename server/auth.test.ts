@@ -159,6 +159,16 @@ describe('POST /api/login', () => {
     expect(res.body.username).toBe('alice');
     expect(res.body.password).toBeUndefined();
   });
+
+  // Its password is random and unknown, but refused before comparing, so it stays refused even
+  // if somebody sets one by hand.
+  it('refuses a service account, whatever the password', async () => {
+    await request(app).post('/api/register').send(validCreds).expect(201);
+    const [alice] = await privilegedDb.select().from(users).where(eq(users.username, 'alice'));
+    await privilegedDb.update(users).set({ kind: 'service', role: 'editor' }).where(eq(users.id, alice.id));
+
+    await request(app).post('/api/login').send(validCreds).expect(401);
+  });
 });
 
 describe('GET /api/user', () => {

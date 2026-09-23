@@ -2,6 +2,7 @@ import { organizations, users, invitations, auditLog, AUDIT_ACTIONS, tests, test
 import { privilegedDb } from "./db";
 import { eq, desc } from "drizzle-orm";
 import session from "express-session";
+import { randomBytes } from "node:crypto";
 // import connectPg from "connect-pg-simple";
 // import { pool } from "./db"; // Removed as pool is not available with SQLite
 
@@ -158,6 +159,49 @@ export class DatabaseStorage implements IStorage {
       });
 
       return user;
+    });
+  }
+
+  /**
+   * An account that is not a person, for API keys that must outlive whoever made them.
+   *
+   * Privileged for the same reason as account creation above: app_user may not insert into
+   * users, since that table has no RLS and an insert could name any organization. Here the
+   * organization is the caller's own, from the request's tenant context, never from a body.
+   * The username is generated — usernames are unique across organizations, and a name like
+   * "GitHub Actions" would collide with the first other organization to pick it — and the
+   * password is random and unknown, and never checked: sign-in refuses a service account.
+   */
+  async createServiceAccount(input: {
+    organizationId: number;
+    displayName: string;
+    role: 'viewer' | 'editor';
+    actor: { id: number; username: string };
+  }): Promise<User> {
+    return privilegedDb.transaction(async (tx) => {
+      const [account] = await tx
+        .insert(users)
+        .values({
+          username: `svc-${input.organizationId}-${randomBytes(6).toString('hex')}`,
+          password: `!service-account:${randomBytes(32).toString('hex')}`,
+          organizationId: input.organizationId,
+          role: input.role,
+          kind: 'service',
+          displayName: input.displayName,
+        })
+        .returning();
+
+      await tx.insert(auditLog).values({
+        organizationId: input.organizationId,
+        actorUserId: input.actor.id,
+        actorUsername: input.actor.username,
+        action: AUDIT_ACTIONS.SERVICE_ACCOUNT_CREATED,
+        targetType: 'user',
+        targetId: String(account.id),
+        metadata: { name: input.displayName, role: input.role },
+      });
+
+      return account;
     });
   }
 

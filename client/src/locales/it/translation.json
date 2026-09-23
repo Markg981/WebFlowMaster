@@ -92,6 +92,42 @@
       "accountDescription": "I dati del tuo accesso e le azioni che non si possono annullare.",
       "runUsage": "Utilizzo dei run",
       "runUsageDescription": "Quanti run di questa organizzazione sono in corso o in attesa, rispetto ai suoi limiti."
+    },
+    "apiKeys": {
+      "openApi": "Riferimento API (OpenAPI)",
+      "accessLabel": "Cosa può fare la chiave",
+      "accessScoped": "Solo ciò che scelgo, tramite /api/v1",
+      "accessFull": "Accesso completo, ovunque",
+      "accessFullHint": "La chiave può fare tutto ciò che può il suo account, su ogni endpoint dell'applicazione. Preferisci gli scope, a meno che uno script non abbia bisogno di più di quanto offre /api/v1.",
+      "scopesRequired": "Scegli almeno una cosa che la chiave può fare.",
+      "holderLabel": "Assegnata a",
+      "holderMe": "Me",
+      "heldBy": "di {{name}}",
+      "fullAccess": "accesso completo",
+      "columns": {
+        "access": "Accesso"
+      },
+      "scopes": {
+        "plans_read": "Elencare i piani di test.",
+        "runs_read": "Leggere i run, il loro stato e i report JUnit.",
+        "runs_write": "Avviare i run e annullarli."
+      }
+    },
+    "serviceAccounts": {
+      "title": "Account di servizio",
+      "description": "Account per le pipeline anziché per le persone. Non possono accedere, e le loro chiavi continuano a funzionare quando qualcuno se ne va. Disattivarne uno revoca tutte le sue chiavi.",
+      "nameLabel": "Nome",
+      "roleLabel": "Ruolo",
+      "roles": {
+        "viewer": "lettore",
+        "editor": "editor"
+      },
+      "create": "Crea account",
+      "loading": "Caricamento account…",
+      "empty": "Nessun account di servizio. Creane uno, poi assegnagli una chiave qui sopra.",
+      "disabled": "disattivato",
+      "disableAction": "Disattiva {{name}}",
+      "nameRequired": "Dai un nome all'account, ad esempio la pipeline a cui serve."
     }
   },
   "dashboard": {

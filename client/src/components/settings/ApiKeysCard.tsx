@@ -6,9 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Copy, KeySquare, Loader2, Trash2 } from 'lucide-react';
+import { API_SCOPES, API_SCOPE_NAMES, type ApiScope } from '@shared/api-scopes';
 
 /**
  * The credentials a pipeline authenticates with.
@@ -16,6 +19,11 @@ import { Copy, KeySquare, Loader2, Trash2 } from 'lucide-react';
  * Everything here was behind a session cookie, so the only way to run a plan from CI was to
  * put somebody's password in the pipeline. A key belongs to the organization, carries the
  * role of whoever made it, and can be revoked without touching that person's account.
+ *
+ * A new key is scoped by default: it works on /api/v1 only, and there only for what it was
+ * made for. Full access — the key acting as its account everywhere, which is what every key
+ * did before scopes — is still offered, and says what it means. An owner can issue a key to a
+ * service account instead of to themselves, so it does not leave when they do.
  */
 
 interface ApiKeySummary {
@@ -26,7 +34,19 @@ interface ApiKeySummary {
   lastUsedAt: string | null;
   expiresAt: string | null;
   revokedAt: string | null;
+  scopes?: ApiScope[] | null;
+  holder?: { username: string; kind: string; displayName: string | null } | null;
 }
+
+export interface ServiceAccountSummary {
+  id: number;
+  name: string;
+  role: string;
+  createdAt: string;
+  disabledAt: string | null;
+}
+
+const DEFAULT_SCOPES: ApiScope[] = ['runs:read', 'runs:write'];
 
 async function fetchApiKeys(): Promise<ApiKeySummary[]> {
   const response = await fetch('/api/api-keys');
@@ -40,11 +60,15 @@ function formatDate(value: string | null): string {
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
 }
 
-const ApiKeysCard: React.FC = () => {
+const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [expiresInDays, setExpiresInDays] = useState('');
+  const [access, setAccess] = useState<'scoped' | 'full'>('scoped');
+  const [scopes, setScopes] = useState<ApiScope[]>(DEFAULT_SCOPES);
+  /** 'me', or a service account's id. */
+  const [holder, setHolder] = useState('me');
   const [formError, setFormError] = useState('');
   /** Shown once, because the server cannot produce it a second time. */
   const [freshKey, setFreshKey] = useState<string | null>(null);
@@ -55,6 +79,17 @@ const ApiKeysCard: React.FC = () => {
     queryFn: fetchApiKeys,
   });
 
+  const { data: serviceAccounts = [] } = useQuery<ServiceAccountSummary[]>({
+    queryKey: ['serviceAccounts'],
+    queryFn: async () => {
+      const response = await fetch('/api/service-accounts');
+      if (!response.ok) throw new Error('Could not load the service accounts');
+      return response.json();
+    },
+    enabled: isOwner,
+  });
+  const activeServiceAccounts = serviceAccounts.filter((account) => !account.disabledAt);
+
   const createKey = useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/api-keys', {
@@ -63,6 +98,8 @@ const ApiKeysCard: React.FC = () => {
         body: JSON.stringify({
           name: name.trim(),
           ...(expiresInDays.trim() ? { expiresInDays: Number(expiresInDays) } : {}),
+          ...(access === 'scoped' ? { scopes } : {}),
+          ...(holder !== 'me' ? { serviceAccountId: Number(holder) } : {}),
         }),
       });
       if (!response.ok) {
@@ -99,6 +136,10 @@ const ApiKeysCard: React.FC = () => {
       setFormError(t('settings.apiKeys.expiryInvalid', 'Expiry must be a whole number of days.'));
       return;
     }
+    if (access === 'scoped' && scopes.length === 0) {
+      setFormError(t('settings.apiKeys.scopesRequired', 'Choose at least one thing the key may do.'));
+      return;
+    }
     setFormError('');
     createKey.mutate();
   };
@@ -114,7 +155,10 @@ const ApiKeysCard: React.FC = () => {
           {t(
             'settings.apiKeys.description',
             'For pipelines and scripts. A key acts as you, with your role, and can be revoked on its own.',
-          )}
+          )}{' '}
+          <a href="/api/v1/openapi.json" target="_blank" rel="noreferrer" className="underline">
+            {t('settings.apiKeys.openApi', 'API reference (OpenAPI)')}
+          </a>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -179,6 +223,66 @@ const ApiKeysCard: React.FC = () => {
             {t('settings.apiKeys.create', 'Create key')}
           </Button>
         </div>
+
+        <div className="space-y-2">
+          <Label>{t('settings.apiKeys.accessLabel', 'What the key may do')}</Label>
+          <Select value={access} onValueChange={(value) => setAccess(value as 'scoped' | 'full')}>
+            <SelectTrigger className="w-full sm:w-80" aria-label={t('settings.apiKeys.accessLabel', 'What the key may do')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="scoped">{t('settings.apiKeys.accessScoped', 'Only what I choose, through /api/v1')}</SelectItem>
+              <SelectItem value="full">{t('settings.apiKeys.accessFull', 'Full access, everywhere')}</SelectItem>
+            </SelectContent>
+          </Select>
+          {access === 'scoped' ? (
+            <div className="grid gap-2 sm:grid-cols-3">
+              {API_SCOPE_NAMES.map((scope) => (
+                <label key={scope} className="flex items-start gap-2 text-sm">
+                  <Checkbox
+                    checked={scopes.includes(scope)}
+                    onCheckedChange={(on) =>
+                      setScopes((current) => (on ? [...current, scope] : current.filter((s) => s !== scope)))
+                    }
+                    aria-label={scope}
+                  />
+                  <span>
+                    <code className="text-xs">{scope}</code>
+                    <span className="block text-xs text-muted-foreground">
+                      {t(`settings.apiKeys.scopes.${scope.replace(':', '_')}`, API_SCOPES[scope].description)}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              {t(
+                'settings.apiKeys.accessFullHint',
+                'The key can do anything its account can, on every endpoint of the application. Prefer scopes unless a script needs more than /api/v1 offers.',
+              )}
+            </p>
+          )}
+        </div>
+
+        {isOwner && activeServiceAccounts.length > 0 && (
+          <div className="space-y-2">
+            <Label>{t('settings.apiKeys.holderLabel', 'Issued to')}</Label>
+            <Select value={holder} onValueChange={setHolder}>
+              <SelectTrigger className="w-full sm:w-80" aria-label={t('settings.apiKeys.holderLabel', 'Issued to')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="me">{t('settings.apiKeys.holderMe', 'Me')}</SelectItem>
+                {activeServiceAccounts.map((account) => (
+                  <SelectItem key={account.id} value={String(account.id)}>
+                    {account.name} ({t(`settings.serviceAccounts.roles.${account.role}`, account.role)})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         {formError && <p className="text-sm text-destructive">{formError}</p>}
 
         {isLoading ? (
@@ -196,6 +300,7 @@ const ApiKeysCard: React.FC = () => {
                 <TableRow>
                   <TableHead>{t('settings.apiKeys.columns.name', 'Name')}</TableHead>
                   <TableHead>{t('settings.apiKeys.columns.key', 'Key')}</TableHead>
+                  <TableHead>{t('settings.apiKeys.columns.access', 'Access')}</TableHead>
                   <TableHead>{t('settings.apiKeys.columns.lastUsed', 'Last used')}</TableHead>
                   <TableHead>{t('settings.apiKeys.columns.expires', 'Expires')}</TableHead>
                   <TableHead />
@@ -211,9 +316,27 @@ const ApiKeysCard: React.FC = () => {
                           {t('settings.apiKeys.revoked', 'revoked')}
                         </Badge>
                       )}
+                      {key.holder?.kind === 'service' && (
+                        <span className="block text-xs font-normal text-muted-foreground">
+                          {t('settings.apiKeys.heldBy', 'held by {{name}}', { name: key.holder.displayName ?? key.holder.username })}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <code className="text-xs">{key.prefix}…</code>
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {key.scopes && key.scopes.length > 0 ? (
+                        <span className="flex flex-wrap gap-1">
+                          {key.scopes.map((scope) => (
+                            <Badge key={scope} variant="outline" className="font-mono text-[10px]">
+                              {scope}
+                            </Badge>
+                          ))}
+                        </span>
+                      ) : (
+                        <Badge variant="secondary">{t('settings.apiKeys.fullAccess', 'full access')}</Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-xs">{formatDate(key.lastUsedAt)}</TableCell>
                     <TableCell className="text-xs">{formatDate(key.expiresAt)}</TableCell>
