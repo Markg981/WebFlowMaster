@@ -225,8 +225,6 @@ export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: Tes
       testPlanId: schedule.testPlanId,
       // Waiting for a worker; started_at is stamped when one takes it.
       status: 'queued',
-      // From this process's clock, like every other stamp on the row — see runTestPlan.
-      queuedAt: new Date(),
       requestedByUserId: schedule.userId ?? null,
       environment: schedule.environment,
       browsers: schedule.browsers ?? null, // jsonb column — store the array directly

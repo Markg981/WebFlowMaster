@@ -17,9 +17,41 @@ let db: DbType;
 
 let closeDbImpl: () => Promise<void> = async () => {};
 
+/**
+ * Every session speaks UTC.
+ *
+ * The schema's timestamp columns carry no time zone, and two things write them. The application
+ * writes a JavaScript Date, which the driver sends as UTC. The database writes `now()` — every
+ * `defaultNow()` column — and in a column without a zone that is the wall-clock time of the
+ * session's own time zone. On a server not set to UTC the two disagree by that server's offset:
+ * an hour in the test database, which is how a run came to look like it started before anyone
+ * queued it.
+ *
+ * Nothing had noticed because nothing compared a defaulted column with a written one. The
+ * lifecycle does — queued, started, heartbeat, completed — and so will every duration computed
+ * between them. Converting every column to `timestamptz` would fix the storage and touch every
+ * table; making the session UTC fixes the one place the disagreement comes from.
+ *
+ * A statement, not a startup parameter: `options=-c TimeZone=UTC` is refused or dropped by some
+ * connection poolers, and an ordinary SET is understood by all of them.
+ *
+ * Rows written before this by a database that was not on UTC keep the offset they were written
+ * with. Which of them came from a default and which from the application cannot be told apart
+ * after the fact, so they are left alone rather than guessed at.
+ */
+export const SESSION_TIME_ZONE = 'UTC';
+const setSessionTimeZone = `SET TIME ZONE '${SESSION_TIME_ZONE}'`;
+
 if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
   // Real PostgreSQL
   const pool = new Pool({ connectionString: dbUrl });
+  // Runs on every new pooled connection, before the pool hands it to anyone: a client's queries
+  // run in the order they were issued, so this is the first thing each connection does.
+  pool.on('connect', (client) => {
+    client.query(setSessionTimeZone).catch((error: Error) => {
+      console.error(`Could not set the database session time zone to ${SESSION_TIME_ZONE}: ${error.message}`);
+    });
+  });
   db = drizzlePg(pool, { schema });
   closeDbImpl = () => pool.end();
 } else {
@@ -29,6 +61,11 @@ if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
     fs.mkdirSync(path.dirname(dbUrl), { recursive: true });
   }
   const client = new PGlite(dbUrl);
+  // One connection, and PGlite runs statements in the order they arrive, so this lands before
+  // the first query anybody else sends.
+  client.exec(setSessionTimeZone).catch((error: Error) => {
+    console.error(`Could not set the database session time zone to ${SESSION_TIME_ZONE}: ${error.message}`);
+  });
   db = drizzlePglite(client, { schema });
   closeDbImpl = () => client.close();
 }

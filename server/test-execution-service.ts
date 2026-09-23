@@ -401,11 +401,6 @@ export async function runTestPlan(
           // Waiting for a worker. started_at stays empty until one takes it, so the time a run
           // spent in the queue is not reported as time it spent running.
           status: 'queued',
-          // Stamped here rather than left to the column default, so it shares a clock with
-          // started_at and completed_at, which are also written by this process. The default is
-          // the database's now(), and in a timestamp column without a zone that is the
-          // database's local time — an hour or two away from every other stamp on the row.
-          queuedAt: new Date(),
           requestedByUserId: userId,
           environment: environmentId ? environmentId.toString() : null, // Save environment ID here
           triggeredBy: 'manual',
