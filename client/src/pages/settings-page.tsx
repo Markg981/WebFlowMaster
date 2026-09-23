@@ -28,6 +28,7 @@ import {
   Archive,
   KeyRound,
   KeySquare,
+  Gauge,
   Crosshair,
   Bug,
   SlidersHorizontal,
@@ -46,6 +47,7 @@ import { Link } from "wouter";
 import { UserSettings, fetchSettings } from "../lib/settings";
 import EnvironmentsCard from "@/components/settings/EnvironmentsCard";
 import ApiKeysCard from "@/components/settings/ApiKeysCard";
+import RunUsageCard from "@/components/settings/RunUsageCard";
 import ElementRepositoryCard from "@/components/settings/ElementRepositoryCard";
 import IssueTrackersCard from "@/components/settings/IssueTrackersCard";
 
@@ -542,6 +544,16 @@ export default function SettingsPage() {
       ),
       icon: KeySquare,
       content: <ApiKeysCard />,
+    },
+    {
+      id: 'runUsage',
+      label: t('settings.sections.runUsage', 'Run usage'),
+      description: t(
+        'settings.sections.runUsageDescription',
+        'How many runs this organization has going and waiting, against its limits.',
+      ),
+      icon: Gauge,
+      content: <RunUsageCard />,
     },
     {
       id: 'defaults',

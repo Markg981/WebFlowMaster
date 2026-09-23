@@ -70,4 +70,19 @@ describe('withJobIncidents', () => {
     const [entry] = await new IncidentStore(root).readIndex();
     expect(entry.title).toContain('string failure');
   });
+
+  /**
+   * A run held back by its organization's limit is moved to delayed and signalled with
+   * DelayedError. That is the queue working, not a failure: no incident, same error back.
+   */
+  it('lets a deferral through without recording an incident', async () => {
+    const deferral = Object.assign(new Error(''), { name: 'DelayedError' });
+    const wrapped = withJobIncidents(async () => {
+      throw deferral;
+    });
+
+    await expect(wrapped({ id: '4', name: 'execute-plan', data: {} }, 'lock-token')).rejects.toBe(deferral);
+
+    expect(await new IncidentStore(root).readIndex()).toHaveLength(0);
+  });
 });

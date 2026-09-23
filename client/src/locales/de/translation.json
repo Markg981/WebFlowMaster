@@ -89,7 +89,9 @@
       "notifications": "Benachrichtigungen",
       "notificationsDescription": "Für welche Ereignisse Sie unterbrochen werden möchten.",
       "account": "Konto",
-      "accountDescription": "Ihre Anmeldedaten und die Aktionen, die sich nicht rückgängig machen lassen."
+      "accountDescription": "Ihre Anmeldedaten und die Aktionen, die sich nicht rückgängig machen lassen.",
+      "runUsage": "Ausführungsauslastung",
+      "runUsageDescription": "Wie viele Ausführungen dieser Organisation laufen oder warten, gemessen an ihren Limits."
     }
   },
   "dashboard": {
@@ -1739,5 +1741,14 @@
     "placeholder": "Umgebung wählen",
     "none": "Keine Umgebung (nur Standardwerte)",
     "unknown": "{{name}} — keine Umgebung dieser Organisation; es wird nichts geladen"
+  },
+  "runUsage": {
+    "loading": "Wird geladen…",
+    "error": "Die Auslastung konnte nicht geladen werden.",
+    "running": "Laufen gerade",
+    "runningHint": "Ausführungen über diesem Limit warten in der Warteschlange und starten, sobald andere fertig sind.",
+    "queued": "In der Warteschlange",
+    "queuedHint": "Bei diesem Limit werden neue Ausführungen abgelehnt, bis einige gestartet sind.",
+    "operator": "Die Limits legt der Administrator dieser Installation fest."
   }
 }

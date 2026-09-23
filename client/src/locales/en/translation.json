@@ -89,7 +89,9 @@
       "notifications": "Notifications",
       "notificationsDescription": "Which events are worth interrupting you for.",
       "account": "Account",
-      "accountDescription": "Your sign-in details, and the actions that cannot be undone."
+      "accountDescription": "Your sign-in details, and the actions that cannot be undone.",
+      "runUsage": "Run usage",
+      "runUsageDescription": "How many of this organization's runs are in progress or waiting, against its limits."
     }
   },
   "dashboard": {
@@ -1733,5 +1735,14 @@
     "placeholder": "Choose an environment",
     "none": "No environment (defaults only)",
     "unknown": "{{name}} — not an environment of this organization; nothing is loaded"
+  },
+  "runUsage": {
+    "loading": "Loading…",
+    "error": "Usage could not be loaded.",
+    "running": "Running now",
+    "runningHint": "Runs past this limit wait in the queue and start as others finish.",
+    "queued": "Waiting in the queue",
+    "queuedHint": "At this limit, new runs are refused until some have started.",
+    "operator": "Limits are set by the administrator of this installation."
   }
 }

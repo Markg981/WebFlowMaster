@@ -6,6 +6,7 @@ import {
   type TestPlanExecution,
 } from '@shared/schema';
 import { withTenantTransaction } from './middleware/tenancy';
+import { liveRunCounts, lockOrganizationRuns, quotasFor } from './tenant-quotas';
 
 /**
  * Which way a run may move, and the only code allowed to move it.
@@ -96,6 +97,45 @@ export async function transitionExecution(
   );
 
   return moved ?? null;
+}
+
+export type TakeOutcome =
+  | { outcome: 'taken'; execution: TestPlanExecution }
+  | { outcome: 'over_quota'; running: number; maxConcurrentRuns: number }
+  | { outcome: 'not_queued'; status: string | null };
+
+/**
+ * A worker takes a queued run, if its organization has room for one more running.
+ *
+ * The count and the move happen in one transaction, under a lock on the organization's runs:
+ * two workers taking two runs of the same organization at the same moment would otherwise both
+ * count one free slot and both take it. A run past the limit is left queued — the worker puts
+ * the job back for later — and a run no longer queued (taken already, cancelled while it waited)
+ * is not taken at all, which is what makes a job delivered twice run once.
+ */
+export async function takeExecution(executionId: string): Promise<TakeOutcome> {
+  return withTenantTransaction(async (tx) => {
+    const [row] = await tx
+      .select({ organizationId: testPlanExecutions.organizationId, status: testPlanExecutions.status })
+      .from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, executionId))
+      .limit(1);
+    if (!row || row.status !== 'queued') return { outcome: 'not_queued', status: row?.status ?? null } as const;
+
+    await lockOrganizationRuns(tx, row.organizationId);
+    const [quotas, counts] = await Promise.all([quotasFor(tx, row.organizationId), liveRunCounts(tx, row.organizationId)]);
+    if (counts.running >= quotas.maxConcurrentRuns) {
+      return { outcome: 'over_quota', running: counts.running, maxConcurrentRuns: quotas.maxConcurrentRuns } as const;
+    }
+
+    const now = new Date();
+    const [taken] = await tx
+      .update(testPlanExecutions)
+      .set({ status: 'running', startedAt: now, heartbeatAt: now })
+      .where(and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.status, 'queued')))
+      .returning();
+    return taken ? ({ outcome: 'taken', execution: taken } as const) : ({ outcome: 'not_queued', status: 'unknown' } as const);
+  });
 }
 
 export type CancellationOutcome =

@@ -174,7 +174,8 @@ describe('enqueue', () => {
       {
         name: 'execute-plan',
         data: expect.objectContaining({ executionId: execution.id, testPlanRunId: execution.id, planId, userId }),
-        options: { jobId: execution.id },
+        // First in flight for its organization, so first in line.
+        options: { jobId: execution.id, priority: 1 },
       },
     ]);
   });

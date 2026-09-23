@@ -111,7 +111,7 @@ describe('a scheduled occurrence', () => {
       browsers: { requested: ['chromium', 'firefox'] },
     });
     expect(queued).toEqual([
-      expect.objectContaining({ name: 'execute-plan', options: { jobId: execution!.id } }),
+      expect.objectContaining({ name: 'execute-plan', options: { jobId: execution!.id, priority: 1 } }),
     ]);
   });
 

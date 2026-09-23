@@ -9,6 +9,12 @@ export const organizations = pgTable("organizations", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  /**
+   * This organization's share of the execution plane — see server/tenant-quotas.ts. Null is the
+   * installation's default. Set by the operator; the application has no grant to change them.
+   */
+  maxConcurrentRuns: integer("max_concurrent_runs"),
+  maxQueuedRuns: integer("max_queued_runs"),
 });
 
 export const users = pgTable("users", {
