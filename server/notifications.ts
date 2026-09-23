@@ -36,7 +36,7 @@ export interface NotificationSettings {
   emails?: string[] | null;
 }
 
-export type RunStatus = 'completed' | 'failed' | 'error' | 'pending' | 'running' | string;
+export type RunStatus = 'completed' | 'failed' | 'error' | 'queued' | 'running' | 'timed_out' | string;
 
 export interface RunSummary {
   planId: string;
@@ -85,7 +85,10 @@ export function switchForStatus(status: RunStatus): 'passed' | 'failed' | 'notEx
   switch (status) {
     case 'completed':
       return 'passed';
+    // A run that ran out of time did not pass, and somebody who asked to hear about failures
+    // wants to hear about this one — it is the failure that took longest to notice.
     case 'failed':
+    case 'timed_out':
       return 'failed';
     case 'error':
       return 'notExecuted';

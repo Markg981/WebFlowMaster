@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { testPlans, testPlanSchedules, testPlanExecutions, testPlanSelectedTests, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema, testPlanApiPayloadSchema, type TestPlanSchedule } from "@shared/schema";
-import { eq, desc, and, getTableColumns, type SQL } from "drizzle-orm";
+import { eq, desc, and, getTableColumns, sql, type SQL } from "drizzle-orm";
 import { v4 as uuidv4 } from 'uuid';
 import loggerPromise from "../logger";
 import schedulerService, { assertValidTimezone } from "../scheduler-service";
@@ -303,7 +303,12 @@ router.get("/api/test-plan-executions", requireRole('viewer'), async (req, res) 
 
       if (conditions.length > 0) query = query.where(and(...conditions));
 
-      return query.orderBy(desc(testPlanExecutions.startedAt)).limit(pageLimit).offset(pageOffset);
+      // When it started, or failing that when it was asked for: a queued run has no start time,
+      // and nulls sort first in a descending order, which would pin queued runs to the top.
+      return query
+        .orderBy(desc(sql`coalesce(${testPlanExecutions.startedAt}, ${testPlanExecutions.queuedAt})`))
+        .limit(pageLimit)
+        .offset(pageOffset);
     });
     const parsed = results.map(e => ({
         ...e,

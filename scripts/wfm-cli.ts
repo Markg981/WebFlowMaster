@@ -126,8 +126,17 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
   return options;
 }
 
-/** A run is over when its status stops being one of these. */
-const IN_PROGRESS = new Set(['pending', 'running']);
+/**
+ * A run is over when its status stops being one of these.
+ *
+ * Kept in step with IN_FLIGHT_EXECUTION_STATUSES in shared/execution-status.ts, written out here
+ * because this script has no imports on purpose — it is copied into pipelines on its own. A state
+ * missing from this list is not a cosmetic slip: `queued` was, and a run that had only just been
+ * accepted looked finished, so the pipeline reported before a single test had run.
+ *
+ * `pending` stays for servers that have not run migration 0021 yet.
+ */
+const IN_PROGRESS = new Set(['queued', 'pending', 'running', 'cancelling']);
 
 interface ExecutionRecord {
   id: string;

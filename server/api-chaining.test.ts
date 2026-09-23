@@ -132,7 +132,7 @@ async function runPlan(planId: string) {
     id: executionId,
     testPlanId: planId,
     organizationId,
-    status: 'pending',
+    status: 'queued',
     triggeredBy: 'manual',
   } as never);
 

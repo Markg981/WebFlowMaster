@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import path from 'path';
 import fs from 'fs-extra';
 import { v4 as uuidv4 } from 'uuid';
+import { eq } from 'drizzle-orm';
 import { privilegedDb } from './db';
 import {
   tests as testsTable,
@@ -80,8 +81,10 @@ async function runPlan(executionColumns: Record<string, unknown> = {}) {
     id: executionId,
     organizationId,
     testPlanId: planId,
-    status: 'pending',
-    startedAt: new Date(),
+    // Waiting for a worker, which is the only state a worker may take a run from.
+    status: 'queued',
+    // As the enqueue paths write it: from the application's clock, not the column default.
+    queuedAt: new Date(),
     triggeredBy: 'scheduled',
     ...executionColumns,
   } as any);
@@ -114,6 +117,56 @@ afterEach(async () => {
   // Every run creates its screenshot directory for real, so a suite that does not clean up
   // leaves one behind on every execution of itself.
   if (planId) await fs.remove(path.resolve(process.cwd(), 'results', planId));
+});
+
+/**
+ * A run is taken once.
+ *
+ * The worker used to set `running` without looking, so a job BullMQ delivered twice ran the
+ * whole plan twice — two browsers driving the same system under test, two sets of results
+ * written over each other.
+ */
+describe('a run delivered twice', () => {
+  it('runs the plan once, and leaves the finished run as it was', async () => {
+    await seedPlan();
+    const executionId = await runPlan();
+    const [afterFirst] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId));
+
+    const second = await processTestPlanJob(planId, executionId, userId);
+
+    expect(second).toMatchObject({ skipped: true });
+    expect(executeTestSequence).toHaveBeenCalledTimes(1);
+    const [afterSecond] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId));
+    expect(afterSecond.status).toBe(afterFirst.status);
+    expect(afterSecond.completedAt).toEqual(afterFirst.completedAt);
+  });
+
+  it('does not start a run somebody cancelled while it waited', async () => {
+    await seedPlan();
+    const executionId = uuidv4();
+    await privilegedDb.insert(testPlanExecutions).values({
+      id: executionId,
+      organizationId,
+      testPlanId: planId,
+      status: 'cancelling',
+      triggeredBy: 'manual',
+    } as any);
+
+    const outcome = await processTestPlanJob(planId, executionId, userId);
+
+    expect(outcome).toMatchObject({ skipped: true });
+    expect(executeTestSequence).not.toHaveBeenCalled();
+  });
+
+  it('stamps when the run actually started, not when it was asked for', async () => {
+    await seedPlan();
+    const executionId = await runPlan();
+
+    const [row] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId));
+
+    expect(row.startedAt).toBeInstanceOf(Date);
+    expect(row.startedAt!.getTime()).toBeGreaterThanOrEqual(row.queuedAt.getTime());
+  });
 });
 
 describe('the browsers a plan asks for', () => {

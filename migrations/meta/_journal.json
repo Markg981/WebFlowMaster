@@ -148,6 +148,13 @@
       "when": 1786700000000,
       "tag": "0020_result_test_version",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1786800000000,
+      "tag": "0021_execution_lifecycle",
+      "breakpoints": true
     }
   ]
 }

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Filter, Loader2, AlertCircle, Eye, ChevronLeft, ChevronRight, Search
 } from 'lucide-react';
 import type { TestPlanExecution, TestPlan } from '@shared/schema';
+import { EXECUTION_STATUSES } from '@shared/execution-status';
 import { format } from 'date-fns';
 import { StatusChip } from '@/components/ui/status-chip';
 
@@ -173,7 +174,9 @@ const GeneralReportsPage: React.FC = () => {
                   <SelectTrigger id="status-filter"><SelectValue placeholder={t('generalReportsPage.filters.selectStatus', 'Select Status')} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{t('generalReportsPage.filters.allStatuses', 'All Statuses')}</SelectItem>
-                    {['pending', 'running', 'completed', 'failed', 'error', 'cancelled'].map(status => (<SelectItem key={status} value={status} className="capitalize">{status}</SelectItem>))}
+                    {/* The server's own list, so a state it can produce is never missing from the
+                        filter — `pending` was here long after the server stopped writing it. */}
+                    {EXECUTION_STATUSES.map(status => (<SelectItem key={status} value={status} className="capitalize">{status.replace('_', ' ')}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>

@@ -50,6 +50,24 @@ async function cleanup() {
   await privilegedDb.delete(users);
 }
 
+/**
+ * The verdict of a scheduled run belongs to the worker that runs it.
+ *
+ * These used to assert that the scheduler wrote 'failed' — and in one case 'passed', which is
+ * not a state a run can be in — over the execution row. runTestPlan only enqueues, so in
+ * production that verdict was one nobody had reached, written over a run a worker had not taken
+ * yet. The state machine (server/execution-state.ts) now refuses it: a verdict can only be
+ * written over a run that is running. What stays asserted is how many attempts the policy makes.
+ *
+ * Retrying on the answer to an enqueue is itself the gap: that answer is never a verdict. The
+ * retry moves to the worker, counted on the row, when scheduled runs go through the single
+ * enqueue command.
+ */
+async function storedStatus(scheduleId: string) {
+  const [exec] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.scheduleId, scheduleId));
+  return exec.status;
+}
+
 describe('scheduler retry-on-failure', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -64,8 +82,8 @@ describe('scheduler retry-on-failure', () => {
     await executeScheduledPlanForTest(schedule, plan);
 
     expect(mockRun).toHaveBeenCalledTimes(1);
-    const [exec] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.scheduleId, schedule.id));
-    expect(exec.status).toBe('failed');
+    // Still the worker's: nothing the scheduler was told by an enqueue is a verdict.
+    expect(await storedStatus(schedule.id)).toBe('queued');
   });
 
   it('retries up to the policy limit when every run fails', async () => {
@@ -75,8 +93,8 @@ describe('scheduler retry-on-failure', () => {
     await executeScheduledPlanForTest(schedule, plan);
 
     expect(mockRun).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
-    const [exec] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.scheduleId, schedule.id));
-    expect(exec.status).toBe('failed');
+    // Still the worker's: nothing the scheduler was told by an enqueue is a verdict.
+    expect(await storedStatus(schedule.id)).toBe('queued');
   });
 
   it('stops retrying as soon as a run succeeds', async () => {
@@ -88,7 +106,6 @@ describe('scheduler retry-on-failure', () => {
     await executeScheduledPlanForTest(schedule, plan);
 
     expect(mockRun).toHaveBeenCalledTimes(2); // failed, then passed → stop
-    const [exec] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.scheduleId, schedule.id));
-    expect(exec.status).toBe('passed');
+    expect(await storedStatus(schedule.id)).toBe('queued');
   });
 });

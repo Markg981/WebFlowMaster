@@ -138,6 +138,32 @@ describe('runCli', () => {
     expect(await runCli(options({ wait: true }), io(fetchImpl))).toBe(EXIT_PASSED);
   });
 
+  it('keeps waiting while the run is still in the queue', async () => {
+    // A run the server has just accepted is `queued`. When that word was missing from the
+    // list of states that mean "still going", the CLI read it as finished and the pipeline
+    // reported before a single test had run.
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ data: { id: 'exec-1' } }, 200))
+      .mockResolvedValueOnce(jsonResponse({ id: 'exec-1', status: 'queued' }))
+      .mockResolvedValueOnce(jsonResponse({ id: 'exec-1', status: 'running' }))
+      .mockResolvedValueOnce(jsonResponse({ id: 'exec-1', status: 'failed', totalTests: 1, failedTests: 1 }));
+
+    expect(await runCli(options({ wait: true }), io(fetchImpl))).toBe(EXIT_RUN_FAILED);
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+  });
+
+  it('fails a run that was cancelled or ran out of time, rather than passing it', async () => {
+    for (const status of ['cancelled', 'timed_out']) {
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ data: { id: 'exec-1' } }, 200))
+        .mockResolvedValueOnce(jsonResponse({ id: 'exec-1', status }));
+
+      expect(await runCli(options({ wait: true }), io(fetchImpl))).toBe(EXIT_RUN_FAILED);
+    }
+  });
+
   it('exits 1 when the run it waited for failed — the number that matters', async () => {
     const fetchImpl = vi
       .fn()
