@@ -104,8 +104,10 @@ describe('summaryLine and buildPayload', () => {
 
     const payload = buildPayload(summary) as any;
 
-    expect(payload.execution.url).toBe('https://qa.example.com/test-plan-executions/exec-1');
-    expect(payload.text).toContain('https://qa.example.com/test-plan-executions/exec-1');
+    // The path the client actually serves. This used to be `/test-plan-executions/{id}`,
+    // which no route has ever matched: every notification carried a link to a missing page.
+    expect(payload.execution.url).toBe('https://qa.example.com/test-plans/plan-1/executions/exec-1/report');
+    expect(payload.text).toContain('https://qa.example.com/test-plans/plan-1/executions/exec-1/report');
   });
 });
 

@@ -42,6 +42,8 @@ const fetchTestPlanDetails = async (planId: string): Promise<TestPlan & { tests:
       onTestCasePreRequisiteFailure: null,
       onTestStepPreRequisiteFailure: null,
       reRunOnFailure: null,
+      issueTrackerId: null,
+      createIssuesOnFailure: false,
       notificationSettings: null,
       tests: [
         { id: 1, name: 'Test User Login Valid Credentials', method: 'POST', url: '/api/auth/login', headers: {}, body: '{"email":"test@example.com", "password":"password"}', expectedStatusCode: 200, projectId: null, createdAt: new Date(), updatedAt: new Date(), assertions: [] },
