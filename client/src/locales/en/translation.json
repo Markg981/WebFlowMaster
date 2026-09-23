@@ -893,6 +893,10 @@
       "ensureState": {
         "name": "Ensure State",
         "description": "Switches a control on or off only if it is not already."
+      },
+      "assertAccessible": {
+        "name": "Check accessibility",
+        "description": "Checks the page as it is at this point with axe-core, and fails on violations at or above the chosen severity (serious when left empty)."
       }
     },
     "playbackStatus": "Step {{current}}/{{total}}: {{name}} - {{details}}",
@@ -2131,5 +2135,18 @@
     "releaseFailed": "The test was not released",
     "badge": "quarantined",
     "badgeTitle": "This test was in quarantine: a failure of it does not fail the run."
+  },
+  "accessibility": {
+    "title": "Accessibility check",
+    "summary": "{{violations}} rules broken, {{passes}} passed, {{incomplete}} need a person to check · fails at {{threshold}} or worse",
+    "clean": "No rule was broken on this page.",
+    "elements": "{{count}} element(s)",
+    "failedStep": "failed the step",
+    "impact": {
+      "minor": "minor",
+      "moderate": "moderate",
+      "serious": "serious",
+      "critical": "critical"
+    }
   }
 }

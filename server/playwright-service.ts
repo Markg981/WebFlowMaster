@@ -16,6 +16,7 @@ import { browserPool } from './browser-pool';
 import { getWsEmitter } from './websocket';
 import { allowsSelfSignedCertificate, substituteVariables, requestVariables } from './outbound-http';
 import { executeStep } from './step-executor';
+import type { AccessibilityFinding } from '@shared/accessibility';
 import { resolveVariables } from './variables';
 import { loadLoginState, saveLoginState, type EnvironmentScope } from './login-state';
 import { describeBrowser, launchBrowser, resolveBrowser, type BrowserChoice } from './browsers';
@@ -152,6 +153,8 @@ export interface StepResult {
     actualImage?: string;
     diffImage?: string;
   };
+  /** What an accessibility check found on the page, every violation with whether it failed the step. */
+  accessibility?: AccessibilityFinding;
 }
 
 /**
@@ -1392,6 +1395,7 @@ export class PlaywrightService {
           let stepError: string | undefined;
           let stepScreenshot: string | undefined;
           let stepDetail: string | undefined;
+          let stepAccessibility: AccessibilityFinding | undefined;
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
           resolvedLogger.verbose({ message: `PS:executeAdhocSequence - LOOP START for step`, testName, actionName, actionId, pageClosed: page?.isClosed() });
@@ -1413,6 +1417,7 @@ export class PlaywrightService {
             // both pass, and a report that renders them identically cannot answer the
             // question anyone asks of a precondition afterwards.
             stepDetail = outcome.detail;
+            stepAccessibility = outcome.accessibility;
             // Let the UI settle before capturing: a click often dismisses a menu and opens a
             // dialog with an animation, and may fire XHRs. Without this the screenshot catches a
             // mid-transition frame (old menu overlapping a half-open dialog).
@@ -1440,7 +1445,7 @@ export class PlaywrightService {
           }
           if (stepStatus === 'failed') overallSuccess = false;
 
-          stepResults.push({ name: actionName, type: actionId || 'unknown', selector: step.targetElement?.selector, value: step.value, status: stepStatus, screenshot: stepScreenshot, error: stepError, details: stepStatus === 'passed' ? (stepDetail ?? 'Action executed successfully.') : `Action failed: ${stepError || 'Unknown error'}`, });
+          stepResults.push({ name: actionName, type: actionId || 'unknown', selector: step.targetElement?.selector, value: step.value, status: stepStatus, screenshot: stepScreenshot, error: stepError, details: stepStatus === 'passed' ? (stepDetail ?? 'Action executed successfully.') : `Action failed: ${stepError || 'Unknown error'}`, accessibility: stepAccessibility, });
           if (!overallSuccess) {
             resolvedLogger.info({ message: `PS:executeAdhocSequence - Step failed. Stopping sequence execution.`, testName, failedStep: actionName });
             break;
@@ -1816,6 +1821,7 @@ export class PlaywrightService {
           let stepError: string | undefined;
           let stepScreenshot: string | undefined;
           let stepDetail: string | undefined;
+          let stepAccessibility: AccessibilityFinding | undefined;
           let stepVisual: StepResult['visual'];
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
@@ -1871,6 +1877,7 @@ export class PlaywrightService {
             // See the ad-hoc path: a setup step that found the state already correct and one
             // that changed it both pass, and the report has to tell them apart.
             stepDetail = outcome.detail;
+            stepAccessibility = outcome.accessibility;
 
             // One screenshot, used twice: as the step's evidence when the plan keeps it, and —
             // when the plan asked for visual testing — as the image compared against this
@@ -1946,6 +1953,7 @@ export class PlaywrightService {
             healed: reporter.lastActionHealed,
             rca: reporter.lastActionRca,
             visual: stepVisual,
+            accessibility: stepAccessibility,
           });
 
           if (!overallSuccess) break;

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { artifactStore, assertSafeKey, RESULTS_PREFIX } from "../artifact-store";
 import { testPlanExecutions } from "@shared/schema";
+import type { AccessibilityFinding } from "@shared/accessibility";
 import { withTenantTransaction } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
 import loggerPromise from "../logger";
@@ -68,6 +69,7 @@ export interface ReportStep {
     actualImage?: string | null;
     diffImage?: string | null;
   };
+  accessibility?: AccessibilityFinding;
 }
 
 /**
@@ -108,6 +110,8 @@ export function stepsWithArtifactUrls(executionId: string, detailedLog: string |
             diffImage: artifactUrl(executionId, step.visual.diffImage),
           }
         : undefined,
+      // Selectors and rule names, no images: passed through as the runner wrote it.
+      accessibility: step.accessibility && Array.isArray(step.accessibility.violations) ? (step.accessibility as AccessibilityFinding) : undefined,
     }));
 }
 

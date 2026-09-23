@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, Wand2, Image as ImageIcon } from 'lucide-react';
+import type { AccessibilityFinding } from '@shared/accessibility';
+import AccessibilityPanel from './AccessibilityPanel';
 
 /**
  * What a test actually did, step by step.
@@ -32,6 +34,7 @@ export interface ReportStep {
   rca?: string;
   screenshot?: string | null;
   visual?: ReportStepVisual;
+  accessibility?: AccessibilityFinding;
 }
 
 interface StepDetailsDialogProps {
@@ -163,6 +166,7 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
                   </div>
 
                   {step.visual && <VisualPanel visual={step.visual} />}
+                  {step.accessibility && <AccessibilityPanel finding={step.accessibility} />}
 
                   {/* The step's own screenshot comes last, and not at all when a visual
                       comparison already showed this run's page beside its baseline. */}

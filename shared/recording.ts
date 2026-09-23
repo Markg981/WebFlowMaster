@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ACCESSIBILITY_IMPACTS } from "./accessibility";
 
 /**
  * Single source of truth for the record → replay pipeline.
@@ -47,6 +48,9 @@ export const ADHOC_ACTION_IDS = [
   // `ensureState` reads the control first and clicks only when the state differs, so a
   // precondition that is already satisfied costs nothing and changes nothing.
   "ensureState",
+  // Runs axe-core on the page as it is at this point of the flow, and fails on violations at or
+  // above a severity (the value; "serious" when empty). See shared/accessibility.ts.
+  "assertAccessible",
 ] as const;
 export type AdhocActionId = (typeof ADHOC_ACTION_IDS)[number];
 
@@ -165,6 +169,7 @@ export const ACTION_REQUIREMENTS: Record<
   selectByText: { target: true, value: true, valueRequired: true },
   assertState: { target: true, value: true, valueRequired: true },
   ensureState: { target: true, value: true, valueRequired: true },
+  assertAccessible: { target: false, value: true, valueRequired: false },
 };
 
 /**
@@ -209,6 +214,8 @@ export const ACTION_VALUE_OPTIONS: Partial<Record<AdhocActionId, readonly string
   ensureState: SETTABLE_STATES,
   // `waitForElement` has taken these two since it was added, also as free text.
   waitForElement: ["visible", "hidden"],
+  // The least severe violation that fails the step.
+  assertAccessible: ACCESSIBILITY_IMPACTS,
 };
 
 /** i18n keys for the builder node label/description of each replay action. */
@@ -295,6 +302,11 @@ export const ACTION_I18N: Record<
     name: "dashboardPageNew.actions.ensureState.name",
     description: "dashboardPageNew.actions.ensureState.description",
     icon: "CheckCheck",
+  },
+  assertAccessible: {
+    name: "dashboardPageNew.actions.assertAccessible.name",
+    description: "dashboardPageNew.actions.assertAccessible.description",
+    icon: "Accessibility",
   },
 };
 

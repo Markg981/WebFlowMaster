@@ -4,7 +4,10 @@ import { describe, it, expect, vi } from 'vitest';
 import StepDetailsDialog, { type ReportStep } from './StepDetailsDialog';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (_key: string, fallback?: string) => fallback ?? _key }),
+  useTranslation: () => ({
+    t: (_key: string, fallback?: string, options?: Record<string, unknown>) =>
+      (fallback ?? _key).replace(/\{\{(\w+)\}\}/g, (_m, name: string) => String(options?.[name] ?? '')),
+  }),
 }));
 
 /**
@@ -116,6 +119,52 @@ describe('StepDetailsDialog', () => {
 
     expect(screen.queryByTestId('run-video')).not.toBeInTheDocument();
     expect(screen.queryByText(/Download the Playwright trace/i)).not.toBeInTheDocument();
+  });
+
+  it("lists an accessibility check's violations, marks the ones that failed the step, and links each rule", () => {
+    render(
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Checkout"
+        browser="chromium"
+        steps={[
+          {
+            name: 'Check accessibility',
+            type: 'assertAccessible',
+            status: 'failed',
+            details: '',
+            error: '1 accessibility violation serious or worse: button-name (critical, 7 elements).',
+            accessibility: {
+              url: 'https://shop.test/checkout',
+              threshold: 'serious',
+              blocking: 1,
+              passes: 40,
+              incomplete: 2,
+              violations: [
+                {
+                  id: 'button-name', impact: 'critical', help: 'Buttons must have discernible text',
+                  helpUrl: 'https://dequeuniversity.com/rules/axe/4.10/button-name', tags: ['wcag2a'],
+                  count: 7, targets: ['#pay', '.close', '.next', '.prev', '.menu'], blocking: true,
+                },
+                {
+                  id: 'region', impact: 'moderate', help: 'All page content should be contained by landmarks',
+                  helpUrl: 'https://dequeuniversity.com/rules/axe/4.10/region', tags: [],
+                  count: 1, targets: ['body > div'], blocking: false,
+                },
+              ],
+            },
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText(/2 rules broken, 40 passed, 2 need a person to check/)).toBeInTheDocument();
+    const blocking = screen.getByTestId('violation-button-name');
+    expect(blocking).toHaveTextContent('failed the step');
+    expect(blocking).toHaveTextContent('#pay · .close · .next · .prev · .menu · +2');
+    expect(screen.getByRole('link', { name: /button-name/ })).toHaveAttribute('href', 'https://dequeuniversity.com/rules/axe/4.10/button-name');
+    expect(screen.getByTestId('violation-region')).not.toHaveTextContent('failed the step');
   });
 
   it('says why there is nothing to show rather than opening empty', () => {

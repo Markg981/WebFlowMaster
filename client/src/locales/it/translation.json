@@ -961,6 +961,10 @@
       "ensureState": {
         "name": "Porta allo stato",
         "description": "Accende o spegne un controllo solo se non lo è già."
+      },
+      "assertAccessible": {
+        "name": "Verifica accessibilità",
+        "description": "Controlla la pagina com'è in questo punto con axe-core, e fallisce sulle violazioni di gravità pari o superiore a quella scelta (serious se vuoto)."
       }
     },
     "testSequenceBuilder": {
@@ -2256,5 +2260,18 @@
     "releaseFailed": "Il test non è stato rilasciato",
     "badge": "in quarantena",
     "badgeTitle": "Questo test era in quarantena: un suo fallimento non fa fallire l'esecuzione."
+  },
+  "accessibility": {
+    "title": "Verifica di accessibilità",
+    "summary": "{{violations}} regole violate, {{passes}} rispettate, {{incomplete}} da verificare a mano · fallisce da {{threshold}} in su",
+    "clean": "Nessuna regola violata in questa pagina.",
+    "elements": "{{count}} elementi",
+    "failedStep": "ha fatto fallire lo step",
+    "impact": {
+      "minor": "lieve",
+      "moderate": "moderata",
+      "serious": "grave",
+      "critical": "critica"
+    }
   }
 }
