@@ -47,6 +47,8 @@ export interface RunSummary {
   passedTests: number;
   failedTests: number;
   skippedTests: number;
+  /** Of the failures, those of tests in quarantine: they did not decide the verdict. */
+  quarantinedFailures?: number;
   durationMs: number;
   triggeredBy: string;
   /** The browsers this run covered, so a notification says which matrix produced the number. */
@@ -129,6 +131,8 @@ export function summaryLine(summary: RunSummary): string {
     summary.totalTests > 0
       ? `${summary.passedTests}/${summary.totalTests} passed` +
         (summary.failedTests > 0 ? `, ${summary.failedTests} failed` : '') +
+        // "passed — 2 failed" reads as a contradiction without this.
+        (summary.quarantinedFailures ? ` (${summary.quarantinedFailures} in quarantine)` : '') +
         (summary.skippedTests > 0 ? `, ${summary.skippedTests} skipped` : '')
       : 'no tests ran';
   const browsers = summary.browsers?.length ? ` on ${summary.browsers.join(', ')}` : '';
@@ -155,6 +159,7 @@ export function buildPayload(summary: RunSummary): Record<string, unknown> {
       passedTests: summary.passedTests,
       failedTests: summary.failedTests,
       skippedTests: summary.skippedTests,
+      quarantinedFailures: summary.quarantinedFailures ?? 0,
       durationMs: summary.durationMs,
       triggeredBy: summary.triggeredBy,
       browsers: summary.browsers ?? [],

@@ -1,6 +1,7 @@
 // client/src/pages/GeneralReportsPage.tsx
 import { PageHeader } from '@/components/layout/PageHeader';
 import FlakyTestsCard from '@/components/reports/FlakyTestsCard';
+import QuarantinedTestsCard from '@/components/reports/QuarantinedTestsCard';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'wouter';
@@ -190,6 +191,7 @@ const GeneralReportsPage: React.FC = () => {
           {/* Above the list of runs on purpose: a run is read one at a time, and this is the
               question that can only be answered by looking across them. */}
           <FlakyTestsCard planId={selectedPlanId} />
+          <QuarantinedTestsCard />
 
           <Card>
             <CardHeader>

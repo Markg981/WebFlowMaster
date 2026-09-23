@@ -155,6 +155,8 @@ interface ExecutionRecord {
   passedTests?: number | null;
   failedTests?: number | null;
   skippedTests?: number | null;
+  /** Failures of tests in quarantine: in the failed count, not in the verdict or the exit code. */
+  quarantinedFailures?: number | null;
   executionDurationMs?: number | null;
   browsers?: unknown;
 }
@@ -288,6 +290,7 @@ export function describeRun(execution: ExecutionRecord): string {
     typeof execution.totalTests === 'number' && execution.totalTests > 0
       ? `${execution.passedTests ?? 0}/${execution.totalTests} passed` +
         (execution.failedTests ? `, ${execution.failedTests} failed` : '') +
+        (execution.quarantinedFailures ? ` (${execution.quarantinedFailures} in quarantine)` : '') +
         (execution.skippedTests ? `, ${execution.skippedTests} skipped` : '')
       : 'no tests ran';
   const duration =

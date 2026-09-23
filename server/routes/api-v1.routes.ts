@@ -45,6 +45,8 @@ function toRun(row: TestPlanExecution & { testPlanName?: string | null }) {
       passed: row.passedTests,
       failed: row.failedTests,
       skipped: row.skippedTests,
+      /** Of the failed, those of tests in quarantine: they did not decide the status. */
+      quarantinedFailures: row.quarantinedFailures,
     },
     failure: row.failureCode ? { code: row.failureCode, message: row.failureMessage } : null,
     /** Which runner took it (host:pid:suffix); null while it waits. */

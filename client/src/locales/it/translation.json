@@ -1897,7 +1897,8 @@
       "timedOut": "Tempo scaduto",
       "error": "Non completato"
     },
-    "purged": "Screenshot, video e trace di questo run sono stati rimossi il {{date}} dalla politica di retention. I risultati sono conservati."
+    "purged": "Screenshot, video e trace di questo run sono stati rimossi il {{date}} dalla politica di retention. I risultati sono conservati.",
+    "quarantinedFailures": "{{count}} dei fallimenti qui sotto sono di test in quarantena: sono mostrati, ma non hanno fatto fallire questa esecuzione."
   },
   "scheduleEnvironment": {
     "label": "Ambiente",
@@ -2008,7 +2009,9 @@
       "suite_created": "Suite creata",
       "suite_updated": "Suite modificata",
       "suite_deleted": "Suite eliminata",
-      "plan_suites_changed": "Suite del piano modificate"
+      "plan_suites_changed": "Suite del piano modificate",
+      "test_quarantined": "Test messo in quarantena",
+      "test_quarantine_released": "Test uscito dalla quarantena"
     }
   },
   "security": {
@@ -2202,5 +2205,56 @@
     "tests": "{{count}} test",
     "saved": "Suite salvate",
     "saveFailed": "Le suite non sono state salvate"
+  },
+  "flakyTests": {
+    "title": "Test che si contraddicono",
+    "description": "Negli ultimi {{days}} giorni, i test il cui esito è cambiato da un'esecuzione all'altra senza nulla che lo spieghi. Un test che si è rotto ed è stato sistemato non è qui, e nemmeno uno il cui esito è cambiato perché qualcuno l'ha modificato.",
+    "loading": "Analisi delle esecuzioni recenti…",
+    "empty": "Nessun test ha cambiato esito in questo periodo, su {{count}} risultati esaminati.",
+    "columns": {
+      "test": "Test",
+      "browser": "Browser",
+      "history": "Passati / falliti",
+      "flips": "Cambi di esito",
+      "last": "Ultima esecuzione",
+      "quarantine": "Quarantena"
+    },
+    "errored": "mai eseguiti",
+    "inRuns": "in {{runs}} esecuzioni",
+    "edited": "modificato",
+    "editedTitle": "Modificato in questo periodo (versioni {{versions}}). Sono contati solo i cambi di esito non spiegati.",
+    "inQuarantine": "In quarantena",
+    "quarantine": "Metti in quarantena"
+  },
+  "quarantine": {
+    "title": "Metti in quarantena \"{{name}}\"",
+    "explain": "Continua a essere eseguito e i suoi risultati vengono conservati, così si vede quando è stato sistemato. I suoi fallimenti non fanno più fallire le esecuzioni, fermare i piani, aprire issue o rompere le pipeline finché qualcuno non lo rilascia.",
+    "reason": "Perché",
+    "reasonPlaceholder": "es. va in timeout sull'iframe del pagamento circa una notte su tre",
+    "cancel": "Annulla",
+    "confirm": "Metti in quarantena",
+    "done": "\"{{name}}\" è in quarantena",
+    "failed": "Il test non è stato messo in quarantena",
+    "listTitle": "Test in quarantena",
+    "listDescription": "Vengono ancora eseguiti. I loro fallimenti sono registrati ma non fanno fallire esecuzioni o pipeline. Rilascia un test quando è tornato a passare.",
+    "error": "Impossibile caricare i test in quarantena.",
+    "columns": {
+      "test": "Test",
+      "reason": "Perché",
+      "since": "Dal",
+      "evidence": "Da allora"
+    },
+    "hiddenTest": "Un test che non puoi vedere",
+    "notRunSince": "Non eseguito da allora",
+    "evidence": "{{passed}} passati, {{failed}} falliti",
+    "ready": "Ha passato le ultime {{count}} esecuzioni: pronto per il rilascio",
+    "streak": "{{count}} passaggi di fila",
+    "notePlaceholder": "Cosa l'ha sistemato (facoltativo)",
+    "note": "Nota di rilascio",
+    "release": "Rilascia",
+    "released": "\"{{name}}\" è tornato: i suoi fallimenti contano di nuovo",
+    "releaseFailed": "Il test non è stato rilasciato",
+    "badge": "in quarantena",
+    "badgeTitle": "Questo test era in quarantena: un suo fallimento non fa fallire l'esecuzione."
   }
 }

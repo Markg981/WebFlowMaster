@@ -27,10 +27,15 @@ export interface FlakyInputRow {
    * verdict, so historical data is counted exactly the way it always was.
    */
   testVersion?: number | null;
+  /** The test itself, when the result still points at it: what quarantining it needs. */
+  uiTestId?: number | null;
+  apiTestId?: number | null;
 }
 
 export interface FlakySummary {
   testName: string;
+  /** The test behind the name, from its latest result that still points at one; null if deleted. */
+  test: { type: 'ui' | 'api'; id: number } | null;
   browser: string | null;
   runs: number;
   passed: number;
@@ -151,8 +156,14 @@ export function summariseFlakiness(rows: FlakyInputRow[], options: FlakyOptions 
     ).sort((left, right) => left - right);
 
     const passed = judged.filter((entry) => entry.verdict === 'passed').length;
+    const latestWithTest = [...ordered].reverse().find((row) => row.uiTestId || row.apiTestId);
     summaries.push({
       testName: ordered[0].testName,
+      test: latestWithTest?.uiTestId
+        ? { type: 'ui', id: latestWithTest.uiTestId }
+        : latestWithTest?.apiTestId
+          ? { type: 'api', id: latestWithTest.apiTestId }
+          : null,
       browser: ordered[0].browser ?? null,
       runs: judged.length,
       passed,

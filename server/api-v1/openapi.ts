@@ -104,6 +104,10 @@ export const openApiDocument = {
               passed: { type: ['integer', 'null'] },
               failed: { type: ['integer', 'null'] },
               skipped: { type: ['integer', 'null'] },
+              quarantinedFailures: {
+                type: 'integer',
+                description: 'Of the failed tests, those in quarantine. They are counted in failed but do not decide the status.',
+              },
             },
           },
           runner: { type: ['string', 'null'], description: 'The runner that took the run, as host:pid:suffix.' },

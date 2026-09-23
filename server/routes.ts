@@ -50,6 +50,7 @@ import mfaRoutes from "./routes/mfa.routes";
 import testPublishingRoutes from "./routes/test-publishing.routes";
 import runnersRoutes from "./routes/runners.routes";
 import suitesRoutes from "./routes/suites.routes";
+import quarantineRoutes from "./routes/quarantine.routes";
 import { requireMfaEnrollment } from "./middleware/require-mfa-enrollment";
 import apiV1Routes from "./routes/api-v1.routes";
 import webhookManagementRoutes from "./routes/webhooks.routes";
@@ -154,6 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(testPublishingRoutes);
     app.use(runnersRoutes);
     app.use(suitesRoutes);
+    app.use(quarantineRoutes);
     app.use(webhookManagementRoutes);
     app.use(stepGroupsRoutes);
     app.use(projectElementsRoutes);
@@ -1325,6 +1327,8 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         // and for API tests, which have no history to point at.
         testVersion: r.testVersion,
         reasonForFailure: r.reasonForFailure,
+        // In quarantine when it ran: shown, and not held against the run.
+        quarantined: r.quarantined,
         // How many times the plan ran it before this result stood.
         attempts: r.attempts,
         screenshotUrl: openable(r.screenshotUrl),
@@ -1416,6 +1420,8 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         artifactsPurgedAt: execution.artifactsPurgedAt ? execution.artifactsPurgedAt.toISOString() : null,
         // Tests that passed only after being run again: a pass, and a finding of its own.
         flakyTests: testCaseResults.filter((r) => r.status === 'Passed' && (r.attempts ?? 1) > 1).length,
+        // Failures of tests in quarantine: counted in the failed figure, not in the verdict.
+        quarantinedFailures: testCaseResults.filter((r) => r.quarantined && (r.status === 'Failed' || r.status === 'Error')).length,
       },
       keyMetrics: {
         totalTests: execution.totalTests ?? totalTests, // Prefer pre-calculated, fallback to fresh calculation

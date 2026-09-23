@@ -1772,7 +1772,8 @@
       "timedOut": "Timed out",
       "error": "Did not finish"
     },
-    "purged": "Screenshots, videos and traces of this run were removed on {{date}} by the retention policy. Its results are kept."
+    "purged": "Screenshots, videos and traces of this run were removed on {{date}} by the retention policy. Its results are kept.",
+    "quarantinedFailures": "{{count}} of the failures below are of tests in quarantine: they are shown, and did not fail this run."
   },
   "scheduleEnvironment": {
     "label": "Environment",
@@ -1883,7 +1884,9 @@
       "suite_created": "Suite created",
       "suite_updated": "Suite changed",
       "suite_deleted": "Suite deleted",
-      "plan_suites_changed": "Plan's suites changed"
+      "plan_suites_changed": "Plan's suites changed",
+      "test_quarantined": "Test quarantined",
+      "test_quarantine_released": "Test released from quarantine"
     }
   },
   "security": {
@@ -2077,5 +2080,56 @@
     "tests": "{{count}} tests",
     "saved": "Suites saved",
     "saveFailed": "The suites were not saved"
+  },
+  "flakyTests": {
+    "title": "Tests that disagree with themselves",
+    "description": "Over the last {{days}} days, the tests whose verdict changed from one run to the next with nothing to explain it. A test that broke and was fixed is not here, and neither is one whose verdict changed because somebody edited it.",
+    "loading": "Looking across recent runs…",
+    "empty": "No test changed its mind in this window — out of {{count}} results examined.",
+    "columns": {
+      "test": "Test",
+      "browser": "Browser",
+      "history": "Passed / failed",
+      "flips": "Changed verdict",
+      "last": "Last run",
+      "quarantine": "Quarantine"
+    },
+    "errored": "never ran",
+    "inRuns": "in {{runs}} runs",
+    "edited": "edited",
+    "editedTitle": "Edited during this window (versions {{versions}}). Only the unexplained changes of verdict are counted.",
+    "inQuarantine": "In quarantine",
+    "quarantine": "Quarantine"
+  },
+  "quarantine": {
+    "title": "Quarantine \"{{name}}\"",
+    "explain": "It keeps running and its results are kept, so you can see when it is fixed. Its failures stop failing runs, stopping plans, filing issues and breaking pipelines until somebody releases it.",
+    "reason": "Why",
+    "reasonPlaceholder": "e.g. times out waiting for the payment iframe about one night in three",
+    "cancel": "Cancel",
+    "confirm": "Quarantine",
+    "done": "\"{{name}}\" is in quarantine",
+    "failed": "The test was not quarantined",
+    "listTitle": "Tests in quarantine",
+    "listDescription": "They still run. Their failures are recorded but do not fail runs or pipelines. Release a test once it has been passing again.",
+    "error": "The quarantined tests could not be loaded.",
+    "columns": {
+      "test": "Test",
+      "reason": "Why",
+      "since": "Since",
+      "evidence": "Since then"
+    },
+    "hiddenTest": "A test you cannot see",
+    "notRunSince": "Not run since",
+    "evidence": "{{passed}} passed, {{failed}} failed",
+    "ready": "Passed its last {{count}} runs: ready to release",
+    "streak": "{{count}} passes in a row",
+    "notePlaceholder": "What fixed it (optional)",
+    "note": "Release note",
+    "release": "Release",
+    "released": "\"{{name}}\" is back: its failures count again",
+    "releaseFailed": "The test was not released",
+    "badge": "quarantined",
+    "badgeTitle": "This test was in quarantine: a failure of it does not fail the run."
   }
 }
