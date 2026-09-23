@@ -1866,7 +1866,8 @@
       "mfa_disabled": "Zwei-Faktor deaktiviert",
       "mfa_recovery_codes_regenerated": "Wiederherstellungscodes ersetzt",
       "mfa_recovery_code_used": "Wiederherstellungscode verwendet",
-      "mfa_policy_changed": "Zwei-Faktor-Richtlinie geändert"
+      "mfa_policy_changed": "Zwei-Faktor-Richtlinie geändert",
+      "project_access_changed": "Projektzugriff geändert"
     }
   },
   "security": {
@@ -1916,5 +1917,24 @@
       "verifying": "Wird geprüft…",
       "back": "Zurück zur Anmeldung"
     }
+  },
+  "projectAccess": {
+    "title": "Wer auf {{name}} zugreifen kann",
+    "description": "Eingeschränkt ist das Projekt mit seinen Tests nur für Eigentümer und die hier aufgeführten Personen sichtbar. Eine Rolle hier gibt nie mehr als die Rolle der Person in der Organisation.",
+    "restricted": "Eingeschränkt",
+    "restrictedBadge": "eingeschränkt",
+    "readOnly": "für Sie schreibgeschützt",
+    "open": "Zugriff auf {{name}}",
+    "roleFor": "Rolle von {{name}}",
+    "roles": {
+      "viewer": "Betrachter",
+      "editor": "Bearbeiter"
+    },
+    "remove": "{{name}} entfernen",
+    "onlyOwners": "Niemand ist eingetragen: nur Eigentümer haben Zugriff.",
+    "none": "Niemand ist eingetragen.",
+    "add": "Mitglied hinzufügen",
+    "cancel": "Abbrechen",
+    "save": "Speichern"
   }
 }

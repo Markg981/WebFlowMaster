@@ -34,7 +34,11 @@ import {
   SlidersHorizontal,
   ScrollText,
   ShieldCheck,
+  Lock,
+  Users,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import ProjectAccessDialog from "@/components/settings/ProjectAccessDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,6 +65,10 @@ interface Project {
   name: string;
   userId: number;
   createdAt: string;
+  /** Visible only to owners and the project's members. */
+  restricted?: boolean;
+  /** What the signed-in user may do in it. */
+  access?: 'viewer' | 'editor' | 'owner' | null;
 }
 
 const saveSettings = async (settings: Partial<UserSettings>): Promise<UserSettings> => {
@@ -141,6 +149,8 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
 
   const [newProjectName, setNewProjectName] = useState("");
+  /** The project whose access dialog is open, for owners. */
+  const [accessProjectId, setAccessProjectId] = useState<number | null>(null);
   const [logRetentionDays, setLogRetentionDays] = useState<string>("7");
   const [logLevel, setLogLevel] = useState<string>("info"); // New state for log level
 
@@ -492,8 +502,30 @@ export default function SettingsPage() {
                 : projectsData && projectsData.length > 0 ? (
                 <ul className="space-y-2">
                   {projectsData.map((project) => (
-                    <li key={project.id} className="flex items-center justify-between p-2 border rounded-md">
-                      <span className="text-sm">{project.name}</span>
+                    <li key={project.id} className="flex items-center justify-between p-2 border rounded-md" data-testid={`project-${project.id}`}>
+                      <span className="text-sm flex items-center gap-2">
+                        {project.name}
+                        {project.restricted && (
+                          <Badge variant="outline" className="gap-1 text-[10px]">
+                            <Lock className="h-3 w-3" />
+                            {t('projectAccess.restrictedBadge', 'restricted')}
+                          </Badge>
+                        )}
+                        {project.access === 'viewer' && user?.role !== 'viewer' && (
+                          <Badge variant="secondary" className="text-[10px]">{t('projectAccess.readOnly', 'read-only for you')}</Badge>
+                        )}
+                      </span>
+                      <span className="flex items-center">
+                      {user?.role === 'owner' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={t('projectAccess.open', 'Access to {{name}}', { name: project.name })}
+                          onClick={() => setAccessProjectId(project.id)}
+                        >
+                          <Users className="h-4 w-4" />
+                        </Button>
+                      )}
                       {/* Icon-only control: without an aria-label it has no accessible name. */}
                       <Button
                         variant="ghost"
@@ -504,12 +536,22 @@ export default function SettingsPage() {
                       >
                         {(deleteProjectMutation.isPending && deleteProjectMutation.variables === project.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive" />}
                       </Button>
+                      </span>
                     </li>))}
                 </ul>) : (<p className="text-sm text-muted-foreground">{t('settingsPage.noProjectsFound.text')}</p>)}
             </div>
           </CardContent>
         </Card>
 
+        {accessProjectId !== null && (
+          <ProjectAccessDialog
+            projectId={accessProjectId}
+            open
+            onOpenChange={(open) => {
+              if (!open) setAccessProjectId(null);
+            }}
+          />
+        )}
         </>
       ),
     },

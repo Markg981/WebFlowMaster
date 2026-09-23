@@ -13,6 +13,20 @@ import { tagsOfTests } from "../test-tags";
 const router = Router();
 const logger = await loggerPromise;
 
+/**
+ * Answers a change that touched no row: 404 when the test is not there for the requester, 403
+ * when it is there but its project does not let them change it (they are a viewer on a
+ * restricted project — row-level security refused the write, see migration 0031). A 404 for a
+ * test the person is looking at on screen would send them looking for a bug.
+ */
+async function notChanged(res: Response, id: number, notFound: string) {
+  const [visible] = await withTenantTransaction((tx) => tx.select({ id: tests.id }).from(tests).where(eq(tests.id, id)).limit(1));
+  if (visible) {
+    return res.status(403).json({ error: "You can view this test's project but not change it.", code: "project_read_only" });
+  }
+  return res.status(404).json({ error: notFound });
+}
+
 // --- UI Tests ---
 
 // GET /api/tests - List UI tests
@@ -100,6 +114,7 @@ router.post("/api/tests", requireRole('editor'), async (req, res) => {
 
     res.status(201).json(created.test);
   } catch (error: any) {
+    if (isForeignKeyError(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
     logger.error({ message: "Error creating test", error: error.message });
     res.status(500).json({ error: "Failed to create test" });
   }
@@ -156,9 +171,10 @@ router.put("/api/tests/:id", requireRole('editor'), async (req, res) => {
       return rows;
     });
 
-    if (updated.length === 0) return res.status(404).json({ error: "Test not found" });
+    if (updated.length === 0) return notChanged(res, id, "Test not found");
     res.json(updated[0]);
   } catch (error: any) {
+    if (isForeignKeyError(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
     logger.error({ message: "Error updating test", error: error.message, testId: id });
     res.status(500).json({ error: "Failed to update test" });
   }
@@ -193,7 +209,7 @@ router.delete("/api/tests/:id", requireRole('editor'), async (req, res) => {
       return rows;
     });
 
-    if (deleted.length === 0) return res.status(404).json({ error: "Test not found" });
+    if (deleted.length === 0) return notChanged(res, id, "Test not found");
     res.status(204).end();
   } catch (error: any) {
     logger.error({ message: "Error deleting test", error: error.message, testId: id });
@@ -277,7 +293,12 @@ function parseTestId(rawId: string, res: Response): number | null {
 }
 
 /** A bad projectId is the caller's mistake, not a server fault — report it as 400. */
-const isForeignKeyError = (error: any) => /foreign key/i.test(error?.message ?? "");
+/**
+ * A project the row cannot go into: one that does not exist (the foreign key), or one the
+ * requester cannot edit or even see (row-level security, migration 0031). One answer for both,
+ * so the response does not say whether a restricted project exists.
+ */
+const isForeignKeyError = (error: any) => /foreign key|row-level security/i.test(error?.message ?? "");
 
 // GET /api/api-tests
 router.get("/api/api-tests", requireRole('viewer'), async (req, res) => {

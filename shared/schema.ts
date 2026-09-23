@@ -1,4 +1,4 @@
-import { pgTable, text, integer, bigint, serial, timestamp, boolean, jsonb, index, unique } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, bigint, serial, timestamp, boolean, jsonb, index, unique, primaryKey } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations } from 'drizzle-orm';
@@ -74,10 +74,34 @@ export const projects = pgTable("projects", {
   userId: integer("user_id").notNull().references(() => users.id),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  /**
+   * Visible only to the organization's owners and the project's members (project_members), who
+   * may edit it only as editors there. Enforced by RLS — see migrations/0031_project_access.sql.
+   */
+  restricted: boolean("restricted").notNull().default(false),
 }, (table) => [
   index("projects_user_id_idx").on(table.userId),
   index("projects_organization_id_idx").on(table.organizationId),
 ]);
+
+/**
+ * Who is on a restricted project, and as what. A project role only ever narrows the
+ * organization role: an organization viewer who is an editor here is still a viewer.
+ */
+export const projectMembers = pgTable("project_members", {
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  /** 'viewer' | 'editor' */
+  role: text("role").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.projectId, table.userId] }),
+  index("project_members_organization_id_idx").on(table.organizationId),
+  index("project_members_user_id_idx").on(table.userId),
+]);
+
+export type ProjectMember = typeof projectMembers.$inferSelect;
 
 export const tests = pgTable("tests", {
   id: serial("id").primaryKey(),
@@ -942,6 +966,8 @@ export const AUDIT_ACTIONS = {
   SCHEDULE_DELETED: 'schedule.deleted',
   PROJECT_CREATED: 'project.created',
   PROJECT_DELETED: 'project.deleted',
+  // Restricting a project, or changing who is on it and as what.
+  PROJECT_ACCESS_CHANGED: 'project.access_changed',
   RUN_CANCELLED: 'run.cancelled',
   // Where tests run and with what. Secrets by name only — never a value.
   ENVIRONMENT_CREATED: 'environment.created',
@@ -1923,4 +1949,7 @@ export const ORG_SCOPED_TABLES = [
   // request that carries a key — is a privileged bootstrap read in middleware, the same shape
   // as passport's deserializeUser. Every other access is an ordinary request.
   'api_keys',
+  // Who is on a restricted project. Org-scoped like the rest; what they see inside the
+  // organization is narrowed further by the project policies of migration 0031.
+  'project_members',
 ] as const;

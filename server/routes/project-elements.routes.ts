@@ -97,6 +97,11 @@ router.post("/api/projects/:projectId/elements", requireRole('editor'), async (r
     if (isUniqueViolation(error)) {
       return res.status(409).json({ error: `This project already has an element called "${parsed.data.name}".` });
     }
+    // The project was found above, so it is visible: row-level security refused the write because
+    // the requester is a viewer on this restricted project (migration 0031).
+    if (/row-level security/i.test(error?.message ?? '')) {
+      return res.status(403).json({ error: "You can view this project but not change it.", code: "project_read_only" });
+    }
     logger.error({ message: 'Failed to create project element', error: error?.message ?? String(error) });
     res.status(500).json({ error: "Failed to save the element." });
   }
