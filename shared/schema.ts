@@ -316,6 +316,8 @@ export const testPlanExecutions = pgTable("test_plan_executions", {
   maxAttempts: integer('max_attempts').notNull().default(1),
   /** The first attempt, on every retry of it. The foreign key is in migration 0023. */
   retryOfExecutionId: text('retry_of_execution_id'),
+  /** When retention removed this run's screenshots, videos and traces; the results stay. */
+  artifactsPurgedAt: timestamp('artifacts_purged_at'),
   environment: text('environment'),
   browsers: jsonb('browsers'),
   triggeredBy: text('triggered_by').notNull().default('manual'),

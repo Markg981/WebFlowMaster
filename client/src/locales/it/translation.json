@@ -1850,7 +1850,8 @@
       "cancelled": "Annullato",
       "timedOut": "Tempo scaduto",
       "error": "Non completato"
-    }
+    },
+    "purged": "Screenshot, video e trace di questo run sono stati rimossi il {{date}} dalla politica di retention. I risultati sono conservati."
   },
   "scheduleEnvironment": {
     "label": "Ambiente",

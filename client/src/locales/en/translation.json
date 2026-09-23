@@ -1725,7 +1725,8 @@
       "cancelled": "Cancelled",
       "timedOut": "Timed out",
       "error": "Did not finish"
-    }
+    },
+    "purged": "Screenshots, videos and traces of this run were removed on {{date}} by the retention policy. Its results are kept."
   },
   "scheduleEnvironment": {
     "label": "Environment",

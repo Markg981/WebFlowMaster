@@ -1731,7 +1731,8 @@
       "cancelled": "Annulée",
       "timedOut": "Délai dépassé",
       "error": "Non terminée"
-    }
+    },
+    "purged": "Les captures, vidéos et traces de cette exécution ont été supprimées le {{date}} par la politique de rétention. Ses résultats sont conservés."
   },
   "scheduleEnvironment": {
     "label": "Environnement",

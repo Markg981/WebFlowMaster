@@ -1731,7 +1731,8 @@
       "cancelled": "Abgebrochen",
       "timedOut": "Zeitlimit überschritten",
       "error": "Nicht abgeschlossen"
-    }
+    },
+    "purged": "Screenshots, Videos und Traces dieses Laufs wurden am {{date}} durch die Aufbewahrungsrichtlinie entfernt. Die Ergebnisse bleiben erhalten."
   },
   "scheduleEnvironment": {
     "label": "Umgebung",

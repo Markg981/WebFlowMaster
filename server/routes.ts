@@ -1206,6 +1206,20 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
 
     const { execution, plan, testCaseResults, nextAttempt } = reportSource;
 
+    // A run whose evidence retention has removed links to nothing: its images would all be
+    // broken, and the header says why they are not there instead.
+    const purged = !!execution.artifactsPurgedAt;
+    const openable = (storedPath: string | null | undefined) => (purged ? null : artifactUrl(executionId, storedPath));
+    const stepsOf = (detailedLog: string | null | undefined) => {
+      const steps = stepsWithArtifactUrls(executionId, detailedLog);
+      if (!purged) return steps;
+      return steps.map((step) => ({
+        ...step,
+        screenshot: null,
+        visual: step.visual ? { ...step.visual, baselineImage: null, actualImage: null, diffImage: null } : undefined,
+      }));
+    };
+
     // 3. Calculate Key Metrics
     const totalTests = testCaseResults.length;
     const passedTests = testCaseResults.filter(r => r.status === 'Passed').length;
@@ -1267,16 +1281,16 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         reasonForFailure: r.reasonForFailure,
         // How many times the plan ran it before this result stood.
         attempts: r.attempts,
-        screenshotUrl: artifactUrl(executionId, r.screenshotUrl),
+        screenshotUrl: openable(r.screenshotUrl),
         // A recording of the run, and a trace of it, when the plan kept them. The trace is the
         // one that answers what a screenshot cannot: the DOM, the network and the console at
         // every step.
-        videoUrl: artifactUrl(executionId, r.videoUrl),
-        traceUrl: artifactUrl(executionId, r.traceUrl),
+        videoUrl: openable(r.videoUrl),
+        traceUrl: openable(r.traceUrl),
         detailedLog: r.detailedLog,
         // The step list the runner already recorded, with its images made openable. The
         // report had no way to show which step failed; the row's reason string was all of it.
-        steps: stepsWithArtifactUrls(executionId, r.detailedLog),
+        steps: stepsOf(r.detailedLog),
         component: r.component,
         priority: r.priority,
         severity: r.severity,
@@ -1312,10 +1326,10 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
       // where a passing test's visual baselines are looked at, not only a failing one's.
       groupedByModule[moduleName].components[componentName].tests.push({
         ...r,
-        screenshotUrl: artifactUrl(executionId, r.screenshotUrl),
-        videoUrl: artifactUrl(executionId, r.videoUrl),
-        traceUrl: artifactUrl(executionId, r.traceUrl),
-        steps: stepsWithArtifactUrls(executionId, r.detailedLog),
+        screenshotUrl: openable(r.screenshotUrl),
+        videoUrl: openable(r.videoUrl),
+        traceUrl: openable(r.traceUrl),
+        steps: stepsOf(r.detailedLog),
       } as typeof r);
 
       if (r.status === 'Passed') {
@@ -1350,6 +1364,8 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         // its worker lost.
         failureCode: execution.failureCode,
         failureMessage: execution.failureMessage,
+        // When retention removed this run's screenshots, videos and traces.
+        artifactsPurgedAt: execution.artifactsPurgedAt ? execution.artifactsPurgedAt.toISOString() : null,
         // Tests that passed only after being run again: a pass, and a finding of its own.
         flakyTests: testCaseResults.filter((r) => r.status === 'Passed' && (r.attempts ?? 1) > 1).length,
       },
