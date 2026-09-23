@@ -37,6 +37,7 @@ import {
 import { fileFailure, loadTracker, markResolved } from './issue-store';
 import { currentVersionsOf } from './test-version-store';
 import { transitionExecution } from './execution-state';
+import { artifactStore } from './artifact-store';
 import {
   describePolicies,
   runPoliciesFrom,
@@ -112,6 +113,8 @@ export interface IndividualTestRunResult {
   /** Kept only when the plan asked for them — see server/run-evidence.ts. */
   videoPath?: string;
   tracePath?: string;
+  /** The directory this test wrote its evidence into, to be published to the artifact store. */
+  artifactDir?: string;
 }
 
 
@@ -269,6 +272,7 @@ export async function runTest(
         screenshotPath: lastScreenshotPath, // Or a specific error screenshot for the whole test
         videoPath: result.evidence?.videoPath,
         tracePath: result.evidence?.tracePath,
+        artifactDir: screenshotBaseDir,
       };
     } catch (error: any) {
       const durationMs = Date.now() - startTime;
@@ -873,6 +877,11 @@ async function runTestPlanJobInTenant(
       }
       legacyIndividualTestResultsForJsonBlob.push(resultFromRunTest); // Keep populating the old JSON blob for now
 
+      // Once its last attempt is over, the test's evidence goes where the report is served
+      // from. Per test rather than at the end, so a report opened while the run goes on shows
+      // the pictures of what has finished.
+      if (resultFromRunTest.artifactDir) await publishArtifacts(resultFromRunTest.artifactDir, testPlanRunId);
+
       const reasonToStop = stopReasonAfter(
         {
           testName,
@@ -1094,6 +1103,10 @@ async function runTestPlanJobInTenant(
     );
   }
 
+  // Whatever is left in the run's directory — a test that ended before it returned its own, a
+  // file written outside any test — is published with the rest.
+  await publishArtifacts(baseResultsDir, testPlanRunId);
+
   // After all tests have run, calculate final aggregates from reportTestCaseResultsTable
   const finalDetailedResults = await withTenantTransaction((tx) =>
     tx.select()
@@ -1225,6 +1238,29 @@ async function runTestPlanJobInTenant(
       completedAt: new Date(overallCompletedAt),
       error: `DB error during final aggregate update: ${dbError.message}`
     } as any;
+  }
+}
+
+/**
+ * Publishes a directory of evidence to the artifact store.
+ *
+ * Never throws: the verdict does not depend on the pictures, and a bucket that refused an upload
+ * must cost the report its images, not the run its result. The local copy stays when an upload
+ * fails, so the evidence still exists somewhere.
+ */
+async function publishArtifacts(localDir: string, executionId: string): Promise<void> {
+  try {
+    await artifactStore().publishDirectory(localDir);
+  } catch (error: any) {
+    const resolvedLogger = await loggerPromise;
+    const entry: ExecutionLogEntry = {
+      level: 'warn',
+      source: 'system',
+      message: `Evidence in ${localDir} could not be stored: ${error?.message ?? error}. It stays on this worker's disk.`,
+      timestamp: new Date().toISOString(),
+    };
+    resolvedLogger.warn(entry);
+    getWsEmitter().emitExecutionLog(executionId, entry);
   }
 }
 

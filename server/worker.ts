@@ -9,10 +9,13 @@ import { TRIGGER_SCHEDULE_JOB, executeScheduledPlan, scheduledOccurrence } from 
 import { testPlanSchedules, testPlans } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { withJobIncidents } from './observability/taps/jobs';
+import { artifactStore } from './artifact-store';
 import 'dotenv/config';
 
 (async () => {
   const logger = await loggerPromise;
+  // A misconfigured artifact store fails here, not on the first screenshot of the first run.
+  logger.info(`Artifact store: ${artifactStore().kind}`);
 
   const worker = new Worker(
     TEST_EXECUTION_QUEUE_NAME,

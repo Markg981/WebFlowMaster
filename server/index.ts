@@ -37,6 +37,10 @@ app.use(express.urlencoded({ extended: false }));
     throw new Error(describeSchemaState(schemaState));
   }
 
+  // A misconfigured artifact store fails here, not on the first screenshot of the first run.
+  const { artifactStore } = await import('./artifact-store');
+  logger.info(`Artifact store: ${artifactStore().kind}`);
+
   // ─── Correlation ID middleware (must be FIRST) ──────────────────────────
   // Generates a unique trace ID for each request and propagates it
   // through AsyncLocalStorage to all downstream async operations.

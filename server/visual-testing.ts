@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
+import { artifactStore, baselineRoot, BASELINES_PREFIX } from './artifact-store';
 
 /**
  * Comparing what a step looks like now against what it looked like when it was accepted.
@@ -69,25 +70,35 @@ export type VisualOutcome =
     }
   | { kind: 'skipped'; reason: string };
 
-/** Where baselines live between runs. Deliberately outside `results/`, which is per-run. */
-export function baselineRoot(): string {
-  return process.env.VISUAL_BASELINE_DIR || path.join('./data', 'visual-baselines');
-}
+export { baselineRoot };
 
 /** Anything that could turn a browser label or a step name into a path traversal. */
 function safeSegment(value: string | number): string {
   return String(value).replace(/[^a-z0-9_.-]/gi, '_').slice(0, 60) || 'unnamed';
 }
 
-export function baselinePathFor(ctx: VisualContext, stepIndex: number): string {
-  return path.join(
-    baselineRoot(),
+function baselineSegments(ctx: VisualContext, stepIndex: number): string[] {
+  return [
     `org_${safeSegment(ctx.organizationId)}`,
     `test_${safeSegment(ctx.testId)}`,
     safeSegment(ctx.browser),
     ...(ctx.variant ? [safeSegment(ctx.variant)] : []),
     `step_${String(stepIndex).padStart(3, '0')}.png`,
-  );
+  ];
+}
+
+/** Where a baseline is on the local disk, when the local store keeps it. */
+export function baselinePathFor(ctx: VisualContext, stepIndex: number): string {
+  return path.join(baselineRoot(), ...baselineSegments(ctx, stepIndex));
+}
+
+/**
+ * The baseline's key in the artifact store — the same file as baselinePathFor on the local
+ * store, and an object every worker shares on a remote one. Baselines kept on each worker's own
+ * disk meant a step compared against whichever copy that worker happened to have.
+ */
+export function baselineKeyFor(ctx: VisualContext, stepIndex: number): string {
+  return `${BASELINES_PREFIX}${baselineSegments(ctx, stepIndex).join('/')}`;
 }
 
 /**
@@ -102,14 +113,16 @@ export async function compareStepScreenshot(
   stepIndex: number,
   actual: Buffer,
 ): Promise<VisualOutcome> {
-  const baselinePath = baselinePathFor(ctx, stepIndex);
+  const store = artifactStore();
+  const key = baselineKeyFor(ctx, stepIndex);
+  const baselinePath = store.kind === 'local' ? baselinePathFor(ctx, stepIndex) : key;
 
   try {
-    const exists = await fs.pathExists(baselinePath);
+    const stored = await store.read(key);
+    const exists = stored !== null;
 
     if (!exists || ctx.updateBaselines) {
-      await fs.ensureDir(path.dirname(baselinePath));
-      await fs.writeFile(baselinePath, actual);
+      await store.write(key, actual, 'image/png');
       return exists
         ? {
             kind: 'baseline-updated',
@@ -123,7 +136,7 @@ export async function compareStepScreenshot(
           };
     }
 
-    const baselineBuffer = await fs.readFile(baselinePath);
+    const baselineBuffer = stored;
     const baselinePng = PNG.sync.read(baselineBuffer);
     const actualPng = PNG.sync.read(actual);
     const threshold = ctx.threshold ?? DEFAULT_VISUAL_THRESHOLD;

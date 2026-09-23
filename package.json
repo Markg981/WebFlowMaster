@@ -33,6 +33,7 @@
     "build:cli": "esbuild scripts/wfm-cli.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/wfm.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1138.0",
     "@electric-sql/pglite": "^0.4.5",
     "@google/generative-ai": "^0.24.1",
     "@jridgewell/trace-mapping": "^0.3.25",
