@@ -39,12 +39,20 @@ webhooksRouter.post("/execute/:token", async (req, res) => {
     }
 
     // 4. Trigger the execution
-    // Since it's a webhook, we might not have a specific user context. 
-    // We could pass an automated user ID (e.g. 0 or a generic SYSTEM user), 
-    // but for now we will pass a placeholder (1) or get it from the plan owner if multi-tenancy exists.
+    // A webhook has no user behind it, so the run is requested on behalf of the plan's owner.
+    // It used to be user 1 — whoever that was, in whichever organization — which put somebody
+    // else's name on the run and, now that the requester must belong to the plan's
+    // organization, would refuse every webhook outside the first one.
     resolvedLogger.info({ message: `Triggering test plan via webhook`, webhookId: webhook.id, testPlanId: webhook.testPlanId });
-    
-    const executionData = await runTestPlan(webhook.testPlanId, 1); 
+
+    const idempotencyKey = req.get('Idempotency-Key')?.trim() || undefined;
+    if (idempotencyKey && idempotencyKey.length > 255) {
+      return res.status(400).json({ success: false, error: "Idempotency-Key must be at most 255 characters." });
+    }
+    const executionData = await runTestPlan(webhook.testPlanId, planResult[0].userId, {
+      trigger: 'webhook',
+      idempotencyKey,
+    });
 
     if ('error' in executionData) {
       return res.status(executionData.status || 500).json({ success: false, error: executionData.error });

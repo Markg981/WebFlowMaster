@@ -126,6 +126,26 @@ describe('runCli', () => {
     expect(init.method).toBe('POST');
     expect(init.headers['X-API-Key']).toBe('wfm_key');
     expect(context.lines.join(' ')).toContain('exec-1');
+    // No key unless one was given: a random one per invocation would promise nothing.
+    expect(init.headers['Idempotency-Key']).toBeUndefined();
+  });
+
+  it('sends the idempotency key it was given, so a re-run step follows the run it already started', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ success: true, data: { id: 'exec-1' } }, 200));
+
+    await runCli(options({ idempotencyKey: 'build-4812' }), io(fetchImpl));
+
+    const [, init] = fetchImpl.mock.calls[0];
+    expect(init.headers['Idempotency-Key']).toBe('build-4812');
+    expect(init.headers['X-API-Key']).toBe('wfm_key');
+  });
+
+  it('reads the idempotency key from the flag or from WFM_IDEMPOTENCY_KEY', () => {
+    expect(parseArgs(['run', 'plan-1', '--idempotency-key', 'k1'], {} as NodeJS.ProcessEnv)).toMatchObject({ idempotencyKey: 'k1' });
+    expect(parseArgs(['run', 'plan-1'], { WFM_IDEMPOTENCY_KEY: 'k2' } as NodeJS.ProcessEnv)).toMatchObject({ idempotencyKey: 'k2' });
+    expect(parseArgs(['run', 'plan-1', '--idempotency-key', ' '], {} as NodeJS.ProcessEnv)).toEqual({
+      error: '--idempotency-key needs a value.',
+    });
   });
 
   it('exits 0 when the run it waited for passed', async () => {

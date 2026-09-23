@@ -104,12 +104,19 @@ describe('route modules cannot query outside the tenant context', () => {
         'does is an ordinary request under RLS.',
     },
     'test-execution-service.ts': {
-      max: 3,
+      max: 2,
       why:
-        'Two tenant-context boundaries: runTestPlan reads the plan to learn its organization ' +
-        'and stamps the execution row from it, and processTestPlanJob reads that execution row ' +
-        'to establish the context the rest of the job runs in. Everything after either boundary ' +
-        'is under withTenantTransaction.',
+        'Two tenant-context boundaries: runTestPlan reads the plan of a scheduled run to learn ' +
+        'its organization, and processTestPlanJob reads the execution row to establish the ' +
+        'context the rest of the job runs in. Everything after either boundary is under ' +
+        'withTenantTransaction. New runs are created by execution-orchestrator.ts.',
+    },
+    'execution-orchestrator.ts': {
+      max: 1,
+      why:
+        'Creating a run starts from nothing but a plan id, so reading that plan\'s organization ' +
+        'is the query that establishes the tenant context — it cannot run inside one. The ' +
+        'requester, environment, idempotency lookup and insert all run under RLS after it.',
     },
   };
 

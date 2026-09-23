@@ -20,7 +20,9 @@ import 'dotenv/config';
       logger.info(`Worker processing job ${job.id} of type ${job.name}`);
       
       if (job.name === 'execute-plan') {
-        const { planId, testPlanRunId, userId, correlationId, updateBaselines } = job.data;
+        // `executionId` from the orchestrator; `testPlanRunId` from jobs queued before it.
+        const { planId, userId, correlationId, updateBaselines } = job.data;
+        const testPlanRunId: string = job.data.executionId ?? job.data.testPlanRunId;
 
         // Restore the correlation context from the original HTTP request
         // so all logs emitted during job processing share the same trace ID.

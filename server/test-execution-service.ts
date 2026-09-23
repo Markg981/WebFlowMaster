@@ -1,5 +1,5 @@
 import { playwrightService } from './playwright-service';
-import type { Test, ApiTest, TestPlanExecution, InsertReportTestCaseResult, Precondition } from '@shared/schema'; // Assuming ApiTest will be defined or Test is generic enough
+import type { Test, ApiTest, TestPlan, TestPlanExecution, InsertReportTestCaseResult, Precondition, ExecutionTrigger } from '@shared/schema'; // Assuming ApiTest will be defined or Test is generic enough
 import { runPreconditions } from './precondition-runner';
 import type { StepResult } from './playwright-service'; // Import StepResult type
 import loggerPromise from './logger';
@@ -13,7 +13,7 @@ import {
   testPlanExecutions as testPlanExecutionsTable,
   reportTestCaseResults as reportTestCaseResultsTable // Added
 } from '@shared/schema';
-import { and, eq, inArray } from 'drizzle-orm'; // Added sql
+import { and, asc, eq, inArray } from 'drizzle-orm'; // Added sql
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs-extra';
 import path from 'path';
@@ -39,6 +39,13 @@ import {
 import { fileFailure, loadTracker, markResolved } from './issue-store';
 import { currentVersionsOf } from './test-version-store';
 import { transitionExecution } from './execution-state';
+import { ExecutionEnqueueError, executionOrchestrator } from './execution-orchestrator';
+import {
+  buildExecutionSnapshot,
+  readExecutionSnapshot,
+  type ExecutionSnapshot,
+  type SnapshotTestReference,
+} from './execution-snapshot';
 import { testPlanSchedules } from '@shared/schema';
 
 /** Reads a jsonb column that came back as text, as these columns sometimes do. */
@@ -344,6 +351,10 @@ export interface RunTestPlanOptions {
   updateBaselines?: boolean;
   /** An execution row the caller has already created, to be run instead of a new one. */
   executionId?: string;
+  /** Asking again with the same key returns the first run instead of starting another. */
+  idempotencyKey?: string | null;
+  /** Who asked for it, when that is not a person pressing Run. */
+  trigger?: ExecutionTrigger;
 }
 
 export async function runTestPlan(
@@ -355,18 +366,40 @@ export async function runTestPlan(
     typeof environmentIdOrOptions === 'number'
       ? { environmentId: environmentIdOrOptions }
       : (environmentIdOrOptions ?? {});
-  const environmentId = options.environmentId ?? undefined;
   const resolvedLogger = await loggerPromise;
-  // The caller's row when it made one, so the schedule's environment and browsers are on the
-  // row that actually runs rather than on a duplicate nothing executes.
-  const testPlanRunId = options.executionId ?? uuidv4();
 
-  resolvedLogger.info({ message: `Enqueueing test plan execution`, planId, testPlanRunId, userId });
+  if (!options.executionId) {
+    // A new run: the orchestrator writes down what it will use, honours the idempotency key and
+    // submits exactly one job for it. See server/execution-orchestrator.ts.
+    try {
+      const execution = await executionOrchestrator.enqueue({
+        planId,
+        requestedByUserId: userId,
+        trigger: options.trigger ?? 'manual',
+        environmentId: options.environmentId ?? null,
+        updateBaselines: options.updateBaselines,
+        idempotencyKey: options.idempotencyKey,
+      });
+      resolvedLogger.info({ message: 'Test plan execution enqueued', planId, testPlanRunId: execution.id, userId });
+      return execution;
+    } catch (error: any) {
+      if (error instanceof ExecutionEnqueueError) {
+        resolvedLogger.warn({ message: 'Test plan execution not enqueued', planId, code: error.code, error: error.message });
+        return { error: error.message, status: error.status, testPlanRunId: error.executionId };
+      }
+      resolvedLogger.error({ message: 'Failed to enqueue test plan run', planId, error: error.message, stack: error.stack });
+      return { error: `Failed to initialize test plan run: ${error.message}`, status: 500 };
+    }
+  }
 
-  // The other tenant-context boundary, alongside processTestPlanJob's. This is called both
-  // from a route (which has an ambient organization and has already checked the caller owns
-  // this plan) and from the scheduler (which has neither), so the lookup that establishes the
-  // organization runs privileged in both cases and the insert below is stamped from it.
+  // The scheduler's row, created by the scheduler with the schedule's environment and browsers.
+  // It has no snapshot yet — the worker reads the plan for it, as every run used to — until the
+  // scheduler goes through the orchestrator as well.
+  const testPlanRunId = options.executionId;
+  resolvedLogger.info({ message: `Enqueueing scheduled test plan execution`, planId, testPlanRunId, userId });
+
+  // The other tenant-context boundary, alongside processTestPlanJob's: the scheduler has no
+  // ambient organization, so the lookup that establishes it runs privileged.
   const planResult = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, planId)).limit(1);
   if (!planResult || planResult.length === 0) {
     resolvedLogger.error({ message: `Test Plan not found`, planId, testPlanRunId });
@@ -375,48 +408,36 @@ export async function runTestPlan(
 
   let currentTestPlanRun: TestPlanExecution;
   try {
-    if (options.executionId) {
-      // Read under the plan's organization rather than privileged: the boundary that
-      // establishes which organization this is has already been crossed, three lines up.
-      const existing = await runWithTenant(planResult[0].organizationId, () =>
-        withTenantTransaction((tx) =>
-          tx
-            .select()
-            .from(testPlanExecutionsTable)
-            .where(eq(testPlanExecutionsTable.id, options.executionId as string))
-            .limit(1),
-        ),
-      );
-      if (existing.length === 0) {
-        return { error: `Test plan execution ${options.executionId} not found`, status: 404 };
-      }
-      currentTestPlanRun = existing[0];
-    } else {
-      const inserted = await privilegedDb.insert(testPlanExecutionsTable)
-        .values({
-          id: testPlanRunId,
-          // Same organization as the plan being run.
-          organizationId: planResult[0].organizationId,
-          testPlanId: planId,
-          // Waiting for a worker. started_at stays empty until one takes it, so the time a run
-          // spent in the queue is not reported as time it spent running.
-          status: 'queued',
-          requestedByUserId: userId,
-          environment: environmentId ? environmentId.toString() : null, // Save environment ID here
-          triggeredBy: 'manual',
-        })
-        .returning();
-      currentTestPlanRun = inserted[0];
+    // Read under the plan's organization rather than privileged: the boundary that
+    // establishes which organization this is has already been crossed, above.
+    const existing = await runWithTenant(planResult[0].organizationId, () =>
+      withTenantTransaction((tx) =>
+        tx
+          .select()
+          .from(testPlanExecutionsTable)
+          .where(eq(testPlanExecutionsTable.id, testPlanRunId))
+          .limit(1),
+      ),
+    );
+    if (existing.length === 0) {
+      return { error: `Test plan execution ${testPlanRunId} not found`, status: 404 };
     }
+    currentTestPlanRun = existing[0];
 
-    // Add job to Queue
-    await testExecutionQueue.add('execute-plan', {
-      planId,
-      testPlanRunId,
-      userId,
-      updateBaselines: options.updateBaselines === true,
-      correlationId: getCorrelationId() || `job-${testPlanRunId.slice(0, 8)}`
-    });
+    // One job per run, named by the run, so a second submission of the same run is refused by
+    // the queue rather than executed.
+    await testExecutionQueue.add(
+      'execute-plan',
+      {
+        executionId: testPlanRunId,
+        planId,
+        testPlanRunId,
+        userId,
+        updateBaselines: options.updateBaselines === true,
+        correlationId: getCorrelationId() || `job-${testPlanRunId.slice(0, 8)}`,
+      },
+      { jobId: testPlanRunId },
+    );
 
     resolvedLogger.info({ message: 'TestPlanRun job enqueued successfully', testPlanRunId, dbId: currentTestPlanRun.id });
     return currentTestPlanRun;
@@ -528,21 +549,16 @@ async function runTestPlanJobInTenant(
     resolvedLogger.error({ message: 'Test plan execution record not found after creation', testPlanRunId });
     return { error: `Test plan execution ${testPlanRunId} not found.`, status: 500, testPlanRunId };
   }
-  const environmentId = executionRecord[0].environment ? parseInt(executionRecord[0].environment) : null;
-
-  // The plan itself, for the three things it has always recorded and nothing ever read: the
-  // browsers to cover, whether to compare each step against its visual baseline, and who to
-  // tell when the run is over.
-  const planRecord = await withTenantTransaction((tx) =>
-    tx.select().from(testPlans).where(eq(testPlans.id, planId)).limit(1),
-  );
-  const plan = planRecord[0];
+  // What this run was asked to do, as it was asked. Everything below reads it and not the plan,
+  // so a plan edited while the run waited does not change what the run does.
+  const snapshot = await snapshotForRun(planId, executionRecord[0], jobOptions);
+  const environmentId = snapshot.environmentId;
 
   const configuredBrowsers =
-    hasConfiguredBrowsers(executionRecord[0].browsers) || hasConfiguredBrowsers(plan?.testMachinesConfig);
+    hasConfiguredBrowsers(snapshot.browsers.requested) || hasConfiguredBrowsers(snapshot.browsers.testMachines);
   const { browsers: browserMatrix, warnings: browserWarnings } = browsersForRun({
-    executionBrowsers: executionRecord[0].browsers,
-    testMachines: plan?.testMachinesConfig,
+    executionBrowsers: snapshot.browsers.requested,
+    testMachines: snapshot.browsers.testMachines,
   });
   // `undefined` means "whatever the runner would have used", which is the user's own setting
   // — exactly what every plan did before its browser configuration was honoured.
@@ -574,11 +590,8 @@ async function runTestPlanJobInTenant(
    * the option — which is every plan until somebody turns it on.
    */
   const runEvidence: { video?: EvidenceCaptureMode; trace?: EvidenceCaptureMode } | undefined =
-    shouldRecord(plan?.captureVideo as EvidenceCaptureMode) || shouldRecord(plan?.captureTrace as EvidenceCaptureMode)
-      ? {
-          video: (plan?.captureVideo as EvidenceCaptureMode) ?? 'never',
-          trace: (plan?.captureTrace as EvidenceCaptureMode) ?? 'never',
-        }
+    shouldRecord(snapshot.evidence.video) || shouldRecord(snapshot.evidence.trace)
+      ? { video: snapshot.evidence.video, trace: snapshot.evidence.trace }
       : undefined;
   if (runEvidence) {
     wsEmitter.emitExecutionLog(testPlanRunId, {
@@ -592,12 +605,13 @@ async function runTestPlanJobInTenant(
     });
   }
 
-  const visualTesting = plan?.visualTestingEnabled === true;
+  const visualTesting = snapshot.visualTesting.enabled;
+  const updateBaselines = snapshot.visualTesting.updateBaselines;
   if (visualTesting) {
     wsEmitter.emitExecutionLog(testPlanRunId, {
       level: 'info',
       source: 'system',
-      message: jobOptions.updateBaselines
+      message: updateBaselines
         ? 'Visual testing: this run replaces the stored baselines with its own screenshots.'
         : 'Visual testing: each step is compared against its stored baseline; a first run records one.',
       timestamp: new Date().toISOString(),
@@ -656,12 +670,7 @@ async function runTestPlanJobInTenant(
     wsEmitter.emitExecutionLog(testPlanRunId, envLog);
   }
 
-  const selectedTestsLinks = await withTenantTransaction((tx) =>
-    tx
-      .select()
-      .from(testPlanSelectedTests)
-      .where(eq(testPlanSelectedTests.testPlanId, planId)),
-  );
+  const selectedTestsLinks = snapshot.selectedTests;
 
   wsEmitter.emitExecutionLog(testPlanRunId, {
     level: 'info',
@@ -839,7 +848,7 @@ async function runTestPlanJobInTenant(
             visualTesting && testTypeForRun === 'ui'
               ? {
                   organizationId: executionRecord[0].organizationId,
-                  updateBaselines: jobOptions.updateBaselines === true,
+                  updateBaselines,
                 }
               : undefined,
           evidence: runEvidence,
@@ -898,7 +907,7 @@ async function runTestPlanJobInTenant(
 
 
     } else {
-      resolvedLogger.warn({ message: `Test object not found or type mismatch for link`, linkId: link.id });
+      resolvedLogger.warn({ message: `Test object not found or type mismatch for link`, testType: link.testType, testId: link.testId ?? link.apiTestId });
       reportStatus = 'Error';
       failureReason = 'Test definition not found or type mismatch during plan execution.';
       legacyIndividualTestResultsForJsonBlob.push({
@@ -981,7 +990,7 @@ async function runTestPlanJobInTenant(
     return Array.isArray(parsed) && parsed.length > 0;
   });
 
-  const parallelism = effectiveConcurrency(plan?.maxParallelTests);
+  const parallelism = effectiveConcurrency(snapshot.maxParallelTests);
   if (parallelism > 1) {
     wsEmitter.emitExecutionLog(testPlanRunId, {
       level: 'info',
@@ -1114,18 +1123,22 @@ async function runTestPlanJobInTenant(
       // Before the notification, so a message that says "3 failed" arrives after the issues
       // those failures produced already exist to be linked to.
       await fileFailuresIfConfigured({
-        plan,
+        plan: {
+          name: snapshot.plan.name,
+          issueTrackerId: snapshot.issues.trackerId,
+          createIssuesOnFailure: snapshot.issues.createOnFailure,
+        },
         planId,
         executionId: testPlanRunId,
         organizationId: executionRecord[0].organizationId,
         results: finalDetailedResults,
       });
       await notifyRunFinished({
-        plan,
+        plan: { notificationSettings: snapshot.notificationSettings },
         execution: executionRecord[0],
         summary: {
           planId,
-          planName: plan?.name ?? planId,
+          planName: snapshot.plan.name || planId,
           executionId: testPlanRunId,
           status: finalOverallStatus,
           totalTests: calculatedTotalTests,
@@ -1155,6 +1168,52 @@ async function runTestPlanJobInTenant(
       error: `DB error during final aggregate update: ${dbError.message}`
     } as any;
   }
+}
+
+/**
+ * The configuration this run executes with.
+ *
+ * The one it was queued with, when it has one. A run without — every run queued before snapshots
+ * existed, and scheduled runs until the scheduler enqueues through the orchestrator — gets the
+ * plan as it is now, with the row's own environment and browsers over it, which is exactly what
+ * such runs always did. A plan deleted in the meantime leaves a snapshot with no tests, and the
+ * run ends saying it found none, as it did before.
+ */
+async function snapshotForRun(
+  planId: string,
+  execution: TestPlanExecution,
+  jobOptions: { updateBaselines?: boolean },
+): Promise<ExecutionSnapshot> {
+  const stored = readExecutionSnapshot(execution.configurationSnapshot);
+  if (stored) return stored;
+
+  const [plan] = await withTenantTransaction((tx) =>
+    tx.select().from(testPlans).where(eq(testPlans.id, planId)).limit(1),
+  );
+  const selected = plan
+    ? await withTenantTransaction((tx) =>
+        tx
+          .select({
+            testType: testPlanSelectedTests.testType,
+            testId: testPlanSelectedTests.testId,
+            apiTestId: testPlanSelectedTests.apiTestId,
+          })
+          .from(testPlanSelectedTests)
+          .where(eq(testPlanSelectedTests.testPlanId, planId))
+          .orderBy(asc(testPlanSelectedTests.id)),
+      )
+    : [];
+  const environmentId = execution.environment ? parseInt(execution.environment, 10) : NaN;
+
+  return buildExecutionSnapshot(
+    plan ?? ({ id: planId, name: planId } as TestPlan),
+    selected as SnapshotTestReference[],
+    {
+      environmentId: Number.isNaN(environmentId) ? null : environmentId,
+      browsers: execution.browsers,
+      updateBaselines: jobOptions.updateBaselines,
+    },
+  );
 }
 
 /**
