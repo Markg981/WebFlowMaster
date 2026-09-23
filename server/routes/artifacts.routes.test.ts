@@ -110,6 +110,62 @@ describe('GET /api/test-plan-executions/:executionId/artifacts/*', () => {
   });
 });
 
+describe('serving from a bucket', () => {
+  afterEach(async () => {
+    const { setArtifactStoreForTest } = await import('../artifact-store');
+    setArtifactStoreForTest(undefined);
+  });
+
+  it('serves what a worker on another machine uploaded, with its type, under the same URL', async () => {
+    const { createS3ArtifactStore, setArtifactStoreForTest } = await import('../artifact-store');
+    const { fakeS3 } = await import('../tests/fake-s3');
+    const client = fakeS3();
+    const store = createS3ArtifactStore({ client, bucket: 'evidence' });
+    setArtifactStoreForTest(store);
+    await store.write(`results/${planId}/${executionId}/ui_1_chromium/row_1/video.webm`, Buffer.from('webm-bytes'));
+
+    const response = await request(app)
+      .get(`/api/test-plan-executions/${executionId}/artifacts/ui_1_chromium/row_1/video.webm`)
+      .buffer(true)
+      .parse((res, done) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => done(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+
+    expect(response.headers['content-type']).toBe('video/webm');
+    expect((response.body as Buffer).toString()).toBe('webm-bytes');
+    // The file on this machine's disk is not what answered.
+    expect(client.commands).toContain(`get evidence/results/${planId}/${executionId}/ui_1_chromium/row_1/video.webm`);
+  });
+
+  it('404s on an object the bucket does not have, and still refuses a climbing path', async () => {
+    const { createS3ArtifactStore, setArtifactStoreForTest } = await import('../artifact-store');
+    const { fakeS3 } = await import('../tests/fake-s3');
+    const client = fakeS3();
+    setArtifactStoreForTest(createS3ArtifactStore({ client, bucket: 'evidence' }));
+
+    await request(app).get(`/api/test-plan-executions/${executionId}/artifacts/ui_1_chromium/nothing.png`).expect(404);
+    await request(app)
+      .get(`/api/test-plan-executions/${executionId}/artifacts/${encodeURIComponent('../other-exec/secret.png')}`)
+      .expect(400);
+    expect(client.commands.filter((c) => c.includes('other-exec'))).toEqual([]);
+  });
+
+  it('says the store could not be reached rather than that the file does not exist', async () => {
+    const { createS3ArtifactStore, setArtifactStoreForTest } = await import('../artifact-store');
+    setArtifactStoreForTest(
+      createS3ArtifactStore({
+        client: { send: async () => { throw Object.assign(new Error('connect ETIMEDOUT'), { name: 'TimeoutError' }); } },
+        bucket: 'evidence',
+      }),
+    );
+
+    await request(app).get(`/api/test-plan-executions/${executionId}/artifacts/ui_1_chromium/a.png`).expect(502);
+  });
+});
+
 describe('artifactUrl', () => {
   it('turns a stored path into something the report can open, whichever separator wrote it', async () => {
     const { artifactUrl } = await import('./artifacts.routes');

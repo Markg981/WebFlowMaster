@@ -1,7 +1,6 @@
 import { Router } from "express";
-import path from "path";
-import fs from "fs-extra";
 import { eq } from "drizzle-orm";
+import { artifactStore, assertSafeKey, RESULTS_PREFIX } from "../artifact-store";
 import { testPlanExecutions } from "@shared/schema";
 import { withTenantTransaction } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
@@ -19,15 +18,13 @@ import loggerPromise from "../logger";
  * tenant's screenshots to anyone who could guess a path. These files belong to an execution,
  * and an execution belongs to an organization, so that is what is checked: the lookup runs
  * inside the tenant context, and RLS makes another organization's run simply absent.
+ *
+ * The file comes from the artifact store (server/artifact-store.ts): the local disk, or a bucket
+ * every worker writes to, so a screenshot taken on another machine is served from here too.
  */
 
 const router = Router();
 const logger = await loggerPromise;
-
-/** Everything a run writes lives under this directory, and nothing outside it is servable. */
-export function runArtifactRoot(planId: string, executionId: string): string {
-  return path.resolve(process.cwd(), 'results', planId, executionId);
-}
 
 /**
  * The URL that serves a stored artifact path, or null when the path is not one.
@@ -134,26 +131,35 @@ router.get("/api/test-plan-executions/:executionId/artifacts/*", requireRole('vi
     return res.status(404).json({ error: "Test plan execution not found." });
   }
 
-  const root = runArtifactRoot(execution[0].testPlanId, executionId);
-  const target = path.resolve(root, requestedPath);
-  // `path.resolve` happily walks out of the directory when asked to; this is the check that
-  // decides that a request for ../../../.env is not a screenshot.
-  if (target !== root && !target.startsWith(root + path.sep)) {
+  // The key is the run's own directory and the path below it. The check is what decides that a
+  // request for ../../../.env is not a screenshot, whichever store would be asked for it.
+  let key: string;
+  try {
+    key = assertSafeKey(`${RESULTS_PREFIX}${execution[0].testPlanId}/${executionId}/${requestedPath.replace(/\\/g, '/')}`);
+  } catch {
     logger.warn({ message: "Rejected an artifact path outside its run directory", executionId, requestedPath });
     return res.status(400).json({ error: "Invalid artifact path." });
   }
 
+  let artifact;
   try {
-    const stat = await fs.stat(target);
-    if (!stat.isFile()) return res.status(404).json({ error: "Artifact not found." });
-  } catch {
-    return res.status(404).json({ error: "Artifact not found." });
+    artifact = await artifactStore().open(key);
+  } catch (error: any) {
+    logger.error({ message: "The artifact store could not be read", executionId, key, error: error?.message });
+    return res.status(502).json({ error: "The artifact store could not be reached." });
   }
+  if (!artifact) return res.status(404).json({ error: "Artifact not found." });
 
   // These are immutable once written: a run's screenshots are never rewritten, and the report
   // is read far more often than it is produced.
   res.setHeader('Cache-Control', 'private, max-age=3600');
-  res.sendFile(target);
+  res.setHeader('Content-Type', artifact.contentType);
+  if (artifact.size !== undefined) res.setHeader('Content-Length', String(artifact.size));
+  artifact.stream.on('error', (error) => {
+    logger.error({ message: "Artifact stream failed", executionId, key, error: error.message });
+    res.destroy(error);
+  });
+  artifact.stream.pipe(res);
 });
 
 export default router;
