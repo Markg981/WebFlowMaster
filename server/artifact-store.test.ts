@@ -141,6 +141,40 @@ describe('the S3 store', () => {
   });
 });
 
+describe('deletePrefix', () => {
+  it("removes one run's files from the disk and not a run whose id merely starts the same", async () => {
+    const store = createLocalArtifactStore(cwd);
+    await store.write('results/p/exec-1/ui_1/a.png', Buffer.from('a'));
+    await store.write('results/p/exec-1/ui_1/row_1/b.webm', Buffer.from('b'));
+    await store.write('results/p/exec-10/ui_1/c.png', Buffer.from('c'));
+
+    expect(await store.deletePrefix('results/p/exec-1/')).toBe(2);
+
+    expect(await store.read('results/p/exec-1/ui_1/a.png')).toBeNull();
+    expect((await store.read('results/p/exec-10/ui_1/c.png'))?.toString()).toBe('c');
+    expect(await store.deletePrefix('results/p/never-ran/')).toBe(0);
+  });
+
+  it('removes them from the bucket, page by page, under its prefix only', async () => {
+    const client = fakeS3();
+    const store = createS3ArtifactStore({ client, bucket: 'evidence', prefix: 'wfm', cwd });
+    for (const name of ['a', 'b', 'c', 'd', 'e']) await store.write(`results/p/exec-1/${name}.png`, Buffer.from(name));
+    await store.write('results/p/exec-10/keep.png', Buffer.from('keep'));
+
+    expect(await store.deletePrefix('results/p/exec-1/')).toBe(5);
+
+    expect([...client.objects.keys()]).toEqual(['wfm/results/p/exec-10/keep.png']);
+    expect(client.commands.filter((c) => c.startsWith('list'))).toHaveLength(3);
+  });
+
+  it('refuses a prefix that is not a directory or that climbs', async () => {
+    const store = createLocalArtifactStore(cwd);
+    await expect(store.deletePrefix('results/p/exec-1')).rejects.toThrow(/must end with/);
+    await expect(store.deletePrefix('results/../')).rejects.toThrow(/Invalid artifact key/);
+    await expect(store.deletePrefix('/')).rejects.toThrow(/Invalid artifact key/);
+  });
+});
+
 describe('artifactStoreFromEnv', () => {
   it('is the local disk unless told otherwise', () => {
     expect(artifactStoreFromEnv({} as NodeJS.ProcessEnv).kind).toBe('local');

@@ -2,7 +2,9 @@ import path from 'path';
 import fs from 'fs-extra';
 import { Readable } from 'stream';
 import {
+  DeleteObjectsCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
   type S3ClientConfig,
@@ -45,6 +47,17 @@ export interface ArtifactStore {
    * files were published.
    */
   publishDirectory(localDir: string): Promise<number>;
+  /**
+   * Removes everything whose key starts with `prefix` — a run's evidence, when retention says
+   * it has been kept long enough. Returns how many files were removed. The prefix is checked
+   * like a key and must end with '/', so it names a directory and never a sibling of one.
+   */
+  deletePrefix(prefix: string): Promise<number>;
+}
+
+function assertSafePrefix(prefix: string): string {
+  if (!prefix.endsWith('/')) throw new Error(`An artifact prefix must end with '/': ${prefix}`);
+  return `${assertSafeKey(prefix.slice(0, -1))}/`;
 }
 
 export const RESULTS_PREFIX = 'results/';
@@ -144,12 +157,18 @@ export function createLocalArtifactStore(cwd: string = process.cwd()): ArtifactS
       // Already where it is served from.
       return (await filesUnder(localDir)).length;
     },
+    async deletePrefix(prefix) {
+      const dir = pathFor(assertSafePrefix(prefix).slice(0, -1));
+      const count = (await filesUnder(dir)).length;
+      await fs.remove(dir);
+      return count;
+    },
   };
 }
 
 /** The part of the S3 client this store uses, so tests can stand in for it. */
 export interface S3Like {
-  send(command: GetObjectCommand | PutObjectCommand): Promise<any>;
+  send(command: GetObjectCommand | PutObjectCommand | ListObjectsV2Command | DeleteObjectsCommand): Promise<any>;
 }
 
 export interface S3StoreOptions {
@@ -223,6 +242,29 @@ export function createS3ArtifactStore(options: S3StoreOptions): ArtifactStore {
       // place that evidence still exists.
       await fs.remove(localDir);
       return published;
+    },
+    async deletePrefix(prefix) {
+      const listPrefix = `${objectKey(assertSafePrefix(prefix).slice(0, -1))}/`;
+      // Listed in full first, then deleted: removing objects between pages of a listing is not
+      // something every S3-compatible store pages through the same way.
+      const keys: string[] = [];
+      let continuationToken: string | undefined;
+      do {
+        const page = await client.send(
+          new ListObjectsV2Command({ Bucket: bucket, Prefix: listPrefix, ContinuationToken: continuationToken }),
+        );
+        keys.push(...((page.Contents ?? []).map((object: { Key?: string }) => object.Key).filter(Boolean) as string[]));
+        continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+      } while (continuationToken);
+
+      // At most 1000 keys per request.
+      for (let start = 0; start < keys.length; start += 1000) {
+        const batch = keys.slice(start, start + 1000);
+        await client.send(
+          new DeleteObjectsCommand({ Bucket: bucket, Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true } }),
+        );
+      }
+      return keys.length;
     },
   };
   return store;

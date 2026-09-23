@@ -142,6 +142,11 @@ app.use(express.urlencoded({ extended: false }));
   const { startRunRecovery } = await import('./run-recovery');
   const stopRunRecovery = process.env.NODE_ENV === 'test' ? () => {} : startRunRecovery();
 
+  // Removes the screenshots, videos and traces of runs older than ARTIFACT_RETENTION_DAYS —
+  // see server/artifact-retention.ts.
+  const { startArtifactRetention } = await import('./artifact-retention');
+  const stopArtifactRetention = process.env.NODE_ENV === 'test' ? () => {} : startArtifactRetention();
+
   // Records an incident for every unhandled error, then answers as before.
   const { incidentErrorHandler } = await import("./observability/taps/express");
   app.use(incidentErrorHandler(logger));
@@ -190,6 +195,7 @@ app.use(express.urlencoded({ extended: false }));
       try {
         await schedulerService.shutdownScheduler();
         stopRunRecovery();
+        stopArtifactRetention();
         const { closeBrowserTasks } = await import('./browser-tasks');
         await closeBrowserTasks();
         await redisConnection.quit();

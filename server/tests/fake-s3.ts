@@ -1,5 +1,5 @@
 import { Readable } from 'stream';
-import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3';
 import type { S3Like } from '../artifact-store';
 
 /**
@@ -12,7 +12,23 @@ export function fakeS3(options: { failPutsAfter?: number } = {}) {
   const client: S3Like & { objects: typeof objects; commands: string[] } = {
     objects,
     commands: [],
-    async send(command: GetObjectCommand | PutObjectCommand) {
+    async send(command: GetObjectCommand | PutObjectCommand | ListObjectsV2Command | DeleteObjectsCommand) {
+      if (command instanceof ListObjectsV2Command) {
+        const { Bucket, Prefix, ContinuationToken } = command.input;
+        client.commands.push(`list ${Bucket}/${Prefix}`);
+        // Two per page, so paging is exercised.
+        const all = [...objects.keys()].filter((key) => key.startsWith(Prefix ?? '')).sort();
+        const start = ContinuationToken ? Number(ContinuationToken) : 0;
+        const page = all.slice(start, start + 2);
+        const more = start + 2 < all.length;
+        return { Contents: page.map((Key) => ({ Key })), IsTruncated: more, NextContinuationToken: more ? String(start + 2) : undefined };
+      }
+      if (command instanceof DeleteObjectsCommand) {
+        const { Bucket, Delete } = command.input;
+        client.commands.push(`delete ${Bucket} ${Delete?.Objects?.length ?? 0}`);
+        for (const object of Delete?.Objects ?? []) objects.delete(object.Key!);
+        return {};
+      }
       if (command instanceof PutObjectCommand) {
         const { Bucket, Key, Body, ContentType } = command.input;
         client.commands.push(`put ${Bucket}/${Key}`);

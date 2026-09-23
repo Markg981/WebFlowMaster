@@ -44,6 +44,8 @@ export interface TestPlanExecutionReport {
     failureCode?: string | null; failureMessage?: string | null;
     /** Tests that passed only after being run again. */
     flakyTests?: number;
+    /** When retention removed this run's screenshots, videos and traces. */
+    artifactsPurgedAt?: string | null;
   };
   keyMetrics: {
     totalTests: number; passedTests: number; failedTests: number; skippedTests: number;
@@ -240,6 +242,13 @@ const TestReportPage: React.FC = () => {
                 </p>
               )}
             </div>
+            {header.artifactsPurgedAt && (
+              <p data-testid="artifacts-purged" className="text-sm mt-2 text-muted-foreground">
+                {t('testReportPage.purged', 'Screenshots, videos and traces of this run were removed on {{date}} by the retention policy. Its results are kept.', {
+                  date: new Date(header.artifactsPurgedAt).toLocaleDateString(),
+                })}
+              </p>
+            )}
             {header.failureMessage && ['cancelled', 'cancelling', 'timed_out', 'error'].includes(header.status) && (
               <p data-testid="run-ending" className={`text-sm mt-2 ${getStatusColor(header.status)}`}>
                 <strong>{header.status === 'timed_out' ? t('testReportPage.ending.timedOut', 'Timed out') : header.status === 'error' ? t('testReportPage.ending.error', 'Did not finish') : t('testReportPage.ending.cancelled', 'Cancelled')}:</strong>{' '}

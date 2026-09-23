@@ -110,6 +110,13 @@ describe('route modules cannot query outside the tenant context', () => {
         'the context the rest of the job runs in. Everything after it is under ' +
         'withTenantTransaction. Runs are created by execution-orchestrator.ts.',
     },
+    'artifact-retention.ts': {
+      max: 1,
+      why:
+        'Retention looks across every organization for runs whose evidence has been kept long ' +
+        'enough: it is not a request and has no tenant. It only finds them; each is marked ' +
+        'under its own organization.',
+    },
     'run-recovery.ts': {
       max: 1,
       why:
