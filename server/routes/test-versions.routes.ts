@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { tests, testVersions, users } from "@shared/schema";
-import { withTenantTransaction } from "../middleware/tenancy";
+import { reportTestCaseResults, tests, testVersions, users } from "@shared/schema";
+import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
 import { recordTestVersion } from "../test-version-store";
 import loggerPromise from "../logger";
@@ -26,6 +26,51 @@ const logger = await loggerPromise;
 const stepCount = sql<number>`CASE WHEN jsonb_typeof(${testVersions.sequence}) = 'array'
   THEN jsonb_array_length(${testVersions.sequence}) ELSE 0 END`;
 
+/**
+ * How each version actually did, counted from the runs that named it.
+ *
+ * A history that only says what changed is a list of edits. What somebody comparing two
+ * versions wants is which of them was the one that worked — and since every result records the
+ * version it ran (migration 0020), that is a count rather than a guess.
+ *
+ * One grouped query for the whole history: a test with thirty versions would otherwise be
+ * thirty queries to open a dialog.
+ */
+async function runsByVersion(tx: TenantTx, testId: number) {
+  const rows = await tx
+    .select({
+      version: reportTestCaseResults.testVersion,
+      runs: sql<number>`count(*)`,
+      passed: sql<number>`sum(case when lower(${reportTestCaseResults.status}) = 'passed' then 1 else 0 end)`,
+      failed: sql<number>`sum(case when lower(${reportTestCaseResults.status}) = 'failed' then 1 else 0 end)`,
+      lastRunAt: sql<string | null>`max(${reportTestCaseResults.startedAt})`,
+    })
+    .from(reportTestCaseResults)
+    .where(eq(reportTestCaseResults.uiTestId, testId))
+    .groupBy(reportTestCaseResults.testVersion);
+
+  const byVersion = new Map<number, { runs: number; passed: number; failed: number; lastRunAt: string | null }>();
+  // Runs from before results carried a version. Counted and reported separately rather than
+  // spread over the versions they might have been: attributing them would be inventing history.
+  let unversionedRuns = 0;
+
+  for (const row of rows) {
+    const runs = Number(row.runs ?? 0);
+    if (row.version == null) {
+      unversionedRuns += runs;
+      continue;
+    }
+    byVersion.set(row.version, {
+      runs,
+      passed: Number(row.passed ?? 0),
+      failed: Number(row.failed ?? 0),
+      lastRunAt: row.lastRunAt ? new Date(row.lastRunAt).toISOString() : null,
+    });
+  }
+
+  return { byVersion, unversionedRuns };
+}
+
 // GET /api/tests/:id/versions — the history, newest first, without the snapshots.
 router.get("/api/tests/:id/versions", requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
@@ -40,7 +85,8 @@ router.get("/api/tests/:id/versions", requireRole('viewer'), async (req, res) =>
       const [test] = await tx.select({ id: tests.id }).from(tests).where(eq(tests.id, testId)).limit(1);
       if (!test) return null;
 
-      return tx
+      const outcomes = await runsByVersion(tx, testId);
+      const versions = await tx
         .select({
           version: testVersions.version,
           name: testVersions.name,
@@ -57,10 +103,21 @@ router.get("/api/tests/:id/versions", requireRole('viewer'), async (req, res) =>
         .leftJoin(users, eq(testVersions.createdBy, users.id))
         .where(eq(testVersions.testId, testId))
         .orderBy(desc(testVersions.version));
+
+      return { versions, ...outcomes };
     });
 
     if (outcome === null) return res.status(404).json({ error: "Test not found" });
-    res.json(outcome.map((row) => ({ ...row, stepCount: Number(row.stepCount ?? 0) })));
+    res.json({
+      versions: outcome.versions.map((row) => ({
+        ...row,
+        stepCount: Number(row.stepCount ?? 0),
+        // Zeroes rather than nothing for a version that has never run: "0 runs" is a fact
+        // about that version, and it is the answer to "did we ever try this one?".
+        ...(outcome.byVersion.get(row.version) ?? { runs: 0, passed: 0, failed: 0, lastRunAt: null }),
+      })),
+      unversionedRuns: outcome.unversionedRuns,
+    });
   } catch (error: any) {
     logger.error({ message: 'Failed to list test versions', error: error?.message ?? String(error), testId });
     res.status(500).json({ error: "Failed to load the history." });
