@@ -25,6 +25,12 @@ export const users = pgTable("users", {
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   // Verbs, not rows: RLS decides which rows are visible, this decides what may be done to them.
   role: text("role").notNull().default('editor'),
+  /** 'person' signs in with a password; 'service' never signs in and exists to hold API keys. */
+  kind: text("kind").notNull().default('person'),
+  /** What a service account is called. Its username is generated, being unique across organizations. */
+  displayName: text("display_name"),
+  /** A disabled service account keeps its row, so the runs it started still name it. */
+  disabledAt: timestamp("disabled_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -859,6 +865,11 @@ export const apiKeys = pgTable("api_keys", {
   expiresAt: timestamp("expires_at"),
   /** Set instead of deleting, so a key that ran ten thousand builds stays nameable. */
   revokedAt: timestamp("revoked_at"),
+  /**
+   * What the key may do, through /api/v1 only (see shared/api-scopes.ts). Null is a key from
+   * before scopes: it acts as its user, with their role, on every endpoint, as it always did.
+   */
+  scopes: text("scopes").array(),
 }, (table) => [
   index("api_keys_organization_id_idx").on(table.organizationId),
   index("api_keys_user_id_idx").on(table.userId),
@@ -879,6 +890,8 @@ export const AUDIT_ACTIONS = {
   INVITATION_ACCEPTED: 'invitation.accepted',
   API_KEY_CREATED: 'api_key.created',
   API_KEY_REVOKED: 'api_key.revoked',
+  SERVICE_ACCOUNT_CREATED: 'service_account.created',
+  SERVICE_ACCOUNT_DISABLED: 'service_account.disabled',
   WEBHOOK_CREATED: 'webhook.created',
   WEBHOOK_DELETED: 'webhook.deleted',
 } as const;

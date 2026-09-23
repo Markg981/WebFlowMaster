@@ -5,7 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ApiKeysCard from './ApiKeysCard';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (_key: string, fallback?: any) => (typeof fallback === 'string' ? fallback : _key) }),
+  useTranslation: () => ({
+    t: (_key: string, fallback?: any, options?: any) =>
+      typeof fallback === 'string'
+        ? fallback.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) => String(options?.[name] ?? ''))
+        : _key,
+  }),
 }));
 
 /**
@@ -63,7 +68,7 @@ describe('ApiKeysCard', () => {
     expect(screen.getByText(/only time it is shown/i)).toBeInTheDocument();
   });
 
-  it('sends the name and the optional lifetime', async () => {
+  it('sends the name, the optional lifetime, and by default only the run scopes', async () => {
     renderCard();
     await screen.findByText('GitHub Actions');
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ ...existingKey, key: 'wfm_x' }) });
@@ -74,8 +79,45 @@ describe('ApiKeysCard', () => {
 
     await waitFor(() => {
       const post = fetchMock.mock.calls.find(([, init]: any[]) => init?.method === 'POST');
-      expect(JSON.parse(post![1].body)).toEqual({ name: 'Nightly', expiresInDays: 30 });
+      expect(JSON.parse(post![1].body)).toEqual({ name: 'Nightly', expiresInDays: 30, scopes: ['runs:read', 'runs:write'] });
     });
+  });
+
+  it('sends the scopes as chosen, and refuses a scoped key with none', async () => {
+    renderCard();
+    await screen.findByText('GitHub Actions');
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Reader' } });
+
+    fireEvent.click(screen.getByLabelText('runs:read'));
+    fireEvent.click(screen.getByLabelText('runs:write'));
+    const callsBefore = fetchMock.mock.calls.length;
+    fireEvent.click(screen.getByRole('button', { name: /Create key/i }));
+    expect(await screen.findByText(/at least one thing/i)).toBeInTheDocument();
+    expect(fetchMock.mock.calls.length).toBe(callsBefore);
+
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ ...existingKey, key: 'wfm_x' }) });
+    fireEvent.click(screen.getByLabelText('plans:read'));
+    fireEvent.click(screen.getByRole('button', { name: /Create key/i }));
+
+    await waitFor(() => {
+      const post = fetchMock.mock.calls.find(([, init]: any[]) => init?.method === 'POST');
+      expect(JSON.parse(post![1].body)).toEqual({ name: 'Reader', scopes: ['plans:read'] });
+    });
+  });
+
+  it('says which keys have full access and which have scopes', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { ...existingKey, scopes: null },
+        { ...existingKey, id: 'k2', name: 'Scoped', scopes: ['runs:read'], holder: { username: 'svc-1-x', kind: 'service', displayName: 'CI bot' } },
+      ],
+    });
+    renderCard();
+
+    expect(await screen.findByText('full access')).toBeInTheDocument();
+    expect(screen.getByText('runs:read', { selector: 'div,span' })).toBeInTheDocument();
+    expect(screen.getByText('held by CI bot')).toBeInTheDocument();
   });
 
   it('refuses a nameless key before asking the server', async () => {

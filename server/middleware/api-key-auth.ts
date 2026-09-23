@@ -4,6 +4,19 @@ import { apiKeys, users } from '@shared/schema';
 import { privilegedDb } from '../db';
 import { apiKeyFromRequest, hashApiKey, hashesMatch, rejectionFor } from '../api-keys';
 import loggerPromise from '../logger';
+import { API_V1_PREFIX, type ApiScope } from '@shared/api-scopes';
+
+/** What a request authenticated by a key carries, for the audit trail and for requireScope. */
+export type KeyAuthenticatedRequest = Request & {
+  apiKeyId?: string;
+  /** Null for a key from before scopes, which may do whatever its user may. */
+  apiKeyScopes?: ApiScope[] | null;
+};
+
+/** Whether a scoped key may authenticate this path at all. */
+export function isScopedApiPath(path: string): boolean {
+  return path === API_V1_PREFIX || path.startsWith(`${API_V1_PREFIX}/`);
+}
 
 /**
  * Letting a request authenticate as a key instead of as a session.
@@ -52,6 +65,7 @@ export async function apiKeyAuth(req: Request, _res: Response, next: NextFunctio
         hashedKey: apiKeys.hashedKey,
         revokedAt: apiKeys.revokedAt,
         expiresAt: apiKeys.expiresAt,
+        scopes: apiKeys.scopes,
       })
       .from(apiKeys)
       .where(eq(apiKeys.hashedKey, hashed))
@@ -71,6 +85,15 @@ export async function apiKeyAuth(req: Request, _res: Response, next: NextFunctio
       return next();
     }
 
+    // A scoped key is for /api/v1, where every endpoint says which scope it needs. Anywhere
+    // else it would act with its user's whole role, which is exactly what scoping it was meant
+    // to prevent — so there it is not a credential at all, and the request is answered as the
+    // unauthenticated one it is.
+    if (matched!.scopes && !isScopedApiPath(req.path)) {
+      logger.warn({ message: 'Scoped API key used outside /api/v1; ignored', apiKeyId: matched!.id, path: req.path });
+      return next();
+    }
+
     const [user] = await privilegedDb.select().from(users).where(eq(users.id, matched!.userId)).limit(1);
     if (!user) {
       logger.warn({ message: 'API key names a user that no longer exists', apiKeyId: matched!.id });
@@ -86,12 +109,18 @@ export async function apiKeyAuth(req: Request, _res: Response, next: NextFunctio
       return next();
     }
 
+    if (user.disabledAt) {
+      logger.warn({ message: 'API key belongs to a disabled account; refusing', apiKeyId: matched!.id });
+      return next();
+    }
+
     req.user = user;
     // Everything downstream asks passport this question, including requireRole.
     req.isAuthenticated = (() => true) as typeof req.isAuthenticated;
     // Marks the request for anything that wants to distinguish a pipeline from a person —
     // the audit trail, rate limiting, and logs read at three in the morning.
-    (req as Request & { apiKeyId?: string }).apiKeyId = matched!.id;
+    (req as KeyAuthenticatedRequest).apiKeyId = matched!.id;
+    (req as KeyAuthenticatedRequest).apiKeyScopes = (matched!.scopes as ApiScope[] | null) ?? null;
 
     touchLastUsed(matched!.id).catch(() => {
       /* recorded below; never worth failing a request over */

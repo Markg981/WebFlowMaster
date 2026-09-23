@@ -13,6 +13,11 @@ function isRole(value: string): value is Role {
   return value in RANK;
 }
 
+/** Whether `role` reaches `minimum`. An unknown role reaches nothing. */
+export function roleAllows(role: string, minimum: Role): boolean {
+  return isRole(role) && RANK[role] >= RANK[minimum];
+}
+
 /**
  * Requires the session user to hold at least `minimum` role, ascending viewer < editor < owner.
  *
@@ -33,8 +38,7 @@ export function requireRole(minimum: Role): RequestHandler {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { role } = req.user;
-    if (!isRole(role) || RANK[role] < RANK[minimum]) {
+    if (!roleAllows(req.user.role, minimum)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 

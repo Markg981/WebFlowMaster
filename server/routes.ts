@@ -43,6 +43,8 @@ import uploadsRoutes from "./routes/uploads.routes";
 import reportsRoutes from "./routes/reports.routes";
 import artifactsRoutes, { artifactUrl, stepsWithArtifactUrls } from "./routes/artifacts.routes";
 import apiKeysRoutes from "./routes/api-keys.routes";
+import serviceAccountsRoutes from "./routes/service-accounts.routes";
+import apiV1Routes from "./routes/api-v1.routes";
 import webhookManagementRoutes from "./routes/webhooks.routes";
 import stepGroupsRoutes from "./routes/step-groups.routes";
 import projectElementsRoutes from "./routes/project-elements.routes";
@@ -125,6 +127,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(tenancyMiddleware);
 
     // API Routers
+    // First: /api/v1 answers everything under it in its own words, including unknown paths.
+    app.use(apiV1Routes);
     app.use(authRoutes);
     app.use(organizationRoutes);
     app.use(projectsRoutes);
@@ -134,6 +138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(reportsRoutes);
     app.use(artifactsRoutes);
     app.use(apiKeysRoutes);
+    app.use(serviceAccountsRoutes);
     app.use(webhookManagementRoutes);
     app.use(stepGroupsRoutes);
     app.use(projectElementsRoutes);

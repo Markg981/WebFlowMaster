@@ -92,6 +92,42 @@
       "accountDescription": "Your sign-in details, and the actions that cannot be undone.",
       "runUsage": "Run usage",
       "runUsageDescription": "How many of this organization's runs are in progress or waiting, against its limits."
+    },
+    "apiKeys": {
+      "openApi": "API reference (OpenAPI)",
+      "accessLabel": "What the key may do",
+      "accessScoped": "Only what I choose, through /api/v1",
+      "accessFull": "Full access, everywhere",
+      "accessFullHint": "The key can do anything its account can, on every endpoint of the application. Prefer scopes unless a script needs more than /api/v1 offers.",
+      "scopesRequired": "Choose at least one thing the key may do.",
+      "holderLabel": "Issued to",
+      "holderMe": "Me",
+      "heldBy": "held by {{name}}",
+      "fullAccess": "full access",
+      "columns": {
+        "access": "Access"
+      },
+      "scopes": {
+        "plans_read": "List test plans.",
+        "runs_read": "Read runs, their status and their JUnit reports.",
+        "runs_write": "Start runs and cancel them."
+      }
+    },
+    "serviceAccounts": {
+      "title": "Service accounts",
+      "description": "Accounts for pipelines rather than people. They cannot sign in, and their keys keep working when somebody leaves. Disabling one revokes all its keys.",
+      "nameLabel": "Name",
+      "roleLabel": "Role",
+      "roles": {
+        "viewer": "viewer",
+        "editor": "editor"
+      },
+      "create": "Create account",
+      "loading": "Loading accounts…",
+      "empty": "No service accounts yet. Create one, then issue it a key above.",
+      "disabled": "disabled",
+      "disableAction": "Disable {{name}}",
+      "nameRequired": "Give the account a name, such as the pipeline it is for."
     }
   },
   "dashboard": {

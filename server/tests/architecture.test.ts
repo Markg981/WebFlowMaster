@@ -242,7 +242,9 @@ describe('route modules cannot query outside the tenant context', () => {
         if (!isMutating) return;
         // The handler chain may wrap onto following lines; look at a small window.
         const window = lines.slice(index, index + 4).join(' ');
-        if (!window.includes('requireRole')) {
+        // requireScope (server/middleware/require-scope.ts) is the /api/v1 form of the same check:
+        // it applies the minimum role its scope names before looking at the key's scopes.
+        if (!window.includes('requireRole') && !window.includes('requireScope')) {
           offenders.push(`${name}:${index + 1}`);
         }
       });

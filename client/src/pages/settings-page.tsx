@@ -47,6 +47,7 @@ import { Link } from "wouter";
 import { UserSettings, fetchSettings } from "../lib/settings";
 import EnvironmentsCard from "@/components/settings/EnvironmentsCard";
 import ApiKeysCard from "@/components/settings/ApiKeysCard";
+import ServiceAccountsCard from "@/components/settings/ServiceAccountsCard";
 import RunUsageCard from "@/components/settings/RunUsageCard";
 import ElementRepositoryCard from "@/components/settings/ElementRepositoryCard";
 import IssueTrackersCard from "@/components/settings/IssueTrackersCard";
@@ -543,7 +544,12 @@ export default function SettingsPage() {
         'Credentials for pipelines and scripts, so CI never needs somebody’s password.',
       ),
       icon: KeySquare,
-      content: <ApiKeysCard />,
+      content: (
+        <>
+          <ApiKeysCard isOwner={user?.role === 'owner'} />
+          {user?.role === 'owner' && <ServiceAccountsCard />}
+        </>
+      ),
     },
     {
       id: 'runUsage',

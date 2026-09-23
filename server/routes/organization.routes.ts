@@ -53,7 +53,8 @@ router.get("/api/organization", requireRole("viewer"), async (_req: Request, res
         createdAt: users.createdAt,
       })
       .from(users)
-      .where(eq(users.organizationId, organizationId));
+      // People. Service accounts are listed, and managed, under /api/service-accounts.
+      .where(and(eq(users.organizationId, organizationId), eq(users.kind, "person")));
 
     return { organization, members };
   });
@@ -295,11 +296,12 @@ router.post("/api/organization/members", requireRole("owner"), async (req: Reque
 
   const outcome = await withTenantTransaction(async (tx) => {
     const [target] = await tx
-      .select({ id: users.id, role: users.role, organizationId: users.organizationId })
+      .select({ id: users.id, role: users.role, organizationId: users.organizationId, kind: users.kind })
       .from(users)
       .where(eq(users.id, parsed.data.userId));
 
-    if (!target) return { status: 404 as const };
+    // A service account's role is set where it was created; this is for people.
+    if (!target || target.kind !== "person") return { status: 404 as const };
 
     // A user who already belongs to another organization cannot be pulled into this one.
     //
@@ -361,7 +363,7 @@ router.patch(
       const [target] = await tx
         .select({ id: users.id, role: users.role })
         .from(users)
-        .where(and(eq(users.id, userId), eq(users.organizationId, organizationId)));
+        .where(and(eq(users.id, userId), eq(users.organizationId, organizationId), eq(users.kind, "person")));
 
       if (!target) return { status: 404 as const };
 
@@ -422,7 +424,7 @@ router.delete(
       const [target] = await tx
         .select({ id: users.id, role: users.role, username: users.username })
         .from(users)
-        .where(and(eq(users.id, userId), eq(users.organizationId, organizationId)));
+        .where(and(eq(users.id, userId), eq(users.organizationId, organizationId), eq(users.kind, "person")));
 
       if (!target) return { status: 404 as const };
 

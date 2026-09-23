@@ -134,7 +134,13 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       const user = await storage.getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
+      // A service account has a password only because the column requires one: it is random
+      // and nobody knows it. Refused before comparing anyway, so that stays true even if
+      // somebody one day sets it by hand.
+      if (!user || user.kind !== 'person' || user.disabledAt) {
+        return done(null, false);
+      }
+      if (!(await comparePasswords(password, user.password))) {
         return done(null, false);
       } else {
         return done(null, user);

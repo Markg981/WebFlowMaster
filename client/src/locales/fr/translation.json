@@ -92,6 +92,42 @@
       "accountDescription": "Vos informations de connexion et les actions irréversibles.",
       "runUsage": "Utilisation des exécutions",
       "runUsageDescription": "Combien d'exécutions de cette organisation sont en cours ou en attente, par rapport à ses limites."
+    },
+    "apiKeys": {
+      "openApi": "Référence de l'API (OpenAPI)",
+      "accessLabel": "Ce que la clé peut faire",
+      "accessScoped": "Seulement ce que je choisis, via /api/v1",
+      "accessFull": "Accès complet, partout",
+      "accessFullHint": "La clé peut faire tout ce que peut son compte, sur chaque point d'accès de l'application. Préférez les scopes, sauf si un script a besoin de plus que ce qu'offre /api/v1.",
+      "scopesRequired": "Choisissez au moins une chose que la clé peut faire.",
+      "holderLabel": "Attribuée à",
+      "holderMe": "Moi",
+      "heldBy": "détenue par {{name}}",
+      "fullAccess": "accès complet",
+      "columns": {
+        "access": "Accès"
+      },
+      "scopes": {
+        "plans_read": "Lister les plans de test.",
+        "runs_read": "Lire les exécutions, leur statut et leurs rapports JUnit.",
+        "runs_write": "Lancer des exécutions et les annuler."
+      }
+    },
+    "serviceAccounts": {
+      "title": "Comptes de service",
+      "description": "Des comptes pour les pipelines plutôt que pour les personnes. Ils ne peuvent pas se connecter, et leurs clés continuent de fonctionner quand quelqu'un part. En désactiver un révoque toutes ses clés.",
+      "nameLabel": "Nom",
+      "roleLabel": "Rôle",
+      "roles": {
+        "viewer": "lecteur",
+        "editor": "éditeur"
+      },
+      "create": "Créer le compte",
+      "loading": "Chargement des comptes…",
+      "empty": "Aucun compte de service. Créez-en un, puis attribuez-lui une clé ci-dessus.",
+      "disabled": "désactivé",
+      "disableAction": "Désactiver {{name}}",
+      "nameRequired": "Donnez un nom au compte, par exemple la pipeline à laquelle il sert."
     }
   },
   "dashboard": {

@@ -92,6 +92,42 @@
       "accountDescription": "Ihre Anmeldedaten und die Aktionen, die sich nicht rückgängig machen lassen.",
       "runUsage": "Ausführungsauslastung",
       "runUsageDescription": "Wie viele Ausführungen dieser Organisation laufen oder warten, gemessen an ihren Limits."
+    },
+    "apiKeys": {
+      "openApi": "API-Referenz (OpenAPI)",
+      "accessLabel": "Was der Schlüssel darf",
+      "accessScoped": "Nur was ich auswähle, über /api/v1",
+      "accessFull": "Vollzugriff, überall",
+      "accessFullHint": "Der Schlüssel darf alles, was sein Konto darf, an jedem Endpunkt der Anwendung. Bevorzugen Sie Scopes, es sei denn, ein Skript braucht mehr, als /api/v1 bietet.",
+      "scopesRequired": "Wählen Sie mindestens eine Berechtigung für den Schlüssel.",
+      "holderLabel": "Ausgestellt für",
+      "holderMe": "Mich",
+      "heldBy": "gehört {{name}}",
+      "fullAccess": "Vollzugriff",
+      "columns": {
+        "access": "Zugriff"
+      },
+      "scopes": {
+        "plans_read": "Testpläne auflisten.",
+        "runs_read": "Ausführungen, ihren Status und ihre JUnit-Berichte lesen.",
+        "runs_write": "Ausführungen starten und abbrechen."
+      }
+    },
+    "serviceAccounts": {
+      "title": "Dienstkonten",
+      "description": "Konten für Pipelines statt für Personen. Sie können sich nicht anmelden, und ihre Schlüssel funktionieren weiter, wenn jemand geht. Das Deaktivieren eines Kontos widerruft alle seine Schlüssel.",
+      "nameLabel": "Name",
+      "roleLabel": "Rolle",
+      "roles": {
+        "viewer": "Betrachter",
+        "editor": "Bearbeiter"
+      },
+      "create": "Konto erstellen",
+      "loading": "Konten werden geladen…",
+      "empty": "Noch keine Dienstkonten. Erstellen Sie eines und stellen Sie ihm oben einen Schlüssel aus.",
+      "disabled": "deaktiviert",
+      "disableAction": "{{name}} deaktivieren",
+      "nameRequired": "Geben Sie dem Konto einen Namen, etwa die Pipeline, für die es gedacht ist."
     }
   },
   "dashboard": {
