@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { projects, insertProjectSchema } from "@shared/schema";
+import { projects, insertProjectSchema, AUDIT_ACTIONS } from "@shared/schema";
+import { auditActor, recordAudit } from "../audit";
 import { desc } from "drizzle-orm";
 import loggerPromise from "../logger";
 import { withTenantTransaction } from "../middleware/tenancy";
@@ -34,12 +35,20 @@ router.post("/api/projects", requireRole('editor'), async (req, res) => {
   }
 
   try {
-    const newProject = await withTenantTransaction((tx) =>
-      tx
+    const newProject = await withTenantTransaction(async (tx) => {
+      const rows = await tx
         .insert(projects)
         .values({ ...parseResult.data, userId: (req.user as any).id, organizationId: (req.user as { organizationId: number }).organizationId })
-        .returning(),
-    );
+        .returning();
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.PROJECT_CREATED,
+        actor: auditActor(req),
+        targetType: 'project',
+        targetId: rows[0].id,
+        metadata: { name: rows[0].name },
+      });
+      return rows;
+    });
     res.status(201).json(newProject[0]);
   } catch (error: any) {
     logger.error({ message: "Error creating project", error: error.message });

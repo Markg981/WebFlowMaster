@@ -1,12 +1,36 @@
+import type { Request } from 'express';
 import { auditLog, type AuditAction } from '@shared/schema';
 import type { TenantTx } from './middleware/tenancy';
 import { getTenantOrgId } from './middleware/tenancy';
 
+/** Who did something, and how they came to be able to. */
+export interface AuditActor {
+  id: number;
+  username: string;
+  /** The key a request authenticated with, when it was not a session. */
+  apiKeyId?: string | null;
+  ipAddress?: string | null;
+}
+
 export interface AuditEntry {
   action: AuditAction;
   /** Who did it. Null for something the system did on nobody's behalf. */
-  actor?: { id: number; username: string } | null;
-  targetType?: 'user' | 'invitation' | 'organization' | 'api_key' | 'webhook';
+  actor?: AuditActor | null;
+  targetType?:
+    | 'user'
+    | 'invitation'
+    | 'organization'
+    | 'api_key'
+    | 'webhook'
+    | 'test'
+    | 'api_test'
+    | 'test_plan'
+    | 'schedule'
+    | 'project'
+    | 'run'
+    | 'environment'
+    | 'secret'
+    | 'system_settings';
   /** Text because targets are variously serial ids and uuids. */
   targetId?: string | number;
   /**
@@ -17,6 +41,35 @@ export interface AuditEntry {
    * there for good.
    */
   metadata?: Record<string, unknown>;
+}
+
+/**
+ * The actor of a request: its user, the key it came with if any, and its address.
+ *
+ * Every handler that records an entry passes this rather than `req.user`, so an entry made by a
+ * pipeline says so. Without the key, "alice deleted the plan" cannot be told apart from "a job
+ * holding one of alice's keys deleted it".
+ */
+export function auditActor(req: Request): AuditActor {
+  const user = req.user as { id: number; username: string };
+  return {
+    id: user.id,
+    username: user.username,
+    apiKeyId: (req as Request & { apiKeyId?: string }).apiKeyId ?? null,
+    ipAddress: req.ip ?? null,
+  };
+}
+
+/**
+ * The fields a change touched, by name.
+ *
+ * What an update entry records instead of the values: a test's steps and a plan's settings can
+ * hold URLs with credentials, selectors naming customers, and more, and this table keeps
+ * everything for ever. The name says what kind of change it was; the test's own version history
+ * holds the values, under the test's own access rules.
+ */
+export function changedFields(body: Record<string, unknown>): string[] {
+  return Object.keys(body).filter((key) => body[key] !== undefined).sort();
 }
 
 /**
@@ -45,6 +98,8 @@ export async function recordAudit(tx: TenantTx, entry: AuditEntry): Promise<void
     organizationId,
     actorUserId: entry.actor?.id ?? null,
     actorUsername: entry.actor?.username ?? null,
+    apiKeyId: entry.actor?.apiKeyId ?? null,
+    ipAddress: entry.actor?.ipAddress ?? null,
     action: entry.action,
     targetType: entry.targetType ?? null,
     targetId: entry.targetId === undefined ? null : String(entry.targetId),

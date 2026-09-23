@@ -9,7 +9,10 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { RedisStore } from "connect-redis";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { AUDIT_ACTIONS, User as SelectUser, type AuditAction } from "@shared/schema";
+import { recordAudit } from "./audit";
+import { runWithTenant, withTenantTransaction } from "./middleware/tenancy";
+import loggerPromise from "./logger";
 import createMemoryStore from "memorystore";
 import { sessionRedis } from "./redis";
 import { sessionCookieSecure } from "./config";
@@ -23,6 +26,38 @@ declare global {
 }
 
 const scryptAsync = promisify(scrypt);
+
+/**
+ * Signing in and out, in the trail of the user's organization.
+ *
+ * Its own transaction, necessarily: the session it describes is not a database change. And
+ * best effort, unlike every other entry — a sign-in refused because the trail could not be
+ * written would lock everybody out whenever the database hiccups, which is a worse failure than
+ * a missing line.
+ */
+async function recordAuthEvent(
+  user: Pick<SelectUser, 'id' | 'username' | 'organizationId'>,
+  action: AuditAction,
+  ipAddress: string | undefined,
+  metadata?: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await runWithTenant(user.organizationId, () =>
+      withTenantTransaction((tx) =>
+        recordAudit(tx, {
+          action,
+          actor: { id: user.id, username: user.username, ipAddress: ipAddress ?? null },
+          targetType: 'user',
+          targetId: user.id,
+          ...(metadata ? { metadata } : {}),
+        }),
+      ),
+    );
+  } catch (error: any) {
+    const logger = await loggerPromise;
+    logger.error({ message: 'Could not record a sign-in event', action, userId: user.id, error: error?.message ?? String(error) });
+  }
+}
 
 // Validation schema for the registration endpoint (prevents mass-assignment
 // and rejects malformed/missing credentials before hashing).
@@ -132,19 +167,24 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
+    new LocalStrategy({ passReqToCallback: true }, async (req, username, password, done) => {
       const user = await storage.getUserByUsername(username);
+      // An unknown username is not recorded: it belongs to no organization, and a trail of
+      // them would be a list of guesses — some of them other people's passwords typed into
+      // the wrong box.
+      if (!user) return done(null, false);
       // A service account has a password only because the column requires one: it is random
       // and nobody knows it. Refused before comparing anyway, so that stays true even if
       // somebody one day sets it by hand.
-      if (!user || user.kind !== 'person' || user.disabledAt) {
+      if (user.kind !== 'person' || user.disabledAt) {
+        await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_FAILED, req.ip, { reason: 'not_a_person' });
         return done(null, false);
       }
       if (!(await comparePasswords(password, user.password))) {
+        await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_FAILED, req.ip, { reason: 'wrong_password' });
         return done(null, false);
-      } else {
-        return done(null, user);
       }
+      return done(null, user);
     }),
   );
 
@@ -206,12 +246,17 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", authLimiter, registerHandler);
 
-  app.post("/api/login", authLimiter, passport.authenticate("local"), (req, res) => {
+  app.post("/api/login", authLimiter, passport.authenticate("local"), async (req, res) => {
     const { password: _pw, ...safeUser } = req.user as SelectUser;
+    await recordAuthEvent(req.user as SelectUser, AUDIT_ACTIONS.LOGIN_SUCCEEDED, req.ip);
     res.status(200).json(safeUser);
   });
 
-  app.post("/api/logout", (req, res, next) => {
+  app.post("/api/logout", async (req, res, next) => {
+    // Before the session is gone, while it still says who this was.
+    if (req.isAuthenticated?.() && req.user) {
+      await recordAuthEvent(req.user as SelectUser, AUDIT_ACTIONS.LOGOUT, req.ip);
+    }
     req.logout((err) => {
       if (err) return next(err);
       res.sendStatus(200);

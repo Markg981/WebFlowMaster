@@ -586,10 +586,15 @@ export const auditLog = pgTable("audit_log", {
   targetId: text("target_id"),
   /** Before/after values and anything else needed to understand the entry. Never secrets. */
   metadata: jsonb("metadata"),
+  /** The API key the request authenticated with. Null for a session, or for the system itself. */
+  apiKeyId: text("api_key_id"),
+  /** The client address as the application saw it. */
+  ipAddress: text("ip_address"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("audit_log_organization_id_idx").on(table.organizationId),
   index("audit_log_created_at_idx").on(table.createdAt),
+  index("audit_log_organization_action_idx").on(table.organizationId, table.action),
 ]);
 
 export type AuditLogEntry = typeof auditLog.$inferSelect;
@@ -894,6 +899,34 @@ export const AUDIT_ACTIONS = {
   SERVICE_ACCOUNT_DISABLED: 'service_account.disabled',
   WEBHOOK_CREATED: 'webhook.created',
   WEBHOOK_DELETED: 'webhook.deleted',
+  // Signing in and out. A failed attempt is recorded only for a username that exists: an
+  // unknown one belongs to no organization, and a trail of it would be a list of guesses.
+  LOGIN_SUCCEEDED: 'auth.login',
+  LOGIN_FAILED: 'auth.login_failed',
+  LOGOUT: 'auth.logout',
+  // What the organization's tests are, and what runs them.
+  TEST_CREATED: 'test.created',
+  TEST_UPDATED: 'test.updated',
+  TEST_DELETED: 'test.deleted',
+  TEST_VERSION_RESTORED: 'test.version_restored',
+  API_TEST_CREATED: 'api_test.created',
+  API_TEST_UPDATED: 'api_test.updated',
+  API_TEST_DELETED: 'api_test.deleted',
+  PLAN_CREATED: 'plan.created',
+  PLAN_UPDATED: 'plan.updated',
+  PLAN_DELETED: 'plan.deleted',
+  SCHEDULE_CREATED: 'schedule.created',
+  SCHEDULE_UPDATED: 'schedule.updated',
+  SCHEDULE_DELETED: 'schedule.deleted',
+  PROJECT_CREATED: 'project.created',
+  PROJECT_DELETED: 'project.deleted',
+  RUN_CANCELLED: 'run.cancelled',
+  // Where tests run and with what. Secrets by name only — never a value.
+  ENVIRONMENT_CREATED: 'environment.created',
+  ENVIRONMENT_DELETED: 'environment.deleted',
+  SECRET_SET: 'secret.set',
+  SECRET_DELETED: 'secret.deleted',
+  SYSTEM_SETTINGS_CHANGED: 'system_settings.changed',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

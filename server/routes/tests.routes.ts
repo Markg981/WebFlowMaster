@@ -1,5 +1,6 @@
 import { Router, type Response } from "express";
-import { tests, insertTestSchema, apiTests, insertApiTestSchema, updateApiTestSchema, users, projects } from "@shared/schema";
+import { tests, insertTestSchema, apiTests, insertApiTestSchema, updateApiTestSchema, users, projects, AUDIT_ACTIONS } from "@shared/schema";
+import { auditActor, changedFields, recordAudit } from "../audit";
 import { eq, desc, and, getTableColumns } from "drizzle-orm";
 import { z } from "zod";
 import loggerPromise from "../logger";
@@ -78,6 +79,14 @@ router.post("/api/tests", requireRole('editor'), async (req, res) => {
         test: rows[0],
       });
 
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.TEST_CREATED,
+        actor: auditActor(req),
+        targetType: 'test',
+        targetId: rows[0].id,
+        metadata: { name: rows[0].name },
+      });
+
       return { test: rows[0] };
     });
 
@@ -134,6 +143,14 @@ router.put("/api/tests/:id", requireRole('editor'), async (req, res) => {
           userId: req.user!.id,
           test: rows[0],
         });
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.TEST_UPDATED,
+          actor: auditActor(req),
+          targetType: 'test',
+          targetId: rows[0].id,
+          // Which fields, not their values: the version just recorded holds those.
+          metadata: { name: rows[0].name, fields: changedFields(parseResult.data) },
+        });
       }
 
       return rows;
@@ -160,10 +177,21 @@ router.delete("/api/tests/:id", requireRole('editor'), async (req, res) => {
   if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid test id" });
 
   try {
-    const deleted = await withTenantTransaction((tx) =>
+    const deleted = await withTenantTransaction(async (tx) => {
       // Bare returning(): the tenant transaction's union type does not accept a projection.
-      tx.delete(tests).where(eq(tests.id, id)).returning(),
-    );
+      const rows = await tx.delete(tests).where(eq(tests.id, id)).returning();
+      if (rows.length > 0) {
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.TEST_DELETED,
+          actor: auditActor(req),
+          targetType: 'test',
+          targetId: id,
+          // The name, because once the row is gone nothing else says what it was.
+          metadata: { name: rows[0].name },
+        });
+      }
+      return rows;
+    });
 
     if (deleted.length === 0) return res.status(404).json({ error: "Test not found" });
     res.status(204).end();
@@ -297,12 +325,20 @@ router.post("/api/api-tests", requireRole('editor'), async (req, res) => {
     }
 
     try {
-        const newTest = await withTenantTransaction((tx) =>
-          tx
+        const newTest = await withTenantTransaction(async (tx) => {
+          const rows = await tx
             .insert(apiTests)
             .values({ ...parseResult.data, userId: req.user!.id, organizationId: req.user!.organizationId })
-            .returning(),
-        );
+            .returning();
+          await recordAudit(tx, {
+            action: AUDIT_ACTIONS.API_TEST_CREATED,
+            actor: auditActor(req),
+            targetType: 'api_test',
+            targetId: rows[0].id,
+            metadata: { name: rows[0].name },
+          });
+          return rows;
+        });
         res.status(201).json(newTest[0]);
     } catch (e: any) {
         logger.error({ message: "Error creating API test", error: e.message, userId: req.user?.id });
@@ -324,12 +360,23 @@ router.put("/api/api-tests/:id", requireRole('editor'), async (req, res) => {
     }
 
     try {
-        const updated = await withTenantTransaction((tx) =>
-          tx.update(apiTests)
+        const updated = await withTenantTransaction(async (tx) => {
+          const rows = await tx.update(apiTests)
             .set({ ...parseResult.data, updatedAt: new Date() })
             .where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user!.id)))
-            .returning(),
-        );
+            .returning();
+          if (rows.length > 0) {
+            await recordAudit(tx, {
+              action: AUDIT_ACTIONS.API_TEST_UPDATED,
+              actor: auditActor(req),
+              targetType: 'api_test',
+              targetId: id,
+              // Names only: an API test's headers and body are exactly where tokens live.
+              metadata: { name: rows[0].name, fields: changedFields(parseResult.data) },
+            });
+          }
+          return rows;
+        });
         if (updated.length === 0) return res.status(404).json({ error: "Test not found or not authorized" });
         res.json(updated[0]);
     } catch (e: any) {
@@ -348,11 +395,21 @@ router.delete("/api/api-tests/:id", requireRole('editor'), async (req, res) => {
     try {
         // .returning() distinguishes "deleted" from "never existed / someone else's row",
         // which a bare delete cannot: it succeeds either way.
-        const deleted = await withTenantTransaction((tx) =>
-          tx.delete(apiTests)
+        const deleted = await withTenantTransaction(async (tx) => {
+          const rows = await tx.delete(apiTests)
             .where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user!.id)))
-            .returning(),
-        );
+            .returning();
+          if (rows.length > 0) {
+            await recordAudit(tx, {
+              action: AUDIT_ACTIONS.API_TEST_DELETED,
+              actor: auditActor(req),
+              targetType: 'api_test',
+              targetId: id,
+              metadata: { name: rows[0].name },
+            });
+          }
+          return rows;
+        });
         if (deleted.length === 0) return res.status(404).json({ error: "API Test not found or not authorized" });
         res.status(204).send();
     } catch (e: any) {

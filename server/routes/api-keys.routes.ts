@@ -6,7 +6,7 @@ import { apiKeys, users, AUDIT_ACTIONS } from "@shared/schema";
 import { API_SCOPE_NAMES, type ApiScope } from "@shared/api-scopes";
 import { withTenantTransaction } from "../middleware/tenancy";
 import { requireRole, roleAllows } from "../middleware/require-role";
-import { recordAudit } from "../audit";
+import { auditActor, recordAudit } from "../audit";
 import { generateApiKey } from "../api-keys";
 import loggerPromise from "../logger";
 
@@ -142,7 +142,7 @@ router.post("/api/api-keys", requireRole('editor'), async (req, res) => {
       // In the same transaction as the creation it records, so the two cannot disagree.
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.API_KEY_CREATED,
-        actor: { id: req.user!.id, username: req.user!.username },
+        actor: auditActor(req),
         targetType: 'api_key',
         targetId: id,
         // The prefix, never the key and never its hash: this table is readable by every owner
@@ -186,7 +186,7 @@ router.delete("/api/api-keys/:id", requireRole('editor'), async (req, res) => {
 
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.API_KEY_REVOKED,
-        actor: { id: req.user!.id, username: req.user!.username },
+        actor: auditActor(req),
         targetType: 'api_key',
         targetId: id,
         metadata: { name: row.name, prefix: row.prefix },

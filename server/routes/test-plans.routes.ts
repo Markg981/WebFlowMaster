@@ -8,6 +8,8 @@ import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
 import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from "./selected-tests";
 import { requestCancellation } from "../execution-state";
+import { AUDIT_ACTIONS } from "@shared/schema";
+import { auditActor, changedFields, recordAudit } from "../audit";
 
 const router = Router();
 const logger = await loggerPromise;
@@ -94,6 +96,14 @@ router.post("/api/test-plans", requireRole('editor'), async (req, res) => {
               })),
             );
           }
+
+          await recordAudit(tx, {
+            action: AUDIT_ACTIONS.PLAN_CREATED,
+            actor: auditActor(req),
+            targetType: 'test_plan',
+            targetId: mainPlan.id,
+            metadata: { name: mainPlan.name, tests: selectedTests?.length ?? 0 },
+          });
 
           return mainPlan;
         });
@@ -183,7 +193,15 @@ router.post("/api/test-plan-schedules", requireRole('editor'), async (req, res) 
               updatedAt: new Date()
           });
 
-          return fetchScheduleWithPlanName(tx, scheduleId);
+          const schedule = await fetchScheduleWithPlanName(tx, scheduleId);
+          await recordAudit(tx, {
+            action: AUDIT_ACTIONS.SCHEDULE_CREATED,
+            actor: auditActor(req),
+            targetType: 'schedule',
+            targetId: scheduleId,
+            metadata: { name: data.scheduleName, planId: data.testPlanId, planName: schedule?.testPlanName ?? null, frequency: data.frequency },
+          });
+          return schedule;
         });
         // Add to scheduler
         await schedulerService.addScheduleJob(created as any);
@@ -237,6 +255,18 @@ router.put("/api/test-plan-schedules/:id", requireRole('editor'), async (req, re
           if (updated.length === 0) return null;
 
           updatedRow = updated[0];
+          await recordAudit(tx, {
+            action: AUDIT_ACTIONS.SCHEDULE_UPDATED,
+            actor: auditActor(req),
+            targetType: 'schedule',
+            targetId: id,
+            // Switching a schedule off is the change people come looking for, so it is spelled out.
+            metadata: {
+              name: updated[0].scheduleName,
+              fields: changedFields(updates as Record<string, unknown>),
+              ...(updates.isActive !== undefined ? { isActive: updates.isActive } : {}),
+            },
+          });
           return fetchScheduleWithPlanName(tx, id);
         });
         if (result === null) return res.status(404).json({ error: "Schedule not found" });
@@ -262,9 +292,19 @@ router.delete("/api/test-plan-schedules/:id", requireRole('editor'), async (req,
     if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
     const id = req.params.id;
     try {
-        const deleted = await withTenantTransaction((tx) =>
-          tx.delete(testPlanSchedules).where(eq(testPlanSchedules.id, id)).returning(),
-        );
+        const deleted = await withTenantTransaction(async (tx) => {
+          const rows = await tx.delete(testPlanSchedules).where(eq(testPlanSchedules.id, id)).returning();
+          if (rows.length > 0) {
+            await recordAudit(tx, {
+              action: AUDIT_ACTIONS.SCHEDULE_DELETED,
+              actor: auditActor(req),
+              targetType: 'schedule',
+              targetId: id,
+              metadata: { name: rows[0].scheduleName, planId: rows[0].testPlanId },
+            });
+          }
+          return rows;
+        });
         if (deleted.length === 0) return res.status(404).json({ error: "Schedule not found" });
         schedulerService.removeScheduleJob(id);
         res.status(204).send();
@@ -362,7 +402,15 @@ router.post("/api/test-plan-executions/:id/cancel", requireRole('editor'), async
     if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
 
     const who = (req.user as { username?: string }).username ?? `user ${req.user.id}`;
-    const result = await requestCancellation(req.params.id, `Cancelled by ${who}.`);
+    const result = await requestCancellation(req.params.id, `Cancelled by ${who}.`, (tx, execution) =>
+      recordAudit(tx, {
+        action: AUDIT_ACTIONS.RUN_CANCELLED,
+        actor: auditActor(req),
+        targetType: 'run',
+        targetId: execution.id,
+        metadata: { planId: execution.testPlanId },
+      }),
+    );
 
     switch (result.outcome) {
       case 'not_found':

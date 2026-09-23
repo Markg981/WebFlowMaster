@@ -5,7 +5,7 @@ import { apiKeys, users, AUDIT_ACTIONS } from "@shared/schema";
 import { storage } from "../storage";
 import { withTenantTransaction, getTenantOrgId } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
-import { recordAudit } from "../audit";
+import { auditActor, recordAudit } from "../audit";
 import loggerPromise from "../logger";
 
 /**
@@ -55,7 +55,7 @@ router.post("/api/service-accounts", requireRole("owner"), async (req, res) => {
     organizationId: getTenantOrgId()!,
     displayName: parsed.data.name,
     role: parsed.data.role,
-    actor: { id: req.user!.id, username: req.user!.username },
+    actor: auditActor(req),
   });
   logger.info({ message: "Service account created", serviceAccountId: account.id, by: req.user!.id });
   res.status(201).json({ id: account.id, name: account.displayName, role: account.role, createdAt: account.createdAt, disabledAt: null });
@@ -96,7 +96,7 @@ router.delete("/api/service-accounts/:id", requireRole("owner"), async (req, res
 
     await recordAudit(tx, {
       action: AUDIT_ACTIONS.SERVICE_ACCOUNT_DISABLED,
-      actor: req.user!,
+      actor: auditActor(req),
       targetType: "user",
       targetId: id,
       metadata: { name: disabled.displayName, revokedKeys: revoked.map((k) => k.prefix) },
