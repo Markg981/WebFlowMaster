@@ -17,6 +17,8 @@ export const organizations = pgTable("organizations", {
   maxQueuedRuns: integer("max_queued_runs"),
   /** Every member signing in with a password must use a second factor. Keys are not affected. */
   mfaRequired: boolean("mfa_required").notNull().default(false),
+  /** Publishing a test needs another member's approval, and plans run published tests only. */
+  testReviewRequired: boolean("test_review_required").notNull().default(false),
 });
 
 export const users = pgTable("users", {
@@ -124,6 +126,11 @@ export const tests = pgTable("tests", {
    */
   dataset: jsonb("dataset"),
   status: text("status").notNull().default("draft"),
+  /**
+   * The version plans run (test_versions.version). Null: never published, and plans run this
+   * row — the working copy — as they always did. See migrations/0032_test_publishing.sql.
+   */
+  publishedVersion: integer("published_version"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 
@@ -808,6 +815,48 @@ export const testVersions = pgTable("test_versions", {
 export type TestVersion = typeof testVersions.$inferSelect;
 export type InsertTestVersion = typeof testVersions.$inferInsert;
 
+export const TEST_PUBLICATION_KINDS = ['publish', 'review', 'rollback', 'unpublish'] as const;
+export type TestPublicationKind = (typeof TEST_PUBLICATION_KINDS)[number];
+
+/** Every time a version of a test was put live, or taken down. Append-only. */
+export const testPublications = pgTable("test_publications", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  testId: integer("test_id").notNull().references(() => tests.id, { onDelete: 'cascade' }),
+  /** Null for an 'unpublish': plans went back to the working copy. */
+  version: integer("version"),
+  kind: text("kind").$type<TestPublicationKind>().notNull(),
+  reviewId: integer("review_id"),
+  publishedBy: integer("published_by").references(() => users.id, { onDelete: 'set null' }),
+  publishedAt: timestamp("published_at").defaultNow().notNull(),
+}, (table) => [
+  index("test_publications_test_id_idx").on(table.testId),
+  index("test_publications_organization_id_idx").on(table.organizationId),
+]);
+
+export const TEST_REVIEW_STATUSES = ['pending', 'approved', 'rejected', 'withdrawn'] as const;
+export type TestReviewStatus = (typeof TEST_REVIEW_STATUSES)[number];
+
+/** A request to publish one version of a test, and what became of it. */
+export const testReviews = pgTable("test_reviews", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  testId: integer("test_id").notNull().references(() => tests.id, { onDelete: 'cascade' }),
+  version: integer("version").notNull(),
+  status: text("status").$type<TestReviewStatus>().notNull().default('pending'),
+  note: text("note"),
+  requestedBy: integer("requested_by").references(() => users.id, { onDelete: 'set null' }),
+  requestedAt: timestamp("requested_at").defaultNow().notNull(),
+  decidedBy: integer("decided_by").references(() => users.id, { onDelete: 'set null' }),
+  decidedAt: timestamp("decided_at"),
+  decisionComment: text("decision_comment"),
+}, (table) => [
+  index("test_reviews_organization_status_idx").on(table.organizationId, table.status),
+  index("test_reviews_test_id_idx").on(table.testId),
+]);
+
+export type TestReview = typeof testReviews.$inferSelect;
+
 /** The trackers this build can actually file in. A provider with no implementation files nothing. */
 export const ISSUE_PROVIDERS = ['jira', 'azure_devops'] as const;
 export type IssueProvider = (typeof ISSUE_PROVIDERS)[number];
@@ -968,6 +1017,15 @@ export const AUDIT_ACTIONS = {
   PROJECT_DELETED: 'project.deleted',
   // Restricting a project, or changing who is on it and as what.
   PROJECT_ACCESS_CHANGED: 'project.access_changed',
+  // Which version of a test plans run, and the reviews that decide it.
+  TEST_PUBLISHED: 'test.published',
+  TEST_ROLLED_BACK: 'test.rolled_back',
+  TEST_UNPUBLISHED: 'test.unpublished',
+  TEST_REVIEW_REQUESTED: 'test_review.requested',
+  TEST_REVIEW_APPROVED: 'test_review.approved',
+  TEST_REVIEW_REJECTED: 'test_review.rejected',
+  TEST_REVIEW_WITHDRAWN: 'test_review.withdrawn',
+  TEST_REVIEW_POLICY_CHANGED: 'test_review.policy_changed',
   RUN_CANCELLED: 'run.cancelled',
   // Where tests run and with what. Secrets by name only — never a value.
   ENVIRONMENT_CREATED: 'environment.created',
@@ -1240,6 +1298,9 @@ export const insertTestSchema = createInsertSchema(tests, {
   id: true,
   createdAt: true,
   updatedAt: true,
+  // Which version runs is changed only by publishing (server/test-publishing.ts), which checks
+  // the review policy and writes the history. Saving a test must not be a way round it.
+  publishedVersion: true,
   // The tenancy boundary: never accepted from the client, always derived server-side
   // from the authenticated session (see the same treatment of organizationId elsewhere).
   organizationId: true,
@@ -1952,4 +2013,7 @@ export const ORG_SCOPED_TABLES = [
   // Who is on a restricted project. Org-scoped like the rest; what they see inside the
   // organization is narrowed further by the project policies of migration 0031.
   'project_members',
+  // Which version of a test is live, and the reviews that put it there (migration 0032).
+  // test_publications is SELECT and INSERT only: a publication history is evidence.
+  'test_publications', 'test_reviews',
 ] as const;

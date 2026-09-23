@@ -261,7 +261,8 @@
     "apiTester": "Testeur d’API",
     "scheduling": "Planification",
     "executionReport": "Rapport d’exécution",
-    "runTestPlan": "Exécution du plan"
+    "runTestPlan": "Exécution du plan",
+    "reviews": "Relectures"
   },
   "dashboardPage": {
     "user": {
@@ -1824,7 +1825,8 @@
       "environment": "Environnements",
       "secret": "Secrets",
       "system_settings": "Paramètres système",
-      "mfa": "Double authentification"
+      "mfa": "Double authentification",
+      "test_review": "Relectures des tests"
     },
     "actions": {
       "member_role_changed": "Rôle du membre modifié",
@@ -1867,7 +1869,15 @@
       "mfa_recovery_codes_regenerated": "Codes de récupération remplacés",
       "mfa_recovery_code_used": "Code de récupération utilisé",
       "mfa_policy_changed": "Règle de double authentification modifiée",
-      "project_access_changed": "Accès au projet modifié"
+      "project_access_changed": "Accès au projet modifié",
+      "test_published": "Test publié",
+      "test_rolled_back": "Test revenu à une version antérieure",
+      "test_unpublished": "Test dépublié",
+      "test_review_requested": "Relecture demandée",
+      "test_review_approved": "Relecture approuvée",
+      "test_review_rejected": "Relecture refusée",
+      "test_review_withdrawn": "Relecture retirée",
+      "test_review_policy_changed": "Règle de relecture modifiée"
     }
   },
   "security": {
@@ -1936,5 +1946,43 @@
     "add": "Ajouter un membre",
     "cancel": "Annuler",
     "save": "Enregistrer"
+  },
+  "publishing": {
+    "runsPublished": "Les plans exécutent la version {{n}}.",
+    "runsWorkingCopy": "Non publié : les plans exécutent le dernier enregistrement.",
+    "runsNothing": "Non publié : les plans ignorent ce test jusqu’à la publication d’une version relue.",
+    "reviewRequired": "relecture requise",
+    "unpublishedChanges": "La version {{n}} contient des modifications pas encore publiées.",
+    "waiting": "La version {{n}} attend une relecture.",
+    "withdraw": "Retirer",
+    "notePlaceholder": "Ce qui a changé, pour le relecteur (facultatif)",
+    "noteLabel": "Note pour le relecteur",
+    "askReview": "Demander la relecture de la version {{n}}",
+    "publish": "Publier la version {{n}}"
+  },
+  "reviews": {
+    "title": "Relectures des tests",
+    "description": "Un test enregistré est une copie de travail. Les plans exécutent la version publiée. Approuver une relecture ici publie cette version.",
+    "policyLabel": "Exiger une relecture pour publier",
+    "policyHint": "La publication nécessite alors l’approbation d’un autre membre, et les plans ignorent les tests jamais publiés. Revenir à une version déjà publiée reste possible.",
+    "policyError": "Impossible de modifier la règle.",
+    "loading": "Chargement…",
+    "error": "Les relectures n’ont pas pu être chargées.",
+    "empty": "Rien n’attend de relecture.",
+    "version": "version {{n}}",
+    "replaces": "remplace la version {{n}}",
+    "askedBy": "Demandée par {{name}} le {{date}}",
+    "formerMember": "un ancien membre",
+    "commentPlaceholder": "Commentaire (requis pour refuser)",
+    "commentLabel": "Commentaire sur {{name}}",
+    "approve": "Approuver et publier",
+    "reject": "Refuser",
+    "reasonRequired": "Indiquez ce qui doit changer avant de refuser.",
+    "notYours": "Quelqu’un d’autre que son auteur doit décider de cette modification."
+  },
+  "testHistory": {
+    "published": "Publiée",
+    "rollback": "Revenir à celle-ci",
+    "rollbackHint": "Les plans exécutent de nouveau cette version, déjà publiée auparavant."
   }
 }

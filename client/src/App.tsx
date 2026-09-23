@@ -30,6 +30,7 @@ const TestReportPage = React.lazy(() => import("./pages/TestReportPage"));
 const GeneralReportsPage = React.lazy(() => import("./pages/GeneralReportsPage"));
 const TestManager = React.lazy(() => import("./pages/TestManager"));
 const TestLibraryPage = React.lazy(() => import("./pages/TestLibraryPage"));
+const ReviewsPage = React.lazy(() => import("./pages/ReviewsPage"));
 import { ObservabilityErrorBoundary } from "@/observability/error-boundary";
 import { installObservability } from "@/observability/install";
 import { setCurrentRoute } from "@/observability/logger";
@@ -115,6 +116,7 @@ function Router() {
       <ProtectedRoute path="/test-suites" component={TestSuitesPage} />
       <ProtectedRoute path="/test-manager" component={TestManager} />
       <ProtectedRoute path="/tests" component={TestLibraryPage} />
+      <ProtectedRoute path="/reviews" component={ReviewsPage} />
       <ProtectedRoute path="/reports" component={GeneralReportsPage} /> {/* New route for general reports */}
       <ProtectedRoute path="/test-plan/:planId/run" component={TestPlanExecutionPage} />
       <ProtectedRoute path="/test-plans/:planId/executions/:executionId/report" component={TestReportPage} />

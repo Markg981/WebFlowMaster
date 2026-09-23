@@ -258,7 +258,8 @@
     "backToDashboard": "Torna alla Dashboard",
     "scheduling": "Schedulazione",
     "executionReport": "Report di esecuzione",
-    "runTestPlan": "Esecuzione del piano"
+    "runTestPlan": "Esecuzione del piano",
+    "reviews": "Revisioni"
   },
   "dashboardPage": {
     "headerTitle": "Piattaforma WebTest",
@@ -1943,7 +1944,8 @@
       "environment": "Ambienti",
       "secret": "Segreti",
       "system_settings": "Impostazioni di sistema",
-      "mfa": "Due fattori"
+      "mfa": "Due fattori",
+      "test_review": "Revisioni dei test"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
@@ -1986,7 +1988,15 @@
       "mfa_recovery_codes_regenerated": "Codici di recupero sostituiti",
       "mfa_recovery_code_used": "Codice di recupero usato",
       "mfa_policy_changed": "Criterio due fattori cambiato",
-      "project_access_changed": "Accesso al progetto modificato"
+      "project_access_changed": "Accesso al progetto modificato",
+      "test_published": "Test pubblicato",
+      "test_rolled_back": "Test riportato a una versione precedente",
+      "test_unpublished": "Pubblicazione del test ritirata",
+      "test_review_requested": "Revisione richiesta",
+      "test_review_approved": "Revisione approvata",
+      "test_review_rejected": "Revisione rifiutata",
+      "test_review_withdrawn": "Revisione ritirata",
+      "test_review_policy_changed": "Criterio di revisione cambiato"
     }
   },
   "security": {
@@ -2055,5 +2065,43 @@
     "add": "Aggiungi un membro",
     "cancel": "Annulla",
     "save": "Salva"
+  },
+  "publishing": {
+    "runsPublished": "I piani eseguono la versione {{n}}.",
+    "runsWorkingCopy": "Non pubblicato: i piani eseguono l’ultimo salvataggio.",
+    "runsNothing": "Non pubblicato: i piani saltano questo test finché non viene pubblicata una versione revisionata.",
+    "reviewRequired": "revisione obbligatoria",
+    "unpublishedChanges": "La versione {{n}} ha modifiche non ancora pubblicate.",
+    "waiting": "La versione {{n}} è in attesa di revisione.",
+    "withdraw": "Ritira",
+    "notePlaceholder": "Cosa è cambiato, per chi revisiona (facoltativo)",
+    "noteLabel": "Nota per chi revisiona",
+    "askReview": "Chiedi la revisione della versione {{n}}",
+    "publish": "Pubblica la versione {{n}}"
+  },
+  "reviews": {
+    "title": "Revisioni dei test",
+    "description": "Un test salvato è una copia di lavoro. I piani eseguono la versione pubblicata. Approvare una revisione qui pubblica quella versione.",
+    "policyLabel": "Richiedi una revisione per pubblicare",
+    "policyHint": "Pubblicare richiede allora l’approvazione di un altro membro, e i piani saltano i test mai pubblicati. Tornare a una versione già pubblicata resta possibile.",
+    "policyError": "Impossibile cambiare il criterio.",
+    "loading": "Caricamento…",
+    "error": "Impossibile caricare le revisioni.",
+    "empty": "Nulla in attesa di revisione.",
+    "version": "versione {{n}}",
+    "replaces": "sostituisce la versione {{n}}",
+    "askedBy": "Richiesta da {{name}} il {{date}}",
+    "formerMember": "un ex membro",
+    "commentPlaceholder": "Commento (necessario per rifiutare)",
+    "commentLabel": "Commento su {{name}}",
+    "approve": "Approva e pubblica",
+    "reject": "Rifiuta",
+    "reasonRequired": "Indica cosa va cambiato prima di rifiutare.",
+    "notYours": "Su questa modifica deve decidere qualcuno diverso dall’autore."
+  },
+  "testHistory": {
+    "published": "Pubblicata",
+    "rollback": "Torna a questa",
+    "rollbackHint": "I piani tornano a eseguire questa versione, già pubblicata in passato."
   }
 }

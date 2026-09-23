@@ -255,7 +255,8 @@
     "settings": "Settings",
     "backToDashboard": "Back to Dashboard",
     "executionReport": "Execution report",
-    "runTestPlan": "Run test plan"
+    "runTestPlan": "Run test plan",
+    "reviews": "Reviews"
   },
   "dashboardPage": {
     "user": {
@@ -1818,7 +1819,8 @@
       "environment": "Environments",
       "secret": "Secrets",
       "system_settings": "System settings",
-      "mfa": "Two-factor"
+      "mfa": "Two-factor",
+      "test_review": "Test reviews"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -1861,7 +1863,15 @@
       "mfa_recovery_codes_regenerated": "Recovery codes replaced",
       "mfa_recovery_code_used": "Recovery code used",
       "mfa_policy_changed": "Two-factor policy changed",
-      "project_access_changed": "Project access changed"
+      "project_access_changed": "Project access changed",
+      "test_published": "Test published",
+      "test_rolled_back": "Test rolled back",
+      "test_unpublished": "Test unpublished",
+      "test_review_requested": "Review requested",
+      "test_review_approved": "Review approved",
+      "test_review_rejected": "Review rejected",
+      "test_review_withdrawn": "Review withdrawn",
+      "test_review_policy_changed": "Review policy changed"
     }
   },
   "security": {
@@ -1930,5 +1940,43 @@
     "add": "Add a member",
     "cancel": "Cancel",
     "save": "Save"
+  },
+  "publishing": {
+    "runsPublished": "Plans run version {{n}}.",
+    "runsWorkingCopy": "Not published: plans run the latest save.",
+    "runsNothing": "Not published: plans skip this test until a reviewed version is published.",
+    "reviewRequired": "review required",
+    "unpublishedChanges": "Version {{n}} has changes that are not published yet.",
+    "waiting": "Version {{n}} is waiting for review.",
+    "withdraw": "Withdraw",
+    "notePlaceholder": "What changed, for the reviewer (optional)",
+    "noteLabel": "Note for the reviewer",
+    "askReview": "Ask for review of version {{n}}",
+    "publish": "Publish version {{n}}"
+  },
+  "reviews": {
+    "title": "Test reviews",
+    "description": "A saved test is a working copy. Plans run the published version. Approving a review here publishes that version.",
+    "policyLabel": "Require a review to publish",
+    "policyHint": "Publishing then needs another member’s approval, and plans skip tests that have never been published. Rolling back to a version that was live before stays possible.",
+    "policyError": "Could not change the policy.",
+    "loading": "Loading…",
+    "error": "The reviews could not be loaded.",
+    "empty": "Nothing is waiting for review.",
+    "version": "version {{n}}",
+    "replaces": "replaces version {{n}}",
+    "askedBy": "Asked by {{name}} on {{date}}",
+    "formerMember": "a former member",
+    "commentPlaceholder": "Comment (needed to reject)",
+    "commentLabel": "Comment on {{name}}",
+    "approve": "Approve and publish",
+    "reject": "Reject",
+    "reasonRequired": "Say what needs to change before rejecting.",
+    "notYours": "Someone other than its author has to decide on this change."
+  },
+  "testHistory": {
+    "published": "Published",
+    "rollback": "Roll back to this",
+    "rollbackHint": "Plans run this version again. It was live before."
   }
 }

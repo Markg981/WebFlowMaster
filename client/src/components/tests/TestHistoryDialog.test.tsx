@@ -4,6 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TestHistoryDialog from './TestHistoryDialog';
 
+// The history dialog asks who is looking, to offer publishing actions to editors only.
+vi.mock('@/hooks/use-auth', () => ({ useAuth: () => ({ user: { id: 1, role: 'editor' } }) }));
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) => {
@@ -150,6 +152,31 @@ describe('TestHistoryDialog', () => {
     renderDialog();
 
     expect(await screen.findByText(/34 earlier runs/)).toBeInTheDocument();
+  });
+
+  it('marks the published version, and rolls back to one that was live before', async () => {
+    fetchMock.mockImplementation((url: string, init?: any) => {
+      const reply = (body: unknown) => Promise.resolve({ ok: true, json: async () => body });
+      if (url === '/api/tests/7/publishing') {
+        return reply({
+          testId: 7, publishedVersion: 3, latestVersion: 3, runs: 'published', hasUnpublishedChanges: false,
+          reviewRequired: false, pendingReview: null, rollbackTargets: [2],
+        });
+      }
+      if (init?.method === 'POST') return reply({});
+      return reply(history);
+    });
+    renderDialog();
+    await screen.findByTestId('test-history-list');
+
+    expect(await screen.findByTestId('published-3')).toBeInTheDocument();
+    expect(screen.getByText('Plans run version 3.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Roll back to this/ }));
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([url]: any[]) => url === '/api/tests/7/rollback');
+      expect(JSON.parse(call![1].body)).toEqual({ version: 2 });
+    });
   });
 
   it('reports a failed restore instead of pretending it worked', async () => {
