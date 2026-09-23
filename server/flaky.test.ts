@@ -123,6 +123,89 @@ describe('summariseFlakiness', () => {
   });
 });
 
+/**
+ * Which version of the test produced each verdict.
+ *
+ * Without it, a test edited on Monday night and failing from Tuesday reads exactly like one
+ * that cannot make its mind up — and a measure that calls an explained change flakiness is one
+ * people learn to ignore on the days it is right.
+ */
+describe('a test that changed underneath the runs', () => {
+  const versioned = (testName: string, status: string, testVersion: number | null): FlakyInputRow => ({
+    ...run(testName, status),
+    testVersion,
+  });
+
+  it('does not call a verdict that changed across an edit flaky', () => {
+    const summaries = summariseFlakiness([
+      versioned('Checkout', 'Passed', 1),
+      versioned('Checkout', 'Passed', 1),
+      // Edited here; it has failed consistently ever since.
+      versioned('Checkout', 'Failed', 2),
+      versioned('Checkout', 'Failed', 2),
+    ]);
+
+    expect(summaries).toEqual([]);
+  });
+
+  it('still reports the flips that happened without the test changing', () => {
+    const [summary] = summariseFlakiness([
+      versioned('Checkout', 'Passed', 2),
+      versioned('Checkout', 'Failed', 2),
+      versioned('Checkout', 'Passed', 2),
+    ]);
+
+    expect(summary.flips).toBe(2);
+    expect(summary.unexplainedFlips).toBe(2);
+    expect(summary.changedDuringWindow).toBe(false);
+  });
+
+  it('separates the explained changes from the rest, and says the test was edited', () => {
+    const [summary] = summariseFlakiness([
+      versioned('Checkout', 'Passed', 1),
+      versioned('Checkout', 'Failed', 1), // unexplained
+      versioned('Checkout', 'Passed', 2), // explained by the edit
+      versioned('Checkout', 'Failed', 2), // unexplained
+    ]);
+
+    expect(summary.flips).toBe(3);
+    expect(summary.unexplainedFlips).toBe(2);
+    expect(summary.versions).toEqual([1, 2]);
+    expect(summary.changedDuringWindow).toBe(true);
+  });
+
+  it('ranks by what nobody can explain, not by the raw count', () => {
+    const summaries = summariseFlakiness([
+      // Flips at every run and was never touched.
+      versioned('Unreliable', 'Passed', 4),
+      versioned('Unreliable', 'Failed', 4),
+      versioned('Unreliable', 'Passed', 4),
+      versioned('Unreliable', 'Failed', 4),
+      // Flips as often, but was edited between each one.
+      versioned('Rewritten', 'Passed', 1),
+      versioned('Rewritten', 'Failed', 2),
+      versioned('Rewritten', 'Passed', 3),
+      versioned('Rewritten', 'Failed', 4),
+    ]);
+
+    expect(summaries.map((summary) => summary.testName)).toEqual(['Unreliable']);
+  });
+
+  it('counts a flip between two unrecorded versions, because nothing explains it', () => {
+    // Every result written before versions were recorded is this case, so the whole history
+    // has to keep counting the way it always did.
+    const [summary] = summariseFlakiness([
+      versioned('Legacy', 'Passed', null),
+      versioned('Legacy', 'Failed', null),
+      versioned('Legacy', 'Passed', null),
+    ]);
+
+    expect(summary.unexplainedFlips).toBe(2);
+    expect(summary.versions).toEqual([]);
+    expect(summary.changedDuringWindow).toBe(false);
+  });
+});
+
 describe('describeFlakiness', () => {
   it('says what the test has been doing in one line', () => {
     const [summary] = summariseFlakiness([run('Login', 'Passed'), run('Login', 'Failed'), run('Login', 'Passed')]);
@@ -130,5 +213,16 @@ describe('describeFlakiness', () => {
     expect(describeFlakiness(summary)).toBe(
       'Login (chromium): 2 passed, 1 failed over 3 runs, changing verdict 2 times.',
     );
+  });
+
+  it('says how much of it the test’s own edits account for', () => {
+    const [summary] = summariseFlakiness([
+      { ...run('Login', 'Passed'), testVersion: 1 },
+      { ...run('Login', 'Failed'), testVersion: 1 },
+      { ...run('Login', 'Passed'), testVersion: 2 },
+    ]);
+
+    expect(describeFlakiness(summary)).toContain('edited in this window (versions 1, 2)');
+    expect(describeFlakiness(summary)).toContain('accounts for 1 of them');
   });
 });

@@ -122,6 +122,7 @@ beforeEach(async () => {
       testName: 'Checkout',
       browser: 'chromium',
       status: 'Failed',
+      testVersion: 7,
       reasonForFailure: 'Timed out waiting for #pay',
       startedAt: new Date(),
     },
@@ -217,6 +218,9 @@ describe('POST /api/issues', () => {
     const draft = createIssue.mock.calls[0][1];
     expect(draft.title).toContain('Checkout');
     expect(draft.body).toContain('Timed out waiting for #pay');
+    // Which version of the test failed, because that is the first thing a reader needs in
+    // order to tell a broken application from a changed test.
+    expect(draft.body).toContain('Test version: 7');
   });
 
   it('comments instead of filing the same failure twice', async () => {

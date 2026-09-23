@@ -36,6 +36,9 @@ const response = {
       failed: 4,
       errored: 1,
       flips: 7,
+      unexplainedFlips: 7,
+      versions: [4],
+      changedDuringWindow: false,
       flakiness: 1,
       lastStatus: 'failed' as const,
       firstSeen: '2026-09-01T00:00:00.000Z',
@@ -67,6 +70,23 @@ describe('FlakyTestsCard', () => {
     expect(screen.getByText(/7× in 8 runs/)).toBeInTheDocument();
     expect(screen.getByText(/4 \/ 4/)).toBeInTheDocument();
     expect(screen.getByText(/1 never ran/)).toBeInTheDocument();
+  });
+
+  it('counts only what the test’s own edits do not explain, and marks that it was edited', async () => {
+    // A test somebody rewrote on Monday is not a test that cannot make up its mind, and the
+    // list loses its meaning the moment it stops telling the two apart.
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...response,
+        items: [{ ...response.items[0], flips: 7, unexplainedFlips: 2, versions: [4, 5], changedDuringWindow: true }],
+      }),
+    });
+    renderCard();
+
+    expect(await screen.findByText('edited')).toBeInTheDocument();
+    expect(screen.getByText(/2× in 8 runs/)).toBeInTheDocument();
+    expect(screen.queryByText(/7× in 8 runs/)).not.toBeInTheDocument();
   });
 
   it('asks about one plan when the page is filtered to one', async () => {

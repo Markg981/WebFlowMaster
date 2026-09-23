@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, inArray, max } from 'drizzle-orm';
 import { testVersions } from '@shared/schema';
 import type { TenantTx } from './middleware/tenancy';
 import { describeChange, snapshotOf } from './test-versions';
@@ -26,6 +26,35 @@ export interface VersionableTest {
 export interface RecordedVersion {
   version: number;
   summary: string;
+}
+
+/**
+ * The version each of these tests is on right now, in one query.
+ *
+ * Read once before a run rather than per result: a plan with forty tests on three browsers
+ * writes a hundred and twenty rows, and asking the database for the same forty answers a
+ * hundred and twenty times is how a report becomes the slow part of a run.
+ *
+ * A test with no history at all is absent from the map rather than reported as version 0 —
+ * it can only be one saved before versions were recorded, and the result should say it does
+ * not know instead of inventing a number.
+ */
+export async function currentVersionsOf(tx: TenantTx, testIds: number[]): Promise<Map<number, number>> {
+  const versions = new Map<number, number>();
+  const wanted = Array.from(new Set(testIds));
+  if (wanted.length === 0) return versions;
+
+  const rows = await tx
+    .select({ testId: testVersions.testId, version: max(testVersions.version) })
+    .from(testVersions)
+    .where(inArray(testVersions.testId, wanted))
+    .groupBy(testVersions.testId);
+
+  for (const row of rows) {
+    const version = Number(row.version);
+    if (Number.isFinite(version) && version > 0) versions.set(row.testId, version);
+  }
+  return versions;
 }
 
 /**

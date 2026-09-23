@@ -19,6 +19,14 @@ export interface FlakyInputRow {
   startedAt: Date | string;
   testPlanExecutionId?: string | null;
   durationMs?: number | null;
+  /**
+   * Which version of the test produced this result, when the run recorded one.
+   *
+   * Null on everything written before results carried a version, and on API tests. Two nulls
+   * are read as the same unknown version: an unrecorded version cannot explain a change of
+   * verdict, so historical data is counted exactly the way it always was.
+   */
+  testVersion?: number | null;
 }
 
 export interface FlakySummary {
@@ -37,7 +45,25 @@ export interface FlakySummary {
    * has as many flips as it has runs, and is the one worth somebody's morning.
    */
   flips: number;
-  /** flips / (comparable runs - 1), so a long history and a short one can be ranked together. */
+  /**
+   * The flips that happened without the test changing underneath — the ones nobody can explain.
+   *
+   * A verdict that changed across an edit is explained by the edit: the test now does something
+   * else, and calling that flakiness teaches people to distrust a measure that is telling them
+   * the truth the rest of the time. Where no version was recorded on either side, the flip
+   * counts here, because an unrecorded version explains nothing.
+   */
+  unexplainedFlips: number;
+  /** Distinct versions this window saw, in order. One means the test never changed. */
+  versions: number[];
+  /** True when the test was edited inside the window, which is why some flips are explained. */
+  changedDuringWindow: boolean;
+  /**
+   * unexplainedFlips / (comparable runs - 1), so a long history and a short one rank together.
+   *
+   * Deliberately the unexplained ones: a test edited three times, changing verdict at each edit,
+   * is not the test somebody should spend their morning on.
+   */
   flakiness: number;
   lastStatus: 'passed' | 'failed';
   firstSeen: string;
@@ -93,34 +119,51 @@ export function summariseFlakiness(rows: FlakyInputRow[], options: FlakyOptions 
   const summaries: FlakySummary[] = [];
   for (const group of groups.values()) {
     const ordered = [...group].sort((left, right) => timeOf(left.startedAt) - timeOf(right.startedAt));
-    const verdicts: Array<'passed' | 'failed'> = [];
+    // Verdict and version travel together: which version produced a verdict is what decides
+    // whether the next change of verdict is a surprise or a consequence.
+    const judged: Array<{ verdict: 'passed' | 'failed'; version: number | null }> = [];
     let errored = 0;
 
     for (const row of ordered) {
       const verdict = verdictOf(row.status);
-      if (verdict) verdicts.push(verdict);
+      if (verdict) judged.push({ verdict, version: row.testVersion ?? null });
       else errored++;
     }
 
-    if (verdicts.length < minimumRuns) continue;
+    if (judged.length < minimumRuns) continue;
 
     let flips = 0;
-    for (let i = 1; i < verdicts.length; i++) {
-      if (verdicts[i] !== verdicts[i - 1]) flips++;
+    let unexplainedFlips = 0;
+    for (let i = 1; i < judged.length; i++) {
+      if (judged[i].verdict === judged[i - 1].verdict) continue;
+      flips++;
+      // Same version on both sides — including two unknowns, since an unrecorded version
+      // cannot account for anything.
+      if (judged[i].version === judged[i - 1].version) unexplainedFlips++;
     }
-    if (flips < minimumFlips) continue;
+    // Filtered on the unexplained ones: a test whose every change of verdict followed an edit
+    // has not disagreed with itself, and putting it on this list is how the list loses its
+    // meaning.
+    if (unexplainedFlips < minimumFlips) continue;
 
-    const passed = verdicts.filter((verdict) => verdict === 'passed').length;
+    const versions = Array.from(
+      new Set(judged.map((entry) => entry.version).filter((version): version is number => version !== null)),
+    ).sort((left, right) => left - right);
+
+    const passed = judged.filter((entry) => entry.verdict === 'passed').length;
     summaries.push({
       testName: ordered[0].testName,
       browser: ordered[0].browser ?? null,
-      runs: verdicts.length,
+      runs: judged.length,
       passed,
-      failed: verdicts.length - passed,
+      failed: judged.length - passed,
       errored,
       flips,
-      flakiness: Number((flips / (verdicts.length - 1)).toFixed(3)),
-      lastStatus: verdicts[verdicts.length - 1],
+      unexplainedFlips,
+      versions,
+      changedDuringWindow: versions.length > 1,
+      flakiness: Number((unexplainedFlips / (judged.length - 1)).toFixed(3)),
+      lastStatus: judged[judged.length - 1].verdict,
       firstSeen: new Date(timeOf(ordered[0].startedAt)).toISOString(),
       lastSeen: new Date(timeOf(ordered[ordered.length - 1].startedAt)).toISOString(),
     });
@@ -133,9 +176,13 @@ export function summariseFlakiness(rows: FlakyInputRow[], options: FlakyOptions 
 
 /** One line for a run's console or a notification: what this run's flakiest tests are doing. */
 export function describeFlakiness(summary: FlakySummary): string {
+  const edited = summary.changedDuringWindow
+    ? ` The test was edited in this window (versions ${summary.versions.join(', ')}), which accounts for ` +
+      `${summary.flips - summary.unexplainedFlips} of them.`
+    : '';
   return (
     `${summary.testName}${summary.browser ? ` (${summary.browser})` : ''}: ` +
     `${summary.passed} passed, ${summary.failed} failed over ${summary.runs} runs, ` +
-    `changing verdict ${summary.flips} time${summary.flips === 1 ? '' : 's'}.`
+    `changing verdict ${summary.flips} time${summary.flips === 1 ? '' : 's'}.${edited}`
   );
 }
