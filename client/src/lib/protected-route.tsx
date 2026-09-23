@@ -4,6 +4,8 @@ import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
 import AppShell from "@/components/layout/AppShell";
 
+const MfaEnrollmentRequired = React.lazy(() => import("@/components/security/MfaEnrollmentRequired"));
+
 export function ProtectedRoute({
   path,
   component: Component,
@@ -27,6 +29,17 @@ export function ProtectedRoute({
     return (
       <Route path={path}>
         <Redirect to="/auth" />
+      </Route>
+    );
+  }
+
+  // Not the shell: every page in it would be refused by the server until this is done.
+  if (user.mfaEnrollmentRequired) {
+    return (
+      <Route path={path}>
+        <React.Suspense fallback={<PageLoading />}>
+          <MfaEnrollmentRequired />
+        </React.Suspense>
       </Route>
     );
   }

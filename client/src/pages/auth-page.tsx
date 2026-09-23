@@ -11,10 +11,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, TestTube, CheckCircle2, ShieldCheck, Zap, BarChart3 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { motion, AnimatePresence } from "framer-motion";
+import MfaChallengeForm from "@/components/security/MfaChallengeForm";
 
 export default function AuthPage() {
   const { t } = useTranslation();
-  const { user, loginMutation, registerMutation } = useAuth();
+  const { user, loginMutation, registerMutation, mfaChallenge } = useAuth();
   const [, navigate] = useLocation();
   
   const [loginData, setLoginData] = useState({ username: "", password: "" });
@@ -97,6 +98,9 @@ export default function AuthPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {mfaChallenge ? (
+                  <MfaChallengeForm />
+                ) : (
                 <Tabs defaultValue="login" className="w-full">
                   <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted/50 p-1">
                     <TabsTrigger value="login" className="data-[state=active]:shadow-sm">
@@ -229,6 +233,7 @@ export default function AuthPage() {
                     </TabsContent>
                   </AnimatePresence>
                 </Tabs>
+                )}
               </CardContent>
             </Card>
           </motion.div>

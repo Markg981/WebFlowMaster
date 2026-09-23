@@ -46,6 +46,8 @@ import reportsRoutes from "./routes/reports.routes";
 import artifactsRoutes, { artifactUrl, stepsWithArtifactUrls } from "./routes/artifacts.routes";
 import apiKeysRoutes from "./routes/api-keys.routes";
 import serviceAccountsRoutes from "./routes/service-accounts.routes";
+import mfaRoutes from "./routes/mfa.routes";
+import { requireMfaEnrollment } from "./middleware/require-mfa-enrollment";
 import apiV1Routes from "./routes/api-v1.routes";
 import webhookManagementRoutes from "./routes/webhooks.routes";
 import stepGroupsRoutes from "./routes/step-groups.routes";
@@ -128,6 +130,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // withTenantTransaction requires and refuses to run without.
     app.use(tenancyMiddleware);
 
+    // A member whose organization requires a second factor, and who has none, reaches only
+    // enrolment until they set one up.
+    app.use(requireMfaEnrollment);
+
     // API Routers
     // First: /api/v1 answers everything under it in its own words, including unknown paths.
     app.use(apiV1Routes);
@@ -141,6 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(artifactsRoutes);
     app.use(apiKeysRoutes);
     app.use(serviceAccountsRoutes);
+    app.use(mfaRoutes);
     app.use(webhookManagementRoutes);
     app.use(stepGroupsRoutes);
     app.use(projectElementsRoutes);

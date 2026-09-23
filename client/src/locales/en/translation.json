@@ -93,7 +93,9 @@
       "runUsage": "Run usage",
       "runUsageDescription": "How many of this organization's runs are in progress or waiting, against its limits.",
       "auditLog": "Audit log",
-      "auditLogDescription": "Who changed what, when, from where, and whether through an API key."
+      "auditLogDescription": "Who changed what, when, from where, and whether through an API key.",
+      "security": "Security",
+      "securityDescription": "Your second factor at sign-in, and whether the organization requires one."
     },
     "apiKeys": {
       "openApi": "API reference (OpenAPI)",
@@ -1815,7 +1817,8 @@
       "run": "Runs",
       "environment": "Environments",
       "secret": "Secrets",
-      "system_settings": "System settings"
+      "system_settings": "System settings",
+      "mfa": "Two-factor"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -1852,7 +1855,60 @@
       "environment_deleted": "Environment deleted",
       "secret_set": "Secret set",
       "secret_deleted": "Secret deleted",
-      "system_settings_changed": "System setting changed"
+      "system_settings_changed": "System setting changed",
+      "mfa_enabled": "Two-factor turned on",
+      "mfa_disabled": "Two-factor turned off",
+      "mfa_recovery_codes_regenerated": "Recovery codes replaced",
+      "mfa_recovery_code_used": "Recovery code used",
+      "mfa_policy_changed": "Two-factor policy changed"
+    }
+  },
+  "security": {
+    "loading": "Loading…",
+    "cancel": "Cancel",
+    "mfa": {
+      "title": "Two-factor authentication",
+      "on": "on",
+      "description": "A code from an app on your phone, asked for after your password. A stolen password alone then gets nobody in.",
+      "start": "Set up two-factor authentication",
+      "scan": "Scan this with an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password…), then enter the code it shows.",
+      "qrAlt": "QR code for your authenticator app",
+      "manual": "Or type this key in by hand:",
+      "codeLabel": "Code from the app",
+      "confirm": "Turn on",
+      "enabledSince": "On since {{date}}.",
+      "codesLeft": "{{count}} recovery codes left.",
+      "regenerate": "New recovery codes",
+      "regenerateConfirm": "Replace the codes",
+      "disable": "Turn off",
+      "disableConfirm": "Turn off",
+      "password": "Password",
+      "codeOrRecovery": "Code from the app, or a recovery code",
+      "requiredNote": "Your organization requires it, so it cannot be turned off."
+    },
+    "recoveryCodes": {
+      "title": "Save your recovery codes",
+      "body": "Each one signs you in once if you lose your phone. This is the only time they are shown.",
+      "copy": "Copy",
+      "download": "Download",
+      "done": "I have saved them"
+    },
+    "policy": {
+      "label": "Require it of every member",
+      "hint": "Members without it are asked to set it up before they can do anything else. API keys are not affected.",
+      "needsOwn": "Turn it on for yourself first."
+    },
+    "required": {
+      "title": "Set up two-factor authentication",
+      "body": "Your organization requires a code from an authenticator app at every sign-in. Set it up to continue.",
+      "signOut": "Sign out"
+    },
+    "challenge": {
+      "label": "Code from your authenticator app",
+      "hint": "Lost your phone? Enter one of your recovery codes instead.",
+      "submit": "Verify",
+      "verifying": "Checking…",
+      "back": "Back to sign in"
     }
   }
 }

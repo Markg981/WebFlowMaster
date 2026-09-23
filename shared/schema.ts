@@ -1,4 +1,4 @@
-import { pgTable, text, integer, serial, timestamp, boolean, jsonb, index, unique } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, bigint, serial, timestamp, boolean, jsonb, index, unique } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations } from 'drizzle-orm';
@@ -15,6 +15,8 @@ export const organizations = pgTable("organizations", {
    */
   maxConcurrentRuns: integer("max_concurrent_runs"),
   maxQueuedRuns: integer("max_queued_runs"),
+  /** Every member signing in with a password must use a second factor. Keys are not affected. */
+  mfaRequired: boolean("mfa_required").notNull().default(false),
 });
 
 export const users = pgTable("users", {
@@ -32,6 +34,26 @@ export const users = pgTable("users", {
   /** A disabled service account keeps its row, so the runs it started still name it. */
   disabledAt: timestamp("disabled_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+/**
+ * A user's second factor. Its own table so no secret rides along on the user row, which goes
+ * everywhere (session, /api/user, req.user). Reached only through server/mfa.ts; app_user has
+ * no grant on it. See migrations/0030_mfa_totp.sql.
+ */
+export const userMfa = pgTable("user_mfa", {
+  userId: integer("user_id").primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  secretEncrypted: text("secret_encrypted"),
+  secretIv: text("secret_iv"),
+  secretAuthTag: text("secret_auth_tag"),
+  pendingSecretEncrypted: text("pending_secret_encrypted"),
+  pendingSecretIv: text("pending_secret_iv"),
+  pendingSecretAuthTag: text("pending_secret_auth_tag"),
+  enabledAt: timestamp("enabled_at"),
+  lastUsedStep: bigint("last_used_step", { mode: 'number' }),
+  /** SHA-256 hashes of the unused recovery codes. */
+  recoveryCodes: jsonb("recovery_codes").$type<string[]>().notNull().default([]),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const userSettings = pgTable("user_settings", {
@@ -927,6 +949,12 @@ export const AUDIT_ACTIONS = {
   SECRET_SET: 'secret.set',
   SECRET_DELETED: 'secret.deleted',
   SYSTEM_SETTINGS_CHANGED: 'system_settings.changed',
+  // The second factor. Never the secret or a code.
+  MFA_ENABLED: 'mfa.enabled',
+  MFA_DISABLED: 'mfa.disabled',
+  MFA_RECOVERY_CODES_REGENERATED: 'mfa.recovery_codes_regenerated',
+  MFA_RECOVERY_CODE_USED: 'mfa.recovery_code_used',
+  MFA_POLICY_CHANGED: 'mfa.policy_changed',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

@@ -93,7 +93,9 @@
       "runUsage": "Utilizzo dei run",
       "runUsageDescription": "Quanti run di questa organizzazione sono in corso o in attesa, rispetto ai suoi limiti.",
       "auditLog": "Registro di audit",
-      "auditLogDescription": "Chi ha cambiato cosa, quando, da dove, e se tramite una chiave API."
+      "auditLogDescription": "Chi ha cambiato cosa, quando, da dove, e se tramite una chiave API.",
+      "security": "Sicurezza",
+      "securityDescription": "Il secondo fattore all’accesso, e se l’organizzazione lo richiede."
     },
     "apiKeys": {
       "openApi": "Riferimento API (OpenAPI)",
@@ -1940,7 +1942,8 @@
       "run": "Run",
       "environment": "Ambienti",
       "secret": "Segreti",
-      "system_settings": "Impostazioni di sistema"
+      "system_settings": "Impostazioni di sistema",
+      "mfa": "Due fattori"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
@@ -1977,7 +1980,60 @@
       "environment_deleted": "Ambiente eliminato",
       "secret_set": "Segreto impostato",
       "secret_deleted": "Segreto eliminato",
-      "system_settings_changed": "Impostazione di sistema modificata"
+      "system_settings_changed": "Impostazione di sistema modificata",
+      "mfa_enabled": "Due fattori attivata",
+      "mfa_disabled": "Due fattori disattivata",
+      "mfa_recovery_codes_regenerated": "Codici di recupero sostituiti",
+      "mfa_recovery_code_used": "Codice di recupero usato",
+      "mfa_policy_changed": "Criterio due fattori cambiato"
+    }
+  },
+  "security": {
+    "loading": "Caricamento…",
+    "cancel": "Annulla",
+    "mfa": {
+      "title": "Autenticazione a due fattori",
+      "on": "attiva",
+      "description": "Un codice da un’app sul telefono, chiesto dopo la password. Così una password rubata da sola non basta per entrare.",
+      "start": "Configura l’autenticazione a due fattori",
+      "scan": "Inquadralo con un’app di autenticazione (Google Authenticator, Microsoft Authenticator, 1Password…), poi inserisci il codice che mostra.",
+      "qrAlt": "Codice QR per la tua app di autenticazione",
+      "manual": "Oppure inserisci questa chiave a mano:",
+      "codeLabel": "Codice dall’app",
+      "confirm": "Attiva",
+      "enabledSince": "Attiva dal {{date}}.",
+      "codesLeft": "Restano {{count}} codici di recupero.",
+      "regenerate": "Nuovi codici di recupero",
+      "regenerateConfirm": "Sostituisci i codici",
+      "disable": "Disattiva",
+      "disableConfirm": "Disattiva",
+      "password": "Password",
+      "codeOrRecovery": "Codice dall’app, o un codice di recupero",
+      "requiredNote": "La tua organizzazione la richiede, quindi non si può disattivare."
+    },
+    "recoveryCodes": {
+      "title": "Salva i codici di recupero",
+      "body": "Ognuno ti fa accedere una volta se perdi il telefono. È l’unica volta che vengono mostrati.",
+      "copy": "Copia",
+      "download": "Scarica",
+      "done": "Li ho salvati"
+    },
+    "policy": {
+      "label": "Richiedila a tutti i membri",
+      "hint": "Chi non l’ha configurata deve farlo prima di poter fare altro. Le chiavi API non sono interessate.",
+      "needsOwn": "Prima attivala per te."
+    },
+    "required": {
+      "title": "Configura l’autenticazione a due fattori",
+      "body": "La tua organizzazione richiede un codice da un’app di autenticazione a ogni accesso. Configurala per continuare.",
+      "signOut": "Esci"
+    },
+    "challenge": {
+      "label": "Codice dalla tua app di autenticazione",
+      "hint": "Hai perso il telefono? Inserisci invece uno dei codici di recupero.",
+      "submit": "Verifica",
+      "verifying": "Verifica…",
+      "back": "Torna all’accesso"
     }
   }
 }

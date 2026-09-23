@@ -33,6 +33,7 @@ import {
   Bug,
   SlidersHorizontal,
   ScrollText,
+  ShieldCheck,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -51,6 +52,7 @@ import ApiKeysCard from "@/components/settings/ApiKeysCard";
 import ServiceAccountsCard from "@/components/settings/ServiceAccountsCard";
 import RunUsageCard from "@/components/settings/RunUsageCard";
 import AuditLogCard from "@/components/settings/AuditLogCard";
+import SecurityCard from "@/components/settings/SecurityCard";
 import ElementRepositoryCard from "@/components/settings/ElementRepositoryCard";
 import IssueTrackersCard from "@/components/settings/IssueTrackersCard";
 
@@ -552,6 +554,16 @@ export default function SettingsPage() {
           {user?.role === 'owner' && <ServiceAccountsCard />}
         </>
       ),
+    },
+    {
+      id: 'security',
+      label: t('settings.sections.security', 'Security'),
+      description: t(
+        'settings.sections.securityDescription',
+        'Your second factor at sign-in, and whether the organization requires one.',
+      ),
+      icon: ShieldCheck,
+      content: <SecurityCard isOwner={user?.role === 'owner'} />,
     },
     {
       id: 'runUsage',

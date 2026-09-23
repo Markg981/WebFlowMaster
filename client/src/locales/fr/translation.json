@@ -93,7 +93,9 @@
       "runUsage": "Utilisation des exécutions",
       "runUsageDescription": "Combien d'exécutions de cette organisation sont en cours ou en attente, par rapport à ses limites.",
       "auditLog": "Journal d’audit",
-      "auditLogDescription": "Qui a modifié quoi, quand, d’où, et si c’était via une clé API."
+      "auditLogDescription": "Qui a modifié quoi, quand, d’où, et si c’était via une clé API.",
+      "security": "Sécurité",
+      "securityDescription": "Votre second facteur à la connexion, et si l’organisation l’exige."
     },
     "apiKeys": {
       "openApi": "Référence de l'API (OpenAPI)",
@@ -1821,7 +1823,8 @@
       "run": "Exécutions",
       "environment": "Environnements",
       "secret": "Secrets",
-      "system_settings": "Paramètres système"
+      "system_settings": "Paramètres système",
+      "mfa": "Double authentification"
     },
     "actions": {
       "member_role_changed": "Rôle du membre modifié",
@@ -1858,7 +1861,60 @@
       "environment_deleted": "Environnement supprimé",
       "secret_set": "Secret défini",
       "secret_deleted": "Secret supprimé",
-      "system_settings_changed": "Paramètre système modifié"
+      "system_settings_changed": "Paramètre système modifié",
+      "mfa_enabled": "Double authentification activée",
+      "mfa_disabled": "Double authentification désactivée",
+      "mfa_recovery_codes_regenerated": "Codes de récupération remplacés",
+      "mfa_recovery_code_used": "Code de récupération utilisé",
+      "mfa_policy_changed": "Règle de double authentification modifiée"
+    }
+  },
+  "security": {
+    "loading": "Chargement…",
+    "cancel": "Annuler",
+    "mfa": {
+      "title": "Authentification à deux facteurs",
+      "on": "activée",
+      "description": "Un code d’une application sur votre téléphone, demandé après le mot de passe. Un mot de passe volé ne suffit alors plus.",
+      "start": "Configurer l’authentification à deux facteurs",
+      "scan": "Scannez-le avec une application d’authentification (Google Authenticator, Microsoft Authenticator, 1Password…), puis saisissez le code affiché.",
+      "qrAlt": "Code QR pour votre application d’authentification",
+      "manual": "Ou saisissez cette clé à la main :",
+      "codeLabel": "Code de l’application",
+      "confirm": "Activer",
+      "enabledSince": "Activée depuis le {{date}}.",
+      "codesLeft": "Il reste {{count}} codes de récupération.",
+      "regenerate": "Nouveaux codes de récupération",
+      "regenerateConfirm": "Remplacer les codes",
+      "disable": "Désactiver",
+      "disableConfirm": "Désactiver",
+      "password": "Mot de passe",
+      "codeOrRecovery": "Code de l’application, ou un code de récupération",
+      "requiredNote": "Votre organisation l’exige, elle ne peut donc pas être désactivée."
+    },
+    "recoveryCodes": {
+      "title": "Enregistrez vos codes de récupération",
+      "body": "Chacun vous connecte une fois si vous perdez votre téléphone. C’est la seule fois qu’ils sont affichés.",
+      "copy": "Copier",
+      "download": "Télécharger",
+      "done": "Je les ai enregistrés"
+    },
+    "policy": {
+      "label": "L’exiger de tous les membres",
+      "hint": "Les membres qui ne l’ont pas doivent la configurer avant toute autre chose. Les clés API ne sont pas concernées.",
+      "needsOwn": "Activez-la d’abord pour vous-même."
+    },
+    "required": {
+      "title": "Configurez l’authentification à deux facteurs",
+      "body": "Votre organisation exige un code d’application d’authentification à chaque connexion. Configurez-la pour continuer.",
+      "signOut": "Se déconnecter"
+    },
+    "challenge": {
+      "label": "Code de votre application d’authentification",
+      "hint": "Téléphone perdu ? Saisissez plutôt l’un de vos codes de récupération.",
+      "submit": "Vérifier",
+      "verifying": "Vérification…",
+      "back": "Retour à la connexion"
     }
   }
 }
