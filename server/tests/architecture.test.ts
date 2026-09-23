@@ -110,6 +110,13 @@ describe('route modules cannot query outside the tenant context', () => {
         'the context the rest of the job runs in. Everything after it is under ' +
         'withTenantTransaction. Runs are created by execution-orchestrator.ts.',
     },
+    'run-recovery.ts': {
+      max: 1,
+      why:
+        'The recovery sweep looks across every organization for runs whose worker went quiet: it ' +
+        'is not a request and has no tenant. It only finds them; each is ended under its own ' +
+        'organization through the state machine.',
+    },
     'execution-orchestrator.ts': {
       max: 1,
       why:

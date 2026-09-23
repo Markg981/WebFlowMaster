@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   scheduleFormSchema,
   type ScheduleFormValues,
-  ENVIRONMENT_OPTIONS,
   BROWSER_OPTIONS,
   FREQUENCY_OPTIONS,
   RETRY_ON_FAILURE_OPTIONS,
@@ -27,6 +26,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import ScheduleEnvironmentSelect from './ScheduleEnvironmentSelect';
 
 interface ScheduleWizardProps {
   isOpen: boolean;
@@ -56,7 +56,9 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
     return {
       testPlanId: initialTestPlanId || '',
       scheduleName: '',
-      environment: ENVIRONMENT_OPTIONS[0].value,
+      // None until one is chosen: a default that names an environment the organization may not
+      // have is how every schedule came to say "QA" and load nothing.
+      environment: '',
       browsers: [BROWSER_OPTIONS[0].value],
       frequency: FREQUENCY_OPTIONS[0].value,
       nextRunAt: new Date(),
@@ -187,12 +189,7 @@ const ScheduleWizard: React.FC<ScheduleWizardProps> = ({ isOpen, onClose, testPl
                   name="environment"
                   control={form.control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value || undefined}>
-                      <SelectTrigger id="environment"><SelectValue placeholder={t('scheduleWizard.steps.step1.selectEnvironmentPlaceholder')} /></SelectTrigger>
-                      <SelectContent>
-                        {ENVIRONMENT_OPTIONS.map(env => <SelectItem key={env.value} value={env.value}>{env.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <ScheduleEnvironmentSelect value={field.value} onChange={field.onChange} />
                   )}
                 />
               </div>

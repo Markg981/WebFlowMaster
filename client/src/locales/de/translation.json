@@ -1698,5 +1698,45 @@
       "secretSaved": "Geheimnis verschlüsselt gespeichert",
       "secretDeleted": "Geheimnis gelöscht"
     }
+  },
+  "testReportPage": {
+    "cancel": {
+      "button": "Lauf abbrechen",
+      "stopping": "Wird gestoppt…",
+      "confirmTitle": "Diesen Lauf abbrechen?",
+      "confirmBody": "Noch nicht gestartete Tests werden nicht ausgeführt und als übersprungen gemeldet. Ein laufender Test stoppt beim nächsten Schritt. Dies kann nicht rückgängig gemacht werden.",
+      "keep": "Weiterlaufen lassen",
+      "confirm": "Lauf abbrechen",
+      "cancelled": "Lauf abgebrochen",
+      "requested": "Lauf wird gestoppt",
+      "requestedDetail": "Der laufende Test beendet seinen aktuellen Schritt; kein weiterer Test startet.",
+      "failed": "Der Lauf konnte nicht abgebrochen werden."
+    },
+    "flaky": {
+      "label": "Instabil · bestanden im Versuch {{attempts}}",
+      "title": "Erst nach erneuter Ausführung bestanden: dieser Test ist instabil.",
+      "count": "{{count}} erst in einem späteren Versuch bestanden"
+    },
+    "attempts": {
+      "label": "{{attempts}} Versuche",
+      "title": "Nach einem Fehlschlag erneut ausgeführt; dies ist der letzte Versuch."
+    },
+    "attempt": {
+      "label": "Versuch",
+      "value": "{{attempt}} von {{max}}",
+      "first": "erster Versuch",
+      "next": "Versuch {{attempt}} ({{status}})"
+    },
+    "ending": {
+      "cancelled": "Abgebrochen",
+      "timedOut": "Zeitlimit überschritten",
+      "error": "Nicht abgeschlossen"
+    }
+  },
+  "scheduleEnvironment": {
+    "label": "Umgebung",
+    "placeholder": "Umgebung wählen",
+    "none": "Keine Umgebung (nur Standardwerte)",
+    "unknown": "{{name}} — keine Umgebung dieser Organisation; es wird nichts geladen"
   }
 }

@@ -1698,5 +1698,45 @@
       "secretSaved": "Secret enregistré, chiffré",
       "secretDeleted": "Secret supprimé"
     }
+  },
+  "testReportPage": {
+    "cancel": {
+      "button": "Annuler l’exécution",
+      "stopping": "Arrêt en cours…",
+      "confirmTitle": "Annuler cette exécution ?",
+      "confirmBody": "Les tests non démarrés ne seront pas exécutés et seront signalés comme ignorés. Un test en cours s’arrête à l’étape suivante. Cette action est irréversible.",
+      "keep": "Continuer",
+      "confirm": "Annuler l’exécution",
+      "cancelled": "Exécution annulée",
+      "requested": "Arrêt de l’exécution",
+      "requestedDetail": "Le test en cours termine son étape actuelle ; aucun autre test ne démarre.",
+      "failed": "L’exécution n’a pas pu être annulée."
+    },
+    "flaky": {
+      "label": "Instable · réussi à la tentative {{attempts}}",
+      "title": "Réussi uniquement après une nouvelle exécution : ce test est instable.",
+      "count": "{{count}} réussis seulement lors d’une tentative ultérieure"
+    },
+    "attempts": {
+      "label": "{{attempts}} tentatives",
+      "title": "Relancé après un échec ; ceci est la dernière tentative."
+    },
+    "attempt": {
+      "label": "Tentative",
+      "value": "{{attempt}} sur {{max}}",
+      "first": "première tentative",
+      "next": "tentative {{attempt}} ({{status}})"
+    },
+    "ending": {
+      "cancelled": "Annulée",
+      "timedOut": "Délai dépassé",
+      "error": "Non terminée"
+    }
+  },
+  "scheduleEnvironment": {
+    "label": "Environnement",
+    "placeholder": "Choisir un environnement",
+    "none": "Aucun environnement (valeurs par défaut)",
+    "unknown": "{{name}} — pas un environnement de cette organisation ; rien n’est chargé"
   }
 }

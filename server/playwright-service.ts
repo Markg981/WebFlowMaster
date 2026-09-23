@@ -171,6 +171,8 @@ export interface ExecuteSequenceOptions {
    * for a run no plan drives, which keeps the user's own timeout and a screenshot of every step.
    */
   runtime?: StepRuntime;
+  /** Aborted when the run is cancelled or out of time: no further step starts. */
+  signal?: AbortSignal;
 }
 
 // Interface for the ad-hoc sequence payload
@@ -1795,6 +1797,21 @@ export class PlaywrightService {
         resolvedLogger.debug({ message: `PS:executeTestSequence - Starting execution of ${sequenceToRun.length} steps`, testName: test.name });
 
         for (const [i, step] of sequenceToRun.entries()) {
+          if (options?.signal?.aborted) {
+            // The run is stopping. The step that was going has finished; this one does not start,
+            // and the test says why it is shorter than it should be.
+            const reason = String((options.signal.reason as Error | undefined)?.message ?? 'The run was stopped.')
+              .replace(/^Not run: /, '');
+            stepResults.push({
+              name: step.action?.name || 'Unnamed Action',
+              type: step.action?.id || 'unknown',
+              status: 'failed',
+              error: `Stopped: ${reason}`,
+              details: `Stopped before this step: ${reason}`,
+            });
+            overallSuccess = false;
+            break;
+          }
           let stepStatus: 'passed' | 'failed' = 'passed';
           let stepError: string | undefined;
           let stepScreenshot: string | undefined;

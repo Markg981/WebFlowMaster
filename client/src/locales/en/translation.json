@@ -1692,5 +1692,45 @@
       "secretSaved": "Secret saved, encrypted",
       "secretDeleted": "Secret deleted"
     }
+  },
+  "testReportPage": {
+    "cancel": {
+      "button": "Cancel run",
+      "stopping": "Stopping…",
+      "confirmTitle": "Cancel this run?",
+      "confirmBody": "Tests that have not started will not run and are reported as skipped. A test in progress stops at its next step. This cannot be undone.",
+      "keep": "Keep running",
+      "confirm": "Cancel run",
+      "cancelled": "Run cancelled",
+      "requested": "Stopping the run",
+      "requestedDetail": "The test in progress finishes its current step; no further test starts.",
+      "failed": "The run could not be cancelled."
+    },
+    "flaky": {
+      "label": "Flaky · passed on attempt {{attempts}}",
+      "title": "Passed only after being run again: this test is flaky.",
+      "count": "{{count}} passed only on a later attempt"
+    },
+    "attempts": {
+      "label": "{{attempts}} attempts",
+      "title": "Run again after failing; this is the last attempt."
+    },
+    "attempt": {
+      "label": "Attempt",
+      "value": "{{attempt}} of {{max}}",
+      "first": "first attempt",
+      "next": "attempt {{attempt}} ({{status}})"
+    },
+    "ending": {
+      "cancelled": "Cancelled",
+      "timedOut": "Timed out",
+      "error": "Did not finish"
+    }
+  },
+  "scheduleEnvironment": {
+    "label": "Environment",
+    "placeholder": "Choose an environment",
+    "none": "No environment (defaults only)",
+    "unknown": "{{name}} — not an environment of this organization; nothing is loaded"
   }
 }

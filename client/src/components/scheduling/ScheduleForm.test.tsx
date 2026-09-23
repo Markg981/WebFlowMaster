@@ -5,6 +5,18 @@ import ScheduleForm from './ScheduleForm';
 import { FREQUENCY_OPTIONS, BROWSER_OPTIONS } from '@/lib/schemas/scheduleFormSchema';
 import { Toaster } from '@/components/ui/toaster'; // Needed for useToast
 
+// The organization's environments, as the environment picker lists them.
+vi.mock('@/hooks/use-environments', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/hooks/use-environments')>();
+  return {
+    ...actual,
+    useEnvironments: () => ({
+      data: [{ id: 4, name: 'QA', description: null, loginStateCapturedAt: null }],
+      isLoading: false,
+    }),
+  };
+});
+
 // Mock fetchTestPlansAPI
 vi.mock('@/lib/api/test-plans', () => ({
   fetchTestPlansAPI: vi.fn(() => Promise.resolve([
@@ -188,7 +200,9 @@ describe('ScheduleForm', () => {
     // For Shadcn Select, this is tricky. We can check the displayed value if SelectValue is used correctly.
     // await screen.findByDisplayValue('Test Plan 2'); // This might not work directly with Shadcn select
 
-    expect(screen.getByLabelText(/Environment/i)).toHaveValue('QA');
+    // Saved as a name before environments were chosen from a list; shown as the environment of
+    // that name, which is what the scheduler loads.
+    expect(document.getElementById('environment')).toHaveTextContent('QA');
 
     // Check if Firefox browser checkbox is checked
     expect(screen.getByLabelText('Firefox')).toBeChecked();

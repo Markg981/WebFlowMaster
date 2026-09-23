@@ -44,15 +44,8 @@ export const BROWSER_OPTIONS = [
 
 export const BROWSER_VALUES = BROWSER_OPTIONS.map(o => o.value);
 
-// For environment, if you want a predefined list for the form, you can define it here too:
-export const ENVIRONMENT_OPTIONS = [
-    { value: 'QA', label: 'QA' },
-    { value: 'Staging', label: 'Staging' },
-    { value: 'Production', label: 'Production' },
-    { value: 'Development', label: 'Development' },
-] as const;
-
-export const ENVIRONMENT_VALUES = ENVIRONMENT_OPTIONS.map(o => o.value);
+// Environments are the organization's own, listed by ScheduleEnvironmentSelect. A fixed list of
+// names here is what made every schedule say "QA" and load no environment at all.
 
 
 /**
@@ -97,7 +90,8 @@ export const scheduleFormSchema = z.object({
   // the tester is, and making them convert it twice a year is how a nightly job ends up
   // running an hour off for half the year.
   timezone: z.string().min(1, 'Timezone is required').default(browserTimezone()),
-  environment: z.string().optional(), // Free text, or use z.enum(ENVIRONMENT_OPTIONS.map(e => e.value)) if you want a select
+  // An environment's id, as ScheduleEnvironmentSelect saves it; a name on schedules from before.
+  environment: z.string().optional(),
   browsers: z.array(z.enum(BROWSER_OPTIONS.map(b => b.value) as [string, ...string[]]))
               .min(1, 'At least one browser must be selected').optional().nullable(),
   isActive: z.boolean().default(true),

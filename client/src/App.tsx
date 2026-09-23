@@ -9,18 +9,27 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth"; // useAuth already imp
 import { DragDropProvider } from "@/components/drag-drop-provider";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
-import DashboardPage from "@/pages/dashboard-page-new"; // This is the "Create Test" page
-import DashboardOverviewPage from "@/pages/DashboardOverviewPage";
-import SettingsPage from "@/pages/settings-page";
-import ApiTesterPage from "@/pages/ApiTesterPage";
-import TestSuitesPage from './pages/TestSuitesPage'; // Using relative path for diagnosis
-import TestPlanExecutionPage from './pages/TestPlanExecutionPage'; // Using relative path for diagnosis
-import SchedulingPage from './pages/SchedulingPage'; // Added SchedulingPage
-import TestReportPage from './pages/TestReportPage'; 
-import GeneralReportsPage from './pages/GeneralReportsPage'; 
-import TestManager from './pages/TestManager';
-import TestLibraryPage from './pages/TestLibraryPage'; 
 import { ProtectedRoute } from "./lib/protected-route";
+
+/**
+ * Every page behind the login is loaded when it is first opened, not with the application.
+ *
+ * All of them were in one 1.9 MB bundle — the Monaco editor, the flow canvas, the chart library
+ * — so the login page and the dashboard waited for the test builder's code editor to download
+ * before they could draw anything. The login and 404 pages stay in the first bundle: they are
+ * what someone who is not signed in sees first.
+ */
+const DashboardPage = React.lazy(() => import("@/pages/dashboard-page-new")); // The "Create Test" page
+const DashboardOverviewPage = React.lazy(() => import("@/pages/DashboardOverviewPage"));
+const SettingsPage = React.lazy(() => import("@/pages/settings-page"));
+const ApiTesterPage = React.lazy(() => import("@/pages/ApiTesterPage"));
+const TestSuitesPage = React.lazy(() => import("./pages/TestSuitesPage"));
+const TestPlanExecutionPage = React.lazy(() => import("./pages/TestPlanExecutionPage"));
+const SchedulingPage = React.lazy(() => import("./pages/SchedulingPage"));
+const TestReportPage = React.lazy(() => import("./pages/TestReportPage"));
+const GeneralReportsPage = React.lazy(() => import("./pages/GeneralReportsPage"));
+const TestManager = React.lazy(() => import("./pages/TestManager"));
+const TestLibraryPage = React.lazy(() => import("./pages/TestLibraryPage"));
 import { ObservabilityErrorBoundary } from "@/observability/error-boundary";
 import { installObservability } from "@/observability/install";
 import { setCurrentRoute } from "@/observability/logger";

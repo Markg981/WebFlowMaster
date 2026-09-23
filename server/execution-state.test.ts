@@ -5,7 +5,13 @@ import { isExecutionInFlight } from '@shared/execution-status';
 import { privilegedDb } from './db';
 import { runWithTenant } from './middleware/tenancy';
 import { createTestOrganization, createTestUser } from './tests/factories';
-import { canTransitionExecution, isTerminalExecutionStatus, transitionExecution } from './execution-state';
+import {
+  canTransitionExecution,
+  isTerminalExecutionStatus,
+  recordHeartbeat,
+  requestCancellation,
+  transitionExecution,
+} from './execution-state';
 
 /**
  * Which way a run may move.
@@ -176,5 +182,64 @@ describe('isExecutionInFlight', () => {
     // has not migrated yet, still uses it, and calling it finished stops a pipeline too early.
     expect(['queued', 'running', 'cancelling', 'pending'].every(isExecutionInFlight)).toBe(true);
     expect(['completed', 'failed', 'error', 'cancelled', 'timed_out', undefined].some(isExecutionInFlight)).toBe(false);
+  });
+});
+
+describe('requestCancellation', () => {
+  it('cancels a run still in the queue on the spot, with who asked', async () => {
+    const id = await queuedRun();
+
+    const result = await inTenant(() => requestCancellation(id, 'Cancelled by ada.'));
+
+    expect(result.outcome).toBe('cancelled');
+    const [row] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, id));
+    expect(row).toMatchObject({ status: 'cancelled', failureMessage: 'Cancelled by ada.' });
+    expect(row.cancelRequestedAt).not.toBeNull();
+    expect(row.completedAt).not.toBeNull();
+    // And no worker can take it afterwards.
+    expect(await inTenant(() => transitionExecution(id, 'running'))).toBeNull();
+  });
+
+  it('asks a running run to stop, and leaves ending it to its worker', async () => {
+    const id = await queuedRun();
+    await inTenant(() => transitionExecution(id, 'running'));
+
+    const result = await inTenant(() => requestCancellation(id, 'Cancelled by ada.'));
+
+    expect(result.outcome).toBe('cancelling');
+    const [row] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, id));
+    expect(row.status).toBe('cancelling');
+    expect(row.completedAt).toBeNull();
+    // Asking again is harmless.
+    expect((await inTenant(() => requestCancellation(id, 'again'))).outcome).toBe('cancelling');
+  });
+
+  it("says a finished run has already ended, and does not find another organization's", async () => {
+    const id = await queuedRun();
+    await inTenant(() => transitionExecution(id, 'running'));
+    await inTenant(() => transitionExecution(id, 'completed'));
+
+    expect(await inTenant(() => requestCancellation(id, 'late'))).toEqual({ outcome: 'already_ended', status: 'completed' });
+
+    const other = await queuedRun();
+    expect(await runWithTenant(otherOrganizationId, () => requestCancellation(other, 'not mine'))).toEqual({ outcome: 'not_found' });
+    const [untouched] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, other));
+    expect(untouched.status).toBe('queued');
+  });
+});
+
+describe('recordHeartbeat', () => {
+  it('stamps a live run and says what it is now; says nothing for a run that has not started or has ended', async () => {
+    const id = await queuedRun();
+    expect(await inTenant(() => recordHeartbeat(id))).toBeNull();
+
+    await inTenant(() => transitionExecution(id, 'running'));
+    await privilegedDb.update(testPlanExecutions).set({ heartbeatAt: new Date(0) }).where(eq(testPlanExecutions.id, id));
+    expect(await inTenant(() => recordHeartbeat(id))).toBe('running');
+    const [row] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, id));
+    expect(Date.now() - row.heartbeatAt!.getTime()).toBeLessThan(5_000);
+
+    await inTenant(() => requestCancellation(id, 'stop'));
+    expect(await inTenant(() => recordHeartbeat(id))).toBe('cancelling');
   });
 });

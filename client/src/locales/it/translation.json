@@ -1817,5 +1817,45 @@
       "secretSaved": "Segreto salvato, cifrato",
       "secretDeleted": "Segreto eliminato"
     }
+  },
+  "testReportPage": {
+    "cancel": {
+      "button": "Annulla run",
+      "stopping": "Arresto in corso…",
+      "confirmTitle": "Annullare questo run?",
+      "confirmBody": "I test non ancora partiti non verranno eseguiti e risulteranno saltati. Un test in corso si ferma allo step successivo. L’operazione non si può annullare.",
+      "keep": "Continua il run",
+      "confirm": "Annulla run",
+      "cancelled": "Run annullato",
+      "requested": "Arresto del run",
+      "requestedDetail": "Il test in corso completa lo step attuale; nessun altro test viene avviato.",
+      "failed": "Non è stato possibile annullare il run."
+    },
+    "flaky": {
+      "label": "Instabile · passato al tentativo {{attempts}}",
+      "title": "Passato solo dopo essere stato rieseguito: questo test è instabile.",
+      "count": "{{count}} passati solo a un tentativo successivo"
+    },
+    "attempts": {
+      "label": "{{attempts}} tentativi",
+      "title": "Rieseguito dopo un fallimento; questo è l’ultimo tentativo."
+    },
+    "attempt": {
+      "label": "Tentativo",
+      "value": "{{attempt}} di {{max}}",
+      "first": "primo tentativo",
+      "next": "tentativo {{attempt}} ({{status}})"
+    },
+    "ending": {
+      "cancelled": "Annullato",
+      "timedOut": "Tempo scaduto",
+      "error": "Non completato"
+    }
+  },
+  "scheduleEnvironment": {
+    "label": "Ambiente",
+    "placeholder": "Scegli un ambiente",
+    "none": "Nessun ambiente (solo valori predefiniti)",
+    "unknown": "{{name}} — non è un ambiente di questa organizzazione; non viene caricato nulla"
   }
 }

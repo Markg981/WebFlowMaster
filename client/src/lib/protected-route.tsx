@@ -34,8 +34,19 @@ export function ProtectedRoute({
   return (
     <Route path={path}>
       <AppShell>
-        <Component />
+        {/* Pages load on first use (see App.tsx); the shell stays up while one does. */}
+        <React.Suspense fallback={<PageLoading />}>
+          <Component />
+        </React.Suspense>
       </AppShell>
     </Route>
+  );
+}
+
+function PageLoading() {
+  return (
+    <div className="flex items-center justify-center py-24" role="status" aria-label="Loading page">
+      <Loader2 className="h-8 w-8 animate-spin text-border" />
+    </div>
   );
 }

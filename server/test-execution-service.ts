@@ -38,6 +38,7 @@ import { fileFailure, loadTracker, markResolved } from './issue-store';
 import { currentVersionsOf } from './test-version-store';
 import { transitionExecution } from './execution-state';
 import { artifactStore } from './artifact-store';
+import { watchRun } from './run-watch';
 import {
   describePolicies,
   runPoliciesFrom,
@@ -128,6 +129,8 @@ export interface RunTestOptions {
   runtime?: StepRuntime;
   /** What a failed precondition means for this test. Absent: it is blocked, as it always was. */
   onPreconditionFailure?: PreconditionFailurePolicy;
+  /** Aborted when the run is cancelled or out of time; the test stops at its next step. */
+  signal?: AbortSignal;
 }
 
 export async function runTest(
@@ -226,6 +229,7 @@ export async function runTest(
             ? { ...options.evidence, artifactDir: screenshotBaseDir }
             : undefined,
           runtime: options?.runtime,
+          signal: options?.signal,
         },
       );
       const durationMs = Date.now() - startTime;
@@ -493,6 +497,28 @@ async function runTestPlanJobInTenant(
     return { skipped: true, reason: `Execution is ${current?.status ?? 'missing'}, not queued.`, testPlanRunId };
   }
 
+  // From here on the run is this worker's: it keeps a heartbeat on it, hears a cancellation, and
+  // stops it at its time limit — see server/run-watch.ts. Stopped however the run ends.
+  const watch = watchRun(testPlanRunId, {
+    startedAt: overallStartTime,
+    onStop: (_cause, reason) => {
+      const entry: ExecutionLogEntry = {
+        level: 'warn',
+        source: 'system',
+        message: `Stopping the run: ${reason.replace(/^Not run: /, '')}`,
+        timestamp: new Date().toISOString(),
+      };
+      resolvedLogger.warn(entry);
+      wsEmitter.emitExecutionLog(testPlanRunId, entry);
+    },
+  });
+  try {
+    return await runTakenPlan();
+  } finally {
+    watch.stop();
+  }
+
+  async function runTakenPlan(): Promise<any> {
   const currentTestPlanRun: any = { startedAt: Math.floor(overallStartTime / 1000) };
 
   const baseResultsDir = path.join('./results', planId, testPlanRunId);
@@ -801,11 +827,13 @@ async function runTestPlanJobInTenant(
 
     const testName = testObjectDefinition?.name || `Unknown Test (ID: ${link.testId || link.apiTestId})`;
     const onBrowser = browserChoice ? ` on ${describeBrowser(browserChoice)}` : '';
-    if (stopReason) {
+    // A plan policy, a cancellation or the time limit: either way this test does not start.
+    const haltedBy = stopReason ?? watch.stopReason;
+    if (haltedBy) {
       reportStatus = 'Skipped';
-      failureReason = stopReason;
+      failureReason = haltedBy;
     }
-    if (!stopReason) wsEmitter.emitExecutionLog(testPlanRunId, {
+    if (!haltedBy) wsEmitter.emitExecutionLog(testPlanRunId, {
       level: 'info',
       source: 'system',
       message: `Starting test: ${testName} (${testTypeForRun})${onBrowser}`,
@@ -854,6 +882,7 @@ async function runTestPlanJobInTenant(
             evidence: runEvidence,
             runtime: policies.step,
             onPreconditionFailure: policies.onPreconditionFailure,
+            signal: watch.signal,
           },
         );
       let resultFromRunTest = await attemptOnce();
@@ -863,7 +892,9 @@ async function runTestPlanJobInTenant(
       // is visibly flaky rather than indistinguishable from one that passed first time.
       while (
         (resultFromRunTest.status === 'failed' || resultFromRunTest.status === 'error') &&
-        attempts <= policies.testReruns
+        attempts <= policies.testReruns &&
+        // A test cut short because the run is stopping is not a failure to try again.
+        !watch.stopReason
       ) {
         attempts += 1;
         wsEmitter.emitExecutionLog(testPlanRunId, {
@@ -1152,24 +1183,76 @@ async function runTestPlanJobInTenant(
   const overallExecutionDurationMs = overallCompletedAt - overallStartTime;
 
   try {
-    // Only a run that is still running can be given its verdict. If something else ended it in
-    // the meantime — a cancellation, a timeout — that ending stands, and this run's late result
-    // is not allowed to overwrite it.
-    const finished = await transitionExecution(testPlanRunId, finalOverallStatus, {
+    const aggregates = {
       results: JSON.stringify(legacyIndividualTestResultsForJsonBlob), // Keep the old JSON blob for now
       totalTests: calculatedTotalTests,
       passedTests: calculatedPassedTests,
       failedTests: calculatedFailedTests,
       skippedTests: calculatedSkippedTests,
       executionDurationMs: overallExecutionDurationMs,
-      ...(finalOverallStatus === 'error'
-        ? {
-            failureCode: 'run_incomplete',
-            failureMessage: 'Not every browser or test in the plan produced a result.',
-          }
-        : {}),
-    });
+    };
+
+    // How the run ends. A stop the watch saw decides it: a cancelled run is cancelled and a run
+    // past its limit timed out, whatever the tests that did run said. Otherwise the verdict —
+    // which only a run still running can be given, so an ending that arrived meanwhile stands.
+    let ending: 'verdict' | 'cancelled' | 'timed_out' =
+      watch.cause === 'cancelled' ? 'cancelled' : watch.cause === 'timed_out' ? 'timed_out' : 'verdict';
+    let finished: TestPlanExecution | null = null;
+    if (ending === 'timed_out') {
+      finished = await transitionExecution(testPlanRunId, 'timed_out', {
+        ...aggregates,
+        failureCode: 'run_timed_out',
+        failureMessage: watch.stopReason?.replace(/^Not run: /, '') ?? 'The run went past its time limit.',
+      });
+    } else if (ending === 'cancelled') {
+      finished = await transitionExecution(testPlanRunId, 'cancelled', aggregates);
+    } else {
+      finished = await transitionExecution(testPlanRunId, finalOverallStatus, {
+        ...aggregates,
+        ...(finalOverallStatus === 'error'
+          ? {
+              failureCode: 'run_incomplete',
+              failureMessage: 'Not every browser or test in the plan produced a result.',
+            }
+          : {}),
+      });
+    }
+    if (!finished && ending !== 'cancelled') {
+      // A cancellation asked for after the watch last looked: the run is `cancelling`, and it is
+      // this worker that finishes stopping it.
+      finished = await transitionExecution(testPlanRunId, 'cancelled', aggregates);
+      if (finished) ending = 'cancelled';
+    }
     const finalUpdateResult = finished ? [finished] : [];
+
+    if (finalUpdateResult.length > 0 && ending === 'cancelled') {
+      // Nobody is told and nothing is filed about a run somebody chose to stop.
+      resolvedLogger.info({ message: 'Test plan execution cancelled', planId, testPlanRunId, testsRun: calculatedTotalTests });
+      return finalUpdateResult[0];
+    }
+
+    if (finalUpdateResult.length > 0 && ending === 'timed_out') {
+      // Announced — a nightly run that never finished is exactly what somebody needs to hear
+      // about — but not filed: which tests would have failed is not known.
+      await notifyRunFinished({
+        plan: { notificationSettings: snapshot.notificationSettings },
+        execution: executionRecord[0],
+        summary: {
+          planId,
+          planName: snapshot.plan.name || planId,
+          executionId: testPlanRunId,
+          status: 'timed_out',
+          totalTests: calculatedTotalTests,
+          passedTests: calculatedPassedTests,
+          failedTests: calculatedFailedTests,
+          skippedTests: calculatedSkippedTests,
+          durationMs: overallExecutionDurationMs,
+          triggeredBy: executionRecord[0].triggeredBy ?? 'manual',
+          browsers: usablePasses.filter(Boolean).map((b) => (b as BrowserChoice).label),
+        },
+      });
+      return finalUpdateResult[0];
+    }
 
     if (finalUpdateResult.length > 0) {
       resolvedLogger.info({ message: `Test plan execution COMPLETED and DB updated`, planId, testPlanRunId, overallStatus: finalOverallStatus, testsRun: calculatedTotalTests });
@@ -1239,6 +1322,7 @@ async function runTestPlanJobInTenant(
       error: `DB error during final aggregate update: ${dbError.message}`
     } as any;
   }
+  } // runTakenPlan
 }
 
 /**
