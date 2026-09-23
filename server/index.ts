@@ -13,6 +13,7 @@ import { csrfOriginCheck } from './middleware/csrf';
 import { connection as redisConnection, connectSessionRedis, sessionRedis } from './redis';
 import { resolvePort } from './config';
 import { inspectSchemaState, describeSchemaState } from './schema-state';
+import { redactWebhookPath } from './webhook-tokens';
 
 const app = express();
 app.use(express.json());
@@ -54,7 +55,8 @@ app.use(express.urlencoded({ extended: false }));
   // ─── Structured request logging middleware ──────────────────────────────
   app.use((req, res, next) => {
     const start = Date.now();
-    const requestPath = req.path;
+    // Masked: a webhook's token can be part of its path, and this line is written for every call.
+    const requestPath = redactWebhookPath(req.path);
 
     res.on("finish", () => {
       const duration = Date.now() - start;

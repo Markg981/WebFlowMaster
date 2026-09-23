@@ -6,7 +6,7 @@ export interface AuditEntry {
   action: AuditAction;
   /** Who did it. Null for something the system did on nobody's behalf. */
   actor?: { id: number; username: string } | null;
-  targetType?: 'user' | 'invitation' | 'organization' | 'api_key';
+  targetType?: 'user' | 'invitation' | 'organization' | 'api_key' | 'webhook';
   /** Text because targets are variously serial ids and uuids. */
   targetId?: string | number;
   /**

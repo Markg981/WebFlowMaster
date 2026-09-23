@@ -16,17 +16,35 @@ interface WebhooksModalProps {
   planName: string;
 }
 
+interface WebhookSummary {
+  id: number;
+  name: string;
+  /** The first characters of the token: enough to tell two apart, far too few to use. */
+  tokenPrefix: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+/**
+ * The CI webhooks of a plan.
+ *
+ * A token is shown once, right after it is created: the server keeps only its hash, so it cannot
+ * be shown again. A lost token is replaced by deleting the webhook and creating another.
+ */
 export default function WebhooksModal({ isOpen, onClose, planId, planName }: WebhooksModalProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [newWebhookName, setNewWebhookName] = useState('');
-  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  /** The token just created, until the dialog is closed. Never fetched again. */
+  const [justCreated, setJustCreated] = useState<{ name: string; token: string } | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
-  const { data: webhooks = [] } = useQuery({
+  const { data: webhooks = [] } = useQuery<WebhookSummary[]>({
     queryKey: ['webhooks', planId],
     queryFn: async () => {
       const res = await apiRequest("GET", `/api/test-plans/${planId}/webhooks`);
-      return res.json();
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: isOpen && !!planId,
   });
@@ -34,12 +52,12 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
   const createWebhookMutation = useMutation({
     mutationFn: async (name: string) => {
       const res = await apiRequest("POST", `/api/test-plans/${planId}/webhooks`, { name });
-      return res.json();
+      return res.json() as Promise<WebhookSummary & { token: string }>;
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['webhooks', planId] });
       setNewWebhookName('');
-      toast({ title: 'Webhook creato con successo' });
+      setJustCreated({ name: created.name, token: created.token });
     },
     onError: () => {
       toast({ title: 'Errore nella creazione del Webhook', variant: 'destructive' });
@@ -56,16 +74,24 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
     }
   });
 
-  const handleCopy = (token: string) => {
-    const url = `${window.location.origin}/api/webhooks/execute/${token}`;
-    navigator.clipboard.writeText(url);
-    setCopiedToken(token);
-    setTimeout(() => setCopiedToken(null), 2000);
-    toast({ title: 'URL copiato negli appunti' });
+  const endpoint = `${window.location.origin}/api/webhooks/execute`;
+  const copy = (what: 'token' | 'curl', text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(what);
+    setTimeout(() => setCopied(null), 2000);
+    toast({ title: what === 'token' ? 'Token copiato negli appunti' : 'Comando copiato negli appunti' });
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      // Gone for good once the dialog closes: nothing can show it again.
+      setJustCreated(null);
+      onClose();
+    }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Webhook CI/CD - {planName}</DialogTitle>
@@ -89,12 +115,43 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
           </Button>
         </div>
 
+        {justCreated && (
+          <div className="mt-4 rounded-md border border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-3 space-y-2" data-testid="new-webhook-token">
+            <p className="text-sm font-medium">
+              Token del webhook «{justCreated.name}»: copialo ora, non sarà più visibile.
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 truncate text-xs bg-muted p-2 rounded">{justCreated.token}</code>
+              <Button variant="outline" size="sm" onClick={() => copy('token', justCreated.token)}>
+                {copied === 'token' ? <Check className="h-3 w-3 mr-1 text-success" /> : <Copy className="h-3 w-3 mr-1" />}
+                Token
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 truncate text-xs bg-muted p-2 rounded">
+                curl -X POST -H "X-Webhook-Token: $WFM_WEBHOOK_TOKEN" {endpoint}
+              </code>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copy('curl', `curl -X POST -H "X-Webhook-Token: ${justCreated.token}" ${endpoint}`)}
+              >
+                {copied === 'curl' ? <Check className="h-3 w-3 mr-1 text-success" /> : <Copy className="h-3 w-3 mr-1" />}
+                curl
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Mettilo tra i segreti della pipeline e invialo nell'header <code>X-Webhook-Token</code>: nell'URL finirebbe nei log dei proxy.
+            </p>
+          </div>
+        )}
+
         <div className="mt-6 border rounded-md">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>URL Endpoint</TableHead>
+                <TableHead>Token</TableHead>
                 <TableHead>Ultimo Utilizzo</TableHead>
                 <TableHead className="w-[100px]"></TableHead>
               </TableRow>
@@ -107,18 +164,13 @@ export default function WebhooksModal({ isOpen, onClose, planId, planName }: Web
                   </TableCell>
                 </TableRow>
               )}
-              {webhooks.map((wh: any) => (
+              {webhooks.map((wh) => (
                 <TableRow key={wh.id}>
                   <TableCell className="font-medium">{wh.name}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2 max-w-[200px]">
-                      <code className="truncate text-xs bg-muted p-1 rounded">
-                        /execute/{wh.token.substring(0, 8)}...
-                      </code>
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleCopy(wh.token)}>
-                        {copiedToken === wh.token ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
-                      </Button>
-                    </div>
+                    <code className="text-xs bg-muted p-1 rounded" title="Il token completo è visibile solo alla creazione">
+                      {wh.tokenPrefix}…
+                    </code>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {wh.lastUsedAt ? format(new Date(wh.lastUsedAt), 'PPp') : 'Mai usato'}

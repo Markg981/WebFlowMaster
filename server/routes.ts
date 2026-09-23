@@ -43,6 +43,7 @@ import uploadsRoutes from "./routes/uploads.routes";
 import reportsRoutes from "./routes/reports.routes";
 import artifactsRoutes, { artifactUrl, stepsWithArtifactUrls } from "./routes/artifacts.routes";
 import apiKeysRoutes from "./routes/api-keys.routes";
+import webhookManagementRoutes from "./routes/webhooks.routes";
 import stepGroupsRoutes from "./routes/step-groups.routes";
 import projectElementsRoutes from "./routes/project-elements.routes";
 import nlAuthoringRoutes from "./routes/nl-authoring.routes";
@@ -133,6 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(reportsRoutes);
     app.use(artifactsRoutes);
     app.use(apiKeysRoutes);
+    app.use(webhookManagementRoutes);
     app.use(stepGroupsRoutes);
     app.use(projectElementsRoutes);
     app.use(nlAuthoringRoutes);

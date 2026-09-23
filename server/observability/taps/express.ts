@@ -1,6 +1,7 @@
 import type { ErrorRequestHandler, Request } from 'express';
 import { getCorrelationId } from '../../middleware/correlation';
 import { recordIncident, type IncidentLogger } from '../incident';
+import { redactWebhookPath } from '../../webhook-tokens';
 
 /**
  * Headers worth keeping. Everything else is either noise or a credential.
@@ -22,7 +23,8 @@ export function buildServerApiTrigger(req: Request): Record<string, unknown> {
 
   return {
     method: req.method,
-    path: req.path,
+    // A webhook's token can be in its path; an incident file is not where it should end up.
+    path: redactWebhookPath(req.path),
     query: req.query,
     body: req.body,
     headers,
