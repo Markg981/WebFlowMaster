@@ -219,6 +219,15 @@ export const testPlans = pgTable("test_plans", {
    * constant.
    */
   maxParallelTests: integer('max_parallel_tests').default(1).notNull(),
+  /**
+   * Where this plan's failures are filed, and whether they are filed at all.
+   *
+   * Off for every plan that exists, and off by default for a new one: filing a bug is an action
+   * in somebody else's system, and a feature that starts doing that on its own the moment it is
+   * deployed is one nobody forgives. A plan opts in, and names the tracker it opts into.
+   */
+  issueTrackerId: text('issue_tracker_id').references(() => issueTrackers.id, { onDelete: 'set null' }),
+  createIssuesOnFailure: boolean('create_issues_on_failure').default(false).notNull(),
   notificationSettings: jsonb('notification_settings'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -675,6 +684,88 @@ export const testVersions = pgTable("test_versions", {
 
 export type TestVersion = typeof testVersions.$inferSelect;
 export type InsertTestVersion = typeof testVersions.$inferInsert;
+
+/** The trackers this build can actually file in. A provider with no implementation files nothing. */
+export const ISSUE_PROVIDERS = ['jira', 'azure_devops'] as const;
+export type IssueProvider = (typeof ISSUE_PROVIDERS)[number];
+
+/**
+ * Where a failure goes once somebody has to do something about it.
+ *
+ * A failed run ended in the report. Somebody read it, opened Jira in another tab, retyped the
+ * test name, the browser, the error and a link — and did it again the next morning for the same
+ * failure, because neither side knew the two were the same thing.
+ *
+ * The token is encrypted exactly as `secrets` are, and never leaves the server: the API answers
+ * with the tracker and who it authenticates as, never with the credential.
+ */
+export const issueTrackers = pgTable("issue_trackers", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  provider: text("provider").notNull(),
+  baseUrl: text("base_url").notNull(),
+  /** The Jira project key (SHOP), or the Azure DevOps project name. */
+  projectKey: text("project_key").notNull(),
+  issueType: text("issue_type").default('Bug').notNull(),
+  /** Jira authenticates an API token against an account's email; Azure DevOps ignores it. */
+  userEmail: text("user_email"),
+  encryptedToken: text("encrypted_token").notNull(),
+  tokenIv: text("token_iv").notNull(),
+  tokenAuthTag: text("token_auth_tag").notNull(),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("issue_trackers_organization_id_idx").on(table.organizationId),
+]);
+
+export type IssueTracker = typeof issueTrackers.$inferSelect;
+export type InsertIssueTracker = typeof issueTrackers.$inferInsert;
+
+/**
+ * Which failure produced which issue.
+ *
+ * The point of writing it down is not filing the same bug twice: a nightly plan that fails for
+ * a week would open seven identical issues, and by the eighth morning nobody reads any of them.
+ * `dedupeKey` is what "the same failure" means — this plan, this test, this browser — and the
+ * unique index on it is the constraint the whole feature rests on.
+ *
+ * Every reference is ON DELETE SET NULL: the issue exists in Jira whatever happens here, and a
+ * link table that forgets it is how a duplicate gets opened.
+ */
+export const issueLinks = pgTable("issue_links", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  trackerId: text("tracker_id").notNull().references(() => issueTrackers.id, { onDelete: 'cascade' }),
+  dedupeKey: text("dedupe_key").notNull(),
+  testPlanId: text("test_plan_id").references(() => testPlans.id, { onDelete: 'set null' }),
+  uiTestId: integer("ui_test_id").references(() => tests.id, { onDelete: 'set null' }),
+  /** Kept as text too: the name is what the issue says, and it must stay readable. */
+  testName: text("test_name").notNull(),
+  browser: text("browser"),
+  issueKey: text("issue_key").notNull(),
+  issueUrl: text("issue_url").notNull(),
+  firstExecutionId: text("first_execution_id").references(() => testPlanExecutions.id, { onDelete: 'set null' }),
+  lastExecutionId: text("last_execution_id").references(() => testPlanExecutions.id, { onDelete: 'set null' }),
+  occurrences: integer("occurrences").default(1).notNull(),
+  /**
+   * Set when the test passed again. Local knowledge only: whether the issue is closed is the
+   * tracker's business, and claiming to know it would be claiming more than this can see.
+   */
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("issue_links_organization_id_idx").on(table.organizationId),
+  index("issue_links_tracker_id_idx").on(table.trackerId),
+  index("issue_links_test_plan_id_idx").on(table.testPlanId),
+  index("issue_links_last_execution_id_idx").on(table.lastExecutionId),
+  unique("issue_links_tracker_dedupe_unique").on(table.trackerId, table.dedupeKey),
+]);
+
+export type IssueLink = typeof issueLinks.$inferSelect;
+export type InsertIssueLink = typeof issueLinks.$inferInsert;
 
 /**
  * A credential for something that is not a person.
@@ -1681,6 +1772,8 @@ export const ORG_SCOPED_TABLES = [
   // What a test is for, and what it used to be. test_versions is granted SELECT and INSERT
   // only — the application cannot rewrite its own history. See migration 0018.
   'tags', 'test_tags', 'test_versions',
+  // Where a failure is filed, and which failure produced which issue.
+  'issue_trackers', 'issue_links',
   // api_keys is org-scoped and policed like the rest. Unlike `invitations`, which cannot be,
   // the one lookup that must happen before an organization is known — authenticating a
   // request that carries a key — is a privileged bootstrap read in middleware, the same shape

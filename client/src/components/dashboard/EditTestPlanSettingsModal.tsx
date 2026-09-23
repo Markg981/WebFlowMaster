@@ -51,6 +51,15 @@ const EVIDENCE_MODES = [
   { value: 'always', label: 'Always' },
 ];
 
+/** The Select cannot hold an empty value, and "none" is a real choice here. */
+const NO_TRACKER = 'none';
+
+interface TrackerOption {
+  id: string;
+  name: string;
+  provider: string;
+}
+
 const NOTIFICATION_KEYS: Array<keyof Omit<NotificationSettingsShape, 'webhookUrl'>> = [
   'passed',
   'failed',
@@ -101,6 +110,10 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
   /** How many of this plan's runs may be in flight at once. 1 is what every plan did before. */
   const [maxParallelTests, setMaxParallelTests] = useState('1');
   const [maxParallelError, setMaxParallelError] = useState('');
+  /** Which tracker this plan's failures go to, and whether they go at all. */
+  const [issueTrackerId, setIssueTrackerId] = useState<string>(NO_TRACKER);
+  const [createIssuesOnFailure, setCreateIssuesOnFailure] = useState(false);
+  const [trackers, setTrackers] = useState<TrackerOption[]>([]);
   const [notifications, setNotifications] = useState<NotificationSettingsShape>(notificationsFromPlan(null));
   const [webhookError, setWebhookError] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -115,10 +128,20 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
     setCaptureVideo((plan as { captureVideo?: string } | null)?.captureVideo ?? 'never');
     setCaptureTrace((plan as { captureTrace?: string } | null)?.captureTrace ?? 'never');
     setMaxParallelTests(String(plan?.maxParallelTests ?? 1));
+    setIssueTrackerId((plan as { issueTrackerId?: string | null } | null)?.issueTrackerId ?? NO_TRACKER);
+    setCreateIssuesOnFailure((plan as { createIssuesOnFailure?: boolean } | null)?.createIssuesOnFailure === true);
     setNotifications(notificationsFromPlan(plan));
     setWebhookError('');
     setMaxParallelError('');
     setSubmitError(null);
+
+    // The trackers this organization has, so the plan names one rather than being typed one.
+    // A failure to load them leaves the list empty, which reads as "none configured" — the
+    // truthful fallback, since a plan cannot file into a tracker this screen cannot name.
+    fetch('/api/issue-trackers')
+      .then((response) => (response.ok ? response.json() : []))
+      .then((rows) => setTrackers(Array.isArray(rows) ? rows : []))
+      .catch(() => setTrackers([]));
   }, [isOpen, plan]);
 
   const addMachine = () => {
@@ -166,6 +189,10 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
           captureVideo,
           captureTrace,
           maxParallelTests: parallel,
+          issueTrackerId: issueTrackerId === NO_TRACKER ? null : issueTrackerId,
+          // Filing is off unless a tracker is named: a plan set to file into nothing would
+          // report a failure to file on every failing run, which is noise about noise.
+          createIssuesOnFailure: issueTrackerId !== NO_TRACKER && createIssuesOnFailure,
           notificationSettings: { ...notifications, webhookUrl: webhookUrl || null },
         }),
       });
@@ -326,6 +353,48 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                     'Compare each step against its stored baseline. The first run after turning this on records the baselines.',
                   )}
                 </p>
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <div>
+                <Label htmlFor="editIssueTracker">
+                  {t('editTestPlanSettings.issues.trackerLabel', 'File failures in')}
+                </Label>
+                <Select value={issueTrackerId} onValueChange={setIssueTrackerId}>
+                  <SelectTrigger id="editIssueTracker" className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_TRACKER}>
+                      {t('editTestPlanSettings.issues.noTracker', 'Nowhere — failures stay in the report')}
+                    </SelectItem>
+                    {trackers.map((tracker) => (
+                      <SelectItem key={tracker.id} value={tracker.id}>
+                        {tracker.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="editCreateIssues"
+                  checked={createIssuesOnFailure}
+                  onCheckedChange={setCreateIssuesOnFailure}
+                  disabled={issueTrackerId === NO_TRACKER}
+                />
+                <div>
+                  <Label htmlFor="editCreateIssues">
+                    {t('editTestPlanSettings.issues.autoLabel', 'Open an issue when a test fails')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t(
+                      'editTestPlanSettings.issues.autoHelp',
+                      'One issue per failing test and browser. The same failure tomorrow night is added to it as a comment, not opened again.',
+                    )}
+                  </p>
+                </div>
               </div>
             </section>
 

@@ -29,6 +29,7 @@ import {
   KeyRound,
   KeySquare,
   Crosshair,
+  Bug,
   SlidersHorizontal,
 } from "lucide-react";
 import {
@@ -46,6 +47,7 @@ import { UserSettings, fetchSettings } from "../lib/settings";
 import EnvironmentsCard from "@/components/settings/EnvironmentsCard";
 import ApiKeysCard from "@/components/settings/ApiKeysCard";
 import ElementRepositoryCard from "@/components/settings/ElementRepositoryCard";
+import IssueTrackersCard from "@/components/settings/IssueTrackersCard";
 
 interface Project {
   id: number;
@@ -520,6 +522,16 @@ export default function SettingsPage() {
       ),
       icon: Crosshair,
       content: <ElementRepositoryCard />,
+    },
+    {
+      id: 'issueTrackers',
+      label: t('settings.sections.issueTrackers', 'Issue trackers'),
+      description: t(
+        'settings.sections.issueTrackersDescription',
+        'Where a failing test becomes somebody’s ticket, in Jira or Azure DevOps.',
+      ),
+      icon: Bug,
+      content: <IssueTrackersCard />,
     },
     {
       id: 'apiKeys',

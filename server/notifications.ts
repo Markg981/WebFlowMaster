@@ -1,4 +1,5 @@
 import { fetchTarget } from './outbound-http';
+import { reportUrlFor } from './report-links';
 
 /**
  * Telling somebody the run finished.
@@ -138,7 +139,7 @@ export function summaryLine(summary: RunSummary): string {
  * else is there for a receiver that wants the numbers rather than the sentence.
  */
 export function buildPayload(summary: RunSummary): Record<string, unknown> {
-  const url = reportUrl(summary.executionId);
+  const url = reportUrl(summary.planId, summary.executionId);
   return {
     text: summaryLine(summary) + (url ? ` ${url}` : ''),
     event: 'test_plan_execution.completed',
@@ -162,14 +163,12 @@ export function buildPayload(summary: RunSummary): Record<string, unknown> {
 /**
  * A link back to the run, when this installation has been told its own address.
  *
- * `APP_BASE_URL` is deliberately not reused: that one points at the system under test, and a
- * notification linking a failed run to the application it was testing would be worse than
- * having no link.
+ * Built by server/report-links.ts, which owns the one path the client actually serves. This
+ * used to compose `/test-plan-executions/{id}` here, which no route has ever matched: every
+ * notification sent since has carried a link to a page that does not exist.
  */
-function reportUrl(executionId: string): string | undefined {
-  const base = process.env.WEBFLOW_PUBLIC_URL?.trim();
-  if (!base) return undefined;
-  return `${base.replace(/\/+$/, '')}/test-plan-executions/${executionId}`;
+function reportUrl(planId: string, executionId: string): string | undefined {
+  return reportUrlFor(planId, executionId);
 }
 
 /** Settings that name a channel this build cannot deliver on, for the run's console. */

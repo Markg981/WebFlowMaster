@@ -36,6 +36,7 @@ import {
   sendRunNotification,
   type RunSummary,
 } from './notifications';
+import { fileFailure, loadTracker, markResolved } from './issue-store';
 import { testPlanSchedules } from '@shared/schema';
 
 /** Reads a jsonb column that came back as text, as these columns sometimes do. */
@@ -1078,6 +1079,15 @@ async function runTestPlanJobInTenant(
 
     if (finalUpdateResult.length > 0) {
       resolvedLogger.info({ message: `Test plan execution COMPLETED and DB updated`, planId, testPlanRunId, overallStatus: finalOverallStatus, testsRun: calculatedTotalTests });
+      // Before the notification, so a message that says "3 failed" arrives after the issues
+      // those failures produced already exist to be linked to.
+      await fileFailuresIfConfigured({
+        plan,
+        planId,
+        executionId: testPlanRunId,
+        organizationId: executionRecord[0].organizationId,
+        results: finalDetailedResults,
+      });
       await notifyRunFinished({
         plan,
         execution: executionRecord[0],
@@ -1111,6 +1121,91 @@ async function runTestPlanJobInTenant(
       completedAt: new Date(overallCompletedAt),
       error: `DB error during final aggregate update: ${dbError.message}`
     } as any;
+  }
+}
+
+/**
+ * Files this run's failures where the plan said to file them.
+ *
+ * Only when the plan opted in and named a tracker: filing a bug is an action in somebody else's
+ * system, and a build that starts doing it on its own is one nobody forgives.
+ *
+ * Like the notification below, it cannot fail the run. The verdict is already written, and a
+ * Jira that is down, a token that expired or a project somebody renamed must cost a line in the
+ * console and nothing more — a run that crashed because it could not file a bug would have
+ * turned a recorded result into no result at all.
+ *
+ * A test that passed and had an issue open gets a comment saying so. Only a comment: whether
+ * the bug is fixed depends on what else is in it, and software that closes somebody's ticket
+ * off one green run is software they switch off.
+ */
+async function fileFailuresIfConfigured(input: {
+  plan: { name?: string; issueTrackerId?: string | null; createIssuesOnFailure?: boolean } | undefined;
+  planId: string;
+  executionId: string;
+  organizationId: number;
+  results: Array<{ testName: string; browser?: string | null; status: string; reasonForFailure?: string | null; startedAt?: Date | null; uiTestId?: number | null }>;
+}): Promise<void> {
+  const resolvedLogger = await loggerPromise;
+  const wsEmitter = getWsEmitter();
+  const say = (level: 'info' | 'warn', message: string) => {
+    const entry: ExecutionLogEntry = { level, source: 'system', message, timestamp: new Date().toISOString() };
+    if (level === 'warn') resolvedLogger.warn(entry); else resolvedLogger.info(entry);
+    wsEmitter.emitExecutionLog(input.executionId, entry);
+  };
+
+  try {
+    if (!input.plan?.createIssuesOnFailure || !input.plan.issueTrackerId) return;
+
+    const tracker = await loadTracker(input.plan.issueTrackerId);
+    if (!tracker) {
+      say('warn', 'This plan is set to file failures, but the issue tracker it names no longer exists.');
+      return;
+    }
+
+    for (const row of input.results) {
+      const failure = {
+        planId: input.planId,
+        planName: input.plan.name ?? null,
+        executionId: input.executionId,
+        testName: row.testName,
+        browser: row.browser ?? null,
+        status: row.status,
+        reason: row.reasonForFailure ?? null,
+        startedAt: row.startedAt ?? null,
+      };
+
+      const status = String(row.status).toLowerCase();
+      if (status === 'failed' || status === 'error') {
+        const outcome = await fileFailure({
+          organizationId: input.organizationId,
+          tracker,
+          uiTestId: row.uiTestId ?? null,
+          failure,
+        });
+        if (outcome.action === 'created') {
+          say('info', `Filed ${outcome.issueKey} in ${tracker.name} for "${row.testName}": ${outcome.issueUrl}`);
+        } else if (outcome.action === 'commented') {
+          say('info', `"${row.testName}" has failed ${outcome.occurrences} times; commented on ${outcome.issueKey}.`);
+        } else if (outcome.action === 'failed') {
+          say('warn', `Could not file "${row.testName}" in ${tracker.name}: ${outcome.error}`);
+        }
+        continue;
+      }
+
+      if (status === 'passed') {
+        // Cheap for the common case: this reads the link table and only reaches the tracker
+        // when there is an open issue to say it about.
+        const outcome = await markResolved({ tracker, failure });
+        if (outcome.action === 'commented') {
+          say('info', `"${row.testName}" passed again; said so on ${outcome.issueKey}.`);
+        } else if (outcome.action === 'failed') {
+          say('warn', `Could not comment on the issue for "${row.testName}": ${outcome.error}`);
+        }
+      }
+    }
+  } catch (error: any) {
+    say('warn', `Issue filing could not be attempted: ${error?.message ?? error}`);
   }
 }
 

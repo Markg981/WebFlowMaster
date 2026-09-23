@@ -26,9 +26,22 @@ const fetchMock = vi.fn();
 
 beforeEach(() => {
   fetchMock.mockReset();
-  fetchMock.mockResolvedValue({ ok: true, json: async () => ({}) });
+  fetchMock.mockImplementation((url: string) =>
+    // Opening the dialog also reads the organization's issue trackers, so the save is no
+    // longer the only request here — every assertion below looks for the PUT by name.
+    Promise.resolve({ ok: true, json: async () => (String(url).includes('/api/issue-trackers') ? [] : {}) }),
+  );
   vi.stubGlobal('fetch', fetchMock);
 });
+
+/** The save, whichever request it happened to be. */
+function putCall() {
+  return fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT');
+}
+
+function savedBody() {
+  return JSON.parse(putCall()![1].body);
+}
 
 describe('EditTestPlanSettingsModal', () => {
   it('opens on what the plan already holds', () => {
@@ -49,7 +62,7 @@ describe('EditTestPlanSettingsModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
-    const [url, init] = fetchMock.mock.calls[0];
+    const [url, init] = putCall()!;
     expect(url).toBe('/api/test-plans/plan-1');
     expect(init.method).toBe('PUT');
     const body = JSON.parse(init.body);
@@ -67,7 +80,7 @@ describe('EditTestPlanSettingsModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body).maxParallelTests).toBe(4);
+    expect(savedBody().maxParallelTests).toBe(4);
   });
 
   it('refuses a parallelism that is not a usable number of browser sessions', async () => {
@@ -77,7 +90,7 @@ describe('EditTestPlanSettingsModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByText(/between 1 and 16/i)).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(putCall()).toBeUndefined();
   });
 
   it('refuses a webhook URL that is not http(s) instead of storing it', async () => {
@@ -87,7 +100,7 @@ describe('EditTestPlanSettingsModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByText(/must start with http/i)).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(putCall()).toBeUndefined();
   });
 
   it('sends an empty destination as null, so the plan stops notifying', async () => {
@@ -98,7 +111,7 @@ describe('EditTestPlanSettingsModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body).notificationSettings.webhookUrl).toBeNull();
+    expect(savedBody().notificationSettings.webhookUrl).toBeNull();
   });
 
   it('removes a browser from the matrix', async () => {
@@ -109,7 +122,28 @@ describe('EditTestPlanSettingsModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body).testMachinesConfig).toEqual([]);
+    expect(savedBody().testMachinesConfig).toEqual([]);
+  });
+
+  it('offers the organization’s trackers, and files nowhere until one is chosen', async () => {
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve({
+        ok: true,
+        json: async () =>
+          String(url).includes('/api/issue-trackers') ? [{ id: 'tracker-1', name: 'Jira — Shop', provider: 'jira' }] : {},
+      }),
+    );
+    const onSaved = vi.fn();
+    render(<EditTestPlanSettingsModal isOpen plan={plan} onClose={() => {}} onSaved={onSaved} />);
+
+    // Nothing is filed by a plan that names no tracker, so the switch has nothing to turn on.
+    expect(await screen.findByLabelText('Open an issue when a test fails')).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(savedBody().issueTrackerId).toBeNull();
+    expect(savedBody().createIssuesOnFailure).toBe(false);
   });
 
   it('reports a refused save rather than closing as if it had worked', async () => {
