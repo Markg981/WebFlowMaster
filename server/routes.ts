@@ -47,6 +47,7 @@ import artifactsRoutes, { artifactUrl, stepsWithArtifactUrls } from "./routes/ar
 import apiKeysRoutes from "./routes/api-keys.routes";
 import serviceAccountsRoutes from "./routes/service-accounts.routes";
 import mfaRoutes from "./routes/mfa.routes";
+import testPublishingRoutes from "./routes/test-publishing.routes";
 import { requireMfaEnrollment } from "./middleware/require-mfa-enrollment";
 import apiV1Routes from "./routes/api-v1.routes";
 import webhookManagementRoutes from "./routes/webhooks.routes";
@@ -148,6 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(apiKeysRoutes);
     app.use(serviceAccountsRoutes);
     app.use(mfaRoutes);
+    app.use(testPublishingRoutes);
     app.use(webhookManagementRoutes);
     app.use(stepGroupsRoutes);
     app.use(projectElementsRoutes);

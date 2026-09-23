@@ -10,7 +10,9 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { History, Loader2, RotateCcw } from 'lucide-react';
+import { History, Loader2, RotateCcw, Undo2 } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import PublishingPanel, { type PublishingState } from './PublishingPanel';
 
 /**
  * What this test used to be.
@@ -69,6 +71,39 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
     enabled: isOpen && test !== null,
   });
 
+  const { user } = useAuth();
+  const canEdit = user?.role !== 'viewer';
+  // What plans run: the published version, the working copy, or nothing (migration 0032).
+  const { data: publishing, refetch: refetchPublishing } = useQuery<PublishingState, Error>({
+    queryKey: ['testPublishing', test?.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/tests/${test!.id}/publishing`);
+      if (!response.ok) throw new Error('Could not load the publishing state');
+      return response.json();
+    },
+    enabled: isOpen && test !== null,
+  });
+  const [rollingBack, setRollingBack] = useState<number | null>(null);
+
+  const handleRollback = async (version: number) => {
+    setError('');
+    setRollingBack(version);
+    try {
+      const response = await fetch(`/api/tests/${test!.id}/rollback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error ?? 'Could not roll back');
+      await refetchPublishing();
+    } catch (rollbackError: any) {
+      setError(rollbackError?.message ?? 'Could not roll back');
+    } finally {
+      setRollingBack(null);
+    }
+  };
+
   const versions = Array.isArray(data?.versions) ? data!.versions : [];
   const unversionedRuns = data?.unversionedRuns ?? 0;
 
@@ -78,6 +113,7 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
     try {
       await onRestore(version);
       await refetch();
+      await refetchPublishing();
     } catch (restoreError: any) {
       setError(restoreError?.message ?? 'Could not restore that version');
     } finally {
@@ -101,6 +137,18 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
           </DialogDescription>
         </DialogHeader>
 
+        {publishing?.runs && (
+          <PublishingPanel
+            state={publishing}
+            currentUserId={user?.id ?? null}
+            canEdit={canEdit}
+            onChanged={() => {
+              refetchPublishing();
+              refetch();
+            }}
+          />
+        )}
+
         {isLoading ? (
           <p className="text-sm text-muted-foreground">{t('testHistory.loading', 'Reading the history…')}</p>
         ) : loadError ? (
@@ -120,6 +168,9 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
                     </span>
                     {index === 0 && (
                       <Badge variant="outline">{t('testHistory.current', 'Current')}</Badge>
+                    )}
+                    {publishing?.publishedVersion === version.version && (
+                      <Badge data-testid={`published-${version.version}`}>{t('testHistory.published', 'Published')}</Badge>
                     )}
                     {version.restoredFromVersion !== null && (
                       <Badge variant="secondary">
@@ -161,6 +212,18 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
                     )}
                   </p>
                 </div>
+                {canEdit && publishing?.rollbackTargets?.includes(version.version) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRollback(version.version)}
+                    disabled={rollingBack !== null}
+                    title={t('testHistory.rollbackHint', 'Plans run this version again. It was live before.')}
+                  >
+                    {rollingBack === version.version ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4 mr-1" />}
+                    {t('testHistory.rollback', 'Roll back to this')}
+                  </Button>
+                )}
                 {index > 0 && (
                   <Button
                     variant="outline"

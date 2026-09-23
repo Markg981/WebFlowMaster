@@ -36,6 +36,7 @@ import {
 } from './notifications';
 import { fileFailure, loadTracker, markResolved } from './issue-store';
 import { currentVersionsOf } from './test-version-store';
+import { publishedContentOf, reviewRequired } from './test-publishing';
 import { takeExecution, transitionExecution } from './execution-state';
 import { artifactStore } from './artifact-store';
 import { watchRun } from './run-watch';
@@ -725,6 +726,39 @@ async function runTestPlanJobInTenant(
     ? await withTenantTransaction((tx) => currentVersionsOf(tx, uiTestIds))
     : new Map<number, number>();
 
+  // What was published, not what is being edited (migration 0032). A published test runs its
+  // published version, laid over the working copy loaded above, and its results name that
+  // version. Where the organization requires review, a test never published does not run at all:
+  // running an unreviewed working copy is what the policy exists to prevent.
+  const unpublishedUnderPolicy = new Map<number, string>();
+  if (uiTestIds.length > 0) {
+    const { published, required } = await withTenantTransaction(async (tx) => ({
+      published: await publishedContentOf(tx, uiTestIds),
+      required: await reviewRequired(tx, executionRecord[0].organizationId),
+    }));
+    for (const [testId, content] of published) {
+      const workingCopy = uiTestsMap.get(testId);
+      if (!workingCopy) continue;
+      uiTestsMap.set(testId, {
+        ...workingCopy,
+        name: content.name,
+        url: content.url,
+        sequence: content.sequence,
+        elements: content.elements,
+        preconditions: content.preconditions,
+        dataset: content.dataset,
+      } as Test);
+      testVersionsInRun.set(testId, content.version);
+    }
+    if (required) {
+      for (const testId of uiTestIds) {
+        if (!published.has(testId)) {
+          unpublishedUnderPolicy.set(testId, 'Not published: this organization runs reviewed, published versions only.');
+        }
+      }
+    }
+  }
+
   const apiTestsMap = new Map<number, ApiTest>();
   if (apiTestIds.length > 0) {
     const apiTests = await withTenantTransaction((tx) =>
@@ -829,8 +863,10 @@ async function runTestPlanJobInTenant(
 
     const testName = testObjectDefinition?.name || `Unknown Test (ID: ${link.testId || link.apiTestId})`;
     const onBrowser = browserChoice ? ` on ${describeBrowser(browserChoice)}` : '';
-    // A plan policy, a cancellation or the time limit: either way this test does not start.
-    const haltedBy = stopReason ?? watch.stopReason;
+    // A plan policy, a cancellation or the time limit: either way this test does not start. Nor
+    // does a test with no published version where the organization requires review.
+    const notPublished = link.testType === 'ui' && link.testId ? unpublishedUnderPolicy.get(link.testId) : undefined;
+    const haltedBy = stopReason ?? watch.stopReason ?? notPublished;
     if (haltedBy) {
       reportStatus = 'Skipped';
       failureReason = haltedBy;

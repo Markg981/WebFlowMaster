@@ -225,6 +225,13 @@
       "when": 1787800000000,
       "tag": "0031_project_access",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1787900000000,
+      "tag": "0032_test_publishing",
+      "breakpoints": true
     }
   ]
 }
