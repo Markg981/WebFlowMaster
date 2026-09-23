@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { useTranslation } from 'react-i18next'; // For potential future use in header
 import StepDetailsDialog, { type ReportStep } from '@/components/reports/StepDetailsDialog';
 import IssueCell, { type IssueLinkSummary } from '@/components/reports/IssueCell';
+// One list of "still going" states, shared with the server: 'queued' was missing from this page's own copy.
+import { isExecutionInFlight } from '@shared/execution-status';
 
 // PlaceholderChart and TestPlanExecutionReport interface remain the same
 
@@ -30,7 +32,7 @@ const PlaceholderChart = ({ title, data }: { title: string, data: any }) => (
 export interface TestPlanExecutionReport {
   header: {
     testSuiteName: string; environment: string; browsers: string[]; dateTime: string;
-    completedAt: string | null; status: 'pending' | 'running' | 'completed' | 'failed' | 'error' | 'cancelled';
+    completedAt: string | null; status: string;
     triggeredBy: 'scheduled' | 'manual' | 'api'; executionId: string; testPlanId: string;
   };
   keyMetrics: {
@@ -95,7 +97,7 @@ const TestReportPage: React.FC = () => {
     enabled: !!executionId,
     refetchInterval: (query) => {
       const data = query.state.data;
-      return (data?.header?.status === 'running' || data?.header?.status === 'pending') ? 5000 : false;
+      return isExecutionInFlight(data?.header?.status) ? 5000 : false;
     },
   });
 
@@ -186,7 +188,7 @@ const TestReportPage: React.FC = () => {
                 {/* Title moved to page header */}
               </div>
               <div className="flex items-center space-x-2">
-                {(header.status === 'running' || header.status === 'pending') && (
+                {isExecutionInFlight(header.status) && (
                   <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
                     <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
                     Refresh
@@ -261,7 +263,7 @@ const TestReportPage: React.FC = () => {
             </h1>
           </div>
           {/* Optional: Add page-specific actions here */}
-          {(reportData?.header?.status === 'running' || reportData?.header?.status === 'pending') && (
+          {isExecutionInFlight(reportData?.header?.status) && (
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
               Refresh Report

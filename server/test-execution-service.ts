@@ -38,6 +38,7 @@ import {
 } from './notifications';
 import { fileFailure, loadTracker, markResolved } from './issue-store';
 import { currentVersionsOf } from './test-version-store';
+import { transitionExecution } from './execution-state';
 import { testPlanSchedules } from '@shared/schema';
 
 /** Reads a jsonb column that came back as text, as these columns sometimes do. */
@@ -359,7 +360,6 @@ export async function runTestPlan(
   // The caller's row when it made one, so the schedule's environment and browsers are on the
   // row that actually runs rather than on a duplicate nothing executes.
   const testPlanRunId = options.executionId ?? uuidv4();
-  const overallStartTime = Date.now();
 
   resolvedLogger.info({ message: `Enqueueing test plan execution`, planId, testPlanRunId, userId });
 
@@ -398,8 +398,15 @@ export async function runTestPlan(
           // Same organization as the plan being run.
           organizationId: planResult[0].organizationId,
           testPlanId: planId,
-          status: 'pending', // Queue status
-          startedAt: new Date(overallStartTime),
+          // Waiting for a worker. started_at stays empty until one takes it, so the time a run
+          // spent in the queue is not reported as time it spent running.
+          status: 'queued',
+          // Stamped here rather than left to the column default, so it shares a clock with
+          // started_at and completed_at, which are also written by this process. The default is
+          // the database's now(), and in a timestamp column without a zone that is the
+          // database's local time — an hour or two away from every other stamp on the row.
+          queuedAt: new Date(),
+          requestedByUserId: userId,
           environment: environmentId ? environmentId.toString() : null, // Save environment ID here
           triggeredBy: 'manual',
         })
@@ -481,12 +488,26 @@ async function runTestPlanJobInTenant(
   resolvedLogger.info(startLog);
   wsEmitter.emitExecutionLog(testPlanRunId, startLog);
 
-  // Update status to running
-  await withTenantTransaction(async (tx) => {
-    await tx.update(testPlanExecutionsTable)
-      .set({ status: 'running' })
-      .where(eq(testPlanExecutionsTable.id, testPlanRunId));
-  });
+  // Take the run. Only a run that is still queued can be taken, and the database lets exactly
+  // one worker do it: a job BullMQ delivers twice, or a run somebody cancelled while it waited,
+  // gets nothing back here and stops — instead of running the whole plan a second time over the
+  // results of the first.
+  const taken = await transitionExecution(testPlanRunId, 'running');
+  if (!taken) {
+    const [current] = await withTenantTransaction((tx) =>
+      tx
+        .select({ status: testPlanExecutionsTable.status })
+        .from(testPlanExecutionsTable)
+        .where(eq(testPlanExecutionsTable.id, testPlanRunId))
+        .limit(1),
+    );
+    resolvedLogger.warn({
+      message: 'Test plan execution was not taken: it is no longer queued',
+      testPlanRunId,
+      status: current?.status ?? 'missing',
+    });
+    return { skipped: true, reason: `Execution is ${current?.status ?? 'missing'}, not queued.`, testPlanRunId };
+  }
 
   const currentTestPlanRun: any = { startedAt: Math.floor(overallStartTime / 1000) };
 
@@ -495,13 +516,11 @@ async function runTestPlanJobInTenant(
     await fs.ensureDir(baseResultsDir);
   } catch (dirError: any) {
     resolvedLogger.error({ message: 'Failed to create base results directory', baseResultsDir, error: dirError.message });
-    await withTenantTransaction(async (tx) => {
-      await tx.update(testPlanExecutionsTable).set({
-        status: 'error',
-        completedAt: new Date(),
-        results: JSON.stringify([{ error: `Failed to create results directory: ${dirError.message}` }]),
-        executionDurationMs: Date.now() - overallStartTime,
-      }).where(eq(testPlanExecutionsTable.id, testPlanRunId));
+    await transitionExecution(testPlanRunId, 'error', {
+      failureCode: 'results_directory_unavailable',
+      failureMessage: `Failed to create results directory: ${dirError.message}`,
+      results: JSON.stringify([{ error: `Failed to create results directory: ${dirError.message}` }]),
+      executionDurationMs: Date.now() - overallStartTime,
     });
     return { error: `Failed to create results directory: ${dirError.message}`, status: 500, testPlanRunId };
   }
@@ -1047,7 +1066,9 @@ async function runTestPlanJobInTenant(
   // If any 'Skipped' and no 'Failed'/'Error', maybe 'partial' or 'completed_with_skipped'.
   // If all 'Passed', then 'completed'.
 
-  let finalOverallStatus: TestPlanExecution['status'] = 'pending'; // Should be 'completed' or 'failed' or 'error'
+  // Every branch below assigns one of the three; 'error' is what a state nobody anticipated
+  // should end as, rather than a run left looking unfinished.
+  let finalOverallStatus: 'completed' | 'failed' | 'error' = 'error';
   if (calculatedTotalTests === 0 && selectedTestsLinks.length > 0) {
     finalOverallStatus = 'error'; // No results recorded but tests were expected
   } else if (calculatedFailedTests > 0 || finalDetailedResults.some((r: any) => r.status === 'Error')) {
@@ -1074,21 +1095,24 @@ async function runTestPlanJobInTenant(
   const overallExecutionDurationMs = overallCompletedAt - overallStartTime;
 
   try {
-    const finalUpdateResult = await withTenantTransaction((tx) =>
-      tx.update(testPlanExecutionsTable)
-        .set({
-          status: finalOverallStatus,
-          results: JSON.stringify(legacyIndividualTestResultsForJsonBlob), // Keep the old JSON blob for now
-          completedAt: new Date(overallCompletedAt),
-          totalTests: calculatedTotalTests,
-          passedTests: calculatedPassedTests,
-          failedTests: calculatedFailedTests,
-          skippedTests: calculatedSkippedTests,
-          executionDurationMs: overallExecutionDurationMs,
-        })
-        .where(eq(testPlanExecutionsTable.id, testPlanRunId))
-        .returning(),
-    );
+    // Only a run that is still running can be given its verdict. If something else ended it in
+    // the meantime — a cancellation, a timeout — that ending stands, and this run's late result
+    // is not allowed to overwrite it.
+    const finished = await transitionExecution(testPlanRunId, finalOverallStatus, {
+      results: JSON.stringify(legacyIndividualTestResultsForJsonBlob), // Keep the old JSON blob for now
+      totalTests: calculatedTotalTests,
+      passedTests: calculatedPassedTests,
+      failedTests: calculatedFailedTests,
+      skippedTests: calculatedSkippedTests,
+      executionDurationMs: overallExecutionDurationMs,
+      ...(finalOverallStatus === 'error'
+        ? {
+            failureCode: 'run_incomplete',
+            failureMessage: 'Not every browser or test in the plan produced a result.',
+          }
+        : {}),
+    });
+    const finalUpdateResult = finished ? [finished] : [];
 
     if (finalUpdateResult.length > 0) {
       resolvedLogger.info({ message: `Test plan execution COMPLETED and DB updated`, planId, testPlanRunId, overallStatus: finalOverallStatus, testsRun: calculatedTotalTests });
@@ -1120,8 +1144,9 @@ async function runTestPlanJobInTenant(
       });
       return finalUpdateResult[0];
     } else {
-      // This should not happen if the initial insert succeeded.
-      resolvedLogger.error({ message: `Failed to perform FINAL update on TestPlanRun DB record`, planId, testPlanRunId });
+      // The run was no longer running: something else ended it while the tests were going.
+      // Its ending stands, and nothing is filed or announced for a verdict that was not recorded.
+      resolvedLogger.warn({ message: `Verdict not recorded: the execution had already ended`, planId, testPlanRunId, verdict: finalOverallStatus });
       currentTestPlanRun.status = 'error'; // Update in-memory object
       return { ...currentTestPlanRun, error: "Failed to finalize database record, but execution attempted." } as any; // Cast to avoid type issues with error prop
     }

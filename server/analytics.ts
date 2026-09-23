@@ -78,12 +78,16 @@ export async function getDashboardMetrics(userId: number) {
         planName: testPlans.name,
         status: testPlanExecutions.status,
         startedAt: testPlanExecutions.startedAt,
+        queuedAt: testPlanExecutions.queuedAt,
         duration: testPlanExecutions.executionDurationMs
       })
       .from(testPlanExecutions)
       .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
       .where(eq(testPlans.userId, userId))
-      .orderBy(desc(testPlanExecutions.startedAt))
+      // A run still in the queue has no start time yet, and Postgres puts nulls first in a
+      // descending sort — ordering by start time alone would pin every queued run to the top in
+      // no particular order. When it started, or failing that when it was asked for.
+      .orderBy(desc(sql`coalesce(${testPlanExecutions.startedAt}, ${testPlanExecutions.queuedAt})`))
       .limit(5);
 
     return {

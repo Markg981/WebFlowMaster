@@ -12,6 +12,8 @@ import logger from './logger';
 // We need to be careful with circular dependencies if test-execution-service also imports this.
 // For now, let's assume it can be imported. If not, we might need to use an event emitter or refactor.
 import { runTestPlan } from './test-execution-service'; // Adjust path if necessary
+import { transitionExecution } from './execution-state';
+import { runWithTenant } from './middleware/tenancy';
 import { testExecutionQueue } from './queue';
 
 interface ActiveJob {
@@ -212,7 +214,7 @@ export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: Tes
   resolvedLogger.info(`[SchedulerService] Triggering job for schedule: ${schedule.scheduleName} (ID: ${schedule.id}), Plan: ${plan.name}`);
 
   const executionId = uuidv4();
-  let executionStatus: TestPlanExecution['status'] = 'pending';
+  let executionStatus: TestPlanExecution['status'] = 'queued';
 
   try {
     await privilegedDb.insert(testPlanExecutions).values({
@@ -221,11 +223,14 @@ export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: Tes
       organizationId: plan.organizationId,
       scheduleId: schedule.id,
       testPlanId: schedule.testPlanId,
-      status: 'pending',
+      // Waiting for a worker; started_at is stamped when one takes it.
+      status: 'queued',
+      // From this process's clock, like every other stamp on the row — see runTestPlan.
+      queuedAt: new Date(),
+      requestedByUserId: schedule.userId ?? null,
       environment: schedule.environment,
       browsers: schedule.browsers ?? null, // jsonb column — store the array directly
       triggeredBy: 'scheduled',
-      startedAt: new Date(),
       // executionParameters from schedule can be passed to runTestPlan if it supports it
     });
 
@@ -269,15 +274,17 @@ export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: Tes
     // queue status — and now that this is the row the worker goes on to execute, writing
     // "pending, completed at 02:00:01" over it would overwrite the run in progress with a
     // verdict nobody reached. The worker owns the row from the moment the job is enqueued.
-    const terminalStatuses = ['completed', 'failed', 'error', 'passed'];
+    //
+    // Through the state machine, which is what makes that rule hold rather than depend on this
+    // check: a verdict can only be written over a row that is running, never over one a worker
+    // has not taken yet or has already finished.
+    const terminalStatuses = ['completed', 'failed', 'error'];
     if (terminalStatuses.includes(executionStatus)) {
-      await privilegedDb.update(testPlanExecutions)
-        .set({
-          status: executionStatus,
+      await runWithTenant(plan.organizationId, () =>
+        transitionExecution(executionId, executionStatus as 'completed' | 'failed' | 'error', {
           results: result?.results ?? null,
-          completedAt: new Date(),
-        })
-        .where(eq(testPlanExecutions.id, executionId));
+        }),
+      );
     }
 
     resolvedLogger.info(`[SchedulerService] Execution ${terminalStatuses.includes(executionStatus) ? 'completed' : 'enqueued'} for schedule ${schedule.id}, Plan ${plan.name}. Status: ${executionStatus} (after ${attempts} attempt(s)).`);
@@ -286,13 +293,15 @@ export async function executeScheduledPlan(schedule: TestPlanSchedule, plan: Tes
     resolvedLogger.error(`[SchedulerService] Error executing scheduled plan ${schedule.testPlanId} (Schedule ID: ${schedule.id}): ${error.message}`, { stack: error.stack, scheduleId: schedule.id, executionId });
     executionStatus = 'error';
     try {
-      await privilegedDb.update(testPlanExecutions)
-        .set({
-          status: 'error',
+      // Only a run nobody has finished yet can be marked as failed to start: if a worker took it
+      // and reached a verdict, that verdict is the truth and this error is not.
+      await runWithTenant(plan.organizationId, () =>
+        transitionExecution(executionId, 'error', {
+          failureCode: 'schedule_trigger_failed',
+          failureMessage: error.message,
           results: JSON.stringify({ error: error.message, stack: error.stack }),
-          completedAt: new Date(),
-        })
-        .where(eq(testPlanExecutions.id, executionId));
+        }),
+      );
     } catch (dbError) {
       resolvedLogger.error(`[SchedulerService] CRITICAL: Failed to update execution status to error after catching execution error. Execution ID: ${executionId}`, { dbError });
     }

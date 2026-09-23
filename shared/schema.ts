@@ -270,15 +270,40 @@ export const testPlanSchedules = pgTable("test_plan_schedules", {
   index("test_plan_schedules_organization_id_idx").on(table.organizationId),
 ]);
 
+// The run's states live in shared/execution-status.ts so the client can share them without
+// importing the database layer. Which state may follow which lives in server/execution-state.ts,
+// and every write of `status` goes through it.
+export {
+  EXECUTION_STATUSES,
+  IN_FLIGHT_EXECUTION_STATUSES,
+  isExecutionInFlight,
+  type ExecutionStatus,
+  type ExecutionTrigger,
+} from './execution-status';
+
 export const testPlanExecutions = pgTable("test_plan_executions", {
   id: text('id').primaryKey(),
   scheduleId: text('schedule_id').references(() => testPlanSchedules.id, { onDelete: 'set null' }),
   testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
   organizationId: integer('organization_id').notNull().references(() => organizations.id),
-  status: text('status').notNull().default('pending'),
+  /** Who asked for the run. Null on rows from before this was recorded. */
+  requestedByUserId: integer('requested_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  status: text('status').notNull().default('queued'),
   results: jsonb("results"),
-  startedAt: timestamp('started_at').notNull().defaultNow(),
+  /** When somebody asked for the run. */
+  queuedAt: timestamp('queued_at').notNull().defaultNow(),
+  /**
+   * When a worker began it. Null while it waits: stamping it at enqueue time used to make a run
+   * that sat in the queue for ten minutes report ten minutes it never ran for.
+   */
+  startedAt: timestamp('started_at'),
   completedAt: timestamp('completed_at'),
+  cancelRequestedAt: timestamp('cancel_requested_at'),
+  /** Stamped when a worker takes the run, so "is anyone still on this?" has an answer. */
+  heartbeatAt: timestamp('heartbeat_at'),
+  /** Why a run ended in `error`: a code to branch on, and a sentence for a person. */
+  failureCode: text('failure_code'),
+  failureMessage: text('failure_message'),
   environment: text('environment'),
   browsers: jsonb('browsers'),
   triggeredBy: text('triggered_by').notNull().default('manual'),
