@@ -457,7 +457,13 @@ export const testPlanWebhooks = pgTable("test_plan_webhooks", {
   id: serial('id').primaryKey(),
   testPlanId: text('test_plan_id').notNull().references(() => testPlans.id, { onDelete: 'cascade' }),
   organizationId: integer('organization_id').notNull().references(() => organizations.id),
-  token: text('token').notNull().unique(),
+  /**
+   * SHA-256 of the token, which is all that is kept — see server/webhook-tokens.ts. The token
+   * itself was stored as it was, so anyone who could read this table could start any plan.
+   */
+  tokenHash: text('token_hash').notNull().unique(),
+  /** The first characters of the token, to tell two webhooks apart in a list. */
+  tokenPrefix: text('token_prefix').notNull(),
   name: text('name').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   lastUsedAt: timestamp('last_used_at'),
@@ -865,6 +871,8 @@ export const AUDIT_ACTIONS = {
   INVITATION_ACCEPTED: 'invitation.accepted',
   API_KEY_CREATED: 'api_key.created',
   API_KEY_REVOKED: 'api_key.revoked',
+  WEBHOOK_CREATED: 'webhook.created',
+  WEBHOOK_DELETED: 'webhook.deleted',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
