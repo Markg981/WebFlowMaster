@@ -32,6 +32,7 @@ import { createInsertSchema } from 'drizzle-zod';
 import { privilegedDb } from "./db";
 import { eq, and, desc, sql, getTableColumns, asc, ilike, inArray } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
+import { BrowserTaskError, browserTasks } from "./browser-tasks";
 // Import schedulerService
 import loggerPromise, { updateLogLevel } from "./logger";
 
@@ -158,8 +159,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = (req.user as any)?.id as number | undefined;
 
     try {
-      resolvedLogger.debug({ message: `POST /api/load-website - Calling playwrightService.loadWebsite`, url, userId });
-      const result = await playwrightService.loadWebsite(url, userId);
+      resolvedLogger.debug({ message: `POST /api/load-website - Submitting the page load`, url, userId });
+      const result = await browserTasks.run<Awaited<ReturnType<typeof playwrightService.loadWebsite>>>({
+        task: { kind: 'load-website', url },
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+      });
       resolvedLogger.debug({ message: `POST /api/load-website - playwrightService.loadWebsite returned`, success: result?.success, url, userId });
 
       if (result.success) {
@@ -169,6 +174,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ success: false, error: result.error || 'Failed to load website using Playwright service.' });
       }
     } catch (error: any) {
+      if (error instanceof BrowserTaskError) {
+        return res.status(error.status).json({ success: false, error: error.message, code: error.code });
+      }
       resolvedLogger.error({ message: "POST /api/load-website - Critical error in route handler", error: error.message, stack: error.stack, url, userId });
       const errorMessage = error instanceof Error ? error.message : 'Unknown internal server error';
       res.status(500).json({ success: false, error: `Internal server error: ${errorMessage}` });
@@ -251,8 +259,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
     try {
-      resolvedLogger.debug({ message: `POST /api/detect-elements - Calling playwrightService.detectElements`, url, userId });
-      const detection = await playwrightService.detectElements(url, userId);
+      resolvedLogger.debug({ message: `POST /api/detect-elements - Submitting the element survey`, url, userId });
+      const detection = await browserTasks.run<Awaited<ReturnType<typeof playwrightService.detectElements>>>({
+        task: { kind: 'detect-elements', url },
+        userId: req.user.id,
+        organizationId: req.user.organizationId,
+      });
       resolvedLogger.debug({ message: `POST /api/detect-elements - playwrightService.detectElements returned`, elementCount: detection.elements.length, url, userId });
 
       // The screenshot travels with the elements so the preview and the boxes drawn on it
@@ -265,6 +277,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         summary: detection.summary,
       });
     } catch (error: any) {
+      if (error instanceof BrowserTaskError) {
+        return res.status(error.status).json({ success: false, error: error.message, code: error.code });
+      }
       resolvedLogger.error({ message: "POST /api/detect-elements - Error in route handler", error: error.message, stack: error.stack, url, userId });
       const errorMessage = error instanceof Error ? error.message : 'Unknown internal server error';
       res.status(500).json({ success: false, error: `Internal server error during element detection: ${errorMessage}` });
@@ -408,10 +423,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       resolvedLogger.debug({ message: "POST /api/execute-test-direct - Calling playwrightService.executeAdhocSequence.", userId, testName: payload.name });
       // organizationId comes from the session, not the payload: the schema does not accept
       // it, so a client cannot name a tenant whose environment secrets it would resolve.
-      resultFromService = await playwrightService.executeAdhocSequence(
-        { ...payload, organizationId: (req.user as any).organizationId },
+      resultFromService = await browserTasks.run({
+        task: { kind: 'adhoc-sequence', payload },
         userId,
-      );
+        organizationId: (req.user as any).organizationId,
+      });
       resolvedLogger.debug({ message: "POST /api/execute-test-direct - playwrightService.executeAdhocSequence returned.", userId, testName: payload.name, serviceSuccess: resultFromService?.success });
       resolvedLogger.debug({ message: "POST /api/execute-test-direct - Result from service:", result: resultFromService, userId });
 
@@ -431,6 +447,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     } catch (error: any) {
+      if (error instanceof BrowserTaskError && !res.headersSent) {
+        res.status(error.status).json({ success: false, error: error.message, code: error.code, steps: [], duration: 0 });
+        return;
+      }
       resolvedLogger.error({ message: `POST /api/execute-test-direct - ERROR during playwrightService.executeAdhocSequence call or response sending`, error: error.message, stack: error.stack, userId, testName: payload.name });
       const responseError = {
         success: false,

@@ -178,6 +178,8 @@ app.use(express.urlencoded({ extended: false }));
     server.close(async () => {
       try {
         await schedulerService.shutdownScheduler();
+        const { closeBrowserTasks } = await import('./browser-tasks');
+        await closeBrowserTasks();
         await redisConnection.quit();
         if (sessionRedis.isOpen) await sessionRedis.quit();
         await closeDb();

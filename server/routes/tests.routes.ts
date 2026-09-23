@@ -3,10 +3,9 @@ import { tests, insertTestSchema, apiTests, insertApiTestSchema, updateApiTestSc
 import { eq, desc, and, getTableColumns } from "drizzle-orm";
 import { z } from "zod";
 import loggerPromise from "../logger";
-import { playwrightService } from "../playwright-service";
+import { BrowserTaskError, browserTasks } from "../browser-tasks";
 import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
-import { resolveVariables } from "../variables";
 import { recordTestVersion } from "../test-version-store";
 import { tagsOfTests } from "../test-tags";
 
@@ -189,30 +188,22 @@ router.post("/api/tests/:id/run", requireRole('editor'), async (req, res) => {
         if (testRecord.length === 0) return res.status(404).json({ error: "Test not found" });
 
         // The environment is the caller's choice, but the organization it must belong to is
-        // the session's — never the body's, or an id from another tenant would resolve.
+        // the session's — never the body's, or an id from another tenant would resolve. It is
+        // resolved where the browser runs, so its decrypted values never pass through the queue.
         const environmentId = Number.isInteger(req.body?.environmentId)
           ? (req.body.environmentId as number)
           : null;
-        const vars = await resolveVariables({
+
+        const result = await browserTasks.run({
+          task: { kind: 'run-test', testId, environmentId },
           userId: (req.user as any).id,
           organizationId: (req.user as any).organizationId,
-          environmentId,
         });
-
-        const result = await playwrightService.executeTestSequence(
-          testRecord[0],
-          (req.user as any).id,
-          undefined,
-          undefined,
-          vars,
-          // Same environment supplies the variables and the saved browser session, so a
-          // test cannot resolve one site's secrets while reusing another's login.
-          environmentId
-            ? { environmentId, organizationId: (req.user as any).organizationId }
-            : undefined,
-        );
         res.json(result);
     } catch (e: any) {
+        if (e instanceof BrowserTaskError) {
+          return res.status(e.status).json({ error: e.message, code: e.code });
+        }
         logger.error({ message: "Test execution failed", error: e.message });
         res.status(500).json({ error: "Test execution failed" });
     }
