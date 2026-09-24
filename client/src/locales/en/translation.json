@@ -1745,7 +1745,9 @@
     "emptyHint": "None yet. Create one in Settings to use secrets and a saved login."
   },
   "common": {
-    "error": "Error"
+    "error": "Error",
+    "cancel": "Cancel",
+    "save": "Save"
   },
   "environments": {
     "newEnvironmentPlaceholder": "New environment (e.g. Staging)",
@@ -2181,13 +2183,57 @@
   "editTestPlanSettings": {
     "evidence": {
       "network": "Network (HAR)",
-      "networkHelp": "The report lists the failed and slowest requests of every recorded test, kept file or not. The HAR opens in any browser’s DevTools; it never holds bodies, cookies, tokens or passwords."
+      "networkHelp": "The report lists the failed and slowest requests of every recorded test, kept file or not. The HAR opens in any browser’s DevTools; it never holds bodies, cookies, tokens or passwords.",
+      "label": "Keep a recording of the run",
+      "help": "A report holds a picture per step and the message it died with. A video and a Playwright trace answer what that cannot — a slow request, a dialog that came and went, a page that moved under the click. Both cost disk on every run.",
+      "video": "Video",
+      "trace": "Trace",
+      "modes": {
+        "never": "Never",
+        "on_failure": "When the test fails",
+        "always": "Always"
+      }
     },
     "runOn": {
       "label": "Run on",
       "help": "Where the tests run from. A pool of local agents opens pages and sends API requests from inside its own network.",
       "runners": "This server's runners",
       "pool": "Local agents: {{pool}}"
+    },
+    "title": "Run settings",
+    "description": "What \"{{name}}\" does on its next run.",
+    "validation": {
+      "webhookUrlInvalid": "The notification URL must start with http:// or https://.",
+      "parallelInvalid": "Run at most must be a whole number between 1 and 16."
+    },
+    "browsers": {
+      "label": "Browsers",
+      "help": "Every test in this plan runs once per browser listed here. With none listed, a run uses the browser from your own settings.",
+      "selectLabel": "Browser",
+      "headless": "Headless",
+      "remove": "Remove browser",
+      "add": "Add browser"
+    },
+    "parallel": {
+      "label": "Run at most (tests at once)",
+      "help": "Each one is a real browser session, so this is a statement about the runner. 1 runs the plan one test at a time, browser by browser. A plan whose API tests capture values for later requests keeps those in order within each browser."
+    },
+    "visualTesting": {
+      "label": "Visual testing",
+      "help": "Compare each step against its stored baseline. The first run after turning this on records the baselines."
+    },
+    "issues": {
+      "trackerLabel": "File failures in",
+      "noTracker": "Nowhere — failures stay in the report",
+      "autoLabel": "Open an issue when a test fails",
+      "autoHelp": "One issue per failing test and browser. The same failure tomorrow night is added to it as a comment, not opened again."
+    },
+    "notifications": {
+      "label": "Send notification when"
+    },
+    "webhook": {
+      "label": "Send notifications to (webhook URL)",
+      "help": "A Slack or Microsoft Teams incoming webhook, or any URL that accepts a POST. Without one, nothing is sent."
     }
   },
   "network": {

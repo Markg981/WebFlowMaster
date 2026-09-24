@@ -4,6 +4,7 @@ import de from './de/translation.json';
 import en from './en/translation.json';
 import fr from './fr/translation.json';
 import italian from './it/translation.json';
+import knownMissingKeys from './known-missing-keys.json';
 
 /**
  * Guards on the translation bundles themselves.
@@ -91,5 +92,49 @@ describe.each(BUNDLES.map(([lang]) => lang))('%s translation bundle', (lang) => 
       .map(({ key, source, translated }) => `${key}: "${source}" -> "${translated}"`);
 
     expect(drifted).toEqual([]);
+  });
+});
+
+/**
+ * Keys the code asks for that no bundle has.
+ *
+ * The checks above compare the bundles with each other, so a key that is in none of them passes
+ * all of them: `t('key', 'English text')` renders its inline English in every language and nothing
+ * complains. That is how the plan's whole Run settings window came to be English for everybody.
+ *
+ * Every literal key in the code must be in English (and so, by the checks above, in the other
+ * three). known-missing-keys.json lists the ones that were already missing when this guard was
+ * written; the list may only shrink — a key translated since has to leave it, and no new key may
+ * join it.
+ */
+describe('keys used in the code', () => {
+  const sources = import.meta.glob(['../**/*.{ts,tsx}', '!../**/*.test.{ts,tsx}'], {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>;
+
+  const used = new Map<string, string>();
+  for (const [file, source] of Object.entries(sources)) {
+    for (const match of source.matchAll(/\bt\(\s*(['"])([\w-]+(?:\.[\w-]+)+)\1/g)) {
+      if (!used.has(match[2])) used.set(match[2], file);
+    }
+  }
+  const knownMissing = new Set(knownMissingKeys as string[]);
+
+  it('finds the calls it is meant to check', () => {
+    expect(used.get('editTestPlanSettings.runOn.label')).toMatch(/EditTestPlanSettingsModal\.tsx$/);
+  });
+
+  it('are all in the English bundle, apart from the known gaps', () => {
+    const missing = [...used]
+      .filter(([key]) => !english.has(key) && !knownMissing.has(key))
+      .map(([key, file]) => `${key} (${file})`);
+    expect(missing).toEqual([]);
+  });
+
+  it('shrinks the list of known gaps as they are translated or stop being used', () => {
+    const stale = [...knownMissing].filter((key) => english.has(key) || !used.has(key));
+    expect(stale, 'remove these from known-missing-keys.json').toEqual([]);
   });
 });

@@ -1870,7 +1870,9 @@
     "emptyHint": "Non ce ne sono. Creane uno nelle Impostazioni per usare i segreti e un accesso salvato."
   },
   "common": {
-    "error": "Errore"
+    "error": "Errore",
+    "cancel": "Annulla",
+    "save": "Salva"
   },
   "environments": {
     "newEnvironmentPlaceholder": "Nuovo ambiente (es. Staging)",
@@ -2306,13 +2308,57 @@
   "editTestPlanSettings": {
     "evidence": {
       "network": "Rete (HAR)",
-      "networkHelp": "Il report elenca le richieste fallite e le più lente di ogni test registrato, che il file venga tenuto o no. L'HAR si apre negli strumenti per sviluppatori di qualsiasi browser; non contiene mai body, cookie, token o password."
+      "networkHelp": "Il report elenca le richieste fallite e le più lente di ogni test registrato, che il file venga tenuto o no. L'HAR si apre negli strumenti per sviluppatori di qualsiasi browser; non contiene mai body, cookie, token o password.",
+      "label": "Conserva una registrazione del run",
+      "help": "Un report contiene un'immagine per step e il messaggio con cui è fallito. Un video e una trace di Playwright rispondono a ciò che quelli non dicono: una richiesta lenta, una finestra comparsa e sparita, una pagina che si è spostata sotto il clic. Entrambi occupano disco a ogni run.",
+      "video": "Video",
+      "trace": "Trace",
+      "modes": {
+        "never": "Mai",
+        "on_failure": "Quando il test fallisce",
+        "always": "Sempre"
+      }
     },
     "runOn": {
       "label": "Esegui su",
       "help": "Da dove partono i test. Un pool di agenti locali apre le pagine e invia le richieste API dall'interno della propria rete.",
       "runners": "I runner di questo server",
       "pool": "Agenti locali: {{pool}}"
+    },
+    "title": "Impostazioni di esecuzione",
+    "description": "Cosa fa \"{{name}}\" alla prossima esecuzione.",
+    "validation": {
+      "webhookUrlInvalid": "L'URL per le notifiche deve iniziare con http:// o https://.",
+      "parallelInvalid": "\"Esegui al massimo\" deve essere un numero intero fra 1 e 16."
+    },
+    "browsers": {
+      "label": "Browser",
+      "help": "Ogni test del piano viene eseguito una volta per ciascun browser elencato. Se non ce ne sono, il run usa il browser delle tue impostazioni.",
+      "selectLabel": "Browser",
+      "headless": "Headless",
+      "remove": "Rimuovi browser",
+      "add": "Aggiungi browser"
+    },
+    "parallel": {
+      "label": "Esegui al massimo (test contemporanei)",
+      "help": "Ognuno è una vera sessione di browser, quindi è una scelta che riguarda il runner. Con 1 il piano esegue un test alla volta, browser per browser. Un piano i cui test API catturano valori per richieste successive li mantiene in ordine all'interno di ciascun browser."
+    },
+    "visualTesting": {
+      "label": "Test visivi",
+      "help": "Confronta ogni step con la sua baseline salvata. Il primo run dopo averli attivati registra le baseline."
+    },
+    "issues": {
+      "trackerLabel": "Registra i fallimenti in",
+      "noTracker": "Da nessuna parte: i fallimenti restano nel report",
+      "autoLabel": "Apri una issue quando un test fallisce",
+      "autoHelp": "Una issue per ogni test e browser che fallisce. Lo stesso fallimento la notte dopo viene aggiunto come commento, senza riaprirla."
+    },
+    "notifications": {
+      "label": "Invia una notifica quando"
+    },
+    "webhook": {
+      "label": "Invia le notifiche a (URL webhook)",
+      "help": "Un incoming webhook di Slack o Microsoft Teams, o qualsiasi URL che accetti una POST. Senza, non viene inviato nulla."
     }
   },
   "network": {
