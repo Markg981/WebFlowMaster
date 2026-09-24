@@ -95,7 +95,7 @@ export const UNRESOLVED_VARIABLE_ERROR = 'Unresolved variable(s)';
 
 /** Ceiling for the conditional waits. Long enough for a slow SignalR push, short enough
  * that a genuinely missing element fails the step rather than stalling the run. */
-const DEFAULT_WAIT_TIMEOUT_MS = 15_000;
+export const DEFAULT_WAIT_TIMEOUT_MS = 15_000;
 
 /**
  * How long an assertion keeps looking before it gives up.
@@ -110,7 +110,7 @@ const DEFAULT_WAIT_TIMEOUT_MS = 15_000;
  * Without any patience the assertions were worse than flaky, they were wrong: replaying a
  * recorded DMO test, the tab existed a moment later and the step reported it missing in 16ms.
  */
-const ASSERTION_TIMEOUT_MS = 5_000;
+export const ASSERTION_TIMEOUT_MS = 5_000;
 
 /**
  * Retries a check until it holds, or the deadline passes.

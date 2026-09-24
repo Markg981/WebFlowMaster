@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import http from 'http';
 import type { AddressInfo } from 'net';
 import { ADHOC_ACTION_IDS, type AdhocActionId, type MappedTestStep } from '@shared/recording';
+import { ASSERTION_TIMEOUT_MS, DEFAULT_WAIT_TIMEOUT_MS } from './step-executor';
 
 /**
  * The step executor, exercised through the *persisted* path.
@@ -416,8 +417,13 @@ describe('an assertion on a screen that is still rendering', () => {
     expect(failure?.error).toContain('#never-there');
     // Patience is not the same as hanging: a genuine failure has to stay quick enough that a
     // suite full of them still finishes, which is why assertions wait for less time than the
-    // explicit waits do.
-    expect(elapsed).toBeLessThan(20_000);
+    // explicit waits do. Read from what the step says it waited, not from the wall clock: the
+    // clock also counts starting the browser, which under a full suite's load took long enough
+    // to fail this test while the assertion itself behaved exactly as it should.
+    expect(failure?.error).toContain(`within ${ASSERTION_TIMEOUT_MS}ms`);
+    expect(ASSERTION_TIMEOUT_MS).toBeLessThan(DEFAULT_WAIT_TIMEOUT_MS);
+    // And it did wait, which a lower bound can say whatever the machine's load.
+    expect(elapsed).toBeGreaterThanOrEqual(ASSERTION_TIMEOUT_MS);
   }, 60_000);
 
   it('does not turn a wrong expectation into a passing one by waiting', async () => {
