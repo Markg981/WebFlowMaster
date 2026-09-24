@@ -95,7 +95,6 @@ async function main() {
   const languages = ['it', 'en'];
   const docs = [
     { file: 'USER_GUIDE.md', title: 'User Guide' },
-    { file: 'ADMIN_GUIDE.md', title: 'Administrator Guide' }
   ];
 
   for (const lang of languages) {
