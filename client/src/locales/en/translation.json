@@ -375,12 +375,19 @@
     "executionReport": "Execution report",
     "runTestPlan": "Run test plan",
     "reviews": "Reviews",
-    "testSuites": "Suites"
+    "testSuites": "Suites",
+    "section": {
+      "testing": "Testing",
+      "operations": "Operations"
+    },
+    "testLibrary": "Test Library",
+    "testManager": "Test Manager"
   },
   "dashboardPage": {
     "user": {
       "text": "User"
-    }
+    },
+    "dropActionsPrompt": "Drop an element here"
   },
   "apiTesterPage": {
     "backToDashboard": {
@@ -528,7 +535,17 @@
     "runningAssertions": {
       "text": "Running assertions..."
     },
-    "title": "API Tester"
+    "title": "API Tester",
+    "notifications": {
+      "testLoaded": {
+        "title": "Test Loaded",
+        "description": "Loaded test: {{name}}"
+      },
+      "loadFailed": {
+        "title": "Load Failed",
+        "description": "Could not load the test with ID {{id}}."
+      }
+    }
   },
   "dashboardOverviewPage": {
     "webtestPlatform": {
@@ -615,6 +632,12 @@
     },
     "crossBrowserTesting": {
       "text": "Cross Browser Testing"
+    },
+    "settings": {
+      "button": "Settings"
+    },
+    "running": {
+      "button": "Running…"
     }
   },
   "testsPage": {
@@ -1066,6 +1089,28 @@
     },
     "saveTest": {
       "overwriteConfirm": "A test named “{{name}}” already exists. Overwrite it with what is on screen?"
+    },
+    "stepGroups": {
+      "stepCount_one": "{{count}} step",
+      "stepCount_other": "{{count}} steps",
+      "saved": {
+        "title": "Step group saved",
+        "description": "\"{{name}}\" is now in the palette, and any test can call it."
+      },
+      "title": "Step groups"
+    },
+    "elementRepository": {
+      "kept": {
+        "title": "Element kept",
+        "description": "\"{{name}}\" now belongs to the project. Steps that use it read its selector from there."
+      }
+    },
+    "authoring": {
+      "inserted": {
+        "title": "Steps added",
+        "description_one": "{{count}} step was added to the end of the sequence.",
+        "description_other": "{{count}} steps were added to the end of the sequence."
+      }
     }
   },
   "notFoundPage": {
@@ -1166,6 +1211,29 @@
     },
     "save": {
       "button": "Save"
+    },
+    "notifications": {
+      "projectCreated": {
+        "title": "Project Created",
+        "description": "Project \"{{name}}\" created successfully."
+      },
+      "projectCreateFailed": {
+        "title": "Project Creation Failed"
+      }
+    },
+    "createNewProject": {
+      "button": "Create New Project"
+    },
+    "createProjectModal": {
+      "title": "Create New Project",
+      "description": "Enter a name for your new project.",
+      "projectName": {
+        "label": "Project Name",
+        "placeholder": "e.g., My Awesome Project"
+      },
+      "saveProject": {
+        "button": "Save Project"
+      }
     }
   },
   "draggableAction": {
@@ -1176,6 +1244,9 @@
   "draggableElement": {
     "element": {
       "text": "element"
+    },
+    "keep": {
+      "tooltip": "Keep this element in the project repository"
     }
   },
   "testSequenceBuilder": {
@@ -1254,6 +1325,14 @@
     },
     "executeTest": {
       "button": "Execute Test"
+    },
+    "describe": {
+      "tooltip": "Write what the test does and turn it into steps",
+      "button": "Describe"
+    },
+    "saveAsGroup": {
+      "tooltip": "Save these steps as a group other tests can call",
+      "button": "Save as group"
     }
   },
   "apiTester": {
@@ -1453,6 +1532,9 @@
       },
       "lastUpdated": {
         "label": "Last updated:"
+      },
+      "noProject": {
+        "label": "No project"
       }
     }
   },
@@ -1609,7 +1691,8 @@
       },
       "osVersion": {
         "label": "OS Version",
-        "placeholder": "e.g., 10, 11, Sonoma"
+        "placeholder": "e.g., 10, 11, Sonoma",
+        "placeholderSelect": "Select Version"
       },
       "browser": {
         "label": "Browser",
@@ -1640,7 +1723,8 @@
       "validation": {
         "pageLoadTimeoutRequired": "Page Load Timeout must be a positive number.",
         "timeoutRange": "Timeouts must be between 1 and 600 seconds.",
-        "elementTimeoutRequired": "Element Timeout must be a positive number."
+        "elementTimeoutRequired": "Element Timeout must be a positive number.",
+        "webhookUrlInvalid": "The notification URL must start with http:// or https://."
       },
       "captureScreenshots": {
         "label": "Capture Screenshots",
@@ -1715,6 +1799,10 @@
           "notExecuted": "Not Executed",
           "stopped": "Stopped"
         }
+      },
+      "notificationWebhook": {
+        "label": "Send Notifications To (webhook URL)",
+        "help": "A Slack or Microsoft Teams incoming webhook, or any URL that accepts a POST. Without one, the switches above have nowhere to send to and nothing is sent."
       }
     },
     "cancel": "Cancel",
@@ -1744,7 +1832,8 @@
       "startingExecution": "Starting execution for plan: {{planName}}",
       "runningTest": "Running test: {{testName}}",
       "testCompleted": "Test {{testName}} completed with status: {{status}}",
-      "executionFinished": "Test plan execution finished."
+      "executionFinished": "Test plan execution finished.",
+      "waitingForExecution": "Waiting for the run to start…"
     },
     "loadingPlan": {
       "text": "Loading Test Plan Details..."
@@ -1801,6 +1890,9 @@
       "noLogsYet": {
         "text": "Execution logs will appear here once started."
       }
+    },
+    "viewDetailedReport": {
+      "button": "View detailed report"
     }
   },
   "filePicker": {
@@ -1833,7 +1925,34 @@
     "viewLatestReport": "View latest report"
   },
   "generalReportsPage": {
-    "description": "Every run that has finished, with its steps, timings and screenshots."
+    "description": "Every run that has finished, with its steps, timings and screenshots.",
+    "title": "Test Execution Reports",
+    "filters": {
+      "title": "Filters",
+      "searchByName": "Search by Plan Name",
+      "searchPlaceholder": "E.g., Login tests...",
+      "testPlan": "Test Plan",
+      "selectPlan": "Select Test Plan",
+      "allPlans": "All Plans",
+      "status": "Status",
+      "selectStatus": "Select Status",
+      "allStatuses": "All Statuses",
+      "apply": "Apply Filters"
+    },
+    "executionsList": {
+      "title": "Executions List",
+      "noResults": "No executions found matching your criteria."
+    },
+    "table": {
+      "planName": "Plan Name",
+      "status": "Status",
+      "startedAt": "Started At",
+      "duration": "Duration",
+      "summary": "Summary (P/F/S/T)",
+      "triggeredBy": "Triggered By",
+      "actions": "Actions",
+      "viewReport": "View Report"
+    }
   },
   "schedulingPage": {
     "description": "Run a test plan on a timetable, and be told when it fails.",
@@ -1875,7 +1994,16 @@
   "common": {
     "error": "Error",
     "cancel": "Cancel",
-    "save": "Save"
+    "save": "Save",
+    "close": "Close",
+    "menu": "Open menu",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "lightMode": "Switch to light mode",
+    "darkMode": "Switch to dark mode",
+    "account": "Account",
+    "signedIn": "Signed in",
+    "logout": "Log out"
   },
   "environments": {
     "newEnvironmentPlaceholder": "New environment (e.g. Staging)",
@@ -1933,7 +2061,9 @@
     "quarantinedFailures": "{{count}} of the failures below are of tests in quarantine: they are shown, and did not fail this run.",
     "ci": {
       "label": "Build"
-    }
+    },
+    "backToReports": "Back to Reports List",
+    "title": "Test Report"
   },
   "scheduleEnvironment": {
     "label": "Environment",
@@ -2155,7 +2285,28 @@
   "testHistory": {
     "published": "Published",
     "rollback": "Roll back to this",
-    "rollbackHint": "Plans run this version again. It was live before."
+    "rollbackHint": "Plans run this version again. It was live before.",
+    "title": "History of \"{{name}}\"",
+    "description": "Every save is here, newest first. Restoring one adds it to the top as a new version — nothing between is removed, and today’s work stays recoverable.",
+    "loading": "Reading the history…",
+    "empty": "Nothing yet. The next save is version 1.",
+    "version": "Version {{n}}",
+    "current": "Current",
+    "restoredFrom": "restored from {{n}}",
+    "noSummary": "Saved.",
+    "steps_one": "{{count}} step",
+    "steps_other": "{{count}} steps",
+    "unknownAuthor": "a member who has left",
+    "neverRan": "Never run",
+    "passed_one": "{{count}} passed",
+    "passed_other": "{{count}} passed",
+    "failed_one": "{{count}} failed",
+    "failed_other": "{{count}} failed",
+    "noVerdict_one": "{{count}} never got to answer",
+    "noVerdict_other": "{{count}} never got to answer",
+    "restore": "Restore",
+    "unversioned_one": "{{count}} earlier run of this test did not record which version it used.",
+    "unversioned_other": "{{count}} earlier runs of this test did not record which version they used."
   },
   "runners": {
     "loading": "Loading…",
@@ -2421,5 +2572,80 @@
     },
     "check": "Test connection",
     "delete": "Delete"
+  },
+  "testLibrary": {
+    "restored": {
+      "title": "Restored",
+      "description": "The test is back to version {{from}}, saved as version {{to}}.",
+      "unchanged": "The test already was that version, so nothing changed."
+    },
+    "confirmDelete": "Delete \"{{name}}\" and its history?",
+    "deleted": "Test deleted",
+    "deleteFailed": "Could not delete the test",
+    "title": "Test Library",
+    "description": "Every saved test, what it is for, and what it used to be.",
+    "search": "Search by name",
+    "clearFilters": "Clear",
+    "loading": "Loading tests…",
+    "empty": "No tests yet. Record or describe one in the builder and save it.",
+    "noMatches": "No test matches this filter.",
+    "columns": {
+      "name": "Name",
+      "tags": "Tags",
+      "url": "Starts at",
+      "updated": "Last saved",
+      "actions": "Actions"
+    },
+    "history": "History",
+    "delete": "Delete"
+  },
+  "authorSteps": {
+    "title": "Describe the test",
+    "description": "One instruction per line, in the words the ticket used. Every line is shown as the step it became before anything is inserted — a sentence read the wrong way would otherwise become a test that passes for the wrong reason.",
+    "textLabel": "What the test does",
+    "placeholder": "Go to https://example.com/login\nType \"admin\" into the Username field\nClick the Sign in button\nCheck that the dashboard is visible",
+    "projectLabel": "Project whose elements may be named (optional)",
+    "noProject": "Only what is detected on this page",
+    "projectHint": "A step that names a kept element reads its selector from the repository, so a later repair reaches this test too.",
+    "fromModel": "AI",
+    "noModel": "No AI key is configured, so only the phrasings this understands on its own were read.",
+    "read": "Read the description",
+    "insert_one": "Insert {{count}} step",
+    "insert_other": "Insert {{count}} steps"
+  },
+  "keepElement": {
+    "projectRequired": "Choose the project this element belongs to.",
+    "nameRequired": "Give the element a name — it is how it will be recognised.",
+    "title": "Keep this element",
+    "description": "The project owns this element from now on: every test that uses it reads one selector, and a repair reaches all of them at once.",
+    "projectLabel": "Project",
+    "projectPlaceholder": "Choose a project",
+    "nameLabel": "Name",
+    "selector": "Selector",
+    "save": "Keep"
+  },
+  "saveStepGroup": {
+    "nameRequired": "Give the group a name — it is how tests will call it.",
+    "title": "Save as step group",
+    "description_one": "This step becomes a group. A test that calls it runs whatever the group holds at the time it runs, so editing the group later changes every test that calls it.",
+    "description_other": "These {{count}} steps become a group. A test that calls it runs whatever the group holds at the time it runs, so editing the group later changes every test that calls it.",
+    "nameLabel": "Name",
+    "namePlaceholder": "Login",
+    "descriptionLabel": "Description"
+  },
+  "tags": {
+    "edit": "Edit tags",
+    "add": "Add tags",
+    "newPlaceholder": "New tag",
+    "none": "No tags yet. The first word you type becomes one."
+  },
+  "issues": {
+    "openInTracker": "Open in the tracker",
+    "file": "File"
+  },
+  "testNode": {
+    "stepGroup": {
+      "badge": "group"
+    }
   }
 }

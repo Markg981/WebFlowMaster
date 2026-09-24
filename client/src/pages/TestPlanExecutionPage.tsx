@@ -334,7 +334,7 @@ const TestPlanExecutionPage: React.FC = () => {
             <ExecutionLogConsole executionId={currentRunId} />
           ) : (
             <div className="h-full flex flex-col items-center justify-center bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-500 font-mono text-xs italic">
-              {t('testPlanExecutionPage.logs.waitingForExecution', 'In attesa di esecuzione...')}
+              {t('testPlanExecutionPage.logs.waitingForExecution', 'Waiting for the run to start…')}
             </div>
           )}
         </div>

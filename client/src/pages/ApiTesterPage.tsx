@@ -858,13 +858,13 @@ const ApiTesterPage: React.FC = () => {
           setCurrentTestToEdit(testData); // Important for "Save Changes" functionality
           toast({
             title: t('apiTesterPage.notifications.testLoaded.title', 'Test Loaded'),
-            description: t('apiTesterPage.notifications.testLoaded.description', `Successfully loaded test: ${testData.name}`),
+            description: t('apiTesterPage.notifications.testLoaded.description', 'Loaded test: {{name}}', { name: testData.name }),
           });
         } catch (error: any) {
           console.error("Failed to load test:", error);
           toast({
             title: t('apiTesterPage.notifications.loadFailed.title', 'Load Failed'),
-            description: error.message || t('apiTesterPage.notifications.loadFailed.description', `Failed to load test with ID: ${id}`),
+            description: error.message || t('apiTesterPage.notifications.loadFailed.description', 'Could not load the test with ID {{id}}.', { id }),
             variant: "default",
           });
         }

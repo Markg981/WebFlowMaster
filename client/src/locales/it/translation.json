@@ -378,7 +378,13 @@
     "executionReport": "Report di esecuzione",
     "runTestPlan": "Esecuzione del piano",
     "reviews": "Revisioni",
-    "testSuites": "Suite"
+    "testSuites": "Suite",
+    "section": {
+      "testing": "Test",
+      "operations": "Operazioni"
+    },
+    "testLibrary": "Libreria dei test",
+    "testManager": "Test Manager"
   },
   "dashboardPage": {
     "headerTitle": "Piattaforma WebTest",
@@ -570,7 +576,17 @@
     "runningAssertions": {
       "text": "Esecuzione delle asserzioni…"
     },
-    "title": "API Tester"
+    "title": "API Tester",
+    "notifications": {
+      "testLoaded": {
+        "title": "Test caricato",
+        "description": "Test caricato: {{name}}"
+      },
+      "loadFailed": {
+        "title": "Caricamento non riuscito",
+        "description": "Impossibile caricare il test con ID {{id}}."
+      }
+    }
   },
   "dashboardOverviewPage": {
     "webtestPlatform": {
@@ -657,6 +673,12 @@
     },
     "crossBrowserTesting": {
       "text": "Cross Browser Testing"
+    },
+    "settings": {
+      "button": "Impostazioni"
+    },
+    "running": {
+      "button": "In esecuzione…"
     }
   },
   "testsPage": {
@@ -1191,6 +1213,28 @@
     },
     "saveTest": {
       "overwriteConfirm": "Esiste già un test chiamato “{{name}}”. Vuoi sovrascriverlo con quello a schermo?"
+    },
+    "stepGroups": {
+      "stepCount_one": "{{count}} step",
+      "stepCount_other": "{{count}} step",
+      "saved": {
+        "title": "Gruppo di step salvato",
+        "description": "\"{{name}}\" ora è nella palette e qualsiasi test può richiamarlo."
+      },
+      "title": "Gruppi di step"
+    },
+    "elementRepository": {
+      "kept": {
+        "title": "Elemento salvato",
+        "description": "\"{{name}}\" ora appartiene al progetto. Gli step che lo usano leggono il selettore da lì."
+      }
+    },
+    "authoring": {
+      "inserted": {
+        "title": "Step aggiunti",
+        "description_one": "{{count}} step è stato aggiunto in fondo alla sequenza.",
+        "description_other": "{{count}} step sono stati aggiunti in fondo alla sequenza."
+      }
     }
   },
   "notFoundPage": {
@@ -1291,6 +1335,29 @@
     },
     "save": {
       "button": "Salva"
+    },
+    "notifications": {
+      "projectCreated": {
+        "title": "Progetto creato",
+        "description": "Progetto \"{{name}}\" creato."
+      },
+      "projectCreateFailed": {
+        "title": "Creazione del progetto non riuscita"
+      }
+    },
+    "createNewProject": {
+      "button": "Crea nuovo progetto"
+    },
+    "createProjectModal": {
+      "title": "Nuovo progetto",
+      "description": "Inserisci un nome per il nuovo progetto.",
+      "projectName": {
+        "label": "Nome del progetto",
+        "placeholder": "es. Il mio progetto"
+      },
+      "saveProject": {
+        "button": "Salva progetto"
+      }
     }
   },
   "draggableAction": {
@@ -1301,6 +1368,9 @@
   "draggableElement": {
     "element": {
       "text": "elemento"
+    },
+    "keep": {
+      "tooltip": "Salva questo elemento nel repository del progetto"
     }
   },
   "testSequenceBuilder": {
@@ -1379,6 +1449,14 @@
     },
     "executeTest": {
       "button": "Esegui test"
+    },
+    "describe": {
+      "tooltip": "Scrivi cosa fa il test e trasformalo in step",
+      "button": "Descrivi"
+    },
+    "saveAsGroup": {
+      "tooltip": "Salva questi step come gruppo richiamabile da altri test",
+      "button": "Salva come gruppo"
     }
   },
   "apiTester": {
@@ -1578,6 +1656,9 @@
       },
       "lastUpdated": {
         "label": "Ultimo aggiornamento:"
+      },
+      "noProject": {
+        "label": "Nessun progetto"
       }
     }
   },
@@ -1624,7 +1705,8 @@
       },
       "osVersion": {
         "label": "Versione OS",
-        "placeholder": "es. 10, 11, Sonoma"
+        "placeholder": "es. 10, 11, Sonoma",
+        "placeholderSelect": "Seleziona versione"
       },
       "browser": {
         "label": "Browser",
@@ -1655,7 +1737,8 @@
       "validation": {
         "pageLoadTimeoutRequired": "Timeout Caricamento Pagina deve essere un numero positivo.",
         "timeoutRange": "I timeout devono essere compresi tra 1 e 600 secondi.",
-        "elementTimeoutRequired": "Timeout Elemento deve essere un numero positivo."
+        "elementTimeoutRequired": "Timeout Elemento deve essere un numero positivo.",
+        "webhookUrlInvalid": "L'URL per le notifiche deve iniziare con http:// o https://."
       },
       "captureScreenshots": {
         "label": "Cattura Screenshot",
@@ -1730,6 +1813,10 @@
           "notExecuted": "Non Eseguito",
           "stopped": "Interrotto"
         }
+      },
+      "notificationWebhook": {
+        "label": "Invia le notifiche a (URL webhook)",
+        "help": "Un incoming webhook di Slack o Microsoft Teams, o qualsiasi URL che accetti una POST. Senza, gli interruttori qui sopra non hanno una destinazione e non viene inviato nulla."
       }
     },
     "cancel": "Annulla",
@@ -1869,7 +1956,8 @@
       "startingExecution": "Avvio esecuzione per il piano: {{planName}}",
       "runningTest": "Esecuzione test: {{testName}}",
       "testCompleted": "Test {{testName}} completato con stato: {{status}}",
-      "executionFinished": "Esecuzione del test plan terminata."
+      "executionFinished": "Esecuzione del test plan terminata.",
+      "waitingForExecution": "In attesa dell'avvio del run…"
     },
     "loadingPlan": {
       "text": "Caricamento Dettagli Test Plan..."
@@ -1926,6 +2014,9 @@
       "noLogsYet": {
         "text": "I log di esecuzione appariranno qui una volta avviata."
       }
+    },
+    "viewDetailedReport": {
+      "button": "Apri il report dettagliato"
     }
   },
   "filePicker": {
@@ -1958,7 +2049,34 @@
     "viewLatestReport": "Vedi l’ultimo report"
   },
   "generalReportsPage": {
-    "description": "Tutte le esecuzioni concluse, con passi, tempi e schermate."
+    "description": "Tutte le esecuzioni concluse, con passi, tempi e schermate.",
+    "title": "Report delle esecuzioni",
+    "filters": {
+      "title": "Filtri",
+      "searchByName": "Cerca per nome del piano",
+      "searchPlaceholder": "Es. test di login...",
+      "testPlan": "Piano di test",
+      "selectPlan": "Seleziona un piano",
+      "allPlans": "Tutti i piani",
+      "status": "Stato",
+      "selectStatus": "Seleziona uno stato",
+      "allStatuses": "Tutti gli stati",
+      "apply": "Applica filtri"
+    },
+    "executionsList": {
+      "title": "Elenco esecuzioni",
+      "noResults": "Nessuna esecuzione corrisponde ai criteri."
+    },
+    "table": {
+      "planName": "Nome del piano",
+      "status": "Stato",
+      "startedAt": "Avviata il",
+      "duration": "Durata",
+      "summary": "Riepilogo (P/F/S/T)",
+      "triggeredBy": "Avviata da",
+      "actions": "Azioni",
+      "viewReport": "Apri report"
+    }
   },
   "schedulingPage": {
     "description": "Esegui un piano di test a orari fissi e fatti avvisare quando fallisce.",
@@ -2000,7 +2118,16 @@
   "common": {
     "error": "Errore",
     "cancel": "Annulla",
-    "save": "Salva"
+    "save": "Salva",
+    "close": "Chiudi",
+    "menu": "Apri menu",
+    "expandSidebar": "Espandi barra laterale",
+    "collapseSidebar": "Comprimi barra laterale",
+    "lightMode": "Passa al tema chiaro",
+    "darkMode": "Passa al tema scuro",
+    "account": "Account",
+    "signedIn": "Accesso effettuato",
+    "logout": "Esci"
   },
   "environments": {
     "newEnvironmentPlaceholder": "Nuovo ambiente (es. Staging)",
@@ -2058,7 +2185,9 @@
     "quarantinedFailures": "{{count}} dei fallimenti qui sotto sono di test in quarantena: sono mostrati, ma non hanno fatto fallire questa esecuzione.",
     "ci": {
       "label": "Build"
-    }
+    },
+    "backToReports": "Torna all'elenco dei report",
+    "title": "Report del test"
   },
   "scheduleEnvironment": {
     "label": "Ambiente",
@@ -2280,7 +2409,28 @@
   "testHistory": {
     "published": "Pubblicata",
     "rollback": "Torna a questa",
-    "rollbackHint": "I piani tornano a eseguire questa versione, già pubblicata in passato."
+    "rollbackHint": "I piani tornano a eseguire questa versione, già pubblicata in passato.",
+    "title": "Cronologia di \"{{name}}\"",
+    "description": "Qui c'è ogni salvataggio, dal più recente. Ripristinarne uno lo aggiunge in cima come nuova versione: non si perde nulla di quello che c'è in mezzo, e il lavoro di oggi resta recuperabile.",
+    "loading": "Lettura della cronologia…",
+    "empty": "Ancora niente. Il prossimo salvataggio sarà la versione 1.",
+    "version": "Versione {{n}}",
+    "current": "Attuale",
+    "restoredFrom": "ripristinata dalla {{n}}",
+    "noSummary": "Salvato.",
+    "steps_one": "{{count}} step",
+    "steps_other": "{{count}} step",
+    "unknownAuthor": "un membro che non c'è più",
+    "neverRan": "Mai eseguito",
+    "passed_one": "{{count}} passato",
+    "passed_other": "{{count}} passati",
+    "failed_one": "{{count}} fallito",
+    "failed_other": "{{count}} falliti",
+    "noVerdict_one": "{{count}} non è arrivato a una risposta",
+    "noVerdict_other": "{{count}} non sono arrivati a una risposta",
+    "restore": "Ripristina",
+    "unversioned_one": "{{count}} esecuzione precedente di questo test non ha registrato quale versione usava.",
+    "unversioned_other": "{{count}} esecuzioni precedenti di questo test non hanno registrato quale versione usavano."
   },
   "runners": {
     "loading": "Caricamento…",
@@ -2546,5 +2696,80 @@
     },
     "check": "Verifica connessione",
     "delete": "Elimina"
+  },
+  "testLibrary": {
+    "restored": {
+      "title": "Ripristinato",
+      "description": "Il test è tornato alla versione {{from}}, salvata come versione {{to}}.",
+      "unchanged": "Il test era già a quella versione, quindi non è cambiato nulla."
+    },
+    "confirmDelete": "Eliminare \"{{name}}\" e la sua cronologia?",
+    "deleted": "Test eliminato",
+    "deleteFailed": "Impossibile eliminare il test",
+    "title": "Libreria dei test",
+    "description": "Ogni test salvato, a cosa serve e com'era prima.",
+    "search": "Cerca per nome",
+    "clearFilters": "Azzera",
+    "loading": "Caricamento test…",
+    "empty": "Ancora nessun test. Registrane o descrivine uno nel builder e salvalo.",
+    "noMatches": "Nessun test corrisponde al filtro.",
+    "columns": {
+      "name": "Nome",
+      "tags": "Tag",
+      "url": "Parte da",
+      "updated": "Ultimo salvataggio",
+      "actions": "Azioni"
+    },
+    "history": "Cronologia",
+    "delete": "Elimina"
+  },
+  "authorSteps": {
+    "title": "Descrivi il test",
+    "description": "Un'istruzione per riga, con le parole del ticket. Prima di inserire qualcosa, ogni riga viene mostrata come lo step che è diventata: una frase interpretata male diventerebbe altrimenti un test che passa per il motivo sbagliato.",
+    "textLabel": "Cosa fa il test",
+    "placeholder": "Vai su https://example.com/login\nScrivi \"admin\" nel campo Username\nFai clic sul pulsante Sign in\nVerifica che la dashboard sia visibile",
+    "projectLabel": "Progetto di cui si possono nominare gli elementi (facoltativo)",
+    "noProject": "Solo ciò che viene rilevato in questa pagina",
+    "projectHint": "Uno step che nomina un elemento salvato legge il selettore dal repository, quindi una correzione successiva raggiunge anche questo test.",
+    "fromModel": "IA",
+    "noModel": "Non è configurata una chiave AI, quindi sono state lette solo le frasi che il sistema capisce da solo.",
+    "read": "Leggi la descrizione",
+    "insert_one": "Inserisci {{count}} step",
+    "insert_other": "Inserisci {{count}} step"
+  },
+  "keepElement": {
+    "projectRequired": "Scegli il progetto a cui appartiene questo elemento.",
+    "nameRequired": "Dai un nome all'elemento: è così che verrà riconosciuto.",
+    "title": "Salva questo elemento",
+    "description": "Da ora questo elemento appartiene al progetto: ogni test che lo usa legge un solo selettore, e una correzione li raggiunge tutti insieme.",
+    "projectLabel": "Progetto",
+    "projectPlaceholder": "Scegli un progetto",
+    "nameLabel": "Nome",
+    "selector": "Selettore",
+    "save": "Salva"
+  },
+  "saveStepGroup": {
+    "nameRequired": "Dai un nome al gruppo: è così che i test lo richiameranno.",
+    "title": "Salva come gruppo di step",
+    "description_one": "Questo step diventa un gruppo. Un test che lo richiama esegue ciò che il gruppo contiene al momento dell'esecuzione, quindi modificare il gruppo in seguito cambia ogni test che lo richiama.",
+    "description_other": "Questi {{count}} step diventano un gruppo. Un test che lo richiama esegue ciò che il gruppo contiene al momento dell'esecuzione, quindi modificare il gruppo in seguito cambia ogni test che lo richiama.",
+    "nameLabel": "Nome",
+    "namePlaceholder": "Login",
+    "descriptionLabel": "Descrizione"
+  },
+  "tags": {
+    "edit": "Modifica tag",
+    "add": "Aggiungi tag",
+    "newPlaceholder": "Nuovo tag",
+    "none": "Ancora nessun tag. La prima parola che scrivi diventa un tag."
+  },
+  "issues": {
+    "openInTracker": "Apri nel tracker",
+    "file": "Apri issue"
+  },
+  "testNode": {
+    "stepGroup": {
+      "badge": "gruppo"
+    }
   }
 }

@@ -113,7 +113,7 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
     onSuccess: (newlyCreatedProject: Project) => { // Ensure newlyCreatedProject has the Project type
       // Ensure newlyCreatedProject is not undefined or a Response object before accessing .name
       const projectName = newlyCreatedProject && newlyCreatedProject.name ? newlyCreatedProject.name : "Unnamed Project";
-      toast({ title: t('saveTestModal.notifications.projectCreated.title', 'Project Created'), description: t('saveTestModal.notifications.projectCreated.description', `Project "${projectName}" created successfully.`) });
+      toast({ title: t('saveTestModal.notifications.projectCreated.title', 'Project Created'), description: t('saveTestModal.notifications.projectCreated.description', 'Project "{{name}}" created successfully.', { name: projectName }) });
       setIsCreateProjectModalOpen(false);
       setNewProjectName('');
 
