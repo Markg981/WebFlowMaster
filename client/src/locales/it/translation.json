@@ -106,7 +106,7 @@
       "notifications": "Notifiche",
       "notificationsDescription": "Per quali eventi vale la pena interromperti.",
       "account": "Account",
-      "accountDescription": "I dati del tuo accesso e le azioni che non si possono annullare.",
+      "accountDescription": "Il tuo username, e il cambio della password.",
       "runUsage": "Utilizzo dei run",
       "runUsageDescription": "Quanti run di questa organizzazione sono in corso o in attesa, rispetto ai suoi limiti.",
       "auditLog": "Registro di audit",
@@ -231,7 +231,15 @@
       "usernameDescription": "Il nome utente non può essere cambiato dopo la registrazione",
       "dangerZoneLabel": "Zona pericolosa",
       "dangerZoneDescription": "Queste azioni non si possono annullare",
-      "deleteAccountButton": "Elimina account"
+      "deleteAccountButton": "Elimina account",
+      "signedInAs": "Accesso come {{username}}. Lo username non si può cambiare.",
+      "currentPassword": "Password attuale",
+      "newPassword": "Nuova password",
+      "confirmPassword": "Ripeti la nuova password",
+      "tooShort": "Almeno 8 caratteri.",
+      "mismatch": "Le due nuove password sono diverse.",
+      "changePassword": "Cambia password",
+      "passwordChanged": "Password cambiata. Le altre sessioni che avevi aperte sono state chiuse."
     },
     "pageTitle": "Impostazioni",
     "elements": {
@@ -310,7 +318,10 @@
       "heirMe": "me",
       "heirOtherOwner": "un altro owner",
       "cancel": "Annulla",
-      "removeConfirm": "Rimuovi membro"
+      "removeConfirm": "Rimuovi membro",
+      "resetPassword": "Link di reset della password per {{username}}",
+      "resetIntro": "Manda questo link a {{username}} per scegliere una nuova password. Viene mostrato solo ora, funziona una volta e vale un giorno.",
+      "resetLinkLabel": "Link di reset della password"
     }
   },
   "dashboard": {
@@ -1003,6 +1014,13 @@
     },
     "invitationUsername": {
       "description": "Usa lo username con cui sei stato invitato."
+    },
+    "reset": {
+      "description": "Scegli una nuova password per il tuo account. Il link funziona una volta sola.",
+      "newPassword": "Nuova password",
+      "confirm": "Ripeti la nuova password",
+      "submit": "Imposta la nuova password",
+      "done": "La password è stata cambiata. Accedi con quella nuova."
     }
   },
   "dashboardPageNew": {
@@ -2379,7 +2397,10 @@
       "agent_created": "Agente locale creato",
       "agent_revoked": "Agente locale revocato",
       "source_host_connected": "GitHub o GitLab connesso",
-      "source_host_removed": "GitHub o GitLab disconnesso"
+      "source_host_removed": "GitHub o GitLab disconnesso",
+      "auth_password_changed": "Password cambiata",
+      "auth_password_reset_issued": "Link di reset della password emesso",
+      "auth_password_reset_completed": "Password reimpostata con un link"
     }
   },
   "security": {

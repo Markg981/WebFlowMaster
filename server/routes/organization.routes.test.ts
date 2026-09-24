@@ -590,6 +590,52 @@ describe('removing a member who made things', () => {
   });
 });
 
+describe('POST /api/organization/members/:userId/password-reset', () => {
+  afterEach(async () => {
+    await privilegedDb.execute(sql`DELETE FROM password_resets WHERE organization_id = ${orgId}`);
+  });
+
+  it('issues a one-time link for a member, returned once, and records it without the token', async () => {
+    const res = await request(app).post(`/api/organization/members/${editorId}/password-reset`);
+
+    expect(res.status).toBe(201);
+    expect(res.body.username).toBe('org-editor');
+    expect(res.body.token).toEqual(expect.any(String));
+    const stored = await privilegedDb.execute(sql`SELECT token_hash FROM password_resets WHERE user_id = ${editorId}`);
+    expect((stored.rows[0] as { token_hash: string }).token_hash).not.toBe(res.body.token);
+    const entry = await privilegedDb.execute(sql`
+      SELECT metadata FROM audit_log WHERE organization_id = ${orgId} AND action = 'auth.password_reset_issued'
+    `);
+    expect(entry.rows).toHaveLength(1);
+    expect(JSON.stringify(entry.rows[0])).not.toContain(res.body.token);
+  });
+
+  it('refuses one for oneself, and for someone in another organization', async () => {
+    const self = await request(app).post(`/api/organization/members/${ownerId}/password-reset`);
+    expect(self.status).toBe(400);
+
+    const elsewhere = await privilegedDb.execute(sql`INSERT INTO organizations (name) VALUES ('Other') RETURNING id`);
+    const otherOrg = Number((elsewhere.rows[0] as { id: number }).id);
+    const stranger = await privilegedDb.execute(sql`
+      INSERT INTO users (username, password, organization_id, role) VALUES ('reset-stranger', 'x', ${otherOrg}, 'owner') RETURNING id
+    `);
+    const strangerId = Number((stranger.rows[0] as { id: number }).id);
+    try {
+      const res = await request(app).post(`/api/organization/members/${strangerId}/password-reset`);
+      expect(res.status).toBe(404);
+    } finally {
+      await privilegedDb.execute(sql`DELETE FROM users WHERE organization_id = ${otherOrg}`);
+      await privilegedDb.execute(sql`DELETE FROM organizations WHERE id = ${otherOrg}`);
+    }
+  });
+
+  it('refuses an editor', async () => {
+    currentUser = { id: editorId, role: 'editor', organizationId: orgId };
+    const res = await request(app).post(`/api/organization/members/${ownerId}/password-reset`);
+    expect(res.status).toBe(403);
+  });
+});
+
 describe('role gating', () => {
   it('refuses member management to an editor', async () => {
     currentUser = { id: editorId, role: 'editor', organizationId: orgId };

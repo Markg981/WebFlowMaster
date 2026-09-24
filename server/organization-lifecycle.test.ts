@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { privilegedDb } from './db';
 import { ORG_SCOPED_TABLES } from '@shared/schema';
-import { exportOrganization, eraseOrganization } from './organization-lifecycle';
+import { exportOrganization, eraseOrganization, NOT_EXPORTED } from './organization-lifecycle';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { recordAudit } from './audit';
 import { AUDIT_ACTIONS } from '@shared/schema';
@@ -57,7 +57,12 @@ describe('exportOrganization', () => {
     expect(exported.organization.id).toBe(orgA);
     // Enumerated from the schema, not from a list in the test: a table added to
     // ORG_SCOPED_TABLES and forgotten in the exporter fails here.
+    // The only exceptions are declared, with their reason, next to the exporter.
     for (const table of ORG_SCOPED_TABLES) {
+      if (NOT_EXPORTED.has(table)) {
+        expect(exported.data[table], `${table} is a credential and must not be exported`).toBeUndefined();
+        continue;
+      }
       expect(exported.data[table], `${table} missing from the export`).toBeDefined();
     }
     expect(exported.data.users).toBeDefined();

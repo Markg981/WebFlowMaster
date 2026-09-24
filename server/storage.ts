@@ -1,6 +1,9 @@
 import { organizations, users, invitations, auditLog, AUDIT_ACTIONS, tests, testRuns, userSettings, sessions, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
 import { privilegedDb } from "./db";
-import { eq, desc, sql } from "drizzle-orm";
+import { and, eq, desc, isNull, sql } from "drizzle-orm";
+import { passwordResets } from "@shared/schema";
+import { hashResetToken, issuePasswordReset, type IssuedReset } from "./password-reset";
+import type { TenantTx } from "./middleware/tenancy";
 import session from "express-session";
 import { randomBytes } from "node:crypto";
 
@@ -189,6 +192,92 @@ export class DatabaseStorage implements IStorage {
 
       return user;
     });
+  }
+
+  /**
+   * Sets a person's password hash. Privileged because app_user may not write `users` passwords
+   * from a tenant transaction any more than it may insert users; the caller has already proved
+   * who it is acting for (the current password, or a reset link).
+   */
+  async updatePassword(userId: number, passwordHash: string): Promise<User | undefined> {
+    const [user] = await privilegedDb.update(users).set({ password: passwordHash }).where(eq(users.id, userId)).returning();
+    return user;
+  }
+
+  /**
+   * Redeems a one-time password reset link (server/password-reset.ts) and sets the new password.
+   *
+   * Privileged for the same reason as accepting an invitation: nobody is signed in, so there is no
+   * tenant context, and the link is the only thing that says whose password this is. The claim is
+   * a conditional update on used_at inside one transaction with the password change, so two
+   * requests racing with the same link cannot both succeed.
+   */
+  async redeemPasswordReset(
+    token: string,
+    passwordHash: string,
+    ipAddress: string | null,
+  ): Promise<User | { error: 'invalid' | 'expired' | 'used' }> {
+    return privilegedDb.transaction(async (tx) => {
+      const [reset] = await tx.select().from(passwordResets).where(eq(passwordResets.tokenHash, hashResetToken(token))).limit(1);
+      if (!reset) return { error: 'invalid' as const };
+      if (reset.usedAt) return { error: 'used' as const };
+      if (reset.expiresAt.getTime() <= Date.now()) return { error: 'expired' as const };
+
+      const claimed = await tx
+        .update(passwordResets)
+        .set({ usedAt: new Date() })
+        .where(and(eq(passwordResets.id, reset.id), isNull(passwordResets.usedAt)))
+        .returning();
+      if (claimed.length === 0) return { error: 'used' as const };
+
+      const [user] = await tx
+        .update(users)
+        .set({ password: passwordHash })
+        .where(and(eq(users.id, reset.userId), eq(users.kind, 'person'), isNull(users.disabledAt)))
+        .returning();
+      if (!user) return { error: 'invalid' as const };
+
+      // As for an accepted invitation: no tenant context exists, so the organization comes from the
+      // reset row, in the same transaction as the change.
+      await tx.insert(auditLog).values({
+        organizationId: reset.organizationId,
+        actorUserId: user.id,
+        actorUsername: user.username,
+        ipAddress,
+        action: AUDIT_ACTIONS.PASSWORD_RESET_COMPLETED,
+        targetType: 'user',
+        targetId: String(user.id),
+        metadata: { resetId: reset.id },
+      });
+      return user;
+    });
+  }
+
+  /**
+   * A reset link issued by the operator, for a person nobody in their organization can help —
+   * typically its only owner. Privileged: the operator is not a member of any organization.
+   */
+  async issuePasswordResetAsOperator(username: string): Promise<({ username: string } & IssuedReset) | null> {
+    const user = await this.getUserByUsername(username);
+    if (!user || user.kind !== 'person') return null;
+    const issued = await privilegedDb.transaction(async (tx) => {
+      const reset = await issuePasswordReset(tx as unknown as TenantTx, {
+        organizationId: user.organizationId,
+        userId: user.id,
+        createdBy: null,
+      });
+      await tx.insert(auditLog).values({
+        organizationId: user.organizationId,
+        actorUserId: null,
+        actorUsername: null,
+        action: AUDIT_ACTIONS.PASSWORD_RESET_ISSUED,
+        targetType: 'user',
+        targetId: String(user.id),
+        metadata: { username: user.username, by: 'operator' },
+      });
+      return reset;
+    });
+    return { username: user.username, ...issued };
   }
 
   /**

@@ -58,6 +58,11 @@ registrazione pubblica, in cui ogni nuovo account ottiene una propria organizzaz
   per tutta l'organizzazione, e l'obbligo vale anche per le sessioni già aperte.
 - Le **sessioni** sono lato server (Redis) e durano 7 giorni. Il cookie è `HttpOnly`,
   `SameSite=Lax` e `Secure` in produzione. L'accesso genera un nuovo id di sessione.
+- **Cambiare la password** richiede quella attuale e una sessione, non una chiave API. Una
+  password dimenticata si recupera con un link monouso emesso da un owner (o, per l'unico owner di
+  un'organizzazione, dall'operatore), valido un giorno e salvato solo come hash. Una sessione
+  porta un'impronta della password con cui è stata aperta, quindi una nuova password chiude tutte
+  le altre sessioni di quella persona.
 - **Ruoli**: viewer, editor, owner, verificati su ogni endpoint. Vedi
   [Amministrazione](../admin/administration#ruoli).
 
@@ -181,11 +186,8 @@ chiave solo dove inviarlo a Google è accettabile; tutto il resto funziona anche
 
 Dichiarati perché una valutazione possa pesarli, invece di scoprirli dopo:
 
-- **Nessun cambio o reset della password.** Una persona non può cambiare la propria password
-  nell'applicazione, e un owner non può reimpostare quella di un altro. Il secondo fattore può
-  essere azzerato da un owner.
 - **Nessun single sign-on** (SAML, OpenID Connect), nessuna regola sulla complessità delle
-  password oltre alla lunghezza, e nessun invio di e-mail: i link di invito li consegna l'owner.
+  password oltre alla lunghezza, e nessun invio di e-mail: i link di invito e di reset della password li consegna l'owner.
 - **Nessuna intestazione Content Security Policy.**
 - **Nessun limite di frequenza sull'API pubblica** oltre ai limiti sui run per organizzazione.
 - **Le impostazioni dei log a livello di installazione** possono essere cambiate dall'owner di

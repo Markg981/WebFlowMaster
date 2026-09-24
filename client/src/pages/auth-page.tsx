@@ -26,13 +26,24 @@ function invitationFromUrl(): { token: string; username: string } {
   return { token: query.get('invitation') ?? '', username: query.get('username') ?? '' };
 }
 
+/** A password reset link an owner or the operator issued: /auth?reset=<token>&username=<name>. */
+function resetFromUrl(): { token: string; username: string } {
+  const query = new URLSearchParams(window.location.search);
+  return { token: query.get('reset') ?? '', username: query.get('username') ?? '' };
+}
+
 export default function AuthPage() {
   const { t } = useTranslation();
   const { user, loginMutation, registerMutation, mfaChallenge } = useAuth();
   const [, navigate] = useLocation();
   const [invited] = useState(invitationFromUrl);
+  const [reset] = useState(resetFromUrl);
+  const [resetDone, setResetDone] = useState(false);
+  const [resetData, setResetData] = useState({ password: "", confirmPassword: "" });
+  const [resetError, setResetError] = useState("");
+  const [resetPending, setResetPending] = useState(false);
 
-  const [loginData, setLoginData] = useState({ username: "", password: "" });
+  const [loginData, setLoginData] = useState({ username: reset.username, password: "" });
   const [registerData, setRegisterData] = useState({
     username: invited.username,
     password: "",
@@ -59,6 +70,31 @@ export default function AuthPage() {
       navigate("/dashboard");
     }
   }, [user, navigate]);
+
+  // Choosing a new password with a reset link (server/auth.ts, POST /api/password-reset). Then the
+  // person signs in as usual, with their second factor if they have one.
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (resetData.password.length < 8 || resetData.password !== resetData.confirmPassword) return;
+    setResetPending(true);
+    setResetError("");
+    try {
+      const response = await fetch('/api/password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: reset.token, newPassword: resetData.password }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.message || 'Could not set the new password');
+      if (body.username) setLoginData({ username: body.username, password: "" });
+      setResetDone(true);
+      window.history.replaceState(null, '', window.location.pathname);
+    } catch (error) {
+      setResetError((error as Error).message);
+    } finally {
+      setResetPending(false);
+    }
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,7 +171,64 @@ export default function AuthPage() {
               <CardContent>
                 {mfaChallenge ? (
                   <MfaChallengeForm />
+                ) : reset.token && !resetDone ? (
+                  <form onSubmit={handleReset} className="space-y-4" data-testid="reset-form">
+                    <p className="text-sm text-muted-foreground">
+                      {t('authPage.reset.description', 'Choose a new password for your account. The link works once.')}
+                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="reset-password">{t('authPage.reset.newPassword', 'New password')}</Label>
+                      <Input
+                        id="reset-password"
+                        type="password"
+                        autoComplete="new-password"
+                        className="bg-muted/30 focus-visible:ring-primary/50"
+                        value={resetData.password}
+                        onChange={(e) => setResetData({ ...resetData, password: e.target.value })}
+                        required
+                        minLength={8}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reset-confirm">{t('authPage.reset.confirm', 'Repeat the new password')}</Label>
+                      <Input
+                        id="reset-confirm"
+                        type="password"
+                        autoComplete="new-password"
+                        className="bg-muted/30 focus-visible:ring-primary/50"
+                        value={resetData.confirmPassword}
+                        onChange={(e) => setResetData({ ...resetData, confirmPassword: e.target.value })}
+                        required
+                      />
+                    </div>
+                    {resetData.confirmPassword && resetData.password !== resetData.confirmPassword && (
+                      <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{t('authPage.passwordsDoNotMatch.description')}</AlertDescription>
+                      </Alert>
+                    )}
+                    {resetError && (
+                      <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{resetError}</AlertDescription>
+                      </Alert>
+                    )}
+                    <Button
+                      type="submit"
+                      className="w-full h-11 text-base font-bold"
+                      disabled={resetPending || resetData.password.length < 8 || resetData.password !== resetData.confirmPassword}
+                    >
+                      {t('authPage.reset.submit', 'Set the new password')}
+                    </Button>
+                  </form>
                 ) : (
+                  <>
+                  {resetDone && (
+                    <Alert className="mb-4" data-testid="reset-done">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <AlertDescription>{t('authPage.reset.done', 'Your password has been changed. Sign in with the new one.')}</AlertDescription>
+                    </Alert>
+                  )}
                 <Tabs defaultValue={invited.token ? "register" : "login"} className="w-full">
                   <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted/50 p-1">
                     <TabsTrigger value="login" className="data-[state=active]:shadow-sm">
@@ -296,6 +389,7 @@ export default function AuthPage() {
                     </TabsContent>
                   </AnimatePresence>
                 </Tabs>
+                  </>
                 )}
               </CardContent>
             </Card>

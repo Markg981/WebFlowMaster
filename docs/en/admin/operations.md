@@ -76,6 +76,23 @@ installation starts; after that the saved setting wins. A new log level applies 
 web process that saved it; other processes pick it up when they restart, and so does a new
 retention period.
 
+## Recovering access {#recovering-access}
+
+A member who forgot their password gets a reset link from an owner of their organization
+(**Settings → Members**). When nobody can issue one — the organization's only owner is the one
+locked out — the operator issues it from the command line, on a machine with the installation's
+environment:
+
+```bash
+node dist/password-reset-link.js alice               # a built installation
+docker compose exec api node dist/password-reset-link.js alice
+npm run user:reset-link -- alice                     # from source
+```
+
+It prints a link, valid for a day and usable once, built on `WEBFLOW_PUBLIC_URL`. The
+organization's audit log records that the operator issued it. Hand it to the person through a
+channel that confirms who they are.
+
 ## Monitoring
 
 | What | Signal |

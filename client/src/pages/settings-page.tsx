@@ -58,6 +58,7 @@ import EnvironmentsCard from "@/components/settings/EnvironmentsCard";
 import ApiKeysCard from "@/components/settings/ApiKeysCard";
 import ServiceAccountsCard from "@/components/settings/ServiceAccountsCard";
 import MembersCard from "@/components/settings/MembersCard";
+import ChangePasswordCard from "@/components/settings/ChangePasswordCard";
 import AgentsCard from "@/components/settings/AgentsCard";
 import SourceHostsCard from "@/components/settings/SourceHostsCard";
 import RunUsageCard from "@/components/settings/RunUsageCard";
@@ -829,28 +830,9 @@ export default function SettingsPage() {
       label: t('settings.sections.account'),
       description: t('settings.sections.accountDescription'),
       icon: User,
-      content: (
-        <>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2"><User className="h-4 w-4 text-muted-foreground" /><span>{t('settings.account.title',"Account")}</span></CardTitle>
-            <CardDescription>{t('settings.account.description',"Manage your account settings (Not saved to backend)")}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>{t('settings.account.usernameLabel',"Username")}</Label><Input value={user?.username || ""} disabled /><p className="text-sm text-muted-foreground">{t('settings.account.usernameDescription',"Username cannot be changed after registration")}</p>
-            </div>
-            <Separator />
-            <div>
-              <Label className="text-sm font-medium text-destructive">{t('settings.account.dangerZoneLabel',"Danger Zone")}</Label>
-              <p className="text-sm text-muted-foreground mb-3">{t('settings.account.dangerZoneDescription',"These actions cannot be undone")}</p>
-              <Button variant="destructive" size="sm" disabled={isPageDisabled}>{t('settings.account.deleteAccountButton',"Delete Account")}</Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        </>
-      ),
+      // A "Delete account" button used to sit here that did nothing. Removing a person is an
+      // owner's act, in Members, where what they made is handed on.
+      content: <ChangePasswordCard />,
     },
   ];
 

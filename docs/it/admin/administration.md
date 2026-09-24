@@ -55,9 +55,20 @@ altro membro: a voi, a meno che nella finestra non ne scegliate un altro. Un own
 se stesso lo passa a un altro owner. Il registro di audit ne conserva il nome e registra chi è
 subentrato.
 
+**Emettere un link di reset della password** con l'icona del link, per un membro che ha
+dimenticato la password. La pagina mostra il link una volta sola: consegnatelo voi, perché non
+viene inviata alcuna e-mail. Apre un modulo per scegliere una nuova password, funziona una volta e
+vale un giorno; emetterne un altro sostituisce il precedente. Il membro poi accede come sempre,
+con il secondo fattore se lo ha. Per l'unico owner di un'organizzazione, il link lo emette
+l'operatore dalla riga di comando (vedi [Recuperare l'accesso](./operations#recuperare-l-accesso)).
+
 **Azzerare il secondo fattore di un membro** con l'icona della chiave, quando ha perso sia il
 dispositivo sia i codici di recupero. Accede con la password e, se l'organizzazione lo richiede,
 lo configura di nuovo.
+
+Ognuno cambia la propria password in **Impostazioni → Account**, inserendo quella attuale.
+Cambiare una password, o reimpostarla con un link, chiude tutte le altre sessioni di quella
+persona.
 
 Ognuna di queste operazioni viene registrata nel [registro di audit](#registro-di-audit).
 
@@ -72,6 +83,7 @@ Con la chiave API ad accesso completo di un owner (`Authorization: Bearer wfm_�
 | Registrarsi con un invito | `POST /api/register` con `{"username","password","invitationToken"}` |
 | Cambiare un ruolo | `PATCH /api/organization/members/<userId>` con `{"role":"owner"}` |
 | Rimuovere | `DELETE /api/organization/members/<userId>`, facoltativamente con `{"transferTo":<userId>}` |
+| Link di reset della password | `POST /api/organization/members/<userId>/password-reset`; la risposta contiene il token, una volta. Il link è `/auth?reset=<token>` |
 | Azzerare il secondo fattore | `DELETE /api/organization/members/<userId>/mfa` |
 :::
 

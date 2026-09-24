@@ -106,7 +106,7 @@
       "notifications": "Notifications",
       "notificationsDescription": "Les événements qui méritent de vous interrompre.",
       "account": "Compte",
-      "accountDescription": "Vos informations de connexion et les actions irréversibles.",
+      "accountDescription": "Votre nom d'utilisateur, et le changement de mot de passe.",
       "runUsage": "Utilisation des exécutions",
       "runUsageDescription": "Combien d'exécutions de cette organisation sont en cours ou en attente, par rapport à ses limites.",
       "auditLog": "Journal d’audit",
@@ -231,7 +231,15 @@
       "usernameDescription": "Le nom d'utilisateur ne peut pas être modifié après l'inscription",
       "dangerZoneLabel": "Zone de danger",
       "dangerZoneDescription": "Ces actions sont irréversibles",
-      "deleteAccountButton": "Supprimer le compte"
+      "deleteAccountButton": "Supprimer le compte",
+      "signedInAs": "Connecté en tant que {{username}}. Le nom d'utilisateur ne peut pas être modifié.",
+      "currentPassword": "Mot de passe actuel",
+      "newPassword": "Nouveau mot de passe",
+      "confirmPassword": "Répétez le nouveau mot de passe",
+      "tooShort": "Au moins 8 caractères.",
+      "mismatch": "Les deux nouveaux mots de passe sont différents.",
+      "changePassword": "Changer le mot de passe",
+      "passwordChanged": "Mot de passe modifié. Vos autres sessions ouvertes ont été déconnectées."
     },
     "pageTitle": "Paramètres",
     "elements": {
@@ -310,7 +318,10 @@
       "heirMe": "moi",
       "heirOtherOwner": "un autre propriétaire",
       "cancel": "Annuler",
-      "removeConfirm": "Retirer le membre"
+      "removeConfirm": "Retirer le membre",
+      "resetPassword": "Lien de réinitialisation du mot de passe pour {{username}}",
+      "resetIntro": "Envoyez ce lien à {{username}} pour choisir un nouveau mot de passe. Il n’est affiché que maintenant, fonctionne une fois et reste valable un jour.",
+      "resetLinkLabel": "Lien de réinitialisation"
     }
   },
   "dashboard": {
@@ -942,6 +953,13 @@
     },
     "invitationUsername": {
       "description": "Utilisez le nom d'utilisateur avec lequel vous avez été invité."
+    },
+    "reset": {
+      "description": "Choisissez un nouveau mot de passe pour votre compte. Le lien ne fonctionne qu’une fois.",
+      "newPassword": "Nouveau mot de passe",
+      "confirm": "Répétez le nouveau mot de passe",
+      "submit": "Définir le nouveau mot de passe",
+      "done": "Votre mot de passe a été modifié. Connectez-vous avec le nouveau."
     }
   },
   "dashboardPageNew": {
@@ -2261,7 +2279,10 @@
       "agent_created": "Agent local créé",
       "agent_revoked": "Agent local révoqué",
       "source_host_connected": "GitHub ou GitLab connecté",
-      "source_host_removed": "GitHub ou GitLab déconnecté"
+      "source_host_removed": "GitHub ou GitLab déconnecté",
+      "auth_password_changed": "Mot de passe modifié",
+      "auth_password_reset_issued": "Lien de réinitialisation émis",
+      "auth_password_reset_completed": "Mot de passe réinitialisé par lien"
     }
   },
   "security": {

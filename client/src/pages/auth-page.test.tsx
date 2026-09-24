@@ -80,6 +80,32 @@ describe('AuthPage and invitations', () => {
     expect(screen.queryByLabelText('Invitation code')).toBeNull();
   });
 
+  it('opens a reset link on the new-password form, and then offers to sign in', async () => {
+    const token = 'r'.repeat(40);
+    window.history.replaceState(null, '', `/auth?reset=${token}&username=maria`);
+    fetchMock.mockImplementation(async (url: string) =>
+      url === '/api/password-reset'
+        ? { ok: true, json: async () => ({ reset: true, username: 'maria' }) }
+        : { ok: true, json: async () => ({ mode: 'invitation', selfRegistration: false, firstAccount: false }) },
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <AuthPage />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'chosen-again' } });
+    fireEvent.change(screen.getByLabelText('Repeat the new password'), { target: { value: 'chosen-again' } });
+    fireEvent.submit(screen.getByTestId('reset-form'));
+
+    expect(await screen.findByTestId('reset-done')).toBeInTheDocument();
+    const post = fetchMock.mock.calls.find(([url]: any[]) => url === '/api/password-reset');
+    expect(JSON.parse(post![1].body)).toEqual({ token, newPassword: 'chosen-again' });
+    expect((document.getElementById('login-username') as HTMLInputElement).value).toBe('maria');
+  });
+
   it('asks for no code where registration is open', async () => {
     renderPage({ mode: 'open', selfRegistration: true, firstAccount: false });
     fireEvent.mouseDown(screen.getByRole('tab', { name: 'authPage.register.button' }));

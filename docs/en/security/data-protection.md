@@ -29,6 +29,7 @@ organization testing against production-like data should assume it does.
 | Run results | Verdicts, step outcomes, error messages, who started the run, CI context (repository, commit, branch, build) | Database | Until the organization is erased |
 | Run evidence | Screenshots, videos, Playwright traces, network captures without bodies or credentials | Artifact store (disk or S3) | `ARTIFACT_RETENTION_DAYS`, 90 days by default |
 | Visual baselines | Reference screenshots | Artifact store | Until replaced or removed |
+| Password reset links | Whose, who issued it, a hash of the token | Database | One day, or until used; not included in exports |
 | Invitations | Invited username, role, who invited | Database | Until revoked; the invitation token expires after 7 days |
 | Uploaded spreadsheets | Imported test cases | Local disk while being read | Deleted once parsed |
 

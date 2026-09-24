@@ -79,6 +79,23 @@ solo il valore del primo avvio; dopo vince l'impostazione salvata. Un nuovo live
 subito al processo web che lo ha salvato; gli altri processi lo leggono al riavvio, e lo stesso
 vale per un nuovo periodo di conservazione.
 
+## Recuperare l'accesso {#recuperare-l-accesso}
+
+Un membro che ha dimenticato la password riceve un link di reset da un owner della sua
+organizzazione (**Impostazioni → Membri**). Quando nessuno può emetterlo — è proprio l'unico owner
+a essere rimasto fuori — lo emette l'operatore dalla riga di comando, su una macchina con
+l'ambiente dell'installazione:
+
+```bash
+node dist/password-reset-link.js alice               # un'installazione compilata
+docker compose exec api node dist/password-reset-link.js alice
+npm run user:reset-link -- alice                     # dai sorgenti
+```
+
+Stampa un link, valido un giorno e utilizzabile una volta, costruito su `WEBFLOW_PUBLIC_URL`. Il
+registro di audit dell'organizzazione annota che l'ha emesso l'operatore. Consegnatelo alla
+persona con un canale che ne confermi l'identità.
+
 ## Monitoraggio
 
 | Cosa | Segnale |

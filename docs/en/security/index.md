@@ -54,6 +54,10 @@ sign-up, where each new account gets an organization of its own.
   require two-factor for the whole organization, which applies to sessions already open.
 - **Sessions** are server-side (Redis), for 7 days. The cookie is `HttpOnly`, `SameSite=Lax` and
   `Secure` in production. Signing in issues a new session id.
+- **Changing a password** needs the current one and a signed-in session, not an API key. A
+  forgotten password is recovered with a one-time link an owner issues (or, for an organization's
+  only owner, the operator), valid for a day and stored only as a hash. A session carries a stamp
+  of the password it was opened with, so a new password ends every other session of that person.
 - **Roles**: viewer, editor, owner, checked on every endpoint. See
   [Administration](../admin/administration#roles).
 
@@ -172,10 +176,8 @@ sending it to Google is acceptable; everything else works without it.
 
 Stated so a review can weigh them, not discovered later:
 
-- **No password change or reset.** A person cannot change their password in the application,
-  and an owner cannot reset someone else's. Two-factor can be reset by an owner.
 - **No single sign-on** (SAML, OpenID Connect), no password complexity rules beyond length, and
-  no e-mail delivery: invitation links are handed over by the owner.
+  no e-mail delivery: invitation and password reset links are handed over by the owner.
 - **No Content Security Policy** header.
 - **No rate limit on the public API** beyond the per-organization limits on runs.
 - **Installation-wide log settings** can be changed by any organization's owner.

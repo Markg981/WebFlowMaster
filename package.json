@@ -7,7 +7,7 @@
     "dev": "cross-env NODE_ENV=development tsx --require dotenv/config server/index.ts",
     "dev:worker": "cross-env NODE_ENV=development tsx --require dotenv/config server/worker.ts",
     "import:netcontent": "cross-env tsx --require dotenv/config scripts/import-netcontent-api.ts",
-    "build": "npm run build --workspace=client && npm run build:server && npm run build:migrator && npm run build:cli && npm run build:agent",
+    "build": "npm run build --workspace=client && npm run build:server && npm run build:migrator && npm run build:reset-link && npm run build:cli && npm run build:agent",
     "build:server": "esbuild server/index.ts server/worker.ts --platform=node --packages=external --external:./vite --bundle --format=esm --outdir=dist",
     "build:migrator": "esbuild scripts/apply-migrations.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/apply-migrations.js",
     "start": "NODE_ENV=production node dist/index.js",
@@ -35,7 +35,9 @@
     "cli": "tsx --require dotenv/config scripts/wfm-cli.ts",
     "build:cli": "esbuild scripts/wfm-cli.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/wfm.js",
     "build:agent": "esbuild scripts/wfm-agent.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/wfm-agent.js",
-    "agent": "tsx --require dotenv/config scripts/wfm-agent.ts"
+    "agent": "tsx --require dotenv/config scripts/wfm-agent.ts",
+    "user:reset-link": "tsx --require dotenv/config scripts/password-reset-link.ts",
+    "build:reset-link": "esbuild scripts/password-reset-link.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/password-reset-link.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1138.0",

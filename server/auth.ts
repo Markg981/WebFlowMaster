@@ -2,7 +2,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express, type RequestHandler } from "express";
 import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { createHmac, scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { z } from "zod";
 import helmet from "helmet";
@@ -141,6 +141,16 @@ async function hashPassword(password: string) {
   return `${buf.toString("hex")}.${salt}`;
 }
 
+/**
+ * What a session remembers of the password it was opened with: an HMAC of the stored hash, so the
+ * session store holds nothing that helps guess the password, and a new password makes it differ.
+ */
+export function passwordStamp(storedHash: string): string {
+  return createHmac("sha256", process.env.SESSION_SECRET ?? "").update(storedHash).digest("hex").slice(0, 32);
+}
+
+const newPasswordSchema = z.string().min(8, "Password must be at least 8 characters").max(128);
+
 export async function comparePasswords(supplied: string, stored: string) {
   const [hashed, salt] = stored.split(".");
   const hashedBuf = Buffer.from(hashed, "hex");
@@ -215,10 +225,21 @@ export function setupAuth(app: Express) {
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
-  passport.deserializeUser(async (id: number, done) => {
-    const user = await storage.getUser(id);
-    done(null, user);
+  // A session names its user and a stamp of the password it was opened with. Changing the password
+  // changes the stamp, so every other session of that person stops being one at its next request —
+  // which is the point of changing a password someone else may know. A session from before stamps
+  // existed (a bare id) is not trusted either: it means signing in once more after this upgrade.
+  passport.serializeUser((user, done) => done(null, { id: user.id, pw: passwordStamp(user.password) }));
+  passport.deserializeUser(async (payload: unknown, done) => {
+    try {
+      const stamped = payload as { id?: unknown; pw?: unknown } | null;
+      if (!stamped || typeof stamped !== 'object' || typeof stamped.id !== 'number') return done(null, false);
+      const user = await storage.getUser(stamped.id);
+      if (!user || stamped.pw !== passwordStamp(user.password)) return done(null, false);
+      done(null, user);
+    } catch (error) {
+      done(error);
+    }
   });
 
   const registerHandler: RequestHandler = async (req, res, next) => {
@@ -384,6 +405,61 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       res.json(await publicUser(req.user as SelectUser));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /**
+   * Changing one's own password. A signed-in session only — these routes are mounted before API
+   * keys are read, so a key cannot do it — and the current password is asked again, because a
+   * session left open on someone else's screen should not be enough to take the account.
+   *
+   * The new password changes the session stamp (passwordStamp), which ends every other session of
+   * this person; this one is re-established on the new stamp so the person stays signed in here.
+   */
+  app.post("/api/user/password", authLimiter, async (req, res, next) => {
+    if (!req.isAuthenticated() || !req.user) return res.sendStatus(401);
+    const parsed = z.object({ currentPassword: z.string(), newPassword: newPasswordSchema }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid password", errors: parsed.error.flatten().fieldErrors });
+    }
+    try {
+      const user = req.user as SelectUser;
+      if (!(await comparePasswords(parsed.data.currentPassword, user.password))) {
+        await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_FAILED, req.ip, { reason: "wrong_current_password" });
+        return res.status(403).json({ message: "The current password is not correct.", code: "wrong_current_password" });
+      }
+      const updated = await storage.updatePassword(user.id, await hashPassword(parsed.data.newPassword));
+      if (!updated) return res.sendStatus(401);
+      await recordAuthEvent(updated, AUDIT_ACTIONS.PASSWORD_CHANGED, req.ip);
+      req.login(updated, (loginError) => {
+        if (loginError) return next(loginError);
+        res.json({ changed: true });
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /**
+   * Choosing a new password with a one-time link an owner or the operator issued
+   * (server/password-reset.ts). Nobody is signed in; the link is the credential. The person then
+   * signs in as usual — with their second factor, if they have one.
+   */
+  app.post("/api/password-reset", authLimiter, async (req, res, next) => {
+    const parsed = z.object({ token: z.string().min(1).max(200), newPassword: newPasswordSchema }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid request", errors: parsed.error.flatten().fieldErrors });
+    }
+    try {
+      const result = await storage.redeemPasswordReset(parsed.data.token, await hashPassword(parsed.data.newPassword), req.ip ?? null);
+      if ("error" in result) {
+        // One answer for unknown, used and expired, as for invitations: telling them apart would
+        // help someone probing for links.
+        return res.status(400).json({ message: "This link is not valid any more. Ask an owner of your organization for a new one.", code: "reset_invalid" });
+      }
+      res.json({ reset: true, username: result.username });
     } catch (error) {
       next(error);
     }
