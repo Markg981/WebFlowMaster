@@ -10,6 +10,7 @@ import {
   type ExecutionTrigger,
   type TestPlanExecution,
 } from '@shared/schema';
+import type { CiContext } from '@shared/ci';
 import { privilegedDb } from './db';
 import { getCorrelationId } from './middleware/correlation';
 import { runAsOrganization, withTenantTransaction } from './middleware/tenancy';
@@ -61,6 +62,8 @@ export interface EnqueueExecutionInput {
    * organization — a schedule's free-text "QA". Recorded for the reports; nothing is loaded.
    */
   environmentLabel?: string | null;
+  /** The build, commit and branch a pipeline started this run for (shared/ci.ts). */
+  ciContext?: CiContext | null;
 }
 
 /** More than this is not a retry policy, it is a loop. */
@@ -262,6 +265,7 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
               browsers: input.browsers ?? null,
               configurationSnapshot: snapshot,
               idempotencyKey: key,
+              ciContext: input.ciContext ?? null,
               attempt: 1,
               maxAttempts: Math.min(Math.max(Math.trunc(input.maxAttempts ?? 1), 1), MAX_ATTEMPTS_LIMIT),
             })
@@ -345,6 +349,8 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
             browsers: failed.browsers,
             configurationSnapshot: failed.configurationSnapshot,
             idempotencyKey: key,
+            // A retry answers the same build.
+            ciContext: failed.ciContext ?? null,
             attempt: failed.attempt + 1,
             maxAttempts: failed.maxAttempts,
             retryOfExecutionId: firstAttemptId,

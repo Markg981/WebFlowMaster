@@ -91,6 +91,13 @@ describe('summaryLine and buildPayload', () => {
     expect(line).toContain('chromium, firefox');
   });
 
+  it('names the build and the commit for a run a pipeline started', () => {
+    const ci = { provider: 'github' as const, repository: 'acme/shop', commit: '3f2a1c9d0e1b', branch: 'main', pullRequest: '17', buildId: '9001' };
+
+    expect(summaryLine({ ...summary, ci })).toContain(', GitHub Actions · acme/shop@3f2a1c9 on main · PR 17 · build 9001).');
+    expect((buildPayload({ ...summary, ci }) as any).execution.ci).toEqual(ci);
+  });
+
   it('carries a text field, which is what Slack and Teams both render', () => {
     const payload = buildPayload(summary) as any;
 

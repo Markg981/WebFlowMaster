@@ -11,6 +11,8 @@ import { requestCancellation } from "../execution-state";
 import { junitReportFor } from "../junit-report";
 import { exportRun, isReportExportFormat, REPORT_EXPORT_FORMATS, ReportExportError, sendExport } from "../report-export";
 import { openApiDocument } from "../api-v1/openapi";
+import { ciContextSchema } from "@shared/ci";
+import { reportUrlFor } from "../report-links";
 import loggerPromise from "../logger";
 
 /**
@@ -52,9 +54,13 @@ function toRun(row: TestPlanExecution & { testPlanName?: string | null }) {
     failure: row.failureCode ? { code: row.failureCode, message: row.failureMessage } : null,
     /** Which runner took it (host:pid:suffix); null while it waits. */
     runner: row.runnerId ?? null,
+    /** The build that asked for it, as it was sent; null for a run no pipeline started. */
+    ci: row.ciContext ?? null,
     links: {
       self: `/api/v1/runs/${row.id}`,
       junit: `/api/v1/runs/${row.id}/junit`,
+      /** The report page, absolute, when the installation knows its own address (APP_BASE_URL). */
+      report: reportUrlFor(row.testPlanId, row.id) ?? null,
     },
   };
 }
@@ -87,6 +93,8 @@ router.get("/api/v1/plans", requireScope('plans:read'), async (req, res) => {
 const startRunSchema = z.object({
   environmentId: z.number().int().positive().optional(),
   updateBaselines: z.boolean().optional(),
+  /** The build, commit and branch asking for the run. The CLI fills it in from the CI's environment. */
+  ci: ciContextSchema.optional(),
 }).strict();
 
 router.post("/api/v1/plans/:planId/runs", requireScope('runs:write'), async (req, res) => {
@@ -115,6 +123,7 @@ router.post("/api/v1/plans/:planId/runs", requireScope('runs:write'), async (req
       environmentId: parsed.data.environmentId ?? null,
       updateBaselines: parsed.data.updateBaselines,
       idempotencyKey,
+      ciContext: parsed.data.ci ?? null,
     });
     logger.info({ message: 'Run started through /api/v1', planId: plan.id, executionId: execution.id, userId: req.user!.id });
     // 202: the run is queued, not done. `Location` is where to ask how it is going.

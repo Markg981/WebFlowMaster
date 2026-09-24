@@ -53,6 +53,7 @@ import suitesRoutes from "./routes/suites.routes";
 import quarantineRoutes from "./routes/quarantine.routes";
 import { requireMfaEnrollment } from "./middleware/require-mfa-enrollment";
 import apiV1Routes from "./routes/api-v1.routes";
+import cliRoutes from "./routes/cli.routes";
 import webhookManagementRoutes from "./routes/webhooks.routes";
 import stepGroupsRoutes from "./routes/step-groups.routes";
 import projectElementsRoutes from "./routes/project-elements.routes";
@@ -140,6 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // API Routers
     // First: /api/v1 answers everything under it in its own words, including unknown paths.
+    app.use(cliRoutes);
     app.use(apiV1Routes);
     app.use(authRoutes);
     app.use(organizationRoutes);
@@ -1409,6 +1411,8 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         triggeredBy: execution.triggeredBy,
         // Which runner took it: where to look when one machine is the one that fails.
         runnerId: execution.runnerId ?? null,
+        // The build, commit and branch that asked for it, when a pipeline did.
+        ci: execution.ciContext ?? null,
         executionId: execution.id,
         testPlanId: execution.testPlanId,
         // Which attempt of its scheduled occurrence this run is, and where the others are.

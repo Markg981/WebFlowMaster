@@ -2,6 +2,7 @@ import { asc, eq } from 'drizzle-orm';
 import { reportTestCaseResults, testPlanExecutions, testPlans } from '@shared/schema';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import type { NetworkSummary } from '@shared/network';
+import type { CiContext } from '@shared/ci';
 import { withTenantTransaction } from './middleware/tenancy';
 import { artifactStore, assertSafeKey, contentTypeFor, RESULTS_PREFIX } from './artifact-store';
 
@@ -61,6 +62,8 @@ export interface ReportModel {
   durationMs: number | null;
   failureMessage: string | null;
   evidencePurged: boolean;
+  /** The build that asked for the run, when a pipeline did. */
+  ci: CiContext | null;
   counts: { total: number; passed: number; failed: number; errors: number; skipped: number; quarantinedFailures: number; flaky: number };
   results: ReportResultModel[];
 }
@@ -121,6 +124,7 @@ export async function loadReportModel(executionId: string): Promise<ReportModel 
     durationMs: execution.executionDurationMs,
     failureMessage: execution.failureMessage,
     evidencePurged: !!execution.artifactsPurgedAt,
+    ci: execution.ciContext ?? null,
     counts: {
       total: results.length,
       passed: count('Passed'),

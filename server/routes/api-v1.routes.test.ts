@@ -146,6 +146,32 @@ describe('starting a run', () => {
 
     expect(refused.body.error.code).toBe('invalid_request');
   });
+
+  it('records the build that asked for the run, and gives it back with the run', async () => {
+    const key = await keyFor(editor, org, ['runs:write', 'runs:read']);
+    const ci = {
+      provider: 'github', repository: 'acme/shop', commit: '3f2a1c9d0e1b', branch: 'main', pullRequest: '17',
+      buildId: '9001', buildUrl: 'https://github.com/acme/shop/actions/runs/9001', actor: 'mario',
+    };
+
+    const started = await request(app).post(`/api/v1/plans/${plan}/runs`).set(bearer(key)).send({ ci }).expect(202);
+    expect(started.body.ci).toEqual(ci);
+    const read = await request(app).get(`/api/v1/runs/${started.body.id}`).set(bearer(key)).expect(200);
+    expect(read.body.ci).toEqual(ci);
+    expect(read.body.links).toHaveProperty('report');
+  });
+
+  it('refuses a build link that is not http(s), and a commit that is not a hash, before queueing anything', async () => {
+    const key = await keyFor(editor, org, ['runs:write']);
+    for (const ci of [
+      { provider: 'github', buildUrl: 'javascript:alert(1)' },
+      { provider: 'github', commit: 'main; rm -rf /' },
+      { provider: 'teamcity' },
+    ]) {
+      const refused = await request(app).post(`/api/v1/plans/${plan}/runs`).set(bearer(key)).send({ ci }).expect(400);
+      expect(refused.body.error.code).toBe('invalid_request');
+    }
+  });
 });
 
 describe('reading and stopping runs', () => {

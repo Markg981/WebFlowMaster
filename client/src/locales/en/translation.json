@@ -1777,7 +1777,10 @@
       "error": "Did not finish"
     },
     "purged": "Screenshots, videos and traces of this run were removed on {{date}} by the retention policy. Its results are kept.",
-    "quarantinedFailures": "{{count}} of the failures below are of tests in quarantine: they are shown, and did not fail this run."
+    "quarantinedFailures": "{{count}} of the failures below are of tests in quarantine: they are shown, and did not fail this run.",
+    "ci": {
+      "label": "Build"
+    }
   },
   "scheduleEnvironment": {
     "label": "Environment",

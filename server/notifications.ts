@@ -1,5 +1,6 @@
 import { fetchTarget } from './outbound-http';
 import { reportUrlFor } from './report-links';
+import { describeCi, type CiContext } from '@shared/ci';
 
 /**
  * Telling somebody the run finished.
@@ -53,6 +54,8 @@ export interface RunSummary {
   triggeredBy: string;
   /** The browsers this run covered, so a notification says which matrix produced the number. */
   browsers?: string[];
+  /** The build that asked for the run, when a pipeline did: which commit broke is the first question. */
+  ci?: CiContext | null;
 }
 
 export interface NotificationResult {
@@ -136,7 +139,8 @@ export function summaryLine(summary: RunSummary): string {
         (summary.skippedTests > 0 ? `, ${summary.skippedTests} skipped` : '')
       : 'no tests ran';
   const browsers = summary.browsers?.length ? ` on ${summary.browsers.join(', ')}` : '';
-  return `${summary.planName}: ${verdict} — ${counts}${browsers} (${formatDuration(summary.durationMs)}, ${summary.triggeredBy}).`;
+  const trigger = summary.ci ? describeCi(summary.ci) : summary.triggeredBy;
+  return `${summary.planName}: ${verdict} — ${counts}${browsers} (${formatDuration(summary.durationMs)}, ${trigger}).`;
 }
 
 /**
@@ -163,6 +167,7 @@ export function buildPayload(summary: RunSummary): Record<string, unknown> {
       durationMs: summary.durationMs,
       triggeredBy: summary.triggeredBy,
       browsers: summary.browsers ?? [],
+      ci: summary.ci ?? null,
       url,
     },
   };

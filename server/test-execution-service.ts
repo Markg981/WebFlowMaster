@@ -1344,6 +1344,7 @@ async function runTestPlanJobInTenant(
           quarantinedFailures: failures.quarantined,
           durationMs: overallExecutionDurationMs,
           triggeredBy: executionRecord[0].triggeredBy ?? 'manual',
+          ci: executionRecord[0].ciContext ?? null,
           browsers: usablePasses.filter(Boolean).map((b) => (b as BrowserChoice).label),
         },
       });
@@ -1398,6 +1399,7 @@ async function runTestPlanJobInTenant(
           quarantinedFailures: failures.quarantined,
           durationMs: overallExecutionDurationMs,
           triggeredBy: executionRecord[0].triggeredBy ?? 'manual',
+          ci: executionRecord[0].ciContext ?? null,
           browsers: usablePasses.filter(Boolean).map((b) => (b as BrowserChoice).label),
         },
       });

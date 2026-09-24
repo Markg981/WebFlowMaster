@@ -1,5 +1,6 @@
 import { API_SCOPES, type ApiScope } from '@shared/api-scopes';
 import { EXECUTION_STATUSES } from '@shared/execution-status';
+import { CI_PROVIDERS } from '@shared/ci';
 
 /**
  * The description of /api/v1, served at /api/v1/openapi.json.
@@ -82,6 +83,22 @@ export const openApiDocument = {
           createdAt: { type: 'string', format: 'date-time' },
         },
       },
+      CiContext: {
+        type: 'object',
+        description: 'The build that asked for a run. The wfm CLI fills it in from the CI system\'s environment.',
+        required: ['provider'],
+        additionalProperties: false,
+        properties: {
+          provider: { type: 'string', enum: [...CI_PROVIDERS] },
+          repository: { type: 'string', maxLength: 300, examples: ['acme/shop'] },
+          commit: { type: 'string', pattern: '^[0-9a-fA-F]{7,64}$' },
+          branch: { type: 'string', maxLength: 300 },
+          pullRequest: { type: 'string', maxLength: 50 },
+          buildId: { type: 'string', maxLength: 200 },
+          buildUrl: { type: 'string', format: 'uri', description: 'http or https only.' },
+          actor: { type: 'string', maxLength: 200 },
+        },
+      },
       Run: {
         type: 'object',
         required: ['id', 'planId', 'status', 'trigger', 'links'],
@@ -115,9 +132,14 @@ export const openApiDocument = {
             type: ['object', 'null'],
             properties: { code: { type: 'string' }, message: { type: ['string', 'null'] } },
           },
+          ci: { oneOf: [ref('CiContext'), { type: 'null' }], description: 'The build that asked for the run, when a pipeline did.' },
           links: {
             type: 'object',
-            properties: { self: { type: 'string' }, junit: { type: 'string' } },
+            properties: {
+              self: { type: 'string' },
+              junit: { type: 'string' },
+              report: { type: ['string', 'null'], description: 'The report page, absolute; null when the server does not know its own address.' },
+            },
           },
         },
       },
@@ -168,6 +190,7 @@ export const openApiDocument = {
                 properties: {
                   environmentId: { type: 'integer', description: 'The environment to run against.' },
                   updateBaselines: { type: 'boolean', description: "Make this run's screenshots the new visual baselines." },
+                  ci: ref('CiContext'),
                 },
               },
             },

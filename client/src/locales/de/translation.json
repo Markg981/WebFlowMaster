@@ -1783,7 +1783,10 @@
       "error": "Nicht abgeschlossen"
     },
     "purged": "Screenshots, Videos und Traces dieses Laufs wurden am {{date}} durch die Aufbewahrungsrichtlinie entfernt. Die Ergebnisse bleiben erhalten.",
-    "quarantinedFailures": "{{count}} der Fehlschläge unten stammen von Tests in Quarantäne: Sie werden angezeigt und haben diesen Lauf nicht fehlschlagen lassen."
+    "quarantinedFailures": "{{count}} der Fehlschläge unten stammen von Tests in Quarantäne: Sie werden angezeigt und haben diesen Lauf nicht fehlschlagen lassen.",
+    "ci": {
+      "label": "Build"
+    }
   },
   "scheduleEnvironment": {
     "label": "Umgebung",
