@@ -1,0 +1,37 @@
+# The local agent: runs inside a customer's network and lends its browsers to the server
+# (scripts/wfm-agent.ts, server/agents/relay.ts). It only connects out, to WFM_URL.
+#
+#   docker build -f Dockerfile.agent -t webflowmaster-agent .
+#   docker run -d --restart unless-stopped \
+#     -e WFM_URL=https://webflowmaster.example.com -e WFM_AGENT_TOKEN=wfa_… webflowmaster-agent
+#
+# The tag must equal the version the lockfile resolves for playwright, like the other images:
+# the server refuses an agent whose Playwright major.minor differs from its own, because the
+# protocol between the two changes between minors.
+FROM mcr.microsoft.com/playwright:v1.61.1-jammy AS build
+
+WORKDIR /src
+COPY package*.json ./
+COPY client/package*.json ./client/
+RUN npm ci --include=dev
+COPY . .
+RUN npm run build:agent
+
+FROM mcr.microsoft.com/playwright:v1.61.1-jammy
+
+WORKDIR /agent
+ENV NODE_ENV=production
+
+# The agent is one bundled file with two dependencies, and the browsers come with the image.
+# The playwright library is installed at exactly the resolved version, never a range: the
+# image's browsers are built for that version and no other.
+COPY --from=build /src/node_modules/playwright/package.json /tmp/playwright-package.json
+RUN npm init -y >/dev/null \
+  && npm install --omit=dev "playwright@$(node -p "require('/tmp/playwright-package.json').version")" "ws@^8.18.0" \
+  && rm /tmp/playwright-package.json
+COPY --from=build /src/dist/wfm-agent.js ./wfm-agent.mjs
+
+# Lets the running sessions finish on `docker stop`.
+STOPSIGNAL SIGTERM
+USER pwuser
+CMD ["node", "wfm-agent.mjs"]

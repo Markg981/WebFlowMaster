@@ -54,6 +54,7 @@ import quarantineRoutes from "./routes/quarantine.routes";
 import { requireMfaEnrollment } from "./middleware/require-mfa-enrollment";
 import apiV1Routes from "./routes/api-v1.routes";
 import cliRoutes from "./routes/cli.routes";
+import agentsRoutes from "./routes/agents.routes";
 import webhookManagementRoutes from "./routes/webhooks.routes";
 import stepGroupsRoutes from "./routes/step-groups.routes";
 import projectElementsRoutes from "./routes/project-elements.routes";
@@ -142,6 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // API Routers
     // First: /api/v1 answers everything under it in its own words, including unknown paths.
     app.use(cliRoutes);
+    app.use(agentsRoutes);
     app.use(apiV1Routes);
     app.use(authRoutes);
     app.use(organizationRoutes);

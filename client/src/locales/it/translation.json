@@ -97,7 +97,9 @@
       "security": "Sicurezza",
       "securityDescription": "Il secondo fattore all’accesso, e se l’organizzazione lo richiede.",
       "runners": "Runner",
-      "runnersDescription": "Le macchine che eseguono i piani: quali sono attive, cosa hanno, e come svuotarne una prima di una manutenzione."
+      "runnersDescription": "Le macchine che eseguono i piani: quali sono attive, cosa hanno, e come svuotarne una prima di una manutenzione.",
+      "agents": "Agenti locali",
+      "agentsDescription": "Macchine dentro la tua rete che prestano i loro browser, per le applicazioni che questo server non raggiunge."
     },
     "apiKeys": {
       "openApi": "Riferimento API (OpenAPI)",
@@ -134,6 +136,27 @@
       "disabled": "disattivato",
       "disableAction": "Disattiva {{name}}",
       "nameRequired": "Dai un nome all'account, ad esempio la pipeline a cui serve."
+    },
+    "agents": {
+      "title": "Agenti locali",
+      "description": "Un agente locale gira dentro la tua rete e presta i suoi browser ai piani impostati per girare sul suo pool, così possono testare applicazioni che questo server non raggiunge. Si connette solo in uscita.",
+      "nameLabel": "Nome",
+      "poolLabel": "Pool",
+      "create": "Crea agente",
+      "nameRequired": "Dai un nome all'agente, per esempio la macchina su cui gira.",
+      "tokenOnce": "Il token di {{name}}. Copialo ora: non verrà più mostrato.",
+      "setupHint": "Sulla macchina, con Node 20 o successivo:",
+      "copy": "Copia",
+      "done": "Fatto",
+      "loading": "Caricamento agenti…",
+      "empty": "Ancora nessun agente.",
+      "pool": "pool {{pool}}",
+      "connected": "connesso",
+      "offline": "offline",
+      "sessions": "{{count}} browser prestati",
+      "neverSeen": "mai connesso",
+      "versionMismatch": "Usa Playwright {{agent}}, il server {{server}}: non gli verranno chiesti browser finché non coincidono.",
+      "revokeAction": "Revoca {{name}}"
     }
   },
   "dashboard": {
@@ -1959,7 +1982,8 @@
       "mfa": "Due fattori",
       "test_review": "Revisioni dei test",
       "runner": "Runner",
-      "suite": "Suite"
+      "suite": "Suite",
+      "agent": "Agenti locali"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
@@ -2018,7 +2042,9 @@
       "suite_deleted": "Suite eliminata",
       "plan_suites_changed": "Suite del piano modificate",
       "test_quarantined": "Test messo in quarantena",
-      "test_quarantine_released": "Test uscito dalla quarantena"
+      "test_quarantine_released": "Test uscito dalla quarantena",
+      "agent_created": "Agente locale creato",
+      "agent_revoked": "Agente locale revocato"
     }
   },
   "security": {
@@ -2281,6 +2307,12 @@
     "evidence": {
       "network": "Rete (HAR)",
       "networkHelp": "Il report elenca le richieste fallite e le più lente di ogni test registrato, che il file venga tenuto o no. L'HAR si apre negli strumenti per sviluppatori di qualsiasi browser; non contiene mai body, cookie, token o password."
+    },
+    "runOn": {
+      "label": "Esegui su",
+      "help": "Da dove vengono i browser. Un pool di agenti locali apre le pagine dall'interno della propria rete; i test API partono comunque dal server.",
+      "runners": "I runner di questo server",
+      "pool": "Agenti locali: {{pool}}"
     }
   },
   "network": {

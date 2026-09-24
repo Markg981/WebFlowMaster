@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { browsersForRun, describeBrowser, resolveBrowser, unsupportedMachineFields } from './browsers';
+import { browsersForRun, describeBrowser, onAgents, resolveBrowser, unsupportedMachineFields } from './browsers';
 
 /**
  * The plan wizard and the schedule form have always collected a browser configuration that
@@ -109,5 +109,17 @@ describe('describeBrowser', () => {
     expect(describeBrowser({ label: 'edge', engine: 'chromium', channel: 'msedge', headless: false }))
       .toBe('edge (chromium/msedge), headed');
     expect(describeBrowser({ label: 'firefox', engine: 'firefox', headless: true })).toBe('firefox');
+  });
+});
+
+describe('onAgents', () => {
+  it("sends every pass to the pool, and gives the runner's default pass a browser an agent can start", () => {
+    const agent = { organizationId: 3, pool: 'onprem' };
+    const passes = onAgents([undefined, { label: 'firefox', engine: 'firefox', headless: false }], agent);
+    expect(passes).toEqual([
+      { label: 'chromium', engine: 'chromium', headless: true, agent },
+      { label: 'firefox', engine: 'firefox', headless: false, agent },
+    ]);
+    expect(passes.map(describeBrowser)).toEqual(['chromium on agent pool "onprem"', 'firefox, headed on agent pool "onprem"']);
   });
 });

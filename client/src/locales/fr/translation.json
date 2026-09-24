@@ -97,7 +97,9 @@
       "security": "Sécurité",
       "securityDescription": "Votre second facteur à la connexion, et si l’organisation l’exige.",
       "runners": "Runners",
-      "runnersDescription": "Les machines qui exécutent les plans : lesquelles sont en ligne, ce qu’elles ont, et comment en vider une avant une maintenance."
+      "runnersDescription": "Les machines qui exécutent les plans : lesquelles sont en ligne, ce qu’elles ont, et comment en vider une avant une maintenance.",
+      "agents": "Agents locaux",
+      "agentsDescription": "Des machines de votre réseau qui prêtent leurs navigateurs, pour les applications que ce serveur ne peut pas atteindre."
     },
     "apiKeys": {
       "openApi": "Référence de l'API (OpenAPI)",
@@ -134,6 +136,27 @@
       "disabled": "désactivé",
       "disableAction": "Désactiver {{name}}",
       "nameRequired": "Donnez un nom au compte, par exemple la pipeline à laquelle il sert."
+    },
+    "agents": {
+      "title": "Agents locaux",
+      "description": "Un agent local tourne dans votre réseau et prête ses navigateurs aux plans configurés pour son pool, afin de tester des applications que ce serveur ne peut pas atteindre. Il ne fait que des connexions sortantes.",
+      "nameLabel": "Nom",
+      "poolLabel": "Pool",
+      "create": "Créer un agent",
+      "nameRequired": "Donnez un nom à l'agent, par exemple la machine sur laquelle il tourne.",
+      "tokenOnce": "Le jeton de {{name}}. Copiez-le maintenant : il ne sera plus affiché.",
+      "setupHint": "Sur la machine, avec Node 20 ou plus récent :",
+      "copy": "Copier",
+      "done": "Terminé",
+      "loading": "Chargement des agents…",
+      "empty": "Aucun agent pour l'instant.",
+      "pool": "pool {{pool}}",
+      "connected": "connecté",
+      "offline": "hors ligne",
+      "sessions": "{{count}} navigateur(s) prêté(s)",
+      "neverSeen": "jamais connecté",
+      "versionMismatch": "Utilise Playwright {{agent}}, le serveur {{server}} : aucun navigateur ne lui sera demandé tant qu'ils ne correspondent pas.",
+      "revokeAction": "Révoquer {{name}}"
     }
   },
   "dashboard": {
@@ -1840,7 +1863,8 @@
       "mfa": "Double authentification",
       "test_review": "Relectures des tests",
       "runner": "Runners",
-      "suite": "Suites"
+      "suite": "Suites",
+      "agent": "Agents locaux"
     },
     "actions": {
       "member_role_changed": "Rôle du membre modifié",
@@ -1899,7 +1923,9 @@
       "suite_deleted": "Suite supprimée",
       "plan_suites_changed": "Suites du plan modifiées",
       "test_quarantined": "Test mis en quarantaine",
-      "test_quarantine_released": "Test sorti de quarantaine"
+      "test_quarantine_released": "Test sorti de quarantaine",
+      "agent_created": "Agent local créé",
+      "agent_revoked": "Agent local révoqué"
     }
   },
   "security": {
@@ -2162,6 +2188,12 @@
     "evidence": {
       "network": "Réseau (HAR)",
       "networkHelp": "Le rapport liste les requêtes échouées et les plus lentes de chaque test enregistré, fichier conservé ou non. Le HAR s'ouvre dans les outils de développement de n'importe quel navigateur ; il ne contient jamais de corps, de cookies, de jetons ni de mots de passe."
+    },
+    "runOn": {
+      "label": "Exécuter sur",
+      "help": "D'où viennent les navigateurs. Un pool d'agents locaux ouvre les pages depuis son propre réseau ; les tests API partent toujours du serveur.",
+      "runners": "Les runners de ce serveur",
+      "pool": "Agents locaux : {{pool}}"
     }
   },
   "network": {

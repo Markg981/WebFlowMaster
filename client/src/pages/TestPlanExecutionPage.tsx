@@ -35,6 +35,7 @@ const fetchTestPlanDetails = async (planId: string): Promise<TestPlan & { tests:
       captureVideo: 'never',
       captureTrace: 'never',
       captureNetwork: 'never',
+      agentPool: null,
       pageLoadTimeout: null,
       elementTimeout: null,
       onMajorStepFailure: null,

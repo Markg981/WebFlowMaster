@@ -97,7 +97,9 @@
       "security": "Security",
       "securityDescription": "Your second factor at sign-in, and whether the organization requires one.",
       "runners": "Runners",
-      "runnersDescription": "The machines that run plans: which are up, what they have, and draining one before maintenance."
+      "runnersDescription": "The machines that run plans: which are up, what they have, and draining one before maintenance.",
+      "agents": "Local agents",
+      "agentsDescription": "Machines inside your network that lend their browsers, for applications this server cannot reach."
     },
     "apiKeys": {
       "openApi": "API reference (OpenAPI)",
@@ -134,6 +136,27 @@
       "disabled": "disabled",
       "disableAction": "Disable {{name}}",
       "nameRequired": "Give the account a name, such as the pipeline it is for."
+    },
+    "agents": {
+      "title": "Local agents",
+      "description": "A local agent runs inside your network and lends its browsers to the plans set to run on its pool, so they can test applications this server cannot reach. It only connects out.",
+      "nameLabel": "Name",
+      "poolLabel": "Pool",
+      "create": "Create agent",
+      "nameRequired": "Give the agent a name, such as the machine it runs on.",
+      "tokenOnce": "The token for {{name}}. Copy it now: it will not be shown again.",
+      "setupHint": "On the machine, with Node 20 or later:",
+      "copy": "Copy",
+      "done": "Done",
+      "loading": "Loading agents…",
+      "empty": "No agents yet.",
+      "pool": "pool {{pool}}",
+      "connected": "connected",
+      "offline": "offline",
+      "sessions": "{{count}} browser(s) lent",
+      "neverSeen": "never connected",
+      "versionMismatch": "Runs Playwright {{agent}}, the server {{server}}: it will not be lent browsers until they match.",
+      "revokeAction": "Revoke {{name}}"
     }
   },
   "dashboard": {
@@ -1834,7 +1857,8 @@
       "mfa": "Two-factor",
       "test_review": "Test reviews",
       "runner": "Runners",
-      "suite": "Suites"
+      "suite": "Suites",
+      "agent": "Local agents"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -1893,7 +1917,9 @@
       "suite_deleted": "Suite deleted",
       "plan_suites_changed": "Plan's suites changed",
       "test_quarantined": "Test quarantined",
-      "test_quarantine_released": "Test released from quarantine"
+      "test_quarantine_released": "Test released from quarantine",
+      "agent_created": "Local agent created",
+      "agent_revoked": "Local agent revoked"
     }
   },
   "security": {
@@ -2156,6 +2182,12 @@
     "evidence": {
       "network": "Network (HAR)",
       "networkHelp": "The report lists the failed and slowest requests of every recorded test, kept file or not. The HAR opens in any browser’s DevTools; it never holds bodies, cookies, tokens or passwords."
+    },
+    "runOn": {
+      "label": "Run on",
+      "help": "Where the browsers come from. A pool of local agents opens pages from inside its own network; API tests still go out from the server.",
+      "runners": "This server's runners",
+      "pool": "Local agents: {{pool}}"
     }
   },
   "network": {

@@ -58,6 +58,11 @@ export interface ExecutionSnapshot {
   /** The plan's own settings; a schedule's override is still read from the schedule when it ends. */
   notificationSettings: unknown;
   issues: { trackerId: string | null; createOnFailure: boolean };
+  /**
+   * Where the browsers come from: the local agents of a pool (shared/agents.ts), or the runner's
+   * own when null. Absent on snapshots taken before agents existed, which ran on the runner.
+   */
+  runOn?: { agentPool: string | null };
 }
 
 /** What the request may say that the plan does not. Anything absent comes from the plan. */
@@ -137,6 +142,7 @@ export function buildExecutionSnapshot(
     rerunPolicy: plan.reRunOnFailure ?? 'none',
     notificationSettings: parsedJson(plan.notificationSettings),
     issues: { trackerId: plan.issueTrackerId ?? null, createOnFailure: plan.createIssuesOnFailure === true },
+    runOn: { agentPool: plan.agentPool ?? null },
   };
 }
 

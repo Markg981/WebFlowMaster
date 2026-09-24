@@ -44,3 +44,31 @@ describe('GET /cli/wfm.mjs', () => {
     }
   }, 60_000);
 });
+
+describe('GET /cli/wfm-agent.mjs', () => {
+  it('serves the agent, which runs next to playwright and ws and exits 2 without a token', async () => {
+    const app = express();
+    app.use(cliRoutes);
+    const response = await request(app).get('/cli/wfm-agent.mjs').expect(200);
+    expect(response.headers['content-type']).toBe('text/javascript; charset=utf-8');
+
+    // The agent's two dependencies are installed next to it (Dockerfile.agent does the same), so
+    // the file goes somewhere node resolves this repository's node_modules from.
+    const dir = await fs.mkdtemp(path.join(process.cwd(), 'node_modules', '.wfm-agent-'));
+    const file = path.join(dir, 'wfm-agent.mjs');
+    try {
+      await fs.writeFile(file, response.text);
+      const failed = await promisify(execFile)(process.execPath, [file], { cwd: dir, env: { PATH: process.env.PATH ?? '' } }).catch((error) => error);
+      expect(failed.code).toBe(2);
+      expect(failed.stderr).toContain('WFM_AGENT_TOKEN');
+    } finally {
+      await fs.remove(dir);
+    }
+  }, 60_000);
+
+  it('hands out nothing else', async () => {
+    const app = express();
+    app.use(cliRoutes);
+    await request(app).get('/cli/server.js').expect(404);
+  });
+});

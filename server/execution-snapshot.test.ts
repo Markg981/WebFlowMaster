@@ -25,6 +25,7 @@ const plan: TestPlan = {
   captureVideo: 'on_failure',
   captureTrace: 'always',
   captureNetwork: 'on_failure',
+  agentPool: 'onprem',
   visualTestingEnabled: true,
   pageLoadTimeout: 45_000,
   elementTimeout: 12_000,
@@ -81,6 +82,7 @@ describe('buildExecutionSnapshot', () => {
       rerunPolicy: 'once',
       notificationSettings: { email: { enabled: true, recipients: ['qa@example.test'] } },
       issues: { trackerId: 'tracker-9', createOnFailure: true },
+      runOn: { agentPool: 'onprem' },
     });
   });
 
@@ -138,6 +140,7 @@ describe('buildExecutionSnapshot', () => {
       'captureVideo',
       'captureTrace',
       'captureNetwork',
+      'agentPool',
       'visualTestingEnabled',
       'pageLoadTimeout',
       'elementTimeout',

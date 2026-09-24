@@ -100,6 +100,9 @@ function safeParse(value: string): unknown {
   }
 }
 
+/** The "run on" value for the runners, since a Select item cannot have an empty value. */
+const ON_RUNNERS = '__runners__';
+
 const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ isOpen, onClose, plan, onSaved }) => {
   const { t } = useTranslation();
   const [machines, setMachines] = useState<MachineRow[]>([]);
@@ -109,6 +112,9 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
   const [captureTrace, setCaptureTrace] = useState<string>('never');
   /** Whether each test's requests are recorded as a HAR, summarised in the report. */
   const [captureNetwork, setCaptureNetwork] = useState<string>('never');
+  /** Where the browsers come from: this server's runners, or the local agents of a pool. */
+  const [runOn, setRunOn] = useState<string>(ON_RUNNERS);
+  const [agentPools, setAgentPools] = useState<string[]>([]);
   /** How many of this plan's runs may be in flight at once. 1 is what every plan did before. */
   const [maxParallelTests, setMaxParallelTests] = useState('1');
   const [maxParallelError, setMaxParallelError] = useState('');
@@ -130,6 +136,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
     setCaptureVideo((plan as { captureVideo?: string } | null)?.captureVideo ?? 'never');
     setCaptureTrace((plan as { captureTrace?: string } | null)?.captureTrace ?? 'never');
     setCaptureNetwork((plan as { captureNetwork?: string } | null)?.captureNetwork ?? 'never');
+    setRunOn((plan as { agentPool?: string | null } | null)?.agentPool ?? ON_RUNNERS);
     setMaxParallelTests(String(plan?.maxParallelTests ?? 1));
     setIssueTrackerId((plan as { issueTrackerId?: string | null } | null)?.issueTrackerId ?? NO_TRACKER);
     setCreateIssuesOnFailure((plan as { createIssuesOnFailure?: boolean } | null)?.createIssuesOnFailure === true);
@@ -145,6 +152,15 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
       .then((response) => (response.ok ? response.json() : []))
       .then((rows) => setTrackers(Array.isArray(rows) ? rows : []))
       .catch(() => setTrackers([]));
+
+    // The pools this organization's agents belong to. Revoked agents lend nothing, so their pools
+    // are not offered; the plan's own pool stays in the list even if it has no agents left.
+    fetch('/api/agents')
+      .then((response) => (response.ok ? response.json() : { agents: [] }))
+      .then((body: { agents?: Array<{ pool: string; revokedAt: string | null }> }) =>
+        setAgentPools([...new Set((body.agents ?? []).filter((agent) => !agent.revokedAt).map((agent) => agent.pool))].sort()),
+      )
+      .catch(() => setAgentPools([]));
   }, [isOpen, plan]);
 
   const addMachine = () => {
@@ -192,6 +208,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
           captureVideo,
           captureTrace,
           captureNetwork,
+          agentPool: runOn === ON_RUNNERS ? null : runOn,
           maxParallelTests: parallel,
           issueTrackerId: issueTrackerId === NO_TRACKER ? null : issueTrackerId,
           // Filing is off unless a tracker is named: a plan set to file into nothing would
@@ -280,6 +297,29 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                   <PlusCircle className="h-4 w-4 mr-1" /> {t('editTestPlanSettings.browsers.add', 'Add browser')}
                 </Button>
               </div>
+            </section>
+
+            <section>
+              <Label>{t('editTestPlanSettings.runOn.label', 'Run on')}</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t(
+                  'editTestPlanSettings.runOn.help',
+                  'Where the browsers come from. A pool of local agents opens pages from inside its own network; API tests still go out from the server.',
+                )}
+              </p>
+              <Select value={runOn} onValueChange={setRunOn}>
+                <SelectTrigger className="mt-2 w-[260px]" aria-label={t('editTestPlanSettings.runOn.label', 'Run on')}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ON_RUNNERS}>{t('editTestPlanSettings.runOn.runners', "This server's runners")}</SelectItem>
+                  {[...new Set([...agentPools, ...(runOn === ON_RUNNERS ? [] : [runOn])])].map((pool) => (
+                    <SelectItem key={pool} value={pool}>
+                      {t('editTestPlanSettings.runOn.pool', 'Local agents: {{pool}}', { pool })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </section>
 
             <section>

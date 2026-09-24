@@ -23,7 +23,7 @@ import { decryptSecret } from './crypto';
 import { defaultVariables } from './variables';
 import { runApiRequest, type Extraction } from './api-test-runner';
 import type { Assertion, AuthParams } from '@shared/schema';
-import { browsersForRun, describeBrowser, hasConfiguredBrowsers, launchBrowser, type BrowserChoice } from './browsers';
+import { browsersForRun, describeBrowser, hasConfiguredBrowsers, launchBrowser, onAgents, type BrowserChoice } from './browsers';
 import { effectiveConcurrency, runWithConcurrency } from './concurrency';
 import type { VisualContext } from './visual-testing';
 import { shouldRecord } from './run-evidence';
@@ -566,7 +566,23 @@ async function runTestPlanJobInTenant(
   });
   // `undefined` means "whatever the runner would have used", which is the user's own setting
   // — exactly what every plan did before its browser configuration was honoured.
-  const runPasses: Array<BrowserChoice | undefined> = configuredBrowsers ? browserMatrix : [undefined];
+  const basePasses: Array<BrowserChoice | undefined> = configuredBrowsers ? browserMatrix : [undefined];
+  // A plan set to a pool of local agents borrows its browsers from them (shared/agents.ts).
+  const agentPool = snapshot.runOn?.agentPool ?? null;
+  const runPasses: Array<BrowserChoice | undefined> = agentPool
+    ? onAgents(basePasses, { organizationId: executionRecord[0].organizationId, pool: agentPool })
+    : basePasses;
+  if (agentPool) {
+    wsEmitter.emitExecutionLog(testPlanRunId, {
+      level: 'info',
+      source: 'system',
+      message:
+        `Browsers for this run come from the local agents of pool "${agentPool}", so pages open from their network. ` +
+        `API tests and API preconditions are still sent from this runner.`,
+      timestamp: new Date().toISOString(),
+      metadata: { agentPool },
+    });
+  }
   for (const warning of browserWarnings) {
     const entry: ExecutionLogEntry = {
       level: 'warn',

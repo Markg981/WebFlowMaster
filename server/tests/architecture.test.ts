@@ -103,6 +103,14 @@ describe('route modules cannot query outside the tenant context', () => {
         'last_used_at touch that belongs to the same pre-tenant moment. Everything the key then ' +
         'does is an ordinary request under RLS.',
     },
+    'agents/agent-auth.ts': {
+      max: 2,
+      why:
+        'Authenticating a local agent\'s token is the query that answers "which organization is this ' +
+        'connection for?", the same bootstrap shape as an API key: the lookup, and the last-seen ' +
+        'stamp of the same connection. The agent reads nothing else; the runner that drives the ' +
+        'browser it lends is inside its own tenant context.',
+    },
     'test-execution-service.ts': {
       max: 1,
       why:
