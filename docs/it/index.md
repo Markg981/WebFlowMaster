@@ -13,6 +13,14 @@ Per chi gestisce un'installazione e per gli owner di un'organizzazione:
 - [Riferimento della configurazione](./admin/configuration) — tutte le variabili d'ambiente.
 - [Amministrazione](./admin/administration) — ruoli, membri, chiavi, sicurezza, audit, dati.
 
+## Sicurezza e compliance
+
+- [Panoramica sulla sicurezza](./security/) — isolamento, identità, cifratura, audit e i limiti attuali.
+- [Protezione dei dati](./security/data-protection) — quali dati personali si conservano, dove, per
+  quanto, e come si esportano o cancellano.
+- [Checklist di hardening](./security/hardening) — cosa fa un operatore prima e dopo la messa in
+  esercizio.
+
 ## Integrazioni
 
 - [Integrazione CI](./CI_INTEGRATION) — GitHub Actions, GitLab CI, Jenkins, Azure Pipelines, la CLI e
@@ -31,6 +39,5 @@ Per chi sviluppa e mantiene il prodotto:
   [Registro delle decisioni](./internals/decisions) · [Glossario](./internals/glossary)
 
 ::: info Altre guide in arrivo
-La panoramica su sicurezza e compliance, la guida utente e il riferimento delle API sono in fase di
-riscrittura e compariranno qui.
+La guida utente e il riferimento delle API sono in fase di riscrittura e compariranno qui.
 :::
