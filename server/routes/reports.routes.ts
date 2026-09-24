@@ -3,6 +3,7 @@ import { reportingService } from "../reporting-service";
 import { junitReportFor } from "../junit-report";
 import loggerPromise from "../logger";
 import { requireRole } from "../middleware/require-role";
+import { exportRun, isReportExportFormat, REPORT_EXPORT_FORMATS, ReportExportError, sendExport } from "../report-export";
 
 const router = Router();
 const logger = await loggerPromise;
@@ -30,6 +31,28 @@ router.get("/api/test-plan-executions/:executionId/junit", requireRole('viewer')
     } catch (e: any) {
         logger.error({ message: "Failed to build JUnit report", executionId, error: e.message });
         res.status(500).json({ error: "Failed to build the JUnit report." });
+    }
+});
+
+/**
+ * GET /api/test-plan-executions/:executionId/export/:format — the run as a file to hand on:
+ * html (self-contained), pdf, or allure (a zip of Allure results). See server/report-export.ts.
+ */
+router.get("/api/test-plan-executions/:executionId/export/:format", requireRole('viewer'), async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
+
+    const { executionId, format } = req.params;
+    if (!isReportExportFormat(format)) {
+        return res.status(400).json({ error: `Unknown format "${format}". Use one of: ${REPORT_EXPORT_FORMATS.join(', ')}.` });
+    }
+    try {
+        const exported = await exportRun(executionId, format);
+        if (!exported) return res.status(404).json({ error: "Test plan execution not found." });
+        sendExport(res, exported);
+    } catch (e: any) {
+        if (e instanceof ReportExportError) return res.status(e.status).json({ error: e.message, code: e.code });
+        logger.error({ message: "Failed to export the report", executionId, format, error: e.message });
+        res.status(500).json({ error: "Failed to export the report." });
     }
 });
 

@@ -9,6 +9,7 @@ import { apiError, requireScope } from "../middleware/require-scope";
 import { executionOrchestrator, ExecutionEnqueueError } from "../execution-orchestrator";
 import { requestCancellation } from "../execution-state";
 import { junitReportFor } from "../junit-report";
+import { exportRun, isReportExportFormat, REPORT_EXPORT_FORMATS, ReportExportError, sendExport } from "../report-export";
 import { openApiDocument } from "../api-v1/openapi";
 import loggerPromise from "../logger";
 
@@ -196,6 +197,21 @@ router.get("/api/v1/runs/:runId/junit", requireScope('runs:read'), async (req, r
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="junit-${req.params.runId}.xml"`);
   res.send(xml);
+});
+
+router.get("/api/v1/runs/:runId/export/:format", requireScope('runs:read'), async (req, res) => {
+  const { runId, format } = req.params;
+  if (!isReportExportFormat(format)) {
+    return apiError(res, 400, 'invalid_format', `Unknown format "${format}". Use one of: ${REPORT_EXPORT_FORMATS.join(', ')}.`);
+  }
+  try {
+    const exported = await exportRun(runId, format);
+    if (!exported) return apiError(res, 404, 'run_not_found', 'There is no such run in this organization.');
+    sendExport(res, exported);
+  } catch (error) {
+    if (error instanceof ReportExportError) return apiError(res, error.status, error.code, error.message);
+    return apiError(res, 500, 'export_failed', 'The report could not be exported.');
+  }
 });
 
 // Anything else under /api/v1 is an unknown endpoint, said in this API's own words rather

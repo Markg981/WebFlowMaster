@@ -2162,5 +2162,27 @@
     "failed": "Failed requests",
     "more": "and {{count}} more in the HAR",
     "slowest": "Slowest requests"
+  },
+  "exportRun": {
+    "button": "Export",
+    "title": "Download this run as",
+    "formats": {
+      "html": {
+        "label": "HTML report",
+        "hint": "One file that opens anywhere, screenshots included"
+      },
+      "pdf": {
+        "label": "PDF",
+        "hint": "To attach to a ticket or file for an audit"
+      },
+      "allure": {
+        "label": "Allure results (.zip)",
+        "hint": "For allure generate or an Allure server"
+      },
+      "junit": {
+        "label": "JUnit XML",
+        "hint": "For a CI system’s test report"
+      }
+    }
   }
 }

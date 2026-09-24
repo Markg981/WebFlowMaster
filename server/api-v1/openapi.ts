@@ -256,5 +256,30 @@ export const openApiDocument = {
         },
       },
     },
+    '/api/v1/runs/{runId}/export/{format}': {
+      get: {
+        operationId: 'exportRun',
+        summary: 'The run as a file to hand on: a self-contained HTML report, a PDF, or a zip of Allure results.',
+        ...secured('runs:read'),
+        parameters: [
+          runId,
+          { name: 'format', in: 'path', required: true, schema: { type: 'string', enum: ['html', 'pdf', 'allure'] } },
+        ],
+        responses: {
+          '200': {
+            description: 'The file, as an attachment.',
+            content: {
+              'text/html': { schema: { type: 'string' } },
+              'application/pdf': { schema: { type: 'string', format: 'binary' } },
+              'application/zip': { schema: { type: 'string', format: 'binary' } },
+            },
+          },
+          ...common,
+          '400': errorResponse('Unknown format.'),
+          '404': errorResponse('No such run in this organization.'),
+          '503': errorResponse('PDF was asked for and the server has no browser to render it; the HTML export has the same content.'),
+        },
+      },
+    },
   },
 } as const;
