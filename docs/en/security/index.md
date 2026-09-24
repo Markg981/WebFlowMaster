@@ -95,7 +95,18 @@ while recording, and the value is resolved only when a step needs it.
   in `CSRF_TRUSTED_ORIGINS`); machine requests without a browser origin authenticate with a key
   or token instead of a cookie.
 - **HTTP headers**: Helmet's defaults (HSTS, `X-Content-Type-Options`, frame protection and
-  others). A Content Security Policy is **not** set yet.
+  others) and, in production, a **Content Security Policy**: scripts, connections and workers
+  only from the application's own origin (no inline or evaluated script), no plugins, no framing
+  by other sites. Styles may be inline, which the interface components need, and fonts come from
+  Google Fonts. The code editor and every other script are served by the installation itself;
+  nothing is loaded from a CDN. `CONTENT_SECURITY_POLICY` can switch it to report-only or off.
+- **Request rates**: sign-in is limited per address; each API key, and each address calling the
+  public API without a key, is limited to `API_RATE_LIMIT` requests a minute (600 by default);
+  webhooks to `WEBHOOK_RATE_LIMIT` per address (120). Past it the answer is `429` with
+  `Retry-After`.
+- **Installation-wide settings** (log level, log retention, draining runners) are changed only by
+  the people named in `INSTALLATION_ADMINS`, or by an owner while the installation has a single
+  organization. The owners of other organizations see them read-only.
 - **Input validation**: request bodies are validated with schemas before they reach the
   database; queries are parameterized through the ORM.
 - **Request size**: JSON bodies are limited to 100 KB.
@@ -178,6 +189,7 @@ Stated so a review can weigh them, not discovered later:
 
 - **No single sign-on** (SAML, OpenID Connect), no password complexity rules beyond length, and
   no e-mail delivery: invitation and password reset links are handed over by the owner.
-- **No Content Security Policy** header.
-- **No rate limit on the public API** beyond the per-organization limits on runs.
-- **Installation-wide log settings** can be changed by any organization's owner.
+- **Rate limits are counted per web process**: with several web processes behind a load
+  balancer the effective limit is that many times higher.
+- **Styles may be inline** under the Content Security Policy, which the interface components
+  require.

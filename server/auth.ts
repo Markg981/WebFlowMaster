@@ -5,7 +5,6 @@ import session from "express-session";
 import { createHmac, scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { z } from "zod";
-import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { RedisStore } from "connect-redis";
 import { storage } from "./storage";
@@ -18,6 +17,8 @@ import createMemoryStore from "memorystore";
 import { sessionRedis } from "./redis";
 import { sessionCookieSecure } from "./config";
 import { registrationMode, registrationPolicy } from "./registration";
+import { securityHeaders } from "./security-headers";
+import { canManageInstallation } from "./installation-admin";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -49,7 +50,13 @@ const MFA_MAX_ATTEMPTS = 5;
 async function publicUser(user: SelectUser) {
   const { password: _pw, ...safeUser } = user;
   const status = await mfaStatus(user.id, user.organizationId);
-  return { ...safeUser, mfaEnabled: status.enabled, mfaEnrollmentRequired: status.required && !status.enabled };
+  return {
+    ...safeUser,
+    mfaEnabled: status.enabled,
+    mfaEnrollmentRequired: status.required && !status.enabled,
+    // Whether the installation-wide settings (log level, runners) are theirs to change.
+    installationAdmin: await canManageInstallation(user),
+  };
 }
 
 /**
@@ -194,9 +201,9 @@ export function setupAuth(app: Express) {
     });
   }
 
-  // Baseline HTTP hardening. CSP is disabled because the SPA (Vite dev server /
-  // bundled client) needs inline assets; enable a tailored CSP separately if required.
-  app.use(helmet({ contentSecurityPolicy: false }));
+  // Helmet's headers, with the Content Security Policy the built client needs in production
+  // (server/security-headers.ts).
+  app.use(securityHeaders());
 
   app.set("trust proxy", 1);
   app.use(sharedSessionMiddleware);

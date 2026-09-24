@@ -38,14 +38,14 @@ const runner = (overrides: Partial<RunnerRow>): RunnerRow => ({
   ...overrides,
 });
 
-function renderCard(rows: RunnerRow[]) {
+function renderCard(rows: RunnerRow[], canManage?: boolean) {
   fetchMock.mockImplementation((url: string, init?: any) =>
     Promise.resolve({ ok: true, json: async () => (init?.method === 'POST' ? {} : rows) }),
   );
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <RunnersCard />
+      <RunnersCard canManage={canManage} />
     </QueryClientProvider>,
   );
 }
@@ -78,5 +78,13 @@ describe('RunnersCard', () => {
     await waitFor(() =>
       expect(fetchMock.mock.calls.some(([url, init]: any[]) => url === '/api/runners/build-1%3A42%3Aab12/drain' && init?.method === 'POST')).toBe(true),
     );
+  });
+
+  it('shows the runners but offers no drain or resume to an owner who does not run the installation', async () => {
+    renderCard([runner({}), runner({ id: 'build-2:7:cd34', hostname: 'build-2', status: 'draining' })], false);
+
+    expect(await screen.findByTestId('runner-build-1:42:ab12')).toBeInTheDocument();
+    expect(screen.getByTestId('runners-read-only')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Drain|Resume/ })).toBeNull();
   });
 });

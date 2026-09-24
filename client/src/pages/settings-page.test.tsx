@@ -25,9 +25,10 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: mockToast, dismiss: vi.fn(), toasts: [] }),
 }));
 
+let mockUser: Record<string, unknown> = { id: 1, username: 'testuser' };
 vi.mock('@/hooks/use-auth', () => ({
   useAuth: () => ({
-    user: { id: 1, username: 'testuser' },
+    user: mockUser,
     logoutMutation: { mutate: vi.fn(), isPending: false },
   }),
 }));
@@ -122,6 +123,7 @@ const openDeleteDialogFor = async (projectName: string) => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockUser = { id: 1, username: 'testuser' };
   projects = [...sampleProjects];
   deleteResponder = () => new Response(null, { status: 204 });
   installFetch();
@@ -199,5 +201,25 @@ describe('SettingsPage - Project Deletion', () => {
       ),
     );
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('SettingsPage - System', () => {
+  it('lets an installation admin change the log settings', async () => {
+    mockUser = { id: 1, username: 'testuser', role: 'owner', installationAdmin: true };
+    renderSettingsPage();
+    await openSection('System');
+
+    expect(await screen.findByLabelText(/retention/i)).not.toBeDisabled();
+    expect(screen.queryByTestId('system-read-only')).not.toBeInTheDocument();
+  });
+
+  it('shows the log settings read-only to anyone else, and says why', async () => {
+    mockUser = { id: 1, username: 'testuser', role: 'owner', installationAdmin: false };
+    renderSettingsPage();
+    await openSection('System');
+
+    expect(await screen.findByTestId('system-read-only')).toBeInTheDocument();
+    expect(screen.getByLabelText(/retention/i)).toBeDisabled();
   });
 });

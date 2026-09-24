@@ -35,7 +35,7 @@ const STATUS_STYLE: Record<RunnerRow['status'], string> = {
   offline: 'bg-muted text-muted-foreground',
 };
 
-export default function RunnersCard() {
+export default function RunnersCard({ canManage = true }: { canManage?: boolean }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
@@ -85,6 +85,15 @@ export default function RunnersCard() {
           </p>
         )}
 
+        {!canManage && (
+          <p className="text-xs text-muted-foreground" data-testid="runners-read-only">
+            {t(
+              'runners.readOnly',
+              'Runners serve every organization on this installation, so draining one is for its administrators.',
+            )}
+          </p>
+        )}
+
         {runners.length > 0 && (
           <div className="overflow-x-auto">
             <Table>
@@ -128,13 +137,13 @@ export default function RunnersCard() {
                     </TableCell>
                     <TableCell className="text-xs whitespace-nowrap">{new Date(runner.lastSeenAt).toLocaleString()}</TableCell>
                     <TableCell className="text-right">
-                      {runner.status === 'online' && (
+                      {canManage && runner.status === 'online' && (
                         <Button variant="outline" size="sm" disabled={busy !== null} onClick={() => act(runner, 'drain')}>
                           {busy === runner.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pause className="h-4 w-4 mr-1" />}
                           {t('runners.drain', 'Drain')}
                         </Button>
                       )}
-                      {runner.status === 'draining' && (
+                      {canManage && runner.status === 'draining' && (
                         <Button variant="outline" size="sm" disabled={busy !== null} onClick={() => act(runner, 'resume')}>
                           {busy === runner.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 mr-1" />}
                           {t('runners.resume', 'Resume')}

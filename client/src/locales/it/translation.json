@@ -89,7 +89,8 @@
         "selectValidLogLevelError": "Seleziona un livello di log valido."
       },
       "fetchError": "Impossibile leggere l'impostazione di conservazione dei log.",
-      "fetchErrorLogLevel": "Impossibile leggere l'impostazione del livello di log."
+      "fetchErrorLogLevel": "Impossibile leggere l'impostazione del livello di log.",
+      "readOnly": "Queste impostazioni valgono per tutte le organizzazioni di questa installazione: le modificano i suoi amministratori."
     },
     "sections": {
       "navLabel": "Sezioni delle impostazioni",
@@ -2550,7 +2551,8 @@
     "drain": "Svuota",
     "resume": "Riprendi",
     "drainHint": "Svuotare un runner gli fa finire ciò che sta eseguendo senza prendere altro. Quando i job arrivano a zero si può fermare in sicurezza.",
-    "ranOn": "Eseguito su"
+    "ranOn": "Eseguito su",
+    "readOnly": "I runner servono tutte le organizzazioni di questa installazione: metterne uno in pausa spetta ai suoi amministratori."
   },
   "suites": {
     "title": "Suite",

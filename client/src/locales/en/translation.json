@@ -89,7 +89,8 @@
         "selectValidLogLevelError": "Please select a valid log level."
       },
       "fetchError": "Failed to fetch log retention setting.",
-      "fetchErrorLogLevel": "Failed to fetch log level setting."
+      "fetchErrorLogLevel": "Failed to fetch log level setting.",
+      "readOnly": "These settings apply to every organization on this installation, so they are changed by its administrators."
     },
     "sections": {
       "navLabel": "Settings sections",
@@ -2426,7 +2427,8 @@
     "drain": "Drain",
     "resume": "Resume",
     "drainHint": "Draining lets a runner finish what it is running and take nothing new. When its jobs reach zero it can be stopped safely.",
-    "ranOn": "Ran on"
+    "ranOn": "Ran on",
+    "readOnly": "Runners serve every organization on this installation, so draining one is for its administrators."
   },
   "suites": {
     "title": "Suites",

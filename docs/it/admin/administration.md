@@ -169,7 +169,8 @@ offline, cosa stanno eseguendo e con quale versione.
 
 **Svuota** un runner prima di una manutenzione: finisce ciò che ha e non prende altro.
 **Riprendi** lo rimette in servizio. I runner servono tutte le organizzazioni dell'installazione,
-quindi su un'installazione condivisa è una decisione di chi la gestisce.
+quindi solo i suoi [amministratori](#amministratori-dell-installazione) possono svuotarne o
+riprenderne uno; gli altri owner vedono l'elenco senza i pulsanti.
 
 ## Utilizzo dei run e limiti
 
@@ -201,11 +202,23 @@ lettura e aggiunta. Viene rimosso solo quando si cancella l'intera organizzazion
 **Impostazioni → Sistema** imposta il livello dei log e per quanto tempo si conservano i file
 di log.
 
-::: warning Valgono per tutta l'installazione
-Si applicano a tutte le organizzazioni dell'installazione, e l'owner di qualsiasi organizzazione
-può cambiarle. La modifica viene registrata nel registro di audit dell'organizzazione il cui
-owner l'ha fatta. Su un'installazione condivisa da più clienti, lasciatele a chi la gestisce.
-:::
+Si applicano a tutte le organizzazioni dell'installazione, quindi le cambiano solo i suoi
+amministratori; gli altri le vedono in sola lettura. La modifica viene registrata nel registro
+di audit dell'organizzazione dell'amministratore.
+
+### Amministratori dell'installazione {#amministratori-dell-installazione}
+
+Le impostazioni dei log e lo svuotamento dei runner riguardano l'intera installazione, non una
+singola organizzazione. Chi può cambiarli:
+
+- le persone i cui nomi utente sono elencati in `INSTALLATION_ADMINS`, se impostata
+  ([Configurazione](./configuration)); nessun altro, qualunque sia il suo ruolo;
+- altrimenti, gli owner dell'organizzazione finché l'installazione ne ha **esattamente una**.
+  Appena esiste una seconda organizzazione, nessuno può finché l'operatore non imposta
+  `INSTALLATION_ADMINS`.
+
+Un'azienda che gestisce la propria installazione non deve fare nulla. Un'installazione condivisa
+da più clienti dovrebbe nominare i propri operatori.
 
 ## Esportazione e cancellazione *(owner)* {#esportazione-e-cancellazione}
 

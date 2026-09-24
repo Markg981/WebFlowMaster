@@ -89,7 +89,8 @@
         "selectValidLogLevelError": "Veuillez sélectionner un niveau de journalisation valide."
       },
       "fetchError": "Impossible de récupérer le paramètre de conservation des journaux.",
-      "fetchErrorLogLevel": "Impossible de récupérer le paramètre de niveau de journalisation."
+      "fetchErrorLogLevel": "Impossible de récupérer le paramètre de niveau de journalisation.",
+      "readOnly": "Ces paramètres s'appliquent à toutes les organisations de cette installation : ce sont ses administrateurs qui les modifient."
     },
     "sections": {
       "navLabel": "Sections des paramètres",
@@ -2432,7 +2433,8 @@
     "drain": "Vider",
     "resume": "Reprendre",
     "drainHint": "Vider un runner lui laisse terminer ce qu’il exécute sans rien prendre de nouveau. Quand ses tâches atteignent zéro, il peut être arrêté sans risque.",
-    "ranOn": "Exécuté sur"
+    "ranOn": "Exécuté sur",
+    "readOnly": "Les runners servent toutes les organisations de cette installation : en mettre un en pause revient à ses administrateurs."
   },
   "suites": {
     "title": "Suites",

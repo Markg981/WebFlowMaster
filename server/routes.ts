@@ -72,6 +72,8 @@ import analyticsRoutes from "./routes/analytics.routes";
 import organizationRoutes from "./routes/organization.routes";
 import { tenancyMiddleware, withTenantTransaction } from "./middleware/tenancy";
 import { apiKeyAuth } from "./middleware/api-key-auth";
+import { apiRateLimit } from "./middleware/rate-limits";
+import { requireInstallationAdmin } from "./installation-admin";
 import { runApiRequest } from "./api-test-runner";
 import { resolveVariables } from "./variables";
 import { requireRole } from "./middleware/require-role";
@@ -132,6 +134,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // the tenancy binding, requireRole, every handler — has exactly one notion of who is
     // calling, and no route has to be audited twice.
     app.use(apiKeyAuth);
+
+    // Machines are limited per minute: each API key, and anonymous calls to /api/v1
+    // (server/middleware/rate-limits.ts).
+    app.use(apiRateLimit());
 
     // Before every router: establishes the ambient organization for the request, which
     // withTenantTransaction requires and refuses to run without.
@@ -1509,7 +1515,7 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
   // system_settings is deliberately global (logRetentionDays, logLevel, clientLogLevel), so
   // this is gated to owners rather than any authenticated user of any organization: a
   // viewer or editor should not be able to reconfigure logging for every tenant.
-  app.post("/api/system-settings", requireRole('owner'), async (req, res) => {
+  app.post("/api/system-settings", requireRole('owner'), requireInstallationAdmin, async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
