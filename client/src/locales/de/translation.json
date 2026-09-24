@@ -2168,5 +2168,27 @@
     "failed": "Fehlgeschlagene Anfragen",
     "more": "und {{count}} weitere in der HAR-Datei",
     "slowest": "Langsamste Anfragen"
+  },
+  "exportRun": {
+    "button": "Exportieren",
+    "title": "Diesen Lauf herunterladen als",
+    "formats": {
+      "html": {
+        "label": "HTML-Bericht",
+        "hint": "Eine Datei, die sich überall öffnet, mit Screenshots"
+      },
+      "pdf": {
+        "label": "PDF",
+        "hint": "Zum Anhängen an ein Ticket oder zur Ablage für ein Audit"
+      },
+      "allure": {
+        "label": "Allure-Ergebnisse (.zip)",
+        "hint": "Für allure generate oder einen Allure-Server"
+      },
+      "junit": {
+        "label": "JUnit XML",
+        "hint": "Für den Testbericht eines CI-Systems"
+      }
+    }
   }
 }

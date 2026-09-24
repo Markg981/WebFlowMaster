@@ -2168,5 +2168,27 @@
     "failed": "Requêtes échouées",
     "more": "et {{count}} de plus dans le HAR",
     "slowest": "Requêtes les plus lentes"
+  },
+  "exportRun": {
+    "button": "Exporter",
+    "title": "Télécharger cette exécution en",
+    "formats": {
+      "html": {
+        "label": "Rapport HTML",
+        "hint": "Un seul fichier qui s'ouvre partout, captures d'écran incluses"
+      },
+      "pdf": {
+        "label": "PDF",
+        "hint": "À joindre à un ticket ou à archiver pour un audit"
+      },
+      "allure": {
+        "label": "Résultats Allure (.zip)",
+        "hint": "Pour allure generate ou un serveur Allure"
+      },
+      "junit": {
+        "label": "JUnit XML",
+        "hint": "Pour le rapport de tests d'un système de CI"
+      }
+    }
   }
 }

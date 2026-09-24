@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Share2, ListFilter, CheckCircle2, XCircle, SkipForward, AlertCircle, Clock,
+import { ListFilter, CheckCircle2, XCircle, SkipForward, AlertCircle, Clock,
   ChevronRight, FileText, Image as ImageIcon, RefreshCw, ArrowLeft, Video // Added ArrowLeft
 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import StepDetailsDialog, { type ReportStep } from '@/components/reports/StepDet
 import IssueCell, { type IssueLinkSummary } from '@/components/reports/IssueCell';
 import AttemptsBadge from '@/components/reports/AttemptsBadge';
 import QuarantinedBadge from '@/components/reports/QuarantinedBadge';
+import ExportRunMenu from '@/components/reports/ExportRunMenu';
 import type { NetworkSummary } from '@shared/network';
 import CancelRunButton from '@/components/reports/CancelRunButton';
 // One list of "still going" states, shared with the server: 'queued' was missing from this page's own copy.
@@ -222,9 +223,7 @@ const TestReportPage: React.FC = () => {
                   </Button>
                 )}
                 <CancelRunButton executionId={header.executionId} status={header.status} onChanged={() => refetch()} />
-                <Button variant="outline" size="sm" onClick={() => console.log("Export PDF clicked")}><Download className="mr-2 h-4 w-4" /> PDF</Button>
-                <Button variant="outline" size="sm" onClick={() => console.log("Export CSV clicked")}><Download className="mr-2 h-4 w-4" /> CSV</Button>
-                <Button variant="outline" size="sm" onClick={() => console.log("Share report clicked")}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
+                <ExportRunMenu executionId={header.executionId} />
               </div>
             </div>
             <CardDescription className="mt-1"> {/* Added mt-1 for spacing from title which is now in page header */}
