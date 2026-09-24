@@ -104,7 +104,7 @@ describe('the audit trail records what the member routes do', () => {
   });
 
   it('records a removal, and keeps it after the member is gone', async () => {
-    await request(app).delete(`/api/organization/members/${editorId}`).expect(204);
+    await request(app).delete(`/api/organization/members/${editorId}`).expect(200);
 
     const rows = (await auditFor()).rows as { action: string; target_id: string }[];
     expect(rows).toHaveLength(1);
@@ -443,7 +443,7 @@ describe('DELETE /api/organization/members/:userId', () => {
   it('removes a member', async () => {
     const res = await request(app).delete(`/api/organization/members/${editorId}`);
 
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     const rows = await privilegedDb.execute(sql`SELECT count(*) AS n FROM users WHERE id = ${editorId}`);
     expect(Number((rows.rows[0] as { n: string }).n)).toBe(0);
   });
@@ -451,6 +451,142 @@ describe('DELETE /api/organization/members/:userId', () => {
   it('refuses to remove the last owner', async () => {
     const res = await request(app).delete(`/api/organization/members/${ownerId}`);
     expect(res.status).toBe(409);
+  });
+});
+
+describe('removing a member who made things', () => {
+  let environmentId: number;
+
+  const count = async (query: ReturnType<typeof sql>) =>
+    Number(((await privilegedDb.execute(query)).rows[0] as { n: string }).n);
+
+  /** One of everything a member can create, all by the editor. */
+  beforeEach(async () => {
+    await privilegedDb.execute(sql`INSERT INTO projects (name, user_id, organization_id) VALUES ('Shop', ${editorId}, ${orgId})`);
+    await privilegedDb.execute(sql`
+      INSERT INTO tests (user_id, organization_id, name, url, sequence, elements)
+      VALUES (${editorId}, ${orgId}, 'Checkout', 'https://app.test', '[]'::jsonb, '[]'::jsonb)
+    `);
+    await privilegedDb.execute(sql`
+      INSERT INTO api_tests (user_id, organization_id, name, method, url)
+      VALUES (${editorId}, ${orgId}, 'Health', 'GET', 'https://app.test/health')
+    `);
+    await privilegedDb.execute(sql`
+      INSERT INTO test_plans (id, name, user_id, organization_id) VALUES (${`plan-${orgId}`}, 'Nightly', ${editorId}, ${orgId})
+    `);
+    await privilegedDb.execute(sql`
+      INSERT INTO test_plan_schedules (id, test_plan_id, organization_id, schedule_name, frequency, next_run_at, user_id)
+      VALUES (${`schedule-${orgId}`}, ${`plan-${orgId}`}, ${orgId}, 'Every night', 'daily', now(), ${editorId})
+    `);
+    await privilegedDb.execute(sql`
+      INSERT INTO step_groups (id, organization_id, user_id, name, sequence)
+      VALUES (${`group-${orgId}`}, ${orgId}, ${editorId}, 'Sign in', '[]'::jsonb)
+    `);
+    const env = await privilegedDb.execute(sql`
+      INSERT INTO environments (name, user_id, organization_id) VALUES (${`staging-${orgId}`}, ${editorId}, ${orgId}) RETURNING id
+    `);
+    environmentId = Number((env.rows[0] as { id: number }).id);
+    await privilegedDb.execute(sql`
+      INSERT INTO secrets (environment_id, key_name, encrypted_value, iv, auth_tag, user_id, organization_id)
+      VALUES (${environmentId}, 'password', 'x', 'x', 'x', ${editorId}, ${orgId})
+    `);
+    // The editor's own things: they go with the account.
+    await privilegedDb.execute(sql`INSERT INTO user_settings (user_id) VALUES (${editorId})`);
+    await privilegedDb.execute(sql`
+      INSERT INTO api_keys (id, organization_id, user_id, name, prefix, hashed_key)
+      VALUES (${`key-${orgId}`}, ${orgId}, ${editorId}, 'CI', 'wfm_abc', ${`hash-${orgId}`})
+    `);
+    await privilegedDb.execute(sql`
+      INSERT INTO invitations (organization_id, username, role, token, invited_by_user_id, expires_at)
+      VALUES (${orgId}, ${`invitee-${orgId}`}, 'viewer', ${`token-${orgId}`}, ${editorId}, now() + interval '1 day')
+    `);
+  });
+
+  // Runs before the file's own cleanup, which deletes the users these rows now point at.
+  afterEach(async () => {
+    for (const table of ['secrets', 'environments', 'test_plan_schedules', 'test_plans', 'step_groups', 'api_tests', 'tests', 'projects', 'api_keys']) {
+      await privilegedDb.execute(sql`DELETE FROM ${sql.identifier(table)} WHERE organization_id = ${orgId}`);
+    }
+  });
+
+  it('hands everything the member made to the owner removing them', async () => {
+    const res = await request(app).delete(`/api/organization/members/${editorId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.transferredTo).toEqual({ id: ownerId, username: 'org-owner' });
+    expect(res.body.transferred).toEqual({
+      projects: 1, tests: 1, api_tests: 1, test_plans: 1, test_plan_schedules: 1, step_groups: 1, environments: 1, secrets: 1,
+    });
+    for (const table of ['projects', 'tests', 'api_tests', 'test_plans', 'test_plan_schedules', 'step_groups', 'environments', 'secrets']) {
+      expect(await count(sql`SELECT count(*) AS n FROM ${sql.identifier(table)} WHERE organization_id = ${orgId} AND user_id = ${ownerId}`)).toBe(1);
+    }
+  });
+
+  it('deletes only what was the member’s own, and keeps the invitation they sent', async () => {
+    await request(app).delete(`/api/organization/members/${editorId}`);
+
+    expect(await count(sql`SELECT count(*) AS n FROM user_settings WHERE user_id = ${editorId}`)).toBe(0);
+    expect(await count(sql`SELECT count(*) AS n FROM api_keys WHERE user_id = ${editorId}`)).toBe(0);
+    expect(await count(sql`SELECT count(*) AS n FROM invitations WHERE organization_id = ${orgId} AND invited_by_user_id IS NULL`)).toBe(1);
+  });
+
+  it('hands things to the member the request names', async () => {
+    const other = await privilegedDb.execute(sql`
+      INSERT INTO users (username, password, organization_id, role) VALUES ('org-viewer', 'x', ${orgId}, 'viewer') RETURNING id
+    `);
+    const viewerId = Number((other.rows[0] as { id: number }).id);
+
+    const res = await request(app).delete(`/api/organization/members/${editorId}`).send({ transferTo: viewerId });
+
+    expect(res.status).toBe(200);
+    expect(res.body.transferredTo.id).toBe(viewerId);
+    expect(await count(sql`SELECT count(*) AS n FROM tests WHERE organization_id = ${orgId} AND user_id = ${viewerId}`)).toBe(1);
+  });
+
+  it('refuses to hand things to someone outside the organization, or to the member leaving', async () => {
+    const elsewhere = await privilegedDb.execute(sql`INSERT INTO organizations (name) VALUES ('Other') RETURNING id`);
+    const otherOrg = Number((elsewhere.rows[0] as { id: number }).id);
+    const stranger = await privilegedDb.execute(sql`
+      INSERT INTO users (username, password, organization_id, role) VALUES ('stranger', 'x', ${otherOrg}, 'owner') RETURNING id
+    `);
+    const strangerId = Number((stranger.rows[0] as { id: number }).id);
+
+    try {
+      const outside = await request(app).delete(`/api/organization/members/${editorId}`).send({ transferTo: strangerId });
+      const self = await request(app).delete(`/api/organization/members/${editorId}`).send({ transferTo: editorId });
+
+      expect(outside.status).toBe(400);
+      expect(self.status).toBe(400);
+      expect(await count(sql`SELECT count(*) AS n FROM users WHERE id = ${editorId}`)).toBe(1);
+    } finally {
+      await privilegedDb.execute(sql`DELETE FROM users WHERE organization_id = ${otherOrg}`);
+      await privilegedDb.execute(sql`DELETE FROM organizations WHERE id = ${otherOrg}`);
+    }
+  });
+
+  it('hands an owner’s things to another owner when they remove themselves', async () => {
+    const second = await privilegedDb.execute(sql`
+      INSERT INTO users (username, password, organization_id, role) VALUES ('org-owner-2', 'x', ${orgId}, 'owner') RETURNING id
+    `);
+    const secondOwnerId = Number((second.rows[0] as { id: number }).id);
+    await privilegedDb.execute(sql`UPDATE tests SET user_id = ${ownerId} WHERE organization_id = ${orgId}`);
+
+    const res = await request(app).delete(`/api/organization/members/${ownerId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.transferredTo.id).toBe(secondOwnerId);
+    expect(await count(sql`SELECT count(*) AS n FROM tests WHERE organization_id = ${orgId} AND user_id = ${secondOwnerId}`)).toBe(1);
+  });
+
+  it('records who took over, and how much', async () => {
+    await request(app).delete(`/api/organization/members/${editorId}`);
+
+    const entry = await privilegedDb.execute(sql`
+      SELECT metadata FROM audit_log WHERE organization_id = ${orgId} AND action = 'member.removed'
+    `);
+    const metadata = (entry.rows[0] as { metadata: { transferredTo: string; transferred: Record<string, number> } }).metadata;
+    expect(metadata.transferredTo).toBe('org-owner');
+    expect(metadata.transferred.environments).toBe(1);
   });
 });
 

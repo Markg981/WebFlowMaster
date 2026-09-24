@@ -30,65 +30,46 @@ Every organization keeps at least one owner: the last owner cannot be demoted or
 Give people the smallest role that lets them work. Stakeholders who follow results are viewers;
 pipelines use API keys, not a person's account.
 
-## Members and invitations
+## Members and invitations *(owners)* {#members-and-invitations}
 
-::: info No screen yet
-Members and invitations are managed through the API for now: the web client does not yet have
-a page for them, and its registration form has no field for an invitation. The examples below
-use `curl` with an API key.
-:::
+**Settings → Members** lists the people in the organization with their roles, and the
+invitations still waiting.
 
-To call these endpoints, create an API key with **Full access, everywhere** in
-**Settings → API keys** while signed in as an owner. Keep it for this purpose only and revoke it when you are done.
+**Invite someone.** Enter the username the new account will have and its role (viewer or
+editor; ownership is granted afterwards), then **Create invitation**. The page shows a link,
+once: send it to the person by a channel you trust, since the application sends no e-mail. The
+link opens the registration form with the invitation and the username already filled in; the
+person chooses a password (at least 8 characters) and is in. An invitation is valid for seven
+days and can be revoked while it waits. An existing account cannot be moved between
+organizations: an invitation always creates a new one.
 
-```bash
-export WFM_URL=https://webflowmaster.example.com
-export KEY=wfm_...   # an owner's full-access key
-```
+**Change a role** with the role menu next to a member. The last owner cannot be demoted.
 
-**List members:**
+**Remove a member** with the bin icon. Their account is deleted, with their API keys, second
+factor and preferences. What they made (projects, tests, API tests, plans, schedules, step
+groups, environments and their secrets) stays in the organization and is handed to another
+member: you, unless you choose someone else in the dialog. An owner removing themselves hands
+it to another owner. The audit log keeps their name and records who took over.
 
-```bash
-curl -s -H "Authorization: Bearer $KEY" "$WFM_URL/api/organization"
-```
-
-**Invite someone.** An invitation names the username the new account will have and its role
-(`viewer` or `editor`; ownership is granted afterwards). It is valid for seven days, and the
-token is returned only in this answer:
-
-```bash
-curl -s -X POST -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"username":"maria.rossi","role":"editor"}' "$WFM_URL/api/organization/invitations"
-```
-
-The application sends no e-mail: give the token to the person by a channel you trust. They
-create their account with it, choosing their password (at least 8 characters):
-
-```bash
-curl -s -X POST -H "Content-Type: application/json" \
-  -d '{"username":"maria.rossi","password":"…","invitationToken":"<token>"}' \
-  "$WFM_URL/api/register"
-```
-
-and then sign in on the web page as usual. An existing account cannot be moved between
-organizations; an invitation always creates a new one.
-
-**Pending invitations and revoking one:** `GET /api/organization/invitations`,
-`DELETE /api/organization/invitations/<id>`.
-
-**Change a role:** `PATCH /api/organization/members/<userId>` with `{"role":"owner"}`.
-
-**Remove a member:** `DELETE /api/organization/members/<userId>`. The account is deleted, and
-the audit trail keeps their name.
-
-::: danger Known problem: removing a member who created things
-Today, removing a member also deletes the environments (with their secrets), API tests,
-schedules and API keys that member created, and it fails if they created projects, tests, plans
-or step groups, or saved their preferences. Until this is fixed, do not remove members who have
-worked in the organization: change them to `viewer` and revoke their API keys instead.
-:::
+**Reset a member's second factor** with the key icon, when they have lost both their device and
+their recovery codes. They sign in with their password and, if the organization requires it,
+set it up again.
 
 Each of these is recorded in the [audit log](#audit-log).
+
+::: details The same through the API
+With an owner's API key with full access (`Authorization: Bearer wfm_…`):
+
+| Action | Request |
+|---|---|
+| List members | `GET /api/organization` |
+| Invite | `POST /api/organization/invitations` with `{"username":"maria.rossi","role":"editor"}`; the answer holds the token, once |
+| Pending invitations, revoke one | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>` |
+| Register with an invitation | `POST /api/register` with `{"username","password","invitationToken"}` |
+| Change a role | `PATCH /api/organization/members/<userId>` with `{"role":"owner"}` |
+| Remove | `DELETE /api/organization/members/<userId>`, optionally with `{"transferTo":<userId>}` |
+| Reset the second factor | `DELETE /api/organization/members/<userId>/mfa` |
+:::
 
 ## Restricted projects
 
@@ -111,13 +92,7 @@ a member without a second factor can do nothing but set one up, including in ses
 already open. API keys are not affected.
 
 A member who lost both their device and their recovery codes needs an owner to reset their
-second factor, through the API for now:
-
-```bash
-curl -s -X DELETE -H "Authorization: Bearer $KEY" "$WFM_URL/api/organization/members/<userId>/mfa"
-```
-
-They then sign in with their password and, if the organization requires it, set it up again.
+second factor in **Settings → Members**.
 
 ## API keys and service accounts
 
@@ -210,6 +185,13 @@ installation shared by several customers, leave these to the operator.
 
 ## Export and erasure *(owners)*
 
+Both are done through the API for now, with an owner's full-access key:
+
+```bash
+export WFM_URL=https://webflowmaster.example.com
+export KEY=wfm_...   # an owner's full-access key
+```
+
 **Export**: `GET /api/organization/export` returns the whole organization as one JSON file:
 every table that belongs to it (members, projects, tests, plans, runs, the audit log and the
 rest). Passwords and invitation tokens are left out. Stored secrets and integration tokens are
@@ -240,12 +222,7 @@ organization until they expire.
 
 ## Known limitations
 
-- Members, invitations, a member's second-factor reset, export and erasure have no screen yet;
-  they are done through the API as shown above.
-- Removing a member who created things does not work as it should (see
-  [Members and invitations](#members-and-invitations)).
-- Registration is open to anyone who can reach the installation and creates a new organization
-  (see [First sign-in](./installation#first-sign-in)).
+- Export and erasure have no screen yet; they are done through the API as shown above.
 - Erasing an organization leaves its files in the artifact store for the operator to remove.
 - There is no single sign-on (SAML, OpenID Connect) and no e-mail delivery; invitations are
   handed over by hand.

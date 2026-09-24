@@ -124,7 +124,9 @@
       "apiKeys": "API-Schlüssel",
       "apiKeysDescription": "Zugangsdaten für Pipelines und Skripte, damit die CI nie das Passwort von jemandem braucht.",
       "sourceHosts": "GitHub & GitLab",
-      "sourceHostsDescription": "Von einer Pipeline gestartete Läufe melden am getesteten Commit, ob sie laufen, bestanden haben oder fehlgeschlagen sind."
+      "sourceHostsDescription": "Von einer Pipeline gestartete Läufe melden am getesteten Commit, ob sie laufen, bestanden haben oder fehlgeschlagen sind.",
+      "members": "Mitglieder",
+      "membersDescription": "Wer zur Organisation gehört, mit welcher Rolle, und Einladungen für neue Personen."
     },
     "apiKeys": {
       "openApi": "API-Referenz (OpenAPI)",
@@ -274,6 +276,41 @@
       "save": "Prüfen und speichern",
       "tokenRequired": "Fügen Sie ein Token ein.",
       "footnote": "Die CLI sendet Repository und Commit selbst, wenn sie in GitHub Actions oder GitLab CI läuft. Der Status verlinkt auf den Bericht, wenn WEBFLOW_PUBLIC_URL auf dem Server gesetzt ist."
+    },
+    "members": {
+      "title": "Mitglieder",
+      "description": "Wer zu dieser Organisation gehört und mit welcher Rolle. Neue Personen treten über eine Einladung bei, die Sie ihnen senden.",
+      "loading": "Mitglieder werden geladen…",
+      "you": "Sie",
+      "roleOf": "Rolle von {{username}}",
+      "roles": {
+        "viewer": "Betrachter",
+        "editor": "Bearbeiter",
+        "owner": "Eigentümer"
+      },
+      "resetMfa": "Zwei-Faktor-Authentifizierung von {{username}} zurücksetzen",
+      "mfaReset": "Die Zwei-Faktor-Authentifizierung von {{username}} wurde zurückgesetzt.",
+      "remove": "{{username}} entfernen",
+      "removed": "{{username}} wurde entfernt. Was er erstellt hat, gehört jetzt {{heir}}.",
+      "usernameRequired": "Geben Sie den Benutzernamen des neuen Kontos ein, mindestens 3 Zeichen.",
+      "inviteTitle": "Jemanden einladen",
+      "usernameLabel": "Benutzername des neuen Kontos",
+      "roleLabel": "Rolle",
+      "inviteAction": "Einladung erstellen",
+      "linkIntro": "Senden Sie diesen Link an {{username}}. Er wird nur jetzt angezeigt und ist sieben Tage gültig.",
+      "linkLabel": "Einladungslink",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "expired": "abgelaufen",
+      "pending": "offen bis {{date}}",
+      "revoke": "Einladung für {{username}} widerrufen",
+      "removeTitle": "{{username}} entfernen?",
+      "removeDescription": "Das Konto wird gelöscht, mit seinen API-Schlüsseln und Einstellungen. Projekte, Tests, Pläne, Zeitpläne und Umgebungen, die es erstellt hat, bleiben in der Organisation und gehen an das Mitglied Ihrer Wahl über. Das Audit-Protokoll behält den Namen.",
+      "heirLabel": "Erstelltes übergeben an",
+      "heirMe": "mich",
+      "heirOtherOwner": "einen anderen Eigentümer",
+      "cancel": "Abbrechen",
+      "removeConfirm": "Mitglied entfernen"
     }
   },
   "dashboard": {
@@ -893,6 +930,18 @@
     },
     "edition": {
       "text": "Premium Enterprise Edition"
+    },
+    "firstAccount": {
+      "description": "Dies ist das erste Konto dieser Installation: Es legt die erste Organisation an, deren Eigentümer Sie sind."
+    },
+    "invitationRequired": {
+      "description": "Konten werden hier auf Einladung erstellt. Öffnen Sie den erhaltenen Link oder fügen Sie unten den Einladungscode ein."
+    },
+    "invitationCode": {
+      "label": "Einladungscode"
+    },
+    "invitationUsername": {
+      "description": "Verwenden Sie den Benutzernamen, mit dem Sie eingeladen wurden."
     }
   },
   "dashboardPageNew": {

@@ -1,8 +1,13 @@
 import { organizations, users, invitations, auditLog, AUDIT_ACTIONS, tests, testRuns, userSettings, sessions, type User, type InsertUser, type Test, type InsertTest, type TestRun, type InsertTestRun, type UserSettings, type InsertUserSettings } from "@shared/schema";
 import { privilegedDb } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import session from "express-session";
 import { randomBytes } from "node:crypto";
+
+type PrivilegedTx = Parameters<Parameters<typeof privilegedDb.transaction>[0]>[0];
+
+/** Serializes "is this the first account?" with creating it. Any constant; this one spells WFM1. */
+const FIRST_ACCOUNT_LOCK = 0x57464d31;
 // import connectPg from "connect-pg-simple";
 // import { pool } from "./db"; // Removed as pool is not available with SQLite
 
@@ -79,24 +84,48 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    // A user cannot exist without an organization, so registration creates one and makes
-    // the registrant its owner. Both rows are written in one transaction: a user pointing
-    // at an organization that failed to insert would be unusable, and an organization with
-    // no members is unreachable.
+  /** Whether anyone has an account yet: an installation with none may register its first. */
+  async hasAnyPerson(): Promise<boolean> {
+    const [row] = await privilegedDb.select({ id: users.id }).from(users).where(eq(users.kind, 'person')).limit(1);
+    return row !== undefined;
+  }
+
+  /**
+   * The installation's first account, when registration otherwise needs an invitation
+   * (server/registration.ts). Null if somebody already has one.
+   *
+   * The check and the insert share a transaction-scoped advisory lock, so two people racing to
+   * be first on a new installation cannot both win: the second waits, then finds the first.
+   */
+  async createFirstUser(insertUser: InsertUser): Promise<User | null> {
     return privilegedDb.transaction(async (tx) => {
-      const [organization] = await tx
-        .insert(organizations)
-        .values({ name: `${insertUser.username}'s organization` })
-        .returning();
-
-      const [user] = await tx
-        .insert(users)
-        .values({ ...insertUser, organizationId: organization.id, role: 'owner' })
-        .returning();
-
-      return user;
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${FIRST_ACCOUNT_LOCK})`);
+      const [existing] = await tx.select({ id: users.id }).from(users).where(eq(users.kind, 'person')).limit(1);
+      if (existing) return null;
+      return this.insertOwnerWithOrganization(tx, insertUser);
     });
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    return privilegedDb.transaction((tx) => this.insertOwnerWithOrganization(tx, insertUser));
+  }
+
+  // A user cannot exist without an organization, so registration creates one and makes the
+  // registrant its owner. Both rows are written in one transaction: a user pointing at an
+  // organization that failed to insert would be unusable, and an organization with no members
+  // is unreachable.
+  private async insertOwnerWithOrganization(tx: PrivilegedTx, insertUser: InsertUser): Promise<User> {
+    const [organization] = await tx
+      .insert(organizations)
+      .values({ name: `${insertUser.username}'s organization` })
+      .returning();
+
+    const [user] = await tx
+      .insert(users)
+      .values({ ...insertUser, organizationId: organization.id, role: 'owner' })
+      .returning();
+
+    return user;
   }
 
   /**

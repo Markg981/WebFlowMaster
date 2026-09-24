@@ -124,7 +124,9 @@
       "apiKeys": "API keys",
       "apiKeysDescription": "Credentials for pipelines and scripts, so CI never needs somebody’s password.",
       "sourceHosts": "GitHub & GitLab",
-      "sourceHostsDescription": "Runs started from a pipeline report pending, passed or failed on the commit they tested."
+      "sourceHostsDescription": "Runs started from a pipeline report pending, passed or failed on the commit they tested.",
+      "members": "Members",
+      "membersDescription": "Who belongs to the organization, their roles, and invitations for new people."
     },
     "apiKeys": {
       "openApi": "API reference (OpenAPI)",
@@ -274,6 +276,41 @@
       "save": "Check and save",
       "tokenRequired": "Paste a token.",
       "footnote": "The CLI sends the repository and commit by itself when it runs in GitHub Actions or GitLab CI. The status links to the report when WEBFLOW_PUBLIC_URL is set on the server."
+    },
+    "members": {
+      "title": "Members",
+      "description": "Who belongs to this organization and with which role. New people join through an invitation you send them.",
+      "loading": "Loading members…",
+      "you": "you",
+      "roleOf": "Role of {{username}}",
+      "roles": {
+        "viewer": "viewer",
+        "editor": "editor",
+        "owner": "owner"
+      },
+      "resetMfa": "Reset two-factor for {{username}}",
+      "mfaReset": "Two-factor authentication was reset for {{username}}.",
+      "remove": "Remove {{username}}",
+      "removed": "{{username}} was removed. What they made now belongs to {{heir}}.",
+      "usernameRequired": "Enter the username the new account will have, at least 3 characters.",
+      "inviteTitle": "Invite someone",
+      "usernameLabel": "Username for the new account",
+      "roleLabel": "Role",
+      "inviteAction": "Create invitation",
+      "linkIntro": "Send this link to {{username}}. It is shown only now, and works for seven days.",
+      "linkLabel": "Invitation link",
+      "copy": "Copy",
+      "copied": "Copied",
+      "expired": "expired",
+      "pending": "waiting until {{date}}",
+      "revoke": "Revoke the invitation for {{username}}",
+      "removeTitle": "Remove {{username}}?",
+      "removeDescription": "Their account is deleted, with their API keys and preferences. The projects, tests, plans, schedules and environments they made stay in the organization and are handed to the member you choose. The audit log keeps their name.",
+      "heirLabel": "Hand what they made to",
+      "heirMe": "me",
+      "heirOtherOwner": "another owner",
+      "cancel": "Cancel",
+      "removeConfirm": "Remove member"
     }
   },
   "dashboard": {
@@ -887,6 +924,18 @@
     },
     "edition": {
       "text": "Premium Enterprise Edition"
+    },
+    "firstAccount": {
+      "description": "This is the first account on this installation: it creates the first organization, and you will be its owner."
+    },
+    "invitationRequired": {
+      "description": "Accounts here are created by invitation. Open the link you were sent, or paste its invitation code below."
+    },
+    "invitationCode": {
+      "label": "Invitation code"
+    },
+    "invitationUsername": {
+      "description": "Use the username you were invited with."
     }
   },
   "dashboardPageNew": {

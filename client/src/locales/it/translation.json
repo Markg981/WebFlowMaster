@@ -124,7 +124,9 @@
       "apiKeys": "Chiavi API",
       "apiKeysDescription": "Credenziali per pipeline e script, così la CI non ha mai bisogno della password di qualcuno.",
       "sourceHosts": "GitHub e GitLab",
-      "sourceHostsDescription": "I run avviati da una pipeline indicano sul commit testato se sono in corso, passati o falliti."
+      "sourceHostsDescription": "I run avviati da una pipeline indicano sul commit testato se sono in corso, passati o falliti.",
+      "members": "Membri",
+      "membersDescription": "Chi fa parte dell'organizzazione, i loro ruoli e gli inviti per le nuove persone."
     },
     "apiKeys": {
       "openApi": "Riferimento API (OpenAPI)",
@@ -274,6 +276,41 @@
       "save": "Verifica e salva",
       "tokenRequired": "Incolla un token.",
       "footnote": "La CLI invia da sola repository e commit quando gira in GitHub Actions o GitLab CI. Lo stato porta al report quando sul server è impostata WEBFLOW_PUBLIC_URL."
+    },
+    "members": {
+      "title": "Membri",
+      "description": "Chi fa parte di questa organizzazione e con quale ruolo. Le nuove persone entrano con un invito che mandi tu.",
+      "loading": "Caricamento dei membri…",
+      "you": "tu",
+      "roleOf": "Ruolo di {{username}}",
+      "roles": {
+        "viewer": "viewer",
+        "editor": "editor",
+        "owner": "owner"
+      },
+      "resetMfa": "Azzera il secondo fattore di {{username}}",
+      "mfaReset": "L'autenticazione a due fattori di {{username}} è stata azzerata.",
+      "remove": "Rimuovi {{username}}",
+      "removed": "{{username}} è stato rimosso. Ciò che aveva creato ora appartiene a {{heir}}.",
+      "usernameRequired": "Inserisci lo username che avrà il nuovo account, almeno 3 caratteri.",
+      "inviteTitle": "Invita qualcuno",
+      "usernameLabel": "Username del nuovo account",
+      "roleLabel": "Ruolo",
+      "inviteAction": "Crea invito",
+      "linkIntro": "Manda questo link a {{username}}. Viene mostrato solo ora e vale sette giorni.",
+      "linkLabel": "Link di invito",
+      "copy": "Copia",
+      "copied": "Copiato",
+      "expired": "scaduto",
+      "pending": "in attesa fino al {{date}}",
+      "revoke": "Revoca l'invito per {{username}}",
+      "removeTitle": "Rimuovere {{username}}?",
+      "removeDescription": "Il suo account viene cancellato, con le sue chiavi API e le preferenze. Progetti, test, piani, schedulazioni e ambienti che ha creato restano nell'organizzazione e passano al membro che scegli. Il registro di audit ne conserva il nome.",
+      "heirLabel": "Passa ciò che ha creato a",
+      "heirMe": "me",
+      "heirOtherOwner": "un altro owner",
+      "cancel": "Annulla",
+      "removeConfirm": "Rimuovi membro"
     }
   },
   "dashboard": {
@@ -954,6 +991,18 @@
     },
     "edition": {
       "text": "Premium Enterprise Edition"
+    },
+    "firstAccount": {
+      "description": "Questo è il primo account dell'installazione: crea la prima organizzazione, e ne sarai owner."
+    },
+    "invitationRequired": {
+      "description": "Qui gli account si creano su invito. Apri il link che hai ricevuto, o incolla sotto il codice di invito."
+    },
+    "invitationCode": {
+      "label": "Codice di invito"
+    },
+    "invitationUsername": {
+      "description": "Usa lo username con cui sei stato invitato."
     }
   },
   "dashboardPageNew": {

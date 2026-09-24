@@ -17,6 +17,7 @@ import { isMfaEnabled, mfaStatus, verifySecondFactor } from "./mfa";
 import createMemoryStore from "memorystore";
 import { sessionRedis } from "./redis";
 import { sessionCookieSecure } from "./config";
+import { registrationMode, registrationPolicy } from "./registration";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -154,6 +155,8 @@ export function setupAuth(app: Express) {
   if (!process.env.SESSION_SECRET) {
     throw new Error("SESSION_SECRET must be set for session security.");
   }
+  // A malformed REGISTRATION stops the start, rather than the first registration.
+  registrationMode();
 
   if (!sharedSessionMiddleware) {
     // Said out loud, because the symptom of getting this wrong is a 200 from /api/login
@@ -254,8 +257,20 @@ export function setupAuth(app: Express) {
           return;
         }
         user = result;
-      } else {
+      } else if (registrationMode() === 'open') {
         user = await storage.createUser(credentials);
+      } else {
+        // Invitation only (server/registration.ts): without one, only the installation's first
+        // account may be created, and createFirstUser decides that under a lock.
+        const first = await storage.createFirstUser(credentials);
+        if (!first) {
+          res.status(403).json({
+            message: "Accounts on this installation are created by invitation. Ask an owner of your organization to invite you.",
+            code: "invitation_required",
+          });
+          return;
+        }
+        user = first;
       }
 
       // Joining an organization that requires a second factor means enrolling next, which the
@@ -274,6 +289,15 @@ export function setupAuth(app: Express) {
   };
 
   app.post("/api/register", authLimiter, registerHandler);
+
+  // Public: the sign-in page asks it whether to offer a registration form at all.
+  app.get("/api/registration", async (_req, res, next) => {
+    try {
+      res.json(await registrationPolicy());
+    } catch (error) {
+      next(error);
+    }
+  });
 
   /**
    * The password step. With no second factor it signs the user in, as it always did. With one

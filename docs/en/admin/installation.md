@@ -232,14 +232,23 @@ Each worker appears under **Settings → Runners** once it starts.
 
 ## First sign-in
 
-Open the web address and choose **Register**. An account registered without an invitation
-creates a new organization and becomes its owner. Everyone else joins that organization through
-an invitation (see [Members and invitations](./administration#members-and-invitations)).
+Open the web address and choose **Register**. The first account on the installation creates the
+first organization and becomes its owner. After that, who may register depends on
+`REGISTRATION`:
 
-::: warning Registration is open
-Anyone who can reach the server can register and get an organization of their own, isolated
-from the others. There is no setting that turns this off yet. If the installation is for one
-company, keep it reachable only from that company's network or VPN.
+| `REGISTRATION` | Without an invitation | With an invitation |
+|---|---|---|
+| `invitation` (default) | Refused, except for the installation's first account | Joins the inviting organization |
+| `open` | Anyone who reaches the server gets an organization of their own | Joins the inviting organization |
+
+Keep the default for an installation that serves one company, and invite people from
+**Settings → Members** (see [Members and invitations](./administration#members-and-invitations)).
+Use `open` only for a service that offers sign-up to the public.
+
+::: warning Register the first account yourself
+Until the first account exists, whoever reaches the registration page first becomes the owner
+of the first organization. Register it as soon as the installation starts, before it is
+reachable by others.
 :::
 
 ## Check the installation

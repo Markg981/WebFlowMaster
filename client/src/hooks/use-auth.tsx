@@ -94,7 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: InsertUser) => {
+    // With an invitation's token the account joins the inviting organization (see server/auth.ts).
+    mutationFn: async (credentials: InsertUser & { invitationToken?: string }) => {
       const res = await apiRequest("POST", "/api/register", credentials);
       return await res.json();
     },

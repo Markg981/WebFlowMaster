@@ -1,13 +1,14 @@
 import { Router, type Request, type Response } from "express";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
-import { and, desc, eq, gte, like, lte, ne, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, like, lte, ne, sql, type SQL } from "drizzle-orm";
 import { organizations, users, invitations, auditLog, AUDIT_ACTIONS } from "@shared/schema";
 import { storage } from "../storage";
 import { requireRole } from "../middleware/require-role";
 import { withTenantTransaction, getTenantOrgId } from "../middleware/tenancy";
 import { auditActor, recordAudit } from "../audit";
 import { exportOrganization, eraseOrganization } from "../organization-lifecycle";
+import { transferMemberContent } from "../member-removal";
 import loggerPromise from "../logger";
 import { liveRunCounts, quotasFor } from "../tenant-quotas";
 import { availableRunnerCount } from "../runner-registry";
@@ -476,6 +477,13 @@ router.delete(
     const userId = Number(req.params.userId);
     if (!Number.isInteger(userId)) return res.status(400).json({ error: "Invalid user id" });
 
+    const body = z
+      .object({ transferTo: z.number().int().positive().optional() })
+      .safeParse(req.body ?? {});
+    if (!body.success) {
+      return res.status(400).json({ error: "Invalid payload", details: body.error.flatten() });
+    }
+
     const outcome = await withTenantTransaction(async (tx) => {
       const [target] = await tx
         .select({ id: users.id, role: users.role, username: users.username })
@@ -498,6 +506,29 @@ router.delete(
         if (others === 0) return { status: 409 as const };
       }
 
+      // Who takes over what the member made (server/member-removal.ts): the member the request
+      // names, or the owner removing them, or — when an owner removes themselves — the longest-
+      // standing other owner, who exists because the check above passed.
+      let heir: { id: number; username: string } | undefined;
+      const named = body.data.transferTo ?? (req.user!.id !== userId ? req.user!.id : undefined);
+      if (named !== undefined) {
+        if (named === userId) return { status: 400 as const, error: "transferTo must be another member" };
+        [heir] = await tx
+          .select({ id: users.id, username: users.username })
+          .from(users)
+          .where(and(eq(users.id, named), eq(users.organizationId, organizationId), eq(users.kind, "person")));
+        if (!heir) return { status: 400 as const, error: "transferTo is not a member of this organization" };
+      } else {
+        [heir] = await tx
+          .select({ id: users.id, username: users.username })
+          .from(users)
+          .where(and(eq(users.organizationId, organizationId), eq(users.role, "owner"), eq(users.kind, "person"), ne(users.id, userId)))
+          .orderBy(asc(users.createdAt), asc(users.id))
+          .limit(1);
+      }
+
+      const transferred = await transferMemberContent(tx, organizationId, userId, heir!.id);
+
       // Audit before the delete, not after: actor_user_id is ON DELETE SET NULL, and an owner
       // removing themselves would otherwise null out the actor on their own entry. The
       // denormalised actor_username survives either way, but the id is worth keeping when it
@@ -507,18 +538,19 @@ router.delete(
         actor: auditActor(req),
         targetType: 'user',
         targetId: userId,
-        metadata: { username: target.username, role: target.role },
+        metadata: { username: target.username, role: target.role, transferredTo: heir!.username, transferred },
       });
 
       await tx.delete(users).where(and(eq(users.id, userId), eq(users.organizationId, organizationId)));
-      return { status: 204 as const };
+      return { status: 200 as const, body: { removed: userId, transferredTo: { id: heir!.id, username: heir!.username }, transferred } };
     });
 
     if (outcome.status === 404) return res.status(404).json({ error: "Member not found" });
+    if (outcome.status === 400) return res.status(400).json({ error: outcome.error });
     if (outcome.status === 409) {
       return res.status(409).json({ error: "An organization must keep at least one owner" });
     }
-    res.status(204).end();
+    res.json(outcome.body);
   },
 );
 

@@ -120,6 +120,7 @@ UPDATE organizations SET max_concurrent_runs = 5, max_queued_runs = 300 WHERE id
 | `SESSION_SECRET must be set` o `ENCRYPTION_KEY is missing` | Un segreto non è impostato in quel processo | Impostatelo (vedi [Segreti](./installation#segreti)); anche i worker hanno bisogno di `ENCRYPTION_KEY`. |
 | I segreti salvati non si decifrano dopo uno spostamento o un ripristino | Una `ENCRYPTION_KEY` diversa | Usate la chiave con cui sono stati salvati; non c'è altro modo di leggerli. |
 | `Session Redis is not connected. Refusing to start in production` | Redis non raggiungibile all'avvio | Controllate `REDIS_URL` e che Redis accetti connessioni da questa macchina. |
+| La registrazione risponde "Accounts on this installation are created by invitation" | `REGISTRATION=invitation` (il default) e un account esiste già | Invitate la persona da **Impostazioni → Membri**, oppure impostate `REGISTRATION=open` se la registrazione deve essere pubblica. |
 | L'accesso risponde OK ma la pagina successiva risulta disconnessa | Cookie Secure su HTTP semplice | Servite su HTTPS; solo per uno stack locale, `SESSION_COOKIE_SECURE=false`. |
 | `403` su ogni salvataggio dietro un proxy | L'origine pubblica è diversa dall'`Host` che vede il server | Aggiungetela a `CSRF_TRUSTED_ORIGINS`. |
 | I run restano *in coda* | Nessun runner online, l'organizzazione al limite, o runner svuotati | Impostazioni → Runner e Impostazioni → Utilizzo dei run. |
