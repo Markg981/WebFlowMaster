@@ -192,5 +192,3 @@ Dichiarati perché una valutazione possa pesarli, invece di scoprirli dopo:
 - **Nessun limite di frequenza sull'API pubblica** oltre ai limiti sui run per organizzazione.
 - **Le impostazioni dei log a livello di installazione** possono essere cambiate dall'owner di
   qualsiasi organizzazione.
-- **La revisione delle dipendenze è indietro**: `docs/SECURITY-AUDIT.md` è stato aggiornato
-  l'ultima volta a luglio 2026 e non copre tutte le segnalazioni attuali.

@@ -1,4 +1,6 @@
-import puppeteer from 'puppeteer';
+// Playwright rather than puppeteer: the product already ships Playwright and its browsers, and
+// puppeteer was a second browser stack, in production dependencies, for this one script.
+import { chromium } from 'playwright';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -71,9 +73,9 @@ async function generatePDF(lang, fileName, title) {
 </html>
   `;
 
-  const browser = await puppeteer.launch({ headless: "new" });
+  const browser = await chromium.launch();
   const page = await browser.newPage();
-  await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+  await page.setContent(htmlContent, { waitUntil: 'networkidle' });
 
   await fs.ensureDir(outputDir);
 

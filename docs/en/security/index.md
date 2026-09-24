@@ -181,5 +181,3 @@ Stated so a review can weigh them, not discovered later:
 - **No Content Security Policy** header.
 - **No rate limit on the public API** beyond the per-organization limits on runs.
 - **Installation-wide log settings** can be changed by any organization's owner.
-- **The dependency review is behind**: `docs/SECURITY-AUDIT.md` was last updated in July 2026
-  and does not cover every current finding.

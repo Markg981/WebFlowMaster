@@ -5,6 +5,11 @@ import { PGlite } from '@electric-sql/pglite';
 import * as schema from '@shared/schema';
 import fs from 'fs';
 import path from 'path';
+import { unwrapDrizzleQueryErrors } from './db-errors';
+
+// Before any query: failed queries surface as the driver's own error, not as drizzle's wrapper
+// carrying the SQL and its parameters (see server/db-errors.ts).
+unwrapDrizzleQueryErrors();
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL must be set.');

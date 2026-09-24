@@ -389,7 +389,10 @@ describe('the lockfile can be installed somewhere other than the machine that wr
     const lock = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package-lock.json'), 'utf8'));
     const packages: Record<string, any> = lock.packages;
 
-    // How `require` finds a package: walk up the node_modules folders from the dependent.
+    // How `require` finds a package: walk up the node_modules folders from the dependent, and
+    // on past a workspace folder to the root, as Node does from any directory. A package the
+    // client workspace keeps for itself (client/node_modules/vite, when the root holds another
+    // version) resolves its own dependencies from the root node_modules as well.
     const resolveFrom = (dependent: string, name: string): string | null => {
       let base = dependent;
       for (;;) {
@@ -399,7 +402,7 @@ describe('the lockfile can be installed somewhere other than the machine that wr
         const nested = base.lastIndexOf('/node_modules/');
         if (nested >= 0) base = base.slice(0, nested);
         else if (base.startsWith('node_modules/')) base = '';
-        else return null;
+        else base = base.includes('/') ? base.slice(0, base.lastIndexOf('/')) : '';
       }
     };
 

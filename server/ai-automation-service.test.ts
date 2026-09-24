@@ -12,12 +12,16 @@ const { mockGenerateContent } = vi.hoisted(() => {
   return { mockGenerateContent: vi.fn() };
 });
 
+// A function, not an arrow: the service calls `new GoogleGenerativeAI(...)`, and Vitest 4 keeps a
+// mock's implementation as written, so an arrow implementation cannot be constructed.
 vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn(() => ({
-    getGenerativeModel: vi.fn(() => ({
-      generateContent: mockGenerateContent,
-    })),
-  })),
+  GoogleGenerativeAI: vi.fn(function GoogleGenerativeAI() {
+    return {
+      getGenerativeModel: vi.fn(() => ({
+        generateContent: mockGenerateContent,
+      })),
+    };
+  }),
 }));
 
 vi.mock('./logger', () => ({
