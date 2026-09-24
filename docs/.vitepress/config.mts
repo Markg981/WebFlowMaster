@@ -10,6 +10,11 @@ import { withMermaid } from 'vitepress-plugin-mermaid';
  */
 
 type Labels = {
+  admin: string;
+  installation: string;
+  operations: string;
+  configuration: string;
+  administration: string;
   internals: string;
   integrations: string;
   overview: string;
@@ -29,6 +34,15 @@ type Labels = {
 function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
   const p = (page: string) => `/${lang}/${page}`;
   return [
+    {
+      text: t.admin,
+      items: [
+        { text: t.installation, link: p('admin/installation') },
+        { text: t.operations, link: p('admin/operations') },
+        { text: t.configuration, link: p('admin/configuration') },
+        { text: t.administration, link: p('admin/administration') },
+      ],
+    },
     {
       text: t.integrations,
       items: [
@@ -54,6 +68,11 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
 }
 
 const en: Labels = {
+  admin: 'Install and administer',
+  installation: 'Installation',
+  operations: 'Operations',
+  configuration: 'Configuration reference',
+  administration: 'Administration',
   internals: 'Internals',
   integrations: 'Integrations',
   overview: 'Architecture overview',
@@ -71,6 +90,11 @@ const en: Labels = {
 };
 
 const it: Labels = {
+  admin: 'Installazione e amministrazione',
+  installation: 'Installazione',
+  operations: 'Operatività',
+  configuration: 'Riferimento della configurazione',
+  administration: 'Amministrazione',
   internals: 'Interni',
   integrations: 'Integrazioni',
   overview: "Panoramica dell'architettura",
@@ -111,8 +135,6 @@ export default withMermaid(
       'API_REFERENCE.md',
       'en/USER_GUIDE.md',
       'it/USER_GUIDE.md',
-      'en/ADMIN_GUIDE.md',
-      'it/ADMIN_GUIDE.md',
     ],
     themeConfig: {
       search: {
@@ -145,6 +167,7 @@ export default withMermaid(
         themeConfig: {
           nav: [
             { text: 'Home', link: '/en/' },
+            { text: 'Administration', link: '/en/admin/installation' },
             { text: 'Internals', link: '/en/internals/' },
           ],
           sidebar: { '/en/': sidebar('en', en) },
@@ -158,6 +181,7 @@ export default withMermaid(
         themeConfig: {
           nav: [
             { text: 'Home', link: '/it/' },
+            { text: 'Amministrazione', link: '/it/admin/installation' },
             { text: 'Interni', link: '/it/internals/' },
           ],
           sidebar: { '/it/': sidebar('it', it) },
