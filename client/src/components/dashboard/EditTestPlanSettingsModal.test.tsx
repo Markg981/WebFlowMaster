@@ -146,6 +146,41 @@ describe('EditTestPlanSettingsModal', () => {
     expect(savedBody().createIssuesOnFailure).toBe(false);
   });
 
+  it('runs on the server until a pool of local agents is chosen, then sends that pool', async () => {
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve({
+        ok: true,
+        json: async () =>
+          String(url).includes('/api/agents')
+            ? { agents: [{ pool: 'onprem', revokedAt: null }, { pool: 'retired', revokedAt: '2026-09-01T00:00:00Z' }] }
+            : String(url).includes('/api/issue-trackers') ? [] : {},
+      }),
+    );
+    const onSaved = vi.fn();
+    render(<EditTestPlanSettingsModal isOpen plan={plan} onClose={() => {}} onSaved={onSaved} />);
+
+    const trigger = screen.getByRole('combobox', { name: 'Run on' });
+    expect(trigger).toHaveTextContent("This server's runners");
+    await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url) === '/api/agents')).toBe(true));
+    fireEvent.keyDown(trigger, { key: 'Enter', code: 'Enter' });
+    // A revoked agent's pool lends nothing, so it is not offered.
+    const options = await screen.findAllByRole('option');
+    expect(options).toHaveLength(2);
+    fireEvent.click(options[1]);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(savedBody().agentPool).toBe('onprem');
+  });
+
+  it('sends no pool for a plan that runs on the server', async () => {
+    const onSaved = vi.fn();
+    render(<EditTestPlanSettingsModal isOpen plan={plan} onClose={() => {}} onSaved={onSaved} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(savedBody().agentPool).toBeNull();
+  });
+
   it('reports a refused save rather than closing as if it had worked', async () => {
     fetchMock.mockResolvedValue({ ok: false, json: async () => ({ error: 'Invalid request payload' }) });
     const onSaved = vi.fn();

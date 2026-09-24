@@ -295,6 +295,8 @@ export const testPlans = pgTable("test_plans", {
   captureTrace: text('capture_trace').default('never').notNull(),
   /** A HAR of each test's requests (no bodies, no credentials) and the summary the report shows. */
   captureNetwork: text('capture_network').default('never').notNull(),
+  /** Run on the local agents of this pool (shared/agents.ts); null runs on the server's runners. */
+  agentPool: text('agent_pool'),
   visualTestingEnabled: boolean('visual_testing_enabled').default(false),
   pageLoadTimeout: integer('page_load_timeout').default(30000),
   elementTimeout: integer('element_timeout').default(30000),
@@ -974,6 +976,35 @@ export const testQuarantines = pgTable("test_quarantines", {
 
 export type TestQuarantine = typeof testQuarantines.$inferSelect;
 
+/**
+ * A local agent: a process inside a customer's network that lends browsers to the runner over
+ * connections it opens itself (shared/agents.ts). Authenticated by a token shown once; stored
+ * as its hash.
+ */
+export const agents = pgTable("agents", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  /** Plans name a pool, not an agent: any agent of the pool may take the run. */
+  pool: text("pool").notNull().default('default'),
+  tokenPrefix: text("token_prefix").notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  /** Written by the relay while the agent is connected. */
+  lastSeenAt: timestamp("last_seen_at"),
+  /** What it reported the last time it connected. */
+  hostname: text("hostname"),
+  agentVersion: text("agent_version"),
+  playwrightVersion: text("playwright_version"),
+  browsers: jsonb("browsers").$type<string[]>(),
+  revokedAt: timestamp("revoked_at"),
+}, (table) => [
+  index("agents_organization_id_idx").on(table.organizationId),
+]);
+
+export type Agent = typeof agents.$inferSelect;
+
 /** The trackers this build can actually file in. A provider with no implementation files nothing. */
 export const ISSUE_PROVIDERS = ['jira', 'azure_devops'] as const;
 export type IssueProvider = (typeof ISSUE_PROVIDERS)[number];
@@ -1154,6 +1185,9 @@ export const AUDIT_ACTIONS = {
   // Setting an unreliable test aside, and bringing it back.
   TEST_QUARANTINED: 'test.quarantined',
   TEST_QUARANTINE_RELEASED: 'test.quarantine_released',
+  // Local agents: the machines inside a customer's network that lend browsers to runs.
+  AGENT_CREATED: 'agent.created',
+  AGENT_REVOKED: 'agent.revoked',
   RUN_CANCELLED: 'run.cancelled',
   // Where tests run and with what. Secrets by name only — never a value.
   ENVIRONMENT_CREATED: 'environment.created',
@@ -1505,6 +1539,8 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
   captureVideo: z.enum(EVIDENCE_CAPTURE_MODES).default("never"),
   captureTrace: z.enum(EVIDENCE_CAPTURE_MODES).default("never"),
   captureNetwork: z.enum(EVIDENCE_CAPTURE_MODES).default("never"),
+  // A pool of local agents, or null for the server's own runners.
+  agentPool: z.string().trim().regex(/^[a-z0-9][a-z0-9_-]{0,39}$/, "A pool name is lowercase letters, digits, - and _").nullable().optional(),
   visualTestingEnabled: z.boolean().default(false),
   // Milliseconds. A second at least: the wizard once sent seconds here, and a value that small
   // is that mistake, not a timeout anybody wants.
@@ -2148,4 +2184,5 @@ export const ORG_SCOPED_TABLES = [
   // Suites, their tests, and the plans that include them (migration 0034).
   'test_suites', 'test_suite_items', 'test_plan_suites',
   'test_quarantines',
+  'agents',
 ] as const;

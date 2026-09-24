@@ -29,6 +29,11 @@ export interface BrowserChoice {
   /** Playwright channel, for the branded builds that are a channel of an engine. */
   channel?: string;
   headless: boolean;
+  /**
+   * Borrow it from a local agent of this pool rather than launching it here
+   * (server/agents/agent-browser.ts). Set by the runner for plans that run on agents.
+   */
+  agent?: { organizationId: number; pool: string };
 }
 
 /**
@@ -204,10 +209,27 @@ export function unsupportedMachineFields(machines: TestMachineConfig[]): string[
   return warnings;
 }
 
+/**
+ * The passes of a run whose browsers are borrowed from local agents.
+ *
+ * A pass with no browser named means "the runner's usual one", which is the run owner's own
+ * setting on the runner. An agent has no such setting, so it gets the default engine, headless.
+ */
+export function onAgents(
+  passes: Array<BrowserChoice | undefined>,
+  agent: { organizationId: number; pool: string },
+): BrowserChoice[] {
+  return passes.map((pass) => ({
+    ...(pass ?? { label: DEFAULT_BROWSER_LABEL, engine: 'chromium' as const, headless: true }),
+    agent,
+  }));
+}
+
 /** A label for the run's logs and for the report column. */
 export function describeBrowser(choice: BrowserChoice): string {
   const base = choice.channel ? `${choice.label} (${choice.engine}/${choice.channel})` : choice.label;
-  return choice.headless ? base : `${base}, headed`;
+  const where = choice.agent ? ` on agent pool "${choice.agent.pool}"` : '';
+  return choice.headless ? `${base}${where}` : `${base}, headed${where}`;
 }
 
 /**
@@ -220,6 +242,14 @@ export function describeBrowser(choice: BrowserChoice): string {
 export async function launchBrowser(choice: BrowserChoice): Promise<Browser> {
   const engine = playwright[choice.engine];
   if (!engine) throw new Error(`Invalid browser engine: ${choice.engine}`);
+  if (choice.agent) {
+    const { connectToAgentBrowser } = await import('./agents/agent-browser');
+    try {
+      return await connectToAgentBrowser({ ...choice, agent: choice.agent });
+    } catch (error: any) {
+      throw new Error(`Could not borrow ${choice.label} from agent pool "${choice.agent.pool}": ${error?.message ?? error}`);
+    }
+  }
   try {
     return await engine.launch({
       headless: choice.headless,

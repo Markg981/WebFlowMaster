@@ -37,6 +37,7 @@ import {
   Server,
   Lock,
   Users,
+  Laptop,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProjectAccessDialog from "@/components/settings/ProjectAccessDialog";
@@ -55,6 +56,7 @@ import { UserSettings, fetchSettings } from "../lib/settings";
 import EnvironmentsCard from "@/components/settings/EnvironmentsCard";
 import ApiKeysCard from "@/components/settings/ApiKeysCard";
 import ServiceAccountsCard from "@/components/settings/ServiceAccountsCard";
+import AgentsCard from "@/components/settings/AgentsCard";
 import RunUsageCard from "@/components/settings/RunUsageCard";
 import AuditLogCard from "@/components/settings/AuditLogCard";
 import SecurityCard from "@/components/settings/SecurityCard";
@@ -598,6 +600,16 @@ export default function SettingsPage() {
           {user?.role === 'owner' && <ServiceAccountsCard />}
         </>
       ),
+    },
+    {
+      id: 'agents',
+      label: t('settings.sections.agents', 'Local agents'),
+      description: t(
+        'settings.sections.agentsDescription',
+        'Machines inside your network that lend their browsers, for applications this server cannot reach.',
+      ),
+      icon: Laptop,
+      content: <AgentsCard isOwner={user?.role === 'owner'} />,
     },
     {
       id: 'security',

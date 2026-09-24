@@ -162,6 +162,15 @@ Il report JUnit raggruppa i risultati **per browser**, così una matrice si legg
 "firefox: 2 falliti" invece che come un elenco piatto. Quanti test girano insieme lo decide il
 piano (Settings del piano → *Run at most*), con il tetto dell'installazione in `RUN_MAX_PARALLEL`.
 
+### Agenti locali
+
+Per testare applicazioni che il server non raggiunge (intranet, staging dietro VPN, `localhost`),
+un **agente locale** gira dentro la rete e presta i suoi browser, connettendosi solo in uscita.
+Un owner lo crea in *Settings → Agenti locali*, lo si avvia con `Dockerfile.agent` o con
+`node wfm-agent.mjs` (scaricabile da `/cli/wfm-agent.mjs`), e il piano sceglie il pool in
+*Run settings → Esegui su*. Guida: [docs/it/LOCAL_AGENT.md](./docs/it/LOCAL_AGENT.md)
+([English](./docs/en/LOCAL_AGENT.md)).
+
 ---
 
 ## 📂 Struttura della Documentazione

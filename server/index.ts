@@ -8,6 +8,7 @@ import { privilegedDb, closeDb, assertTenancyPreconditions } from './db';
 import { systemSettings } from '@shared/schema'; // Import systemSettings table
 import { eq } from 'drizzle-orm'; // Import eq operator
 import { setupWebSockets } from './websocket';
+import { setupAgentRelay } from './agents/setup';
 import { correlationMiddleware } from './middleware/correlation';
 import { csrfOriginCheck } from './middleware/csrf';
 import { connection as redisConnection, connectSessionRedis, sessionRedis } from './redis';
@@ -126,6 +127,8 @@ app.use(express.urlencoded({ extended: false }));
   
   // Set up WebSockets for real-time logging
   await setupWebSockets(server);
+  // Local agents dial in on the same address: see server/agents/relay.ts.
+  await setupAgentRelay(server);
 
   // Initialize the scheduler after routes are registered and DB is presumably ready
   // In a real app, ensure DB connection/migration is complete before this.
