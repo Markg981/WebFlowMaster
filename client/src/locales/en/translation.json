@@ -51,7 +51,8 @@
       "resetForm": "Reset Form",
       "cancel": "Cancel",
       "saveSettings": "Save Settings",
-      "saving": "Saving..."
+      "saving": "Saving...",
+      "saveUserSettings": "Save User Settings"
     },
     "playwright": {
       "title": "Playwright Engine",
@@ -72,7 +73,23 @@
       "logLevelPlaceholder": "Select log level...",
       "logLevelDescription": "Select the minimum level of logs to record.",
       "saveButton": "Save Log Retention",
-      "saveButtonLogLevel": "Save Log Level"
+      "saveButtonLogLevel": "Save Log Level",
+      "toast": {
+        "logRetentionSavedTitle": "Log Retention Saved",
+        "logRetentionSavedDescription": "Log retention period set to {{days}} days.",
+        "logRetentionErrorTitle": "Error Saving Log Retention",
+        "logLevelSavedTitle": "Log Level Saved",
+        "logLevelSavedDescription": "Minimum log level set to {{level}}.",
+        "logLevelErrorTitle": "Error Saving Log Level"
+      },
+      "validation": {
+        "invalidDaysTitle": "Invalid Input",
+        "positiveNumberError": "Log retention period must be a positive number.",
+        "invalidLogLevelTitle": "Invalid Log Level",
+        "selectValidLogLevelError": "Please select a valid log level."
+      },
+      "fetchError": "Failed to fetch log retention setting.",
+      "fetchErrorLogLevel": "Failed to fetch log level setting."
     },
     "sections": {
       "navLabel": "Settings sections",
@@ -99,7 +116,13 @@
       "runners": "Runners",
       "runnersDescription": "The machines that run plans: which are up, what they have, and draining one before maintenance.",
       "agents": "Local agents",
-      "agentsDescription": "Machines inside your network that lend their browsers, for applications this server cannot reach."
+      "agentsDescription": "Machines inside your network that lend their browsers, for applications this server cannot reach.",
+      "elements": "Element repository",
+      "elementsDescription": "One definition per element of an application, so a moved button is corrected once rather than in every test that copied it.",
+      "issueTrackers": "Issue trackers",
+      "issueTrackersDescription": "Where a failing test becomes somebody’s ticket, in Jira or Azure DevOps.",
+      "apiKeys": "API keys",
+      "apiKeysDescription": "Credentials for pipelines and scripts, so CI never needs somebody’s password."
     },
     "apiKeys": {
       "openApi": "API reference (OpenAPI)",
@@ -113,13 +136,36 @@
       "heldBy": "held by {{name}}",
       "fullAccess": "full access",
       "columns": {
-        "access": "Access"
+        "access": "Access",
+        "name": "Name",
+        "key": "Key",
+        "lastUsed": "Last used",
+        "expires": "Expires"
       },
       "scopes": {
         "plans_read": "List test plans.",
         "runs_read": "Read runs, their status and their JUnit reports.",
         "runs_write": "Start runs and cancel them."
-      }
+      },
+      "nameRequired": "Give the key a name, so it can be recognised later.",
+      "expiryInvalid": "Expiry must be a whole number of days.",
+      "title": "API keys",
+      "description": "For pipelines and scripts. A key acts as you, with your role, and can be revoked on its own.",
+      "shownOnce": {
+        "title": "Copy this key now",
+        "body": "This is the only time it is shown. The server keeps a hash, so it cannot show it again."
+      },
+      "copied": "Copied",
+      "copy": "Copy",
+      "dismiss": "I have saved it",
+      "nameLabel": "Name",
+      "expiryLabel": "Expires in (days)",
+      "expiryPlaceholder": "never",
+      "create": "Create key",
+      "loading": "Loading keys…",
+      "empty": "No API keys yet. A pipeline needs one to start a test plan.",
+      "revoked": "revoked",
+      "revokeAction": "Revoke key"
     },
     "serviceAccounts": {
       "title": "Service accounts",
@@ -157,6 +203,53 @@
       "neverSeen": "never connected",
       "versionMismatch": "Runs Playwright {{agent}}, the server {{server}}: it will not be lent browsers until they match.",
       "revokeAction": "Revoke {{name}}"
+    },
+    "defaults": {
+      "title": "Default Configuration",
+      "description": "Set default values for test creation",
+      "defaultUrlLabel": "Default URL for Test Creation",
+      "defaultUrlDescription": "This URL will be pre-filled when creating new tests"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Choose what notifications you want to receive (Not saved to backend)",
+      "emailLabel": "Email Notifications",
+      "emailDescription": "Receive updates via email",
+      "testCompletionLabel": "Test Completion",
+      "testCompletionDescription": "Notify when tests finish running",
+      "errorAlertsLabel": "Error Alerts",
+      "errorAlertsDescription": "Get notified about test failures"
+    },
+    "account": {
+      "title": "Account",
+      "description": "Manage your account settings (Not saved to backend)",
+      "usernameLabel": "Username",
+      "usernameDescription": "Username cannot be changed after registration",
+      "dangerZoneLabel": "Danger Zone",
+      "dangerZoneDescription": "These actions cannot be undone",
+      "deleteAccountButton": "Delete Account"
+    },
+    "pageTitle": "Settings",
+    "elements": {
+      "updated": "Updated. Every test that uses it will run against the new selector.",
+      "title": "Element repository",
+      "description": "One definition per element, per application. A test that uses one reads its selector from here, so a correction reaches every test at once.",
+      "projectLabel": "Project",
+      "projectPlaceholder": "Choose a project",
+      "chooseProject": "Choose a project to see the elements it owns.",
+      "loading": "Loading elements…",
+      "empty": "Nothing kept yet. In the builder, use the bookmark on a detected element to keep it here.",
+      "columns": {
+        "name": "Name",
+        "selector": "Selector",
+        "state": "State"
+      },
+      "inFrame": "in frame",
+      "selectorFor": "Selector for {{name}}",
+      "was": "was",
+      "healed": "healed",
+      "saveSelector": "Save selector",
+      "delete": "Delete element"
     }
   },
   "dashboard": {
@@ -1029,7 +1122,16 @@
     "webkitSafari": {
       "text": "WebKit (Safari)"
     },
-    "description": "Appearance, language, projects, the automation engine and the secrets your tests use."
+    "description": "Appearance, language, projects, the automation engine and the secrets your tests use.",
+    "deleteProject": {
+      "ariaLabel": "Delete project {{name}}"
+    },
+    "deleteProjectDialog": {
+      "title": "Confirm Project Deletion",
+      "description": "Are you sure you want to delete project \"{{name}}\"? This action cannot be undone.",
+      "cancelButton": "Cancel",
+      "deleteButton": "Delete"
+    }
   },
   "saveTestModal": {
     "saveTest": {
@@ -1734,7 +1836,33 @@
     "description": "Every run that has finished, with its steps, timings and screenshots."
   },
   "schedulingPage": {
-    "description": "Run a test plan on a timetable, and be told when it fails."
+    "description": "Run a test plan on a timetable, and be told when it fails.",
+    "title": "Scheduling",
+    "createSchedule": {
+      "button": "Create Schedule"
+    },
+    "editSchedule": {
+      "title": "Edit Schedule"
+    },
+    "createNewSchedule": {
+      "title": "Create New Schedule"
+    },
+    "editingSchedule": {
+      "description": "Editing schedule:"
+    },
+    "confirmDeletion": {
+      "title": "Confirm Deletion",
+      "description": "Are you sure you want to delete this schedule? This action cannot be undone."
+    },
+    "cancel": {
+      "button": "Cancel"
+    },
+    "deleting": {
+      "button": "Deleting..."
+    },
+    "delete": {
+      "button": "Delete"
+    }
   },
   "environmentSelect": {
     "label": "Environment",
@@ -2265,5 +2393,33 @@
         "hint": "For a CI system’s test report"
       }
     }
+  },
+  "issueTrackers": {
+    "allFieldsRequired": "Name, URL, project and token are all needed.",
+    "emailRequired": "Jira needs the email address the API token belongs to.",
+    "title": "Issue trackers",
+    "description": "Where a failing test becomes somebody’s ticket. A plan can then file its failures automatically, and the same failure the next night becomes a comment rather than a second issue.",
+    "provider": "Provider",
+    "name": "Name",
+    "namePlaceholder": "Jira — Shop",
+    "baseUrl": "Base URL",
+    "projectKey": "Project key",
+    "projectName": "Project name",
+    "issueType": "Issue type",
+    "userEmail": "Account email",
+    "apiToken": "API token",
+    "pat": "Personal access token",
+    "tokenHint": "Stored encrypted and never shown again. To change it, type a new one.",
+    "add": "Add tracker",
+    "loading": "Loading…",
+    "empty": "No tracker yet. Until there is one, failures stay in the report.",
+    "columns": {
+      "name": "Name",
+      "project": "Project",
+      "account": "Authenticates as",
+      "actions": "Actions"
+    },
+    "check": "Test connection",
+    "delete": "Delete"
   }
 }

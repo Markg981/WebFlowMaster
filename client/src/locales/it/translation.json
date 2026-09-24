@@ -51,7 +51,8 @@
       "resetForm": "Resetta Modulo",
       "cancel": "Annulla",
       "saveSettings": "Salva Impostazioni",
-      "saving": "Salvataggio..."
+      "saving": "Salvataggio...",
+      "saveUserSettings": "Salva impostazioni utente"
     },
     "playwright": {
       "title": "Motore Playwright",
@@ -72,7 +73,23 @@
       "logLevelPlaceholder": "Seleziona livello log...",
       "logLevelDescription": "Seleziona il livello minimo di log da registrare.",
       "saveButton": "Salva Conservazione Log",
-      "saveButtonLogLevel": "Salva Livello Log"
+      "saveButtonLogLevel": "Salva Livello Log",
+      "toast": {
+        "logRetentionSavedTitle": "Conservazione dei log salvata",
+        "logRetentionSavedDescription": "Periodo di conservazione dei log impostato a {{days}} giorni.",
+        "logRetentionErrorTitle": "Errore nel salvataggio della conservazione dei log",
+        "logLevelSavedTitle": "Livello di log salvato",
+        "logLevelSavedDescription": "Livello minimo di log impostato a {{level}}.",
+        "logLevelErrorTitle": "Errore nel salvataggio del livello di log"
+      },
+      "validation": {
+        "invalidDaysTitle": "Valore non valido",
+        "positiveNumberError": "Il periodo di conservazione dei log deve essere un numero positivo.",
+        "invalidLogLevelTitle": "Livello di log non valido",
+        "selectValidLogLevelError": "Seleziona un livello di log valido."
+      },
+      "fetchError": "Impossibile leggere l'impostazione di conservazione dei log.",
+      "fetchErrorLogLevel": "Impossibile leggere l'impostazione del livello di log."
     },
     "sections": {
       "navLabel": "Sezioni delle impostazioni",
@@ -99,7 +116,13 @@
       "runners": "Runner",
       "runnersDescription": "Le macchine che eseguono i piani: quali sono attive, cosa hanno, e come svuotarne una prima di una manutenzione.",
       "agents": "Agenti locali",
-      "agentsDescription": "Macchine dentro la tua rete che prestano i loro browser, per le applicazioni che questo server non raggiunge."
+      "agentsDescription": "Macchine dentro la tua rete che prestano i loro browser, per le applicazioni che questo server non raggiunge.",
+      "elements": "Repository degli elementi",
+      "elementsDescription": "Una definizione per ogni elemento di un'applicazione, così un pulsante spostato si corregge una volta sola e non in ogni test che l'ha copiato.",
+      "issueTrackers": "Issue tracker",
+      "issueTrackersDescription": "Dove un test che fallisce diventa il ticket di qualcuno, in Jira o Azure DevOps.",
+      "apiKeys": "Chiavi API",
+      "apiKeysDescription": "Credenziali per pipeline e script, così la CI non ha mai bisogno della password di qualcuno."
     },
     "apiKeys": {
       "openApi": "Riferimento API (OpenAPI)",
@@ -113,13 +136,36 @@
       "heldBy": "di {{name}}",
       "fullAccess": "accesso completo",
       "columns": {
-        "access": "Accesso"
+        "access": "Accesso",
+        "name": "Nome",
+        "key": "Chiave",
+        "lastUsed": "Ultimo utilizzo",
+        "expires": "Scadenza"
       },
       "scopes": {
         "plans_read": "Elencare i piani di test.",
         "runs_read": "Leggere i run, il loro stato e i report JUnit.",
         "runs_write": "Avviare i run e annullarli."
-      }
+      },
+      "nameRequired": "Dai un nome alla chiave, così potrai riconoscerla in seguito.",
+      "expiryInvalid": "La scadenza deve essere un numero intero di giorni.",
+      "title": "Chiavi API",
+      "description": "Per pipeline e script. Una chiave agisce come te, con il tuo ruolo, e si può revocare singolarmente.",
+      "shownOnce": {
+        "title": "Copia ora questa chiave",
+        "body": "È l'unica volta che viene mostrata. Il server ne conserva solo un hash, quindi non può mostrarla di nuovo."
+      },
+      "copied": "Copiata",
+      "copy": "Copia",
+      "dismiss": "L'ho salvata",
+      "nameLabel": "Nome",
+      "expiryLabel": "Scade tra (giorni)",
+      "expiryPlaceholder": "mai",
+      "create": "Crea chiave",
+      "loading": "Caricamento chiavi…",
+      "empty": "Ancora nessuna chiave API. Una pipeline ne ha bisogno per avviare un piano di test.",
+      "revoked": "revocata",
+      "revokeAction": "Revoca chiave"
     },
     "serviceAccounts": {
       "title": "Account di servizio",
@@ -157,6 +203,53 @@
       "neverSeen": "mai connesso",
       "versionMismatch": "Usa Playwright {{agent}}, il server {{server}}: non gli verranno chiesti browser finché non coincidono.",
       "revokeAction": "Revoca {{name}}"
+    },
+    "defaults": {
+      "title": "Configurazione predefinita",
+      "description": "Imposta i valori predefiniti per la creazione dei test",
+      "defaultUrlLabel": "URL predefinito per la creazione dei test",
+      "defaultUrlDescription": "Questo URL verrà precompilato quando crei nuovi test"
+    },
+    "notifications": {
+      "title": "Notifiche",
+      "description": "Scegli quali notifiche ricevere (non salvate sul server)",
+      "emailLabel": "Notifiche via email",
+      "emailDescription": "Ricevi aggiornamenti via email",
+      "testCompletionLabel": "Completamento dei test",
+      "testCompletionDescription": "Avvisa quando i test terminano",
+      "errorAlertsLabel": "Avvisi di errore",
+      "errorAlertsDescription": "Ricevi una notifica quando un test fallisce"
+    },
+    "account": {
+      "title": "Account",
+      "description": "Gestisci le impostazioni del tuo account (non salvate sul server)",
+      "usernameLabel": "Nome utente",
+      "usernameDescription": "Il nome utente non può essere cambiato dopo la registrazione",
+      "dangerZoneLabel": "Zona pericolosa",
+      "dangerZoneDescription": "Queste azioni non si possono annullare",
+      "deleteAccountButton": "Elimina account"
+    },
+    "pageTitle": "Impostazioni",
+    "elements": {
+      "updated": "Aggiornato. Ogni test che lo usa girerà con il nuovo selettore.",
+      "title": "Repository degli elementi",
+      "description": "Una definizione per elemento, per applicazione. Un test che ne usa uno legge il selettore da qui, quindi una correzione raggiunge tutti i test in una volta.",
+      "projectLabel": "Progetto",
+      "projectPlaceholder": "Scegli un progetto",
+      "chooseProject": "Scegli un progetto per vedere i suoi elementi.",
+      "loading": "Caricamento elementi…",
+      "empty": "Ancora nulla di salvato. Nel builder, usa il segnalibro su un elemento rilevato per tenerlo qui.",
+      "columns": {
+        "name": "Nome",
+        "selector": "Selettore",
+        "state": "Stato"
+      },
+      "inFrame": "in un frame",
+      "selectorFor": "Selettore per {{name}}",
+      "was": "prima",
+      "healed": "corretto",
+      "saveSelector": "Salva selettore",
+      "delete": "Elimina elemento"
     }
   },
   "dashboard": {
@@ -1154,7 +1247,16 @@
     "webkitSafari": {
       "text": "WebKit (Safari)"
     },
-    "description": "Aspetto, lingua, progetti, motore di automazione e i segreti usati dai test."
+    "description": "Aspetto, lingua, progetti, motore di automazione e i segreti usati dai test.",
+    "deleteProject": {
+      "ariaLabel": "Elimina il progetto {{name}}"
+    },
+    "deleteProjectDialog": {
+      "title": "Conferma eliminazione progetto",
+      "description": "Vuoi davvero eliminare il progetto \"{{name}}\"? L'operazione non si può annullare.",
+      "cancelButton": "Annulla",
+      "deleteButton": "Elimina"
+    }
   },
   "saveTestModal": {
     "saveTest": {
@@ -1859,7 +1961,33 @@
     "description": "Tutte le esecuzioni concluse, con passi, tempi e schermate."
   },
   "schedulingPage": {
-    "description": "Esegui un piano di test a orari fissi e fatti avvisare quando fallisce."
+    "description": "Esegui un piano di test a orari fissi e fatti avvisare quando fallisce.",
+    "title": "Pianificazione",
+    "createSchedule": {
+      "button": "Crea pianificazione"
+    },
+    "editSchedule": {
+      "title": "Modifica pianificazione"
+    },
+    "createNewSchedule": {
+      "title": "Nuova pianificazione"
+    },
+    "editingSchedule": {
+      "description": "Modifica della pianificazione:"
+    },
+    "confirmDeletion": {
+      "title": "Conferma eliminazione",
+      "description": "Vuoi davvero eliminare questa pianificazione? L'operazione non si può annullare."
+    },
+    "cancel": {
+      "button": "Annulla"
+    },
+    "deleting": {
+      "button": "Eliminazione..."
+    },
+    "delete": {
+      "button": "Elimina"
+    }
   },
   "environmentSelect": {
     "label": "Ambiente",
@@ -2390,5 +2518,33 @@
         "hint": "Per il report dei test di un sistema di CI"
       }
     }
+  },
+  "issueTrackers": {
+    "allFieldsRequired": "Servono nome, URL, progetto e token.",
+    "emailRequired": "Jira richiede l'indirizzo email a cui appartiene il token API.",
+    "title": "Issue tracker",
+    "description": "Dove un test che fallisce diventa il ticket di qualcuno. Un piano può poi aprire i suoi fallimenti in automatico, e lo stesso fallimento la notte dopo diventa un commento invece di una seconda issue.",
+    "provider": "Provider",
+    "name": "Nome",
+    "namePlaceholder": "Jira — Shop",
+    "baseUrl": "URL di base",
+    "projectKey": "Chiave del progetto",
+    "projectName": "Nome del progetto",
+    "issueType": "Tipo di issue",
+    "userEmail": "Email dell'account",
+    "apiToken": "Token API",
+    "pat": "Personal access token",
+    "tokenHint": "Salvato cifrato e mai più mostrato. Per cambiarlo, inseriscine uno nuovo.",
+    "add": "Aggiungi tracker",
+    "loading": "Caricamento…",
+    "empty": "Ancora nessun tracker. Finché non ce n'è uno, i fallimenti restano nel report.",
+    "columns": {
+      "name": "Nome",
+      "project": "Progetto",
+      "account": "Si autentica come",
+      "actions": "Azioni"
+    },
+    "check": "Verifica connessione",
+    "delete": "Elimina"
   }
 }
