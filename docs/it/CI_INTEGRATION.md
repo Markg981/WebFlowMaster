@@ -2,7 +2,7 @@
 
 Una pipeline avvia un piano di test di WebFlowMaster e ne aspetta l'esito. Fa fallire la build se
 il piano fallisce, e pubblica i risultati nel report dei test del sistema di CI. In
-[`integrations/`](../../integrations) ci sono integrazioni pronte:
+[`integrations/`](https://github.com/Markg981/WebFlowMaster/tree/main/integrations) ci sono integrazioni pronte:
 - una GitHub Action;
 - un template per GitLab CI;
 - uno step di shared library per Jenkins;
@@ -135,7 +135,7 @@ I risultati JUnit vengono pubblicati con lo step `junit` e il report HTML viene 
 - **Esito:** di default un piano fallito fa fallire la build. Con `onFailure: 'unstable'` la build
   viene segnata come instabile.
 - **Altri parametri:** `environment`, `timeout`, `credentialsId`, `junit`, `html`.
-- **Esempio completo:** [`Jenkinsfile.example`](../../integrations/jenkins/Jenkinsfile.example).
+- **Esempio completo:** [`Jenkinsfile.example`](https://github.com/Markg981/WebFlowMaster/blob/main/integrations/jenkins/Jenkinsfile.example).
 
 ## 6. Azure Pipelines
 
