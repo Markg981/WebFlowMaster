@@ -1,0 +1,154 @@
+# The collaudo stack: the product as docker-compose.yml runs it, plus what the manual test
+# protocol needs around it. Always started together with the base file and under its own
+# project name, so its data never mixes with a development stack:
+#
+#   docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml up -d --build
+#
+# What it adds (collaudo/README.md has the whole procedure):
+#   caddy       HTTPS in front of the app and of Keycloak, with its own certificate authority:
+#               https://wfm.collaudo.test and https://keycloak.collaudo.test. Production mode
+#               needs it: the session cookie is Secure, and an OpenID issuer must be https.
+#   ca-export   copies Caddy's root certificate where the app, the worker and the agent read it.
+#   keycloak    the identity provider for the single sign-on cases, realm "acme" imported.
+#   intranet    an application on a private network only the local agent can reach.
+#   ricevitore  receives notification webhooks and prints them: docker compose logs ricevitore.
+#   agente      the local agent (profile "agente"), started once its token exists.
+#
+# Relative paths resolve from the repository root, the directory of the first -f file.
+#
+# Values here are for a test installation only: never reuse them anywhere else.
+
+x-collaudo-app-env: &collaudo-app-env
+  NODE_EXTRA_CA_CERTS: /collaudo-ca/root.crt
+  AGENT_RELAY_SECRET: collaudo-relay-secret-not-for-production
+  APP_BASE_URL: https://the-internet.herokuapp.com
+  # Empty means the product's default; cases PLN-11 and PLN-15 set them for a while.
+  ORG_MAX_CONCURRENT_RUNS: ${ORG_MAX_CONCURRENT_RUNS:-}
+  ORG_MAX_QUEUED_RUNS: ${ORG_MAX_QUEUED_RUNS:-}
+  RUN_MAX_DURATION_MS: ${RUN_MAX_DURATION_MS:-}
+
+services:
+  postgres:
+    # A DBA reaches it on 55432 for the backup and audit-log cases, without clashing with a
+    # development database on 5432.
+    ports: !override ["55432:5432"]
+
+  redis:
+    ports: !reset []
+
+  api:
+    ports: !reset []
+    environment:
+      <<: *collaudo-app-env
+      WEBFLOW_PUBLIC_URL: https://wfm.collaudo.test
+      SESSION_COOKIE_SECURE: "true"
+      SESSION_SECRET: collaudo-session-secret-not-for-production-0001
+      REGISTRATION: ${REGISTRATION:-invitation}
+      INSTALLATION_ADMINS: ${INSTALLATION_ADMINS:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      API_RATE_LIMIT: ${API_RATE_LIMIT:-600}
+      WEBHOOK_RATE_LIMIT: ${WEBHOOK_RATE_LIMIT:-120}
+    volumes:
+      - collaudo_ca:/collaudo-ca:ro
+      - ./collaudo:/collaudo:ro
+    depends_on:
+      ca-export:
+        condition: service_completed_successfully
+
+  worker:
+    environment:
+      <<: *collaudo-app-env
+      # Where runs borrowing an agent's browser reach the relay in the web process.
+      AGENT_RELAY_URL: http://api:5000
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    volumes:
+      - collaudo_ca:/collaudo-ca:ro
+    depends_on:
+      ca-export:
+        condition: service_completed_successfully
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./collaudo/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    networks:
+      default:
+        # Inside the stack these names reach Caddy, as they do from the tester's browser.
+        aliases:
+          - wfm.collaudo.test
+          - keycloak.collaudo.test
+    healthcheck:
+      test: ["CMD", "test", "-f", "/data/caddy/pki/authorities/local/root.crt"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  ca-export:
+    image: alpine:3.20
+    command: ["sh", "-c", "cp /caddy-data/caddy/pki/authorities/local/root.crt /collaudo-ca/root.crt && chmod 644 /collaudo-ca/root.crt"]
+    volumes:
+      - caddy_data:/caddy-data:ro
+      - collaudo_ca:/collaudo-ca
+    depends_on:
+      caddy:
+        condition: service_healthy
+    restart: "no"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: https://keycloak.collaudo.test
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+    volumes:
+      - ./collaudo/keycloak:/opt/keycloak/data/import:ro
+
+  intranet:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./collaudo/intranet:/usr/share/nginx/html:ro
+    networks:
+      privata:
+        aliases:
+          - intranet.acme.local
+
+  ricevitore:
+    image: mendhak/http-https-echo:35
+    environment:
+      HTTP_PORT: "8080"
+      HTTPS_PORT: "8443"
+
+  agente:
+    profiles: ["agente"]
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    environment:
+      WFM_URL: https://wfm.collaudo.test
+      WFM_AGENT_TOKEN: ${WFM_AGENT_TOKEN:-}
+      NODE_EXTRA_CA_CERTS: /collaudo-ca/root.crt
+    volumes:
+      - collaudo_ca:/collaudo-ca:ro
+    networks:
+      - default
+      - privata
+    depends_on:
+      ca-export:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+networks:
+  # Only the intranet and the agent: the app and the worker cannot reach it, which is the point.
+  privata:
+    internal: true
+
+volumes:
+  caddy_data:
+  collaudo_ca:

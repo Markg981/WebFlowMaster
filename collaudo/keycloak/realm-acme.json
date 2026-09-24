@@ -1,0 +1,85 @@
+{
+  "realm": "acme",
+  "displayName": "Acme (collaudo)",
+  "enabled": true,
+  "sslRequired": "none",
+  "loginWithEmailAllowed": true,
+  "registrationAllowed": false,
+  "clients": [
+    {
+      "clientId": "webflowmaster",
+      "name": "WebFlowMaster (collaudo)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "collaudo-sso-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["https://wfm.collaudo.test/api/sso/callback"],
+      "webOrigins": ["https://wfm.collaudo.test"],
+      "attributes": { "pkce.code.challenge.method": "S256" }
+    },
+    {
+      "clientId": "api-client",
+      "name": "OAuth 2.0 client credentials (caso API-04)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "collaudo-api-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "anna",
+      "email": "anna@acme.test",
+      "emailVerified": true,
+      "firstName": "Anna",
+      "lastName": "Bianchi",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Collaudo.2026!", "temporary": false }]
+    },
+    {
+      "username": "marco",
+      "email": "marco@acme.test",
+      "emailVerified": true,
+      "firstName": "Marco",
+      "lastName": "Verdi",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Collaudo.2026!", "temporary": false }]
+    },
+    {
+      "username": "nonverificata",
+      "email": "nonverificata@acme.test",
+      "emailVerified": false,
+      "firstName": "Nora",
+      "lastName": "Neri",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Collaudo.2026!", "temporary": false }]
+    },
+    {
+      "username": "fuori",
+      "email": "fuori@altro.test",
+      "emailVerified": true,
+      "firstName": "Fabio",
+      "lastName": "Fuori",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Collaudo.2026!", "temporary": false }]
+    },
+    {
+      "username": "luca",
+      "email": "luca@acme.test",
+      "emailVerified": true,
+      "firstName": "Luca",
+      "lastName": "Gialli",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Collaudo.2026!", "temporary": false }]
+    }
+  ]
+}

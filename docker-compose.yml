@@ -73,6 +73,9 @@ services:
       # starts out of the box, not because these values are fit to deploy.
       - SESSION_SECRET=7G823eU1afEmmjSg73Juk_wRoVPt6mqbjBXliA6XXNg
       - ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
+      # Signs the tickets with which a worker borrows a local agent's browser; the worker must
+      # hold the same value. Change it with the other two.
+      - AGENT_RELAY_SECRET=4Qm9zR2vX7cL1pT8wK3nB6yH5dF0sJ
       # The fallback {{baseUrl}} for a run with no environment selected.
       - APP_BASE_URL=http://localhost:7000
       # This stack serves plain HTTP on localhost, so a Secure cookie would be dropped by
@@ -98,6 +101,11 @@ services:
       - DATABASE_URL=postgres://postgres:password@postgres:5432/webflowmaster
       - ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
       - APP_BASE_URL=http://localhost:7000
+      # Runs on local agents: the worker borrows their browsers through the relay in the web
+      # process. Without these two it looked for the relay on its own localhost and signed with
+      # a secret the web process did not share, so every run on an agent failed.
+      - AGENT_RELAY_URL=http://api:5000
+      - AGENT_RELAY_SECRET=4Qm9zR2vX7cL1pT8wK3nB6yH5dF0sJ
     depends_on:
       postgres:
         condition: service_healthy

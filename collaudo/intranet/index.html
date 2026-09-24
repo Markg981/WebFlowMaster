@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Intranet Acme</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 40px; color: #1c2436; }
+    form { display: grid; gap: 8px; max-width: 280px; margin-top: 24px; }
+    #esito { margin-top: 16px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <!-- Reachable only from the local agent's network (collaudo, area AGT). -->
+  <h1>Intranet Acme</h1>
+  <p id="benvenuto">Benvenuto nell'intranet: questa pagina non è raggiungibile dal server di WebFlowMaster.</p>
+  <form id="ricerca">
+    <label for="cliente">Cliente</label>
+    <input id="cliente" name="cliente" autocomplete="off">
+    <button id="cerca" type="submit">Cerca</button>
+  </form>
+  <p id="esito" role="status"></p>
+  <script>
+    document.getElementById('ricerca').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const nome = document.getElementById('cliente').value.trim();
+      document.getElementById('esito').textContent = nome ? `Trovato: ${nome}` : 'Scrivi un nome';
+    });
+  </script>
+</body>
+</html>
