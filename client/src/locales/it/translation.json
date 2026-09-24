@@ -122,7 +122,9 @@
       "issueTrackers": "Issue tracker",
       "issueTrackersDescription": "Dove un test che fallisce diventa il ticket di qualcuno, in Jira o Azure DevOps.",
       "apiKeys": "Chiavi API",
-      "apiKeysDescription": "Credenziali per pipeline e script, così la CI non ha mai bisogno della password di qualcuno."
+      "apiKeysDescription": "Credenziali per pipeline e script, così la CI non ha mai bisogno della password di qualcuno.",
+      "sourceHosts": "GitHub e GitLab",
+      "sourceHostsDescription": "I run avviati da una pipeline indicano sul commit testato se sono in corso, passati o falliti."
     },
     "apiKeys": {
       "openApi": "Riferimento API (OpenAPI)",
@@ -250,6 +252,28 @@
       "healed": "corretto",
       "saveSelector": "Salva selettore",
       "delete": "Elimina elemento"
+    },
+    "sourceHosts": {
+      "title": "Stato del commit",
+      "description": "Un run avviato da GitHub Actions o GitLab CI compare sul commit che ha testato: in attesa mentre gira, poi passato o fallito, con il link al report.",
+      "loading": "Caricamento…",
+      "connected": "connesso",
+      "notConnected": "non connesso",
+      "test": "Verifica",
+      "replace": "Sostituisci token",
+      "connect": "Connetti",
+      "remove": "Disconnetti",
+      "lastFailed": "L'ultimo stato non è stato impostato: {{error}}",
+      "lastDelivered": "Ultimo stato impostato il {{when}}.",
+      "noneYet": "Ancora nessuno stato inviato: lo invierà il prossimo run avviato da una pipeline.",
+      "authenticatesAs": "Connesso come {{account}}",
+      "apiUrl": "URL dell'API (solo per un server self-hosted)",
+      "token": "Token",
+      "githubTokenHint": "Un token fine-grained con \"Commit statuses: read and write\" sui repository, oppure uno classico con repo:status.",
+      "gitlabTokenHint": "Un token di progetto, di gruppo o personale con scope api, di un membro con almeno il ruolo Developer.",
+      "save": "Verifica e salva",
+      "tokenRequired": "Incolla un token.",
+      "footnote": "La CLI invia da sola repository e commit quando gira in GitHub Actions o GitLab CI. Lo stato porta al report quando sul server è impostata WEBFLOW_PUBLIC_URL."
     }
   },
   "dashboard": {
@@ -2242,7 +2266,8 @@
       "test_review": "Revisioni dei test",
       "runner": "Runner",
       "suite": "Suite",
-      "agent": "Agenti locali"
+      "agent": "Agenti locali",
+      "source_host": "GitHub e GitLab"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
@@ -2303,7 +2328,9 @@
       "test_quarantined": "Test messo in quarantena",
       "test_quarantine_released": "Test uscito dalla quarantena",
       "agent_created": "Agente locale creato",
-      "agent_revoked": "Agente locale revocato"
+      "agent_revoked": "Agente locale revocato",
+      "source_host_connected": "GitHub o GitLab connesso",
+      "source_host_removed": "GitHub o GitLab disconnesso"
     }
   },
   "security": {

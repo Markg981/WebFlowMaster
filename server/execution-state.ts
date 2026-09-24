@@ -54,6 +54,32 @@ export type ExecutionTransitionPatch = Omit<
   | 'heartbeatAt'
 >;
 
+/**
+ * Who hears that a run moved: the commit status on the build's GitHub or GitLab, for one.
+ *
+ * Told after the move is recorded, with the row as it now is, and never waited for: a listener's
+ * network call must not hold a run up, and its failure must not fail one. Registered by the
+ * processes that want it (the web server and the worker), so a test that moves runs sends nothing.
+ */
+export type ExecutionTransitionListener = (execution: TestPlanExecution) => void | Promise<void>;
+const transitionListeners = new Set<ExecutionTransitionListener>();
+
+export function onExecutionTransition(listener: ExecutionTransitionListener): () => void {
+  transitionListeners.add(listener);
+  return () => transitionListeners.delete(listener);
+}
+
+/** Tells the listeners; also used by the enqueue path for a run's first state, `queued`. */
+export function announceExecution(execution: TestPlanExecution): void {
+  for (const listener of transitionListeners) {
+    try {
+      void Promise.resolve(listener(execution)).catch(() => {});
+    } catch {
+      // A listener that throws is its own problem, not the run's.
+    }
+  }
+}
+
 export function canTransitionExecution(from: string, to: ExecutionStatus): boolean {
   return (ALLOWED_FROM[to] as readonly string[]).includes(from);
 }
@@ -97,6 +123,7 @@ export async function transitionExecution(
       .returning(),
   );
 
+  if (moved) announceExecution(moved);
   return moved ?? null;
 }
 
@@ -115,7 +142,7 @@ export type TakeOutcome =
  * is not taken at all, which is what makes a job delivered twice run once.
  */
 export async function takeExecution(executionId: string): Promise<TakeOutcome> {
-  return withTenantTransaction(async (tx) => {
+  const outcome = await withTenantTransaction(async (tx): Promise<TakeOutcome> => {
     const [row] = await tx
       .select({ organizationId: testPlanExecutions.organizationId, status: testPlanExecutions.status })
       .from(testPlanExecutions)
@@ -138,6 +165,9 @@ export async function takeExecution(executionId: string): Promise<TakeOutcome> {
       .returning();
     return taken ? ({ outcome: 'taken', execution: taken } as const) : ({ outcome: 'not_queued', status: 'unknown' } as const);
   });
+  // Once committed: a listener reading the run must find it running.
+  if (outcome.outcome === 'taken') announceExecution(outcome.execution);
+  return outcome;
 }
 
 export type CancellationOutcome =

@@ -265,6 +265,7 @@ describe('rows that point across organizations', () => {
       'audit_log.actor_user_id', 'step_groups.user_id', 'test_versions.created_by', 'test_publications.published_by',
       'test_reviews.requested_by', 'test_reviews.decided_by', 'issue_trackers.created_by', 'test_suites.created_by',
       'test_quarantines.quarantined_by', 'test_quarantines.released_by', 'agents.created_by',
+      'source_hosts.created_by',
     ]);
     const unguarded = (result.rows as Array<{ child: string; col: string; parent: string }>)
       .map((r) => `${r.child}.${r.col}`)

@@ -144,3 +144,24 @@ Any system that can run Node 18 can run the two lines in section 2. Without Node
 the CLI is documented at `GET /api/v1/openapi.json`: `POST /api/v1/plans/{planId}/runs`, poll
 `GET /api/v1/runs/{runId}` until `status` is no longer `queued`, `running` or `cancelling`, then
 `GET /api/v1/runs/{runId}/junit` and `/export/{html|pdf|allure}`.
+
+## 8. Commit status on GitHub and GitLab
+
+A run started from GitHub Actions or GitLab CI can show on the commit it tested, next to the other
+checks: `WebFlowMaster / <plan>` is *pending* while the run is queued and while it runs, then
+*success*, *failure* or *error* ("3 of 40 failed", "Timed out", "Cancelled"), with a link to the
+report. The server sets it, so it also works for a run started with `--no-wait`.
+
+1. An owner connects the host in **Settings → GitHub & GitLab** with a token. The token is checked
+   before it is saved, stored encrypted, and never shown again.
+   - **GitHub**: a fine-grained token with *Commit statuses: read and write* on the repositories, or
+     a classic token with `repo:status`. For GitHub Enterprise, the API URL is
+     `https://<host>/api/v3`.
+   - **GitLab**: a project, group or personal access token with the `api` scope, from a member with
+     at least the Developer role. For a self-hosted GitLab, the API URL is `https://<host>/api/v4`.
+2. Nothing changes in the pipeline: the CLI already sends the repository and the full commit.
+3. Set `WEBFLOW_PUBLIC_URL` on the server so the status links to the report.
+
+A status that could not be set does not affect the run. The card says why the last one failed
+("the token cannot set statuses on acme/shop"). Runs from Jenkins, Azure Pipelines and the other
+systems do not set a status: their repository may live anywhere.

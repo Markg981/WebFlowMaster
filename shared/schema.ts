@@ -1,4 +1,4 @@
-import { pgTable, text, integer, bigint, serial, timestamp, boolean, jsonb, index, unique, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, bigint, serial, timestamp, boolean, jsonb, index, uniqueIndex, unique, primaryKey } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations } from 'drizzle-orm';
@@ -1005,6 +1005,38 @@ export const agents = pgTable("agents", {
 
 export type Agent = typeof agents.$inferSelect;
 
+/** Where an organization's code lives, for the commit statuses a run reports (server/commit-status.ts). */
+export const SOURCE_HOST_PROVIDERS = ['github', 'gitlab'] as const;
+export type SourceHostProvider = (typeof SOURCE_HOST_PROVIDERS)[number];
+
+/**
+ * A GitHub or GitLab, with a token allowed to set commit statuses.
+ *
+ * A run a pipeline started names its repository and commit; the server reports on that commit as the
+ * run goes. One per provider per organization, because the run says which provider it came from and
+ * nothing more. The token is encrypted as a tracker's is and never leaves the server.
+ */
+export const sourceHosts = pgTable("source_hosts", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  provider: text("provider").$type<SourceHostProvider>().notNull(),
+  /** https://api.github.com, a GitHub Enterprise's /api/v3, or a GitLab's /api/v4. */
+  apiUrl: text("api_url").notNull(),
+  encryptedToken: text("encrypted_token").notNull(),
+  tokenIv: text("token_iv").notNull(),
+  tokenAuthTag: text("token_auth_tag").notNull(),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  /** The last status sent, and why it was refused if it was: the answer to "why is there no check?". */
+  lastDeliveryAt: timestamp("last_delivery_at"),
+  lastDeliveryError: text("last_delivery_error"),
+}, (table) => [
+  uniqueIndex("source_hosts_organization_provider_idx").on(table.organizationId, table.provider),
+]);
+
+export type SourceHost = typeof sourceHosts.$inferSelect;
+
 /** The trackers this build can actually file in. A provider with no implementation files nothing. */
 export const ISSUE_PROVIDERS = ['jira', 'azure_devops'] as const;
 export type IssueProvider = (typeof ISSUE_PROVIDERS)[number];
@@ -1188,6 +1220,9 @@ export const AUDIT_ACTIONS = {
   // Local agents: the machines inside a customer's network that lend browsers to runs.
   AGENT_CREATED: 'agent.created',
   AGENT_REVOKED: 'agent.revoked',
+  // The GitHub or GitLab a run reports its commit status to.
+  SOURCE_HOST_CONNECTED: 'source_host.connected',
+  SOURCE_HOST_REMOVED: 'source_host.removed',
   RUN_CANCELLED: 'run.cancelled',
   // Where tests run and with what. Secrets by name only — never a value.
   ENVIRONMENT_CREATED: 'environment.created',
@@ -2185,4 +2220,5 @@ export const ORG_SCOPED_TABLES = [
   'test_suites', 'test_suite_items', 'test_plan_suites',
   'test_quarantines',
   'agents',
+  'source_hosts',
 ] as const;

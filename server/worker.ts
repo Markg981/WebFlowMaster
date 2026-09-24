@@ -12,12 +12,15 @@ import { withJobIncidents } from './observability/taps/jobs';
 import { artifactStore } from './artifact-store';
 import { BROWSER_TASK_QUEUE_NAME, performBrowserTask, type BrowserTaskEnvelope } from './browser-tasks';
 import { RunnerAgent, type PausableQueue } from './runner-registry';
+import { registerCommitStatus } from './commit-status';
 import 'dotenv/config';
 
 (async () => {
   const logger = await loggerPromise;
   // A misconfigured artifact store fails here, not on the first screenshot of the first run.
   logger.info(`Artifact store: ${artifactStore().kind}`);
+  // A run this worker moves reports on the commit it tested, when a pipeline started it.
+  registerCommitStatus();
 
   // Jobs in hand, on both queues, for the runner heartbeat: what a drained runner is waiting for.
   let activeJobs = 0;

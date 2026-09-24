@@ -122,7 +122,9 @@
       "issueTrackers": "Gestionnaires de tickets",
       "issueTrackersDescription": "Là où un test en échec devient le ticket de quelqu'un, dans Jira ou Azure DevOps.",
       "apiKeys": "Clés API",
-      "apiKeysDescription": "Des identifiants pour les pipelines et les scripts, pour que la CI n'ait jamais besoin du mot de passe de quelqu'un."
+      "apiKeysDescription": "Des identifiants pour les pipelines et les scripts, pour que la CI n'ait jamais besoin du mot de passe de quelqu'un.",
+      "sourceHosts": "GitHub et GitLab",
+      "sourceHostsDescription": "Les exécutions lancées par un pipeline indiquent sur le commit testé si elles sont en cours, réussies ou en échec."
     },
     "apiKeys": {
       "openApi": "Référence de l'API (OpenAPI)",
@@ -250,6 +252,28 @@
       "healed": "réparé",
       "saveSelector": "Enregistrer le sélecteur",
       "delete": "Supprimer l'élément"
+    },
+    "sourceHosts": {
+      "title": "Statut du commit",
+      "description": "Une exécution lancée depuis GitHub Actions ou GitLab CI apparaît sur le commit testé : en attente pendant qu'elle tourne, puis réussie ou en échec, avec un lien vers le rapport.",
+      "loading": "Chargement…",
+      "connected": "connecté",
+      "notConnected": "non connecté",
+      "test": "Tester",
+      "replace": "Remplacer le jeton",
+      "connect": "Connecter",
+      "remove": "Déconnecter",
+      "lastFailed": "Le dernier statut n'a pas été défini : {{error}}",
+      "lastDelivered": "Dernier statut défini le {{when}}.",
+      "noneYet": "Aucun statut envoyé pour l'instant : la prochaine exécution lancée par un pipeline en enverra un.",
+      "authenticatesAs": "Connecté en tant que {{account}}",
+      "apiUrl": "URL de l'API (uniquement pour un serveur auto-hébergé)",
+      "token": "Jeton",
+      "githubTokenHint": "Un jeton fine-grained avec « Commit statuses: read and write » sur les dépôts, ou un jeton classique avec repo:status.",
+      "gitlabTokenHint": "Un jeton de projet, de groupe ou personnel avec la portée api, d'un membre ayant au moins le rôle Developer.",
+      "save": "Vérifier et enregistrer",
+      "tokenRequired": "Collez un jeton.",
+      "footnote": "La CLI envoie elle-même le dépôt et le commit lorsqu'elle tourne dans GitHub Actions ou GitLab CI. Le statut renvoie au rapport lorsque WEBFLOW_PUBLIC_URL est défini sur le serveur."
     }
   },
   "dashboard": {
@@ -2124,7 +2148,8 @@
       "test_review": "Relectures des tests",
       "runner": "Runners",
       "suite": "Suites",
-      "agent": "Agents locaux"
+      "agent": "Agents locaux",
+      "source_host": "GitHub et GitLab"
     },
     "actions": {
       "member_role_changed": "Rôle du membre modifié",
@@ -2185,7 +2210,9 @@
       "test_quarantined": "Test mis en quarantaine",
       "test_quarantine_released": "Test sorti de quarantaine",
       "agent_created": "Agent local créé",
-      "agent_revoked": "Agent local révoqué"
+      "agent_revoked": "Agent local révoqué",
+      "source_host_connected": "GitHub ou GitLab connecté",
+      "source_host_removed": "GitHub ou GitLab déconnecté"
     }
   },
   "security": {

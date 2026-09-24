@@ -122,7 +122,9 @@
       "issueTrackers": "Issue trackers",
       "issueTrackersDescription": "Where a failing test becomes somebody’s ticket, in Jira or Azure DevOps.",
       "apiKeys": "API keys",
-      "apiKeysDescription": "Credentials for pipelines and scripts, so CI never needs somebody’s password."
+      "apiKeysDescription": "Credentials for pipelines and scripts, so CI never needs somebody’s password.",
+      "sourceHosts": "GitHub & GitLab",
+      "sourceHostsDescription": "Runs started from a pipeline report pending, passed or failed on the commit they tested."
     },
     "apiKeys": {
       "openApi": "API reference (OpenAPI)",
@@ -250,6 +252,28 @@
       "healed": "healed",
       "saveSelector": "Save selector",
       "delete": "Delete element"
+    },
+    "sourceHosts": {
+      "title": "Commit status",
+      "description": "A run started from GitHub Actions or GitLab CI shows on the commit it tested: pending while it runs, then passed or failed, with a link to the report.",
+      "loading": "Loading…",
+      "connected": "connected",
+      "notConnected": "not connected",
+      "test": "Test",
+      "replace": "Replace token",
+      "connect": "Connect",
+      "remove": "Disconnect",
+      "lastFailed": "The last status was not set: {{error}}",
+      "lastDelivered": "Last status set {{when}}.",
+      "noneYet": "No status sent yet: the next run started from a pipeline will send one.",
+      "authenticatesAs": "Connected as {{account}}",
+      "apiUrl": "API URL (only for a self-hosted server)",
+      "token": "Token",
+      "githubTokenHint": "A fine-grained token with \"Commit statuses: read and write\" on the repositories, or a classic one with repo:status.",
+      "gitlabTokenHint": "A project, group or personal access token with the api scope, from a member with at least the Developer role.",
+      "save": "Check and save",
+      "tokenRequired": "Paste a token.",
+      "footnote": "The CLI sends the repository and commit by itself when it runs in GitHub Actions or GitLab CI. The status links to the report when WEBFLOW_PUBLIC_URL is set on the server."
     }
   },
   "dashboard": {
@@ -2118,7 +2142,8 @@
       "test_review": "Test reviews",
       "runner": "Runners",
       "suite": "Suites",
-      "agent": "Local agents"
+      "agent": "Local agents",
+      "source_host": "GitHub & GitLab"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -2179,7 +2204,9 @@
       "test_quarantined": "Test quarantined",
       "test_quarantine_released": "Test released from quarantine",
       "agent_created": "Local agent created",
-      "agent_revoked": "Local agent revoked"
+      "agent_revoked": "Local agent revoked",
+      "source_host_connected": "GitHub or GitLab connected",
+      "source_host_removed": "GitHub or GitLab disconnected"
     }
   },
   "security": {
