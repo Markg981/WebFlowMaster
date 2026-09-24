@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Check, Copy, KeyRound, Loader2, Mail, Trash2, Users } from 'lucide-react';
+import { Check, Copy, KeyRound, Link2, Loader2, Mail, Trash2, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
 type Role = 'viewer' | 'editor' | 'owner';
@@ -51,6 +51,12 @@ async function send(method: string, url: string, body?: unknown) {
 }
 
 /** The address an invitee opens: the sign-in page, with the form already filled in. */
+/** The address a member opens to choose a new password: the sign-in page's reset form. */
+export function passwordResetLink(origin: string, reset: { token: string; username: string }): string {
+  const query = new URLSearchParams({ reset: reset.token, username: reset.username });
+  return `${origin}/auth?${query.toString()}`;
+}
+
 export function invitationLink(origin: string, invitation: { token: string; username: string }): string {
   const query = new URLSearchParams({ invitation: invitation.token, username: invitation.username });
   return `${origin}/auth?${query.toString()}`;
@@ -76,6 +82,8 @@ const MembersCard: React.FC = () => {
   const [inviteError, setInviteError] = useState('');
   const [created, setCreated] = useState<CreatedInvitation | null>(null);
   const [copied, setCopied] = useState(false);
+  const [resetShown, setResetShown] = useState<{ username: string; link: string } | null>(null);
+  const [resetCopied, setResetCopied] = useState(false);
   const [removing, setRemoving] = useState<Member | null>(null);
   const [heir, setHeir] = useState<string>('');
   const [notice, setNotice] = useState('');
@@ -124,6 +132,16 @@ const MembersCard: React.FC = () => {
       setNotice(
         t('settings.members.mfaReset', 'Two-factor authentication was reset for {{username}}.', { username: member.username }),
       ),
+    onError: (error: Error) => setNotice(error.message),
+  });
+
+  const issueReset = useMutation({
+    mutationFn: (member: Member) =>
+      send('POST', `/api/organization/members/${member.id}/password-reset`) as Promise<{ username: string; token: string }>,
+    onSuccess: (reset) => {
+      setResetCopied(false);
+      setResetShown({ username: reset.username, link: passwordResetLink(window.location.origin, reset) });
+    },
     onError: (error: Error) => setNotice(error.message),
   });
 
@@ -229,6 +247,18 @@ const MembersCard: React.FC = () => {
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={() => issueReset.mutate(member)}
+                      disabled={issueReset.isPending}
+                      aria-label={t('settings.members.resetPassword', 'Password reset link for {{username}}', { username: member.username })}
+                      title={t('settings.members.resetPassword', 'Password reset link for {{username}}', { username: member.username })}
+                    >
+                      <Link2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {!isMe && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => resetMfa.mutate(member)}
                       disabled={resetMfa.isPending}
                       aria-label={t('settings.members.resetMfa', 'Reset two-factor for {{username}}', { username: member.username })}
@@ -249,6 +279,35 @@ const MembersCard: React.FC = () => {
               );
             })}
           </ul>
+        )}
+
+        {resetShown && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2" data-testid="reset-link">
+            <p className="text-sm">
+              {t(
+                'settings.members.resetIntro',
+                'Send this link to {{username}} to choose a new password. It is shown only now, works once, and lasts one day.',
+                { username: resetShown.username },
+              )}
+            </p>
+            <div className="flex gap-2">
+              <Input readOnly value={resetShown.link} className="font-mono text-xs" aria-label={t('settings.members.resetLinkLabel', 'Password reset link')} />
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(resetShown.link);
+                    setResetCopied(true);
+                  } catch {
+                    setResetCopied(false);
+                  }
+                }}
+              >
+                {resetCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                <span className="ml-2">{resetCopied ? t('settings.members.copied', 'Copied') : t('settings.members.copy', 'Copy')}</span>
+              </Button>
+            </div>
+          </div>
         )}
 
         <div className="space-y-3 border-t pt-4">

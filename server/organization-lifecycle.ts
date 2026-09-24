@@ -22,6 +22,12 @@ import { ORG_SCOPED_TABLES } from '@shared/schema';
 const TABLES_TO_ERASE = [...ORG_SCOPED_TABLES, 'invitations', 'users'] as const;
 
 /**
+ * Erased with the organization but left out of its export: one-time password reset links are a
+ * credential for a day, not the organization's data, and an export is a file that gets e-mailed.
+ */
+export const NOT_EXPORTED = new Set<string>(['password_resets']);
+
+/**
  * Orders the tables so children are deleted before their parents, computed from the database's
  * own foreign keys rather than written down here.
  *
@@ -82,6 +88,7 @@ export async function exportOrganization(organizationId: number): Promise<Record
   const data: Record<string, unknown> = {};
 
   for (const table of TABLES_TO_ERASE) {
+    if (NOT_EXPORTED.has(table)) continue;
     const rows = await privilegedDb.execute(
       sql`SELECT * FROM ${sql.identifier(table)} WHERE organization_id = ${organizationId}`,
     );

@@ -295,6 +295,13 @@
       "when": 1788800000000,
       "tag": "0041_environment_name_per_organization",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1788900000000,
+      "tag": "0042_password_resets",
+      "breakpoints": true
     }
   ]
 }

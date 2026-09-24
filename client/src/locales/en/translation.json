@@ -106,7 +106,7 @@
       "notifications": "Notifications",
       "notificationsDescription": "Which events are worth interrupting you for.",
       "account": "Account",
-      "accountDescription": "Your sign-in details, and the actions that cannot be undone.",
+      "accountDescription": "Your username, and changing your password.",
       "runUsage": "Run usage",
       "runUsageDescription": "How many of this organization's runs are in progress or waiting, against its limits.",
       "auditLog": "Audit log",
@@ -231,7 +231,15 @@
       "usernameDescription": "Username cannot be changed after registration",
       "dangerZoneLabel": "Danger Zone",
       "dangerZoneDescription": "These actions cannot be undone",
-      "deleteAccountButton": "Delete Account"
+      "deleteAccountButton": "Delete Account",
+      "signedInAs": "Signed in as {{username}}. Usernames cannot be changed.",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Repeat the new password",
+      "tooShort": "At least 8 characters.",
+      "mismatch": "The two new passwords are different.",
+      "changePassword": "Change password",
+      "passwordChanged": "Password changed. Any other session you had open has been signed out."
     },
     "pageTitle": "Settings",
     "elements": {
@@ -310,7 +318,10 @@
       "heirMe": "me",
       "heirOtherOwner": "another owner",
       "cancel": "Cancel",
-      "removeConfirm": "Remove member"
+      "removeConfirm": "Remove member",
+      "resetPassword": "Password reset link for {{username}}",
+      "resetIntro": "Send this link to {{username}} to choose a new password. It is shown only now, works once, and lasts one day.",
+      "resetLinkLabel": "Password reset link"
     }
   },
   "dashboard": {
@@ -936,6 +947,13 @@
     },
     "invitationUsername": {
       "description": "Use the username you were invited with."
+    },
+    "reset": {
+      "description": "Choose a new password for your account. The link works once.",
+      "newPassword": "New password",
+      "confirm": "Repeat the new password",
+      "submit": "Set the new password",
+      "done": "Your password has been changed. Sign in with the new one."
     }
   },
   "dashboardPageNew": {
@@ -2255,7 +2273,10 @@
       "agent_created": "Local agent created",
       "agent_revoked": "Local agent revoked",
       "source_host_connected": "GitHub or GitLab connected",
-      "source_host_removed": "GitHub or GitLab disconnected"
+      "source_host_removed": "GitHub or GitLab disconnected",
+      "auth_password_changed": "Password changed",
+      "auth_password_reset_issued": "Password reset link issued",
+      "auth_password_reset_completed": "Password reset with a link"
     }
   },
   "security": {

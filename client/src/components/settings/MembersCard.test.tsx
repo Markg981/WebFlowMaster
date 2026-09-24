@@ -121,6 +121,25 @@ describe('MembersCard', () => {
     expect(JSON.parse(calls('DELETE', '/api/organization/members/2')[0][1].body)).toEqual({});
   });
 
+  it('issues a password reset link for a member, not for the owner themselves', async () => {
+    fetchMock.mockImplementationOnce(async () => ok({ organization: { id: 1, name: 'Acme' }, members }));
+    renderCard();
+    await screen.findByText('maria');
+    expect(screen.queryByRole('button', { name: 'Password reset link for founder' })).toBeNull();
+
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'POST' && url === '/api/organization/members/2/password-reset') {
+        return ok({ username: 'maria', token: 'r'.repeat(40), expiresAt: '2099-01-01T00:00:00.000Z' });
+      }
+      if (url === '/api/organization') return ok({ organization: { id: 1, name: 'Acme' }, members });
+      return ok(invitations);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Password reset link for maria' }));
+
+    const link = (await screen.findByLabelText('Password reset link')) as HTMLInputElement;
+    expect(link.value).toBe(`${window.location.origin}/auth?reset=${'r'.repeat(40)}&username=maria`);
+  });
+
   it('revokes an invitation', async () => {
     renderCard();
     await screen.findByText('newcomer');

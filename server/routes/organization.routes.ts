@@ -9,6 +9,7 @@ import { withTenantTransaction, getTenantOrgId } from "../middleware/tenancy";
 import { auditActor, recordAudit } from "../audit";
 import { exportOrganization, eraseOrganization } from "../organization-lifecycle";
 import { transferMemberContent } from "../member-removal";
+import { issuePasswordReset } from "../password-reset";
 import loggerPromise from "../logger";
 import { liveRunCounts, quotasFor } from "../tenant-quotas";
 import { availableRunnerCount } from "../runner-registry";
@@ -401,6 +402,48 @@ router.post("/api/organization/members", requireRole("owner"), async (req: Reque
   if (outcome.status === 404) return res.status(404).json({ error: "User not found" });
   if (outcome.status === 409) return res.status(409).json({ error: outcome.error });
   res.status(201).json(outcome.body);
+});
+
+/**
+ * A one-time link for a member to choose a new password (server/password-reset.ts), when they
+ * cannot sign in. The link is returned once, for the owner to hand over; the application sends no
+ * e-mail. A signed-in session only, as for resetting a second factor: a key that could hand out
+ * passwords would be a way into every account of the organization. Never for oneself: that is
+ * what changing one's own password, with the current one, is for.
+ */
+router.post("/api/organization/members/:userId/password-reset", requireRole("owner"), async (req: Request, res: Response) => {
+  if ((req as Request & { apiKeyId?: string }).apiKeyId) {
+    return res.status(403).json({ error: "Password reset links are issued from a signed-in session, not with an API key." });
+  }
+  const organizationId = getTenantOrgId()!;
+  const userId = Number(req.params.userId);
+  if (!Number.isInteger(userId)) return res.status(400).json({ error: "Invalid user id" });
+  if (userId === req.user!.id) {
+    return res.status(400).json({ error: "Change your own password in Settings > Account, with your current one." });
+  }
+
+  const issued = await withTenantTransaction(async (tx) => {
+    // users has no RLS: the organization is named explicitly.
+    const [member] = await tx
+      .select({ id: users.id, username: users.username })
+      .from(users)
+      .where(and(eq(users.id, userId), eq(users.organizationId, organizationId), eq(users.kind, "person")));
+    if (!member) return null;
+
+    const reset = await issuePasswordReset(tx, { organizationId, userId, createdBy: req.user!.id });
+    await recordAudit(tx, {
+      action: AUDIT_ACTIONS.PASSWORD_RESET_ISSUED,
+      actor: auditActor(req),
+      targetType: 'user',
+      targetId: userId,
+      // Never the token: this table is readable by every owner.
+      metadata: { username: member.username, expiresAt: reset.expiresAt.toISOString() },
+    });
+    return { ...reset, username: member.username };
+  });
+
+  if (!issued) return res.status(404).json({ error: "Member not found" });
+  res.status(201).json({ username: issued.username, token: issued.token, expiresAt: issued.expiresAt });
 });
 
 router.patch(

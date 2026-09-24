@@ -30,6 +30,7 @@ presumere di sì.
 | Risultati dei run | Verdetti, esiti degli step, messaggi di errore, chi ha avviato il run, contesto CI (repository, commit, branch, build) | Database | Fino alla cancellazione dell'organizzazione |
 | Evidenze dei run | Screenshot, video, trace di Playwright, catture di rete senza corpi né credenziali | Archivio degli artefatti (disco o S3) | `ARTIFACT_RETENTION_DAYS`, 90 giorni di default |
 | Baseline visive | Screenshot di riferimento | Archivio degli artefatti | Finché non vengono sostituite o rimosse |
+| Link di reset della password | Di chi è, chi l'ha emesso, un hash del token | Database | Un giorno, o fino all'uso; esclusi dalle esportazioni |
 | Inviti | Username invitato, ruolo, chi ha invitato | Database | Fino alla revoca; il token scade dopo 7 giorni |
 | Fogli di calcolo caricati | Casi di test importati | Disco locale durante la lettura | Cancellati appena letti |
 

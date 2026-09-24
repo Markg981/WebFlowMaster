@@ -51,9 +51,19 @@ groups, environments and their secrets) stays in the organization and is handed 
 member: you, unless you choose someone else in the dialog. An owner removing themselves hands
 it to another owner. The audit log keeps their name and records who took over.
 
+**Issue a password reset link** with the link icon, for a member who forgot their password.
+The page shows the link once: hand it over, since no e-mail is sent. It opens a form to choose a
+new password, works once and lasts a day; issuing another replaces it. The member then signs in
+as usual, with their second factor if they have one. For the organization's only owner, the
+operator issues the link from the command line (see
+[Recovering access](./operations#recovering-access)).
+
 **Reset a member's second factor** with the key icon, when they have lost both their device and
 their recovery codes. They sign in with their password and, if the organization requires it,
 set it up again.
+
+Everyone changes their own password in **Settings → Account**, with the current one. Changing a
+password, or resetting it with a link, signs that person out of every other session.
 
 Each of these is recorded in the [audit log](#audit-log).
 
@@ -68,6 +78,7 @@ With an owner's API key with full access (`Authorization: Bearer wfm_…`):
 | Register with an invitation | `POST /api/register` with `{"username","password","invitationToken"}` |
 | Change a role | `PATCH /api/organization/members/<userId>` with `{"role":"owner"}` |
 | Remove | `DELETE /api/organization/members/<userId>`, optionally with `{"transferTo":<userId>}` |
+| Password reset link | `POST /api/organization/members/<userId>/password-reset`; the answer holds the token, once. The link is `/auth?reset=<token>` |
 | Reset the second factor | `DELETE /api/organization/members/<userId>/mfa` |
 :::
 

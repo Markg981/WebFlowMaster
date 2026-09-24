@@ -664,6 +664,30 @@ export const invitations = pgTable("invitations", {
 export type Invitation = typeof invitations.$inferSelect;
 
 /**
+ * A one-time link that lets a member choose a new password (server/password-reset.ts).
+ *
+ * The application sends no e-mail, so a forgotten password is recovered through an owner, who
+ * issues one of these and hands the link over, or through the operator's command line. The token
+ * is stored only as its SHA-256. Org-scoped like the rest; redeeming it is the one privileged
+ * lookup, in server/storage.ts, because nobody is signed in yet.
+ */
+export const passwordResets = pgTable("password_resets", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: text("token_hash").notNull().unique(),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("password_resets_organization_id_idx").on(table.organizationId),
+  index("password_resets_user_id_idx").on(table.userId),
+]);
+
+export type PasswordReset = typeof passwordResets.$inferSelect;
+
+/**
  * Append-only record of who changed what, within one organization.
  *
  * Two properties make this an audit log rather than a table of log lines:
@@ -1245,6 +1269,10 @@ export const AUDIT_ACTIONS = {
   MFA_RECOVERY_CODES_REGENERATED: 'mfa.recovery_codes_regenerated',
   MFA_RECOVERY_CODE_USED: 'mfa.recovery_code_used',
   MFA_POLICY_CHANGED: 'mfa.policy_changed',
+  // Passwords. Never the password, the hash or a reset token.
+  PASSWORD_CHANGED: 'auth.password_changed',
+  PASSWORD_RESET_ISSUED: 'auth.password_reset_issued',
+  PASSWORD_RESET_COMPLETED: 'auth.password_reset_completed',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
@@ -2230,4 +2258,7 @@ export const ORG_SCOPED_TABLES = [
   'test_quarantines',
   'agents',
   'source_hosts',
+  // One-time links to choose a new password (migration 0042). Redeeming one is the privileged
+  // bootstrap in server/storage.ts; issuing and listing them happen inside the organization.
+  'password_resets',
 ] as const;

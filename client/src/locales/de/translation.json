@@ -106,7 +106,7 @@
       "notifications": "Benachrichtigungen",
       "notificationsDescription": "Für welche Ereignisse Sie unterbrochen werden möchten.",
       "account": "Konto",
-      "accountDescription": "Ihre Anmeldedaten und die Aktionen, die sich nicht rückgängig machen lassen.",
+      "accountDescription": "Ihr Benutzername und das Ändern Ihres Passworts.",
       "runUsage": "Ausführungsauslastung",
       "runUsageDescription": "Wie viele Ausführungen dieser Organisation laufen oder warten, gemessen an ihren Limits.",
       "auditLog": "Audit-Protokoll",
@@ -231,7 +231,15 @@
       "usernameDescription": "Der Benutzername kann nach der Registrierung nicht geändert werden",
       "dangerZoneLabel": "Gefahrenbereich",
       "dangerZoneDescription": "Diese Aktionen können nicht rückgängig gemacht werden",
-      "deleteAccountButton": "Konto löschen"
+      "deleteAccountButton": "Konto löschen",
+      "signedInAs": "Angemeldet als {{username}}. Benutzernamen können nicht geändert werden.",
+      "currentPassword": "Aktuelles Passwort",
+      "newPassword": "Neues Passwort",
+      "confirmPassword": "Neues Passwort wiederholen",
+      "tooShort": "Mindestens 8 Zeichen.",
+      "mismatch": "Die beiden neuen Passwörter sind verschieden.",
+      "changePassword": "Passwort ändern",
+      "passwordChanged": "Passwort geändert. Ihre anderen offenen Sitzungen wurden abgemeldet."
     },
     "pageTitle": "Einstellungen",
     "elements": {
@@ -310,7 +318,10 @@
       "heirMe": "mich",
       "heirOtherOwner": "einen anderen Eigentümer",
       "cancel": "Abbrechen",
-      "removeConfirm": "Mitglied entfernen"
+      "removeConfirm": "Mitglied entfernen",
+      "resetPassword": "Link zum Zurücksetzen des Passworts für {{username}}",
+      "resetIntro": "Senden Sie diesen Link an {{username}}, um ein neues Passwort zu wählen. Er wird nur jetzt angezeigt, funktioniert einmal und ist einen Tag gültig.",
+      "resetLinkLabel": "Link zum Zurücksetzen"
     }
   },
   "dashboard": {
@@ -942,6 +953,13 @@
     },
     "invitationUsername": {
       "description": "Verwenden Sie den Benutzernamen, mit dem Sie eingeladen wurden."
+    },
+    "reset": {
+      "description": "Wählen Sie ein neues Passwort für Ihr Konto. Der Link funktioniert nur einmal.",
+      "newPassword": "Neues Passwort",
+      "confirm": "Neues Passwort wiederholen",
+      "submit": "Neues Passwort festlegen",
+      "done": "Ihr Passwort wurde geändert. Melden Sie sich mit dem neuen an."
     }
   },
   "dashboardPageNew": {
@@ -2261,7 +2279,10 @@
       "agent_created": "Lokaler Agent angelegt",
       "agent_revoked": "Lokaler Agent widerrufen",
       "source_host_connected": "GitHub oder GitLab verbunden",
-      "source_host_removed": "GitHub oder GitLab getrennt"
+      "source_host_removed": "GitHub oder GitLab getrennt",
+      "auth_password_changed": "Passwort geändert",
+      "auth_password_reset_issued": "Link zum Zurücksetzen ausgestellt",
+      "auth_password_reset_completed": "Passwort per Link zurückgesetzt"
     }
   },
   "security": {
