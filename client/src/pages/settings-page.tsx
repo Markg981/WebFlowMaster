@@ -57,6 +57,7 @@ import { UserSettings, fetchSettings } from "../lib/settings";
 import EnvironmentsCard from "@/components/settings/EnvironmentsCard";
 import ApiKeysCard from "@/components/settings/ApiKeysCard";
 import ServiceAccountsCard from "@/components/settings/ServiceAccountsCard";
+import MembersCard from "@/components/settings/MembersCard";
 import AgentsCard from "@/components/settings/AgentsCard";
 import SourceHostsCard from "@/components/settings/SourceHostsCard";
 import RunUsageCard from "@/components/settings/RunUsageCard";
@@ -478,6 +479,22 @@ export default function SettingsPage() {
         </>
       ),
     },
+    // Owners only: members, roles and invitations are an owner's to manage, and the server
+    // answers anyone else with 403.
+    ...(user?.role === 'owner'
+      ? [
+          {
+            id: 'members',
+            label: t('settings.sections.members', 'Members'),
+            description: t(
+              'settings.sections.membersDescription',
+              'Who belongs to the organization, their roles, and invitations for new people.',
+            ),
+            icon: Users,
+            content: <MembersCard />,
+          },
+        ]
+      : []),
     {
       id: 'projects',
       label: t('settings.sections.projects'),

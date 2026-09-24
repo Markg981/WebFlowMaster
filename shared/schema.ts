@@ -61,7 +61,8 @@ export const userMfa = pgTable("user_mfa", {
 });
 
 export const userSettings = pgTable("user_settings", {
-  userId: integer("user_id").primaryKey().references(() => users.id),
+  // A person's own preferences: they go with the account (migration 0040).
+  userId: integer("user_id").primaryKey().references(() => users.id, { onDelete: 'cascade' }),
   theme: text("theme").default('light').notNull(),
   defaultTestUrl: text("default_test_url"),
   playwrightBrowser: text("playwright_browser").default('chromium').notNull(),
@@ -202,7 +203,9 @@ export const apiTestHistory = pgTable("api_test_history", {
 
 export const apiTests = pgTable("api_tests", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  // The organization's, not the person's: a removed member's API tests are handed to another
+  // member (server/member-removal.ts), never deleted with them (migration 0040).
+  userId: integer("user_id").notNull().references(() => users.id),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
   name: text("name").notNull(),
@@ -338,7 +341,8 @@ export const testPlanSchedules = pgTable("test_plan_schedules", {
   organizationId: integer('organization_id').notNull().references(() => organizations.id),
   // Owner of the schedule; scheduled executions run on behalf of this user.
   // Nullable so pre-existing rows migrate cleanly (the scheduler falls back for them).
-  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  // A removed member's schedules are handed to another member, not deleted (migration 0040).
+  userId: integer('user_id').references(() => users.id),
   scheduleName: text('schedule_name').notNull(),
   frequency: text('frequency').notNull(),
   nextRunAt: timestamp('next_run_at').notNull(),
@@ -529,7 +533,9 @@ export const environments = pgTable("environments", {
   id: serial('id').primaryKey(),
   name: text('name').notNull().unique(),
   description: text('description'),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  // Who created it. The environment is the organization's: removing that member hands it to
+  // another one rather than deleting it and its secrets (migration 0040).
+  userId: integer('user_id').notNull().references(() => users.id),
   organizationId: integer('organization_id').notNull().references(() => organizations.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   /**
@@ -556,7 +562,7 @@ export const secrets = pgTable("secrets", {
   encryptedValue: text('encrypted_value').notNull(),
   iv: text('iv').notNull(),
   authTag: text('auth_tag').notNull(),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id),
   organizationId: integer('organization_id').notNull().references(() => organizations.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -639,7 +645,8 @@ export const invitations = pgTable("invitations", {
   role: text("role").notNull().default('editor'),
   /** Unguessable, and the only thing needed to accept. Unique so a lookup cannot be ambiguous. */
   token: text("token").notNull().unique(),
-  invitedByUserId: integer("invited_by_user_id").notNull().references(() => users.id),
+  /** Null once the inviting member's account is gone (migration 0040). */
+  invitedByUserId: integer("invited_by_user_id").references(() => users.id, { onDelete: 'set null' }),
   expiresAt: timestamp("expires_at").notNull(),
   /** Set once used. A used invitation is kept for the audit trail rather than deleted. */
   acceptedAt: timestamp("accepted_at"),

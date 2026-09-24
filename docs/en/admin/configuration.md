@@ -27,6 +27,7 @@ harm.
 | `PORT` | web | `5000` | The port for the API and the web client. A malformed value stops the startup rather than falling back. In development, point the client dev server at it with `VITE_API_PORT`. |
 | `SESSION_COOKIE_SECURE` | web | `true` when `NODE_ENV=production` | `true` or `false`; any other value is ignored. `false` sends the session cookie over plain HTTP: only for a local stack without TLS. |
 | `CSRF_TRUSTED_ORIGINS` | web | none | Comma-separated origins accepted for state-changing requests besides the request's own `Host`. Needed when a proxy presents a different public origin, e.g. `https://app.example.com`. |
+| `REGISTRATION` | web | `invitation` | `invitation`: accounts are created from an invitation, except the installation's first. `open`: anyone who reaches the server may register and gets an organization of their own. Any other value stops the startup. See [First sign-in](./installation#first-sign-in). |
 | `MFA_ISSUER` | web | `WebFlowMaster` | The name authenticator apps show next to the codes. Set it per installation ("WebFlowMaster Staging") so people with several accounts can tell them apart. |
 | `WEBFLOW_PUBLIC_URL` | both | none | This installation's public address. Used to link to a run from notifications and commit statuses; without it they carry no link. |
 | `WORKSPACE_NAME` | web | `WebFlowMaster` | The name the sidebar shows. Only read the first time the installation starts. |

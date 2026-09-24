@@ -20,7 +20,15 @@ decide which **verbs** a user may use. Which **rows** exist for them is decided 
 
 New members join by **invitation** (`invitations` table): an owner invites with a role, and the
 registration that uses the token creates the account inside the inviting organization. Registration
-is a privileged operation because the user does not exist yet (`server/storage.ts`).
+is a privileged operation because the user does not exist yet (`server/storage.ts`). Without an
+invitation only the installation's first account may register, unless `REGISTRATION=open`
+(`server/registration.ts`); "is it the first?" and the insert share an advisory lock.
+
+Removing a member does not delete what they made: `server/member-removal.ts` hands projects,
+tests, plans, schedules, step groups, environments and secrets to another member before the
+account is deleted, and the constraints on those tables are `NO ACTION`, so a table the transfer
+forgets fails the removal instead of losing rows. A test checks every constraint that references
+`users`.
 
 ## Row-level security: the database keeps organizations apart
 

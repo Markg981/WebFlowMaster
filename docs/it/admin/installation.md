@@ -243,14 +243,23 @@ Ogni worker compare in **Impostazioni → Runner** appena parte.
 
 ## Primo accesso {#primo-accesso}
 
-Aprite l'indirizzo web e scegliete **Registrati**. Un account registrato senza invito crea una
-nuova organizzazione e ne diventa owner. Tutti gli altri entrano in quell'organizzazione con un
-invito (vedi [Membri e inviti](./administration#membri-e-inviti)).
+Aprite l'indirizzo web e scegliete **Registrati**. Il primo account dell'installazione crea la
+prima organizzazione e ne diventa owner. Dopo di che, chi può registrarsi dipende da
+`REGISTRATION`:
 
-::: warning La registrazione è aperta
-Chiunque raggiunga il server può registrarsi e ottenere una propria organizzazione, isolata
-dalle altre. Non esiste ancora un'impostazione per disattivarla. Se l'installazione è per una
-sola azienda, rendetela raggiungibile solo dalla rete o dalla VPN di quell'azienda.
+| `REGISTRATION` | Senza invito | Con invito |
+|---|---|---|
+| `invitation` (default) | Rifiutato, tranne il primo account dell'installazione | Entra nell'organizzazione che invita |
+| `open` | Chiunque raggiunga il server ottiene una propria organizzazione | Entra nell'organizzazione che invita |
+
+Mantenete il default per un'installazione al servizio di una sola azienda, e invitate le persone
+da **Impostazioni → Membri** (vedi [Membri e inviti](./administration#membri-e-inviti)). Usate
+`open` solo per un servizio che offre la registrazione al pubblico.
+
+::: warning Registrate voi il primo account
+Finché il primo account non esiste, chi raggiunge per primo la pagina di registrazione diventa
+owner della prima organizzazione. Registratelo appena l'installazione parte, prima che altri
+possano raggiungerla.
 :::
 
 ## Verificare l'installazione

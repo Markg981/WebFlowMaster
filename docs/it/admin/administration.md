@@ -33,67 +33,47 @@ rimosso.
 Date a ciascuno il ruolo minimo che gli permette di lavorare. Chi segue solo i risultati è
 viewer; le pipeline usano chiavi API, non l'account di una persona.
 
-## Membri e inviti {#membri-e-inviti}
+## Membri e inviti *(owner)* {#membri-e-inviti}
 
-::: info Nessuna schermata, per ora
-Membri e inviti si gestiscono per ora tramite l'API: il client web non ha ancora una pagina
-dedicata, e il modulo di registrazione non ha un campo per l'invito. Gli esempi sotto usano
-`curl` con una chiave API.
-:::
+**Impostazioni → Membri** elenca le persone dell'organizzazione con i loro ruoli, e gli inviti
+ancora in attesa.
 
-Per chiamare questi endpoint, create una chiave API con **Accesso completo, ovunque** in
-**Impostazioni → Chiavi API** mentre siete collegati come owner. Usatela solo per questo e
-revocatela quando avete finito.
+**Invitare qualcuno.** Inserite lo username che avrà il nuovo account e il suo ruolo (viewer o
+editor; il ruolo di owner si concede dopo), poi **Crea invito**. La pagina mostra un link, una
+volta sola: mandatelo alla persona con un canale di cui vi fidate, perché l'applicazione non
+invia e-mail. Il link apre il modulo di registrazione con invito e username già compilati; la
+persona sceglie una password (almeno 8 caratteri) ed è dentro. Un invito vale sette giorni e si
+può revocare finché è in attesa. Un account esistente non può essere spostato tra
+organizzazioni: un invito crea sempre un account nuovo.
 
-```bash
-export WFM_URL=https://webflowmaster.example.com
-export KEY=wfm_...   # la chiave ad accesso completo di un owner
-```
+**Cambiare un ruolo** con il menu accanto a un membro. L'ultimo owner non può essere declassato.
 
-**Elencare i membri:**
+**Rimuovere un membro** con l'icona del cestino. Il suo account viene cancellato, con le chiavi
+API, il secondo fattore e le preferenze. Ciò che ha creato (progetti, test, test API, piani,
+schedulazioni, gruppi di step, ambienti e i loro segreti) resta nell'organizzazione e passa a un
+altro membro: a voi, a meno che nella finestra non ne scegliate un altro. Un owner che rimuove
+se stesso lo passa a un altro owner. Il registro di audit ne conserva il nome e registra chi è
+subentrato.
 
-```bash
-curl -s -H "Authorization: Bearer $KEY" "$WFM_URL/api/organization"
-```
-
-**Invitare qualcuno.** Un invito indica lo username che avrà il nuovo account e il suo ruolo
-(`viewer` o `editor`; il ruolo di owner si concede dopo). Vale sette giorni, e il token viene
-restituito solo in questa risposta:
-
-```bash
-curl -s -X POST -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"username":"maria.rossi","role":"editor"}' "$WFM_URL/api/organization/invitations"
-```
-
-L'applicazione non invia e-mail: consegnate il token alla persona con un canale di cui vi
-fidate. Con quello crea il proprio account, scegliendo la password (almeno 8 caratteri):
-
-```bash
-curl -s -X POST -H "Content-Type: application/json" \
-  -d '{"username":"maria.rossi","password":"…","invitationToken":"<token>"}' \
-  "$WFM_URL/api/register"
-```
-
-e poi accede dalla pagina web come di consueto. Un account esistente non può essere spostato
-tra organizzazioni; un invito crea sempre un account nuovo.
-
-**Inviti in sospeso e revoca:** `GET /api/organization/invitations`,
-`DELETE /api/organization/invitations/<id>`.
-
-**Cambiare un ruolo:** `PATCH /api/organization/members/<userId>` con `{"role":"owner"}`.
-
-**Rimuovere un membro:** `DELETE /api/organization/members/<userId>`. L'account viene
-cancellato, e il registro di audit ne conserva il nome.
-
-::: danger Problema noto: rimuovere un membro che ha creato qualcosa
-Oggi rimuovere un membro cancella anche gli ambienti (con i loro segreti), i test API, le
-schedulazioni e le chiavi API che quel membro ha creato, e fallisce se ha creato progetti, test,
-piani o gruppi di step, o ha salvato le proprie preferenze. Finché non sarà corretto, non
-rimuovete membri che hanno lavorato nell'organizzazione: portateli a `viewer` e revocate le loro
-chiavi API.
-:::
+**Azzerare il secondo fattore di un membro** con l'icona della chiave, quando ha perso sia il
+dispositivo sia i codici di recupero. Accede con la password e, se l'organizzazione lo richiede,
+lo configura di nuovo.
 
 Ognuna di queste operazioni viene registrata nel [registro di audit](#registro-di-audit).
+
+::: details Le stesse operazioni tramite l'API
+Con la chiave API ad accesso completo di un owner (`Authorization: Bearer wfm_…`):
+
+| Operazione | Richiesta |
+|---|---|
+| Elencare i membri | `GET /api/organization` |
+| Invitare | `POST /api/organization/invitations` con `{"username":"maria.rossi","role":"editor"}`; la risposta contiene il token, una volta |
+| Inviti in attesa, revocarne uno | `GET /api/organization/invitations`, `DELETE /api/organization/invitations/<id>` |
+| Registrarsi con un invito | `POST /api/register` con `{"username","password","invitationToken"}` |
+| Cambiare un ruolo | `PATCH /api/organization/members/<userId>` con `{"role":"owner"}` |
+| Rimuovere | `DELETE /api/organization/members/<userId>`, facoltativamente con `{"transferTo":<userId>}` |
+| Azzerare il secondo fattore | `DELETE /api/organization/members/<userId>/mfa` |
+:::
 
 ## Progetti riservati
 
@@ -117,13 +97,7 @@ momento un membro senza secondo fattore non può fare altro che configurarlo, an
 sessioni già aperte. Le chiavi API non sono coinvolte.
 
 Un membro che ha perso sia il dispositivo sia i codici di recupero ha bisogno che un owner
-azzeri il suo secondo fattore, per ora tramite l'API:
-
-```bash
-curl -s -X DELETE -H "Authorization: Bearer $KEY" "$WFM_URL/api/organization/members/<userId>/mfa"
-```
-
-Poi accede con la password e, se l'organizzazione lo richiede, lo configura di nuovo.
+azzeri il suo secondo fattore in **Impostazioni → Membri**.
 
 ## Chiavi API e account di servizio
 
@@ -223,6 +197,13 @@ owner l'ha fatta. Su un'installazione condivisa da più clienti, lasciatele a ch
 
 ## Esportazione e cancellazione *(owner)*
 
+Entrambe si fanno per ora tramite l'API, con la chiave ad accesso completo di un owner:
+
+```bash
+export WFM_URL=https://webflowmaster.example.com
+export KEY=wfm_...   # la chiave ad accesso completo di un owner
+```
+
 **Esportazione**: `GET /api/organization/export` restituisce l'intera organizzazione in un file
 JSON: ogni tabella che le appartiene (membri, progetti, test, piani, run, il registro di audit e
 il resto). Password e token degli inviti sono esclusi. I segreti salvati e i token delle
@@ -254,12 +235,8 @@ anche dei backup del database, dove l'organizzazione resta finché non scadono.
 
 ## Limiti noti
 
-- Membri, inviti, azzeramento del secondo fattore di un membro, esportazione e cancellazione non
-  hanno ancora una schermata; si fanno tramite l'API come mostrato sopra.
-- Rimuovere un membro che ha creato qualcosa non funziona come dovrebbe (vedi
-  [Membri e inviti](#membri-e-inviti)).
-- La registrazione è aperta a chiunque raggiunga l'installazione e crea una nuova organizzazione
-  (vedi [Primo accesso](./installation#primo-accesso)).
+- Esportazione e cancellazione non hanno ancora una schermata; si fanno tramite l'API come
+  mostrato sopra.
 - Cancellare un'organizzazione lascia i suoi file nell'archivio degli artefatti, da rimuovere a
   cura di chi gestisce l'installazione.
 - Non c'è single sign-on (SAML, OpenID Connect) né invio di e-mail; gli inviti si consegnano a

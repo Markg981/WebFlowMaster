@@ -22,6 +22,13 @@ database.
 I nuovi membri entrano per **invito** (tabella `invitations`): un owner invita con un ruolo, e la
 registrazione che usa il token crea l'account dentro l'organizzazione che ha invitato. La
 registrazione è un'operazione privilegiata perché l'utente non esiste ancora (`server/storage.ts`).
+Senza invito si registra solo il primo account dell'installazione, a meno che `REGISTRATION=open`
+(`server/registration.ts`); il controllo "è il primo?" e la creazione condividono un advisory lock.
+
+Rimuovere un membro non cancella ciò che ha creato: `server/member-removal.ts` passa progetti,
+test, piani, schedulazioni, gruppi di step, ambienti e segreti a un altro membro prima di cancellare
+l'account, e i vincoli su quelle tabelle sono `NO ACTION`, così una tabella dimenticata fa fallire
+la rimozione invece di perdere righe. Un test controlla ogni vincolo che punta a `users`.
 
 ## Row-level security: è il database a separare le organizzazioni
 

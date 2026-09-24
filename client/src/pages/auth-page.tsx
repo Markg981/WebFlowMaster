@@ -1,5 +1,6 @@
 import { PRODUCT_NAME_PREFIX, PRODUCT_NAME_SUFFIX } from '@/lib/brand';
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from 'react-i18next';
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -13,13 +14,45 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { motion, AnimatePresence } from "framer-motion";
 import MfaChallengeForm from "@/components/security/MfaChallengeForm";
 
+interface RegistrationPolicy {
+  mode: 'open' | 'invitation';
+  selfRegistration: boolean;
+  firstAccount: boolean;
+}
+
+/** The invitation link an owner sends: /auth?invitation=<token>&username=<name>. */
+function invitationFromUrl(): { token: string; username: string } {
+  const query = new URLSearchParams(window.location.search);
+  return { token: query.get('invitation') ?? '', username: query.get('username') ?? '' };
+}
+
 export default function AuthPage() {
   const { t } = useTranslation();
   const { user, loginMutation, registerMutation, mfaChallenge } = useAuth();
   const [, navigate] = useLocation();
-  
+  const [invited] = useState(invitationFromUrl);
+
   const [loginData, setLoginData] = useState({ username: "", password: "" });
-  const [registerData, setRegisterData] = useState({ username: "", password: "", confirmPassword: "" });
+  const [registerData, setRegisterData] = useState({
+    username: invited.username,
+    password: "",
+    confirmPassword: "",
+    invitationToken: invited.token,
+  });
+
+  // Whether registering needs an invitation here (server/registration.ts). Until it answers, the
+  // form asks for one only if the link brought one.
+  const { data: policy } = useQuery<RegistrationPolicy>({
+    queryKey: ['/api/registration'],
+    queryFn: async () => {
+      const response = await fetch('/api/registration');
+      if (!response.ok) throw new Error('Could not read the registration policy');
+      return response.json();
+    },
+    staleTime: 60_000,
+  });
+  const invitationRequired = policy ? !policy.selfRegistration : false;
+  const showInvitationField = invited.token !== '' || invitationRequired;
 
   useEffect(() => {
     if (user) {
@@ -37,9 +70,11 @@ export default function AuthPage() {
     if (registerData.password !== registerData.confirmPassword) {
       return;
     }
-    registerMutation.mutate({ 
-      username: registerData.username, 
-      password: registerData.password 
+    const invitationToken = registerData.invitationToken.trim();
+    registerMutation.mutate({
+      username: registerData.username,
+      password: registerData.password,
+      ...(invitationToken ? { invitationToken } : {}),
     });
   };
 
@@ -101,7 +136,7 @@ export default function AuthPage() {
                 {mfaChallenge ? (
                   <MfaChallengeForm />
                 ) : (
-                <Tabs defaultValue="login" className="w-full">
+                <Tabs defaultValue={invited.token ? "register" : "login"} className="w-full">
                   <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted/50 p-1">
                     <TabsTrigger value="login" className="data-[state=active]:shadow-sm">
                       {t('authPage.signIn.button')}
@@ -167,9 +202,37 @@ export default function AuthPage() {
                         initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -10 }}
-                        onSubmit={handleRegister} 
+                        onSubmit={handleRegister}
                         className="space-y-4"
                       >
+                        {policy?.firstAccount && !invited.token && (
+                          <p className="text-sm text-muted-foreground" data-testid="first-account-note">
+                            {t('authPage.firstAccount.description', 'This is the first account on this installation: it creates the first organization, and you will be its owner.')}
+                          </p>
+                        )}
+                        {invitationRequired && !invited.token && (
+                          <p className="text-sm text-muted-foreground" data-testid="invitation-required-note">
+                            {t('authPage.invitationRequired.description', 'Accounts here are created by invitation. Open the link you were sent, or paste its invitation code below.')}
+                          </p>
+                        )}
+                        {showInvitationField && (
+                          <div className="space-y-2">
+                            <Label htmlFor="register-invitation">{t('authPage.invitationCode.label', 'Invitation code')}</Label>
+                            <Input
+                              id="register-invitation"
+                              type="text"
+                              className="bg-muted/30 focus-visible:ring-primary/50 font-mono text-xs"
+                              value={registerData.invitationToken}
+                              onChange={(e) => setRegisterData({ ...registerData, invitationToken: e.target.value })}
+                              required={invitationRequired}
+                            />
+                            {invited.token && (
+                              <p className="text-xs text-muted-foreground">
+                                {t('authPage.invitationUsername.description', 'Use the username you were invited with.')}
+                              </p>
+                            )}
+                          </div>
+                        )}
                         <div className="space-y-2">
                           <Label htmlFor="register-username">{t('authPage.username.label')}</Label>
                           <Input
