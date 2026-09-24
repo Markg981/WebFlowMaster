@@ -40,6 +40,9 @@ type Labels = {
   glossary: string;
   ci: string;
   localAgents: string;
+  reference: string;
+  restApi: string;
+  cli: string;
 };
 
 function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
@@ -78,6 +81,13 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
       items: [
         { text: t.ci, link: p('CI_INTEGRATION') },
         { text: t.localAgents, link: p('LOCAL_AGENT') },
+      ],
+    },
+    {
+      text: t.reference,
+      items: [
+        { text: t.restApi, link: p('reference/api') },
+        { text: t.cli, link: p('reference/cli') },
       ],
     },
     {
@@ -128,6 +138,9 @@ const en: Labels = {
   glossary: 'Glossary',
   ci: 'CI integration',
   localAgents: 'Local agents',
+  reference: 'Reference',
+  restApi: 'REST API',
+  cli: 'wfm command line',
 };
 
 const it: Labels = {
@@ -161,6 +174,9 @@ const it: Labels = {
   glossary: 'Glossario',
   ci: 'Integrazione CI',
   localAgents: 'Agenti locali',
+  reference: 'Riferimento',
+  restApi: 'API REST',
+  cli: 'Riga di comando wfm',
 };
 
 export default withMermaid(
@@ -177,13 +193,12 @@ export default withMermaid(
         md.renderer.rules.code_inline = (...args) => render(...args).replace('<code', '<code v-pre');
       },
     },
-    // Not documentation for readers: design notes, generated PDFs, and the API reference still to
-    // be rewritten.
+    // Not documentation for readers: design notes, generated PDFs, and the record of dependency
+    // reviews, which lives in the repository and is linked from the security pages.
     srcExclude: [
       'superpowers/**',
       'pdf/**',
-      'JSDOC_SNIPPETS.md',
-      'API_REFERENCE.md',
+      'SECURITY-AUDIT.md',
     ],
     themeConfig: {
       search: {
@@ -219,6 +234,7 @@ export default withMermaid(
             { text: 'Guide', link: '/en/guide/' },
             { text: 'Administration', link: '/en/admin/installation' },
             { text: 'Security', link: '/en/security/' },
+            { text: 'Reference', link: '/en/reference/api' },
             { text: 'Internals', link: '/en/internals/' },
           ],
           sidebar: { '/en/': sidebar('en', en) },
@@ -235,6 +251,7 @@ export default withMermaid(
             { text: 'Guida', link: '/it/guide/' },
             { text: 'Amministrazione', link: '/it/admin/installation' },
             { text: 'Sicurezza', link: '/it/security/' },
+            { text: 'Riferimento', link: '/it/reference/api' },
             { text: 'Interni', link: '/it/internals/' },
           ],
           sidebar: { '/it/': sidebar('it', it) },

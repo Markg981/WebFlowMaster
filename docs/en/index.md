@@ -35,6 +35,12 @@ For the people who run an installation and the owners of an organization:
   and commit statuses.
 - [Local agents](./LOCAL_AGENT) — testing applications inside a private network.
 
+## Reference
+
+- [REST API](./reference/api) — `/api/v1`: keys and scopes, runs, every endpoint and error code,
+  plan webhooks.
+- [wfm command line](./reference/cli) — commands, options, exit codes, what it reads from CI.
+
 ## Internals
 
 For the people who build and maintain the product:
@@ -46,6 +52,7 @@ For the people who build and maintain the product:
 - [Developer guide](./internals/developer-guide) · [Decision records](./internals/decisions) ·
   [Glossary](./internals/glossary)
 
-::: info More guides are on the way
-The API reference is being rewritten and will appear here.
-:::
+## PDF
+
+`npm run docs:pdf` writes each section of this documentation as a PDF, in English and Italian, to
+`docs/pdf/` — for an audit file or a reader offline.

@@ -175,12 +175,19 @@ Un owner lo crea in *Settings → Agenti locali*, lo si avvia con `Dockerfile.ag
 
 ## 📂 Struttura della Documentazione
 La documentazione è un sito VitePress in `docs/`, in inglese e italiano: `npm run docs:dev` per
-consultarla in locale, `npm run docs:build` per compilarla.
+consultarla in locale, `npm run docs:build` per compilarla, `npm run docs:pdf` per averne i PDF
+(in `docs/pdf/`, una sezione per file).
+- [**Guida utente**](./docs/it/guide/index.md) ([English](./docs/en/guide/index.md)): creare,
+  organizzare ed eseguire i test, e leggerne i risultati.
+- [**Installazione e amministrazione**](./docs/it/admin/installation.md)
+  ([English](./docs/en/admin/installation.md)): installazione, operatività, configurazione,
+  amministrazione.
+- [**Sicurezza e compliance**](./docs/it/security/index.md) ([English](./docs/en/security/index.md)):
+  panoramica, protezione dei dati, checklist di hardening.
+- [**Riferimento**](./docs/it/reference/api.md) ([English](./docs/en/reference/api.md)): l'API
+  REST `/api/v1` e la riga di comando `wfm`.
 - [**Architettura e interni**](./docs/it/internals/index.md) ([English](./docs/en/internals/index.md)):
   processi, tenancy, ciclo di vita dei run, modello dati, guida sviluppatore, decisioni.
-- [**User Guide**](./docs/USER_GUIDE.md): Manuale per tester e QA Engineer.
-- [**API Reference**](./docs/API_REFERENCE.md): Riferimento degli endpoint REST.
-- [**Contributing**](./docs/CONTRIBUTING.md): Linee guida per contribuire.
 
 ---
 

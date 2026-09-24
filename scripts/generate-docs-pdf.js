@@ -1,109 +1,129 @@
-// Playwright rather than puppeteer: the product already ships Playwright and its browsers, and
-// puppeteer was a second browser stack, in production dependencies, for this one script.
+/**
+ * The documentation as PDF files, one per section of the sidebar and per language, for an audit
+ * file or a reader offline: `npm run docs:pdf` builds the site and writes docs/pdf/{en,it}/*.pdf.
+ *
+ * It prints the site VitePress built rather than rendering the Markdown again: the pages then look
+ * as they do online, containers and tables included, and the diagrams (drawn in the browser by
+ * Mermaid) are there too. The sections come from the site's own sidebar, so a page added to the
+ * site is in the PDF without touching this file.
+ *
+ * Playwright, which the product already ships with its browsers, does the printing. Nothing is
+ * fetched from the internet.
+ */
 import { chromium } from 'playwright';
-import fs from 'fs-extra';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const siteDir = path.join(root, 'docs/.vitepress/dist');
+const outputDir = path.join(root, 'docs/pdf');
+const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
 
-const DOCS_BASE_DIR = path.join(__dirname, '../docs');
-const OUTPUT_BASE_DIR = path.join(__dirname, '../docs/pdf');
+const TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.woff2': 'font/woff2',
+};
 
-async function generatePDF(lang, fileName, title) {
-  const mdPath = path.join(DOCS_BASE_DIR, lang, fileName);
-  const outputDir = path.join(OUTPUT_BASE_DIR, lang);
-  const pdfPath = path.join(outputDir, fileName.replace('.md', '.pdf'));
-
-  if (!await fs.pathExists(mdPath)) {
-    console.warn(`File non trovato per lingua ${lang}: ${mdPath}`);
-    return;
-  }
-
-  const markdown = await fs.readFile(mdPath, 'utf-8');
-
-  const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
-    <style>
-        body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
-        .markdown-body { font-family: "Inter", -apple-system, sans-serif; line-height: 1.6; }
-        
-        /* Cover Page */
-        .cover {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            border-bottom: 2px solid #0052cc;
-            margin-bottom: 50px;
-        }
-        .cover h1 { font-size: 48px; color: #0052cc; margin-bottom: 10px; border: none; }
-        .cover p { font-size: 18px; color: #555; }
-        
-        /* Fix empty page and H1 breaks */
-        h1:not(.cover-title) { break-before: page; margin-top: 50px; }
-        h1.cover-title { break-before: avoid; }
-        
-        @media print {
-            body { padding: 0; }
-            .markdown-body { font-size: 14px; }
-        }
-    </style>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-</head>
-<body class="markdown-body">
-    <div class="cover">
-        <h1 class="cover-title">${title}</h1>
-        <p>WebFlowMaster Enterprise Documentation</p>
-        <p>Language: ${lang.toUpperCase()} | Version 1.0.0</p>
-        <p>Generated on: ${new Date().toLocaleDateString()}</p>
-    </div>
-    <div id="content"></div>
-    <script>
-        document.getElementById('content').innerHTML = marked.parse(\`${markdown.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`);
-    </script>
-</body>
-</html>
-  `;
-
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
-  await page.setContent(htmlContent, { waitUntil: 'networkidle' });
-
-  await fs.ensureDir(outputDir);
-
-  await page.pdf({
-    path: pdfPath,
-    format: 'A4',
-    printBackground: true,
-    margin: { top: '1cm', right: '1.5cm', bottom: '1.5cm', left: '1.5cm' },
-    displayHeaderFooter: true,
-    headerTemplate: '<span></span>',
-    footerTemplate: '<div style="font-size: 10px; width: 100%; text-align: center; border-top: 1px solid #eee; padding-top: 5px;">WebFlowMaster | <span class="pageNumber"></span> / <span class="totalPages"></span></div>'
+/** The built site, as VitePress serves it with clean URLs. */
+function serveSite() {
+  const server = http.createServer((req, res) => {
+    const url = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+    const candidates = url.endsWith('/') ? [`${url}index.html`] : [url, `${url}.html`, `${url}/index.html`];
+    for (const candidate of candidates) {
+      const file = path.join(siteDir, candidate);
+      if (file.startsWith(siteDir) && fs.existsSync(file) && fs.statSync(file).isFile()) {
+        res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] ?? 'application/octet-stream' });
+        return fs.createReadStream(file).pipe(res);
+      }
+    }
+    res.writeHead(404).end();
   });
-
-  await browser.close();
-  console.log(`✅ PDF [${lang.toUpperCase()}] generato: ${pdfPath}`);
+  return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
 }
+
+/** A section's file name: its first page's folder, or "integrations" for the pages at the top. */
+function sectionName(firstLink) {
+  const segment = firstLink.split('/').filter(Boolean)[1] ?? 'index';
+  return /^[A-Z_]+$/.test(segment) ? 'integrations' : segment;
+}
+
+const PRINT_CSS = `
+  .VPNav, .VPLocalNav, .VPSidebar, .aside, .VPDocFooter, .VPFooter, .header-anchor, .edit-link { display: none !important; }
+  .VPContent, .VPDoc, .VPDoc .container, .VPDoc .content, .VPDoc .content-container { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+  .wfm-page { break-before: page; }
+  .wfm-cover { height: 90vh; display: flex; flex-direction: column; justify-content: center; }
+  .wfm-cover h1 { font-size: 40px; border: none; }
+  .wfm-cover p { color: #555; margin: 4px 0; }
+  pre, table, .custom-block, svg { break-inside: avoid; }
+`;
 
 async function main() {
-  const languages = ['it', 'en'];
-  const docs = [
-    { file: 'USER_GUIDE.md', title: 'User Guide' },
-  ];
+  if (!fs.existsSync(path.join(siteDir, 'index.html'))) {
+    throw new Error('The site is not built: run `npm run docs:build` first (npm run docs:pdf does).');
+  }
+  const { default: config } = await import(pathToFileURL(path.join(root, 'docs/.vitepress/config.mts')).href);
+  const server = await serveSite();
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 900, height: 1200 } });
 
-  for (const lang of languages) {
-    for (const doc of docs) {
-      await generatePDF(lang, doc.file, doc.title);
+  try {
+    for (const [lang, locale] of Object.entries(config.locales).filter(([lang]) => lang !== 'root')) {
+      const sidebar = locale.themeConfig.sidebar[`/${lang}/`];
+      fs.mkdirSync(path.join(outputDir, lang), { recursive: true });
+
+      for (const group of sidebar) {
+        const pages = [];
+        for (const item of group.items) {
+          await page.goto(base + item.link, { waitUntil: 'networkidle' });
+          // Diagrams are drawn after the page loads.
+          if (await page.locator('.mermaid').count()) {
+            await page.waitForFunction(() => [...document.querySelectorAll('.mermaid')].every((d) => d.querySelector('svg')), null, { timeout: 15000 }).catch(() => {});
+          }
+          pages.push(await page.locator('.vp-doc').first().innerHTML());
+        }
+
+        const cover = `
+          <div class="wfm-cover">
+            <h1>${group.text}</h1>
+            <p>WebFlowMaster ${version}</p>
+            <p>${new Date().toISOString().slice(0, 10)}</p>
+          </div>`;
+        await page.goto(base + group.items[0].link, { waitUntil: 'networkidle' });
+        await page.evaluate(({ css, html }) => {
+          const style = document.createElement('style');
+          style.textContent = css;
+          document.head.append(style);
+          document.querySelector('.vp-doc').innerHTML = html;
+        }, { css: PRINT_CSS, html: cover + pages.map((body) => `<div class="wfm-page">${body}</div>`).join('') });
+
+        const file = path.join(outputDir, lang, `${sectionName(group.items[0].link)}.pdf`);
+        await page.pdf({
+          path: file,
+          format: 'A4',
+          printBackground: true,
+          margin: { top: '1.5cm', right: '1.5cm', bottom: '1.8cm', left: '1.5cm' },
+          displayHeaderFooter: true,
+          headerTemplate: '<span></span>',
+          footerTemplate: `<div style="font-size:9px;width:100%;text-align:center;color:#888">WebFlowMaster · ${group.text} · <span class="pageNumber"></span> / <span class="totalPages"></span></div>`,
+        });
+        console.log(`${path.relative(root, file)} (${pages.length} pages)`);
+      }
     }
+  } finally {
+    await browser.close();
+    server.close();
   }
 }
 
-main();
+main().catch((error) => {
+  console.error(error.message ?? error);
+  process.exit(1);
+});
