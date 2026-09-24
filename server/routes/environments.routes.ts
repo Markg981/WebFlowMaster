@@ -108,10 +108,10 @@ router.post("/api/environments", requireRole('editor'), async (req, res) => {
     const { id, name, description, createdAt } = created[0];
     res.status(201).json({ id, name, description, createdAt });
   } catch (error: any) {
-    // `name` is globally unique in the schema, so a clash can be another tenant's name.
-    // Reporting it as a conflict is the honest answer and leaks only that the name is taken.
+    // Names are unique within the organization, without case (migration 0041): a clash is always
+    // one of this organization's own environments.
     if (/unique|duplicate/i.test(error.message ?? '')) {
-      return res.status(409).json({ error: "An environment with that name already exists" });
+      return res.status(409).json({ error: "This organization already has an environment with that name" });
     }
     logger.error({ message: "Error creating environment", error: error.message });
     res.status(500).json({ error: "Failed to create environment" });

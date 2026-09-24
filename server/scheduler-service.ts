@@ -5,7 +5,7 @@ import cronParser from 'cron-parser';
 import { privilegedDb } from './db';
 import { environments, testPlanSchedules, testPlans } from '@shared/schema';
 import type { TestPlanSchedule, TestPlanExecution, TestPlan } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import logger from './logger';
 import { ExecutionEnqueueError, executionOrchestrator } from './execution-orchestrator';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
@@ -238,7 +238,7 @@ export async function executeScheduledPlanForTest(schedule: TestPlanSchedule, pl
  * Schedules store it as text, and the form offers names — "QA", "Staging" — while the runner
  * wanted an id: it parsed "QA" as a number, got nothing, and every scheduled run went out with no
  * environment's variables and no saved login, whatever the schedule said. An id is still read as
- * an id; anything else is looked up by exact name, inside the schedule's organization. A name
+ * an id; anything else is looked up by name, ignoring case, inside the schedule's organization. A name
  * that matches nothing runs without an environment, as it always did, and keeps its label on the
  * run so the report still says what was asked for.
  */
@@ -251,8 +251,13 @@ async function resolveScheduleEnvironment(value: string | null | undefined): Pro
       )
     : [];
   if (byId[0]) return { environmentId: byId[0].id, label };
+  // Without case, as names are unique (migration 0041): "staging" finds "Staging".
   const byName = await withTenantTransaction((tx) =>
-    tx.select({ id: environments.id }).from(environments).where(eq(environments.name, label)).limit(1),
+    tx
+      .select({ id: environments.id })
+      .from(environments)
+      .where(sql`lower(${environments.name}) = lower(${label})`)
+      .limit(1),
   );
   return { environmentId: byName[0]?.id ?? null, label };
 }

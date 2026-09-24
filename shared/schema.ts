@@ -531,7 +531,9 @@ export const executionLogs = pgTable("execution_logs", {
 
 export const environments = pgTable("environments", {
   id: serial('id').primaryKey(),
-  name: text('name').notNull().unique(),
+  // Unique within the organization, without case. The index is on lower(name), so it lives in
+  // migrations/0041_environment_name_per_organization.sql rather than here, as for tags.
+  name: text('name').notNull(),
   description: text('description'),
   // Who created it. The environment is the organization's: removing that member hands it to
   // another one rather than deleting it and its secrets (migration 0040).
