@@ -15,6 +15,8 @@ export type SessionUser = Omit<SelectUser, "password"> & {
   mfaEnrollmentRequired?: boolean;
   /** Whether installation-wide settings (log level, runners) are this person's to change. */
   installationAdmin?: boolean;
+  /** This session was opened through the organization's identity provider (server/sso.ts). */
+  signedInWithSso?: boolean;
 };
 
 type AuthContextType = {

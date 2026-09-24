@@ -47,11 +47,13 @@ import artifactsRoutes, { artifactUrl, stepsWithArtifactUrls } from "./routes/ar
 import apiKeysRoutes from "./routes/api-keys.routes";
 import serviceAccountsRoutes from "./routes/service-accounts.routes";
 import mfaRoutes from "./routes/mfa.routes";
+import ssoRoutes from "./routes/sso.routes";
 import testPublishingRoutes from "./routes/test-publishing.routes";
 import runnersRoutes from "./routes/runners.routes";
 import suitesRoutes from "./routes/suites.routes";
 import quarantineRoutes from "./routes/quarantine.routes";
 import { requireMfaEnrollment } from "./middleware/require-mfa-enrollment";
+import { requireSso } from "./middleware/require-sso";
 import apiV1Routes from "./routes/api-v1.routes";
 import cliRoutes from "./routes/cli.routes";
 import agentsRoutes from "./routes/agents.routes";
@@ -143,6 +145,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // withTenantTransaction requires and refuses to run without.
     app.use(tenancyMiddleware);
 
+    // A password session of a member whose organization requires single sign-on ends here.
+    app.use(requireSso);
+
     // A member whose organization requires a second factor, and who has none, reaches only
     // enrolment until they set one up.
     app.use(requireMfaEnrollment);
@@ -164,6 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(apiKeysRoutes);
     app.use(serviceAccountsRoutes);
     app.use(mfaRoutes);
+    app.use(ssoRoutes);
     app.use(testPublishingRoutes);
     app.use(runnersRoutes);
     app.use(suitesRoutes);

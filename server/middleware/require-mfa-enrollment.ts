@@ -17,6 +17,9 @@ export async function requireMfaEnrollment(req: Request, res: Response, next: Ne
   if (!req.path.startsWith('/api/')) return next();
   if (!req.isAuthenticated?.() || !req.user) return next();
   if ((req as Request & { apiKeyId?: string }).apiKeyId) return next();
+  // The requirement is for password sign-ins: a session from the identity provider had its
+  // second factor there.
+  if (req.session?.signedInWith === 'sso') return next();
   if (ALLOWED.some((pattern) => pattern.test(req.path))) return next();
 
   try {

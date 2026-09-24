@@ -33,7 +33,7 @@ harm.
 | `INSTALLATION_ADMINS` | web | none | Comma-separated usernames who may change the installation-wide settings (log level and retention, draining runners). Unset: the owners, while the installation has a single organization. See [Installation administrators](./administration#installation-administrators). |
 | `REGISTRATION` | web | `invitation` | `invitation`: accounts are created from an invitation, except the installation's first. `open`: anyone who reaches the server may register and gets an organization of their own. Any other value stops the startup. See [First sign-in](./installation#first-sign-in). |
 | `MFA_ISSUER` | web | `WebFlowMaster` | The name authenticator apps show next to the codes. Set it per installation ("WebFlowMaster Staging") so people with several accounts can tell them apart. |
-| `WEBFLOW_PUBLIC_URL` | both | none | This installation's public address. Used to link to a run from notifications and commit statuses; without it they carry no link. |
+| `WEBFLOW_PUBLIC_URL` | both | none | This installation's public address. Used to link to a run from notifications and commit statuses, which without it carry no link, and as the base of the single sign-on redirect URI, which without it is taken from the request. |
 | `WORKSPACE_NAME` | web | `WebFlowMaster` | The name the sidebar shows. Only read the first time the installation starts. |
 
 ## Running plans

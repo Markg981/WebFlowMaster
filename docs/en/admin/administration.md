@@ -105,6 +105,68 @@ already open. API keys are not affected.
 A member who lost both their device and their recovery codes needs an owner to reset their
 second factor in **Settings → Members**.
 
+## Single sign-on *(owners)* {#single-sign-on}
+
+Members can sign in with the organization's identity provider through **OpenID Connect**:
+Microsoft Entra ID, Okta, Google Workspace, Keycloak, Auth0 and any other provider that
+publishes a discovery document. SAML is not supported.
+
+**Setting it up.** In **Settings → Security → Single sign-on**:
+
+1. Copy the **redirect URI** shown there (it ends in `/api/sso/callback`; it uses
+   `WEBFLOW_PUBLIC_URL` when that is set).
+2. At the provider, register a web application with that redirect URI, the scopes
+   `openid email profile`, and a client secret. The client authenticates with
+   `client_secret_basic`, the default almost everywhere.
+3. Back here, enter the **issuer** (the address whose `/.well-known/openid-configuration` the
+   provider publishes), the **client ID** and the **client secret**, the **e-mail domains** your
+   members' addresses end in, and the **role of new accounts** (viewer or editor).
+4. **Save**, then **Test the provider**: it fetches the discovery document with what was saved.
+
+| Provider | Issuer |
+|---|---|
+| Microsoft Entra ID | `https://login.microsoftonline.com/{tenant-id}/v2.0` |
+| Google Workspace | `https://accounts.google.com` |
+| Okta | `https://{your-domain}.okta.com` (or an authorization server under it) |
+| Keycloak | `https://{host}/realms/{realm}` |
+
+The client secret is stored encrypted and never shown again; leave the field empty to keep it
+when changing something else. Each domain belongs to one organization on the installation.
+
+**Signing in.** The sign-in page shows **Sign in with SSO** once any organization has set it up.
+The person types their address; its domain picks the organization, and the browser goes to the
+provider. On the way back the application checks the provider's signed answer (issuer,
+audience, signature, expiry, and a one-time nonce and state), then:
+
+- an identity it has seen before signs in to the same account, even if the address changed;
+- the first time, an existing account of the organization whose username is that address is
+  linked to it; this is how members who already had a password move over;
+- otherwise an account is **created**, with the address as its username and the role you
+  chose. Owners are never created this way: make someone an owner in **Settings → Members**.
+
+The address comes from the `email` claim or, when that is missing, from a `preferred_username`
+shaped like an address, which is what Entra ID sends. An address the provider marks as
+unverified is refused, as is one outside your domains.
+
+**Requiring it.** With **Require it** on, members other than owners can no longer sign in with a
+password, and password sessions already open end at their next request. Owners keep their
+password so that someone can still get in, and fix the settings, if the provider is down or
+misconfigured. API keys are not affected.
+
+A session opened through the provider is not asked for the organization's
+[second factor](#two-factor-authentication): the provider is where that check belongs, so
+require it there.
+
+::: warning The provider decides who gets in
+Removing a member here deletes their account, but if the provider still lets them sign in,
+their next sign-in creates a new account with the default role. End people's access at the
+provider; removing them here as well tidies up the member list.
+:::
+
+The audit log records the settings being changed or removed (never the secret), each account
+created at first sign-in, and each sign-in, with `method: sso`. When a sign-in is refused, the
+person sees why on the sign-in page, and the server log has the provider's own error.
+
 ## API keys and service accounts
 
 Pipelines and scripts authenticate with **API keys** (**Settings → API keys**), never with a
@@ -247,6 +309,7 @@ organization until they expire.
 
 - Export and erasure have no screen yet; they are done through the API as shown above.
 - Erasing an organization leaves its files in the artifact store for the operator to remove.
-- There is no single sign-on (SAML, OpenID Connect) and no e-mail delivery; invitations are
-  handed over by hand.
+- Single sign-on is OpenID Connect only (no SAML), and roles are not taken from the provider's
+  groups: new accounts get the default role, and owners change it in **Settings → Members**.
+- There is no e-mail delivery; invitations are handed over by hand.
 - The **Notifications** and **Account** sections of Settings are not saved yet.

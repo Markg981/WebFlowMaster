@@ -132,6 +132,14 @@ describe('route modules cannot query outside the tenant context', () => {
         'is not a request and has no tenant. It only finds them; each is ended under its own ' +
         'organization through the state machine.',
     },
+    'sso.ts': {
+      max: 0,
+      why:
+        'Single sign-on finds an organization\'s identity provider from an e-mail domain before anyone ' +
+        'is signed in, so it holds the privileged handle, but only for its own tables (organization_sso, ' +
+        'sso_domains, sso_identities) and users. Its audit entries are written through the transaction ' +
+        'of the change they describe, never through the handle directly.',
+    },
     'execution-orchestrator.ts': {
       max: 1,
       why:

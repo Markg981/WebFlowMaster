@@ -58,6 +58,13 @@ sign-up, where each new account gets an organization of its own.
   forgotten password is recovered with a one-time link an owner issues (or, for an organization's
   only owner, the operator), valid for a day and stored only as a hash. A session carries a stamp
   of the password it was opened with, so a new password ends every other session of that person.
+- **Single sign-on** with OpenID Connect, per organization
+  ([Administration](../admin/administration#single-sign-on)): authorization code flow with PKCE,
+  a one-time state and nonce, and the ID token's signature, issuer, audience and expiry checked
+  against the provider's published keys. Accounts are matched by the provider's stable subject,
+  not by e-mail address; new ones get viewer or editor, never owner. The client secret is
+  encrypted like other stored secrets. An owner can **require** it: members' passwords then stop
+  working, including in open sessions, while owners keep theirs as a way back in.
 - **Roles**: viewer, editor, owner, checked on every endpoint. See
   [Administration](../admin/administration#roles).
 
@@ -187,8 +194,12 @@ sending it to Google is acceptable; everything else works without it.
 
 Stated so a review can weigh them, not discovered later:
 
-- **No single sign-on** (SAML, OpenID Connect), no password complexity rules beyond length, and
-  no e-mail delivery: invitation and password reset links are handed over by the owner.
+- **Single sign-on is OpenID Connect only**, without SAML, without mapping the provider's groups
+  to roles, and without SCIM: a person removed here but not at the provider gets a new account
+  at their next sign-in, so access is ended at the provider. E-mail domains are not verified by
+  DNS; on a shared installation the first organization to claim a domain has it.
+- No password complexity rules beyond length, and no e-mail delivery: invitation and password
+  reset links are handed over by the owner.
 - **Rate limits are counted per web process**: with several web processes behind a load
   balancer the effective limit is that many times higher.
 - **Styles may be inline** under the Content Security Policy, which the interface components

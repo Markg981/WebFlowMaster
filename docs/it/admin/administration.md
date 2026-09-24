@@ -111,6 +111,72 @@ sessioni già aperte. Le chiavi API non sono coinvolte.
 Un membro che ha perso sia il dispositivo sia i codici di recupero ha bisogno che un owner
 azzeri il suo secondo fattore in **Impostazioni → Membri**.
 
+## Single sign-on *(owner)* {#single-sign-on}
+
+I membri possono accedere con l'identity provider dell'organizzazione tramite **OpenID
+Connect**: Microsoft Entra ID, Okta, Google Workspace, Keycloak, Auth0 e qualsiasi altro
+provider che pubblichi un documento di discovery. SAML non è supportato.
+
+**Configurazione.** In **Impostazioni → Sicurezza → Single sign-on**:
+
+1. Copiate il **redirect URI** mostrato (termina con `/api/sso/callback`; usa
+   `WEBFLOW_PUBLIC_URL` se impostata).
+2. Presso il provider, registrate un'applicazione web con quel redirect URI, gli scope
+   `openid email profile` e un client secret. Il client si autentica con
+   `client_secret_basic`, il default quasi ovunque.
+3. Tornati qui, inserite l'**issuer** (l'indirizzo di cui il provider pubblica
+   `/.well-known/openid-configuration`), il **client ID** e il **client secret**, i **domini
+   e-mail** in cui terminano gli indirizzi dei membri, e il **ruolo dei nuovi account** (viewer o
+   editor).
+4. **Salva**, poi **Prova il provider**: scarica il documento di discovery con quanto salvato.
+
+| Provider | Issuer |
+|---|---|
+| Microsoft Entra ID | `https://login.microsoftonline.com/{tenant-id}/v2.0` |
+| Google Workspace | `https://accounts.google.com` |
+| Okta | `https://{vostro-dominio}.okta.com` (o un authorization server al suo interno) |
+| Keycloak | `https://{host}/realms/{realm}` |
+
+Il client secret è salvato cifrato e non viene più mostrato; lasciate il campo vuoto per
+mantenerlo quando cambiate altro. Ogni dominio appartiene a una sola organizzazione
+dell'installazione.
+
+**Accesso.** La pagina di accesso mostra **Accedi con SSO** appena un'organizzazione lo ha
+configurato. La persona scrive il proprio indirizzo; il dominio sceglie l'organizzazione, e il
+browser va al provider. Al ritorno l'applicazione verifica la risposta firmata del provider
+(issuer, audience, firma, scadenza, e un nonce e uno state monouso), poi:
+
+- un'identità già vista accede allo stesso account, anche se l'indirizzo è cambiato;
+- la prima volta, un account esistente dell'organizzazione il cui nome utente è quell'indirizzo
+  viene collegato; così passano al SSO i membri che avevano già una password;
+- altrimenti viene **creato** un account, con l'indirizzo come nome utente e il ruolo scelto.
+  Nessun owner viene creato così: si nomina un owner in **Impostazioni → Membri**.
+
+L'indirizzo viene dal claim `email` oppure, se manca, da un `preferred_username` in forma di
+indirizzo, che è ciò che invia Entra ID. Un indirizzo che il provider segna come non verificato
+viene rifiutato, come uno fuori dai vostri domini.
+
+**Renderlo obbligatorio.** Con **Rendilo obbligatorio** attivo, i membri che non sono owner non
+possono più accedere con la password, e le sessioni aperte con la password terminano alla
+richiesta successiva. Gli owner mantengono la password, perché qualcuno possa ancora entrare e
+correggere le impostazioni se il provider è irraggiungibile o mal configurato. Le chiavi API non
+sono interessate.
+
+A una sessione aperta tramite il provider non viene chiesto il
+[secondo fattore](#autenticazione-a-due-fattori) dell'organizzazione: quel controllo spetta al
+provider, quindi richiedetelo lì.
+
+::: warning È il provider a decidere chi entra
+Rimuovere un membro qui cancella il suo account, ma se il provider lo lascia ancora accedere, il
+suo accesso successivo crea un nuovo account con il ruolo predefinito. Revocate l'accesso presso
+il provider; rimuoverlo anche qui mette in ordine l'elenco dei membri.
+:::
+
+Il registro di audit registra le modifiche o la rimozione delle impostazioni (mai il secret),
+ogni account creato al primo accesso e ogni accesso, con `method: sso`. Quando un accesso viene
+rifiutato, la persona ne vede il motivo nella pagina di accesso, e il log del server riporta
+l'errore del provider.
+
 ## Chiavi API e account di servizio
 
 Pipeline e script si autenticano con **chiavi API** (**Impostazioni → Chiavi API**), mai con la
@@ -264,6 +330,8 @@ anche dei backup del database, dove l'organizzazione resta finché non scadono.
   mostrato sopra.
 - Cancellare un'organizzazione lascia i suoi file nell'archivio degli artefatti, da rimuovere a
   cura di chi gestisce l'installazione.
-- Non c'è single sign-on (SAML, OpenID Connect) né invio di e-mail; gli inviti si consegnano a
-  mano.
+- Il single sign-on è solo OpenID Connect (niente SAML), e i ruoli non vengono presi dai gruppi
+  del provider: i nuovi account hanno il ruolo predefinito, e gli owner lo cambiano in
+  **Impostazioni → Membri**.
+- Non c'è invio di e-mail; gli inviti si consegnano a mano.
 - Le sezioni **Notifiche** e **Account** di Impostazioni non vengono ancora salvate.
