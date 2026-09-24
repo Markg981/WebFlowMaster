@@ -98,6 +98,25 @@ describe('environments', () => {
     expect(listed.body).toEqual([]);
   });
 
+  it('lets two organizations each have a "Staging"', async () => {
+    const ours = await request(app).post('/api/environments').send({ name: 'Staging' });
+
+    currentUser = { id: otherUserId, organizationId: otherOrganizationId, role: 'owner' };
+    const theirs = await request(app).post('/api/environments').send({ name: 'Staging' });
+
+    expect(ours.status).toBe(201);
+    expect(theirs.status).toBe(201);
+  });
+
+  it('refuses a second environment with the same name in one organization, whatever the case', async () => {
+    await request(app).post('/api/environments').send({ name: 'Staging' }).expect(201);
+
+    const again = await request(app).post('/api/environments').send({ name: 'staging' });
+
+    expect(again.status).toBe(409);
+    expect(again.body.error).toMatch(/This organization already has/);
+  });
+
   it('will not delete an environment belonging to another organization', async () => {
     const created = await request(app).post('/api/environments').send({ name: 'Ours' });
 

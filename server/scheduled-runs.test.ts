@@ -142,6 +142,18 @@ describe('a scheduled occurrence', () => {
     expect(execution!.configurationSnapshot).toMatchObject({ environmentId: qa.id });
   });
 
+  it('finds the environment whatever the case the schedule wrote its name in', async () => {
+    const { organizationId, owner, plan, schedule } = await seed({ environment: 'staging' });
+    const [staging] = await privilegedDb
+      .insert(environments)
+      .values({ name: 'Staging', userId: owner.id, organizationId })
+      .returning();
+
+    const execution = await executeScheduledPlanForTest(schedule, plan, occurrence);
+
+    expect(execution!.configurationSnapshot).toMatchObject({ environmentId: staging.id });
+  });
+
   it("does not borrow another organization's environment of the same name", async () => {
     const { plan, schedule } = await seed({ environment: 'Staging' });
     const otherOrganizationId = await createTestOrganization('Elsewhere');

@@ -288,6 +288,13 @@
       "when": 1788700000000,
       "tag": "0040_member_removal",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1788800000000,
+      "tag": "0041_environment_name_per_organization",
+      "breakpoints": true
     }
   ]
 }
