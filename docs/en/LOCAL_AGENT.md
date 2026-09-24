@@ -29,6 +29,11 @@ and no firewall change beyond outbound access to the server.
    the Playwright protocol between the runner and that browser.
 4. The runner drives it as it would its own: steps, screenshots, video, trace, HAR, accessibility
    checks all work unchanged, and the report names the pool (`chromium on agent pool "onprem"`).
+5. The run's **API tests, API preconditions and OAuth token requests** are sent from the agent
+   too, through the same kind of borrowed browser (Playwright's request API runs where the browser
+   runs). Each request starts with no cookies, exactly as from the server. The browser for them is
+   borrowed on the first request, so a plan without API calls never asks for one. The agent needs
+   Chromium installed for this, whatever browsers the plan's UI tests use.
 
 ## Set up
 
@@ -88,7 +93,6 @@ proxy in front of it must forward WebSocket upgrades on those paths.
 
 - **Playwright versions must match** (major.minor) between agent and server. Settings shows an agent
   that does not match; the Docker image is tagged with the server's version.
-- **API tests and API preconditions** still go out from the server, not from the agent.
 - With **several web servers**, agents connect to one of them: `AGENT_RELAY_URL` must lead to the
   instance they are connected to (a single relay host, or sticky routing).
 - When no agent of the pool is connected, the browser pass fails with a clear reason

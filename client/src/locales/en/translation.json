@@ -2185,7 +2185,7 @@
     },
     "runOn": {
       "label": "Run on",
-      "help": "Where the browsers come from. A pool of local agents opens pages from inside its own network; API tests still go out from the server.",
+      "help": "Where the tests run from. A pool of local agents opens pages and sends API requests from inside its own network.",
       "runners": "This server's runners",
       "pool": "Local agents: {{pool}}"
     }

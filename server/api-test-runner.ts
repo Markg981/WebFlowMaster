@@ -185,6 +185,7 @@ async function applyAuth(
   headers: Record<string, string>,
   url: URL,
   vars: Record<string, string>,
+  fetchImpl: typeof fetch,
 ): Promise<string | null> {
   if (!auth?.type) return null;
 
@@ -220,7 +221,7 @@ async function applyAuth(
       // A header written by hand still wins, the same way it does for the others: pasting a
       // token in while debugging should not be overridden by the settings behind it.
       if (hasAuthorization) return null;
-      const result = await accessTokenFor(auth.params, vars);
+      const result = await accessTokenFor(auth.params, vars, fetchImpl);
       if ('error' in result) return result.error;
       headers.Authorization = result.authorization;
       return null;
@@ -244,6 +245,8 @@ async function applyAuth(
 export async function runApiRequest(
   spec: ApiRequestSpec,
   vars: Record<string, string>,
+  // Where the request is sent from: this server, or a local agent (server/agents/agent-fetch.ts).
+  fetchImpl: typeof fetch = fetchTarget,
 ): Promise<ApiRunResult> {
   const startTime = Date.now();
   const empty = {
@@ -289,7 +292,7 @@ export async function runApiRequest(
   // Before the request rather than after a 401: a scheme that cannot be satisfied is a
   // problem with the test, and saying so beats reporting the target's refusal as if the
   // endpoint were at fault.
-  const authError = await applyAuth(spec.auth, headers, targetUrl, vars);
+  const authError = await applyAuth(spec.auth, headers, targetUrl, vars, fetchImpl);
   if (authError) {
     return { ...empty, passed: false, durationMs: Date.now() - startTime, error: authError };
   }
@@ -314,7 +317,7 @@ export async function runApiRequest(
 
   let response: Response;
   try {
-    response = await fetchTarget(targetUrl.toString(), options);
+    response = await fetchImpl(targetUrl.toString(), options);
   } catch (e: any) {
     // A target that is down is a failed test, not a crashed runner: the plan has other
     // tests to run, and this one's result is "could not reach it".

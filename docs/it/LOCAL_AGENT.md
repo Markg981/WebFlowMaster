@@ -29,6 +29,11 @@ ingresso, VPN o modifiche al firewall oltre all'accesso in uscita verso il serve
    protocollo Playwright fra il runner e quel browser.
 4. Il runner lo pilota come farebbe con il proprio: step, screenshot, video, trace, HAR e controlli
    di accessibilità funzionano invariati, e il report indica il pool (`chromium on agent pool "onprem"`).
+5. Anche **test API, precondizioni API e richieste di token OAuth** del run partono dall'agente,
+   attraverso lo stesso tipo di browser in prestito (l'API request di Playwright gira dove gira il
+   browser). Ogni richiesta parte senza cookie, esattamente come dal server. Il browser per queste
+   richieste viene preso alla prima richiesta, quindi un piano senza chiamate API non ne chiede.
+   Per questo l'agente deve avere Chromium installato, qualunque browser usino i test UI del piano.
 
 ## Configurazione
 
@@ -88,7 +93,6 @@ davanti deve inoltrare gli upgrade WebSocket su quei percorsi.
 
 - **Le versioni di Playwright devono coincidere** (major.minor) fra agente e server. Settings
   segnala un agente non allineato; l'immagine Docker ha il tag della versione del server.
-- **Test API e precondizioni API** partono comunque dal server, non dall'agente.
 - Con **più web server**, gli agenti si connettono a uno solo: `AGENT_RELAY_URL` deve portare
   all'istanza a cui sono connessi (un unico host per il relay, o routing sticky).
 - Se nessun agente del pool è connesso, il passaggio su quel browser fallisce con un motivo chiaro
