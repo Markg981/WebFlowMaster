@@ -4,6 +4,15 @@ WebFlowMaster is a test automation platform for web applications and HTTP APIs: 
 tests, organize them into plans and suites, run them across browsers on a schedule or from CI —
 including inside networks the server cannot reach — and report every run in detail.
 
+## User guide
+
+For the people who write and run tests:
+
+- [Getting started](./guide/) — signing in, finding your way, a first test end to end.
+- [Web tests](./guide/web-tests) · [API tests](./guide/api-tests) ·
+  [Organizing tests](./guide/organizing) · [Running tests](./guide/running) ·
+  [Results](./guide/results)
+
 ## Install and administer
 
 For the people who run an installation and the owners of an organization:
@@ -38,5 +47,5 @@ For the people who build and maintain the product:
   [Glossary](./internals/glossary)
 
 ::: info More guides are on the way
-The user guide and the API reference are being rewritten and will appear here.
+The API reference is being rewritten and will appear here.
 :::

@@ -312,4 +312,4 @@ organization until they expire.
 - Single sign-on is OpenID Connect only (no SAML), and roles are not taken from the provider's
   groups: new accounts get the default role, and owners change it in **Settings → Members**.
 - There is no e-mail delivery; invitations are handed over by hand.
-- The **Notifications** and **Account** sections of Settings are not saved yet.
+- The **Notifications** section of Settings is not saved yet; notifications are set per plan.
