@@ -1751,7 +1751,9 @@
     "emptyHint": "Aucun pour l’instant. Créez-en un dans les Paramètres pour utiliser les secrets et une connexion enregistrée."
   },
   "common": {
-    "error": "Erreur"
+    "error": "Erreur",
+    "cancel": "Annuler",
+    "save": "Enregistrer"
   },
   "environments": {
     "newEnvironmentPlaceholder": "Nouvel environnement (ex. Staging)",
@@ -2187,13 +2189,57 @@
   "editTestPlanSettings": {
     "evidence": {
       "network": "Réseau (HAR)",
-      "networkHelp": "Le rapport liste les requêtes échouées et les plus lentes de chaque test enregistré, fichier conservé ou non. Le HAR s'ouvre dans les outils de développement de n'importe quel navigateur ; il ne contient jamais de corps, de cookies, de jetons ni de mots de passe."
+      "networkHelp": "Le rapport liste les requêtes échouées et les plus lentes de chaque test enregistré, fichier conservé ou non. Le HAR s'ouvre dans les outils de développement de n'importe quel navigateur ; il ne contient jamais de corps, de cookies, de jetons ni de mots de passe.",
+      "label": "Conserver un enregistrement de l'exécution",
+      "help": "Un rapport contient une image par étape et le message d'échec. Une vidéo et une trace Playwright répondent à ce qu'ils ne disent pas : une requête lente, une boîte de dialogue apparue puis disparue, une page qui a bougé sous le clic. Les deux occupent du disque à chaque exécution.",
+      "video": "Vidéo",
+      "trace": "Trace",
+      "modes": {
+        "never": "Jamais",
+        "on_failure": "Quand le test échoue",
+        "always": "Toujours"
+      }
     },
     "runOn": {
       "label": "Exécuter sur",
       "help": "D'où partent les tests. Un pool d'agents locaux ouvre les pages et envoie les requêtes API depuis son propre réseau.",
       "runners": "Les runners de ce serveur",
       "pool": "Agents locaux : {{pool}}"
+    },
+    "title": "Paramètres d'exécution",
+    "description": "Ce que fait « {{name}} » à sa prochaine exécution.",
+    "validation": {
+      "webhookUrlInvalid": "L'URL de notification doit commencer par http:// ou https://.",
+      "parallelInvalid": "« Exécuter au plus » doit être un nombre entier entre 1 et 16."
+    },
+    "browsers": {
+      "label": "Navigateurs",
+      "help": "Chaque test du plan s'exécute une fois par navigateur listé ici. Sans navigateur listé, l'exécution utilise celui de vos paramètres.",
+      "selectLabel": "Navigateur",
+      "headless": "Sans interface",
+      "remove": "Retirer le navigateur",
+      "add": "Ajouter un navigateur"
+    },
+    "parallel": {
+      "label": "Exécuter au plus (tests simultanés)",
+      "help": "Chacun est une vraie session de navigateur : c'est donc un choix qui concerne le runner. Avec 1, le plan exécute un test à la fois, navigateur par navigateur. Un plan dont les tests API capturent des valeurs pour des requêtes suivantes les garde dans l'ordre au sein de chaque navigateur."
+    },
+    "visualTesting": {
+      "label": "Tests visuels",
+      "help": "Compare chaque étape à sa référence enregistrée. La première exécution après l'activation enregistre les références."
+    },
+    "issues": {
+      "trackerLabel": "Signaler les échecs dans",
+      "noTracker": "Nulle part — les échecs restent dans le rapport",
+      "autoLabel": "Ouvrir un ticket quand un test échoue",
+      "autoHelp": "Un ticket par test et navigateur en échec. Le même échec la nuit suivante y est ajouté en commentaire, sans en ouvrir un nouveau."
+    },
+    "notifications": {
+      "label": "Envoyer une notification quand"
+    },
+    "webhook": {
+      "label": "Envoyer les notifications à (URL de webhook)",
+      "help": "Un webhook entrant Slack ou Microsoft Teams, ou toute URL qui accepte un POST. Sans URL, rien n'est envoyé."
     }
   },
   "network": {

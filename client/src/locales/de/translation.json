@@ -1751,7 +1751,9 @@
     "emptyHint": "Noch keine. Legen Sie in den Einstellungen eine an, um Geheimnisse und eine gespeicherte Anmeldung zu nutzen."
   },
   "common": {
-    "error": "Fehler"
+    "error": "Fehler",
+    "cancel": "Abbrechen",
+    "save": "Speichern"
   },
   "environments": {
     "newEnvironmentPlaceholder": "Neue Umgebung (z. B. Staging)",
@@ -2187,13 +2189,57 @@
   "editTestPlanSettings": {
     "evidence": {
       "network": "Netzwerk (HAR)",
-      "networkHelp": "Der Bericht listet die fehlgeschlagenen und langsamsten Anfragen jedes aufgezeichneten Tests, ob die Datei behalten wird oder nicht. Die HAR-Datei öffnet sich in den Entwicklertools jedes Browsers; sie enthält nie Bodys, Cookies, Tokens oder Passwörter."
+      "networkHelp": "Der Bericht listet die fehlgeschlagenen und langsamsten Anfragen jedes aufgezeichneten Tests, ob die Datei behalten wird oder nicht. Die HAR-Datei öffnet sich in den Entwicklertools jedes Browsers; sie enthält nie Bodys, Cookies, Tokens oder Passwörter.",
+      "label": "Eine Aufzeichnung des Laufs behalten",
+      "help": "Ein Bericht enthält ein Bild pro Schritt und die Fehlermeldung. Ein Video und ein Playwright-Trace beantworten, was diese nicht können – eine langsame Anfrage, ein Dialog, der kam und ging, eine Seite, die sich unter dem Klick verschoben hat. Beides kostet bei jedem Lauf Speicherplatz.",
+      "video": "Video",
+      "trace": "Trace",
+      "modes": {
+        "never": "Nie",
+        "on_failure": "Wenn der Test fehlschlägt",
+        "always": "Immer"
+      }
     },
     "runOn": {
       "label": "Ausführen auf",
       "help": "Von wo die Tests laufen. Ein Pool lokaler Agenten öffnet Seiten und sendet API-Anfragen aus seinem eigenen Netzwerk.",
       "runners": "Die Runner dieses Servers",
       "pool": "Lokale Agenten: {{pool}}"
+    },
+    "title": "Ausführungseinstellungen",
+    "description": "Was „{{name}}“ bei der nächsten Ausführung tut.",
+    "validation": {
+      "webhookUrlInvalid": "Die Benachrichtigungs-URL muss mit http:// oder https:// beginnen.",
+      "parallelInvalid": "„Höchstens ausführen“ muss eine ganze Zahl zwischen 1 und 16 sein."
+    },
+    "browsers": {
+      "label": "Browser",
+      "help": "Jeder Test dieses Plans läuft einmal pro hier aufgeführtem Browser. Ist keiner aufgeführt, verwendet ein Lauf den Browser aus Ihren eigenen Einstellungen.",
+      "selectLabel": "Browser",
+      "headless": "Headless",
+      "remove": "Browser entfernen",
+      "add": "Browser hinzufügen"
+    },
+    "parallel": {
+      "label": "Höchstens ausführen (Tests gleichzeitig)",
+      "help": "Jeder ist eine echte Browsersitzung, das betrifft also den Runner. Mit 1 läuft der Plan Test für Test, Browser für Browser. Ein Plan, dessen API-Tests Werte für spätere Anfragen erfassen, behält deren Reihenfolge innerhalb jedes Browsers bei."
+    },
+    "visualTesting": {
+      "label": "Visuelle Tests",
+      "help": "Vergleicht jeden Schritt mit seiner gespeicherten Referenz. Der erste Lauf nach dem Einschalten zeichnet die Referenzen auf."
+    },
+    "issues": {
+      "trackerLabel": "Fehler ablegen in",
+      "noTracker": "Nirgends – Fehler bleiben im Bericht",
+      "autoLabel": "Ein Ticket öffnen, wenn ein Test fehlschlägt",
+      "autoHelp": "Ein Ticket pro fehlgeschlagenem Test und Browser. Derselbe Fehler in der nächsten Nacht wird als Kommentar ergänzt, nicht erneut geöffnet."
+    },
+    "notifications": {
+      "label": "Benachrichtigung senden, wenn"
+    },
+    "webhook": {
+      "label": "Benachrichtigungen senden an (Webhook-URL)",
+      "help": "Ein eingehender Webhook von Slack oder Microsoft Teams oder jede URL, die ein POST annimmt. Ohne URL wird nichts gesendet."
     }
   },
   "network": {
