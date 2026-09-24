@@ -304,7 +304,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
               <p className="text-xs text-muted-foreground mt-1">
                 {t(
                   'editTestPlanSettings.runOn.help',
-                  'Where the browsers come from. A pool of local agents opens pages from inside its own network; API tests still go out from the server.',
+                  'Where the tests run from. A pool of local agents opens pages and sends API requests from inside its own network.',
                 )}
               </p>
               <Select value={runOn} onValueChange={setRunOn}>

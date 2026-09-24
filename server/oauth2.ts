@@ -107,6 +107,7 @@ export type TokenResult = { authorization: string } | { error: string };
 export async function accessTokenFor(
   params: OAuth2AuthParams,
   vars: Record<string, string>,
+  fetchImpl: typeof fetch = fetchTarget,
 ): Promise<TokenResult> {
   const r = resolve(params, vars);
 
@@ -154,7 +155,7 @@ export async function accessTokenFor(
 
   let response: Response;
   try {
-    response = await fetchTarget(tokenEndpoint.toString(), {
+    response = await fetchImpl(tokenEndpoint.toString(), {
       method: 'POST',
       headers,
       body: form.toString(),

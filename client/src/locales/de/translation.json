@@ -2191,7 +2191,7 @@
     },
     "runOn": {
       "label": "Ausführen auf",
-      "help": "Woher die Browser kommen. Ein Pool lokaler Agenten öffnet Seiten aus seinem eigenen Netzwerk; API-Tests gehen weiterhin vom Server aus.",
+      "help": "Von wo die Tests laufen. Ein Pool lokaler Agenten öffnet Seiten und sendet API-Anfragen aus seinem eigenen Netzwerk.",
       "runners": "Die Runner dieses Servers",
       "pool": "Lokale Agenten: {{pool}}"
     }

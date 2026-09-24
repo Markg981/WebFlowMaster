@@ -22,6 +22,7 @@ import { secrets as secretsTable } from '@shared/schema';
 import { decryptSecret } from './crypto';
 import { defaultVariables } from './variables';
 import { runApiRequest, type Extraction } from './api-test-runner';
+import { AgentHttp } from './agents/agent-fetch';
 import type { Assertion, AuthParams } from '@shared/schema';
 import { browsersForRun, describeBrowser, hasConfiguredBrowsers, launchBrowser, onAgents, type BrowserChoice } from './browsers';
 import { effectiveConcurrency, runWithConcurrency } from './concurrency';
@@ -137,6 +138,11 @@ export interface RunTestOptions {
   onPreconditionFailure?: PreconditionFailurePolicy;
   /** Aborted when the run is cancelled or out of time; the test stops at its next step. */
   signal?: AbortSignal;
+  /**
+   * Where API tests, API preconditions and OAuth token requests are sent from. Absent: this
+   * runner. For a plan on an agent pool, the agent (server/agents/agent-fetch.ts).
+   */
+  http?: typeof fetch;
 }
 
 export async function runTest(
@@ -181,6 +187,7 @@ export async function runTest(
       const preResult = await runPreconditions(
         (uiTest as unknown as { preconditions?: Precondition[] | null }).preconditions,
         vars,
+        options?.http,
       );
       if (!preResult.ok && options?.onPreconditionFailure === 'continue') {
         // "Continue Anyway": the test runs from whatever state the application is in, and
@@ -319,6 +326,7 @@ export async function runTest(
         auth: apiTest.authParams as AuthParams | null,
       },
       vars,
+      options?.http,
     );
 
     const durationMs = Date.now() - startTime;
@@ -572,13 +580,18 @@ async function runTestPlanJobInTenant(
   const runPasses: Array<BrowserChoice | undefined> = agentPool
     ? onAgents(basePasses, { organizationId: executionRecord[0].organizationId, pool: agentPool })
     : basePasses;
+  // Its API requests go out from the same agents, so they reach what its pages reach. Nothing is
+  // borrowed until the first request: a plan without API tests or preconditions never asks.
+  const agentHttp = agentPool
+    ? new AgentHttp({ organizationId: executionRecord[0].organizationId, pool: agentPool })
+    : null;
   if (agentPool) {
     wsEmitter.emitExecutionLog(testPlanRunId, {
       level: 'info',
       source: 'system',
       message:
         `Browsers for this run come from the local agents of pool "${agentPool}", so pages open from their network. ` +
-        `API tests and API preconditions are still sent from this runner.`,
+        `Its API tests, API preconditions and OAuth token requests are sent from those agents too.`,
       timestamp: new Date().toISOString(),
       metadata: { agentPool },
     });
@@ -971,6 +984,7 @@ async function runTestPlanJobInTenant(
             runtime: policies.step,
             onPreconditionFailure: policies.onPreconditionFailure,
             signal: watch.signal,
+            http: agentHttp?.fetch,
           },
         );
       let resultFromRunTest = await attemptOnce();
@@ -1212,34 +1226,39 @@ async function runTestPlanJobInTenant(
     }
   };
 
-  if (parallelism <= 1) {
-    // The order every plan has always run in: one browser at a time, its tests in sequence.
-    for (const lane of lanes) {
-      for (const unit of lane.units) {
-        try {
-          await runUnit(unit, lane.captured);
-        } catch (error: any) {
-          recordSettled([{ status: 'rejected', reason: error }]);
+  try {
+    if (parallelism <= 1) {
+      // The order every plan has always run in: one browser at a time, its tests in sequence.
+      for (const lane of lanes) {
+        for (const unit of lane.units) {
+          try {
+            await runUnit(unit, lane.captured);
+          } catch (error: any) {
+            recordSettled([{ status: 'rejected', reason: error }]);
+          }
         }
       }
+    } else if (laneIsChained) {
+      // Browsers side by side; within each one, the flow keeps its order.
+      recordSettled(
+        await runWithConcurrency(
+          parallelism,
+          lanes.map((lane) => async () => {
+            for (const unit of lane.units) await runUnit(unit, lane.captured);
+          }),
+        ),
+      );
+    } else {
+      recordSettled(
+        await runWithConcurrency(
+          parallelism,
+          lanes.flatMap((lane) => lane.units.map((unit) => () => runUnit(unit, lane.captured))),
+        ),
+      );
     }
-  } else if (laneIsChained) {
-    // Browsers side by side; within each one, the flow keeps its order.
-    recordSettled(
-      await runWithConcurrency(
-        parallelism,
-        lanes.map((lane) => async () => {
-          for (const unit of lane.units) await runUnit(unit, lane.captured);
-        }),
-      ),
-    );
-  } else {
-    recordSettled(
-      await runWithConcurrency(
-        parallelism,
-        lanes.flatMap((lane) => lane.units.map((unit) => () => runUnit(unit, lane.captured))),
-      ),
-    );
+  } finally {
+    // The browser the API requests went through goes back to the agent.
+    await agentHttp?.close();
   }
 
   // Whatever is left in the run's directory — a test that ended before it returned its own, a

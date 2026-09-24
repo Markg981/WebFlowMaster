@@ -11,7 +11,8 @@ import WebSocket from 'ws';
  * navigating to a page only the agent's side can see; a runner is told in words why there is no
  * browser (no agent in the pool, another organization, another Playwright, a browser that will
  * not start); a forged or expired ticket gets nothing; an agent answers only for sessions it was
- * asked to open; and revoking an agent ends its connection and stops it retrying.
+ * asked to open; revoking an agent ends its connection and stops it retrying; and API requests
+ * sent through a borrowed browser behave like fetch, from the agent's side.
  */
 
 vi.mock('../logger', () => ({
@@ -24,6 +25,9 @@ const { signTicket, verifyTicket, generateAgentToken, hashAgentToken } = await i
 const { connectToAgentBrowser, RUNNER_PLAYWRIGHT_VERSION } = await import('./agent-browser');
 const { default: agentsRoutes } = await import('../routes/agents.routes');
 const { runAgent } = await import('../../scripts/wfm-agent');
+const { AgentHttp } = await import('./agent-fetch');
+const { runApiRequest } = await import('../api-test-runner');
+const { runPreconditions } = await import('../precondition-runner');
 
 const SECRET = 'relay-test-secret';
 const AGENTS: Record<string, { id: string; organizationId: number; pool: string; name: string }> = {
@@ -50,7 +54,26 @@ beforeAll(async () => {
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
   // Stands for the application inside the customer's network. The runner never opens it itself.
-  privatePage = http.createServer((_req, res) => {
+  privatePage = http.createServer((req, res) => {
+    const url = new URL(req.url ?? '/', 'http://intranet');
+    if (url.pathname === '/api/echo') {
+      let body = '';
+      req.on('data', (chunk) => (body += chunk));
+      req.on('end', () => {
+        res.writeHead(201, { 'Content-Type': 'application/json', 'Set-Cookie': ['session=abc; Path=/', 'theme=dark; Path=/'] });
+        res.end(JSON.stringify({ method: req.method, query: url.searchParams.get('q'), body, headers: req.headers }));
+      });
+      return;
+    }
+    if (url.pathname === '/api/empty') {
+      res.writeHead(204);
+      return res.end();
+    }
+    if (url.pathname === '/api/slow') return; // never answers
+    if (url.pathname === '/oauth/token') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ access_token: 'from-inside', token_type: 'Bearer', expires_in: 60 }));
+    }
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end('<!doctype html><title>Intranet</title><h1>Only reachable from inside</h1>');
   });
@@ -67,6 +90,7 @@ afterAll(async () => {
   relay.close();
   setAgentRelay(null);
   await new Promise((resolve) => server.close(resolve));
+  privatePage.closeAllConnections(); // the request to /api/slow is still open
   await new Promise((resolve) => privatePage.close(resolve));
 });
 
@@ -134,6 +158,109 @@ describe('lending a browser', () => {
     ).rejects.toThrow(/could not start the browser/i);
     await expect.poll(() => relay.sessionsOf('agent-onprem')).toBe(0);
   }, 60_000);
+});
+
+describe('sending API requests from the agent', () => {
+  const onprem = { organizationId: 1, pool: 'onprem' };
+  const borrow = (agent: { organizationId: number; pool: string }) =>
+    connectToAgentBrowser({ engine: 'chromium', headless: true, agent }, env());
+
+  it('answers like fetch: status, headers (repeated ones too), body; and sent by Playwright, not by the runner', async () => {
+    const http = new AgentHttp(onprem, borrow);
+    try {
+      const response = await http.fetch(`${privateUrl}api/echo?q=1`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Trace': 't-1' },
+        body: JSON.stringify({ hello: 'inside' }),
+      });
+      expect(response.status).toBe(201);
+      expect(response.headers.get('content-type')).toBe('application/json');
+      expect(response.headers.getSetCookie()).toEqual(['session=abc; Path=/', 'theme=dark; Path=/']);
+      const echoed = await response.json();
+      expect(echoed).toMatchObject({ method: 'POST', query: '1', body: '{"hello":"inside"}' });
+      expect(echoed.headers['x-trace']).toBe('t-1');
+      // The runner's own fetch says "node"; this one came from the agent's Playwright.
+      expect(echoed.headers['user-agent']).toMatch(/Chrome/);
+
+      // One browser for the run, however many requests.
+      await http.fetch(`${privateUrl}api/echo`);
+      expect(relay.sessionsOf('agent-onprem')).toBe(1);
+    } finally {
+      await http.close();
+    }
+    await expect.poll(() => relay.sessionsOf('agent-onprem'), { timeout: 10_000 }).toBe(0);
+  }, 60_000);
+
+  it('keeps no cookies between requests, as fetch does not', async () => {
+    const http = new AgentHttp(onprem, borrow);
+    try {
+      await http.fetch(`${privateUrl}api/echo`);
+      const second = await (await http.fetch(`${privateUrl}api/echo`)).json();
+      expect(second.headers.cookie).toBeUndefined();
+      const empty = await http.fetch(`${privateUrl}api/empty`, { method: 'DELETE' });
+      expect(empty.status).toBe(204);
+      expect(await empty.text()).toBe('');
+    } finally {
+      await http.close();
+    }
+  }, 60_000);
+
+  it('stops a request when its caller gives up, as an AbortError', async () => {
+    const http = new AgentHttp(onprem, borrow);
+    try {
+      // While the browser is still being borrowed…
+      const early = new AbortController();
+      const borrowing = http.fetch(`${privateUrl}api/slow`, { signal: early.signal });
+      setTimeout(() => early.abort(), 50);
+      await expect(borrowing).rejects.toMatchObject({ name: 'AbortError' });
+
+      // …and while the request is out, with the browser already there.
+      await http.fetch(`${privateUrl}api/echo`);
+      const late = new AbortController();
+      const pending = http.fetch(`${privateUrl}api/slow`, { signal: late.signal });
+      setTimeout(() => late.abort(), 500);
+      await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    } finally {
+      await http.close();
+    }
+  }, 60_000);
+
+  it('runs an API test, its OAuth token request and preconditions through the agent', async () => {
+    const http = new AgentHttp(onprem, borrow);
+    try {
+      const result = await runApiRequest(
+        {
+          method: 'POST',
+          url: '{{inside}}api/echo',
+          body: { id: '{{id}}' },
+          auth: { type: 'oauth2', params: { tokenUrl: '{{inside}}oauth/token', clientId: 'wfm', grantType: 'client_credentials' } } as any,
+          assertions: [{ id: 'a', source: 'status_code', comparison: 'equals', targetValue: '201', enabled: true } as any],
+          extractions: [{ name: 'auth', source: 'body_json_path', property: 'headers.authorization' } as any],
+        },
+        { inside: privateUrl, id: '42' },
+        http.fetch,
+      );
+      expect(result.error).toBeUndefined();
+      expect(result.passed).toBe(true);
+      expect(result.extracted.auth).toBe('Bearer from-inside');
+
+      const pre = await runPreconditions([{ name: 'Seed', method: 'POST', url: `${privateUrl}api/echo`, requestBody: { a: 1 } } as any], {}, http.fetch);
+      expect(pre).toMatchObject({ ok: true, ranCount: 1 });
+    } finally {
+      await http.close();
+    }
+  }, 60_000);
+
+  it('fails the request with the reason when the pool has no agent', async () => {
+    const http = new AgentHttp({ organizationId: 1, pool: 'lab' }, borrow);
+    await expect(http.fetch(`${privateUrl}api/echo`)).rejects.toThrow(
+      'Could not send the request from agent pool "lab": No agent of pool "lab" is connected',
+    );
+    const result = await runApiRequest({ method: 'GET', url: `${privateUrl}api/echo` }, {}, http.fetch);
+    expect(result.passed).toBe(false);
+    expect(result.error).toContain('No agent of pool "lab" is connected');
+    await http.close();
+  });
 });
 
 describe('what the relay refuses', () => {
