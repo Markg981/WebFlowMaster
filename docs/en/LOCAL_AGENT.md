@@ -84,17 +84,30 @@ list still applies: each browser is borrowed from the pool.
 | Variable | Where | Meaning |
 |---|---|---|
 | `AGENT_RELAY_SECRET` | web and worker | Signs the tickets. Defaults to `SESSION_SECRET`; set it explicitly when the worker does not share the web server's session secret. |
-| `AGENT_RELAY_URL` | worker | Where the runner reaches the relay. Defaults to `http://127.0.0.1:$PORT`, which is right when the worker runs in the web process. With separate workers, point it at the web server. |
+| `AGENT_RELAY_URL` | worker | Where the runner reaches the relay. Defaults to `http://127.0.0.1:$PORT`, which is right when the worker runs in the web process. With separate workers, point it at the web server (or its load balancer). |
+| `AGENT_RELAY_ADVERTISE_URL` | web, with several web servers | This web server's own address as the other web servers reach it (pod IP, container name — not the load balancer). Setting it turns on the shared directory in Redis. |
 
 The relay lives in the web process and accepts WebSocket upgrades on `/api/agent/v1/*`: a reverse
 proxy in front of it must forward WebSocket upgrades on those paths.
+
+### Several web servers
+
+Each web server runs its own relay, and an agent is connected to whichever one the load balancer
+gave it. With `AGENT_RELAY_ADVERTISE_URL` set on every web server, they publish their agents to
+Redis (the one the queue already uses) every few seconds. A request that lands on a server without
+the agent it needs — the runner's for a browser, or the agent's own second connection — is passed
+to the server that has it, directly at its advertised address. No sticky sessions are needed, and
+the web servers must be able to reach each other on those addresses.
+
+A revoked agent is dropped at once by the server holding it if the owner's request reached that
+server, and otherwise at its next heartbeat (within 20 seconds). A server that stops withdraws its
+entry; one that crashes stops being chosen within 15 seconds, and meanwhile a runner sent to it
+gets a refusal naming it.
 
 ## Limits
 
 - **Playwright versions must match** (major.minor) between agent and server. Settings shows an agent
   that does not match; the Docker image is tagged with the server's version.
-- With **several web servers**, agents connect to one of them: `AGENT_RELAY_URL` must lead to the
-  instance they are connected to (a single relay host, or sticky routing).
 - When no agent of the pool is connected, the browser pass fails with a clear reason
   (`No agent of pool "onprem" is connected`) instead of running somewhere else.
 
