@@ -274,6 +274,13 @@
       "when": 1788500000000,
       "tag": "0038_local_agents",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1788600000000,
+      "tag": "0039_source_hosts",
+      "breakpoints": true
     }
   ]
 }

@@ -38,6 +38,7 @@ import {
   Lock,
   Users,
   Laptop,
+  GitCommitHorizontal,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProjectAccessDialog from "@/components/settings/ProjectAccessDialog";
@@ -57,6 +58,7 @@ import EnvironmentsCard from "@/components/settings/EnvironmentsCard";
 import ApiKeysCard from "@/components/settings/ApiKeysCard";
 import ServiceAccountsCard from "@/components/settings/ServiceAccountsCard";
 import AgentsCard from "@/components/settings/AgentsCard";
+import SourceHostsCard from "@/components/settings/SourceHostsCard";
 import RunUsageCard from "@/components/settings/RunUsageCard";
 import AuditLogCard from "@/components/settings/AuditLogCard";
 import SecurityCard from "@/components/settings/SecurityCard";
@@ -600,6 +602,16 @@ export default function SettingsPage() {
           {user?.role === 'owner' && <ServiceAccountsCard />}
         </>
       ),
+    },
+    {
+      id: 'sourceHosts',
+      label: t('settings.sections.sourceHosts', 'GitHub & GitLab'),
+      description: t(
+        'settings.sections.sourceHostsDescription',
+        'Runs started from a pipeline report pending, passed or failed on the commit they tested.',
+      ),
+      icon: GitCommitHorizontal,
+      content: <SourceHostsCard isOwner={user?.role === 'owner'} />,
     },
     {
       id: 'agents',

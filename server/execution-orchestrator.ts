@@ -15,7 +15,7 @@ import { privilegedDb } from './db';
 import { getCorrelationId } from './middleware/correlation';
 import { runAsOrganization, withTenantTransaction } from './middleware/tenancy';
 import { expandPlanTests, type TestReference } from './test-suites';
-import { transitionExecution } from './execution-state';
+import { announceExecution, transitionExecution } from './execution-state';
 import { buildExecutionSnapshot, readExecutionSnapshot, type SnapshotTestReference } from './execution-snapshot';
 import { testExecutionQueue } from './queue';
 import { fairPriority, liveRunCounts, lockOrganizationRuns, quotasFor } from './tenant-quotas';
@@ -282,7 +282,10 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
         throw error;
       }
 
-      if (outcome.created) return submit(outcome.execution, 0, outcome.priority);
+      if (outcome.created) {
+        announceExecution(outcome.execution);
+        return submit(outcome.execution, 0, outcome.priority);
+      }
 
       if (outcome.execution.status === 'error' && outcome.execution.failureCode === QUEUE_SUBMISSION_FAILED) {
         const reclaimed = await reclaimUnsubmittedRun(outcome.execution.id);
@@ -361,6 +364,7 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
       if (isUniqueViolation(error)) return findByKey();
       throw error;
     }
+    announceExecution(retry);
     // A retry takes its place like any run of its organization.
     const counts = await withTenantTransaction((tx) => liveRunCounts(tx, retry.organizationId));
     return submit(retry, delayMs, fairPriority(counts));

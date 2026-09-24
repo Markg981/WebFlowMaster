@@ -73,6 +73,18 @@ export async function runAsOrganization<T>(organizationId: number, fn: () => Pro
   return tenantStore.run({ organizationId }, fn);
 }
 
+/**
+ * Runs `fn` for an organization in a context of its own: no principal, and not inside whatever
+ * transaction the caller has open.
+ *
+ * For work another path starts and does not wait for — telling a GitHub a run moved — which must
+ * neither join a transaction that will have committed by the time it runs, nor be refused for being
+ * started inside one.
+ */
+export function runDetachedForOrganization<T>(organizationId: number, fn: () => Promise<T>): Promise<T> {
+  return tenantStore.run({ organizationId }, fn);
+}
+
 export function getTenantOrgId(): number | undefined {
   return tenantStore.getStore()?.organizationId;
 }

@@ -55,6 +55,7 @@ import { requireMfaEnrollment } from "./middleware/require-mfa-enrollment";
 import apiV1Routes from "./routes/api-v1.routes";
 import cliRoutes from "./routes/cli.routes";
 import agentsRoutes from "./routes/agents.routes";
+import sourceHostsRoutes from "./routes/source-hosts.routes";
 import webhookManagementRoutes from "./routes/webhooks.routes";
 import stepGroupsRoutes from "./routes/step-groups.routes";
 import projectElementsRoutes from "./routes/project-elements.routes";
@@ -144,6 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // First: /api/v1 answers everything under it in its own words, including unknown paths.
     app.use(cliRoutes);
     app.use(agentsRoutes);
+    app.use(sourceHostsRoutes);
     app.use(apiV1Routes);
     app.use(authRoutes);
     app.use(organizationRoutes);

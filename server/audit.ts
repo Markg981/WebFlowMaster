@@ -33,7 +33,8 @@ export interface AuditEntry {
     | 'system_settings'
     | 'runner'
     | 'suite'
-    | 'agent';
+    | 'agent'
+    | 'source_host';
   /** Text because targets are variously serial ids and uuids. */
   targetId?: string | number;
   /**

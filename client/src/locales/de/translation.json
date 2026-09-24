@@ -122,7 +122,9 @@
       "issueTrackers": "Issue-Tracker",
       "issueTrackersDescription": "Wo ein fehlschlagender Test zum Ticket von jemandem wird, in Jira oder Azure DevOps.",
       "apiKeys": "API-Schlüssel",
-      "apiKeysDescription": "Zugangsdaten für Pipelines und Skripte, damit die CI nie das Passwort von jemandem braucht."
+      "apiKeysDescription": "Zugangsdaten für Pipelines und Skripte, damit die CI nie das Passwort von jemandem braucht.",
+      "sourceHosts": "GitHub & GitLab",
+      "sourceHostsDescription": "Von einer Pipeline gestartete Läufe melden am getesteten Commit, ob sie laufen, bestanden haben oder fehlgeschlagen sind."
     },
     "apiKeys": {
       "openApi": "API-Referenz (OpenAPI)",
@@ -250,6 +252,28 @@
       "healed": "repariert",
       "saveSelector": "Selektor speichern",
       "delete": "Element löschen"
+    },
+    "sourceHosts": {
+      "title": "Commit-Status",
+      "description": "Ein aus GitHub Actions oder GitLab CI gestarteter Lauf erscheint am getesteten Commit: ausstehend, solange er läuft, dann bestanden oder fehlgeschlagen, mit einem Link zum Bericht.",
+      "loading": "Wird geladen…",
+      "connected": "verbunden",
+      "notConnected": "nicht verbunden",
+      "test": "Testen",
+      "replace": "Token ersetzen",
+      "connect": "Verbinden",
+      "remove": "Trennen",
+      "lastFailed": "Der letzte Status wurde nicht gesetzt: {{error}}",
+      "lastDelivered": "Letzter Status gesetzt am {{when}}.",
+      "noneYet": "Noch kein Status gesendet: Der nächste von einer Pipeline gestartete Lauf sendet einen.",
+      "authenticatesAs": "Verbunden als {{account}}",
+      "apiUrl": "API-URL (nur für einen selbst gehosteten Server)",
+      "token": "Token",
+      "githubTokenHint": "Ein Fine-grained-Token mit „Commit statuses: read and write“ für die Repositories oder ein klassisches mit repo:status.",
+      "gitlabTokenHint": "Ein Projekt-, Gruppen- oder persönliches Zugriffstoken mit dem Scope api, von einem Mitglied mit mindestens der Rolle Developer.",
+      "save": "Prüfen und speichern",
+      "tokenRequired": "Fügen Sie ein Token ein.",
+      "footnote": "Die CLI sendet Repository und Commit selbst, wenn sie in GitHub Actions oder GitLab CI läuft. Der Status verlinkt auf den Bericht, wenn WEBFLOW_PUBLIC_URL auf dem Server gesetzt ist."
     }
   },
   "dashboard": {
@@ -2124,7 +2148,8 @@
       "test_review": "Testprüfungen",
       "runner": "Runner",
       "suite": "Suiten",
-      "agent": "Lokale Agenten"
+      "agent": "Lokale Agenten",
+      "source_host": "GitHub & GitLab"
     },
     "actions": {
       "member_role_changed": "Rolle des Mitglieds geändert",
@@ -2185,7 +2210,9 @@
       "test_quarantined": "Test in Quarantäne gestellt",
       "test_quarantine_released": "Test aus der Quarantäne entlassen",
       "agent_created": "Lokaler Agent angelegt",
-      "agent_revoked": "Lokaler Agent widerrufen"
+      "agent_revoked": "Lokaler Agent widerrufen",
+      "source_host_connected": "GitHub oder GitLab verbunden",
+      "source_host_removed": "GitHub oder GitLab getrennt"
     }
   },
   "security": {
