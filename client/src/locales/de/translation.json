@@ -51,7 +51,8 @@
       "resetForm": "Formular zurücksetzen",
       "cancel": "Abbrechen",
       "saveSettings": "Einstellungen speichern",
-      "saving": "Speichern..."
+      "saving": "Speichern...",
+      "saveUserSettings": "Benutzereinstellungen speichern"
     },
     "playwright": {
       "title": "Playwright-Engine",
@@ -72,7 +73,23 @@
       "logLevelPlaceholder": "Protokollstufe wählen…",
       "logLevelDescription": "Ab welcher Stufe Protokolle aufgezeichnet werden.",
       "saveButton": "Aufbewahrung speichern",
-      "saveButtonLogLevel": "Protokollstufe speichern"
+      "saveButtonLogLevel": "Protokollstufe speichern",
+      "toast": {
+        "logRetentionSavedTitle": "Protokollaufbewahrung gespeichert",
+        "logRetentionSavedDescription": "Aufbewahrungsdauer der Protokolle auf {{days}} Tage gesetzt.",
+        "logRetentionErrorTitle": "Fehler beim Speichern der Protokollaufbewahrung",
+        "logLevelSavedTitle": "Protokollstufe gespeichert",
+        "logLevelSavedDescription": "Minimale Protokollstufe auf {{level}} gesetzt.",
+        "logLevelErrorTitle": "Fehler beim Speichern der Protokollstufe"
+      },
+      "validation": {
+        "invalidDaysTitle": "Ungültige Eingabe",
+        "positiveNumberError": "Die Aufbewahrungsdauer der Protokolle muss eine positive Zahl sein.",
+        "invalidLogLevelTitle": "Ungültige Protokollstufe",
+        "selectValidLogLevelError": "Bitte wählen Sie eine gültige Protokollstufe."
+      },
+      "fetchError": "Die Einstellung zur Protokollaufbewahrung konnte nicht geladen werden.",
+      "fetchErrorLogLevel": "Die Einstellung zur Protokollstufe konnte nicht geladen werden."
     },
     "sections": {
       "navLabel": "Abschnitte der Einstellungen",
@@ -99,7 +116,13 @@
       "runners": "Runner",
       "runnersDescription": "Die Maschinen, die Pläne ausführen: welche laufen, was sie haben, und wie man eine vor der Wartung leert.",
       "agents": "Lokale Agenten",
-      "agentsDescription": "Rechner in Ihrem Netzwerk, die ihre Browser leihen, für Anwendungen, die dieser Server nicht erreicht."
+      "agentsDescription": "Rechner in Ihrem Netzwerk, die ihre Browser leihen, für Anwendungen, die dieser Server nicht erreicht.",
+      "elements": "Element-Repository",
+      "elementsDescription": "Eine Definition pro Element einer Anwendung, damit ein verschobener Button einmal korrigiert wird statt in jedem Test, der ihn kopiert hat.",
+      "issueTrackers": "Issue-Tracker",
+      "issueTrackersDescription": "Wo ein fehlschlagender Test zum Ticket von jemandem wird, in Jira oder Azure DevOps.",
+      "apiKeys": "API-Schlüssel",
+      "apiKeysDescription": "Zugangsdaten für Pipelines und Skripte, damit die CI nie das Passwort von jemandem braucht."
     },
     "apiKeys": {
       "openApi": "API-Referenz (OpenAPI)",
@@ -113,13 +136,36 @@
       "heldBy": "gehört {{name}}",
       "fullAccess": "Vollzugriff",
       "columns": {
-        "access": "Zugriff"
+        "access": "Zugriff",
+        "name": "Name",
+        "key": "Schlüssel",
+        "lastUsed": "Zuletzt verwendet",
+        "expires": "Läuft ab"
       },
       "scopes": {
         "plans_read": "Testpläne auflisten.",
         "runs_read": "Ausführungen, ihren Status und ihre JUnit-Berichte lesen.",
         "runs_write": "Ausführungen starten und abbrechen."
-      }
+      },
+      "nameRequired": "Geben Sie dem Schlüssel einen Namen, damit er später wiedererkannt werden kann.",
+      "expiryInvalid": "Der Ablauf muss eine ganze Zahl von Tagen sein.",
+      "title": "API-Schlüssel",
+      "description": "Für Pipelines und Skripte. Ein Schlüssel handelt als Sie, mit Ihrer Rolle, und kann einzeln widerrufen werden.",
+      "shownOnce": {
+        "title": "Kopieren Sie diesen Schlüssel jetzt",
+        "body": "Er wird nur dieses eine Mal angezeigt. Der Server speichert nur einen Hash und kann ihn daher nicht erneut anzeigen."
+      },
+      "copied": "Kopiert",
+      "copy": "Kopieren",
+      "dismiss": "Ich habe ihn gespeichert",
+      "nameLabel": "Name",
+      "expiryLabel": "Läuft ab in (Tagen)",
+      "expiryPlaceholder": "nie",
+      "create": "Schlüssel erstellen",
+      "loading": "Schlüssel werden geladen…",
+      "empty": "Noch keine API-Schlüssel. Eine Pipeline braucht einen, um einen Testplan zu starten.",
+      "revoked": "widerrufen",
+      "revokeAction": "Schlüssel widerrufen"
     },
     "serviceAccounts": {
       "title": "Dienstkonten",
@@ -157,6 +203,53 @@
       "neverSeen": "nie verbunden",
       "versionMismatch": "Verwendet Playwright {{agent}}, der Server {{server}}: Er bekommt keine Browseranfragen, bis beide übereinstimmen.",
       "revokeAction": "{{name}} widerrufen"
+    },
+    "defaults": {
+      "title": "Standardkonfiguration",
+      "description": "Standardwerte für die Testerstellung festlegen",
+      "defaultUrlLabel": "Standard-URL für die Testerstellung",
+      "defaultUrlDescription": "Diese URL wird beim Erstellen neuer Tests vorausgefüllt"
+    },
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "description": "Wählen Sie, welche Benachrichtigungen Sie erhalten möchten (nicht auf dem Server gespeichert)",
+      "emailLabel": "E-Mail-Benachrichtigungen",
+      "emailDescription": "Updates per E-Mail erhalten",
+      "testCompletionLabel": "Testabschluss",
+      "testCompletionDescription": "Benachrichtigen, wenn Tests fertig sind",
+      "errorAlertsLabel": "Fehlerwarnungen",
+      "errorAlertsDescription": "Bei fehlgeschlagenen Tests benachrichtigt werden"
+    },
+    "account": {
+      "title": "Konto",
+      "description": "Kontoeinstellungen verwalten (nicht auf dem Server gespeichert)",
+      "usernameLabel": "Benutzername",
+      "usernameDescription": "Der Benutzername kann nach der Registrierung nicht geändert werden",
+      "dangerZoneLabel": "Gefahrenbereich",
+      "dangerZoneDescription": "Diese Aktionen können nicht rückgängig gemacht werden",
+      "deleteAccountButton": "Konto löschen"
+    },
+    "pageTitle": "Einstellungen",
+    "elements": {
+      "updated": "Aktualisiert. Jeder Test, der es verwendet, läuft mit dem neuen Selektor.",
+      "title": "Element-Repository",
+      "description": "Eine Definition pro Element und Anwendung. Ein Test, der eines verwendet, liest seinen Selektor von hier, sodass eine Korrektur alle Tests auf einmal erreicht.",
+      "projectLabel": "Projekt",
+      "projectPlaceholder": "Projekt auswählen",
+      "chooseProject": "Wählen Sie ein Projekt, um seine Elemente zu sehen.",
+      "loading": "Elemente werden geladen…",
+      "empty": "Noch nichts gespeichert. Verwenden Sie im Builder das Lesezeichen an einem erkannten Element, um es hier zu behalten.",
+      "columns": {
+        "name": "Name",
+        "selector": "Selektor",
+        "state": "Status"
+      },
+      "inFrame": "im Frame",
+      "selectorFor": "Selektor für {{name}}",
+      "was": "vorher",
+      "healed": "repariert",
+      "saveSelector": "Selektor speichern",
+      "delete": "Element löschen"
     }
   },
   "dashboard": {
@@ -1035,7 +1128,16 @@
     "webkitSafari": {
       "text": "WebKit (Safari)"
     },
-    "description": "Darstellung, Sprache, Projekte, Automatisierungs-Engine und die Geheimnisse Ihrer Tests."
+    "description": "Darstellung, Sprache, Projekte, Automatisierungs-Engine und die Geheimnisse Ihrer Tests.",
+    "deleteProject": {
+      "ariaLabel": "Projekt {{name}} löschen"
+    },
+    "deleteProjectDialog": {
+      "title": "Löschen des Projekts bestätigen",
+      "description": "Möchten Sie das Projekt „{{name}}“ wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
+      "cancelButton": "Abbrechen",
+      "deleteButton": "Löschen"
+    }
   },
   "saveTestModal": {
     "saveTest": {
@@ -1740,7 +1842,33 @@
     "description": "Alle abgeschlossenen Ausführungen mit Schritten, Zeiten und Aufnahmen."
   },
   "schedulingPage": {
-    "description": "Führen Sie einen Testplan nach Zeitplan aus und werden Sie bei Fehlschlägen benachrichtigt."
+    "description": "Führen Sie einen Testplan nach Zeitplan aus und werden Sie bei Fehlschlägen benachrichtigt.",
+    "title": "Zeitplanung",
+    "createSchedule": {
+      "button": "Zeitplan erstellen"
+    },
+    "editSchedule": {
+      "title": "Zeitplan bearbeiten"
+    },
+    "createNewSchedule": {
+      "title": "Neuen Zeitplan erstellen"
+    },
+    "editingSchedule": {
+      "description": "Zeitplan wird bearbeitet:"
+    },
+    "confirmDeletion": {
+      "title": "Löschen bestätigen",
+      "description": "Möchten Sie diesen Zeitplan wirklich löschen? Dies kann nicht rückgängig gemacht werden."
+    },
+    "cancel": {
+      "button": "Abbrechen"
+    },
+    "deleting": {
+      "button": "Wird gelöscht..."
+    },
+    "delete": {
+      "button": "Löschen"
+    }
   },
   "environmentSelect": {
     "label": "Umgebung",
@@ -2271,5 +2399,33 @@
         "hint": "Für den Testbericht eines CI-Systems"
       }
     }
+  },
+  "issueTrackers": {
+    "allFieldsRequired": "Name, URL, Projekt und Token sind alle erforderlich.",
+    "emailRequired": "Jira benötigt die E-Mail-Adresse, zu der das API-Token gehört.",
+    "title": "Issue-Tracker",
+    "description": "Wo ein fehlschlagender Test zum Ticket von jemandem wird. Ein Plan kann seine Fehler dann automatisch melden, und derselbe Fehler in der nächsten Nacht wird zu einem Kommentar statt zu einem zweiten Ticket.",
+    "provider": "Anbieter",
+    "name": "Name",
+    "namePlaceholder": "Jira — Shop",
+    "baseUrl": "Basis-URL",
+    "projectKey": "Projektschlüssel",
+    "projectName": "Projektname",
+    "issueType": "Tickettyp",
+    "userEmail": "Konto-E-Mail",
+    "apiToken": "API-Token",
+    "pat": "Persönliches Zugriffstoken",
+    "tokenHint": "Verschlüsselt gespeichert und nie wieder angezeigt. Um es zu ändern, geben Sie ein neues ein.",
+    "add": "Tracker hinzufügen",
+    "loading": "Wird geladen…",
+    "empty": "Noch kein Tracker. Solange keiner eingerichtet ist, bleiben Fehler im Bericht.",
+    "columns": {
+      "name": "Name",
+      "project": "Projekt",
+      "account": "Authentifiziert sich als",
+      "actions": "Aktionen"
+    },
+    "check": "Verbindung testen",
+    "delete": "Löschen"
   }
 }

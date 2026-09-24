@@ -305,7 +305,7 @@ export default function SettingsPage() {
     mutationFn: saveSystemSetting,
     onSuccess: (savedSetting) => {
       queryClient.setQueryData(["systemSetting", savedSetting.key], savedSetting);
-      toast({ title: t('settings.system.toast.logRetentionSavedTitle', 'Log Retention Saved'), description: t('settings.system.toast.logRetentionSavedDescription', `Log retention period set to ${savedSetting.value} days.`, { days: savedSetting.value }) });
+      toast({ title: t('settings.system.toast.logRetentionSavedTitle', 'Log Retention Saved'), description: t('settings.system.toast.logRetentionSavedDescription', 'Log retention period set to {{days}} days.', { days: savedSetting.value }) });
     },
     onError: (error) => {
       toast({ title: t('settings.system.toast.logRetentionErrorTitle', 'Error Saving Log Retention'), description: error.message || t('settings.toast.errorDescription'), variant: "destructive" });
@@ -327,7 +327,7 @@ export default function SettingsPage() {
       queryClient.setQueryData(["systemSetting", savedSetting.key], savedSetting);
       // Update the local state as well
       setLogLevel(savedSetting.value);
-      toast({ title: t('settings.system.toast.logLevelSavedTitle', 'Log Level Saved'), description: t('settings.system.toast.logLevelSavedDescription', `Minimum log level set to ${savedSetting.value}.`, { level: savedSetting.value }) });
+      toast({ title: t('settings.system.toast.logLevelSavedTitle', 'Log Level Saved'), description: t('settings.system.toast.logLevelSavedDescription', 'Minimum log level set to {{level}}.', { level: savedSetting.value }) });
     },
     onError: (error) => {
       toast({ title: t('settings.system.toast.logLevelErrorTitle', 'Error Saving Log Level'), description: error.message || t('settings.toast.errorDescription'), variant: "destructive" });
@@ -843,7 +843,7 @@ export default function SettingsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('settingsPage.deleteProjectDialog.title', 'Confirm Project Deletion')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('settingsPage.deleteProjectDialog.description', `Are you sure you want to delete project "${deletingProjectName || ''}"? This action cannot be undone.`)}
+              {t('settingsPage.deleteProjectDialog.description', 'Are you sure you want to delete project "{{name}}"? This action cannot be undone.', { name: deletingProjectName || '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
