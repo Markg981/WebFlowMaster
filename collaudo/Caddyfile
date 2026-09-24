@@ -1,0 +1,15 @@
+# HTTPS for the collaudo stack, with certificates from Caddy's own authority. The browser of whoever
+# runs the tests trusts that authority once (collaudo/README.md); the app, the worker and the agent
+# read it through NODE_EXTRA_CA_CERTS.
+{
+	local_certs
+	skip_install_trust
+}
+
+wfm.collaudo.test {
+	reverse_proxy api:5000
+}
+
+keycloak.collaudo.test {
+	reverse_proxy keycloak:8080
+}
