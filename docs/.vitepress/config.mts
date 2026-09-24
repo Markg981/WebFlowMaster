@@ -10,6 +10,13 @@ import { withMermaid } from 'vitepress-plugin-mermaid';
  */
 
 type Labels = {
+  guide: string;
+  gettingStarted: string;
+  webTests: string;
+  apiTests: string;
+  organizing: string;
+  running: string;
+  results: string;
   security: string;
   securityOverview: string;
   dataProtection: string;
@@ -38,6 +45,17 @@ type Labels = {
 function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
   const p = (page: string) => `/${lang}/${page}`;
   return [
+    {
+      text: t.guide,
+      items: [
+        { text: t.gettingStarted, link: p('guide/') },
+        { text: t.webTests, link: p('guide/web-tests') },
+        { text: t.apiTests, link: p('guide/api-tests') },
+        { text: t.organizing, link: p('guide/organizing') },
+        { text: t.running, link: p('guide/running') },
+        { text: t.results, link: p('guide/results') },
+      ],
+    },
     {
       text: t.admin,
       items: [
@@ -80,6 +98,13 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
 }
 
 const en: Labels = {
+  guide: 'User guide',
+  gettingStarted: 'Getting started',
+  webTests: 'Web tests',
+  apiTests: 'API tests',
+  organizing: 'Organizing tests',
+  running: 'Running tests',
+  results: 'Results',
   security: 'Security and compliance',
   securityOverview: 'Security overview',
   dataProtection: 'Data protection',
@@ -106,6 +131,13 @@ const en: Labels = {
 };
 
 const it: Labels = {
+  guide: 'Guida utente',
+  gettingStarted: 'Primi passi',
+  webTests: 'Test web',
+  apiTests: 'Test API',
+  organizing: 'Organizzare i test',
+  running: 'Eseguire i test',
+  results: 'Risultati',
   security: 'Sicurezza e compliance',
   securityOverview: 'Panoramica sulla sicurezza',
   dataProtection: 'Protezione dei dati',
@@ -145,16 +177,13 @@ export default withMermaid(
         md.renderer.rules.code_inline = (...args) => render(...args).replace('<code', '<code v-pre');
       },
     },
-    // Not documentation for readers: design notes, generated PDFs, and the guides still to be
-    // rewritten (they are replaced page by page, and leave this list as they are).
+    // Not documentation for readers: design notes, generated PDFs, and the API reference still to
+    // be rewritten.
     srcExclude: [
       'superpowers/**',
       'pdf/**',
       'JSDOC_SNIPPETS.md',
-      'USER_GUIDE.md',
       'API_REFERENCE.md',
-      'en/USER_GUIDE.md',
-      'it/USER_GUIDE.md',
     ],
     themeConfig: {
       search: {
@@ -187,6 +216,7 @@ export default withMermaid(
         themeConfig: {
           nav: [
             { text: 'Home', link: '/en/' },
+            { text: 'Guide', link: '/en/guide/' },
             { text: 'Administration', link: '/en/admin/installation' },
             { text: 'Security', link: '/en/security/' },
             { text: 'Internals', link: '/en/internals/' },
@@ -202,6 +232,7 @@ export default withMermaid(
         themeConfig: {
           nav: [
             { text: 'Home', link: '/it/' },
+            { text: 'Guida', link: '/it/guide/' },
             { text: 'Amministrazione', link: '/it/admin/installation' },
             { text: 'Sicurezza', link: '/it/security/' },
             { text: 'Interni', link: '/it/internals/' },

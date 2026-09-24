@@ -334,4 +334,4 @@ anche dei backup del database, dove l'organizzazione resta finché non scadono.
   del provider: i nuovi account hanno il ruolo predefinito, e gli owner lo cambiano in
   **Impostazioni → Membri**.
 - Non c'è invio di e-mail; gli inviti si consegnano a mano.
-- Le sezioni **Notifiche** e **Account** di Impostazioni non vengono ancora salvate.
+- La sezione **Notifiche** di Impostazioni non viene ancora salvata; le notifiche si impostano per piano.
