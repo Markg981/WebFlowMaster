@@ -38,6 +38,8 @@
     // apply-migrations diagnoses the schema before touching it; same rule as db.ts — named
     // explicitly so only its own non-test imports come along.
     "../server/schema-state.ts",
+    // db.ts unwraps drizzle's query errors at startup.
+    "../server/db-errors.ts",
     "../shared/**/*.ts"
   ],
   "exclude": [

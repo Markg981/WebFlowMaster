@@ -57,7 +57,7 @@
     "connect-redis": "^9.0.0",
     "cron-parser": "^4.9.0",
     "dotenv": "^16.5.0",
-    "drizzle-orm": "^0.39.3",
+    "drizzle-orm": "^0.45.3",
     "drizzle-zod": "^0.7.0",
     "exceljs": "^4.4.0",
     "express": "^4.21.2",
@@ -75,7 +75,6 @@
     "pixelmatch": "^7.2.0",
     "playwright": "^1.53.1",
     "pngjs": "^7.0.0",
-    "puppeteer": "^24.10.1",
     "qrcode": "^1.5.4",
     "redis": "^6.1.0",
     "undici": "^6.28.0",
@@ -103,7 +102,7 @@
     "allure-commandline": "^2.36.0",
     "cross-env": "^7.0.3",
     "dotenv-cli": "^8.0.0",
-    "drizzle-kit": "^0.30.6",
+    "drizzle-kit": "^0.31.11",
     "esbuild": "^0.25.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^4.6.2",
@@ -118,13 +117,16 @@
     "typescript": "5.6.3",
     "vitepress": "^1.6.4",
     "vitepress-plugin-mermaid": "^2.0.17",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.11"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
   },
   "overrides": {
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "exceljs": {
+      "uuid": "^11.1.1"
+    }
   },
   "workspaces": [
     "client"
