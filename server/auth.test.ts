@@ -68,6 +68,15 @@ describe('POST /api/register', () => {
     expect(res.body.organizationId).toEqual(expect.any(Number));
     expect(res.body.role).toBe('owner');
   });
+
+  it('tells the owner of the only organization the installation settings are theirs, and not once there are two', async () => {
+    delete process.env.INSTALLATION_ADMINS;
+    const first = await request(app).post('/api/register').send(validCreds).expect(201);
+    expect(first.body.installationAdmin).toBe(true);
+
+    const second = await request(app).post('/api/register').send({ username: 'bob', password: 'password123' }).expect(201);
+    expect(second.body.installationAdmin).toBe(false);
+  });
 });
 
 describe('POST /api/register with an invitation', () => {

@@ -89,7 +89,8 @@
         "selectValidLogLevelError": "Bitte wählen Sie eine gültige Protokollstufe."
       },
       "fetchError": "Die Einstellung zur Protokollaufbewahrung konnte nicht geladen werden.",
-      "fetchErrorLogLevel": "Die Einstellung zur Protokollstufe konnte nicht geladen werden."
+      "fetchErrorLogLevel": "Die Einstellung zur Protokollstufe konnte nicht geladen werden.",
+      "readOnly": "Diese Einstellungen gelten für jede Organisation dieser Installation, daher werden sie von ihren Administratoren geändert."
     },
     "sections": {
       "navLabel": "Abschnitte der Einstellungen",
@@ -2432,7 +2433,8 @@
     "drain": "Leeren",
     "resume": "Fortsetzen",
     "drainHint": "Beim Leeren beendet ein Runner, was er gerade ausführt, und nimmt nichts Neues an. Sobald seine Jobs bei null sind, kann er sicher gestoppt werden.",
-    "ranOn": "Ausgeführt auf"
+    "ranOn": "Ausgeführt auf",
+    "readOnly": "Runner bedienen jede Organisation dieser Installation, daher ist das Anhalten eines Runners Sache ihrer Administratoren."
   },
   "suites": {
     "title": "Suiten",

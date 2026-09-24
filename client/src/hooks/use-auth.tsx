@@ -13,6 +13,8 @@ export type SessionUser = Omit<SelectUser, "password"> & {
   mfaEnabled?: boolean;
   /** The organization requires a second factor and this user has none: nothing else works until they do. */
   mfaEnrollmentRequired?: boolean;
+  /** Whether installation-wide settings (log level, runners) are this person's to change. */
+  installationAdmin?: boolean;
 };
 
 type AuthContextType = {

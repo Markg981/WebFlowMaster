@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, afterAll, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { eq } from 'drizzle-orm';
@@ -137,6 +137,8 @@ describe('the runners, as an owner sees them', () => {
     org = await createTestOrganization('Ops Org');
     const [owner] = await privilegedDb.insert(users).values({ username: `ops-${uuidv4()}`, password: 'x', organizationId: org, role: 'owner' }).returning();
     current = { id: owner.id, username: owner.username, organizationId: org, role: 'owner' };
+    // The test database holds many organizations, so draining is for the named administrators.
+    process.env.INSTALLATION_ADMINS = owner.username;
     app = express();
     app.use(express.json());
     app.use((req, _res, next) => {
@@ -147,6 +149,10 @@ describe('the runners, as an owner sees them', () => {
     app.use(tenancyMiddleware);
     app.use(runnersRoutes);
     app.use(organizationRoutes);
+  });
+
+  afterAll(() => {
+    delete process.env.INSTALLATION_ADMINS;
   });
 
   it('lists them, and drains and resumes one, on the record', async () => {
@@ -170,6 +176,19 @@ describe('the runners, as an owner sees them', () => {
     try {
       await request(app).get('/api/runners').expect(403);
       await request(app).post('/api/runners/x/drain').expect(403);
+    } finally {
+      current = saved;
+    }
+  });
+
+  it('are listed to any owner, but drained only by an installation administrator', async () => {
+    const id = await registry.registerRunner(description);
+    const saved = current;
+    current = { ...current, username: 'another-owner' };
+    try {
+      await request(app).get('/api/runners').expect(200);
+      const refused = await request(app).post(`/api/runners/${encodeURIComponent(id)}/drain`).expect(403);
+      expect(refused.body.code).toBe('installation_admin_required');
     } finally {
       current = saved;
     }

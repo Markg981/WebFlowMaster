@@ -158,8 +158,9 @@ in the meantime. Useful where tests gate releases and a change should be seen by
 offline, what they are running and which version they are on.
 
 **Drain** a runner before maintenance: it finishes what it has and takes nothing new. **Resume**
-puts it back. Runners serve every organization on the installation, so on a shared installation
-this is a decision for its operator.
+puts it back. Runners serve every organization on the installation, so only its
+[administrators](#installation-administrators) can drain or resume one; other owners see the
+list without the buttons.
 
 ## Run usage and limits
 
@@ -188,11 +189,22 @@ reading and adding. It is removed only when the whole organization is erased.
 
 **Settings → System** sets the log level and how long log files are kept.
 
-::: warning These are installation-wide
-They apply to every organization on the installation, and any organization's owner can change
-them. The change is recorded in the audit log of the organization whose owner made it. On an
-installation shared by several customers, leave these to the operator.
-:::
+They apply to every organization on the installation, so only its administrators can change
+them; anyone else sees them read-only. The change is recorded in the audit log of the
+administrator's organization.
+
+### Installation administrators {#installation-administrators}
+
+Log settings and draining runners belong to the whole installation, not to one organization.
+Who may change them:
+
+- the people whose usernames are listed in `INSTALLATION_ADMINS`, when it is set
+  ([Configuration](./configuration)); nobody else, whatever their role;
+- otherwise, the owners of the organization while the installation has **exactly one**. As soon
+  as a second organization exists, nobody may until the operator sets `INSTALLATION_ADMINS`.
+
+A single company running its own installation needs to do nothing. An installation shared by
+several customers should name its operators.
 
 ## Export and erasure *(owners)*
 

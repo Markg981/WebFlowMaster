@@ -124,7 +124,9 @@ app.use(express.urlencoded({ extended: false }));
   const server = await registerRoutes(app);
   
   const { webhooksRouter } = await import("./webhooks");
-  app.use("/api/webhooks", webhooksRouter);
+  // Per client address (server/middleware/rate-limits.ts).
+  const { webhookRateLimit } = await import("./middleware/rate-limits");
+  app.use("/api/webhooks", webhookRateLimit(), webhooksRouter);
   
   // Set up WebSockets for real-time logging
   await setupWebSockets(server);

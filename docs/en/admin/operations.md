@@ -136,6 +136,9 @@ UPDATE organizations SET max_concurrent_runs = 5, max_queued_runs = 300 WHERE id
 | Registration answers "Accounts on this installation are created by invitation" | `REGISTRATION=invitation` (the default) and an account already exists | Invite the person from **Settings → Members**, or set `REGISTRATION=open` if sign-up should be public. |
 | Sign-in answers OK but the next page is signed out | Secure cookie over plain HTTP | Serve over HTTPS; for a local stack only, `SESSION_COOKIE_SECURE=false`. |
 | `403` on every save behind a proxy | The public origin differs from the `Host` the server sees | Add it to `CSRF_TRUSTED_ORIGINS`. |
+| A blank page, or parts missing, with `Content Security Policy` errors in the browser console | Something injects or loads scripts from elsewhere (a proxy, a browser extension, a customized build) | Remove what injects them; to confirm the cause, `CONTENT_SECURITY_POLICY=report-only` and read the console. |
+| Pipelines get `429 rate_limited` | A key made more than `API_RATE_LIMIT` calls in a minute | Poll less often, give each pipeline its own key, or raise `API_RATE_LIMIT`. |
+| Settings → System is read-only, and the runners have no Drain button | Installation-wide settings are for its administrators | Add the username to `INSTALLATION_ADMINS` (see [Installation administrators](./administration#installation-administrators)). |
 | Runs stay *queued* | No runner online, the organization at its limit, or runners drained | Settings → Runners and Settings → Run usage. |
 | Runs end *error: worker lost* | Workers restarted or killed (often out of memory) | Worker logs and memory; lower `WORKER_CONCURRENCY` or the plan's parallelism. |
 | Previews and page loads fail with "No worker is running to open a browser" | `BROWSER_TASKS=worker` and no worker running | Start a worker, or `BROWSER_TASKS=inline` on a single machine. |

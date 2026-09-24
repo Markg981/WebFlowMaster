@@ -51,8 +51,12 @@ persone. Ogni punto indica l'impostazione o la pagina che lo spiega. La
 - Le pipeline usano chiavi API **con scope** su **account di servizio**, con una scadenza; chiavi
   ad accesso completo solo per l'amministrazione, revocate subito dopo.
 - Controllate in **Impostazioni → Chiavi API** le chiavi non usate di recente, e revocatele.
-- Tenete pochi owner. Su un'installazione condivisa, gli owner possono cambiare le impostazioni
-  dei log dell'intera installazione.
+- Tenete pochi owner. Su un'installazione condivisa da più organizzazioni, impostate
+  `INSTALLATION_ADMINS` con gli operatori che possono cambiare le impostazioni dei log e
+  svuotare i runner
+  ([Amministratori dell'installazione](../admin/administration#amministratori-dell-installazione)).
+- Lasciate `CONTENT_SECURITY_POLICY` al suo valore di produzione, `enforce`, e i limiti di
+  frequenza (`API_RATE_LIMIT`, `WEBHOOK_RATE_LIMIT`) attivi.
 - Lasciate `GEMINI_API_KEY` non impostata, a meno che inviare il contenuto delle pagine a Google
   sia accettabile per ogni organizzazione dell'installazione ([Funzioni AI](./#funzioni-ai)).
 

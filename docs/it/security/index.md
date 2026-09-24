@@ -101,7 +101,20 @@ step ne ha bisogno.
   una elencata in `CSRF_TRUSTED_ORIGINS`); le richieste delle macchine, senza un'origine del
   browser, si autenticano con una chiave o un token invece che con un cookie.
 - **Intestazioni HTTP**: quelle predefinite di Helmet (HSTS, `X-Content-Type-Options`,
-  protezione dai frame e altre). Una Content Security Policy **non** è ancora impostata.
+  protezione dai frame e altre) e, in produzione, una **Content Security Policy**: script,
+  connessioni e worker solo dall'origine dell'applicazione (nessuno script inline o valutato),
+  nessun plugin, nessun inserimento in frame da altri siti. Gli stili possono essere inline, come
+  richiedono i componenti dell'interfaccia, e i font arrivano da Google Fonts. L'editor di codice
+  e ogni altro script sono serviti dall'installazione stessa; nulla viene caricato da una CDN.
+  `CONTENT_SECURITY_POLICY` può metterla in sola segnalazione o disattivarla.
+- **Frequenza delle richieste**: l'accesso è limitato per indirizzo; ogni chiave API, e ogni
+  indirizzo che chiama l'API pubblica senza chiave, è limitato a `API_RATE_LIMIT` richieste al
+  minuto (600 di default); i webhook a `WEBHOOK_RATE_LIMIT` per indirizzo (120). Oltre, la
+  risposta è `429` con `Retry-After`.
+- **Impostazioni dell'installazione** (livello e conservazione dei log, pausa dei runner): le
+  cambiano solo le persone elencate in `INSTALLATION_ADMINS`, oppure un owner finché
+  l'installazione ha una sola organizzazione. Gli owner delle altre organizzazioni le vedono in
+  sola lettura.
 - **Validazione degli input**: i corpi delle richieste vengono validati con schemi prima di
   arrivare al database; le query sono parametrizzate tramite l'ORM.
 - **Dimensione delle richieste**: i corpi JSON sono limitati a 100 KB.
@@ -188,7 +201,7 @@ Dichiarati perché una valutazione possa pesarli, invece di scoprirli dopo:
 
 - **Nessun single sign-on** (SAML, OpenID Connect), nessuna regola sulla complessità delle
   password oltre alla lunghezza, e nessun invio di e-mail: i link di invito e di reset della password li consegna l'owner.
-- **Nessuna intestazione Content Security Policy.**
-- **Nessun limite di frequenza sull'API pubblica** oltre ai limiti sui run per organizzazione.
-- **Le impostazioni dei log a livello di installazione** possono essere cambiate dall'owner di
-  qualsiasi organizzazione.
+- **I limiti di frequenza si contano per processo web**: con più processi web dietro un
+  bilanciatore il limite effettivo è moltiplicato per il loro numero.
+- **Gli stili possono essere inline** sotto la Content Security Policy, come richiedono i
+  componenti dell'interfaccia.

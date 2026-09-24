@@ -48,8 +48,11 @@ people. Each item names the setting or the page that explains it. The
 - Pipelines use **scoped** API keys on **service accounts**, with an expiry date; full-access
   keys only for administration, revoked afterwards.
 - Review **Settings → API keys** for keys not used recently, and revoke them.
-- Keep owners few. Owners on a shared installation can change installation-wide log
-  settings.
+- Keep owners few. On an installation shared by several organizations, set
+  `INSTALLATION_ADMINS` to the operators who may change log settings and drain runners
+  ([Installation administrators](../admin/administration#installation-administrators)).
+- Leave `CONTENT_SECURITY_POLICY` at its production default, `enforce`, and the rate limits
+  (`API_RATE_LIMIT`, `WEBHOOK_RATE_LIMIT`) switched on.
 - Leave `GEMINI_API_KEY` unset unless sending page content to Google is acceptable for every
   organization on the installation ([AI features](./#ai-features)).
 
