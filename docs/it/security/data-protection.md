@@ -21,6 +21,7 @@ presumere di sì.
 | Dati | Esempi | Dove si conservano | Per quanto |
 |---|---|---|---|
 | Account | Username (può essere un indirizzo e-mail), ruolo, data di creazione | Database | Finché il membro non viene rimosso o l'organizzazione cancellata |
+| Identità del single sign-on | L'issuer del provider e il suo identificativo della persona (non l'indirizzo e-mail), primo e ultimo accesso | Database | Finché l'account non viene rimosso |
 | Credenziali | Hash della password (scrypt), segreto del secondo fattore (cifrato), codici di recupero (hash) | Database | Come gli account |
 | Sessioni | Id di sessione, id utente | Redis | 7 giorni, o fino all'uscita |
 | Registro di audit | Nome di chi ha agito, azione, oggetto, indirizzo IP del client, chiave usata, ora | Database | Fino alla cancellazione dell'organizzazione; l'applicazione non può cancellarlo |

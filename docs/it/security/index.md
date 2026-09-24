@@ -63,6 +63,14 @@ registrazione pubblica, in cui ogni nuovo account ottiene una propria organizzaz
   un'organizzazione, dall'operatore), valido un giorno e salvato solo come hash. Una sessione
   porta un'impronta della password con cui è stata aperta, quindi una nuova password chiude tutte
   le altre sessioni di quella persona.
+- **Single sign-on** con OpenID Connect, per organizzazione
+  ([Amministrazione](../admin/administration#single-sign-on)): flusso authorization code con
+  PKCE, state e nonce monouso, e firma, issuer, audience e scadenza dell'ID token verificati con
+  le chiavi pubblicate dal provider. Gli account si riconoscono dal subject stabile del provider,
+  non dall'indirizzo e-mail; quelli nuovi hanno viewer o editor, mai owner. Il client secret è
+  cifrato come gli altri segreti salvati. Un owner può **renderlo obbligatorio**: le password dei
+  membri smettono di funzionare, anche nelle sessioni aperte, mentre gli owner mantengono la
+  propria per poter rientrare.
 - **Ruoli**: viewer, editor, owner, verificati su ogni endpoint. Vedi
   [Amministrazione](../admin/administration#ruoli).
 
@@ -199,8 +207,13 @@ chiave solo dove inviarlo a Google è accettabile; tutto il resto funziona anche
 
 Dichiarati perché una valutazione possa pesarli, invece di scoprirli dopo:
 
-- **Nessun single sign-on** (SAML, OpenID Connect), nessuna regola sulla complessità delle
-  password oltre alla lunghezza, e nessun invio di e-mail: i link di invito e di reset della password li consegna l'owner.
+- **Il single sign-on è solo OpenID Connect**, senza SAML, senza associare i gruppi del provider
+  ai ruoli e senza SCIM: una persona rimossa qui ma non presso il provider ottiene un nuovo
+  account al suo accesso successivo, quindi l'accesso si revoca presso il provider. I domini
+  e-mail non vengono verificati via DNS; su un'installazione condivisa il primo che rivendica un
+  dominio lo ottiene.
+- Nessuna regola sulla complessità delle password oltre alla lunghezza, e nessun invio di
+  e-mail: i link di invito e di reset della password li consegna l'owner.
 - **I limiti di frequenza si contano per processo web**: con più processi web dietro un
   bilanciatore il limite effettivo è moltiplicato per il loro numero.
 - **Gli stili possono essere inline** sotto la Content Security Policy, come richiedono i

@@ -45,6 +45,10 @@ people. Each item names the setting or the page that explains it. The
 - Keep `REGISTRATION` at its default, `invitation`, unless the installation offers public
   sign-up; invite people from **Settings → Members**.
 - Require two-factor authentication in each organization (**Settings → Security**).
+- Where an organization has an identity provider, set up
+  [single sign-on](../admin/administration#single-sign-on), require it, and require the second
+  factor at the provider. Set `WEBFLOW_PUBLIC_URL`, so the redirect URI does not depend on the
+  request's `Host` header.
 - Pipelines use **scoped** API keys on **service accounts**, with an expiry date; full-access
   keys only for administration, revoked afterwards.
 - Review **Settings → API keys** for keys not used recently, and revoke them.

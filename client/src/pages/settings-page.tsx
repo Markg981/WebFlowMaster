@@ -64,6 +64,7 @@ import SourceHostsCard from "@/components/settings/SourceHostsCard";
 import RunUsageCard from "@/components/settings/RunUsageCard";
 import AuditLogCard from "@/components/settings/AuditLogCard";
 import SecurityCard from "@/components/settings/SecurityCard";
+import SsoCard from "@/components/settings/SsoCard";
 import RunnersCard from "@/components/settings/RunnersCard";
 import ElementRepositoryCard from "@/components/settings/ElementRepositoryCard";
 import IssueTrackersCard from "@/components/settings/IssueTrackersCard";
@@ -652,7 +653,12 @@ export default function SettingsPage() {
         'Your second factor at sign-in, and whether the organization requires one.',
       ),
       icon: ShieldCheck,
-      content: <SecurityCard isOwner={user?.role === 'owner'} />,
+      content: (
+        <div className="space-y-6">
+          <SecurityCard isOwner={user?.role === 'owner'} />
+          {user?.role === 'owner' && <SsoCard />}
+        </div>
+      ),
     },
     {
       id: 'runUsage',

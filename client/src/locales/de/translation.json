@@ -113,7 +113,7 @@
       "auditLog": "Audit-Protokoll",
       "auditLogDescription": "Wer was wann und von wo geändert hat, und ob über einen API-Schlüssel.",
       "security": "Sicherheit",
-      "securityDescription": "Ihr zweiter Faktor bei der Anmeldung und ob die Organisation ihn verlangt.",
+      "securityDescription": "Ihr zweiter Faktor bei der Anmeldung, ob die Organisation ihn verlangt, und Single Sign-on.",
       "runners": "Runner",
       "runnersDescription": "Die Maschinen, die Pläne ausführen: welche laufen, was sie haben, und wie man eine vor der Wartung leert.",
       "agents": "Lokale Agenten",
@@ -2217,7 +2217,8 @@
       "runner": "Runner",
       "suite": "Suiten",
       "agent": "Lokale Agenten",
-      "source_host": "GitHub & GitLab"
+      "source_host": "GitHub & GitLab",
+      "sso": "Single Sign-on"
     },
     "actions": {
       "member_role_changed": "Rolle des Mitglieds geändert",
@@ -2283,7 +2284,10 @@
       "source_host_removed": "GitHub oder GitLab getrennt",
       "auth_password_changed": "Passwort geändert",
       "auth_password_reset_issued": "Link zum Zurücksetzen ausgestellt",
-      "auth_password_reset_completed": "Passwort per Link zurückgesetzt"
+      "auth_password_reset_completed": "Passwort per Link zurückgesetzt",
+      "sso_configured": "Single Sign-on eingerichtet oder geändert",
+      "sso_removed": "Single Sign-on entfernt",
+      "member_provisioned": "Konto bei der ersten Anmeldung angelegt"
     }
   },
   "security": {
@@ -2751,6 +2755,51 @@
   "testNode": {
     "stepGroup": {
       "badge": "Gruppe"
+    }
+  },
+  "sso": {
+    "title": "Single Sign-on",
+    "on": "an",
+    "requiredBadge": "Pflicht",
+    "description": "Mitglieder melden sich über Ihren Identitätsanbieter an (OpenID Connect: Entra ID, Okta, Google Workspace, Keycloak…). Bei der ersten Anmeldung einer Person aus Ihren Domains wird ihr Konto angelegt.",
+    "callbackUrl": "Redirect-URI zur Registrierung beim Anbieter",
+    "copy": "Kopieren",
+    "issuer": "Issuer",
+    "clientId": "Client-ID",
+    "clientSecret": "Client-Secret",
+    "secretKept": "Gespeichert. Leer lassen, um es zu behalten.",
+    "domains": "E-Mail-Domains",
+    "defaultRole": "Rolle neuer Konten",
+    "roleViewer": "Betrachter",
+    "roleEditor": "Bearbeiter",
+    "enabled": "Single Sign-on anbieten",
+    "enabledHint": "Aus behält die Einstellungen, meldet aber niemanden über den Anbieter an.",
+    "required": "Verpflichtend machen",
+    "requiredHint": "Mitglieder außer Eigentümern können sich nicht mehr mit einem Passwort anmelden, und ihre per Passwort geöffneten Sitzungen enden. Eigentümer behalten ihres, um bei einem Ausfall des Anbieters wieder hineinzukommen. API-Schlüssel sind nicht betroffen.",
+    "removalNote": "Ihr Anbieter entscheidet, wer hineinkommt: Wer hier entfernt wird, kommt bei der nächsten Anmeldung mit einem neuen Konto zurück. Beenden Sie den Zugang beim Anbieter.",
+    "save": "Speichern",
+    "saved": "Gespeichert.",
+    "test": "Anbieter testen",
+    "testOk": "Der Anbieter hat geantwortet: {{issuer}}",
+    "testFailed": "Der Anbieter hat nicht geantwortet: {{message}}",
+    "remove": "Entfernen",
+    "removeConfirm": "Single Sign-on entfernen",
+    "or": "oder",
+    "signIn": "Mit SSO anmelden",
+    "email": "Geschäftliche E-Mail-Adresse",
+    "continue": "Weiter zu Ihrem Identitätsanbieter",
+    "requiredAtLogin": "Ihre Organisation meldet sich per Single Sign-on an. Verwenden Sie unten „Mit SSO anmelden“.",
+    "errors": {
+      "unknown_domain": "Keine Organisation hier meldet diese Adresse per Single Sign-on an. Prüfen Sie sie, oder melden Sie sich mit Ihrem Passwort an.",
+      "provider_unreachable": "Der Identitätsanbieter Ihrer Organisation ist nicht erreichbar. Versuchen Sie es erneut, oder bitten Sie einen Eigentümer, die Single-Sign-on-Einstellungen zu prüfen.",
+      "expired": "Die Anmeldung hat zu lange gedauert oder wurde in einem anderen Fenster begonnen. Versuchen Sie es erneut.",
+      "provider_error": "Ihr Identitätsanbieter hat die Anmeldung nicht abgeschlossen. Versuchen Sie es erneut; wenn es wieder passiert, findet ein Eigentümer den Grund im Serverprotokoll.",
+      "no_email": "Ihr Identitätsanbieter hat Ihre E-Mail-Adresse nicht gesendet. Ein Eigentümer muss dort den Claim email zur Anwendung hinzufügen.",
+      "email_unverified": "Ihr Identitätsanbieter meldet Ihre E-Mail-Adresse als nicht bestätigt.",
+      "domain_not_allowed": "Ihre E-Mail-Adresse gehört zu keiner Domain Ihrer Organisation.",
+      "account_elsewhere": "Ein Konto mit Ihrer Adresse gehört zu einer anderen Organisation dieser Installation.",
+      "account_disabled": "Dieses Konto ist deaktiviert.",
+      "account_linked": "Ihre Adresse ist bereits mit einer anderen Identität bei Ihrem Anbieter verknüpft. Fragen Sie einen Eigentümer Ihrer Organisation."
     }
   }
 }

@@ -688,6 +688,48 @@ export const passwordResets = pgTable("password_resets", {
 export type PasswordReset = typeof passwordResets.$inferSelect;
 
 /**
+ * Single sign-on with OpenID Connect (server/sso.ts, migrations/0043_sso.sql).
+ *
+ * An organization's identity provider, the e-mail domains it signs in, and which account each
+ * identity at a provider is. Not in ORG_SCOPED_TABLES, like user_mfa: the provider for a domain is
+ * found before anyone is signed in. app_user has no grant on any of them; server/sso.ts names the
+ * organization in every statement.
+ */
+export const organizationSso = pgTable("organization_sso", {
+  organizationId: integer("organization_id").primaryKey().references(() => organizations.id, { onDelete: 'cascade' }),
+  issuer: text("issuer").notNull(),
+  clientId: text("client_id").notNull(),
+  clientSecretEncrypted: text("client_secret_encrypted").notNull(),
+  clientSecretIv: text("client_secret_iv").notNull(),
+  clientSecretAuthTag: text("client_secret_auth_tag").notNull(),
+  /** The role of an account created on its first sign-in: viewer or editor, never owner. */
+  defaultRole: text("default_role").notNull().default('viewer'),
+  enabled: boolean("enabled").notNull().default(true),
+  /** Members other than owners must sign in through the provider; their passwords stop working. */
+  required: boolean("required").notNull().default(false),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const ssoDomains = pgTable("sso_domains", {
+  /** Lower case. The primary key: one organization per domain. */
+  domain: text("domain").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+}, (table) => [
+  index("sso_domains_organization_id_idx").on(table.organizationId),
+]);
+
+export const ssoIdentities = pgTable("sso_identities", {
+  issuer: text("issuer").notNull(),
+  /** The provider's stable identifier for the person (the `sub` claim), not their e-mail address. */
+  subject: text("subject").notNull(),
+  userId: integer("user_id").notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastSignInAt: timestamp("last_sign_in_at").defaultNow().notNull(),
+}, (table) => [
+  primaryKey({ name: "sso_identities_pkey", columns: [table.issuer, table.subject] }),
+]);
+
+/**
  * Append-only record of who changed what, within one organization.
  *
  * Two properties make this an audit log rather than a table of log lines:
@@ -1273,6 +1315,10 @@ export const AUDIT_ACTIONS = {
   PASSWORD_CHANGED: 'auth.password_changed',
   PASSWORD_RESET_ISSUED: 'auth.password_reset_issued',
   PASSWORD_RESET_COMPLETED: 'auth.password_reset_completed',
+  // Single sign-on: the provider an owner set up or removed, and accounts it created. Never the secret.
+  SSO_CONFIGURED: 'sso.configured',
+  SSO_REMOVED: 'sso.removed',
+  MEMBER_PROVISIONED: 'member.provisioned',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

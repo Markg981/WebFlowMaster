@@ -20,6 +20,7 @@ organization testing against production-like data should assume it does.
 | Data | Examples | Where it is kept | How long |
 |---|---|---|---|
 | Accounts | Username (may be an e-mail address), role, creation date | Database | Until the member is removed or the organization is erased |
+| Single sign-on identities | The provider's issuer and its identifier for the person (not their e-mail address), first and last sign-in | Database | Until the account is removed |
 | Credentials | Password hash (scrypt), second-factor secret (encrypted), recovery codes (hashed) | Database | As accounts |
 | Sessions | Session id, user id | Redis | 7 days, or until sign-out |
 | Audit trail | Actor's name, action, target, client IP address, key used, time | Database | Until the organization is erased; not deletable by the application |

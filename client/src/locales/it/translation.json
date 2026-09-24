@@ -113,7 +113,7 @@
       "auditLog": "Registro di audit",
       "auditLogDescription": "Chi ha cambiato cosa, quando, da dove, e se tramite una chiave API.",
       "security": "Sicurezza",
-      "securityDescription": "Il secondo fattore all’accesso, e se l’organizzazione lo richiede.",
+      "securityDescription": "Il tuo secondo fattore all'accesso, se l'organizzazione lo richiede, e il single sign-on.",
       "runners": "Runner",
       "runnersDescription": "Le macchine che eseguono i piani: quali sono attive, cosa hanno, e come svuotarne una prima di una manutenzione.",
       "agents": "Agenti locali",
@@ -2335,7 +2335,8 @@
       "runner": "Runner",
       "suite": "Suite",
       "agent": "Agenti locali",
-      "source_host": "GitHub e GitLab"
+      "source_host": "GitHub e GitLab",
+      "sso": "Single sign-on"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
@@ -2401,7 +2402,10 @@
       "source_host_removed": "GitHub o GitLab disconnesso",
       "auth_password_changed": "Password cambiata",
       "auth_password_reset_issued": "Link di reset della password emesso",
-      "auth_password_reset_completed": "Password reimpostata con un link"
+      "auth_password_reset_completed": "Password reimpostata con un link",
+      "sso_configured": "Single sign-on configurato o modificato",
+      "sso_removed": "Single sign-on rimosso",
+      "member_provisioned": "Account creato al primo accesso"
     }
   },
   "security": {
@@ -2869,6 +2873,51 @@
   "testNode": {
     "stepGroup": {
       "badge": "gruppo"
+    }
+  },
+  "sso": {
+    "title": "Single sign-on",
+    "on": "attivo",
+    "requiredBadge": "obbligatorio",
+    "description": "I membri accedono con il vostro identity provider (OpenID Connect: Entra ID, Okta, Google Workspace, Keycloak…). La prima volta che qualcuno dei vostri domini accede, il suo account viene creato.",
+    "callbackUrl": "Redirect URI da registrare presso il provider",
+    "copy": "Copia",
+    "issuer": "Issuer",
+    "clientId": "Client ID",
+    "clientSecret": "Client secret",
+    "secretKept": "Salvato. Lasciate vuoto per mantenerlo.",
+    "domains": "Domini e-mail",
+    "defaultRole": "Ruolo dei nuovi account",
+    "roleViewer": "Viewer",
+    "roleEditor": "Editor",
+    "enabled": "Offri il single sign-on",
+    "enabledHint": "Se disattivato, le impostazioni restano ma nessuno accede tramite il provider.",
+    "required": "Rendilo obbligatorio",
+    "requiredHint": "I membri che non sono owner non possono più accedere con la password, e le loro sessioni aperte con la password terminano. Gli owner mantengono la propria, per poter rientrare se il provider non funziona. Le chiavi API non sono interessate.",
+    "removalNote": "È il provider a decidere chi entra: una persona rimossa qui torna con un nuovo account al successivo accesso. Revocatele l'accesso presso il provider.",
+    "save": "Salva",
+    "saved": "Salvato.",
+    "test": "Prova il provider",
+    "testOk": "Il provider ha risposto: {{issuer}}",
+    "testFailed": "Il provider non ha risposto: {{message}}",
+    "remove": "Rimuovi",
+    "removeConfirm": "Rimuovi il single sign-on",
+    "or": "oppure",
+    "signIn": "Accedi con SSO",
+    "email": "Indirizzo e-mail di lavoro",
+    "continue": "Prosegui verso il tuo identity provider",
+    "requiredAtLogin": "La tua organizzazione accede con il single sign-on. Usa \"Accedi con SSO\" qui sotto.",
+    "errors": {
+      "unknown_domain": "Nessuna organizzazione qui accede con il single sign-on per quell'indirizzo. Controllalo, oppure accedi con la password.",
+      "provider_unreachable": "L'identity provider della tua organizzazione non è raggiungibile. Riprova, o chiedi a un owner di controllare le impostazioni del single sign-on.",
+      "expired": "L'accesso ha richiesto troppo tempo, o è stato avviato in un'altra finestra. Riprova.",
+      "provider_error": "Il tuo identity provider non ha completato l'accesso. Riprova; se continua a succedere, un owner troverà il motivo nel log del server.",
+      "no_email": "Il tuo identity provider non ha inviato il tuo indirizzo e-mail. Un owner deve aggiungere il claim email all'applicazione presso il provider.",
+      "email_unverified": "Il tuo identity provider indica che il tuo indirizzo e-mail non è verificato.",
+      "domain_not_allowed": "Il tuo indirizzo e-mail non appartiene a un dominio con cui accede la tua organizzazione.",
+      "account_elsewhere": "Un account con il tuo indirizzo appartiene a un'altra organizzazione di questa installazione.",
+      "account_disabled": "Questo account è disattivato.",
+      "account_linked": "Il tuo indirizzo è già collegato a un'altra identità presso il provider. Chiedi a un owner della tua organizzazione."
     }
   }
 }

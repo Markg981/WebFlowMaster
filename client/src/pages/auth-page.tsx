@@ -13,6 +13,8 @@ import { AlertCircle, TestTube, CheckCircle2, ShieldCheck, Zap, BarChart3 } from
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { motion, AnimatePresence } from "framer-motion";
 import MfaChallengeForm from "@/components/security/MfaChallengeForm";
+import SsoSignIn from "@/components/security/SsoSignIn";
+import { ApiError } from "@/lib/queryClient";
 
 interface RegistrationPolicy {
   mode: 'open' | 'invitation';
@@ -95,6 +97,11 @@ export default function AuthPage() {
       setResetPending(false);
     }
   };
+
+  // The password was right, and the organization signs in through its identity provider.
+  const loginError = loginMutation.error;
+  const ssoRequired =
+    loginError instanceof ApiError && (loginError.body as { code?: string } | null)?.code === 'sso_required';
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,7 +283,9 @@ export default function AuthPage() {
                           <Alert variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
                             <AlertCircle className="h-4 w-4" />
                             <AlertDescription>
-                              {loginMutation.error.message}
+                              {ssoRequired
+                                ? t('sso.requiredAtLogin', 'Your organization signs in with single sign-on. Use "Sign in with SSO" below.')
+                                : loginMutation.error.message}
                             </AlertDescription>
                           </Alert>
                         )}
@@ -288,8 +297,11 @@ export default function AuthPage() {
                           {loginMutation.isPending ? t('authPage.signingIn.button') : t('authPage.signIn.button')}
                         </Button>
                       </motion.form>
+                      <div className="mt-5">
+                        <SsoSignIn key={ssoRequired ? 'required' : 'offered'} open={ssoRequired} />
+                      </div>
                     </TabsContent>
-                    
+
                     <TabsContent value="register" key="register">
                       <motion.form 
                         initial={{ opacity: 0, x: 10 }}

@@ -33,7 +33,7 @@ processo non legge non fa danni.
 | `CSRF_TRUSTED_ORIGINS` | web | nessuno | Origini separate da virgola accettate per le richieste che modificano dati, oltre all'`Host` della richiesta. Serve quando un proxy presenta un'origine pubblica diversa, per esempio `https://app.example.com`. |
 | `REGISTRATION` | web | `invitation` | `invitation`: gli account si creano da un invito, tranne il primo dell'installazione. `open`: chiunque raggiunga il server può registrarsi e ottiene una propria organizzazione. Ogni altro valore blocca l'avvio. Vedi [Primo accesso](./installation#primo-accesso). |
 | `MFA_ISSUER` | web | `WebFlowMaster` | Il nome che le app di autenticazione mostrano accanto ai codici. Impostatelo per installazione ("WebFlowMaster Staging") così chi ha più account li distingue. |
-| `WEBFLOW_PUBLIC_URL` | entrambi | nessuno | L'indirizzo pubblico dell'installazione. Serve a collegare un run da notifiche e stati dei commit; senza, non contengono il link. |
+| `WEBFLOW_PUBLIC_URL` | entrambi | nessuno | L'indirizzo pubblico dell'installazione. Serve a collegare un run da notifiche e stati dei commit, che senza non contengono il link, e come base del redirect URI del single sign-on, che senza viene preso dalla richiesta. |
 | `WORKSPACE_NAME` | web | `WebFlowMaster` | Il nome mostrato nella barra laterale. Letta solo al primo avvio dell'installazione. |
 
 ## Esecuzione dei piani {#esecuzione-dei-piani}

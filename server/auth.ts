@@ -19,6 +19,7 @@ import { sessionCookieSecure } from "./config";
 import { registrationMode, registrationPolicy } from "./registration";
 import { securityHeaders } from "./security-headers";
 import { canManageInstallation } from "./installation-admin";
+import { ssoRequiredFor } from "./sso";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -47,13 +48,15 @@ const MFA_MAX_ATTEMPTS = 5;
  * factor the client acts on — whether it is on, and whether the organization insists on it and
  * it is not (in which case every other request answers mfa_enrollment_required).
  */
-async function publicUser(user: SelectUser) {
+export async function publicUser(user: SelectUser, signedInWithSso = false) {
   const { password: _pw, ...safeUser } = user;
   const status = await mfaStatus(user.id, user.organizationId);
   return {
     ...safeUser,
     mfaEnabled: status.enabled,
-    mfaEnrollmentRequired: status.required && !status.enabled,
+    // The organization's requirement is for password sign-ins; the identity provider has its own.
+    mfaEnrollmentRequired: status.required && !status.enabled && !signedInWithSso,
+    signedInWithSso,
     // Whether the installation-wide settings (log level, runners) are theirs to change.
     installationAdmin: await canManageInstallation(user),
   };
@@ -67,7 +70,7 @@ async function publicUser(user: SelectUser) {
  * written would lock everybody out whenever the database hiccups, which is a worse failure than
  * a missing line.
  */
-async function recordAuthEvent(
+export async function recordAuthEvent(
   user: Pick<SelectUser, 'id' | 'username' | 'organizationId'>,
   action: AuditAction,
   ipAddress: string | undefined,
@@ -142,7 +145,7 @@ const authLimiter = rateLimit({
   message: { message: "Too many attempts, please try again later." },
 });
 
-async function hashPassword(password: string) {
+export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
   return `${buf.toString("hex")}.${salt}`;
@@ -339,6 +342,15 @@ export function setupAuth(app: Express) {
       if (err) return next(err);
       if (!user) return res.status(401).json({ message: "Unauthorized" });
       try {
+        // Said only after the password was right, so it tells a stranger nothing about who has an
+        // account. Owners keep their password: they are the way back in if the provider fails.
+        if (await ssoRequiredFor(user)) {
+          await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_FAILED, req.ip, { reason: "sso_required" });
+          return res.status(403).json({
+            message: "Your organization signs in with single sign-on. Use \"Sign in with SSO\".",
+            code: "sso_required",
+          });
+        }
         if (await isMfaEnabled(user.id)) {
           req.session.mfaPending = { userId: user.id, expiresAt: Date.now() + MFA_CHALLENGE_TTL_MS, attempts: 0 };
           return req.session.save((saveError) => (saveError ? next(saveError) : res.status(200).json({ mfaRequired: true })));
@@ -411,7 +423,7 @@ export function setupAuth(app: Express) {
   app.get("/api/user", async (req, res, next) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      res.json(await publicUser(req.user as SelectUser));
+      res.json(await publicUser(req.user as SelectUser, req.session.signedInWith === "sso"));
     } catch (error) {
       next(error);
     }

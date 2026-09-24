@@ -113,7 +113,7 @@
       "auditLog": "Journal d’audit",
       "auditLogDescription": "Qui a modifié quoi, quand, d’où, et si c’était via une clé API.",
       "security": "Sécurité",
-      "securityDescription": "Votre second facteur à la connexion, et si l’organisation l’exige.",
+      "securityDescription": "Votre second facteur à la connexion, si l'organisation l'exige, et l'authentification unique.",
       "runners": "Runners",
       "runnersDescription": "Les machines qui exécutent les plans : lesquelles sont en ligne, ce qu’elles ont, et comment en vider une avant une maintenance.",
       "agents": "Agents locaux",
@@ -2217,7 +2217,8 @@
       "runner": "Runners",
       "suite": "Suites",
       "agent": "Agents locaux",
-      "source_host": "GitHub et GitLab"
+      "source_host": "GitHub et GitLab",
+      "sso": "Authentification unique"
     },
     "actions": {
       "member_role_changed": "Rôle du membre modifié",
@@ -2283,7 +2284,10 @@
       "source_host_removed": "GitHub ou GitLab déconnecté",
       "auth_password_changed": "Mot de passe modifié",
       "auth_password_reset_issued": "Lien de réinitialisation émis",
-      "auth_password_reset_completed": "Mot de passe réinitialisé par lien"
+      "auth_password_reset_completed": "Mot de passe réinitialisé par lien",
+      "sso_configured": "Authentification unique configurée ou modifiée",
+      "sso_removed": "Authentification unique retirée",
+      "member_provisioned": "Compte créé à la première connexion"
     }
   },
   "security": {
@@ -2751,6 +2755,51 @@
   "testNode": {
     "stepGroup": {
       "badge": "groupe"
+    }
+  },
+  "sso": {
+    "title": "Authentification unique (SSO)",
+    "on": "activée",
+    "requiredBadge": "obligatoire",
+    "description": "Les membres se connectent avec votre fournisseur d'identité (OpenID Connect : Entra ID, Okta, Google Workspace, Keycloak…). La première fois qu'une personne de vos domaines se connecte, son compte est créé.",
+    "callbackUrl": "URI de redirection à enregistrer chez votre fournisseur",
+    "copy": "Copier",
+    "issuer": "Émetteur (issuer)",
+    "clientId": "ID client",
+    "clientSecret": "Secret client",
+    "secretKept": "Enregistré. Laissez vide pour le conserver.",
+    "domains": "Domaines e-mail",
+    "defaultRole": "Rôle des nouveaux comptes",
+    "roleViewer": "Lecteur",
+    "roleEditor": "Éditeur",
+    "enabled": "Proposer l'authentification unique",
+    "enabledHint": "Désactivée, les paramètres sont conservés et personne ne se connecte par le fournisseur.",
+    "required": "La rendre obligatoire",
+    "requiredHint": "Les membres autres que les propriétaires ne peuvent plus se connecter avec un mot de passe, et leurs sessions ouvertes par mot de passe se terminent. Les propriétaires gardent le leur, pour revenir si le fournisseur tombe en panne. Les clés API ne sont pas concernées.",
+    "removalNote": "C'est votre fournisseur qui décide qui entre : une personne retirée ici revient avec un nouveau compte à sa prochaine connexion. Mettez fin à son accès chez le fournisseur.",
+    "save": "Enregistrer",
+    "saved": "Enregistré.",
+    "test": "Tester le fournisseur",
+    "testOk": "Le fournisseur a répondu : {{issuer}}",
+    "testFailed": "Le fournisseur n'a pas répondu : {{message}}",
+    "remove": "Retirer",
+    "removeConfirm": "Retirer l'authentification unique",
+    "or": "ou",
+    "signIn": "Se connecter avec le SSO",
+    "email": "Adresse e-mail professionnelle",
+    "continue": "Continuer vers votre fournisseur d'identité",
+    "requiredAtLogin": "Votre organisation se connecte par authentification unique. Utilisez « Se connecter avec le SSO » ci-dessous.",
+    "errors": {
+      "unknown_domain": "Aucune organisation ici ne connecte cette adresse par authentification unique. Vérifiez-la, ou connectez-vous avec votre mot de passe.",
+      "provider_unreachable": "Le fournisseur d'identité de votre organisation est injoignable. Réessayez, ou demandez à un propriétaire de vérifier les paramètres de l'authentification unique.",
+      "expired": "La connexion a pris trop de temps, ou a été commencée dans une autre fenêtre. Réessayez.",
+      "provider_error": "Votre fournisseur d'identité n'a pas terminé la connexion. Réessayez ; si cela se répète, un propriétaire trouvera la raison dans le journal du serveur.",
+      "no_email": "Votre fournisseur d'identité n'a pas envoyé votre adresse e-mail. Un propriétaire doit ajouter la revendication email à l'application chez le fournisseur.",
+      "email_unverified": "Votre fournisseur d'identité indique que votre adresse e-mail n'est pas vérifiée.",
+      "domain_not_allowed": "Votre adresse e-mail n'appartient pas à un domaine de votre organisation.",
+      "account_elsewhere": "Un compte avec votre adresse appartient à une autre organisation de cette installation.",
+      "account_disabled": "Ce compte est désactivé.",
+      "account_linked": "Votre adresse est déjà liée à une autre identité chez votre fournisseur. Demandez à un propriétaire de votre organisation."
     }
   }
 }

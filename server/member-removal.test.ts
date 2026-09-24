@@ -20,6 +20,7 @@ const PERSONAL = [
   'api_test_history.user_id',
   'password_resets.user_id',
   'project_members.user_id',
+  'sso_identities.user_id',
   'user_mfa.user_id',
   'user_settings.user_id',
 ];

@@ -113,7 +113,7 @@
       "auditLog": "Audit log",
       "auditLogDescription": "Who changed what, when, from where, and whether through an API key.",
       "security": "Security",
-      "securityDescription": "Your second factor at sign-in, and whether the organization requires one.",
+      "securityDescription": "Your second factor at sign-in, whether the organization requires one, and single sign-on.",
       "runners": "Runners",
       "runnersDescription": "The machines that run plans: which are up, what they have, and draining one before maintenance.",
       "agents": "Local agents",
@@ -2211,7 +2211,8 @@
       "runner": "Runners",
       "suite": "Suites",
       "agent": "Local agents",
-      "source_host": "GitHub & GitLab"
+      "source_host": "GitHub & GitLab",
+      "sso": "Single sign-on"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -2277,7 +2278,10 @@
       "source_host_removed": "GitHub or GitLab disconnected",
       "auth_password_changed": "Password changed",
       "auth_password_reset_issued": "Password reset link issued",
-      "auth_password_reset_completed": "Password reset with a link"
+      "auth_password_reset_completed": "Password reset with a link",
+      "sso_configured": "Single sign-on set up or changed",
+      "sso_removed": "Single sign-on removed",
+      "member_provisioned": "Account created at first sign-in"
     }
   },
   "security": {
@@ -2745,6 +2749,51 @@
   "testNode": {
     "stepGroup": {
       "badge": "group"
+    }
+  },
+  "sso": {
+    "title": "Single sign-on",
+    "on": "on",
+    "requiredBadge": "required",
+    "description": "Members sign in with your identity provider (OpenID Connect: Entra ID, Okta, Google Workspace, Keycloak…). The first time someone from your domains signs in, their account is created.",
+    "callbackUrl": "Redirect URI to register with your provider",
+    "copy": "Copy",
+    "issuer": "Issuer",
+    "clientId": "Client ID",
+    "clientSecret": "Client secret",
+    "secretKept": "Stored. Leave empty to keep it.",
+    "domains": "E-mail domains",
+    "defaultRole": "Role of new accounts",
+    "roleViewer": "Viewer",
+    "roleEditor": "Editor",
+    "enabled": "Offer single sign-on",
+    "enabledHint": "Off keeps the settings and signs nobody in through the provider.",
+    "required": "Require it",
+    "requiredHint": "Members other than owners can no longer sign in with a password, and their password sessions end. Owners keep theirs, to get back in if the provider fails. API keys are not affected.",
+    "removalNote": "Your provider decides who gets in: someone removed here comes back with a new account at their next sign-in. End their access at the provider.",
+    "save": "Save",
+    "saved": "Saved.",
+    "test": "Test the provider",
+    "testOk": "The provider answered: {{issuer}}",
+    "testFailed": "The provider did not answer: {{message}}",
+    "remove": "Remove",
+    "removeConfirm": "Remove single sign-on",
+    "or": "or",
+    "signIn": "Sign in with SSO",
+    "email": "Work e-mail address",
+    "continue": "Continue to your identity provider",
+    "requiredAtLogin": "Your organization signs in with single sign-on. Use \"Sign in with SSO\" below.",
+    "errors": {
+      "unknown_domain": "No organization here signs in that address with single sign-on. Check it, or sign in with your password.",
+      "provider_unreachable": "Your organization's identity provider could not be reached. Try again, or ask an owner to check the single sign-on settings.",
+      "expired": "The sign-in took too long, or was started in another window. Try again.",
+      "provider_error": "Your identity provider did not complete the sign-in. Try again; if it keeps happening, an owner will find the reason in the server log.",
+      "no_email": "Your identity provider did not send your e-mail address. An owner has to add the email claim to the application there.",
+      "email_unverified": "Your identity provider says your e-mail address is not verified.",
+      "domain_not_allowed": "Your e-mail address is not in a domain your organization signs in.",
+      "account_elsewhere": "An account with your address belongs to another organization on this installation.",
+      "account_disabled": "This account is disabled.",
+      "account_linked": "Your address is already linked to another identity at your provider. Ask an owner of your organization."
     }
   }
 }

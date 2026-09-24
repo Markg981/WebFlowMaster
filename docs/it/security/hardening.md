@@ -48,6 +48,10 @@ persone. Ogni punto indica l'impostazione o la pagina che lo spiega. La
   registrazione pubblica; invitate le persone da **Impostazioni → Membri**.
 - Rendete obbligatoria l'autenticazione a due fattori in ogni organizzazione
   (**Impostazioni → Sicurezza**).
+- Dove un'organizzazione ha un identity provider, configurate il
+  [single sign-on](../admin/administration#single-sign-on), rendetelo obbligatorio, e chiedete
+  il secondo fattore presso il provider. Impostate `WEBFLOW_PUBLIC_URL`, così il redirect URI
+  non dipende dall'intestazione `Host` della richiesta.
 - Le pipeline usano chiavi API **con scope** su **account di servizio**, con una scadenza; chiavi
   ad accesso completo solo per l'amministrazione, revocate subito dopo.
 - Controllate in **Impostazioni → Chiavi API** le chiavi non usate di recente, e revocatele.
