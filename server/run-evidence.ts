@@ -3,6 +3,7 @@ import os from 'os';
 import fs from 'fs-extra';
 import type { BrowserContext, Page } from 'playwright';
 import type { EvidenceCaptureMode } from '@shared/schema';
+import { sanitiseHar, summariseHar, type HarLike, type NetworkSummary } from '@shared/network';
 
 /**
  * What a run leaves behind besides a screenshot and a sentence.
@@ -21,6 +22,8 @@ import type { EvidenceCaptureMode } from '@shared/schema';
 export interface EvidenceOptions {
   video?: EvidenceCaptureMode;
   trace?: EvidenceCaptureMode;
+  /** A HAR of the page's requests, and the summary the report reads from it (shared/network.ts). */
+  network?: EvidenceCaptureMode;
   /** Where kept files go. Without one, nothing is kept — there is nowhere to put it. */
   artifactDir?: string;
 }
@@ -28,6 +31,12 @@ export interface EvidenceOptions {
 export interface CapturedEvidence {
   videoPath?: string;
   tracePath?: string;
+  harPath?: string;
+  /**
+   * What the page asked the network for. Present whenever the network was recorded, kept file or
+   * not: under "on failure" a passing test's HAR is dropped, and its summary costs nothing to keep.
+   */
+  network?: NetworkSummary;
 }
 
 /**
@@ -69,6 +78,51 @@ export async function videoContextOptions(
   return { recordVideo: { dir } };
 }
 
+/**
+ * The `newContext` options for recording the network, and where the recording goes.
+ *
+ * Like a video, a HAR has to be asked for when the context is made and is written when it closes.
+ * Bodies are never recorded: they are the largest part of a HAR, and the part most likely to hold
+ * somebody's personal data.
+ */
+export async function harContextOptions(
+  options: EvidenceOptions | undefined,
+): Promise<{ recordHar?: { path: string; content: 'omit' } }> {
+  if (!shouldRecord(options?.network)) return {};
+  const dir = options?.artifactDir
+    ? path.join(options.artifactDir, '_har')
+    : path.join(os.tmpdir(), 'webflowmaster-har');
+  await fs.ensureDir(dir);
+  return { recordHar: { path: path.join(dir, `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.har`), content: 'omit' } };
+}
+
+/**
+ * Reads the HAR a closed context wrote, cleans it, summarises it and keeps it if asked.
+ *
+ * Cleaned before anything else happens to it: the summary is read from the cleaned file, so no
+ * credential reaches the report by that route either.
+ */
+async function collectHar(
+  scratchPath: string,
+  input: { keep: boolean; artifactDir?: string; stem: string },
+): Promise<{ harPath?: string; network?: NetworkSummary }> {
+  try {
+    const har = sanitiseHar(JSON.parse(await fs.readFile(scratchPath, 'utf8')) as HarLike);
+    const network = summariseHar(har);
+    if (input.keep && input.artifactDir) {
+      await fs.ensureDir(input.artifactDir);
+      const target = path.join(input.artifactDir, `${input.stem}_network.har`);
+      await fs.writeFile(target, JSON.stringify(har));
+      return { harPath: target, network };
+    }
+    return { network };
+  } catch {
+    return {};
+  } finally {
+    await fs.remove(scratchPath).catch(() => {});
+  }
+}
+
 /** Starts tracing when the plan asked for one. Never throws: evidence is not the run. */
 export async function startTrace(context: BrowserContext, options: EvidenceOptions | undefined): Promise<boolean> {
   if (!shouldRecord(options?.trace)) return false;
@@ -104,8 +158,10 @@ export async function captureRunEvidence(input: {
    * the real one behind.
    */
   scratchDir?: string;
+  /** Where the context was writing its HAR, when it was recording one. */
+  harScratchPath?: string;
 }): Promise<CapturedEvidence> {
-  const { context, page, options, tracing, passed, label, scratchDir } = input;
+  const { context, page, options, tracing, passed, label, scratchDir, harScratchPath } = input;
   const captured: CapturedEvidence = {};
   const artifactDir = options?.artifactDir;
   const stem = safeStem(label);
@@ -147,6 +203,15 @@ export async function captureRunEvidence(input: {
     }
     // Either way the scratch copy goes, including when it was saved elsewhere.
     await video.delete().catch(() => {});
+  }
+
+  // Written when the context closed, above.
+  if (harScratchPath) {
+    Object.assign(
+      captured,
+      await collectHar(harScratchPath, { keep: shouldKeep(options?.network, passed), artifactDir, stem }),
+    );
+    if (artifactDir) await fs.remove(path.join(artifactDir, '_har')).catch(() => {});
   }
 
   await fs.remove(scratchDir ?? videoScratchDir(artifactDir)).catch(() => {});

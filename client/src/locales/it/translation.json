@@ -2273,5 +2273,19 @@
       "serious": "grave",
       "critical": "critica"
     }
+  },
+  "editTestPlanSettings": {
+    "evidence": {
+      "network": "Rete (HAR)",
+      "networkHelp": "Il report elenca le richieste fallite e le più lente di ogni test registrato, che il file venga tenuto o no. L'HAR si apre negli strumenti per sviluppatori di qualsiasi browser; non contiene mai body, cookie, token o password."
+    }
+  },
+  "network": {
+    "title": "Rete",
+    "summary": "{{requests}} richieste, {{failed}} fallite, {{bytes}} ricevuti",
+    "download": "Scarica l'HAR (si apre negli strumenti per sviluppatori del browser)",
+    "failed": "Richieste fallite",
+    "more": "e altre {{count}} nell'HAR",
+    "slowest": "Richieste più lente"
   }
 }

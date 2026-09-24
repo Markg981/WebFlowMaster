@@ -2154,5 +2154,19 @@
       "serious": "schwer",
       "critical": "kritisch"
     }
+  },
+  "editTestPlanSettings": {
+    "evidence": {
+      "network": "Netzwerk (HAR)",
+      "networkHelp": "Der Bericht listet die fehlgeschlagenen und langsamsten Anfragen jedes aufgezeichneten Tests, ob die Datei behalten wird oder nicht. Die HAR-Datei öffnet sich in den Entwicklertools jedes Browsers; sie enthält nie Bodys, Cookies, Tokens oder Passwörter."
+    }
+  },
+  "network": {
+    "title": "Netzwerk",
+    "summary": "{{requests}} Anfragen, {{failed}} fehlgeschlagen, {{bytes}} empfangen",
+    "download": "HAR herunterladen (öffnet sich in den Entwicklertools des Browsers)",
+    "failed": "Fehlgeschlagene Anfragen",
+    "more": "und {{count}} weitere in der HAR-Datei",
+    "slowest": "Langsamste Anfragen"
   }
 }

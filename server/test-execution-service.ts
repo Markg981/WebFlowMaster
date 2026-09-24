@@ -38,6 +38,7 @@ import { fileFailure, loadTracker, markResolved } from './issue-store';
 import { currentVersionsOf } from './test-version-store';
 import { publishedContentOf, reviewRequired } from './test-publishing';
 import { failuresOf, openQuarantinesOf, refKey } from './test-quarantine';
+import { describeNetworkFailures, type NetworkSummary } from '@shared/network';
 import { takeExecution, transitionExecution } from './execution-state';
 import { artifactStore } from './artifact-store';
 import { watchRun } from './run-watch';
@@ -116,6 +117,9 @@ export interface IndividualTestRunResult {
   /** Kept only when the plan asked for them — see server/run-evidence.ts. */
   videoPath?: string;
   tracePath?: string;
+  harPath?: string;
+  /** Read from the HAR whenever the network was recorded, kept file or not. */
+  network?: NetworkSummary;
   /** The directory this test wrote its evidence into, to be published to the artifact store. */
   artifactDir?: string;
 }
@@ -126,7 +130,7 @@ export interface RunTestOptions {
   browser?: BrowserChoice;
   visual?: Omit<VisualContext, 'testId' | 'browser'>;
   /** Whether to keep a video and a trace of the run. The directory is this test's own. */
-  evidence?: { video?: EvidenceCaptureMode; trace?: EvidenceCaptureMode };
+  evidence?: { video?: EvidenceCaptureMode; trace?: EvidenceCaptureMode; network?: EvidenceCaptureMode };
   /** The plan's timeouts, screenshots and step retry — see server/run-policies.ts. */
   runtime?: StepRuntime;
   /** What a failed precondition means for this test. Absent: it is blocked, as it always was. */
@@ -278,6 +282,8 @@ export async function runTest(
         screenshotPath: lastScreenshotPath, // Or a specific error screenshot for the whole test
         videoPath: result.evidence?.videoPath,
         tracePath: result.evidence?.tracePath,
+        harPath: result.evidence?.harPath,
+        network: result.evidence?.network,
         artifactDir: screenshotBaseDir,
       };
     } catch (error: any) {
@@ -587,16 +593,17 @@ async function runTestPlanJobInTenant(
    * Undefined when the plan wants neither, so a run that records nothing does not even build
    * the option — which is every plan until somebody turns it on.
    */
-  const runEvidence: { video?: EvidenceCaptureMode; trace?: EvidenceCaptureMode } | undefined =
-    shouldRecord(snapshot.evidence.video) || shouldRecord(snapshot.evidence.trace)
-      ? { video: snapshot.evidence.video, trace: snapshot.evidence.trace }
+  const networkMode = snapshot.evidence.network ?? 'never';
+  const runEvidence: { video?: EvidenceCaptureMode; trace?: EvidenceCaptureMode; network?: EvidenceCaptureMode } | undefined =
+    shouldRecord(snapshot.evidence.video) || shouldRecord(snapshot.evidence.trace) || shouldRecord(networkMode)
+      ? { video: snapshot.evidence.video, trace: snapshot.evidence.trace, network: networkMode }
       : undefined;
   if (runEvidence) {
     wsEmitter.emitExecutionLog(testPlanRunId, {
       level: 'info',
       source: 'system',
       message:
-        `Recording this run: video ${runEvidence.video}, trace ${runEvidence.trace}. ` +
+        `Recording this run: video ${runEvidence.video}, trace ${runEvidence.trace}, network ${runEvidence.network}. ` +
         `Kept files appear on each result in the report.`,
       timestamp: new Date().toISOString(),
       metadata: { ...runEvidence },
@@ -879,6 +886,8 @@ async function runTestPlanJobInTenant(
     let screenshotFinalPath: string | undefined = undefined;
     let videoFinalPath: string | undefined = undefined;
     let traceFinalPath: string | undefined = undefined;
+    let harFinalPath: string | undefined = undefined;
+    let networkSummary: NetworkSummary | undefined = undefined;
     let stepsOrLogData: string | undefined = undefined;
     let attempts = 1;
 
@@ -1029,6 +1038,8 @@ async function runTestPlanJobInTenant(
       screenshotFinalPath = resultFromRunTest.screenshotPath; // This is a file path
       videoFinalPath = resultFromRunTest.videoPath;
       traceFinalPath = resultFromRunTest.tracePath;
+      harFinalPath = resultFromRunTest.harPath;
+      networkSummary = resultFromRunTest.network;
       stepsOrLogData = resultFromRunTest.steps ? JSON.stringify(resultFromRunTest.steps) : undefined; // For UI tests
 
       const singleTestDurationMs = Date.now() - singleTestStartTime;
@@ -1039,6 +1050,18 @@ async function runTestPlanJobInTenant(
         timestamp: new Date().toISOString(),
         metadata: { durationMs: singleTestDurationMs, status: reportStatus }
       });
+      // A failed test whose page saw server errors: said next to the failure, because it is
+      // the likeliest reason and the screenshot cannot show it.
+      const networkNote = reportStatus !== 'Passed' && networkSummary ? describeNetworkFailures(networkSummary) : null;
+      if (networkNote) {
+        wsEmitter.emitExecutionLog(testPlanRunId, {
+          level: 'warn',
+          source: 'system',
+          message: `${testName}${onBrowser}: ${networkNote}`,
+          timestamp: new Date().toISOString(),
+          metadata: { failedRequests: networkSummary!.failed },
+        });
+      }
 
       // Convert screenshotPath to a URL if needed, e.g., /results/planId/runId/testId/screenshot.png
       // Stored the way the report reads them: the artifacts route turns one of these back
@@ -1048,6 +1071,7 @@ async function runTestPlanJobInTenant(
       screenshotFinalPath = asResultsUrl(screenshotFinalPath);
       videoFinalPath = asResultsUrl(videoFinalPath);
       traceFinalPath = asResultsUrl(traceFinalPath);
+      harFinalPath = asResultsUrl(harFinalPath);
 
 
     } else {
@@ -1089,6 +1113,8 @@ async function runTestPlanJobInTenant(
       screenshotUrl: screenshotFinalPath,
       videoUrl: videoFinalPath ?? null,
       traceUrl: traceFinalPath ?? null,
+      harUrl: harFinalPath ?? null,
+      networkSummary: networkSummary ?? null,
       detailedLog: stepsOrLogData, // Or specific log for API tests
       startedAt: new Date(singleTestStartTime),
       completedAt: new Date(singleTestEndTime),

@@ -41,7 +41,8 @@ export interface ExecutionSnapshot {
   /** In plan order, fixed at enqueue: a test added to the plan later is not in this run. */
   selectedTests: SnapshotTestReference[];
   visualTesting: { enabled: boolean; updateBaselines: boolean };
-  evidence: { video: EvidenceCaptureMode; trace: EvidenceCaptureMode };
+  /** `network` is absent on snapshots taken before it existed, and read as 'never'. */
+  evidence: { video: EvidenceCaptureMode; trace: EvidenceCaptureMode; network?: EvidenceCaptureMode };
   maxParallelTests: number;
   captureScreenshots: string;
   /** As the plan stored them; server/run-policies.ts reads them, units and all. */
@@ -118,7 +119,11 @@ export function buildExecutionSnapshot(
       enabled: plan.visualTestingEnabled === true,
       updateBaselines: overrides.updateBaselines === true,
     },
-    evidence: { video: evidenceMode(plan.captureVideo), trace: evidenceMode(plan.captureTrace) },
+    evidence: {
+      video: evidenceMode(plan.captureVideo),
+      trace: evidenceMode(plan.captureTrace),
+      network: evidenceMode(plan.captureNetwork),
+    },
     maxParallelTests: plan.maxParallelTests ?? 1,
     captureScreenshots: plan.captureScreenshots ?? 'on_failed_steps',
     timeouts: { pageLoadMs: plan.pageLoadTimeout ?? 30_000, elementMs: plan.elementTimeout ?? 30_000 },

@@ -2154,5 +2154,19 @@
       "serious": "grave",
       "critical": "critique"
     }
+  },
+  "editTestPlanSettings": {
+    "evidence": {
+      "network": "Réseau (HAR)",
+      "networkHelp": "Le rapport liste les requêtes échouées et les plus lentes de chaque test enregistré, fichier conservé ou non. Le HAR s'ouvre dans les outils de développement de n'importe quel navigateur ; il ne contient jamais de corps, de cookies, de jetons ni de mots de passe."
+    }
+  },
+  "network": {
+    "title": "Réseau",
+    "summary": "{{requests}} requêtes, {{failed}} échouées, {{bytes}} reçus",
+    "download": "Télécharger le HAR (s'ouvre dans les outils de développement du navigateur)",
+    "failed": "Requêtes échouées",
+    "more": "et {{count}} de plus dans le HAR",
+    "slowest": "Requêtes les plus lentes"
   }
 }

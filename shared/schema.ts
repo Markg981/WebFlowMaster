@@ -3,6 +3,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations } from 'drizzle-orm';
 import { ACTION_REQUIREMENTS, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from './recording';
+import type { NetworkSummary } from './network';
 
 // Table Definitions
 export const organizations = pgTable("organizations", {
@@ -291,6 +292,8 @@ export const testPlans = pgTable("test_plans", {
    */
   captureVideo: text('capture_video').default('never').notNull(),
   captureTrace: text('capture_trace').default('never').notNull(),
+  /** A HAR of each test's requests (no bodies, no credentials) and the summary the report shows. */
+  captureNetwork: text('capture_network').default('never').notNull(),
   visualTestingEnabled: boolean('visual_testing_enabled').default(false),
   pageLoadTimeout: integer('page_load_timeout').default(30000),
   elementTimeout: integer('element_timeout').default(30000),
@@ -475,6 +478,10 @@ export const reportTestCaseResults = pgTable("report_test_case_results", {
    */
   videoUrl: text("video_url"),
   traceUrl: text("trace_url"),
+  /** The kept HAR, when the plan keeps one for this outcome. */
+  harUrl: text("har_url"),
+  /** Failed and slow requests, read from the HAR whenever one was recorded — see shared/network.ts. */
+  networkSummary: jsonb("network_summary").$type<NetworkSummary>(),
   detailedLog: text("detailed_log"),
   startedAt: timestamp("started_at").notNull(),
   completedAt: timestamp("completed_at"),
@@ -1494,6 +1501,7 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
   // run, not of a step, so "on failed steps" would be a promise neither can keep.
   captureVideo: z.enum(EVIDENCE_CAPTURE_MODES).default("never"),
   captureTrace: z.enum(EVIDENCE_CAPTURE_MODES).default("never"),
+  captureNetwork: z.enum(EVIDENCE_CAPTURE_MODES).default("never"),
   visualTestingEnabled: z.boolean().default(false),
   // Milliseconds. A second at least: the wizard once sent seconds here, and a value that small
   // is that mistake, not a timeout anybody wants.

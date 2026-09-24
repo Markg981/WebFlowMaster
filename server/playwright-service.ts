@@ -23,7 +23,7 @@ import { describeBrowser, launchBrowser, resolveBrowser, type BrowserChoice } fr
 import { compareStepScreenshot, isVisualFailure, type VisualContext } from './visual-testing';
 import { expandSequenceForRun, type SequenceStep } from './step-groups';
 import { elementIdOfStep, resolveSequenceForRun } from './step-elements';
-import { captureRunEvidence, startTrace, videoContextOptions, type CapturedEvidence, type EvidenceOptions } from './run-evidence';
+import { captureRunEvidence, harContextOptions, startTrace, videoContextOptions, type CapturedEvidence, type EvidenceOptions } from './run-evidence';
 import { keepsScreenshot, type StepRuntime } from './run-policies';
 
 // Default settings if not found or incomplete
@@ -1676,6 +1676,8 @@ export class PlaywrightService {
     // Worked out once: the scratch directory a recording goes into is named when the context
     // is created, and has to be the same one that is cleaned up afterwards.
     const videoOptions = await videoContextOptions(options?.evidence);
+    // Same for the network: the HAR's path is fixed when the context is made.
+    const harOptions = await harContextOptions(options?.evidence);
 
     /**
      * Ends the run's recording and closes what was recording it.
@@ -1694,6 +1696,7 @@ export class PlaywrightService {
         passed,
         label: `${test.name ?? 'test'}_${options?.browser?.label ?? 'default'}`,
         scratchDir: videoOptions.recordVideo?.dir,
+        harScratchPath: harOptions.recordHar?.path,
       });
       page = null;
       context = null;
@@ -1734,6 +1737,7 @@ export class PlaywrightService {
         // Recording has to be asked for when the context is made; whether the file is kept is
         // decided when the run ends. A plan that wants neither pays for neither.
         ...videoOptions,
+        ...harOptions,
       });
       tracing = await startTrace(context, options?.evidence);
       page = await context.newPage();
