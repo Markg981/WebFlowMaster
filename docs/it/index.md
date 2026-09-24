@@ -36,6 +36,12 @@ Per chi gestisce un'installazione e per gli owner di un'organizzazione:
   lo stato dei commit.
 - [Agenti locali](./LOCAL_AGENT) — testare applicazioni dentro una rete privata.
 
+## Riferimento
+
+- [API REST](./reference/api) — `/api/v1`: chiavi e scope, run, ogni endpoint e codice di
+  errore, webhook dei piani.
+- [Riga di comando wfm](./reference/cli) — comandi, opzioni, codici di uscita, cosa legge dalla CI.
+
 ## Interni
 
 Per chi sviluppa e mantiene il prodotto:
@@ -47,6 +53,7 @@ Per chi sviluppa e mantiene il prodotto:
 - [Guida sviluppatore](./internals/developer-guide) ·
   [Registro delle decisioni](./internals/decisions) · [Glossario](./internals/glossary)
 
-::: info Altre guide in arrivo
-Il riferimento delle API è in fase di riscrittura e comparirà qui.
-:::
+## PDF
+
+`npm run docs:pdf` scrive ogni sezione di questa documentazione come PDF, in inglese e in
+italiano, in `docs/pdf/` — per un fascicolo di audit o per leggerla offline.

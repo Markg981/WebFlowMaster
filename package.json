@@ -24,7 +24,7 @@
     "dev:client": "npm run dev --prefix client",
     "build:client": "npm run build --prefix client",
     "test:client": "npm test --prefix client",
-    "docs:pdf": "node scripts/generate-docs-pdf.js",
+    "docs:pdf": "npm run docs:build && node scripts/generate-docs-pdf.js",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
