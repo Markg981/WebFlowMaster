@@ -381,12 +381,19 @@
     "executionReport": "Rapport d’exécution",
     "runTestPlan": "Exécution du plan",
     "reviews": "Relectures",
-    "testSuites": "Suites"
+    "testSuites": "Suites",
+    "section": {
+      "testing": "Tests",
+      "operations": "Opérations"
+    },
+    "testLibrary": "Bibliothèque de tests",
+    "testManager": "Gestionnaire de tests"
   },
   "dashboardPage": {
     "user": {
       "text": "Utilisateur"
-    }
+    },
+    "dropActionsPrompt": "Déposez un élément ici"
   },
   "apiTesterPage": {
     "backToDashboard": {
@@ -534,7 +541,17 @@
     "runningAssertions": {
       "text": "Exécution des assertions…"
     },
-    "title": "Testeur d’API"
+    "title": "Testeur d’API",
+    "notifications": {
+      "testLoaded": {
+        "title": "Test chargé",
+        "description": "Test chargé : {{name}}"
+      },
+      "loadFailed": {
+        "title": "Échec du chargement",
+        "description": "Impossible de charger le test d'ID {{id}}."
+      }
+    }
   },
   "dashboardOverviewPage": {
     "webtestPlatform": {
@@ -621,6 +638,12 @@
     "pageDescription": "Regroupez les tests en plans, puis exécutez un plan entier sur un environnement.",
     "description": {
       "label": "Description"
+    },
+    "settings": {
+      "button": "Paramètres"
+    },
+    "running": {
+      "button": "En cours…"
     }
   },
   "testsPage": {
@@ -1072,6 +1095,28 @@
         "title": "Problème avec la session d’enregistrement",
         "description": "Une erreur s’est produite lors de la récupération des actions."
       }
+    },
+    "stepGroups": {
+      "stepCount_one": "{{count}} étape",
+      "stepCount_other": "{{count}} étapes",
+      "saved": {
+        "title": "Groupe d'étapes enregistré",
+        "description": "« {{name}} » est maintenant dans la palette, et n'importe quel test peut l'appeler."
+      },
+      "title": "Groupes d'étapes"
+    },
+    "elementRepository": {
+      "kept": {
+        "title": "Élément conservé",
+        "description": "« {{name}} » appartient désormais au projet. Les étapes qui l'utilisent y lisent son sélecteur."
+      }
+    },
+    "authoring": {
+      "inserted": {
+        "title": "Étapes ajoutées",
+        "description_one": "{{count}} étape a été ajoutée à la fin de la séquence.",
+        "description_other": "{{count}} étapes ont été ajoutées à la fin de la séquence."
+      }
     }
   },
   "notFoundPage": {
@@ -1172,6 +1217,29 @@
     },
     "save": {
       "button": "Enregistrer"
+    },
+    "notifications": {
+      "projectCreated": {
+        "title": "Projet créé",
+        "description": "Projet « {{name}} » créé."
+      },
+      "projectCreateFailed": {
+        "title": "Échec de la création du projet"
+      }
+    },
+    "createNewProject": {
+      "button": "Créer un nouveau projet"
+    },
+    "createProjectModal": {
+      "title": "Nouveau projet",
+      "description": "Saisissez un nom pour votre nouveau projet.",
+      "projectName": {
+        "label": "Nom du projet",
+        "placeholder": "ex. : Mon projet"
+      },
+      "saveProject": {
+        "button": "Enregistrer le projet"
+      }
     }
   },
   "draggableAction": {
@@ -1182,6 +1250,9 @@
   "draggableElement": {
     "element": {
       "text": "élément"
+    },
+    "keep": {
+      "tooltip": "Conserver cet élément dans le référentiel du projet"
     }
   },
   "testSequenceBuilder": {
@@ -1260,6 +1331,14 @@
     },
     "executeTest": {
       "button": "Exécuter le test"
+    },
+    "describe": {
+      "tooltip": "Écrivez ce que fait le test et transformez-le en étapes",
+      "button": "Décrire"
+    },
+    "saveAsGroup": {
+      "tooltip": "Enregistrer ces étapes comme groupe que d'autres tests peuvent appeler",
+      "button": "Enregistrer comme groupe"
     }
   },
   "apiTester": {
@@ -1459,6 +1538,9 @@
       },
       "lastUpdated": {
         "label": "Dernière mise à jour :"
+      },
+      "noProject": {
+        "label": "Aucun projet"
       }
     }
   },
@@ -1577,7 +1659,8 @@
       "startingExecution": "Lancement de l’exécution du plan : {{planName}}",
       "runningTest": "Exécution du test : {{testName}}",
       "testCompleted": "Le test {{testName}} s’est terminé avec l’état : {{status}}",
-      "executionFinished": "Exécution du plan de test terminée."
+      "executionFinished": "Exécution du plan de test terminée.",
+      "waitingForExecution": "En attente du démarrage de l'exécution…"
     },
     "loadingPlan": {
       "text": "Chargement du plan de test…"
@@ -1634,6 +1717,9 @@
       "noLogsYet": {
         "text": "Le journal apparaîtra ici dès le démarrage."
       }
+    },
+    "viewDetailedReport": {
+      "button": "Voir le rapport détaillé"
     }
   },
   "createTestPlanWizard": {
@@ -1672,7 +1758,8 @@
       },
       "osVersion": {
         "label": "Version du système",
-        "placeholder": "ex. 10, 11, Sonoma"
+        "placeholder": "ex. 10, 11, Sonoma",
+        "placeholderSelect": "Sélectionner la version"
       },
       "browser": {
         "label": "Navigateur",
@@ -1784,7 +1871,12 @@
       "validation": {
         "pageLoadTimeoutRequired": "Le délai de chargement de la page doit être un nombre positif.",
         "timeoutRange": "Les délais doivent être compris entre 1 et 600 secondes.",
-        "elementTimeoutRequired": "Le délai d’attente des éléments doit être un nombre positif."
+        "elementTimeoutRequired": "Le délai d’attente des éléments doit être un nombre positif.",
+        "webhookUrlInvalid": "L'URL de notification doit commencer par http:// ou https://."
+      },
+      "notificationWebhook": {
+        "label": "Envoyer les notifications à (URL de webhook)",
+        "help": "Un webhook entrant Slack ou Microsoft Teams, ou toute URL qui accepte un POST. Sans URL, les options ci-dessus n'ont nulle part où envoyer et rien n'est envoyé."
       }
     },
     "cancel": "Annuler",
@@ -1839,7 +1931,34 @@
     "viewLatestReport": "Voir le dernier rapport"
   },
   "generalReportsPage": {
-    "description": "Toutes les exécutions terminées, avec leurs étapes, durées et captures."
+    "description": "Toutes les exécutions terminées, avec leurs étapes, durées et captures.",
+    "title": "Rapports d'exécution",
+    "filters": {
+      "title": "Filtres",
+      "searchByName": "Rechercher par nom de plan",
+      "searchPlaceholder": "Ex. : tests de connexion...",
+      "testPlan": "Plan de test",
+      "selectPlan": "Sélectionner un plan",
+      "allPlans": "Tous les plans",
+      "status": "Statut",
+      "selectStatus": "Sélectionner un statut",
+      "allStatuses": "Tous les statuts",
+      "apply": "Appliquer les filtres"
+    },
+    "executionsList": {
+      "title": "Liste des exécutions",
+      "noResults": "Aucune exécution ne correspond à vos critères."
+    },
+    "table": {
+      "planName": "Nom du plan",
+      "status": "Statut",
+      "startedAt": "Démarrée le",
+      "duration": "Durée",
+      "summary": "Résumé (R/É/I/T)",
+      "triggeredBy": "Déclenchée par",
+      "actions": "Actions",
+      "viewReport": "Voir le rapport"
+    }
   },
   "schedulingPage": {
     "description": "Exécutez un plan de test à heures fixes et soyez prévenu en cas d’échec.",
@@ -1881,7 +2000,16 @@
   "common": {
     "error": "Erreur",
     "cancel": "Annuler",
-    "save": "Enregistrer"
+    "save": "Enregistrer",
+    "close": "Fermer",
+    "menu": "Ouvrir le menu",
+    "expandSidebar": "Déplier la barre latérale",
+    "collapseSidebar": "Replier la barre latérale",
+    "lightMode": "Passer au mode clair",
+    "darkMode": "Passer au mode sombre",
+    "account": "Compte",
+    "signedIn": "Connecté",
+    "logout": "Se déconnecter"
   },
   "environments": {
     "newEnvironmentPlaceholder": "Nouvel environnement (ex. Staging)",
@@ -1939,7 +2067,9 @@
     "quarantinedFailures": "{{count}} des échecs ci-dessous concernent des tests en quarantaine : ils sont affichés et n'ont pas fait échouer cette exécution.",
     "ci": {
       "label": "Build"
-    }
+    },
+    "backToReports": "Retour à la liste des rapports",
+    "title": "Rapport de test"
   },
   "scheduleEnvironment": {
     "label": "Environnement",
@@ -2161,7 +2291,28 @@
   "testHistory": {
     "published": "Publiée",
     "rollback": "Revenir à celle-ci",
-    "rollbackHint": "Les plans exécutent de nouveau cette version, déjà publiée auparavant."
+    "rollbackHint": "Les plans exécutent de nouveau cette version, déjà publiée auparavant.",
+    "title": "Historique de « {{name}} »",
+    "description": "Chaque enregistrement est ici, du plus récent au plus ancien. En restaurer un l'ajoute en haut comme nouvelle version : rien entre les deux n'est supprimé, et le travail du jour reste récupérable.",
+    "loading": "Lecture de l'historique…",
+    "empty": "Rien pour l'instant. Le prochain enregistrement sera la version 1.",
+    "version": "Version {{n}}",
+    "current": "Actuelle",
+    "restoredFrom": "restaurée depuis la {{n}}",
+    "noSummary": "Enregistré.",
+    "steps_one": "{{count}} étape",
+    "steps_other": "{{count}} étapes",
+    "unknownAuthor": "un membre qui est parti",
+    "neverRan": "Jamais exécuté",
+    "passed_one": "{{count}} réussi",
+    "passed_other": "{{count}} réussis",
+    "failed_one": "{{count}} en échec",
+    "failed_other": "{{count}} en échec",
+    "noVerdict_one": "{{count}} n'a jamais abouti",
+    "noVerdict_other": "{{count}} n'ont jamais abouti",
+    "restore": "Restaurer",
+    "unversioned_one": "{{count}} exécution antérieure de ce test n'a pas enregistré la version utilisée.",
+    "unversioned_other": "{{count}} exécutions antérieures de ce test n'ont pas enregistré la version utilisée."
   },
   "runners": {
     "loading": "Chargement…",
@@ -2427,5 +2578,80 @@
     },
     "check": "Tester la connexion",
     "delete": "Supprimer"
+  },
+  "testLibrary": {
+    "restored": {
+      "title": "Restauré",
+      "description": "Le test est revenu à la version {{from}}, enregistrée comme version {{to}}.",
+      "unchanged": "Le test était déjà à cette version : rien n'a changé."
+    },
+    "confirmDelete": "Supprimer « {{name}} » et son historique ?",
+    "deleted": "Test supprimé",
+    "deleteFailed": "Impossible de supprimer le test",
+    "title": "Bibliothèque de tests",
+    "description": "Chaque test enregistré, à quoi il sert et ce qu'il était avant.",
+    "search": "Rechercher par nom",
+    "clearFilters": "Effacer",
+    "loading": "Chargement des tests…",
+    "empty": "Aucun test pour l'instant. Enregistrez-en ou décrivez-en un dans le builder, puis sauvegardez-le.",
+    "noMatches": "Aucun test ne correspond à ce filtre.",
+    "columns": {
+      "name": "Nom",
+      "tags": "Étiquettes",
+      "url": "Commence à",
+      "updated": "Dernier enregistrement",
+      "actions": "Actions"
+    },
+    "history": "Historique",
+    "delete": "Supprimer"
+  },
+  "authorSteps": {
+    "title": "Décrire le test",
+    "description": "Une instruction par ligne, avec les mots du ticket. Chaque ligne est affichée comme l'étape qu'elle est devenue avant toute insertion : une phrase mal comprise deviendrait sinon un test qui réussit pour la mauvaise raison.",
+    "textLabel": "Ce que fait le test",
+    "placeholder": "Aller sur https://example.com/login\nSaisir « admin » dans le champ Username\nCliquer sur le bouton Sign in\nVérifier que le tableau de bord est visible",
+    "projectLabel": "Projet dont les éléments peuvent être nommés (facultatif)",
+    "noProject": "Uniquement ce qui est détecté sur cette page",
+    "projectHint": "Une étape qui nomme un élément conservé lit son sélecteur dans le référentiel : une réparation ultérieure atteint donc aussi ce test.",
+    "fromModel": "IA",
+    "noModel": "Aucune clé d'IA n'est configurée : seules les formulations comprises sans elle ont été lues.",
+    "read": "Lire la description",
+    "insert_one": "Insérer {{count}} étape",
+    "insert_other": "Insérer {{count}} étapes"
+  },
+  "keepElement": {
+    "projectRequired": "Choisissez le projet auquel appartient cet élément.",
+    "nameRequired": "Donnez un nom à l'élément : c'est ainsi qu'il sera reconnu.",
+    "title": "Conserver cet élément",
+    "description": "Désormais, cet élément appartient au projet : chaque test qui l'utilise lit un seul sélecteur, et une réparation les atteint tous d'un coup.",
+    "projectLabel": "Projet",
+    "projectPlaceholder": "Choisissez un projet",
+    "nameLabel": "Nom",
+    "selector": "Sélecteur",
+    "save": "Conserver"
+  },
+  "saveStepGroup": {
+    "nameRequired": "Donnez un nom au groupe : c'est ainsi que les tests l'appelleront.",
+    "title": "Enregistrer comme groupe d'étapes",
+    "description_one": "Cette étape devient un groupe. Un test qui l'appelle exécute ce que contient le groupe au moment de l'exécution : modifier le groupe plus tard change donc chaque test qui l'appelle.",
+    "description_other": "Ces {{count}} étapes deviennent un groupe. Un test qui l'appelle exécute ce que contient le groupe au moment de l'exécution : modifier le groupe plus tard change donc chaque test qui l'appelle.",
+    "nameLabel": "Nom",
+    "namePlaceholder": "Connexion",
+    "descriptionLabel": "Description"
+  },
+  "tags": {
+    "edit": "Modifier les étiquettes",
+    "add": "Ajouter des étiquettes",
+    "newPlaceholder": "Nouvelle étiquette",
+    "none": "Aucune étiquette pour l'instant. Le premier mot que vous tapez en devient une."
+  },
+  "issues": {
+    "openInTracker": "Ouvrir dans le gestionnaire",
+    "file": "Créer un ticket"
+  },
+  "testNode": {
+    "stepGroup": {
+      "badge": "groupe"
+    }
   }
 }
