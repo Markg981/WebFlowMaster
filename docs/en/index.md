@@ -13,6 +13,13 @@ For the people who run an installation and the owners of an organization:
 - [Configuration reference](./admin/configuration) — every environment variable.
 - [Administration](./admin/administration) — roles, members, keys, security, audit, data.
 
+## Security and compliance
+
+- [Security overview](./security/) — isolation, identity, encryption, audit, and the current limits.
+- [Data protection](./security/data-protection) — what personal data is kept, where, for how long,
+  and how it is exported or erased.
+- [Hardening checklist](./security/hardening) — what an operator does before and after going live.
+
 ## Integrations
 
 - [CI integration](./CI_INTEGRATION) — GitHub Actions, GitLab CI, Jenkins, Azure Pipelines, the CLI,
@@ -31,6 +38,5 @@ For the people who build and maintain the product:
   [Glossary](./internals/glossary)
 
 ::: info More guides are on the way
-The security and compliance overview, the user guide and the API reference are being rewritten
-and will appear here.
+The user guide and the API reference are being rewritten and will appear here.
 :::

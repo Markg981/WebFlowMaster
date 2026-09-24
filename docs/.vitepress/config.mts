@@ -10,6 +10,10 @@ import { withMermaid } from 'vitepress-plugin-mermaid';
  */
 
 type Labels = {
+  security: string;
+  securityOverview: string;
+  dataProtection: string;
+  hardening: string;
   admin: string;
   installation: string;
   operations: string;
@@ -44,6 +48,14 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
       ],
     },
     {
+      text: t.security,
+      items: [
+        { text: t.securityOverview, link: p('security/') },
+        { text: t.dataProtection, link: p('security/data-protection') },
+        { text: t.hardening, link: p('security/hardening') },
+      ],
+    },
+    {
       text: t.integrations,
       items: [
         { text: t.ci, link: p('CI_INTEGRATION') },
@@ -68,6 +80,10 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
 }
 
 const en: Labels = {
+  security: 'Security and compliance',
+  securityOverview: 'Security overview',
+  dataProtection: 'Data protection',
+  hardening: 'Hardening checklist',
   admin: 'Install and administer',
   installation: 'Installation',
   operations: 'Operations',
@@ -90,6 +106,10 @@ const en: Labels = {
 };
 
 const it: Labels = {
+  security: 'Sicurezza e compliance',
+  securityOverview: 'Panoramica sulla sicurezza',
+  dataProtection: 'Protezione dei dati',
+  hardening: 'Checklist di hardening',
   admin: 'Installazione e amministrazione',
   installation: 'Installazione',
   operations: 'Operatività',
@@ -168,6 +188,7 @@ export default withMermaid(
           nav: [
             { text: 'Home', link: '/en/' },
             { text: 'Administration', link: '/en/admin/installation' },
+            { text: 'Security', link: '/en/security/' },
             { text: 'Internals', link: '/en/internals/' },
           ],
           sidebar: { '/en/': sidebar('en', en) },
@@ -182,6 +203,7 @@ export default withMermaid(
           nav: [
             { text: 'Home', link: '/it/' },
             { text: 'Amministrazione', link: '/it/admin/installation' },
+            { text: 'Sicurezza', link: '/it/security/' },
             { text: 'Interni', link: '/it/internals/' },
           ],
           sidebar: { '/it/': sidebar('it', it) },

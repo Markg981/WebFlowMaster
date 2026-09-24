@@ -195,7 +195,7 @@ può cambiarle. La modifica viene registrata nel registro di audit dell'organizz
 owner l'ha fatta. Su un'installazione condivisa da più clienti, lasciatele a chi la gestisce.
 :::
 
-## Esportazione e cancellazione *(owner)*
+## Esportazione e cancellazione *(owner)* {#esportazione-e-cancellazione}
 
 Entrambe si fanno per ora tramite l'API, con la chiave ad accesso completo di un owner:
 
