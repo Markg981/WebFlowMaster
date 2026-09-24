@@ -1,0 +1,110 @@
+name: WebFlowMaster test plan
+description: Run a WebFlowMaster test plan against your application, wait for the verdict, and keep its reports.
+author: WebFlowMaster
+branding:
+  icon: check-circle
+  color: blue
+
+# The CLI comes from the server this step talks to (GET /cli/wfm.mjs), so it always matches it.
+# Inputs reach the scripts only through environment variables, never interpolated into them: an
+# input containing `"; rm -rf ~` stays a string.
+
+inputs:
+  url:
+    description: The WebFlowMaster server, e.g. https://webflowmaster.example.com
+    required: true
+  api-key:
+    description: An API key with runs:write and runs:read (Settings → API keys). Pass it from a secret.
+    required: true
+  plan:
+    description: The id of the test plan to run.
+    required: true
+  environment:
+    description: The id of the environment to run against. The plan's own when empty.
+    required: false
+    default: ''
+  wait:
+    description: Wait for the run to finish and fail this step if it failed. Implied by any report input.
+    required: false
+    default: 'true'
+  timeout:
+    description: Seconds to wait before giving up.
+    required: false
+    default: '1800'
+  junit:
+    description: Where to write the JUnit XML, for a test report action. Nothing is written when empty.
+    required: false
+    default: 'webflowmaster-junit.xml'
+  html:
+    description: Where to write the self-contained HTML report. Nothing is written when empty.
+    required: false
+    default: ''
+  pdf:
+    description: Where to write the PDF report. Nothing is written when empty.
+    required: false
+    default: ''
+  allure:
+    description: Where to write a zip of Allure results. Nothing is written when empty.
+    required: false
+    default: ''
+  update-baselines:
+    description: Accept this run's screenshots as the new visual baselines.
+    required: false
+    default: 'false'
+  idempotency-key:
+    description: Start at most one run for this key; a re-run of the job with the same key follows the run already started.
+    required: false
+    default: ''
+
+outputs:
+  run-id:
+    description: The id of the run.
+    value: ${{ steps.run.outputs.run-id }}
+  status:
+    description: How the run ended (completed, failed, error, cancelled, timed_out), or queued when not waiting.
+    value: ${{ steps.run.outputs.status }}
+  report-url:
+    description: The run's report page, when the server knows its own address (APP_BASE_URL).
+    value: ${{ steps.run.outputs.report-url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Fetch the WebFlowMaster CLI from the server
+      shell: bash
+      env:
+        WFM_URL: ${{ inputs.url }}
+      run: |
+        set -euo pipefail
+        curl -fsSL --retry 3 --retry-delay 2 "${WFM_URL%/}/cli/wfm.mjs" -o "$RUNNER_TEMP/wfm.mjs"
+
+    - name: Run the test plan
+      id: run
+      shell: bash
+      env:
+        WFM_URL: ${{ inputs.url }}
+        WFM_API_KEY: ${{ inputs.api-key }}
+        INPUT_PLAN: ${{ inputs.plan }}
+        INPUT_ENVIRONMENT: ${{ inputs.environment }}
+        INPUT_WAIT: ${{ inputs.wait }}
+        INPUT_TIMEOUT: ${{ inputs.timeout }}
+        INPUT_JUNIT: ${{ inputs.junit }}
+        INPUT_HTML: ${{ inputs.html }}
+        INPUT_PDF: ${{ inputs.pdf }}
+        INPUT_ALLURE: ${{ inputs.allure }}
+        INPUT_UPDATE_BASELINES: ${{ inputs.update-baselines }}
+        INPUT_IDEMPOTENCY_KEY: ${{ inputs.idempotency-key }}
+      run: |
+        set -uo pipefail
+        echo "::add-mask::$WFM_API_KEY"
+        args=(run "$INPUT_PLAN" --timeout "$INPUT_TIMEOUT")
+        [ "$INPUT_WAIT" = "true" ] && args+=(--wait)
+        [ -n "$INPUT_ENVIRONMENT" ] && args+=(--environment "$INPUT_ENVIRONMENT")
+        [ -n "$INPUT_JUNIT" ] && [ "$INPUT_WAIT" = "true" ] && args+=(--junit "$INPUT_JUNIT")
+        [ -n "$INPUT_HTML" ] && args+=(--html "$INPUT_HTML")
+        [ -n "$INPUT_PDF" ] && args+=(--pdf "$INPUT_PDF")
+        [ -n "$INPUT_ALLURE" ] && args+=(--allure "$INPUT_ALLURE")
+        [ "$INPUT_UPDATE_BASELINES" = "true" ] && args+=(--update-baselines)
+        [ -n "$INPUT_IDEMPOTENCY_KEY" ] && args+=(--idempotency-key "$INPUT_IDEMPOTENCY_KEY")
+        # Exit codes: 0 passed, 1 the run failed, 2 the step could not be carried out.
+        node "$RUNNER_TEMP/wfm.mjs" "${args[@]}"

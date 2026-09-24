@@ -1,0 +1,43 @@
+# WebFlowMaster for GitLab CI.
+#
+# Include this file and extend the hidden job:
+#
+#   include:
+#     - remote: 'https://raw.githubusercontent.com/Markg981/WebFlowMaster/main/integrations/gitlab/webflowmaster.gitlab-ci.yml'
+#
+#   e2e:
+#     extends: .webflowmaster
+#     stage: test
+#     variables:
+#       WFM_PLAN_ID: "your-plan-id"
+#
+# WFM_URL and WFM_API_KEY come from the project's CI/CD variables (Settings → CI/CD → Variables),
+# the key masked and protected. The CLI is downloaded from the server it will talk to, so it always
+# matches it. The run is linked to this pipeline, commit and merge request automatically.
+
+.webflowmaster:
+  image: node:20-alpine
+  variables:
+    WFM_PLAN_ID: ""
+    WFM_ENVIRONMENT_ID: ""
+    WFM_TIMEOUT: "1800"
+    WFM_JUNIT: "webflowmaster-junit.xml"
+    WFM_HTML: "webflowmaster-report.html"
+  script:
+    - test -n "$WFM_PLAN_ID" || { echo "Set WFM_PLAN_ID to the plan to run."; exit 2; }
+    - >
+      node -e "fetch(process.env.WFM_URL.replace(/\/+$/, '') + '/cli/wfm.mjs')
+      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then((t) => require('fs').writeFileSync('wfm.mjs', t))
+      .catch((e) => { console.error('Could not download the WebFlowMaster CLI: ' + e.message); process.exit(2); })"
+    - >
+      node wfm.mjs run "$WFM_PLAN_ID" --wait --timeout "$WFM_TIMEOUT"
+      --junit "$WFM_JUNIT" --html "$WFM_HTML"
+      ${WFM_ENVIRONMENT_ID:+--environment "$WFM_ENVIRONMENT_ID"}
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - webflowmaster-report.html
+    reports:
+      junit: webflowmaster-junit.xml

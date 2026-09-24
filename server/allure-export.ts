@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'crypto';
 import type { ReportModel, ReportResultModel } from './report-model';
+import { describeCi } from '@shared/ci';
 import type { ZipEntry } from './zip';
 
 /**
@@ -135,6 +136,9 @@ export function buildAllureResults(model: ReportModel, options: AllureExportOpti
     ['Triggered by', model.trigger],
     ...(model.environment ? [['Environment', model.environment]] : []),
     ...(model.runner ? [['Runner', model.runner]] : []),
+    ...(model.ci?.repository ? [['Repository', model.ci.repository]] : []),
+    ...(model.ci?.commit ? [['Commit', model.ci.commit]] : []),
+    ...(model.ci?.branch ? [['Branch', model.ci.branch]] : []),
   ]
     .map(([key, value]) => `${key.replace(/[=:\s]/g, '\\$&')}=${String(value).replace(/\n/g, ' ')}`)
     .join('\n');
@@ -146,8 +150,10 @@ export function buildAllureResults(model: ReportModel, options: AllureExportOpti
       JSON.stringify({
         name: 'WebFlowMaster',
         type: 'webflowmaster',
-        buildName: `${model.planName} · ${model.executionId}`,
-        ...(options.reportUrl ? { reportUrl: options.reportUrl, buildUrl: options.reportUrl } : {}),
+        buildName: model.ci ? describeCi(model.ci) : `${model.planName} · ${model.executionId}`,
+        ...(options.reportUrl ? { reportUrl: options.reportUrl } : {}),
+        // The build that asked for the run when there was one; the report otherwise.
+        ...(model.ci?.buildUrl ? { buildUrl: model.ci.buildUrl } : options.reportUrl ? { buildUrl: options.reportUrl } : {}),
       }),
     ),
   });

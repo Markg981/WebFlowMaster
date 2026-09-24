@@ -1,0 +1,62 @@
+# WebFlowMaster for Azure Pipelines, as a steps template.
+#
+#   resources:
+#     repositories:
+#       - repository: webflowmaster
+#         type: github
+#         name: Markg981/WebFlowMaster
+#         endpoint: your-github-service-connection
+#
+#   steps:
+#     - template: integrations/azure-pipelines/webflowmaster.yml@webflowmaster
+#       parameters:
+#         plan: your-plan-id
+#
+# WFM_URL and WFM_API_KEY come from a variable group or the pipeline's variables, the key marked
+# secret. Azure does not hand secret variables to scripts unless mapped, which the step below does.
+# The CLI is downloaded from the server it will talk to; the run is linked to this build, commit
+# and pull request automatically.
+
+parameters:
+  - name: plan
+    type: string
+  - name: environment
+    type: string
+    default: ''
+  - name: timeout
+    type: number
+    default: 1800
+
+steps:
+  - script: |
+      set -u
+      node -e "fetch(process.env.WFM_URL.replace(/\/+$/, '') + '/cli/wfm.mjs').then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }).then((t) => require('fs').writeFileSync('wfm.mjs', t)).catch((e) => { console.error('Could not download the WebFlowMaster CLI: ' + e.message); process.exit(2); })" || exit 2
+      set -- run "$WFM_PLAN" --wait --timeout "$WFM_TIMEOUT" --junit "$WFM_OUT/webflowmaster-junit.xml" --html "$WFM_OUT/webflowmaster-report.html"
+      [ -n "$WFM_ENVIRONMENT" ] && set -- "$@" --environment "$WFM_ENVIRONMENT"
+      node wfm.mjs "$@"
+    displayName: WebFlowMaster test plan
+    env:
+      WFM_URL: $(WFM_URL)
+      WFM_API_KEY: $(WFM_API_KEY)
+      WFM_PLAN: ${{ parameters.plan }}
+      WFM_ENVIRONMENT: ${{ parameters.environment }}
+      WFM_TIMEOUT: ${{ parameters.timeout }}
+      WFM_OUT: $(Build.ArtifactStagingDirectory)
+
+  - task: PublishTestResults@2
+    displayName: Publish WebFlowMaster results
+    condition: always()
+    inputs:
+      testResultsFormat: JUnit
+      testResultsFiles: $(Build.ArtifactStagingDirectory)/webflowmaster-junit.xml
+      testRunTitle: WebFlowMaster
+      failTaskOnMissingResultsFile: false
+
+  - task: PublishPipelineArtifact@1
+    displayName: Keep the WebFlowMaster report
+    condition: always()
+    # No report when the run could not start; the step above already says why.
+    continueOnError: true
+    inputs:
+      targetPath: $(Build.ArtifactStagingDirectory)/webflowmaster-report.html
+      artifact: webflowmaster-report

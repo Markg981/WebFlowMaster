@@ -122,35 +122,40 @@ npm run test:client
 
 ## 🤖 Eseguire un Test Plan dalla CI
 
-Una pipeline non ha un browser né una sessione: autentica con una **API key** (Settings → API keys)
-e parla con la CLI. La chiave agisce per conto di chi l'ha creata, con il suo ruolo, e si revoca
-senza toccare quell'account.
+Una pipeline non ha un browser né una sessione: autentica con una **API key** con gli scope
+`runs:write` e `runs:read` (Settings → API keys, meglio su un account di servizio) e usa la CLI
+`wfm`, che il server stesso distribuisce, così è sempre la versione giusta:
 
 ```bash
 export WFM_URL=https://webflowmaster.example.com
 export WFM_API_KEY=wfm_...
 
-# Avvia il piano, aspetta l'esito, scrivi il report JUnit
-npm run cli -- run <planId> --wait --junit junit.xml
+curl -fsSL "$WFM_URL/cli/wfm.mjs" -o wfm.mjs
+# Avvia il piano, aspetta l'esito, scrivi JUnit e il report HTML
+node wfm.mjs run <planId> --wait --junit junit.xml --html report.html
 ```
 
 Il **codice di uscita è l'interfaccia**: `0` il run è passato, `1` il run è fallito, `2` il comando
-non è stato eseguibile (credenziali, rete, uso errato). Altri comandi: `status <executionId>` e
-`junit <executionId>`.
+non è stato eseguibile (credenziali, rete, uso errato). Altri comandi: `status <runId>`,
+`junit <runId>`, `export <runId> --html/--pdf/--allure <file>`. Dentro una CI la CLI invia da sola
+repository, commit, branch e link alla build, che compaiono nel report e nelle notifiche.
+
+Integrazioni pronte in [`integrations/`](./integrations): **GitHub Action**, template **GitLab CI**,
+step di shared library per **Jenkins**, template **Azure Pipelines**. Guida completa:
+[docs/it/CI_INTEGRATION.md](./docs/it/CI_INTEGRATION.md) ([English](./docs/en/CI_INTEGRATION.md)).
 
 Esempio per GitHub Actions:
 
 ```yaml
-- name: Run E2E plan
-  env:
-    WFM_URL: ${{ secrets.WFM_URL }}
-    WFM_API_KEY: ${{ secrets.WFM_API_KEY }}
-  run: npx wfm run ${{ vars.WFM_PLAN_ID }} --wait --junit junit.xml
-- name: Publish results
-  if: always()
-  uses: mikepenz/action-junit-report@v4
+- uses: Markg981/WebFlowMaster/integrations/github-action@main
   with:
-    report_paths: junit.xml
+    url: ${{ vars.WFM_URL }}
+    api-key: ${{ secrets.WFM_API_KEY }}
+    plan: ${{ vars.WFM_PLAN_ID }}
+- uses: mikepenz/action-junit-report@v4
+  if: always()
+  with:
+    report_paths: webflowmaster-junit.xml
 ```
 
 Il report JUnit raggruppa i risultati **per browser**, così una matrice si legge come

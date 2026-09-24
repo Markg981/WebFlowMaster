@@ -1,4 +1,5 @@
 import type { ReportModel, ReportResultModel } from './report-model';
+import { describeCi } from '@shared/ci';
 
 /**
  * A run as one HTML file that opens anywhere: no scripts, no requests, styles inline, images
@@ -120,6 +121,7 @@ export function renderReportHtml(model: ReportModel, options: HtmlRenderOptions 
     <dt>Finished</dt><dd>${when(model.completedAt)}</dd>
     <dt>Duration</dt><dd>${duration(model.durationMs)}</dd>
     <dt>Triggered by</dt><dd>${escapeHtml(model.trigger)}${model.maxAttempts > 1 ? ` · attempt ${model.attempt} of ${model.maxAttempts}` : ''}</dd>
+    ${model.ci ? `<dt>Build</dt><dd>${escapeHtml(describeCi(model.ci))}${model.ci.buildUrl ? `<br><span class="mono">${escapeHtml(model.ci.buildUrl)}</span>` : ''}</dd>` : ''}
     ${model.environment ? `<dt>Environment</dt><dd>${escapeHtml(model.environment)}</dd>` : ''}
     ${model.runner ? `<dt>Runner</dt><dd class="mono">${escapeHtml(model.runner)}</dd>` : ''}
     ${options.reportUrl ? `<dt>Live report</dt><dd class="mono">${escapeHtml(options.reportUrl)}</dd>` : ''}

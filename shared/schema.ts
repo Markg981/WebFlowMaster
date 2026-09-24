@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { relations } from 'drizzle-orm';
 import { ACTION_REQUIREMENTS, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from './recording';
 import type { NetworkSummary } from './network';
+import type { CiContext } from './ci';
 
 // Table Definitions
 export const organizations = pgTable("organizations", {
@@ -413,6 +414,8 @@ export const testPlanExecutions = pgTable("test_plan_executions", {
   artifactsPurgedAt: timestamp('artifacts_purged_at'),
   /** The runner that took the run (runners.id, host:pid:suffix). Readable after the runner is gone. */
   runnerId: text('runner_id'),
+  /** The build, commit and branch that asked for the run, when a pipeline did — see shared/ci.ts. */
+  ciContext: jsonb('ci_context').$type<CiContext>(),
   environment: text('environment'),
   browsers: jsonb('browsers'),
   triggeredBy: text('triggered_by').notNull().default('manual'),

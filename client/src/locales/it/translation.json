@@ -1902,7 +1902,10 @@
       "error": "Non completato"
     },
     "purged": "Screenshot, video e trace di questo run sono stati rimossi il {{date}} dalla politica di retention. I risultati sono conservati.",
-    "quarantinedFailures": "{{count}} dei fallimenti qui sotto sono di test in quarantena: sono mostrati, ma non hanno fatto fallire questa esecuzione."
+    "quarantinedFailures": "{{count}} dei fallimenti qui sotto sono di test in quarantena: sono mostrati, ma non hanno fatto fallire questa esecuzione.",
+    "ci": {
+      "label": "Build"
+    }
   },
   "scheduleEnvironment": {
     "label": "Ambiente",

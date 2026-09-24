@@ -19,6 +19,7 @@ import AttemptsBadge from '@/components/reports/AttemptsBadge';
 import QuarantinedBadge from '@/components/reports/QuarantinedBadge';
 import ExportRunMenu from '@/components/reports/ExportRunMenu';
 import type { NetworkSummary } from '@shared/network';
+import { describeCi, type CiContext } from '@shared/ci';
 import CancelRunButton from '@/components/reports/CancelRunButton';
 // One list of "still going" states, shared with the server: 'queued' was missing from this page's own copy.
 import { isExecutionInFlight } from '@shared/execution-status';
@@ -49,6 +50,8 @@ export interface TestPlanExecutionReport {
     flakyTests?: number;
     /** Failures of tests in quarantine: counted, and not held against the run. */
     quarantinedFailures?: number;
+    /** The build, commit and branch that asked for the run, when a pipeline did. */
+    ci?: CiContext | null;
     /** When retention removed this run's screenshots, videos and traces. */
     artifactsPurgedAt?: string | null;
   };
@@ -233,6 +236,16 @@ const TestReportPage: React.FC = () => {
               <p><strong>Environment:</strong> {header.environment || 'N/A'} {header.browsers && header.browsers.length > 0 ? `(${header.browsers.join(', ')})` : ''}</p>
               <p><strong>Triggered by:</strong> {header.triggeredBy || 'N/A'}</p>
               {header.runnerId && <p><strong>{t('runners.ranOn', 'Ran on')}:</strong> <code className="text-xs">{header.runnerId}</code></p>}
+              {header.ci && (
+                <p data-testid="run-ci">
+                  <strong>{t('testReportPage.ci.label', 'Build')}:</strong>{' '}
+                  {header.ci.buildUrl ? (
+                    <a href={header.ci.buildUrl} target="_blank" rel="noreferrer" className="underline hover:text-primary">{describeCi(header.ci)}</a>
+                  ) : (
+                    describeCi(header.ci)
+                  )}
+                </p>
+              )}
               <p><strong>Started:</strong> {new Date(header.dateTime).toLocaleString()}</p>
               {header.completedAt ?
                 <p><strong>Completed:</strong> {new Date(header.completedAt).toLocaleString()}</p> :

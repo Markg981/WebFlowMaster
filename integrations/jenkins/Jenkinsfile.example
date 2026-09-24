@@ -1,0 +1,27 @@
+// A pipeline that runs a WebFlowMaster plan after deploying to staging.
+// Needs the shared library in integrations/jenkins registered as "webflowmaster",
+// and a "Secret text" credential 'webflowmaster-api-key' holding a key with runs:write and runs:read.
+
+@Library('webflowmaster') _
+
+pipeline {
+  agent { docker { image 'node:20' } }
+
+  environment {
+    WFM_URL = 'https://webflowmaster.example.com'
+  }
+
+  stages {
+    stage('Deploy to staging') {
+      steps {
+        echo 'Your deployment here.'
+      }
+    }
+    stage('E2E') {
+      steps {
+        // Fails the build when the plan fails; JUnit and the HTML report are published either way.
+        webflowmaster plan: 'your-plan-id', environment: '3', onFailure: 'fail'
+      }
+    }
+  }
+}
