@@ -174,9 +174,11 @@ Un owner lo crea in *Settings → Agenti locali*, lo si avvia con `Dockerfile.ag
 ---
 
 ## 📂 Struttura della Documentazione
-Per approfondimenti, consulta la cartella `docs/`:
+La documentazione è un sito VitePress in `docs/`, in inglese e italiano: `npm run docs:dev` per
+consultarla in locale, `npm run docs:build` per compilarla.
+- [**Architettura e interni**](./docs/it/internals/index.md) ([English](./docs/en/internals/index.md)):
+  processi, tenancy, ciclo di vita dei run, modello dati, guida sviluppatore, decisioni.
 - [**User Guide**](./docs/USER_GUIDE.md): Manuale per tester e QA Engineer.
-- [**Architecture**](./docs/ARCHITECTURE.md): Design tecnico, schema DB e AI Self-Healing.
 - [**API Reference**](./docs/API_REFERENCE.md): Riferimento degli endpoint REST.
 - [**Contributing**](./docs/CONTRIBUTING.md): Linee guida per contribuire.
 

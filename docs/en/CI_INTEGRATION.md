@@ -2,7 +2,7 @@
 
 A pipeline starts a WebFlowMaster test plan, waits for the verdict, fails the build when the plan
 fails, and publishes the results in the CI system's own test report. Ready-made integrations are
-in [`integrations/`](../../integrations): a GitHub Action, a GitLab CI template, a Jenkins shared
+in [`integrations/`](https://github.com/Markg981/WebFlowMaster/tree/main/integrations): a GitHub Action, a GitLab CI template, a Jenkins shared
 library step and an Azure Pipelines template. Each one is a thin wrapper around the `wfm` CLI, and
 anything else that runs Node 18 or later can use the CLI directly.
 
@@ -117,7 +117,7 @@ steps {
 The JUnit results are published with the `junit` step and the HTML report is archived. By default
 a failed plan fails the build; `onFailure: 'unstable'` marks the build unstable instead. Other
 parameters are `environment`, `timeout`, `credentialsId`, `junit` and `html`. See
-[`Jenkinsfile.example`](../../integrations/jenkins/Jenkinsfile.example).
+[`Jenkinsfile.example`](https://github.com/Markg981/WebFlowMaster/blob/main/integrations/jenkins/Jenkinsfile.example).
 
 ## 6. Azure Pipelines
 

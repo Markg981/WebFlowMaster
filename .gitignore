@@ -65,3 +65,7 @@ scripts/netcontent-ui/ui-tests.preview.json
 # until someone renames one to .test.ts to keep it; four landed here from a few seconds of
 # half-applied edits during a refactor.
 client/src/__repro__/*.repro.ts
+
+# Documentation site build output and cache
+docs/.vitepress/cache
+docs/.vitepress/dist
