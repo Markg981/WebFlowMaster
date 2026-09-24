@@ -2148,5 +2148,19 @@
       "serious": "serious",
       "critical": "critical"
     }
+  },
+  "editTestPlanSettings": {
+    "evidence": {
+      "network": "Network (HAR)",
+      "networkHelp": "The report lists the failed and slowest requests of every recorded test, kept file or not. The HAR opens in any browser’s DevTools; it never holds bodies, cookies, tokens or passwords."
+    }
+  },
+  "network": {
+    "title": "Network",
+    "summary": "{{requests}} requests, {{failed}} failed, {{bytes}} received",
+    "download": "Download the HAR (opens in any browser’s DevTools)",
+    "failed": "Failed requests",
+    "more": "and {{count}} more in the HAR",
+    "slowest": "Slowest requests"
   }
 }

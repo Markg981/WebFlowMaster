@@ -356,8 +356,17 @@ describe('keeping a recording of the run', () => {
     expect(executeTestSequence.mock.calls[0][6]?.evidence).toEqual({
       video: 'on_failure',
       trace: 'always',
+      network: 'never',
       artifactDir: expect.any(String),
     });
+  });
+
+  it('asks for the network alone, when that is all the plan wants', async () => {
+    await seedPlan({ captureNetwork: 'on_failure' });
+
+    await runPlan({ browsers: ['chromium'] });
+
+    expect(executeTestSequence.mock.calls[0][6]?.evidence).toMatchObject({ video: 'never', trace: 'never', network: 'on_failure' });
   });
 
   it('asks for nothing when the plan wants neither, which is every plan by default', async () => {
@@ -377,6 +386,8 @@ describe('keeping a recording of the run', () => {
       evidence: {
         videoPath: 'results/plan/exec/ui_1_chromium/run.webm',
         tracePath: 'results/plan/exec/ui_1_chromium/trace.zip',
+        harPath: 'results/plan/exec/ui_1_chromium/login_network.har',
+        network: { requests: 3, failed: 0, transferredBytes: 900, failures: [], slowest: [] },
       },
     });
 
@@ -385,6 +396,8 @@ describe('keeping a recording of the run', () => {
     const [row] = await privilegedDb.select().from(reportTestCaseResults);
     expect(row.videoUrl).toBe('/results/plan/exec/ui_1_chromium/run.webm');
     expect(row.traceUrl).toBe('/results/plan/exec/ui_1_chromium/trace.zip');
+    expect(row.harUrl).toBe('/results/plan/exec/ui_1_chromium/login_network.har');
+    expect(row.networkSummary).toEqual({ requests: 3, failed: 0, transferredBytes: 900, failures: [], slowest: [] });
   });
 });
 

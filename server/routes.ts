@@ -1337,6 +1337,9 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         // every step.
         videoUrl: openable(r.videoUrl),
         traceUrl: openable(r.traceUrl),
+        // The page's requests: the file, and the failed and slow ones read out of it.
+        harUrl: openable(r.harUrl),
+        networkSummary: r.networkSummary,
         detailedLog: r.detailedLog,
         // The step list the runner already recorded, with its images made openable. The
         // report had no way to show which step failed; the row's reason string was all of it.
@@ -1379,6 +1382,7 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         screenshotUrl: openable(r.screenshotUrl),
         videoUrl: openable(r.videoUrl),
         traceUrl: openable(r.traceUrl),
+        harUrl: openable(r.harUrl),
         steps: stepsOf(r.detailedLog),
       } as typeof r);
 

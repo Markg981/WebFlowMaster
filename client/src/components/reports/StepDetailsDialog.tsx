@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, Wand2, Image as ImageIcon } from 'lucide-react';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import AccessibilityPanel from './AccessibilityPanel';
+import NetworkPanel from './NetworkPanel';
+import type { NetworkSummary } from '@shared/network';
 
 /**
  * What a test actually did, step by step.
@@ -47,6 +49,10 @@ interface StepDetailsDialogProps {
   videoUrl?: string | null;
   /** A Playwright trace: the DOM, the network and the console at every step. */
   traceUrl?: string | null;
+  /** The kept HAR, when the plan kept one. */
+  harUrl?: string | null;
+  /** The page's failed and slowest requests, whenever the network was recorded. */
+  network?: NetworkSummary | null;
 }
 
 /** The picture and what it is a picture of, since three unlabelled images say nothing. */
@@ -93,6 +99,8 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
   steps,
   videoUrl,
   traceUrl,
+  harUrl,
+  network,
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -124,6 +132,8 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
             )}
           </div>
         )}
+
+        {network && <NetworkPanel summary={network} harUrl={harUrl} />}
 
         {steps.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6">

@@ -104,6 +104,8 @@ const CONTENT_TYPES: Record<string, string> = {
   '.mp4': 'video/mp4',
   '.zip': 'application/zip',
   '.json': 'application/json',
+  // A HAR is JSON; its own type is what DevTools and HAR viewers recognise when it is dropped on them.
+  '.har': 'application/har+json',
   '.html': 'text/html; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8',
 };

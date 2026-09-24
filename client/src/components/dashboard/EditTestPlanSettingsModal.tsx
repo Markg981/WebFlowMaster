@@ -107,6 +107,8 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
   /** Whether a video and a Playwright trace of each run survive it. */
   const [captureVideo, setCaptureVideo] = useState<string>('never');
   const [captureTrace, setCaptureTrace] = useState<string>('never');
+  /** Whether each test's requests are recorded as a HAR, summarised in the report. */
+  const [captureNetwork, setCaptureNetwork] = useState<string>('never');
   /** How many of this plan's runs may be in flight at once. 1 is what every plan did before. */
   const [maxParallelTests, setMaxParallelTests] = useState('1');
   const [maxParallelError, setMaxParallelError] = useState('');
@@ -127,6 +129,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
     setVisualTestingEnabled(plan?.visualTestingEnabled === true);
     setCaptureVideo((plan as { captureVideo?: string } | null)?.captureVideo ?? 'never');
     setCaptureTrace((plan as { captureTrace?: string } | null)?.captureTrace ?? 'never');
+    setCaptureNetwork((plan as { captureNetwork?: string } | null)?.captureNetwork ?? 'never');
     setMaxParallelTests(String(plan?.maxParallelTests ?? 1));
     setIssueTrackerId((plan as { issueTrackerId?: string | null } | null)?.issueTrackerId ?? NO_TRACKER);
     setCreateIssuesOnFailure((plan as { createIssuesOnFailure?: boolean } | null)?.createIssuesOnFailure === true);
@@ -188,6 +191,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
           visualTestingEnabled,
           captureVideo,
           captureTrace,
+          captureNetwork,
           maxParallelTests: parallel,
           issueTrackerId: issueTrackerId === NO_TRACKER ? null : issueTrackerId,
           // Filing is off unless a tracker is named: a plan set to file into nothing would
@@ -340,7 +344,30 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label htmlFor="editCaptureNetwork" className="text-xs text-muted-foreground">
+                    {t('editTestPlanSettings.evidence.network', 'Network (HAR)')}
+                  </Label>
+                  <Select value={captureNetwork} onValueChange={setCaptureNetwork}>
+                    <SelectTrigger id="editCaptureNetwork" className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EVIDENCE_MODES.map((mode) => (
+                        <SelectItem key={mode.value} value={mode.value}>
+                          {t(`editTestPlanSettings.evidence.modes.${mode.value}`, mode.label)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {t(
+                  'editTestPlanSettings.evidence.networkHelp',
+                  'The report lists the failed and slowest requests of every recorded test, kept file or not. The HAR opens in any browser’s DevTools; it never holds bodies, cookies, tokens or passwords.',
+                )}
+              </p>
             </section>
 
             <section className="flex items-center space-x-2">

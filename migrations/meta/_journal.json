@@ -253,6 +253,13 @@
       "when": 1788200000000,
       "tag": "0035_test_quarantine",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1788300000000,
+      "tag": "0036_network_capture",
+      "breakpoints": true
     }
   ]
 }

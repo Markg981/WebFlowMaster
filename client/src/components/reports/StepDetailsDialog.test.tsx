@@ -167,6 +167,34 @@ describe('StepDetailsDialog', () => {
     expect(screen.getByTestId('violation-region')).not.toHaveTextContent('failed the step');
   });
 
+  it("shows the page's failed and slowest requests, and offers the HAR when it was kept", () => {
+    const network = {
+      requests: 42,
+      failed: 27,
+      transferredBytes: 2_560_000,
+      failures: [
+        { method: 'POST', url: 'https://shop.test/api/orders', status: 500, statusText: 'Internal Server Error', timeMs: 1200, resourceType: 'fetch' },
+        { method: 'GET', url: 'https://cdn.test/app.js', status: 0, statusText: 'net::ERR_CONNECTION_REFUSED', timeMs: 30, resourceType: 'script' },
+      ],
+      slowest: [{ method: 'GET', url: 'https://shop.test/api/catalog', status: 200, statusText: 'OK', timeMs: 8400, resourceType: 'fetch' }],
+    };
+    const { rerender } = render(
+      <StepDetailsDialog open onOpenChange={() => {}} testName="Checkout" browser="chromium" steps={steps} network={network} harUrl="/api/test-plan-executions/exec-1/artifacts/ui_5/checkout_network.har" />,
+    );
+
+    expect(screen.getByText('42 requests, 27 failed, 2.4 MB received')).toBeInTheDocument();
+    expect(screen.getByTestId('network-failures')).toHaveTextContent('500POSThttps://shop.test/api/orders1200 ms');
+    expect(screen.getByTestId('network-failures')).toHaveTextContent('net::ERR_CONNECTION_REFUSED');
+    expect(screen.getByText('and 25 more in the HAR')).toBeInTheDocument();
+    expect(screen.getByTestId('network-slowest')).toHaveTextContent('8400 ms');
+    expect(screen.getByText(/Download the HAR/)).toHaveAttribute('href', '/api/test-plan-executions/exec-1/artifacts/ui_5/checkout_network.har');
+
+    // A passing test under "on failure": the summary without the file.
+    rerender(<StepDetailsDialog open onOpenChange={() => {}} testName="Checkout" browser="chromium" steps={steps} network={network} harUrl={null} />);
+    expect(screen.getByTestId('network-panel')).toBeInTheDocument();
+    expect(screen.queryByText(/Download the HAR/)).not.toBeInTheDocument();
+  });
+
   it('says why there is nothing to show rather than opening empty', () => {
     render(<StepDetailsDialog open onOpenChange={() => {}} testName="Some API test" browser={null} steps={[]} />);
 
