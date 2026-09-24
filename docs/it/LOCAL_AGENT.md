@@ -84,17 +84,30 @@ del piano resta valida: ogni browser viene preso in prestito dal pool.
 | Variabile | Dove | Significato |
 |---|---|---|
 | `AGENT_RELAY_SECRET` | web e worker | Firma i ticket. Di default `SESSION_SECRET`; impostala esplicitamente se il worker non condivide il session secret del web server. |
-| `AGENT_RELAY_URL` | worker | Dove il runner raggiunge il relay. Di default `http://127.0.0.1:$PORT`, corretto quando il worker gira nel processo web. Con worker separati, puntala al web server. |
+| `AGENT_RELAY_URL` | worker | Dove il runner raggiunge il relay. Di default `http://127.0.0.1:$PORT`, corretto quando il worker gira nel processo web. Con worker separati, puntala al web server (o al suo load balancer). |
+| `AGENT_RELAY_ADVERTISE_URL` | web, con più web server | L'indirizzo di questo web server come lo raggiungono gli altri web server (IP del pod, nome del container — non il load balancer). Impostarla attiva la directory condivisa in Redis. |
 
 Il relay vive nel processo web e accetta upgrade WebSocket su `/api/agent/v1/*`: un reverse proxy
 davanti deve inoltrare gli upgrade WebSocket su quei percorsi.
+
+### Più web server
+
+Ogni web server ha il proprio relay, e un agente è connesso a quello che gli ha assegnato il load
+balancer. Con `AGENT_RELAY_ADVERTISE_URL` impostata su ogni web server, questi pubblicano i propri
+agenti su Redis (lo stesso che usa già la coda) ogni pochi secondi. Una richiesta che arriva a un
+server che non ha l'agente necessario — quella del runner per un browser, o la seconda connessione
+dell'agente stesso — viene passata al server che ce l'ha, direttamente al suo indirizzo pubblicato.
+Non servono sessioni sticky, e i web server devono potersi raggiungere fra loro su quegli indirizzi.
+
+Un agente revocato viene disconnesso subito dal server che lo ospita se la richiesta dell'owner è
+arrivata a quel server, altrimenti al suo heartbeat successivo (entro 20 secondi). Un server che si
+ferma ritira la propria voce; uno che va in crash smette di essere scelto entro 15 secondi, e nel
+frattempo un runner indirizzato lì riceve un rifiuto che lo nomina.
 
 ## Limiti
 
 - **Le versioni di Playwright devono coincidere** (major.minor) fra agente e server. Settings
   segnala un agente non allineato; l'immagine Docker ha il tag della versione del server.
-- Con **più web server**, gli agenti si connettono a uno solo: `AGENT_RELAY_URL` deve portare
-  all'istanza a cui sono connessi (un unico host per il relay, o routing sticky).
 - Se nessun agente del pool è connesso, il passaggio su quel browser fallisce con un motivo chiaro
   (`No agent of pool "onprem" is connected`) invece di girare altrove.
 
