@@ -265,5 +265,12 @@ export default withMermaid(
       },
     },
     mermaid: {},
+    // Mermaid reaches fastdom, which ships only as CommonJS. `docs:build` converts it, but the
+    // dev server loaded mermaid as plain ES modules, so the browser asked fastdom for a default
+    // export it does not have and every page of `docs:dev` stayed blank. Pre-bundling mermaid
+    // converts its CommonJS dependencies the same way the build does.
+    vite: {
+      optimizeDeps: { include: ['mermaid'] },
+    },
   }),
 );
