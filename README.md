@@ -173,3 +173,9 @@ which the manual test protocol runs (instructions in Italian).
 Work on a branch and open a pull request against `main`. Before opening it, run the checks above;
 a change to the database schema comes with a migration in `migrations/`, and a change people can
 see comes with the documentation that describes it.
+
+## License
+
+WebFlowMaster is proprietary software, licensed commercially. The source being readable here
+grants no right to use, copy, modify or distribute it: that requires a separate written
+commercial license. See [LICENSE](./LICENSE).
