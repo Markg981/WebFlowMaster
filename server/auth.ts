@@ -264,8 +264,10 @@ export function setupAuth(app: Express) {
       }
       const { username, password, invitationToken } = parsed.data;
 
-      const existingUser = await storage.getUserByUsername(username);
-      if (existingUser) {
+      // With an invitation the username check waits until the token has been validated
+      // (createUserFromInvitation): a used invitation names a username that now exists, and
+      // answering "Username already exists" to it would tell it apart from an invalid one.
+      if (!invitationToken && await storage.getUserByUsername(username)) {
         res.status(400).json({ message: "Username already exists" });
         return;
       }
@@ -281,6 +283,11 @@ export function setupAuth(app: Express) {
       let user;
       if (invitationToken) {
         const result = await storage.createUserFromInvitation(credentials, invitationToken);
+        if ('error' in result && result.error === 'username_taken') {
+          // The token was live and names this username, so its holder learns nothing new.
+          res.status(400).json({ message: "Username already exists" });
+          return;
+        }
         if ('error' in result) {
           // One message for all three cases. Distinguishing "no such token" from "expired"
           // from "already used" would let someone probe the token space for near-misses.

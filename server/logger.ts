@@ -1,6 +1,6 @@
 import winston from 'winston';
 import 'winston-daily-rotate-file';
-import LokiTransport from 'winston-loki';
+import { LokiTransport } from './loki-transport';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { privilegedDb } from './db';
@@ -114,6 +114,13 @@ async function getLogLevelSetting(): Promise<string> {
 
 const isDev = process.env.NODE_ENV !== 'production';
 
+let lokiTransport: LokiTransport | undefined;
+
+/** Sends the lines still waiting for the next Loki push; for a shutdown, before process.exit. */
+export async function flushLogs(): Promise<void> {
+  await lokiTransport?.flush();
+}
+
 export async function initializeLogger(): Promise<winston.Logger> {
   let maxFilesSetting = process.env.LOG_RETENTION_DAYS ? `${process.env.LOG_RETENTION_DAYS}d` : '7d';
 
@@ -149,17 +156,14 @@ export async function initializeLogger(): Promise<winston.Logger> {
 
   // ─── Grafana Loki transport (production / when LOKI_URL is set) ───────────
   // Logs are batched in memory and pushed via HTTP every 5 seconds.
-  // This adds zero latency to API responses.
+  // This adds zero latency to API responses. See server/loki-transport.ts.
   if (process.env.LOKI_URL) {
-    loggerInstance.add(new LokiTransport({
+    lokiTransport = new LokiTransport({
       host: process.env.LOKI_URL,
       labels: { app: 'webflowmaster', service: SERVICE_NAME },
-      json: true,
-      batching: true,
-      interval: 5,
-      gracefulShutdown: true,
-      onConnectionError: (err: any) => console.error('[Loki] Connection error:', err),
-    }));
+      intervalSeconds: 5,
+    });
+    loggerInstance.add(lokiTransport);
     loggerInstance.info(`Loki transport enabled, pushing to ${process.env.LOKI_URL}`);
   }
 

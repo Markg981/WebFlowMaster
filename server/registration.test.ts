@@ -80,6 +80,28 @@ describe('registration by invitation, the default', () => {
     expect(res.body.organizationId).toBe(founder.body.organizationId);
   });
 
+  it('refuses an accepted invitation with the same message as an invalid one', async () => {
+    const founder = await register('founder').expect(201);
+    const token = 'c'.repeat(64);
+    await privilegedDb.insert(invitations).values({
+      organizationId: founder.body.organizationId,
+      username: 'colleague',
+      role: 'viewer',
+      token,
+      invitedByUserId: founder.body.id,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    await register('colleague', { invitationToken: token }).expect(201);
+
+    // The invitation names 'colleague', which is an account by now: the refusal must not say so.
+    const reused = await register('colleague', { invitationToken: token });
+    const unknown = await register('colleague', { invitationToken: 'd'.repeat(64) });
+
+    expect(reused.status).toBe(400);
+    expect(reused.body.message).toBe('That invitation is not valid.');
+    expect(unknown.body.message).toBe(reused.body.message);
+  });
+
   it('lets only one of two simultaneous first registrations through', async () => {
     const [a, b] = await Promise.all([register('first-a'), register('first-b')]);
 
