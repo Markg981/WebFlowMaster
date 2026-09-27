@@ -3,7 +3,7 @@ import { registerRoutes } from "./routes";
 import schedulerService from "./scheduler-service"; // Import the scheduler service
 import { serveStatic } from "./static";
 import 'dotenv/config';
-import loggerPromise from './logger'; // Import Winston logger promise
+import loggerPromise, { flushLogs } from './logger'; // Import Winston logger promise
 import { privilegedDb, closeDb, assertTenancyPreconditions } from './db';
 import { systemSettings } from '@shared/schema'; // Import systemSettings table
 import { eq } from 'drizzle-orm'; // Import eq operator
@@ -14,6 +14,7 @@ import { correlationMiddleware } from './middleware/correlation';
 import { csrfOriginCheck } from './middleware/csrf';
 import { connection as redisConnection, connectSessionRedis, sessionRedis } from './redis';
 import { resolvePort } from './config';
+import { assertStartupConfig } from './startup-config';
 import { inspectSchemaState, describeSchemaState } from './schema-state';
 import { redactWebhookPath } from './webhook-tokens';
 
@@ -22,6 +23,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 (async () => {
+  // First, before the database or Redis is asked anything: a misspelt setting is reported by
+  // name instead of hiding behind whichever connection happens to fail first.
+  assertStartupConfig();
+
   const logger = await loggerPromise; // Resolve the logger promise
 
   // Before anything serves a request: confirm the database is actually configured for tenant
@@ -210,6 +215,7 @@ app.use(express.urlencoded({ extended: false }));
         if (sessionRedis.isOpen) await sessionRedis.quit();
         await closeDb();
         logger.info('Graceful shutdown complete.');
+        await flushLogs();
         process.exit(0);
       } catch (err) {
         logger.error('Error during graceful shutdown', err);
@@ -220,4 +226,9 @@ app.use(express.urlencoded({ extended: false }));
 
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
   process.on('SIGINT', () => void shutdown('SIGINT'));
-})();
+})().catch((error) => {
+  // Exit rather than linger: the Redis client retries forever, which would keep a process that
+  // failed to start alive and printing connection errors over the one message that matters.
+  console.error('[startup] The server did not start:', error);
+  process.exit(1);
+});

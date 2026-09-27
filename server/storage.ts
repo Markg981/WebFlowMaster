@@ -57,7 +57,7 @@ export interface IStorage {
   createUserFromInvitation(
     user: InsertUser,
     token: string,
-  ): Promise<User | { error: 'invalid' | 'expired' | 'used' }>;
+  ): Promise<User | { error: 'invalid' | 'expired' | 'used' | 'username_taken' }>;
 
   getTest(id: number): Promise<Test | undefined>;
   getTestsByUser(userId: number): Promise<Test[]>;
@@ -146,7 +146,7 @@ export class DatabaseStorage implements IStorage {
   async createUserFromInvitation(
     insertUser: InsertUser,
     token: string,
-  ): Promise<User | { error: 'invalid' | 'expired' | 'used' }> {
+  ): Promise<User | { error: 'invalid' | 'expired' | 'used' | 'username_taken' }> {
     return privilegedDb.transaction(async (tx) => {
       const [invitation] = await tx
         .select()
@@ -160,6 +160,11 @@ export class DatabaseStorage implements IStorage {
       // The invitation names a username; registering under a different one with someone else's
       // token would let a stranger consume an invitation meant for a colleague.
       if (invitation.username !== insertUser.username) return { error: 'invalid' as const };
+      // Only now, with the token proven live: checked any earlier, a used invitation (whose
+      // username is by then an account) would answer "Username already exists" instead of the
+      // generic refusal, telling a prober the token was once valid.
+      const [taken] = await tx.select({ id: users.id }).from(users).where(eq(users.username, insertUser.username)).limit(1);
+      if (taken) return { error: 'username_taken' as const };
 
       const [user] = await tx
         .insert(users)
