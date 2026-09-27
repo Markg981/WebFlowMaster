@@ -1,7 +1,7 @@
 import { Router, type Response } from "express";
 import { tests, insertTestSchema, apiTests, insertApiTestSchema, updateApiTestSchema, users, projects, AUDIT_ACTIONS } from "@shared/schema";
 import { auditActor, changedFields, recordAudit } from "../audit";
-import { eq, desc, and, getTableColumns } from "drizzle-orm";
+import { eq, desc, getTableColumns } from "drizzle-orm";
 import { z } from "zod";
 import loggerPromise from "../logger";
 import { BrowserTaskError, browserTasks } from "../browser-tasks";
@@ -19,8 +19,8 @@ const logger = await loggerPromise;
  * restricted project — row-level security refused the write, see migration 0031). A 404 for a
  * test the person is looking at on screen would send them looking for a bug.
  */
-async function notChanged(res: Response, id: number, notFound: string) {
-  const [visible] = await withTenantTransaction((tx) => tx.select({ id: tests.id }).from(tests).where(eq(tests.id, id)).limit(1));
+async function notChanged(res: Response, id: number, notFound: string, table: typeof tests | typeof apiTests = tests) {
+  const [visible] = await withTenantTransaction((tx) => tx.select({ id: table.id }).from(table).where(eq(table.id, id)).limit(1));
   if (visible) {
     return res.status(403).json({ error: "You can view this test's project but not change it.", code: "project_read_only" });
   }
@@ -305,8 +305,11 @@ router.get("/api/api-tests", requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
     try {
         const result = await withTenantTransaction((tx) =>
+          // The organization's, like its UI tests: RLS applies the organization and the
+          // restricted projects. Filtering by author made every API test private to whoever
+          // saved it, so a colleague could not open it, a plan could not be built from it, and
+          // restricting its project changed nothing.
           selectApiTestsWithNames(tx)
-            .where(eq(apiTests.userId, req.user!.id))
             .orderBy(desc(apiTests.updatedAt)),
         );
         res.json(result);
@@ -325,7 +328,7 @@ router.get("/api/api-tests/:id", requireRole('viewer'), async (req, res) => {
     try {
         const result = await withTenantTransaction((tx) =>
           selectApiTestsWithNames(tx)
-            .where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user!.id)))
+            .where(eq(apiTests.id, id))
             .limit(1),
         );
         if (result.length === 0) return res.status(404).json({ error: "API Test not found or not authorized" });
@@ -384,7 +387,7 @@ router.put("/api/api-tests/:id", requireRole('editor'), async (req, res) => {
         const updated = await withTenantTransaction(async (tx) => {
           const rows = await tx.update(apiTests)
             .set({ ...parseResult.data, updatedAt: new Date() })
-            .where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user!.id)))
+            .where(eq(apiTests.id, id))
             .returning();
           if (rows.length > 0) {
             await recordAudit(tx, {
@@ -398,7 +401,7 @@ router.put("/api/api-tests/:id", requireRole('editor'), async (req, res) => {
           }
           return rows;
         });
-        if (updated.length === 0) return res.status(404).json({ error: "Test not found or not authorized" });
+        if (updated.length === 0) return notChanged(res, id, "Test not found", apiTests);
         res.json(updated[0]);
     } catch (e: any) {
         logger.error({ message: `Error updating API test ${id}`, error: e.message, userId: req.user?.id });
@@ -418,7 +421,7 @@ router.delete("/api/api-tests/:id", requireRole('editor'), async (req, res) => {
         // which a bare delete cannot: it succeeds either way.
         const deleted = await withTenantTransaction(async (tx) => {
           const rows = await tx.delete(apiTests)
-            .where(and(eq(apiTests.id, id), eq(apiTests.userId, req.user!.id)))
+            .where(eq(apiTests.id, id))
             .returning();
           if (rows.length > 0) {
             await recordAudit(tx, {
@@ -431,7 +434,7 @@ router.delete("/api/api-tests/:id", requireRole('editor'), async (req, res) => {
           }
           return rows;
         });
-        if (deleted.length === 0) return res.status(404).json({ error: "API Test not found or not authorized" });
+        if (deleted.length === 0) return notChanged(res, id, "API Test not found", apiTests);
         res.status(204).send();
     } catch (e: any) {
         logger.error({ message: `Error deleting API test ${id}`, error: e.message, userId: req.user?.id });

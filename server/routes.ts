@@ -32,7 +32,7 @@ import { z } from "zod";
 // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { privilegedDb } from "./db";
-import { eq, and, desc, sql, getTableColumns, asc, ilike, inArray } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
+import { eq, and, desc, sql, getTableColumns, asc, ilike, inArray, type SQL } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
 import { BrowserTaskError, browserTasks } from "./browser-tasks";
 // Import schedulerService
@@ -1075,7 +1075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    const userId = req.user.id; // Assuming tests are user-specific
+    const userId = req.user.id;
 
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10; // Default to 10 items per page
@@ -1091,8 +1091,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       // Build conditions
-      const uiConditions = [eq(tests.userId, userId)];
-      const apiConditions = [eq(apiTests.userId, userId)];
+      // Every test of the organization the requester can see, not only their own: a plan is the
+      // organization's, and one built by a colleague has to be able to include anybody's tests.
+      const uiConditions: SQL[] = [];
+      const apiConditions: SQL[] = [];
 
       if (searchTerm) {
         const searchPattern = `%${searchTerm}%`;
@@ -1101,9 +1103,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Execute queries
-      // One tenant transaction for both: RLS bounds them to the caller's organization. The
-      // userId predicates stay as the ownership filter they were, but they are no longer what
-      // keeps another tenant's rows out — organizationId is the boundary, userId attribution.
+      // One tenant transaction for both: RLS bounds them to the caller's organization and hides
+      // the restricted projects they are not on.
       const { uiTestResults, apiTestResults, tagsByTest } = await withTenantTransaction(async (tx) => {
         if (tagIds.length > 0) {
           // A tag filter that matches nothing must offer nothing. inArray on an empty list is

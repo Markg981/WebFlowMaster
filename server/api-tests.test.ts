@@ -7,6 +7,7 @@ import {
   tests,
   users,
   projects,
+  projectMembers,
   type InsertApiTest,
   type User,
   type Project,
@@ -154,55 +155,52 @@ afterAll(async () => {
   await privilegedDb.delete(users);
 });
 
+/** An API test in another organization, and a member of it to look from there. */
+async function otherOrganizationTest() {
+  const otherOrganizationId = await createTestOrganization('Other API Org');
+  const [stranger] = await privilegedDb.insert(users).values({ username: `stranger-${Date.now()}`, password: 'x', organizationId: otherOrganizationId } as Omit<InsertUser, 'id'>).returning();
+  const [theirs] = await privilegedDb.insert(apiTests).values({ userId: stranger.id, organizationId: otherOrganizationId, name: 'Theirs', method: 'GET', url: 'http://example.com/theirs' }).returning();
+  return { stranger, theirs };
+}
+
 describe('API Tests Endpoints', () => {
   describe('GET /api/api-tests', () => {
-    it('should return API tests for the authenticated user with creator and project names', async () => {
-      currentMockUser = seededUser1; // Authenticate as user1
+    // The organization's, like its UI tests: a colleague's API test is there to open, to run
+    // and to put in a plan. They used to be private to their author, so a restricted project had
+    // nothing left to restrict (collaudo MEM-06).
+    it("lists the organization's API tests, colleagues' included, with creator and project names", async () => {
+      currentMockUser = seededUser2;
       const response = await request(app)
         .get('/api/api-tests')
         .expect(200);
 
-      expect(response.body).toBeInstanceOf(Array);
-      expect(response.body.length).toBe(2); // User1 has two tests
+      expect(response.body.map((t: ApiTest) => t.name).sort()).toEqual(['Test for User1, No Project', 'Test for User1, Project1', 'Test for User2']);
 
       const test1 = response.body.find((t: ApiTest) => t.name === 'Test for User1, Project1');
-      const test2 = response.body.find((t: ApiTest) => t.name === 'Test for User1, No Project');
-
-      expect(test1).toBeDefined();
       expect(test1.creatorUsername).toBe(seededUser1.username);
       expect(test1.projectName).toBe(seededProject1User1.name);
       expect(test1.userId).toBe(seededUser1.id);
 
-      expect(test2).toBeDefined();
-      expect(test2.creatorUsername).toBe(seededUser1.username);
-      expect(test2.projectName).toBeNull(); // No project associated
-      expect(test2.userId).toBe(seededUser1.id);
+      const test2 = response.body.find((t: ApiTest) => t.name === 'Test for User1, No Project');
+      expect(test2.projectName).toBeNull();
     });
 
-    it('should return an empty array if the user has no API tests', async () => {
-      // Authenticate as user2, who initially has one test. Delete it first.
+    it("shows nothing of another organization's API tests", async () => {
+      const { stranger } = await otherOrganizationTest();
+      currentMockUser = stranger;
+
+      const response = await request(app).get('/api/api-tests').expect(200);
+
+      expect(response.body.map((t: ApiTest) => t.name)).toEqual(['Theirs']);
+    });
+
+    it("hides a restricted project's API tests from a member not on it", async () => {
+      await privilegedDb.update(projects).set({ restricted: true }).where(eq(projects.id, seededProject1User1.id));
       currentMockUser = seededUser2;
-      await privilegedDb.delete(apiTests).where(eq(apiTests.userId, seededUser2.id));
 
-      const response = await request(app)
-        .get('/api/api-tests')
-        .expect(200);
+      const response = await request(app).get('/api/api-tests').expect(200);
 
-      expect(response.body).toBeInstanceOf(Array);
-      expect(response.body.length).toBe(0);
-    });
-
-    it('should not return tests from other users', async () => {
-      currentMockUser = seededUser2; // Authenticate as user2
-      const response = await request(app)
-        .get('/api/api-tests')
-        .expect(200);
-
-      expect(response.body).toBeInstanceOf(Array);
-      expect(response.body.length).toBe(1); // User2 has one test
-      expect(response.body[0].name).toBe('Test for User2');
-      expect(response.body[0].userId).toBe(seededUser2.id);
-      expect(response.body[0].creatorUsername).toBe(seededUser2.username);
+      expect(response.body.map((t: ApiTest) => t.name).sort()).toEqual(['Test for User1, No Project', 'Test for User2']);
     });
   });
 
@@ -229,12 +227,16 @@ describe('API Tests Endpoints', () => {
         .expect(404);
     });
 
-    it('should return 404 if the API test belongs to another user', async () => {
-      currentMockUser = seededUser1; // User1 tries to access User2's test
-      const testIdUser2 = seededApiTestUser2.id;
-      await request(app)
-        .get(`/api/api-tests/${testIdUser2}`)
-        .expect(404); // Expecting 404 due to authorization rule in query
+    it("opens a colleague's API test", async () => {
+      currentMockUser = seededUser1;
+      const response = await request(app).get(`/api/api-tests/${seededApiTestUser2.id}`).expect(200);
+      expect(response.body.creatorUsername).toBe(seededUser2.username);
+    });
+
+    it("answers 404 for another organization's API test", async () => {
+      const { theirs } = await otherOrganizationTest();
+      currentMockUser = seededUser1;
+      await request(app).get(`/api/api-tests/${theirs.id}`).expect(404);
     });
 
     it('should return 400 if test ID is not a number', async () => {
@@ -332,15 +334,39 @@ describe('API Tests Endpoints', () => {
       expect(response.body.projectId).toBeNull();
     });
 
-    it("should return 404 when updating another user's test", async () => {
+    it("lets an editor change a colleague's API test, keeping its author", async () => {
       currentMockUser = seededUser1;
-      await request(app)
+      const response = await request(app)
         .put(`/api/api-tests/${seededApiTestUser2.id}`)
-        .send({ name: 'Hijacked' })
-        .expect(404);
+        .send({ name: 'Fixed by a colleague' })
+        .expect(200);
 
-      const [untouched] = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, seededApiTestUser2.id));
-      expect(untouched.name).toBe('Test for User2');
+      expect(response.body.name).toBe('Fixed by a colleague');
+      expect(response.body.userId).toBe(seededUser2.id);
+    });
+
+    it("answers 404 for another organization's API test, and leaves it alone", async () => {
+      const { theirs } = await otherOrganizationTest();
+      currentMockUser = seededUser1;
+      await request(app).put(`/api/api-tests/${theirs.id}`).send({ name: 'Hijacked' }).expect(404);
+
+      const [untouched] = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, theirs.id));
+      expect(untouched.name).toBe('Theirs');
+    });
+
+    it('answers 403 to a viewer on the restricted project, and changes nothing', async () => {
+      await privilegedDb.update(projects).set({ restricted: true }).where(eq(projects.id, seededProject1User1.id));
+      await privilegedDb.insert(projectMembers).values({ projectId: seededProject1User1.id, userId: seededUser2.id, organizationId, role: 'viewer' });
+      currentMockUser = seededUser2;
+
+      const response = await request(app)
+        .put(`/api/api-tests/${seededApiTestUser1Project1.id}`)
+        .send({ name: 'Not allowed' })
+        .expect(403);
+
+      expect(response.body.code).toBe('project_read_only');
+      const [untouched] = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, seededApiTestUser1Project1.id));
+      expect(untouched.name).toBe('Test for User1, Project1');
     });
 
     it('should return 400 if test ID is not a number', async () => {
@@ -377,16 +403,15 @@ describe('API Tests Endpoints', () => {
         .expect(404);
     });
 
-    it('should return 404 when trying to delete an API test belonging to another user', async () => {
-      currentMockUser = seededUser1; // User1 tries to delete User2's test
-      const testIdUser2 = seededApiTestUser2.id;
+    it("answers 404 for another organization's API test, and leaves it in place", async () => {
+      const { theirs } = await otherOrganizationTest();
+      currentMockUser = seededUser1;
 
       await request(app)
-        .delete(`/api/api-tests/${testIdUser2}`)
+        .delete(`/api/api-tests/${theirs.id}`)
         .expect(404);
 
-      // Verify User2's test is still in the DB
-      const dbCheck = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, testIdUser2));
+      const dbCheck = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, theirs.id));
       expect(dbCheck.length).toBe(1);
     });
 
