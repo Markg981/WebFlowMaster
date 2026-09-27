@@ -12,6 +12,7 @@
 #   keycloak    the identity provider for the single sign-on cases, realm "acme" imported.
 #   intranet    an application on a private network only the local agent can reach.
 #   ricevitore  receives notification webhooks and prints them: docker compose logs ricevitore.
+#   display     a screen for the recording window, in the browser at http://localhost:6080.
 #   agente      the local agent (profile "agente"), started once its token exists.
 #
 # Relative paths resolve from the repository root, the directory of the first -f file.
@@ -48,12 +49,17 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       API_RATE_LIMIT: ${API_RATE_LIMIT:-600}
       WEBHOOK_RATE_LIMIT: ${WEBHOOK_RATE_LIMIT:-120}
+      # The screen the recording window opens on (WEB-11, ENV-04). Without a DISPLAY a Linux
+      # server cannot record, and says so.
+      DISPLAY: display:0
     volumes:
       - collaudo_ca:/collaudo-ca:ro
       - ./collaudo:/collaudo:ro
     depends_on:
       ca-export:
         condition: service_completed_successfully
+      display:
+        condition: service_started
 
   worker:
     environment:
@@ -124,6 +130,13 @@ services:
     environment:
       HTTP_PORT: "8080"
       HTTPS_PORT: "8443"
+
+  display:
+    build:
+      context: ./collaudo/display
+    ports:
+      # The loopback only: the screen has no password.
+      - "127.0.0.1:6080:6080"
 
   agente:
     profiles: ["agente"]

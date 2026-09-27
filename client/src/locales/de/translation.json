@@ -717,6 +717,9 @@
     },
     "running": {
       "button": "Läuft…"
+    },
+    "open": {
+      "button": "Öffnen"
     }
   },
   "testsPage": {
@@ -1345,7 +1348,8 @@
     },
     "keep": {
       "tooltip": "Dieses Element im Projekt-Repository behalten"
-    }
+    },
+    "inFrame": "im Frame"
   },
   "testSequenceBuilder": {
     "testSequence": {
@@ -1812,6 +1816,13 @@
     },
     "viewDetailedReport": {
       "button": "Detaillierten Bericht anzeigen"
+    },
+    "viewingTestPlan": "Testplan",
+    "latestReport": "Letzter Bericht ({{status}})",
+    "contents": {
+      "title": "Führt {{count}} Tests aus",
+      "empty": "Dieser Plan hat noch keine Tests.",
+      "suites": "Suiten: {{suites}}"
     }
   },
   "createTestPlanWizard": {
@@ -2467,7 +2478,8 @@
       "description": "Beschreibung",
       "kind": "Art",
       "tests": "Tests",
-      "tags": "Tags (ein Test muss alle tragen)"
+      "tags": "Tags (ein Test muss alle tragen)",
+      "project": "Projekt"
     },
     "dialog": {
       "createTitle": "Neue Suite",
@@ -2492,7 +2504,8 @@
     "loadFailed": "Die Suite konnte nicht geladen werden",
     "deleteTitle": "„{{name}}“ löschen?",
     "deleteInPlans": "{{count}} Pläne binden sie ein; sie führen ihre Tests nicht mehr aus. Bereits erfolgte Läufe behalten, was sie ausgeführt haben.",
-    "deleteUnused": "Kein Plan bindet sie ein."
+    "deleteUnused": "Kein Plan bindet sie ein.",
+    "noProject": "Kein Projekt"
   },
   "planSuites": {
     "button": "Suiten",

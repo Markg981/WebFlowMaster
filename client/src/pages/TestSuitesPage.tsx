@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 // Select component from shadcn/ui is not used in the current version of this file for project filtering.
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, Loader2, Link2, Layers } from 'lucide-react';
+import { Settings, MonitorSmartphone, CalendarDays, FileText, Play, Search, RefreshCcw, ChevronLeft, ChevronRight, Loader2, Link2, Layers, Eye } from 'lucide-react';
 import type { TestPlan } from '@shared/schema';
 import CreateTestPlanWizard from '@/components/dashboard/CreateTestPlanWizard';
 import WebhooksModal from '@/components/dashboard/WebhooksModal';
@@ -220,6 +220,13 @@ const TestSuitesPage: React.FC = () => {
                               setIsWebhooksModalOpen(true);
                             }}>
                               <Link2 size={16} className="mr-1" /> Webhooks
+                            </Button>
+                            )}
+                            {!canEdit && (
+                            // A viewer cannot run a plan, and had no other way into one: this
+                            // opens the same page read-only, with what it runs and its latest report.
+                            <Button variant="outline" size="sm" onClick={() => handleRunPlan(item.id, item.name)}>
+                              <Eye size={16} className="mr-1" /> {t('testSuitesPage.open.button', 'Open')}
                             </Button>
                             )}
                             <Button variant="outline" size="sm" asChild>

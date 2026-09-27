@@ -34,9 +34,21 @@ const PAGE = `<!doctype html><title>Host</title>
     root.innerHTML = '<button id="shadow-button" aria-label="Inside the shadow root">Shadow</button>';
   </script>`;
 
+// The shape of the-internet.herokuapp.com/nested_frames (collaudo WEB-07): framesets two deep,
+// and nothing in any frame but a word — no field, no button, no heading.
+const NESTED: Record<string, string> = {
+  '/nested': `<html><frameset rows="50%,50%"><frame src="/nested/top" name="frame-top"><frame src="/nested/bottom" name="frame-bottom"></frameset></html>`,
+  '/nested/top': `<html><frameset cols="33%,33%,33%" name="frameset-middle"><frame src="/nested/left" name="frame-left"><frame src="/nested/middle" name="frame-middle"><frame src="/nested/right" name="frame-right"></frameset></html>`,
+  '/nested/left': `<html><body>LEFT</body></html>`,
+  '/nested/middle': `<html><body><div id="content">MIDDLE</div></body></html>`,
+  '/nested/right': `<html><body>RIGHT</body></html>`,
+  '/nested/bottom': `<html><body>BOTTOM</body></html>`,
+};
+
 beforeAll(async () => {
   server = http.createServer((req, res) => {
-    const body = (req.url ?? '/').startsWith('/frame') ? FRAME_CHILD : PAGE;
+    const path = req.url ?? '/';
+    const body = NESTED[path] ?? (path.startsWith('/frame') ? FRAME_CHILD : PAGE);
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(body);
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -226,5 +238,32 @@ describe('a frame from a different origin', () => {
     const failures = (result.steps ?? []).filter((s) => s.status === 'failed');
     expect(failures.map((f) => `${f.type}: ${f.error}`)).toEqual([]);
     expect(innerWasClicked).toBe(true);
+  }, 60_000);
+});
+
+describe('text inside nested frames (collaudo WEB-07)', () => {
+  it('detects the words a frame holds, in frame, with a box on the page', async () => {
+    const { playwrightService } = await import('./playwright-service');
+
+    const { elements } = await playwrightService.detectElements(`${baseUrl}/nested`);
+
+    const middle = elements.find((e) => e.text === 'MIDDLE');
+    expect(middle).toBeDefined();
+    expect(middle!.frameSelector).toBe('frame[name="frame-top"] >> frame[name="frame-middle"]');
+    expect(middle!.selector).toBe('#content');
+    // Shifted by where its frame sits: the middle frame starts a third of the way across.
+    expect(middle!.boundingBox!.x).toBeGreaterThan(100);
+
+    const bottom = elements.find((e) => e.text === 'BOTTOM');
+    expect(bottom?.frameSelector).toBe('frame[name="frame-bottom"]');
+    expect(bottom!.boundingBox!.y).toBeGreaterThan(100);
+  }, 60_000);
+
+  it('does not list a button’s label again as text of its own', async () => {
+    const { playwrightService } = await import('./playwright-service');
+
+    const { elements } = await playwrightService.detectElements(baseUrl);
+
+    expect(elements.filter((e) => e.text === 'Outer')).toHaveLength(1);
   }, 60_000);
 });

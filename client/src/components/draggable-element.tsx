@@ -9,6 +9,8 @@ interface DetectedElement {
   id: string;
   type: string;
   selector: string;
+  /** The frame chain the selector is relative to; absent for the top document. */
+  frameSelector?: string | null;
   text: string;
   tag: string;
   attributes: Record<string, string>;
@@ -104,6 +106,16 @@ export function DraggableElement({ element, onHover, onKeep }: DraggableElementP
           <div className="text-xs text-muted-foreground truncate">
             {element.selector}
           </div>
+          {/* Said out loud because it changes what a step does: the runner has to enter the
+              frame first, and a selector copied elsewhere without it finds nothing. */}
+          {element.frameSelector && (
+            <div className="mt-1 flex items-center gap-1 min-w-0" title={element.frameSelector}>
+              <Badge variant="outline" className="text-[10px] px-1 py-0 shrink-0" data-testid="in-frame-badge">
+                {t('draggableElement.inFrame', 'in frame')}
+              </Badge>
+              <span className="text-[10px] text-muted-foreground truncate">{element.frameSelector}</span>
+            </div>
+          )}
         </div>
         {/* Keeping an element means the project owns it: every test that names it reads one
             selector, and a repair reaches all of them at once instead of one failure at a

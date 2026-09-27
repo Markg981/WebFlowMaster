@@ -195,8 +195,14 @@ async function assignTags(req: any, res: any, testType: 'ui' | 'api') {
       // The test has to be one of ours, and RLS is what decides that: another tenant's id is
       // not found here rather than tagged.
       const table = testType === 'ui' ? tests : apiTests;
-      const [existing] = await tx.select({ id: table.id }).from(table).where(eq(table.id, id)).limit(1);
+      const [existing] = await tx.select({ id: table.id, projectId: table.projectId }).from(table).where(eq(table.id, id)).limit(1);
       if (!existing) return { missing: true as const };
+
+      // Seen is not the same as changeable: a viewer on the test's restricted project sees it
+      // and cannot retag it (migration 0045). Asked first, so the answer is a 403 that says so
+      // rather than a policy violation halfway through replacing the set.
+      const editable = await tx.execute(sql`SELECT app_project_editable(${existing.projectId}::int) AS ok`);
+      if (!(editable.rows?.[0] as { ok?: boolean } | undefined)?.ok) return { missing: false as const, readOnly: true as const };
 
       return {
         missing: false as const,
@@ -210,6 +216,9 @@ async function assignTags(req: any, res: any, testType: 'ui' | 'api') {
     });
 
     if (outcome.missing) return res.status(404).json({ error: "Test not found" });
+    if ('readOnly' in outcome) {
+      return res.status(403).json({ error: "You can view this test's project but not change it.", code: "project_read_only" });
+    }
     if (!outcome.result.ok) {
       return res.status(400).json({
         error: "Some of those tags do not exist.",

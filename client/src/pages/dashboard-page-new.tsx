@@ -732,8 +732,10 @@ export default function DashboardPage() {
       }
 
 
-      if (data.success && data.steps?.length) {
-        setLastTestOverallResult(data.success); // Store overall test result
+      // A failed run is played back too: the step that failed, with its screenshot of that
+      // moment, is the thing to look at. The verdict comes at the end of the playback.
+      if (data.steps?.length) {
+        setLastTestOverallResult(!!data.success); // Store overall test result
         setPlaybackSteps(data.steps);
         setCurrentPlaybackStepIndex(0);
         setIsExecutingPlayback(true);
@@ -757,16 +759,11 @@ export default function DashboardPage() {
         });
       }
     },
-    onSettled: () => {
-      // This block ensures that regardless of success or error,
-      // if playback isn't supposed to be active, it's turned off.
-      // Note: isExecutingPlayback is true only if data.success and data.steps exist.
-      // If the mutation fails or returns no steps, isExecutingPlayback should be false.
-      // This check is a safeguard.
-      if (!(executeDirectTestMutation.data?.success && executeDirectTestMutation.data?.steps?.length)) {
-        setIsExecutingPlayback(false);
-      }
-    },
+    // No onSettled here. There was one, meant as a safeguard, that read
+    // executeDirectTestMutation.data — the value from the render that created this callback,
+    // which on a first run is still undefined. It ran right after onSuccess had started playback
+    // and switched it off again, so the preview stayed on the final frame while the toast said
+    // "Playing back results…". onSuccess and onError already set every playback state.
     onError: (error: Error) => {
       setIsExecutingPlayback(false);
       setCurrentPlaybackStepIndex(null);

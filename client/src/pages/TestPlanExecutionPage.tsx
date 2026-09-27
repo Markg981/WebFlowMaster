@@ -18,6 +18,12 @@ import { useAuth } from '@/hooks/use-auth';
  * The run is queued on the server (POST /api/run-test-plan/:id) and answered at once; what it does
  * next arrives in the log beside it, and its results in the report the link opens.
  */
+interface PlanContents {
+  tests: Array<{ type: 'ui' | 'api'; id: number; name: string | null }>;
+  suites: Array<{ id: number; name: string }>;
+  latestRun: { id: string; status: string; startedAt: string } | null;
+}
+
 const TestPlanExecutionPage: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -40,6 +46,15 @@ const TestPlanExecutionPage: React.FC = () => {
   const { data: plan, isLoading: isLoadingPlan, error: planError } = useQuery({
     queryKey: ['testPlan', planId],
     queryFn: () => fetchTestPlanByIdAPI(planId!),
+    enabled: !!planId,
+  });
+
+  // What a run would execute, for everyone who can see the plan — a viewer included, who cannot
+  // run it but can open it and its latest report. A test in a project the requester cannot see
+  // comes back without a name: counted, not named.
+  const { data: contents } = useQuery<PlanContents>({
+    queryKey: ['testPlanContents', planId, currentRunId],
+    queryFn: async () => (await apiRequest('GET', `/api/test-plans/${planId}/contents`)).json(),
     enabled: !!planId,
   });
 
@@ -100,7 +115,9 @@ const TestPlanExecutionPage: React.FC = () => {
             <PlayCircle className="h-7 w-7 text-primary" />
             <div>
               <h1 className="text-xl font-semibold text-foreground">{plan.name}</h1>
-              <p className="text-sm text-muted-foreground">{t('testPlanExecutionPage.runningTestPlan.text')}</p>
+              <p className="text-sm text-muted-foreground">
+                {canRun ? t('testPlanExecutionPage.runningTestPlan.text') : t('testPlanExecutionPage.viewingTestPlan', 'Test plan')}
+              </p>
             </div>
           </div>
           {canRun && (
@@ -155,6 +172,37 @@ const TestPlanExecutionPage: React.FC = () => {
                     {t('testPlanExecutionPage.viewDetailedReport.button')}
                   </Link>
                 </Button>
+              )}
+              {!currentRunId && contents?.latestRun && (
+                <Button asChild variant="outline" className="w-full" data-testid="latest-report-link">
+                  <Link href={`/test-plans/${planId}/executions/${contents.latestRun.id}/report`}>
+                    {t('testPlanExecutionPage.latestReport', 'Latest report ({{status}})', { status: contents.latestRun.status })}
+                  </Link>
+                </Button>
+              )}
+              {contents && (
+                <div className="space-y-2" data-testid="plan-contents">
+                  <p className="text-sm font-medium">
+                    {t('testPlanExecutionPage.contents.title', 'Runs {{count}} tests', { count: contents.tests.length })}
+                  </p>
+                  {contents.tests.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">{t('testPlanExecutionPage.contents.empty', 'This plan has no tests yet.')}</p>
+                  ) : (
+                    <ul className="text-sm text-muted-foreground list-disc pl-5 max-h-64 overflow-y-auto">
+                      {contents.tests.map((test) => (
+                        <li key={`${test.type}:${test.id}`}>
+                          {test.name ?? t('suites.hiddenTest', 'A test in a project you cannot see')}
+                          {test.type === 'api' && <span className="ml-1 text-xs">(API)</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {contents.suites.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('testPlanExecutionPage.contents.suites', 'Suites: {{suites}}', { suites: contents.suites.map((suite) => suite.name).join(', ') })}
+                    </p>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>

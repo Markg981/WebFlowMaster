@@ -337,3 +337,52 @@ describe('DashboardPageNew — overwriting a test', () => {
     confirm.mockRestore();
   });
 });
+
+describe('DashboardPageNew — playing back a run (collaudo WEB-02)', () => {
+  const frame = (name: string) => `data:image/png;base64,${name}`;
+
+  const answerRun = (success: boolean) =>
+    mockApiRequest.mockImplementation(async (_method: string, url: string) => ({
+      ok: true,
+      json: async () =>
+        url === '/api/execute-test-direct'
+          ? {
+              success,
+              steps: [
+                { name: 'Navigate', status: 'passed', details: '', screenshot: frame('STEP1') },
+                { name: 'Verify', status: success ? 'passed' : 'failed', details: '', screenshot: frame('STEP2') },
+              ],
+              // The page the run ended on: what the element list describes, shown again at the end.
+              detection: { elements: [], screenshot: frame('FINAL') },
+            }
+          : [],
+    }));
+
+  const previewSource = () =>
+    (screen.queryByAltText('dashboardPageNew.testStepScreenshot.text') as HTMLImageElement | null)?.getAttribute('src');
+
+  it('shows each step’s screenshot in turn, not only the last frame', async () => {
+    answerRun(true);
+    const { container } = renderPage();
+    fireEvent.change(urlInput(container), { target: { value: 'https://shop.test' } });
+    fireEvent.click(screen.getByTestId('add-step'));
+
+    fireEvent.click(screen.getByTestId('execute-test'));
+
+    // A handler that ran after onSuccess used to switch playback off at once, on a value from an
+    // earlier render, leaving the preview on FINAL for the whole "Playing back results…".
+    await waitFor(() => expect(previewSource()).toBe(frame('STEP1')));
+    await waitFor(() => expect(previewSource()).toBe(frame('STEP2')), { timeout: 3000 });
+  });
+
+  it('plays back a failed run too, so the failing step’s screenshot is seen', async () => {
+    answerRun(false);
+    const { container } = renderPage();
+    fireEvent.change(urlInput(container), { target: { value: 'https://shop.test' } });
+    fireEvent.click(screen.getByTestId('add-step'));
+
+    fireEvent.click(screen.getByTestId('execute-test'));
+
+    await waitFor(() => expect(previewSource()).toBe(frame('STEP1')));
+  });
+});

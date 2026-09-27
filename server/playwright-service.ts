@@ -415,6 +415,61 @@ function collectCandidatesInFrame(volatileIdPatterns: readonly string[]) {
       });
     });
 
+    /**
+     * Then text a test would verify: an element carrying words of its own.
+     *
+     * Only interactive elements used to be collected, so a page of plain text — the frames of
+     * /nested_frames are nothing but a word each — detected nothing at all, and "Verify text"
+     * had no element to point at. Listed after the interactive ones, so the truncation limit
+     * drops text before it drops a field or a button; and skipped inside an element already
+     * listed, whose own text is the label of that button or link.
+     */
+    const nonText = new Set(['script', 'style', 'noscript', 'template', 'title', 'option', 'head', 'html']);
+    const ownText = (el: Element) =>
+      Array.from(el.childNodes)
+        .filter((node) => node.nodeType === 3)
+        .map((node) => node.textContent || '')
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const insideListed = (el: Element) => {
+      for (let node = el.parentElement; node; node = node.parentElement) if (seen.has(node)) return true;
+      return false;
+    };
+    const textCandidates = document.body ? [document.body, ...queryAll('body *')] : queryAll('body *');
+    textCandidates.forEach((element) => {
+      const tagName = element.tagName.toLowerCase();
+      if (seen.has(element) || nonText.has(tagName)) return;
+      const own = ownText(element);
+      if (!own || insideListed(element)) return;
+      const rect = element.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      seen.add(element);
+
+      const text = (element.textContent || '').replace(/\s+/g, ' ').trim();
+      const attributes: Record<string, string> = {};
+      Array.from(element.attributes).forEach((attr: any) => { attributes[attr.name] = attr.value; });
+
+      detectedElements.push({
+        id: `elem-${tagName}-${globalElementCounter++}`,
+        type: 'content',
+        text: (text || own).substring(0, 100),
+        tag: tagName,
+        attributes,
+        boundingBox: {
+          x: Math.round(rect.x + window.scrollX),
+          y: Math.round(rect.y + window.scrollY),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+        },
+        cssSelector: buildCssSelector(element),
+        role: roleOf(element),
+        accessibleName: accessibleNameOf(element),
+        exactText: text && text.length <= 80 ? text : null,
+        structuralPath: structuralPath(element),
+      });
+    });
+
     return {
       elements: detectedElements,
       totalFound: detectedElements.length,
@@ -1066,18 +1121,32 @@ export class PlaywrightService {
   private async detectElementsOnPage(page: Page): Promise<DetectedElement[]> {
     // One pass per frame. page.frames() is flat and already includes nested ones, so a
     // frame three levels down is reached the same way as a direct child.
-    const perFrame: Array<{ frameSelector: string | null; data: any }> = [];
+    const perFrame: Array<{ frameSelector: string | null; offset: { x: number; y: number }; data: any }> = [];
     for (const frame of page.frames()) {
       let frameSelector: string | null = null;
+      let offset = { x: 0, y: 0 };
       if (frame !== page.mainFrame()) {
         frameSelector = await this.frameChainFor(frame);
         // A frame whose own <iframe> cannot be addressed from its parent is one whose
         // elements could never be acted on, so reporting them would be a false promise.
         if (!frameSelector) continue;
+        // A frame measures its elements from its own corner; the preview is a screenshot of
+        // the page. Shifted by where the frame sits, so a box is drawn on its element rather
+        // than in the page's top-left corner.
+        const box = await frame
+          .frameElement()
+          .then(async (el) => {
+            const measured = await el.boundingBox();
+            await el.dispose().catch(() => {});
+            return measured;
+          })
+          .catch(() => null);
+        if (box) offset = { x: Math.round(box.x), y: Math.round(box.y) };
       }
       try {
         perFrame.push({
           frameSelector,
+          offset,
           // The patterns travel as data: this function is serialised into the page, so it
           // cannot close over the import. See shared/selectors.ts.
           data: await frame.evaluate(collectCandidatesInFrame, VOLATILE_ID_PATTERNS),
@@ -1090,7 +1159,15 @@ export class PlaywrightService {
 
     const candidates = {
       elements: perFrame.flatMap((f) =>
-        f.data.elements.map((e: any) => ({ ...e, frameSelector: f.frameSelector })),
+        f.data.elements.map((e: any) => ({
+          ...e,
+          frameSelector: f.frameSelector,
+          boundingBox: e.boundingBox && {
+            ...e.boundingBox,
+            x: e.boundingBox.x + f.offset.x,
+            y: e.boundingBox.y + f.offset.y,
+          },
+        })),
       ),
       totalFound: perFrame.reduce((n, f) => n + f.data.totalFound, 0),
       // The top document decides the picture the highlighting is drawn on.

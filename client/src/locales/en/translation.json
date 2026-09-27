@@ -711,6 +711,9 @@
     },
     "running": {
       "button": "Running…"
+    },
+    "open": {
+      "button": "Open"
     }
   },
   "testsPage": {
@@ -1339,7 +1342,8 @@
     },
     "keep": {
       "tooltip": "Keep this element in the project repository"
-    }
+    },
+    "inFrame": "in frame"
   },
   "testSequenceBuilder": {
     "testSequence": {
@@ -1985,6 +1989,13 @@
     },
     "viewDetailedReport": {
       "button": "View detailed report"
+    },
+    "viewingTestPlan": "Test plan",
+    "latestReport": "Latest report ({{status}})",
+    "contents": {
+      "title": "Runs {{count}} tests",
+      "empty": "This plan has no tests yet.",
+      "suites": "Suites: {{suites}}"
     }
   },
   "filePicker": {
@@ -2461,7 +2472,8 @@
       "description": "Description",
       "kind": "Kind",
       "tests": "Tests",
-      "tags": "Tags (a test must carry all of them)"
+      "tags": "Tags (a test must carry all of them)",
+      "project": "Project"
     },
     "dialog": {
       "createTitle": "New suite",
@@ -2486,7 +2498,8 @@
     "loadFailed": "The suite could not be loaded",
     "deleteTitle": "Delete \"{{name}}\"?",
     "deleteInPlans": "{{count}} plans include it; they will stop running its tests. Runs already made keep what they ran.",
-    "deleteUnused": "No plan includes it."
+    "deleteUnused": "No plan includes it.",
+    "noProject": "No project"
   },
   "planSuites": {
     "button": "Suites",

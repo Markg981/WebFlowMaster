@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 
@@ -52,6 +53,15 @@ interface NamedRow {
   name: string;
 }
 
+interface ProjectRow {
+  id: number;
+  name: string;
+  /** What the requester may do in it: a viewer on a restricted project cannot put a suite there. */
+  access: 'viewer' | 'editor' | 'owner' | null;
+}
+
+const NO_PROJECT = 'none';
+
 interface TagRow {
   id: string;
   name: string;
@@ -79,6 +89,7 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [kind, setKind] = useState<SuiteKind>('static');
+  const [projectId, setProjectId] = useState<number | null>(null);
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [picked, setPicked] = useState<string[]>([]);
   const [filter, setFilter] = useState('');
@@ -88,6 +99,7 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
     setName(suite?.name ?? '');
     setDescription(suite?.description ?? '');
     setKind(suite?.kind ?? 'static');
+    setProjectId(suite?.projectId ?? null);
     setTagIds(suite?.tagIds ?? []);
     setPicked(suite?.kind === 'static' ? suite.tests.map((test) => key(test.type, test.id)) : []);
     setFilter('');
@@ -101,6 +113,15 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
   const { data: apiTests = [] } = useQuery<NamedRow[]>({
     queryKey: ['apiTests'],
     queryFn: () => getJson('/api/api-tests', 'the API tests'),
+    enabled: isOpen,
+  });
+  // A suite belongs to a project the same way a test does: in a restricted one it is seen and
+  // changed only by the project's members. Without this field every suite was created outside
+  // any project, and restricting a project left its suites in view of everyone.
+  const { data: projects = [] } = useQuery<ProjectRow[]>({
+    // Its own key under 'projects': the save dialog keeps only the editable ones under the bare key.
+    queryKey: ['projects', 'all'],
+    queryFn: () => getJson('/api/projects', 'the projects'),
     enabled: isOpen,
   });
   const { data: allTags = [] } = useQuery<TagRow[]>({
@@ -127,7 +148,7 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
       name: name.trim(),
       description: description.trim() || null,
       kind,
-      projectId: suite?.projectId ?? null,
+      projectId,
       tagIds: kind === 'dynamic' ? tagIds : [],
       // In the order they were picked: that is the order they run in.
       items:
@@ -158,6 +179,26 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
           <div className="space-y-1">
             <Label htmlFor="suite-description">{t('suites.fields.description', 'Description')}</Label>
             <Textarea id="suite-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="suite-project">{t('suites.fields.project', 'Project')}</Label>
+            <Select
+              value={projectId == null ? NO_PROJECT : String(projectId)}
+              onValueChange={(value) => setProjectId(value === NO_PROJECT ? null : Number(value))}
+            >
+              <SelectTrigger id="suite-project" aria-label={t('suites.fields.project', 'Project')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_PROJECT}>{t('suites.noProject', 'No project')}</SelectItem>
+                {(Array.isArray(projects) ? projects : []).map((project) => (
+                  <SelectItem key={project.id} value={String(project.id)} disabled={project.access === 'viewer'}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1">
