@@ -11,11 +11,14 @@ vi.mock('react-i18next', () => ({
 }));
 
 const registerMutate = vi.fn();
+/** How the last code was refused, if it was: the page reads it off verifyMfaMutation. */
+let mfaError: { message: string; code: string } | null = null;
 vi.mock('@/hooks/use-auth', () => ({
   useAuth: () => ({
     user: null,
     mfaChallenge: false,
     loginMutation: { mutate: vi.fn(), isPending: false, error: null },
+    verifyMfaMutation: { mutate: vi.fn(), reset: vi.fn(), isPending: false, error: mfaError },
     registerMutation: { mutate: registerMutate, isPending: false, error: null },
   }),
 }));
@@ -39,6 +42,7 @@ function renderPage(policy: { mode: string; selfRegistration: boolean; firstAcco
 }
 
 beforeEach(() => {
+  mfaError = null;
   registerMutate.mockReset();
   fetchMock.mockReset();
 });
@@ -113,5 +117,23 @@ describe('AuthPage and invitations', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/registration'));
     expect(screen.queryByLabelText('Invitation code')).toBeNull();
     expect(screen.queryByTestId('invitation-required-note')).toBeNull();
+  });
+});
+
+describe('AuthPage after too many wrong codes', () => {
+  it('says why it is back on the password form', async () => {
+    mfaError = { message: 'Too many wrong codes. Sign in with your password again.', code: 'mfa_challenge_expired' };
+    renderPage({ mode: 'open', selfRegistration: true, firstAccount: false });
+
+    expect(screen.getByTestId('mfa-challenge-expired')).toHaveTextContent(
+      'Too many wrong codes. Sign in with your password again.',
+    );
+  });
+
+  it('says nothing of a single wrong code', async () => {
+    mfaError = { message: 'That code is not valid.', code: 'mfa_code_invalid' };
+    renderPage({ mode: 'open', selfRegistration: true, firstAccount: false });
+
+    expect(screen.queryByTestId('mfa-challenge-expired')).toBeNull();
   });
 });

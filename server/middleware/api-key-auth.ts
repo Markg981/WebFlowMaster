@@ -22,8 +22,9 @@ export function isScopedApiPath(path: string): boolean {
  * Letting a request authenticate as a key instead of as a session.
  *
  * This runs between passport and `tenancyMiddleware`, and does exactly one thing: when a
- * request carries a key and no session, it puts the key's user on the request. Everything
- * downstream — `tenancyMiddleware`, which reads `req.user.organizationId`, `requireRole`,
+ * request carries a key and no session (on /api/v1, a key whether or not there is a session), it
+ * puts the key's user on the request. Everything downstream — `tenancyMiddleware`, which reads
+ * `req.user.organizationId`, `requireRole`,
  * which reads `req.user.role`, and every handler — then works unchanged, because from their
  * point of view nothing happened differently. Adding a second authorisation model for
  * machines would have meant auditing every route twice.
@@ -47,12 +48,14 @@ const LAST_USED_WRITE_INTERVAL_MS = 60_000;
 const recentlyTouched = new Map<string, number>();
 
 export async function apiKeyAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
-  // A session wins. Someone testing an API key from a logged-in browser tab should not have
-  // their own session silently replaced by whatever key was pasted into a header.
-  if (req.isAuthenticated?.() && req.user) return next();
-
   const presented = apiKeyFromRequest(req.headers as Record<string, string | string[] | undefined>);
   if (!presented) return next();
+
+  // Elsewhere a session wins: someone with a key pasted into a header from a logged-in browser
+  // tab should not have their own session silently replaced by it. /api/v1 is the key's own API,
+  // though, where scopes apply and the session's gates (a second factor still to set up, say) do
+  // not: there the key the caller chose to send is what they are asking with.
+  if (req.isAuthenticated?.() && req.user && !isScopedApiPath(req.path)) return next();
 
   const logger = await loggerPromise;
   try {

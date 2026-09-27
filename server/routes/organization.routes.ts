@@ -313,7 +313,7 @@ router.post("/api/organization/invitations", requireRole("owner"), async (req: R
     });
   } catch (e: unknown) {
     if (/unique/i.test((e as Error).message ?? "")) {
-      return res.status(409).json({ error: "That username has already been invited." });
+      return res.status(409).json({ error: "That username already has an invitation waiting to be accepted." });
     }
     throw e;
   }

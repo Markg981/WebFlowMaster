@@ -36,7 +36,7 @@ function resetFromUrl(): { token: string; username: string } {
 
 export default function AuthPage() {
   const { t } = useTranslation();
-  const { user, loginMutation, registerMutation, mfaChallenge } = useAuth();
+  const { user, loginMutation, registerMutation, mfaChallenge, verifyMfaMutation } = useAuth();
   const [, navigate] = useLocation();
   const [invited] = useState(invitationFromUrl);
   const [reset] = useState(resetFromUrl);
@@ -103,8 +103,13 @@ export default function AuthPage() {
   const ssoRequired =
     loginError instanceof ApiError && (loginError.body as { code?: string } | null)?.code === 'sso_required';
 
+  // Too many wrong codes end the attempt, and the password form is back: it says why, since the
+  // code form that showed the refusals is gone.
+  const mfaChallengeExpired = !mfaChallenge && verifyMfaMutation.error?.code === 'mfa_challenge_expired';
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    verifyMfaMutation.reset();
     loginMutation.mutate(loginData);
   };
 
@@ -230,6 +235,12 @@ export default function AuthPage() {
                   </form>
                 ) : (
                   <>
+                  {mfaChallengeExpired && (
+                    <Alert variant="destructive" className="mb-4 bg-destructive/10 text-destructive border-destructive/20" data-testid="mfa-challenge-expired">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{verifyMfaMutation.error!.message}</AlertDescription>
+                    </Alert>
+                  )}
                   {resetDone && (
                     <Alert className="mb-4" data-testid="reset-done">
                       <CheckCircle2 className="h-4 w-4" />

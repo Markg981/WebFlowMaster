@@ -16,12 +16,17 @@ import WebhooksModal from '@/components/dashboard/WebhooksModal';
 import EditTestPlanSettingsModal from '@/components/dashboard/EditTestPlanSettingsModal';
 import PlanSuitesDialog from '@/components/suites/PlanSuitesDialog';
 import { fetchFullTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans'; // Renamed fetchTestPlans
+import { useAuth } from '@/hooks/use-auth';
 
 
 const TestSuitesPage: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation(); // Hook for navigation
+  const { user } = useAuth();
+  // A viewer reads plans and their reports; creating, changing and running them is refused by the
+  // server (requireRole('editor')), so the controls are not offered.
+  const canEdit = user?.role !== 'viewer';
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreatePlanWizardOpen, setIsCreatePlanWizardOpen] = useState(false);
@@ -127,9 +132,11 @@ const TestSuitesPage: React.FC = () => {
                 <ChevronRight size={16} />
               </Button>
             </div>
-            <Button className="bg-success hover:bg-success/90 text-white" onClick={() => setIsCreatePlanWizardOpen(true)}>
-              {t('testSuitesPage.testPlan.button')}
-            </Button>
+            {canEdit && (
+              <Button className="bg-success hover:bg-success/90 text-white" onClick={() => setIsCreatePlanWizardOpen(true)}>
+                {t('testSuitesPage.testPlan.button')}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -194,26 +201,33 @@ const TestSuitesPage: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <div className="space-x-2">
+                            {canEdit && (
+                            <>
                             <Button variant="outline" size="sm" onClick={() => setPlanBeingEdited(item)}>
                               <Settings size={16} className="mr-1" /> {t('testSuitesPage.settings.button', 'Settings')}
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => setPlanForSuites({ id: item.id, name: item.name })}>
                               <Layers size={16} className="mr-1" /> {t('planSuites.button', 'Suites')}
                             </Button>
+                            </>
+                            )}
                             <Button variant="outline" size="sm" onClick={openScheduling}>
                               <CalendarDays size={16} className="mr-1" /> {t('testSuitesPage.schedule.button')}
                             </Button>
+                            {canEdit && (
                             <Button variant="outline" size="sm" onClick={() => {
                               setSelectedPlanForWebhooks({ id: item.id, name: item.name });
                               setIsWebhooksModalOpen(true);
                             }}>
                               <Link2 size={16} className="mr-1" /> Webhooks
                             </Button>
+                            )}
                             <Button variant="outline" size="sm" asChild>
                               <Link href={`/reports?planId=${item.id}`}>
                                 <FileText size={16} className="mr-1" /> {t('testSuitesPage.reports.button')}
                               </Link>
                             </Button>
+                            {canEdit && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -227,6 +241,7 @@ const TestSuitesPage: React.FC = () => {
                               )}
                               {runningPlanId === item.id ? t('testSuitesPage.running.button') : t('testSuitesPage.run.button')}
                             </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
