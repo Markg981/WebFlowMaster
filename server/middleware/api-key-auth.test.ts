@@ -173,4 +173,22 @@ describe('a session', () => {
 
     expect(response.body.userId).toBe(999);
   });
+
+  it("gives way to a key on /api/v1, the key's own API", async () => {
+    // A member whose session must still set up a second factor: the key they made before the
+    // policy keeps working for the pipeline, even when called from that browser.
+    const { id, key } = await seedKey();
+    const sessionApp = express();
+    sessionApp.use((req, _res, next) => {
+      (req as any).user = { id: 999, organizationId: 4242, role: 'viewer', username: 'session-user' };
+      (req as any).isAuthenticated = () => true;
+      next();
+    });
+    sessionApp.use(apiKeyAuth);
+    sessionApp.get('/api/v1/whoami', (req, res) => res.json({ userId: req.user!.id, apiKeyId: (req as any).apiKeyId }));
+
+    const response = await request(sessionApp).get('/api/v1/whoami').set('X-API-Key', key).expect(200);
+
+    expect(response.body).toEqual({ userId, apiKeyId: id });
+  });
 });

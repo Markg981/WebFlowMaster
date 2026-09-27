@@ -222,4 +222,14 @@ describe('SettingsPage - System', () => {
     expect(await screen.findByTestId('system-read-only')).toBeInTheDocument();
     expect(screen.getByLabelText(/retention/i)).toBeDisabled();
   });
+
+  it('is not offered to an editor, and neither are local agents', async () => {
+    mockUser = { id: 1, username: 'testuser', role: 'editor' };
+    renderSettingsPage();
+
+    const rail = await screen.findByRole('navigation');
+    expect(within(rail).getByRole('button', { name: 'Projects' })).toBeInTheDocument();
+    expect(within(rail).queryByRole('button', { name: 'System' })).toBeNull();
+    expect(within(rail).queryByRole('button', { name: 'Local agents' })).toBeNull();
+  });
 });

@@ -1,7 +1,7 @@
 import { pgTable, text, integer, bigint, serial, timestamp, boolean, jsonb, index, uniqueIndex, unique, primaryKey } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import { ACTION_REQUIREMENTS, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from './recording';
 import type { NetworkSummary } from './network';
 import type { CiContext } from './ci';
@@ -655,10 +655,13 @@ export const invitations = pgTable("invitations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("invitations_organization_id_idx").on(table.organizationId),
-  // One live invitation per username per organization. Two organizations may both invite the
-  // same username; whichever token is used first wins, and the other is then unacceptable
-  // because the username exists.
-  unique("invitations_org_username_unique").on(table.organizationId, table.username),
+  // One pending invitation per username per organization (migration 0044): accepted ones stay
+  // for the audit trail and do not stop a removed member's username from being invited again.
+  // Two organizations may both invite the same username; whichever token is used first wins,
+  // and the other is then unacceptable because the username exists.
+  uniqueIndex("invitations_org_username_pending_unique")
+    .on(table.organizationId, table.username)
+    .where(sql`${table.acceptedAt} IS NULL`),
 ]);
 
 export type Invitation = typeof invitations.$inferSelect;

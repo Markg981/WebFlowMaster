@@ -17,20 +17,23 @@ import {
   DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 
-type NavItem = { href: string; label: string; icon: React.ElementType; exact?: boolean };
+type NavItem = { href: string; label: string; icon: React.ElementType; exact?: boolean; editorOnly?: boolean };
 type NavSection = { heading: string; items: NavItem[] };
 
 const COLLAPSE_KEY = 'wfm.sidebar.collapsed';
 
 function useNav(): NavSection[] {
   const { t } = useTranslation();
-  return [
+  const { user } = useAuth();
+  // A viewer cannot save a test (the server answers 403), so the page that makes one is not offered.
+  const canEdit = user?.role !== 'viewer';
+  const sections: NavSection[] = [
     {
       heading: t('nav.section.testing', 'Testing'),
       items: [
         { href: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, exact: true },
         { href: '/dashboard/api-tester', label: t('nav.apiTester', 'API Tester'), icon: Network },
-        { href: '/dashboard/create-test', label: t('nav.createTest'), icon: PlusSquare },
+        { href: '/dashboard/create-test', label: t('nav.createTest'), icon: PlusSquare, editorOnly: true },
         { href: '/tests', label: t('nav.testLibrary', 'Test Library'), icon: Library },
         { href: '/test-manager', label: t('nav.testManager', 'Test Manager'), icon: FileSpreadsheet },
         { href: '/suites', label: t('nav.testSuites', 'Suites'), icon: Layers },
@@ -46,6 +49,10 @@ function useNav(): NavSection[] {
       ],
     },
   ];
+  return sections.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => canEdit || !item.editorOnly),
+  }));
 }
 
 function isActive(location: string, item: NavItem): boolean {

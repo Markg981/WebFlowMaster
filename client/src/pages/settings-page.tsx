@@ -635,16 +635,22 @@ export default function SettingsPage() {
       icon: GitCommitHorizontal,
       content: <SourceHostsCard isOwner={user?.role === 'owner'} />,
     },
-    {
-      id: 'agents',
-      label: t('settings.sections.agents', 'Local agents'),
-      description: t(
-        'settings.sections.agentsDescription',
-        'Machines inside your network that lend their browsers, for applications this server cannot reach.',
-      ),
-      icon: Laptop,
-      content: <AgentsCard isOwner={user?.role === 'owner'} />,
-    },
+    // Owners only: an agent is a machine an owner registers and revokes; a plan names its pool
+    // in its own settings.
+    ...(user?.role === 'owner'
+      ? [
+          {
+            id: 'agents',
+            label: t('settings.sections.agents', 'Local agents'),
+            description: t(
+              'settings.sections.agentsDescription',
+              'Machines inside your network that lend their browsers, for applications this server cannot reach.',
+            ),
+            icon: Laptop,
+            content: <AgentsCard isOwner />,
+          },
+        ]
+      : []),
     {
       id: 'security',
       label: t('settings.sections.security', 'Security'),
@@ -755,62 +761,67 @@ export default function SettingsPage() {
         </>
       ),
     },
-    {
-      id: 'system',
-      label: t('settings.sections.system'),
-      description: t('settings.sections.systemDescription'),
-      icon: Archive,
-      content: (
-        <>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2"><Archive className="h-4 w-4 text-muted-foreground" /><span>{t('settings.system.title', 'System Settings')}</span></CardTitle>
-            <CardDescription>{t('settings.system.description', 'Manage system-wide configurations.')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!canManageInstallation && (
-              <p className="text-sm text-muted-foreground" data-testid="system-read-only">
-                {t(
-                  'settings.system.readOnly',
-                  'These settings apply to every organization on this installation, so they are changed by its administrators.',
-                )}
-              </p>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="logRetentionDays">{t('settings.system.logRetentionLabel', 'Log Retention Period (days)')}</Label>
-              <Input id="logRetentionDays" type="number" value={logRetentionDays} onChange={(e) => setLogRetentionDays(e.target.value)} disabled={!canManageInstallation || isLoadingLogRetentionSetting || saveLogRetentionMutation.isPending} min="1"/>
-              <p className="text-sm text-muted-foreground">{t('settings.system.logRetentionDescription', 'Number of days to keep server logs. Older logs are compressed and then deleted.')}</p>
-              {isErrorLogRetentionSetting && (<p className="text-sm text-destructive">{logRetentionSettingError?.message || t('settings.system.fetchError', 'Failed to fetch log retention setting.')}</p>)}
-            </div>
-            <Button onClick={handleSaveLogRetentionSetting} disabled={!canManageInstallation || isLoadingLogRetentionSetting || saveLogRetentionMutation.isPending || (logRetentionSettingData?.value === logRetentionDays && logRetentionSettingData !== null && !isErrorLogRetentionSetting)}>
-              {saveLogRetentionMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-              {saveLogRetentionMutation.isPending ? t('settings.buttons.saving', 'Saving...') : t('settings.system.saveButton', 'Save Log Retention')}
-            </Button>
-            <Separator />
-            <div className="space-y-2">
-              <Label htmlFor="logLevelSelect">{t('settings.system.logLevelLabel', 'Minimum Log Level')}</Label>
-              <Select value={logLevel} onValueChange={setLogLevel} disabled={!canManageInstallation || isLoadingLogLevelSetting || saveLogLevelMutation.isPending}>
-                <SelectTrigger id="logLevelSelect">
-                  <SelectValue placeholder={t('settings.system.logLevelPlaceholder', 'Select log level...')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {logLevels.map(level => (
-                    <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">{t('settings.system.logLevelDescription', 'Select the minimum level of logs to record. Dynamic update is attempted, otherwise requires application restart.')}</p>
-              {isErrorLogLevelSetting && (<p className="text-sm text-destructive">{logLevelSettingError?.message || t('settings.system.fetchErrorLogLevel', 'Failed to fetch log level setting.')}</p>)}
-            </div>
-            <Button onClick={handleSaveLogLevelSetting} disabled={!canManageInstallation || isLoadingLogLevelSetting || saveLogLevelMutation.isPending || (logLevelSettingData?.value === logLevel && logLevelSettingData !== null && !isErrorLogLevelSetting)}>
-              {saveLogLevelMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-              {saveLogLevelMutation.isPending ? t('settings.buttons.saving', 'Saving...') : t('settings.system.saveButtonLogLevel', 'Save Log Level')}
-            </Button>
-          </CardContent>
-        </Card>
-        </>
-      ),
-    },
+    // Owners only: log retention and log level apply to the whole installation.
+    ...(user?.role === 'owner'
+      ? [
+          {
+            id: 'system',
+            label: t('settings.sections.system'),
+            description: t('settings.sections.systemDescription'),
+            icon: Archive,
+            content: (
+              <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2"><Archive className="h-4 w-4 text-muted-foreground" /><span>{t('settings.system.title', 'System Settings')}</span></CardTitle>
+                  <CardDescription>{t('settings.system.description', 'Manage system-wide configurations.')}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!canManageInstallation && (
+                    <p className="text-sm text-muted-foreground" data-testid="system-read-only">
+                      {t(
+                        'settings.system.readOnly',
+                        'These settings apply to every organization on this installation, so they are changed by its administrators.',
+                      )}
+                    </p>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="logRetentionDays">{t('settings.system.logRetentionLabel', 'Log Retention Period (days)')}</Label>
+                    <Input id="logRetentionDays" type="number" value={logRetentionDays} onChange={(e) => setLogRetentionDays(e.target.value)} disabled={!canManageInstallation || isLoadingLogRetentionSetting || saveLogRetentionMutation.isPending} min="1"/>
+                    <p className="text-sm text-muted-foreground">{t('settings.system.logRetentionDescription', 'Number of days to keep server logs. Older logs are compressed and then deleted.')}</p>
+                    {isErrorLogRetentionSetting && (<p className="text-sm text-destructive">{logRetentionSettingError?.message || t('settings.system.fetchError', 'Failed to fetch log retention setting.')}</p>)}
+                  </div>
+                  <Button onClick={handleSaveLogRetentionSetting} disabled={!canManageInstallation || isLoadingLogRetentionSetting || saveLogRetentionMutation.isPending || (logRetentionSettingData?.value === logRetentionDays && logRetentionSettingData !== null && !isErrorLogRetentionSetting)}>
+                    {saveLogRetentionMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                    {saveLogRetentionMutation.isPending ? t('settings.buttons.saving', 'Saving...') : t('settings.system.saveButton', 'Save Log Retention')}
+                  </Button>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label htmlFor="logLevelSelect">{t('settings.system.logLevelLabel', 'Minimum Log Level')}</Label>
+                    <Select value={logLevel} onValueChange={setLogLevel} disabled={!canManageInstallation || isLoadingLogLevelSetting || saveLogLevelMutation.isPending}>
+                      <SelectTrigger id="logLevelSelect">
+                        <SelectValue placeholder={t('settings.system.logLevelPlaceholder', 'Select log level...')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {logLevels.map(level => (
+                          <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">{t('settings.system.logLevelDescription', 'Select the minimum level of logs to record. Dynamic update is attempted, otherwise requires application restart.')}</p>
+                    {isErrorLogLevelSetting && (<p className="text-sm text-destructive">{logLevelSettingError?.message || t('settings.system.fetchErrorLogLevel', 'Failed to fetch log level setting.')}</p>)}
+                  </div>
+                  <Button onClick={handleSaveLogLevelSetting} disabled={!canManageInstallation || isLoadingLogLevelSetting || saveLogLevelMutation.isPending || (logLevelSettingData?.value === logLevel && logLevelSettingData !== null && !isErrorLogLevelSetting)}>
+                    {saveLogLevelMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                    {saveLogLevelMutation.isPending ? t('settings.buttons.saving', 'Saving...') : t('settings.system.saveButtonLogLevel', 'Save Log Level')}
+                  </Button>
+                </CardContent>
+              </Card>
+              </>
+            ),
+          },
+        ]
+      : []),
     {
       id: 'notifications',
       label: t('settings.sections.notifications'),

@@ -182,6 +182,17 @@ describe('organization invitations', () => {
     expect((await invite({ username: 'newcomer' })).status).toBe(409);
   });
 
+  it('invites a removed member’s username again, though their accepted invitation is kept', async () => {
+    const first = await invite({ username: 'newcomer' });
+    expect(first.status).toBe(201);
+    // Accepted, and then the account removed: the invitation stays, for the audit trail.
+    await privilegedDb.execute(sql`UPDATE invitations SET accepted_at = now() WHERE id = ${first.body.id}`);
+
+    const again = await invite({ username: 'newcomer' });
+    expect(again.status).toBe(201);
+    expect(again.body.id).not.toBe(first.body.id);
+  });
+
   it('refuses invitation management to an editor', async () => {
     currentUser = { id: editorId, role: 'editor', organizationId: orgId };
     expect((await invite({ username: 'newcomer' })).status).toBe(403);
