@@ -752,6 +752,9 @@
     },
     "running": {
       "button": "In esecuzione…"
+    },
+    "open": {
+      "button": "Apri"
     }
   },
   "testsPage": {
@@ -1463,7 +1466,8 @@
     },
     "keep": {
       "tooltip": "Salva questo elemento nel repository del progetto"
-    }
+    },
+    "inFrame": "in frame"
   },
   "testSequenceBuilder": {
     "testSequence": {
@@ -2109,6 +2113,13 @@
     },
     "viewDetailedReport": {
       "button": "Apri il report dettagliato"
+    },
+    "viewingTestPlan": "Piano di test",
+    "latestReport": "Ultimo report ({{status}})",
+    "contents": {
+      "title": "Esegue {{count}} test",
+      "empty": "Questo piano non ha ancora test.",
+      "suites": "Suite: {{suites}}"
     }
   },
   "filePicker": {
@@ -2585,7 +2596,8 @@
       "description": "Descrizione",
       "kind": "Tipo",
       "tests": "Test",
-      "tags": "Tag (un test deve averli tutti)"
+      "tags": "Tag (un test deve averli tutti)",
+      "project": "Progetto"
     },
     "dialog": {
       "createTitle": "Nuova suite",
@@ -2610,7 +2622,8 @@
     "loadFailed": "Impossibile caricare la suite",
     "deleteTitle": "Eliminare \"{{name}}\"?",
     "deleteInPlans": "{{count}} piani la includono e smetteranno di eseguirne i test. Le esecuzioni già fatte conservano ciò che hanno eseguito.",
-    "deleteUnused": "Nessun piano la include."
+    "deleteUnused": "Nessun piano la include.",
+    "noProject": "Nessun progetto"
   },
   "planSuites": {
     "button": "Suite",

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { privilegedDb } from '../db';
-import { apiTests, projects, tags, testTags, tests as testsTable } from '@shared/schema';
+import { apiTests, projectMembers, projects, tags, testTags, tests as testsTable } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({
@@ -46,7 +46,8 @@ beforeAll(async () => {
   app.use((req, _res, next) => {
     (req as any).user = currentUser;
     (req as any).isAuthenticated = () => true;
-    runWithTenant(currentUser.organizationId, () => next());
+    // Bound to the user as a real request is, so the restricted-project policies apply.
+    runWithTenant(currentUser.organizationId, () => next(), { userId: currentUser.id, role: currentUser.role });
   });
   app.use(tagsRoutes);
 });
@@ -173,6 +174,23 @@ describe('PUT /api/tests/:id/tags', () => {
       .expect(400);
 
     expect(response.body.unknownTagIds).toEqual(['not-a-tag']);
+    expect(await privilegedDb.select().from(testTags)).toHaveLength(0);
+  });
+
+  it('refuses a viewer on the test’s restricted project, and says why', async () => {
+    const smoke = await createTag('smoke');
+    const readerId = await createTestUser(organizationId, `reader-${Date.now()}`);
+    const [secret] = await privilegedDb.insert(projects).values({ name: `Secret ${Date.now()}`, userId, organizationId, restricted: true }).returning();
+    await privilegedDb.insert(projectMembers).values({ projectId: secret.id, userId: readerId, organizationId, role: 'viewer' });
+    const [test] = await privilegedDb
+      .insert(testsTable)
+      .values({ name: 'Secret checkout', url: 'https://shop.test', userId, organizationId, projectId: secret.id, sequence: [], elements: [] })
+      .returning();
+
+    currentUser = { id: readerId, username: 'reader', organizationId, role: 'editor' };
+    const response = await request(app).put(`/api/tests/${test.id}/tags`).send({ tagIds: [smoke.id] }).expect(403);
+
+    expect(response.body.code).toBe('project_read_only');
     expect(await privilegedDb.select().from(testTags)).toHaveLength(0);
   });
 

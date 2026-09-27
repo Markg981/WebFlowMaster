@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { testPlans, testPlanSchedules, testPlanExecutions, testPlanSelectedTests, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema, testPlanApiPayloadSchema, type TestPlanSchedule } from "@shared/schema";
-import { eq, desc, and, getTableColumns, sql, type SQL } from "drizzle-orm";
+import { testPlans, testPlanSchedules, testPlanExecutions, testPlanSelectedTests, testPlanSuites, testSuites, tests, apiTests, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema, testPlanApiPayloadSchema, type TestPlanSchedule } from "@shared/schema";
+import { eq, desc, asc, and, inArray, getTableColumns, sql, type SQL } from "drizzle-orm";
 import { v4 as uuidv4 } from 'uuid';
 import loggerPromise from "../logger";
 import schedulerService, { assertValidTimezone } from "../scheduler-service";
-import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
+import { runAsOrganization, withTenantTransaction, type TenantTx } from "../middleware/tenancy";
+import { expandPlanTests, type TestReference } from "../test-suites";
 import { requireRole } from "../middleware/require-role";
 import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from "./selected-tests";
 import { requestCancellation } from "../execution-state";
@@ -128,6 +129,72 @@ router.get("/api/test-plans/:id", requireRole('viewer'), async (req, res) => {
     );
     if(plan.length === 0) return res.status(404).json({ error: "Not found" });
     res.json(plan[0]);
+});
+
+/**
+ * GET /api/test-plans/:id/contents — what a run of this plan would execute, and its latest run.
+ *
+ * A plan is the organization's (migration 0031): everyone sees it, and it runs a restricted
+ * project's tests whoever presses Run. So the list is worked out as the organization, exactly as
+ * creating a run does, and only the names go through the requester's own view: a test in a
+ * project they cannot see is counted, not named — the same answer a suite gives. Without this a
+ * viewer had no way to open a plan at all, and nobody could tell from the plan that it ran a
+ * restricted project's tests.
+ */
+router.get("/api/test-plans/:id/contents", requireRole('viewer'), async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
+    try {
+        const planId = req.params.id;
+        const [plan] = await withTenantTransaction((tx) =>
+          tx.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, planId)).limit(1),
+        );
+        if (!plan) return res.status(404).json({ error: "Not found" });
+
+        const refs = await runAsOrganization(req.user.organizationId, () =>
+          withTenantTransaction(async (tx) => {
+            const direct = await tx
+              .select({ testType: testPlanSelectedTests.testType, testId: testPlanSelectedTests.testId, apiTestId: testPlanSelectedTests.apiTestId })
+              .from(testPlanSelectedTests)
+              .where(eq(testPlanSelectedTests.testPlanId, planId))
+              .orderBy(asc(testPlanSelectedTests.id));
+            return expandPlanTests(tx, planId, direct as TestReference[]);
+          }),
+        );
+
+        const view = await withTenantTransaction(async (tx) => {
+          const uiIds = refs.filter((r) => r.testType === 'ui').map((r) => r.testId!);
+          const apiIds = refs.filter((r) => r.testType === 'api').map((r) => r.apiTestId!);
+          const uiNames = new Map(uiIds.length ? (await tx.select({ id: tests.id, name: tests.name }).from(tests).where(inArray(tests.id, uiIds))).map((t) => [t.id, t.name]) : []);
+          const apiNames = new Map(apiIds.length ? (await tx.select({ id: apiTests.id, name: apiTests.name }).from(apiTests).where(inArray(apiTests.id, apiIds))).map((t) => [t.id, t.name]) : []);
+          // Suites through RLS as well: one in a project the requester cannot see is not listed,
+          // though its tests are still counted above.
+          const suites = await tx
+            .select({ id: testSuites.id, name: testSuites.name })
+            .from(testPlanSuites)
+            .innerJoin(testSuites, eq(testSuites.id, testPlanSuites.suiteId))
+            .where(eq(testPlanSuites.testPlanId, planId))
+            .orderBy(asc(testPlanSuites.position));
+          const [latestRun] = await tx
+            .select({ id: testPlanExecutions.id, status: testPlanExecutions.status, startedAt: testPlanExecutions.startedAt })
+            .from(testPlanExecutions)
+            .where(eq(testPlanExecutions.testPlanId, planId))
+            .orderBy(desc(testPlanExecutions.startedAt))
+            .limit(1);
+          return {
+            tests: refs.map((r) =>
+              r.testType === 'ui'
+                ? { type: 'ui' as const, id: r.testId!, name: uiNames.get(r.testId!) ?? null }
+                : { type: 'api' as const, id: r.apiTestId!, name: apiNames.get(r.apiTestId!) ?? null },
+            ),
+            suites,
+            latestRun: latestRun ?? null,
+          };
+        });
+        res.json(view);
+    } catch (e: any) {
+        logger.error({ message: "Failed to read a plan's contents", error: e?.message ?? String(e), planId: req.params.id });
+        res.status(500).json({ error: "Failed to load the plan." });
+    }
 });
 
 // --- Schedules ---

@@ -11,6 +11,7 @@ intorno:
 | `keycloak` | identity provider per l'area SSO e per OAuth 2.0 (API-04) | https://keycloak.collaudo.test |
 | `intranet` | applicazione su una rete privata, raggiungibile solo dall'agente (area AGT) | http://intranet.acme.local, solo dall'agente |
 | `ricevitore` | riceve e stampa i webhook delle notifiche (PLN-13) | http://ricevitore:8080, dall'interno |
+| `display` | lo schermo su cui si apre la finestra di registrazione (WEB-11, ENV-04) | http://localhost:6080 |
 | `agente` | l'agente locale (profilo `agente`), avviato quando il suo token esiste | — |
 
 I valori (password, segreti, chiavi) sono solo per il collaudo: non vanno mai riusati altrove.
@@ -162,6 +163,12 @@ applicano riavviando i servizi interessati; senza variabile tornano al valore di
 | `GEMINI_API_KEY` | WEB-10, WEB-16 | `GEMINI_API_KEY=... wfmc up -d api worker` |
 | `REGISTRATION` | ACC, organizzazione B | vedi sopra |
 
+**Registrazione (WEB-11, ENV-04).** La finestra di registrazione si apre sul server, cioè nel
+container `api`, che la disegna sullo schermo virtuale del servizio `display`. Prima di avviare
+la registrazione aprire **http://localhost:6080** in un'altra scheda e poi «Connect»: la finestra
+compare lì e si usa con mouse e tastiera come qualsiasi altra. Lo schermo non ha password ed è
+raggiungibile solo da questa macchina.
+
 **Database (OPS-03, SEC-09).** `localhost:55432`, utente `postgres`, password `password`,
 database `webflowmaster`. Per agire come l'applicazione: `SET ROLE app_user;`.
 
@@ -175,9 +182,6 @@ wfmc restart redis
 
 ## 7. Cosa non copre
 
-- **La registrazione dei test** (WEB-11, ENV-04) apre un browser sulla macchina del server:
-  in questo stack non c'è uno schermo, quindi quei casi si eseguono con l'applicazione avviata in
-  locale (`npm run dev`) oppure si segnano N/A.
 - **Jira o Azure DevOps, GitHub e i sistemi di CI** sono servizi esterni: servono un progetto,
   un repository e i token di prova.
 - Il repository GitHub del caso INT-06 deve raggiungere l'installazione: da una macchina di

@@ -12,7 +12,7 @@ import { eq } from 'drizzle-orm';
  */
 
 const { privilegedDb } = await import('./db');
-const { projectMembers, projects, testVersions, tests, users } = await import('@shared/schema');
+const { projectMembers, projects, tags, testTags, testVersions, tests, users } = await import('@shared/schema');
 const { createTestOrganization } = await import('./tests/factories');
 const { runWithTenant, withTenantTransaction } = await import('./middleware/tenancy');
 
@@ -111,6 +111,19 @@ describe('changing', () => {
     await expect(
       as(carol, 'editor', (tx) => tx.update(tests).set({ projectId: secretProject }).where(eq(tests.id, openTest))),
     ).rejects.toThrow(/row-level security/);
+  });
+
+  it("keeps a restricted test's tags to those who can edit it (migration 0045)", async () => {
+    const [tag] = await privilegedDb.insert(tags).values({ id: `tag-${Math.random()}`, organizationId: org, name: `smoke-${Math.random()}` }).returning();
+    const tagIt = (userId: number) =>
+      as(userId, 'editor', (tx) => tx.insert(testTags).values({ organizationId: org, tagId: tag.id, testId: secretTest, testType: 'ui' }).returning());
+
+    await expect(tagIt(bob)).rejects.toThrow(/row-level security/);
+    expect(await tagIt(alice)).toHaveLength(1);
+    // Seen by a viewer on the project, not removed by one; not even seen by someone not on it.
+    expect(await as(bob, 'editor', (tx) => tx.select().from(testTags).where(eq(testTags.testId, secretTest)))).toHaveLength(1);
+    expect(await as(bob, 'editor', (tx) => tx.delete(testTags).where(eq(testTags.testId, secretTest)).returning())).toHaveLength(0);
+    expect(await as(carol, 'editor', (tx) => tx.select().from(testTags).where(eq(testTags.testId, secretTest)))).toHaveLength(0);
   });
 
   it('lets an owner do anything, as always', async () => {

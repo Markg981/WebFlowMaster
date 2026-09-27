@@ -24,7 +24,8 @@ import { toast } from '@/hooks/use-toast'; // Added import
 interface Project {
   id: number;
   name: string;
-  // Add other fields if necessary, but for selection, id and name are key
+  /** What the requester may do in it; a viewer on a restricted project cannot save into it. */
+  access?: 'viewer' | 'editor' | 'owner' | null;
 }
 
 // API function for fetching projects
@@ -36,7 +37,9 @@ const fetchProjects = async (): Promise<Project[]> => {
   if (response && typeof response.json === 'function') {
     try {
       const data = await response.json();
-      return data as unknown as Project[]; // Assuming the backend sends Project[]
+      // Only the projects a test can be saved into: the database refuses the others, and
+      // offering them turns a save into an error after the fact.
+      return (data as unknown as Project[]).filter((project) => project?.access !== 'viewer');
     } catch (error) {
       console.error("Failed to parse projects JSON:", error);
       throw new Error("Failed to parse project data from server.");
