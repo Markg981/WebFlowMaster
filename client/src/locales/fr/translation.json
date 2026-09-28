@@ -2031,7 +2031,22 @@
       "title": "Commencez par un fichier Excel",
       "description": "Choisissez un fichier .xlsx ou .xls de cas de test. Chaque ligne devient un cas à associer à une séquence enregistrée et à exécuter."
     },
-    "viewLatestReport": "Voir le dernier rapport"
+    "noSequences": "Aucune séquence enregistrée. Créez-en une dans le test builder, puis associez-la ici.",
+    "status": {
+      "notRun": "Non exécuté",
+      "running": "En cours…",
+      "passed": "Réussi",
+      "failed": "Échoué",
+      "error": "Erreur",
+      "notMapped": "Non associé"
+    },
+    "viewReport": "Ouvrir le rapport",
+    "report": {
+      "title": "{{id}} · {{sequence}}",
+      "summary": "{{passed}} étapes sur {{total}} réussies en {{seconds}} s",
+      "noSteps": "L’exécution s’est arrêtée avant la première étape.",
+      "screenshot": "Capture de l’étape {{n}}"
+    }
   },
   "generalReportsPage": {
     "description": "Toutes les exécutions terminées, avec leurs étapes, durées et captures.",

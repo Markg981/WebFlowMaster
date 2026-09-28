@@ -106,6 +106,11 @@ export const scrubControlCharsFromMessage = winston.format((info) => {
   return info;
 });
 
+/** Whether a field of this name holds a credential, by the same list the redactors use. */
+export function isSensitiveKey(key: string): boolean {
+  return SENSITIVE_KEYS.test(key);
+}
+
 /**
  * Redacts an arbitrary object with the same rules the winston format uses.
  * Exported so incident triggers go through one implementation, not a second copy.

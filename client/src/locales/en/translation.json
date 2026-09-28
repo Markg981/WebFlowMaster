@@ -2025,7 +2025,22 @@
       "title": "Start from an Excel file",
       "description": "Choose a .xlsx or .xls file of test cases. Each row becomes a case you can map to a saved sequence and run."
     },
-    "viewLatestReport": "View latest report"
+    "noSequences": "No saved sequences yet. Create one in the test builder, then map it here.",
+    "status": {
+      "notRun": "Not run",
+      "running": "Running…",
+      "passed": "Passed",
+      "failed": "Failed",
+      "error": "Error",
+      "notMapped": "Not mapped"
+    },
+    "viewReport": "View report",
+    "report": {
+      "title": "{{id}} · {{sequence}}",
+      "summary": "{{passed}} of {{total}} steps passed in {{seconds}} s",
+      "noSteps": "The run stopped before any step.",
+      "screenshot": "Screenshot of step {{n}}"
+    }
   },
   "generalReportsPage": {
     "description": "Every run that has finished, with its steps, timings and screenshots.",

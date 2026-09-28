@@ -77,7 +77,8 @@ import { apiKeyAuth } from "./middleware/api-key-auth";
 import { apiRateLimit } from "./middleware/rate-limits";
 import { requireInstallationAdmin } from "./installation-admin";
 import { runApiRequest } from "./api-test-runner";
-import { resolveVariables } from "./variables";
+import { defaultVariables, resolveVariables } from "./variables";
+import { redactHistoryEntry } from "./history-redaction";
 import { requireRole } from "./middleware/require-role";
 import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from "./routes/selected-tests";
 
@@ -755,11 +756,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const parseResult = insertApiTestHistorySchema.safeParse(req.body);
     if (!parseResult.success) { resolvedLogger.warn({ message: "POST /api/api-test-history - Invalid payload", errors: parseResult.error.flatten(), userId: (req.user as any)?.id }); return res.status(400).json({ error: "Invalid history data", details: parseResult.error.flatten() }); }
     try {
+      // The environment the request ran in, so its values can be taken back out of what is
+      // stored. Only the environment's own values: the defaults (baseUrl) are configuration,
+      // not secrets, and replacing them would only make entries harder to read.
+      const environmentId = Number(req.body?.environmentId);
+      const resolved = Number.isInteger(environmentId) && environmentId > 0
+        ? await resolveVariables({ userId: req.user.id, organizationId: req.user.organizationId, environmentId })
+        : {};
+      const defaults = defaultVariables();
+      const environmentValues = Object.fromEntries(
+        Object.entries(resolved).filter(([name, value]) => defaults[name] !== value),
+      );
+      const entry = redactHistoryEntry(parseResult.data, environmentValues);
       const newHistoryEntry = await withTenantTransaction((tx) =>
-        tx.insert(apiTestHistory).values({ ...parseResult.data, userId: req.user!.id, organizationId: req.user!.organizationId }).returning(),
+        tx.insert(apiTestHistory).values({ ...entry, userId: req.user!.id, organizationId: req.user!.organizationId }).returning(),
       );
       res.status(201).json(newHistoryEntry[0]);
-    } catch (error: any) { resolvedLogger.error({ message: "Error creating API test history entry", error: error.message, stack: error.stack, requestBody: req.body, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to save API test history" }); }
+    } catch (error: any) { resolvedLogger.error({ message: "Error creating API test history entry", error: error.message, stack: error.stack, userId: (req.user as any)?.id }); res.status(500).json({ error: "Failed to save API test history" }); }
   });
 
   app.get("/api/api-test-history", requireRole('viewer'), async (req, res) => {
