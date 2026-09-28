@@ -77,6 +77,24 @@ interface FormDataField {
   type: 'text' | 'file';
 }
 
+/** A form-data part as the proxy receives it (server/api-test-runner.ts, MultipartPart). */
+type MultipartPart =
+  | { key: string; type: 'text'; value: string }
+  | { key: string; type: 'file'; fileName: string; contentType: string; base64: string };
+
+/** A file's bytes as base64, without the `data:…;base64,` prefix a data URL carries. */
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result ?? '');
+      resolve(result.slice(result.indexOf(',') + 1));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error(`Could not read ${file.name}`));
+    reader.readAsDataURL(file);
+  });
+}
+
 
 const ApiTesterPage: React.FC = () => {
   const { t } = useTranslation();
@@ -250,7 +268,7 @@ const ApiTesterPage: React.FC = () => {
   const apiProxyMutation = useMutation<
     ProxyResponse,
     Error,
-    { method: string; url: string; queryParams?: Record<string, string | string[]>; headers?: Record<string, string>; body?: any; assertions?: Assertion[]; extractions?: Extraction[]; environmentId?: number; auth?: AuthParams }
+    { method: string; url: string; queryParams?: Record<string, string | string[]>; headers?: Record<string, string>; body?: any; multipart?: MultipartPart[]; binary?: { contentType: string; base64: string; fileName: string }; assertions?: Assertion[]; extractions?: Extraction[]; environmentId?: number; auth?: AuthParams }
   >({
     mutationFn: async (variables) => {
       setResponseStatus(null); setResponseHeaders(null); setResponseBody(null); setDuration(null); setAssertionResults(null);
@@ -289,19 +307,15 @@ const ApiTesterPage: React.FC = () => {
       const currentHeadersForHistory = requestHeaders.filter(h => h.enabled && h.key.trim()).reduce((acc, h) => { acc[h.key] = h.value; return acc; }, {} as Record<string, string>);
 
       let requestBodyForHistory: string | null;
-      if (variables.body instanceof FormData) {
-        // Convert FormData to a simpler object for history representation if possible, or use a placeholder
+      if (variables.multipart) {
+        // What was sent, without the file contents: the history keeps a description, not uploads.
         const formDataEntries: Record<string, string> = {};
-        (variables.body as FormData).forEach((value, key) => {
-          if (typeof value === 'string') {
-            formDataEntries[key] = value;
-          } else {
-            formDataEntries[key] = `[File: ${value.name}]`;
-          }
+        variables.multipart.forEach((part) => {
+          formDataEntries[part.key] = part.type === 'text' ? part.value : `[File: ${part.fileName}]`;
         });
-        requestBodyForHistory = JSON.stringify(formDataEntries); // Store a representation
-      } else if (variables.body instanceof File) {
-        requestBodyForHistory = `[Binary File: ${variables.body.name}]`;
+        requestBodyForHistory = JSON.stringify(formDataEntries);
+      } else if (variables.binary) {
+        requestBodyForHistory = `[Binary File: ${variables.binary.fileName}]`;
       } else if (typeof variables.body === 'object' && variables.body !== null) {
         requestBodyForHistory = JSON.stringify(variables.body);
       } else {
@@ -326,7 +340,7 @@ const ApiTesterPage: React.FC = () => {
     },
   });
 
-  const handleSendRequest = () => {
+  const handleSendRequest = async () => {
     if (!url.trim()) {
       toast({ title: "URL Required", description: "Please enter a base URL to send the request.", variant: "destructive" });
       return;
@@ -360,6 +374,10 @@ const ApiTesterPage: React.FC = () => {
 
     let finalBody: any = undefined;
     let finalContentType: string | undefined = undefined;
+    // Form-data and files go to the proxy as JSON like everything else, where a FormData or a
+    // File would arrive as `{}`: the parts travel described, files as base64.
+    let multipart: MultipartPart[] | undefined = undefined;
+    let binary: { contentType: string; base64: string; fileName: string } | undefined = undefined;
 
     if (method !== 'GET' && method !== 'HEAD') {
       switch (selectedBodyType) {
@@ -368,18 +386,23 @@ const ApiTesterPage: React.FC = () => {
           finalContentType = undefined;
           break;
         case 'form-data': {
-          const formData = new FormData();
-          formDataBody.forEach(field => {
-            if (field.enabled && field.key) {
-              if (field.type === 'file' && field.value instanceof File) {
-                formData.append(field.key, field.value);
-              } else if (field.type === 'text') {
-                formData.append(field.key, field.value as string);
-              }
+          const parts: MultipartPart[] = [];
+          for (const field of formDataBody) {
+            if (!field.enabled || !field.key) continue;
+            if (field.type === 'file' && field.value instanceof File) {
+              parts.push({
+                key: field.key,
+                type: 'file',
+                fileName: field.value.name,
+                contentType: field.value.type || 'application/octet-stream',
+                base64: await fileToBase64(field.value),
+              });
+            } else if (field.type === 'text') {
+              parts.push({ key: field.key, type: 'text', value: (field.value as string) ?? '' });
             }
-          });
-          finalBody = formData;
-          finalContentType = undefined; // Browser will set this with boundary
+          }
+          multipart = parts;
+          finalContentType = undefined; // The server sets it, with the boundary
           break;
         }
         case 'x-www-form-urlencoded': {
@@ -409,7 +432,13 @@ const ApiTesterPage: React.FC = () => {
           finalContentType = rawContentType;
           break;
         case 'binary':
-          finalBody = binaryBodyFile;
+          if (binaryBodyFile) {
+            binary = {
+              contentType: binaryBodyFile.type || 'application/octet-stream',
+              base64: await fileToBase64(binaryBodyFile),
+              fileName: binaryBodyFile.name,
+            };
+          }
           finalContentType = binaryBodyFile?.type || 'application/octet-stream';
           break;
         case 'GraphQL': {
@@ -441,6 +470,8 @@ const ApiTesterPage: React.FC = () => {
     // Ensure body is undefined for GET/HEAD requests regardless of selectedBodyType
     if (method === 'GET' || method === 'HEAD') {
       finalBody = undefined;
+      multipart = undefined;
+      binary = undefined;
       delete processedHeaders['Content-Type'];
       delete processedHeaders['content-type'];
     }
@@ -451,6 +482,8 @@ const ApiTesterPage: React.FC = () => {
       queryParams: processedQueryParams,
       headers: processedHeaders,
       body: finalBody,
+      multipart,
+      binary,
       assertions: assertions.filter(a => a.enabled),
       extractions: extractions.filter(e => e.name.trim() !== ''),
       environmentId: environmentIdFor(selectedEnvironment),

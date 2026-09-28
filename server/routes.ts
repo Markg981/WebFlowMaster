@@ -96,6 +96,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     queryParams: z.record(z.any()).optional(),
     headers: z.record(z.string()).optional(),
     body: z.any().optional(),
+    // A form-data or binary body, which cannot travel in `body`: a browser FormData or File
+    // serialises to `{}`. See ApiRequestSpec.multipart.
+    multipart: z
+      .array(
+        z.discriminatedUnion('type', [
+          z.object({ key: z.string().min(1), type: z.literal('text'), value: z.string() }),
+          z.object({
+            key: z.string().min(1),
+            type: z.literal('file'),
+            fileName: z.string(),
+            contentType: z.string().optional().nullable(),
+            base64: z.string(),
+          }),
+        ]),
+      )
+      .optional()
+      .nullable(),
+    binary: z.object({ contentType: z.string().optional().nullable(), base64: z.string() }).optional().nullable(),
     assertions: z.array(AssertionSchema).optional(),
     // Captured here as well as in a plan, so the tester can see what a request would hand
     // to the next one rather than finding out only when the plan runs.
@@ -236,7 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
-    const { method, url, queryParams, headers, body, assertions, extractions, auth, environmentId } = parseResult.data;
+    const { method, url, queryParams, headers, body, multipart, binary, assertions, extractions, auth, environmentId } = parseResult.data;
 
     // The environment supplies the variables here exactly as it does for a scheduled run,
     // so a request that works in the tester works in a plan. Its id is the caller's; the
@@ -251,7 +269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // what let the two drift until test-execution-service gave up and shipped
     // `Math.random() > 0.2` in place of executing anything at all.
     const result = await runApiRequest(
-      { method, url, queryParams, headers, body, assertions, extractions, auth },
+      { method, url, queryParams, headers, body, multipart, binary, assertions, extractions, auth },
       vars,
     );
 

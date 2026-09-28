@@ -145,6 +145,54 @@ describe('runApiRequest', () => {
     expect(received).toHaveLength(1);
     expect(result.passed).toBe(true);
   }, 30_000);
+
+  it('sends form-data as multipart, with its text fields and its files', async () => {
+    // API-03: the page put a browser FormData in `body`, the JSON hop turned it into `{}`,
+    // and the target received neither fields nor files.
+    await runApiRequest(
+      {
+        method: 'POST',
+        url: `${baseUrl}/upload`,
+        headers: { 'Content-Type': 'application/json' },
+        multipart: [
+          { key: 'note', type: 'text', value: 'hello {{who}}' },
+          { key: 'doc', type: 'file', fileName: 'a.txt', contentType: 'text/plain', base64: Buffer.from('file body').toString('base64') },
+        ],
+      },
+      { who: 'world' },
+    );
+
+    const contentType = String(received[0].headers['content-type']);
+    expect(contentType).toMatch(/^multipart\/form-data; boundary=/);
+    const form = await new Response(received[0].body, { headers: { 'content-type': contentType } }).formData();
+    expect(form.get('note')).toBe('hello world');
+    const file = form.get('doc') as File;
+    expect(file.name).toBe('a.txt');
+    expect(await file.text()).toBe('file body');
+  }, 30_000);
+
+  it('sends a binary body as the bytes of the file', async () => {
+    await runApiRequest(
+      {
+        method: 'POST',
+        url: `${baseUrl}/upload`,
+        binary: { contentType: 'text/plain', base64: Buffer.from('raw bytes').toString('base64') },
+      },
+      {},
+    );
+
+    expect(received[0].headers['content-type']).toBe('text/plain');
+    expect(received[0].body).toBe('raw bytes');
+  }, 30_000);
+
+  it('sends no body with a GET, whatever form-data was filled in', async () => {
+    await runApiRequest(
+      { method: 'GET', url: `${baseUrl}/ping`, multipart: [{ key: 'a', type: 'text', value: '1' }] },
+      {},
+    );
+
+    expect(received[0].body).toBe('');
+  }, 30_000);
 });
 
 describe('extracting values for the next request', () => {

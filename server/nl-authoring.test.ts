@@ -146,6 +146,33 @@ describe('resolveTarget', () => {
     expect(!resolution.ok && resolution.reason).toContain('matches 2 elements');
   });
 
+  it('lets the action choose between a label and the control it labels', () => {
+    const login = buildCatalogue({
+      detected: [
+        { selector: 'label[for=username]', tag: 'label', type: 'label', text: 'Username', attributes: { for: 'username' } },
+        { selector: '#username', tag: 'input', type: 'text', text: '', attributes: { name: 'username', type: 'text' } },
+      ],
+    });
+
+    const typed = resolveTarget('Username', login, 'input');
+    const clicked = resolveTarget('Username', login, 'assert');
+
+    expect(typed.ok && typed.entry.selector).toBe('#username');
+    // An action any element can take leaves the exact name in charge.
+    expect(clicked.ok && clicked.entry.selector).toBe('label[for=username]');
+  });
+
+  it('still refuses when the action leaves more than one candidate', () => {
+    const twoSaves = buildCatalogue({
+      detected: [
+        { selector: '#save-draft', tag: 'button', text: 'Save', attributes: {} },
+        { selector: '#save-all', tag: 'button', text: 'Save', attributes: {} },
+      ],
+    });
+
+    expect(resolveTarget('Save', twoSaves, 'click').ok).toBe(false);
+  });
+
   it('says what to do when it finds nothing', () => {
     const resolution = resolveTarget('Delete everything', catalogue);
 
@@ -215,6 +242,18 @@ describe('buildStep', () => {
 
     expect(built.ok).toBe(false);
   });
+
+  it('looks for quoted words on the page when nothing detected is called that', () => {
+    // The text belongs to the page after the login, which detection never saw.
+    const built = buildStep({ action: 'assert', targetPhrase: '«Secure Area»' }, catalogue);
+
+    expect(built.ok && built.step.targetElement?.selector).toBe('text="Secure Area"');
+  });
+
+  it('never types into words it only found by quoting them', () => {
+    expect(buildStep({ action: 'input', targetPhrase: '"Secure Area"', value: 'x' }, catalogue).ok).toBe(false);
+    expect(buildStep({ action: 'assert', targetPhrase: 'Secure Area' }, catalogue).ok).toBe(false);
+  });
 });
 
 describe('buildPrompt', () => {
@@ -269,6 +308,29 @@ describe('authorSteps', () => {
     expect(result.unresolved).toEqual([]);
     expect(result.steps.map((item) => item.step.action.id)).toEqual(['navigate', 'input', 'click', 'assert']);
     expect(result.steps.map((item) => item.line)).toEqual([1, 2, 3, 4]);
+  });
+
+  it('reads the Italian login scenario without a model', async () => {
+    // WEB-10: the page has a <label> and an <input> both called Username, and the success
+    // message belongs to the page after the login.
+    const result = await authorSteps({
+      text: [
+        'Vai su https://the-internet.herokuapp.com/login',
+        'Scrivi tomsmith nel campo Username',
+        'Clicca Login',
+        'Verifica che «Secure Area» sia visibile',
+      ].join('\n'),
+      detected: [
+        { selector: 'label[for=username]', tag: 'label', type: 'label', text: 'Username', attributes: { for: 'username' } },
+        { selector: '#username', tag: 'input', type: 'text', text: '', attributes: { name: 'username', type: 'text' } },
+        { selector: 'button[type=submit]', tag: 'button', type: 'button', text: 'Login', attributes: { type: 'submit' } },
+      ],
+    });
+
+    expect(result.unresolved).toEqual([]);
+    expect(result.steps.map((item) => item.step.action.id)).toEqual(['navigate', 'input', 'click', 'assert']);
+    expect(result.steps[1].step.targetElement?.selector).toBe('#username');
+    expect(result.steps[3].step.targetElement?.selector).toBe('text="Secure Area"');
   });
 
   it('never asks a model about a sentence it already understood', async () => {
