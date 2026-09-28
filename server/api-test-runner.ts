@@ -53,6 +53,56 @@ export interface ApiRequestSpec {
    * test failed for a reason unrelated to what it checked.
    */
   auth?: AuthParams | null;
+  /**
+   * A multipart/form-data body, in place of `body`.
+   *
+   * The page used to put a browser FormData in `body`; it reached here through JSON, where a
+   * FormData is `{}`, and the target received an empty JSON object instead of the fields and
+   * files. Files therefore travel as base64 and are rebuilt into a form here.
+   */
+  multipart?: MultipartPart[] | null;
+  /** A file sent as the whole body, in place of `body` — base64 for the same reason. */
+  binary?: { contentType?: string | null; base64: string } | null;
+}
+
+export type MultipartPart =
+  | { key: string; type: 'text'; value: string }
+  | { key: string; type: 'file'; fileName: string; contentType?: string | null; base64: string };
+
+/**
+ * A form encoded to bytes, with the Content-Type that names its boundary.
+ *
+ * Bytes rather than the FormData itself: a request sent through a local agent carries text
+ * or bytes only (server/agents/agent-fetch.ts), and the boundary has to be in the header
+ * that goes with them.
+ */
+async function encodeMultipart(
+  parts: MultipartPart[],
+  vars: Record<string, string>,
+): Promise<{ bytes: Buffer; contentType: string }> {
+  const form = new FormData();
+  for (const part of parts) {
+    const key = substituteVariables(part.key, vars);
+    if (part.type === 'file') {
+      const blob = new Blob([Buffer.from(part.base64, 'base64')], {
+        type: part.contentType || 'application/octet-stream',
+      });
+      form.append(key, blob, part.fileName);
+    } else {
+      form.append(key, substituteVariables(part.value, vars));
+    }
+  }
+  const encoded = new Response(form);
+  return {
+    bytes: Buffer.from(await encoded.arrayBuffer()),
+    contentType: encoded.headers.get('content-type') ?? 'multipart/form-data',
+  };
+}
+
+function withoutContentType(headers: Record<string, string>): void {
+  for (const name of Object.keys(headers)) {
+    if (name.toLowerCase() === 'content-type') delete headers[name];
+  }
 }
 
 export interface AssertionOutcome {
@@ -298,7 +348,19 @@ export async function runApiRequest(
   }
 
   const options: RequestInit = { method: spec.method, headers };
-  if (spec.method !== 'GET' && spec.method !== 'HEAD' && spec.body !== undefined) {
+  const carriesBody = spec.method !== 'GET' && spec.method !== 'HEAD';
+  if (carriesBody && spec.multipart) {
+    const { bytes, contentType } = await encodeMultipart(spec.multipart, vars);
+    // Only the encoder knows the boundary, so whatever the request said is replaced.
+    withoutContentType(headers);
+    headers['Content-Type'] = contentType;
+    options.body = bytes;
+  } else if (carriesBody && spec.binary) {
+    options.body = Buffer.from(spec.binary.base64, 'base64');
+    if (!headers['content-type'] && !headers['Content-Type']) {
+      headers['Content-Type'] = spec.binary.contentType || 'application/octet-stream';
+    }
+  } else if (carriesBody && spec.body !== undefined) {
     if (typeof spec.body === 'string') {
       options.body = substituteVariables(spec.body, vars);
     } else if (spec.body !== null) {

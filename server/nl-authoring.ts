@@ -146,7 +146,7 @@ function canonicalState(word: string): string | null {
 export function normaliseLabel(value: string): string {
   const cleaned = value
     .toLowerCase()
-    .replace(/["'`]/g, ' ')
+    .replace(/["'`«»“”‘’]/g, ' ')
     .replace(/[.,;:!?]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -232,7 +232,8 @@ function isStringRecord(value: unknown): value is Record<string, string> {
 
 export type TargetResolution =
   | { ok: true; entry: CatalogueEntry }
-  | { ok: false; reason: string };
+  /** `missing` when nothing answers to the phrase, as opposed to more than one thing. */
+  | { ok: false; reason: string; missing?: boolean };
 
 /**
  * Which element a phrase is about.
@@ -242,7 +243,27 @@ export type TargetResolution =
  * whichever element happened to be listed first. Picking one of three "Save" buttons at
  * random produces a test that passes for a reason nobody intended.
  */
-export function resolveTarget(phrase: string, catalogue: CatalogueEntry[]): TargetResolution {
+export function resolveTarget(
+  phrase: string,
+  catalogue: CatalogueEntry[],
+  action?: AdhocActionId,
+): TargetResolution {
+  // "Type tomsmith in the Username field" names both the <label> that says Username and the
+  // input it labels; nobody types into a label. The action is part of what the author said,
+  // so the elements that can take it are asked first. It only ever narrows: two inputs
+  // called Username are still refused as ambiguous.
+  const accepts = action ? ACTION_TARGETS[action] : undefined;
+  if (accepts) {
+    const fitting = catalogue.filter((entry) => entry.tag === '' || accepts(entry));
+    if (fitting.length > 0 && fitting.length < catalogue.length) {
+      const narrowed = resolveAmong(phrase, fitting);
+      if (narrowed.ok || !narrowed.missing) return narrowed;
+    }
+  }
+  return resolveAmong(phrase, catalogue);
+}
+
+function resolveAmong(phrase: string, catalogue: CatalogueEntry[]): TargetResolution {
   const wanted = normaliseLabel(phrase);
   if (wanted === '') return { ok: false, reason: 'No element was named in this instruction.' };
 
@@ -272,7 +293,80 @@ export function resolveTarget(phrase: string, catalogue: CatalogueEntry[]): Targ
 
   return {
     ok: false,
+    missing: true,
     reason: `Nothing here is called "${phrase.trim()}". Detect the page's elements, or keep it in the project's element repository under that name.`,
+  };
+}
+
+const NON_TEXT_INPUTS = new Set([
+  'checkbox', 'radio', 'submit', 'button', 'reset', 'image', 'file', 'hidden', 'range', 'color',
+]);
+
+function inputType(entry: CatalogueEntry): string {
+  // The attribute when the page carried one; detection also records it as the element type.
+  return (entry.attributes?.type || entry.type || '').toLowerCase();
+}
+
+function isTextEntry(entry: CatalogueEntry): boolean {
+  const tag = entry.tag.toLowerCase();
+  if (tag === 'textarea') return true;
+  if (tag === 'input') return !NON_TEXT_INPUTS.has(inputType(entry));
+  return entry.attributes?.contenteditable === 'true' || entry.attributes?.role === 'textbox';
+}
+
+function isChoice(entry: CatalogueEntry): boolean {
+  const role = (entry.attributes?.role ?? '').toLowerCase();
+  return entry.tag.toLowerCase() === 'select' || role === 'combobox' || role === 'listbox';
+}
+
+function isToggle(entry: CatalogueEntry): boolean {
+  const role = (entry.attributes?.role ?? '').toLowerCase();
+  const type = inputType(entry);
+  return type === 'checkbox' || type === 'radio' || role === 'checkbox' || role === 'switch' || role === 'radio';
+}
+
+/** Which of several same-named elements an action can actually be performed on. */
+const ACTION_TARGETS: Partial<Record<AdhocActionId, (entry: CatalogueEntry) => boolean>> = {
+  input: isTextEntry,
+  select: isChoice,
+  ensureState: isToggle,
+  // A label forwards its click to its control, but the step should name the control itself.
+  click: (entry) => entry.tag.toLowerCase() !== 'label',
+};
+
+/** The words between the quotes, when the whole phrase is quoted; null otherwise. */
+function quotedText(phrase: string): string | null {
+  const match = /^\s*(?:"([^"]+)"|«([^»]+)»|“([^”]+)”|'([^']+)')\s*$/.exec(phrase);
+  if (!match) return null;
+  const text = (match[1] ?? match[2] ?? match[3] ?? match[4] ?? '').trim();
+  return text === '' ? null : text;
+}
+
+/**
+ * Actions that can be pointed at words on the page instead of at a catalogued element.
+ *
+ * "Check that «Secure Area» is visible" is usually about a page the test has not reached yet,
+ * so nothing detected beforehand is called that. The author quoted the words, which is an
+ * exact statement of what to look for — a text locator says the same thing and invents
+ * nothing. Actions that change a control are not here: typing into "whatever says Save" is a
+ * guess.
+ */
+const TEXT_TARGET_ACTIONS = new Set<AdhocActionId>([
+  'assert', 'waitForElement', 'click', 'hover', 'assertTextContains', 'waitForText',
+]);
+
+function textEntry(text: string): CatalogueEntry {
+  return {
+    key: 'T',
+    label: text,
+    selector: `text=${JSON.stringify(text)}`,
+    frameSelector: null,
+    tag: '',
+    type: 'text',
+    text,
+    attributes: {},
+    elementId: null,
+    origin: 'detected',
   };
 }
 
@@ -353,7 +447,7 @@ const RULES: Rule[] = [
     build: (g) => ({ action: 'assertState', targetPhrase: g.target ?? null, value: canonicalState(g.state ?? '') }),
   },
   {
-    regex: /^(?:check|assert|verify|make sure|ensure|verifica|controlla)\s+(?:that\s+|che\s+)?(?<target>.+?)\s+(?:is visible|is displayed|is present|exists|è visibile|esiste|è presente)$/i,
+    regex: /^(?:check|assert|verify|make sure|ensure|verifica|controlla)\s+(?:that\s+|che\s+)?(?<target>.+?)\s+(?:is visible|is displayed|is shown|is present|exists|appears|(?:è|sia|venga) (?:visibile|visualizzat[oa]|mostrat[oa]|presente)|esiste|esista|appare|appaia|compare|compaia)$/i,
     build: (g) => ({ action: 'assert', targetPhrase: g.target ?? null }),
   },
   {
@@ -432,9 +526,13 @@ export function buildStep(candidate: Candidate, catalogue: CatalogueEntry[]): St
       entry = catalogue.find((item) => item.key === candidate.targetKey);
       if (!entry) return { ok: false, reason: 'That element is not on this page or in the repository.' };
     } else {
-      const resolution = resolveTarget(candidate.targetPhrase ?? '', catalogue);
-      if (!resolution.ok) return { ok: false, reason: resolution.reason };
-      entry = resolution.entry;
+      const phrase = candidate.targetPhrase ?? '';
+      const resolution = resolveTarget(phrase, catalogue, action);
+      const quoted = quotedText(phrase);
+      if (resolution.ok) entry = resolution.entry;
+      else if (resolution.missing && quoted && TEXT_TARGET_ACTIONS.has(action)) {
+        entry = textEntry(quoted);
+      } else return { ok: false, reason: resolution.reason };
     }
   }
 
