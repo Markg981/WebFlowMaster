@@ -2031,7 +2031,22 @@
       "title": "Beginnen Sie mit einer Excel-Datei",
       "description": "Wählen Sie eine .xlsx- oder .xls-Datei mit Testfällen. Jede Zeile wird zu einem Fall, den Sie einer gespeicherten Sequenz zuordnen und ausführen können."
     },
-    "viewLatestReport": "Letzten Bericht ansehen"
+    "noSequences": "Noch keine gespeicherten Sequenzen. Erstellen Sie eine im Test-Builder und ordnen Sie sie hier zu.",
+    "status": {
+      "notRun": "Nicht ausgeführt",
+      "running": "Läuft…",
+      "passed": "Bestanden",
+      "failed": "Fehlgeschlagen",
+      "error": "Fehler",
+      "notMapped": "Nicht zugeordnet"
+    },
+    "viewReport": "Bericht öffnen",
+    "report": {
+      "title": "{{id}} · {{sequence}}",
+      "summary": "{{passed}} von {{total}} Schritten bestanden in {{seconds}} s",
+      "noSteps": "Der Lauf endete vor dem ersten Schritt.",
+      "screenshot": "Screenshot von Schritt {{n}}"
+    }
   },
   "generalReportsPage": {
     "description": "Alle abgeschlossenen Ausführungen mit Schritten, Zeiten und Aufnahmen.",

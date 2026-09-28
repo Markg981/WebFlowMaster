@@ -5,10 +5,14 @@ export interface TestSequence {
   name: string;
 }
 
+/** One array for "not loaded yet", so consumers that depend on the list see a stable value. */
+const NO_SEQUENCES: TestSequence[] = [];
+
 export function useTestSequences() {
-  const { data: sequences = [], isLoading, error } = useQuery<TestSequence[]>({
+  // No initialData: with the client's staleTime of Infinity, an initial [] counts as fresh
+  // data, the list is never fetched, and the sequence picker opens empty.
+  const { data: sequences = NO_SEQUENCES, isLoading, error } = useQuery<TestSequence[]>({
     queryKey: ['/api/tests'],
-    initialData: [],
   });
 
   return { sequences, isLoading, error };

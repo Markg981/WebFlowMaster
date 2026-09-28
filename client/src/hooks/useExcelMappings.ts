@@ -13,10 +13,10 @@ export function useExcelMappings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
-  // Fetch Mappings
-  const { data: mappings = [] } = useQuery<Mapping[]>({
+  // Fetch Mappings. No initialData: with the client's staleTime of Infinity an initial []
+  // counts as fresh and the saved mappings are never fetched.
+  const { data: mappings } = useQuery<Mapping[]>({
     queryKey: ['/api/excel-mappings'],
-    initialData: [],
   });
 
   // Local state for fast UI updates

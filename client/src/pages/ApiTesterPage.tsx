@@ -231,9 +231,9 @@ const ApiTesterPage: React.FC = () => {
   const saveToHistoryMutation = useMutation<
     ApiTestHistoryEntry,
     Error,
-    InsertApiTestHistoryPayload
+    InsertApiTestHistoryPayload & { environmentId?: number }
   >({ // Ensure this is an object literal for the options
-    mutationFn: async (historyEntry: InsertApiTestHistoryPayload) => {
+    mutationFn: async (historyEntry) => {
       const payloadForBackend = {
         method: historyEntry.method,
         url: historyEntry.url,
@@ -244,6 +244,8 @@ const ApiTesterPage: React.FC = () => {
         responseHeaders: historyEntry.responseHeaders,
         responseBody: historyEntry.responseBody,
         durationMs: historyEntry.durationMs,
+        // Lets the server take this environment's values back out of what it stores.
+        environmentId: historyEntry.environmentId,
       };
       // userId, id, createdAt are omitted as they are handled by backend/DB.
       // The InsertApiTestHistoryPayload type should reflect this.
@@ -328,6 +330,7 @@ const ApiTesterPage: React.FC = () => {
         responseStatus: data.status, responseHeaders: data.headers,
         responseBody: (typeof data.body === 'object' && data.body !== null) ? JSON.stringify(data.body) : data.body,
         durationMs: data.duration,
+        environmentId: variables.environmentId,
       };
       saveToHistoryMutation.mutate(historyEntry as any);
     },
@@ -516,9 +519,11 @@ const ApiTesterPage: React.FC = () => {
       // SQLite days) produced strings the server-side schema rejects, so every save 400'd.
       return (await apiRequest(httpMethod, endpoint, testData)).json();
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: ['apiTests'] });
-      setIsSaveModalOpen(false); setCurrentTestToEdit(null);
+      // The form still shows the test just saved, so it stays the one "Save Changes" updates.
+      // Clearing it here made the next save of the same test create a copy instead.
+      setIsSaveModalOpen(false); setCurrentTestToEdit(saved);
       toast({ title: currentTestToEdit ? 'Test Updated Successfully' : 'Test Saved Successfully' });
     },
     onError: (error) => { toast({ title: 'Save Test Failed', description: error.message, variant: 'destructive' }); }
@@ -539,6 +544,8 @@ const ApiTesterPage: React.FC = () => {
   );
 
   const handleLoadHistoryItem = (item: ApiTestHistoryEntry) => {
+    // A history entry is not a saved test: saving it must not overwrite the test loaded before.
+    setCurrentTestToEdit(null);
     setMethod(item.method); setUrl(item.url);
 
     // Properly parse queryParams from history item which might be an object or array
@@ -927,7 +934,11 @@ const ApiTesterPage: React.FC = () => {
         <h1 className="truncate text-sm font-semibold tracking-tight">
           {t('apiTesterPage.title')}
         </h1>
-        <Button variant="default" size="sm" onClick={() => handleOpenSaveModal()} disabled={apiProxyMutation.isPending}>
+        {/* Opens the dialog on whatever the form holds: the loaded test when there is one
+            ("Save Changes" updates it, with the edits made since loading), a new test otherwise.
+            Going through handleOpenSaveModal() here dropped the loaded test, so "Save Changes"
+            opened "Save New API Test". */}
+        <Button variant="default" size="sm" onClick={() => setIsSaveModalOpen(true)} disabled={apiProxyMutation.isPending}>
           <Save className="mr-2 h-4 w-4" />
           {currentTestToEdit ? t('apiTesterPage.saveChanges.button') : t('apiTesterPage.saveTest.button')}
         </Button>
@@ -1355,7 +1366,7 @@ const ApiTesterPage: React.FC = () => {
       </div>
       <SaveApiTestModal
         isOpen={isSaveModalOpen}
-        onClose={() => { setIsSaveModalOpen(false); setCurrentTestToEdit(null); }}
+        onClose={() => setIsSaveModalOpen(false)}
         onSave={handleSaveTestConfirm}
         initialTestName={currentTestToEdit?.name || ''}
         initialProjectId={currentTestToEdit?.projectId}

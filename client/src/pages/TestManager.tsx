@@ -6,13 +6,43 @@ import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { useTestSequences } from '@/hooks/useTestSequences';
 import { useExcelImport } from '@/hooks/useExcelImport';
 import { useExcelMappings } from '@/hooks/useExcelMappings';
-import { useTestRunner } from '@/hooks/useTestRunner';
+import { useTestRunner, type RowResult } from '@/hooks/useTestRunner';
 
-import { FileTextIcon as ReportsIcon, Upload, Play, FileSpreadsheet } from 'lucide-react';
+import { FileTextIcon as ReportsIcon, Upload, Play, FileSpreadsheet, CheckCircle2, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
+
+/** What happened to a row's last run: an icon and a word, coloured by outcome. */
+const RowStatusLabel: React.FC<{ result?: RowResult }> = ({ result }) => {
+  const { t } = useTranslation();
+  if (!result) return <span className="text-sm text-muted-foreground">{t('testManager.status.notRun')}</span>;
+  const label = t(`testManager.status.${result.status}`);
+  if (result.status === 'running') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {label}
+      </span>
+    );
+  }
+  if (result.status === 'notMapped') return <span className="text-sm text-muted-foreground">{label}</span>;
+  const passed = result.status === 'passed';
+  const Icon = passed ? CheckCircle2 : result.status === 'failed' ? XCircle : AlertTriangle;
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 text-sm font-medium ${passed ? 'text-success' : 'text-destructive'}`}
+      title={result.error}
+    >
+      <Icon className="h-4 w-4" aria-hidden /> {label}
+    </span>
+  );
+};
+
+/** Whether a row's run has finished, so there is a report to open. */
+const hasReport = (result?: RowResult) =>
+  !!result && (result.status === 'passed' || result.status === 'failed' || result.status === 'error');
 
 const TestManager: React.FC = () => {
   const { t } = useTranslation();
@@ -21,9 +51,13 @@ const TestManager: React.FC = () => {
   const { sequences } = useTestSequences();
   const { file, parsedTestCases, isUploading, handleFileChange, handleUpload } = useExcelImport();
   const { localMappings, handleMappingChange } = useExcelMappings();
-  const { selectedIds, reportUrl, toggleSelection, runSelected } = useTestRunner(parsedTestCases, localMappings);
+  const { selectedIds, results, isRunning, toggleSelection, runSelected } = useTestRunner(parsedTestCases, localMappings);
+  const [reportFor, setReportFor] = React.useState<string | null>(null);
 
   const hasRows = parsedTestCases.length > 0;
+  const report = reportFor ? results[reportFor] : undefined;
+  const reportSteps = report?.steps ?? [];
+  const sequenceName = (testId?: number) => sequences.find((seq) => seq.id === testId)?.name ?? `#${testId}`;
 
   return (
     <div className="mx-auto max-w-[1400px] p-6">
@@ -51,8 +85,8 @@ const TestManager: React.FC = () => {
             <p className="text-sm text-muted-foreground">
               {t('testManager.rowCount', { count: parsedTestCases.length })}
             </p>
-            <Button size="sm" onClick={runSelected} disabled={selectedIds.size === 0}>
-              <Play className="mr-2 h-4 w-4" />
+            <Button size="sm" onClick={runSelected} disabled={selectedIds.size === 0 || isRunning}>
+              {isRunning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
               {t('testManager.runSelected', { n: selectedIds.size })}
             </Button>
           </div>
@@ -92,16 +126,31 @@ const TestManager: React.FC = () => {
                         <SelectValue placeholder={t('testManager.selectSequence')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {sequences.map(seq => (
-                          <SelectItem key={seq.id} value={seq.id.toString()}>
-                            {seq.name}
-                          </SelectItem>
-                        ))}
+                        {/* An empty list opened as a sliver with nothing to pick, which read as
+                            the page freezing; say why it is empty instead. */}
+                        {sequences.length === 0 ? (
+                          <p className="max-w-[240px] px-2 py-1.5 text-sm text-muted-foreground">
+                            {t('testManager.noSequences')}
+                          </p>
+                        ) : (
+                          sequences.map(seq => (
+                            <SelectItem key={seq.id} value={seq.id.toString()}>
+                              {seq.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </TableCell>
                   <TableCell>
-                    <span className="text-muted-foreground">—</span>
+                    <span className="inline-flex items-center gap-3">
+                      <RowStatusLabel result={results[tc.testCaseId]} />
+                      {hasReport(results[tc.testCaseId]) && (
+                        <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setReportFor(tc.testCaseId)}>
+                          <ReportsIcon className="mr-1 h-4 w-4" aria-hidden /> {t('testManager.viewReport')}
+                        </Button>
+                      )}
+                    </span>
                   </TableCell>
                 </TableRow>
               ))}
@@ -138,15 +187,63 @@ const TestManager: React.FC = () => {
         )}
       </Card>
 
-      {reportUrl && (
-        <div className="fixed bottom-8 right-8">
-          <Button asChild size="lg" className="shadow-md animate-in fade-in slide-in-from-bottom-4">
-            <a href={reportUrl} target="_blank" rel="noopener noreferrer">
-              <ReportsIcon className="mr-2 h-5 w-5" /> {t('testManager.viewLatestReport')}
-            </a>
-          </Button>
-        </div>
-      )}
+      <Dialog open={!!report} onOpenChange={(open) => { if (!open) setReportFor(null); }}>
+        <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+          {report && reportFor && (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  {t('testManager.report.title', { id: reportFor, sequence: sequenceName(report.testId) })}
+                </DialogTitle>
+                <DialogDescription asChild>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <RowStatusLabel result={report} />
+                    <span>
+                      {t('testManager.report.summary', {
+                        passed: reportSteps.filter((step) => step.status === 'passed').length,
+                        total: reportSteps.length,
+                        seconds: ((report.durationMs ?? 0) / 1000).toFixed(1),
+                      })}
+                    </span>
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              {report.error && (
+                <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {report.error}
+                </p>
+              )}
+              {reportSteps.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('testManager.report.noSteps')}</p>
+              ) : (
+                <ol className="space-y-3">
+                  {reportSteps.map((step, index) => (
+                    <li key={index} className="rounded-md border p-3">
+                      <div className="flex items-start gap-2">
+                        {step.status === 'passed'
+                          ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
+                          : <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">{index + 1}. {step.name}</p>
+                          <p className="break-words text-sm text-muted-foreground">{step.error || step.details}</p>
+                        </div>
+                      </div>
+                      {step.screenshot && (
+                        <img
+                          src={step.screenshot}
+                          alt={t('testManager.report.screenshot', { n: index + 1 })}
+                          className="mt-2 max-h-64 rounded border"
+                          loading="lazy"
+                        />
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

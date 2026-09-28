@@ -2149,7 +2149,22 @@
       "title": "Comincia da un file Excel",
       "description": "Scegli un file .xlsx o .xls di casi di test. Ogni riga diventa un caso da associare a una sequenza salvata ed eseguire."
     },
-    "viewLatestReport": "Vedi l’ultimo report"
+    "noSequences": "Nessuna sequenza salvata. Creane una nel test builder, poi mappala qui.",
+    "status": {
+      "notRun": "Non eseguito",
+      "running": "In esecuzione…",
+      "passed": "Superato",
+      "failed": "Fallito",
+      "error": "Errore",
+      "notMapped": "Non mappato"
+    },
+    "viewReport": "Apri report",
+    "report": {
+      "title": "{{id}} · {{sequence}}",
+      "summary": "{{passed}} di {{total}} step superati in {{seconds}} s",
+      "noSteps": "L’esecuzione si è fermata prima di qualsiasi step.",
+      "screenshot": "Screenshot dello step {{n}}"
+    }
   },
   "generalReportsPage": {
     "description": "Tutte le esecuzioni concluse, con passi, tempi e schermate.",
