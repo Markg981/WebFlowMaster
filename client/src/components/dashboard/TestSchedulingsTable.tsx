@@ -32,10 +32,10 @@ const TestSchedulingsTable: React.FC = () => {
     const displayedSchedules = schedules.slice(0, 5); // Display top 5 upcoming active schedules
 
     return(
-    <div className = "bg-card text-card-foreground p-4 rounded-lg shadow" >
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-base font-semibold">{t('dashboard.testSchedulingsTable.upcomingActiveSchedules.title')}</h3>
-          <Link href="/test-suites" className="text-sm text-primary hover:underline flex items-center">
+    <div className = "bg-card text-card-foreground p-4 rounded-lg border shadow-sm min-w-0 overflow-hidden" >
+        <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
+          <h3 className="min-w-0 break-words text-base font-semibold">{t('dashboard.testSchedulingsTable.upcomingActiveSchedules.title')}</h3>
+          <Link href="/test-suites" className="shrink-0 whitespace-nowrap text-sm text-primary hover:underline flex items-center">
             {t('dashboard.testSchedulingsTable.viewAll.link')} <CalendarDays className="ml-1 h-4 w-4" />
           </Link>
         </div>
@@ -49,8 +49,8 @@ const TestSchedulingsTable: React.FC = () => {
 
 {
   error && (
-    <div className="flex flex-col items-center justify-center h-40 text-destructive">
-      <AlertCircle className="h-8 w-8 mb-2" />
+    <div className="flex flex-col items-center justify-center min-h-40 text-center text-destructive [overflow-wrap:anywhere]">
+      <AlertCircle className="h-8 w-8 mb-2 shrink-0" />
       <p>{t('dashboard.testSchedulingsTable.error.text')}</p>
       <p className="text-xs">{error.message}</p>
     </div>
@@ -90,16 +90,16 @@ const TestSchedulingsTable: React.FC = () => {
         <TableBody>
           {displayedSchedules.map((schedule) => (
             <TableRow key={schedule.id}>
-              <TableCell className="font-medium">
-                <Link href={`/test-suites?planId=${schedule.testPlanId}&tab=schedules`} className="hover:underline text-primary">
+              <TableCell className="font-medium max-w-[16rem]">
+                <Link href={`/test-suites?planId=${schedule.testPlanId}&tab=schedules`} className="block truncate hover:underline text-primary" title={schedule.testPlanName || schedule.testPlanId}>
                   {schedule.testPlanName || schedule.testPlanId}
                 </Link>
               </TableCell>
-              <TableCell>{schedule.scheduleName}</TableCell>
+              <TableCell className="max-w-[16rem] truncate" title={schedule.scheduleName}>{schedule.scheduleName}</TableCell>
               <TableCell>
                 {schedule.environment ? <Badge variant="outline">{schedule.environment}</Badge> : <span className="text-xs text-muted-foreground">{t('dashboard.testSchedulingsTable.notSet.text')}</span>}
               </TableCell>
-              <TableCell>
+              <TableCell className="whitespace-nowrap">
                 {schedule.nextRunAt instanceof Date ? format(schedule.nextRunAt, 'PPpp') : t('dashboard.testSchedulingsTable.notScheduled.text')}
               </TableCell>
               <TableCell className="text-xs">{schedule.frequency}</TableCell>
