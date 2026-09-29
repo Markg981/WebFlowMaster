@@ -4,15 +4,16 @@
  *
  *   NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node marketing/promo-video/demo/build-data.mjs
  *
- * It creates web and API tests against the public practice sites the collaudo protocol already
- * uses, three plans and a schedule, then runs the plans a few times and waits for them, so the
- * dashboard has a trend, the reports have results and one run has a failure worth opening.
+ * It creates web tests against the Northwind Shop storefront (docker-compose.demo.yml) and API
+ * tests against public echo services, four plans and a schedule, then runs the plans and waits
+ * for them, so the dashboard has a trend, the reports have results and one run — the only one of
+ * "Catalog checks" — has a failure worth opening.
  * Running it again adds nothing already there (matched by name) and adds more runs.
  */
 const BASE = process.env.WFM_URL ?? 'https://wfm.collaudo.test';
 const USERNAME = process.env.DEMO_USER ?? 'maya';
 const PASSWORD = process.env.DEMO_PASSWORD ?? 'Demo.Video.2026!';
-const RUNS_PER_PLAN = Number(process.env.RUNS_PER_PLAN ?? 3);
+const RUNS_PER_PLAN = Number(process.env.RUNS_PER_PLAN ?? 0);
 
 let cookie = '';
 
@@ -42,62 +43,67 @@ const ASSERT_TEXT = action('assertTextContains', 'Assert Text Contains');
 // A native <select>: 'select'. ('selectByText' is for dropdowns built from other elements.)
 const SELECT = action('select', 'Select Option');
 
-const SITE = 'https://the-internet.herokuapp.com';
+// The Northwind Shop storefront (demo/shop, docker-compose.demo.yml), served inside the stack:
+// a demo must not depend on a public practice site being up on the day it is filmed.
+const SITE = 'http://shop.northwind.test';
+
+/** The test that fails on purpose, in a plan of its own that runs once. */
+const FAILING = 'Promo banner shows the discount';
 
 const WEB_TESTS = [
   {
     name: 'Sign in with valid credentials',
-    url: `${SITE}/login`,
+    url: `${SITE}/login/`,
     module: 'Account', priority: 'Critical',
     sequence: [
-      step('nav', NAVIGATE, `${SITE}/login`),
-      step('user', INPUT, 'tomsmith', el('#username', 'input')),
-      step('pass', INPUT, 'SuperSecretPassword!', el('#password', 'input')),
-      step('submit', CLICK, '', el("button[type='submit']", 'button', 'Login')),
-      step('check', ASSERT_TEXT, 'You logged into a secure area!', el('#flash')),
+      step('nav', NAVIGATE, `${SITE}/login/`),
+      step('user', INPUT, 'maya.chen', el('#username', 'input')),
+      step('pass', INPUT, 'Coffee-2026', el('#password', 'input')),
+      step('submit', CLICK, '', el("button[type='submit']", 'button', 'Sign in')),
+      step('check', ASSERT_TEXT, 'Welcome back, Maya!', el('#flash')),
     ],
   },
   {
     name: 'Sign in rejects a wrong password',
-    url: `${SITE}/login`,
+    url: `${SITE}/login/`,
     module: 'Account', priority: 'High',
     sequence: [
-      step('nav', NAVIGATE, `${SITE}/login`),
-      step('user', INPUT, 'tomsmith', el('#username', 'input')),
+      step('nav', NAVIGATE, `${SITE}/login/`),
+      step('user', INPUT, 'maya.chen', el('#username', 'input')),
       step('pass', INPUT, 'not-the-password', el('#password', 'input')),
-      step('submit', CLICK, '', el("button[type='submit']", 'button', 'Login')),
-      step('check', ASSERT_TEXT, 'Your password is invalid!', el('#flash')),
+      step('submit', CLICK, '', el("button[type='submit']", 'button', 'Sign in')),
+      step('check', ASSERT_TEXT, 'Wrong username or password.', el('#flash')),
     ],
   },
   {
-    name: 'Order confirmation loads',
-    url: `${SITE}/dynamic_loading/1`,
+    name: 'Order confirmation appears',
+    url: `${SITE}/checkout/`,
     module: 'Checkout', priority: 'Critical',
     sequence: [
-      step('nav', NAVIGATE, `${SITE}/dynamic_loading/1`),
-      step('start', CLICK, '', el('#start button', 'button', 'Start')),
-      step('wait', WAIT, 'visible', el('#finish')),
-      step('check', ASSERT_TEXT, 'Hello World!', el('#finish')),
+      step('nav', NAVIGATE, `${SITE}/checkout/`),
+      step('order', CLICK, '', el('#place-order', 'button', 'Place order')),
+      step('wait', WAIT, 'visible', el('#confirmation')),
+      step('check', ASSERT_TEXT, 'Order confirmed', el('#confirmation')),
     ],
   },
   {
-    name: 'Shipping option can be chosen',
-    url: `${SITE}/dropdown`,
+    name: 'Express shipping updates the total',
+    url: `${SITE}/checkout/`,
     module: 'Checkout', priority: 'Medium',
     sequence: [
-      step('nav', NAVIGATE, `${SITE}/dropdown`),
-      step('choose', SELECT, 'Option 2', el('#dropdown', 'select')),
-      step('check', ASSERT_TEXT, 'Option 2', el('#dropdown option:checked', 'option')),
+      step('nav', NAVIGATE, `${SITE}/checkout/`),
+      step('choose', SELECT, 'express', el('#shipping', 'select')),
+      step('check', ASSERT_TEXT, '€9.90', el('#shipping-cost', 'span')),
     ],
   },
   {
-    // Fails on purpose: the video opens its report to show a failure explained.
-    name: 'Promo banner shows the discount',
-    url: `${SITE}/dynamic_content`,
+    // Fails on purpose: the banner offers free shipping. The video opens its report.
+    name: FAILING,
+    url: `${SITE}/catalog/`,
     module: 'Catalog', priority: 'Medium',
     sequence: [
-      step('nav', NAVIGATE, `${SITE}/dynamic_content`),
-      step('check', ASSERT_TEXT, '20% off everything', el('#content .large-10')),
+      step('nav', NAVIGATE, `${SITE}/catalog/`),
+      step('check', ASSERT_TEXT, '20% off everything', el('#promo')),
     ],
   },
 ];
@@ -170,14 +176,16 @@ async function main() {
       description: 'Every storefront journey on Chromium, Firefox and WebKit.',
       testMachinesConfig: [machine('chromium'), machine('firefox'), machine('webkit')],
       maxParallelTests: 4, ...common,
-      selectedTests: ui(WEB_TESTS.map((t) => t.name)),
+      selectedTests: ui(WEB_TESTS.filter((t) => t.name !== FAILING).map((t) => t.name)),
+      runs: 4,
     },
     {
       name: 'Checkout smoke',
       description: 'The paths that take money, before every release.',
       testMachinesConfig: [machine('chromium')],
       maxParallelTests: 2, ...common,
-      selectedTests: ui(['Sign in with valid credentials', 'Order confirmation loads', 'Shipping option can be chosen']),
+      selectedTests: ui(['Sign in with valid credentials', 'Order confirmation appears', 'Express shipping updates the total']),
+      runs: 8,
     },
     {
       name: 'Orders API contract',
@@ -185,12 +193,22 @@ async function main() {
       testMachinesConfig: [machine('chromium')],
       maxParallelTests: 1, ...common,
       selectedTests: apiSel(API_TESTS.map((t) => t.name)),
+      runs: 8,
+    },
+    {
+      // Run once: the one red run in the history, whose report the video opens.
+      name: 'Catalog checks',
+      description: 'Banners and prices on the catalog pages.',
+      testMachinesConfig: [machine('chromium'), machine('firefox')],
+      maxParallelTests: 2, ...common,
+      selectedTests: ui([FAILING, 'Express shipping updates the total']),
+      runs: 1,
     },
   ];
 
   const existingPlans = await api('GET', '/api/test-plans');
   const planIds = {};
-  for (const plan of PLANS) {
+  for (const { runs, ...plan } of PLANS) {
     const found = existingPlans.find((p) => p.name === plan.name);
     planIds[plan.name] = found?.id ?? (await api('POST', '/api/test-plans', plan)).id;
   }
@@ -215,12 +233,19 @@ async function main() {
     console.log('Schedule: Every night at 02:00');
   }
 
-  // Runs one after the other, so a small collaudo stack is not flooded.
-  for (let round = 1; round <= RUNS_PER_PLAN; round++) {
-    for (const [name, id] of Object.entries(planIds)) {
-      const started = await api('POST', `/api/run-test-plan/${id}`, {});
+  // Runs one after the other, so a small collaudo stack is not flooded. RUNS_PER_PLAN, when
+  // set, overrides each plan's own count.
+  const rounds = Math.max(...PLANS.map((p) => (process.env.RUNS_PER_PLAN ? RUNS_PER_PLAN : p.runs)));
+  for (let round = 1; round <= rounds; round++) {
+    for (const plan of PLANS) {
+      const wanted = process.env.RUNS_PER_PLAN ? RUNS_PER_PLAN : plan.runs;
+      if (round > wanted) continue;
+      const { name } = plan;
+      // ONLY_PLANS="Nightly regression,Checkout smoke" runs just those.
+      if (process.env.ONLY_PLANS && !process.env.ONLY_PLANS.split(',').includes(name)) continue;
+      const started = await api('POST', `/api/run-test-plan/${planIds[name]}`, {});
       const executionId = started.data?.id ?? started.data?.executionId ?? started.id;
-      process.stdout.write(`Run ${round}/${RUNS_PER_PLAN} ${name} (${executionId}) `);
+      process.stdout.write(`Run ${round}/${wanted} ${name} (${executionId}) `);
       for (;;) {
         await new Promise((r) => setTimeout(r, 4000));
         const run = await api('GET', `/api/test-plan-executions/${executionId}`);

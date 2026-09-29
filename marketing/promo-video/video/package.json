@@ -1,0 +1,23 @@
+{
+  "name": "webflowmaster-promo-video",
+  "private": true,
+  "description": "The 60-second WebFlowMaster promo video, written with Remotion.",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render Promo out/webflowmaster-promo.mp4",
+    "render:music": "remotion render Promo out/webflowmaster-promo.mp4 --props=\"{\\\"music\\\":true}\"",
+    "still": "remotion still Promo out/still.png"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.530",
+    "@remotion/google-fonts": "4.0.530",
+    "lucide-react": "^1.48.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.530"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.8",
+    "typescript": "5.8.3"
+  }
+}

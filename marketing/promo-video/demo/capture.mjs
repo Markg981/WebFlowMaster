@@ -19,11 +19,11 @@ const ONLY = process.env.SHOTS?.split(',');
 const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'video', 'public', 'shots');
 
 const DESCRIPTION = [
-  'Go to https://the-internet.herokuapp.com/login',
-  'Type tomsmith in the Username field',
-  'Type SuperSecretPassword! in the Password field',
-  'Click Login',
-  'Check that "You logged into a secure area!" is visible',
+  'Go to http://shop.northwind.test/login/',
+  'Type maya.chen in the Username field',
+  'Type Coffee-2026 in the Password field',
+  'Click Sign in',
+  'Check that "Welcome back, Maya!" is visible',
 ].join('\n');
 
 async function apiJson(page, method, url, body) {
@@ -71,7 +71,7 @@ const SHOTS = {
   },
   async builder() {
     await page.goto(`${BASE}/dashboard/create-test`); await settle();
-    await page.getByPlaceholder(/https?:\/\//i).first().fill('https://the-internet.herokuapp.com/login');
+    await page.getByPlaceholder(/https?:\/\//i).first().fill('http://shop.northwind.test/login/');
     await page.getByRole('button', { name: /load website/i }).click();
     await page.getByRole('button', { name: /detect elements/i }).waitFor({ state: 'visible', timeout: 60000 });
     await page.waitForTimeout(4000);
@@ -89,8 +89,12 @@ const SHOTS = {
     await page.waitForTimeout(1000);
     await shot('builder-sequence');
     await page.getByRole('button', { name: /execute test/i }).click();
-    await page.getByText(/passed/i).first().waitFor({ timeout: 90000 });
     await page.waitForTimeout(2500);
+    await shot('builder-running');
+    // Done when the button is back, then the preview plays the steps back: let it finish.
+    await page.getByRole('button', { name: /execute test/i }).waitFor({ state: 'visible', timeout: 120000 });
+    await page.waitForTimeout(10000);
+    await page.evaluate(() => window.scrollTo(0, 0));
     await shot('builder-passed');
   },
   async api() {
@@ -106,7 +110,8 @@ const SHOTS = {
   },
   async run() {
     // The run page starts the plan itself and streams it: a few frames of it in progress.
-    await page.goto(`${BASE}/test-plan/${planId('Nightly regression')}/run`);
+    await page.goto(`${BASE}/test-plan/${planId('Nightly regression')}/run`); await settle();
+    await page.getByRole('button', { name: /start execution/i }).click();
     for (let i = 1; i <= 4; i++) {
       await page.waitForTimeout(i === 1 ? 4000 : 9000);
       await shot(`run-${i}`);
@@ -116,15 +121,27 @@ const SHOTS = {
     await shot('run-done');
   },
   async report() {
-    const runs = await apiJson(page, 'GET', `/api/test-plan-executions?planId=${planId('Nightly regression')}&limit=1`);
-    const list = Array.isArray(runs) ? runs : runs.data ?? runs.executions ?? [];
+    const runs = await apiJson(page, 'GET', '/api/test-plan-executions?limit=100');
+    const list = (Array.isArray(runs) ? runs : runs.items ?? []).filter((r) => r.testPlanId === planId('Catalog checks'));
     const latest = list[0];
-    await page.goto(`${BASE}/test-plans/${planId('Nightly regression')}/executions/${latest.id}/report`); await settle();
+    await page.goto(`${BASE}/test-plans/${planId('Catalog checks')}/executions/${latest.id}/report`); await settle();
     await page.waitForTimeout(1500);
     await shot('report');
-    await page.getByText('Promo banner shows the discount').first().click();
-    await page.waitForTimeout(2500);
+    await page.getByText('Failed Tests').first().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(800);
     await shot('report-failure');
+    // The evidence of the first failed row: its screenshot, then its step log.
+    const row = page.locator('tr', { hasText: 'Promo banner shows the discount' }).first();
+    const actions = row.locator('td').last().locator('button, a');
+    await actions.nth(0).click();
+    await page.waitForTimeout(2500);
+    await shot('report-screenshot');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(800);
+    await actions.nth(2).click();
+    await page.waitForTimeout(2500);
+    await shot('report-log');
+    await page.keyboard.press('Escape');
   },
   async reports() {
     await page.goto(`${BASE}/reports`); await settle();

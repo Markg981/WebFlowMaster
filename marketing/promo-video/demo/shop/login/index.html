@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sign in · Northwind Shop</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header><div class="brand">Northwind <span>Shop</span></div><nav><a href="/catalog/">Catalog</a><a href="/checkout/">Cart</a><a href="/login/">Account</a></nav></header>
+  <main>
+    <h1>Welcome back</h1>
+    <p class="lead">Your orders, your roasts, your beans. All here.</p>
+    <div class="card">
+      <form class="login" id="login-form">
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password">
+        <button type="submit">Sign in</button>
+        <div id="flash" role="status"></div>
+      </form>
+    </div>
+  </main>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', function (event) {
+      event.preventDefault();
+      var ok = document.getElementById('username').value === 'maya.chen' && document.getElementById('password').value === 'Coffee-2026';
+      var flash = document.getElementById('flash');
+      flash.className = 'flash ' + (ok ? 'ok' : 'err');
+      flash.textContent = ok ? 'Welcome back, Maya!' : 'Wrong username or password.';
+    });
+  </script>
+</body>
+</html>
