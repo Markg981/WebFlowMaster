@@ -14,6 +14,7 @@
 #   ricevitore  receives notification webhooks and prints them: docker compose logs ricevitore.
 #   display     a screen for the recording window, in the browser at http://localhost:6080.
 #   agente      the local agent (profile "agente"), started once its token exists.
+#   agente-diverso  an agent on another Playwright version (profile "agente-diverso", AGT-05).
 #
 # Relative paths resolve from the repository root, the directory of the first -f file.
 #
@@ -140,6 +141,8 @@ services:
     ports:
       # The loopback only: the screen has no password.
       - "127.0.0.1:6080:6080"
+    # start-display exits when Xvfb does not come up; this brings it back.
+    restart: unless-stopped
 
   agente:
     profiles: ["agente"]
@@ -155,6 +158,26 @@ services:
     networks:
       - default
       - privata
+    depends_on:
+      ca-export:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # AGT-05: an agent on another Playwright minor, which the server must refuse to use. Created in
+  # Settings → Local agents like the other, in a pool of its own, with its own token.
+  agente-diverso:
+    profiles: ["agente-diverso"]
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+      args:
+        PLAYWRIGHT_VERSION: ${AGENT_PLAYWRIGHT_VERSION:-1.60.0}
+    environment:
+      WFM_URL: https://wfm.collaudo.test
+      WFM_AGENT_TOKEN: ${WFM_AGENT_TOKEN_DIVERSO:-}
+      NODE_EXTRA_CA_CERTS: /collaudo-ca/root.crt
+    volumes:
+      - collaudo_ca:/collaudo-ca:ro
     depends_on:
       ca-export:
         condition: service_completed_successfully

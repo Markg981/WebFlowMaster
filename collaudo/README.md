@@ -13,6 +13,7 @@ intorno:
 | `ricevitore` | riceve e stampa i webhook delle notifiche (PLN-13) | http://ricevitore:8080, dall'interno |
 | `display` | lo schermo su cui si apre la finestra di registrazione (WEB-11, ENV-04) | http://localhost:6080 |
 | `agente` | l'agente locale (profilo `agente`), avviato quando il suo token esiste | — |
+| `agente-diverso` | un agente con un'altra versione di Playwright (profilo `agente-diverso`, AGT-05) | — |
 
 I valori (password, segreti, chiavi) sono solo per il collaudo: non vanno mai riusati altrove.
 
@@ -151,6 +152,18 @@ wfmc logs -f agente
 Il test di AGT-02 usa `http://intranet.acme.local` (titolo «Intranet Acme», testo
 «Benvenuto nell'intranet»): dall'agente passa, dai runner del server fallisce.
 
+**Agente con un'altra versione di Playwright (AGT-05).** Creare un secondo agente in un pool
+proprio (per esempio `diverso`) e avviarlo con il suo token: l'immagine installa Playwright
+1.60.0 invece della versione del server.
+
+```bash
+WFM_AGENT_TOKEN_DIVERSO=wfa_... wfmc --profile agente-diverso up -d --build agente-diverso
+```
+
+La scheda dell'agente mostra la versione diversa; un piano che esegue sul pool `diverso` fallisce
+con «The agents of pool "diverso" run Playwright 1.60.0, and this server 1.61.1: they must
+match». Un'altra versione si sceglie con `AGENT_PLAYWRIGHT_VERSION` (deve cambiare il minore).
+
 **Impostazioni che alcuni casi cambiano per un momento.** Si passano come variabili e si
 applicano riavviando i servizi interessati; senza variabile tornano al valore di default:
 
@@ -168,6 +181,39 @@ container `api`, che la disegna sullo schermo virtuale del servizio `display`. P
 la registrazione aprire **http://localhost:6080** in un'altra scheda e poi «Connect»: la finestra
 compare lì e si usa con mouse e tastiera come qualsiasi altra. Lo schermo non ha password ed è
 raggiungibile solo da questa macchina.
+
+Se il prodotto dice «This server has no display», il container `api` è stato creato prima che
+lo schermo esistesse: `wfmc up -d --build display api`. Se la pagina 6080 si apre ma resta nera o
+non si connette, lo schermo non è partito: `wfmc logs display` e `wfmc up -d --build display`.
+
+**Credenziali perse (tutti i casi).** Dopo i casi su password e secondo fattore le credenziali
+iniziali di owner.a, editor.a o viewer.a possono non valere più. Senza toccare il database:
+
+```bash
+wfmc exec api node dist/password-reset-link.js owner.a   # link valido un giorno, una volta
+```
+
+Aprire il link e reimpostare `Collaudo.2026!`. Il secondo fattore di un membro lo toglie un owner
+da Impostazioni → Membri; quello di owner.a, che non ha un owner sopra di sé, si toglie da
+Impostazioni → Sicurezza con un codice di recupero. Il registro di audit riporta entrambe le
+operazioni.
+
+**Scadenza delle evidenze (REP-09).** La pulizia gira nel container `api` 5 minuti dopo l'avvio
+e poi ogni 6 ore, su tutti i run conclusi da più di `ARTIFACT_RETENTION_DAYS` giorni (90 se non
+impostato). Per provarla su un solo run, senza toccare gli altri, si invecchia solo quel run:
+
+```sql
+-- un run con file in /app/results/<piano>/<run>/ (wfmc exec api ls /app/results/<piano>/<run>)
+UPDATE test_plan_executions
+   SET completed_at = now() - interval '100 days', artifacts_purged_at = NULL
+ WHERE id = '<run>';
+```
+
+Con il default di 90 giorni solo quel run è scaduto (controllare con
+`SELECT count(*) FROM test_plan_executions WHERE completed_at < now() - interval '90 days'`).
+Poi `wfmc restart api`, attendere 5 minuti e verificare: `wfmc logs api | grep "Artifact retention"`
+riporta `purgedRuns: 1`, la cartella del run è vuota, il report dice che le evidenze sono state
+rimosse ed esiti e step restano. Le baseline visuali (`/app/data/visual-baselines`) non cambiano.
 
 **Database (OPS-03, SEC-09).** `localhost:55432`, utente `postgres`, password `password`,
 database `webflowmaster`. Per agire come l'applicazione: `SET ROLE app_user;`.
