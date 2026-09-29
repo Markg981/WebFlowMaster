@@ -365,6 +365,35 @@ function collectCandidatesInFrame(volatileIdPatterns: readonly string[]) {
       return null;
     };
 
+    /**
+     * What a person would call a control that shows no text of its own — a field is named by
+     * its <label>, not by what is typed in it.
+     *
+     * Without this a login form's inputs were listed as "input-0" and "input-1": the element list
+     * said nothing useful, and "Type tomsmith in the Username field" found nothing called
+     * Username. The invented name is still the last resort.
+     */
+    const nameOfControl = (el: Element): string => {
+      const clean = (value: string | null | undefined) => (value || '').trim().replace(/\s+/g, ' ');
+      const aria = clean(el.getAttribute('aria-label'));
+      if (aria) return aria;
+      const labelledBy = el.getAttribute('aria-labelledby');
+      if (labelledBy) {
+        const byText = labelledBy
+          .split(/\s+/)
+          .map((id) => clean(el.ownerDocument.getElementById(id)?.textContent))
+          .filter(Boolean)
+          .join(' ');
+        if (byText) return byText;
+      }
+      const labels = (el as HTMLInputElement).labels;
+      if (labels && labels.length > 0) {
+        const byLabel = Array.from(labels).map((label) => clean(label.textContent)).filter(Boolean).join(' ');
+        if (byLabel) return byLabel;
+      }
+      return clean(el.getAttribute('title')) || clean(el.getAttribute('name')) || clean(el.id);
+    };
+
     const detectedElements: any[] = [];
     const seen = new Set<Element>();
     let globalElementCounter = 0;
@@ -379,7 +408,7 @@ function collectCandidatesInFrame(volatileIdPatterns: readonly string[]) {
         const tagName = element.tagName.toLowerCase();
         const text = element.textContent?.trim() || '';
         const placeholder = element.getAttribute('placeholder') || '';
-        const displayText = text || placeholder || element.getAttribute('alt') || `${tagName}-${index}`;
+        const displayText = text || placeholder || element.getAttribute('alt') || nameOfControl(element) || `${tagName}-${index}`;
         let elementType = 'element';
         if (tagName === 'input') elementType = element.getAttribute('type') || 'input';
         else if (tagName === 'button' || element.getAttribute('role') === 'button') elementType = 'button';
