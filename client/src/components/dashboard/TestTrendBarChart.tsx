@@ -19,9 +19,10 @@ const TestTrendBarChart: React.FC<TestTrendBarChartProps> = ({ data, isLoading }
   const hasRuns = (data ?? []).some((day) => day.passed > 0 || day.failed > 0);
 
   return (
-    <div className="bg-card text-card-foreground p-4 rounded-lg border shadow-sm h-80 w-full flex flex-col">
-      <h3 className="mb-4 text-base font-semibold">{t('dashboard.testTrendBarChart.weeklyTestTrends.title', '30-Day Execution Trends')}</h3>
-      <div className="flex-1 w-full h-full min-h-0">
+    // A minimum height, like the status chart beside it: the empty state must fit inside.
+    <div className="bg-card text-card-foreground p-4 rounded-lg border shadow-sm min-h-80 w-full min-w-0 overflow-hidden flex flex-col">
+      <h3 className="mb-4 text-base font-semibold break-words">{t('dashboard.testTrendBarChart.weeklyTestTrends.title', '30-Day Execution Trends')}</h3>
+      <div className="flex-1 w-full min-w-0 min-h-[14rem]">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />

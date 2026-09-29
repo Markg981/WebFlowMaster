@@ -82,7 +82,7 @@ const DashboardOverviewPage: React.FC = () => {
         <KpiPanel data={analyticsData?.kpis} isLoading={isLoadingAnalytics} />
       </motion.div>
 
-      <motion.div variants={itemVariants} className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 gap-5 lg:grid-cols-2 [&>*]:min-w-0">
         <TestStatusPieChart data={analyticsData?.distribution} isLoading={isLoadingAnalytics} />
         <TestTrendBarChart data={analyticsData?.trend} isLoading={isLoadingAnalytics} />
       </motion.div>
