@@ -26,6 +26,8 @@ vi.mock('./queue', () => ({ TEST_EXECUTION_QUEUE_NAME: 'test-queue', testExecuti
 vi.mock('./scheduler-service', () => ({
   default: { addScheduleJob: vi.fn(), updateScheduleJob: vi.fn(), removeScheduleJob: vi.fn() },
   assertValidTimezone: vi.fn(),
+  firstRunAt: (_frequency: string, requested: Date) => requested,
+  DEFAULT_SCHEDULE_TIMEZONE: 'UTC',
 }));
 
 const { privilegedDb } = await import('./db');

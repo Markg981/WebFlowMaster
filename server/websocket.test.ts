@@ -34,7 +34,7 @@ vi.mock('bullmq', () => {
 });
 
 import { setupAuth } from './auth';
-import { setupWebSockets, type WsEmitter } from './websocket';
+import { installWorkerLogEmitter, setupWebSockets, type WsEmitter } from './websocket';
 
 /**
  * Drives the real setupAuth + setupWebSockets wiring against a real http.Server and real `ws`
@@ -244,5 +244,28 @@ describe('execution log delivery', () => {
     // Give a real (undesired) delivery a chance to arrive before asserting its absence.
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(leaked).toBeNull();
+  });
+});
+
+// Last in the file: it replaces the process's emitter, as the worker does at start.
+describe('run logs from the queue worker', () => {
+  it('are stored, so the report and /logs have them — the worker has no socket server of its own', async () => {
+    const workerEmitter = installWorkerLogEmitter();
+    const message = `stored from the worker ${Date.now()}`;
+    workerEmitter.emitExecutionLog(execAId, {
+      level: 'warn',
+      source: 'system',
+      message,
+      timestamp: new Date().toISOString(),
+    });
+
+    let stored: Array<{ message: string; organizationId: number }> = [];
+    for (let attempt = 0; attempt < 40 && stored.length === 0; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      stored = (await privilegedDb.select().from(executionLogs).where(inArray(executionLogs.testPlanExecutionId, [execAId])))
+        .filter((row) => row.message === message);
+    }
+    expect(stored).toHaveLength(1);
+    expect(stored[0].organizationId).toBe(orgAId);
   });
 });

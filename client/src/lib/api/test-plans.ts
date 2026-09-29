@@ -1,4 +1,5 @@
 import type { TestPlan, TestPlanExecution } from '@shared/schema';
+import { apiRequest, ApiError } from '@/lib/queryClient';
 
 // Summary type for Test Plan selection in wizards/dropdowns
 export interface TestPlanSummary {
@@ -28,13 +29,19 @@ export const fetchFullTestPlansAPI = async (): Promise<TestPlan[]> => {
 
 
 // Fetch a single test plan by ID (full details)
+// Through apiRequest, like the page's other calls: the same credentials and headers, so the plan
+// and its contents cannot disagree about whether it exists. The server says why in `error`.
 export const fetchTestPlanByIdAPI = async (id: string): Promise<TestPlan> => {
-  const response = await fetch(`/api/test-plans/${id}`);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Failed to fetch test plan ${id}`);
+  try {
+    const response = await apiRequest('GET', `/api/test-plans/${encodeURIComponent(id)}`);
+    return response.json();
+  } catch (error) {
+    if (error instanceof ApiError) {
+      const body = error.body as { error?: string; message?: string } | null;
+      throw new Error(body?.error || body?.message || `Failed to fetch test plan ${id} (HTTP ${error.status})`);
+    }
+    throw error;
   }
-  return response.json();
 };
 
 

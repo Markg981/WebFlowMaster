@@ -286,7 +286,7 @@ export const openApiDocument = {
         ...secured('runs:read'),
         parameters: [
           runId,
-          { name: 'format', in: 'path', required: true, schema: { type: 'string', enum: ['html', 'pdf', 'allure'] } },
+          { name: 'format', in: 'path', required: true, schema: { type: 'string', enum: ['html', 'pdf', 'allure', 'junit'] } },
         ],
         responses: {
           '200': {

@@ -26,6 +26,26 @@ export function publicBaseUrl(): string | undefined {
  */
 export function reportUrlFor(planId: string | null | undefined, executionId: string): string | undefined {
   const base = publicBaseUrl();
-  if (!base || !planId) return undefined;
-  return `${base}/test-plans/${encodeURIComponent(planId)}/executions/${encodeURIComponent(executionId)}/report`;
+  const reportPath = reportPathFor(planId, executionId);
+  if (!base || !reportPath) return undefined;
+  return `${base}${reportPath}`;
+}
+
+/**
+ * The report page's path on this installation, with or without its public address.
+ *
+ * What a sender still has when WEBFLOW_PUBLIC_URL is not set: a receiver that knows where the
+ * installation is can complete it, where "run 1234" alone leaves them to find the page.
+ */
+export function reportPathFor(planId: string | null | undefined, executionId: string): string | undefined {
+  if (!planId) return undefined;
+  return `/test-plans/${encodeURIComponent(planId)}/executions/${encodeURIComponent(executionId)}/report`;
+}
+
+/** A report reference for a text: the link, else the path and the run id. */
+export function reportReferenceFor(planId: string | null | undefined, executionId: string): string {
+  const url = reportUrlFor(planId, executionId);
+  if (url) return `Report: ${url}`;
+  const path = reportPathFor(planId, executionId);
+  return path ? `Report: ${path} (run ${executionId})` : `Run: ${executionId}`;
 }

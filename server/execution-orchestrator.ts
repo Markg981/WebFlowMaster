@@ -315,12 +315,16 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
     if (failed.scheduleId) {
       const [schedule] = await withTenantTransaction((tx) =>
         tx
-          .select({ isActive: testPlanSchedules.isActive })
+          .select({ isActive: testPlanSchedules.isActive, frequency: testPlanSchedules.frequency })
           .from(testPlanSchedules)
           .where(eq(testPlanSchedules.id, failed.scheduleId as string))
           .limit(1),
       );
-      if (!schedule?.isActive) return null;
+      // A switched-off schedule stops retrying. A "once" schedule is switched off by the scheduler
+      // itself as soon as its one run starts, so that is not somebody saying stop: its retries
+      // are what its retry policy promised, and without this exception it never had any.
+      if (!schedule) return null;
+      if (!schedule.isActive && schedule.frequency !== 'once') return null;
     }
 
     const firstAttemptId = failed.retryOfExecutionId ?? failed.id;

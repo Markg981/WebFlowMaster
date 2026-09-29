@@ -45,6 +45,8 @@ vi.mock('./scheduler-service', () => ({
     removeScheduleJob: vi.fn(),
     initializeScheduler: vi.fn(),
   },
+  firstRunAt: (_frequency: string, requested: Date) => requested,
+  DEFAULT_SCHEDULE_TIMEZONE: 'UTC',
 }));
 
 // C3 (POST /api/run-test-plan/:id): the ownership gate must reject a foreign plan before

@@ -209,6 +209,38 @@ function calculateNextRunTime(
   }
 }
 
+/**
+ * The first time a schedule being saved will run.
+ *
+ * The form sends a `nextRunAt`, and for daily, weekly and monthly that is the point: it carries
+ * the time of day (and weekday, day of month) the pattern is built from. A CRON expression or an
+ * "every N minutes/hours" frequency carries its own times, and the value sent with it is just the
+ * moment the form was filled in — which was stored as is, so a "weekdays at 09:00" schedule saved
+ * on Monday afternoon claimed to run on Monday afternoon. For those, the first occurrence of the
+ * pattern in the schedule's zone at or after the requested moment (or now, if that is earlier).
+ *
+ * Throws on a CRON expression that cannot be parsed, so the route can refuse it.
+ */
+export function firstRunAt(
+  frequency: string,
+  requested: Date,
+  timeZone: string = DEFAULT_SCHEDULE_TIMEZONE,
+  now: Date = new Date(),
+): Date {
+  const patternOwnsTheTime = frequency.startsWith('cron:') || /^every_\d+_(minutes|hours)$/.test(frequency);
+  if (!patternOwnsTheTime) return requested;
+  const pattern = frequencyToCronPattern(frequency, requested, timeZone);
+  if (!pattern) throw new Error(`Unsupported frequency "${frequency}".`);
+  const start = new Date(Math.max(requested.getTime(), now.getTime()) - 1);
+  let interval;
+  try {
+    interval = cronParser.parseExpression(pattern, { currentDate: start, tz: timeZone });
+  } catch (e: any) {
+    throw new Error(`Invalid CRON expression "${pattern}": ${e?.message ?? e}`);
+  }
+  return interval.next().toDate();
+}
+
 // Exported for testing purposes
 export function frequencyToCronPatternForTest(
   frequency: string,

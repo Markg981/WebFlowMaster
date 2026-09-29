@@ -186,6 +186,14 @@ describe('exporting a run', () => {
     expect(exported!.body.length).toBeGreaterThan(5_000);
   }, 60_000);
 
+  it('as JUnit XML, under /export like the others', async () => {
+    const response = await request(app).get(`/api/test-plan-executions/${executionId}/export/junit`).expect(200);
+    expect(response.headers['content-type']).toMatch(/application\/xml/);
+    expect(response.headers['content-disposition']).toBe(`attachment; filename="junit-${executionId}.xml"`);
+    expect(response.text).toContain('<testsuite');
+    expect(response.text).toContain('<failure');
+  });
+
   it('refuses a format it does not know, and does not find another organization\'s run', async () => {
     await request(app).get(`/api/test-plan-executions/${executionId}/export/docx`).expect(400);
     const other = await createTestOrganization('Other Export Org');

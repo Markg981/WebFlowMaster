@@ -115,6 +115,13 @@ describe('issueBody', () => {
 
     expect(body).toContain('exec-9');
     expect(body).not.toContain('undefined');
+    // The report's path is still there, for whoever knows where the installation is.
+    expect(body).toContain('Report: /test-plans/plan-1/executions/exec-9/report (run exec-9)');
+  });
+
+  it('links the report from a recurrence comment too', () => {
+    process.env.WEBFLOW_PUBLIC_URL = 'https://qa.example.com';
+    expect(recurrenceComment(failure, 2)).toContain('Report: https://qa.example.com/test-plans/plan-1/executions/exec-9/report');
   });
 
   it('truncates a reason that is a whole stack trace', () => {

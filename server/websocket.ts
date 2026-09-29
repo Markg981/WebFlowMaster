@@ -100,6 +100,97 @@ async function isExecutionInOrganization(executionId: string, organizationId: nu
   );
 }
 
+// Memoizes executionId -> organizationId lookups for emitExecutionLog, which fires once
+// per emitted log line on the execution hot path. Without this, every log line would
+// cost its own SELECT; an execution's organizationId never changes, so the first lookup
+// is reused for the rest of that execution's logs.
+//
+// Bounded with LRU eviction, the same rule the rest of this codebase's long-lived maps
+// follow (see BreadcrumbRing and fingerprintState in server/observability): this map is
+// keyed by "every execution this process has ever emitted a log for" and the server runs
+// indefinitely, so without a cap it only grows. Evicting a key costs one SELECT the next
+// time that execution logs anything, which is the correct trade.
+const MAX_CACHED_EXECUTIONS = 500;
+const executionOrgCache = new Map<string, number>();
+
+function rememberExecutionOrg(executionId: string, organizationId: number) {
+  // Re-insert to mark most-recently-used: Map iterates in insertion order, so the first key
+  // is the oldest.
+  executionOrgCache.delete(executionId);
+  executionOrgCache.set(executionId, organizationId);
+  while (executionOrgCache.size > MAX_CACHED_EXECUTIONS) {
+    const oldest = executionOrgCache.keys().next();
+    if (oldest.done) break;
+    executionOrgCache.delete(oldest.value);
+  }
+}
+
+/**
+ * Stores one log line of a run, fire-and-forget.
+ *
+ * An execution log belongs to the same organization as its parent testPlanExecutions row; it is
+ * looked up (once per execution, via executionOrgCache) rather than threaded through every
+ * emitExecutionLog call site. A database error is logged and swallowed: it must not break a run.
+ */
+export function persistExecutionLog(executionId: string, logEntry: ExecutionLogEntry): void {
+  (async () => {
+    let organizationId = executionOrgCache.get(executionId);
+    if (organizationId === undefined) {
+      const [execution] = await privilegedDb
+        .select({ organizationId: testPlanExecutions.organizationId })
+        .from(testPlanExecutions)
+        .where(eq(testPlanExecutions.id, executionId))
+        .limit(1);
+      if (!execution) {
+        // A log for an execution that doesn't exist is a persistence failure worth surfacing
+        // via the catch below, not a silent no-op.
+        throw new Error(`No test plan execution found for id ${executionId}`);
+      }
+      organizationId = execution.organizationId;
+    }
+    rememberExecutionOrg(executionId, organizationId);
+
+    await privilegedDb.insert(executionLogs).values({
+      organizationId,
+      testPlanExecutionId: executionId,
+      timestamp: new Date(logEntry.timestamp),
+      level: logEntry.level,
+      source: logEntry.source,
+      message: logEntry.message,
+      metadata: logEntry.metadata || null,
+      testCaseResultId: logEntry.testCaseResultId || null,
+      correlationId: getCorrelationId() || null,
+    });
+  })().catch(async (err) => {
+    // Don't let DB errors break log streaming
+    (await loggerPromise).error('Failed to persist execution log', { executionId, error: (err as Error).message });
+  });
+}
+
+/** The Redis channel on which a worker hands its run logs to the web process's sockets. */
+export const EXECUTION_LOG_CHANNEL = 'wfm:execution-logs';
+
+/**
+ * The emitter for a process with no WebSocket server of its own: the queue worker.
+ *
+ * `getWsEmitter()` used to fall back to a no-op there, and the worker is where every run
+ * executes — so no run log was ever stored, and the report's console and
+ * /api/test-plan-executions/:id/logs came back empty however much the run had to say. Here the
+ * log is stored, and published for the web process to push to whoever is watching the run.
+ */
+export function installWorkerLogEmitter(): WsEmitter {
+  const emitter: WsEmitter = {
+    emitExecutionLog(executionId, logEntry) {
+      persistExecutionLog(executionId, logEntry);
+      connection.publish(EXECUTION_LOG_CHANNEL, JSON.stringify({ executionId, logEntry })).catch(() => {
+        // Live streaming is a convenience; the stored log is the record.
+      });
+    },
+  };
+  globalWsEmitter = emitter;
+  return emitter;
+}
+
 export async function setupWebSockets(server: Server): Promise<WsEmitter> {
   const logger = await loggerPromise;
   const wss = new WebSocketServer({ noServer: true });
@@ -107,31 +198,6 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
   // ─── Room-based subscriptions ───────────────────────────────────────────
   // Map: executionId → Set<WebSocket clients>
   const subscriptions = new Map<string, Set<WebSocket>>();
-
-  // Memoizes executionId -> organizationId lookups for emitExecutionLog, which fires once
-  // per emitted log line on the execution hot path. Without this, every log line would
-  // cost its own SELECT; an execution's organizationId never changes, so the first lookup
-  // is reused for the rest of that execution's logs.
-  //
-  // Bounded with LRU eviction, the same rule the rest of this codebase's long-lived maps
-  // follow (see BreadcrumbRing and fingerprintState in server/observability): this map is
-  // keyed by "every execution this process has ever emitted a log for" and the server runs
-  // indefinitely, so without a cap it only grows. Evicting a key costs one SELECT the next
-  // time that execution logs anything, which is the correct trade.
-  const MAX_CACHED_EXECUTIONS = 500;
-  const executionOrgCache = new Map<string, number>();
-
-  function rememberExecutionOrg(executionId: string, organizationId: number) {
-    // Re-insert to mark most-recently-used: Map iterates in insertion order, so the first key
-    // is the oldest.
-    executionOrgCache.delete(executionId);
-    executionOrgCache.set(executionId, organizationId);
-    while (executionOrgCache.size > MAX_CACHED_EXECUTIONS) {
-      const oldest = executionOrgCache.keys().next();
-      if (oldest.done) break;
-      executionOrgCache.delete(oldest.value);
-    }
-  }
 
   /** Sends a message only to sockets subscribed to this execution's room. */
   function broadcastToExecution(executionId: string, message: any) {
@@ -285,60 +351,46 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
     })();
   });
 
+  // Run logs from the queue workers (installWorkerLogEmitter): already stored by the worker, so
+  // only pushed to the sockets watching that run.
+  const logSubscriber = connection.duplicate();
+  logSubscriber.on('message', (channel: string, raw: string) => {
+    if (channel !== EXECUTION_LOG_CHANNEL) return;
+    try {
+      const { executionId, logEntry } = JSON.parse(raw) as { executionId: string; logEntry: ExecutionLogEntry };
+      if (!executionId || !logEntry) return;
+      broadcastLog(executionId, logEntry);
+    } catch {
+      // Not ours, or not JSON: nothing to push.
+    }
+  });
+  logSubscriber.subscribe(EXECUTION_LOG_CHANNEL).catch((err: Error) => {
+    logger.error('Could not subscribe to worker run logs', { error: err.message });
+  });
+
+  function broadcastLog(executionId: string, logEntry: ExecutionLogEntry) {
+    broadcastToExecution(executionId, {
+      type: 'execution-log',
+      executionId,
+      ...logEntry,
+    });
+    // The legacy log shape for the old LiveConsole — scoped to the same room, not broadcast to
+    // every connected client regardless of tenant or subscription.
+    broadcastToExecution(executionId, {
+      type: 'job-progress',
+      jobId: executionId,
+      log: `[${logEntry.level.toUpperCase()}] [${logEntry.source}] ${logEntry.message}`,
+    });
+  }
+
   // ─── Emitter for execution-specific logs ────────────────────────────────
   const emitter: WsEmitter = {
     emitExecutionLog(executionId: string, logEntry: ExecutionLogEntry) {
-      // 1. Persist to database (async, fire-and-forget). An execution log belongs to the
-      // same organization as its parent testPlanExecutions row; look it up (once per
-      // execution, via executionOrgCache) rather than threading organizationId through
-      // every emitExecutionLog call site.
-      (async () => {
-        let organizationId = executionOrgCache.get(executionId);
-        if (organizationId === undefined) {
-          const [execution] = await privilegedDb
-            .select({ organizationId: testPlanExecutions.organizationId })
-            .from(testPlanExecutions)
-            .where(eq(testPlanExecutions.id, executionId))
-            .limit(1);
-          if (!execution) {
-            // Preserve pre-lookup behavior: a log for an execution that doesn't exist is a
-            // persistence failure worth surfacing via the catch below, not a silent no-op.
-            throw new Error(`No test plan execution found for id ${executionId}`);
-          }
-          organizationId = execution.organizationId;
-        }
-        rememberExecutionOrg(executionId, organizationId);
-
-        await privilegedDb.insert(executionLogs).values({
-          organizationId,
-          testPlanExecutionId: executionId,
-          timestamp: new Date(logEntry.timestamp),
-          level: logEntry.level,
-          source: logEntry.source,
-          message: logEntry.message,
-          metadata: logEntry.metadata || null,
-          testCaseResultId: logEntry.testCaseResultId || null,
-          correlationId: getCorrelationId() || null,
-        });
-      })().catch(err => {
-        // Don't let DB errors break log streaming
-        logger.error('Failed to persist execution log', { executionId, error: (err as Error).message });
-      });
+      // 1. Persist to database (async, fire-and-forget).
+      persistExecutionLog(executionId, logEntry);
 
       // 2. Send to subscribed WebSocket clients
-      broadcastToExecution(executionId, {
-        type: 'execution-log',
-        executionId,
-        ...logEntry,
-      });
-
-      // 3. Also send the legacy log shape for the old LiveConsole — scoped to the same room,
-      // not broadcast to every connected client regardless of tenant or subscription.
-      broadcastToExecution(executionId, {
-        type: 'job-progress',
-        jobId: executionId,
-        log: `[${logEntry.level.toUpperCase()}] [${logEntry.source}] ${logEntry.message}`,
-      });
+      broadcastLog(executionId, logEntry);
     }
   };
 

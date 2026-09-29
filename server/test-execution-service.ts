@@ -868,6 +868,40 @@ async function runTestPlanJobInTenant(
           // Fall through to reporting the original failure.
         }
       }
+      // A branded build (Google Chrome, Microsoft Edge) is a channel of an engine, and a runner
+      // installed from the Playwright image has the engine but not the brand. "chrome" is what the
+      // plan wizard offers first, so failing the pass left most plans with no results at all and
+      // a run_incomplete nobody could explain. The engine underneath runs the same tests; the
+      // report says that is what happened.
+      if (pass.channel) {
+        const onEngine: BrowserChoice = { ...pass, channel: undefined };
+        let started = false;
+        for (const headless of pass.headless === false ? [false, true] : [true]) {
+          try {
+            const probe = await launchBrowser({ ...onEngine, headless });
+            await probe.close();
+            usablePasses.push({ ...onEngine, headless });
+            started = true;
+            break;
+          } catch {
+            // Try headless next, then report the original failure.
+          }
+        }
+        if (started) {
+          const fallback: ExecutionLogEntry = {
+            level: 'warn',
+            source: 'system',
+            message:
+              `${pass.label} (channel "${pass.channel}") is not installed on this runner; ` +
+              `its tests ran on Playwright's bundled ${pass.engine} instead.`,
+            timestamp: new Date().toISOString(),
+            metadata: { browser: pass.label, channel: pass.channel, engine: pass.engine },
+          };
+          resolvedLogger.warn(fallback);
+          wsEmitter.emitExecutionLog(testPlanRunId, fallback);
+          continue;
+        }
+      }
       const message = error?.message ?? String(error);
       browserStartupFailures.push(message);
       const entry: ExecutionLogEntry = {
@@ -1342,7 +1376,11 @@ async function runTestPlanJobInTenant(
         ...(finalOverallStatus === 'error'
           ? {
               failureCode: 'run_incomplete',
-              failureMessage: 'Not every browser or test in the plan produced a result.',
+              // The reason itself when there is one: "Not every browser produced a result" sends
+              // somebody looking for which, when the run already knows.
+              failureMessage: ['Not every browser or test in the plan produced a result.', ...browserStartupFailures, ...unitFailures]
+                .join(' ')
+                .slice(0, 2000),
             }
           : {}),
       });

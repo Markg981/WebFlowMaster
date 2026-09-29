@@ -15,7 +15,9 @@ vi.mock('./scheduler-service', () => ({
     updateScheduleJob: vi.fn(),
     removeScheduleJob: vi.fn(),
     initializeScheduler: vi.fn(), // Should not be called by routes directly usually
-  }
+  },
+  firstRunAt: (_frequency: string, requested: Date) => requested,
+  DEFAULT_SCHEDULE_TIMEZONE: 'UTC',
 }));
 
 let app: Application;

@@ -78,11 +78,22 @@ services:
       - AGENT_RELAY_SECRET=4Qm9zR2vX7cL1pT8wK3nB6yH5dF0sJ
       # The fallback {{baseUrl}} for a run with no environment selected.
       - APP_BASE_URL=http://localhost:7000
+      # Where report links in notifications, issues and commit statuses point: this stack as
+      # its users reach it. Needed by the worker too, which is what sends them.
+      - WEBFLOW_PUBLIC_URL=http://localhost:5000
       # This stack serves plain HTTP on localhost, so a Secure cookie would be dropped by
       # the browser: /api/login would answer 200 and every request after it would be
       # anonymous, with nothing saying why. Put TLS in front of this and remove the line
       # before anyone else can reach it.
       - SESSION_COOKIE_SECURE=false
+    # The run evidence and the visual baselines, on a volume both processes mount. The worker
+    # writes them and the web process serves them (server/routes/artifacts.routes.ts): with each
+    # container on its own disk every screenshot, video, trace and HAR link in the report
+    # answered 404, and the files existed only inside the worker. ARTIFACT_STORE=s3 is the
+    # alternative when workers run on other hosts.
+    volumes:
+      - results:/app/results
+      - visual_baselines:/app/data/visual-baselines
     depends_on:
       postgres:
         condition: service_healthy
@@ -101,11 +112,18 @@ services:
       - DATABASE_URL=postgres://postgres:password@postgres:5432/webflowmaster
       - ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
       - APP_BASE_URL=http://localhost:7000
+      # Where report links in notifications, issues and commit statuses point: this stack as
+      # its users reach it. Needed by the worker too, which is what sends them.
+      - WEBFLOW_PUBLIC_URL=http://localhost:5000
       # Runs on local agents: the worker borrows their browsers through the relay in the web
       # process. Without these two it looked for the relay on its own localhost and signed with
       # a secret the web process did not share, so every run on an agent failed.
       - AGENT_RELAY_URL=http://api:5000
       - AGENT_RELAY_SECRET=4Qm9zR2vX7cL1pT8wK3nB6yH5dF0sJ
+    # The same two volumes as the web process: see there.
+    volumes:
+      - results:/app/results
+      - visual_baselines:/app/data/visual-baselines
     depends_on:
       postgres:
         condition: service_healthy
@@ -119,3 +137,5 @@ services:
 volumes:
   redis_data:
   pg_data:
+  results:
+  visual_baselines:
