@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Checkout · Northwind Shop</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header><div class="brand">Northwind <span>Shop</span></div><nav><a href="/catalog/">Catalog</a><a href="/checkout/">Cart</a><a href="/login/">Account</a></nav></header>
+  <main>
+    <h1>Checkout</h1>
+    <p class="lead">Two bags of espresso beans, roasted this week.</p>
+    <div class="card">
+      <div class="row"><span>Espresso Roast · 2 × 500 g</span><span>€31.80</span></div>
+      <div class="row"><span>Shipping</span><span id="shipping-cost">€4.90</span></div>
+      <label for="shipping">Shipping method</label>
+      <select id="shipping" name="shipping">
+        <option value="standard">Standard (3–5 days)</option>
+        <option value="express">Express (next day)</option>
+        <option value="pickup">Pick up in store</option>
+      </select>
+      <button type="button" id="place-order">Place order</button>
+      <div id="progress" class="spinner" hidden>Processing payment…</div>
+      <div id="confirmation" hidden></div>
+    </div>
+  </main>
+  <script>
+    var costs = { standard: '€4.90', express: '€9.90', pickup: 'Free' };
+    document.getElementById('shipping').addEventListener('change', function (event) {
+      document.getElementById('shipping-cost').textContent = costs[event.target.value];
+    });
+    document.getElementById('place-order').addEventListener('click', function () {
+      document.getElementById('progress').hidden = false;
+      // The payment takes a moment, as a real one would: the test has to wait for it.
+      setTimeout(function () {
+        document.getElementById('progress').hidden = true;
+        var confirmation = document.getElementById('confirmation');
+        confirmation.textContent = 'Order confirmed · #NW-10428';
+        confirmation.hidden = false;
+      }, 1800);
+    });
+  </script>
+</body>
+</html>

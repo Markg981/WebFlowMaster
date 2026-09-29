@@ -1,0 +1,26 @@
+/* Northwind Shop: the demo storefront the promo video tests. Static, served by nginx. */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Segoe UI", system-ui, -apple-system, sans-serif; color: #1f2430; background: #faf7f2; }
+header { display: flex; align-items: center; justify-content: space-between; padding: 18px 48px; background: #2b1d14; color: #fff; }
+header .brand { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+header .brand span { color: #e8a45c; }
+header nav a { color: #f3e6d8; text-decoration: none; margin-left: 28px; font-size: 15px; }
+main { max-width: 980px; margin: 48px auto; padding: 0 24px; }
+h1 { font-size: 34px; letter-spacing: -0.02em; margin: 0 0 8px; }
+p.lead { color: #6b6257; margin: 0 0 28px; }
+.card { background: #fff; border: 1px solid #eadfd2; border-radius: 14px; padding: 28px; box-shadow: 0 6px 24px rgba(43, 29, 20, 0.06); }
+form.login { max-width: 420px; }
+label { display: block; font-weight: 600; font-size: 14px; margin: 16px 0 6px; }
+input, select { width: 100%; font: inherit; padding: 11px 12px; border: 1px solid #d8cbbb; border-radius: 9px; background: #fff; }
+button { margin-top: 22px; font: inherit; font-weight: 600; padding: 12px 22px; border: 0; border-radius: 9px; background: #c86b2a; color: #fff; cursor: pointer; }
+.flash { margin-top: 18px; padding: 12px 14px; border-radius: 9px; font-weight: 600; }
+.flash.ok { background: #e4f4e8; color: #1f6b35; }
+.flash.err { background: #fbe3e1; color: #9b2a20; }
+.promo { background: linear-gradient(90deg, #2b1d14, #6b3a1c); color: #fff; border-radius: 14px; padding: 22px 28px; font-size: 20px; font-weight: 600; margin-bottom: 28px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.product .img { height: 120px; border-radius: 10px; background: linear-gradient(135deg, #e8a45c, #8a4b22); margin-bottom: 14px; }
+.product h3 { margin: 0 0 4px; font-size: 17px; }
+.product .price { color: #c86b2a; font-weight: 700; }
+.row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1e8dd; }
+#confirmation { margin-top: 22px; padding: 18px; border-radius: 12px; background: #e4f4e8; color: #1f6b35; font-weight: 600; }
+.spinner { margin-top: 18px; color: #6b6257; }
