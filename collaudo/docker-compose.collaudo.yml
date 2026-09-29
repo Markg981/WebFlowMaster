@@ -23,6 +23,10 @@ x-collaudo-app-env: &collaudo-app-env
   NODE_EXTRA_CA_CERTS: /collaudo-ca/root.crt
   AGENT_RELAY_SECRET: collaudo-relay-secret-not-for-production
   APP_BASE_URL: https://the-internet.herokuapp.com
+  # Where the report links in notifications (PLN-13), issues (PLN-14) and commit statuses
+  # point. On the worker too: that is where those are sent from, and set only on the web
+  # process every notification and issue went out without a link to its report.
+  WEBFLOW_PUBLIC_URL: https://wfm.collaudo.test
   # Empty means the product's default; cases PLN-11 and PLN-15 set them for a while.
   ORG_MAX_CONCURRENT_RUNS: ${ORG_MAX_CONCURRENT_RUNS:-}
   ORG_MAX_QUEUED_RUNS: ${ORG_MAX_QUEUED_RUNS:-}
@@ -41,7 +45,6 @@ services:
     ports: !reset []
     environment:
       <<: *collaudo-app-env
-      WEBFLOW_PUBLIC_URL: https://wfm.collaudo.test
       SESSION_COOKIE_SECURE: "true"
       SESSION_SECRET: collaudo-session-secret-not-for-production-0001
       REGISTRATION: ${REGISTRATION:-invitation}

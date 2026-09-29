@@ -222,9 +222,32 @@ describe('the browsers a plan asks for', () => {
     expect(executeTestSequence.mock.calls[0][6]?.browser?.headless).toBe(true);
   });
 
+  it('runs a branded browser that is not installed on its bundled engine, and says so', async () => {
+    await seedPlan();
+    // Google Chrome is not in the Playwright image; its engine is.
+    launchBrowser.mockRejectedValueOnce(new Error('Could not start chrome (channel "chrome") on this runner'));
+
+    const executionId = await runPlan({ browsers: ['chrome'] });
+
+    expect(launchBrowser.mock.calls[1][0]).toMatchObject({ label: 'chrome', engine: 'chromium', channel: undefined });
+    const rows = await privilegedDb.select().from(reportTestCaseResults);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].browser).toBe('chrome');
+    expect(rows[0].status).toBe('Passed');
+
+    const [execution] = await privilegedDb
+      .select()
+      .from(testPlanExecutions)
+      .where(eqId(executionId));
+    expect(execution.status).toBe('completed');
+  });
+
   it('does not report a browser it could not start as a test failure, and does not call the run clean', async () => {
     await seedPlan();
-    launchBrowser.mockRejectedValueOnce(new Error('Could not start edge (channel "msedge") on this runner'));
+    // Neither the channel nor the engine underneath it starts.
+    launchBrowser
+      .mockRejectedValueOnce(new Error('Could not start edge (channel "msedge") on this runner'))
+      .mockRejectedValueOnce(new Error('Could not start edge on this runner'));
 
     const executionId = await runPlan({ browsers: ['edge', 'chromium'] });
 

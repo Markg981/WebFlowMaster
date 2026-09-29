@@ -412,6 +412,39 @@ describe('retrying a failed run', () => {
     expect(await inTenant(() => orchestrator.retryFailedRun(failed, 0))).toBeNull();
   });
 
+  it('retries a "once" schedule, which the scheduler switches off as its run starts', async () => {
+    const [schedule] = await privilegedDb
+      .insert(testPlanSchedules)
+      .values({
+        id: uuidv4(),
+        testPlanId: planId,
+        organizationId,
+        userId,
+        scheduleName: 'Just this once',
+        frequency: 'once',
+        nextRunAt: new Date(),
+        isActive: false,
+      })
+      .returning();
+    const queue = capturingQueue();
+    const orchestrator = createExecutionOrchestrator(queue);
+    const first = await orchestrator.enqueue({
+      planId,
+      requestedByUserId: userId,
+      trigger: 'scheduled',
+      scheduleId: schedule.id,
+      maxAttempts: 3,
+    });
+    const [failed] = await privilegedDb
+      .update(testPlanExecutions)
+      .set({ status: 'failed' })
+      .where(eq(testPlanExecutions.id, first.id))
+      .returning();
+
+    const retry = await inTenant(() => orchestrator.retryFailedRun(failed, 0));
+    expect(retry).toMatchObject({ attempt: 2, maxAttempts: 3, retryOfExecutionId: first.id });
+  });
+
   it('is queued by the worker when an attempt fails, and not after the last one', async () => {
     const execution = await runWithTenant(organizationId, async () => {
       const { executionOrchestrator } = await import('./execution-orchestrator');

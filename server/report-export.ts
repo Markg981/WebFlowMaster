@@ -4,13 +4,16 @@ import { renderReportHtml } from './report-html';
 import { buildAllureResults } from './allure-export';
 import { createZip } from './zip';
 import { reportUrlFor } from './report-links';
+import { junitReportFor } from './junit-report';
 
 /**
  * A run as a file to hand on: HTML to read anywhere, PDF to attach or file, Allure results to load
  * where a team already keeps its history. See server/report-model.ts for why they share one model.
+ * JUnit XML too, the same file /junit serves: every other format is under /export, and asking
+ * for that one there answered "Unknown format".
  */
 
-export const REPORT_EXPORT_FORMATS = ['html', 'pdf', 'allure'] as const;
+export const REPORT_EXPORT_FORMATS = ['html', 'pdf', 'allure', 'junit'] as const;
 export type ReportExportFormat = (typeof REPORT_EXPORT_FORMATS)[number];
 
 export function isReportExportFormat(value: unknown): value is ReportExportFormat {
@@ -96,6 +99,11 @@ export async function exportRun(
   format: ReportExportFormat,
   renderPdf: PdfRenderer = chromiumPdf,
 ): Promise<ExportedReport | null> {
+  if (format === 'junit') {
+    const xml = await junitReportFor(executionId);
+    if (xml === null) return null;
+    return { body: Buffer.from(xml, 'utf8'), contentType: 'application/xml; charset=utf-8', filename: `junit-${executionId}.xml` };
+  }
   const model = await loadReportModel(executionId);
   if (!model) return null;
   const images = await screenshotsOf(model);

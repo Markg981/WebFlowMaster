@@ -13,6 +13,8 @@ import { artifactStore } from './artifact-store';
 import { BROWSER_TASK_QUEUE_NAME, performBrowserTask, type BrowserTaskEnvelope } from './browser-tasks';
 import { RunnerAgent, type PausableQueue } from './runner-registry';
 import { registerCommitStatus } from './commit-status';
+import { installWorkerLogEmitter } from './websocket';
+import { publicBaseUrl } from './report-links';
 import 'dotenv/config';
 
 (async () => {
@@ -21,6 +23,13 @@ import 'dotenv/config';
   logger.info(`Artifact store: ${artifactStore().kind}`);
   // A run this worker moves reports on the commit it tested, when a pipeline started it.
   registerCommitStatus();
+  // Every run executes here: its log lines are stored, and relayed to the web process's sockets.
+  installWorkerLogEmitter();
+  // Notifications, issues and commit statuses are sent from here, and link to the report only
+  // when this process knows the installation's address.
+  if (!publicBaseUrl()) {
+    logger.warn('WEBFLOW_PUBLIC_URL is not set on this worker: notifications and filed issues will carry the report path, not a link to it.');
+  }
 
   // Jobs in hand, on both queues, for the runner heartbeat: what a drained runner is waiting for.
   let activeJobs = 0;

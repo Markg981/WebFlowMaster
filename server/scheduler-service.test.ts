@@ -28,6 +28,7 @@ import {
   shutdownScheduler,
   frequencyToCronPatternForTest as frequencyToCronPattern,
   calculateNextRunTimeForTest as calculateNextRunTime,
+  firstRunAt,
 } from './scheduler-service';
 import { createTestOrganization } from './tests/factories';
 
@@ -250,5 +251,35 @@ describe('Scheduler Service', () => {
       const [row] = await privilegedDb.select().from(testPlanSchedules).where(eq(testPlanSchedules.id, past.id));
       expect(row.isActive).toBe(false);
     });
+  });
+});
+
+describe('the first run of a schedule being saved', () => {
+  it("is the next weekday 09:00 in the schedule's zone for a CRON expression, not the moment it was sent", () => {
+    // Monday 28/09/2026, 15:26 in Rome: today's 09:00 has passed, so Tuesday 09:00 CEST.
+    const sent = new Date('2026-09-28T13:26:28Z');
+    expect(firstRunAt('cron:0 9 * * 1-5', sent, 'Europe/Rome', sent).toISOString()).toBe('2026-09-29T07:00:00.000Z');
+  });
+
+  it('skips the weekend', () => {
+    // Friday 02/10/2026 after 09:00 in Rome: the next weekday is Monday 05/10.
+    const sent = new Date('2026-10-02T10:00:00Z');
+    expect(firstRunAt('cron:0 9 * * 1-5', sent, 'Europe/Rome', sent).toISOString()).toBe('2026-10-05T07:00:00.000Z');
+  });
+
+  it('starts from a requested moment in the future rather than from now', () => {
+    const now = new Date('2026-09-28T13:26:28Z');
+    const requested = new Date('2026-10-05T00:00:00Z');
+    expect(firstRunAt('cron:0 9 * * 1-5', requested, 'Europe/Rome', now).toISOString()).toBe('2026-10-05T07:00:00.000Z');
+  });
+
+  it('keeps the requested time for daily, weekly and monthly, which is where their time of day comes from', () => {
+    const requested = new Date('2026-09-30T06:30:00Z');
+    expect(firstRunAt('daily', requested, 'Europe/Rome')).toBe(requested);
+    expect(firstRunAt('once', requested, 'Europe/Rome')).toBe(requested);
+  });
+
+  it('refuses a CRON expression that cannot be parsed', () => {
+    expect(() => firstRunAt('cron:not a cron', new Date(), 'Europe/Rome')).toThrow(/Invalid CRON expression/);
   });
 });

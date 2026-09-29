@@ -2174,7 +2174,8 @@
       "label": "Versuch",
       "value": "{{attempt}} von {{max}}",
       "first": "erster Versuch",
-      "next": "Versuch {{attempt}} ({{status}})"
+      "next": "Versuch {{attempt}} ({{status}})",
+      "history": "Versuche"
     },
     "ending": {
       "cancelled": "Abgebrochen",
@@ -2182,6 +2183,7 @@
       "error": "Nicht abgeschlossen"
     },
     "purged": "Screenshots, Videos und Traces dieses Laufs wurden am {{date}} durch die Aufbewahrungsrichtlinie entfernt. Die Ergebnisse bleiben erhalten.",
+    "warnings": "Nicht wie konfiguriert angewendet",
     "quarantinedFailures": "{{count}} der Fehlschläge unten stammen von Tests in Quarantäne: Sie werden angezeigt und haben diesen Lauf nicht fehlschlagen lassen.",
     "ci": {
       "label": "Build"

@@ -2168,7 +2168,8 @@
       "label": "Attempt",
       "value": "{{attempt}} of {{max}}",
       "first": "first attempt",
-      "next": "attempt {{attempt}} ({{status}})"
+      "next": "attempt {{attempt}} ({{status}})",
+      "history": "Attempts"
     },
     "ending": {
       "cancelled": "Cancelled",
@@ -2176,6 +2177,7 @@
       "error": "Did not finish"
     },
     "purged": "Screenshots, videos and traces of this run were removed on {{date}} by the retention policy. Its results are kept.",
+    "warnings": "Not applied as configured",
     "quarantinedFailures": "{{count}} of the failures below are of tests in quarantine: they are shown, and did not fail this run.",
     "ci": {
       "label": "Build"

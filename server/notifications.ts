@@ -1,5 +1,5 @@
 import { fetchTarget } from './outbound-http';
-import { reportUrlFor } from './report-links';
+import { reportPathFor, reportUrlFor } from './report-links';
 import { describeCi, type CiContext } from '@shared/ci';
 
 /**
@@ -169,7 +169,10 @@ export function buildPayload(summary: RunSummary): Record<string, unknown> {
       browsers: summary.browsers ?? [],
       ci: summary.ci ?? null,
       url,
+      // The page's path, there even when the installation has not been told its address.
+      reportPath: reportPathFor(summary.planId, summary.executionId) ?? null,
     },
+    report: { url: url ?? null, path: reportPathFor(summary.planId, summary.executionId) ?? null },
   };
 }
 

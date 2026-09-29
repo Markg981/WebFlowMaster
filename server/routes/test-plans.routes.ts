@@ -3,7 +3,7 @@ import { testPlans, testPlanSchedules, testPlanExecutions, testPlanSelectedTests
 import { eq, desc, asc, and, inArray, getTableColumns, sql, type SQL } from "drizzle-orm";
 import { v4 as uuidv4 } from 'uuid';
 import loggerPromise from "../logger";
-import schedulerService, { assertValidTimezone } from "../scheduler-service";
+import schedulerService, { assertValidTimezone, DEFAULT_SCHEDULE_TIMEZONE, firstRunAt } from "../scheduler-service";
 import { runAsOrganization, withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { expandPlanTests, type TestReference } from "../test-suites";
 import { requireRole } from "../middleware/require-role";
@@ -127,7 +127,7 @@ router.get("/api/test-plans/:id", requireRole('viewer'), async (req, res) => {
     const plan = await withTenantTransaction((tx) =>
       tx.select().from(testPlans).where(eq(testPlans.id, req.params.id)).limit(1),
     );
-    if(plan.length === 0) return res.status(404).json({ error: "Not found" });
+    if(plan.length === 0) return res.status(404).json({ error: "Test plan not found." });
     res.json(plan[0]);
 });
 
@@ -244,8 +244,16 @@ router.post("/api/test-plan-schedules", requireRole('editor'), async (req, res) 
           }
         }
 
-        // nextRunAt arrives as a Date or a unix-seconds number (schema allows both).
-        const nextRunAt = data.nextRunAt instanceof Date ? data.nextRunAt : new Date(data.nextRunAt * 1000);
+        // nextRunAt arrives as a Date or a unix-seconds number (schema allows both). For a CRON
+        // expression it is the pattern's first occurrence in the schedule's zone, not the moment
+        // the form was sent (see firstRunAt).
+        const requestedRunAt = data.nextRunAt instanceof Date ? data.nextRunAt : new Date(data.nextRunAt * 1000);
+        let nextRunAt: Date;
+        try {
+          nextRunAt = firstRunAt(data.frequency, requestedRunAt, data.timezone || DEFAULT_SCHEDULE_TIMEZONE);
+        } catch (e: any) {
+          return res.status(400).json({ error: e.message });
+        }
 
         const created = await withTenantTransaction(async (tx) => {
           await tx.insert(testPlanSchedules).values({
@@ -311,6 +319,28 @@ router.put("/api/test-plan-schedules/:id", requireRole('editor'), async (req, re
         if (updates.executionParameters !== undefined) values.executionParameters = updates.executionParameters ? JSON.stringify(updates.executionParameters) : null;
         // Drop undefined keys so Drizzle doesn't try to set them.
         Object.keys(values).forEach(k => values[k] === undefined && delete values[k]);
+
+        // A change to when it runs recomputes the first run, as on create — against the row as it
+        // is for whatever the request leaves out.
+        if (updates.frequency !== undefined || updates.timezone !== undefined || updates.nextRunAt !== undefined) {
+          const [current] = await withTenantTransaction((tx) =>
+            tx
+              .select({ frequency: testPlanSchedules.frequency, timezone: testPlanSchedules.timezone, nextRunAt: testPlanSchedules.nextRunAt })
+              .from(testPlanSchedules)
+              .where(eq(testPlanSchedules.id, id))
+              .limit(1),
+          );
+          if (!current) return res.status(404).json({ error: "Schedule not found" });
+          try {
+            values.nextRunAt = firstRunAt(
+              values.frequency ?? current.frequency,
+              values.nextRunAt ?? current.nextRunAt,
+              values.timezone ?? current.timezone ?? DEFAULT_SCHEDULE_TIMEZONE,
+            );
+          } catch (e: any) {
+            return res.status(400).json({ error: e.message });
+          }
+        }
 
         // Under RLS this matches nothing for another organization's schedule (closing the
         // ownership gap this handler used to have — an id from any tenant reached this

@@ -87,6 +87,22 @@ function stepsOf(detailedLog: string | null): ReportStepModel[] {
   }
 }
 
+/** The screenshot the last failed step kept, when the runner recorded one. */
+function failedStepScreenshot(detailedLog: string | null): string | null {
+  if (!detailedLog) return null;
+  try {
+    const parsed = JSON.parse(detailedLog);
+    if (!Array.isArray(parsed)) return null;
+    for (let i = parsed.length - 1; i >= 0; i -= 1) {
+      const step = parsed[i];
+      if (step && step.status === 'failed' && typeof step.screenshot === 'string' && step.screenshot) return step.screenshot;
+    }
+  } catch {
+    // Not a step list: no screenshot to offer.
+  }
+  return null;
+}
+
 /** The run, or null when there is no such run in the caller's organization (RLS decides). */
 export async function loadReportModel(executionId: string): Promise<ReportModel | null> {
   const source = await withTenantTransaction(async (tx) => {
@@ -153,7 +169,9 @@ export async function loadReportModel(executionId: string): Promise<ReportModel 
       durationMs: r.durationMs,
       steps: stepsOf(r.detailedLog),
       network: (r.networkSummary as NetworkSummary | null) ?? null,
-      screenshotPath: execution.artifactsPurgedAt ? null : r.screenshotUrl,
+      // The result's own screenshot, else the one its failed step kept: either way the picture of
+      // where it broke, for the export that embeds it.
+      screenshotPath: execution.artifactsPurgedAt ? null : r.screenshotUrl ?? failedStepScreenshot(r.detailedLog),
     })),
   };
 }

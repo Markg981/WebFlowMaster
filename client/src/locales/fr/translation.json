@@ -2174,7 +2174,8 @@
       "label": "Tentative",
       "value": "{{attempt}} sur {{max}}",
       "first": "première tentative",
-      "next": "tentative {{attempt}} ({{status}})"
+      "next": "tentative {{attempt}} ({{status}})",
+      "history": "Tentatives"
     },
     "ending": {
       "cancelled": "Annulée",
@@ -2182,6 +2183,7 @@
       "error": "Non terminée"
     },
     "purged": "Les captures, vidéos et traces de cette exécution ont été supprimées le {{date}} par la politique de rétention. Ses résultats sont conservés.",
+    "warnings": "Non appliqué comme configuré",
     "quarantinedFailures": "{{count}} des échecs ci-dessous concernent des tests en quarantaine : ils sont affichés et n'ont pas fait échouer cette exécution.",
     "ci": {
       "label": "Build"

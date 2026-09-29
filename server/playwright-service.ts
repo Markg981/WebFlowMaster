@@ -20,7 +20,7 @@ import type { AccessibilityFinding } from '@shared/accessibility';
 import { resolveVariables } from './variables';
 import { loadLoginState, saveLoginState, type EnvironmentScope } from './login-state';
 import { describeBrowser, launchBrowser, resolveBrowser, type BrowserChoice } from './browsers';
-import { compareStepScreenshot, isVisualFailure, type VisualContext } from './visual-testing';
+import { compareStepScreenshot, isVisualFailure, stableScreenshot, type VisualContext } from './visual-testing';
 import { expandSequenceForRun, type SequenceStep } from './step-groups';
 import { elementIdOfStep, resolveSequenceForRun } from './step-elements';
 import { captureRunEvidence, harContextOptions, startTrace, videoContextOptions, type CapturedEvidence, type EvidenceOptions } from './run-evidence';
@@ -1964,8 +1964,11 @@ export class PlaywrightService {
             // when the plan asked for visual testing — as the image compared against this
             // step's baseline. Taken only when one of the two wants it.
             const comparesVisually = !!options?.visual && stepStatus === 'passed';
-            const screenshotBuffer =
-              keepsScreenshot(screenshots, stepStatus) || comparesVisually
+            // For a comparison, a screenshot of the page once it has settled: one taken mid-load
+            // differs from the baseline by whatever had loaded by then (see stableScreenshot).
+            const screenshotBuffer = comparesVisually
+              ? await stableScreenshot(page)
+              : keepsScreenshot(screenshots, stepStatus)
                 ? await page.screenshot({ type: 'png' })
                 : undefined;
             if (screenshotBuffer && keepsScreenshot(screenshots, stepStatus)) {

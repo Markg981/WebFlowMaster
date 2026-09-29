@@ -3,7 +3,7 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs-extra';
 import { PNG } from 'pngjs';
-import { baselinePathFor, compareStepScreenshot, isVisualFailure, type VisualContext } from './visual-testing';
+import { baselinePathFor, compareStepScreenshot, isVisualFailure, stableScreenshot, type VisualContext } from './visual-testing';
 
 /**
  * `visual_testing_enabled` was a column and a switch in the wizard with nothing behind it.
@@ -150,5 +150,50 @@ describe('compareStepScreenshot', () => {
     expect(outcome.kind).toBe('baseline-created');
     if (outcome.kind !== 'baseline-created') throw new Error('expected a baseline');
     expect(path.resolve(outcome.baselinePath).startsWith(path.resolve(baselineDir))).toBe(true);
+  });
+});
+
+describe('a screenshot of the page once it has settled', () => {
+  const pageTaking = (frames: string[]) => {
+    const calls: string[] = [];
+    let index = 0;
+    return {
+      calls,
+      page: {
+        waitForLoadState: async (state: string) => {
+          calls.push(`wait:${state}`);
+        },
+        evaluate: async () => {
+          calls.push('fonts');
+          return true as any;
+        },
+        screenshot: async (options: { animations?: string; caret?: string }) => {
+          calls.push(`shot:${options.animations}:${options.caret}`);
+          return Buffer.from(frames[Math.min(index++, frames.length - 1)]);
+        },
+      },
+    };
+  };
+
+  it('waits for the load, then keeps taking screenshots until two in a row are the same', async () => {
+    const { page, calls } = pageTaking(['loading', 'half', 'done', 'done']);
+    const shot = await stableScreenshot(page);
+    expect(shot.toString()).toBe('done');
+    expect(calls.slice(0, 3)).toEqual(['wait:load', 'wait:networkidle', 'fonts']);
+    expect(calls.filter((c) => c.startsWith('shot:'))).toHaveLength(4);
+    expect(calls).toContain('shot:disabled:hide');
+  });
+
+  it('gives up after a few tries with the last screenshot, for a page that never stops moving', async () => {
+    const { page } = pageTaking(['1', '2', '3', '4', '5', '6', '7']);
+    expect((await stableScreenshot(page, 3)).toString()).toBe('3');
+  });
+
+  it('still compares a page that never goes network-idle', async () => {
+    const { page } = pageTaking(['same', 'same']);
+    page.waitForLoadState = async (state: string) => {
+      if (state === 'networkidle') throw new Error('Timeout 5000ms exceeded');
+    };
+    expect((await stableScreenshot(page)).toString()).toBe('same');
   });
 });

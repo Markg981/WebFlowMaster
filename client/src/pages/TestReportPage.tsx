@@ -44,6 +44,10 @@ export interface TestPlanExecutionReport {
     attempt?: number; maxAttempts?: number; runnerId?: string | null;
     firstAttemptId?: string | null;
     nextAttempt?: { id: string; status: string; attempt: number } | null;
+    /** Every attempt of this scheduled occurrence, in order, when its policy allows more than one. */
+    attempts?: Array<{ id: string; attempt: number; status: string; startedAt: string | null; completedAt: string | null }>;
+    /** What the run could not do as asked: a browser on another engine, an OS it could not apply. */
+    warnings?: string[];
     /** Why the run ended the way it did, when that was not its tests. */
     failureCode?: string | null; failureMessage?: string | null;
     /** Tests that passed only after being run again. */
@@ -264,6 +268,20 @@ const TestReportPage: React.FC = () => {
                   )}
                 </p>
               )}
+              {(header.attempts?.length ?? 0) > 1 && (
+                <p data-testid="attempt-history">
+                  <strong>{t('testReportPage.attempt.history', 'Attempts')}:</strong>{' '}
+                  {header.attempts!.map((a, index) => (
+                    <React.Fragment key={a.id}>
+                      {index > 0 && ' · '}
+                      <Link href={`/test-plans/${header.testPlanId}/executions/${a.id}/report`} className={`underline hover:text-primary ${a.id === header.executionId ? 'font-semibold' : ''}`}>
+                        {t('testReportPage.attempt.value', '{{attempt}} of {{max}}', { attempt: a.attempt, max: header.maxAttempts })}
+                      </Link>{' '}
+                      <span className={getStatusColor(a.status)}>({a.status})</span>
+                    </React.Fragment>
+                  ))}
+                </p>
+              )}
             </div>
             {(header.quarantinedFailures ?? 0) > 0 && (
               <p data-testid="quarantined-failures" className="text-sm mt-2 text-muted-foreground">
@@ -278,6 +296,14 @@ const TestReportPage: React.FC = () => {
                   date: new Date(header.artifactsPurgedAt).toLocaleDateString(),
                 })}
               </p>
+            )}
+            {(header.warnings?.length ?? 0) > 0 && (
+              <div data-testid="run-warnings" className="text-sm mt-2 text-amber-700 dark:text-amber-400">
+                <strong>{t('testReportPage.warnings', 'Not applied as configured')}:</strong>
+                <ul className="list-disc ml-5">
+                  {header.warnings!.map((warning) => <li key={warning}>{warning}</li>)}
+                </ul>
+              </div>
             )}
             {header.failureMessage && ['cancelled', 'cancelling', 'timed_out', 'error'].includes(header.status) && (
               <p data-testid="run-ending" className={`text-sm mt-2 ${getStatusColor(header.status)}`}>

@@ -1,4 +1,4 @@
-import { reportUrlFor } from './report-links';
+import { reportReferenceFor } from './report-links';
 import type { IssueDraft } from './issue-providers';
 
 /**
@@ -89,8 +89,7 @@ export function issueBody(failure: FailureContext, productName = 'WebFlowMaster'
   lines.push(`Status: ${failure.status}`);
   if (failure.startedAt) lines.push(`Started: ${asIsoString(failure.startedAt)}`);
 
-  const url = reportUrlFor(failure.planId, failure.executionId);
-  lines.push(url ? `Report: ${url}` : `Run: ${failure.executionId}`);
+  lines.push(reportReferenceFor(failure.planId, failure.executionId));
 
   if (failure.reason && failure.reason.trim() !== '') {
     lines.push('');
@@ -117,7 +116,6 @@ export function issueDraftFor(failure: FailureContext, productName?: string): Is
  * making an argument that twenty separate issues cannot.
  */
 export function recurrenceComment(failure: FailureContext, occurrences: number): string {
-  const url = reportUrlFor(failure.planId, failure.executionId);
   const where = failure.browser ? ` on ${failure.browser}` : '';
   return [
     `Failed again${where} (occurrence ${occurrences}).`,
@@ -125,7 +123,7 @@ export function recurrenceComment(failure: FailureContext, occurrences: number):
     // at version 9 is describing a test somebody has been changing, not one nobody has touched.
     failure.testVersion != null ? `Test version: ${failure.testVersion}` : '',
     failure.reason ? `Reason: ${truncate(failure.reason.trim(), 500)}` : '',
-    url ? `Report: ${url}` : `Run: ${failure.executionId}`,
+    reportReferenceFor(failure.planId, failure.executionId),
   ]
     .filter((line) => line !== '')
     .join('\n');
@@ -139,11 +137,10 @@ export function recurrenceComment(failure: FailureContext, occurrences: number):
  * because one run went green is a robot they turn off.
  */
 export function resolvedComment(failure: FailureContext): string {
-  const url = reportUrlFor(failure.planId, failure.executionId);
   const where = failure.browser ? ` on ${failure.browser}` : '';
   return [
     `This test passed again${where}.`,
-    url ? `Report: ${url}` : `Run: ${failure.executionId}`,
+    reportReferenceFor(failure.planId, failure.executionId),
     'Left open on purpose: whether the underlying problem is fixed is not something a single green run can say.',
   ].join('\n');
 }

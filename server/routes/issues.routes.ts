@@ -8,7 +8,7 @@ import {
   testPlanExecutions,
   testPlans,
 } from "@shared/schema";
-import { withTenantTransaction } from "../middleware/tenancy";
+import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
 import { fileFailure } from "../issue-store";
 import { dedupeKeyFor } from "../issue-tracking";
@@ -128,6 +128,50 @@ router.post("/api/issues", requireRole('editor'), async (req, res) => {
 });
 
 /**
+ * The issues already filed for this run's tests, or null when the run is not found.
+ *
+ * Matched by the same dedupe key the filing uses, so an issue opened by last night's run shows
+ * against this morning's failure of the same test. Used by the endpoint below and by the report,
+ * which offers "Open in tracker" next to each failure that already has an issue.
+ */
+export async function linkedIssuesFor(tx: TenantTx, executionId: string) {
+  const [execution] = await tx
+    .select({ id: testPlanExecutions.id, testPlanId: testPlanExecutions.testPlanId })
+    .from(testPlanExecutions)
+    .where(eq(testPlanExecutions.id, executionId))
+    .limit(1);
+  if (!execution) return null;
+
+  const rows = await tx
+    .select({ testName: reportTestCaseResults.testName, browser: reportTestCaseResults.browser })
+    .from(reportTestCaseResults)
+    .where(eq(reportTestCaseResults.testPlanExecutionId, execution.id));
+
+  const keys = Array.from(
+    new Set(
+      rows.map((row) =>
+        dedupeKeyFor({ planId: execution.testPlanId, testName: row.testName, browser: row.browser }),
+      ),
+    ),
+  );
+  if (keys.length === 0) return [];
+
+  return tx
+    .select({
+      dedupeKey: issueLinks.dedupeKey,
+      testName: issueLinks.testName,
+      browser: issueLinks.browser,
+      issueKey: issueLinks.issueKey,
+      issueUrl: issueLinks.issueUrl,
+      occurrences: issueLinks.occurrences,
+      resolvedAt: issueLinks.resolvedAt,
+      trackerId: issueLinks.trackerId,
+    })
+    .from(issueLinks)
+    .where(inArray(issueLinks.dedupeKey, keys));
+}
+
+/**
  * GET /api/test-plan-executions/:executionId/issues — what this run's failures already have.
  *
  * Matched by the same dedupe key the filing uses, so an issue opened by last night's run shows
@@ -138,42 +182,7 @@ router.get("/api/test-plan-executions/:executionId/issues", requireRole('viewer'
   if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
 
   try {
-    const links = await withTenantTransaction(async (tx) => {
-      const [execution] = await tx
-        .select({ id: testPlanExecutions.id, testPlanId: testPlanExecutions.testPlanId })
-        .from(testPlanExecutions)
-        .where(eq(testPlanExecutions.id, req.params.executionId))
-        .limit(1);
-      if (!execution) return null;
-
-      const rows = await tx
-        .select({ testName: reportTestCaseResults.testName, browser: reportTestCaseResults.browser })
-        .from(reportTestCaseResults)
-        .where(eq(reportTestCaseResults.testPlanExecutionId, execution.id));
-
-      const keys = Array.from(
-        new Set(
-          rows.map((row) =>
-            dedupeKeyFor({ planId: execution.testPlanId, testName: row.testName, browser: row.browser }),
-          ),
-        ),
-      );
-      if (keys.length === 0) return [];
-
-      return tx
-        .select({
-          dedupeKey: issueLinks.dedupeKey,
-          testName: issueLinks.testName,
-          browser: issueLinks.browser,
-          issueKey: issueLinks.issueKey,
-          issueUrl: issueLinks.issueUrl,
-          occurrences: issueLinks.occurrences,
-          resolvedAt: issueLinks.resolvedAt,
-          trackerId: issueLinks.trackerId,
-        })
-        .from(issueLinks)
-        .where(inArray(issueLinks.dedupeKey, keys));
-    });
+    const links = await withTenantTransaction((tx) => linkedIssuesFor(tx, req.params.executionId));
 
     if (links === null) return res.status(404).json({ error: "Execution not found." });
     res.json(links);

@@ -72,6 +72,50 @@ export type VisualOutcome =
 
 export { baselineRoot };
 
+/** The part of a Playwright page a stable screenshot needs, so tests can stand in for it. */
+export interface ScreenshotPage {
+  waitForLoadState(state: 'load' | 'networkidle', options?: { timeout?: number }): Promise<void>;
+  evaluate<R>(fn: () => R | Promise<R>): Promise<R>;
+  screenshot(options: { type: 'png'; animations?: 'disabled' | 'allow'; caret?: 'hide' | 'initial' }): Promise<Buffer>;
+}
+
+/**
+ * A screenshot of the page once it has stopped changing.
+ *
+ * The comparison took whatever the page looked like the instant a step returned. Right after a
+ * navigation that is a page still loading its images and web fonts, so the baseline one run
+ * recorded and the screenshot the next run took were two different moments of the same load:
+ * a run that had just accepted new baselines was followed by a normal run reporting a visual
+ * difference nobody had made. This waits for the load to settle, freezes animations and the
+ * caret, and takes screenshots until two in a row are identical — what Playwright's own
+ * `toHaveScreenshot` does — giving up after a few tries with the last one.
+ */
+export async function stableScreenshot(page: ScreenshotPage, maxAttempts = 5): Promise<Buffer> {
+  // Each wait is best effort: a page that never goes network-idle (polling, websockets) is still
+  // compared, just without that wait.
+  const settle = async (wait: () => Promise<unknown>) => {
+    try {
+      await wait();
+    } catch {
+      // Proceed with what the page looks like.
+    }
+  };
+  await settle(() => page.waitForLoadState('load', { timeout: 10_000 }));
+  await settle(() => page.waitForLoadState('networkidle', { timeout: 5_000 }));
+  await settle(() =>
+    page.evaluate(() => (typeof document !== 'undefined' && (document as any).fonts ? (document as any).fonts.ready.then(() => true) : true)),
+  );
+
+  const take = () => page.screenshot({ type: 'png', animations: 'disabled', caret: 'hide' });
+  let previous = await take();
+  for (let attempt = 1; attempt < maxAttempts; attempt += 1) {
+    const current = await take();
+    if (Buffer.from(current).equals(Buffer.from(previous))) return current;
+    previous = current;
+  }
+  return previous;
+}
+
 /** Anything that could turn a browser label or a step name into a path traversal. */
 function safeSegment(value: string | number): string {
   return String(value).replace(/[^a-z0-9_.-]/gi, '_').slice(0, 60) || 'unnamed';

@@ -32,7 +32,7 @@ import { z } from "zod";
 // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
 import { privilegedDb } from "./db";
-import { eq, and, desc, sql, getTableColumns, asc, ilike, inArray, type SQL } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
+import { eq, and, or, desc, sql, getTableColumns, asc, ilike, inArray, type SQL } from "drizzle-orm"; // Added or, like, ilike, inArray, isNull
 import { playwrightService } from "./playwright-service";
 import { BrowserTaskError, browserTasks } from "./browser-tasks";
 // Import schedulerService
@@ -66,7 +66,8 @@ import tagsRoutes from "./routes/tags.routes";
 import { tagsOfTests, testIdsWithTags } from "./test-tags";
 import testVersionsRoutes from "./routes/test-versions.routes";
 import issueTrackersRoutes from "./routes/issue-trackers.routes";
-import issuesRoutes from "./routes/issues.routes";
+import issuesRoutes, { linkedIssuesFor } from "./routes/issues.routes";
+import { dedupeKeyFor } from "./issue-tracking";
 import authRoutes from "./routes/auth.routes";
 import observabilityRoutes from "./routes/observability.routes";
 import environmentRoutes from "./routes/environments.routes";
@@ -1294,7 +1295,49 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         ))
         .limit(1);
 
-      return { ...executionDetailsResult[0], testCaseResults, nextAttempt: nextAttempt ?? null };
+      // Every attempt of the same occurrence, in order: "attempt 1 of 3 failed, 2 of 3 failed,
+      // 3 of 3 passed" is the history a retry policy produces, and each report shows all of it.
+      const firstAttemptId = thisRun.retryOfExecutionId ?? thisRun.id;
+      const attemptHistory = thisRun.maxAttempts > 1
+        ? await tx
+            .select({
+              id: testPlanExecutions.id,
+              attempt: testPlanExecutions.attempt,
+              status: testPlanExecutions.status,
+              startedAt: testPlanExecutions.startedAt,
+              completedAt: testPlanExecutions.completedAt,
+            })
+            .from(testPlanExecutions)
+            .where(or(
+              eq(testPlanExecutions.id, firstAttemptId),
+              eq(testPlanExecutions.retryOfExecutionId, firstAttemptId),
+            ))
+            .orderBy(asc(testPlanExecutions.attempt))
+        : [];
+
+      // What the run warned about — a browser that ran on another engine, an OS or a browser
+      // version it could not apply — for the report's header, not only its console.
+      const warnings = await tx
+        .select({ message: executionLogs.message })
+        .from(executionLogs)
+        .where(and(
+          eq(executionLogs.testPlanExecutionId, executionId),
+          eq(executionLogs.level, 'warn'),
+          eq(executionLogs.source, 'system'),
+        ))
+        .orderBy(asc(executionLogs.timestamp));
+
+      // The issues already filed for these tests, so a failure offers "Open in tracker".
+      const issues = (await linkedIssuesFor(tx, executionId)) ?? [];
+
+      return {
+        ...executionDetailsResult[0],
+        testCaseResults,
+        nextAttempt: nextAttempt ?? null,
+        attemptHistory,
+        warnings: Array.from(new Set(warnings.map((w) => w.message))),
+        issues,
+      };
     });
 
     if (!reportSource) {
@@ -1302,7 +1345,12 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
       return res.status(404).json({ error: "Test plan execution not found." });
     }
 
-    const { execution, plan, testCaseResults, nextAttempt } = reportSource;
+    const { execution, plan, testCaseResults, nextAttempt, attemptHistory, warnings, issues } = reportSource;
+    const issueFor = (r: { testName: string; browser: string | null }) => {
+      const key = dedupeKeyFor({ planId: execution.testPlanId, testName: r.testName, browser: r.browser });
+      const link = issues.find((issue) => issue.dedupeKey === key);
+      return link ? { key: link.issueKey, url: link.issueUrl, occurrences: link.occurrences, resolvedAt: link.resolvedAt } : null;
+    };
 
     // A run whose evidence retention has removed links to nothing: its images would all be
     // broken, and the header says why they are not there instead.
@@ -1381,6 +1429,8 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         quarantined: r.quarantined,
         // How many times the plan ran it before this result stood.
         attempts: r.attempts,
+        // The issue this failure is already filed as, with the link to open it in the tracker.
+        issue: issueFor(r),
         screenshotUrl: openable(r.screenshotUrl),
         // A recording of the run, and a trace of it, when the plan kept them. The trace is the
         // one that answers what a screenshot cannot: the DOM, the network and the console at
@@ -1452,7 +1502,15 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
       header: {
         testSuiteName: plan?.name || 'N/A',
         environment: execution.environment || 'N/A',
-        browsers: typeof execution.browsers === 'string' ? JSON.parse(execution.browsers) : (execution.browsers ?? []),
+        // What the schedule asked for, else the browsers the results actually came from: a plan
+        // run by hand records its browsers on each result, and the header said none.
+        browsers: (() => {
+          const requested = typeof execution.browsers === 'string' ? JSON.parse(execution.browsers) : (execution.browsers ?? []);
+          if (Array.isArray(requested) && requested.length > 0) return requested;
+          return Array.from(new Set(testCaseResults.map((r) => r.browser).filter((b): b is string => !!b)));
+        })(),
+        // What the run could not do as asked, said where the verdict is read.
+        warnings,
         dateTime: execution.startedAt ? execution.startedAt.toISOString() : 'N/A',
         completedAt: execution.completedAt ? execution.completedAt.toISOString() : null,
         status: execution.status,
@@ -1468,6 +1526,13 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         maxAttempts: execution.maxAttempts,
         firstAttemptId: execution.retryOfExecutionId,
         nextAttempt,
+        attempts: attemptHistory.map((a) => ({
+          id: a.id,
+          attempt: a.attempt,
+          status: a.status,
+          startedAt: a.startedAt ? a.startedAt.toISOString() : null,
+          completedAt: a.completedAt ? a.completedAt.toISOString() : null,
+        })),
         // Why a run ended the way it did when that was not its tests: cancelled, out of time,
         // its worker lost.
         failureCode: execution.failureCode,
@@ -1497,7 +1562,24 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
       },
       failedTestDetails,
       testGroupings: groupedByModule,
-      allTests: testCaseResults, // For frontend flexibility
+      // Every row, with the same openable links as the rest of the report: the stored `/results/…`
+      // paths are served by nothing and opened the application's own page instead of the file.
+      allTests: testCaseResults.map((r) => ({
+        ...r,
+        screenshotUrl: openable(r.screenshotUrl),
+        videoUrl: openable(r.videoUrl),
+        traceUrl: openable(r.traceUrl),
+        harUrl: openable(r.harUrl),
+        issue: issueFor(r),
+      })),
+      issues: issues.map((issue) => ({
+        key: issue.issueKey,
+        url: issue.issueUrl,
+        testName: issue.testName,
+        browser: issue.browser,
+        occurrences: issue.occurrences,
+        resolvedAt: issue.resolvedAt,
+      })),
     };
 
     res.json(reportData);
