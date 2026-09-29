@@ -174,6 +174,68 @@ describe('the preview the highlighting is drawn on', () => {
 });
 
 /**
+ * What a field is called in the element list.
+ *
+ * A field shows no text of its own, and one without a placeholder was listed under an invented
+ * name — "input-0", "input-1" — although its <label> said Username. The list told the tester
+ * nothing, and describing the test in sentences could not work: "Type tomsmith in the Username
+ * field" found nothing called Username on the most ordinary login form there is.
+ */
+describe('the name of a field without text', () => {
+  let formServer: http.Server;
+  let formUrl: string;
+
+  const FORM = `<!doctype html><html><body>
+    <form>
+      <label for="username">Username</label>
+      <input type="text" name="username" id="username">
+      <label>Password <input type="password" name="password" id="password"></label>
+      <span id="qty-caption">Quantity</span>
+      <input id="qty" aria-labelledby="qty-caption">
+      <input name="coupon_code">
+      <input>
+      <button type="submit">Login</button>
+    </form>
+  </body></html>`;
+
+  beforeAll(async () => {
+    formServer = http.createServer((_req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(FORM);
+    });
+    await new Promise<void>((resolve) => formServer.listen(0, '127.0.0.1', resolve));
+    formUrl = `http://127.0.0.1:${(formServer.address() as AddressInfo).port}/`;
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve) => formServer.close(() => resolve()));
+  });
+
+  it('names a field after its label, then its other names, and invents one only as a last resort', async () => {
+    const { playwrightService } = await import('./playwright-service');
+    const { elements } = await playwrightService.detectElements(formUrl);
+    const inputs = elements.filter((e) => e.tag === 'input');
+    const textOf = (predicate: (e: (typeof inputs)[number]) => boolean) => inputs.find(predicate)?.text;
+
+    expect(textOf((e) => e.attributes.id === 'username')).toBe('Username');
+    expect(textOf((e) => e.attributes.id === 'password')).toBe('Password');
+    expect(textOf((e) => e.attributes.id === 'qty')).toBe('Quantity');
+    expect(textOf((e) => e.attributes.name === 'coupon_code')).toBe('coupon_code');
+    expect(textOf((e) => Object.keys(e.attributes).length === 0)).toMatch(/^input-\d+$/);
+  }, 60_000);
+
+  it('lets a sentence name the field the way the page labels it', async () => {
+    const { playwrightService } = await import('./playwright-service');
+    const { buildCatalogue, resolveTarget } = await import('./nl-authoring');
+    const { elements } = await playwrightService.detectElements(formUrl);
+
+    const resolved = resolveTarget('Username field', buildCatalogue({ detected: elements as never }), 'input');
+
+    expect(resolved.ok).toBe(true);
+    expect(resolved.ok && resolved.entry.selector).toContain('username');
+  }, 60_000);
+});
+
+/**
  * The element list following the test as it is built.
  *
  * Building by drag and drop means picking from the list of what is on the page — so the list
