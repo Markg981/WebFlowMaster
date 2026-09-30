@@ -58,10 +58,11 @@ export const AuthTypeDropdown: React.FC<AuthTypeDropdownProps> = ({
             <SelectItem
               key={type}
               value={type}
-              // Eight of these have never done anything: choosing one sent the request with
-              // no credentials at all. Saying so in the list is the only place the tester
-              // can learn it before spending time on a test that could not have worked.
-              // Still rendered, so a saved test that names one can be opened and changed.
+              // A scheme the runner cannot satisfy would send the request with no credentials
+              // at all; saying so in the list is the only place the tester can learn it before
+              // spending time on a test that could not have worked. Today every scheme works;
+              // this is for the next one added to the enum. Still rendered, so a saved test
+              // that names one can be opened and changed.
               disabled={!implemented && type !== authType}
             >
               {authTypeDisplayMap[type] || type}

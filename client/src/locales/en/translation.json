@@ -1861,6 +1861,137 @@
       "sendInBody": {
         "text": "In the request body"
       }
+    },
+    "schemeFields": {
+      "algorithm": {
+        "label": "Algorithm"
+      },
+      "secret": {
+        "label": "Secret or private key"
+      },
+      "secretBase64": {
+        "label": "Secret is Base64 encoded"
+      },
+      "payload": {
+        "label": "Payload (claims as JSON)"
+      },
+      "headers": {
+        "label": "Extra JWT headers (JSON)"
+      },
+      "headerPrefix": {
+        "label": "Header prefix"
+      },
+      "queryParam": {
+        "label": "Query parameter name"
+      },
+      "username": {
+        "label": "Username"
+      },
+      "password": {
+        "label": "Password"
+      },
+      "signatureMethod": {
+        "label": "Signature method"
+      },
+      "consumerKey": {
+        "label": "Consumer key"
+      },
+      "consumerSecret": {
+        "label": "Consumer secret"
+      },
+      "token": {
+        "label": "Access token"
+      },
+      "tokenSecret": {
+        "label": "Token secret"
+      },
+      "realm": {
+        "label": "Realm (optional)"
+      },
+      "authId": {
+        "label": "Hawk Auth ID"
+      },
+      "authKey": {
+        "label": "Hawk Auth Key"
+      },
+      "ext": {
+        "label": "ext (application data, optional)"
+      },
+      "includePayloadHash": {
+        "label": "Include the body hash"
+      },
+      "accessKey": {
+        "label": "Access key"
+      },
+      "secretKey": {
+        "label": "Secret key"
+      },
+      "sessionToken": {
+        "label": "Session token (optional)"
+      },
+      "region": {
+        "label": "Region"
+      },
+      "service": {
+        "label": "Service"
+      },
+      "domain": {
+        "label": "Domain"
+      },
+      "workstation": {
+        "label": "Workstation"
+      },
+      "clientToken": {
+        "label": "Client token"
+      },
+      "clientSecret": {
+        "label": "Client secret"
+      },
+      "accessToken": {
+        "label": "Access token"
+      },
+      "headersToSign": {
+        "label": "Headers to sign (comma-separated)"
+      },
+      "maxBody": {
+        "label": "Maximum body bytes signed"
+      },
+      "issuer": {
+        "label": "Issuer (iss)"
+      },
+      "audience": {
+        "label": "Audience (aud)"
+      },
+      "keyId": {
+        "label": "Key ID (kid)"
+      },
+      "privateKey": {
+        "label": "Private key (PEM)"
+      },
+      "subject": {
+        "label": "Subject (sub, optional)"
+      },
+      "expirySeconds": {
+        "label": "Expiry (seconds, at most 3600)"
+      },
+      "additionalClaims": {
+        "label": "Additional claims (JSON)"
+      },
+      "addTo": {
+        "label": "Add to",
+        "header": "Authorization header",
+        "query": "Query parameters"
+      }
+    },
+    "schemeHints": {
+      "jwtBearer": "Signs a JWT with every request. HS* use the shared secret; RS* and ES* a PEM private key. iat is added if the payload has none. Values may use environment variables.",
+      "digest": "The request goes out, the server answers 401 with its terms, and the request goes again with the answer (MD5, SHA-256, -sess, qop auth and auth-int).",
+      "oauth1": "Signs each request (RFC 5849): method, URL, query and form body. Leave the token empty for two-legged OAuth.",
+      "hawk": "Signs method, path, host and port with a timestamp and nonce; tick the body hash if the server verifies payloads.",
+      "aws": "AWS Signature Version 4. Leave the service empty to read it from an *.amazonaws.com host; S3 also gets the payload hash header.",
+      "ntlm": "NTLMv2 handshake on one connection, from this server or from the agent. DOMAIN\\user in the username works too.",
+      "akamai": "EG1-HMAC-SHA256, with the three credentials of your .edgerc section. The body of POST requests is hashed up to the maximum.",
+      "asap": "A short-lived JWT signed with your service's private key, sent as a Bearer token. A fresh jti on every request."
     }
   },
   "createTestPlanWizard": {

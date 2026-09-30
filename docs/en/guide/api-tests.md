@@ -23,10 +23,21 @@ You build them in **API Tester**.
 | Bearer Token | `Authorization: Bearer` and the token. |
 | API Key | A key in a header or a query parameter, under the name you choose. |
 | OAuth 2.0 | A token fetched first from the token URL, with the **client credentials** or **password** grant, then sent as a Bearer token. The client credentials go in a Basic header or in the body. |
+| JWT Bearer | A JWT signed for every request: **HS256/384/512** with a shared secret (optionally Base64), **RS\*** or **ES\*** with a PEM private key. The claims and extra header fields are JSON; `iat` is added when absent. Sent as `Authorization: <prefix> <token>` (prefix *Bearer* by default) or as a query parameter. |
+| Digest Auth | The request goes out, the server answers 401 with its terms, and the request is sent again with the answer (RFC 7616: MD5, SHA-256, their `-sess` variants, qop `auth` and `auth-int`). |
+| OAuth 1.0 | Each request signed (RFC 5849) with **HMAC-SHA1/256/512** or **PLAINTEXT**, over the method, the URL, the query and a form body. Leave the token empty for two-legged OAuth. In the Authorization header or in the query. |
+| Hawk Authentication | A MAC over method, path, host and port, with timestamp and nonce; optionally the body hash, for servers that verify payloads. |
+| AWS Signature | Signature Version 4: `Authorization` and `x-amz-date`, plus `x-amz-security-token` with temporary credentials and `x-amz-content-sha256` for S3. Leave the service empty to read it from an `*.amazonaws.com` host. |
+| NTLM Authentication | The NTLMv2 handshake (negotiate, challenge, authenticate) on one connection, which NTLM requires — from the server or from the agent when the plan runs on an agent pool. `DOMAIN\user` in the username works too. |
+| Akamai EdgeGrid | `EG1-HMAC-SHA256` with the client token, client secret and access token of your `.edgerc` section; the headers you list and the body of POST requests (up to the maximum) are signed. |
+| Atlassian ASAP | A short-lived JWT (**RS\*** or **ES\***) with issuer, audience, key ID and a fresh `jti`, sent as a Bearer token. |
 
-The other types in the list are shown as *not available*. The authorization-code grant needs a
+A header named `Authorization` written on the Headers tab wins over the type chosen here. If a
+required field is empty — a username, a key — the request is not sent, and the result says which
+field is missing, rather than letting the server answer 401. The authorization-code grant needs a
 person at a browser, so it cannot be used by a scheduled run. Every field of every type accepts
-environment placeholders — keep the passwords and client secrets there rather than in the test.
+environment placeholders — keep the passwords, secrets and private keys there rather than in the
+test.
 
 **Send** runs the request from the server and shows the **Response**: status, time, body and
 headers, and the result of each assertion. Every request sent is kept in **History**, from which

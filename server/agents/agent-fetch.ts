@@ -42,9 +42,30 @@ function headerRecord(headers: HeadersInit | undefined): Record<string, string> 
 /** Statuses whose response has no body, which the Response constructor insists on. */
 const NULL_BODY_STATUSES = new Set([101, 103, 204, 205, 304]);
 
+/** One request in a context that is already open, as `fetch` answers it. */
+async function requestIn(context: BrowserContext, input: RequestInfo | URL, init: RequestInit): Promise<Response> {
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+  const method = (init.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+  if (init.signal?.aborted) throw abortError();
+  const response = await context.request.fetch(url, {
+    method,
+    headers: headerRecord(init.headers),
+    data: requestData(init.body),
+    maxRedirects: init.redirect === 'manual' || init.redirect === 'error' ? 0 : 20,
+    ignoreHTTPSErrors: allowsSelfSignedCertificate(url),
+    timeout: 0,
+  });
+  const body = method === 'HEAD' || NULL_BODY_STATUSES.has(response.status()) ? null : await response.body();
+  const headers = new Headers();
+  for (const { name, value } of response.headersArray()) headers.append(name, value);
+  return new Response(body, { status: response.status(), statusText: response.statusText(), headers });
+}
+
 /** `fetch`, sent from whatever machine `browser` runs on. */
-export function fetchThroughBrowser(browser: () => Promise<Browser>): typeof fetch {
-  return async (input, init = {}) => {
+export function fetchThroughBrowser(browser: () => Promise<Browser>): typeof fetch & {
+  oneConnection: () => { fetch: typeof fetch; close: () => Promise<void> };
+} {
+  const perRequest: typeof fetch = async (input, init = {}) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
     const method = (init.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
     const signal = init.signal ?? undefined;
@@ -93,6 +114,24 @@ export function fetchThroughBrowser(browser: () => Promise<Browser>): typeof fet
       void context.close().catch(() => {});
     }
   };
+  return Object.assign(perRequest, {
+    /**
+     * Requests that share one browser context, and so the agent's connection to the target, for
+     * NTLM, whose handshake belongs to the connection (server/api-test-runner.ts).
+     */
+    oneConnection() {
+      let opening: Promise<BrowserContext> | null = null;
+      return {
+        fetch: (async (input: RequestInfo | URL, init: RequestInit = {}) => {
+          opening ??= browser().then((borrowed) => borrowed.newContext());
+          return requestIn(await opening, input, init);
+        }) as typeof fetch,
+        close: async () => {
+          if (opening) await (await opening).close().catch(() => {});
+        },
+      };
+    },
+  });
 }
 
 /**

@@ -158,8 +158,10 @@ piano, con la propria mappa di valori catturati. `max_parallel_tests` del piano 
   secondo le impostazioni (`never`, `on_failure`, `always`); confronto visivo con le baseline per step
   quando i test visivi sono attivi; risultati di accessibilità per gli step `assertAccessible`.
 - I **test API** girano tramite `server/api-test-runner.ts`: variabili sostituite, autenticazione
-  applicata (Bearer, Basic, chiave API, OAuth 2.0 client credentials o password grant), asserzioni
-  valutate, valori estratti nella mappa della corsia per le richieste successive.
+  applicata (Bearer, Basic, chiave API, OAuth 2.0 client credentials o password grant, e gli schemi
+  di firma e di challenge di `server/api-auth.ts`: JWT, OAuth 1.0, Hawk, AWS SigV4, Akamai EdgeGrid,
+  ASAP, Digest e NTLM — gli ultimi due rispondono al 401 del server, NTLM su un'unica connessione),
+  asserzioni valutate, valori estratti nella mappa della corsia per le richieste successive.
 
 ### Dopo ogni test
 

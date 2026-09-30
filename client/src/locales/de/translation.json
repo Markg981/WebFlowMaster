@@ -1867,6 +1867,137 @@
       "sendInBody": {
         "text": "Im Anfragetext"
       }
+    },
+    "schemeFields": {
+      "algorithm": {
+        "label": "Algorithmus"
+      },
+      "secret": {
+        "label": "Geheimnis oder privater Schlüssel"
+      },
+      "secretBase64": {
+        "label": "Geheimnis ist Base64-codiert"
+      },
+      "payload": {
+        "label": "Payload (Claims als JSON)"
+      },
+      "headers": {
+        "label": "Zusätzliche JWT-Header (JSON)"
+      },
+      "headerPrefix": {
+        "label": "Header-Präfix"
+      },
+      "queryParam": {
+        "label": "Name des Query-Parameters"
+      },
+      "username": {
+        "label": "Benutzername"
+      },
+      "password": {
+        "label": "Passwort"
+      },
+      "signatureMethod": {
+        "label": "Signaturmethode"
+      },
+      "consumerKey": {
+        "label": "Consumer Key"
+      },
+      "consumerSecret": {
+        "label": "Consumer Secret"
+      },
+      "token": {
+        "label": "Access Token"
+      },
+      "tokenSecret": {
+        "label": "Token-Secret"
+      },
+      "realm": {
+        "label": "Realm (optional)"
+      },
+      "authId": {
+        "label": "Hawk Auth ID"
+      },
+      "authKey": {
+        "label": "Hawk Auth Key"
+      },
+      "ext": {
+        "label": "ext (Anwendungsdaten, optional)"
+      },
+      "includePayloadHash": {
+        "label": "Body-Hash einbeziehen"
+      },
+      "accessKey": {
+        "label": "Access Key"
+      },
+      "secretKey": {
+        "label": "Secret Key"
+      },
+      "sessionToken": {
+        "label": "Session-Token (optional)"
+      },
+      "region": {
+        "label": "Region"
+      },
+      "service": {
+        "label": "Dienst"
+      },
+      "domain": {
+        "label": "Domäne"
+      },
+      "workstation": {
+        "label": "Arbeitsstation"
+      },
+      "clientToken": {
+        "label": "Client-Token"
+      },
+      "clientSecret": {
+        "label": "Client-Secret"
+      },
+      "accessToken": {
+        "label": "Access-Token"
+      },
+      "headersToSign": {
+        "label": "Zu signierende Header (kommagetrennt)"
+      },
+      "maxBody": {
+        "label": "Maximal signierte Body-Bytes"
+      },
+      "issuer": {
+        "label": "Aussteller (iss)"
+      },
+      "audience": {
+        "label": "Audience (aud)"
+      },
+      "keyId": {
+        "label": "Schlüssel-ID (kid)"
+      },
+      "privateKey": {
+        "label": "Privater Schlüssel (PEM)"
+      },
+      "subject": {
+        "label": "Subject (sub, optional)"
+      },
+      "expirySeconds": {
+        "label": "Ablauf (Sekunden, höchstens 3600)"
+      },
+      "additionalClaims": {
+        "label": "Zusätzliche Claims (JSON)"
+      },
+      "addTo": {
+        "label": "Hinzufügen zu",
+        "header": "Authorization-Header",
+        "query": "Query-Parameter"
+      }
+    },
+    "schemeHints": {
+      "jwtBearer": "Signiert bei jeder Anfrage ein JWT. HS* verwenden das gemeinsame Geheimnis, RS* und ES* einen privaten PEM-Schlüssel. iat wird ergänzt, wenn der Payload keins hat. Werte dürfen Umgebungsvariablen enthalten.",
+      "digest": "Die Anfrage wird gesendet, der Server antwortet mit 401 und seinen Bedingungen, und die Anfrage wird mit der Antwort erneut gesendet (MD5, SHA-256, -sess, qop auth und auth-int).",
+      "oauth1": "Signiert jede Anfrage (RFC 5849): Methode, URL, Query und Formular-Body. Lassen Sie das Token für zweibeiniges OAuth leer.",
+      "hawk": "Signiert Methode, Pfad, Host und Port mit Zeitstempel und Nonce; aktivieren Sie den Body-Hash, wenn der Server Payloads prüft.",
+      "aws": "AWS Signature Version 4. Lassen Sie den Dienst leer, um ihn aus einem *.amazonaws.com-Host zu lesen; S3 erhält zusätzlich den Payload-Hash-Header.",
+      "ntlm": "NTLMv2-Handshake über eine Verbindung, vom Server oder vom Agent. DOMÄNE\\Benutzer im Benutzernamen funktioniert ebenfalls.",
+      "akamai": "EG1-HMAC-SHA256 mit den drei Zugangsdaten Ihres .edgerc-Abschnitts. Der Body von POST-Anfragen wird bis zum Maximum gehasht.",
+      "asap": "Ein kurzlebiges JWT, signiert mit dem privaten Schlüssel Ihres Dienstes, als Bearer-Token gesendet. Bei jeder Anfrage eine neue jti."
     }
   },
   "testPlanExecutionPage": {

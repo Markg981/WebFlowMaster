@@ -2062,6 +2062,80 @@ export const OAuth2AuthParamsSchema = z.object({
 });
 export type OAuth2AuthParams = z.infer<typeof OAuth2AuthParamsSchema>;
 
+/**
+ * The other schemes of the dropdown (server/api-auth.ts). Every field defaults, like OAuth 2.0's,
+ * so a test saved while they were only names — `{ type: 'digest' }` — still loads; the runner
+ * says which field is missing when it is sent.
+ */
+export const JWT_ALGORITHMS = ["HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES384", "ES512"] as const;
+export const JwtBearerAuthParamsSchema = z.object({
+  algorithm: z.enum(JWT_ALGORITHMS).default("HS256"),
+  /** The shared secret for HS*, the PEM private key for RS* and ES*. */
+  secret: z.string().default(""),
+  secretBase64: z.boolean().default(false),
+  /** The claims, as JSON. iat is added when absent. */
+  payload: z.string().default("{}"),
+  /** Extra header fields, as JSON (kid, typ…). */
+  headers: z.string().default("{}"),
+  addTo: z.enum(["header", "query"]).default("header"),
+  headerPrefix: z.string().default("Bearer"),
+  queryParam: z.string().default("token"),
+});
+export const DigestAuthParamsSchema = z.object({
+  username: z.string().default(""),
+  password: z.string().default(""),
+});
+export const OAuth1AuthParamsSchema = z.object({
+  signatureMethod: z.enum(["HMAC-SHA1", "HMAC-SHA256", "HMAC-SHA512", "PLAINTEXT"]).default("HMAC-SHA1"),
+  consumerKey: z.string().default(""),
+  consumerSecret: z.string().default(""),
+  token: z.string().default(""),
+  tokenSecret: z.string().default(""),
+  realm: z.string().default(""),
+  addTo: z.enum(["header", "query"]).default("header"),
+});
+export const HawkAuthParamsSchema = z.object({
+  authId: z.string().default(""),
+  authKey: z.string().default(""),
+  algorithm: z.enum(["sha256", "sha1"]).default("sha256"),
+  ext: z.string().default(""),
+  /** Hash the body into the MAC, as servers that verify payloads require. */
+  includePayloadHash: z.boolean().default(false),
+});
+export const AwsSigV4AuthParamsSchema = z.object({
+  accessKey: z.string().default(""),
+  secretKey: z.string().default(""),
+  sessionToken: z.string().default(""),
+  region: z.string().default("us-east-1"),
+  service: z.string().default(""),
+});
+export const NtlmAuthParamsSchema = z.object({
+  username: z.string().default(""),
+  password: z.string().default(""),
+  domain: z.string().default(""),
+  workstation: z.string().default(""),
+});
+export const AkamaiEdgeGridAuthParamsSchema = z.object({
+  clientToken: z.string().default(""),
+  clientSecret: z.string().default(""),
+  accessToken: z.string().default(""),
+  /** Headers to include in the signature, by name, comma-separated. */
+  headersToSign: z.string().default(""),
+  maxBody: z.number().int().positive().default(131072),
+});
+export const AsapAuthParamsSchema = z.object({
+  algorithm: z.enum(["RS256", "RS384", "RS512", "ES256", "ES384", "ES512"]).default("RS256"),
+  issuer: z.string().default(""),
+  audience: z.string().default(""),
+  keyId: z.string().default(""),
+  /** PEM private key. */
+  privateKey: z.string().default(""),
+  subject: z.string().default(""),
+  expirySeconds: z.number().int().positive().max(3600).default(60),
+  /** More claims, as JSON. */
+  additionalClaims: z.string().default("{}"),
+});
+
 export const AuthParamsSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal(AuthTypeSchema.enum.basic),
@@ -2077,29 +2151,27 @@ export const AuthParamsSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal(AuthTypeSchema.enum.inherit) }),
   z.object({ type: z.literal(AuthTypeSchema.enum.none) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.jwtBearer) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.digest) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.oauth1) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.jwtBearer), params: JwtBearerAuthParamsSchema.default({}) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.digest), params: DigestAuthParamsSchema.default({}) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.oauth1), params: OAuth1AuthParamsSchema.default({}) }),
   z.object({
     type: z.literal(AuthTypeSchema.enum.oauth2),
     params: OAuth2AuthParamsSchema.default({}),
   }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.hawk) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.aws) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.ntlm) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.akamai) }),
-  z.object({ type: z.literal(AuthTypeSchema.enum.asap) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.hawk), params: HawkAuthParamsSchema.default({}) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.aws), params: AwsSigV4AuthParamsSchema.default({}) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.ntlm), params: NtlmAuthParamsSchema.default({}) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.akamai), params: AkamaiEdgeGridAuthParamsSchema.default({}) }),
+  z.object({ type: z.literal(AuthTypeSchema.enum.asap), params: AsapAuthParamsSchema.default({}) }),
 ]);
 export type AuthParams = z.infer<typeof AuthParamsSchema>;
 
 /**
  * The schemes the runner can actually satisfy.
  *
- * The enum above lists fourteen because the dropdown was built from a list of everything
- * Postman offers, and the other eight have never done anything: the request went out with
- * no credentials, the target answered 401, and the report blamed the endpoint. They stay in
- * the enum so a saved test that names one still loads and can be read and changed — but the
- * runner now refuses to send such a request, and the dropdown shows them as unavailable.
+ * All fourteen the enum lists, since the eight that had only ever been names in the dropdown
+ * were implemented (server/api-auth.ts). The list stays so that a scheme added to the enum
+ * later is shown as unavailable, and refused by the runner, until it does something.
  *
  * Shared so those two cannot disagree about which is which; an architecture test pins the
  * runner's own handling against this list.
@@ -2111,6 +2183,14 @@ export const IMPLEMENTED_AUTH_TYPES = [
   "bearer",
   "apiKey",
   "oauth2",
+  "jwtBearer",
+  "digest",
+  "oauth1",
+  "hawk",
+  "aws",
+  "ntlm",
+  "akamai",
+  "asap",
 ] as const satisfies readonly AuthType[];
 
 export function isImplementedAuthType(type: AuthType): boolean {

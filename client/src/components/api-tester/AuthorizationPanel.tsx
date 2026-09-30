@@ -14,6 +14,7 @@ import { BasicAuthForm } from './auth-forms/BasicAuthForm';
 import { BearerTokenAuthForm } from './auth-forms/BearerTokenAuthForm';
 import { ApiKeyAuthForm } from './auth-forms/ApiKeyAuthForm';
 import { OAuth2AuthForm } from './auth-forms/OAuth2AuthForm';
+import { SchemeAuthForm, isSchemeType, schemeDefaults } from './auth-forms/SchemeAuthForm';
 import { Label } from '@/components/ui/label';
 
 interface AuthorizationPanelProps {
@@ -55,7 +56,8 @@ export function emptyAuthParamsFor(type: AuthType): AuthParams {
         },
       };
     default:
-      return { type } as AuthParams;
+      // Every field from the schema's defaults, so the form and the runner start from the same place.
+      return isSchemeType(type) ? ({ type, params: schemeDefaults(type) } as AuthParams) : ({ type } as AuthParams);
   }
 }
 
@@ -112,6 +114,16 @@ export const AuthorizationPanel: React.FC<AuthorizationPanelProps> = ({
       case AuthTypeSchema.enum.inherit:
         return <p className="text-sm text-muted-foreground mt-2">No parameters for this auth type.</p>;
       default:
+        if (isSchemeType(authType)) {
+          return (
+            <SchemeAuthForm
+              type={authType}
+              params={authParams?.type === authType && 'params' in authParams ? authParams.params : undefined}
+              onChange={onAuthParamsChange}
+              disabled={disabled}
+            />
+          );
+        }
         // Reached only by a saved test that named a scheme nothing implements. Say what will
         // happen when it runs, rather than "not yet configurable", which reads as though the
         // request would still be authenticated somehow.

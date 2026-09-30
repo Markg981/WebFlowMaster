@@ -154,8 +154,10 @@ map of captured values. The plan's `max_parallel_tests` (capped by the installat
   per the evidence settings (`never`, `on_failure`, `always`); visual comparison against per-step
   baselines when visual testing is on; accessibility findings for `assertAccessible` steps.
 - **API tests** run through `server/api-test-runner.ts`: variables substituted, authentication
-  applied (Bearer, Basic, API key, OAuth 2.0 client credentials or password grant), assertions
-  evaluated, values extracted into the lane's captured map for later requests.
+  applied (Bearer, Basic, API key, OAuth 2.0 client credentials or password grant, and the
+  signing and challenge schemes of `server/api-auth.ts`: JWT, OAuth 1.0, Hawk, AWS SigV4, Akamai
+  EdgeGrid, ASAP, Digest and NTLM — the last two answering the server's 401, NTLM on one
+  connection), assertions evaluated, values extracted into the lane's captured map for later requests.
 
 ### After each test
 
