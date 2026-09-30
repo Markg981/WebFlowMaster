@@ -17,6 +17,7 @@ import { getWsEmitter } from './websocket';
 import { allowsSelfSignedCertificate, substituteVariables, requestVariables } from './outbound-http';
 import { executeStep } from './step-executor';
 import { FlowCursor } from './flow-cursor';
+import { LOCALE_VARIABLE } from '@shared/locales';
 import { analyseFlow, leavesPageAlone } from '@shared/flow';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import { resolveVariables } from './variables';
@@ -178,6 +179,11 @@ export interface ExecuteSequenceOptions {
   runtime?: StepRuntime;
   /** Aborted when the run is cancelled or out of time: no further step starts. */
   signal?: AbortSignal;
+  /**
+   * The language the browser starts in: navigator.language, the Accept-Language header, and
+   * the formats Intl uses (shared/locales.ts). Absent: the browser's own default.
+   */
+  locale?: string;
 }
 
 // Interface for the ad-hoc sequence payload
@@ -1758,6 +1764,8 @@ export class PlaywrightService {
     // shared with the plan's other tests, other browsers, or the process-wide defaults — a
     // value stored here must not be what the next test finds under the same name.
     vars = { ...vars };
+    // {{locale}} for the steps that expect a translated text, when the run chose a language.
+    if (options?.locale) vars[LOCALE_VARIABLE] = options.locale;
     const wsEmitter = getWsEmitter();
     resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url, screenshotBaseDir });
 
@@ -1875,6 +1883,8 @@ export class PlaywrightService {
         userAgent,
         ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl ?? ''),
         ...(storageState ? { storageState: storageState as any } : {}),
+        // Playwright sends it as Accept-Language and answers navigator.language with it.
+        ...(options?.locale ? { locale: options.locale } : {}),
         // Recording has to be asked for when the context is made; whether the file is kept is
         // decided when the run ends. A plan that wants neither pays for neither.
         ...videoOptions,

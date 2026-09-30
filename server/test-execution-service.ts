@@ -25,6 +25,7 @@ import { runApiRequest, type Extraction } from './api-test-runner';
 import { AgentHttp } from './agents/agent-fetch';
 import type { Assertion, AuthParams } from '@shared/schema';
 import { browsersForRun, describeBrowser, hasConfiguredBrowsers, launchBrowser, onAgents, type BrowserChoice } from './browsers';
+import { LOCALE_VARIABLE, passLabel } from '@shared/locales';
 import { effectiveConcurrency, runWithConcurrency } from './concurrency';
 import type { VisualContext } from './visual-testing';
 import { shouldRecord } from './run-evidence';
@@ -143,6 +144,8 @@ export interface RunTestOptions {
    * runner. For a plan on an agent pool, the agent (server/agents/agent-fetch.ts).
    */
   http?: typeof fetch;
+  /** The language the browser starts in (shared/locales.ts). Absent: the browser's default. */
+  locale?: string;
 }
 
 export async function runTest(
@@ -234,7 +237,9 @@ export async function runTest(
             ? {
                 ...options.visual,
                 testId,
-                browser: options.browser?.label ?? 'default',
+                // Each language against its own baselines: an Italian page compared with an
+                // English screenshot differs by every word, which is not a regression.
+                browser: `${options.browser?.label ?? 'default'}${options.locale ? `_${options.locale}` : ''}`,
                 artifactDir: screenshotBaseDir,
               }
             : undefined,
@@ -243,6 +248,7 @@ export async function runTest(
             : undefined,
           runtime: options?.runtime,
           signal: options?.signal,
+          locale: options?.locale,
         },
       );
       const durationMs = Date.now() - startTime;
@@ -923,7 +929,7 @@ async function runTestPlanJobInTenant(
    * requests captured belong to the pass that captured them, not to the browser that ran
    * first.
    */
-  type RunUnit = { browserChoice?: BrowserChoice; link: (typeof selectedTestsLinks)[number] };
+  type RunUnit = { browserChoice?: BrowserChoice; locale?: string; link: (typeof selectedTestsLinks)[number] };
 
   /**
    * One test, on one browser.
@@ -933,7 +939,7 @@ async function runTestPlanJobInTenant(
    * running the same flow each create their own records, and one pass reading the id the
    * other captured is how a parallel run quietly tests the wrong thing.
    */
-  const runUnit = async ({ browserChoice, link }: RunUnit, captured: Record<string, string>): Promise<void> => {
+  const runUnit = async ({ browserChoice, locale, link }: RunUnit, captured: Record<string, string>): Promise<void> => {
     let testObjectDefinition: Test | ApiTest | undefined;
     const testTypeForRun: 'ui' | 'api' | undefined = link.testType as ('ui' | 'api');
 
@@ -955,7 +961,8 @@ async function runTestPlanJobInTenant(
     let attempts = 1;
 
     const testName = testObjectDefinition?.name || `Unknown Test (ID: ${link.testId || link.apiTestId})`;
-    const onBrowser = browserChoice ? ` on ${describeBrowser(browserChoice)}` : '';
+    const onBrowser =
+      (browserChoice ? ` on ${describeBrowser(browserChoice)}` : '') + (locale ? ` in ${locale}` : '');
     // A plan policy, a cancellation or the time limit: either way this test does not start. Nor
     // does a test with no published version where the organization requires review.
     const notPublished = link.testType === 'ui' && link.testId ? unpublishedUnderPolicy.get(link.testId) : undefined;
@@ -973,7 +980,7 @@ async function runTestPlanJobInTenant(
       source: 'system',
       message: `Starting test: ${testName} (${testTypeForRun})${onBrowser}`,
       timestamp: new Date(singleTestStartTime).toISOString(),
-      metadata: { testId: link.testId || link.apiTestId, testType: testTypeForRun, browser: browserChoice?.label }
+      metadata: { testId: link.testId || link.apiTestId, testType: testTypeForRun, browser: browserChoice?.label, locale }
     });
 
     if (reportStatus === 'Skipped') {
@@ -1007,6 +1014,7 @@ async function runTestPlanJobInTenant(
           planEnvironment(),
           {
             browser: browserChoice,
+            locale,
             visual:
               visualTesting && testTypeForRun === 'ui'
                 ? {
@@ -1165,7 +1173,8 @@ async function runTestPlanJobInTenant(
       testName: testObjectDefinition?.name || `Unknown Test (ID: ${link.testId || link.apiTestId})`,
       // Null when the plan named no browser, which is every run made before the matrix
       // existed: the report should not claim to know something the run never decided.
-      browser: browserChoice?.label ?? null,
+      // With a language, the language too: "chromium · it-IT" (shared/locales.ts).
+      browser: passLabel(browserChoice?.label, locale),
       // Null for an API test, which has no version history, and for a UI test saved before
       // versions were recorded. Either way the row says it does not know rather than
       // claiming version 1.
@@ -1207,11 +1216,17 @@ async function runTestPlanJobInTenant(
    * shared object did — meant the second browser read the first one's ids and never exercised
    * its own creates.
    */
-  const lanes = usablePasses.map((browserChoice) => ({
-    browserChoice,
-    units: selectedTestsLinks.map((link) => ({ browserChoice, link }) as RunUnit),
-    captured: {} as Record<string, string>,
-  }));
+  // And one per language on each browser, when the plan names languages: each is a run of the
+  // plan of its own, and starts with {{locale}} among its variables so UI and API tests can
+  // both read it.
+  const runLocales: Array<string | undefined> = snapshot.locales && snapshot.locales.length > 0 ? snapshot.locales : [undefined];
+  const lanes = usablePasses.flatMap((browserChoice) =>
+    runLocales.map((locale) => ({
+      browserChoice,
+      units: selectedTestsLinks.map((link) => ({ browserChoice, locale, link }) as RunUnit),
+      captured: (locale ? { [LOCALE_VARIABLE]: locale } : {}) as Record<string, string>,
+    })),
+  );
 
   /**
    * Whether the tests in a lane have to stay in order.

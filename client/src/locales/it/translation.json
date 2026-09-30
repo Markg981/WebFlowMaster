@@ -2861,7 +2861,9 @@
     "description": "Cosa fa \"{{name}}\" alla prossima esecuzione.",
     "validation": {
       "webhookUrlInvalid": "L'URL per le notifiche deve iniziare con http:// o https://.",
-      "parallelInvalid": "\"Esegui al massimo\" deve essere un numero intero fra 1 e 16."
+      "parallelInvalid": "\"Esegui al massimo\" deve essere un numero intero fra 1 e 16.",
+      "localesInvalid": "Non è un codice di lingua: {{codes}}. Usate codici come it, it-IT o en-US.",
+      "localesTooMany": "Al massimo {{max}} lingue."
     },
     "browsers": {
       "label": "Browser",
@@ -2891,6 +2893,10 @@
     "webhook": {
       "label": "Invia le notifiche a (URL webhook)",
       "help": "Un incoming webhook di Slack o Microsoft Teams, o qualsiasi URL che accetti una POST. Senza, non viene inviato nulla."
+    },
+    "locales": {
+      "label": "Lingue",
+      "help": "Ogni test gira una volta per lingua su ogni browser, con il browser impostato in quella lingua; gli step la leggono come {{token}}. Vuoto usa la lingua predefinita del browser."
     }
   },
   "network": {

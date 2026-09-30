@@ -2742,7 +2742,9 @@
     "description": "Was „{{name}}“ bei der nächsten Ausführung tut.",
     "validation": {
       "webhookUrlInvalid": "Die Benachrichtigungs-URL muss mit http:// oder https:// beginnen.",
-      "parallelInvalid": "„Höchstens ausführen“ muss eine ganze Zahl zwischen 1 und 16 sein."
+      "parallelInvalid": "„Höchstens ausführen“ muss eine ganze Zahl zwischen 1 und 16 sein.",
+      "localesInvalid": "Kein Sprachcode: {{codes}}. Verwenden Sie Codes wie it, it-IT oder en-US.",
+      "localesTooMany": "Höchstens {{max}} Sprachen."
     },
     "browsers": {
       "label": "Browser",
@@ -2772,6 +2774,10 @@
     "webhook": {
       "label": "Benachrichtigungen senden an (Webhook-URL)",
       "help": "Ein eingehender Webhook von Slack oder Microsoft Teams oder jede URL, die ein POST annimmt. Ohne URL wird nichts gesendet."
+    },
+    "locales": {
+      "label": "Sprachen",
+      "help": "Jeder Test läuft einmal pro Sprache in jedem Browser, der auf diese Sprache eingestellt ist; Schritte lesen sie als {{token}}. Leer verwendet die Sprache des Browsers."
     }
   },
   "network": {

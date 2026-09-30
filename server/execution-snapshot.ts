@@ -1,4 +1,5 @@
 import { EVIDENCE_CAPTURE_MODES, type EvidenceCaptureMode, type TestPlan } from '@shared/schema';
+import { normalizeLocales } from '@shared/locales';
 
 /**
  * What a run was asked to do, written down when it was asked.
@@ -63,6 +64,8 @@ export interface ExecutionSnapshot {
    * own when null. Absent on snapshots taken before agents existed, which ran on the runner.
    */
   runOn?: { agentPool: string | null };
+  /** Languages every test runs in (shared/locales.ts). Absent on older snapshots: none. */
+  locales?: string[];
 }
 
 /** What the request may say that the plan does not. Anything absent comes from the plan. */
@@ -143,6 +146,7 @@ export function buildExecutionSnapshot(
     notificationSettings: parsedJson(plan.notificationSettings),
     issues: { trackerId: plan.issueTrackerId ?? null, createOnFailure: plan.createIssuesOnFailure === true },
     runOn: { agentPool: plan.agentPool ?? null },
+    locales: normalizeLocales(parsedJson(plan.locales)),
   };
 }
 

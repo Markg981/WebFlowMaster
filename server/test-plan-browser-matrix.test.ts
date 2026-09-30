@@ -167,6 +167,42 @@ describe('a run delivered twice', () => {
   });
 });
 
+describe('the languages a plan asks for', () => {
+  it('runs each test once per language on each browser, in that language, and labels each result', async () => {
+    await seedPlan({ locales: ['it-IT', 'en-US'] });
+
+    await runPlan({ browsers: ['chromium', 'firefox'] });
+
+    const rows = await privilegedDb.select().from(reportTestCaseResults);
+    expect(rows.map((r) => r.browser).sort()).toEqual([
+      'chromium · en-US', 'chromium · it-IT', 'firefox · en-US', 'firefox · it-IT',
+    ]);
+    expect(executeTestSequence).toHaveBeenCalledTimes(4);
+    const passes = executeTestSequence.mock.calls.map((call) => `${call[6]?.browser?.label}/${call[6]?.locale}/${call[4]?.locale}`);
+    expect(passes.sort()).toEqual([
+      'chromium/en-US/en-US', 'chromium/it-IT/it-IT', 'firefox/en-US/en-US', 'firefox/it-IT/it-IT',
+    ]);
+  });
+
+  it('labels a result with the language alone on the runner’s default browser', async () => {
+    await seedPlan({ locales: ['de-DE'] });
+
+    await runPlan();
+
+    const rows = await privilegedDb.select().from(reportTestCaseResults);
+    expect(rows.map((r) => r.browser)).toEqual(['de-DE']);
+  });
+
+  it('starts the browser in its own language when the plan names none, as it always did', async () => {
+    await seedPlan();
+
+    await runPlan();
+
+    expect(executeTestSequence.mock.calls[0][6]?.locale).toBeUndefined();
+    expect(executeTestSequence.mock.calls[0][4]?.locale).toBeUndefined();
+  });
+});
+
 describe('the browsers a plan asks for', () => {
   it("runs each test once per browser the schedule named, and says which browser each result came from", async () => {
     await seedPlan();

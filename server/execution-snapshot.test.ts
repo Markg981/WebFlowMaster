@@ -36,6 +36,7 @@ const plan: TestPlan = {
   onTestStepPreRequisiteFailure: 'stop_run',
   reRunOnFailure: 'once',
   maxParallelTests: 4,
+  locales: ['it-IT', 'en-US'],
   issueTrackerId: 'tracker-9',
   createIssuesOnFailure: true,
   notificationSettings: { email: { enabled: true, recipients: ['qa@example.test'] } },
@@ -83,6 +84,7 @@ describe('buildExecutionSnapshot', () => {
       notificationSettings: { email: { enabled: true, recipients: ['qa@example.test'] } },
       issues: { trackerId: 'tracker-9', createOnFailure: true },
       runOn: { agentPool: 'onprem' },
+      locales: ['it-IT', 'en-US'],
     });
   });
 
@@ -151,6 +153,7 @@ describe('buildExecutionSnapshot', () => {
       'onTestStepPreRequisiteFailure',
       'reRunOnFailure',
       'maxParallelTests',
+      'locales',
       'issueTrackerId',
       'createIssuesOnFailure',
       'notificationSettings',
