@@ -1192,6 +1192,38 @@
         "name": "Run JavaScript",
         "description": "Runs the value as JavaScript in the page. Fails when the script throws or returns false.",
         "valueHint": "document.title.includes('Orders') or code with return"
+      },
+      "setVariable": {
+        "name": "Set variable",
+        "description": "Sets a variable for the following steps. Generators such as $randomEmail, $uuid, $randomInt(1,100) or $today(+7), written in double braces, make up a new value.",
+        "valueHint": "name=value, e.g. email=$randomEmail in double braces"
+      },
+      "if": {
+        "name": "If",
+        "description": "Runs the steps up to Else or End if only when the condition holds. With an element: its state now (visible, hidden, exists, missing, checked, enabled, contains:text). Without: a comparison of values.",
+        "valueHint": "visible, contains:text… or a == b, a > 3, a contains b"
+      },
+      "else": {
+        "name": "Else",
+        "description": "The steps up to End if run when the If condition did not hold."
+      },
+      "endIf": {
+        "name": "End if",
+        "description": "Closes the If block."
+      },
+      "repeat": {
+        "name": "Repeat",
+        "description": "Runs the steps up to End loop the given number of times. Inside, the variable loopIndex counts from 1.",
+        "valueHint": "Number of times, e.g. 3"
+      },
+      "repeatWhile": {
+        "name": "Repeat while",
+        "description": "Runs the steps up to End loop as long as the condition holds, at most 200 times.",
+        "valueHint": "visible, contains:text… or a == b, a < 10"
+      },
+      "endLoop": {
+        "name": "End loop",
+        "description": "Closes the Repeat block."
       }
     },
     "playbackStatus": "Step {{current}}/{{total}}: {{name}} - {{details}}",

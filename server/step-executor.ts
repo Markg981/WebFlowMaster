@@ -16,6 +16,7 @@ import {
   type AccessibilityFinding,
   type AccessibilityImpact,
 } from '@shared/accessibility';
+import { MAX_LOOP_ITERATIONS } from '@shared/flow';
 import { scanAccessibility } from './accessibility';
 import { requestVariables, substituteVariables } from './outbound-http';
 import { findUnresolvedVariables } from './variables';
@@ -73,6 +74,10 @@ export interface StepOutcome {
    * the evidence showing one tab while the steps acted on another.
    */
   page?: Page;
+  /** What an `if` or `repeatWhile` found, for the runner's flow cursor to act on. */
+  condition?: boolean;
+  /** How many times a `repeat` runs its body. */
+  iterations?: number;
 }
 
 /** The step shape both callers pass in — the builder's `TestStep`, structurally. */
@@ -354,6 +359,91 @@ async function findTab(rt: StepRuntime, wanted: string): Promise<Page | null> {
     return false;
   }, rt.timeoutMs);
   return found;
+}
+
+/** What a condition can ask of an element. */
+export const CONDITION_STATES = ['visible', 'hidden', 'exists', 'missing', 'checked', 'unchecked', 'enabled', 'disabled'] as const;
+
+/**
+ * Compares two values: "{{status}} == Paid", "{{count}} > 3", "{{title}} contains Order".
+ * Also takes a bare "true" or "false", which is what a variable holding a flag resolves to.
+ */
+export function compareValues(expression: string): { value: boolean } | { error: string } {
+  const text = expression.trim();
+  if (/^true$/i.test(text)) return { value: true };
+  if (/^false$/i.test(text)) return { value: false };
+
+  const words = /^(.*?)\s+(not contains|contains)\s+(.*)$/is.exec(text);
+  if (words) {
+    const found = words[1].trim().includes(words[3].trim());
+    return { value: words[2].toLowerCase() === 'contains' ? found : !found };
+  }
+
+  const symbols = /^(.*?)\s*(==|!=|>=|<=|>|<)\s*(.*)$/s.exec(text);
+  if (!symbols) {
+    return { error: `"${expression}" is not a comparison. Write it as left == right, !=, >, <, >=, <=, contains or not contains.` };
+  }
+  const [, rawLeft, operator, rawRight] = symbols;
+  const left = rawLeft.trim();
+  const right = rawRight.trim();
+  if (operator === '==') return { value: left === right };
+  if (operator === '!=') return { value: left !== right };
+  const a = Number(left);
+  const b = Number(right);
+  if (left === '' || right === '' || Number.isNaN(a) || Number.isNaN(b)) {
+    return { error: `"${left}" ${operator} "${right}" compares values that are not both numbers.` };
+  }
+  return { value: compareCount(operator, a, b) ?? false };
+}
+
+/**
+ * The condition of an `if` or a `repeatWhile`.
+ *
+ * With an element, a state it is in NOW, without waiting: "if the cookie banner is visible,
+ * close it" has to answer no straight away when there is no banner, not after fifteen seconds
+ * of hoping one appears. A condition about something still loading goes after a wait step.
+ * Without an element, a comparison of values.
+ */
+async function evaluateCondition(rt: StepRuntime, action: string): Promise<{ value: boolean; describe: string } | { error: string }> {
+  const wanted = requireValue(rt, action);
+  if ('error' in wanted) return wanted;
+  const condition = wanted.value.trim();
+
+  if (!rt.selector) {
+    const compared = compareValues(condition);
+    return 'error' in compared ? compared : { value: compared.value, describe: condition };
+  }
+
+  const all = rt.locator(rt.selector);
+  const present = (await all.count()) > 0;
+  const element = all.first();
+  const describe = `"${rt.selector}" ${condition}`;
+
+  const contains = /^(not\s+)?contains:(.*)$/is.exec(condition);
+  if (contains) {
+    const text = present ? ((await element.textContent().catch(() => null)) ?? '') : '';
+    const found = present && text.includes(contains[2]);
+    return { value: contains[1] ? !found : found, describe };
+  }
+
+  const state = condition.toLowerCase();
+  const read: Record<(typeof CONDITION_STATES)[number], () => Promise<boolean>> = {
+    visible: async () => present && (await element.isVisible()),
+    hidden: async () => !present || !(await element.isVisible()),
+    exists: async () => present,
+    missing: async () => !present,
+    checked: async () => present && (await element.isChecked()),
+    unchecked: async () => present && !(await element.isChecked()),
+    enabled: async () => present && (await element.isEnabled()),
+    disabled: async () => present && (await element.isDisabled()),
+  };
+  const check = read[state as keyof typeof read];
+  if (!check) {
+    return {
+      error: `Unknown condition "${condition}" for ${action}. With an element use one of ${CONDITION_STATES.join(', ')}, or contains:text.`,
+    };
+  }
+  return { value: await check(), describe };
 }
 
 /** Keeps a stored or returned value readable in the report. */
@@ -970,6 +1060,57 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
       ? passed
       : { status: 'passed', detail: `Returned ${excerpt(JSON.stringify(result) ?? String(result))}.` };
   },
+
+  setVariable: async (rt) => {
+    const wanted = requireValue(rt, 'setVariable');
+    if ('error' in wanted) return failed(wanted.error);
+    // Split at the first "=", so a value that contains one — a generated token, a query
+    // string — stays whole.
+    const assignment = parseAssignment(wanted.value);
+    if (!assignment || !VARIABLE_NAME.test(assignment.name)) {
+      return failed(`"${rt.raw}" is not name=value with a name of letters, digits, _ and . — for example email={{$randomEmail}}.`);
+    }
+    if (!rt.storeVariable) return failed('This run has no variables of its own to store a value in.');
+    rt.storeVariable(assignment.name, assignment.value);
+    const shown = assignment.name.startsWith('secret_') ? '(secret, not shown)' : `"${excerpt(assignment.value)}"`;
+    return { status: 'passed', detail: `{{${assignment.name}}} = ${shown}` };
+  },
+
+  if: async (rt) => {
+    const result = await evaluateCondition(rt, 'if');
+    if ('error' in result) return failed(result.error);
+    return {
+      status: 'passed',
+      condition: result.value,
+      detail: `${result.describe}: ${result.value ? 'true, running the steps below' : 'false, skipping them'}.`,
+    };
+  },
+
+  // Reached only at the end of the branch that ran; the flow cursor moves past the rest.
+  else: async () => passed,
+  endIf: async () => passed,
+
+  repeat: async (rt) => {
+    const wanted = requireValue(rt, 'repeat');
+    if ('error' in wanted) return failed(wanted.error);
+    const times = Number(wanted.value.trim());
+    if (!Number.isInteger(times) || times < 0 || times > MAX_LOOP_ITERATIONS) {
+      return failed(`"${wanted.value}" is not a number of times between 0 and ${MAX_LOOP_ITERATIONS}.`);
+    }
+    return { status: 'passed', iterations: times, detail: `Repeating ${times} time${times === 1 ? '' : 's'}.` };
+  },
+
+  repeatWhile: async (rt) => {
+    const result = await evaluateCondition(rt, 'repeatWhile');
+    if ('error' in result) return failed(result.error);
+    return {
+      status: 'passed',
+      condition: result.value,
+      detail: `${result.describe}: ${result.value ? 'true, running the loop' : 'false, leaving the loop'}.`,
+    };
+  },
+
+  endLoop: async () => passed,
 };
 
 /**

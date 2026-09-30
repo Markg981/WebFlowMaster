@@ -16,6 +16,8 @@ import { browserPool } from './browser-pool';
 import { getWsEmitter } from './websocket';
 import { allowsSelfSignedCertificate, substituteVariables, requestVariables } from './outbound-http';
 import { executeStep } from './step-executor';
+import { FlowCursor } from './flow-cursor';
+import { analyseFlow, leavesPageAlone } from '@shared/flow';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import { resolveVariables } from './variables';
 import { loadLoginState, saveLoginState, type EnvironmentScope } from './login-state';
@@ -1493,10 +1495,20 @@ export class PlaywrightService {
         return { success: false, steps: stepResults, error: adhocExpansion.errors.join(' '), duration };
       }
       const adhocSequence = (await resolveSequenceForRun(adhocExpansion.steps)).steps as unknown as TestStep[];
+      // After expansion, so a block that opens in a group and closes in the test is judged
+      // as the run will meet it.
+      const adhocFlow = analyseFlow(adhocSequence);
+      if (!adhocFlow.ok) {
+        const duration = Date.now() - startTime;
+        return { success: false, steps: stepResults, error: adhocFlow.errors.join(' '), duration };
+      }
 
       if (overallSuccess && adhocSequence.length > 0) {
         resolvedLogger.debug({ message: `PS:executeAdhocSequence - Starting execution of ${adhocSequence.length} steps.`, testName });
-        for (const step of adhocSequence) {
+        const cursor = new FlowCursor(adhocSequence, adhocFlow.blocks, vars);
+        while (!cursor.done) {
+          const step = adhocSequence[cursor.pc];
+          let flowOutcome: { condition?: boolean; iterations?: number } = {};
           let stepStatus: 'passed' | 'failed' = 'passed';
           let stepError: string | undefined;
           let stepScreenshot: string | undefined;
@@ -1514,6 +1526,7 @@ export class PlaywrightService {
             resolvedLogger.verbose({ message: `PS:executeAdhocSequence - Executing step`, testName, actionName, actionId, selector: step.targetElement?.selector, value: step.value });
 
             const outcome = await executeStep({ page, vars }, step);
+            flowOutcome = outcome;
             // A step that moved the test to another tab: every step after it, and this step's
             // screenshot, belong to that tab.
             if (outcome.page) page = outcome.page;
@@ -1527,15 +1540,17 @@ export class PlaywrightService {
             // question anyone asks of a precondition afterwards.
             stepDetail = outcome.detail;
             stepAccessibility = outcome.accessibility;
-            // Let the UI settle before capturing: a click often dismisses a menu and opens a
-            // dialog with an animation, and may fire XHRs. Without this the screenshot catches a
-            // mid-transition frame (old menu overlapping a half-open dialog).
-            await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
-            await page.waitForTimeout(600);
-            resolvedLogger.verbose({ message: `PS:executeAdhocSequence - Taking screenshot for step`, testName, actionName, actionId });
-            const screenshotBuffer = await page.screenshot({ type: 'png' });
-            stepScreenshot = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
-            resolvedLogger.verbose({ message: "PS:executeAdhocSequence - Step screenshot taken", testName, actionName });
+            if (!leavesPageAlone(actionId)) {
+              // Let the UI settle before capturing: a click often dismisses a menu and opens a
+              // dialog with an animation, and may fire XHRs. Without this the screenshot catches a
+              // mid-transition frame (old menu overlapping a half-open dialog).
+              await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+              await page.waitForTimeout(600);
+              resolvedLogger.verbose({ message: `PS:executeAdhocSequence - Taking screenshot for step`, testName, actionName, actionId });
+              const screenshotBuffer = await page.screenshot({ type: 'png' });
+              stepScreenshot = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
+              resolvedLogger.verbose({ message: "PS:executeAdhocSequence - Step screenshot taken", testName, actionName });
+            }
 
           } catch (e: any) {
             stepStatus = 'failed';
@@ -1557,6 +1572,12 @@ export class PlaywrightService {
           stepResults.push({ name: actionName, type: actionId || 'unknown', selector: step.targetElement?.selector, value: step.value, status: stepStatus, screenshot: stepScreenshot, error: stepError, details: stepStatus === 'passed' ? (stepDetail ?? 'Action executed successfully.') : `Action failed: ${stepError || 'Unknown error'}`, accessibility: stepAccessibility, });
           if (!overallSuccess) {
             resolvedLogger.info({ message: `PS:executeAdhocSequence - Step failed. Stopping sequence execution.`, testName, failedStep: actionName });
+            break;
+          }
+          const runaway = cursor.advance(flowOutcome);
+          if (runaway) {
+            overallSuccess = false;
+            stepResults.push({ name: actionName, type: actionId || 'unknown', status: 'failed', error: runaway, details: runaway });
             break;
           }
         }
@@ -1754,6 +1775,13 @@ export class PlaywrightService {
     // repository existed.
     const resolution = await resolveSequenceForRun(expansion.steps);
     const sequenceToRun = resolution.steps as unknown as TestStep[];
+    // Blocks that do not close fail the test before a browser is launched, by step number.
+    const flow = analyseFlow(sequenceToRun);
+    if (!flow.ok) {
+      const message = flow.errors.join(' ');
+      resolvedLogger.warn({ message: `PS:executeTestSequence - ${message}`, testName: test.name, testId: test.id });
+      return { success: false, steps: [], error: message, duration: Date.now() - startTime };
+    }
     if (resolution.unresolved.length > 0) {
       const message =
         `${resolution.unresolved.length} step(s) name a shared element that is no longer in the ` +
@@ -1918,7 +1946,13 @@ export class PlaywrightService {
       if (overallSuccess && sequenceToRun.length > 0) {
         resolvedLogger.debug({ message: `PS:executeTestSequence - Starting execution of ${sequenceToRun.length} steps`, testName: test.name });
 
-        for (const [i, step] of sequenceToRun.entries()) {
+        const cursor = new FlowCursor(sequenceToRun, flow.blocks, vars);
+        while (!cursor.done) {
+          // The step's position in the test, not how many steps have run: healing and visual
+          // baselines are keyed by it, and a loop meets the same step more than once.
+          const i = cursor.pc;
+          const step = sequenceToRun[i];
+          let flowOutcome: { condition?: boolean; iterations?: number } = {};
           if (options?.signal?.aborted) {
             // The run is stopping. The step that was going has finished; this one does not start,
             // and the test says why it is shorter than it should be.
@@ -1989,6 +2023,7 @@ export class PlaywrightService {
             }
             // A step that moved the test to another tab: the steps after it, the healing pass
             // and this step's screenshot all belong to that tab.
+            flowOutcome = outcome;
             if (outcome.page) {
               page = outcome.page;
               reporter.setPage(outcome.page);
@@ -2005,12 +2040,15 @@ export class PlaywrightService {
             // One screenshot, used twice: as the step's evidence when the plan keeps it, and —
             // when the plan asked for visual testing — as the image compared against this
             // step's baseline. Taken only when one of the two wants it.
-            const comparesVisually = !!options?.visual && stepStatus === 'passed';
+            // A condition, a loop marker or a variable changes nothing on screen: its picture
+            // would be the previous step's again, and comparing it would test that step twice.
+            const capturesPage = !leavesPageAlone(actionId) || stepStatus === 'failed';
+            const comparesVisually = !!options?.visual && stepStatus === 'passed' && capturesPage;
             // For a comparison, a screenshot of the page once it has settled: one taken mid-load
             // differs from the baseline by whatever had loaded by then (see stableScreenshot).
             const screenshotBuffer = comparesVisually
               ? await stableScreenshot(page)
-              : keepsScreenshot(screenshots, stepStatus)
+              : capturesPage && keepsScreenshot(screenshots, stepStatus)
                 ? await page.screenshot({ type: 'png' })
                 : undefined;
             if (screenshotBuffer && keepsScreenshot(screenshots, stepStatus)) {
@@ -2083,6 +2121,12 @@ export class PlaywrightService {
           });
 
           if (!overallSuccess) break;
+          const runaway = cursor.advance(flowOutcome);
+          if (runaway) {
+            overallSuccess = false;
+            stepResults.push({ name: actionName, type: actionId || 'unknown', status: 'failed', error: runaway, details: runaway });
+            break;
+          }
         }
       }
 

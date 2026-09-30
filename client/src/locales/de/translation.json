@@ -1198,6 +1198,38 @@
         "name": "JavaScript ausführen",
         "description": "Führt den Wert als JavaScript auf der Seite aus. Schlägt fehl, wenn das Skript einen Fehler wirft oder false zurückgibt.",
         "valueHint": "document.title.includes('Orders') oder Code mit return"
+      },
+      "setVariable": {
+        "name": "Variable setzen",
+        "description": "Setzt eine Variable für die folgenden Schritte. Generatoren wie $randomEmail, $uuid, $randomInt(1,100) oder $today(+7) in doppelten geschweiften Klammern erzeugen einen neuen Wert.",
+        "valueHint": "name=wert, z. B. email=$randomEmail in doppelten Klammern"
+      },
+      "if": {
+        "name": "Wenn",
+        "description": "Führt die Schritte bis Sonst oder Ende wenn nur aus, wenn die Bedingung gilt. Mit Element: sein aktueller Zustand (visible, hidden, exists, missing, checked, enabled, contains:Text). Ohne: ein Wertevergleich.",
+        "valueHint": "visible, contains:Text… oder a == b, a > 3, a contains b"
+      },
+      "else": {
+        "name": "Sonst",
+        "description": "Die Schritte bis Ende wenn laufen, wenn die Wenn-Bedingung nicht galt."
+      },
+      "endIf": {
+        "name": "Ende wenn",
+        "description": "Schließt den Wenn-Block."
+      },
+      "repeat": {
+        "name": "Wiederholen",
+        "description": "Führt die Schritte bis Ende Schleife so oft wie angegeben aus. Darin zählt die Variable loopIndex ab 1.",
+        "valueHint": "Anzahl, z. B. 3"
+      },
+      "repeatWhile": {
+        "name": "Wiederholen solange",
+        "description": "Führt die Schritte bis Ende Schleife aus, solange die Bedingung gilt, höchstens 200-mal.",
+        "valueHint": "visible, contains:Text… oder a == b, a < 10"
+      },
+      "endLoop": {
+        "name": "Ende Schleife",
+        "description": "Schließt den Wiederholen-Block."
       }
     },
     "saveTest": {

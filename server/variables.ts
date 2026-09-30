@@ -3,6 +3,7 @@ import { privilegedDb } from './db';
 import { secrets as secretsTable } from '@shared/schema';
 import { decryptSecret } from './crypto';
 import loggerPromise from './logger';
+import { findInvalidGenerators } from './generators';
 
 /**
  * The one place `{{name}}` values come from.
@@ -95,5 +96,7 @@ export function findUnresolvedVariables(
   for (const match of value.matchAll(PLACEHOLDER)) {
     if (!(match[1] in vars)) missing.add(match[1]);
   }
+  // A misspelt generator is left in place the same way, and reported the same way.
+  for (const name of findInvalidGenerators(value)) missing.add(name);
   return [...missing];
 }

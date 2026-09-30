@@ -39,6 +39,9 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
   const requirements = ACTION_REQUIREMENTS[data.action.id as AdhocActionId];
   const needsValue = requirements?.value ?? false;
   const needsTarget = requirements?.target ?? false;
+  // An element the step can do without — a condition about a value, a key for whatever has
+  // focus — still gets the slot; it just is not marked as missing when empty.
+  const takesTarget = needsTarget || (requirements?.optionalTarget ?? false);
   // A closed list becomes a dropdown; everything else stays a free-text field.
   const valueOptions = ACTION_VALUE_OPTIONS[data.action.id as AdhocActionId];
   // The shape of the value, for the actions whose value has one ("name.ext|content", …).
@@ -92,7 +95,7 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
       </div>
 
       <div className="space-y-3 mt-4">
-        {needsTarget && (
+        {takesTarget && (
           <div
             ref={dropRef as any}
             className={`nodrag flex items-center space-x-2 p-2 rounded-md border transition-colors ${
@@ -100,7 +103,9 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
                 ? 'bg-primary/10 border-primary border-dashed'
                 : data.targetElement
                   ? 'bg-muted/50 border-primary/40'
-                  : 'bg-muted/50 border-destructive/40 border-dashed'
+                  : needsTarget
+                    ? 'bg-muted/50 border-destructive/40 border-dashed'
+                    : 'bg-muted/50 border-border border-dashed'
             }`}
           >
             <Link2 className={`h-4 w-4 shrink-0 ${data.targetElement ? 'text-success' : 'text-muted-foreground'}`} />

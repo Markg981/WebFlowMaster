@@ -9,6 +9,10 @@ import {
   Code,
   Cookie,
   CornerDownLeft,
+  CornerLeftUp,
+  GitBranch,
+  GitMerge,
+  Repeat,
   Database,
   Eraser,
   Eye,
@@ -76,6 +80,13 @@ const ACTION_ICONS: Record<AdhocActionId, LucideIcon> = {
   clearCookies: Eraser,
   setLocalStorage: Database,
   executeScript: Code,
+  setVariable: Variable,
+  if: GitBranch,
+  else: GitBranch,
+  endIf: GitMerge,
+  repeat: Repeat,
+  repeatWhile: Repeat,
+  endLoop: CornerLeftUp,
 };
 
 export function ActionIcon({

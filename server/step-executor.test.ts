@@ -893,3 +893,82 @@ describe('parsing the values of the new actions', () => {
     expect(parseAssignment('=x')).toBeNull();
   });
 });
+
+describe('conditions, loops and generated values', () => {
+  const run = async (sequence: MappedTestStep[]) => {
+    const { playwrightService } = await import('./playwright-service');
+    const result = await playwrightService.executeTestSequence(savedTest(sequence, '/interactions'), 1);
+    const failures = (result.steps ?? []).filter((s) => s.status === 'failed').map((f) => `${f.type}: ${f.error}`);
+    return { result, failures };
+  };
+
+  it('takes the else branch for an element that is not on the page, without waiting for it', async () => {
+    const started = Date.now();
+    const { result, failures } = await run([
+      step('if', { selector: '#cookie-banner', value: 'visible' }),
+      step('click', { selector: '#cookie-banner' }),
+      step('else'),
+      step('input', { selector: '#q', value: 'no banner' }),
+      step('endIf'),
+      step('pressKey', { selector: '#q', value: 'Enter' }),
+      step('assertTextContains', { selector: '#out', value: 'searched no banner' }),
+    ]);
+    expect(failures).toEqual([]);
+    expect(result.success).toBe(true);
+    // The missing element answered "false" at once; a wait would have cost the full timeout.
+    expect(Date.now() - started).toBeLessThan(DEFAULT_WAIT_TIMEOUT_MS + 10_000);
+    expect((result.steps ?? []).some((s) => s.type === 'click')).toBe(false);
+  }, 60_000);
+
+  it('repeats a body with loopIndex, and runs a condition on values', async () => {
+    const { result, failures } = await run([
+      step('repeat', { value: '3' }),
+      step('input', { selector: '#q', value: 'row {{loopIndex}}' }),
+      step('pressKey', { selector: '#q', value: 'Enter' }),
+      step('endLoop'),
+      step('assertTextContains', { selector: '#out', value: 'searched row 3' }),
+      step('storeText', { selector: '#out', value: 'last' }),
+      step('if', { value: '{{last}} contains row 3' }),
+      step('input', { selector: '#q', value: 'matched' }),
+      step('endIf'),
+    ]);
+    expect(failures).toEqual([]);
+    expect((result.steps ?? []).filter((s) => s.type === 'pressKey')).toHaveLength(3);
+    expect((result.steps ?? []).filter((s) => s.type === 'input').at(-1)?.status).toBe('passed');
+  }, 60_000);
+
+  it('makes up a value once and uses it twice', async () => {
+    const { failures } = await run([
+      step('setVariable', { value: 'email={{$randomEmail}}' }),
+      step('input', { selector: '#q', value: '{{email}}' }),
+      step('pressKey', { selector: '#q', value: 'Enter' }),
+      step('storeText', { selector: '#out', value: 'shown' }),
+      step('if', { value: '{{shown}} == searched {{email}}' }),
+      step('else'),
+      step('executeScript', { value: 'false' }),
+      step('endIf'),
+    ]);
+    expect(failures).toEqual([]);
+  }, 60_000);
+
+  it('refuses a test whose blocks do not close, before running anything', async () => {
+    const { result } = await run([step('if', { value: 'true' }), step('click', { selector: '#dbl' })]);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Step 1: this "if" has no "endIf".');
+    expect(result.steps ?? []).toEqual([]);
+  }, 60_000);
+});
+
+describe('compareValues', () => {
+  it('compares strings, numbers and flags', async () => {
+    const { compareValues } = await import('./step-executor');
+    expect(compareValues('Paid == Paid')).toEqual({ value: true });
+    expect(compareValues('Paid != Paid')).toEqual({ value: false });
+    expect(compareValues('10 > 9')).toEqual({ value: true });
+    expect(compareValues('Order 4711 contains 4711')).toEqual({ value: true });
+    expect(compareValues('Order 4711 not contains 4711')).toEqual({ value: false });
+    expect(compareValues('true')).toEqual({ value: true });
+    expect(compareValues('abc > 3')).toHaveProperty('error');
+    expect(compareValues('just words')).toHaveProperty('error');
+  });
+});
