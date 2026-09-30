@@ -12,6 +12,7 @@ import { Loader2, PlusCircle, XCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestPlan } from '@shared/schema';
 import { MAX_LOCALES, canonicalLocale, normalizeLocales } from '@shared/locales';
+import { MOBILE_DEVICES, canEmulateDevice } from '@shared/devices';
 import { BROWSER_GRID_LABELS, GRID_OPERATING_SYSTEMS, HONOURS_MACHINE, type BrowserGridProvider } from '@shared/browser-grids';
 
 /**
@@ -31,6 +32,8 @@ interface MachineRow {
   os: string;
   osVersion: string;
   browserVersion: string;
+  /** A phone or tablet to emulate (shared/devices.ts); empty for the desktop. */
+  device: string;
 }
 
 interface GridOption {
@@ -41,6 +44,9 @@ interface GridOption {
 
 /** A grid in the "run on" list, told apart from a pool name, which cannot contain a colon. */
 const GRID_PREFIX = 'grid:';
+
+/** The Select cannot hold an empty value: the desktop, no device emulated. */
+const DESKTOP = '__desktop__';
 
 /** The Select cannot hold an empty value: "the grid's default OS". */
 const ANY_OS = '__any__';
@@ -97,6 +103,7 @@ function machinesFromPlan(plan: TestPlan | null): MachineRow[] {
     os: typeof machine?.os === 'string' ? machine.os : '',
     osVersion: typeof machine?.osVersion === 'string' ? machine.osVersion : '',
     browserVersion: typeof machine?.browserVersion === 'string' ? machine.browserVersion : '',
+    device: typeof machine?.device === 'string' ? machine.device : '',
   }));
 }
 
@@ -212,7 +219,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
   const machineFields = !!selectedGrid && HONOURS_MACHINE[selectedGrid.provider];
 
   const addMachine = () => {
-    setMachines((previous) => [...previous, { key: uuidv4(), browserName: 'chromium', headless: true, os: '', osVersion: '', browserVersion: '' }]);
+    setMachines((previous) => [...previous, { key: uuidv4(), browserName: 'chromium', headless: true, os: '', osVersion: '', browserVersion: '', device: '' }]);
   };
 
   const removeMachine = (key: string) => {
@@ -265,12 +272,13 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           // Only the run settings. Omitting selectedTests leaves the plan's tests as they are.
-          testMachinesConfig: machines.map(({ browserName, headless, os, osVersion, browserVersion }) => ({
+          testMachinesConfig: machines.map(({ browserName, headless, os, osVersion, browserVersion, device }) => ({
             browserName,
             headless,
             os: os.trim() || null,
             osVersion: osVersion.trim() || null,
             browserVersion: browserVersion.trim() || null,
+            device: device && canEmulateDevice(browserName) ? device : null,
           })),
           visualTestingEnabled,
           captureVideo,
@@ -332,7 +340,11 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
               <div className="mt-2 space-y-2">
                 {machines.map((machine) => (
                   <div key={machine.key} className="flex items-center gap-2">
-                    <Select value={machine.browserName} onValueChange={(value) => updateMachine(machine.key, { browserName: value })}>
+                    <Select
+                      value={machine.browserName}
+                      // Firefox has no mobile mode: choosing it takes the device away rather than keeping a promise it cannot keep.
+                      onValueChange={(value) => updateMachine(machine.key, { browserName: value, ...(canEmulateDevice(value) ? {} : { device: '' }) })}
+                    >
                       <SelectTrigger className="w-[180px]" aria-label={t('editTestPlanSettings.browsers.selectLabel', 'Browser')}>
                         <SelectValue />
                       </SelectTrigger>
@@ -340,6 +352,23 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                         {BROWSER_OPTIONS.map((option) => (
                           <SelectItem key={option} value={option}>
                             {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={machine.device || DESKTOP}
+                      onValueChange={(value) => updateMachine(machine.key, { device: value === DESKTOP ? '' : value })}
+                      disabled={!canEmulateDevice(machine.browserName)}
+                    >
+                      <SelectTrigger className="w-[170px]" aria-label={t('editTestPlanSettings.browsers.device', 'Device')}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={DESKTOP}>{t('editTestPlanSettings.browsers.desktop', 'Desktop')}</SelectItem>
+                        {MOBILE_DEVICES.map((device) => (
+                          <SelectItem key={device.name} value={device.name}>
+                            {device.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

@@ -23,7 +23,7 @@ cosa conservare di ogni run e chi avvisare.
 
 | Impostazione | Cosa fa |
 |---|---|
-| **Browser** | Ogni test gira una volta per ogni browser elencato. Nessuno elencato: il browser delle vostre impostazioni. |
+| **Browser** | Ogni test gira una volta per ogni browser elencato, ciascuno sul desktop o come telefono o tablet ([dispositivi](#dispositivi-mobili)). Nessuno elencato: il browser delle vostre impostazioni. |
 | **Lingue** | Codici di lingua come `it-IT, en-US` (al massimo 10). Ogni test gira una volta per lingua su ogni browser; vedi [Testare in più lingue](#lingue). Vuoto: la lingua predefinita del browser. |
 | **Esegui al massimo (test contemporanei)** | Da 1 a 16 sessioni di browser contemporanee. Con 1 il piano esegue un test alla volta, browser per browser. |
 | **Conserva una registrazione del run** | Un **video** e una **trace** di Playwright di ogni test — mai, quando il test fallisce o sempre — e il traffico di **rete** come file HAR. Rispondono a ciò che uno screenshot non dice, e occupano disco a ogni run. |
@@ -61,6 +61,28 @@ tutto il resto su Windows 11. Safari su una griglia resta il WebKit di Playwrigh
 Ogni test è una sessione nella dashboard del fornitore, con il nome del test, raggruppata sotto il
 run e segnata come superata o fallita. Eliminare una griglia riporta i piani che la usavano sui
 runner del server. Un piano gira su una griglia o su agenti locali, mai su entrambi.
+
+### Telefoni e tablet {#dispositivi-mobili}
+
+**Dispositivo** su una riga dei browser nelle impostazioni del piano trasforma quel browser in un
+telefono o un tablet: iPhone 15, iPhone 15 Pro Max, iPhone 14, iPhone SE, iPhone 13 Mini, Pixel 7,
+Pixel 5, Galaxy S24, Galaxy A55, iPad Pro 11, iPad Mini, Galaxy Tab S9 (i tablet anche in
+orizzontale). La pagina vede allora quel dispositivo: dimensione e densità dello schermo, il tocco
+invece del mouse (`pointer: coarse`), il layout mobile (`<meta name="viewport">` viene rispettato) e
+il suo user agent, così un sito responsive mostra menu, dimensioni e pagine che mostra su quel
+telefono. Ogni riga è un passaggio a sé: Chromium sul desktop e Chromium come Pixel 7 danno due
+risultati per test, e il report dice quale è quale (`chromium · Pixel 7`).
+
+Scegliete il motore su cui è costruito il browser del dispositivo — **WebKit** per un iPhone o un
+iPad, **Chromium** o **Chrome** per Android — per il risultato più vicino. **Firefox** non può
+emulare un dispositivo: per lui la scelta non viene offerta. I dispositivi si impostano nelle
+impostazioni del piano (non nella procedura guidata di creazione) e funzionano sui runner del
+server, sugli [agenti locali](../LOCAL_AGENT) e su una [griglia di browser](#griglie-di-browser), il cui
+browser desktop mostra allora il dispositivo.
+
+È un'emulazione, non un telefono vero: ciò che dipende dal dispositivo stesso — il comportamento
+proprio di Safari su iOS, la tastiera a schermo, la velocità del telefono, le app native — richiede
+dispositivi reali, che arrivano con i test delle app mobili.
 
 ### Testare in più lingue {#lingue}
 

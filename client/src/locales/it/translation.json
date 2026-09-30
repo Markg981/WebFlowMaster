@@ -3114,7 +3114,9 @@
       "os": "Sistema operativo",
       "anyOs": "OS predefinito",
       "osVersion": "Versione OS",
-      "browserVersion": "Versione browser"
+      "browserVersion": "Versione browser",
+      "device": "Dispositivo",
+      "desktop": "Desktop"
     },
     "parallel": {
       "label": "Esegui al massimo (test contemporanei)",
