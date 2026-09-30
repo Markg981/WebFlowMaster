@@ -13,7 +13,31 @@ Per un **sito** responsive su un telefono non serve: emulate il dispositivo tra 
 - Una griglia **BrowserStack** o **LambdaTest** in **Impostazioni → Griglie di browser**, con
   username e access key dell'account. La stessa griglia serve browser e dispositivi; un server
   Playwright vostro fa girare solo browser.
+- Oppure i vostri dispositivi: un [Appium locale](#appium-locale) accanto a un agente locale —
+  emulatori, simulatori, telefoni via USB.
 - L'app: un **.apk** o **.aab** per Android, un **.ipa** compilato per dispositivi reali per iOS.
+
+### Sui vostri dispositivi (Appium locale) {#appium-locale}
+
+Emulatori, simulatori e i telefoni sulla scrivania girano tramite un server **Appium** su una
+macchina con un [agente locale](../LOCAL_AGENT). L'agente porta le richieste, quindi il server non
+ha bisogno di accedere a quella rete, e non si installa nulla oltre ad Appium.
+
+1. Sulla macchina dell'agente: installate Appium e i driver (`npm i -g appium`,
+   `appium driver install uiautomator2`, `xcuitest` su Mac), avviate l'emulatore o collegate il
+   telefono, e lanciate `appium`.
+2. **Impostazioni → Griglie di browser → Aggiungi griglia**, provider **Local Appium (agent)**: il
+   **pool** di quell'agente e, se Appium non ascolta su `http://127.0.0.1:4723`, il suo
+   **indirizzo** come lo raggiunge la macchina dell'agente. Nessuna chiave. **Verifica connessione**
+   chiede ad Appium il suo `/status` tramite un agente del pool e ne riporta la versione.
+3. In un test mobile: **Dispositivo** è il nome del dispositivo per Appium (`emulator-5554`, l'UDID
+   del telefono, o `iPhone 15` per un simulatore) e **App** è il percorso del file sulla macchina
+   dell'agente (`/home/qa/shop.apk`, `C:\apps\shop.apk`) o un indirizzo `http(s)://` da cui
+   Appium la scarica. Non c'è nulla da caricare.
+
+Esecuzioni, piani, inspector e tutto il resto funzionano come sui cloud. Non ci sono dashboard né
+video: il report ha i passi e l'ultimo screenshot. Un Appium locale esegue solo test di app
+mobili; i browser di un piano non possono girarci.
 
 ## Scrivere un test
 
@@ -143,7 +167,7 @@ Un test mobile va ovunque va un test web o API:
 
 In ogni elenco porta l'etichetta **Mobile**.
 
-## Cosa arriva dopo
+## Non ancora
 
-L'esecuzione su un Appium locale — un emulatore o un telefono collegato a un agente — è il
-prossimo passo.
+I test mobili non hanno tag (quindi nessuna suite dinamica li include), non vanno in quarantena né
+sono contati come instabili; il loro progetto non si può ancora scegliere.

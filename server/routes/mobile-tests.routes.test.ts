@@ -260,7 +260,7 @@ describe('a mobile test', () => {
     const badStep = await request(app).post('/api/mobile-tests').send({ ...SHOP, name: 'Bad', steps: [{ id: 'x', action: 'tap', target: '#login' }] });
     expect(badStep.status).toBe(400);
     expect(badStep.body.error).toMatch(/^Step 1: "#login" is not a locator for Android/);
-    expect((await request(app).post('/api/mobile-tests').send({ ...SHOP, name: 'Bad app', app: 'shop.apk' })).body.error).toMatch(/bs:\/\/…, lt:\/\/… or an https:\/\//);
+    expect((await request(app).post('/api/mobile-tests').send({ ...SHOP, name: 'Bad app', app: 'shop.apk' })).body.error).toMatch(/bs:\/\/…, lt:\/\/…, an http\(s\):\/\/ address .* its path on the agent's machine/);
 
     expect((await request(app).put(`/api/mobile-tests/${id}`).send({ ...SHOP, deviceName: 'Samsung Galaxy S24' })).body.deviceName).toBe('Samsung Galaxy S24');
 
@@ -443,7 +443,7 @@ describe('uploading an app', () => {
     expect(lt.body.app).toBe('lt://APP10160271981701234567');
 
     expect((await request(app).post(`/api/browser-grids/${browserstack}/apps`).attach('file', Buffer.from('x'), 'shop.zip')).body.error).toBe('An app is an .apk, .aab or .ipa file.');
-    expect((await request(app).post(`/api/browser-grids/${playwrightServer}/apps`).attach('file', Buffer.from('x'), 'shop.apk')).status).toBe(502);
+    expect((await request(app).post(`/api/browser-grids/${playwrightServer}/apps`).attach('file', Buffer.from('x'), 'shop.apk')).status).toBe(400);
     const audit = await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, organizationId));
     expect(audit.filter((a) => a.action === 'mobile_test.app_uploaded')).toHaveLength(2);
   });

@@ -4,7 +4,7 @@ import type { MobileTest } from '@shared/schema';
 import { parsePageSource, type InspectorNode } from '@shared/mobile-inspector';
 import type { GridConfig } from './browser-grids';
 import { AppiumSession, WebDriverError, type Fetch } from './appium-client';
-import { mobileSessionRequest, redactGridSecret, runMobileStep } from './mobile-runner';
+import { appiumTransport, mobileSessionRequest, redactGridSecret, runMobileStep } from './mobile-runner';
 
 /**
  * The inspector: a device of a cloud grid, held open while somebody looks at the app's screens and
@@ -31,6 +31,8 @@ interface Held {
   platform: MobileTest['platform'];
   grid: GridConfig;
   session: AppiumSession;
+  /** Gives back what the agent lent, for a local Appium. */
+  release: () => Promise<void>;
   device: string;
   timer: ReturnType<typeof setTimeout>;
   /** One command at a time: a tap while the tree is being read would describe neither screen. */
@@ -71,6 +73,7 @@ async function close(id: string) {
   held.delete(id);
   clearTimeout(entry.timer);
   await entry.session.close();
+  await entry.release();
 }
 
 async function snapshotOf(entry: Held): Promise<InspectorSnapshot> {
@@ -94,15 +97,18 @@ export async function openInspector(
     if (entry.userId === owner.userId && entry.organizationId === owner.organizationId) await close(entry.id);
   }
   let session: AppiumSession | null = null;
+  let transport: ReturnType<typeof appiumTransport> | null = null;
   try {
     const request = mobileSessionRequest(grid, test, `WebFlowMaster · inspector`);
-    session = await AppiumSession.open({ ...request, fetch: inspectorDeps.fetch });
+    transport = appiumTransport(grid, inspectorDeps.fetch);
+    session = await AppiumSession.open({ ...request, fetch: transport.fetch });
     const entry: Held = {
       id: uuidv4(),
       ...owner,
       platform: test.platform,
       grid,
       session,
+      release: transport.close,
       device: describeDevice(test, session.capabilities),
       timer: setTimeout(() => undefined, 0),
       queue: Promise.resolve(),
@@ -112,6 +118,7 @@ export async function openInspector(
     return await snapshotOf(entry);
   } catch (error) {
     await session?.close();
+    await transport?.close();
     throw explain(error, grid);
   }
 }

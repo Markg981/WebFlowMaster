@@ -3515,7 +3515,12 @@
     "nameRequired": "Il nome è obbligatorio.",
     "usernameRequired": "Per questo fornitore serve il nome utente.",
     "endpointRequired": "L'indirizzo di un server Playwright inizia con ws:// o wss://.",
-    "keyRequired": "Per questo fornitore serve la chiave di accesso."
+    "keyRequired": "Per questo fornitore serve la chiave di accesso.",
+    "appiumEndpointInvalid": "L'indirizzo di Appium inizia con http:// o https://, come lo raggiunge la macchina dell'agente.",
+    "poolRequired": "Indicate il pool di agenti locali che raggiunge Appium.",
+    "appiumEndpointHint": "L'indirizzo di Appium come lo raggiunge la macchina dell'agente. Vuoto: {{url}}, dove Appium ascolta se avviato senza opzioni.",
+    "agentPool": "Pool di agenti locali",
+    "agentPoolHint": "Un agente di questo pool, sulla macchina accanto ad Appium, porta le richieste: il server non ha bisogno di accedere a quella rete."
   },
   "requirements": {
     "title": "Requisiti",
@@ -3818,7 +3823,8 @@
     "noPlanGrid": "Nessuna griglia: non eseguibile nei piani",
     "planGridHint": "Un piano esegue questo test una volta per esecuzione, su questa griglia, qualunque siano i browser del piano.",
     "inspect": "Inspector",
-    "inspectNeeds": "L'inspector richiede una griglia, l'app e il dispositivo."
+    "inspectNeeds": "L'inspector richiede una griglia, l'app e il dispositivo.",
+    "appPlaceholder": "bs://… / lt://… / un percorso sulla macchina dell’agente"
   },
   "mobileInspector": {
     "title": "Inspector",

@@ -76,6 +76,9 @@ riprovando. `SIGTERM`/`Ctrl+C` lascia prima finire i run che usano i suoi browse
 
 ### 3. Imposta il piano sul pool
 
+Un agente raggiunge anche un server **Appium** sulla sua macchina o nella sua rete, per i test di
+app mobili su emulatori e telefoni: vedi [Appium locale](./guide/mobile-apps#appium-locale).
+
 In **Run settings → Esegui su** del piano scegli *Agenti locali: &lt;pool&gt;*. La lista dei browser
 del piano resta valida: ogni browser viene preso in prestito dal pool.
 

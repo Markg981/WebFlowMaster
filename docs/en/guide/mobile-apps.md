@@ -13,7 +13,31 @@ browsers instead ([phones and tablets](./running#mobile-devices)).
 - A **BrowserStack** or **LambdaTest** grid in **Settings → Browser grids**, with the account's
   username and access key. The same grid serves browsers and devices; a Playwright server of your
   own runs browsers only.
+- Or your own devices: a [local Appium](#local-appium) next to a local agent — emulators,
+  simulators, phones on USB.
 - The app: an **.apk** or **.aab** for Android, an **.ipa** built for real devices for iOS.
+
+### On your own devices (local Appium) {#local-appium}
+
+Emulators, simulators and the phones on your desk run through an **Appium** server on a machine
+with a [local agent](../LOCAL_AGENT). The agent carries the requests, so the server needs no way
+into that network, and nothing new is installed beyond Appium itself.
+
+1. On the agent's machine: install Appium and its drivers (`npm i -g appium`,
+   `appium driver install uiautomator2`, `xcuitest` on a Mac), start the emulator or plug in the
+   phone, and run `appium`.
+2. **Settings → Browser grids → Add grid**, provider **Local Appium (agent)**: the **pool** of that
+   agent and, when Appium does not listen on `http://127.0.0.1:4723`, its **address** as the
+   agent's machine reaches it. No key. **Test connection** asks Appium for its `/status` through an
+   agent of the pool and answers its version.
+3. In a mobile test: **Device** is Appium's device name (`emulator-5554`, the phone's UDID, or
+   `iPhone 15` for a simulator) and **App** is the file's path on the agent's machine
+   (`/home/qa/shop.apk`, `C:\apps\shop.apk`) or an `http(s)://` address Appium downloads it
+   from. There is nothing to upload.
+
+Runs, plans, the inspector and everything else work as on the clouds. There is no dashboard and
+no video: the report has the steps and the last screenshot. A local Appium runs mobile app tests
+only; a plan's browsers cannot run on it.
 
 ## Writing a test
 
@@ -137,6 +161,7 @@ A mobile test goes wherever a web or API test does:
 
 In each list it carries the label **Mobile**.
 
-## What comes next
+## Not yet
 
-Running on a local Appium — an emulator or a phone attached to an agent — is the next step.
+Mobile tests carry no tags (so no dynamic suite includes them) and are not quarantined or
+counted as flaky; their project cannot be chosen yet.

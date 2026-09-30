@@ -76,6 +76,9 @@ refuses its token (revoked) or its protocol version: those do not fix themselves
 
 ### 3. Point a plan at the pool
 
+An agent also reaches an **Appium** server on its machine or network, for mobile app tests on
+emulators and phones: see [local Appium](./guide/mobile-apps#local-appium).
+
 In the plan's **Run settings → Run on**, choose *Local agents: &lt;pool&gt;*. The plan's browser
 list still applies: each browser is borrowed from the pool.
 

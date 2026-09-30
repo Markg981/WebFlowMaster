@@ -3396,7 +3396,12 @@
     "nameRequired": "Un nom est requis.",
     "usernameRequired": "Un nom d'utilisateur est requis pour ce fournisseur.",
     "endpointRequired": "L'adresse d'un serveur Playwright commence par ws:// ou wss://.",
-    "keyRequired": "Une clé d'accès est requise pour ce fournisseur."
+    "keyRequired": "Une clé d'accès est requise pour ce fournisseur.",
+    "appiumEndpointInvalid": "L'adresse d'Appium commence par http:// ou https://, telle que la machine de l'agent l'atteint.",
+    "poolRequired": "Indiquez le pool d'agents locaux qui atteint Appium.",
+    "appiumEndpointHint": "L'adresse d'Appium telle que la machine de l'agent l'atteint. Vide : {{url}}, où Appium écoute sans options.",
+    "agentPool": "Pool d'agents locaux",
+    "agentPoolHint": "Un agent de ce pool, sur la machine à côté d'Appium, transporte les requêtes : le serveur n'a pas besoin d'accéder à ce réseau."
   },
   "requirements": {
     "title": "Exigences",
@@ -3699,7 +3704,8 @@
     "noPlanGrid": "Aucune grille : non exécutable dans les plans",
     "planGridHint": "Un plan de test exécute ce test une fois par exécution, sur cette grille, quels que soient les navigateurs du plan.",
     "inspect": "Inspecteur",
-    "inspectNeeds": "L'inspecteur a besoin d'une grille, de l'app et de l'appareil."
+    "inspectNeeds": "L'inspecteur a besoin d'une grille, de l'app et de l'appareil.",
+    "appPlaceholder": "bs://… / lt://… / un chemin sur la machine de l’agent"
   },
   "mobileInspector": {
     "title": "Inspecteur",

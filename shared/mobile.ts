@@ -16,7 +16,7 @@ export type MobilePlatform = (typeof MOBILE_PLATFORMS)[number];
 export const MOBILE_PLATFORM_LABELS: Record<MobilePlatform, string> = { android: "Android", ios: "iOS" };
 
 /** The grids that run apps. A Playwright server of one's own runs browsers only. */
-export const MOBILE_GRID_PROVIDERS = ["browserstack", "lambdatest"] as const;
+export const MOBILE_GRID_PROVIDERS = ["browserstack", "lambdatest", "local_appium"] as const;
 
 /** What a step does, and whether it names an element and takes a value. */
 export const MOBILE_ACTIONS = {
@@ -126,6 +126,11 @@ export const mobileStepSchema = z.object({
   value: z.string().max(5000).optional(),
 });
 
+/** A file on the agent's machine, for a local Appium: /home/qa/shop.apk, C:\\apps\\shop.apk, ~/shop.ipa. */
+export function isLocalAppPath(app: string): boolean {
+  return /^(\/|~\/|[A-Za-z]:[\\/])\S/.test(app) && /\.(apk|aab|ipa|app|zip)$/i.test(app);
+}
+
 export const mobileTestSchema = z
   .object({
     name: z.string().trim().min(1, "A name is required.").max(200),
@@ -135,7 +140,10 @@ export const mobileTestSchema = z
       .trim()
       .min(1, "Which app: bs://… or lt://… from an upload, or its address.")
       .max(1000)
-      .refine((app) => /^(bs|lt):\/\/\S+$/.test(app) || /^https:\/\/\S+$/.test(app), "The app is bs://…, lt://… or an https:// address the grid downloads it from."),
+      .refine(
+        (app) => /^(bs|lt):\/\/\S+$/.test(app) || /^https?:\/\/\S+$/.test(app) || isLocalAppPath(app),
+        "The app is bs://…, lt://…, an http(s):// address the grid downloads it from, or — for a local Appium — its path on the agent's machine.",
+      ),
     deviceName: z.string().trim().min(1, "Which device, as the grid names it: Google Pixel 8, iPhone 15.").max(120),
     osVersion: z.string().trim().max(20).optional().nullable(),
     /** The grid it runs on in a plan: a BrowserStack or LambdaTest one of the organization. */

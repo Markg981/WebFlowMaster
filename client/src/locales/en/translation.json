@@ -3390,7 +3390,12 @@
     "nameRequired": "A name is required.",
     "usernameRequired": "A username is required for this provider.",
     "endpointRequired": "The address of a Playwright server starts with ws:// or wss://.",
-    "keyRequired": "An access key is required for this provider."
+    "keyRequired": "An access key is required for this provider.",
+    "appiumEndpointInvalid": "Appium's address starts with http:// or https://, as the agent's machine reaches it.",
+    "poolRequired": "Name the pool of local agents that reach Appium.",
+    "appiumEndpointHint": "Appium's address as the agent's machine reaches it. Empty: {{url}}, where Appium listens when started with no options.",
+    "agentPool": "Pool of local agents",
+    "agentPoolHint": "An agent of this pool, on the machine next to Appium, carries the requests: the server needs no way into that network."
   },
   "requirements": {
     "title": "Requirements",
@@ -3693,7 +3698,8 @@
     "noPlanGrid": "No grid: not runnable in plans",
     "planGridHint": "A test plan runs this test once per run, on this grid, whatever browsers the plan covers.",
     "inspect": "Inspector",
-    "inspectNeeds": "The inspector needs a grid, the app and the device."
+    "inspectNeeds": "The inspector needs a grid, the app and the device.",
+    "appPlaceholder": "bs://… / lt://… / a path on the agent’s machine"
   },
   "mobileInspector": {
     "title": "Inspector",
