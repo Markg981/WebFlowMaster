@@ -3044,5 +3044,61 @@
       "medium": "moyenne",
       "low": "faible"
     }
+  },
+  "debugger": {
+    "title": "Débogueur",
+    "close": "Fermer le débogueur",
+    "start": {
+      "button": "Déboguer",
+      "tooltip": "Exécuter pas à pas : s'arrête aux points d'arrêt et là où une étape échoue"
+    },
+    "startFailed": "Le débogueur n'a pas pu démarrer :",
+    "breakpoint": {
+      "add": "S'arrêter ici pendant le débogage",
+      "remove": "Retirer le point d'arrêt"
+    },
+    "status": {
+      "starting": "démarrage",
+      "running": "en cours",
+      "paused": "en pause",
+      "finished": "terminé",
+      "stopped": "arrêté",
+      "error": "erreur"
+    },
+    "starting": "Ouverture du navigateur…",
+    "running": "En cours…",
+    "reason": {
+      "breakpoint": "Arrêté au point d'arrêt avant « {{name}} ».",
+      "step": "Arrêté avant « {{name}} ».",
+      "pause": "En pause avant « {{name}} ».",
+      "failure": "« {{name}} » a échoué."
+    },
+    "screenshot": "La page maintenant",
+    "selector": "Sélecteur",
+    "value": "Valeur",
+    "correction": {
+      "group": "Cette étape fait partie d'un groupe d'étapes : la correction ne vaut que pour cette exécution.",
+      "test": "La correction est copiée dans le test ; enregistrez-le pour la conserver."
+    },
+    "retry": "Réessayer",
+    "continue": "Continuer",
+    "step": "Pas à pas",
+    "skip": "Passer",
+    "stop": "Arrêter",
+    "pause": "Pause",
+    "outcome": {
+      "stopped": "Arrêté.",
+      "passed": "Le test a réussi.",
+      "failed": "Le test n'a pas réussi.",
+      "skipped": "{{count}} étape(s) passée(s)."
+    },
+    "steps": "Étapes exécutées",
+    "corrected": {
+      "badge": "corrigée",
+      "title": "Correction copiée dans le test",
+      "description": "Enregistrez le test pour la conserver."
+    },
+    "variables": "Variables",
+    "fromEnvironment": "(de l'environnement, masquée)"
   }
 }

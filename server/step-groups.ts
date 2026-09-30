@@ -117,6 +117,8 @@ export function expandStepGroups(sequence: unknown, groups: LoadedStepGroup[]): 
     for (const innerStep of inner) {
       out.push({
         ...innerStep,
+        // The call it came from, so a breakpoint on the call can stop at the group's first step.
+        calledFrom: step.id,
         action: {
           ...(innerStep.action ?? {}),
           // Says where the step came from, so a failure in the report points at the group

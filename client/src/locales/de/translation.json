@@ -3044,5 +3044,61 @@
       "medium": "mittel",
       "low": "niedrig"
     }
+  },
+  "debugger": {
+    "title": "Debugger",
+    "close": "Debugger schließen",
+    "start": {
+      "button": "Debuggen",
+      "tooltip": "Schritt für Schritt ausführen: hält an Haltepunkten und dort, wo ein Schritt fehlschlägt"
+    },
+    "startFailed": "Der Debugger konnte nicht starten:",
+    "breakpoint": {
+      "add": "Beim Debuggen hier anhalten",
+      "remove": "Haltepunkt entfernen"
+    },
+    "status": {
+      "starting": "startet",
+      "running": "läuft",
+      "paused": "angehalten",
+      "finished": "beendet",
+      "stopped": "gestoppt",
+      "error": "Fehler"
+    },
+    "starting": "Browser wird geöffnet…",
+    "running": "Läuft…",
+    "reason": {
+      "breakpoint": "Am Haltepunkt vor „{{name}}“ angehalten.",
+      "step": "Vor „{{name}}“ angehalten.",
+      "pause": "Vor „{{name}}“ pausiert.",
+      "failure": "„{{name}}“ ist fehlgeschlagen."
+    },
+    "screenshot": "Die Seite jetzt",
+    "selector": "Selektor",
+    "value": "Wert",
+    "correction": {
+      "group": "Dieser Schritt liegt in einer Schrittgruppe: Die Korrektur gilt nur für diesen Lauf.",
+      "test": "Die Korrektur wird in den Test übernommen; speichern, um sie zu behalten."
+    },
+    "retry": "Wiederholen",
+    "continue": "Fortsetzen",
+    "step": "Schritt",
+    "skip": "Überspringen",
+    "stop": "Stoppen",
+    "pause": "Pause",
+    "outcome": {
+      "stopped": "Gestoppt.",
+      "passed": "Der Test ist bestanden.",
+      "failed": "Der Test ist nicht bestanden.",
+      "skipped": "{{count}} Schritt(e) übersprungen."
+    },
+    "steps": "Ausgeführte Schritte",
+    "corrected": {
+      "badge": "korrigiert",
+      "title": "Korrektur in den Test übernommen",
+      "description": "Test speichern, um sie zu behalten."
+    },
+    "variables": "Variablen",
+    "fromEnvironment": "(aus der Umgebung, verborgen)"
   }
 }

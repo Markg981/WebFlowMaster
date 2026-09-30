@@ -91,6 +91,37 @@ pass of a loop is compared with its own baseline.
 step in the preview, with a screenshot of each step. A failed step says why. Nothing is saved by
 running.
 
+## Debugging {#debugging}
+
+**Debug** runs the sequence so that it can stop, be corrected and go on, while the browser is
+still open:
+
+- **Breakpoints**: click a step's dot to turn it red. The run stops before that step. A breakpoint
+  on a step group call stops at the group's first step. Breakpoints can be set and cleared while a
+  session runs.
+- **Where a step fails** the run does not end: it stops there, with the error.
+
+When it stops, the **Debugger** panel shows why, the page at that moment and its address, the
+steps run so far and the variables (values that come from the environment are secrets: only their
+names are shown). The step it stopped at has a coloured outline on the canvas. From there:
+
+| Command | Does |
+|---|---|
+| **Continue** | Runs on to the next breakpoint, failure or the end. |
+| **Step** | Runs this step and stops before the next one. |
+| **Retry** | After a failure: runs the step again, with the correction if there is one. |
+| **Skip** | Passes over this step. Not offered for if, else, loops and their ends. |
+| **Stop** | Ends the run and closes the browser. |
+| **Pause** | While running: stops before the next step. |
+
+The step's **selector** and **value** can be corrected before continuing, stepping or retrying.
+A correction to one of the test's own steps is also copied into the canvas; **save** the test to
+keep it. A correction to a step inside a step group applies to that run only.
+
+A run that passed over a step is never reported as passed. A data-driven test is debugged with its
+first row. A session left paused for 15 minutes closes its browser. Each person has one session at
+a time: starting another stops the first.
+
 ## Recording
 
 With **Test Creation Mode → Record user actions**, **Start recording** opens a browser window where

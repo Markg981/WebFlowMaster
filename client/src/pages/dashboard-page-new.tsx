@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ApiError, apiRequest, queryClient } from "@/lib/queryClient";
@@ -18,6 +18,8 @@ import { toast } from "@/hooks/use-toast";
 import { DraggableAction } from "@/components/draggable-action";
 import { DraggableElement } from "@/components/draggable-element";
 import { VisualTestBuilder } from "@/components/visual-builder/VisualTestBuilder";
+import DebugPanel, { useDebugSession } from '@/components/visual-builder/DebugPanel';
+import { DEBUG_ENDED, type DebugStepPatch } from '@shared/debug-session';
 import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
 import SaveTestModal from "@/components/SaveTestModal"; // Import the modal
 import { PreconditionsPanel } from "@/components/PreconditionsPanel";
@@ -854,6 +856,60 @@ export default function DashboardPage() {
   }, [isExecutingPlayback, currentPlaybackStepIndex, playbackSteps]);
 
 
+  // Debugging (shared/debug-session.ts): the steps to stop before, and the session, if one is open.
+  const [breakpoints, setBreakpoints] = useState<Set<string>>(() => new Set());
+  const debugSession = useDebugSession();
+  const debugActive = !!debugSession.state && !DEBUG_ENDED.has(debugSession.state.status);
+
+  const handleToggleBreakpoint = useCallback((stepId: string) => {
+    setBreakpoints((current) => {
+      const next = new Set(current);
+      if (next.has(stepId)) next.delete(stepId);
+      else next.add(stepId);
+      return next;
+    });
+  }, []);
+
+  // A breakpoint set or cleared while a session runs applies to it from its next step.
+  useEffect(() => {
+    if (debugActive) void debugSession.send({ type: 'breakpoints', breakpoints: [...breakpoints] });
+    // Only a change of breakpoints is sent; the session itself is not a reason to resend them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [breakpoints]);
+
+  const handleDebugTest = () => {
+    if (testSequence.length === 0) return;
+    void debugSession.start({
+      url: currentUrl,
+      sequence: testSequence,
+      elements: detectedElements,
+      preconditions,
+      name: testName || t('dashboardPageNew.toasts.adhocTestName', { url: currentUrl || t('dashboardPageNew.toasts.untitled') }),
+      environmentId: environmentIdFor(selectedEnvironment),
+      dataset: dataset.length > 0 ? dataset : undefined,
+      breakpoints: [...breakpoints],
+    });
+  };
+
+  /** A correction made in the debugger, copied into the step it was made to. */
+  const handleDebugCorrection = (stepId: string, patch: DebugStepPatch) => {
+    setTestSequence((sequence) =>
+      sequence.map((step) =>
+        step.id !== stepId
+          ? step
+          : {
+              ...step,
+              ...(patch.value !== undefined ? { value: patch.value } : {}),
+              ...(patch.selector !== undefined && step.targetElement ? { targetElement: { ...step.targetElement, selector: patch.selector } } : {}),
+            },
+      ),
+    );
+    toast({
+      title: t('debugger.corrected.title', 'Correction copied into the test'),
+      description: t('debugger.corrected.description', 'Save the test to keep it.'),
+    });
+  };
+
   const handleExecuteTest = () => {
     setLastTestOverallResult(null); // Reset overall result before new execution
     if (testSequence.length === 0) {
@@ -1313,12 +1369,16 @@ export default function DashboardPage() {
             onExecuteTest={handleExecuteTest}
             onSaveTest={handleSaveTest}
             onClearSequence={handleClearSequence}
-            isExecuting={executeDirectTestMutation.isPending || isExecutingPlayback}
+            isExecuting={executeDirectTestMutation.isPending || isExecutingPlayback || debugActive || debugSession.busy}
             isSaving={saveTestMutation.isPending && !executeDirectTestMutation.isPending && !isExecutingPlayback}
             isRecordingActive={isRecording} // Pass the isRecording state
             lastTestOutcome={lastTestOverallResult} // Pass the test outcome state
             onSaveAsGroup={() => setIsSaveGroupModalOpen(true)}
             onDescribeTest={() => setIsAuthorModalOpen(true)}
+            onDebugTest={handleDebugTest}
+            breakpoints={breakpoints}
+            onToggleBreakpoint={handleToggleBreakpoint}
+            debugPausedAt={debugSession.state?.paused?.stepId ? { stepId: debugSession.state.paused.stepId, failed: debugSession.state.paused.reason === 'failure' } : null}
           />
         </div>
       </div>
@@ -1331,6 +1391,22 @@ export default function DashboardPage() {
           disabled={executeDirectTestMutation.isPending || isExecutingPlayback}
         />
       </div>
+      {debugSession.state && (
+        <DebugPanel
+          state={debugSession.state}
+          error={debugSession.error}
+          busy={debugSession.busy}
+          onCommand={(command) => void debugSession.send(command)}
+          onClose={debugSession.close}
+          onCorrection={handleDebugCorrection}
+          isOwnStep={(stepId) => testSequence.some((step) => step.id === stepId)}
+        />
+      )}
+      {!debugSession.state && debugSession.error && (
+        <div role="alert" className="fixed right-4 top-20 z-50 max-w-sm rounded-md border border-destructive/40 bg-card p-3 text-sm text-destructive shadow">
+          {t('debugger.startFailed', 'The debugger could not start:')} {debugSession.error}
+        </div>
+      )}
       <SaveTestModal
         isOpen={isSaveModalOpen}
         onClose={handleCloseSaveModal}

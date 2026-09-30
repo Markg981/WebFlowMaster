@@ -3163,5 +3163,61 @@
       "medium": "media",
       "low": "bassa"
     }
+  },
+  "debugger": {
+    "title": "Debugger",
+    "close": "Chiudi il debugger",
+    "start": {
+      "button": "Debug",
+      "tooltip": "Esegue passo per passo: si ferma ai breakpoint e dove uno step fallisce"
+    },
+    "startFailed": "Il debugger non è partito:",
+    "breakpoint": {
+      "add": "Fermati qui durante il debug",
+      "remove": "Rimuovi il breakpoint"
+    },
+    "status": {
+      "starting": "avvio",
+      "running": "in esecuzione",
+      "paused": "in pausa",
+      "finished": "terminato",
+      "stopped": "fermato",
+      "error": "errore"
+    },
+    "starting": "Apertura del browser…",
+    "running": "In esecuzione…",
+    "reason": {
+      "breakpoint": "Fermo al breakpoint prima di «{{name}}».",
+      "step": "Fermo prima di «{{name}}».",
+      "pause": "In pausa prima di «{{name}}».",
+      "failure": "«{{name}}» è fallito."
+    },
+    "screenshot": "La pagina adesso",
+    "selector": "Selettore",
+    "value": "Valore",
+    "correction": {
+      "group": "Questo step è dentro un gruppo di step: la correzione vale solo per questo run.",
+      "test": "La correzione viene copiata nel test; salvatelo per mantenerla."
+    },
+    "retry": "Riprova",
+    "continue": "Continua",
+    "step": "Passo",
+    "skip": "Salta",
+    "stop": "Ferma",
+    "pause": "Pausa",
+    "outcome": {
+      "stopped": "Fermato.",
+      "passed": "Il test è passato.",
+      "failed": "Il test non è passato.",
+      "skipped": "{{count}} step saltati."
+    },
+    "steps": "Step eseguiti",
+    "corrected": {
+      "badge": "corretto",
+      "title": "Correzione copiata nel test",
+      "description": "Salvate il test per mantenerla."
+    },
+    "variables": "Variabili",
+    "fromEnvironment": "(dall'ambiente, nascosta)"
   }
 }

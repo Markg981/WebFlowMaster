@@ -95,6 +95,38 @@ Con il test visuale, ogni passata di un ciclo è confrontata con la propria base
 step nell'anteprima, con uno screenshot di ogni step. Uno step fallito dice perché. Eseguire non
 salva nulla.
 
+## Debug {#debug}
+
+**Debug** esegue la sequenza in modo che possa fermarsi, essere corretta e ripartire, con il
+browser ancora aperto:
+
+- **Breakpoint**: cliccate il pallino di uno step per farlo diventare rosso. Il run si ferma prima
+  di quello step. Un breakpoint sulla chiamata a un gruppo di step si ferma al primo step del
+  gruppo. I breakpoint si possono mettere e togliere mentre la sessione è in corso.
+- **Dove uno step fallisce** il run non finisce: si ferma lì, con l'errore.
+
+Quando si ferma, il pannello **Debugger** mostra perché, la pagina in quel momento e il suo
+indirizzo, gli step eseguiti fin lì e le variabili (i valori che vengono dall'ambiente sono
+segreti: se ne vede solo il nome). Lo step su cui è fermo ha un bordo colorato nel canvas. Da lì:
+
+| Comando | Cosa fa |
+|---|---|
+| **Continua** | Prosegue fino al prossimo breakpoint, fallimento o alla fine. |
+| **Passo** | Esegue questo step e si ferma prima del successivo. |
+| **Riprova** | Dopo un fallimento: esegue di nuovo lo step, con la correzione se c'è. |
+| **Salta** | Salta questo step. Non è offerto per if, else, cicli e le loro chiusure. |
+| **Ferma** | Termina il run e chiude il browser. |
+| **Pausa** | Durante l'esecuzione: si ferma prima dello step successivo. |
+
+**Selettore** e **valore** dello step si possono correggere prima di continuare, andare avanti di
+un passo o riprovare. La correzione di uno step del test viene copiata anche nel canvas;
+**salvate** il test per mantenerla. La correzione di uno step dentro un gruppo vale solo per quel
+run.
+
+Un run che ha saltato uno step non risulta mai passato. Un test guidato dai dati si esegue in debug
+con la prima riga. Una sessione lasciata in pausa per 15 minuti chiude il browser. Ogni persona ha
+una sessione alla volta: avviarne un'altra ferma la prima.
+
 ## Registrare
 
 Con **Modalità di Creazione Test → Registra azioni utente**, **Inizia registrazione** apre una
