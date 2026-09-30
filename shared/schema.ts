@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { relations, sql } from 'drizzle-orm';
 import { ACTION_REQUIREMENTS, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from './recording';
 import { CUSTOM_ACTION_STEP_ID_PATTERN, type CustomActionParameter } from './custom-actions';
+import { MAX_LOCALES, canonicalLocale, normalizeLocales } from './locales';
 import type { NetworkSummary } from './network';
 import type { CiContext } from './ci';
 
@@ -319,6 +320,8 @@ export const testPlans = pgTable("test_plans", {
    * constant.
    */
   maxParallelTests: integer('max_parallel_tests').default(1).notNull(),
+  /** Languages every test runs in, one pass each; empty for the browser's default (migration 0047). */
+  locales: jsonb('locales').$type<string[]>().notNull().default([]),
   /**
    * Where this plan's failures are filed, and whether they are filed at all.
    *
@@ -1715,6 +1718,13 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
   // Capped rather than open: each unit is a real browser, and a number typed into a form is
   // not a statement about how much memory the runner has.
   maxParallelTests: z.number().int().min(1).max(16).default(1),
+  // The languages each test runs in (shared/locales.ts). Refused by name rather than dropped:
+  // "english" silently becoming no language at all would be a run in the browser's default.
+  locales: z
+    .array(z.string().trim().refine((value) => canonicalLocale(value) !== null, { message: 'A language is a code such as it, it-IT or en-US' }))
+    .max(MAX_LOCALES)
+    .transform((list) => normalizeLocales(list))
+    .default([]),
   notificationSettings: z
     .object({
       passed: z.boolean().default(true),

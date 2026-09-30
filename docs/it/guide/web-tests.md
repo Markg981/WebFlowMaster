@@ -141,6 +141,8 @@ quando il test gira:
   segreto chiamato `baseUrl` imposta <code v-pre>{{baseUrl}}</code>, così un test può partire da
   <code v-pre>{{baseUrl}}/login</code> su ogni ambiente;
 - da una riga di un **dataset** (sotto);
+- <code v-pre>{{locale}}</code>, la lingua in cui un piano esegue il test (vedi
+  [Testare in più lingue](./running#lingue));
 - da valori catturati da un test API eseguito prima nello stesso run;
 - dagli step **Salva testo in variabile** e **Imposta variabile** precedenti nello stesso test.
   Quei valori appartengono solo a quel run.

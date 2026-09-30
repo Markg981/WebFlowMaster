@@ -17,6 +17,7 @@ import { getWsEmitter } from './websocket';
 import { allowsSelfSignedCertificate, substituteVariables, requestVariables } from './outbound-http';
 import { executeStep } from './step-executor';
 import { FlowCursor } from './flow-cursor';
+import { LOCALE_VARIABLE } from '@shared/locales';
 import { analyseFlow, leavesPageAlone } from '@shared/flow';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import { resolveVariables } from './variables';
@@ -160,6 +161,37 @@ export interface StepResult {
 }
 
 /**
+ * A screenshot taken as evidence, or nothing.
+ *
+ * Chromium sometimes cannot capture one ("Unable to capture screenshot") — right after a
+ * navigation, or on a runner under load — and that used to throw out of the step and fail it,
+ * so a step that did exactly what it was asked was reported as broken because its picture was
+ * missing. The picture is evidence of the step, not part of it: it is tried again once the page
+ * has settled, and when it still cannot be had the step keeps its own result and says so in
+ * the log.
+ */
+export async function evidenceScreenshot(
+  page: Page,
+  onMissing: (reason: string) => void = () => {},
+): Promise<Buffer | undefined> {
+  try {
+    return await page.screenshot({ type: 'png' });
+  } catch (first: any) {
+    if (page.isClosed()) {
+      onMissing(first?.message ?? String(first));
+      return undefined;
+    }
+    await page.waitForLoadState('load', { timeout: 5_000 }).catch(() => {});
+    try {
+      return await page.screenshot({ type: 'png' });
+    } catch (second: any) {
+      onMissing(second?.message ?? String(second));
+      return undefined;
+    }
+  }
+}
+
+/**
  * What a test plan adds to a run that the test itself does not carry.
  *
  * Both of these are configuration the product collected and then ignored: the browser was
@@ -178,6 +210,11 @@ export interface ExecuteSequenceOptions {
   runtime?: StepRuntime;
   /** Aborted when the run is cancelled or out of time: no further step starts. */
   signal?: AbortSignal;
+  /**
+   * The language the browser starts in: navigator.language, the Accept-Language header, and
+   * the formats Intl uses (shared/locales.ts). Absent: the browser's own default.
+   */
+  locale?: string;
 }
 
 // Interface for the ad-hoc sequence payload
@@ -1547,8 +1584,10 @@ export class PlaywrightService {
               await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
               await page.waitForTimeout(600);
               resolvedLogger.verbose({ message: `PS:executeAdhocSequence - Taking screenshot for step`, testName, actionName, actionId });
-              const screenshotBuffer = await page.screenshot({ type: 'png' });
-              stepScreenshot = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
+              const screenshotBuffer = await evidenceScreenshot(page, (reason) =>
+                resolvedLogger.warn({ message: 'PS:executeAdhocSequence - No screenshot for step', testName, actionName, reason }),
+              );
+              stepScreenshot = screenshotBuffer ? `data:image/png;base64,${screenshotBuffer.toString('base64')}` : undefined;
               resolvedLogger.verbose({ message: "PS:executeAdhocSequence - Step screenshot taken", testName, actionName });
             }
 
@@ -1758,6 +1797,8 @@ export class PlaywrightService {
     // shared with the plan's other tests, other browsers, or the process-wide defaults — a
     // value stored here must not be what the next test finds under the same name.
     vars = { ...vars };
+    // {{locale}} for the steps that expect a translated text, when the run chose a language.
+    if (options?.locale) vars[LOCALE_VARIABLE] = options.locale;
     const wsEmitter = getWsEmitter();
     resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url, screenshotBaseDir });
 
@@ -1875,6 +1916,8 @@ export class PlaywrightService {
         userAgent,
         ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl ?? ''),
         ...(storageState ? { storageState: storageState as any } : {}),
+        // Playwright sends it as Accept-Language and answers navigator.language with it.
+        ...(options?.locale ? { locale: options.locale } : {}),
         // Recording has to be asked for when the context is made; whether the file is kept is
         // decided when the run ends. A plan that wants neither pays for neither.
         ...videoOptions,
@@ -1911,9 +1954,12 @@ export class PlaywrightService {
             });
           }
           await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
-          const navScreenshotPath = keepsScreenshot(screenshots, 'passed')
-            ? await storeScreenshot(await page.screenshot({ type: 'png' }), 'navigation_load')
+          const navBuffer = keepsScreenshot(screenshots, 'passed')
+            ? await evidenceScreenshot(page, (reason) =>
+                resolvedLogger.warn({ message: 'PS:executeTestSequence - No screenshot of the loaded page', testName: test.name, reason }),
+              )
             : undefined;
+          const navScreenshotPath = navBuffer ? await storeScreenshot(navBuffer, 'navigation_load') : undefined;
           stepResults.push({ name: 'Load Page', type: 'navigation', status: 'passed', screenshot: navScreenshotPath, details: `Successfully navigated to ${test.url}` });
         } catch (e: any) {
           overallSuccess = false;
@@ -2046,10 +2092,27 @@ export class PlaywrightService {
             const comparesVisually = !!options?.visual && stepStatus === 'passed' && capturesPage;
             // For a comparison, a screenshot of the page once it has settled: one taken mid-load
             // differs from the baseline by whatever had loaded by then (see stableScreenshot).
+            // Either way a picture that cannot be taken leaves the step's result as it is: a
+            // comparison without its image is skipped, not failed (see evidenceScreenshot).
+            const noPicture = (reason: string) => {
+              resolvedLogger.warn({ message: 'PS:executeTestSequence - No screenshot for step', testName: test.name, step: i + 1, reason });
+              if (executionId) {
+                wsEmitter.emitExecutionLog(executionId, {
+                  level: 'warn',
+                  source: 'playwright',
+                  message: `Step ${i + 1} (${actionName}): no screenshot could be taken. The step's result stands.`,
+                  timestamp: new Date().toISOString(),
+                  metadata: { stepIndex: i },
+                });
+              }
+            };
             const screenshotBuffer = comparesVisually
-              ? await stableScreenshot(page)
+              ? await stableScreenshot(page).catch((error: any) => {
+                  noPicture(error?.message ?? String(error));
+                  return undefined;
+                })
               : capturesPage && keepsScreenshot(screenshots, stepStatus)
-                ? await page.screenshot({ type: 'png' })
+                ? await evidenceScreenshot(page, noPicture)
                 : undefined;
             if (screenshotBuffer && keepsScreenshot(screenshots, stepStatus)) {
               stepScreenshot = await storeScreenshot(screenshotBuffer, actionName);

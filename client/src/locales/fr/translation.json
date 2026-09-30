@@ -341,7 +341,8 @@
       "script": "Script",
       "save": "Enregistrer",
       "cancel": "Annuler",
-      "new": "Nouvelle action personnalisée"
+      "new": "Nouvelle action personnalisée",
+      "loading": "Chargement des actions personnalisées…"
     }
   },
   "dashboard": {
@@ -2742,7 +2743,9 @@
     "description": "Ce que fait « {{name}} » à sa prochaine exécution.",
     "validation": {
       "webhookUrlInvalid": "L'URL de notification doit commencer par http:// ou https://.",
-      "parallelInvalid": "« Exécuter au plus » doit être un nombre entier entre 1 et 16."
+      "parallelInvalid": "« Exécuter au plus » doit être un nombre entier entre 1 et 16.",
+      "localesInvalid": "Pas un code de langue : {{codes}}. Utilisez des codes comme it, it-IT ou en-US.",
+      "localesTooMany": "{{max}} langues au maximum."
     },
     "browsers": {
       "label": "Navigateurs",
@@ -2772,6 +2775,10 @@
     "webhook": {
       "label": "Envoyer les notifications à (URL de webhook)",
       "help": "Un webhook entrant Slack ou Microsoft Teams, ou toute URL qui accepte un POST. Sans URL, rien n'est envoyé."
+    },
+    "locales": {
+      "label": "Langues",
+      "help": "Chaque test s’exécute une fois par langue sur chaque navigateur, réglé sur cette langue ; les étapes la lisent comme {{token}}. Vide utilise la langue du navigateur."
     }
   },
   "network": {

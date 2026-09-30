@@ -341,7 +341,8 @@
       "script": "Script",
       "save": "Save",
       "cancel": "Cancel",
-      "new": "New custom action"
+      "new": "New custom action",
+      "loading": "Loading custom actions…"
     }
   },
   "dashboard": {
@@ -2736,7 +2737,9 @@
     "description": "What \"{{name}}\" does on its next run.",
     "validation": {
       "webhookUrlInvalid": "The notification URL must start with http:// or https://.",
-      "parallelInvalid": "Run at most must be a whole number between 1 and 16."
+      "parallelInvalid": "Run at most must be a whole number between 1 and 16.",
+      "localesInvalid": "Not a language code: {{codes}}. Use codes such as it, it-IT or en-US.",
+      "localesTooMany": "At most {{max}} languages."
     },
     "browsers": {
       "label": "Browsers",
@@ -2766,6 +2769,10 @@
     "webhook": {
       "label": "Send notifications to (webhook URL)",
       "help": "A Slack or Microsoft Teams incoming webhook, or any URL that accepts a POST. Without one, nothing is sent."
+    },
+    "locales": {
+      "label": "Languages",
+      "help": "Each test runs once per language on every browser, with the browser set to that language; steps read it as {{token}}. Empty runs in the browser’s own language."
     }
   },
   "network": {

@@ -23,6 +23,7 @@ keep of each run, and whom to tell.
 | Setting | What it does |
 |---|---|
 | **Browsers** | Every test runs once per browser listed. None listed: the browser from your own settings. |
+| **Languages** | Language codes such as `it-IT, en-US` (at most 10). Every test runs once per language on each browser; see [Testing in several languages](#languages). Empty: the browser's own language. |
 | **Run at most (tests at once)** | 1 to 16 browser sessions at the same time. 1 runs the plan one test at a time, browser by browser. |
 | **Keep a recording of the run** | A **video** and a Playwright **trace** of each test — never, when the test fails, or always — and the **network** traffic as a HAR file. They answer what a screenshot cannot, and use disk on every run. |
 | **Visual testing** | Compares each step's screenshot with its baseline; see [Visual testing](./results#visual-testing). |
@@ -32,6 +33,28 @@ keep of each run, and whom to tell.
 
 **Suites** on the row adds [suites](./organizing#suites): they run after the plan's own tests, in the
 order ticked, and a test in more than one runs once.
+
+### Testing in several languages {#languages}
+
+With **Languages** set, each language is a run of the plan of its own on each browser: two
+browsers and three languages are six passes. In each one the browser starts in that language —
+the `Accept-Language` header the application receives, `navigator.language`, and the number and
+date formats of the page — and <code v-pre>{{locale}}</code> holds the code, for UI and API tests
+alike.
+
+A check whose text changes with the language goes inside an **If** on
+<code v-pre>{{locale}}</code> (see [conditions and loops](./web-tests#conditions-and-loops)):
+
+| Step | Value |
+|---|---|
+| If (no element) | <code v-pre>{{locale}} == it-IT</code> |
+| Assert Text Contains | `Accedi` |
+| Else | |
+| Assert Text Contains | `Sign in` |
+| End if | |
+
+The report labels every result with its browser and language (`chromium · it-IT`), and with
+visual testing each language is compared with its own baselines.
 
 ## Running now
 

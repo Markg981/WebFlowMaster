@@ -134,6 +134,8 @@ runs:
   `baseUrl` sets <code v-pre>{{baseUrl}}</code>, so one test can start at
   <code v-pre>{{baseUrl}}/login</code> on every environment;
 - from a **dataset** row (below);
+- <code v-pre>{{locale}}</code>, the language a plan runs the test in (see
+  [Testing in several languages](./running#languages));
 - from values captured by an API test earlier in the same run.
 
 - from **Store text in variable** and **Set variable** steps earlier in the same test. Those

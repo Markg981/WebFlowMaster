@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, PlusCircle, XCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestPlan } from '@shared/schema';
+import { MAX_LOCALES, canonicalLocale, normalizeLocales } from '@shared/locales';
 
 /**
  * Changing what a plan does on its next run, after it has been created.
@@ -118,6 +119,9 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
   /** How many of this plan's runs may be in flight at once. 1 is what every plan did before. */
   const [maxParallelTests, setMaxParallelTests] = useState('1');
   const [maxParallelError, setMaxParallelError] = useState('');
+  /** Languages, as typed: "it-IT, en-US". Empty is the browser's own. */
+  const [locales, setLocales] = useState('');
+  const [localesError, setLocalesError] = useState('');
   /** Which tracker this plan's failures go to, and whether they go at all. */
   const [issueTrackerId, setIssueTrackerId] = useState<string>(NO_TRACKER);
   const [createIssuesOnFailure, setCreateIssuesOnFailure] = useState(false);
@@ -138,6 +142,8 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
     setCaptureNetwork((plan as { captureNetwork?: string } | null)?.captureNetwork ?? 'never');
     setRunOn((plan as { agentPool?: string | null } | null)?.agentPool ?? ON_RUNNERS);
     setMaxParallelTests(String(plan?.maxParallelTests ?? 1));
+    setLocales(normalizeLocales((plan as { locales?: unknown } | null)?.locales).join(', '));
+    setLocalesError('');
     setIssueTrackerId((plan as { issueTrackerId?: string | null } | null)?.issueTrackerId ?? NO_TRACKER);
     setCreateIssuesOnFailure((plan as { createIssuesOnFailure?: boolean } | null)?.createIssuesOnFailure === true);
     setNotifications(notificationsFromPlan(plan));
@@ -193,6 +199,20 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
       return;
     }
     setMaxParallelError('');
+
+    // Refused by name, like the server does: "inglese" quietly meaning no language at all would
+    // be a run in the browser's default that looks like a run in English.
+    const typedLocales = locales.split(/[,;\s]+/).filter(Boolean);
+    const invalidLocales = typedLocales.filter((entry) => canonicalLocale(entry) === null);
+    if (invalidLocales.length > 0 || typedLocales.length > MAX_LOCALES) {
+      setLocalesError(
+        invalidLocales.length > 0
+          ? t('editTestPlanSettings.validation.localesInvalid', 'Not a language code: {{codes}}. Use codes such as it, it-IT or en-US.', { codes: invalidLocales.join(', ') })
+          : t('editTestPlanSettings.validation.localesTooMany', 'At most {{max}} languages.', { max: MAX_LOCALES }),
+      );
+      return;
+    }
+    setLocalesError('');
     if (!plan) return;
 
     setIsSaving(true);
@@ -210,6 +230,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
           captureNetwork,
           agentPool: runOn === ON_RUNNERS ? null : runOn,
           maxParallelTests: parallel,
+          locales: normalizeLocales(typedLocales),
           issueTrackerId: issueTrackerId === NO_TRACKER ? null : issueTrackerId,
           // Filing is off unless a tracker is named: a plan set to file into nothing would
           // report a failure to file on every failing run, which is noise about noise.
@@ -339,6 +360,25 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                 )}
               </p>
               {maxParallelError && <p className="text-sm text-destructive mt-1">{maxParallelError}</p>}
+            </section>
+
+            <section>
+              <Label htmlFor="editLocales">{t('editTestPlanSettings.locales.label', 'Languages')}</Label>
+              <Input
+                id="editLocales"
+                value={locales}
+                placeholder="it-IT, en-US, de-DE"
+                onChange={(e) => setLocales(e.target.value)}
+                className="mt-1 font-mono"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {t(
+                  'editTestPlanSettings.locales.help',
+                  'Each test runs once per language on every browser, with the browser set to that language; steps read it as {{token}}. Empty runs in the browser’s own language.',
+                  { token: '{{locale}}' },
+                )}
+              </p>
+              {localesError && <p className="text-sm text-destructive mt-1">{localesError}</p>}
             </section>
 
             <section>

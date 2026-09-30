@@ -24,6 +24,7 @@ cosa conservare di ogni run e chi avvisare.
 | Impostazione | Cosa fa |
 |---|---|
 | **Browser** | Ogni test gira una volta per ogni browser elencato. Nessuno elencato: il browser delle vostre impostazioni. |
+| **Lingue** | Codici di lingua come `it-IT, en-US` (al massimo 10). Ogni test gira una volta per lingua su ogni browser; vedi [Testare in più lingue](#lingue). Vuoto: la lingua predefinita del browser. |
 | **Esegui al massimo (test contemporanei)** | Da 1 a 16 sessioni di browser contemporanee. Con 1 il piano esegue un test alla volta, browser per browser. |
 | **Conserva una registrazione del run** | Un **video** e una **trace** di Playwright di ogni test — mai, quando il test fallisce o sempre — e il traffico di **rete** come file HAR. Rispondono a ciò che uno screenshot non dice, e occupano disco a ogni run. |
 | **Test visivi** | Confronta lo screenshot di ogni step con la sua baseline; vedi [Test visivi](./results#test-visivi). |
@@ -33,6 +34,28 @@ cosa conservare di ogni run e chi avvisare.
 
 **Suite** sulla riga aggiunge [suite](./organizing#suite): girano dopo i test del piano,
 nell'ordine in cui sono spuntate, e un test presente in più suite gira una volta sola.
+
+### Testare in più lingue {#lingue}
+
+Con **Lingue** impostato, ogni lingua è un run del piano a sé su ogni browser: due browser e tre
+lingue fanno sei passate. In ciascuna il browser parte in quella lingua — l'header
+`Accept-Language` che riceve l'applicazione, `navigator.language` e i formati di numeri e date
+della pagina — e <code v-pre>{{locale}}</code> contiene il codice, sia per i test UI sia per quelli
+API.
+
+Una verifica il cui testo cambia con la lingua va dentro un **Se** su
+<code v-pre>{{locale}}</code> (vedi [condizioni e cicli](./web-tests#condizioni-e-cicli)):
+
+| Step | Valore |
+|---|---|
+| Se (senza elemento) | <code v-pre>{{locale}} == it-IT</code> |
+| Verifica Testo Contenuto | `Accedi` |
+| Altrimenti | |
+| Verifica Testo Contenuto | `Sign in` |
+| Fine se | |
+
+Il report etichetta ogni risultato con browser e lingua (`chromium · it-IT`) e, con i test
+visivi, ogni lingua è confrontata con le proprie baseline.
 
 ## Eseguire subito
 
