@@ -39,7 +39,9 @@ export interface AuditEntry {
     | 'issue_tracker'
     | 'requirement'
     | 'test_management'
-    | 'test_plan_execution';
+    | 'test_plan_execution'
+    | 'mobile_test'
+    | 'browser_grid';
   /** Text because targets are variously serial ids and uuids. */
   targetId?: string | number;
   /**

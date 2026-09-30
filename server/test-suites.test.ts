@@ -239,8 +239,8 @@ describe('rows that point across organizations', () => {
     `);
     const rows = result.rows as Array<{ conname: string; convalidated: boolean }>;
     // 42 from migration 0034, the two a quarantine's test carries (0035), a password reset's
-    // person (0042), a plan's browser grid (0049), the five of requirements and their tests (0050), and the six of test management (0051).
-    expect(rows.length).toBe(57);
+    // person (0042), a plan's browser grid (0049), the five of requirements and their tests (0050), the six of test management (0051), and the four of mobile tests and their runs (0052).
+    expect(rows.length).toBe(61);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });
 
@@ -269,6 +269,7 @@ describe('rows that point across organizations', () => {
       'source_hosts.created_by', 'password_resets.created_by', 'custom_actions.user_id', 'browser_grids.created_by',
       'requirements.created_by', 'requirement_tests.created_by',
       'test_management_connections.created_by', 'test_case_links.created_by', 'test_management_publications.requested_by',
+      'mobile_tests.created_by', 'mobile_test_runs.requested_by',
     ]);
     const unguarded = (result.rows as Array<{ child: string; col: string; parent: string }>)
       .map((r) => `${r.child}.${r.col}`)

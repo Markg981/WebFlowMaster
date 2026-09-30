@@ -6,6 +6,7 @@ import { ACTION_REQUIREMENTS, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from './r
 import { CUSTOM_ACTION_STEP_ID_PATTERN, type CustomActionParameter } from './custom-actions';
 import { MAX_LOCALES, canonicalLocale, normalizeLocales } from './locales';
 import { canEmulateDevice, isMobileDevice } from './devices';
+import type { MobilePlatform, MobileRunStatus, MobileStep, MobileStepResult } from './mobile';
 import type { NetworkSummary } from './network';
 import type { FailureAnalysis } from './failure-analysis';
 import type { CiContext } from './ci';
@@ -1304,6 +1305,52 @@ export const testManagementPublications = pgTable("test_management_publications"
 
 export type TestManagementPublication = typeof testManagementPublications.$inferSelect;
 
+/**
+ * A test of a native Android or iOS app, run on a cloud grid's real device through Appium
+ * (shared/mobile.ts, migrations/0052).
+ */
+export const mobileTests = pgTable("mobile_tests", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
+  name: text("name").notNull(),
+  platform: text("platform").$type<MobilePlatform>().notNull(),
+  app: text("app").notNull(),
+  deviceName: text("device_name").notNull(),
+  osVersion: text("os_version"),
+  steps: jsonb("steps").$type<MobileStep[]>().notNull().default([]),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("mobile_tests_organization_id_idx").on(table.organizationId),
+]);
+
+export type MobileTest = typeof mobileTests.$inferSelect;
+
+/** One run of a mobile test on a grid's device. */
+export const mobileTestRuns = pgTable("mobile_test_runs", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  mobileTestId: integer("mobile_test_id").notNull().references(() => mobileTests.id, { onDelete: 'cascade' }),
+  gridId: text("grid_id").references(() => browserGrids.id, { onDelete: 'set null' }),
+  environmentId: integer("environment_id").references(() => environments.id, { onDelete: 'set null' }),
+  status: text("status").$type<MobileRunStatus>().notNull(),
+  device: text("device").notNull(),
+  steps: jsonb("steps").$type<MobileStepResult[]>().notNull().default([]),
+  error: text("error"),
+  screenshot: text("screenshot"),
+  sessionUrl: text("session_url"),
+  requestedBy: integer("requested_by").references(() => users.id, { onDelete: 'set null' }),
+  startedAt: timestamp("started_at"),
+  finishedAt: timestamp("finished_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("mobile_test_runs_test_idx").on(table.mobileTestId, table.createdAt),
+]);
+
+export type MobileTestRun = typeof mobileTestRuns.$inferSelect;
+
 /** Which tests cover which requirement. */
 export const requirementTests = pgTable("requirement_tests", {
   id: serial("id").primaryKey(),
@@ -1512,6 +1559,12 @@ export const AUDIT_ACTIONS = {
   TEST_MANAGEMENT_REMOVED: 'test_management.removed',
   TEST_CASE_LINKS_CHANGED: 'test_management.cases_changed',
   RUN_PUBLISHED: 'test_management.run_published',
+  // Tests of native mobile apps, and the apps uploaded to a grid for them.
+  MOBILE_TEST_CREATED: 'mobile_test.created',
+  MOBILE_TEST_UPDATED: 'mobile_test.updated',
+  MOBILE_TEST_DELETED: 'mobile_test.deleted',
+  MOBILE_TEST_RUN: 'mobile_test.run',
+  MOBILE_APP_UPLOADED: 'mobile_test.app_uploaded',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
@@ -2607,6 +2660,8 @@ export const ORG_SCOPED_TABLES = [
   'requirements', 'requirement_tests',
   // TestRail, Xray and Zephyr Scale connections, test-to-case links and publications (migration 0051).
   'test_management_connections', 'test_case_links', 'test_management_publications',
+  // Tests of native mobile apps and their runs (migration 0052).
+  'mobile_tests', 'mobile_test_runs',
   'test_quarantines',
   'agents',
   'source_hosts',

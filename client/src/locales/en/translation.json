@@ -479,7 +479,8 @@
     },
     "testLibrary": "Test Library",
     "testManager": "Test Manager",
-    "requirements": "Requirements"
+    "requirements": "Requirements",
+    "mobileTests": "Mobile apps"
   },
   "dashboardPage": {
     "user": {
@@ -2583,7 +2584,8 @@
       "sso": "Single sign-on",
       "custom_action": "Custom actions",
       "requirement": "Requirements",
-      "test_management": "Test management"
+      "test_management": "Test management",
+      "mobile_test": "Mobile apps"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -2667,7 +2669,12 @@
       "test_management_updated": "Test management connection changed",
       "test_management_removed": "Test management tool removed",
       "test_management_cases_changed": "Test cases linked to tests changed",
-      "test_management_run_published": "Run published to a test management tool"
+      "test_management_run_published": "Run published to a test management tool",
+      "mobile_test_created": "Mobile app test created",
+      "mobile_test_updated": "Mobile app test changed",
+      "mobile_test_deleted": "Mobile app test deleted",
+      "mobile_test_run": "Mobile app test run on a device",
+      "mobile_test_app_uploaded": "App uploaded to a device grid"
     }
   },
   "security": {
@@ -3597,5 +3604,86 @@
     "addStep": "Add step",
     "cancel": "Cancel",
     "create": "Create {{count}} tests"
+  },
+  "mobileTests": {
+    "actions": {
+      "tap": "Tap",
+      "type": "Type",
+      "clear": "Clear",
+      "waitFor": "Wait for element",
+      "assertVisible": "Assert visible",
+      "assertNotVisible": "Assert not visible",
+      "assertText": "Assert text contains",
+      "swipe": "Swipe",
+      "back": "Back",
+      "hideKeyboard": "Hide keyboard",
+      "wait": "Wait (seconds)"
+    },
+    "uploadFailed": "The app was not uploaded.",
+    "fixSteps": "Correct the steps marked in red first.",
+    "saveFailed": "The test was not saved.",
+    "editTitle": "Edit mobile test",
+    "newTitle": "New mobile test",
+    "dialogDescription": "An Android or iOS app on a real device of a BrowserStack or LambdaTest grid. Name elements by accessibility id (~login), resource id (id=…), text (text=Sign in) or XPath.",
+    "name": "Name",
+    "platform": "Platform",
+    "app": "App",
+    "uploadTo": "Upload to",
+    "appFile": "App file",
+    "upload": "Upload .apk / .ipa",
+    "device": "Device",
+    "osVersion": "OS version (optional)",
+    "steps": "Steps",
+    "actionOf": "Action of step {{n}}",
+    "targetOf": "Element of step {{n}}",
+    "valueOf": "Value of step {{n}}",
+    "moveUp": "Move step {{n}} up",
+    "moveDown": "Move step {{n}} down",
+    "removeStep": "Remove step {{n}}",
+    "addStep": "Add step",
+    "cancel": "Cancel",
+    "save": "Save",
+    "run": {
+      "startFailed": "The run did not start.",
+      "queued": "Waiting for a device…",
+      "running": "Running",
+      "passed": "Passed",
+      "failed": "Failed",
+      "error": "Could not run",
+      "title": "Run {{name}}",
+      "description": "{{device}} on the grid you choose. Finding the device and installing the app takes a minute or two.",
+      "noGrid": "No BrowserStack or LambdaTest grid yet: add one in Settings → Browser grids.",
+      "grid": "Grid",
+      "environment": "Environment",
+      "noEnvironment": "None",
+      "session": "Video and logs on the grid",
+      "skipped": "Skipped",
+      "screenshot": "The device at the end of the run",
+      "again": "Run again",
+      "start": "Run"
+    },
+    "close": "Close",
+    "loadFailed": "Could not load the mobile tests.",
+    "deleteFailed": "The test was not deleted.",
+    "title": "Mobile apps",
+    "pageDescription": "Tests of native Android and iOS apps, on real devices of your BrowserStack or LambdaTest grid.",
+    "create": "New mobile test",
+    "loading": "Loading…",
+    "emptyNoGrid": "No mobile test yet. They run on a BrowserStack or LambdaTest grid: add one in Settings → Browser grids first.",
+    "empty": "No mobile test yet.",
+    "columns": {
+      "name": "Test",
+      "device": "Device",
+      "steps": "Steps",
+      "lastRun": "Last run",
+      "actions": "Actions"
+    },
+    "runFor": "Run {{name}}",
+    "editFor": "Edit {{name}}",
+    "deleteFor": "Delete {{name}}",
+    "saved": "Mobile test saved",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteBody": "Its runs go with it. The app stays on the grid.",
+    "delete": "Delete"
   }
 }

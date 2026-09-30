@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Network, PlusSquare, FileSpreadsheet, ListChecks, Library,
   CalendarClock, FileText, Settings as SettingsIcon, PanelLeftClose,
   PanelLeftOpen, Sun, Moon, LogOut, Menu, X,
-  ClipboardCheck, Layers, Target,
+  ClipboardCheck, Layers, Target, Smartphone,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
@@ -35,6 +35,7 @@ function useNav(): NavSection[] {
         { href: '/dashboard/api-tester', label: t('nav.apiTester', 'API Tester'), icon: Network },
         { href: '/dashboard/create-test', label: t('nav.createTest'), icon: PlusSquare, editorOnly: true },
         { href: '/tests', label: t('nav.testLibrary', 'Test Library'), icon: Library },
+        { href: '/mobile-tests', label: t('nav.mobileTests', 'Mobile apps'), icon: Smartphone },
         { href: '/test-manager', label: t('nav.testManager', 'Test Manager'), icon: FileSpreadsheet },
         { href: '/suites', label: t('nav.testSuites', 'Suites'), icon: Layers },
         { href: '/requirements', label: t('nav.requirements', 'Requirements'), icon: Target },

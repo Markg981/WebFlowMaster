@@ -30,6 +30,7 @@ each lives.
 | **Idempotency key** | A caller-chosen key that makes asking twice return the same run. |
 | **Issue tracker** | Jira or Azure DevOps connection used to file failures (`issue_trackers`, `issue_links`). |
 | **Login state** | Saved cookies and storage of the application under test, so tests start signed in. |
+| **Mobile test** | A test of a native Android or iOS app on a real device of a BrowserStack or LambdaTest grid, through Appium (`mobile_tests`); its steps name elements by accessibility id, resource id, text or XPath. |
 | **Organization** | The tenant: everything belongs to one (`organizations`). |
 | **Orchestrator** | The one place runs are created (`server/execution-orchestrator.ts`). |
 | **Plan / test plan** | What to run and how: tests, suites, browsers, policies, notifications (`test_plans`). |
