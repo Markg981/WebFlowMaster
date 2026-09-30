@@ -27,6 +27,8 @@ export const BROWSER_TASK_QUEUE_NAME = 'browser-tasks';
 
 export type BrowserTask =
   | { kind: 'adhoc-sequence'; payload: Omit<AdhocSequencePayload, 'organizationId'> }
+  /** A preview that can pause, be corrected and resume — see server/debug-session.ts. */
+  | { kind: 'debug-sequence'; sessionId: string; breakpoints: string[]; payload: Omit<AdhocSequencePayload, 'organizationId'> }
   | { kind: 'run-test'; testId: number; environmentId: number | null }
   | { kind: 'load-website'; url: string }
   | { kind: 'detect-elements'; url: string };
@@ -66,6 +68,8 @@ export async function performBrowserTask(envelope: BrowserTaskEnvelope): Promise
     switch (task.kind) {
       case 'adhoc-sequence':
         return playwrightService.executeAdhocSequence({ ...task.payload, organizationId }, userId);
+      case 'debug-sequence':
+        return runDebugSession(task, userId, organizationId);
       case 'load-website':
         return playwrightService.loadWebsite(task.url, userId);
       case 'detect-elements':
@@ -93,6 +97,40 @@ export async function performBrowserTask(envelope: BrowserTaskEnvelope): Promise
       }
     }
   });
+}
+
+/**
+ * Runs a debug session to its end, reporting through the session's channel. The environment is
+ * resolved here, like every task's, and its names are the ones whose values stay hidden.
+ */
+async function runDebugSession(
+  task: Extract<BrowserTask, { kind: 'debug-sequence' }>,
+  userId: number,
+  organizationId: number,
+): Promise<unknown> {
+  const { DebugController, debugChannel } = await import('./debug-session');
+  const channel = await debugChannel();
+  const environment = await resolveVariables({ userId, organizationId, environmentId: task.payload.environmentId });
+  const controller = new DebugController(task.sessionId, channel, {
+    breakpoints: task.breakpoints,
+    environmentKeys: Object.keys(environment),
+  });
+  try {
+    const result = await playwrightService.executeAdhocSequence(
+      // One pass: a data-driven test is debugged with its first row.
+      { ...task.payload, organizationId, dataset: null, rowVariables: task.payload.dataset?.[0] ?? null },
+      userId,
+      controller,
+    );
+    await controller.finish({ success: !!result.success, error: result.error ?? null });
+    return { success: result.success };
+  } catch (error: any) {
+    await controller.fail(error?.message ?? String(error));
+    throw error;
+  } finally {
+    const active = await channel.activeFor(userId).catch(() => null);
+    if (active === task.sessionId) await channel.setActive(userId, null).catch(() => {});
+  }
 }
 
 /** Where tasks run: 'worker' in production; 'inline' keeps them in the web process. */
@@ -175,7 +213,24 @@ export function createBrowserTaskRunner(deps: BrowserTaskRunnerDeps) {
     }
   }
 
-  return { run };
+  /**
+   * Hands a task over without waiting for its answer: a debug session lasts as long as the person
+   * debugging, and reports through its own channel rather than through a response.
+   */
+  async function start(envelope: BrowserTaskEnvelope): Promise<void> {
+    const withCorrelation = { ...envelope, correlationId: envelope.correlationId ?? getCorrelationId() ?? undefined };
+    if (deps.mode === 'inline') {
+      void perform(withCorrelation).catch(() => {
+        // The task reports its own failure through its channel.
+      });
+      return;
+    }
+    const queue = deps.queue!();
+    await assertWorker(queue);
+    await queue.add(envelope.task.kind, withCorrelation, { attempts: 1, removeOnComplete: { age: 60 }, removeOnFail: { age: 3600 } });
+  }
+
+  return { run, start };
 }
 
 let queue: Queue | undefined;

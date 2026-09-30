@@ -19,7 +19,7 @@ import { TestStep, DetectedElement } from '@/components/drag-drop-provider';
 import { TestNode, TestNodeData } from './TestNode';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle, Layers, Wand2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Layers, Wand2, Bug } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useDrop } from 'react-dnd';
 import { analyseFlow, flowDepths } from '@shared/flow';
@@ -45,6 +45,12 @@ interface VisualTestBuilderProps {
   onSaveAsGroup?: () => void;
   /** Starts from the description of the test instead of from an empty canvas. */
   onDescribeTest?: () => void;
+  /** Runs the test so that it can stop at breakpoints and be corrected (shared/debug-session.ts). */
+  onDebugTest?: () => void;
+  breakpoints?: ReadonlySet<string>;
+  onToggleBreakpoint?: (id: string) => void;
+  /** The step a debug session is paused at, and whether it is paused on its failure. */
+  debugPausedAt?: { stepId: string; failed: boolean } | null;
 }
 
 export function VisualTestBuilder({
@@ -59,6 +65,10 @@ export function VisualTestBuilder({
   lastTestOutcome = null,
   onSaveAsGroup,
   onDescribeTest,
+  onDebugTest,
+  breakpoints,
+  onToggleBreakpoint,
+  debugPausedAt = null,
 }: VisualTestBuilderProps) {
   const { t } = useTranslation();
   const [nodes, setNodes] = useState<Node<TestNodeData>[]>([]);
@@ -83,7 +93,10 @@ export function VisualTestBuilder({
         isRecordingActive,
         onUpdateValue: (id, val) => handleUpdateValue(id, val),
         onDeleteNode: (id) => handleDeleteNode(id),
-        onSetTarget: (id, element) => handleSetTarget(id, element)
+        onSetTarget: (id, element) => handleSetTarget(id, element),
+        breakpoint: breakpoints?.has(step.id) ?? false,
+        onToggleBreakpoint,
+        debugPaused: debugPausedAt?.stepId === step.id ? (debugPausedAt.failed ? 'failed' : 'before') : null,
       }
     }));
 
@@ -106,7 +119,7 @@ export function VisualTestBuilder({
     // stable onUpdateSequence prop; the effect re-syncs whenever testSequence changes, so
     // listing the (non-memoized) handlers would only cause redundant re-runs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [testSequence, isExecuting, isRecordingActive]);
+  }, [testSequence, isExecuting, isRecordingActive, breakpoints, debugPausedAt, onToggleBreakpoint]);
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds) as Node<TestNodeData>[]),
@@ -234,6 +247,17 @@ export function VisualTestBuilder({
         <Button onClick={onExecuteTest} disabled={isExecuting} className="flex-1">
           {isExecuting ? t('apiTesterPage.loading.button') : t('testSequenceBuilder.executeTest.button')}
         </Button>
+        {onDebugTest && (
+          <Button
+            onClick={onDebugTest}
+            disabled={isExecuting || testSequence.length === 0 || isRecordingActive}
+            variant="outline"
+            title={t('debugger.start.tooltip', 'Run step by step: stops at breakpoints and where a step fails')}
+          >
+            <Bug className="mr-2 h-4 w-4" />
+            {t('debugger.start.button', 'Debug')}
+          </Button>
+        )}
         <Button onClick={onSaveTest} disabled={testSequence.length === 0 || isSaving} variant="secondary" className="flex-1">
           {isSaving ? t('apiTesterPage.loading.button') : t('apiTesterPage.saveTest.button')}
         </Button>

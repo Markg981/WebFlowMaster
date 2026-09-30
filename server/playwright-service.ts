@@ -17,6 +17,7 @@ import { getWsEmitter } from './websocket';
 import { allowsSelfSignedCertificate, substituteVariables, requestVariables } from './outbound-http';
 import { executeStep } from './step-executor';
 import { FlowCursor } from './flow-cursor';
+import type { DebugHooks } from './debug-session';
 import { LOCALE_VARIABLE } from '@shared/locales';
 import { analyseFlow, leavesPageAlone } from '@shared/flow';
 import type { AccessibilityFinding } from '@shared/accessibility';
@@ -1362,7 +1363,7 @@ export class PlaywrightService {
     }
   }
 
-  async executeAdhocSequence(payload: AdhocSequencePayload, userId: number): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detection?: DetectionResult }> {
+  async executeAdhocSequence(payload: AdhocSequencePayload, userId: number, debug?: DebugHooks): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detection?: DetectionResult }> {
     const testName = payload.name || "Ad-hoc Test";
     resolvedLogger.http({ message: "PlaywrightService: executeAdhocSequence called", testName, userId, url: payload.url });
 
@@ -1390,6 +1391,7 @@ export class PlaywrightService {
       // The dataset row for this pass, layered over the environment's values.
       ...(payload.rowVariables ?? {}),
     };
+    debug?.watch(vars);
     const targetUrl = payload.url ? substituteVariables(payload.url, vars) : payload.url;
     const startTime = Date.now();
     let browser: Browser | null = null;
@@ -1398,6 +1400,8 @@ export class PlaywrightService {
     resolvedLogger.debug({ message: "PS:executeAdhocSequence - Initial state", testName, userId });
     const stepResults: StepResult[] = [];
     let overallSuccess = true;
+    /** Why a debug session ended the run early, when it did. */
+    let debugStopped: string | undefined;
 
     try {
       // Preconditions run before the browser is even launched, exactly as the scheduled
@@ -1543,8 +1547,37 @@ export class PlaywrightService {
       if (overallSuccess && adhocSequence.length > 0) {
         resolvedLogger.debug({ message: `PS:executeAdhocSequence - Starting execution of ${adhocSequence.length} steps.`, testName });
         const cursor = new FlowCursor(adhocSequence, adhocFlow.blocks, vars);
+        // Debugging (server/debug-session.ts): a step corrected where it failed runs again as
+        // corrected, and is not stopped at again on its way back in.
+        const corrections = new Map<number, TestStep>();
+        let retrying = false;
+        const pageNow = {
+          screenshot: async () => {
+            if (!page || page.isClosed()) return null;
+            const shot = await page.screenshot({ type: 'jpeg', quality: 60 });
+            return `data:image/jpeg;base64,${shot.toString('base64')}`;
+          },
+          url: () => (page && !page.isClosed() ? page.url() : null),
+        };
         while (!cursor.done) {
-          const step = adhocSequence[cursor.pc];
+          let step = corrections.get(cursor.pc) ?? adhocSequence[cursor.pc];
+          let corrected = corrections.has(cursor.pc);
+          if (debug && !retrying) {
+            const decision = await debug.beforeStep({ pc: cursor.pc, step, ...pageNow });
+            if (decision.kind === 'stop') {
+              overallSuccess = false;
+              debugStopped = decision.reason;
+              break;
+            }
+            if (decision.kind === 'skip') {
+              await debug.record({ name: step.action?.name || 'Unnamed Action', type: step.action?.id || 'unknown', stepId: step.id ?? null, status: 'skipped', detail: 'Passed over while debugging.', corrected: false });
+              cursor.advance({});
+              continue;
+            }
+            step = decision.step;
+            corrected = corrected || decision.corrected;
+          }
+          retrying = false;
           let flowOutcome: { condition?: boolean; iterations?: number } = {};
           let stepStatus: 'passed' | 'failed' = 'passed';
           let stepError: string | undefined;
@@ -1608,6 +1641,26 @@ export class PlaywrightService {
           }
           if (stepStatus === 'failed') overallSuccess = false;
 
+          if (debug && stepStatus === 'failed') {
+            const decision = await debug.afterFailure({ pc: cursor.pc, step, error: stepError || 'Unknown error', ...pageNow });
+            if (decision.kind === 'run') {
+              // Tried again in the same place, corrected or not: the failure is no longer the
+              // step's result, the next attempt is.
+              corrections.set(cursor.pc, decision.step);
+              retrying = true;
+              overallSuccess = true;
+              continue;
+            }
+            if (decision.kind === 'skip') {
+              await debug.record({ name: actionName, type: actionId || 'unknown', stepId: step.id ?? null, status: 'skipped', detail: `Failed, then passed over while debugging: ${stepError || 'Unknown error'}`, corrected });
+              overallSuccess = true;
+              cursor.advance({});
+              continue;
+            }
+            debugStopped = decision.reason;
+          }
+          await debug?.record({ name: actionName, type: actionId || 'unknown', stepId: step.id ?? null, status: stepStatus, detail: stepStatus === 'passed' ? (stepDetail ?? 'Action executed successfully.') : (stepError || 'Unknown error'), corrected });
+
           stepResults.push({ name: actionName, type: actionId || 'unknown', selector: step.targetElement?.selector, value: step.value, status: stepStatus, screenshot: stepScreenshot, error: stepError, details: stepStatus === 'passed' ? (stepDetail ?? 'Action executed successfully.') : `Action failed: ${stepError || 'Unknown error'}`, accessibility: stepAccessibility, });
           if (!overallSuccess) {
             resolvedLogger.info({ message: `PS:executeAdhocSequence - Step failed. Stopping sequence execution.`, testName, failedStep: actionName });
@@ -1634,7 +1687,7 @@ export class PlaywrightService {
           resolvedLogger.warn({ message: `PS:executeAdhocSequence - Error during final element detection (success path)`, testName, error: detectionError.message, stack: detectionError.stack });
         }
       }
-      return { success: overallSuccess, steps: stepResults, duration, detection: finalDetection };
+      return { success: overallSuccess, steps: stepResults, duration, detection: finalDetection, ...(debugStopped ? { error: debugStopped } : {}) };
 
     } catch (error: any) {
       const duration = Date.now() - startTime;

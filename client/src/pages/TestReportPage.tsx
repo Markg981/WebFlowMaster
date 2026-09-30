@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ListFilter, CheckCircle2, XCircle, SkipForward, AlertCircle, Clock,
-  ChevronRight, FileText, Image as ImageIcon, RefreshCw, ArrowLeft, Video // Added ArrowLeft
+  ChevronRight, FileText, Image as ImageIcon, RefreshCw, ArrowLeft, Video,
   Sparkles,
 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";

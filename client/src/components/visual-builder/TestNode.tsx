@@ -27,6 +27,11 @@ export type TestNodeData = {
   onUpdateValue: (id: string, value: string) => void;
   onDeleteNode: (id: string) => void;
   onSetTarget?: (id: string, element: DetectedElement) => void;
+  /** A breakpoint: a debug session stops before this step. */
+  breakpoint?: boolean;
+  onToggleBreakpoint?: (id: string) => void;
+  /** Where a debug session is paused: before this step, or on its failure. */
+  debugPaused?: 'before' | 'failed' | null;
   [key: string]: unknown; // Satisfy Record<string, unknown> constraint
 };
 
@@ -76,15 +81,24 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
   }), [id, data.isRecordingActive, data.onSetTarget]);
 
   return (
-    <Card className={`min-w-[250px] p-4 shadow-lg border-2 ${data.targetElement ? 'border-primary' : (needsTarget ? 'border-destructive/50' : 'border-border')} bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75 transition-all`}>
+    <Card className={`min-w-[250px] p-4 shadow-lg border-2 ${data.targetElement ? 'border-primary' : (needsTarget ? 'border-destructive/50' : 'border-border')} ${data.debugPaused === 'failed' ? 'ring-4 ring-destructive/60' : data.debugPaused === 'before' ? 'ring-4 ring-amber-400/70' : ''} bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75 transition-all`}>
       <Handle type="target" position={Position.Top} className="w-3 h-3 bg-primary" />
       
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center space-x-2">
-          <div className="p-1.5 bg-primary/10 rounded-md">
-            {/* Si potrebbe usare l'icona dell'azione qui, per ora usiamo un pallino */}
-            <div className="w-4 h-4 rounded-full bg-primary" />
-          </div>
+          {/* The step's dot is its breakpoint, as in a code editor's gutter: filled red, a debug
+              session stops before the step. */}
+          <button
+            type="button"
+            className="p-1.5 rounded-md hover:bg-muted nodrag"
+            onClick={() => data.onToggleBreakpoint?.(id)}
+            disabled={!data.onToggleBreakpoint}
+            aria-pressed={!!data.breakpoint}
+            aria-label={data.breakpoint ? t('debugger.breakpoint.remove', 'Remove breakpoint') : t('debugger.breakpoint.add', 'Stop here when debugging')}
+            title={data.breakpoint ? t('debugger.breakpoint.remove', 'Remove breakpoint') : t('debugger.breakpoint.add', 'Stop here when debugging')}
+          >
+            <div className={`w-4 h-4 rounded-full ${data.breakpoint ? 'bg-destructive ring-2 ring-destructive/30' : 'bg-primary/30 hover:bg-destructive/50'}`} />
+          </button>
           <span className="font-semibold text-sm">{t(data.action.name)}</span>
           {/* A call to a step group is not an action on the page: it stands for however many
               steps the group holds at the time the test runs. Saying so on the node is the

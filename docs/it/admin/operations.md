@@ -113,7 +113,9 @@ Tre numeri decidono quanto gira contemporaneamente; ciascuno è descritto nel
 [riferimento della configurazione](./configuration#esecuzione-dei-piani).
 
 - **Per worker:** `WORKER_CONCURRENCY` piani alla volta, e `BROWSER_TASK_CONCURRENCY` anteprime e
-  caricamenti di pagina alla volta, su una coda separata.
+  caricamenti di pagina alla volta, su una coda separata. Una [sessione di debug](../guide/web-tests#debug)
+  occupa uno di questi posti finché resta aperta, pausa compresa: al massimo 15 minuti senza
+  comandi, una sessione per persona. Stato e comandi passano da Redis.
 - **Per run:** il parallelismo del piano, limitato da `RUN_MAX_PARALLEL` sessioni browser.
 - **Per organizzazione:** `ORG_MAX_CONCURRENT_RUNS` in corso e `ORG_MAX_QUEUED_RUNS` in attesa.
   Oltre il secondo, un nuovo run viene rifiutato con `429`. Tra i run in attesa passa prima

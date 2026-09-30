@@ -110,7 +110,9 @@ Three numbers decide how much runs at once; see the
 [configuration reference](./configuration#running-plans) for each.
 
 - **Per worker:** `WORKER_CONCURRENCY` plans at once, and `BROWSER_TASK_CONCURRENCY` previews
-  and page loads at once, on a separate queue.
+  and page loads at once, on a separate queue. A [debug session](../guide/web-tests#debugging)
+  holds one of those slots for as long as it is open, paused included — at most 15 minutes
+  without a command, one session per person. Its state and commands travel through Redis.
 - **Per run:** the plan's own parallelism, capped by `RUN_MAX_PARALLEL` browser sessions.
 - **Per organization:** `ORG_MAX_CONCURRENT_RUNS` in progress and `ORG_MAX_QUEUED_RUNS`
   waiting. Past the second, a new run is refused with `429`. Among waiting runs, an
