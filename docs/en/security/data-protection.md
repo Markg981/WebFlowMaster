@@ -56,7 +56,7 @@ configures it:
 | Google (Gemini API) | Only if the operator sets `GEMINI_API_KEY` | Sentences describing tests; on a failing step, the error and up to 30,000 characters of the page's HTML; for a failure analysis asked for from a report, the failed test's steps, errors, requests and screenshot. See [AI features](./#ai-features). |
 | S3-compatible storage provider | If the operator chooses `ARTIFACT_STORE=s3` | Run evidence and baselines. |
 | Grafana Loki | If the operator sets `LOKI_URL` | Application logs. |
-| Jira, Azure DevOps | If an organization connects an issue tracker | Failure details of the runs that open an issue. |
+| Jira, Azure DevOps | If an organization connects an issue tracker | Failure details of the runs that open an issue. A requirements import sends only the keys or the query; the titles, types and states it reads are kept with the requirements. |
 | BrowserStack, LambdaTest | If an organization adds a browser grid and a plan runs on it | Everything the tests do in the browser: the pages of the application under test, the values typed into them (secrets used in steps included), and the provider's own screenshots, videos and logs of each session, kept under its terms. |
 | GitHub, GitLab | If an organization connects them | Run status, verdict and a link, on the tested commit. |
 | Slack or Microsoft Teams | If a plan's notifications name a webhook | Run summaries. (E-mail addresses can be saved on a plan, but no e-mail is sent.) |

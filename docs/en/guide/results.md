@@ -107,6 +107,9 @@ each is; which passed; and which need a person to check.
 | Allure results (.zip) | `allure generate` or an Allure server. |
 | JUnit XML | A CI system's test report. |
 
+**Requirements covered** shows the [requirements](./organizing#requirements) with exactly this run's
+results, and exports them as a traceability matrix.
+
 ## Filing an issue
 
 When an owner has connected Jira or Azure DevOps, a failed test in the report has **File**, which

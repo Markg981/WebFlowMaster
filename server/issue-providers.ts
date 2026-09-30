@@ -228,6 +228,136 @@ export async function addComment(
   if (!result.ok) throw describeFailure('Commenting on the Azure DevOps work item', result.status, result.body, result.text);
 }
 
+/**
+ * An epic, a story or a requirement as the tracker has it, for requirements traceability
+ * (shared/requirements.ts). Read-only: nothing is written back to the tracker.
+ */
+export interface TrackedItem {
+  key: string;
+  title: string;
+  /** The tracker's issue or work item type: "Story", "Epic", "User Story", "Feature". */
+  type: string;
+  status: string | null;
+  url: string;
+  parentKey: string | null;
+}
+
+export interface FetchItemsRequest {
+  /** These issues: SHOP-142, or Azure DevOps ids. */
+  keys?: string[];
+  /** Or those a query finds: JQL for Jira, WIQL for Azure DevOps. */
+  query?: string;
+}
+
+/** More than this in one import is a query that should be narrowed, not a page of requirements. */
+export const MAX_IMPORTED_ITEMS = 500;
+
+/** The query used when neither keys nor a query are given: the project's epics and stories. */
+export function defaultItemQuery(config: TrackerConfig): string {
+  return config.provider === 'jira'
+    ? `project = "${config.projectKey.replace(/"/g, '\\"')}" AND issuetype in (Epic, Story) ORDER BY key`
+    : "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project AND [System.WorkItemType] IN ('Epic', 'Feature', 'User Story', 'Product Backlog Item', 'Requirement') ORDER BY [System.Id]";
+}
+
+async function fetchJiraItems(config: TrackerConfig, jql: string, deps: ProviderDeps): Promise<TrackedItem[]> {
+  const base = normaliseBaseUrl(config.baseUrl);
+  const headers = { Authorization: authHeader(config), Accept: 'application/json' };
+  const fields = 'summary,issuetype,status,parent';
+  const items: TrackedItem[] = [];
+  const toItem = (issue: any): TrackedItem => ({
+    key: String(issue.key),
+    title: String(issue.fields?.summary ?? issue.key),
+    type: String(issue.fields?.issuetype?.name ?? ''),
+    status: issue.fields?.status?.name ?? null,
+    url: `${base}/browse/${issue.key}`,
+    parentKey: issue.fields?.parent?.key ?? null,
+  });
+
+  // Jira Cloud's search, paged by token. Jira Data Center has only the older one, paged by offset.
+  let token: string | undefined;
+  for (;;) {
+    const params = new URLSearchParams({ jql, fields, maxResults: '100' });
+    if (token) params.set('nextPageToken', token);
+    const result = await call(`${base}/rest/api/3/search/jql?${params}`, { method: 'GET', headers }, deps);
+    if (result.status === 404 && items.length === 0) break;
+    if (!result.ok) throw describeFailure('Searching Jira', result.status, result.body, result.text);
+    for (const issue of result.body?.issues ?? []) items.push(toItem(issue));
+    token = result.body?.nextPageToken;
+    if (!token || result.body?.isLast || items.length >= MAX_IMPORTED_ITEMS) return items.slice(0, MAX_IMPORTED_ITEMS);
+  }
+
+  for (let startAt = 0; ; ) {
+    const params = new URLSearchParams({ jql, fields, maxResults: '100', startAt: String(startAt) });
+    const result = await call(`${base}/rest/api/2/search?${params}`, { method: 'GET', headers }, deps);
+    if (!result.ok) throw describeFailure('Searching Jira', result.status, result.body, result.text);
+    const page = result.body?.issues ?? [];
+    for (const issue of page) items.push(toItem(issue));
+    startAt += page.length;
+    if (page.length === 0 || startAt >= (result.body?.total ?? 0) || items.length >= MAX_IMPORTED_ITEMS) return items.slice(0, MAX_IMPORTED_ITEMS);
+  }
+}
+
+async function fetchAzureItems(config: TrackerConfig, request: FetchItemsRequest, deps: ProviderDeps): Promise<TrackedItem[]> {
+  const base = normaliseBaseUrl(config.baseUrl);
+  const project = encodeURIComponent(config.projectKey);
+  const headers = { Authorization: authHeader(config), Accept: 'application/json' };
+
+  let ids: number[];
+  if (request.keys?.length) {
+    ids = request.keys.map((key) => Number(key)).filter((id) => Number.isInteger(id) && id > 0);
+  } else {
+    const result = await call(
+      `${base}/${project}/_apis/wit/wiql?api-version=7.0&$top=${MAX_IMPORTED_ITEMS}`,
+      { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ query: request.query || defaultItemQuery(config) }) },
+      deps,
+    );
+    if (!result.ok) throw describeFailure('Querying Azure DevOps', result.status, result.body, result.text);
+    ids = (result.body?.workItems ?? []).map((item: any) => Number(item.id));
+  }
+  ids = Array.from(new Set(ids)).slice(0, MAX_IMPORTED_ITEMS);
+
+  const items: TrackedItem[] = [];
+  // Two hundred ids per call is Azure DevOps' limit.
+  for (let i = 0; i < ids.length; i += 200) {
+    const batch = ids.slice(i, i + 200);
+    const params = new URLSearchParams({
+      ids: batch.join(','),
+      fields: 'System.Title,System.WorkItemType,System.State,System.Parent',
+      errorPolicy: 'omit',
+      'api-version': '7.0',
+    });
+    const result = await call(`${base}/${project}/_apis/wit/workitems?${params}`, { method: 'GET', headers }, deps);
+    if (!result.ok) throw describeFailure('Reading Azure DevOps work items', result.status, result.body, result.text);
+    for (const item of result.body?.value ?? []) {
+      if (!item) continue; // an id that does not exist, omitted
+      const fields = item.fields ?? {};
+      items.push({
+        key: String(item.id),
+        title: String(fields['System.Title'] ?? item.id),
+        type: String(fields['System.WorkItemType'] ?? ''),
+        status: fields['System.State'] ?? null,
+        url: `${base}/${project}/_workitems/edit/${item.id}`,
+        parentKey: fields['System.Parent'] != null ? String(fields['System.Parent']) : null,
+      });
+    }
+  }
+  return items;
+}
+
+/**
+ * The epics and stories the keys name, or the query finds (the project's epics and stories when
+ * neither is given). Keys the tracker does not know are simply absent from the answer.
+ */
+export async function fetchItems(config: TrackerConfig, request: FetchItemsRequest, deps: ProviderDeps = {}): Promise<TrackedItem[]> {
+  if (config.provider === 'jira') {
+    const jql = request.keys?.length
+      ? `key in (${request.keys.map((key) => `"${key.replace(/"/g, '')}"`).join(', ')})`
+      : request.query || defaultItemQuery(config);
+    return fetchJiraItems(config, jql, deps);
+  }
+  return fetchAzureItems(config, request, deps);
+}
+
 export interface ConnectionCheck {
   ok: boolean;
   /** What was found, or what was wrong — either way, something a person can act on. */

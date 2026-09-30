@@ -60,6 +60,52 @@ suite** makes one of two kinds:
 A suite shows which plans include it. Deleting one used by plans makes them stop running its
 tests; runs already made keep what they ran.
 
+## Requirements and coverage {#requirements}
+
+**Requirements** answers the question asked before a release: which stories are tested, which are
+failing, and which have no test at all.
+
+A requirement is an **epic**, a **user story** or a plain **requirement**, with a key (`SHOP-142`,
+`4711`, `REQ_12`), a title, and the epic it belongs to. Add one with **New requirement**, or
+**Import from tracker** through a Jira or Azure DevOps already connected in
+**Settings → Issue trackers**:
+
+- **The project's epics and stories** (Jira: issue types Epic and Story; Azure DevOps: Epic,
+  Feature, User Story, Product Backlog Item, Requirement);
+- **These keys**: `SHOP-142, SHOP-143`, or work item ids;
+- **A JQL query** (Jira) or **a WIQL query** (Azure DevOps), for example the stories of a release.
+
+An imported story brings its epic along, and each lands under its parent. Importing again, or
+**Sync imported**, updates titles, types and the tracker's status; a requirement typed by hand
+with the same key becomes the imported one, keeping its tests. Nothing is ever written to the
+tracker. At most 500 items come in at once.
+
+**Tests** on a requirement links the web and API tests that cover it. An epic counts its own tests
+and every one of its stories', each once. Its coverage is worked out from the **latest result of
+each test**, all browsers of that run together:
+
+| Coverage | Means |
+|---|---|
+| **Passing** | Every covering test passed the last time it ran. |
+| **Failing** | At least one failed (on any browser). |
+| **Not run** | None failed, but some never ran, were skipped, or are manual tests waiting for a verdict. |
+| **No tests** | Nothing covers it. |
+
+**Results from** narrows which runs count: the latest run of each test anywhere, or the latest run
+of one plan — the release plan, say. **Requirements covered** in a run's report opens the page with
+exactly that run's results. The numbers above the table give the total, the share with at least
+one test, and how many are in each state. The numbers of a row open its tests, each with its last
+outcome and a link to that run's report.
+
+**Export matrix (CSV)** downloads the traceability matrix for what is shown: one line per
+requirement and covering test, with its last outcome, run and plan, and one line for each
+requirement no test covers.
+
+A linked test in a project you cannot see is counted (*+1 in projects you cannot see*) but not
+named, left out of the state, and stays linked when you change the others. Viewers read; editors
+add, import, link and delete. Deleting a requirement removes its links, never the tests; what it
+contained moves to the top level.
+
 ## Test Manager
 
 **Test Manager** is for teams whose test cases live in Excel. **Upload Excel** (.xlsx or .xls)

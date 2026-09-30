@@ -32,6 +32,8 @@ const PROVENANCE = [
   'invitations.invited_by_user_id',
   'issue_trackers.created_by',
   'browser_grids.created_by',
+  'requirements.created_by',
+  'requirement_tests.created_by',
   'password_resets.created_by',
   'source_hosts.created_by',
   'test_plan_executions.requested_by_user_id',

@@ -482,7 +482,8 @@
       "operations": "Betrieb"
     },
     "testLibrary": "Testbibliothek",
-    "testManager": "Testmanager"
+    "testManager": "Testmanager",
+    "requirements": "Anforderungen"
   },
   "dashboardPage": {
     "user": {
@@ -2515,7 +2516,8 @@
     "noReason": "Kein Grund angegeben",
     "notRecorded": "nicht erfasst",
     "noData": "Keine Berichtsdaten gefunden.",
-    "failedTests": "Fehlgeschlagene Tests"
+    "failedTests": "Fehlgeschlagene Tests",
+    "requirements": "Abgedeckte Anforderungen"
   },
   "scheduleEnvironment": {
     "label": "Umgebung",
@@ -2573,7 +2575,8 @@
       "agent": "Lokale Agenten",
       "source_host": "GitHub & GitLab",
       "sso": "Single Sign-on",
-      "custom_action": "Eigene Aktionen"
+      "custom_action": "Eigene Aktionen",
+      "requirement": "Anforderungen"
     },
     "actions": {
       "member_role_changed": "Rolle des Mitglieds geändert",
@@ -2647,7 +2650,12 @@
       "custom_action_updated": "Eigene Aktion geändert",
       "custom_action_deleted": "Eigene Aktion gelöscht",
       "run_manual_result_recorded": "Manuelles Ergebnis erfasst",
-      "run_failure_analysed": "Fehler mit KI analysiert"
+      "run_failure_analysed": "Fehler mit KI analysiert",
+      "requirement_created": "Anforderung angelegt",
+      "requirement_updated": "Anforderung geändert",
+      "requirement_deleted": "Anforderung gelöscht",
+      "requirement_imported": "Anforderungen aus einem Tracker importiert",
+      "requirement_tests_changed": "Tests einer Anforderung geändert"
     }
   },
   "security": {
@@ -3355,5 +3363,115 @@
     "usernameRequired": "Für diesen Anbieter ist ein Benutzername erforderlich.",
     "endpointRequired": "Die Adresse eines Playwright-Servers beginnt mit ws:// oder wss://.",
     "keyRequired": "Für diesen Anbieter ist ein Zugriffsschlüssel erforderlich."
+  },
+  "requirements": {
+    "title": "Anforderungen",
+    "pageDescription": "Epics, User Stories und Anforderungen, die Tests, die sie abdecken, und wie diese Tests zuletzt abgeschnitten haben.",
+    "export": "Matrix exportieren (CSV)",
+    "create": "Neue Anforderung",
+    "dialog": {
+      "editTitle": "Anforderung bearbeiten",
+      "createTitle": "Neue Anforderung",
+      "description": "Ein Epic, eine User Story oder eine Anforderung. Verknüpfen Sie Tests, um zu sehen, ob sie abgedeckt ist und besteht."
+    },
+    "fields": {
+      "key": "Schlüssel",
+      "kind": "Art",
+      "title": "Titel",
+      "parent": "Gehört zu",
+      "description": "Beschreibung"
+    },
+    "kind": {
+      "epic": "Epic",
+      "story": "User Story",
+      "requirement": "Anforderung"
+    },
+    "keyHint": "Buchstaben, Ziffern, Punkte, Bindestriche und Unterstriche, z. B. SHOP-142 oder REQ_12.",
+    "noParent": "Nichts: oberste Ebene",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "link": {
+      "title": "Tests für {{key}}",
+      "filter": "Tests filtern…",
+      "none": "Keine Tests.",
+      "picked": "{{count}} ausgewählt",
+      "hidden": "{{count}} weitere verknüpfte Tests liegen in Projekten, die Sie nicht sehen können; sie bleiben verknüpft."
+    },
+    "web": "Web",
+    "import": {
+      "open": "Aus Tracker importieren",
+      "title": "Aus einem Tracker importieren",
+      "description": "Epics und Stories werden aus dem Tracker gelesen und mit „Synchronisieren“ aktuell gehalten; in den Tracker wird nichts geschrieben. Eine Story bringt ihr Epic mit.",
+      "noTracker": "Kein Jira oder Azure DevOps verbunden. Fügen Sie eines unter Einstellungen → Issue-Tracker hinzu; dieselbe Verbindung wird hier verwendet.",
+      "tracker": "Tracker",
+      "modeProject": "Epics und Stories des Projekts",
+      "modeKeys": "Diese Schlüssel",
+      "modeJql": "Eine JQL-Abfrage",
+      "modeWiql": "Eine WIQL-Abfrage",
+      "keys": "Schlüssel",
+      "sync": "Importierte synchronisieren",
+      "submit": "Importieren",
+      "done": "{{created}} neu, {{updated}} aktualisiert",
+      "missing": "Im Tracker nicht gefunden: {{keys}}",
+      "failed": "Der Import ist fehlgeschlagen"
+    },
+    "state": {
+      "passing": "Besteht",
+      "failing": "Schlägt fehl",
+      "notRun": "Nicht ausgeführt",
+      "uncovered": "Keine Tests"
+    },
+    "outcome": {
+      "passed": "Bestanden",
+      "failed": "Fehlgeschlagen",
+      "pending": "Wartet auf Urteil",
+      "skipped": "Übersprungen",
+      "notRun": "Nie ausgeführt"
+    },
+    "saved": "Anforderung gespeichert",
+    "saveFailed": "Die Anforderung wurde nicht gespeichert",
+    "linksSaved": "Tests verknüpft",
+    "linksFailed": "Die Tests wurden nicht verknüpft",
+    "deleted": "Anforderung gelöscht",
+    "deleteFailed": "Die Anforderung wurde nicht gelöscht",
+    "loadFailed": "Die Anforderung konnte nicht geladen werden",
+    "scope": {
+      "label": "Ergebnisse aus",
+      "all": "Letzter Lauf jedes Tests",
+      "plan": "Letzter Lauf von {{plan}}",
+      "run": "Ergebnisse eines Laufs von {{plan}}",
+      "runLoading": "Ergebnisse eines Laufs",
+      "openReport": "Bericht öffnen",
+      "clear": "Neueste Ergebnisse zeigen"
+    },
+    "search": "Schlüssel oder Titel suchen…",
+    "filterState": "Abdeckung",
+    "allStates": "Jede Abdeckung",
+    "summary": {
+      "total": "Anforderungen",
+      "covered": "Mit Tests"
+    },
+    "loading": "Wird geladen…",
+    "error": "Die Anforderungen konnten nicht geladen werden.",
+    "empty": "Noch keine Anforderungen. Importieren Sie Epics und Stories aus Jira oder Azure DevOps oder legen Sie eine von Hand an, und verknüpfen Sie dann die Tests, die sie abdecken.",
+    "columns": {
+      "requirement": "Anforderung",
+      "kind": "Art",
+      "trackerStatus": "Status im Tracker",
+      "coverage": "Abdeckung",
+      "tests": "Tests",
+      "actions": "Aktionen"
+    },
+    "expand": "Inhalt anzeigen",
+    "collapse": "Inhalt ausblenden",
+    "testCounts": "{{passed}} bestanden · {{failed}} fehlgeschlagen · {{notRun}} nicht ausgeführt",
+    "hiddenTests": "+{{count}} in Projekten, die Sie nicht sehen können",
+    "linkTests": "Tests",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "run": "Lauf",
+    "noMatch": "Nichts entspricht den Filtern.",
+    "deleteTitle": "{{key}} löschen?",
+    "deleteBody": "Ihre Verknüpfungen zu Tests werden entfernt; die Tests und ihre Ergebnisse bleiben. Enthaltenes rückt auf die oberste Ebene. Im Tracker ändert sich nichts."
   }
 }

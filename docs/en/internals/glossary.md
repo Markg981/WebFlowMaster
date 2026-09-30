@@ -41,6 +41,7 @@ each lives.
 | **Quota** | An organization's limits on runs executing and waiting (`organizations`, `server/tenant-quotas.ts`). |
 | **Relay** | The component in the web process that pairs runners with agents' browsers (`server/agents/relay.ts`). |
 | **RLS** | PostgreSQL row-level security, which keeps organizations apart. |
+| **Requirement** | An epic, a user story or a requirement, typed in or imported from Jira or Azure DevOps, with the tests that cover it (`requirements`, `requirement_tests`). |
 | **Runner** | A worker process as registered in `runners`, with its heartbeat and desired state (drain). |
 | **Schedule** | When a plan runs automatically (`test_plan_schedules`). |
 | **Scope** | A permission an API key may be limited to on `/api/v1` (`shared/api-scopes.ts`). |
