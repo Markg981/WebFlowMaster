@@ -76,6 +76,8 @@ person waits for.
 |---|---|---|---|
 | `APP_BASE_URL` | both | `http://localhost:7000` | The value of <code v-pre>{{baseUrl}}</code> in a run with no environment selected. Prefer a `baseUrl` secret per environment in Settings, which is what lets one test run against several sites. |
 | `DMO_BASE_URL` | both | none | The former name of `APP_BASE_URL`, still read when that one is unset. |
+| `MAILPIT_URL` | both | none | The test inbox **Wait for email** steps read when the environment names none (`mailpit.url`), e.g. `http://mailpit:8025`. The docker-compose stack sets it to its bundled Mailpit. On an installation shared by several companies leave it unset and let each environment name its own: one inbox for everyone lets a test read another company's mail, if it can guess the address. See [emails](../guide/web-tests#emails). |
+| `MAILPIT_USERNAME`, `MAILPIT_PASSWORD` | both | none | Basic authentication for that inbox, when it asks for it. |
 | `INSECURE_TLS_HOSTS` | both | none | Comma-separated `host:port` values allowed to present a certificate Node would reject (a self-signed dev server). Per host, never global, and ignored when `NODE_ENV=production`. |
 
 ## Artifacts

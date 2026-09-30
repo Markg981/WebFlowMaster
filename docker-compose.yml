@@ -37,6 +37,18 @@ services:
       timeout: 3s
       retries: 10
 
+  # The test inbox: the applications under test send their mail to its SMTP port (1025), and a
+  # "Wait for email" step reads it through its API (server/email-inbox.ts). Any address has a
+  # mailbox, so a test signs up with a made-up one. The inbox is at http://localhost:8025.
+  # It keeps mail in memory and has no password: for test environments, not for real mail.
+  mailpit:
+    image: axllent/mailpit:v1.31.3
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    environment:
+      - MP_MAX_MESSAGES=5000
+
   # Runs once and exits. Without it the app starts against an empty database and dies on the
   # first query — which is what happened: "relation system_settings does not exist", and
   # then a tenancy precondition failure, because the app_user role that migration 0004
@@ -86,6 +98,8 @@ services:
       # anonymous, with nothing saying why. Put TLS in front of this and remove the line
       # before anyone else can reach it.
       - SESSION_COOKIE_SECURE=false
+      # The test inbox for "Wait for email" steps when the environment names none (mailpit.url).
+      - MAILPIT_URL=http://mailpit:8025
     # The run evidence and the visual baselines, on a volume both processes mount. The worker
     # writes them and the web process serves them (server/routes/artifacts.routes.ts): with each
     # container on its own disk every screenshot, video, trace and HAR link in the report
@@ -120,6 +134,8 @@ services:
       # a secret the web process did not share, so every run on an agent failed.
       - AGENT_RELAY_URL=http://api:5000
       - AGENT_RELAY_SECRET=4Qm9zR2vX7cL1pT8wK3nB6yH5dF0sJ
+      # See the api service. Runs execute here, so this is the one the steps use.
+      - MAILPIT_URL=http://mailpit:8025
     # The same two volumes as the web process: see there.
     volumes:
       - results:/app/results

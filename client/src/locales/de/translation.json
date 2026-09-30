@@ -1252,6 +1252,11 @@
       "endLoop": {
         "name": "Ende Schleife",
         "description": "Schließt den Wiederholen-Block."
+      },
+      "waitForEmail": {
+        "name": "Auf E-Mail warten",
+        "description": "Wartet auf die E-Mail an eine Adresse im Test-Postfach (Mailpit) und liest sie in die Variablen email.otp, email.link, email.subject, email.from und email.text.",
+        "valueHint": "Adresse, Adresse|Betreff oder Adresse|Betreff|Muster — z. B. die Variable email, dann |Konto bestätigen"
       }
     },
     "saveTest": {

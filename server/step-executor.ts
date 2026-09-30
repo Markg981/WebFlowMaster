@@ -18,7 +18,8 @@ import {
 } from '@shared/accessibility';
 import { MAX_LOOP_ITERATIONS } from '@shared/flow';
 import { scanAccessibility } from './accessibility';
-import { requestVariables, substituteVariables } from './outbound-http';
+import { allowsSelfSignedCertificate, requestVariables, substituteVariables } from './outbound-http';
+import { EMAIL_TIMEOUT_MS, inboxConfig, parseEmailQuery, waitForEmail, type InboxGet } from './email-inbox';
 import { findUnresolvedVariables } from './variables';
 
 /**
@@ -50,6 +51,11 @@ export interface StepContext {
   reporter?: PlaywrightReporter;
   /** Resolved `{{name}}` values. Defaults to the process-level set when omitted. */
   vars?: Record<string, string>;
+  /**
+   * When the test began (epoch ms). A `waitForEmail` step takes only mail received since then,
+   * so a fixed address does not read the previous run's email. Defaults to the step's own start.
+   */
+  startedAt?: number;
 }
 
 export interface StepOutcome {
@@ -229,6 +235,15 @@ interface StepRuntime {
    * in whichever run read it next.
    */
   storeVariable?: (name: string, value: string) => void;
+  /** Removes `{{name}}`, so a value an earlier step found is not taken for this one's. */
+  forgetVariable?: (name: string) => void;
+  /** See StepContext.startedAt. */
+  startedAt: number;
+  /**
+   * GET for the test inbox, through the browser context: it is sent from wherever the browser
+   * runs, so a run on a local agent reaches the Mailpit of the agent's network.
+   */
+  inboxGet: InboxGet;
 }
 
 /** Reads the step's value as a non-empty string, or explains what is missing. */
@@ -1096,6 +1111,54 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     return { status: 'passed', detail: `{{${assignment.name}}} = ${shown}` };
   },
 
+  waitForEmail: async (rt) => {
+    const wanted = requireValue(rt, 'waitForEmail');
+    if ('error' in wanted) return failed(wanted.error);
+    const query = parseEmailQuery(wanted.value);
+    if ('error' in query) return failed(query.error);
+    const config = inboxConfig(rt.vars);
+    if (!config) {
+      return failed(
+        'No test inbox is configured. Add mailpit.url to the environment (for example http://mailpit:8025), ' +
+          'or set MAILPIT_URL on the server.',
+      );
+    }
+    if (!rt.storeVariable) return failed('This run has no variables of its own to store the email in.');
+
+    const seconds = Number(rt.vars['mailpit.timeout']);
+    const timeoutMs = Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : EMAIL_TIMEOUT_MS;
+    const fields = ['otp', 'link', 'subject', 'from', 'text'];
+    for (const field of fields) rt.forgetVariable?.(`email.${field}`);
+
+    let found;
+    try {
+      found = await waitForEmail(rt.inboxGet, config, query, rt.startedAt, timeoutMs);
+    } catch (error: any) {
+      return failed(error?.message ?? String(error));
+    }
+    const wantedSubject = query.subject ? ` with "${query.subject}" in the subject` : '';
+    if (!found) {
+      return failed(
+        `No email to ${query.address}${wantedSubject} arrived within ${Math.round(timeoutMs / 1000)}s at ${config.url}. ` +
+          "Check that the application's SMTP server is that Mailpit (port 1025 by default).",
+      );
+    }
+    const { message, otp, link } = found;
+    rt.storeVariable('email.subject', message.subject);
+    rt.storeVariable('email.from', message.from);
+    rt.storeVariable('email.text', message.text);
+    if (otp !== null) rt.storeVariable('email.otp', otp);
+    if (link !== null) rt.storeVariable('email.link', link);
+    if (query.pattern && otp === null) {
+      return failed(`The email "${message.subject}" arrived, but the pattern /${query.pattern.source}/ matched nothing in it.`);
+    }
+    const read = [
+      otp !== null ? `{{email.otp}} = "${otp}"` : 'no code found',
+      link !== null ? `{{email.link}} = ${excerpt(link)}` : 'no link found',
+    ];
+    return { status: 'passed', detail: `"${excerpt(message.subject)}" from ${message.from || 'an unknown sender'}: ${read.join(', ')}.` };
+  },
+
   if: async (rt) => {
     const result = await evaluateCondition(rt, 'if');
     if ('error' in result) return failed(result.error);
@@ -1196,8 +1259,20 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
           storeVariable: (name: string, value: string) => {
             ctx.vars![name] = value;
           },
+          forgetVariable: (name: string) => {
+            delete ctx.vars![name];
+          },
         }
       : {}),
+    startedAt: ctx.startedAt ?? Date.now(),
+    inboxGet: async (url, headers) => {
+      const response = await page.context().request.get(url, {
+        headers,
+        ignoreHTTPSErrors: allowsSelfSignedCertificate(url),
+        timeout: 15_000,
+      });
+      return { status: response.status(), json: () => response.json() };
+    },
   };
 
   return handler(rt);

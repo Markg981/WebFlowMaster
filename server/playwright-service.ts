@@ -1601,7 +1601,7 @@ export class PlaywrightService {
 
             resolvedLogger.verbose({ message: `PS:executeAdhocSequence - Executing step`, testName, actionName, actionId, selector: step.targetElement?.selector, value: step.value });
 
-            const outcome = await executeStep({ page, vars }, step);
+            const outcome = await executeStep({ page, vars, startedAt: startTime }, step);
             flowOutcome = outcome;
             // A step that moved the test to another tab: every step after it, and this step's
             // screenshot, belong to that tab.
@@ -2113,7 +2113,7 @@ export class PlaywrightService {
 
             let outcome: Awaited<ReturnType<typeof executeStep>>;
             try {
-              outcome = await executeStep({ page, reporter, vars }, step);
+              outcome = await executeStep({ page, reporter, vars, startedAt: startTime }, step);
             } catch (firstError: any) {
               // Retried below like a failed outcome; without the plan's retry it fails as it did.
               if (!options?.runtime?.retryFailedStep) throw firstError;
@@ -2133,7 +2133,7 @@ export class PlaywrightService {
                 });
               }
               reporter.resetStepState();
-              outcome = await executeStep({ page, reporter, vars }, step);
+              outcome = await executeStep({ page, reporter, vars, startedAt: startTime }, step);
             }
             // A step that moved the test to another tab: the steps after it, the healing pass
             // and this step's screenshot all belong to that tab.

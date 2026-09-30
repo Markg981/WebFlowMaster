@@ -50,6 +50,7 @@ richiede: il testo da scrivere, l'opzione da scegliere, il testo atteso.
 | **Chiudi scheda** | Chiude la scheda corrente e torna a quella che l'ha aperta. |
 | **Salva testo in variabile** | Legge il testo dell'elemento, o il valore di un campo, nella variabile indicata dal valore, per gli step successivi. |
 | **Imposta variabile** | `nome=valore`, per gli step successivi. Vedi [valori generati](#valori-generati). |
+| **Attendi email** | Attende l'email inviata a un indirizzo e ne legge codice e link in variabili. Vedi [email](#email). |
 | **Imposta cookie** / **Cancella cookie** | `nome=valore` per l'indirizzo corrente; oppure li elimina tutti. |
 | **Imposta localStorage** | `chiave=valore` nello storage della pagina corrente. |
 | **Esegui JavaScript** | Esegue il valore nella pagina. Fallisce se lancia un errore o restituisce `false`, così può verificare ciò che nessun altro step sa esprimere. |
@@ -211,6 +212,48 @@ Per saltare il login in ogni test: scegliete l'ambiente nel costruttore, avviate
 registrazione, accedete nella finestra di registrazione e premete **Save login for this
 environment**. I run su quell'ambiente partono allora con quella sessione; l'ambiente compare
 come *con accesso salvato* nel selettore. Salvatelo di nuovo quando la sessione scade.
+
+### Email: codici e link {#email}
+
+Registrazione, reimpostazione della password e accesso in due passaggi mandano un'email che il test
+deve leggere. Lo step **Attendi email** la legge dalla **casella di test** dell'ambiente, un
+[Mailpit](https://mailpit.axllent.org): un raccoglitore di posta che accetta tutto ciò che
+l'applicazione invia alla sua porta SMTP, per qualsiasi indirizzo. Nell'ambiente di test puntate
+l'SMTP dell'applicazione su di esso (porta 1025) e ogni indirizzo ha una casella, anche quelli
+inventati.
+
+Una registrazione, dall'inizio alla fine:
+
+| Azione | Valore |
+|---|---|
+| Imposta variabile | <code v-pre>email={{$randomEmail}}</code> |
+| Digita | <code v-pre>{{email}}</code> nel campo dell'indirizzo, poi inviare il modulo |
+| Attendi email | <code v-pre>{{email}}\|Conferma il tuo account</code> |
+| Digita | <code v-pre>{{email.otp}}</code> nel campo del codice — oppure **Naviga** su <code v-pre>{{email.link}}</code> |
+
+Il valore è l'indirizzo, seguito facoltativamente da `|` e da un testo contenuto nell'oggetto, e
+da un secondo `|` e un'espressione regolare per il codice:
+<code v-pre>{{email}}|Il tuo codice|codice: ([A-Z0-9-]+)</code> legge ciò che trova il primo gruppo.
+Lo step attende fino a 60 secondi l'email più recente a quell'indirizzo esatto (in A, Cc o Ccn)
+arrivata **dopo l'inizio del test**, così un indirizzo fisso, come quello di un utente di prova,
+non legge l'email del run precedente. Poi imposta:
+
+| Variabile | Contiene |
+|---|---|
+| <code v-pre>{{email.otp}}</code> | Il codice: il primo numero di 4–8 cifre dopo una parola come *codice*, *code*, *OTP*, *PIN* o *verifica*, oppure l'unico dell'email; con un pattern, ciò che il pattern ha trovato |
+| <code v-pre>{{email.link}}</code> | Il primo link da seguire, saltando disiscrizioni, immagini e fogli di stile |
+| <code v-pre>{{email.subject}}</code>, <code v-pre>{{email.from}}</code>, <code v-pre>{{email.text}}</code> | Oggetto, indirizzo del mittente e testo (un'email solo HTML viene convertita in testo) |
+
+Una variabile che l'email non fornisce — nessun codice, nessun link — resta non definita, così uno
+step successivo che la usa fallisce e la nomina, invece di digitare un valore di un'email
+precedente. Un pattern che non trova nulla fa fallire lo step.
+
+**Quale casella.** I segreti dell'ambiente `mailpit.url` (per esempio
+`https://mail.staging.example`) e, se li chiede, `mailpit.username` e `mailpit.password`;
+`mailpit.timeout` cambia l'attesa, in secondi. In loro assenza, quella del server (`MAILPIT_URL`,
+che lo stack docker-compose imposta sul suo Mailpit, aperto su http://localhost:8025). La casella
+viene letta da dove gira il browser, quindi un piano su un agente locale raggiunge un Mailpit della
+rete dell'agente.
 
 ## Precondizioni
 

@@ -76,6 +76,8 @@ elementi: i browser che una persona aspetta.
 |---|---|---|---|
 | `APP_BASE_URL` | entrambi | `http://localhost:7000` | Il valore di <code v-pre>{{baseUrl}}</code> in un run senza ambiente selezionato. Meglio un segreto `baseUrl` per ogni ambiente in Impostazioni, che è ciò che permette a un test di girare su più siti. |
 | `DMO_BASE_URL` | entrambi | nessuno | Il vecchio nome di `APP_BASE_URL`, letto ancora se quella non è impostata. |
+| `MAILPIT_URL` | entrambi | nessuno | La casella di test che gli step **Attendi email** leggono quando l'ambiente non ne indica una (`mailpit.url`), per esempio `http://mailpit:8025`. Lo stack docker-compose la imposta sul suo Mailpit. Su un'installazione condivisa da più aziende lasciatela vuota e fate indicare a ogni ambiente la propria: un'unica casella per tutti permette a un test di leggere la posta di un'altra azienda, se ne indovina l'indirizzo. Vedi [email](../guide/web-tests#email). |
+| `MAILPIT_USERNAME`, `MAILPIT_PASSWORD` | entrambi | nessuno | Autenticazione Basic per quella casella, se la richiede. |
 | `INSECURE_TLS_HOSTS` | entrambi | nessuno | Valori `host:porta` separati da virgola a cui è permesso presentare un certificato che Node rifiuterebbe (un server di sviluppo autofirmato). Per host, mai globale, e ignorato con `NODE_ENV=production`. |
 
 ## Artefatti

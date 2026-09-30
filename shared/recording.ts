@@ -84,6 +84,11 @@ export const ADHOC_ACTION_IDS = [
   // "name=value": a variable for the steps after this one. With a generator such as
   // {{$randomEmail}} it is how a test makes up a value once and uses it twice.
   "setVariable",
+  // Waits for the email the application sent to an address — "address", "address|subject" or
+  // "address|subject|pattern" — in the environment's test inbox (Mailpit), and puts what it holds
+  // in {{email.otp}}, {{email.link}}, {{email.subject}}, {{email.from}} and {{email.text}}.
+  // See server/email-inbox.ts.
+  "waitForEmail",
   // Blocks — see shared/flow.ts, which pairs them. `if` and `repeatWhile` take a condition:
   // with an element, a state it is in now (visible, hidden, checked, contains:text…); without
   // one, a comparison of values ("{{status}} == Paid").
@@ -240,6 +245,7 @@ export const ACTION_REQUIREMENTS: Record<
   setLocalStorage: { target: false, value: true, valueRequired: true },
   executeScript: { target: false, value: true, valueRequired: true },
   setVariable: { target: false, value: true, valueRequired: true },
+  waitForEmail: { target: false, value: true, valueRequired: true },
   if: { target: false, value: true, valueRequired: true, optionalTarget: true },
   else: { target: false, value: false, valueRequired: false },
   endIf: { target: false, value: false, valueRequired: false },
@@ -454,6 +460,11 @@ export const ACTION_I18N: Record<
     description: "dashboardPageNew.actions.setVariable.description",
     icon: "Variable",
   },
+  waitForEmail: {
+    name: "dashboardPageNew.actions.waitForEmail.name",
+    description: "dashboardPageNew.actions.waitForEmail.description",
+    icon: "Mail",
+  },
   if: {
     name: "dashboardPageNew.actions.if.name",
     description: "dashboardPageNew.actions.if.description",
@@ -504,6 +515,7 @@ export const ACTION_VALUE_HINTS: Partial<Record<AdhocActionId, string>> = {
   setLocalStorage: "dashboardPageNew.actions.setLocalStorage.valueHint",
   executeScript: "dashboardPageNew.actions.executeScript.valueHint",
   setVariable: "dashboardPageNew.actions.setVariable.valueHint",
+  waitForEmail: "dashboardPageNew.actions.waitForEmail.valueHint",
   if: "dashboardPageNew.actions.if.valueHint",
   repeat: "dashboardPageNew.actions.repeat.valueHint",
   repeatWhile: "dashboardPageNew.actions.repeatWhile.valueHint",

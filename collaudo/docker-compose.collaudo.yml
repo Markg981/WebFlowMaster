@@ -12,6 +12,8 @@
 #   keycloak    the identity provider for the single sign-on cases, realm "acme" imported.
 #   intranet    an application on a private network only the local agent can reach.
 #   ricevitore  receives notification webhooks and prints them: docker compose logs ricevitore.
+#   mailpit     (from the base file) the test inbox; Keycloak mails its password resets there
+#               (WEB-45). The inbox is at http://localhost:8025.
 #   display     a screen for the recording window, in the browser at http://localhost:6080.
 #   agente      the local agent (profile "agente"), started once its token exists.
 #   agente-diverso  an agent on another Playwright version (profile "agente-diverso", AGT-05).

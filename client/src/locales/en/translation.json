@@ -1246,6 +1246,11 @@
       "endLoop": {
         "name": "End loop",
         "description": "Closes the Repeat block."
+      },
+      "waitForEmail": {
+        "name": "Wait for email",
+        "description": "Waits for the email sent to an address in the test inbox (Mailpit) and reads it into the variables email.otp, email.link, email.subject, email.from and email.text.",
+        "valueHint": "address, address|subject, or address|subject|pattern — e.g. the email variable, then |Verify your account"
       }
     },
     "playbackStatus": "Step {{current}}/{{total}}: {{name}} - {{details}}",
