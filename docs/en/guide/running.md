@@ -22,7 +22,7 @@ keep of each run, and whom to tell.
 
 | Setting | What it does |
 |---|---|
-| **Browsers** | Every test runs once per browser listed. None listed: the browser from your own settings. |
+| **Browsers** | Every test runs once per browser listed, each on the desktop or as a phone or tablet ([devices](#mobile-devices)). None listed: the browser from your own settings. |
 | **Languages** | Language codes such as `it-IT, en-US` (at most 10). Every test runs once per language on each browser; see [Testing in several languages](#languages). Empty: the browser's own language. |
 | **Run at most (tests at once)** | 1 to 16 browser sessions at the same time. 1 runs the plan one test at a time, browser by browser. |
 | **Keep a recording of the run** | A **video** and a Playwright **trace** of each test — never, when the test fails, or always — and the **network** traffic as a HAR file. They answer what a screenshot cannot, and use disk on every run. |
@@ -60,6 +60,27 @@ Windows 11. Safari on a grid is still Playwright's WebKit.
 Each test is a session on the provider's dashboard, named after the test, grouped under the run,
 and marked passed or failed. Deleting a grid sends the plans that used it back to the server's
 runners. A plan runs on a grid or on local agents, never both.
+
+### Phones and tablets {#mobile-devices}
+
+**Device** on a browser row of the plan's settings makes that browser a phone or a tablet:
+iPhone 15, iPhone 15 Pro Max, iPhone 14, iPhone SE, iPhone 13 Mini, Pixel 7, Pixel 5, Galaxy S24,
+Galaxy A55, iPad Pro 11, iPad Mini, Galaxy Tab S9 (tablets also in landscape). The page then sees
+that device: its screen size and pixel density, touch instead of a mouse (`pointer: coarse`), the
+mobile layout (`<meta name="viewport">` is honoured) and its user agent, so a responsive site shows
+the menus, sizes and pages it shows on that phone. Each row is a pass of its own: Chromium on the
+desktop and Chromium as a Pixel 7 are two results per test, and the report says which is which
+(`chromium · Pixel 7`).
+
+Choose the engine the device's own browser is built on — **WebKit** for an iPhone or an iPad,
+**Chromium** or **Chrome** for Android — for the closest result. **Firefox** cannot emulate a device;
+the choice is not offered for it. Devices are set in the plan's settings (not in the plan wizard),
+and work on the server's runners, on [local agents](../LOCAL_AGENT) and on a [browser grid](#browser-grids),
+whose desktop browser then shows the device.
+
+This is emulation, not a real phone: what depends on the device itself — iOS Safari's own
+behaviour, the on-screen keyboard, the phone's speed, native apps — needs real devices, which come
+with mobile app testing.
 
 ### Testing in several languages {#languages}
 

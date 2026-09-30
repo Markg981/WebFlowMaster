@@ -5,6 +5,7 @@ import { relations, sql } from 'drizzle-orm';
 import { ACTION_REQUIREMENTS, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from './recording';
 import { CUSTOM_ACTION_STEP_ID_PATTERN, type CustomActionParameter } from './custom-actions';
 import { MAX_LOCALES, canonicalLocale, normalizeLocales } from './locales';
+import { canEmulateDevice, isMobileDevice } from './devices';
 import type { NetworkSummary } from './network';
 import type { FailureAnalysis } from './failure-analysis';
 import type { CiContext } from './ci';
@@ -1828,6 +1829,17 @@ const TestMachineConfigSchema = z
     browserName: z.string(),
     browserVersion: z.string().max(60).optional().nullable(),
     headless: z.boolean(),
+    /** A phone or tablet to emulate (shared/devices.ts); empty for the desktop. */
+    device: z
+      .string()
+      .max(60)
+      .refine((name) => isMobileDevice(name), { message: "Not a device this installation can emulate." })
+      .optional()
+      .nullable(),
+  })
+  .refine((machine) => !machine.device || canEmulateDevice(machine.browserName), {
+    message: "Firefox cannot emulate a phone or a tablet: choose Chromium, Chrome, Edge or WebKit for it.",
+    path: ["device"],
   })
   .optional();
 

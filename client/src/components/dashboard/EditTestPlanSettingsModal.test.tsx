@@ -67,7 +67,7 @@ describe('EditTestPlanSettingsModal', () => {
     expect(init.method).toBe('PUT');
     const body = JSON.parse(init.body);
     // No grid: the OS and versions the runners cannot choose go out empty.
-    expect(body.testMachinesConfig).toEqual([{ browserName: 'firefox', headless: true, os: null, osVersion: null, browserVersion: null }]);
+    expect(body.testMachinesConfig).toEqual([{ browserName: 'firefox', headless: true, os: null, osVersion: null, browserVersion: null, device: null }]);
     expect(body.browserGridId).toBeNull();
     expect(body.visualTestingEnabled).toBe(true);
     expect(body.notificationSettings.webhookUrl).toBe('https://hooks.test/new');
@@ -147,6 +147,26 @@ describe('EditTestPlanSettingsModal', () => {
     expect(savedBody().issueTrackerId).toBeNull();
     expect(savedBody().createIssuesOnFailure).toBe(false);
     expect(savedBody().testManagementId).toBeNull();
+  });
+
+  it('emulates a phone only in a browser that can, and saves the device', async () => {
+    const onSaved = vi.fn();
+    render(<EditTestPlanSettingsModal isOpen plan={plan} onClose={() => {}} onSaved={onSaved} />);
+
+    // The plan's Firefox cannot be a phone.
+    const device = screen.getByRole('combobox', { name: 'Device' });
+    expect(device).toHaveTextContent('Desktop');
+    expect(device).toBeDisabled();
+
+    fireEvent.keyDown(screen.getByRole('combobox', { name: 'Browser' }), { key: 'Enter', code: 'Enter' });
+    fireEvent.click(await screen.findByRole('option', { name: 'chromium' }));
+    expect(device).not.toBeDisabled();
+    fireEvent.keyDown(device, { key: 'Enter', code: 'Enter' });
+    fireEvent.click(await screen.findByRole('option', { name: 'Pixel 7' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(savedBody().testMachinesConfig).toEqual([{ browserName: 'chromium', headless: true, os: null, osVersion: null, browserVersion: null, device: 'Pixel 7' }]);
   });
 
   it('publishes nowhere until a test management connection is chosen, then sends it', async () => {
@@ -246,7 +266,7 @@ describe('EditTestPlanSettingsModal', () => {
     const body = savedBody();
     expect(body.browserGridId).toBe('g1');
     expect(body.agentPool).toBeNull();
-    expect(body.testMachinesConfig).toEqual([{ browserName: 'chrome', headless: true, os: 'Windows', osVersion: '10', browserVersion: '120' }]);
+    expect(body.testMachinesConfig).toEqual([{ browserName: 'chrome', headless: true, os: 'Windows', osVersion: '10', browserVersion: '120', device: null }]);
   });
 
   it('on the runners, does not ask for an OS or a version it could not honour', () => {

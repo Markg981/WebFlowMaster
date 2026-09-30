@@ -25,7 +25,7 @@ import { analyseFlow, leavesPageAlone } from '@shared/flow';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import { resolveVariables } from './variables';
 import { loadLoginState, saveLoginState, type EnvironmentScope } from './login-state';
-import { describeBrowser, launchBrowser, resolveBrowser, type BrowserChoice } from './browsers';
+import { describeBrowser, deviceContextOptions, launchBrowser, resolveBrowser, type BrowserChoice } from './browsers';
 import { compareStepScreenshot, isVisualFailure, stableScreenshot, type VisualContext } from './visual-testing';
 import { expandSequenceForRun, type SequenceStep } from './step-groups';
 import { elementIdOfStep, resolveSequenceForRun } from './step-elements';
@@ -1980,9 +1980,13 @@ export class PlaywrightService {
         });
       }
 
+      // A phone or tablet: its screen, density, touch, mobile layout and user agent, in place of
+      // the desktop window below (shared/devices.ts).
+      const emulated = deviceContextOptions(browserChoice);
       context = await browser.newContext({
         userAgent,
         ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl ?? ''),
+        ...emulated,
         ...(storageState ? { storageState: storageState as any } : {}),
         // Playwright sends it as Accept-Language and answers navigator.language with it.
         ...(options?.locale ? { locale: options.locale } : {}),
@@ -1995,7 +1999,7 @@ export class PlaywrightService {
       page = await context.newPage();
       page.setDefaultTimeout(pageTimeout);
       if (options?.runtime) page.setDefaultNavigationTimeout(options.runtime.pageLoadTimeoutMs);
-      await page.setViewportSize({ width: 1280, height: 720 });
+      if (!emulated) await page.setViewportSize({ width: 1280, height: 720 });
 
       // A run no plan drives keeps a picture of every step, as it always has.
       const screenshots = options?.runtime?.screenshots ?? 'always';

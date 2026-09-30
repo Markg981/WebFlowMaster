@@ -1,5 +1,6 @@
 import playwright, { type Browser } from 'playwright';
 import { BROWSER_GRID_LABELS, type BrowserGridProvider } from '@shared/browser-grids';
+import { canEmulateDevice, isMobileDevice } from '@shared/devices';
 
 /**
  * Turning what a plan or a schedule *says* about browsers into something that can be launched.
@@ -42,6 +43,13 @@ export interface BrowserChoice {
   machine?: { os?: string | null; osVersion?: string | null; browserVersion?: string | null };
   /** Connect to this browser grid rather than launching here. Set by the runner for plans on a grid. */
   grid?: { id: string; provider: BrowserGridProvider; name: string; browserName: string };
+  /**
+   * The browser's name as configured (chromium, chrome, safari…), when the label says more than
+   * that — a device, a machine. What the grid maps and what the engine table is keyed by.
+   */
+  name?: string;
+  /** A phone or tablet this pass emulates (shared/devices.ts), in the browser above. */
+  device?: string;
 }
 
 /**
@@ -73,6 +81,7 @@ export interface TestMachineConfig {
   browserName?: string | null;
   browserVersion?: string | null;
   headless?: boolean | null;
+  device?: string | null;
 }
 
 export interface BrowserMatrix {
@@ -155,10 +164,10 @@ export function browsersForRun(input: BrowserMatrixInput): BrowserMatrix {
     }
     // The machine is part of what makes two rows different: Chrome on Windows and Chrome on
     // macOS are two passes on a grid.
-    const key = [choice.label, choice.headless, choice.machine?.os, choice.machine?.osVersion, choice.machine?.browserVersion].join(':');
+    const key = [choice.label, choice.headless, choice.machine?.os, choice.machine?.osVersion, choice.machine?.browserVersion, choice.device].join(':');
     if (seen.has(key)) return;
     seen.add(key);
-    const approximate = ENGINE_BY_NAME[choice.label]?.approximate;
+    const approximate = ENGINE_BY_NAME[choice.name ?? choice.label]?.approximate;
     if (approximate) warnings.push(approximate);
     browsers.push(choice);
   };
@@ -176,7 +185,14 @@ export function browsersForRun(input: BrowserMatrixInput): BrowserMatrix {
         const name = typeof machine?.browserName === 'string' ? machine.browserName : '';
         const resolved = resolveBrowser(name, machine?.headless !== false);
         const wanted = { os: machine?.os ?? null, osVersion: machine?.osVersion ?? null, browserVersion: machine?.browserVersion ?? null };
-        add(resolved && (wanted.os || wanted.osVersion || wanted.browserVersion) ? { ...resolved, machine: wanted } : resolved, name || '(empty)');
+        let choice = resolved && (wanted.os || wanted.osVersion || wanted.browserVersion) ? { ...resolved, machine: wanted } : resolved;
+        const device = typeof machine?.device === 'string' ? machine.device.trim() : '';
+        if (choice && device) {
+          if (!isMobileDevice(device)) warnings.push(`Unknown device "${device}" for ${choice.label}: it ran as a desktop browser.`);
+          else if (!canEmulateDevice(choice.label)) warnings.push(`Firefox cannot emulate ${device}: it ran as a desktop browser.`);
+          else choice = { ...choice, name: choice.label, device, label: `${choice.label} · ${device}` };
+        }
+        add(choice, name || '(empty)');
       }
       // On a grid these are honoured, and the runner leaves them out (see `onGrid`).
       if (!input.onGrid) warnings.push(...unsupportedMachineFields(machines));
@@ -256,12 +272,24 @@ export function onGrid(
     const version = base.machine?.browserVersion && base.machine.browserVersion !== 'latest' ? ` ${base.machine.browserVersion}` : '';
     return {
       ...base,
-      label: `${base.label}${version}${machine ? ` · ${machine}` : ''}`,
+      label: `${base.name ?? base.label}${version}${base.device ? ` · ${base.device}` : ''}${machine ? ` · ${machine}` : ''}`,
       // Nobody watches a browser in a data centre: a grid session is headless as far as we are concerned.
       headless: true,
-      grid: { ...grid, browserName: base.label },
+      grid: { ...grid, browserName: base.name ?? base.label },
     };
   });
+}
+
+/**
+ * The context options that make a pass a phone or a tablet: Playwright's descriptor for the
+ * device, without its default engine — the plan chose the browser. Undefined for the desktop.
+ */
+export function deviceContextOptions(choice: Pick<BrowserChoice, 'device' | 'engine'>) {
+  if (!choice.device || choice.engine === 'firefox') return undefined;
+  const descriptor = playwright.devices[choice.device];
+  if (!descriptor) return undefined;
+  const { defaultBrowserType: _engine, ...options } = descriptor;
+  return options;
 }
 
 /** A label for the run's logs and for the report column. */

@@ -2995,7 +2995,9 @@
       "os": "Betriebssystem",
       "anyOs": "Standard-OS",
       "osVersion": "OS-Version",
-      "browserVersion": "Browserversion"
+      "browserVersion": "Browserversion",
+      "device": "Gerät",
+      "desktop": "Desktop"
     },
     "parallel": {
       "label": "Höchstens ausführen (Tests gleichzeitig)",
