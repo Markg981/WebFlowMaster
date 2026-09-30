@@ -137,6 +137,30 @@ export class AppiumSession {
     });
   }
 
+  /** The app's view tree as XML (shared/mobile-inspector.ts reads it). */
+  async source(): Promise<string> {
+    return String((await this.request('GET', '/source'))?.value ?? '');
+  }
+
+  /** A finger down and up on one point of the screen, in the window's coordinates. */
+  tapAt(point: { x: number; y: number }) {
+    return this.request('POST', '/actions', {
+      actions: [
+        {
+          type: 'pointer',
+          id: 'finger',
+          parameters: { pointerType: 'touch' },
+          actions: [
+            { type: 'pointerMove', duration: 0, x: Math.round(point.x), y: Math.round(point.y) },
+            { type: 'pointerDown', button: 0 },
+            { type: 'pause', duration: 80 },
+            { type: 'pointerUp', button: 0 },
+          ],
+        },
+      ],
+    });
+  }
+
   async screenshot(): Promise<string | null> {
     try {
       return String((await this.request('GET', '/screenshot'))?.value ?? '') || null;

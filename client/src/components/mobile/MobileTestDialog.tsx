@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, Upload } from 'lucide-react';
+import { ArrowDown, ArrowUp, Loader2, Plus, ScanSearch, Trash2, Upload } from 'lucide-react';
+import MobileInspectorDialog, { type InspectorRequest } from './MobileInspectorDialog';
 import {
   MOBILE_ACTIONS,
   MOBILE_ACTION_IDS,
@@ -67,6 +68,7 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inspecting, setInspecting] = useState<InspectorRequest | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -128,6 +130,20 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
   };
 
   const problems = steps.map((step) => mobileStepProblem(step, platform));
+
+  // The inspector opens the app on the grid the test runs on in plans, else the one uploads go to.
+  const inspectGrid = planGrid !== NO_GRID ? planGrid : uploadGrid;
+  const canInspect = Boolean(inspectGrid && appRef.trim() && deviceName.trim());
+  const inspect = () => {
+    setError(null);
+    setInspecting({ gridId: inspectGrid, platform, app: appRef.trim(), deviceName: deviceName.trim(), osVersion: osVersion.trim() || null });
+  };
+  /** A step from the inspector, at the end; it takes the place of the blank step a new test starts with. */
+  const addFromInspector = (picked: Pick<MobileStep, 'action' | 'target' | 'value'>) =>
+    setSteps((current) => {
+      const kept = current.length === 1 && !current[0].target && !current[0].value ? [] : current;
+      return [...kept, { ...newStep(), action: picked.action, target: picked.target ?? '', value: picked.value ?? '' }];
+    });
 
   const save = async () => {
     if (problems.some(Boolean)) return setError(t('mobileTests.fixSteps', 'Correct the steps marked in red first.'));
@@ -313,9 +329,20 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
               );
             })}
           </ol>
-          <Button variant="outline" size="sm" onClick={() => setSteps((current) => [...current, newStep()])}>
-            <Plus className="mr-1 h-4 w-4" /> {t('mobileTests.addStep', 'Add step')}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setSteps((current) => [...current, newStep()])}>
+              <Plus className="mr-1 h-4 w-4" /> {t('mobileTests.addStep', 'Add step')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={inspect}
+              disabled={!canInspect}
+              title={canInspect ? undefined : t('mobileTests.inspectNeeds', 'The inspector needs a grid, the app and the device.')}
+            >
+              <ScanSearch className="mr-1 h-4 w-4" /> {t('mobileTests.inspect', 'Inspector')}
+            </Button>
+          </div>
         </div>
 
         {error && (
@@ -333,6 +360,7 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
           </Button>
         </DialogFooter>
       </DialogContent>
+      <MobileInspectorDialog isOpen={inspecting !== null} request={inspecting} onClose={() => setInspecting(null)} onAddStep={addFromInspector} />
     </Dialog>
   );
 }

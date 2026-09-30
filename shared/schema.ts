@@ -1577,6 +1577,7 @@ export const AUDIT_ACTIONS = {
   MOBILE_TEST_DELETED: 'mobile_test.deleted',
   MOBILE_TEST_RUN: 'mobile_test.run',
   MOBILE_APP_UPLOADED: 'mobile_test.app_uploaded',
+  MOBILE_INSPECTOR_OPENED: 'mobile_test.inspector_opened',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
