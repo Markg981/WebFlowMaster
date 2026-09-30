@@ -126,6 +126,42 @@ const PAGES: Record<string, string> = {
         });
       });
     </script>`,
+
+  // One control per interaction a click and a typed value cannot stand in for. Each writes
+  // what it received into #out, so a step is judged by what reached the page.
+  '/interactions': `<!doctype html><title>Interactions</title>
+    <h1 id="title">Interactions</h1>
+    <form id="search"><input id="q" type="text"></form>
+    <button id="dbl">double me</button>
+    <button id="ctx">right-click me</button>
+    <div id="src" draggable="true">drag me</div>
+    <div id="dst" style="width:120px;height:60px;border:1px solid">drop here</div>
+    <input id="file" type="file">
+    <button id="pick">Choose a file</button>
+    <button id="ask">Delete</button>
+    <button id="prompt">Rename</button>
+    <a id="open" href="/second" target="_blank">open in a new tab</a>
+    <span id="order">Order 4711</span>
+    <span id="out"></span>
+    <script>
+      function out(text) { document.getElementById('out').textContent = text; }
+      document.getElementById('search').addEventListener('submit', function (e) {
+        e.preventDefault();
+        out('searched ' + document.getElementById('q').value);
+      });
+      document.getElementById('dbl').addEventListener('dblclick', function () { out('double'); });
+      document.getElementById('ctx').addEventListener('contextmenu', function (e) { e.preventDefault(); out('context'); });
+      var dst = document.getElementById('dst');
+      dst.addEventListener('dragover', function (e) { e.preventDefault(); });
+      dst.addEventListener('drop', function (e) { e.preventDefault(); out('dropped'); });
+      document.getElementById('file').addEventListener('change', function () {
+        var f = this.files[0];
+        f.text().then(function (t) { out('file ' + f.name + ' ' + f.type + ' ' + t.trim()); });
+      });
+      document.getElementById('pick').addEventListener('click', function () { document.getElementById('file').click(); });
+      document.getElementById('ask').addEventListener('click', function () { out(confirm('Sure?') ? 'confirmed' : 'cancelled'); });
+      document.getElementById('prompt').addEventListener('click', function () { out('name ' + prompt('Name?')); });
+    </script>`,
 };
 
 beforeAll(async () => {
@@ -742,4 +778,118 @@ describe('a precondition that is already satisfied', () => {
     // And it must not have clicked anything in the meantime.
     expect(failure?.error).not.toContain('after being clicked');
   }, 90_000);
+});
+
+describe('interactions a click and a typed value cannot stand in for', () => {
+  const run = async (sequence: MappedTestStep[], vars?: Record<string, string>) => {
+    const { playwrightService } = await import('./playwright-service');
+    const result = await playwrightService.executeTestSequence(savedTest(sequence, '/interactions'), 1, undefined, undefined, vars);
+    const failures = (result.steps ?? []).filter((s) => s.status === 'failed').map((f) => `${f.type}: ${f.error}`);
+    return { result, failures };
+  };
+
+  it('submits a form with Enter, after the value it submits', async () => {
+    const { failures } = await run([
+      step('input', { selector: '#q', value: 'invoices' }),
+      step('pressKey', { selector: '#q', value: 'Enter' }),
+      step('assertTextContains', { selector: '#out', value: 'searched invoices' }),
+    ]);
+    expect(failures).toEqual([]);
+  }, 60_000);
+
+  it('double-clicks, right-clicks and drags', async () => {
+    const { failures } = await run([
+      step('doubleClick', { selector: '#dbl' }),
+      step('assertTextContains', { selector: '#out', value: 'double' }),
+      step('rightClick', { selector: '#ctx' }),
+      step('assertTextContains', { selector: '#out', value: 'context' }),
+      step('dragAndDrop', { selector: '#src', value: '#dst' }),
+      step('assertTextContains', { selector: '#out', value: 'dropped' }),
+    ]);
+    expect(failures).toEqual([]);
+  }, 60_000);
+
+  it('uploads a file through the input, and through the button that opens the chooser', async () => {
+    const { failures } = await run([
+      step('uploadFile', { selector: '#file', value: 'orders.csv|a,b,c' }),
+      step('assertTextContains', { selector: '#out', value: 'file orders.csv text/csv a,b,c' }),
+      step('uploadFile', { selector: '#pick', value: 'notes.txt|hello' }),
+      step('assertTextContains', { selector: '#out', value: 'file notes.txt text/plain hello' }),
+    ]);
+    expect(failures).toEqual([]);
+  }, 60_000);
+
+  it('answers dialogs in the order given, and dismisses one nobody answered', async () => {
+    const { failures } = await run([
+      step('handleDialog', { value: 'accept' }),
+      step('handleDialog', { value: 'accept:Ada' }),
+      step('click', { selector: '#ask' }),
+      step('assertTextContains', { selector: '#out', value: 'confirmed' }),
+      step('click', { selector: '#prompt' }),
+      step('assertTextContains', { selector: '#out', value: 'name Ada' }),
+      step('click', { selector: '#ask' }),
+      step('assertTextContains', { selector: '#out', value: 'cancelled' }),
+    ]);
+    expect(failures).toEqual([]);
+  }, 60_000);
+
+  it('stores a text for later steps without writing into the variables it was given', async () => {
+    const vars = { baseUrl };
+    const { failures } = await run(
+      [
+        step('storeText', { selector: '#order', value: 'orderNo' }),
+        step('input', { selector: '#q', value: '{{orderNo}}' }),
+        step('pressKey', { selector: '#q', value: 'Enter' }),
+        step('assertTextContains', { selector: '#out', value: 'searched Order 4711' }),
+      ],
+      vars,
+    );
+    expect(failures).toEqual([]);
+    expect(vars).toEqual({ baseUrl });
+  }, 60_000);
+
+  it('follows a link into a new tab and comes back when it is closed', async () => {
+    const { failures } = await run([
+      step('click', { selector: '#open' }),
+      step('switchTab'),
+      step('assertTextContains', { selector: '#title', value: 'Second page' }),
+      step('closeTab'),
+      step('assertTextContains', { selector: '#title', value: 'Interactions' }),
+    ]);
+    expect(failures).toEqual([]);
+  }, 60_000);
+
+  it('sets cookies and localStorage, and runs a script that checks them', async () => {
+    const { failures } = await run([
+      step('setCookie', { value: 'flavour=oat' }),
+      step('executeScript', { value: "return document.cookie.includes('flavour=oat')" }),
+      step('setLocalStorage', { value: 'k=v=w' }),
+      step('executeScript', { value: "localStorage.getItem('k') === 'v=w'" }),
+      step('clearCookies'),
+      step('executeScript', { value: "document.cookie === ''" }),
+    ]);
+    expect(failures).toEqual([]);
+  }, 60_000);
+
+  it('fails a script that returns false or throws', async () => {
+    // Separate runs: a saved test stops at its first failed step.
+    const returnedFalse = await run([step('executeScript', { value: 'false' })]);
+    expect(returnedFalse.failures).toEqual(['executeScript: The script returned false.']);
+    const threw = await run([step('executeScript', { value: "throw new Error('boom')" })]);
+    expect(threw.failures).toEqual([expect.stringContaining('boom')]);
+  }, 60_000);
+});
+
+describe('parsing the values of the new actions', () => {
+  it('reads uploads, dialog answers and assignments', async () => {
+    const { parseUploadValue, parseDialogAnswer, parseAssignment } = await import('./step-executor');
+    expect(parseUploadValue('../etc/passwd')).toHaveProperty('error');
+    expect(parseUploadValue('a.json|{}')).toMatchObject({ name: 'a.json', mimeType: 'application/json' });
+    expect(parseDialogAnswer('')).toEqual({ accept: true });
+    expect(parseDialogAnswer('Dismiss')).toEqual({ accept: false });
+    expect(parseDialogAnswer('accept:a:b')).toEqual({ accept: true, promptText: 'a:b' });
+    expect(parseDialogAnswer('maybe')).toBeNull();
+    expect(parseAssignment('a=b=c')).toEqual({ name: 'a', value: 'b=c' });
+    expect(parseAssignment('=x')).toBeNull();
+  });
 });

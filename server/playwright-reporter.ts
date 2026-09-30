@@ -23,6 +23,11 @@ export class PlaywrightReporter {
 
   constructor(private page: Page) {}
 
+  /** Follows the test to another tab, so healing and clicks act where the steps now are. */
+  setPage(page: Page) {
+    this.page = page;
+  }
+
   setContext(testId: number, stepIndex: number, elementId?: string | null) {
     this.currentTestId = testId;
     this.currentStepIndex = stepIndex;

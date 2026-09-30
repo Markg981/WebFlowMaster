@@ -90,8 +90,33 @@ describe('mapRecordedActionToStep', () => {
     ).toBeNull();
   });
 
-  it('drops keypress, which has no replay counterpart', () => {
-    expect(mapRecordedActionToStep(at({ type: 'keypress', key: 'Enter' }), 0)).toBeNull();
+  it('replays a recorded Enter as a key press in the field it was pressed in', () => {
+    const step = mapRecordedActionToStep(at({ type: 'keypress', key: 'Enter', selector: '#q' }), 0);
+
+    expect(step?.action.id).toBe('pressKey');
+    expect(step?.value).toBe('Enter');
+    expect(step?.targetElement?.selector).toBe('#q');
+    expect(AdhocTestStepSchema.safeParse(step).success).toBe(true);
+  });
+
+  it('puts the value of a field before the Enter that submitted it', () => {
+    // keydown fires before change, so the recorder hears the two the wrong way round.
+    const steps = mapRecordedSequence([
+      at({ type: 'keypress', key: 'Enter', selector: '#q', timestamp: 1 }),
+      at({ type: 'input', selector: '#q', value: 'invoices', timestamp: 2 }),
+    ]);
+
+    expect(steps.map((s) => s.action.id)).toEqual(['input', 'pressKey']);
+    expect(steps[0].value).toBe('invoices');
+  });
+
+  it('leaves an Enter alone when the next value belongs to another field', () => {
+    const steps = mapRecordedSequence([
+      at({ type: 'keypress', key: 'Enter', selector: '#q' }),
+      at({ type: 'input', selector: '#other', value: 'x' }),
+    ]);
+
+    expect(steps.map((s) => s.action.id)).toEqual(['pressKey', 'input']);
   });
 
   it('turns a redacted field into a named variable placeholder, not an empty value', () => {

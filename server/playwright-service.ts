@@ -1514,6 +1514,9 @@ export class PlaywrightService {
             resolvedLogger.verbose({ message: `PS:executeAdhocSequence - Executing step`, testName, actionName, actionId, selector: step.targetElement?.selector, value: step.value });
 
             const outcome = await executeStep({ page, vars }, step);
+            // A step that moved the test to another tab: every step after it, and this step's
+            // screenshot, belong to that tab.
+            if (outcome.page) page = outcome.page;
             if (outcome.status === 'failed') {
               stepStatus = 'failed';
               stepError = outcome.error;
@@ -1730,6 +1733,10 @@ export class PlaywrightService {
       );
       return { ...merged, duration: Date.now() - startTime };
     }
+    // This run's own copy. A `storeText` step writes into it, and the object passed in may be
+    // shared with the plan's other tests, other browsers, or the process-wide defaults — a
+    // value stored here must not be what the next test finds under the same name.
+    vars = { ...vars };
     const wsEmitter = getWsEmitter();
     resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url, screenshotBaseDir });
 
@@ -1979,6 +1986,12 @@ export class PlaywrightService {
               }
               reporter.resetStepState();
               outcome = await executeStep({ page, reporter, vars }, step);
+            }
+            // A step that moved the test to another tab: the steps after it, the healing pass
+            // and this step's screenshot all belong to that tab.
+            if (outcome.page) {
+              page = outcome.page;
+              reporter.setPage(outcome.page);
             }
             if (outcome.status === 'failed') {
               stepStatus = 'failed';
