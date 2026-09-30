@@ -5,6 +5,7 @@ import {
   projects,
   secrets,
   stepGroups,
+  customActions,
   testPlanSchedules,
   testPlans,
   tests,
@@ -39,6 +40,7 @@ export const TRANSFERRED_ON_REMOVAL = [
   { table: testPlans, name: 'test_plans' },
   { table: testPlanSchedules, name: 'test_plan_schedules' },
   { table: stepGroups, name: 'step_groups' },
+  { table: customActions, name: 'custom_actions' },
   { table: environments, name: 'environments' },
   { table: secrets, name: 'secrets' },
 ] as const;

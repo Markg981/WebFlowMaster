@@ -493,6 +493,10 @@ describe('removing a member who made things', () => {
       INSERT INTO step_groups (id, organization_id, user_id, name, sequence)
       VALUES (${`group-${orgId}`}, ${orgId}, ${editorId}, 'Sign in', '[]'::jsonb)
     `);
+    await privilegedDb.execute(sql`
+      INSERT INTO custom_actions (id, organization_id, user_id, name, script)
+      VALUES (${`action-${orgId}`}, ${orgId}, ${editorId}, 'Open order', 'return true;')
+    `);
     const env = await privilegedDb.execute(sql`
       INSERT INTO environments (name, user_id, organization_id) VALUES (${`staging-${orgId}`}, ${editorId}, ${orgId}) RETURNING id
     `);
@@ -515,7 +519,7 @@ describe('removing a member who made things', () => {
 
   // Runs before the file's own cleanup, which deletes the users these rows now point at.
   afterEach(async () => {
-    for (const table of ['secrets', 'environments', 'test_plan_schedules', 'test_plans', 'step_groups', 'api_tests', 'tests', 'projects', 'api_keys']) {
+    for (const table of ['secrets', 'environments', 'test_plan_schedules', 'test_plans', 'step_groups', 'custom_actions', 'api_tests', 'tests', 'projects', 'api_keys']) {
       await privilegedDb.execute(sql`DELETE FROM ${sql.identifier(table)} WHERE organization_id = ${orgId}`);
     }
   });
@@ -526,9 +530,9 @@ describe('removing a member who made things', () => {
     expect(res.status).toBe(200);
     expect(res.body.transferredTo).toEqual({ id: ownerId, username: 'org-owner' });
     expect(res.body.transferred).toEqual({
-      projects: 1, tests: 1, api_tests: 1, test_plans: 1, test_plan_schedules: 1, step_groups: 1, environments: 1, secrets: 1,
+      projects: 1, tests: 1, api_tests: 1, test_plans: 1, test_plan_schedules: 1, step_groups: 1, custom_actions: 1, environments: 1, secrets: 1,
     });
-    for (const table of ['projects', 'tests', 'api_tests', 'test_plans', 'test_plan_schedules', 'step_groups', 'environments', 'secrets']) {
+    for (const table of ['projects', 'tests', 'api_tests', 'test_plans', 'test_plan_schedules', 'step_groups', 'custom_actions', 'environments', 'secrets']) {
       expect(await count(sql`SELECT count(*) AS n FROM ${sql.identifier(table)} WHERE organization_id = ${orgId} AND user_id = ${ownerId}`)).toBe(1);
     }
   });

@@ -85,6 +85,8 @@ export interface ExecutableStep {
   action?: { id?: string; name?: string } | null;
   targetElement?: { selector?: string; frameSelector?: string | null } | null;
   value?: unknown;
+  /** Set on the step a custom action call expands into (server/custom-actions.ts). */
+  args?: Record<string, string> | null;
 }
 
 /**
@@ -200,6 +202,8 @@ interface StepRuntime {
   selector?: string;
   /** The step's raw value, before substitution. */
   raw?: unknown;
+  /** A custom action's arguments, before substitution. */
+  args?: Record<string, string> | null;
   actionName: string;
   /** Routed through the reporter when there is one, so AI healing still applies. */
   click: (selector: string) => Promise<void>;
@@ -1048,7 +1052,23 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     const wanted = requireValue(rt, 'executeScript');
     if ('error' in wanted) return failed(wanted.error);
     const source = wanted.value;
-    const expression = /\breturn\b/.test(source) ? `(async () => {\n${source}\n})()` : source;
+    let expression = /\breturn\b/.test(source) ? `(async () => {\n${source}\n})()` : source;
+    if (rt.args) {
+      // A custom action: its script is a function body that reads `args` and `element`.
+      // The arguments are resolved one by one and then serialised, rather than substituted
+      // into the script's text, so a value holding a quote is a value and not broken code.
+      const args: Record<string, string> = {};
+      for (const [name, raw] of Object.entries(rt.args)) {
+        const resolved = resolveValue(raw, rt.vars);
+        if ('error' in resolved) return failed(`Argument ${name}: ${resolved.error}`);
+        args[name] = resolved.value;
+      }
+      const selector = JSON.stringify(rt.selector ?? '');
+      expression =
+        `(async () => {\nconst args = ${JSON.stringify(args)};\n` +
+        `const element = (() => { try { return ${selector} ? document.querySelector(${selector}) : null; } catch { return null; } })();\n` +
+        `${source}\n})()`;
+    }
     let result: unknown;
     try {
       result = await rt.page.evaluate(expression);
@@ -1151,6 +1171,7 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
     vars: ctx.vars ?? requestVariables(),
     selector: step.targetElement?.selector,
     raw: step.value,
+    args: step.args ?? null,
     actionName,
     // The reporter drives the page directly and knows nothing about frames, so a step
     // inside one goes straight to the locator. It loses AI healing for that step, which is

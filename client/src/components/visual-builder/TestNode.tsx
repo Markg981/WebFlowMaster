@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { TestAction } from '@/pages/dashboard-page-new';
 import { DetectedElement } from '@/components/drag-drop-provider';
 import { ACTION_REQUIREMENTS, ACTION_VALUE_HINTS, ACTION_VALUE_OPTIONS, STEP_GROUP_ACTION_ID, type AdhocActionId } from '@shared/recording';
+import { argumentsHint, customActionIdOf, type CustomActionParameter } from '@shared/custom-actions';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
 import { Trash2, Link2 } from 'lucide-react';
@@ -36,7 +37,13 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
   // and the Material dropdown ended up in the palette with no fields to fill in: they were
   // added to the action list and these two arrays were not. "assert" is the visibility
   // check — a target but no value; "navigate" is the opposite.
-  const requirements = ACTION_REQUIREMENTS[data.action.id as AdhocActionId];
+  // A custom action is not in the table: it takes its arguments as the value, and an element
+  // its script reads as `element` if the author gives it one.
+  const isCustomAction = customActionIdOf(data.action.id) !== null;
+  const customParameters: CustomActionParameter[] = (data.action as { parameters?: CustomActionParameter[] }).parameters ?? [];
+  const requirements = isCustomAction
+    ? { target: false, value: true, valueRequired: false, optionalTarget: true }
+    : ACTION_REQUIREMENTS[data.action.id as AdhocActionId];
   const needsValue = requirements?.value ?? false;
   const needsTarget = requirements?.target ?? false;
   // An element the step can do without — a condition about a value, a key for whatever has
@@ -45,7 +52,12 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
   // A closed list becomes a dropdown; everything else stays a free-text field.
   const valueOptions = ACTION_VALUE_OPTIONS[data.action.id as AdhocActionId];
   // The shape of the value, for the actions whose value has one ("name.ext|content", …).
-  const valueHint = ACTION_VALUE_HINTS[data.action.id as AdhocActionId];
+  const hintKey = ACTION_VALUE_HINTS[data.action.id as AdhocActionId];
+  const valueHint = isCustomAction
+    ? (customParameters.length > 0 ? argumentsHint(customParameters) : 'name=value; …')
+    : hintKey
+      ? t(hintKey)
+      : undefined;
 
   // Accept a detected element dropped from the "Detected Elements" panel and bind it as
   // this step's target. Without this drop target the dragged element had nowhere to land
@@ -145,8 +157,8 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
                 value={data.value || ""}
                 onChange={(e) => data.onUpdateValue(id, e.target.value)}
                 disabled={data.isRecordingActive}
-                placeholder={valueHint ? t(valueHint) : t('testSequenceBuilder.value.placeholder')}
-                title={valueHint ? t(valueHint) : undefined}
+                placeholder={valueHint ?? t('testSequenceBuilder.value.placeholder')}
+                title={valueHint}
               />
             )}
           </div>

@@ -127,7 +127,9 @@
       "sourceHosts": "GitHub & GitLab",
       "sourceHostsDescription": "Runs started from a pipeline report pending, passed or failed on the commit they tested.",
       "members": "Members",
-      "membersDescription": "Who belongs to the organization, their roles, and invitations for new people."
+      "membersDescription": "Who belongs to the organization, their roles, and invitations for new people.",
+      "customActions": "Custom actions",
+      "customActionsDescription": "Steps of your own, in JavaScript that runs in the page under test, offered in the builder beside the built-in ones."
     },
     "apiKeys": {
       "openApi": "API reference (OpenAPI)",
@@ -323,6 +325,23 @@
       "resetPassword": "Password reset link for {{username}}",
       "resetIntro": "Send this link to {{username}} to choose a new password. It is shown only now, works once, and lasts one day.",
       "resetLinkLabel": "Password reset link"
+    },
+    "customActions": {
+      "title": "Custom actions",
+      "description": "Steps of your own, in JavaScript that runs in the page under test. The script reads its arguments as args and the step’s element as element; it fails the step by throwing or returning false.",
+      "saved": "Saved. Every test that uses it runs the new version.",
+      "empty": "No custom actions yet.",
+      "edit": "Edit",
+      "delete": "Delete",
+      "confirmDelete": "Delete “{{name}}”? A test that still uses it cannot run.",
+      "name": "Name",
+      "descriptionLabel": "Description",
+      "parameters": "Parameters",
+      "parametersHint": "Separated by commas; a trailing ? makes one optional. In a test: code=4711; qty=2.",
+      "script": "Script",
+      "save": "Save",
+      "cancel": "Cancel",
+      "new": "New custom action"
     }
   },
   "dashboard": {
@@ -1299,6 +1318,9 @@
         "description_one": "{{count}} step was added to the end of the sequence.",
         "description_other": "{{count}} steps were added to the end of the sequence."
       }
+    },
+    "customActions": {
+      "title": "Custom actions"
     }
   },
   "notFoundPage": {
@@ -2334,7 +2356,8 @@
       "suite": "Suites",
       "agent": "Local agents",
       "source_host": "GitHub & GitLab",
-      "sso": "Single sign-on"
+      "sso": "Single sign-on",
+      "custom_action": "Custom actions"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -2403,7 +2426,10 @@
       "auth_password_reset_completed": "Password reset with a link",
       "sso_configured": "Single sign-on set up or changed",
       "sso_removed": "Single sign-on removed",
-      "member_provisioned": "Account created at first sign-in"
+      "member_provisioned": "Account created at first sign-in",
+      "custom_action_created": "Custom action created",
+      "custom_action_updated": "Custom action changed",
+      "custom_action_deleted": "Custom action deleted"
     }
   },
   "security": {

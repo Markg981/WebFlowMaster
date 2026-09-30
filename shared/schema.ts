@@ -3,6 +3,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations, sql } from 'drizzle-orm';
 import { ACTION_REQUIREMENTS, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from './recording';
+import { CUSTOM_ACTION_STEP_ID_PATTERN, type CustomActionParameter } from './custom-actions';
 import type { NetworkSummary } from './network';
 import type { CiContext } from './ci';
 
@@ -808,6 +809,29 @@ export type StepGroup = typeof stepGroups.$inferSelect;
 export type InsertStepGroup = typeof stepGroups.$inferInsert;
 
 /**
+ * An organization's own step: a name, parameters, and JavaScript that runs in the page under
+ * test. Referenced by tests like a step group, never copied into them — see
+ * shared/custom-actions.ts for why the script runs in the page and nowhere else.
+ */
+export const customActions = pgTable("custom_actions", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  parameters: jsonb("parameters").$type<CustomActionParameter[]>().notNull().default([]),
+  script: text("script").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("custom_actions_organization_id_idx").on(table.organizationId),
+  // One name per organization: it is what the palette shows and what a report names.
+  uniqueIndex("custom_actions_organization_name_idx").on(table.organizationId, table.name),
+]);
+
+export type CustomAction = typeof customActions.$inferSelect;
+
+/**
  * The elements of an application, in one place instead of inside each test.
  *
  * `detected_elements` belongs to a single test, so the same button is written down once per
@@ -1322,6 +1346,11 @@ export const AUDIT_ACTIONS = {
   SSO_CONFIGURED: 'sso.configured',
   SSO_REMOVED: 'sso.removed',
   MEMBER_PROVISIONED: 'member.provisioned',
+  // An organization's own steps. They are code that runs against the applications under test,
+  // so who wrote and changed them is kept — the script itself is not, only its size.
+  CUSTOM_ACTION_CREATED: 'custom_action.created',
+  CUSTOM_ACTION_UPDATED: 'custom_action.updated',
+  CUSTOM_ACTION_DELETED: 'custom_action.deleted',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
@@ -2177,7 +2206,14 @@ export const AdhocTestActionSchema = z.object({
   // the step executor's exhaustive table is what guarantees every *action* has an
   // implementation — and this one is replaced by the group's own steps before the executor
   // runs. See server/step-groups.ts.
-  id: z.union([z.enum(ADHOC_ACTION_IDS), z.literal(STEP_GROUP_ACTION_ID)]),
+  //
+  // And a call to one of the organization's custom actions, `customAction:<id>`, which the
+  // runner replaces with the action's script the same way (server/custom-actions.ts).
+  id: z.union([
+    z.enum(ADHOC_ACTION_IDS),
+    z.literal(STEP_GROUP_ACTION_ID),
+    z.string().regex(CUSTOM_ACTION_STEP_ID_PATTERN),
+  ]),
   type: z.string(),
   name: z.string(),
   icon: z.string(),
@@ -2310,4 +2346,6 @@ export const ORG_SCOPED_TABLES = [
   // One-time links to choose a new password (migration 0042). Redeeming one is the privileged
   // bootstrap in server/storage.ts; issuing and listing them happen inside the organization.
   'password_resets',
+  // The organization's own steps (migration 0046).
+  'custom_actions',
 ] as const;

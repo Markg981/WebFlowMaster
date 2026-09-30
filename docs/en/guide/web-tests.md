@@ -189,6 +189,33 @@ group**. It then appears under **Step groups** in the palette, and any test can 
 runs the group as it is at the time of the run, so changing the group changes every test that
 uses it.
 
+## Custom actions {#custom-actions}
+
+When no built-in action does what a test needs, an editor can write one: **Settings → Custom
+actions → New custom action**, with a name, parameters and a script. The action appears under
+**Custom actions** in the palette, and a test uses it like any other step.
+
+- **Parameters** are listed separated by commas; a trailing `?` makes one optional
+  (`code, qty?`). In the test, the step's value gives the arguments: `code=4711; qty=2`. Write
+  `\;` for a semicolon inside a value. Arguments may contain <code v-pre>{{variables}}</code> and
+  generated values.
+- **The script** is the body of an async function that runs in the page under test. It reads
+  its arguments as `args` (`args.code`) and, when the step has an element, that element as
+  `element` (found with `document.querySelector`, so a CSS selector). It fails the step by
+  throwing an error or returning `false`; whatever else it returns is shown in the report.
+
+```js
+const row = [...document.querySelectorAll('tr')].find((r) => r.textContent.includes(args.code));
+if (!row) throw new Error(`No order ${args.code}`);
+row.querySelector('button.open').click();
+```
+
+A custom action has the powers of a **Run JavaScript** step and no others: it runs in the
+browser page, never on the server or the runner. Tests refer to the action rather than copying
+it, so editing it changes every test that uses it on its next run; an action still used by a test
+or a step group cannot be deleted, and the message names what uses it. Creating, changing and
+deleting one is recorded in the audit log, without the script.
+
 ## Element repository {#element-repository}
 
 When the same element is used by many tests, **keep** it: the bookmark on a detected element saves
