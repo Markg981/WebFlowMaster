@@ -52,6 +52,7 @@ import testPublishingRoutes from "./routes/test-publishing.routes";
 import runnersRoutes from "./routes/runners.routes";
 import suitesRoutes from "./routes/suites.routes";
 import requirementsRoutes from "./routes/requirements.routes";
+import testManagementRoutes from "./routes/test-management.routes";
 import quarantineRoutes from "./routes/quarantine.routes";
 import { requireMfaEnrollment } from "./middleware/require-mfa-enrollment";
 import { requireSso } from "./middleware/require-sso";
@@ -201,6 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(runnersRoutes);
     app.use(suitesRoutes);
   app.use(requirementsRoutes);
+  app.use(testManagementRoutes);
     app.use(quarantineRoutes);
     app.use(webhookManagementRoutes);
     app.use(stepGroupsRoutes);

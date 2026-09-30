@@ -41,6 +41,7 @@ import {
   type RunSummary,
 } from './notifications';
 import { fileFailure, loadTracker, markResolved } from './issue-store';
+import { publishExecution } from './test-management';
 import { currentVersionsOf } from './test-version-store';
 import { publishedContentOf, reviewRequired } from './test-publishing';
 import { failuresOf, openQuarantinesOf, refKey } from './test-quarantine';
@@ -1532,6 +1533,7 @@ async function runTestPlanJobInTenant(
         organizationId: executionRecord[0].organizationId,
         results: finalDetailedResults,
       });
+      if (snapshot.testManagement?.connectionId) await publishToTestManagement(testPlanRunId);
       await notifyRunFinished({
         plan: { notificationSettings: snapshot.notificationSettings },
         execution: executionRecord[0],
@@ -1749,6 +1751,34 @@ async function fileFailuresIfConfigured(input: {
     }
   } catch (error: any) {
     say('warn', `Issue filing could not be attempted: ${error?.message ?? error}`);
+  }
+}
+
+/**
+ * Sends the finished run to the plan's TestRail, Xray or Zephyr Scale (server/test-management.ts).
+ *
+ * Like issue filing, it cannot fail the run: whatever the tool answered is recorded against the
+ * run and said in its log, and the report offers to publish again.
+ */
+async function publishToTestManagement(executionId: string): Promise<void> {
+  const resolvedLogger = await loggerPromise;
+  const say = (level: 'info' | 'warn', message: string) => {
+    const entry: ExecutionLogEntry = { level, source: 'system', message, timestamp: new Date().toISOString() };
+    if (level === 'warn') resolvedLogger.warn(entry); else resolvedLogger.info(entry);
+    getWsEmitter().emitExecutionLog(executionId, entry);
+  };
+  try {
+    const publication = await publishExecution(executionId);
+    if (!publication) return;
+    const unmapped = publication.unmappedCount ? ` ${publication.unmappedCount} tests have no case there and were not sent.` : '';
+    if (publication.status === 'published') {
+      say('info', `Published ${publication.publishedCount} results to ${publication.connectionName} as ${publication.externalKey}.${unmapped}`);
+      if (publication.message) say('warn', `${publication.connectionName} did not take every result: ${publication.message}`);
+    } else {
+      say('warn', `Not published to ${publication.connectionName}: ${publication.message ?? publication.status}`);
+    }
+  } catch (error: any) {
+    say('warn', `Publishing to the test management tool could not be attempted: ${error?.message ?? error}`);
   }
 }
 

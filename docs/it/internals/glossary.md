@@ -54,6 +54,7 @@ ciascuna vive. I termini restano in inglese quando è così che compaiono nell'i
 | **Tag** | Un'etichetta propria dell'organizzazione per i test (`tags`, `test_tags`). |
 | **Tenant context (contesto di tenant)** | L'organizzazione (e l'utente) legati alla richiesta o al job corrente, tramite AsyncLocalStorage. |
 | **Test** | Un test UI: una sequenza di step (`tests`). |
+| **Test management connection (connessione di test management)** | TestRail, Xray o Zephyr Scale, dove un piano pubblica ogni run concluso caso per caso (`test_management_connections`); il caso di un test è il suo collegamento (`test_case_links`) o la `[CHIAVE]` nel nome. |
 | **Ticket** | Un permesso firmato di 60 secondi con cui un runner prende in prestito il browser di un agente. |
 | **Variabile** | Un segnaposto `{{nome}}` risolto dall'installazione, dall'ambiente, da una riga del dataset o da un'estrazione. |
 | **Version (versione)** | Uno stato salvato di un test (`test_versions`); ripristinarne una scrive una nuova versione. |

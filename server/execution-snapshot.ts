@@ -66,6 +66,11 @@ export interface ExecutionSnapshot {
   runOn?: { agentPool: string | null; browserGridId?: string | null };
   /** Languages every test runs in (shared/locales.ts). Absent on older snapshots: none. */
   locales?: string[];
+  /**
+   * The TestRail, Xray or Zephyr Scale the finished run is published to (server/test-management.ts).
+   * Absent on older snapshots: published nowhere.
+   */
+  testManagement?: { connectionId: string | null };
 }
 
 /** What the request may say that the plan does not. Anything absent comes from the plan. */
@@ -147,6 +152,7 @@ export function buildExecutionSnapshot(
     issues: { trackerId: plan.issueTrackerId ?? null, createOnFailure: plan.createIssuesOnFailure === true },
     runOn: { agentPool: plan.agentPool ?? null, browserGridId: plan.browserGridId ?? null },
     locales: normalizeLocales(parsedJson(plan.locales)),
+    testManagement: { connectionId: plan.testManagementId ?? null },
   };
 }
 

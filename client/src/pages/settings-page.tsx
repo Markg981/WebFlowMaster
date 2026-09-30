@@ -41,6 +41,7 @@ import {
   Laptop,
   GitCommitHorizontal,
   Cloud,
+  ClipboardList,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProjectAccessDialog from "@/components/settings/ProjectAccessDialog";
@@ -72,6 +73,7 @@ import ElementRepositoryCard from "@/components/settings/ElementRepositoryCard";
 import CustomActionsCard from "@/components/settings/CustomActionsCard";
 import IssueTrackersCard from "@/components/settings/IssueTrackersCard";
 import BrowserGridsCard from "@/components/settings/BrowserGridsCard";
+import TestManagementCard from "@/components/settings/TestManagementCard";
 
 interface Project {
   id: number;
@@ -623,6 +625,16 @@ export default function SettingsPage() {
       ),
       icon: Bug,
       content: <IssueTrackersCard />,
+    },
+    {
+      id: 'testManagement',
+      label: t('settings.sections.testManagement', 'Test management'),
+      description: t(
+        'settings.sections.testManagementDescription',
+        'TestRail, Xray or Zephyr Scale, where each finished run is published case by case.',
+      ),
+      icon: ClipboardList,
+      content: <TestManagementCard />,
     },
     {
       id: 'browserGrids',

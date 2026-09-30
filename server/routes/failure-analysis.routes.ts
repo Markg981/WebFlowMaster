@@ -103,7 +103,7 @@ router.post(
           .update(reportTestCaseResults)
           .set({ aiAnalysis: analysis })
           .where(eq(reportTestCaseResults.id, resultId))
-          .returning({ id: reportTestCaseResults.id });
+          .returning();
         if (!updated) return false;
         await recordAudit(tx, {
           action: AUDIT_ACTIONS.RUN_FAILURE_ANALYSED,

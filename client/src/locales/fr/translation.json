@@ -131,7 +131,9 @@
       "customActions": "Actions personnalisées",
       "customActionsDescription": "Vos propres étapes, en JavaScript exécuté dans la page testée, proposées dans le constructeur à côté des étapes intégrées.",
       "browserGrids": "Grilles de navigateurs",
-      "browserGridsDescription": "BrowserStack, LambdaTest ou votre propre serveur Playwright, pour les navigateurs et systèmes que les runners n'ont pas."
+      "browserGridsDescription": "BrowserStack, LambdaTest ou votre propre serveur Playwright, pour les navigateurs et systèmes que les runners n'ont pas.",
+      "testManagement": "Gestion des tests",
+      "testManagementDescription": "TestRail, Xray ou Zephyr Scale, où chaque exécution terminée est publiée cas par cas."
     },
     "apiKeys": {
       "openApi": "Référence de l'API (OpenAPI)",
@@ -2576,7 +2578,8 @@
       "source_host": "GitHub et GitLab",
       "sso": "Authentification unique",
       "custom_action": "Actions personnalisées",
-      "requirement": "Exigences"
+      "requirement": "Exigences",
+      "test_management": "Gestion des tests"
     },
     "actions": {
       "member_role_changed": "Rôle du membre modifié",
@@ -2655,7 +2658,12 @@
       "requirement_updated": "Exigence modifiée",
       "requirement_deleted": "Exigence supprimée",
       "requirement_imported": "Exigences importées d'un tracker",
-      "requirement_tests_changed": "Tests couvrant une exigence modifiés"
+      "requirement_tests_changed": "Tests couvrant une exigence modifiés",
+      "test_management_connected": "Outil de gestion des tests connecté",
+      "test_management_updated": "Connexion à la gestion des tests modifiée",
+      "test_management_removed": "Outil de gestion des tests supprimé",
+      "test_management_cases_changed": "Cas de test liés aux tests modifiés",
+      "test_management_run_published": "Exécution publiée dans un outil de gestion des tests"
     }
   },
   "security": {
@@ -3003,6 +3011,11 @@
     "locales": {
       "label": "Langues",
       "help": "Chaque test s’exécute une fois par langue sur chaque navigateur, réglé sur cette langue ; les étapes la lisent comme {{token}}. Vide utilise la langue du navigateur."
+    },
+    "testManagement": {
+      "label": "Publier les résultats dans",
+      "none": "Nulle part — les résultats restent dans le rapport",
+      "help": "Chaque exécution terminée devient un run TestRail, une Test Execution Xray ou un cycle de test Zephyr, avec le résultat de chaque test sous son cas. Les tests sans cas sont laissés de côté."
     }
   },
   "network": {
@@ -3473,5 +3486,73 @@
     "noMatch": "Rien ne correspond aux filtres.",
     "deleteTitle": "Supprimer {{key}} ?",
     "deleteBody": "Ses liens vers les tests sont supprimés ; les tests et leurs résultats restent. Ce qu'elle contient passe au premier niveau. Rien ne change dans le tracker."
+  },
+  "testManagement": {
+    "clientId": "Client id",
+    "user": "Utilisateur (e-mail)",
+    "userOptional": "Utilisateur (seulement avec un mot de passe)",
+    "clientSecret": "Client secret",
+    "patOrPassword": "Personal access token, ou mot de passe",
+    "apiToken": "Jeton d'API",
+    "projectId": "Id du projet (un nombre)",
+    "projectKey": "Clé du projet Jira",
+    "loadFailed": "Impossible de charger les connexions.",
+    "saveFailed": "Impossible d'enregistrer la connexion.",
+    "checkFailed": "Impossible de vérifier la connexion.",
+    "deleteFailed": "Impossible de supprimer la connexion.",
+    "deleted": "{{count}} plan(s) qui publiaient ici ne publient plus nulle part.",
+    "nameRequired": "Un nom est requis.",
+    "addressRequired": "L'adresse de l'outil est requise.",
+    "usernameRequired": "{{field}} : champ requis.",
+    "projectRequired": "Le projet est requis.",
+    "title": "Gestion des tests",
+    "description": "TestRail, Xray ou Zephyr Scale. Un plan qui en nomme un y publie chaque exécution terminée — un run TestRail, une Test Execution Xray, un cycle de test Zephyr — avec le résultat de chaque test sous son cas.",
+    "provider": "Outil",
+    "name": "Nom",
+    "address": "Adresse",
+    "addressDefault": "Vide pour {{url}} ; l'adresse EU ou US pour les données qui y sont conservées.",
+    "tokenHint": "Conservé chiffré et jamais réaffiché.",
+    "suite": "Id de la suite (pour un projet à plusieurs suites)",
+    "testPlan": "Test Plan Xray (facultatif)",
+    "add": "Ajouter une connexion",
+    "checking": "Lecture du projet…",
+    "loading": "Chargement…",
+    "empty": "Aucune connexion : les exécutions ne sont publiées nulle part.",
+    "columns": {
+      "name": "Nom",
+      "project": "Projet",
+      "actions": "Actions"
+    },
+    "mapCases": "Cas de test",
+    "check": "Tester la connexion",
+    "delete": "Supprimer",
+    "cases": {
+      "loadFailed": "Impossible de charger les tests.",
+      "saveFailed": "Les cas n'ont pas été enregistrés.",
+      "title": "Cas de test dans {{name}}",
+      "description": "Le cas sous lequel chaque test est publié. Sans rien ici, une clé dans le nom du test, comme [{{example}}] Login, est utilisée. Les tests sans l'un ni l'autre ne sont pas publiés.",
+      "filter": "Filtrer les tests ou les clés…",
+      "keyFor": "Cas de {{name}}",
+      "invalid": "Pas une clé de cas de cet outil (comme {{example}}) : {{keys}}",
+      "save": "Enregistrer {{count}} modifications"
+    },
+    "web": "Web",
+    "cancel": "Annuler"
+  },
+  "publications": {
+    "failed": "L'exécution n'a pas été publiée.",
+    "status": {
+      "published": "Publiée",
+      "failed": "Échec",
+      "nothing": "Rien à publier"
+    },
+    "title": "Gestion des tests",
+    "description": "Où cette exécution a été publiée, cas par cas. Publier à nouveau crée un nouveau run dans l'outil, avec les verdicts tels qu'ils sont maintenant.",
+    "none": "Pas encore publiée.",
+    "counts": "{{published}} cas publié(s), {{unmapped}} test(s) sans cas laissé(s) de côté.",
+    "target": "Publier dans",
+    "planConnection": "La connexion du plan",
+    "again": "Publier à nouveau",
+    "publish": "Publier"
   }
 }

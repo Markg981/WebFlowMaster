@@ -84,7 +84,7 @@ async function latestOutcomes(
   const statuses = new Map<string, { statuses: string[]; lastRun: CoverageRun }>();
   for (const row of result.rows as any[]) {
     const k = row.ui_test_id != null ? key('ui', Number(row.ui_test_id)) : key('api', Number(row.api_test_id));
-    const entry = statuses.get(k) ?? {
+    const entry: { statuses: string[]; lastRun: CoverageRun } = statuses.get(k) ?? {
       statuses: [],
       lastRun: { executionId: String(row.execution_id), planId: String(row.test_plan_id), planName: row.plan_name ?? null, at: toIso(row.at_ms) },
     };
@@ -204,7 +204,7 @@ export async function upsertTrackedItems(
       const [created] = await tx
         .insert(requirements)
         .values({ organizationId, key: item.key, createdBy: userId, ...values })
-        .returning({ id: requirements.id });
+        .returning();
       idOf.set(item.key.toLowerCase(), created.id);
       outcome.created.push(item.key);
     }

@@ -162,7 +162,7 @@ export interface DebugStep {
   id?: string;
   calledFrom?: string;
   action?: { id?: string; name?: string } | null;
-  targetElement?: { selector?: string } & Record<string, unknown> | null;
+  targetElement?: { selector?: string } | null;
   value?: unknown;
 }
 

@@ -9,6 +9,7 @@ import type { NetworkSummary } from './network';
 import type { FailureAnalysis } from './failure-analysis';
 import type { CiContext } from './ci';
 import type { RequirementKind } from './requirements';
+import type { TestManagementProvider } from './test-management';
 
 // Table Definitions
 export const organizations = pgTable("organizations", {
@@ -334,6 +335,8 @@ export const testPlans = pgTable("test_plans", {
    * deployed is one nobody forgives. A plan opts in, and names the tracker it opts into.
    */
   issueTrackerId: text('issue_tracker_id').references(() => issueTrackers.id, { onDelete: 'set null' }),
+  /** The TestRail, Xray or Zephyr Scale every finished run is published to (shared/test-management.ts). */
+  testManagementId: text('test_management_id').references((): AnyPgColumn => testManagementConnections.id, { onDelete: 'set null' }),
   createIssuesOnFailure: boolean('create_issues_on_failure').default(false).notNull(),
   notificationSettings: jsonb('notification_settings'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -1237,6 +1240,69 @@ export const requirements = pgTable("requirements", {
 
 export type Requirement = typeof requirements.$inferSelect;
 
+/**
+ * A TestRail, Xray or Zephyr Scale account the organization publishes run results to
+ * (shared/test-management.ts, migrations/0051). The token is encrypted and never sent back.
+ */
+export const testManagementConnections = pgTable("test_management_connections", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  provider: text("provider").$type<TestManagementProvider>().notNull(),
+  baseUrl: text("base_url").notNull(),
+  username: text("username"),
+  projectKey: text("project_key").notNull(),
+  suiteId: text("suite_id"),
+  testPlanKey: text("test_plan_key"),
+  encryptedToken: text("encrypted_token").notNull(),
+  tokenIv: text("token_iv").notNull(),
+  tokenAuthTag: text("token_auth_tag").notNull(),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("test_management_connections_organization_id_idx").on(table.organizationId),
+]);
+
+export type TestManagementConnection = typeof testManagementConnections.$inferSelect;
+
+/** Which case in the tool each test is. */
+export const testCaseLinks = pgTable("test_case_links", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  connectionId: text("connection_id").notNull().references(() => testManagementConnections.id, { onDelete: 'cascade' }),
+  testType: text("test_type").$type<'ui' | 'api'>().notNull(),
+  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
+  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
+  caseKey: text("case_key").notNull(),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("test_case_links_connection_id_idx").on(table.connectionId),
+]);
+
+/** Each publication of a run to a tool, and what came of it. */
+export const testManagementPublications = pgTable("test_management_publications", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  testPlanExecutionId: text("test_plan_execution_id").notNull().references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
+  connectionId: text("connection_id").references(() => testManagementConnections.id, { onDelete: 'set null' }),
+  connectionName: text("connection_name").notNull(),
+  provider: text("provider").notNull(),
+  status: text("status").$type<'published' | 'failed' | 'nothing_to_publish'>().notNull(),
+  externalKey: text("external_key"),
+  externalUrl: text("external_url"),
+  publishedCount: integer("published_count").notNull().default(0),
+  unmappedCount: integer("unmapped_count").notNull().default(0),
+  message: text("message"),
+  requestedBy: integer("requested_by").references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("test_management_publications_execution_idx").on(table.testPlanExecutionId),
+]);
+
+export type TestManagementPublication = typeof testManagementPublications.$inferSelect;
+
 /** Which tests cover which requirement. */
 export const requirementTests = pgTable("requirement_tests", {
   id: serial("id").primaryKey(),
@@ -1439,6 +1505,12 @@ export const AUDIT_ACTIONS = {
   REQUIREMENT_DELETED: 'requirement.deleted',
   REQUIREMENTS_IMPORTED: 'requirement.imported',
   REQUIREMENT_TESTS_CHANGED: 'requirement.tests_changed',
+  // TestRail, Xray and Zephyr Scale: the connection, which case each test is, and each run sent there.
+  TEST_MANAGEMENT_CONNECTED: 'test_management.connected',
+  TEST_MANAGEMENT_UPDATED: 'test_management.updated',
+  TEST_MANAGEMENT_REMOVED: 'test_management.removed',
+  TEST_CASE_LINKS_CHANGED: 'test_management.cases_changed',
+  RUN_PUBLISHED: 'test_management.run_published',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
@@ -2521,6 +2593,8 @@ export const ORG_SCOPED_TABLES = [
   'test_suites', 'test_suite_items', 'test_plan_suites',
   // Requirements and the tests that cover them (migration 0050).
   'requirements', 'requirement_tests',
+  // TestRail, Xray and Zephyr Scale connections, test-to-case links and publications (migration 0051).
+  'test_management_connections', 'test_case_links', 'test_management_publications',
   'test_quarantines',
   'agents',
   'source_hosts',

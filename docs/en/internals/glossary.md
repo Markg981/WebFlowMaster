@@ -54,6 +54,7 @@ each lives.
 | **Tag** | An organization's own label for tests (`tags`, `test_tags`). |
 | **Tenant context** | The organization (and user) bound to the current request or job, via AsyncLocalStorage. |
 | **Test** | A UI test: a sequence of steps (`tests`). |
+| **Test management connection** | TestRail, Xray or Zephyr Scale, where a plan publishes each finished run case by case (`test_management_connections`); a test's case is its link (`test_case_links`) or the `[KEY]` in its name. |
 | **Ticket** | A 60-second signed permission for a runner to borrow an agent's browser. |
 | **Variable** | A `{{name}}` placeholder resolved from the installation, the environment, a dataset row or an extraction. |
 | **Version** | A saved state of a test (`test_versions`); restoring one writes a new version. |

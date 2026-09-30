@@ -147,6 +147,9 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
   const [issueTrackerId, setIssueTrackerId] = useState<string>(NO_TRACKER);
   const [createIssuesOnFailure, setCreateIssuesOnFailure] = useState(false);
   const [trackers, setTrackers] = useState<TrackerOption[]>([]);
+  /** The TestRail, Xray or Zephyr each finished run is published to. */
+  const [testManagementId, setTestManagementId] = useState<string>(NO_TRACKER);
+  const [testManagement, setTestManagement] = useState<TrackerOption[]>([]);
   const [notifications, setNotifications] = useState<NotificationSettingsShape>(notificationsFromPlan(null));
   const [webhookError, setWebhookError] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -168,6 +171,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
     setLocalesError('');
     setIssueTrackerId((plan as { issueTrackerId?: string | null } | null)?.issueTrackerId ?? NO_TRACKER);
     setCreateIssuesOnFailure((plan as { createIssuesOnFailure?: boolean } | null)?.createIssuesOnFailure === true);
+    setTestManagementId((plan as { testManagementId?: string | null } | null)?.testManagementId ?? NO_TRACKER);
     setNotifications(notificationsFromPlan(plan));
     setWebhookError('');
     setMaxParallelError('');
@@ -180,6 +184,12 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
       .then((response) => (response.ok ? response.json() : []))
       .then((rows) => setTrackers(Array.isArray(rows) ? rows : []))
       .catch(() => setTrackers([]));
+
+    // Settings → Test management.
+    fetch('/api/test-management')
+      .then((response) => (response.ok ? response.json() : []))
+      .then((rows) => setTestManagement(Array.isArray(rows) ? rows : []))
+      .catch(() => setTestManagement([]));
 
     // The pools this organization's agents belong to. Revoked agents lend nothing, so their pools
     // are not offered; the plan's own pool stays in the list even if it has no agents left.
@@ -274,6 +284,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
           // Filing is off unless a tracker is named: a plan set to file into nothing would
           // report a failure to file on every failing run, which is noise about noise.
           createIssuesOnFailure: issueTrackerId !== NO_TRACKER && createIssuesOnFailure,
+          testManagementId: testManagementId === NO_TRACKER ? null : testManagementId,
           notificationSettings: { ...notifications, webhookUrl: webhookUrl || null },
         }),
       });
@@ -576,6 +587,33 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                   </p>
                 </div>
               </div>
+            </section>
+
+            <section>
+              <Label htmlFor="editTestManagement">
+                {t('editTestPlanSettings.testManagement.label', 'Publish results to')}
+              </Label>
+              <Select value={testManagementId} onValueChange={setTestManagementId}>
+                <SelectTrigger id="editTestManagement" className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_TRACKER}>
+                    {t('editTestPlanSettings.testManagement.none', 'Nowhere — results stay in the report')}
+                  </SelectItem>
+                  {testManagement.map((connection) => (
+                    <SelectItem key={connection.id} value={connection.id}>
+                      {connection.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t(
+                  'editTestPlanSettings.testManagement.help',
+                  'Every finished run becomes a TestRail run, an Xray Test Execution or a Zephyr test cycle, with each test’s result under its case. Tests with no case are left out.',
+                )}
+              </p>
             </section>
 
             <section>

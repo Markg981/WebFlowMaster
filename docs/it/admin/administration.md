@@ -207,10 +207,11 @@ Gli owner vedono e possono revocare ogni chiave dell'organizzazione.
 | Avviare piani dalla CI | Chiavi API e la CLI `wfm`; vedi [Integrazione CI](../CI_INTEGRATION) | Editor |
 | Webhook che avviano un piano | Le impostazioni del piano; ognuno ha il proprio token | Editor |
 | Issue tracker (Jira, Azure DevOps) | **Impostazioni → Issue tracker** | Editor |
+| Test management (TestRail, Xray, Zephyr Scale) | **Impostazioni → Test management**; vedi [Pubblicare su TestRail, Xray o Zephyr](../guide/results#test-management) | Editor |
 | Stati dei commit su GitHub e GitLab | **Impostazioni → GitHub e GitLab**; mostra l'ultimo errore di invio | Owner |
 | Agenti locali | **Impostazioni → Agenti locali**; vedi [Agenti locali](../LOCAL_AGENT) | Owner |
 
-I token dei tracker e di GitHub/GitLab vengono cifrati al salvataggio e non vengono più
+I token dei tracker, degli strumenti di test management e di GitHub/GitLab vengono cifrati al salvataggio e non vengono più
 mostrati; per cambiarne uno, inserite il nuovo valore.
 
 ## Ambienti e segreti
