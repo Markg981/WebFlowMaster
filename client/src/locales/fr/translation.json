@@ -3508,7 +3508,8 @@
     "deleteBody": "Ses liens vers les tests sont supprimés ; les tests et leurs résultats restent. Ce qu'elle contient passe au premier niveau. Rien ne change dans le tracker.",
     "generateTests": "Générer des tests",
     "generateTestsFor": "Générer des tests pour {{key}}",
-    "generated": "{{count}} tests créés et liés"
+    "generated": "{{count}} tests créés et liés",
+    "mobile": "Mobile"
   },
   "testManagement": {
     "clientId": "Client id",
@@ -3560,7 +3561,8 @@
       "save": "Enregistrer {{count}} modifications"
     },
     "web": "Web",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "mobile": "Mobile"
   },
   "publications": {
     "failed": "L'exécution n'a pas été publiée.",

@@ -53,9 +53,11 @@ another member's approval:
 A **suite** is a list of tests kept once and included by as many plans as need it. **Suites → New
 suite** makes one of two kinds:
 
-- **Static**: these tests, in the order you pick them.
+- **Static**: these tests, in the order you pick them — web, API and [mobile app](./mobile-apps)
+  tests alike.
 - **Dynamic**: every test that carries **all** the chosen tags, worked out each time a run is
-  created. A test tagged later is included in the next run without editing anything.
+  created. A test tagged later is included in the next run without editing anything. Mobile app
+  tests have no tags, so only a static suite includes them.
 
 A suite shows which plans include it. Deleting one used by plans makes them stop running its
 tests; runs already made keep what they ran.
@@ -80,7 +82,7 @@ An imported story brings its epic along, and each lands under its parent. Import
 with the same key becomes the imported one, keeping its tests. Nothing is ever written to the
 tracker. At most 500 items come in at once.
 
-**Tests** on a requirement links the web and API tests that cover it. An epic counts its own tests
+**Tests** on a requirement links the web, API and [mobile app](./mobile-apps) tests that cover it. An epic counts its own tests
 and every one of its stories', each once. Its coverage is worked out from the **latest result of
 each test**, all browsers of that run together:
 

@@ -2,9 +2,11 @@ import { Router, type Response } from "express";
 import { z } from "zod";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { TEST_KINDS, firstMissingKind, itemKey, itemOf, linkColumns, linkWhere, type TestKind } from "../test-refs";
 import {
   AUDIT_ACTIONS,
   apiTests,
+  mobileTests,
   testCaseLinks,
   testManagementConnections,
   testPlanExecutions,
@@ -232,17 +234,18 @@ router.get("/api/test-management/:id/cases", requireRole("viewer"), async (req, 
       if (!connection) throw new ConnectionError(404, "Connection not found.");
       const provider = connection.provider as TestManagementProvider;
       const links = await tx.select().from(testCaseLinks).where(eq(testCaseLinks.connectionId, connection.id));
-      const linked = new Map(links.map((l) => [`${l.testType}:${l.testType === "ui" ? l.testId : l.apiTestId}`, l.caseKey]));
+      const linked = new Map(links.map((l) => [itemKey(itemOf(l).type, itemOf(l).id), l.caseKey]));
       const ui = await tx.select({ id: tests.id, name: tests.name }).from(tests).orderBy(asc(tests.name));
       const api = await tx.select({ id: apiTests.id, name: apiTests.name }).from(apiTests).orderBy(asc(apiTests.name));
-      const row = (type: "ui" | "api", test: { id: number; name: string }) => ({
+      const mobile = await tx.select({ id: mobileTests.id, name: mobileTests.name }).from(mobileTests).orderBy(asc(mobileTests.name));
+      const row = (type: TestKind, test: { id: number; name: string }) => ({
         type,
         id: test.id,
         name: test.name,
         caseKey: linked.get(`${type}:${test.id}`) ?? null,
         fromName: caseKeyFromName(provider, test.name),
       });
-      return { provider, tests: [...ui.map((t) => row("ui", t)), ...api.map((t) => row("api", t))] };
+      return { provider, tests: [...ui.map((t) => row("ui", t)), ...api.map((t) => row("api", t)), ...mobile.map((t) => row("mobile", t))] };
     });
     res.json(answer);
   } catch (error) {
@@ -252,7 +255,7 @@ router.get("/api/test-management/:id/cases", requireRole("viewer"), async (req, 
 
 const casesSchema = z.object({
   links: z
-    .array(z.object({ type: z.enum(["ui", "api"]), id: z.number().int().positive(), caseKey: z.string().trim().max(40).nullable() }))
+    .array(z.object({ type: z.enum(TEST_KINDS), id: z.number().int().positive(), caseKey: z.string().trim().max(40).nullable() }))
     .max(5000),
 });
 
@@ -279,17 +282,13 @@ router.put("/api/test-management/:id/cases", requireRole("editor"), async (req, 
         throw new ConnectionError(400, `Not a case key of this tool (like ${example}): ${bad.slice(0, 10).join(", ")}.`);
       }
 
-      const uiIds = wanted.filter((l) => l.type === "ui").map((l) => l.id);
-      const apiIds = wanted.filter((l) => l.type === "api").map((l) => l.id);
-      const seenUi = uiIds.length ? (await tx.select({ id: tests.id }).from(tests).where(sql`${tests.id} IN (${sql.join(uiIds.map((id) => sql`${id}`), sql`, `)})`)).length : 0;
-      const seenApi = apiIds.length ? (await tx.select({ id: apiTests.id }).from(apiTests).where(sql`${apiTests.id} IN (${sql.join(apiIds.map((id) => sql`${id}`), sql`, `)})`)).length : 0;
-      if (seenUi !== new Set(uiIds).size || seenApi !== new Set(apiIds).size) throw new ConnectionError(400, "One or more tests do not exist.");
+      if (await firstMissingKind(tx, wanted)) throw new ConnectionError(400, "One or more tests do not exist.");
 
       let changed = 0;
       for (const link of wanted) {
         const which = and(
           eq(testCaseLinks.connectionId, connection.id),
-          link.type === "ui" ? eq(testCaseLinks.testId, link.id) : eq(testCaseLinks.apiTestId, link.id),
+          linkWhere(testCaseLinks, link),
         );
         const [existing] = await tx.select().from(testCaseLinks).where(which).limit(1);
         if (existing && existing.caseKey === link.caseKey) continue;
@@ -298,9 +297,7 @@ router.put("/api/test-management/:id/cases", requireRole("editor"), async (req, 
           await tx.insert(testCaseLinks).values({
             organizationId: getTenantOrgId()!,
             connectionId: connection.id,
-            testType: link.type,
-            testId: link.type === "ui" ? link.id : null,
-            apiTestId: link.type === "api" ? link.id : null,
+            ...linkColumns(link),
             caseKey: link.caseKey,
             createdBy: req.user!.id,
           });

@@ -15,7 +15,7 @@ import { normaliseCaseKey, type TestManagementProvider } from '@shared/test-mana
  */
 
 interface CaseRow {
-  type: 'ui' | 'api';
+  type: 'ui' | 'api' | 'mobile';
   id: number;
   name: string;
   caseKey: string | null;
@@ -116,7 +116,7 @@ export default function TestCasesDialog({ connection, onClose }: Props) {
               const bad = provider && value.trim() !== '' && !normaliseCaseKey(provider, value);
               return (
                 <div key={key} className="flex items-center gap-2 px-2 py-1.5 text-sm">
-                  <Badge variant="outline" className="shrink-0">{row.type === 'ui' ? t('testManagement.web', 'Web') : 'API'}</Badge>
+                  <Badge variant="outline" className="shrink-0">{row.type === 'ui' ? t('testManagement.web', 'Web') : row.type === 'mobile' ? t('testManagement.mobile', 'Mobile') : 'API'}</Badge>
                   <span className="flex-1 truncate" title={row.name}>{row.name}</span>
                   <Input
                     className={`w-36 font-mono text-xs ${bad ? 'border-destructive' : ''}`}

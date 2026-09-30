@@ -36,6 +36,7 @@ beforeEach(() => {
           tests: [
             { type: 'ui', id: 1, name: '[C7] Login', caseKey: null, fromName: 'C7' },
             { type: 'api', id: 2, name: 'Orders API', caseKey: 'C9', fromName: null },
+            { type: 'mobile', id: 3, name: 'Login on Android', caseKey: null, fromName: null },
           ],
         }),
       });
@@ -121,7 +122,10 @@ describe('TestManagementCard', () => {
 
     fireEvent.change(login, { target: { value: 'C12' } });
     fireEvent.change(screen.getByLabelText('Case of Orders API'), { target: { value: '' } });
-    fireEvent.click(screen.getByText('Save 2 changes'));
+    // A mobile app test is mapped like the others.
+    expect(screen.getByLabelText('Case of Login on Android').closest('li, tr, div')).toHaveTextContent('Mobile');
+    fireEvent.change(screen.getByLabelText('Case of Login on Android'), { target: { value: 'C30' } });
+    fireEvent.click(screen.getByText('Save 3 changes'));
     await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(true));
     const [url, init] = fetchMock.mock.calls.find(([, i]) => i?.method === 'PUT')!;
     expect(url).toBe('/api/test-management/tm1/cases');
@@ -129,6 +133,7 @@ describe('TestManagementCard', () => {
       links: [
         { type: 'ui', id: 1, caseKey: 'C12' },
         { type: 'api', id: 2, caseKey: null },
+        { type: 'mobile', id: 3, caseKey: 'C30' },
       ],
     });
   });

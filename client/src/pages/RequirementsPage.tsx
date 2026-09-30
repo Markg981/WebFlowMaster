@@ -169,7 +169,7 @@ const RequirementsPage: React.FC = () => {
     onError: onError(t('requirements.saveFailed', 'The requirement was not saved')),
   });
   const saveLinks = useMutation({
-    mutationFn: (items: Array<{ type: 'ui' | 'api'; id: number }>) => send('PUT', `/api/requirements/${linking!.row.id}/tests`, { items }),
+    mutationFn: (items: Array<{ type: 'ui' | 'api' | 'mobile'; id: number }>) => send('PUT', `/api/requirements/${linking!.row.id}/tests`, { items }),
     onSuccess: async () => {
       setLinking(null);
       await refresh();
@@ -462,7 +462,7 @@ const RequirementsPage: React.FC = () => {
                         <TableRow key={`${row.id}-${test.type}-${test.id}`} className="bg-muted/40" data-testid={`requirement-${row.key}-test-${test.type}-${test.id}`}>
                           <TableCell colSpan={3}>
                             <div className="flex items-center gap-2 text-sm" style={{ paddingLeft: depth * 20 + 24 }}>
-                              <Badge variant="outline">{test.type === 'ui' ? t('requirements.web', 'Web') : 'API'}</Badge>
+                              <Badge variant="outline">{test.type === 'ui' ? t('requirements.web', 'Web') : test.type === 'mobile' ? t('requirements.mobile', 'Mobile') : 'API'}</Badge>
                               {test.name}
                             </div>
                           </TableCell>

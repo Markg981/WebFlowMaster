@@ -379,6 +379,13 @@
       "when": 1790000000000,
       "tag": "0053_mobile_in_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1790100000000,
+      "tag": "0054_mobile_in_suites_requirements",
+      "breakpoints": true
     }
   ]
 }

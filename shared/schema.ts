@@ -1053,9 +1053,11 @@ export const testSuiteItems = pgTable("test_suite_items", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   suiteId: integer("suite_id").notNull().references(() => testSuites.id, { onDelete: 'cascade' }),
-  testType: text("test_type").$type<'ui' | 'api'>().notNull(),
+  testType: text("test_type").$type<'ui' | 'api' | 'mobile'>().notNull(),
   testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
   apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
+  /** A mobile app test (migration 0054). Plain integer here: mobile_tests is declared further down. */
+  mobileTestId: integer("mobile_test_id"),
   position: integer("position").notNull(),
 }, (table) => [
   index("test_suite_items_suite_id_idx").on(table.suiteId),
@@ -1277,9 +1279,11 @@ export const testCaseLinks = pgTable("test_case_links", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   connectionId: text("connection_id").notNull().references(() => testManagementConnections.id, { onDelete: 'cascade' }),
-  testType: text("test_type").$type<'ui' | 'api'>().notNull(),
+  testType: text("test_type").$type<'ui' | 'api' | 'mobile'>().notNull(),
   testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
   apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
+  /** A mobile app test (migration 0054). Plain integer here: mobile_tests is declared further down. */
+  mobileTestId: integer("mobile_test_id"),
   caseKey: text("case_key").notNull(),
   createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1362,9 +1366,11 @@ export const requirementTests = pgTable("requirement_tests", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   requirementId: integer("requirement_id").notNull().references(() => requirements.id, { onDelete: 'cascade' }),
-  testType: text("test_type").$type<'ui' | 'api'>().notNull(),
+  testType: text("test_type").$type<'ui' | 'api' | 'mobile'>().notNull(),
   testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
   apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
+  /** A mobile app test (migration 0054). */
+  mobileTestId: integer("mobile_test_id").references(() => mobileTests.id, { onDelete: 'cascade' }),
   createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [

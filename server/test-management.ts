@@ -10,6 +10,7 @@ import {
   type TestManagementPublication,
 } from '@shared/schema';
 import { outcomeOf } from '@shared/requirements';
+import { itemKey, itemOf, type TestKind } from './test-refs';
 import { caseKeyFromName, type PublishedOutcome, type TestManagementProvider } from '@shared/test-management';
 import { withTenantTransaction } from './middleware/tenancy';
 import { decryptSecret } from './crypto';
@@ -46,6 +47,7 @@ export function toConnectionConfig(row: TestManagementConnection): ConnectionCon
 interface ResultRow {
   uiTestId: number | null;
   apiTestId: number | null;
+  mobileTestId?: number | null;
   testName: string;
   browser: string | null;
   status: string;
@@ -71,13 +73,20 @@ const OUTCOME_WORDS: Record<PublishedOutcome, string> = {
 export function casesOf(
   provider: TestManagementProvider,
   rows: ResultRow[],
-  linkOf: (type: 'ui' | 'api', id: number) => string | undefined,
+  linkOf: (type: TestKind, id: number) => string | undefined,
   reportLine: string,
 ): { cases: CaseResult[]; unmapped: string[] } {
   const byCase = new Map<string, ResultRow[]>();
   const unmapped = new Set<string>();
   for (const row of rows) {
-    const linked = row.uiTestId != null ? linkOf('ui', row.uiTestId) : row.apiTestId != null ? linkOf('api', row.apiTestId) : undefined;
+    const linked =
+      row.uiTestId != null
+        ? linkOf('ui', row.uiTestId)
+        : row.apiTestId != null
+          ? linkOf('api', row.apiTestId)
+          : row.mobileTestId != null
+            ? linkOf('mobile', row.mobileTestId)
+            : undefined;
     const key = linked ?? caseKeyFromName(provider, row.testName);
     if (!key) {
       unmapped.add(row.testName);
@@ -156,6 +165,7 @@ export async function publishExecution(executionId: string, options: PublishOpti
       .select({
         uiTestId: reportTestCaseResults.uiTestId,
         apiTestId: reportTestCaseResults.apiTestId,
+        mobileTestId: reportTestCaseResults.mobileTestId,
         testName: reportTestCaseResults.testName,
         browser: reportTestCaseResults.browser,
         status: reportTestCaseResults.status,
@@ -187,8 +197,8 @@ export async function publishExecution(executionId: string, options: PublishOpti
   }
 
   const provider = connection.provider as TestManagementProvider;
-  const linkMap = new Map(links.map((l) => [`${l.testType}:${l.testType === 'ui' ? l.testId : l.apiTestId}`, l.caseKey]));
-  const { cases, unmapped } = casesOf(provider, rows, (type, id) => linkMap.get(`${type}:${id}`), reportReferenceFor(execution.planId, executionId));
+  const linkMap = new Map(links.map((l) => [itemKey(itemOf(l).type, itemOf(l).id), l.caseKey]));
+  const { cases, unmapped } = casesOf(provider, rows, (type, id) => linkMap.get(itemKey(type, id)), reportReferenceFor(execution.planId, executionId));
   const base = { connectionId: connection.id, connectionName: connection.name, provider, unmappedCount: unmapped.length };
 
   if (cases.length === 0) {

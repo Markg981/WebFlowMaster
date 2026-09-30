@@ -97,7 +97,24 @@ management insieme agli altri.
 Un test mobile senza griglia è segnalato come errore nell'esecuzione, con il motivo, senza chiedere
 un dispositivo ad alcuna griglia.
 
+## Suite, requisiti e test management
+
+Un test mobile va ovunque va un test web o API:
+
+- in una **suite statica** ([Suite](./organizing#suite)), e quindi in ogni piano che la include —
+  una suite dinamica cerca per tag, e i test mobili non ne hanno;
+- come copertura di un **requisito** ([Requisiti](./organizing#requisiti)): il suo ultimo
+  risultato in un'esecuzione di un piano conta come gli altri, e l'export della matrice dice
+  `mobile`;
+- collegato a un caso di **TestRail, Xray o Zephyr Scale**
+  ([test management](./results#test-management)): il suo risultato in un'esecuzione è pubblicato su
+  quel caso, con il dispositivo nel commento. Un `[C123]` all'inizio del nome funziona come per un
+  test web.
+
+In ogni elenco porta l'etichetta **Mobile**.
+
 ## Cosa arriva dopo
 
-I test mobili nelle **suite**, nei **requisiti** e nelle mappature di **test management**, e un
-**inspector** per scegliere gli elementi da uno screenshot dal vivo, sono i prossimi passi.
+Un **inspector** per scegliere gli elementi da uno screenshot dal vivo del dispositivo, e poi
+l'esecuzione su un Appium locale (un emulatore o un telefono collegato a un agente), sono i
+prossimi passi.

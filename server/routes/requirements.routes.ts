@@ -1,6 +1,7 @@
 import { Router, type Response } from "express";
 import { z } from "zod";
 import { and, eq, inArray } from "drizzle-orm";
+import { TEST_KINDS, firstMissingKind, itemOf, linkColumns, linkWhere, missingMessage, namedItems } from "../test-refs";
 import { AUDIT_ACTIONS, apiTests, issueTrackers, requirementTests, requirements, tests } from "@shared/schema";
 import { REQUIREMENT_KEY_PATTERN, REQUIREMENT_KINDS } from "@shared/requirements";
 import { requireRole } from "../middleware/require-role";
@@ -53,7 +54,7 @@ const requirementSchema = z.object({
 });
 
 const itemsSchema = z.object({
-  items: z.array(z.object({ type: z.enum(["ui", "api"]), id: z.number().int().positive() })).max(1000),
+  items: z.array(z.object({ type: z.enum(TEST_KINDS), id: z.number().int().positive() })).max(1000),
 });
 
 const importSchema = z.object({
@@ -79,15 +80,7 @@ async function checkParent(tx: TenantTx, id: number | null, parentId: number | n
 /** The tests linked to this requirement itself, named when the requester can see them. */
 async function linkedTests(tx: TenantTx, requirementId: number) {
   const links = await tx.select().from(requirementTests).where(eq(requirementTests.requirementId, requirementId));
-  const uiIds = links.filter((l) => l.testType === "ui").map((l) => l.testId!);
-  const apiIds = links.filter((l) => l.testType === "api").map((l) => l.apiTestId!);
-  const uiNames = new Map(uiIds.length ? (await tx.select({ id: tests.id, name: tests.name }).from(tests).where(inArray(tests.id, uiIds))).map((t) => [t.id, t.name]) : []);
-  const apiNames = new Map(apiIds.length ? (await tx.select({ id: apiTests.id, name: apiTests.name }).from(apiTests).where(inArray(apiTests.id, apiIds))).map((t) => [t.id, t.name]) : []);
-  return links.map((l) =>
-    l.testType === "ui"
-      ? { type: "ui" as const, id: l.testId!, name: uiNames.get(l.testId!) ?? null }
-      : { type: "api" as const, id: l.apiTestId!, name: apiNames.get(l.apiTestId!) ?? null },
-  );
+  return namedItems(tx, links.map(itemOf));
 }
 
 // GET /api/requirements — every requirement with its coverage; ?planId= or ?executionId= narrows
@@ -217,14 +210,8 @@ router.put("/api/requirements/:id/tests", requireRole("editor"), async (req, res
       const [requirement] = await tx.select().from(requirements).where(eq(requirements.id, id)).limit(1);
       if (!requirement) throw new RequirementError(404, "Requirement not found");
 
-      const uiIds = parsed.data.items.filter((i) => i.type === "ui").map((i) => i.id);
-      const apiIds = parsed.data.items.filter((i) => i.type === "api").map((i) => i.id);
-      if (uiIds.length && (await tx.select({ id: tests.id }).from(tests).where(inArray(tests.id, uiIds))).length !== new Set(uiIds).size) {
-        throw new RequirementError(400, "One or more tests do not exist.");
-      }
-      if (apiIds.length && (await tx.select({ id: apiTests.id }).from(apiTests).where(inArray(apiTests.id, apiIds))).length !== new Set(apiIds).size) {
-        throw new RequirementError(400, "One or more API tests do not exist.");
-      }
+      const missing = await firstMissingKind(tx, parsed.data.items);
+      if (missing) throw new RequirementError(400, missingMessage(missing));
 
       const current = await linkedTests(tx, id);
       const have = new Set(current.map((t) => `${t.type}:${t.id}`));
@@ -235,7 +222,7 @@ router.put("/api/requirements/:id/tests", requireRole("editor"), async (req, res
           .where(
             and(
               eq(requirementTests.requirementId, id),
-              test.type === "ui" ? eq(requirementTests.testId, test.id) : eq(requirementTests.apiTestId, test.id),
+              linkWhere(requirementTests, test),
             ),
           );
       }
@@ -245,9 +232,7 @@ router.put("/api/requirements/:id/tests", requireRole("editor"), async (req, res
           added.map((item) => ({
             organizationId: getTenantOrgId()!,
             requirementId: id,
-            testType: item.type,
-            testId: item.type === "ui" ? item.id : null,
-            apiTestId: item.type === "api" ? item.id : null,
+            ...linkColumns(item),
             createdBy: req.user!.id,
           })),
         );

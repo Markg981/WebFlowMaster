@@ -75,6 +75,7 @@ beforeEach(() => {
     'GET /api/requirements/2': { ...answer.requirements[1], tests: [{ type: 'ui', id: 7, name: 'Checkout by card' }, { type: 'ui', id: 99, name: null }] },
     'GET /api/tests': [{ id: 7, name: 'Checkout by card' }, { id: 8, name: 'Login' }],
     'GET /api/api-tests': [{ id: 3, name: 'Orders API' }],
+    'GET /api/mobile-tests': [{ id: 5, name: 'Checkout on iPhone' }],
     'PUT /api/requirements/2/tests': [],
     'POST /api/requirements/import': { created: ['SHOP-9'], updated: [], missing: [], found: 1 },
   });
@@ -113,6 +114,18 @@ describe('RequirementsPage', () => {
     // A story that matches is shown even when its epic does not.
     expect(screen.getByTestId('requirement-SHOP-3')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Export matrix/ })).toHaveAttribute('href', '/api/requirements/matrix.csv');
+  });
+
+  it('links a mobile app test like the others', async () => {
+    withClient(<RequirementsPage />);
+    const story = await screen.findByTestId('requirement-SHOP-2');
+    fireEvent.click(within(story).getByRole('button', { name: /Tests/ }));
+    const list = await screen.findByTestId('requirement-test-list');
+    await waitFor(() => expect(within(list).getByLabelText('Checkout on iPhone')).toBeInTheDocument());
+    expect(within(list).getByLabelText('Checkout on iPhone').closest('label')).toHaveTextContent('Mobile');
+    fireEvent.click(within(list).getByLabelText('Checkout on iPhone'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(sent('PUT', '/api/requirements/2/tests')).toEqual({ items: [{ type: 'ui', id: 7 }, { type: 'mobile', id: 5 }] }));
   });
 
   it('links tests, leaving the hidden one where it is', async () => {

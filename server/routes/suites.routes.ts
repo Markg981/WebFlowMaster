@@ -15,6 +15,7 @@ import { requireRole } from "../middleware/require-role";
 import { withTenantTransaction, getTenantOrgId, type TenantTx } from "../middleware/tenancy";
 import { auditActor, recordAudit } from "../audit";
 import { testsOfSuite } from "../test-suites";
+import { TEST_KINDS, firstMissingKind, itemOf, linkColumns, missingMessage, namedItems, type TestItem } from "../test-refs";
 import loggerPromise from "../logger";
 
 /**
@@ -32,7 +33,7 @@ class SuiteError extends Error {
   }
 }
 
-const itemSchema = z.object({ type: z.enum(["ui", "api"]), id: z.number().int().positive() });
+const itemSchema = z.object({ type: z.enum(TEST_KINDS), id: z.number().int().positive() });
 
 const suiteSchema = z
   .object({
@@ -59,22 +60,16 @@ function fail(res: Response, error: unknown, what: string) {
 }
 
 /** The tests and tags named must be this organization's and visible to the requester. */
-async function checkReferences(tx: TenantTx, input: { items?: Array<{ type: "ui" | "api"; id: number }>; tagIds?: string[] }) {
-  const uiIds = Array.from(new Set((input.items ?? []).filter((i) => i.type === "ui").map((i) => i.id)));
-  const apiIds = Array.from(new Set((input.items ?? []).filter((i) => i.type === "api").map((i) => i.id)));
-  if (uiIds.length && (await tx.select({ id: tests.id }).from(tests).where(inArray(tests.id, uiIds))).length !== uiIds.length) {
-    throw new SuiteError(400, "One or more tests do not exist.");
-  }
-  if (apiIds.length && (await tx.select({ id: apiTests.id }).from(apiTests).where(inArray(apiTests.id, apiIds))).length !== apiIds.length) {
-    throw new SuiteError(400, "One or more API tests do not exist.");
-  }
+async function checkReferences(tx: TenantTx, input: { items?: TestItem[]; tagIds?: string[] }) {
+  const missing = await firstMissingKind(tx, input.items ?? []);
+  if (missing) throw new SuiteError(400, missingMessage(missing));
   const tagIds = Array.from(new Set(input.tagIds ?? []));
   if (tagIds.length && (await tx.select({ id: tags.id }).from(tags).where(inArray(tags.id, tagIds))).length !== tagIds.length) {
     throw new SuiteError(400, "One or more tags do not exist.");
   }
 }
 
-async function writeItems(tx: TenantTx, suiteId: number, organizationId: number, items: Array<{ type: "ui" | "api"; id: number }>) {
+async function writeItems(tx: TenantTx, suiteId: number, organizationId: number, items: TestItem[]) {
   await tx.delete(testSuiteItems).where(eq(testSuiteItems.suiteId, suiteId));
   // Each test once, in the order given.
   const seen = new Set<string>();
@@ -89,9 +84,7 @@ async function writeItems(tx: TenantTx, suiteId: number, organizationId: number,
     unique.map((item, position) => ({
       organizationId,
       suiteId,
-      testType: item.type,
-      testId: item.type === "ui" ? item.id : null,
-      apiTestId: item.type === "api" ? item.id : null,
+      ...linkColumns(item),
       position,
     })),
   );
@@ -102,11 +95,8 @@ async function describeSuite(tx: TenantTx, suiteId: number) {
   const [suite] = await tx.select().from(testSuites).where(eq(testSuites.id, suiteId)).limit(1);
   if (!suite) return null;
   const resolved = await testsOfSuite(tx, suite);
-  const uiIds = resolved.filter((r) => r.testType === "ui").map((r) => r.testId!);
-  const apiIds = resolved.filter((r) => r.testType === "api").map((r) => r.apiTestId!);
   // Names through RLS: a test in a project the requester cannot see is counted, not named.
-  const uiNames = new Map(uiIds.length ? (await tx.select({ id: tests.id, name: tests.name }).from(tests).where(inArray(tests.id, uiIds))).map((t) => [t.id, t.name]) : []);
-  const apiNames = new Map(apiIds.length ? (await tx.select({ id: apiTests.id, name: apiTests.name }).from(apiTests).where(inArray(apiTests.id, apiIds))).map((t) => [t.id, t.name]) : []);
+  const named = await namedItems(tx, resolved.map(itemOf));
   const plans = await tx
     .select({ id: testPlans.id, name: testPlans.name })
     .from(testPlanSuites)
@@ -115,11 +105,7 @@ async function describeSuite(tx: TenantTx, suiteId: number) {
     .orderBy(asc(testPlans.name));
   return {
     ...suite,
-    tests: resolved.map((r) =>
-      r.testType === "ui"
-        ? { type: "ui" as const, id: r.testId!, name: uiNames.get(r.testId!) ?? null }
-        : { type: "api" as const, id: r.apiTestId!, name: apiNames.get(r.apiTestId!) ?? null },
-    ),
+    tests: named,
     plans,
   };
 }

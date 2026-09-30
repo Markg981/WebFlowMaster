@@ -68,8 +68,11 @@ export interface CoverageRun {
   at: string | null;
 }
 
+/** A web test, an API test or a mobile app test. */
+export type CoverageTestType = "ui" | "api" | "mobile";
+
 export interface CoverageTest {
-  type: "ui" | "api";
+  type: CoverageTestType;
   id: number;
   name: string;
   outcome: TestOutcome;
@@ -99,11 +102,11 @@ export interface RequirementNode {
 
 export interface LinkRef {
   requirementId: number;
-  type: "ui" | "api";
+  type: CoverageTestType;
   testId: number;
 }
 
-const testKey = (type: "ui" | "api", id: number) => `${type}:${id}`;
+const testKey = (type: CoverageTestType, id: number) => `${type}:${id}`;
 
 /**
  * Each requirement's coverage, from the links and what is known about each linked test.

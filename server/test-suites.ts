@@ -15,7 +15,7 @@ export interface TestReference {
   testType: 'ui' | 'api' | 'mobile';
   testId: number | null;
   apiTestId: number | null;
-  /** A mobile app test, which only a plan's own list holds: suites keep web and API tests. */
+  /** A mobile app test: in a plan's own list or a static suite's (a dynamic suite matches tags, which mobile tests have none of). */
   mobileTestId?: number | null;
 }
 
@@ -26,7 +26,7 @@ const keyOf = (ref: TestReference) =>
 export async function testsOfSuite(tx: TenantTx, suite: Pick<TestSuite, 'id' | 'kind' | 'tagIds' | 'projectId'>): Promise<TestReference[]> {
   if (suite.kind === 'static') {
     const items = await tx
-      .select({ testType: testSuiteItems.testType, testId: testSuiteItems.testId, apiTestId: testSuiteItems.apiTestId })
+      .select({ testType: testSuiteItems.testType, testId: testSuiteItems.testId, apiTestId: testSuiteItems.apiTestId, mobileTestId: testSuiteItems.mobileTestId })
       .from(testSuiteItems)
       .where(eq(testSuiteItems.suiteId, suite.id))
       .orderBy(asc(testSuiteItems.position), asc(testSuiteItems.id));

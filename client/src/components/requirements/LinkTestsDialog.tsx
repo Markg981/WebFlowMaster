@@ -9,14 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 
 /**
- * The tests that cover a requirement, web and API alike.
+ * The tests that cover a requirement: web, API and mobile app tests alike.
  *
  * A linked test in a project the requester cannot see is not listed, and saving leaves it linked:
  * the server keeps what the requester cannot see, and the dialog says it is there.
  */
 
 export interface LinkedTest {
-  type: 'ui' | 'api';
+  type: 'ui' | 'api' | 'mobile';
   id: number;
   /** Null for a test in a project the requester cannot see. */
   name: string | null;
@@ -33,14 +33,14 @@ async function getJson<T>(url: string): Promise<T> {
   return response.json();
 }
 
-const keyOf = (type: 'ui' | 'api', id: number) => `${type}:${id}`;
+const keyOf = (type: 'ui' | 'api' | 'mobile', id: number) => `${type}:${id}`;
 
 interface Props {
   isOpen: boolean;
   requirement: { key: string; title: string; tests: LinkedTest[] } | null;
   saving: boolean;
   onClose: () => void;
-  onSave: (items: Array<{ type: 'ui' | 'api'; id: number }>) => void;
+  onSave: (items: Array<{ type: 'ui' | 'api' | 'mobile'; id: number }>) => void;
 }
 
 export default function LinkTestsDialog({ isOpen, requirement, saving, onClose, onSave }: Props) {
@@ -56,15 +56,17 @@ export default function LinkTestsDialog({ isOpen, requirement, saving, onClose, 
 
   const { data: uiTests = [] } = useQuery<NamedRow[]>({ queryKey: ['/api/tests'], queryFn: () => getJson('/api/tests'), enabled: isOpen });
   const { data: apiTests = [] } = useQuery<NamedRow[]>({ queryKey: ['apiTests'], queryFn: () => getJson('/api/api-tests'), enabled: isOpen });
+  const { data: mobileTests = [] } = useQuery<NamedRow[]>({ queryKey: ['mobileTests'], queryFn: () => getJson('/api/mobile-tests'), enabled: isOpen });
 
   const candidates = useMemo(() => {
     const needle = filter.trim().toLowerCase();
     const rows = [
       ...(Array.isArray(uiTests) ? uiTests : []).map((test) => ({ type: 'ui' as const, id: test.id, name: test.name })),
       ...(Array.isArray(apiTests) ? apiTests : []).map((test) => ({ type: 'api' as const, id: test.id, name: test.name })),
+      ...(Array.isArray(mobileTests) ? mobileTests : []).map((test) => ({ type: 'mobile' as const, id: test.id, name: test.name })),
     ];
     return needle ? rows.filter((row) => row.name.toLowerCase().includes(needle)) : rows;
-  }, [uiTests, apiTests, filter]);
+  }, [uiTests, apiTests, mobileTests, filter]);
 
   const hidden = requirement?.tests.filter((test) => test.name === null).length ?? 0;
   const toggle = (id: string) => setPicked((current) => (current.includes(id) ? current.filter((v) => v !== id) : [...current, id]));
@@ -89,7 +91,7 @@ export default function LinkTestsDialog({ isOpen, requirement, saving, onClose, 
                 <label key={id} className="flex items-center gap-2 text-sm cursor-pointer">
                   <Checkbox checked={picked.includes(id)} onCheckedChange={() => toggle(id)} aria-label={test.name} />
                   <span className="flex-1">{test.name}</span>
-                  <Badge variant="outline">{test.type === 'ui' ? t('requirements.web', 'Web') : 'API'}</Badge>
+                  <Badge variant="outline">{test.type === 'ui' ? t('requirements.web', 'Web') : test.type === 'mobile' ? t('requirements.mobile', 'Mobile') : 'API'}</Badge>
                 </label>
               );
             })}
@@ -111,7 +113,7 @@ export default function LinkTestsDialog({ isOpen, requirement, saving, onClose, 
               onSave(
                 picked.map((entry) => {
                   const [type, id] = entry.split(':');
-                  return { type: type as 'ui' | 'api', id: Number(id) };
+                  return { type: type as 'ui' | 'api' | 'mobile', id: Number(id) };
                 }),
               )
             }
