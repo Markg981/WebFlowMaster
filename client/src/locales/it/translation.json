@@ -1321,6 +1321,16 @@
         "name": "Attendi email",
         "description": "Attende l'email inviata a un indirizzo nella casella di test (Mailpit) e la legge nelle variabili email.otp, email.link, email.subject, email.from ed email.text.",
         "valueHint": "indirizzo, indirizzo|oggetto, oppure indirizzo|oggetto|pattern — es. la variabile email, poi |Verifica il tuo account"
+      },
+      "queryDatabase": {
+        "name": "Query al database",
+        "description": "Esegue un'istruzione SQL sul database dell'ambiente (db.url; db.nome.url con @nome) e legge la prima riga in db.value e db.<colonna>, il numero di righe in db.rowCount e le righe in db.json.",
+        "valueHint": "SELECT status FROM orders WHERE email = '…', oppure @reporting SELECT…"
+      },
+      "assertCondition": {
+        "name": "Verifica valori",
+        "description": "Fa fallire il test se un confronto di valori non è vero: il risultato di una query, un testo salvato, l'oggetto di un'email.",
+        "valueHint": "a == b, a != b, a > 3, a contains b — es. la variabile db.value == 1"
       }
     },
     "testSequenceBuilder": {

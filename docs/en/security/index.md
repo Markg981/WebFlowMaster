@@ -161,6 +161,16 @@ all of it. Name the inbox per environment (the `mailpit.url` secret, with `mailp
 installation shared by several companies. Test inboxes are for test mail: never point real users'
 mail at one.
 
+**Test databases.** A **Query database** step runs whatever SQL its test holds, with the rights of
+the user in the environment's `db.url`, from the runner's network. Anyone who can edit tests in
+the organization can therefore read and change what that user can: give it the least it needs, on
+a test database, and keep `db.url` a secret (its password is then encrypted and never shown). The
+password never appears in a step's error. Since the connection is made by the runner, the
+[network rules](./hardening#network) for workers apply to databases as to any other address.
+
+**Authenticator seeds.** <code v-pre>{{$totp(name)}}</code> reads the seed from the variable named, so
+keep it a secret of the environment; the code it makes is valid for about 30 seconds.
+
 ## Local agents
 
 A local agent lets a customer test applications inside their own network without opening it to

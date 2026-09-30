@@ -89,6 +89,13 @@ export const ADHOC_ACTION_IDS = [
   // in {{email.otp}}, {{email.link}}, {{email.subject}}, {{email.from}} and {{email.text}}.
   // See server/email-inbox.ts.
   "waitForEmail",
+  // A SQL statement against the environment's database (db.url, or db.<name>.url with
+  // "@name SELECT…"), with the first row in {{db.value}} and {{db.<column>}}. See
+  // server/database-step.ts.
+  "queryDatabase",
+  // Fails the test unless a comparison of values holds, as an `if` without an element reads
+  // one: "{{db.value}} == 1", "{{total}} > 0", "{{email.subject}} contains Welcome".
+  "assertCondition",
   // Blocks — see shared/flow.ts, which pairs them. `if` and `repeatWhile` take a condition:
   // with an element, a state it is in now (visible, hidden, checked, contains:text…); without
   // one, a comparison of values ("{{status}} == Paid").
@@ -246,6 +253,8 @@ export const ACTION_REQUIREMENTS: Record<
   executeScript: { target: false, value: true, valueRequired: true },
   setVariable: { target: false, value: true, valueRequired: true },
   waitForEmail: { target: false, value: true, valueRequired: true },
+  queryDatabase: { target: false, value: true, valueRequired: true },
+  assertCondition: { target: false, value: true, valueRequired: true },
   if: { target: false, value: true, valueRequired: true, optionalTarget: true },
   else: { target: false, value: false, valueRequired: false },
   endIf: { target: false, value: false, valueRequired: false },
@@ -465,6 +474,16 @@ export const ACTION_I18N: Record<
     description: "dashboardPageNew.actions.waitForEmail.description",
     icon: "Mail",
   },
+  queryDatabase: {
+    name: "dashboardPageNew.actions.queryDatabase.name",
+    description: "dashboardPageNew.actions.queryDatabase.description",
+    icon: "Database",
+  },
+  assertCondition: {
+    name: "dashboardPageNew.actions.assertCondition.name",
+    description: "dashboardPageNew.actions.assertCondition.description",
+    icon: "CheckCheck",
+  },
   if: {
     name: "dashboardPageNew.actions.if.name",
     description: "dashboardPageNew.actions.if.description",
@@ -516,6 +535,8 @@ export const ACTION_VALUE_HINTS: Partial<Record<AdhocActionId, string>> = {
   executeScript: "dashboardPageNew.actions.executeScript.valueHint",
   setVariable: "dashboardPageNew.actions.setVariable.valueHint",
   waitForEmail: "dashboardPageNew.actions.waitForEmail.valueHint",
+  queryDatabase: "dashboardPageNew.actions.queryDatabase.valueHint",
+  assertCondition: "dashboardPageNew.actions.assertCondition.valueHint",
   if: "dashboardPageNew.actions.if.valueHint",
   repeat: "dashboardPageNew.actions.repeat.valueHint",
   repeatWhile: "dashboardPageNew.actions.repeatWhile.valueHint",

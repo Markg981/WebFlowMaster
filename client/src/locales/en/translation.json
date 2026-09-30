@@ -1254,6 +1254,16 @@
         "name": "Wait for email",
         "description": "Waits for the email sent to an address in the test inbox (Mailpit) and reads it into the variables email.otp, email.link, email.subject, email.from and email.text.",
         "valueHint": "address, address|subject, or address|subject|pattern — e.g. the email variable, then |Verify your account"
+      },
+      "queryDatabase": {
+        "name": "Query database",
+        "description": "Runs a SQL statement against the environment's database (db.url; db.name.url with @name) and reads the first row into db.value and db.<column>, the row count into db.rowCount and the rows into db.json.",
+        "valueHint": "SELECT status FROM orders WHERE email = '…', or @reporting SELECT…"
+      },
+      "assertCondition": {
+        "name": "Assert values",
+        "description": "Fails the test unless a comparison of values holds, such as the result of a query, a stored text or an email subject.",
+        "valueHint": "a == b, a != b, a > 3, a contains b — e.g. the db.value variable == 1"
       }
     },
     "playbackStatus": "Step {{current}}/{{total}}: {{name}} - {{details}}",

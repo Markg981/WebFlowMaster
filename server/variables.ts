@@ -97,6 +97,6 @@ export function findUnresolvedVariables(
     if (!(match[1] in vars)) missing.add(match[1]);
   }
   // A misspelt generator is left in place the same way, and reported the same way.
-  for (const name of findInvalidGenerators(value)) missing.add(name);
+  for (const name of findInvalidGenerators(value, vars)) missing.add(name);
   return [...missing];
 }

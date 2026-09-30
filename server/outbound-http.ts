@@ -33,6 +33,7 @@ export function requestVariables(): Record<string, string> {
 export function substituteVariables(value: string, vars: Record<string, string> = requestVariables()): string {
   return substituteGenerators(
     value.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (match, key: string) => (key in vars ? vars[key] : match)),
+    vars,
   );
 }
 

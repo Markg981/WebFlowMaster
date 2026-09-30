@@ -83,6 +83,8 @@ const ACTION_ICONS: Record<AdhocActionId, LucideIcon> = {
   executeScript: Code,
   setVariable: Variable,
   waitForEmail: Mail,
+  queryDatabase: Database,
+  assertCondition: CheckCheck,
   if: GitBranch,
   else: GitBranch,
   endIf: GitMerge,
