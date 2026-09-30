@@ -1198,6 +1198,67 @@
       "assertAccessible": {
         "name": "Verifica accessibilità",
         "description": "Controlla la pagina com'è in questo punto con axe-core, e fallisce sulle violazioni di gravità pari o superiore a quella scelta (serious se vuoto)."
+      },
+      "pressKey": {
+        "name": "Premi tasto",
+        "description": "Preme un tasto o una combinazione sull'elemento o, se non c'è un elemento, su quello che ha il focus.",
+        "valueHint": "Enter, Tab, Escape, Control+A…"
+      },
+      "doubleClick": {
+        "name": "Doppio click",
+        "description": "Fa doppio click sull'elemento."
+      },
+      "rightClick": {
+        "name": "Click destro",
+        "description": "Fa click destro sull'elemento, per aprirne il menu contestuale."
+      },
+      "dragAndDrop": {
+        "name": "Trascina e rilascia",
+        "description": "Trascina l'elemento e lo rilascia sull'elemento indicato dal valore.",
+        "valueHint": "Selettore di dove rilasciarlo"
+      },
+      "uploadFile": {
+        "name": "Carica file",
+        "description": "Passa al campo file — o al pulsante che apre la scelta del file — un file creato dal valore.",
+        "valueHint": "nome.csv oppure nome.csv|contenuto del file"
+      },
+      "handleDialog": {
+        "name": "Rispondi al dialog",
+        "description": "Dice come rispondere al prossimo alert, confirm o prompt. Va messo prima del passo che apre il dialog.",
+        "valueHint": "accept, dismiss oppure accept:testo (vuoto = accept)"
+      },
+      "switchTab": {
+        "name": "Cambia scheda",
+        "description": "Continua il test in un'altra scheda: la più recente, la N-esima o la prima il cui indirizzo o titolo contiene il valore.",
+        "valueHint": "Vuoto = scheda più recente, 2 = seconda scheda, o testo nell'URL"
+      },
+      "closeTab": {
+        "name": "Chiudi scheda",
+        "description": "Chiude la scheda corrente e torna a quella che l'ha aperta."
+      },
+      "storeText": {
+        "name": "Salva testo in variabile",
+        "description": "Legge il testo dell'elemento, o il valore di un campo, in una variabile usabile nei passi successivi.",
+        "valueHint": "Nome della variabile, es. numeroOrdine"
+      },
+      "setCookie": {
+        "name": "Imposta cookie",
+        "description": "Imposta un cookie per l'indirizzo su cui si trova la scheda.",
+        "valueHint": "nome=valore"
+      },
+      "clearCookies": {
+        "name": "Cancella cookie",
+        "description": "Elimina tutti i cookie della sessione del browser."
+      },
+      "setLocalStorage": {
+        "name": "Imposta localStorage",
+        "description": "Scrive una voce nel localStorage della pagina corrente.",
+        "valueHint": "chiave=valore"
+      },
+      "executeScript": {
+        "name": "Esegui JavaScript",
+        "description": "Esegue il valore come JavaScript nella pagina. Fallisce se lo script lancia un errore o restituisce false.",
+        "valueHint": "document.title.includes('Ordini') o codice con return"
       }
     },
     "testSequenceBuilder": {

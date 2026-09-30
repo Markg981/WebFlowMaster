@@ -51,6 +51,36 @@ export const ADHOC_ACTION_IDS = [
   // Runs axe-core on the page as it is at this point of the flow, and fails on violations at or
   // above a severity (the value; "serious" when empty). See shared/accessibility.ts.
   "assertAccessible",
+  // Interactions a click and a typed value cannot stand in for. Without them a test could reach
+  // a search box and never submit it, open a context menu only by accident, and not get past
+  // an upload field, a confirm() or a link that opens in a new tab at all.
+  //
+  // A key, or a combination such as "Control+A", on the step's element or on whatever has focus.
+  "pressKey",
+  "doubleClick",
+  "rightClick",
+  // The element is what is dragged; the value is the selector of where it is dropped.
+  "dragAndDrop",
+  // The value is the file to hand the page: "name.ext", or "name.ext|content" for its contents.
+  "uploadFile",
+  // Says how to answer the NEXT alert, confirm or prompt, so it goes before the step that opens
+  // one: "accept", "dismiss", or "accept:text" to type into a prompt.
+  "handleDialog",
+  // Moves the rest of the test to another tab: the newest one, the Nth (from 1), or the first
+  // whose address or title contains the value.
+  "switchTab",
+  "closeTab",
+  // Reads the element's text, or a field's value, into the variable the value names, so a later
+  // step can use it as {{name}} — an order number read off one screen and searched for on another.
+  "storeText",
+  // "name=value" for the page's current address.
+  "setCookie",
+  "clearCookies",
+  // "key=value" in the current origin's localStorage.
+  "setLocalStorage",
+  // Runs the value as JavaScript in the page. Fails when it throws or returns exactly false,
+  // so it can check what no other step can express.
+  "executeScript",
 ] as const;
 export type AdhocActionId = (typeof ADHOC_ACTION_IDS)[number];
 
@@ -113,9 +143,12 @@ export interface RecordingSequenceResponse {
 }
 
 /**
- * Recorded type → replay action id. `keypress` has no replay counterpart (the resulting
- * value is already captured by the following `input`), so it maps to null and is dropped
- * on purpose rather than by accident.
+ * Recorded type → replay action id, or null for a type that is dropped on purpose.
+ *
+ * `keypress` used to be one of those, on the reasoning that the value it produced was already
+ * in the following `input`. The recorder only reports Enter, though, and what Enter produces
+ * is not a value but a submission: a search box filled in and submitted with Enter replayed
+ * as a search box filled in, and the next step waited for results that were never asked for.
  */
 export const RECORDED_TYPE_TO_ACTION_ID: Record<
   RecordedActionType,
@@ -126,7 +159,7 @@ export const RECORDED_TYPE_TO_ACTION_ID: Record<
   input: "input",
   select: "select",
   navigate: "navigate",
-  keypress: null,
+  keypress: "pressKey",
   assert: "assert",
   assertTextContains: "assertTextContains",
   assertElementCount: "assertElementCount",
@@ -170,6 +203,23 @@ export const ACTION_REQUIREMENTS: Record<
   assertState: { target: true, value: true, valueRequired: true },
   ensureState: { target: true, value: true, valueRequired: true },
   assertAccessible: { target: false, value: true, valueRequired: false },
+  // No element required: after typing, the key usually goes to the field that has focus. A
+  // recorded Enter keeps the field it was pressed in, and the runner uses it when it is there.
+  pressKey: { target: false, value: true, valueRequired: true },
+  doubleClick: { target: true, value: false, valueRequired: false },
+  rightClick: { target: true, value: false, valueRequired: false },
+  dragAndDrop: { target: true, value: true, valueRequired: true },
+  uploadFile: { target: true, value: true, valueRequired: true },
+  // Empty means "accept".
+  handleDialog: { target: false, value: true, valueRequired: false },
+  // Empty means the newest tab.
+  switchTab: { target: false, value: true, valueRequired: false },
+  closeTab: { target: false, value: false, valueRequired: false },
+  storeText: { target: true, value: true, valueRequired: true },
+  setCookie: { target: false, value: true, valueRequired: true },
+  clearCookies: { target: false, value: false, valueRequired: false },
+  setLocalStorage: { target: false, value: true, valueRequired: true },
+  executeScript: { target: false, value: true, valueRequired: true },
 };
 
 /**
@@ -308,6 +358,90 @@ export const ACTION_I18N: Record<
     description: "dashboardPageNew.actions.assertAccessible.description",
     icon: "Accessibility",
   },
+  pressKey: {
+    name: "dashboardPageNew.actions.pressKey.name",
+    description: "dashboardPageNew.actions.pressKey.description",
+    icon: "CornerDownLeft",
+  },
+  doubleClick: {
+    name: "dashboardPageNew.actions.doubleClick.name",
+    description: "dashboardPageNew.actions.doubleClick.description",
+    icon: "MousePointerClick",
+  },
+  rightClick: {
+    name: "dashboardPageNew.actions.rightClick.name",
+    description: "dashboardPageNew.actions.rightClick.description",
+    icon: "MousePointer2",
+  },
+  dragAndDrop: {
+    name: "dashboardPageNew.actions.dragAndDrop.name",
+    description: "dashboardPageNew.actions.dragAndDrop.description",
+    icon: "Move",
+  },
+  uploadFile: {
+    name: "dashboardPageNew.actions.uploadFile.name",
+    description: "dashboardPageNew.actions.uploadFile.description",
+    icon: "Upload",
+  },
+  handleDialog: {
+    name: "dashboardPageNew.actions.handleDialog.name",
+    description: "dashboardPageNew.actions.handleDialog.description",
+    icon: "MessageSquare",
+  },
+  switchTab: {
+    name: "dashboardPageNew.actions.switchTab.name",
+    description: "dashboardPageNew.actions.switchTab.description",
+    icon: "AppWindow",
+  },
+  closeTab: {
+    name: "dashboardPageNew.actions.closeTab.name",
+    description: "dashboardPageNew.actions.closeTab.description",
+    icon: "X",
+  },
+  storeText: {
+    name: "dashboardPageNew.actions.storeText.name",
+    description: "dashboardPageNew.actions.storeText.description",
+    icon: "Variable",
+  },
+  setCookie: {
+    name: "dashboardPageNew.actions.setCookie.name",
+    description: "dashboardPageNew.actions.setCookie.description",
+    icon: "Cookie",
+  },
+  clearCookies: {
+    name: "dashboardPageNew.actions.clearCookies.name",
+    description: "dashboardPageNew.actions.clearCookies.description",
+    icon: "Eraser",
+  },
+  setLocalStorage: {
+    name: "dashboardPageNew.actions.setLocalStorage.name",
+    description: "dashboardPageNew.actions.setLocalStorage.description",
+    icon: "Database",
+  },
+  executeScript: {
+    name: "dashboardPageNew.actions.executeScript.name",
+    description: "dashboardPageNew.actions.executeScript.description",
+    icon: "Code",
+  },
+};
+
+/**
+ * i18n keys for what goes in the value field, for the actions whose value has a shape.
+ *
+ * The builder's field says only "value", which is enough for a URL or a text to type and not
+ * enough for "name.ext|content" or "accept:text": a format nobody can see is a format people
+ * learn by having the step fail.
+ */
+export const ACTION_VALUE_HINTS: Partial<Record<AdhocActionId, string>> = {
+  pressKey: "dashboardPageNew.actions.pressKey.valueHint",
+  dragAndDrop: "dashboardPageNew.actions.dragAndDrop.valueHint",
+  uploadFile: "dashboardPageNew.actions.uploadFile.valueHint",
+  handleDialog: "dashboardPageNew.actions.handleDialog.valueHint",
+  switchTab: "dashboardPageNew.actions.switchTab.valueHint",
+  storeText: "dashboardPageNew.actions.storeText.valueHint",
+  setCookie: "dashboardPageNew.actions.setCookie.valueHint",
+  setLocalStorage: "dashboardPageNew.actions.setLocalStorage.valueHint",
+  executeScript: "dashboardPageNew.actions.executeScript.valueHint",
 };
 
 /** The step shape the visual builder works with (mirrors client `TestStep`). */
@@ -377,6 +511,11 @@ export function mapRecordedActionToStep(
     step.value = recorded.url ?? recorded.value ?? "";
   }
 
+  // The key is what a pressKey step presses.
+  if (actionId === "pressKey") {
+    step.value = recorded.key ?? recorded.value ?? "Enter";
+  }
+
   // The recorder never sends the contents of a password-like field. An empty value would
   // fail step validation with a misleading message, so the step gets a named variable
   // placeholder instead: the user points it at a secret/env var before replaying.
@@ -396,11 +535,38 @@ export function secretPlaceholderName(
   return `secret_${hint || index}`;
 }
 
+/**
+ * The buffer in the order the actions happened, rather than the order the page reported them.
+ *
+ * Enter in a text field fires `keydown` before the field's `change`, so the recorder hears
+ * "Enter, then the value" for what the user did as "the value, then Enter". Replayed as heard,
+ * the form is submitted empty and filled in afterwards. A keypress immediately followed by the
+ * value of the same field is put back behind it.
+ */
+export function inActionOrder(sequence: RecordedAction[]): RecordedAction[] {
+  const ordered = [...sequence];
+  for (let i = 0; i < ordered.length - 1; i++) {
+    const key = ordered[i];
+    const value = ordered[i + 1];
+    if (
+      key.type === "keypress" &&
+      (value.type === "input" || value.type === "select") &&
+      !!key.selector &&
+      key.selector === value.selector
+    ) {
+      ordered[i] = value;
+      ordered[i + 1] = key;
+      i++;
+    }
+  }
+  return ordered;
+}
+
 /** Map a whole recorded buffer, dropping the non-replayable entries. */
 export function mapRecordedSequence(
   sequence: RecordedAction[],
 ): MappedTestStep[] {
-  return sequence
+  return inActionOrder(sequence)
     .map((action, index) => mapRecordedActionToStep(action, index))
     .filter((step): step is MappedTestStep => step !== null);
 }

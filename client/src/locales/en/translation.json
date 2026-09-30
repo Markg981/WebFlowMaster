@@ -1131,6 +1131,67 @@
       "assertAccessible": {
         "name": "Check accessibility",
         "description": "Checks the page as it is at this point with axe-core, and fails on violations at or above the chosen severity (serious when left empty)."
+      },
+      "pressKey": {
+        "name": "Press key",
+        "description": "Presses a key or a combination on the element, or on whatever has focus when no element is set.",
+        "valueHint": "Enter, Tab, Escape, Control+A…"
+      },
+      "doubleClick": {
+        "name": "Double-click",
+        "description": "Double-clicks the element."
+      },
+      "rightClick": {
+        "name": "Right-click",
+        "description": "Right-clicks the element, to open its context menu."
+      },
+      "dragAndDrop": {
+        "name": "Drag and drop",
+        "description": "Drags the element and drops it on the element the value points to.",
+        "valueHint": "Selector of where to drop it"
+      },
+      "uploadFile": {
+        "name": "Upload file",
+        "description": "Gives the file input — or the button that opens the file chooser — a file made from the value.",
+        "valueHint": "name.csv or name.csv|file content"
+      },
+      "handleDialog": {
+        "name": "Answer dialog",
+        "description": "Says how to answer the next alert, confirm or prompt. Put it before the step that opens the dialog.",
+        "valueHint": "accept, dismiss or accept:text (empty = accept)"
+      },
+      "switchTab": {
+        "name": "Switch tab",
+        "description": "Continues the test in another tab: the newest, the Nth, or the first whose address or title contains the value.",
+        "valueHint": "Empty = newest tab, 2 = second tab, or text in the URL"
+      },
+      "closeTab": {
+        "name": "Close tab",
+        "description": "Closes the current tab and goes back to the one that opened it."
+      },
+      "storeText": {
+        "name": "Store text in variable",
+        "description": "Reads the text of the element, or the value of a field, into a variable later steps can use.",
+        "valueHint": "Variable name, e.g. orderNumber"
+      },
+      "setCookie": {
+        "name": "Set cookie",
+        "description": "Sets a cookie for the address the tab is on.",
+        "valueHint": "name=value"
+      },
+      "clearCookies": {
+        "name": "Clear cookies",
+        "description": "Deletes every cookie of the browser session."
+      },
+      "setLocalStorage": {
+        "name": "Set localStorage",
+        "description": "Writes an entry in the localStorage of the current page.",
+        "valueHint": "key=value"
+      },
+      "executeScript": {
+        "name": "Run JavaScript",
+        "description": "Runs the value as JavaScript in the page. Fails when the script throws or returns false.",
+        "valueHint": "document.title.includes('Orders') or code with return"
       }
     },
     "playbackStatus": "Step {{current}}/{{total}}: {{name}} - {{details}}",

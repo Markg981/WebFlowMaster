@@ -12,7 +12,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { TestAction } from '@/pages/dashboard-page-new';
 import { DetectedElement } from '@/components/drag-drop-provider';
-import { ACTION_REQUIREMENTS, ACTION_VALUE_OPTIONS, STEP_GROUP_ACTION_ID, type AdhocActionId } from '@shared/recording';
+import { ACTION_REQUIREMENTS, ACTION_VALUE_HINTS, ACTION_VALUE_OPTIONS, STEP_GROUP_ACTION_ID, type AdhocActionId } from '@shared/recording';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
 import { Trash2, Link2 } from 'lucide-react';
@@ -41,6 +41,8 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
   const needsTarget = requirements?.target ?? false;
   // A closed list becomes a dropdown; everything else stays a free-text field.
   const valueOptions = ACTION_VALUE_OPTIONS[data.action.id as AdhocActionId];
+  // The shape of the value, for the actions whose value has one ("name.ext|content", …).
+  const valueHint = ACTION_VALUE_HINTS[data.action.id as AdhocActionId];
 
   // Accept a detected element dropped from the "Detected Elements" panel and bind it as
   // this step's target. Without this drop target the dragged element had nowhere to land
@@ -138,7 +140,8 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
                 value={data.value || ""}
                 onChange={(e) => data.onUpdateValue(id, e.target.value)}
                 disabled={data.isRecordingActive}
-                placeholder={t('testSequenceBuilder.value.placeholder')}
+                placeholder={valueHint ? t(valueHint) : t('testSequenceBuilder.value.placeholder')}
+                title={valueHint ? t(valueHint) : undefined}
               />
             )}
           </div>

@@ -1137,6 +1137,67 @@
       "assertAccessible": {
         "name": "Barrierefreiheit prüfen",
         "description": "Prüft die Seite, wie sie an dieser Stelle ist, mit axe-core und schlägt bei Verstößen ab dem gewählten Schweregrad fehl (serious, wenn leer)."
+      },
+      "pressKey": {
+        "name": "Taste drücken",
+        "description": "Drückt eine Taste oder Kombination auf dem Element oder, ohne Element, auf dem fokussierten.",
+        "valueHint": "Enter, Tab, Escape, Control+A…"
+      },
+      "doubleClick": {
+        "name": "Doppelklick",
+        "description": "Doppelklickt auf das Element."
+      },
+      "rightClick": {
+        "name": "Rechtsklick",
+        "description": "Klickt mit der rechten Maustaste auf das Element, um sein Kontextmenü zu öffnen."
+      },
+      "dragAndDrop": {
+        "name": "Ziehen und ablegen",
+        "description": "Zieht das Element und legt es auf dem Element ab, auf das der Wert zeigt.",
+        "valueHint": "Selektor des Ablageziels"
+      },
+      "uploadFile": {
+        "name": "Datei hochladen",
+        "description": "Übergibt dem Dateifeld — oder der Schaltfläche, die die Dateiauswahl öffnet — eine aus dem Wert erzeugte Datei.",
+        "valueHint": "name.csv oder name.csv|Dateiinhalt"
+      },
+      "handleDialog": {
+        "name": "Dialog beantworten",
+        "description": "Legt fest, wie der nächste alert, confirm oder prompt beantwortet wird. Vor den Schritt setzen, der den Dialog öffnet.",
+        "valueHint": "accept, dismiss oder accept:Text (leer = accept)"
+      },
+      "switchTab": {
+        "name": "Tab wechseln",
+        "description": "Setzt den Test in einem anderen Tab fort: dem neuesten, dem N-ten oder dem ersten, dessen Adresse oder Titel den Wert enthält.",
+        "valueHint": "Leer = neuester Tab, 2 = zweiter Tab, oder Text in der URL"
+      },
+      "closeTab": {
+        "name": "Tab schließen",
+        "description": "Schließt den aktuellen Tab und kehrt zu dem zurück, der ihn geöffnet hat."
+      },
+      "storeText": {
+        "name": "Text in Variable speichern",
+        "description": "Liest den Text des Elements oder den Wert eines Feldes in eine Variable für spätere Schritte.",
+        "valueHint": "Variablenname, z. B. orderNumber"
+      },
+      "setCookie": {
+        "name": "Cookie setzen",
+        "description": "Setzt ein Cookie für die Adresse, auf der der Tab ist.",
+        "valueHint": "name=wert"
+      },
+      "clearCookies": {
+        "name": "Cookies löschen",
+        "description": "Löscht alle Cookies der Browsersitzung."
+      },
+      "setLocalStorage": {
+        "name": "localStorage setzen",
+        "description": "Schreibt einen Eintrag in den localStorage der aktuellen Seite.",
+        "valueHint": "schlüssel=wert"
+      },
+      "executeScript": {
+        "name": "JavaScript ausführen",
+        "description": "Führt den Wert als JavaScript auf der Seite aus. Schlägt fehl, wenn das Skript einen Fehler wirft oder false zurückgibt.",
+        "valueHint": "document.title.includes('Orders') oder Code mit return"
       }
     },
     "saveTest": {

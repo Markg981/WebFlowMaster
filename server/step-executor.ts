@@ -65,6 +65,14 @@ export interface StepOutcome {
   detail?: string;
   /** What an `assertAccessible` step found, kept on the step for the report. */
   accessibility?: AccessibilityFinding;
+  /**
+   * The tab the rest of the test runs in, when this step moved it (`switchTab`, `closeTab`).
+   *
+   * Returned rather than swapped behind the caller's back: the caller owns the page it takes
+   * screenshots of and hands to the reporter, and a step that changed it silently would leave
+   * the evidence showing one tab while the steps acted on another.
+   */
+  page?: Page;
 }
 
 /** The step shape both callers pass in — the builder's `TestStep`, structurally. */
@@ -206,6 +214,12 @@ interface StepRuntime {
   assertionTimeoutMs: number;
   /** Runs axe-core on the page. A field rather than an import, so it can be stood in for. */
   scanAccessibility: (threshold: AccessibilityImpact) => Promise<AccessibilityFinding>;
+  /**
+   * Sets `{{name}}` for the steps after this one. Absent when the caller passed no variables
+   * of its own: the fallback is the process-wide set, and a value written there would turn up
+   * in whichever run read it next.
+   */
+  storeVariable?: (name: string, value: string) => void;
 }
 
 /** Reads the step's value as a non-empty string, or explains what is missing. */
@@ -220,6 +234,131 @@ function requireValue(rt: StepRuntime, action: string): { value: string } | { er
 function requireSelector(rt: StepRuntime, action: string): { selector: string } | { error: string } {
   if (!rt.selector) return { error: `Selector missing for ${action} action.` };
   return { selector: rt.selector };
+}
+
+/** Splits "name=value" at the first `=`, so a value may contain its own. */
+export function parseAssignment(value: string): { name: string; value: string } | null {
+  const at = value.indexOf('=');
+  if (at <= 0) return null;
+  const name = value.slice(0, at).trim();
+  return name === '' ? null : { name, value: value.slice(at + 1) };
+}
+
+/** What `{{name}}` accepts — the same pattern substitution reads, so a stored name resolves. */
+const VARIABLE_NAME = /^[\w.]+$/;
+
+const UPLOAD_MIME_TYPES: Record<string, string> = {
+  txt: 'text/plain',
+  csv: 'text/csv',
+  json: 'application/json',
+  xml: 'application/xml',
+  html: 'text/html',
+  md: 'text/markdown',
+};
+
+/**
+ * The file an `uploadFile` step hands the page: "name.ext", or "name.ext|content".
+ *
+ * Made from the step rather than read from disk. The runner is shared by every organization on
+ * the installation, so a path on the server would be a way to send one tenant's files — or the
+ * server's own — to whatever application a test points at. A name and a text body cover the
+ * forms that check a file was chosen and parse what is in it; binary fixtures need a file store
+ * of their own.
+ */
+export function parseUploadValue(
+  value: string,
+): { name: string; mimeType: string; buffer: Buffer } | { error: string } {
+  const bar = value.indexOf('|');
+  const name = (bar === -1 ? value : value.slice(0, bar)).trim();
+  if (name === '' || /[\\/]/.test(name)) {
+    return { error: `"${name}" is not a file name. Write a name such as "invoice.csv", optionally followed by |content.` };
+  }
+  const content = bar === -1 ? `Test file ${name}\n` : value.slice(bar + 1);
+  const extension = name.includes('.') ? name.split('.').pop()!.toLowerCase() : '';
+  return {
+    name,
+    mimeType: UPLOAD_MIME_TYPES[extension] ?? 'application/octet-stream',
+    buffer: Buffer.from(content, 'utf8'),
+  };
+}
+
+export type DialogAnswer = { accept: boolean; promptText?: string };
+
+/** "accept", "dismiss", or "accept:text"; empty means accept. */
+export function parseDialogAnswer(value: string): DialogAnswer | null {
+  const trimmed = value.trim();
+  if (trimmed === '' || /^accept$/i.test(trimmed)) return { accept: true };
+  if (/^dismiss$/i.test(trimmed)) return { accept: false };
+  const prompt = /^accept:(.*)$/is.exec(trimmed);
+  return prompt ? { accept: true, promptText: prompt[1] } : null;
+}
+
+/**
+ * Answers waiting for the dialogs a page has not opened yet, in the order they were given.
+ *
+ * A queue rather than `page.once` per step: two `handleDialog` steps before the first dialog
+ * would otherwise both answer it, and the second would fail on a dialog already handled while
+ * the next one went unanswered. Keyed by page so a tab's answers stay with that tab.
+ */
+const pendingDialogAnswers = new WeakMap<Page, DialogAnswer[]>();
+
+function queueDialogAnswer(page: Page, answer: DialogAnswer) {
+  let queue = pendingDialogAnswers.get(page);
+  if (!queue) {
+    queue = [];
+    pendingDialogAnswers.set(page, queue);
+    const answers = queue;
+    // Once a listener is attached Playwright no longer dismisses dialogs by itself, so one
+    // nobody gave an answer for is dismissed here — what happened to it before this existed.
+    page.on('dialog', (dialog) => {
+      const next = answers.shift();
+      const handled = !next
+        ? dialog.dismiss()
+        : next.accept
+          ? dialog.accept(next.promptText)
+          : dialog.dismiss();
+      handled.catch(() => {});
+    });
+  }
+  queue.push(answer);
+}
+
+/** A tab by what the value says: empty or "new" for the newest, a number from 1, or text in its address or title. */
+async function findTab(rt: StepRuntime, wanted: string): Promise<Page | null> {
+  const context = rt.page.context();
+  const open = () => context.pages().filter((p) => !p.isClosed());
+
+  if (wanted === '' || /^(new|newest|latest|last)$/i.test(wanted)) {
+    const others = () => open().filter((p) => p !== rt.page);
+    // The click that opens a tab returns before the tab exists, so it is waited for.
+    if (!(await holdsWithin(async () => others().length > 0, rt.timeoutMs))) return null;
+    return others().at(-1) ?? null;
+  }
+
+  if (/^\d+$/.test(wanted)) {
+    const index = parseInt(wanted, 10) - 1;
+    if (index < 0) return null;
+    if (!(await holdsWithin(async () => open().length > index, rt.timeoutMs))) return null;
+    return open()[index] ?? null;
+  }
+
+  let found: Page | null = null;
+  await holdsWithin(async () => {
+    for (const page of open()) {
+      const title = await page.title().catch(() => '');
+      if (page.url().includes(wanted) || title.includes(wanted)) {
+        found = page;
+        return true;
+      }
+    }
+    return false;
+  }, rt.timeoutMs);
+  return found;
+}
+
+/** Keeps a stored or returned value readable in the report. */
+function excerpt(value: string, max = 200): string {
+  return value.length > max ? `${value.slice(0, max)}…` : value;
 }
 
 type StepHandler = (rt: StepRuntime) => Promise<StepOutcome>;
@@ -640,6 +779,197 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
           : 'No options were visible — the trigger may not have opened.'),
     );
   },
+
+  /** On the step's element when it has one, otherwise on whatever has focus. */
+  pressKey: async (rt) => {
+    const key = requireValue(rt, 'pressKey');
+    if ('error' in key) return failed(key.error);
+    if (rt.selector) await rt.locator(rt.selector).first().press(key.value.trim());
+    else await rt.page.keyboard.press(key.value.trim());
+    return passed;
+  },
+
+  doubleClick: async (rt) => {
+    const target = requireSelector(rt, 'doubleClick');
+    if ('error' in target) throw new Error(target.error);
+    await rt.locator(target.selector).first().dblclick();
+    return passed;
+  },
+
+  rightClick: async (rt) => {
+    const target = requireSelector(rt, 'rightClick');
+    if ('error' in target) throw new Error(target.error);
+    await rt.locator(target.selector).first().click({ button: 'right' });
+    return passed;
+  },
+
+  dragAndDrop: async (rt) => {
+    const source = requireSelector(rt, 'dragAndDrop');
+    if ('error' in source) return failed(source.error);
+    const destination = requireValue(rt, 'dragAndDrop');
+    if ('error' in destination) return failed(destination.error);
+    // Same frame as the element dragged: a drop into another document is not something a
+    // pointer can do either.
+    await rt.locator(source.selector).first().dragTo(rt.locator(destination.value.trim()).first());
+    return passed;
+  },
+
+  /**
+   * Hands the page a file, through its file input or through the chooser a button opens.
+   *
+   * Most upload widgets hide the real `<input type="file">` behind a styled button, and a click
+   * on that button opens a native dialog no test can reach. The input takes the file directly,
+   * hidden or not; anything else is clicked with the chooser intercepted.
+   */
+  uploadFile: async (rt) => {
+    const target = requireSelector(rt, 'uploadFile');
+    if ('error' in target) return failed(target.error);
+    const wanted = requireValue(rt, 'uploadFile');
+    if ('error' in wanted) return failed(wanted.error);
+    const file = parseUploadValue(wanted.value);
+    if ('error' in file) return failed(file.error);
+
+    const element = rt.locator(target.selector).first();
+    const isFileInput = await element
+      .evaluate((node) => node instanceof HTMLInputElement && node.type === 'file')
+      .catch(() => false);
+    if (isFileInput) {
+      await element.setInputFiles(file);
+    } else {
+      const [chooser] = await Promise.all([
+        rt.page.waitForEvent('filechooser', { timeout: rt.timeoutMs }),
+        element.click(),
+      ]);
+      await chooser.setFiles(file);
+    }
+    return { status: 'passed', detail: `Uploaded ${file.name} (${file.buffer.length} bytes).` };
+  },
+
+  handleDialog: async (rt) => {
+    const raw = typeof rt.raw === 'string' ? rt.raw : '';
+    const resolved = resolveValue(raw, rt.vars);
+    if ('error' in resolved) return failed(resolved.error);
+    const answer = parseDialogAnswer(resolved.value);
+    if (!answer) {
+      return failed(`Unknown answer "${raw}" for handleDialog. Use accept, dismiss, or accept:text for a prompt.`);
+    }
+    queueDialogAnswer(rt.page, answer);
+    return {
+      status: 'passed',
+      detail: answer.accept
+        ? `The next dialog will be accepted${answer.promptText !== undefined ? ` with "${answer.promptText}"` : ''}.`
+        : 'The next dialog will be dismissed.',
+    };
+  },
+
+  switchTab: async (rt) => {
+    const raw = typeof rt.raw === 'string' ? rt.raw.trim() : '';
+    const wanted = resolveValue(raw, rt.vars);
+    if ('error' in wanted) return failed(wanted.error);
+    const tab = await findTab(rt, wanted.value);
+    if (!tab) {
+      const open = rt.page.context().pages().map((p, i) => `${i + 1}: ${p.url()}`);
+      return failed(
+        `No tab matching "${wanted.value || 'the newest'}" within ${rt.timeoutMs}ms. Open tabs — ${open.join(', ')}.`,
+      );
+    }
+    await tab.waitForLoadState('domcontentloaded').catch(() => {});
+    await tab.bringToFront();
+    return { status: 'passed', page: tab, detail: `Now on ${tab.url()}.` };
+  },
+
+  /** Closes the current tab and goes back to the one that opened it, or to the first. */
+  closeTab: async (rt) => {
+    const remaining = rt.page.context().pages().filter((p) => p !== rt.page && !p.isClosed());
+    if (remaining.length === 0) {
+      return failed('This is the only open tab; closing it would leave the test nowhere to go.');
+    }
+    const opener = await rt.page.opener().catch(() => null);
+    const next = opener && !opener.isClosed() ? opener : remaining[0];
+    await rt.page.close();
+    await next.bringToFront();
+    return { status: 'passed', page: next, detail: `Back on ${next.url()}.` };
+  },
+
+  storeText: async (rt) => {
+    const target = requireSelector(rt, 'storeText');
+    if ('error' in target) return failed(target.error);
+    const name = typeof rt.raw === 'string' ? rt.raw.trim().replace(/^\{\{\s*|\s*\}\}$/g, '') : '';
+    if (name === '') return failed('Value missing for storeText action: the name of the variable to store into.');
+    if (!VARIABLE_NAME.test(name)) {
+      return failed(`"${rt.raw ?? ''}" is not a variable name. Use letters, digits, _ and . — for example orderNumber.`);
+    }
+    if (!rt.storeVariable) return failed('This run has no variables of its own to store a value in.');
+
+    const element = rt.locator(target.selector).first();
+    await element.waitFor({ state: 'attached', timeout: rt.timeoutMs });
+    // A field's content is its value; anything else's is the text a person reads on it.
+    const read = await element.evaluate((node) => ({
+      text:
+        node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement || node instanceof HTMLSelectElement
+          ? node.value
+          : ((node as HTMLElement).innerText ?? node.textContent ?? ''),
+      secret: node instanceof HTMLInputElement && node.type === 'password',
+    }));
+    const value = read.text.trim();
+    rt.storeVariable(name, value);
+    // The report is read by more people than the test's variables are.
+    return { status: 'passed', detail: `{{${name}}} = ${read.secret ? '(a password field, not shown)' : `"${excerpt(value)}"`}` };
+  },
+
+  setCookie: async (rt) => {
+    const wanted = requireValue(rt, 'setCookie');
+    if ('error' in wanted) return failed(wanted.error);
+    const cookie = parseAssignment(wanted.value);
+    if (!cookie) return failed(`"${rt.raw}" is not name=value.`);
+    const url = rt.page.url();
+    if (!/^https?:/i.test(url)) return failed('Open a page first: a cookie is set for the address the tab is on.');
+    await rt.page.context().addCookies([{ name: cookie.name, value: cookie.value, url }]);
+    return passed;
+  },
+
+  clearCookies: async (rt) => {
+    await rt.page.context().clearCookies();
+    return passed;
+  },
+
+  setLocalStorage: async (rt) => {
+    const wanted = requireValue(rt, 'setLocalStorage');
+    if ('error' in wanted) return failed(wanted.error);
+    const entry = parseAssignment(wanted.value);
+    if (!entry) return failed(`"${rt.raw}" is not key=value.`);
+    try {
+      await rt.page.evaluate(([key, value]) => window.localStorage.setItem(key, value), [entry.name, entry.value] as const);
+    } catch (error: any) {
+      return failed(`Could not write localStorage on ${rt.page.url()}: ${error?.message ?? error}. Open a page of the application first.`);
+    }
+    return passed;
+  },
+
+  /**
+   * Runs the value in the page. A script with a `return` is the body of an async function;
+   * one without is evaluated for its last value, the way a console would.
+   *
+   * Evaluated as a string through the browser's debugging protocol rather than with
+   * `new Function` in the page, so an application whose Content-Security-Policy forbids eval
+   * can still be tested. It runs with the page's powers and nothing more.
+   */
+  executeScript: async (rt) => {
+    const wanted = requireValue(rt, 'executeScript');
+    if ('error' in wanted) return failed(wanted.error);
+    const source = wanted.value;
+    const expression = /\breturn\b/.test(source) ? `(async () => {\n${source}\n})()` : source;
+    let result: unknown;
+    try {
+      result = await rt.page.evaluate(expression);
+    } catch (error: any) {
+      return failed(`The script threw: ${error?.message ?? error}`);
+    }
+    if (result === false) return failed('The script returned false.');
+    return result === undefined
+      ? passed
+      : { status: 'passed', detail: `Returned ${excerpt(JSON.stringify(result) ?? String(result))}.` };
+  },
 };
 
 /**
@@ -699,6 +1029,13 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
     // The whole page, not the step's frame: an accessibility check is about what a person
     // meets, and they meet the page.
     scanAccessibility: (threshold) => scanAccessibility(page, threshold),
+    ...(ctx.vars
+      ? {
+          storeVariable: (name: string, value: string) => {
+            ctx.vars![name] = value;
+          },
+        }
+      : {}),
   };
 
   return handler(rt);

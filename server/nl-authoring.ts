@@ -139,6 +139,22 @@ function canonicalState(word: string): string | null {
   return STATE_WORDS[word.trim().toLowerCase()] ?? null;
 }
 
+/** What a key is called in the sentence → what Playwright calls it. */
+const KEY_WORDS: Record<string, string> = {
+  enter: 'Enter', invio: 'Enter', return: 'Enter', tab: 'Tab', escape: 'Escape', esc: 'Escape',
+  backspace: 'Backspace', delete: 'Delete', canc: 'Delete', space: 'Space', spazio: 'Space',
+  arrowup: 'ArrowUp', arrowdown: 'ArrowDown', arrowleft: 'ArrowLeft', arrowright: 'ArrowRight',
+  control: 'Control', ctrl: 'Control', shift: 'Shift', alt: 'Alt', meta: 'Meta',
+};
+
+/** "ctrl+a" → "Control+a", "invio" → "Enter". Playwright is strict about the names. */
+function canonicalKey(phrase: string): string {
+  return phrase
+    .split('+')
+    .map((part) => KEY_WORDS[part.trim().toLowerCase()] ?? part.trim())
+    .join('+');
+}
+
 /**
  * A phrase reduced to what two people would have to agree on to be talking about the same
  * thing: lower case, no quotes or punctuation, no leading article.
@@ -355,6 +371,12 @@ const TEXT_TARGET_ACTIONS = new Set<AdhocActionId>([
   'assert', 'waitForElement', 'click', 'hover', 'assertTextContains', 'waitForText',
 ]);
 
+/**
+ * Actions that need no element but use one when the step has it. Only these keep an element
+ * the author or the model named; on any other action it would be carried along unused.
+ */
+const OPTIONAL_TARGET_ACTIONS = new Set<AdhocActionId>(['pressKey', 'scroll']);
+
 function textEntry(text: string): CatalogueEntry {
   return {
     key: 'T',
@@ -467,6 +489,42 @@ const RULES: Rule[] = [
     build: (g) => ({ action: 'select', targetPhrase: g.target ?? null, value: g.value ?? null }),
   },
   {
+    // Before click, whose "press" would otherwise take the key for an element's name.
+    regex: /^(?:press|hit|premi|digita)\s+(?:the\s+|il\s+)?(?:key\s+|tasto\s+)?(?<key>enter|invio|return|tab|escape|esc|backspace|delete|canc|space|spazio|arrow(?:up|down|left|right)|(?:control|ctrl|shift|alt|meta)\+\S+)(?:\s+key)?(?:\s+(?:in|on|into|nel|nella|sul|sulla|su)\s+(?<target>.+))?$/i,
+    build: (g) => ({ action: 'pressKey', targetPhrase: g.target ?? null, value: canonicalKey(g.key ?? '') }),
+  },
+  {
+    regex: /^(?:double[- ]?click(?: on)?|fai doppio click su|doppio click su)\s+(?<target>.+)$/i,
+    build: (g) => ({ action: 'doubleClick', targetPhrase: g.target ?? null }),
+  },
+  {
+    regex: /^(?:right[- ]?click(?: on)?|fai click destro su|click destro su|clicca col destro su)\s+(?<target>.+)$/i,
+    build: (g) => ({ action: 'rightClick', targetPhrase: g.target ?? null }),
+  },
+  {
+    regex: /^(?<verb>accept|confirm|ok|dismiss|cancel|close|accetta|conferma|annulla|chiudi|rifiuta)\s+(?:the\s+|il\s+|la\s+|l')?(?:next\s+|prossim[oa]\s+)?(?:dialog|alert|confirm|prompt|popup|finestra di dialogo|messaggio)$/i,
+    build: (g) => ({
+      action: 'handleDialog',
+      value: /^(accept|confirm|ok|accetta|conferma)$/i.test(g.verb ?? '') ? 'accept' : 'dismiss',
+    }),
+  },
+  {
+    regex: /^(?:switch to|go to|passa al?l?[a']?|vai al?l?[a']?)\s*(?:the\s+)?(?:new|newest|latest|nuova|ultima)\s+(?:tab|scheda|window|finestra)$/i,
+    build: () => ({ action: 'switchTab' }),
+  },
+  {
+    regex: /^(?:close|chiudi)\s+(?:the\s+|la\s+)?(?:current\s+)?(?:tab|scheda|window|finestra)(?:\s+corrente)?$/i,
+    build: () => ({ action: 'closeTab' }),
+  },
+  {
+    regex: /^(?:clear|delete|cancella|elimina|svuota)\s+(?:all\s+|the\s+|i\s+|tutti i\s+)?cookies?$/i,
+    build: () => ({ action: 'clearCookies' }),
+  },
+  {
+    regex: /^(?:store|save|remember|salva|memorizza|ricorda)\s+(?:the\s+(?:text|value)\s+of\s+|il\s+(?:testo|valore)\s+(?:di|del|della|dello)\s+)?(?<target>.+?)\s+(?:as|into|in|come|nella variabile)\s+\{{0,2}(?<name>[\w.]+)\}{0,2}$/i,
+    build: (g) => ({ action: 'storeText', targetPhrase: g.target ?? null, value: g.name ?? null }),
+  },
+  {
     regex: /^(?:hover(?: over| on)?|passa (?:il mouse )?sopra|passa il mouse su)\s+(?<target>.+)$/i,
     build: (g) => ({ action: 'hover', targetPhrase: g.target ?? null }),
   },
@@ -533,6 +591,18 @@ export function buildStep(candidate: Candidate, catalogue: CatalogueEntry[]): St
       else if (resolution.missing && quoted && TEXT_TARGET_ACTIONS.has(action)) {
         entry = textEntry(quoted);
       } else return { ok: false, reason: resolution.reason };
+    }
+  } else if (OPTIONAL_TARGET_ACTIONS.has(action) && (candidate.targetPhrase || candidate.targetKey)) {
+    // An element the action can do without, but that the author named: "press Enter in the
+    // Search field". Named and not found is refused, not dropped — the key would otherwise go
+    // to whatever had focus, which is not what the sentence said.
+    if (candidate.targetKey) {
+      entry = catalogue.find((item) => item.key === candidate.targetKey);
+      if (!entry) return { ok: false, reason: 'That element is not on this page or in the repository.' };
+    } else {
+      const resolution = resolveTarget(candidate.targetPhrase ?? '', catalogue, action);
+      if (!resolution.ok) return { ok: false, reason: resolution.reason };
+      entry = resolution.entry;
     }
   }
 
@@ -609,7 +679,7 @@ export function buildPrompt(lines: { line: number; text: string }[], catalogue: 
     const requirements = ACTION_REQUIREMENTS[id];
     const options = ACTION_VALUE_OPTIONS[id];
     const parts = [
-      requirements.target ? 'needs an element' : 'no element',
+      requirements.target ? 'needs an element' : OPTIONAL_TARGET_ACTIONS.has(id) ? 'optional element' : 'no element',
       requirements.valueRequired ? 'needs a value' : requirements.value ? 'optional value' : 'no value',
     ];
     if (options) parts.push(`value is one of: ${options.join(' | ')}`);

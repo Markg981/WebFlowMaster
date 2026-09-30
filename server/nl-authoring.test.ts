@@ -73,6 +73,24 @@ describe('labelForDetected', () => {
 });
 
 describe('parseLine', () => {
+  it('reads the interactions beyond click and type', () => {
+    expect(parseLine('Premi Invio nel campo Cerca')).toMatchObject({ action: 'pressKey', value: 'Enter', targetPhrase: 'campo Cerca' });
+    expect(parseLine('Press ctrl+a')).toMatchObject({ action: 'pressKey', value: 'Control+a' });
+    // Still a click: "Login" is not a key.
+    expect(parseLine('Press Login')).toMatchObject({ action: 'click' });
+    expect(parseLine('Click destro su Riga 1')).toMatchObject({ action: 'rightClick', targetPhrase: 'Riga 1' });
+    expect(parseLine('Double-click the row')).toMatchObject({ action: 'doubleClick' });
+    expect(parseLine('Annulla il prossimo dialog')).toMatchObject({ action: 'handleDialog', value: 'dismiss' });
+    expect(parseLine('Switch to the new tab')).toMatchObject({ action: 'switchTab' });
+    expect(parseLine('Chiudi la scheda')).toMatchObject({ action: 'closeTab' });
+    expect(parseLine('Clear cookies')).toMatchObject({ action: 'clearCookies' });
+    expect(parseLine('Salva il testo del numero ordine come numeroOrdine')).toMatchObject({
+      action: 'storeText',
+      targetPhrase: 'numero ordine',
+      value: 'numeroOrdine',
+    });
+  });
+
   it('reads the ordinary imperatives', () => {
     expect(parseLine('Click the Save button')).toMatchObject({ action: 'click', targetPhrase: 'the Save button' });
     expect(parseLine('Hover over the Save button')).toMatchObject({ action: 'hover' });

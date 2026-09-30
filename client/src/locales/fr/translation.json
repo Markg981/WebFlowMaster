@@ -1137,6 +1137,67 @@
       "assertAccessible": {
         "name": "Vérifier l'accessibilité",
         "description": "Vérifie la page telle qu'elle est à ce stade avec axe-core, et échoue sur les violations de gravité égale ou supérieure à celle choisie (serious si vide)."
+      },
+      "pressKey": {
+        "name": "Appuyer sur une touche",
+        "description": "Appuie sur une touche ou une combinaison sur l'élément, ou sur celui qui a le focus s'il n'y en a pas.",
+        "valueHint": "Enter, Tab, Escape, Control+A…"
+      },
+      "doubleClick": {
+        "name": "Double-clic",
+        "description": "Double-clique sur l'élément."
+      },
+      "rightClick": {
+        "name": "Clic droit",
+        "description": "Fait un clic droit sur l'élément, pour ouvrir son menu contextuel."
+      },
+      "dragAndDrop": {
+        "name": "Glisser-déposer",
+        "description": "Fait glisser l'élément et le dépose sur l'élément désigné par la valeur.",
+        "valueHint": "Sélecteur de la cible du dépôt"
+      },
+      "uploadFile": {
+        "name": "Téléverser un fichier",
+        "description": "Donne au champ fichier — ou au bouton qui ouvre le sélecteur — un fichier créé à partir de la valeur.",
+        "valueHint": "nom.csv ou nom.csv|contenu du fichier"
+      },
+      "handleDialog": {
+        "name": "Répondre à la boîte de dialogue",
+        "description": "Indique comment répondre au prochain alert, confirm ou prompt. À placer avant l'étape qui l'ouvre.",
+        "valueHint": "accept, dismiss ou accept:texte (vide = accept)"
+      },
+      "switchTab": {
+        "name": "Changer d'onglet",
+        "description": "Poursuit le test dans un autre onglet : le plus récent, le N-ième, ou le premier dont l'adresse ou le titre contient la valeur.",
+        "valueHint": "Vide = onglet le plus récent, 2 = deuxième onglet, ou texte de l'URL"
+      },
+      "closeTab": {
+        "name": "Fermer l'onglet",
+        "description": "Ferme l'onglet courant et revient à celui qui l'a ouvert."
+      },
+      "storeText": {
+        "name": "Stocker le texte dans une variable",
+        "description": "Lit le texte de l'élément, ou la valeur d'un champ, dans une variable utilisable par les étapes suivantes.",
+        "valueHint": "Nom de variable, ex. orderNumber"
+      },
+      "setCookie": {
+        "name": "Définir un cookie",
+        "description": "Définit un cookie pour l'adresse de l'onglet.",
+        "valueHint": "nom=valeur"
+      },
+      "clearCookies": {
+        "name": "Effacer les cookies",
+        "description": "Supprime tous les cookies de la session du navigateur."
+      },
+      "setLocalStorage": {
+        "name": "Définir localStorage",
+        "description": "Écrit une entrée dans le localStorage de la page courante.",
+        "valueHint": "clé=valeur"
+      },
+      "executeScript": {
+        "name": "Exécuter du JavaScript",
+        "description": "Exécute la valeur comme JavaScript dans la page. Échoue si le script lève une erreur ou renvoie false.",
+        "valueHint": "document.title.includes('Orders') ou code avec return"
       }
     },
     "saveTest": {
