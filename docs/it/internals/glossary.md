@@ -41,6 +41,7 @@ ciascuna vive. I termini restano in inglese quando è così che compaiono nell'i
 | **Quota** | I limiti di un'organizzazione sui run in esecuzione e in attesa (`organizations`, `server/tenant-quotas.ts`). |
 | **Relay** | Il componente del processo web che accoppia i runner con i browser degli agenti (`server/agents/relay.ts`). |
 | **RLS** | La row-level security di PostgreSQL, che separa le organizzazioni. |
+| **Requisito** | Un'epic, una user story o un requisito, scritto a mano o importato da Jira o Azure DevOps, con i test che lo coprono (`requirements`, `requirement_tests`). |
 | **Runner** | Un processo worker come registrato in `runners`, con heartbeat e stato desiderato (drenaggio). |
 | **Schedule (schedulazione)** | Quando un piano gira automaticamente (`test_plan_schedules`). |
 | **Scope** | Un permesso a cui una chiave API può essere limitata su `/api/v1` (`shared/api-scopes.ts`). |

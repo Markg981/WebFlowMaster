@@ -287,6 +287,11 @@ const TestReportPage: React.FC = () => {
                   </Button>
                 )}
                 <CancelRunButton executionId={header.executionId} status={header.status} onChanged={() => refetch()} />
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/requirements?executionId=${encodeURIComponent(header.executionId)}`}>
+                    {t('testReportPage.requirements', 'Requirements covered')}
+                  </Link>
+                </Button>
                 <ExportRunMenu executionId={header.executionId} />
               </div>
             </div>

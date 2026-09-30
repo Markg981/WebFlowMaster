@@ -56,7 +56,7 @@ Il prodotto invia dati a terze parti solo dove un'organizzazione o l'operatore l
 | Google (API Gemini) | Solo se l'operatore imposta `GEMINI_API_KEY` | Le frasi che descrivono i test; su uno step che fallisce, l'errore e fino a 30.000 caratteri dell'HTML della pagina; per un'analisi del fallimento chiesta da un report, step, errori, richieste e screenshot del test fallito. Vedi [Funzioni AI](./#funzioni-ai). |
 | Fornitore di storage compatibile S3 | Se l'operatore sceglie `ARTIFACT_STORE=s3` | Evidenze dei run e baseline. |
 | Grafana Loki | Se l'operatore imposta `LOKI_URL` | Log dell'applicazione. |
-| Jira, Azure DevOps | Se un'organizzazione collega un issue tracker | I dettagli del fallimento dei run che aprono una issue. |
+| Jira, Azure DevOps | Se un'organizzazione collega un issue tracker | I dettagli del fallimento dei run che aprono una issue. Un import di requisiti invia solo le chiavi o la query; titoli, tipi e stati letti vengono conservati con i requisiti. |
 | BrowserStack, LambdaTest | Se un'organizzazione aggiunge una griglia di browser e un piano gira su di essa | Tutto ciò che i test fanno nel browser: le pagine dell'applicazione sotto test, i valori digitati (compresi i segreti usati negli step), e screenshot, video e log di ogni sessione del fornitore, conservati secondo i suoi termini. |
 | GitHub, GitLab | Se un'organizzazione li collega | Stato del run, verdetto e link, sul commit testato. |
 | Slack o Microsoft Teams | Se le notifiche di un piano indicano un webhook | Riepiloghi dei run. (Sul piano si possono salvare indirizzi e-mail, ma nessuna e-mail viene inviata.) |

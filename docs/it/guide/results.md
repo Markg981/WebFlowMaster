@@ -109,6 +109,9 @@ con quale gravità; quali sono state rispettate; e quali richiedono il controllo
 | Risultati Allure (.zip) | `allure generate` o un server Allure. |
 | JUnit XML | Il report dei test di un sistema di CI. |
 
+**Requisiti coperti** mostra i [requisiti](./organizing#requisiti) con esattamente i risultati di
+questo run, e li esporta come matrice di tracciabilità.
+
 ## Aprire una issue
 
 Quando un owner ha collegato Jira o Azure DevOps, un test fallito nel report ha **Apri issue**,

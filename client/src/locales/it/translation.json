@@ -479,7 +479,8 @@
       "operations": "Operazioni"
     },
     "testLibrary": "Libreria dei test",
-    "testManager": "Test Manager"
+    "testManager": "Test Manager",
+    "requirements": "Requisiti"
   },
   "dashboardPage": {
     "headerTitle": "Piattaforma WebTest",
@@ -2634,7 +2635,8 @@
     "noReason": "Nessun motivo indicato",
     "notRecorded": "non registrato",
     "noData": "Nessun dato per questo report.",
-    "failedTests": "Test falliti"
+    "failedTests": "Test falliti",
+    "requirements": "Requisiti coperti"
   },
   "scheduleEnvironment": {
     "label": "Ambiente",
@@ -2692,7 +2694,8 @@
       "agent": "Agenti locali",
       "source_host": "GitHub e GitLab",
       "sso": "Single sign-on",
-      "custom_action": "Azioni personalizzate"
+      "custom_action": "Azioni personalizzate",
+      "requirement": "Requisiti"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
@@ -2766,7 +2769,12 @@
       "custom_action_updated": "Azione personalizzata modificata",
       "custom_action_deleted": "Azione personalizzata eliminata",
       "run_manual_result_recorded": "Esito manuale registrato",
-      "run_failure_analysed": "Fallimento analizzato con l'AI"
+      "run_failure_analysed": "Fallimento analizzato con l'AI",
+      "requirement_created": "Requisito creato",
+      "requirement_updated": "Requisito modificato",
+      "requirement_deleted": "Requisito eliminato",
+      "requirement_imported": "Requisiti importati da un tracker",
+      "requirement_tests_changed": "Test che coprono un requisito modificati"
     }
   },
   "security": {
@@ -3474,5 +3482,115 @@
     "usernameRequired": "Per questo fornitore serve il nome utente.",
     "endpointRequired": "L'indirizzo di un server Playwright inizia con ws:// o wss://.",
     "keyRequired": "Per questo fornitore serve la chiave di accesso."
+  },
+  "requirements": {
+    "title": "Requisiti",
+    "pageDescription": "Epic, user story e requisiti, i test che li coprono e com'è andata l'ultima volta che quei test sono stati eseguiti.",
+    "export": "Esporta matrice (CSV)",
+    "create": "Nuovo requisito",
+    "dialog": {
+      "editTitle": "Modifica requisito",
+      "createTitle": "Nuovo requisito",
+      "description": "Un'epic, una user story o un requisito. Collegagli i test per vedere se è coperto e se passa."
+    },
+    "fields": {
+      "key": "Chiave",
+      "kind": "Tipo",
+      "title": "Titolo",
+      "parent": "Appartiene a",
+      "description": "Descrizione"
+    },
+    "kind": {
+      "epic": "Epic",
+      "story": "User story",
+      "requirement": "Requisito"
+    },
+    "keyHint": "Lettere, cifre, punti, trattini e underscore, come SHOP-142 o REQ_12.",
+    "noParent": "Nulla: primo livello",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "link": {
+      "title": "Test che coprono {{key}}",
+      "filter": "Filtra i test…",
+      "none": "Nessun test.",
+      "picked": "{{count}} selezionati",
+      "hidden": "Altri {{count}} test collegati sono in progetti che non puoi vedere; restano collegati."
+    },
+    "web": "Web",
+    "import": {
+      "open": "Importa dal tracker",
+      "title": "Importa da un tracker",
+      "description": "Epic e story vengono letti dal tracker e aggiornati con Sincronizza; nel tracker non viene scritto nulla. Una story porta con sé la sua epic.",
+      "noTracker": "Nessun Jira o Azure DevOps collegato. Aggiungine uno in Impostazioni → Issue tracker; qui si usa lo stesso collegamento.",
+      "tracker": "Tracker",
+      "modeProject": "Epic e story del progetto",
+      "modeKeys": "Queste chiavi",
+      "modeJql": "Una query JQL",
+      "modeWiql": "Una query WIQL",
+      "keys": "Chiavi",
+      "sync": "Sincronizza importati",
+      "submit": "Importa",
+      "done": "{{created}} nuovi, {{updated}} aggiornati",
+      "missing": "Non trovati nel tracker: {{keys}}",
+      "failed": "L'importazione non è riuscita"
+    },
+    "state": {
+      "passing": "Passa",
+      "failing": "Fallisce",
+      "notRun": "Non eseguito",
+      "uncovered": "Nessun test"
+    },
+    "outcome": {
+      "passed": "Superato",
+      "failed": "Fallito",
+      "pending": "In attesa di esito",
+      "skipped": "Saltato",
+      "notRun": "Mai eseguito"
+    },
+    "saved": "Requisito salvato",
+    "saveFailed": "Il requisito non è stato salvato",
+    "linksSaved": "Test collegati",
+    "linksFailed": "I test non sono stati collegati",
+    "deleted": "Requisito eliminato",
+    "deleteFailed": "Il requisito non è stato eliminato",
+    "loadFailed": "Impossibile caricare il requisito",
+    "scope": {
+      "label": "Risultati da",
+      "all": "L'ultima esecuzione di ogni test",
+      "plan": "L'ultima esecuzione di {{plan}}",
+      "run": "Risultati di un'esecuzione di {{plan}}",
+      "runLoading": "Risultati di un'esecuzione",
+      "openReport": "Apri il report",
+      "clear": "Mostra gli ultimi risultati"
+    },
+    "search": "Cerca chiave o titolo…",
+    "filterState": "Copertura",
+    "allStates": "Qualsiasi copertura",
+    "summary": {
+      "total": "Requisiti",
+      "covered": "Con test"
+    },
+    "loading": "Caricamento…",
+    "error": "Impossibile caricare i requisiti.",
+    "empty": "Ancora nessun requisito. Importa epic e story da Jira o Azure DevOps, o aggiungine uno a mano, poi collega i test che lo coprono.",
+    "columns": {
+      "requirement": "Requisito",
+      "kind": "Tipo",
+      "trackerStatus": "Stato nel tracker",
+      "coverage": "Copertura",
+      "tests": "Test",
+      "actions": "Azioni"
+    },
+    "expand": "Mostra cosa contiene",
+    "collapse": "Nascondi cosa contiene",
+    "testCounts": "{{passed}} superati · {{failed}} falliti · {{notRun}} non eseguiti",
+    "hiddenTests": "+{{count}} in progetti che non puoi vedere",
+    "linkTests": "Test",
+    "edit": "Modifica",
+    "delete": "Elimina",
+    "run": "Esecuzione",
+    "noMatch": "Nulla corrisponde ai filtri.",
+    "deleteTitle": "Eliminare {{key}}?",
+    "deleteBody": "I suoi collegamenti ai test vengono eliminati; i test e i loro risultati restano. Ciò che contiene passa al primo livello. Nel tracker non cambia nulla."
   }
 }

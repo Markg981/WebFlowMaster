@@ -476,7 +476,8 @@
       "operations": "Operations"
     },
     "testLibrary": "Test Library",
-    "testManager": "Test Manager"
+    "testManager": "Test Manager",
+    "requirements": "Requirements"
   },
   "dashboardPage": {
     "user": {
@@ -2509,7 +2510,8 @@
     "noReason": "No reason provided",
     "notRecorded": "not recorded",
     "noData": "No report data found.",
-    "failedTests": "Failed Tests"
+    "failedTests": "Failed Tests",
+    "requirements": "Requirements covered"
   },
   "scheduleEnvironment": {
     "label": "Environment",
@@ -2567,7 +2569,8 @@
       "agent": "Local agents",
       "source_host": "GitHub & GitLab",
       "sso": "Single sign-on",
-      "custom_action": "Custom actions"
+      "custom_action": "Custom actions",
+      "requirement": "Requirements"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -2641,7 +2644,12 @@
       "custom_action_updated": "Custom action changed",
       "custom_action_deleted": "Custom action deleted",
       "run_manual_result_recorded": "Manual result recorded",
-      "run_failure_analysed": "Failure analysed with AI"
+      "run_failure_analysed": "Failure analysed with AI",
+      "requirement_created": "Requirement created",
+      "requirement_updated": "Requirement changed",
+      "requirement_deleted": "Requirement deleted",
+      "requirement_imported": "Requirements imported from a tracker",
+      "requirement_tests_changed": "Tests covering a requirement changed"
     }
   },
   "security": {
@@ -3349,5 +3357,115 @@
     "usernameRequired": "A username is required for this provider.",
     "endpointRequired": "The address of a Playwright server starts with ws:// or wss://.",
     "keyRequired": "An access key is required for this provider."
+  },
+  "requirements": {
+    "title": "Requirements",
+    "pageDescription": "Epics, user stories and requirements, the tests that cover them, and how those tests did the last time they ran.",
+    "export": "Export matrix (CSV)",
+    "create": "New requirement",
+    "dialog": {
+      "editTitle": "Edit requirement",
+      "createTitle": "New requirement",
+      "description": "An epic, a user story or a requirement. Link tests to it to see whether it is covered and passing."
+    },
+    "fields": {
+      "key": "Key",
+      "kind": "Kind",
+      "title": "Title",
+      "parent": "Belongs to",
+      "description": "Description"
+    },
+    "kind": {
+      "epic": "Epic",
+      "story": "User story",
+      "requirement": "Requirement"
+    },
+    "keyHint": "Letters, digits, dots, dashes and underscores, like SHOP-142 or REQ_12.",
+    "noParent": "Nothing: top level",
+    "cancel": "Cancel",
+    "save": "Save",
+    "link": {
+      "title": "Tests covering {{key}}",
+      "filter": "Filter tests…",
+      "none": "No tests.",
+      "picked": "{{count}} selected",
+      "hidden": "{{count}} more linked tests are in projects you cannot see; they stay linked."
+    },
+    "web": "Web",
+    "import": {
+      "open": "Import from tracker",
+      "title": "Import from a tracker",
+      "description": "Epics and stories are read from the tracker and kept up to date by Sync; nothing is written back to it. A story brings its epic along.",
+      "noTracker": "No Jira or Azure DevOps is connected. Add one in Settings → Issue trackers; the same connection is used here.",
+      "tracker": "Tracker",
+      "modeProject": "The project's epics and stories",
+      "modeKeys": "These keys",
+      "modeJql": "A JQL query",
+      "modeWiql": "A WIQL query",
+      "keys": "Keys",
+      "sync": "Sync imported",
+      "submit": "Import",
+      "done": "{{created}} new, {{updated}} updated",
+      "missing": "Not found in the tracker: {{keys}}",
+      "failed": "The import failed"
+    },
+    "state": {
+      "passing": "Passing",
+      "failing": "Failing",
+      "notRun": "Not run",
+      "uncovered": "No tests"
+    },
+    "outcome": {
+      "passed": "Passed",
+      "failed": "Failed",
+      "pending": "Waiting for a verdict",
+      "skipped": "Skipped",
+      "notRun": "Never run"
+    },
+    "saved": "Requirement saved",
+    "saveFailed": "The requirement was not saved",
+    "linksSaved": "Tests linked",
+    "linksFailed": "The tests were not linked",
+    "deleted": "Requirement deleted",
+    "deleteFailed": "The requirement was not deleted",
+    "loadFailed": "The requirement could not be loaded",
+    "scope": {
+      "label": "Results from",
+      "all": "The latest run of each test",
+      "plan": "The latest run of {{plan}}",
+      "run": "Results of one run of {{plan}}",
+      "runLoading": "Results of one run",
+      "openReport": "Open the report",
+      "clear": "Show latest results"
+    },
+    "search": "Search key or title…",
+    "filterState": "Coverage",
+    "allStates": "Any coverage",
+    "summary": {
+      "total": "Requirements",
+      "covered": "With tests"
+    },
+    "loading": "Loading…",
+    "error": "The requirements could not be loaded.",
+    "empty": "No requirements yet. Import epics and stories from Jira or Azure DevOps, or add one by hand, then link the tests that cover it.",
+    "columns": {
+      "requirement": "Requirement",
+      "kind": "Kind",
+      "trackerStatus": "Tracker status",
+      "coverage": "Coverage",
+      "tests": "Tests",
+      "actions": "Actions"
+    },
+    "expand": "Show what it contains",
+    "collapse": "Hide what it contains",
+    "testCounts": "{{passed}} passed · {{failed}} failed · {{notRun}} not run",
+    "hiddenTests": "+{{count}} in projects you cannot see",
+    "linkTests": "Tests",
+    "edit": "Edit",
+    "delete": "Delete",
+    "run": "Run",
+    "noMatch": "Nothing matches the filters.",
+    "deleteTitle": "Delete {{key}}?",
+    "deleteBody": "Its links to tests go with it; the tests and their results stay. What it contains moves to the top level. Nothing changes in the tracker."
   }
 }

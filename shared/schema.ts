@@ -1,4 +1,4 @@
-import { pgTable, text, integer, bigint, serial, timestamp, boolean, jsonb, index, uniqueIndex, unique, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, bigint, serial, timestamp, boolean, jsonb, index, uniqueIndex, unique, primaryKey, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations, sql } from 'drizzle-orm';
@@ -8,6 +8,7 @@ import { MAX_LOCALES, canonicalLocale, normalizeLocales } from './locales';
 import type { NetworkSummary } from './network';
 import type { FailureAnalysis } from './failure-analysis';
 import type { CiContext } from './ci';
+import type { RequirementKind } from './requirements';
 
 // Table Definitions
 export const organizations = pgTable("organizations", {
@@ -1207,6 +1208,51 @@ export const browserGrids = pgTable("browser_grids", {
 
 export type BrowserGrid = typeof browserGrids.$inferSelect;
 
+/**
+ * An epic, a user story or a plain requirement, and the tests that cover it
+ * (shared/requirements.ts, migrations/0050). Typed in, or imported from the organization's Jira or
+ * Azure DevOps; its coverage is worked out from the tests' latest results, never stored.
+ */
+export const requirements = pgTable("requirements", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  key: text("key").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  kind: text("kind").$type<RequirementKind>().notNull().default('story'),
+  parentId: integer("parent_id").references((): AnyPgColumn => requirements.id, { onDelete: 'set null' }),
+  trackerId: text("tracker_id").references(() => issueTrackers.id, { onDelete: 'set null' }),
+  url: text("url"),
+  /** The tracker's own words for it: "Story", "User Story", "Epic", "Feature". */
+  externalType: text("external_type"),
+  externalStatus: text("external_status"),
+  syncedAt: timestamp("synced_at"),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("requirements_organization_id_idx").on(table.organizationId),
+  index("requirements_parent_id_idx").on(table.parentId),
+]);
+
+export type Requirement = typeof requirements.$inferSelect;
+
+/** Which tests cover which requirement. */
+export const requirementTests = pgTable("requirement_tests", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  requirementId: integer("requirement_id").notNull().references(() => requirements.id, { onDelete: 'cascade' }),
+  testType: text("test_type").$type<'ui' | 'api'>().notNull(),
+  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
+  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("requirement_tests_requirement_id_idx").on(table.requirementId),
+  index("requirement_tests_test_id_idx").on(table.testId),
+  index("requirement_tests_api_test_id_idx").on(table.apiTestId),
+]);
+
 export type IssueTracker = typeof issueTrackers.$inferSelect;
 export type InsertIssueTracker = typeof issueTrackers.$inferInsert;
 
@@ -1387,6 +1433,12 @@ export const AUDIT_ACTIONS = {
   CUSTOM_ACTION_CREATED: 'custom_action.created',
   CUSTOM_ACTION_UPDATED: 'custom_action.updated',
   CUSTOM_ACTION_DELETED: 'custom_action.deleted',
+  // What the tests are for: requirements, where they came from, and which tests cover them.
+  REQUIREMENT_CREATED: 'requirement.created',
+  REQUIREMENT_UPDATED: 'requirement.updated',
+  REQUIREMENT_DELETED: 'requirement.deleted',
+  REQUIREMENTS_IMPORTED: 'requirement.imported',
+  REQUIREMENT_TESTS_CHANGED: 'requirement.tests_changed',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
@@ -2467,6 +2519,8 @@ export const ORG_SCOPED_TABLES = [
   'test_publications', 'test_reviews',
   // Suites, their tests, and the plans that include them (migration 0034).
   'test_suites', 'test_suite_items', 'test_plan_suites',
+  // Requirements and the tests that cover them (migration 0050).
+  'requirements', 'requirement_tests',
   'test_quarantines',
   'agents',
   'source_hosts',

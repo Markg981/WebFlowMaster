@@ -65,6 +65,52 @@ bisogno. **Suite → Nuova suite** ne crea di due tipi:
 Una suite mostra quali piani la includono. Eliminarne una usata dai piani fa smettere loro di
 eseguirne i test; i run già fatti conservano ciò che hanno eseguito.
 
+## Requisiti e copertura {#requisiti}
+
+**Requisiti** risponde alla domanda che si fa prima di un rilascio: quali story sono testate, quali
+falliscono e quali non hanno nessun test.
+
+Un requisito è un'**epic**, una **user story** o un **requisito** semplice, con una chiave
+(`SHOP-142`, `4711`, `REQ_12`), un titolo e l'epic a cui appartiene. Si aggiunge con **Nuovo
+requisito**, oppure con **Importa dal tracker** tramite un Jira o un Azure DevOps già collegato in
+**Impostazioni → Issue tracker**:
+
+- **Epic e story del progetto** (Jira: tipi Epic e Story; Azure DevOps: Epic, Feature, User Story,
+  Product Backlog Item, Requirement);
+- **Queste chiavi**: `SHOP-142, SHOP-143`, o gli id dei work item;
+- **Una query JQL** (Jira) o **una query WIQL** (Azure DevOps), per esempio le story di un rilascio.
+
+Una story importata porta con sé la sua epic, e ciascuna finisce sotto il suo padre. Importare di
+nuovo, o **Sincronizza importati**, aggiorna titoli, tipi e stato nel tracker; un requisito scritto
+a mano con la stessa chiave diventa quello importato e conserva i suoi test. Nel tracker non viene
+mai scritto nulla. Si importano al massimo 500 elementi per volta.
+
+**Test** su un requisito collega i test web e API che lo coprono. Un'epic conta i propri test e
+quelli di tutte le sue story, ciascuno una volta. La copertura si calcola dall'**ultimo risultato di
+ogni test**, tutti i browser di quel run insieme:
+
+| Copertura | Significa |
+|---|---|
+| **Passa** | Ogni test che lo copre è passato l'ultima volta che è stato eseguito. |
+| **Fallisce** | Almeno uno è fallito (su qualsiasi browser). |
+| **Non eseguito** | Nessuno è fallito, ma alcuni non sono mai stati eseguiti, sono stati saltati, o sono test manuali in attesa di esito. |
+| **Nessun test** | Nulla lo copre. |
+
+**Risultati da** restringe quali run contano: l'ultimo run di ogni test ovunque, o l'ultimo run di
+un piano — per esempio quello di rilascio. **Requisiti coperti** nel report di un run apre la pagina
+con esattamente i risultati di quel run. I numeri sopra la tabella danno il totale, la quota con
+almeno un test e quanti sono in ogni stato. I numeri di una riga aprono i suoi test, ciascuno con
+l'ultimo esito e il link al report di quel run.
+
+**Esporta matrice (CSV)** scarica la matrice di tracciabilità di ciò che è mostrato: una riga per
+requisito e test che lo copre, con ultimo esito, run e piano, e una riga per ogni requisito che
+nessun test copre.
+
+Un test collegato in un progetto che non potete vedere viene contato (*+1 in progetti che non puoi
+vedere*) ma non nominato, resta fuori dallo stato e rimane collegato quando cambiate gli altri. I
+viewer leggono; gli editor aggiungono, importano, collegano ed eliminano. Eliminare un requisito
+toglie i suoi collegamenti, mai i test; ciò che conteneva passa al primo livello.
+
 ## Test Manager
 
 **Test Manager** è per i team i cui casi di test stanno in Excel. **Carica l'Excel** (.xlsx o

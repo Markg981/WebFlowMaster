@@ -24,6 +24,10 @@ erDiagram
   test_plans ||--o{ test_plan_suites : include
   test_plan_suites }o--|| test_suites : suite
   test_suites ||--o{ test_suite_items : elenca
+  requirements ||--o{ requirements : contiene
+  requirements ||--o{ requirement_tests : "coperto da"
+  requirement_tests }o--|| tests : "test UI"
+  requirement_tests }o--|| api_tests : "test API"
   test_plans ||--o{ test_plan_schedules : "gira secondo"
   test_plans ||--o{ test_plan_executions : "gira come"
   test_plan_executions ||--o{ report_test_case_results : produce
@@ -62,6 +66,7 @@ erDiagram
 | `test_quarantines` | Test messi da parte perché instabili, con motivo, evidenze e rilascio. |
 | `excel_sequences_map` | Test Manager: righe di un foglio importato collegate a sequenze salvate. |
 | `test_runs` | Risultati di singoli test avviati dal builder (non run di piani). |
+| `requirements` / `requirement_tests` | Epic, user story e requisiti (scritti a mano o importati da un issue tracker, con il loro padre) e i test che li coprono. La copertura non è mai salvata: si calcola dagli ultimi risultati dei test (`shared/requirements.ts`). |
 
 ## Pianificare ed eseguire
 

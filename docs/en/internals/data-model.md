@@ -24,6 +24,10 @@ erDiagram
   test_plans ||--o{ test_plan_suites : includes
   test_plan_suites }o--|| test_suites : suite
   test_suites ||--o{ test_suite_items : lists
+  requirements ||--o{ requirements : contains
+  requirements ||--o{ requirement_tests : "covered by"
+  requirement_tests }o--|| tests : "UI test"
+  requirement_tests }o--|| api_tests : "API test"
   test_plans ||--o{ test_plan_schedules : "runs on"
   test_plans ||--o{ test_plan_executions : "runs as"
   test_plan_executions ||--o{ report_test_case_results : produces
@@ -62,6 +66,7 @@ erDiagram
 | `test_quarantines` | Tests set aside as unreliable, with reason, evidence and release. |
 | `excel_sequences_map` | Test Manager: rows of an imported spreadsheet mapped to saved sequences. |
 | `test_runs` | Results of single test runs started from the builder (not plan runs). |
+| `requirements` / `requirement_tests` | Epics, user stories and requirements (typed in or imported from an issue tracker, with their parent) and the tests that cover them. Coverage is never stored: it is worked out from the tests' latest results (`shared/requirements.ts`). |
 
 ## Planning and running
 
