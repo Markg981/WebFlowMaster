@@ -1210,6 +1210,8 @@ export const browserGrids = pgTable("browser_grids", {
   encryptedKey: text("encrypted_key"),
   keyIv: text("key_iv"),
   keyAuthTag: text("key_auth_tag"),
+  /** For a local Appium: the pool of agents that reach it (migration 0055). */
+  agentPool: text("agent_pool"),
   createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

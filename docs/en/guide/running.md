@@ -48,6 +48,7 @@ and macOS, branded Chrome and Edge, or an older version, a plan can borrow its b
 | **BrowserStack** | Username and access key | Honoured |
 | **LambdaTest** | Username and access key | Honoured |
 | **Playwright server** — your own `npx playwright run-server`, Browserless, Moon… | Its `ws://` or `wss://` address, and a token if it asks for one (where the address has `{token}` it goes there, otherwise as a bearer token) | Not honoured: it runs the browsers it has |
+| **Local Appium (agent)** | A pool of local agents and Appium's address | Runs [mobile app tests](./mobile-apps#local-appium) only, not a plan's browsers |
 
 The key is stored encrypted and never shown again. **Test connection** opens one short Chromium
 session on the grid and says whether it worked. A Playwright server must run the same Playwright

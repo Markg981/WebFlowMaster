@@ -9,11 +9,19 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Cloud, Loader2, PlugZap, Trash2 } from 'lucide-react';
-import { BROWSER_GRID_LABELS, BROWSER_GRID_PROVIDERS, GRID_FIELDS, type BrowserGridProvider } from '@shared/browser-grids';
+import {
+  BROWSER_GRID_LABELS,
+  BROWSER_GRID_PROVIDERS,
+  GRID_FIELDS,
+  LOCAL_APPIUM_DEFAULT_URL,
+  endpointProblem,
+  type BrowserGridProvider,
+} from '@shared/browser-grids';
 
 /**
  * Where plans can borrow browsers the runners do not have: BrowserStack, LambdaTest, or a
- * Playwright server of the organization's own (shared/browser-grids.ts).
+ * Playwright server of the organization's own (shared/browser-grids.ts). And where mobile app tests
+ * find devices: the two clouds, or an Appium next to a local agent.
  *
  * The access key is written once and never read back, as an issue tracker's token.
  */
@@ -24,6 +32,7 @@ export interface BrowserGridSummary {
   provider: BrowserGridProvider;
   username: string | null;
   endpoint: string | null;
+  agentPool?: string | null;
   hasKey: boolean;
 }
 
@@ -35,10 +44,23 @@ const BrowserGridsCard: React.FC = () => {
   const [username, setUsername] = useState('');
   const [endpoint, setEndpoint] = useState('');
   const [key, setKey] = useState('');
+  const [agentPool, setAgentPool] = useState('');
   const [formError, setFormError] = useState('');
   const [checked, setChecked] = useState<{ ok: boolean; message: string } | null>(null);
   const [notice, setNotice] = useState('');
   const fields = GRID_FIELDS[provider];
+  const isAppium = provider === 'local_appium';
+
+  // The pools the organization's agents are in, offered for a local Appium.
+  const { data: agents = [] } = useQuery<Array<{ pool: string }>>({
+    queryKey: ['agents'],
+    queryFn: async () => {
+      const response = await fetch('/api/agents');
+      return response.ok ? response.json() : [];
+    },
+    enabled: isAppium,
+  });
+  const pools = Array.from(new Set((Array.isArray(agents) ? agents : []).map((agent) => agent.pool).filter(Boolean)));
 
   const { data: grids = [], isLoading, error } = useQuery<BrowserGridSummary[]>({
     queryKey: ['browserGrids'],
@@ -58,8 +80,9 @@ const BrowserGridsCard: React.FC = () => {
           name: name.trim(),
           provider,
           username: fields.username ? username.trim() : null,
-          endpoint: fields.endpoint ? endpoint.trim() : null,
-          key: key.trim() || null,
+          endpoint: fields.endpoint ? endpoint.trim() || null : null,
+          agentPool: fields.agentPool ? agentPool.trim() : null,
+          key: fields.key === 'none' ? null : key.trim() || null,
         }),
       });
       const body = await response.json().catch(() => ({}));
@@ -71,6 +94,7 @@ const BrowserGridsCard: React.FC = () => {
       setUsername('');
       setEndpoint('');
       setKey('');
+      setAgentPool('');
       setFormError('');
       queryClient.invalidateQueries({ queryKey: ['browserGrids'] });
     },
@@ -110,9 +134,17 @@ const BrowserGridsCard: React.FC = () => {
   const submit = () => {
     if (!name.trim()) return setFormError(t('browserGrids.nameRequired', 'A name is required.'));
     if (fields.username && !username.trim()) return setFormError(t('browserGrids.usernameRequired', 'A username is required for this provider.'));
-    if (fields.endpoint && !/^wss?:\/\//i.test(endpoint.trim())) {
+    if (fields.endpointRequired && !endpoint.trim()) {
       return setFormError(t('browserGrids.endpointRequired', 'The address of a Playwright server starts with ws:// or wss://.'));
     }
+    if (fields.endpoint && endpoint.trim() && endpointProblem(provider, endpoint.trim())) {
+      return setFormError(
+        isAppium
+          ? t('browserGrids.appiumEndpointInvalid', "Appium's address starts with http:// or https://, as the agent's machine reaches it.")
+          : t('browserGrids.endpointRequired', 'The address of a Playwright server starts with ws:// or wss://.'),
+      );
+    }
+    if (fields.agentPool && !agentPool.trim()) return setFormError(t('browserGrids.poolRequired', 'Name the pool of local agents that reach Appium.'));
     if (fields.key === 'required' && !key.trim()) return setFormError(t('browserGrids.keyRequired', 'An access key is required for this provider.'));
     setFormError('');
     create.mutate();
@@ -167,13 +199,30 @@ const BrowserGridsCard: React.FC = () => {
                 className="mt-1 font-mono text-xs"
                 value={endpoint}
                 onChange={(event) => setEndpoint(event.target.value)}
-                placeholder="wss://grid.example.com/playwright?token={token}"
+                placeholder={isAppium ? LOCAL_APPIUM_DEFAULT_URL : 'wss://grid.example.com/playwright?token={token}'}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                {t('browserGrids.endpointHint', 'Where {token} appears, the token goes there; otherwise it is sent as a bearer token. The server must run the same Playwright version as the runners.')}
+                {isAppium
+                  ? t('browserGrids.appiumEndpointHint', "Appium's address as the agent's machine reaches it. Empty: {{url}}, where Appium listens when started with no options.", { url: LOCAL_APPIUM_DEFAULT_URL })
+                  : t('browserGrids.endpointHint', 'Where {token} appears, the token goes there; otherwise it is sent as a bearer token. The server must run the same Playwright version as the runners.')}
               </p>
             </div>
           )}
+          {fields.agentPool && (
+            <div className="md:col-span-2">
+              <Label htmlFor="gridPool">{t('browserGrids.agentPool', 'Pool of local agents')}</Label>
+              <Input id="gridPool" className="mt-1" list="gridPools" value={agentPool} onChange={(event) => setAgentPool(event.target.value)} placeholder="default" />
+              <datalist id="gridPools">
+                {pools.map((pool) => (
+                  <option key={pool} value={pool} />
+                ))}
+              </datalist>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t('browserGrids.agentPoolHint', 'An agent of this pool, on the machine next to Appium, carries the requests: the server needs no way into that network.')}
+              </p>
+            </div>
+          )}
+          {fields.key !== 'none' && (
           <div className={fields.endpoint ? 'md:col-span-2' : ''}>
             <Label htmlFor="gridKey">
               {fields.key === 'required' ? t('browserGrids.accessKey', 'Access key') : t('browserGrids.token', 'Token (optional)')}
@@ -183,6 +232,7 @@ const BrowserGridsCard: React.FC = () => {
               {t('browserGrids.keyHint', 'Stored encrypted and never shown again.')}
             </p>
           </div>
+          )}
         </div>
 
         {formError && <p className="text-sm text-destructive" role="alert">{formError}</p>}
@@ -222,7 +272,7 @@ const BrowserGridsCard: React.FC = () => {
                     {grid.name}
                     <Badge variant="secondary" className="ml-2 font-normal">{BROWSER_GRID_LABELS[grid.provider] ?? grid.provider}</Badge>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground break-all">{grid.username ?? grid.endpoint ?? '—'}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground break-all">{grid.provider === 'local_appium' ? `${grid.agentPool ?? '—'} · ${grid.endpoint ?? LOCAL_APPIUM_DEFAULT_URL}` : grid.username ?? grid.endpoint ?? '—'}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     <Button variant="ghost" size="sm" onClick={() => check.mutate(grid.id)} disabled={check.isPending} title={t('browserGrids.check', 'Test connection')} aria-label={t('browserGrids.check', 'Test connection')}>
                       <PlugZap className="h-4 w-4" />

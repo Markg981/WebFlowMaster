@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { TestPlan } from '@shared/schema';
 import { MAX_LOCALES, canonicalLocale, normalizeLocales } from '@shared/locales';
 import { MOBILE_DEVICES, canEmulateDevice } from '@shared/devices';
-import { BROWSER_GRID_LABELS, GRID_OPERATING_SYSTEMS, HONOURS_MACHINE, type BrowserGridProvider } from '@shared/browser-grids';
+import { BROWSER_GRID_LABELS, GRID_OPERATING_SYSTEMS, HONOURS_MACHINE, RUNS_BROWSERS, type BrowserGridProvider } from '@shared/browser-grids';
 
 /**
  * Changing what a plan does on its next run, after it has been created.
@@ -210,7 +210,10 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
     // The organization's browser grids (Settings → Browser grids).
     fetch('/api/browser-grids')
       .then((response) => (response.ok ? response.json() : []))
-      .then((rows) => setGrids(Array.isArray(rows) ? rows : []))
+      .then((rows) =>
+        // A local Appium runs mobile app tests only: a plan's browsers cannot run there.
+        setGrids(Array.isArray(rows) ? rows.filter((row: GridOption) => RUNS_BROWSERS[row.provider] !== false) : []),
+      )
       .catch(() => setGrids([]));
   }, [isOpen, plan]);
 

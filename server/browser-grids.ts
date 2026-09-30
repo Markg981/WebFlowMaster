@@ -2,7 +2,7 @@ import { createRequire } from 'module';
 import { eq } from 'drizzle-orm';
 import type { Page } from 'playwright';
 import { browserGrids, type BrowserGrid } from '@shared/schema';
-import { HONOURS_MACHINE, type BrowserGridProvider } from '@shared/browser-grids';
+import { BROWSER_GRID_LABELS, HONOURS_MACHINE, RUNS_BROWSERS, type BrowserGridProvider } from '@shared/browser-grids';
 import { withTenantTransaction } from './middleware/tenancy';
 import { decryptSecret } from './crypto';
 import type { BrowserEngine } from './browsers';
@@ -27,6 +27,9 @@ export interface GridConfig {
   username: string | null;
   endpoint: string | null;
   key: string | null;
+  /** A local Appium's pool of agents, and the organization they belong to. */
+  agentPool?: string | null;
+  organizationId?: number;
 }
 
 /** The machine a run asks the grid for — the plan's row, as the runner reads it. */
@@ -131,6 +134,8 @@ export function gridConnection(grid: GridConfig, machine: GridMachine): GridConn
         ...(grid.key ? { headers: { Authorization: `Bearer ${grid.key}` } } : {}),
       };
     }
+    case 'local_appium':
+      throw new Error(`"${grid.name}" is a local Appium, which runs mobile app tests only. Choose a browser grid for a plan's browsers.`);
   }
 }
 
@@ -160,9 +165,13 @@ export async function checkRunOn(changes: { agentPool?: string | null; browserGr
   }
   if (changes.browserGridId) {
     const [row] = await withTenantTransaction((tx) =>
-      tx.select({ id: browserGrids.id }).from(browserGrids).where(eq(browserGrids.id, changes.browserGridId!)).limit(1),
+      tx.select({ id: browserGrids.id, provider: browserGrids.provider }).from(browserGrids).where(eq(browserGrids.id, changes.browserGridId!)).limit(1),
     );
     if (!row) return { ok: false, error: 'That browser grid does not exist.' };
+    const provider = row.provider as BrowserGridProvider;
+    if (RUNS_BROWSERS[provider] === false) {
+      return { ok: false, error: `A ${BROWSER_GRID_LABELS[provider]} runs mobile app tests only, not a plan's browsers.` };
+    }
     return { ok: true, changes: { ...changes, agentPool: null } };
   }
   if (changes.agentPool) return { ok: true, changes: { ...changes, browserGridId: null } };
@@ -183,6 +192,8 @@ export function toGridConfig(row: BrowserGrid): GridConfig {
     username: row.username,
     endpoint: row.endpoint,
     key: row.encryptedKey && row.keyIv && row.keyAuthTag ? decryptSecret(row.encryptedKey, row.keyIv, row.keyAuthTag) : null,
+    agentPool: row.agentPool ?? null,
+    organizationId: row.organizationId,
   };
 }
 

@@ -266,6 +266,13 @@ router.post("/api/browser-grids/:id/apps", requireRole("editor"), (req, res) => 
       if (!/\.(apk|aab|ipa)$/i.test(file.originalname)) throw new MobileError(400, "An app is an .apk, .aab or .ipa file.");
       const [grid] = await withTenantTransaction((tx) => tx.select().from(browserGrids).where(eq(browserGrids.id, req.params.id)).limit(1));
       if (!grid) throw new MobileError(404, "Grid not found.");
+      // Not the grid's fault, as a 502 would say: these have no storage for apps.
+      if (grid.provider === "local_appium") {
+        throw new MobileError(400, `"${grid.name}" is a local Appium: put the app on the agent's machine and give its path, or an http(s):// address Appium can download it from.`);
+      }
+      if (grid.provider === "playwright_server") {
+        throw new MobileError(400, `"${grid.name}" is a Playwright server: apps are uploaded to BrowserStack or LambdaTest.`);
+      }
       let app: string;
       try {
         app = await uploadApp(toGridConfig(grid), file.path, file.originalname);

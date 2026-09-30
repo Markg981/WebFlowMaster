@@ -13,6 +13,8 @@ import { toGridConfig, type GridConfig } from './browser-grids';
 import { resolveVariables, findUnresolvedVariables } from './variables';
 import { substituteVariables } from './outbound-http';
 import { AppiumSession, WebDriverError, type Fetch } from './appium-client';
+import { AgentHttp } from './agents/agent-fetch';
+import { LOCAL_APPIUM_DEFAULT_URL } from '@shared/browser-grids';
 
 /**
  * Running a mobile test (shared/mobile.ts) on a cloud grid's real device.
@@ -83,7 +85,39 @@ export function mobileSessionRequest(grid: GridConfig, test: Pick<MobileTest, 'p
       },
     };
   }
-  throw new Error(`"${grid.name}" is a Playwright server, which runs browsers only. Choose a BrowserStack or LambdaTest grid for a mobile app.`);
+  if (grid.provider === 'local_appium') {
+    // Appium's own capabilities, for whatever it has: an emulator, a simulator, a phone on USB.
+    return {
+      hubUrl: grid.endpoint || LOCAL_APPIUM_DEFAULT_URL,
+      authorization: undefined,
+      capabilities: {
+        platformName,
+        'appium:automationName': automationName,
+        'appium:deviceName': test.deviceName,
+        ...(test.osVersion ? { 'appium:platformVersion': test.osVersion } : {}),
+        'appium:app': test.app,
+        'appium:newCommandTimeout': 300,
+      },
+    };
+  }
+  throw new Error(`"${grid.name}" is a Playwright server, which runs browsers only. Choose a BrowserStack, LambdaTest or local Appium grid for a mobile app.`);
+}
+
+/**
+ * How requests reach the grid's Appium: the clouds straight from the server; a local Appium
+ * through its pool's agent (server/agents/agent-fetch.ts), from the machine it runs next to.
+ * `close` gives back what the agent lent.
+ */
+export function appiumTransport(grid: GridConfig, override?: Fetch): { fetch: Fetch; close: () => Promise<void> } {
+  if (override) return { fetch: override, close: async () => {} };
+  if (grid.provider === 'local_appium') {
+    if (!grid.agentPool || grid.organizationId == null) {
+      throw new Error(`"${grid.name}" names no pool of agents to reach Appium through.`);
+    }
+    const http = new AgentHttp({ organizationId: grid.organizationId, pool: grid.agentPool });
+    return { fetch: (url, init) => http.fetch(url, init), close: () => http.close() };
+  }
+  return { fetch: (url, init) => fetch(url, init), close: async () => {} };
 }
 
 /** The key never leaves in a message, should a grid quote a capability back. */
@@ -205,6 +239,8 @@ export interface RunDeps {
 
 /** Tells the grid whether the session passed, so its dashboard agrees with the report. */
 async function markSession(session: AppiumSession, grid: GridConfig, passed: boolean, reason: string) {
+  // A local Appium has no dashboard to tell.
+  if (grid.provider !== 'browserstack' && grid.provider !== 'lambdatest') return;
   const status = passed ? 'passed' : 'failed';
   const script =
     grid.provider === 'browserstack'
@@ -250,11 +286,13 @@ export async function performMobileTest(
   build: string,
   deps: RunDeps & { onStep?: (steps: MobileStepResult[]) => Promise<void> } = {},
 ): Promise<MobileOutcome> {
-  const doFetch = deps.fetch ?? ((url, init) => fetch(url, init));
   const results: MobileStepResult[] = [];
   let session: AppiumSession | null = null;
+  let transport: ReturnType<typeof appiumTransport> | null = null;
   try {
     const request = mobileSessionRequest(grid, test, build);
+    transport = appiumTransport(grid, deps.fetch);
+    const doFetch = transport.fetch;
     session = await AppiumSession.open({ ...request, fetch: doFetch });
 
     let failure: string | null = null;
@@ -283,6 +321,7 @@ export async function performMobileTest(
     return { status: 'error', steps: results, error: redactGridSecret(message, grid), screenshot: null, sessionUrl: null };
   } finally {
     await session?.close();
+    await transport?.close();
   }
 }
 
@@ -353,6 +392,8 @@ export async function uploadApp(grid: GridConfig, filePath: string, fileName: st
     form.append('appFile', blob, name);
     form.append('name', name);
     url = `${mobileEndpoints.lambdatestApi}/app/upload/realDevice`;
+  } else if (grid.provider === 'local_appium') {
+    throw new Error(`"${grid.name}" is a local Appium: put the app on the agent's machine and give its path, or an http(s):// address Appium can download it from.`);
   } else {
     throw new Error(`"${grid.name}" is a Playwright server: apps are uploaded to BrowserStack or LambdaTest.`);
   }

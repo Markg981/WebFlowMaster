@@ -69,6 +69,8 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inspecting, setInspecting] = useState<InspectorRequest | null>(null);
+  // Apps are uploaded to the clouds; a local Appium reads them from its own machine.
+  const uploadGrids = grids.filter((grid) => grid.provider !== 'local_appium');
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -81,7 +83,7 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
     // A new test runs in plans on the first grid there is: the choice it would most likely make.
     setPlanGrid(test ? test.gridId ?? NO_GRID : grids[0]?.id ?? NO_GRID);
     setSteps(test?.steps.length ? test.steps : [newStep()]);
-    setUploadGrid(grids[0]?.id ?? '');
+    setUploadGrid(uploadGrids[0]?.id ?? '');
     setError(null);
   }, [isOpen, test, grids]);
 
@@ -215,15 +217,15 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
           <div className="md:col-span-2">
             <Label htmlFor="mobileApp">{t('mobileTests.app', 'App')}</Label>
             <div className="mt-1 flex flex-wrap gap-2">
-              <Input id="mobileApp" className="flex-1 min-w-[240px] font-mono text-xs" value={appRef} onChange={(e) => setAppRef(e.target.value)} placeholder="bs://… / lt://…" />
-              {grids.length > 0 && (
+              <Input id="mobileApp" className="flex-1 min-w-[240px] font-mono text-xs" value={appRef} onChange={(e) => setAppRef(e.target.value)} placeholder={t('mobileTests.appPlaceholder', 'bs://… / lt://… / a path on the agent’s machine')} />
+              {uploadGrids.length > 0 && (
                 <>
                   <Select value={uploadGrid} onValueChange={setUploadGrid}>
                     <SelectTrigger className="w-44" aria-label={t('mobileTests.uploadTo', 'Upload to')}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {grids.map((grid) => (
+                      {uploadGrids.map((grid) => (
                         <SelectItem key={grid.id} value={grid.id}>
                           {grid.name}
                         </SelectItem>

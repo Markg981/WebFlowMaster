@@ -386,6 +386,13 @@
       "when": 1790100000000,
       "tag": "0054_mobile_in_suites_requirements",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1790200000000,
+      "tag": "0055_local_appium",
+      "breakpoints": true
     }
   ]
 }

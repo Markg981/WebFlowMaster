@@ -48,6 +48,7 @@ Chrome ed Edge ufficiali o una versione precedente, un piano può prendere i bro
 |---|---|---|
 | **BrowserStack** | Nome utente e chiave di accesso | Rispettati |
 | **LambdaTest** | Nome utente e chiave di accesso | Rispettati |
+| **Local Appium (agent)** | Un pool di agenti locali e l'indirizzo di Appium | Esegue solo [test di app mobili](./mobile-apps#appium-locale), non i browser di un piano |
 | **Server Playwright** — il vostro `npx playwright run-server`, Browserless, Moon… | Il suo indirizzo `ws://` o `wss://`, e un token se lo chiede (dove l'indirizzo contiene `{token}` va lì, altrimenti come bearer token) | Non rispettati: usa i browser che ha |
 
 La chiave è salvata cifrata e non viene più mostrata. **Prova la connessione** apre una breve
