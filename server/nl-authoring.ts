@@ -375,7 +375,9 @@ const TEXT_TARGET_ACTIONS = new Set<AdhocActionId>([
  * Actions that need no element but use one when the step has it. Only these keep an element
  * the author or the model named; on any other action it would be carried along unused.
  */
-const OPTIONAL_TARGET_ACTIONS = new Set<AdhocActionId>(['pressKey', 'scroll']);
+const OPTIONAL_TARGET_ACTIONS = new Set<AdhocActionId>(
+  ADHOC_ACTION_IDS.filter((id) => ACTION_REQUIREMENTS[id].optionalTarget),
+);
 
 function textEntry(text: string): CatalogueEntry {
   return {

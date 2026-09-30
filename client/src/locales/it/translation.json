@@ -1259,6 +1259,38 @@
         "name": "Esegui JavaScript",
         "description": "Esegue il valore come JavaScript nella pagina. Fallisce se lo script lancia un errore o restituisce false.",
         "valueHint": "document.title.includes('Ordini') o codice con return"
+      },
+      "setVariable": {
+        "name": "Imposta variabile",
+        "description": "Imposta una variabile per i passi successivi. I generatori come $randomEmail, $uuid, $randomInt(1,100) o $today(+7), tra doppie graffe, creano un valore nuovo.",
+        "valueHint": "nome=valore, es. email=$randomEmail tra doppie graffe"
+      },
+      "if": {
+        "name": "Se",
+        "description": "Esegue i passi fino a Altrimenti o Fine se solo quando la condizione è vera. Con un elemento: il suo stato adesso (visible, hidden, exists, missing, checked, enabled, contains:testo). Senza: un confronto di valori.",
+        "valueHint": "visible, contains:testo… oppure a == b, a > 3, a contains b"
+      },
+      "else": {
+        "name": "Altrimenti",
+        "description": "I passi fino a Fine se vengono eseguiti quando la condizione del Se era falsa."
+      },
+      "endIf": {
+        "name": "Fine se",
+        "description": "Chiude il blocco Se."
+      },
+      "repeat": {
+        "name": "Ripeti",
+        "description": "Esegue i passi fino a Fine ciclo il numero di volte indicato. Dentro, la variabile loopIndex conta da 1.",
+        "valueHint": "Numero di volte, es. 3"
+      },
+      "repeatWhile": {
+        "name": "Ripeti finché",
+        "description": "Esegue i passi fino a Fine ciclo finché la condizione è vera, al massimo 200 volte.",
+        "valueHint": "visible, contains:testo… oppure a == b, a < 10"
+      },
+      "endLoop": {
+        "name": "Fine ciclo",
+        "description": "Chiude il blocco Ripeti."
       }
     },
     "testSequenceBuilder": {

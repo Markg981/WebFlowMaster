@@ -81,6 +81,19 @@ export const ADHOC_ACTION_IDS = [
   // Runs the value as JavaScript in the page. Fails when it throws or returns exactly false,
   // so it can check what no other step can express.
   "executeScript",
+  // "name=value": a variable for the steps after this one. With a generator such as
+  // {{$randomEmail}} it is how a test makes up a value once and uses it twice.
+  "setVariable",
+  // Blocks — see shared/flow.ts, which pairs them. `if` and `repeatWhile` take a condition:
+  // with an element, a state it is in now (visible, hidden, checked, contains:text…); without
+  // one, a comparison of values ("{{status}} == Paid").
+  "if",
+  "else",
+  "endIf",
+  // The value is how many times; {{loopIndex}} counts from 1 inside the body.
+  "repeat",
+  "repeatWhile",
+  "endLoop",
 ] as const;
 export type AdhocActionId = (typeof ADHOC_ACTION_IDS)[number];
 
@@ -184,12 +197,18 @@ export const RECORDED_TYPE_TO_ACTION_ID: Record<
  */
 export const ACTION_REQUIREMENTS: Record<
   AdhocActionId,
-  { target: boolean; value: boolean; valueRequired: boolean }
+  {
+    target: boolean;
+    value: boolean;
+    valueRequired: boolean;
+    /** Takes an element without needing one: the builder offers the slot, empty is fine. */
+    optionalTarget?: boolean;
+  }
 > = {
   click: { target: true, value: false, valueRequired: false },
   input: { target: true, value: true, valueRequired: true },
   wait: { target: false, value: true, valueRequired: true },
-  scroll: { target: false, value: false, valueRequired: false },
+  scroll: { target: false, value: false, valueRequired: false, optionalTarget: true },
   assert: { target: true, value: false, valueRequired: false },
   hover: { target: true, value: false, valueRequired: false },
   select: { target: true, value: true, valueRequired: true },
@@ -205,7 +224,7 @@ export const ACTION_REQUIREMENTS: Record<
   assertAccessible: { target: false, value: true, valueRequired: false },
   // No element required: after typing, the key usually goes to the field that has focus. A
   // recorded Enter keeps the field it was pressed in, and the runner uses it when it is there.
-  pressKey: { target: false, value: true, valueRequired: true },
+  pressKey: { target: false, value: true, valueRequired: true, optionalTarget: true },
   doubleClick: { target: true, value: false, valueRequired: false },
   rightClick: { target: true, value: false, valueRequired: false },
   dragAndDrop: { target: true, value: true, valueRequired: true },
@@ -220,6 +239,13 @@ export const ACTION_REQUIREMENTS: Record<
   clearCookies: { target: false, value: false, valueRequired: false },
   setLocalStorage: { target: false, value: true, valueRequired: true },
   executeScript: { target: false, value: true, valueRequired: true },
+  setVariable: { target: false, value: true, valueRequired: true },
+  if: { target: false, value: true, valueRequired: true, optionalTarget: true },
+  else: { target: false, value: false, valueRequired: false },
+  endIf: { target: false, value: false, valueRequired: false },
+  repeat: { target: false, value: true, valueRequired: true },
+  repeatWhile: { target: false, value: true, valueRequired: true, optionalTarget: true },
+  endLoop: { target: false, value: false, valueRequired: false },
 };
 
 /**
@@ -423,6 +449,41 @@ export const ACTION_I18N: Record<
     description: "dashboardPageNew.actions.executeScript.description",
     icon: "Code",
   },
+  setVariable: {
+    name: "dashboardPageNew.actions.setVariable.name",
+    description: "dashboardPageNew.actions.setVariable.description",
+    icon: "Variable",
+  },
+  if: {
+    name: "dashboardPageNew.actions.if.name",
+    description: "dashboardPageNew.actions.if.description",
+    icon: "GitBranch",
+  },
+  else: {
+    name: "dashboardPageNew.actions.else.name",
+    description: "dashboardPageNew.actions.else.description",
+    icon: "GitBranch",
+  },
+  endIf: {
+    name: "dashboardPageNew.actions.endIf.name",
+    description: "dashboardPageNew.actions.endIf.description",
+    icon: "GitMerge",
+  },
+  repeat: {
+    name: "dashboardPageNew.actions.repeat.name",
+    description: "dashboardPageNew.actions.repeat.description",
+    icon: "Repeat",
+  },
+  repeatWhile: {
+    name: "dashboardPageNew.actions.repeatWhile.name",
+    description: "dashboardPageNew.actions.repeatWhile.description",
+    icon: "Repeat",
+  },
+  endLoop: {
+    name: "dashboardPageNew.actions.endLoop.name",
+    description: "dashboardPageNew.actions.endLoop.description",
+    icon: "CornerLeftUp",
+  },
 };
 
 /**
@@ -442,6 +503,10 @@ export const ACTION_VALUE_HINTS: Partial<Record<AdhocActionId, string>> = {
   setCookie: "dashboardPageNew.actions.setCookie.valueHint",
   setLocalStorage: "dashboardPageNew.actions.setLocalStorage.valueHint",
   executeScript: "dashboardPageNew.actions.executeScript.valueHint",
+  setVariable: "dashboardPageNew.actions.setVariable.valueHint",
+  if: "dashboardPageNew.actions.if.valueHint",
+  repeat: "dashboardPageNew.actions.repeat.valueHint",
+  repeatWhile: "dashboardPageNew.actions.repeatWhile.valueHint",
 };
 
 /** The step shape the visual builder works with (mirrors client `TestStep`). */

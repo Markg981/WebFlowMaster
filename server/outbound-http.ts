@@ -1,5 +1,6 @@
 import { Agent } from 'undici';
 import { defaultVariables } from './variables';
+import { substituteGenerators } from './generators';
 
 /**
  * Outbound HTTP for the systems under test (DMO and friends).
@@ -25,9 +26,14 @@ export function requestVariables(): Record<string, string> {
  * Replaces `{{name}}` placeholders. Unknown names are left untouched rather than
  * blanked, so a typo surfaces as an obviously wrong URL instead of a silently
  * mangled one.
+ *
+ * Generators (`{{$uuid}}`, see ./generators) are made up here too, after the variables, so
+ * everything that resolves a placeholder can use them.
  */
 export function substituteVariables(value: string, vars: Record<string, string> = requestVariables()): string {
-  return value.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (match, key: string) => (key in vars ? vars[key] : match));
+  return substituteGenerators(
+    value.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (match, key: string) => (key in vars ? vars[key] : match)),
+  );
 }
 
 /** Applies substitution to every string value of a record, leaving keys alone. */

@@ -1198,6 +1198,38 @@
         "name": "Exécuter du JavaScript",
         "description": "Exécute la valeur comme JavaScript dans la page. Échoue si le script lève une erreur ou renvoie false.",
         "valueHint": "document.title.includes('Orders') ou code avec return"
+      },
+      "setVariable": {
+        "name": "Définir une variable",
+        "description": "Définit une variable pour les étapes suivantes. Les générateurs comme $randomEmail, $uuid, $randomInt(1,100) ou $today(+7), entre doubles accolades, produisent une nouvelle valeur.",
+        "valueHint": "nom=valeur, ex. email=$randomEmail entre doubles accolades"
+      },
+      "if": {
+        "name": "Si",
+        "description": "Exécute les étapes jusqu'à Sinon ou Fin si seulement quand la condition est vraie. Avec un élément : son état actuel (visible, hidden, exists, missing, checked, enabled, contains:texte). Sans : une comparaison de valeurs.",
+        "valueHint": "visible, contains:texte… ou a == b, a > 3, a contains b"
+      },
+      "else": {
+        "name": "Sinon",
+        "description": "Les étapes jusqu'à Fin si s'exécutent quand la condition du Si était fausse."
+      },
+      "endIf": {
+        "name": "Fin si",
+        "description": "Ferme le bloc Si."
+      },
+      "repeat": {
+        "name": "Répéter",
+        "description": "Exécute les étapes jusqu'à Fin de boucle le nombre de fois indiqué. À l'intérieur, la variable loopIndex compte à partir de 1.",
+        "valueHint": "Nombre de fois, ex. 3"
+      },
+      "repeatWhile": {
+        "name": "Répéter tant que",
+        "description": "Exécute les étapes jusqu'à Fin de boucle tant que la condition est vraie, 200 fois au plus.",
+        "valueHint": "visible, contains:texte… ou a == b, a < 10"
+      },
+      "endLoop": {
+        "name": "Fin de boucle",
+        "description": "Ferme le bloc Répéter."
       }
     },
     "saveTest": {
