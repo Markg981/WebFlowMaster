@@ -66,7 +66,9 @@ describe('EditTestPlanSettingsModal', () => {
     expect(url).toBe('/api/test-plans/plan-1');
     expect(init.method).toBe('PUT');
     const body = JSON.parse(init.body);
-    expect(body.testMachinesConfig).toEqual([{ browserName: 'firefox', headless: true }]);
+    // No grid: the OS and versions the runners cannot choose go out empty.
+    expect(body.testMachinesConfig).toEqual([{ browserName: 'firefox', headless: true, os: null, osVersion: null, browserVersion: null }]);
+    expect(body.browserGridId).toBeNull();
     expect(body.visualTestingEnabled).toBe(true);
     expect(body.notificationSettings.webhookUrl).toBe('https://hooks.test/new');
     expect(body.selectedTests).toBeUndefined();
@@ -190,5 +192,42 @@ describe('EditTestPlanSettingsModal', () => {
 
     expect(await screen.findByText('Invalid request payload')).toBeInTheDocument();
     expect(onSaved).not.toHaveBeenCalled();
+  });
+
+  it('on a grid that chooses them, asks each browser for its OS and versions, and saves the grid', async () => {
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve({
+        ok: true,
+        json: async () =>
+          String(url).includes('/api/browser-grids')
+            ? [{ id: 'g1', name: 'Cloud', provider: 'browserstack' }]
+            : String(url).includes('/api/issue-trackers')
+              ? []
+              : {},
+      }),
+    );
+    const onGrid = {
+      ...plan,
+      browserGridId: 'g1',
+      testMachinesConfig: [{ browserName: 'chrome', headless: true, os: 'Windows', osVersion: '10', browserVersion: null }],
+    } as unknown as TestPlan;
+    const onSaved = vi.fn();
+    render(<EditTestPlanSettingsModal isOpen plan={onGrid} onClose={() => {}} onSaved={onSaved} />);
+
+    const version = await screen.findByLabelText('Browser version');
+    expect(screen.getByLabelText('OS version')).toHaveValue('10');
+    fireEvent.change(version, { target: { value: '120' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    const body = savedBody();
+    expect(body.browserGridId).toBe('g1');
+    expect(body.agentPool).toBeNull();
+    expect(body.testMachinesConfig).toEqual([{ browserName: 'chrome', headless: true, os: 'Windows', osVersion: '10', browserVersion: '120' }]);
+  });
+
+  it('on the runners, does not ask for an OS or a version it could not honour', () => {
+    render(<EditTestPlanSettingsModal isOpen plan={plan} onClose={() => {}} onSaved={() => {}} />);
+    expect(screen.queryByLabelText('Browser version')).toBeNull();
   });
 });

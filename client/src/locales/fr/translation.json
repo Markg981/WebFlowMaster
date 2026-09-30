@@ -129,7 +129,9 @@
       "members": "Membres",
       "membersDescription": "Qui fait partie de l'organisation, leurs rôles, et les invitations pour les nouvelles personnes.",
       "customActions": "Actions personnalisées",
-      "customActionsDescription": "Vos propres étapes, en JavaScript exécuté dans la page testée, proposées dans le constructeur à côté des étapes intégrées."
+      "customActionsDescription": "Vos propres étapes, en JavaScript exécuté dans la page testée, proposées dans le constructeur à côté des étapes intégrées.",
+      "browserGrids": "Grilles de navigateurs",
+      "browserGridsDescription": "BrowserStack, LambdaTest ou votre propre serveur Playwright, pour les navigateurs et systèmes que les runners n'ont pas."
     },
     "apiKeys": {
       "openApi": "Référence de l'API (OpenAPI)",
@@ -2739,7 +2741,8 @@
       "label": "Exécuter sur",
       "help": "D'où partent les tests. Un pool d'agents locaux ouvre les pages et envoie les requêtes API depuis son propre réseau.",
       "runners": "Les runners de ce serveur",
-      "pool": "Agents locaux : {{pool}}"
+      "pool": "Agents locaux : {{pool}}",
+      "grid": "{{provider}} : {{name}}"
     },
     "title": "Paramètres d'exécution",
     "description": "Ce que fait « {{name}} » à sa prochaine exécution.",
@@ -2755,7 +2758,11 @@
       "selectLabel": "Navigateur",
       "headless": "Sans interface",
       "remove": "Retirer le navigateur",
-      "add": "Ajouter un navigateur"
+      "add": "Ajouter un navigateur",
+      "os": "Système d'exploitation",
+      "anyOs": "OS par défaut",
+      "osVersion": "Version de l'OS",
+      "browserVersion": "Version du navigateur"
     },
     "parallel": {
       "label": "Exécuter au plus (tests simultanés)",
@@ -3100,5 +3107,37 @@
     },
     "variables": "Variables",
     "fromEnvironment": "(de l'environnement, masquée)"
+  },
+  "browserGrids": {
+    "title": "Grilles de navigateurs",
+    "description": "Des navigateurs que les runners n'ont pas — Windows et macOS, Chrome et Edge officiels, versions antérieures — empruntés à BrowserStack, LambdaTest ou à votre propre serveur Playwright. Un plan en choisit une dans ses paramètres d'exécution.",
+    "provider": "Fournisseur",
+    "name": "Nom",
+    "username": "Nom d'utilisateur",
+    "endpoint": "Adresse",
+    "endpointHint": "Là où figure {token}, le jeton y est placé ; sinon il est envoyé comme jeton bearer. Le serveur doit utiliser la même version de Playwright que les runners.",
+    "accessKey": "Clé d'accès",
+    "token": "Jeton (facultatif)",
+    "keyHint": "Stockée chiffrée et plus jamais affichée.",
+    "add": "Ajouter une grille",
+    "checking": "Ouverture d'un navigateur sur la grille…",
+    "loading": "Chargement…",
+    "empty": "Aucune grille : les plans s'exécutent sur les runners du serveur ou sur des agents locaux.",
+    "columns": {
+      "name": "Nom",
+      "account": "Compte ou adresse",
+      "actions": "Actions"
+    },
+    "check": "Tester la connexion",
+    "delete": "Supprimer",
+    "deleted": "{{count}} plan(s) qui l'utilisaient s'exécutent de nouveau sur les runners du serveur.",
+    "loadFailed": "Impossible de charger les grilles de navigateurs.",
+    "saveFailed": "Impossible d'enregistrer la grille.",
+    "checkFailed": "Impossible de vérifier la grille.",
+    "deleteFailed": "Impossible de supprimer la grille.",
+    "nameRequired": "Un nom est requis.",
+    "usernameRequired": "Un nom d'utilisateur est requis pour ce fournisseur.",
+    "endpointRequired": "L'adresse d'un serveur Playwright commence par ws:// ou wss://.",
+    "keyRequired": "Une clé d'accès est requise pour ce fournisseur."
   }
 }

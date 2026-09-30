@@ -64,6 +64,8 @@ import customActionsRoutes from "./routes/custom-actions.routes";
 import manualResultsRoutes from "./routes/manual-results.routes";
 import failureAnalysisRoutes from "./routes/failure-analysis.routes";
 import debugSessionsRoutes from "./routes/debug-sessions.routes";
+import browserGridsRoutes from "./routes/browser-grids.routes";
+import { checkRunOn } from "./browser-grids";
 import projectElementsRoutes from "./routes/project-elements.routes";
 import nlAuthoringRoutes from "./routes/nl-authoring.routes";
 import tagsRoutes from "./routes/tags.routes";
@@ -204,6 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(manualResultsRoutes);
     app.use(failureAnalysisRoutes);
     app.use(debugSessionsRoutes);
+    app.use(browserGridsRoutes);
     app.use(projectElementsRoutes);
     app.use(nlAuthoringRoutes);
     app.use(tagsRoutes);
@@ -880,8 +883,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
+    // Agents or a grid, never both, and only a grid of this organization (server/browser-grids.ts).
+    const runOn = await checkRunOn(parseResult.data);
+    if (!runOn.ok) return res.status(400).json({ error: runOn.error });
+
     try {
-      const { selectedTests, ...planUpdates } = parseResult.data;
+      const { selectedTests, ...planUpdates } = { ...parseResult.data, ...runOn.changes };
 
       // Check if there's anything to update for the main plan or selected tests
       if (Object.keys(planUpdates).length === 0 && selectedTests === undefined) {

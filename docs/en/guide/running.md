@@ -27,12 +27,38 @@ keep of each run, and whom to tell.
 | **Run at most (tests at once)** | 1 to 16 browser sessions at the same time. 1 runs the plan one test at a time, browser by browser. |
 | **Keep a recording of the run** | A **video** and a Playwright **trace** of each test — never, when the test fails, or always — and the **network** traffic as a HAR file. They answer what a screenshot cannot, and use disk on every run. |
 | **Visual testing** | Compares each step's screenshot with its baseline; see [Visual testing](./results#visual-testing). |
-| **Run on** | This server's runners, or a pool of [local agents](../LOCAL_AGENT) inside your own network. |
+| **Run on** | This server's runners, a pool of [local agents](../LOCAL_AGENT) inside your own network, or a [browser grid](#browser-grids). |
 | **File failures in** | An issue tracker (Jira, Azure DevOps) connected by an owner. With **Open an issue when a test fails**, each failing test and browser gets one issue; the same failure later is added to it as a comment. |
 | **Send notification when** and the webhook URL | A message to a Slack or Microsoft Teams incoming webhook, or any URL that accepts a POST, when a run passes, fails, is not executed or is stopped. |
 
 **Suites** on the row adds [suites](./organizing#suites): they run after the plan's own tests, in the
 order ticked, and a test in more than one runs once.
+
+### Browser grids {#browser-grids}
+
+The runners have Chromium, Firefox and WebKit on the system they are installed on. For Windows
+and macOS, branded Chrome and Edge, or an older version, a plan can borrow its browsers from a
+**browser grid**, added in **Settings → Browser grids**:
+
+| Provider | Needs | OS and versions |
+|---|---|---|
+| **BrowserStack** | Username and access key | Honoured |
+| **LambdaTest** | Username and access key | Honoured |
+| **Playwright server** — your own `npx playwright run-server`, Browserless, Moon… | Its `ws://` or `wss://` address, and a token if it asks for one (where the address has `{token}` it goes there, otherwise as a bearer token) | Not honoured: it runs the browsers it has |
+
+The key is stored encrypted and never shown again. **Test connection** opens one short Chromium
+session on the grid and says whether it worked. A Playwright server must run the same Playwright
+version as the runners.
+
+With **Run on** set to a grid, each browser row of the plan also takes an **operating system**
+(Windows or macOS), its **version** (`11`, `Sonoma`) and a **browser version** (`latest` when
+empty). Each row is a pass of the run, and the report labels it with its machine — *chrome ·
+Windows 11*, *chrome · macOS Sonoma*. Without an OS, WebKit runs on macOS and everything else on
+Windows 11. Safari on a grid is still Playwright's WebKit.
+
+Each test is a session on the provider's dashboard, named after the test, grouped under the run,
+and marked passed or failed. Deleting a grid sends the plans that used it back to the server's
+runners. A plan runs on a grid or on local agents, never both.
 
 ### Testing in several languages {#languages}
 

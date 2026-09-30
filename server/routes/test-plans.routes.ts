@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { checkRunOn } from "../browser-grids";
 import { testPlans, testPlanSchedules, testPlanExecutions, testPlanSelectedTests, testPlanSuites, testSuites, tests, apiTests, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema, testPlanApiPayloadSchema, type TestPlanSchedule } from "@shared/schema";
 import { eq, desc, asc, and, inArray, getTableColumns, sql, type SQL } from "drizzle-orm";
 import { v4 as uuidv4 } from 'uuid';
@@ -62,7 +63,10 @@ router.post("/api/test-plans", requireRole('editor'), async (req, res) => {
     // column on testPlans, so it is inserted separately below — not dropped. It used to be
     // destructured away and discarded here, which meant every plan created from the UI had
     // zero linked tests: CreateTestPlanWizard always sends this field.
-    const { selectedTests, ...planData } = parseResult.data;
+    // Agents or a grid, never both, and only a grid of this organization (server/browser-grids.ts).
+    const runOn = await checkRunOn(parseResult.data);
+    if (!runOn.ok) return res.status(400).json({ error: runOn.error });
+    const { selectedTests, ...planData } = { ...parseResult.data, ...runOn.changes };
 
     const planId = uuidv4();
     try {

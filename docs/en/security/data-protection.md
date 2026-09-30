@@ -57,6 +57,7 @@ configures it:
 | S3-compatible storage provider | If the operator chooses `ARTIFACT_STORE=s3` | Run evidence and baselines. |
 | Grafana Loki | If the operator sets `LOKI_URL` | Application logs. |
 | Jira, Azure DevOps | If an organization connects an issue tracker | Failure details of the runs that open an issue. |
+| BrowserStack, LambdaTest | If an organization adds a browser grid and a plan runs on it | Everything the tests do in the browser: the pages of the application under test, the values typed into them (secrets used in steps included), and the provider's own screenshots, videos and logs of each session, kept under its terms. |
 | GitHub, GitLab | If an organization connects them | Run status, verdict and a link, on the tested commit. |
 | Slack or Microsoft Teams | If a plan's notifications name a webhook | Run summaries. (E-mail addresses can be saved on a plan, but no e-mail is sent.) |
 
