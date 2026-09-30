@@ -1439,6 +1439,7 @@
     "inFrame": "in frame"
   },
   "testSequenceBuilder": {
+    "flowErrors": "Blocks that do not close",
     "testSequence": {
       "title": "Test Sequence"
     },

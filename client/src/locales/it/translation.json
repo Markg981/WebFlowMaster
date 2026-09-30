@@ -1294,6 +1294,7 @@
       }
     },
     "testSequenceBuilder": {
+      "flowErrors": "Blocchi non chiusi",
       "testSequence": {
         "title": "Sequenza di Test"
       },
@@ -1563,6 +1564,7 @@
     "inFrame": "in frame"
   },
   "testSequenceBuilder": {
+    "flowErrors": "Blocchi non chiusi",
     "testSequence": {
       "title": "Sequenza del test"
     },

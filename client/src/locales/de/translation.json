@@ -1445,6 +1445,7 @@
     "inFrame": "im Frame"
   },
   "testSequenceBuilder": {
+    "flowErrors": "Nicht geschlossene Blöcke",
     "testSequence": {
       "title": "Testsequenz"
     },

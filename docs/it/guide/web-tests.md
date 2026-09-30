@@ -41,6 +41,20 @@ richiede: il testo da scrivere, l'opzione da scegliere, il testo atteso.
 | **Verifica Conteggio Elementi** | Fallisce se il numero di elementi corrispondenti non è quello giusto, per esempio `==1`, `>=5`, `<3`. |
 | **Verifica stato** | Fallisce se un controllo non è selezionato, abilitato, modificabile — o il contrario. |
 | **Verifica accessibilità** | Controlla la pagina in quel punto con axe-core, e fallisce sulle violazioni di gravità pari o superiore a quella scelta (serious di default). |
+| **Premi tasto** | Preme un tasto o una combinazione — `Enter`, `Tab`, `Escape`, `Control+A` — sull'elemento, o su quello che ha il focus se lo step non ne ha. |
+| **Doppio click** / **Click destro** | Fa doppio click, o apre il menu contestuale dell'elemento. |
+| **Trascina e rilascia** | Trascina l'elemento su quello il cui selettore è il valore. |
+| **Carica file** | Passa a un campo file — o al pulsante che apre la scelta del file — un file creato dal valore: `fattura.csv`, oppure `fattura.csv\|contenuto`. |
+| **Rispondi al dialog** | Dice come rispondere al prossimo `alert`, `confirm` o `prompt`: `accept`, `dismiss` o `accept:testo`. Va messo **prima** dello step che apre il dialog. Un dialog senza risposta viene chiuso. |
+| **Cambia scheda** | Continua in un'altra scheda: vuoto per la più recente, un numero (da 1), o un testo nel suo indirizzo o titolo. |
+| **Chiudi scheda** | Chiude la scheda corrente e torna a quella che l'ha aperta. |
+| **Salva testo in variabile** | Legge il testo dell'elemento, o il valore di un campo, nella variabile indicata dal valore, per gli step successivi. |
+| **Imposta variabile** | `nome=valore`, per gli step successivi. Vedi [valori generati](#valori-generati). |
+| **Imposta cookie** / **Cancella cookie** | `nome=valore` per l'indirizzo corrente; oppure li elimina tutti. |
+| **Imposta localStorage** | `chiave=valore` nello storage della pagina corrente. |
+| **Esegui JavaScript** | Esegue il valore nella pagina. Fallisce se lancia un errore o restituisce `false`, così può verificare ciò che nessun altro step sa esprimere. |
+| **Se** / **Altrimenti** / **Fine se** | Esegue degli step solo quando una condizione è vera. Vedi [condizioni e cicli](#condizioni-e-cicli). |
+| **Ripeti** / **Ripeti finché** / **Fine ciclo** | Esegue degli step un numero di volte, o finché una condizione è vera. |
 
 Ogni azione attende già che il suo elemento sia pronto prima di agire, quindi un **Attendi**
 fisso serve di rado; quando uno step fallisce perché qualcosa era lento, attendete proprio
@@ -48,6 +62,32 @@ quella cosa.
 
 Cambiate l'azione o l'elemento di uno step dallo step stesso, rimuovetelo con il cestino, e
 **Svuota** per ricominciare.
+
+Un **Invio** registrato viene rieseguito come step **Premi tasto** dopo il valore del campo in cui
+è stato premuto, così una ricerca inviata con Invio viene inviata anche nel replay.
+
+## Condizioni e cicli {#condizioni-e-cicli}
+
+**Se**, **Altrimenti** e **Fine se** sono step come gli altri, messi attorno agli step che
+governano; lo stesso vale per **Ripeti** o **Ripeti finché** e **Fine ciclo**. Il costruttore
+rientra ciò che sta dentro un blocco ed elenca i blocchi non chiusi; un test che ne ha uno fallisce
+prima che si apra il browser, indicando lo step.
+
+Una condizione ha una di due forme:
+
+- **Con un elemento**: lo stato in cui è *adesso* — `visible`, `hidden`, `exists`, `missing`,
+  `checked`, `unchecked`, `enabled`, `disabled`, oppure `contains:testo` / `not contains:testo`.
+  La risposta è immediata: "se il banner dei cookie è visibile, chiudilo" prosegue subito quando
+  il banner non c'è. Per qualcosa che sta ancora caricando, mettete uno step di attesa prima.
+- **Senza elemento**: un confronto di valori — <code v-pre>{{stato}} == Pagato</code>,
+  <code v-pre>{{n}} > 3</code>, <code v-pre>{{titolo}} contains Ordine</code>, con `==`, `!=`,
+  `>`, `<`, `>=`, `<=`, `contains`, `not contains` — oppure una variabile che vale `true` o
+  `false`.
+
+**Ripeti** prende un numero di volte; dentro, <code v-pre>{{loopIndex}}</code> conta da 1.
+**Ripeti finché** valuta la condizione prima di ogni passata. Un ciclo ferma il test dopo 200
+passate, così una condizione che non diventa mai falsa non tiene occupato un worker per sempre.
+Con il test visuale, ogni passata di un ciclo è confrontata con la propria baseline.
 
 ## Provarlo
 
@@ -101,10 +141,32 @@ quando il test gira:
   segreto chiamato `baseUrl` imposta <code v-pre>{{baseUrl}}</code>, così un test può partire da
   <code v-pre>{{baseUrl}}/login</code> su ogni ambiente;
 - da una riga di un **dataset** (sotto);
-- da valori catturati da un test API eseguito prima nello stesso run.
+- da valori catturati da un test API eseguito prima nello stesso run;
+- dagli step **Salva testo in variabile** e **Imposta variabile** precedenti nello stesso test.
+  Quei valori appartengono solo a quel run.
 
 Un segnaposto che nessuno definisce non viene svuotato: lo step fallisce e indica la variabile
 mancante.
+
+### Valori generati {#valori-generati}
+
+Un segnaposto che comincia con `$` crea un valore ogni volta che viene usato, ovunque le
+variabili siano accettate — uno step, un URL, un test API:
+
+| Segnaposto | Valore |
+|---|---|
+| <code v-pre>{{$randomEmail}}</code> | `test.k3v9…@example.com` (un dominio che non consegna a nessuno) |
+| <code v-pre>{{$uuid}}</code> | Un UUID casuale |
+| <code v-pre>{{$randomInt(1,100)}}</code> | Un intero fra i due, estremi inclusi (0–1000 di default) |
+| <code v-pre>{{$randomString(8)}}</code> | Lettere e cifre |
+| <code v-pre>{{$randomDigits(6)}}</code> | Solo cifre |
+| <code v-pre>{{$today}}</code>, <code v-pre>{{$today(+7)}}</code> | Una data, `aaaa-mm-gg`, oggi o fra quei giorni |
+| <code v-pre>{{$now}}</code>, <code v-pre>{{$timestamp}}</code> | L'istante corrente, ISO o in millisecondi |
+
+Ogni segnaposto è un valore nuovo. Per usarne uno due volte — registrarsi con un indirizzo e poi
+accedere con lo stesso — dategli prima un nome: **Imposta variabile**
+<code v-pre>email={{$randomEmail}}</code>, poi <code v-pre>{{email}}</code>. Un generatore scritto
+male fa fallire lo step come una variabile mancante.
 
 I valori dei segreti sono cifrati, non vengono più mostrati dopo il salvataggio, e sono mascherati
 nei log.

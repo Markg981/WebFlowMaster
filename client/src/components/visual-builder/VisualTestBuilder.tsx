@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { 
   ReactFlow,
   Background,
@@ -22,10 +22,14 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, XCircle, Layers, Wand2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useDrop } from 'react-dnd';
+import { analyseFlow, flowDepths } from '@shared/flow';
 
 const nodeTypes = {
   testNode: TestNode,
 };
+
+/** How far one level of if / loop moves a step to the right. */
+const FLOW_INDENT_PX = 80;
 
 interface VisualTestBuilderProps {
   testSequence: TestStep[];
@@ -59,14 +63,19 @@ export function VisualTestBuilder({
   const { t } = useTranslation();
   const [nodes, setNodes] = useState<Node<TestNodeData>[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const flowAnalysis = useMemo(() => analyseFlow(testSequence), [testSequence]);
+  const flowErrors = flowAnalysis.ok ? [] : flowAnalysis.errors;
 
   // Sincronizza TestSequence (JSON) con i Nodi di React Flow
   useEffect(() => {
     // Trasforma la sequenza lineare in nodi disposti verticalmente
+    // Steps inside an if or a loop are shifted right, one step per level: in a flat column
+    // nothing showed where a block started or ended.
+    const depths = flowDepths(testSequence);
     const newNodes: Node<TestNodeData>[] = testSequence.map((step, index) => ({
       id: step.id,
       type: 'testNode',
-      position: { x: 250, y: index * 200 + 50 }, // Posizionamento automatico a cascata
+      position: { x: 250 + depths[index] * FLOW_INDENT_PX, y: index * 200 + 50 }, // Posizionamento automatico a cascata
       data: {
         action: step.action,
         value: step.value,
@@ -185,8 +194,21 @@ export function VisualTestBuilder({
         </Button>
       </div>
 
-      <div 
-        ref={dropRef} 
+      {/* The same check the runner makes before launching a browser, shown while the test is
+          being written rather than after it has been run. */}
+      {flowErrors.length > 0 && (
+        <div role="alert" className="absolute bottom-4 left-4 z-10 max-w-md rounded-md border border-destructive/40 bg-card p-3 text-xs text-destructive shadow">
+          <p className="font-semibold mb-1">{t('testSequenceBuilder.flowErrors', 'Blocks that do not close')}</p>
+          <ul className="list-disc pl-4 space-y-0.5">
+            {flowErrors.map((error) => (
+              <li key={error}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div
+        ref={dropRef}
         className={`flex-1 border rounded-lg overflow-hidden transition-colors ${isOver ? 'border-primary bg-primary/5' : 'bg-muted/20'}`}
       >
         <ReactFlow

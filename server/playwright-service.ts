@@ -2059,7 +2059,12 @@ export class PlaywrightService {
               // Only for a step that did what it was asked. A step that already failed is
               // being reported for that reason, and the page it left behind says nothing
               // about whether the application looks right.
-              const visualOutcome = await compareStepScreenshot(options.visual, i, screenshotBuffer);
+              // Inside a loop, each pass has its own baseline (see FlowCursor.iterationKey).
+              const iteration = cursor.iterationKey();
+              const visualContext = iteration
+                ? { ...options.visual, variant: [options.visual.variant, iteration].filter(Boolean).join('_') }
+                : options.visual;
+              const visualOutcome = await compareStepScreenshot(visualContext, i, screenshotBuffer);
               stepVisual = {
                 outcome: visualOutcome.kind,
                 detail: visualOutcome.kind === 'skipped' ? visualOutcome.reason : visualOutcome.detail,
