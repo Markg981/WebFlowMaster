@@ -1,4 +1,5 @@
 import playwright, { type Browser } from 'playwright';
+import { BROWSER_GRID_LABELS, type BrowserGridProvider } from '@shared/browser-grids';
 
 /**
  * Turning what a plan or a schedule *says* about browsers into something that can be launched.
@@ -34,6 +35,13 @@ export interface BrowserChoice {
    * (server/agents/agent-browser.ts). Set by the runner for plans that run on agents.
    */
   agent?: { organizationId: number; pool: string };
+  /**
+   * What the plan's machine row said beyond the browser. The runners cannot honour it and say so;
+   * a grid that chooses OS and versions does (server/browser-grids.ts).
+   */
+  machine?: { os?: string | null; osVersion?: string | null; browserVersion?: string | null };
+  /** Connect to this browser grid rather than launching here. Set by the runner for plans on a grid. */
+  grid?: { id: string; provider: BrowserGridProvider; name: string; browserName: string };
 }
 
 /**
@@ -121,6 +129,8 @@ export interface BrowserMatrixInput {
   testMachines?: unknown;
   /** The user's own default, used when neither of the above says anything. */
   fallback?: { label: string; headless: boolean };
+  /** The run is on a browser grid, which says itself what of the machines it honours. */
+  onGrid?: boolean;
 }
 
 /**
@@ -143,7 +153,9 @@ export function browsersForRun(input: BrowserMatrixInput): BrowserMatrix {
       warnings.push(`Unknown browser "${rawName}" in this plan's configuration — skipped.`);
       return;
     }
-    const key = `${choice.label}:${choice.headless}`;
+    // The machine is part of what makes two rows different: Chrome on Windows and Chrome on
+    // macOS are two passes on a grid.
+    const key = [choice.label, choice.headless, choice.machine?.os, choice.machine?.osVersion, choice.machine?.browserVersion].join(':');
     if (seen.has(key)) return;
     seen.add(key);
     const approximate = ENGINE_BY_NAME[choice.label]?.approximate;
@@ -162,9 +174,12 @@ export function browsersForRun(input: BrowserMatrixInput): BrowserMatrix {
     if (machines && machines.length > 0) {
       for (const machine of machines) {
         const name = typeof machine?.browserName === 'string' ? machine.browserName : '';
-        add(resolveBrowser(name, machine?.headless !== false), name || '(empty)');
+        const resolved = resolveBrowser(name, machine?.headless !== false);
+        const wanted = { os: machine?.os ?? null, osVersion: machine?.osVersion ?? null, browserVersion: machine?.browserVersion ?? null };
+        add(resolved && (wanted.os || wanted.osVersion || wanted.browserVersion) ? { ...resolved, machine: wanted } : resolved, name || '(empty)');
       }
-      warnings.push(...unsupportedMachineFields(machines));
+      // On a grid these are honoured, and the runner leaves them out (see `onGrid`).
+      if (!input.onGrid) warnings.push(...unsupportedMachineFields(machines));
     }
   }
 
@@ -225,10 +240,38 @@ export function onAgents(
   }));
 }
 
+/**
+ * The passes of a run whose browsers come from a browser grid.
+ *
+ * Each keeps the plan's browser name for the grid to map, and is labelled with the machine it
+ * asked for, so the report tells Chrome on Windows 11 from Chrome on macOS.
+ */
+export function onGrid(
+  passes: Array<BrowserChoice | undefined>,
+  grid: { id: string; provider: BrowserGridProvider; name: string },
+): BrowserChoice[] {
+  return passes.map((pass) => {
+    const base = pass ?? { label: DEFAULT_BROWSER_LABEL, engine: 'chromium' as const, headless: true };
+    const machine = [base.machine?.os, base.machine?.osVersion].filter(Boolean).join(' ');
+    const version = base.machine?.browserVersion && base.machine.browserVersion !== 'latest' ? ` ${base.machine.browserVersion}` : '';
+    return {
+      ...base,
+      label: `${base.label}${version}${machine ? ` · ${machine}` : ''}`,
+      // Nobody watches a browser in a data centre: a grid session is headless as far as we are concerned.
+      headless: true,
+      grid: { ...grid, browserName: base.label },
+    };
+  });
+}
+
 /** A label for the run's logs and for the report column. */
 export function describeBrowser(choice: BrowserChoice): string {
   const base = choice.channel ? `${choice.label} (${choice.engine}/${choice.channel})` : choice.label;
-  const where = choice.agent ? ` on agent pool "${choice.agent.pool}"` : '';
+  const where = choice.agent
+    ? ` on agent pool "${choice.agent.pool}"`
+    : choice.grid
+      ? ` on ${BROWSER_GRID_LABELS[choice.grid.provider]} "${choice.grid.name}"`
+      : '';
   return choice.headless ? `${base}${where}` : `${base}, headed${where}`;
 }
 
@@ -239,9 +282,33 @@ export function describeBrowser(choice: BrowserChoice): string {
  * this runner" is an infrastructure fact, and a report that files it under "the login test
  * failed" sends somebody to read the login test.
  */
-export async function launchBrowser(choice: BrowserChoice): Promise<Browser> {
+export async function launchBrowser(
+  choice: BrowserChoice,
+  /** How the grid's dashboard names the session: the test, and the run. */
+  session?: { name: string; build: string },
+): Promise<Browser> {
   const engine = playwright[choice.engine];
   if (!engine) throw new Error(`Invalid browser engine: ${choice.engine}`);
+  if (choice.grid) {
+    const where = `${BROWSER_GRID_LABELS[choice.grid.provider]} grid "${choice.grid.name}"`;
+    const { gridConnection, loadGridConfig } = await import('./browser-grids');
+    const config = await loadGridConfig(choice.grid.id);
+    if (!config) throw new Error(`The ${where} no longer exists. Pick another place to run in the plan's settings.`);
+    const connection = gridConnection(config, {
+      label: choice.grid.browserName,
+      engine: choice.engine,
+      ...choice.machine,
+      sessionName: session?.name ?? 'WebFlowMaster test',
+      buildName: session?.build ?? 'WebFlowMaster',
+    });
+    try {
+      return await playwright[connection.engine].connect(connection.wsEndpoint, { timeout: 90_000, ...(connection.headers ? { headers: connection.headers } : {}) });
+    } catch (error: any) {
+      // The address carries the credentials for the clouds: the message never repeats it.
+      const message = String(error?.message ?? error).split(connection.wsEndpoint).join('<grid address>');
+      throw new Error(`Could not open ${choice.label} on the ${where}: ${message}`);
+    }
+  }
   if (choice.agent) {
     const { connectToAgentBrowser } = await import('./agents/agent-browser');
     try {

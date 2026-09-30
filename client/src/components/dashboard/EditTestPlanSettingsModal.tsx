@@ -12,6 +12,7 @@ import { Loader2, PlusCircle, XCircle } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestPlan } from '@shared/schema';
 import { MAX_LOCALES, canonicalLocale, normalizeLocales } from '@shared/locales';
+import { BROWSER_GRID_LABELS, GRID_OPERATING_SYSTEMS, HONOURS_MACHINE, type BrowserGridProvider } from '@shared/browser-grids';
 
 /**
  * Changing what a plan does on its next run, after it has been created.
@@ -26,7 +27,23 @@ interface MachineRow {
   key: string;
   browserName: string;
   headless: boolean;
+  /** Honoured on a grid that chooses them (shared/browser-grids.ts); empty means the grid's default. */
+  os: string;
+  osVersion: string;
+  browserVersion: string;
 }
+
+interface GridOption {
+  id: string;
+  name: string;
+  provider: BrowserGridProvider;
+}
+
+/** A grid in the "run on" list, told apart from a pool name, which cannot contain a colon. */
+const GRID_PREFIX = 'grid:';
+
+/** The Select cannot hold an empty value: "the grid's default OS". */
+const ANY_OS = '__any__';
 
 interface NotificationSettingsShape {
   passed: boolean;
@@ -77,6 +94,9 @@ function machinesFromPlan(plan: TestPlan | null): MachineRow[] {
     key: uuidv4(),
     browserName: typeof machine?.browserName === 'string' ? machine.browserName : 'chromium',
     headless: machine?.headless !== false,
+    os: typeof machine?.os === 'string' ? machine.os : '',
+    osVersion: typeof machine?.osVersion === 'string' ? machine.osVersion : '',
+    browserVersion: typeof machine?.browserVersion === 'string' ? machine.browserVersion : '',
   }));
 }
 
@@ -116,6 +136,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
   /** Where the browsers come from: this server's runners, or the local agents of a pool. */
   const [runOn, setRunOn] = useState<string>(ON_RUNNERS);
   const [agentPools, setAgentPools] = useState<string[]>([]);
+  const [grids, setGrids] = useState<GridOption[]>([]);
   /** How many of this plan's runs may be in flight at once. 1 is what every plan did before. */
   const [maxParallelTests, setMaxParallelTests] = useState('1');
   const [maxParallelError, setMaxParallelError] = useState('');
@@ -140,7 +161,8 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
     setCaptureVideo((plan as { captureVideo?: string } | null)?.captureVideo ?? 'never');
     setCaptureTrace((plan as { captureTrace?: string } | null)?.captureTrace ?? 'never');
     setCaptureNetwork((plan as { captureNetwork?: string } | null)?.captureNetwork ?? 'never');
-    setRunOn((plan as { agentPool?: string | null } | null)?.agentPool ?? ON_RUNNERS);
+    const planGrid = (plan as { browserGridId?: string | null } | null)?.browserGridId;
+    setRunOn(planGrid ? `${GRID_PREFIX}${planGrid}` : (plan as { agentPool?: string | null } | null)?.agentPool ?? ON_RUNNERS);
     setMaxParallelTests(String(plan?.maxParallelTests ?? 1));
     setLocales(normalizeLocales((plan as { locales?: unknown } | null)?.locales).join(', '));
     setLocalesError('');
@@ -167,10 +189,20 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
         setAgentPools([...new Set((body.agents ?? []).filter((agent) => !agent.revokedAt).map((agent) => agent.pool))].sort()),
       )
       .catch(() => setAgentPools([]));
+
+    // The organization's browser grids (Settings → Browser grids).
+    fetch('/api/browser-grids')
+      .then((response) => (response.ok ? response.json() : []))
+      .then((rows) => setGrids(Array.isArray(rows) ? rows : []))
+      .catch(() => setGrids([]));
   }, [isOpen, plan]);
 
+  const selectedGrid = runOn.startsWith(GRID_PREFIX) ? grids.find((grid) => grid.id === runOn.slice(GRID_PREFIX.length)) ?? null : null;
+  /** Whether the machine rows ask for an OS and versions: only a grid that honours them does. */
+  const machineFields = !!selectedGrid && HONOURS_MACHINE[selectedGrid.provider];
+
   const addMachine = () => {
-    setMachines((previous) => [...previous, { key: uuidv4(), browserName: 'chromium', headless: true }]);
+    setMachines((previous) => [...previous, { key: uuidv4(), browserName: 'chromium', headless: true, os: '', osVersion: '', browserVersion: '' }]);
   };
 
   const removeMachine = (key: string) => {
@@ -223,12 +255,19 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           // Only the run settings. Omitting selectedTests leaves the plan's tests as they are.
-          testMachinesConfig: machines.map(({ browserName, headless }) => ({ browserName, headless })),
+          testMachinesConfig: machines.map(({ browserName, headless, os, osVersion, browserVersion }) => ({
+            browserName,
+            headless,
+            os: os.trim() || null,
+            osVersion: osVersion.trim() || null,
+            browserVersion: browserVersion.trim() || null,
+          })),
           visualTestingEnabled,
           captureVideo,
           captureTrace,
           captureNetwork,
-          agentPool: runOn === ON_RUNNERS ? null : runOn,
+          agentPool: runOn === ON_RUNNERS || runOn.startsWith(GRID_PREFIX) ? null : runOn,
+          browserGridId: runOn.startsWith(GRID_PREFIX) ? runOn.slice(GRID_PREFIX.length) : null,
           maxParallelTests: parallel,
           locales: normalizeLocales(typedLocales),
           issueTrackerId: issueTrackerId === NO_TRACKER ? null : issueTrackerId,
@@ -294,6 +333,35 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                         ))}
                       </SelectContent>
                     </Select>
+                    {machineFields && (
+                      <>
+                        <Select value={machine.os || ANY_OS} onValueChange={(value) => updateMachine(machine.key, { os: value === ANY_OS ? '' : value })}>
+                          <SelectTrigger className="w-[120px]" aria-label={t('editTestPlanSettings.browsers.os', 'Operating system')}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={ANY_OS}>{t('editTestPlanSettings.browsers.anyOs', 'Default OS')}</SelectItem>
+                            {GRID_OPERATING_SYSTEMS.map((os) => (
+                              <SelectItem key={os} value={os}>{os}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          className="w-[90px]"
+                          value={machine.osVersion}
+                          onChange={(e) => updateMachine(machine.key, { osVersion: e.target.value })}
+                          placeholder={machine.os === 'macOS' ? 'Sonoma' : '11'}
+                          aria-label={t('editTestPlanSettings.browsers.osVersion', 'OS version')}
+                        />
+                        <Input
+                          className="w-[90px]"
+                          value={machine.browserVersion}
+                          onChange={(e) => updateMachine(machine.key, { browserVersion: e.target.value })}
+                          placeholder="latest"
+                          aria-label={t('editTestPlanSettings.browsers.browserVersion', 'Browser version')}
+                        />
+                      </>
+                    )}
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id={`headless-${machine.key}`}
@@ -334,7 +402,12 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ON_RUNNERS}>{t('editTestPlanSettings.runOn.runners', "This server's runners")}</SelectItem>
-                  {[...new Set([...agentPools, ...(runOn === ON_RUNNERS ? [] : [runOn])])].map((pool) => (
+                  {grids.map((grid) => (
+                    <SelectItem key={grid.id} value={`${GRID_PREFIX}${grid.id}`}>
+                      {t('editTestPlanSettings.runOn.grid', '{{provider}}: {{name}}', { provider: BROWSER_GRID_LABELS[grid.provider] ?? grid.provider, name: grid.name })}
+                    </SelectItem>
+                  ))}
+                  {[...new Set([...agentPools, ...(runOn === ON_RUNNERS || runOn.startsWith(GRID_PREFIX) ? [] : [runOn])])].map((pool) => (
                     <SelectItem key={pool} value={pool}>
                       {t('editTestPlanSettings.runOn.pool', 'Local agents: {{pool}}', { pool })}
                     </SelectItem>

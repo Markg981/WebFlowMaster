@@ -24,7 +24,10 @@ import { defaultVariables } from './variables';
 import { runApiRequest, type Extraction } from './api-test-runner';
 import { AgentHttp } from './agents/agent-fetch';
 import type { Assertion, AuthParams } from '@shared/schema';
-import { browsersForRun, describeBrowser, hasConfiguredBrowsers, launchBrowser, onAgents, type BrowserChoice } from './browsers';
+import { browsersForRun, describeBrowser, hasConfiguredBrowsers, launchBrowser, onAgents, onGrid, type BrowserChoice } from './browsers';
+import { browserGrids } from '@shared/schema';
+import { BROWSER_GRID_LABELS, type BrowserGridProvider } from '@shared/browser-grids';
+import { gridWarnings } from './browser-grids';
 import { LOCALE_VARIABLE, passLabel } from '@shared/locales';
 import { isManualSequence, manualStepsOf, type ManualResultLog } from '@shared/manual-tests';
 import { effectiveConcurrency, runWithConcurrency } from './concurrency';
@@ -588,9 +591,20 @@ async function runTestPlanJobInTenant(
 
   const configuredBrowsers =
     hasConfiguredBrowsers(snapshot.browsers.requested) || hasConfiguredBrowsers(snapshot.browsers.testMachines);
+  // A plan on a browser grid (shared/browser-grids.ts). A pool of agents wins if both were ever
+  // set; the plan routes refuse to save both.
+  const gridId = snapshot.runOn?.agentPool ? null : snapshot.runOn?.browserGridId ?? null;
+  const [gridRow] = gridId
+    ? await withTenantTransaction((tx) =>
+        tx.select({ id: browserGrids.id, name: browserGrids.name, provider: browserGrids.provider }).from(browserGrids).where(eq(browserGrids.id, gridId)).limit(1),
+      )
+    : [];
+  // Gone between the snapshot and now: each test says so when its browser cannot be opened.
+  const grid = gridId ? { id: gridId, name: gridRow?.name ?? gridId, provider: (gridRow?.provider ?? 'playwright_server') as BrowserGridProvider } : null;
   const { browsers: browserMatrix, warnings: browserWarnings } = browsersForRun({
     executionBrowsers: snapshot.browsers.requested,
     testMachines: snapshot.browsers.testMachines,
+    onGrid: !!grid,
   });
   // `undefined` means "whatever the runner would have used", which is the user's own setting
   // — exactly what every plan did before its browser configuration was honoured.
@@ -599,7 +613,25 @@ async function runTestPlanJobInTenant(
   const agentPool = snapshot.runOn?.agentPool ?? null;
   const runPasses: Array<BrowserChoice | undefined> = agentPool
     ? onAgents(basePasses, { organizationId: executionRecord[0].organizationId, pool: agentPool })
-    : basePasses;
+    : grid
+      ? onGrid(basePasses, grid)
+      : basePasses;
+  if (grid) {
+    browserWarnings.push(
+      ...new Set(
+        runPasses.flatMap((pass) =>
+          pass?.grid ? gridWarnings(grid.provider, { label: pass.grid.browserName, ...pass.machine }) : [],
+        ),
+      ),
+    );
+    wsEmitter.emitExecutionLog(testPlanRunId, {
+      level: 'info',
+      source: 'system',
+      message: `Browsers for this run come from the ${BROWSER_GRID_LABELS[grid.provider]} grid "${grid.name}": ${runPasses.map((pass) => pass?.label).join(', ')}.`,
+      timestamp: new Date().toISOString(),
+      metadata: { browserGrid: grid.name, provider: grid.provider },
+    });
+  }
   // Its API requests go out from the same agents, so they reach what its pages reach. Nothing is
   // borrowed until the first request: a plan without API tests or preconditions never asks.
   const agentHttp = agentPool

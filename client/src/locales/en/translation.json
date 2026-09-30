@@ -129,7 +129,9 @@
       "members": "Members",
       "membersDescription": "Who belongs to the organization, their roles, and invitations for new people.",
       "customActions": "Custom actions",
-      "customActionsDescription": "Steps of your own, in JavaScript that runs in the page under test, offered in the builder beside the built-in ones."
+      "customActionsDescription": "Steps of your own, in JavaScript that runs in the page under test, offered in the builder beside the built-in ones.",
+      "browserGrids": "Browser grids",
+      "browserGridsDescription": "BrowserStack, LambdaTest or a Playwright server of your own, for browsers and systems the runners do not have."
     },
     "apiKeys": {
       "openApi": "API reference (OpenAPI)",
@@ -2733,7 +2735,8 @@
       "label": "Run on",
       "help": "Where the tests run from. A pool of local agents opens pages and sends API requests from inside its own network.",
       "runners": "This server's runners",
-      "pool": "Local agents: {{pool}}"
+      "pool": "Local agents: {{pool}}",
+      "grid": "{{provider}}: {{name}}"
     },
     "title": "Run settings",
     "description": "What \"{{name}}\" does on its next run.",
@@ -2749,7 +2752,11 @@
       "selectLabel": "Browser",
       "headless": "Headless",
       "remove": "Remove browser",
-      "add": "Add browser"
+      "add": "Add browser",
+      "os": "Operating system",
+      "anyOs": "Default OS",
+      "osVersion": "OS version",
+      "browserVersion": "Browser version"
     },
     "parallel": {
       "label": "Run at most (tests at once)",
@@ -3094,5 +3101,37 @@
     },
     "variables": "Variables",
     "fromEnvironment": "(from the environment, hidden)"
+  },
+  "browserGrids": {
+    "title": "Browser grids",
+    "description": "Browsers the runners do not have — Windows and macOS, branded Chrome and Edge, older versions — borrowed from BrowserStack, LambdaTest or a Playwright server of your own. A plan picks one in its run settings.",
+    "provider": "Provider",
+    "name": "Name",
+    "username": "Username",
+    "endpoint": "Address",
+    "endpointHint": "Where {token} appears, the token goes there; otherwise it is sent as a bearer token. The server must run the same Playwright version as the runners.",
+    "accessKey": "Access key",
+    "token": "Token (optional)",
+    "keyHint": "Stored encrypted and never shown again.",
+    "add": "Add grid",
+    "checking": "Opening a browser on the grid…",
+    "loading": "Loading…",
+    "empty": "No grid yet: plans run on the server’s runners or on local agents.",
+    "columns": {
+      "name": "Name",
+      "account": "Account or address",
+      "actions": "Actions"
+    },
+    "check": "Test connection",
+    "delete": "Delete",
+    "deleted": "{{count}} plan(s) that used it run on the server’s runners again.",
+    "loadFailed": "Could not load the browser grids.",
+    "saveFailed": "Could not save the grid.",
+    "checkFailed": "Could not check the grid.",
+    "deleteFailed": "Could not delete the grid.",
+    "nameRequired": "A name is required.",
+    "usernameRequired": "A username is required for this provider.",
+    "endpointRequired": "The address of a Playwright server starts with ws:// or wss://.",
+    "keyRequired": "An access key is required for this provider."
   }
 }

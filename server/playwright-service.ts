@@ -18,6 +18,8 @@ import { allowsSelfSignedCertificate, substituteVariables, requestVariables } fr
 import { executeStep } from './step-executor';
 import { FlowCursor } from './flow-cursor';
 import type { DebugHooks } from './debug-session';
+import { markGridSession } from './browser-grids';
+import type { BrowserGridProvider } from '@shared/browser-grids';
 import { LOCALE_VARIABLE } from '@shared/locales';
 import { analyseFlow, leavesPageAlone } from '@shared/flow';
 import type { AccessibilityFinding } from '@shared/accessibility';
@@ -1905,6 +1907,8 @@ export class PlaywrightService {
     let page: Page | null = null;
     const stepResults: StepResult[] = [];
     let overallSuccess = true;
+    /** The browser grid this test's browser came from, told the outcome before the page closes. */
+    let gridProvider: BrowserGridProvider | null = null;
     /** Whether this run is being traced, which decides how its context has to be closed. */
     let tracing = false;
     let evidence: CapturedEvidence = {};
@@ -1923,6 +1927,9 @@ export class PlaywrightService {
      * closing a context twice.
      */
     const finishEvidence = async (passed: boolean) => {
+      if (gridProvider && page) {
+        await markGridSession(page, gridProvider, passed, stepResults.find((step) => step.status === 'failed')?.error ?? null);
+      }
       evidence = await captureRunEvidence({
         context,
         page,
@@ -1950,8 +1957,12 @@ export class PlaywrightService {
         { label: DEFAULT_BROWSER, engine: DEFAULT_BROWSER, headless: headlessMode };
       resolvedLogger.debug({ message: `PS:executeTestSequence - Effective settings`, testName: test.name, browser: describeBrowser(browserChoice), pageTimeout });
 
-      browser = await launchBrowser(browserChoice);
+      browser = await launchBrowser(browserChoice, {
+        name: test.name ?? 'test',
+        build: executionId ? `WebFlowMaster run ${executionId}` : 'WebFlowMaster',
+      });
       if (!browser) throw new Error(`Failed to launch ${browserChoice.label}.`);
+      gridProvider = browserChoice.grid?.provider ?? null;
       const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
       // Start from the environment's saved session when there is one, so the test does not
       // spend its first thirty seconds logging in — and does not fail for a reason that has

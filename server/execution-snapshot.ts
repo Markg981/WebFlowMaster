@@ -63,7 +63,7 @@ export interface ExecutionSnapshot {
    * Where the browsers come from: the local agents of a pool (shared/agents.ts), or the runner's
    * own when null. Absent on snapshots taken before agents existed, which ran on the runner.
    */
-  runOn?: { agentPool: string | null };
+  runOn?: { agentPool: string | null; browserGridId?: string | null };
   /** Languages every test runs in (shared/locales.ts). Absent on older snapshots: none. */
   locales?: string[];
 }
@@ -145,7 +145,7 @@ export function buildExecutionSnapshot(
     rerunPolicy: plan.reRunOnFailure ?? 'none',
     notificationSettings: parsedJson(plan.notificationSettings),
     issues: { trackerId: plan.issueTrackerId ?? null, createOnFailure: plan.createIssuesOnFailure === true },
-    runOn: { agentPool: plan.agentPool ?? null },
+    runOn: { agentPool: plan.agentPool ?? null, browserGridId: plan.browserGridId ?? null },
     locales: normalizeLocales(parsedJson(plan.locales)),
   };
 }

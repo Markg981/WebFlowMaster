@@ -40,6 +40,7 @@ import {
   Users,
   Laptop,
   GitCommitHorizontal,
+  Cloud,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProjectAccessDialog from "@/components/settings/ProjectAccessDialog";
@@ -70,6 +71,7 @@ import RunnersCard from "@/components/settings/RunnersCard";
 import ElementRepositoryCard from "@/components/settings/ElementRepositoryCard";
 import CustomActionsCard from "@/components/settings/CustomActionsCard";
 import IssueTrackersCard from "@/components/settings/IssueTrackersCard";
+import BrowserGridsCard from "@/components/settings/BrowserGridsCard";
 
 interface Project {
   id: number;
@@ -621,6 +623,16 @@ export default function SettingsPage() {
       ),
       icon: Bug,
       content: <IssueTrackersCard />,
+    },
+    {
+      id: 'browserGrids',
+      label: t('settings.sections.browserGrids', 'Browser grids'),
+      description: t(
+        'settings.sections.browserGridsDescription',
+        'BrowserStack, LambdaTest or a Playwright server of your own, for browsers and systems the runners do not have.',
+      ),
+      icon: Cloud,
+      content: <BrowserGridsCard />,
     },
     {
       id: 'apiKeys',

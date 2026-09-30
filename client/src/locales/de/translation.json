@@ -129,7 +129,9 @@
       "members": "Mitglieder",
       "membersDescription": "Wer zur Organisation gehört, mit welcher Rolle, und Einladungen für neue Personen.",
       "customActions": "Eigene Aktionen",
-      "customActionsDescription": "Eigene Schritte in JavaScript, das in der getesteten Seite läuft, im Builder neben den eingebauten angeboten."
+      "customActionsDescription": "Eigene Schritte in JavaScript, das in der getesteten Seite läuft, im Builder neben den eingebauten angeboten.",
+      "browserGrids": "Browser-Grids",
+      "browserGridsDescription": "BrowserStack, LambdaTest oder ein eigener Playwright-Server, für Browser und Systeme, die die Runner nicht haben."
     },
     "apiKeys": {
       "openApi": "API-Referenz (OpenAPI)",
@@ -2739,7 +2741,8 @@
       "label": "Ausführen auf",
       "help": "Von wo die Tests laufen. Ein Pool lokaler Agenten öffnet Seiten und sendet API-Anfragen aus seinem eigenen Netzwerk.",
       "runners": "Die Runner dieses Servers",
-      "pool": "Lokale Agenten: {{pool}}"
+      "pool": "Lokale Agenten: {{pool}}",
+      "grid": "{{provider}}: {{name}}"
     },
     "title": "Ausführungseinstellungen",
     "description": "Was „{{name}}“ bei der nächsten Ausführung tut.",
@@ -2755,7 +2758,11 @@
       "selectLabel": "Browser",
       "headless": "Headless",
       "remove": "Browser entfernen",
-      "add": "Browser hinzufügen"
+      "add": "Browser hinzufügen",
+      "os": "Betriebssystem",
+      "anyOs": "Standard-OS",
+      "osVersion": "OS-Version",
+      "browserVersion": "Browserversion"
     },
     "parallel": {
       "label": "Höchstens ausführen (Tests gleichzeitig)",
@@ -3100,5 +3107,37 @@
     },
     "variables": "Variablen",
     "fromEnvironment": "(aus der Umgebung, verborgen)"
+  },
+  "browserGrids": {
+    "title": "Browser-Grids",
+    "description": "Browser, die die Runner nicht haben — Windows und macOS, Chrome und Edge als Markenbuilds, ältere Versionen — von BrowserStack, LambdaTest oder einem eigenen Playwright-Server. Ein Plan wählt eines in seinen Ausführungseinstellungen.",
+    "provider": "Anbieter",
+    "name": "Name",
+    "username": "Benutzername",
+    "endpoint": "Adresse",
+    "endpointHint": "Wo {token} steht, wird das Token eingesetzt; sonst wird es als Bearer-Token gesendet. Der Server muss dieselbe Playwright-Version wie die Runner verwenden.",
+    "accessKey": "Zugriffsschlüssel",
+    "token": "Token (optional)",
+    "keyHint": "Verschlüsselt gespeichert und nie wieder angezeigt.",
+    "add": "Grid hinzufügen",
+    "checking": "Browser auf dem Grid wird geöffnet…",
+    "loading": "Wird geladen…",
+    "empty": "Noch kein Grid: Pläne laufen auf den Runnern des Servers oder auf lokalen Agenten.",
+    "columns": {
+      "name": "Name",
+      "account": "Konto oder Adresse",
+      "actions": "Aktionen"
+    },
+    "check": "Verbindung testen",
+    "delete": "Löschen",
+    "deleted": "{{count}} Plan/Pläne, die es nutzten, laufen wieder auf den Runnern des Servers.",
+    "loadFailed": "Die Browser-Grids konnten nicht geladen werden.",
+    "saveFailed": "Das Grid konnte nicht gespeichert werden.",
+    "checkFailed": "Das Grid konnte nicht geprüft werden.",
+    "deleteFailed": "Das Grid konnte nicht gelöscht werden.",
+    "nameRequired": "Ein Name ist erforderlich.",
+    "usernameRequired": "Für diesen Anbieter ist ein Benutzername erforderlich.",
+    "endpointRequired": "Die Adresse eines Playwright-Servers beginnt mit ws:// oder wss://.",
+    "keyRequired": "Für diesen Anbieter ist ein Zugriffsschlüssel erforderlich."
   }
 }

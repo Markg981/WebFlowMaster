@@ -303,6 +303,8 @@ export const testPlans = pgTable("test_plans", {
   captureNetwork: text('capture_network').default('never').notNull(),
   /** Run on the local agents of this pool (shared/agents.ts); null runs on the server's runners. */
   agentPool: text('agent_pool'),
+  /** Run on this browser grid (shared/browser-grids.ts) instead: never together with a pool. */
+  browserGridId: text('browser_grid_id').references(() => browserGrids.id, { onDelete: 'set null' }),
   visualTestingEnabled: boolean('visual_testing_enabled').default(false),
   pageLoadTimeout: integer('page_load_timeout').default(30000),
   elementTimeout: integer('element_timeout').default(30000),
@@ -1180,6 +1182,31 @@ export const issueTrackers = pgTable("issue_trackers", {
   index("issue_trackers_organization_id_idx").on(table.organizationId),
 ]);
 
+/**
+ * Where a plan's browsers can come from besides the runners and the local agents: BrowserStack,
+ * LambdaTest, or a Playwright server of the organization's own (shared/browser-grids.ts).
+ *
+ * The key is encrypted like an issue tracker's token and, like it, never sent back.
+ */
+export const browserGrids = pgTable("browser_grids", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  provider: text("provider").notNull(),
+  username: text("username"),
+  endpoint: text("endpoint"),
+  encryptedKey: text("encrypted_key"),
+  keyIv: text("key_iv"),
+  keyAuthTag: text("key_auth_tag"),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("browser_grids_organization_id_idx").on(table.organizationId),
+]);
+
+export type BrowserGrid = typeof browserGrids.$inferSelect;
+
 export type IssueTracker = typeof issueTrackers.$inferSelect;
 export type InsertIssueTracker = typeof issueTrackers.$inferInsert;
 
@@ -1667,12 +1694,15 @@ export const insertDetectedElementSchema = createInsertSchema(detectedElements).
 export type DetectedElement = typeof detectedElements.$inferSelect;
 export type InsertDetectedElement = z.infer<typeof insertDetectedElementSchema>;
 
+// OS and versions are optional: the runners cannot choose them (server/browsers.ts says so in
+// the run's log), and the plan settings dialog sends only what applies — a browser grid is where
+// they mean something. Required, they made the dialog's every save of its browsers a 400.
 const TestMachineConfigSchema = z
   .object({
-    os: z.string(),
-    osVersion: z.string(),
+    os: z.string().max(60).optional().nullable(),
+    osVersion: z.string().max(60).optional().nullable(),
     browserName: z.string(),
-    browserVersion: z.string(),
+    browserVersion: z.string().max(60).optional().nullable(),
     headless: z.boolean(),
   })
   .optional();
@@ -2328,6 +2358,7 @@ export const selectSystemSettingSchema = createSelectSchema(systemSettings);
  * hand-maintained list, which would be forgotten the first time a table is added.
  */
 export const ORG_SCOPED_TABLES = [
+  'browser_grids',
   'projects', 'tests', 'test_runs', 'detected_elements', 'api_tests', 'api_test_history',
   'test_plans', 'test_plan_schedules', 'test_plan_executions', 'test_plan_selected_tests',
   'test_plan_webhooks', 'report_test_case_results', 'execution_logs', 'environments',

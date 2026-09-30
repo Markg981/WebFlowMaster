@@ -129,7 +129,9 @@
       "members": "Membri",
       "membersDescription": "Chi fa parte dell'organizzazione, i loro ruoli e gli inviti per le nuove persone.",
       "customActions": "Azioni personalizzate",
-      "customActionsDescription": "Step vostri, in JavaScript eseguito nella pagina sotto test, offerti nel costruttore accanto a quelli predefiniti."
+      "customActionsDescription": "Step vostri, in JavaScript eseguito nella pagina sotto test, offerti nel costruttore accanto a quelli predefiniti.",
+      "browserGrids": "Griglie di browser",
+      "browserGridsDescription": "BrowserStack, LambdaTest o un vostro server Playwright, per browser e sistemi che i runner non hanno."
     },
     "apiKeys": {
       "openApi": "Riferimento API (OpenAPI)",
@@ -2858,7 +2860,8 @@
       "label": "Esegui su",
       "help": "Da dove partono i test. Un pool di agenti locali apre le pagine e invia le richieste API dall'interno della propria rete.",
       "runners": "I runner di questo server",
-      "pool": "Agenti locali: {{pool}}"
+      "pool": "Agenti locali: {{pool}}",
+      "grid": "{{provider}}: {{name}}"
     },
     "title": "Impostazioni di esecuzione",
     "description": "Cosa fa \"{{name}}\" alla prossima esecuzione.",
@@ -2874,7 +2877,11 @@
       "selectLabel": "Browser",
       "headless": "Headless",
       "remove": "Rimuovi browser",
-      "add": "Aggiungi browser"
+      "add": "Aggiungi browser",
+      "os": "Sistema operativo",
+      "anyOs": "OS predefinito",
+      "osVersion": "Versione OS",
+      "browserVersion": "Versione browser"
     },
     "parallel": {
       "label": "Esegui al massimo (test contemporanei)",
@@ -3219,5 +3226,37 @@
     },
     "variables": "Variabili",
     "fromEnvironment": "(dall'ambiente, nascosta)"
+  },
+  "browserGrids": {
+    "title": "Griglie di browser",
+    "description": "Browser che i runner non hanno — Windows e macOS, Chrome ed Edge ufficiali, versioni precedenti — presi in prestito da BrowserStack, LambdaTest o da un vostro server Playwright. Un piano ne sceglie una nelle impostazioni di esecuzione.",
+    "provider": "Fornitore",
+    "name": "Nome",
+    "username": "Nome utente",
+    "endpoint": "Indirizzo",
+    "endpointHint": "Dove compare {token} il token va lì; altrimenti viene inviato come bearer token. Il server deve usare la stessa versione di Playwright dei runner.",
+    "accessKey": "Chiave di accesso",
+    "token": "Token (facoltativo)",
+    "keyHint": "Salvata cifrata e mai più mostrata.",
+    "add": "Aggiungi griglia",
+    "checking": "Apertura di un browser sulla griglia…",
+    "loading": "Caricamento…",
+    "empty": "Nessuna griglia: i piani girano sui runner del server o sugli agenti locali.",
+    "columns": {
+      "name": "Nome",
+      "account": "Account o indirizzo",
+      "actions": "Azioni"
+    },
+    "check": "Prova la connessione",
+    "delete": "Elimina",
+    "deleted": "{{count}} piani che la usavano tornano a girare sui runner del server.",
+    "loadFailed": "Impossibile caricare le griglie di browser.",
+    "saveFailed": "Impossibile salvare la griglia.",
+    "checkFailed": "Impossibile verificare la griglia.",
+    "deleteFailed": "Impossibile eliminare la griglia.",
+    "nameRequired": "Il nome è obbligatorio.",
+    "usernameRequired": "Per questo fornitore serve il nome utente.",
+    "endpointRequired": "L'indirizzo di un server Playwright inizia con ws:// o wss://.",
+    "keyRequired": "Per questo fornitore serve la chiave di accesso."
   }
 }

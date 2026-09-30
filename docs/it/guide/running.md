@@ -28,12 +28,38 @@ cosa conservare di ogni run e chi avvisare.
 | **Esegui al massimo (test contemporanei)** | Da 1 a 16 sessioni di browser contemporanee. Con 1 il piano esegue un test alla volta, browser per browser. |
 | **Conserva una registrazione del run** | Un **video** e una **trace** di Playwright di ogni test — mai, quando il test fallisce o sempre — e il traffico di **rete** come file HAR. Rispondono a ciò che uno screenshot non dice, e occupano disco a ogni run. |
 | **Test visivi** | Confronta lo screenshot di ogni step con la sua baseline; vedi [Test visivi](./results#test-visivi). |
-| **Esegui su** | I runner di questo server, o un pool di [agenti locali](../LOCAL_AGENT) dentro la vostra rete. |
+| **Esegui su** | I runner di questo server, un pool di [agenti locali](../LOCAL_AGENT) dentro la vostra rete, o una [griglia di browser](#griglie-di-browser). |
 | **Registra i fallimenti in** | Un issue tracker (Jira, Azure DevOps) collegato da un owner. Con **Apri una issue quando un test fallisce**, ogni test e browser che fallisce ottiene una issue; lo stesso fallimento in seguito viene aggiunto come commento. |
 | **Invia una notifica quando** e l'URL del webhook | Un messaggio a un incoming webhook di Slack o Microsoft Teams, o a qualsiasi URL che accetti un POST, quando un run passa, fallisce, non viene eseguito o viene fermato. |
 
 **Suite** sulla riga aggiunge [suite](./organizing#suite): girano dopo i test del piano,
 nell'ordine in cui sono spuntate, e un test presente in più suite gira una volta sola.
+
+### Griglie di browser {#griglie-di-browser}
+
+I runner hanno Chromium, Firefox e WebKit sul sistema su cui sono installati. Per Windows e macOS,
+Chrome ed Edge ufficiali o una versione precedente, un piano può prendere i browser da una
+**griglia di browser**, aggiunta in **Impostazioni → Griglie di browser**:
+
+| Fornitore | Serve | OS e versioni |
+|---|---|---|
+| **BrowserStack** | Nome utente e chiave di accesso | Rispettati |
+| **LambdaTest** | Nome utente e chiave di accesso | Rispettati |
+| **Server Playwright** — il vostro `npx playwright run-server`, Browserless, Moon… | Il suo indirizzo `ws://` o `wss://`, e un token se lo chiede (dove l'indirizzo contiene `{token}` va lì, altrimenti come bearer token) | Non rispettati: usa i browser che ha |
+
+La chiave è salvata cifrata e non viene più mostrata. **Prova la connessione** apre una breve
+sessione Chromium sulla griglia e dice se ha funzionato. Un server Playwright deve usare la stessa
+versione di Playwright dei runner.
+
+Con **Esegui su** impostato su una griglia, ogni riga di browser del piano chiede anche il
+**sistema operativo** (Windows o macOS), la sua **versione** (`11`, `Sonoma`) e la **versione del
+browser** (`latest` se vuota). Ogni riga è un passaggio del run, e il report la etichetta con la
+sua macchina — *chrome · Windows 11*, *chrome · macOS Sonoma*. Senza OS, WebKit gira su macOS e
+tutto il resto su Windows 11. Safari su una griglia resta il WebKit di Playwright.
+
+Ogni test è una sessione nella dashboard del fornitore, con il nome del test, raggruppata sotto il
+run e segnata come superata o fallita. Eliminare una griglia riporta i piani che la usavano sui
+runner del server. Un piano gira su una griglia o su agenti locali, mai su entrambi.
 
 ### Testare in più lingue {#lingue}
 
