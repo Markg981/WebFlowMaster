@@ -53,7 +53,7 @@ Il prodotto invia dati a terze parti solo dove un'organizzazione o l'operatore l
 
 | Destinatario | Quando | Cosa |
 |---|---|---|
-| Google (API Gemini) | Solo se l'operatore imposta `GEMINI_API_KEY` | Le frasi che descrivono i test; su uno step che fallisce, l'errore e fino a 30.000 caratteri dell'HTML della pagina. Vedi [Funzioni AI](./#funzioni-ai). |
+| Google (API Gemini) | Solo se l'operatore imposta `GEMINI_API_KEY` | Le frasi che descrivono i test; su uno step che fallisce, l'errore e fino a 30.000 caratteri dell'HTML della pagina; per un'analisi del fallimento chiesta da un report, step, errori, richieste e screenshot del test fallito. Vedi [Funzioni AI](./#funzioni-ai). |
 | Fornitore di storage compatibile S3 | Se l'operatore sceglie `ARTIFACT_STORE=s3` | Evidenze dei run e baseline. |
 | Grafana Loki | Se l'operatore imposta `LOKI_URL` | Log dell'applicazione. |
 | Jira, Azure DevOps | Se un'organizzazione collega un issue tracker | I dettagli del fallimento dei run che aprono una issue. |

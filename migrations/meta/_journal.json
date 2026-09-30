@@ -337,6 +337,13 @@
       "when": 1789400000000,
       "tag": "0047_plan_locales",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1789500000000,
+      "tag": "0048_result_ai_analysis",
+      "breakpoints": true
     }
   ]
 }

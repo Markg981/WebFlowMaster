@@ -40,6 +40,24 @@ Each verdict works out the run's totals and status again, so the report mixes ma
 results. A cancelled or timed-out run keeps its ending. A verdict can be corrected by recording it
 again; the row says who recorded it and when, and every recording goes into the audit log.
 
+### AI failure analysis {#ai-failure-analysis}
+
+When the installation has an AI key (`GEMINI_API_KEY`), each failed test in **Failed Tests** has an
+**Analyse with AI** button. An editor clicks it and the AI reads what the report already holds: the
+runner's reason, the steps around the failure with their errors, the failed and slow requests, and
+the screenshot. It answers, in the interface's language, with:
+
+- a **category**: **Locator** (the element is there but the test looks for it the wrong way),
+  **Application bug**, **Timing**, **Test data**, **Environment**, or **Unclear**;
+- how sure it is, and the step it blames;
+- why it thinks so, and what to do next;
+- for a locator, a **proposed selector** to copy into the step.
+
+The analysis is kept on the result: opening it again, by anyone, costs nothing, and **Analyse
+again** asks for a fresh one. It is a probable cause, not a verdict — check it against the steps.
+Values that look like passwords, codes or keys are never sent (see
+[AI features](../security/#ai-features)), and each analysis goes into the audit log.
+
 ### A step's details
 
 Opening a step shows its **screenshot**, the error it failed with, and — when kept by the plan —

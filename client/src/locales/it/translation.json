@@ -2556,7 +2556,8 @@
       "custom_action_created": "Azione personalizzata creata",
       "custom_action_updated": "Azione personalizzata modificata",
       "custom_action_deleted": "Azione personalizzata eliminata",
-      "run_manual_result_recorded": "Esito manuale registrato"
+      "run_manual_result_recorded": "Esito manuale registrato",
+      "run_failure_analysed": "Fallimento analizzato con l'AI"
     }
   },
   "security": {
@@ -3130,6 +3131,37 @@
       "passed": "Superato",
       "failed": "Fallito",
       "error": "Errore"
+    }
+  },
+  "failureAnalysis": {
+    "open": "Analizza con l'AI",
+    "title": "Analisi del fallimento con l'AI",
+    "loading": "Lettura degli step, degli errori e delle richieste…",
+    "failed": "Non è stato possibile fare l'analisi.",
+    "confidenceLabel": "Affidabilità",
+    "step": "Step {{n}}",
+    "why": "Perché",
+    "next": "Cosa fare",
+    "selector": "Selettore proposto",
+    "copy": "Copia",
+    "byline": "Da {{model}}, richiesta da {{name}} il {{when}}.",
+    "withScreenshot": "Ha visto lo screenshot.",
+    "noScreenshot": "Nessuno screenshot disponibile.",
+    "caveat": "È una causa probabile, non un verdetto: verificatela sugli step.",
+    "again": "Analizza di nuovo",
+    "retry": "Riprova",
+    "category": {
+      "locator": "Locator",
+      "application": "Bug dell'applicazione",
+      "timing": "Tempi",
+      "test-data": "Dati di test",
+      "environment": "Ambiente",
+      "unknown": "Non chiara"
+    },
+    "confidence": {
+      "high": "alta",
+      "medium": "media",
+      "low": "bassa"
     }
   }
 }

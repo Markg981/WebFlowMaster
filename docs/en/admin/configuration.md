@@ -104,8 +104,8 @@ person waits for.
 
 | Variable | Read by | Default | Description |
 |---|---|---|---|
-| `GEMINI_API_KEY` | both | none | Google Gemini key. Without it, describing a test in sentences and AI selector healing are off; everything else works. |
-| `GEMINI_MODEL` | web | `gemini-2.0-flash` | The model used to turn sentences into steps. Healing uses its own. |
+| `GEMINI_API_KEY` | both | none | Google Gemini key. Without it, describing a test in sentences, AI selector healing and AI failure analysis are off; everything else works. |
+| `GEMINI_MODEL` | web | `gemini-2.0-flash` | The model used to turn sentences into steps and to analyse failures. Healing uses its own. |
 
 ## Logging
 

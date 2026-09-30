@@ -6,6 +6,7 @@ import { ACTION_REQUIREMENTS, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from './r
 import { CUSTOM_ACTION_STEP_ID_PATTERN, type CustomActionParameter } from './custom-actions';
 import { MAX_LOCALES, canonicalLocale, normalizeLocales } from './locales';
 import type { NetworkSummary } from './network';
+import type { FailureAnalysis } from './failure-analysis';
 import type { CiContext } from './ci';
 
 // Table Definitions
@@ -495,6 +496,8 @@ export const reportTestCaseResults = pgTable("report_test_case_results", {
   harUrl: text("har_url"),
   /** Failed and slow requests, read from the HAR whenever one was recorded — see shared/network.ts. */
   networkSummary: jsonb("network_summary").$type<NetworkSummary>(),
+  /** What the AI made of this failure, once somebody asked — see shared/failure-analysis.ts. */
+  aiAnalysis: jsonb("ai_analysis").$type<FailureAnalysis>(),
   detailedLog: text("detailed_log"),
   startedAt: timestamp("started_at").notNull(),
   completedAt: timestamp("completed_at"),
@@ -1331,6 +1334,7 @@ export const AUDIT_ACTIONS = {
   RUN_CANCELLED: 'run.cancelled',
   // A person's verdict on a manual test in a run (shared/manual-tests.ts).
   RUN_MANUAL_RESULT_RECORDED: 'run.manual_result_recorded',
+  RUN_FAILURE_ANALYSED: 'run.failure_analysed',
   // Where tests run and with what. Secrets by name only — never a value.
   ENVIRONMENT_CREATED: 'environment.created',
   ENVIRONMENT_DELETED: 'environment.deleted',

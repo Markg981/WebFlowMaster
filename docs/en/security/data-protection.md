@@ -53,7 +53,7 @@ configures it:
 
 | Recipient | When | What |
 |---|---|---|
-| Google (Gemini API) | Only if the operator sets `GEMINI_API_KEY` | Sentences describing tests; on a failing step, the error and up to 30,000 characters of the page's HTML. See [AI features](./#ai-features). |
+| Google (Gemini API) | Only if the operator sets `GEMINI_API_KEY` | Sentences describing tests; on a failing step, the error and up to 30,000 characters of the page's HTML; for a failure analysis asked for from a report, the failed test's steps, errors, requests and screenshot. See [AI features](./#ai-features). |
 | S3-compatible storage provider | If the operator chooses `ARTIFACT_STORE=s3` | Run evidence and baselines. |
 | Grafana Loki | If the operator sets `LOKI_URL` | Application logs. |
 | Jira, Azure DevOps | If an organization connects an issue tracker | Failure details of the runs that open an issue. |

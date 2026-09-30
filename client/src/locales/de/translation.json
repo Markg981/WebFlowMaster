@@ -2437,7 +2437,8 @@
       "custom_action_created": "Eigene Aktion erstellt",
       "custom_action_updated": "Eigene Aktion geändert",
       "custom_action_deleted": "Eigene Aktion gelöscht",
-      "run_manual_result_recorded": "Manuelles Ergebnis erfasst"
+      "run_manual_result_recorded": "Manuelles Ergebnis erfasst",
+      "run_failure_analysed": "Fehler mit KI analysiert"
     }
   },
   "security": {
@@ -3011,6 +3012,37 @@
       "passed": "Bestanden",
       "failed": "Fehlgeschlagen",
       "error": "Fehler"
+    }
+  },
+  "failureAnalysis": {
+    "open": "Mit KI analysieren",
+    "title": "KI-Fehleranalyse",
+    "loading": "Schritte, Fehler und Anfragen werden gelesen…",
+    "failed": "Die Analyse konnte nicht erstellt werden.",
+    "confidenceLabel": "Sicherheit",
+    "step": "Schritt {{n}}",
+    "why": "Warum",
+    "next": "Was zu tun ist",
+    "selector": "Vorgeschlagener Selektor",
+    "copy": "Kopieren",
+    "byline": "Von {{model}}, angefordert von {{name}} am {{when}}.",
+    "withScreenshot": "Der Screenshot wurde berücksichtigt.",
+    "noScreenshot": "Kein Screenshot verfügbar.",
+    "caveat": "Eine wahrscheinliche Ursache, kein Urteil: an den Schritten überprüfen.",
+    "again": "Erneut analysieren",
+    "retry": "Erneut versuchen",
+    "category": {
+      "locator": "Locator",
+      "application": "Anwendungsfehler",
+      "timing": "Timing",
+      "test-data": "Testdaten",
+      "environment": "Umgebung",
+      "unknown": "Unklar"
+    },
+    "confidence": {
+      "high": "hoch",
+      "medium": "mittel",
+      "low": "niedrig"
     }
   }
 }

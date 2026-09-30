@@ -159,26 +159,11 @@ export class PlaywrightReporter {
       }
   }
 
-  private async handleFailure(error: any, context: string) {
+  // The AI's reading of a failure is asked for from the report, on the whole result, when somebody
+  // wants it (routes/failure-analysis.routes.ts): here it cost a model call on every failed click
+  // and ended up in the server's console, where nobody read it.
+  private async handleFailure(_error: any, context: string) {
       await this.captureScreenshot(`${context} - Error`);
-      
-      // RCA
-      try {
-          // Collecting simple logs (mocking network for now as getting CDP logs is complex here without setup)
-          // In real implementation, we'd attach a network listener at setup.
-          const analysis = await aiService.analyzeFailure(
-              error.message, 
-              error.stack || "No stack", 
-              ["(Network logs not implemented in this wrapper yet)"]
-          );
-          
-          await reportingService.step(`[AI Analysis] Root Cause`, async () => {
-               // We would ideally attach this as a text file or description
-               console.log("AI RCA:", analysis);
-          });
-      } catch (e) {
-          console.error("RCA Failed", e);
-      }
   }
 
   private async highlight(selector: string) {
