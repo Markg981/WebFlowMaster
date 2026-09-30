@@ -55,6 +55,10 @@ export function artifactUrl(executionId: string, storedPath: string | null | und
 export interface ReportStep {
   name: string;
   type: string;
+  /** The test's own id for the step, and the group call it came from, when recorded. */
+  stepId?: string;
+  calledFrom?: string;
+  selector?: string | null;
   status: 'passed' | 'failed';
   details: string;
   error?: string;
@@ -94,6 +98,9 @@ export function stepsWithArtifactUrls(executionId: string, detailedLog: string |
     .map((step) => ({
       name: String(step.name ?? 'Unnamed step'),
       type: String(step.type ?? 'unknown'),
+      stepId: typeof step.stepId === 'string' ? step.stepId : undefined,
+      calledFrom: typeof step.calledFrom === 'string' ? step.calledFrom : undefined,
+      selector: typeof step.selector === 'string' ? step.selector : null,
       status: step.status === 'failed' ? 'failed' : 'passed',
       details: String(step.details ?? ''),
       error: step.error ? String(step.error) : undefined,

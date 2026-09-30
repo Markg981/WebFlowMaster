@@ -118,8 +118,8 @@ The step's **selector** and **value** can be corrected before continuing, steppi
 A correction to one of the test's own steps is also copied into the canvas; **save** the test to
 keep it. A correction to a step inside a step group applies to that run only.
 
-A run that passed over a step is never reported as passed. A data-driven test is debugged with its
-first row. A session left paused for 15 minutes closes its browser. Each person has one session at
+A run that passed over a step is never reported as passed. A data-driven test is debugged with one
+row of its dataset, chosen next to **Debug** (the first unless you pick another). A session left paused for 15 minutes closes its browser. Each person has one session at
 a time: starting another stops the first.
 
 ## Recording

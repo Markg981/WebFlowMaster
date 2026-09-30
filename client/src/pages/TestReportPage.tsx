@@ -23,21 +23,25 @@ import type { NetworkSummary } from '@shared/network';
 import { describeCi, type CiContext } from '@shared/ci';
 import CancelRunButton from '@/components/reports/CancelRunButton';
 import ManualResultsCard from '@/components/reports/ManualResultsCard';
+import { BreakdownChart, OutcomeChart } from '@/components/reports/ReportCharts';
 import FailureAnalysisDialog, { type AnalysedResult } from '@/components/reports/FailureAnalysisDialog';
 import type { FailureAnalysis } from '@shared/failure-analysis';
 // One list of "still going" states, shared with the server: 'queued' was missing from this page's own copy.
 import { isExecutionInFlight } from '@shared/execution-status';
 
-// PlaceholderChart and TestPlanExecutionReport interface remain the same
+/** The filter value that lets every result through. */
+const ALL = '__all__';
+const NO_FILTERS = { component: ALL, severity: ALL, outcome: ALL };
 
-const PlaceholderChart = ({ title, data }: { title: string, data: any }) => (
-  <Card className="flex-1 min-w-[300px]">
-    <CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader>
-    <CardContent className="h-[200px] flex items-center justify-center">
-      <p className="text-sm text-muted-foreground">{data && Object.keys(data).length > 0 ? `Chart placeholder (Data: ${Object.keys(data).length} series)` : "No data for chart"}</p>
-    </CardContent>
-  </Card>
-);
+/** A module's or component's counts, worked out from the tests a filter shows. */
+function countsOf(tests: Array<{ status: string }>) {
+  return {
+    passed: tests.filter((test) => test.status === 'Passed').length,
+    failed: tests.filter((test) => test.status === 'Failed').length,
+    skipped: tests.filter((test) => test.status === 'Skipped').length,
+    total: tests.length,
+  };
+}
 
 export interface TestPlanExecutionReport {
   header: {
@@ -113,6 +117,17 @@ const TestReportPage: React.FC = () => {
   /** The result whose steps are open, if any. */
   /** The failed result whose AI analysis is open, if any. */
   const [analysing, setAnalysing] = useState<AnalysedResult | null>(null);
+  /** The report's filters (component, severity, outcome); ALL lets everything through. */
+  const [filters, setFilters] = useState(NO_FILTERS);
+  const filtersActive = filters.component !== ALL || filters.severity !== ALL || filters.outcome !== ALL;
+  const outcomeLabel = (status: string) =>
+    ({
+      Passed: t('testReportPage.outcome.passed', 'Passed'),
+      Failed: t('testReportPage.outcome.failed', 'Failed'),
+      Skipped: t('testReportPage.outcome.skipped', 'Skipped'),
+      Error: t('testReportPage.outcome.error', 'Error'),
+      Pending: t('testReportPage.outcome.pending', 'Waiting'),
+    })[status] ?? status;
   const [openedSteps, setOpenedSteps] = useState<{
     testName: string;
     browser: string | null;
@@ -214,11 +229,46 @@ const TestReportPage: React.FC = () => {
 
 
   const pageContent = () => {
-    if (isLoading) return <div className="p-6 text-center">Loading test report...</div>;
-    if (error) return <div className="p-6 text-destructive text-center">Error loading report: {error.message} <Button onClick={() => refetch()} disabled={isFetching}><RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />Retry</Button></div>;
-    if (!reportData) return <div className="p-6 text-center">No report data found. <Button onClick={() => refetch()} disabled={isFetching}><RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />Refresh</Button></div>;
+    if (isLoading) return <div className="p-6 text-center">{t('testReportPage.loading', "Loading test report...")}</div>;
+    if (error) return <div className="p-6 text-destructive text-center">Error loading report: {error.message} <Button onClick={() => refetch()} disabled={isFetching}><RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />{t('testReportPage.retry', "Retry")}</Button></div>;
+    if (!reportData) return <div className="p-6 text-center">{t('testReportPage.noData', 'No report data found.')} <Button onClick={() => refetch()} disabled={isFetching}><RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />{t('testReportPage.refresh', "Refresh")}</Button></div>;
 
-    const { header, keyMetrics, charts, failedTestDetails, testGroupings } = reportData as TestPlanExecutionReport;
+    const { header, keyMetrics, charts, failedTestDetails: allFailed, testGroupings: allGroupings } = reportData as TestPlanExecutionReport;
+
+    // What the filters let through. Components and severities come from the results themselves,
+    // so a filter never offers a value no result has.
+    const allRows = Object.values(allGroupings ?? {}).flatMap((group) => Object.values(group.components ?? {}).flatMap((component) => component.tests ?? []));
+    const distinct = (values: Array<string | null | undefined>) => [...new Set(values.filter((value): value is string => !!value))].sort();
+    const filterOptions = {
+      components: distinct(allRows.map((row) => row.component)).map((value) => ({ value, label: value })),
+      severities: distinct(allRows.map((row) => row.severity)).map((value) => ({ value, label: value })),
+      outcomes: distinct(allRows.map((row) => row.status)).map((value) => ({ value, label: outcomeLabel(value) })),
+    };
+    const matches = (row: { component: string | null; severity: string | null; status?: string }) =>
+      (filters.component === ALL || row.component === filters.component) &&
+      (filters.severity === ALL || row.severity === filters.severity) &&
+      (filters.outcome === ALL || (row.status ?? 'Failed') === filters.outcome);
+    const failedTestDetails = filtersActive ? allFailed.filter((row) => matches({ ...row, status: 'Failed' })) : allFailed;
+    // With a filter on, each module's and component's counts are the shown tests', not the run's.
+    const testGroupings: typeof allGroupings = !filtersActive
+      ? allGroupings
+      : Object.fromEntries(
+          Object.entries(allGroupings)
+            .map(([moduleName, moduleData]) => {
+              const components = Object.fromEntries(
+                Object.entries(moduleData.components)
+                  .map(([name, component]) => {
+                    const tests = component.tests.filter(matches);
+                    return [name, { ...component, ...countsOf(tests), tests }] as const;
+                  })
+                  .filter(([, component]) => component.tests.length > 0),
+              );
+              const tests = Object.values(components).flatMap((component) => component.tests);
+              return [moduleName, { ...moduleData, ...countsOf(tests), components }] as const;
+            })
+            .filter(([, moduleData]) => Object.keys(moduleData.components).length > 0),
+        );
+    const shownCount = Object.values(testGroupings).reduce((sum, moduleData) => sum + moduleData.total, 0);
 
     return (
       <div className="space-y-6">
@@ -244,8 +294,8 @@ const TestReportPage: React.FC = () => {
               Execution ID: {header.executionId} (Plan: <Link href={`/test-suites?planId=${header.testPlanId}`} className="underline hover:text-primary">{header.testPlanId}</Link>)
             </CardDescription>
             <div className="text-sm text-muted-foreground pt-2 grid grid-cols-1 md:grid-cols-2 gap-x-4">
-              <p><strong>Environment:</strong> {header.environment || 'N/A'} {header.browsers && header.browsers.length > 0 ? `(${header.browsers.join(', ')})` : ''}</p>
-              <p><strong>Triggered by:</strong> {header.triggeredBy || 'N/A'}</p>
+              <p><strong>{t('testReportPage.header.environment', "Environment:")}</strong> {header.environment || 'N/A'} {header.browsers && header.browsers.length > 0 ? `(${header.browsers.join(', ')})` : ''}</p>
+              <p><strong>{t('testReportPage.header.triggeredBy', "Triggered by:")}</strong> {header.triggeredBy || 'N/A'}</p>
               {header.runnerId && <p><strong>{t('runners.ranOn', 'Ran on')}:</strong> <code className="text-xs">{header.runnerId}</code></p>}
               {header.ci && (
                 <p data-testid="run-ci">
@@ -257,12 +307,12 @@ const TestReportPage: React.FC = () => {
                   )}
                 </p>
               )}
-              <p><strong>Started:</strong> {new Date(header.dateTime).toLocaleString()}</p>
+              <p><strong>{t('testReportPage.header.started', "Started:")}</strong> {new Date(header.dateTime).toLocaleString()}</p>
               {header.completedAt ?
-                <p><strong>Completed:</strong> {new Date(header.completedAt).toLocaleString()}</p> :
-                <p><strong>Status:</strong> <span className={`font-semibold ${getStatusColor(header.status)}`}>{header.status.toUpperCase()}</span></p>
+                <p><strong>{t('testReportPage.header.completed', "Completed:")}</strong> {new Date(header.completedAt).toLocaleString()}</p> :
+                <p><strong>{t('testReportPage.header.status', "Status:")}</strong> <span className={`font-semibold ${getStatusColor(header.status)}`}>{header.status.toUpperCase()}</span></p>
               }
-              {keyMetrics.executionDurationMs !== null && <p><strong>Total Duration:</strong> {formatDuration(keyMetrics.executionDurationMs)}</p>}
+              {keyMetrics.executionDurationMs !== null && <p><strong>{t('testReportPage.header.totalDuration', "Total Duration:")}</strong> {formatDuration(keyMetrics.executionDurationMs)}</p>}
               {(header.maxAttempts ?? 1) > 1 && (
                 <p data-testid="run-attempt">
                   <strong>{t('testReportPage.attempt.label', 'Attempt')}:</strong>{' '}
@@ -323,20 +373,46 @@ const TestReportPage: React.FC = () => {
 
         {/* Key Metrics Overview */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card><CardHeader className="pb-2"><CardDescription>Total Tests</CardDescription><CardTitle className="text-4xl">{keyMetrics.totalTests}</CardTitle></CardHeader><CardContent><Progress value={keyMetrics.totalTests > 0 ? 100 : 0} aria-label="Total tests" /></CardContent></Card>
-          <Card className="border-success/50"><CardHeader className="pb-2"><CardDescription>Passed</CardDescription><CardTitle className={`text-4xl ${getStatusColor('passed')}`}>{keyMetrics.passedTests}</CardTitle></CardHeader><CardContent><Progress value={keyMetrics.passRate} className="[&>div]:bg-success" /><p className="text-xs text-muted-foreground mt-1">{keyMetrics.passRate.toFixed(2)}% Pass Rate</p>{(header.flakyTests ?? 0) > 0 && <p data-testid="flaky-count" className="text-xs text-amber-700 dark:text-amber-400 mt-1">{t('testReportPage.flaky.count', '{{count}} passed only on a later attempt', { count: header.flakyTests })}</p>}</CardContent></Card>
-          <Card className="border-destructive/50"><CardHeader className="pb-2"><CardDescription>Failed</CardDescription><CardTitle className={`text-4xl ${getStatusColor('failed')}`}>{keyMetrics.failedTests}</CardTitle></CardHeader><CardContent><Progress value={keyMetrics.totalTests > 0 ? (keyMetrics.failedTests / keyMetrics.totalTests) * 100 : 0} className="[&>div]:bg-destructive" /><p className="text-xs text-muted-foreground mt-1">{keyMetrics.totalTests > 0 ? ((keyMetrics.failedTests / keyMetrics.totalTests) * 100).toFixed(2) : '0.00'}% Failure Rate</p></CardContent></Card>
-          <Card className="border-yellow-500/50 dark:border-yellow-600/50"><CardHeader className="pb-2"><CardDescription>Skipped / Avg. Test Time</CardDescription><div className="flex justify-between items-baseline"><CardTitle className={`text-4xl ${getStatusColor('skipped')}`}>{keyMetrics.skippedTests}</CardTitle><span className="text-sm text-muted-foreground">{formatDuration(keyMetrics.averageTimePerTestMs)}/test</span></div></CardHeader><CardContent><Progress value={keyMetrics.totalTests > 0 ? (keyMetrics.skippedTests / keyMetrics.totalTests) * 100 : 0} className="[&>div]:bg-yellow-500" /><p className="text-xs text-muted-foreground mt-1">Sum of test durations: {formatDuration(keyMetrics.totalTestCasesDurationMs)}</p></CardContent></Card>
+          <Card><CardHeader className="pb-2"><CardDescription>{t('testReportPage.metrics.total', "Total Tests")}</CardDescription><CardTitle className="text-4xl">{keyMetrics.totalTests}</CardTitle></CardHeader><CardContent><Progress value={keyMetrics.totalTests > 0 ? 100 : 0} aria-label="Total tests" /></CardContent></Card>
+          <Card className="border-success/50"><CardHeader className="pb-2"><CardDescription>{t('testReportPage.metrics.passed', "Passed")}</CardDescription><CardTitle className={`text-4xl ${getStatusColor('passed')}`}>{keyMetrics.passedTests}</CardTitle></CardHeader><CardContent><Progress value={keyMetrics.passRate} className="[&>div]:bg-success" /><p className="text-xs text-muted-foreground mt-1">{keyMetrics.passRate.toFixed(2)}% {t('testReportPage.metrics.passRate', 'Pass Rate')}</p>{(header.flakyTests ?? 0) > 0 && <p data-testid="flaky-count" className="text-xs text-amber-700 dark:text-amber-400 mt-1">{t('testReportPage.flaky.count', '{{count}} passed only on a later attempt', { count: header.flakyTests })}</p>}</CardContent></Card>
+          <Card className="border-destructive/50"><CardHeader className="pb-2"><CardDescription>{t('testReportPage.metrics.failed', "Failed")}</CardDescription><CardTitle className={`text-4xl ${getStatusColor('failed')}`}>{keyMetrics.failedTests}</CardTitle></CardHeader><CardContent><Progress value={keyMetrics.totalTests > 0 ? (keyMetrics.failedTests / keyMetrics.totalTests) * 100 : 0} className="[&>div]:bg-destructive" /><p className="text-xs text-muted-foreground mt-1">{keyMetrics.totalTests > 0 ? ((keyMetrics.failedTests / keyMetrics.totalTests) * 100).toFixed(2) : '0.00'}% {t('testReportPage.metrics.failureRate', 'Failure Rate')}</p></CardContent></Card>
+          <Card className="border-yellow-500/50 dark:border-yellow-600/50"><CardHeader className="pb-2"><CardDescription>{t('testReportPage.metrics.skippedAndAverage', "Skipped / Avg. Test Time")}</CardDescription><div className="flex justify-between items-baseline"><CardTitle className={`text-4xl ${getStatusColor('skipped')}`}>{keyMetrics.skippedTests}</CardTitle><span className="text-sm text-muted-foreground">{formatDuration(keyMetrics.averageTimePerTestMs)}/test</span></div></CardHeader><CardContent><Progress value={keyMetrics.totalTests > 0 ? (keyMetrics.skippedTests / keyMetrics.totalTests) * 100 : 0} className="[&>div]:bg-yellow-500" /><p className="text-xs text-muted-foreground mt-1">Sum of test durations: {formatDuration(keyMetrics.totalTestCasesDurationMs)}</p></CardContent></Card>
         </div>
 
         {/* Charts */}
-        <Card><CardHeader><CardTitle>Visualizations</CardTitle></CardHeader><CardContent className="flex flex-col md:flex-row flex-wrap gap-4"><PlaceholderChart title="Pass/Fail/Skipped Distribution" data={charts.passFailSkippedDistribution} /><PlaceholderChart title="Distribution by Priority" data={charts.priorityDistribution} /><PlaceholderChart title="Distribution by Severity" data={charts.severityDistribution} /></CardContent></Card>
+        <Card><CardHeader><CardTitle>{t('testReportPage.visualizations', "Visualizations")}</CardTitle></CardHeader><CardContent className="flex flex-col md:flex-row flex-wrap gap-4"><OutcomeChart title={t('testReportPage.charts.outcome', 'Passed, failed and skipped')} counts={charts.passFailSkippedDistribution} /><BreakdownChart title={t('testReportPage.charts.priority', 'By priority')} data={charts.priorityDistribution} /><BreakdownChart title={t('testReportPage.charts.severity', 'By severity')} data={charts.severityDistribution} /></CardContent></Card>
 
         {/* Filters */}
-        <Card><CardHeader><CardTitle className="flex items-center"><ListFilter className="mr-2 h-5 w-5" /> Filters</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-4">
-          <Button variant="outline" size="sm" onClick={() => console.log("Filter by Component clicked")}>Component: All</Button>
-          <Button variant="outline" size="sm" onClick={() => console.log("Filter by Severity clicked")}>Severity: All</Button>
-          <Button variant="outline" size="sm" onClick={() => console.log("Filter by Outcome clicked")}>Outcome: All</Button>
+        <Card><CardHeader><CardTitle className="flex items-center"><ListFilter className="mr-2 h-5 w-5" /> {t('testReportPage.filters.title', 'Filters')}</CardTitle></CardHeader><CardContent className="flex flex-wrap items-end gap-4">
+          {([
+            ['component', t('testReportPage.filters.component', 'Component'), filterOptions.components],
+            ['severity', t('testReportPage.filters.severity', 'Severity'), filterOptions.severities],
+            ['outcome', t('testReportPage.filters.outcome', 'Outcome'), filterOptions.outcomes],
+          ] as const).map(([key, label, options]) => (
+            <label key={key} className="flex flex-col gap-1 text-xs text-muted-foreground">
+              {label}
+              <select
+                className="h-9 min-w-[160px] rounded-md border border-input bg-background px-2 text-sm text-foreground"
+                value={filters[key]}
+                onChange={(event) => setFilters((current) => ({ ...current, [key]: event.target.value }))}
+              >
+                <option value={ALL}>{t('testReportPage.filters.all', 'All')}</option>
+                {options.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+          ))}
+          {filtersActive && (
+            <Button variant="ghost" size="sm" onClick={() => setFilters(NO_FILTERS)}>
+              {t('testReportPage.filters.clear', 'Clear filters')}
+            </Button>
+          )}
+          {filtersActive && (
+            <p className="text-xs text-muted-foreground" role="status">
+              {t('testReportPage.filters.showing', 'Showing {{shown}} of {{total}} results.', { shown: shownCount, total: allRows.length })}
+            </p>
+          )}
         </CardContent></Card>
 
         {/* Failed Tests Table */}
@@ -346,10 +422,10 @@ const TestReportPage: React.FC = () => {
           rows={Object.values(testGroupings ?? {}).flatMap((group) => Object.values(group.components ?? {}).flatMap((component) => component.tests ?? []))}
           onRecorded={() => refetch()}
         />
-        {failedTestDetails.length > 0 && (<Card className="border-destructive"><CardHeader><CardTitle className={`${getStatusColor('failed')}`}>Failed Tests ({failedTestDetails.length})</CardTitle></CardHeader><CardContent className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead className="min-w-[200px]">Test Name</TableHead><TableHead>Browser</TableHead><TableHead className="min-w-[250px]">Reason for Failure</TableHead><TableHead>Component</TableHead><TableHead>Priority</TableHead><TableHead>Severity</TableHead><TableHead>Duration</TableHead><TableHead>Issue</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{failedTestDetails.map((test) => (<TableRow key={test.id}><TableCell className="font-medium py-2">{test.testName}{test.testVersion != null && <Badge variant="outline" className="ml-2 font-normal" title="The version of the test this run used">v{test.testVersion}</Badge>}<AttemptsBadge attempts={test.attempts} status="Failed" /><QuarantinedBadge quarantined={test.quarantined} /></TableCell><TableCell className="py-2 whitespace-nowrap text-xs">{test.browser || 'not recorded'}</TableCell><TableCell className="text-xs max-w-xs truncate py-2" title={test.reasonForFailure || undefined}>{test.reasonForFailure || 'No reason provided'}</TableCell><TableCell className="py-2"><Badge variant="outline" className="whitespace-nowrap">{test.component || 'N/A'}</Badge></TableCell><TableCell className="py-2"><Badge variant={test.priority === 'Critical' || test.priority === 'High' ? 'destructive' : 'secondary'} className="whitespace-nowrap">{test.priority || 'N/A'}</Badge></TableCell><TableCell className="py-2"><Badge variant={test.severity === 'Blocker' || test.severity === 'Critical' ? 'destructive' : 'secondary'} className="whitespace-nowrap">{test.severity || 'N/A'}</Badge></TableCell><TableCell className="py-2 whitespace-nowrap">{formatDuration(test.durationMs)}</TableCell><TableCell className="py-2"><IssueCell link={issueFor(test.testName, test.browser)} onFile={() => fileIssue(test.id)} /></TableCell><TableCell className="py-2 space-x-1">{test.screenshotUrl && <Button variant="ghost" size="sm" asChild><a href={test.screenshotUrl} target="_blank" rel="noreferrer" title="View Screenshot"><ImageIcon className="h-4 w-4" /></a></Button>}{test.videoUrl && <Button variant="ghost" size="sm" asChild><a href={test.videoUrl} target="_blank" rel="noreferrer" title="Watch the run"><Video className="h-4 w-4" /></a></Button>}{test.steps?.length > 0 && <Button variant="ghost" size="sm" title="View steps" onClick={() => setOpenedSteps({ testName: test.testName, browser: test.browser, steps: test.steps, videoUrl: test.videoUrl, traceUrl: test.traceUrl, harUrl: test.harUrl, network: test.networkSummary })}><FileText className="h-4 w-4" /></Button>}<Button variant="ghost" size="sm" title={t('failureAnalysis.open', 'Analyse with AI')} aria-label={t('failureAnalysis.open', 'Analyse with AI')} onClick={() => setAnalysing({ id: test.id, testName: test.testName, browser: test.browser, aiAnalysis: test.aiAnalysis })}><Sparkles className={`h-4 w-4 ${test.aiAnalysis ? 'text-primary' : ''}`} /></Button></TableCell></TableRow>))}</TableBody></Table></CardContent></Card>)}
+        {failedTestDetails.length > 0 && (<Card className="border-destructive"><CardHeader><CardTitle className={`${getStatusColor('failed')}`}>{t('testReportPage.failedTests', 'Failed Tests')} ({failedTestDetails.length})</CardTitle></CardHeader><CardContent className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead className="min-w-[200px]">{t('testReportPage.columns.testName', "Test Name")}</TableHead><TableHead>{t('testReportPage.columns.browser', "Browser")}</TableHead><TableHead className="min-w-[250px]">{t('testReportPage.columns.reason', "Reason for Failure")}</TableHead><TableHead>{t('testReportPage.columns.component', "Component")}</TableHead><TableHead>{t('testReportPage.columns.priority', "Priority")}</TableHead><TableHead>{t('testReportPage.columns.severity', "Severity")}</TableHead><TableHead>{t('testReportPage.columns.duration', "Duration")}</TableHead><TableHead>{t('testReportPage.columns.issue', "Issue")}</TableHead><TableHead>{t('testReportPage.columns.actions', "Actions")}</TableHead></TableRow></TableHeader><TableBody>{failedTestDetails.map((test) => (<TableRow key={test.id}><TableCell className="font-medium py-2">{test.testName}{test.testVersion != null && <Badge variant="outline" className="ml-2 font-normal" title={t('testReportPage.versionHint', "The version of the test this run used")}>v{test.testVersion}</Badge>}<AttemptsBadge attempts={test.attempts} status="Failed" /><QuarantinedBadge quarantined={test.quarantined} /></TableCell><TableCell className="py-2 whitespace-nowrap text-xs">{test.browser || t('testReportPage.notRecorded', "not recorded")}</TableCell><TableCell className="text-xs max-w-xs truncate py-2" title={test.reasonForFailure || undefined}>{test.reasonForFailure || t('testReportPage.noReason', "No reason provided")}</TableCell><TableCell className="py-2"><Badge variant="outline" className="whitespace-nowrap">{test.component || 'N/A'}</Badge></TableCell><TableCell className="py-2"><Badge variant={test.priority === 'Critical' || test.priority === 'High' ? 'destructive' : 'secondary'} className="whitespace-nowrap">{test.priority || 'N/A'}</Badge></TableCell><TableCell className="py-2"><Badge variant={test.severity === 'Blocker' || test.severity === 'Critical' ? 'destructive' : 'secondary'} className="whitespace-nowrap">{test.severity || 'N/A'}</Badge></TableCell><TableCell className="py-2 whitespace-nowrap">{formatDuration(test.durationMs)}</TableCell><TableCell className="py-2"><IssueCell link={issueFor(test.testName, test.browser)} onFile={() => fileIssue(test.id)} /></TableCell><TableCell className="py-2 space-x-1">{test.screenshotUrl && <Button variant="ghost" size="sm" asChild><a href={test.screenshotUrl} target="_blank" rel="noreferrer" title={t('testReportPage.actions.screenshot', "View Screenshot")}><ImageIcon className="h-4 w-4" /></a></Button>}{test.videoUrl && <Button variant="ghost" size="sm" asChild><a href={test.videoUrl} target="_blank" rel="noreferrer" title={t('testReportPage.actions.video', "Watch the run")}><Video className="h-4 w-4" /></a></Button>}{test.steps?.length > 0 && <Button variant="ghost" size="sm" title={t('testReportPage.actions.steps', "View steps")} onClick={() => setOpenedSteps({ testName: test.testName, browser: test.browser, steps: test.steps, videoUrl: test.videoUrl, traceUrl: test.traceUrl, harUrl: test.harUrl, network: test.networkSummary })}><FileText className="h-4 w-4" /></Button>}<Button variant="ghost" size="sm" title={t('failureAnalysis.open', 'Analyse with AI')} aria-label={t('failureAnalysis.open', 'Analyse with AI')} onClick={() => setAnalysing({ id: test.id, testName: test.testName, browser: test.browser, aiAnalysis: test.aiAnalysis, uiTestId: test.uiTestId, steps: test.steps })}><Sparkles className={`h-4 w-4 ${test.aiAnalysis ? 'text-primary' : ''}`} /></Button></TableCell></TableRow>))}</TableBody></Table></CardContent></Card>)}
 
         {/* Accordion */}
-        <Card><CardHeader><CardTitle>Test Case Results by Module</CardTitle></CardHeader><CardContent>{Object.keys(testGroupings).length === 0 && <p className="text-muted-foreground">No test results to display by module.</p>}<Accordion type="single" collapsible className="w-full">{Object.entries(testGroupings).map(([moduleName, moduleData]: [string, any]) => (<AccordionItem value={moduleName} key={moduleName} className="border-b dark:border-slate-700"><AccordionTrigger className="hover:bg-muted/50 dark:hover:bg-slate-800/50 px-2 py-3 rounded-md"><div className="flex justify-between w-full items-center"><span className="font-semibold">{moduleName}</span><div className="flex items-center space-x-3 text-sm mr-2"><span className={`${getStatusColor('passed')} flex items-center`}><CheckCircle2 className="mr-1 h-4 w-4" /> {moduleData.passed}</span><span className={`${getStatusColor('failed')} flex items-center`}><XCircle className="mr-1 h-4 w-4" /> {moduleData.failed}</span><span className={`${getStatusColor('skipped')} flex items-center`}><SkipForward className="mr-1 h-4 w-4" /> {moduleData.skipped}</span><Badge variant="secondary" className="whitespace-nowrap">Total: {moduleData.total}</Badge></div></div></AccordionTrigger><AccordionContent className="pt-2 pb-0 pl-2 pr-1">{Object.keys(moduleData.components).length === 0 && <p className="text-muted-foreground px-4 py-2">No components in this module.</p>}<Accordion type="multiple" className="w-full space-y-1">{Object.entries(moduleData.components).map(([componentName, componentData]: [string, any]) => (<AccordionItem value={`${moduleName}-${componentName}`} key={`${moduleName}-${componentName}`} className="border rounded-md dark:border-slate-700 bg-background dark:bg-slate-900"><AccordionTrigger className="hover:bg-muted/30 dark:hover:bg-slate-800/30 px-3 py-2 text-sm rounded-t-md group"><div className="flex justify-between w-full items-center"><span className="flex items-center"><ChevronRight className="h-4 w-4 mr-1 group-data-[state=open]:rotate-90 transition-transform" />{componentName}</span><div className="flex items-center space-x-2 text-xs mr-2"><span className={`${getStatusColor('passed')} flex items-center`}><CheckCircle2 className="mr-1 h-3 w-3" /> {componentData.passed}</span><span className={`${getStatusColor('failed')} flex items-center`}><XCircle className="mr-1 h-3 w-3" /> {componentData.failed}</span><span className={`${getStatusColor('skipped')} flex items-center`}><SkipForward className="mr-1 h-3 w-3" /> {componentData.skipped}</span><Badge variant="outline" className="whitespace-nowrap">Total: {componentData.total}</Badge></div></div></AccordionTrigger><AccordionContent className="px-0 pb-0 border-t dark:border-slate-700">{componentData.tests.length === 0 && <p className="text-muted-foreground px-4 py-2">No tests in this component.</p>}{componentData.tests.length > 0 && <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead className="pl-4 min-w-[200px]">Test Name</TableHead><TableHead>Browser</TableHead><TableHead>Status</TableHead><TableHead>Duration</TableHead><TableHead>Priority</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{componentData.tests.map((test: any) => (<TableRow key={test.id} className="dark:hover:bg-slate-800/50 hover:bg-muted/50"><TableCell className="font-medium py-2 pl-4">{test.testName}<AttemptsBadge attempts={test.attempts} status={test.status} /><QuarantinedBadge quarantined={test.quarantined} /></TableCell><TableCell className="py-2 whitespace-nowrap text-xs">{test.browser || 'not recorded'}</TableCell><TableCell className={`py-2 ${getStatusColor(test.status)}`}><div className="flex items-center">{getStatusIcon(test.status, "h-4 w-4")}<span className="ml-2">{test.status}</span></div></TableCell><TableCell className="py-2 whitespace-nowrap">{formatDuration(test.durationMs)}</TableCell><TableCell className="py-2"><Badge variant={test.priority === 'Critical' || test.priority === 'High' ? 'destructive' : 'secondary'} className="whitespace-nowrap">{test.priority || 'N/A'}</Badge></TableCell><TableCell className="py-2 space-x-1">{test.screenshotUrl && <Button variant="ghost" size="sm" asChild><a href={test.screenshotUrl} target="_blank" rel="noreferrer" title="View Screenshot"><ImageIcon className="h-4 w-4" /></a></Button>}{test.videoUrl && <Button variant="ghost" size="sm" asChild><a href={test.videoUrl} target="_blank" rel="noreferrer" title="Watch the run"><Video className="h-4 w-4" /></a></Button>}{test.steps?.length > 0 && <Button variant="ghost" size="sm" title="View steps" onClick={() => setOpenedSteps({ testName: test.testName, browser: test.browser, steps: test.steps, videoUrl: test.videoUrl, traceUrl: test.traceUrl, harUrl: test.harUrl, network: test.networkSummary })}><FileText className="h-4 w-4" /></Button>}</TableCell></TableRow>))}</TableBody></Table></div>}</AccordionContent></AccordionItem>))}</Accordion></AccordionContent></AccordionItem>))}</Accordion></CardContent></Card>
+        <Card><CardHeader><CardTitle>{t('testReportPage.byModule.title', "Test Case Results by Module")}</CardTitle></CardHeader><CardContent>{Object.keys(testGroupings).length === 0 && <p className="text-muted-foreground">{t('testReportPage.byModule.empty', "No test results to display by module.")}</p>}<Accordion type="single" collapsible className="w-full">{Object.entries(testGroupings).map(([moduleName, moduleData]: [string, any]) => (<AccordionItem value={moduleName} key={moduleName} className="border-b dark:border-slate-700"><AccordionTrigger className="hover:bg-muted/50 dark:hover:bg-slate-800/50 px-2 py-3 rounded-md"><div className="flex justify-between w-full items-center"><span className="font-semibold">{moduleName}</span><div className="flex items-center space-x-3 text-sm mr-2"><span className={`${getStatusColor('passed')} flex items-center`}><CheckCircle2 className="mr-1 h-4 w-4" /> {moduleData.passed}</span><span className={`${getStatusColor('failed')} flex items-center`}><XCircle className="mr-1 h-4 w-4" /> {moduleData.failed}</span><span className={`${getStatusColor('skipped')} flex items-center`}><SkipForward className="mr-1 h-4 w-4" /> {moduleData.skipped}</span><Badge variant="secondary" className="whitespace-nowrap">Total: {moduleData.total}</Badge></div></div></AccordionTrigger><AccordionContent className="pt-2 pb-0 pl-2 pr-1">{Object.keys(moduleData.components).length === 0 && <p className="text-muted-foreground px-4 py-2">{t('testReportPage.byModule.noComponents', "No components in this module.")}</p>}<Accordion type="multiple" className="w-full space-y-1">{Object.entries(moduleData.components).map(([componentName, componentData]: [string, any]) => (<AccordionItem value={`${moduleName}-${componentName}`} key={`${moduleName}-${componentName}`} className="border rounded-md dark:border-slate-700 bg-background dark:bg-slate-900"><AccordionTrigger className="hover:bg-muted/30 dark:hover:bg-slate-800/30 px-3 py-2 text-sm rounded-t-md group"><div className="flex justify-between w-full items-center"><span className="flex items-center"><ChevronRight className="h-4 w-4 mr-1 group-data-[state=open]:rotate-90 transition-transform" />{componentName}</span><div className="flex items-center space-x-2 text-xs mr-2"><span className={`${getStatusColor('passed')} flex items-center`}><CheckCircle2 className="mr-1 h-3 w-3" /> {componentData.passed}</span><span className={`${getStatusColor('failed')} flex items-center`}><XCircle className="mr-1 h-3 w-3" /> {componentData.failed}</span><span className={`${getStatusColor('skipped')} flex items-center`}><SkipForward className="mr-1 h-3 w-3" /> {componentData.skipped}</span><Badge variant="outline" className="whitespace-nowrap">Total: {componentData.total}</Badge></div></div></AccordionTrigger><AccordionContent className="px-0 pb-0 border-t dark:border-slate-700">{componentData.tests.length === 0 && <p className="text-muted-foreground px-4 py-2">{t('testReportPage.byModule.noTests', "No tests in this component.")}</p>}{componentData.tests.length > 0 && <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead className="pl-4 min-w-[200px]">{t('testReportPage.columns.testName', "Test Name")}</TableHead><TableHead>{t('testReportPage.columns.browser', "Browser")}</TableHead><TableHead>{t('testReportPage.columns.status', "Status")}</TableHead><TableHead>{t('testReportPage.columns.duration', "Duration")}</TableHead><TableHead>{t('testReportPage.columns.priority', "Priority")}</TableHead><TableHead>{t('testReportPage.columns.actions', "Actions")}</TableHead></TableRow></TableHeader><TableBody>{componentData.tests.map((test: any) => (<TableRow key={test.id} className="dark:hover:bg-slate-800/50 hover:bg-muted/50"><TableCell className="font-medium py-2 pl-4">{test.testName}<AttemptsBadge attempts={test.attempts} status={test.status} /><QuarantinedBadge quarantined={test.quarantined} /></TableCell><TableCell className="py-2 whitespace-nowrap text-xs">{test.browser || t('testReportPage.notRecorded', "not recorded")}</TableCell><TableCell className={`py-2 ${getStatusColor(test.status)}`}><div className="flex items-center">{getStatusIcon(test.status, "h-4 w-4")}<span className="ml-2">{test.status}</span></div></TableCell><TableCell className="py-2 whitespace-nowrap">{formatDuration(test.durationMs)}</TableCell><TableCell className="py-2"><Badge variant={test.priority === 'Critical' || test.priority === 'High' ? 'destructive' : 'secondary'} className="whitespace-nowrap">{test.priority || 'N/A'}</Badge></TableCell><TableCell className="py-2 space-x-1">{test.screenshotUrl && <Button variant="ghost" size="sm" asChild><a href={test.screenshotUrl} target="_blank" rel="noreferrer" title={t('testReportPage.actions.screenshot', "View Screenshot")}><ImageIcon className="h-4 w-4" /></a></Button>}{test.videoUrl && <Button variant="ghost" size="sm" asChild><a href={test.videoUrl} target="_blank" rel="noreferrer" title={t('testReportPage.actions.video', "Watch the run")}><Video className="h-4 w-4" /></a></Button>}{test.steps?.length > 0 && <Button variant="ghost" size="sm" title={t('testReportPage.actions.steps', "View steps")} onClick={() => setOpenedSteps({ testName: test.testName, browser: test.browser, steps: test.steps, videoUrl: test.videoUrl, traceUrl: test.traceUrl, harUrl: test.harUrl, network: test.networkSummary })}><FileText className="h-4 w-4" /></Button>}</TableCell></TableRow>))}</TableBody></Table></div>}</AccordionContent></AccordionItem>))}</Accordion></AccordionContent></AccordionItem>))}</Accordion></CardContent></Card>
       </div>
     );
   };

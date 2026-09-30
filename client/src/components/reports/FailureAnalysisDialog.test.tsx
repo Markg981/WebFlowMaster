@@ -81,4 +81,37 @@ describe('FailureAnalysisDialog', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('GEMINI_API_KEY');
     expect(screen.getByText('Try again')).toBeTruthy();
   });
+
+  it("puts the proposed selector into the step it blames, when that step is one of the test's own", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ id: 7, version: 4 }) });
+    render(
+      <FailureAnalysisDialog
+        executionId="run-1"
+        result={{ id: 'r-1', testName: 'Login', browser: null, aiAnalysis: analysis, uiTestId: 7, steps: [{}, {}, { stepId: 'sign-in' }] }}
+        onOpenChange={vi.fn()}
+        onAnalysed={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('Apply to the test'));
+    expect(await screen.findByText(/saved as version 4/)).toBeTruthy();
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/tests/7/steps/sign-in/selector');
+    expect(init.method).toBe('PUT');
+    expect(JSON.parse(init.body)).toEqual({ selector: "role=button[name='Sign in']" });
+  });
+
+  it('offers no fix for a step inside a group, nor for a result that did not record its steps', () => {
+    const { unmount } = render(
+      <FailureAnalysisDialog executionId="run-1" result={{ id: 'r-1', testName: 'Login', browser: null, aiAnalysis: analysis, uiTestId: 7, steps: [{}, {}, { stepId: 'pay', calledFrom: 'g' }] }} onOpenChange={vi.fn()} onAnalysed={vi.fn()} />,
+    );
+    expect(screen.queryByText('Apply to the test')).toBeNull();
+    expect(screen.getByText(/change it in the group/)).toBeTruthy();
+    unmount();
+
+    render(
+      <FailureAnalysisDialog executionId="run-1" result={{ id: 'r-1', testName: 'Login', browser: null, aiAnalysis: analysis, uiTestId: 7, steps: [{}, {}, {}] }} onOpenChange={vi.fn()} onAnalysed={vi.fn()} />,
+    );
+    expect(screen.queryByText('Apply to the test')).toBeNull();
+  });
 });

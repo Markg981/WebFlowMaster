@@ -51,6 +51,10 @@ interface VisualTestBuilderProps {
   onToggleBreakpoint?: (id: string) => void;
   /** The step a debug session is paused at, and whether it is paused on its failure. */
   debugPausedAt?: { stepId: string; failed: boolean } | null;
+  /** How many dataset rows the test has: with more than one, Debug asks which. */
+  debugRowCount?: number;
+  debugRow?: number;
+  onDebugRowChange?: (row: number) => void;
 }
 
 export function VisualTestBuilder({
@@ -69,6 +73,9 @@ export function VisualTestBuilder({
   breakpoints,
   onToggleBreakpoint,
   debugPausedAt = null,
+  debugRowCount = 0,
+  debugRow = 0,
+  onDebugRowChange,
 }: VisualTestBuilderProps) {
   const { t } = useTranslation();
   const [nodes, setNodes] = useState<Node<TestNodeData>[]>([]);
@@ -247,6 +254,21 @@ export function VisualTestBuilder({
         <Button onClick={onExecuteTest} disabled={isExecuting} className="flex-1">
           {isExecuting ? t('apiTesterPage.loading.button') : t('testSequenceBuilder.executeTest.button')}
         </Button>
+        {onDebugTest && debugRowCount > 1 && onDebugRowChange && (
+          <select
+            className="h-10 rounded-md border border-input bg-background px-2 text-sm"
+            value={debugRow}
+            onChange={(event) => onDebugRowChange(Number(event.target.value))}
+            aria-label={t('debugger.row.label', 'Dataset row to debug with')}
+            disabled={isExecuting}
+          >
+            {Array.from({ length: debugRowCount }, (_, row) => (
+              <option key={row} value={row}>
+                {t('debugger.row.option', 'Row {{n}}', { n: row + 1 })}
+              </option>
+            ))}
+          </select>
+        )}
         {onDebugTest && (
           <Button
             onClick={onDebugTest}

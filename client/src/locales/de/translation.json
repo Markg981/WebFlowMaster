@@ -2308,7 +2308,78 @@
       "label": "Build"
     },
     "backToReports": "Zurück zur Berichtsliste",
-    "title": "Testbericht"
+    "title": "Testbericht",
+    "charts": {
+      "outcome": "Bestanden, fehlgeschlagen, übersprungen",
+      "priority": "Nach Priorität",
+      "severity": "Nach Schweregrad",
+      "noData": "Keine Ergebnisse zum Darstellen.",
+      "passedOf": "bestanden von {{total}}"
+    },
+    "filters": {
+      "title": "Filter",
+      "component": "Komponente",
+      "severity": "Schweregrad",
+      "outcome": "Ergebnis",
+      "all": "Alle",
+      "clear": "Filter zurücksetzen",
+      "showing": "{{shown}} von {{total}} Ergebnissen angezeigt."
+    },
+    "outcome": {
+      "passed": "Bestanden",
+      "failed": "Fehlgeschlagen",
+      "skipped": "Übersprungen",
+      "error": "Fehler",
+      "pending": "Wartet"
+    },
+    "loading": "Bericht wird geladen…",
+    "visualizations": "Diagramme",
+    "metrics": {
+      "total": "Tests gesamt",
+      "passed": "Bestanden",
+      "failed": "Fehlgeschlagen",
+      "skippedAndAverage": "Übersprungen / Ø Testdauer",
+      "passRate": "Erfolgsquote",
+      "failureRate": "Fehlerquote"
+    },
+    "byModule": {
+      "title": "Ergebnisse nach Modul",
+      "empty": "Keine Ergebnisse nach Modul.",
+      "noComponents": "Keine Komponenten in diesem Modul.",
+      "noTests": "Keine Tests in dieser Komponente."
+    },
+    "columns": {
+      "testName": "Testname",
+      "browser": "Browser",
+      "reason": "Fehlerursache",
+      "component": "Komponente",
+      "priority": "Priorität",
+      "severity": "Schweregrad",
+      "duration": "Dauer",
+      "issue": "Issue",
+      "actions": "Aktionen",
+      "status": "Status"
+    },
+    "header": {
+      "environment": "Umgebung:",
+      "triggeredBy": "Ausgelöst von:",
+      "started": "Gestartet:",
+      "completed": "Beendet:",
+      "status": "Status:",
+      "totalDuration": "Gesamtdauer:"
+    },
+    "retry": "Erneut versuchen",
+    "refresh": "Aktualisieren",
+    "actions": {
+      "screenshot": "Screenshot ansehen",
+      "video": "Lauf ansehen",
+      "steps": "Schritte ansehen"
+    },
+    "versionHint": "Die Version des Tests, die dieser Lauf verwendet hat",
+    "noReason": "Kein Grund angegeben",
+    "notRecorded": "nicht erfasst",
+    "noData": "Keine Berichtsdaten gefunden.",
+    "failedTests": "Fehlgeschlagene Tests"
   },
   "scheduleEnvironment": {
     "label": "Umgebung",
@@ -3050,7 +3121,12 @@
       "high": "hoch",
       "medium": "mittel",
       "low": "niedrig"
-    }
+    },
+    "apply": "Auf den Test anwenden",
+    "applied": "Auf den Test angewendet.",
+    "appliedVersion": "Angewendet: Der Test wurde als Version {{version}} gespeichert. Der nächste Lauf verwendet sie, sobald sie veröffentlicht ist.",
+    "applyFailed": "Der Selektor konnte nicht angewendet werden.",
+    "inGroup": "Der Schritt liegt in einer Schrittgruppe: Ändern Sie ihn dort."
   },
   "debugger": {
     "title": "Debugger",
@@ -3106,7 +3182,11 @@
       "description": "Test speichern, um sie zu behalten."
     },
     "variables": "Variablen",
-    "fromEnvironment": "(aus der Umgebung, verborgen)"
+    "fromEnvironment": "(aus der Umgebung, verborgen)",
+    "row": {
+      "label": "Datensatzzeile für das Debuggen",
+      "option": "Zeile {{n}}"
+    }
   },
   "browserGrids": {
     "title": "Browser-Grids",

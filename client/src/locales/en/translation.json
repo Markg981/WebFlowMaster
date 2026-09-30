@@ -2302,7 +2302,78 @@
       "label": "Build"
     },
     "backToReports": "Back to Reports List",
-    "title": "Test Report"
+    "title": "Test Report",
+    "charts": {
+      "outcome": "Passed, failed and skipped",
+      "priority": "By priority",
+      "severity": "By severity",
+      "noData": "No results to chart.",
+      "passedOf": "passed of {{total}}"
+    },
+    "filters": {
+      "title": "Filters",
+      "component": "Component",
+      "severity": "Severity",
+      "outcome": "Outcome",
+      "all": "All",
+      "clear": "Clear filters",
+      "showing": "Showing {{shown}} of {{total}} results."
+    },
+    "outcome": {
+      "passed": "Passed",
+      "failed": "Failed",
+      "skipped": "Skipped",
+      "error": "Error",
+      "pending": "Waiting"
+    },
+    "loading": "Loading test report...",
+    "visualizations": "Visualizations",
+    "metrics": {
+      "total": "Total Tests",
+      "passed": "Passed",
+      "failed": "Failed",
+      "skippedAndAverage": "Skipped / Avg. Test Time",
+      "passRate": "Pass Rate",
+      "failureRate": "Failure Rate"
+    },
+    "byModule": {
+      "title": "Test Case Results by Module",
+      "empty": "No test results to display by module.",
+      "noComponents": "No components in this module.",
+      "noTests": "No tests in this component."
+    },
+    "columns": {
+      "testName": "Test Name",
+      "browser": "Browser",
+      "reason": "Reason for Failure",
+      "component": "Component",
+      "priority": "Priority",
+      "severity": "Severity",
+      "duration": "Duration",
+      "issue": "Issue",
+      "actions": "Actions",
+      "status": "Status"
+    },
+    "header": {
+      "environment": "Environment:",
+      "triggeredBy": "Triggered by:",
+      "started": "Started:",
+      "completed": "Completed:",
+      "status": "Status:",
+      "totalDuration": "Total Duration:"
+    },
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "actions": {
+      "screenshot": "View Screenshot",
+      "video": "Watch the run",
+      "steps": "View steps"
+    },
+    "versionHint": "The version of the test this run used",
+    "noReason": "No reason provided",
+    "notRecorded": "not recorded",
+    "noData": "No report data found.",
+    "failedTests": "Failed Tests"
   },
   "scheduleEnvironment": {
     "label": "Environment",
@@ -3044,7 +3115,12 @@
       "high": "high",
       "medium": "medium",
       "low": "low"
-    }
+    },
+    "apply": "Apply to the test",
+    "applied": "Applied to the test.",
+    "appliedVersion": "Applied: the test was saved as version {{version}}. The next run uses it once it is published.",
+    "applyFailed": "The selector could not be applied.",
+    "inGroup": "The step is inside a step group: change it in the group."
   },
   "debugger": {
     "title": "Debugger",
@@ -3100,7 +3176,11 @@
       "description": "Save the test to keep it."
     },
     "variables": "Variables",
-    "fromEnvironment": "(from the environment, hidden)"
+    "fromEnvironment": "(from the environment, hidden)",
+    "row": {
+      "label": "Dataset row to debug with",
+      "option": "Row {{n}}"
+    }
   },
   "browserGrids": {
     "title": "Browser grids",

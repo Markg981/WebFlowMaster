@@ -29,6 +29,9 @@ export interface ReportStepVisual {
 export interface ReportStep {
   name: string;
   type: string;
+  /** The test's own id for the step, and the group call it came from, when the runner recorded them. */
+  stepId?: string;
+  calledFrom?: string;
   status: 'passed' | 'failed';
   details: string;
   error?: string;

@@ -24,6 +24,12 @@ Il report elenca ogni test in ogni browser con il suo esito, e i suoi step con i
 - Come è finito un run che non si è concluso: **Annullato**, **Tempo scaduto** o **Non
   completato** (il runner si è fermato).
 
+I **grafici** mostrano come si è diviso il run — superati, falliti e saltati, con la percentuale di
+successo — e la stessa divisione per ogni priorità e ogni gravità; passando sopra una barra se ne
+vede il conteggio. I **filtri** restringono i test falliti e i risultati per modulo a un
+componente, una gravità o un esito; i conteggi diventano quelli dei test mostrati, e **Azzera i
+filtri** riporta l'intero run.
+
 ### Esiti manuali {#esiti-manuali}
 
 I [test manuali](./organizing#test-manuali) di un run compaiono nella scheda **Test manuali**, una
@@ -44,7 +50,7 @@ registro di audit.
 ### Analisi AI dei fallimenti {#analisi-ai-dei-fallimenti}
 
 Quando l'installazione ha una chiave AI (`GEMINI_API_KEY`), ogni test fallito nella scheda
-**Failed Tests** ha il pulsante **Analizza con l'AI**. Un editor lo preme e l'AI legge ciò che il
+**Test falliti** ha il pulsante **Analizza con l'AI**. Un editor lo preme e l'AI legge ciò che il
 report contiene già: il motivo dato dal runner, gli step intorno al fallimento con i loro errori, le
 richieste fallite e lente, e lo screenshot. Risponde, nella lingua dell'interfaccia, con:
 
@@ -52,7 +58,12 @@ richieste fallite e lente, e lo screenshot. Risponde, nella lingua dell'interfac
   **Bug dell'applicazione**, **Tempi**, **Dati di test**, **Ambiente** o **Non chiara**;
 - quanto è sicura, e lo step a cui attribuisce il problema;
 - perché lo pensa, e cosa fare;
-- per un locator, un **selettore proposto** da copiare nello step.
+- per un locator, un **selettore proposto**, da copiare o da mettere nello step con **Applica al test**.
+
+**Applica al test** cambia il selettore di quello step e salva il test come nuova versione,
+annullabile dalla cronologia; i piani la usano una volta pubblicata. È offerto quando lo step è del
+test stesso — uno step dentro un gruppo si modifica nel gruppo — e per i run fatti da questa versione
+di WebFlowMaster in poi, i cui step registrano a quale step del test corrispondono.
 
 L'analisi resta sul risultato: riaprirla, per chiunque, non costa nulla, e **Analizza di nuovo**
 ne chiede una nuova. È una causa probabile, non un verdetto: verificatela sugli step. I valori che
