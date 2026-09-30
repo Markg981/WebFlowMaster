@@ -859,6 +859,8 @@ export default function DashboardPage() {
   // Debugging (shared/debug-session.ts): the steps to stop before, and the session, if one is open.
   const [breakpoints, setBreakpoints] = useState<Set<string>>(() => new Set());
   const debugSession = useDebugSession();
+  /** Which dataset row a debug session runs with. */
+  const [debugRow, setDebugRow] = useState(0);
   const debugActive = !!debugSession.state && !DEBUG_ENDED.has(debugSession.state.status);
 
   const handleToggleBreakpoint = useCallback((stepId: string) => {
@@ -887,6 +889,7 @@ export default function DashboardPage() {
       name: testName || t('dashboardPageNew.toasts.adhocTestName', { url: currentUrl || t('dashboardPageNew.toasts.untitled') }),
       environmentId: environmentIdFor(selectedEnvironment),
       dataset: dataset.length > 0 ? dataset : undefined,
+      datasetRow: dataset.length > 0 ? Math.min(debugRow, dataset.length - 1) : undefined,
       breakpoints: [...breakpoints],
     });
   };
@@ -1378,6 +1381,9 @@ export default function DashboardPage() {
             onDebugTest={handleDebugTest}
             breakpoints={breakpoints}
             onToggleBreakpoint={handleToggleBreakpoint}
+            debugRowCount={dataset.length}
+            debugRow={Math.min(debugRow, Math.max(0, dataset.length - 1))}
+            onDebugRowChange={setDebugRow}
             debugPausedAt={debugSession.state?.paused?.stepId ? { stepId: debugSession.state.paused.stepId, failed: debugSession.state.paused.reason === 'failure' } : null}
           />
         </div>

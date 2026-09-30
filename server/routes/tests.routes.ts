@@ -180,6 +180,56 @@ router.put("/api/tests/:id", requireRole('editor'), async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/tests/:id/steps/:stepId/selector — a new selector for one of the test's own steps.
+ *
+ * What "Apply to the test" in the report's AI analysis sends (FailureAnalysisDialog). A save like
+ * any other: a new version, recoverable from the history, and an audit entry — only the one
+ * selector changes. A step inside a step group is the group's, and is not found here.
+ */
+router.put("/api/tests/:id/steps/:stepId/selector", requireRole('editor'), async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid test id" });
+  const parsed = z.object({ selector: z.string().trim().min(1).max(2000) }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "A selector is required.", details: parsed.error.flatten() });
+
+  try {
+    const outcome = await withTenantTransaction(async (tx) => {
+      const [test] = await tx.select().from(tests).where(eq(tests.id, id)).limit(1);
+      if (!test) return { status: 404, error: "Test not found" } as const;
+      const raw = typeof test.sequence === 'string' ? JSON.parse(test.sequence) : test.sequence;
+      const sequence = Array.isArray(raw) ? (raw as Array<Record<string, any>>) : [];
+      const index = sequence.findIndex((step) => step?.id === req.params.stepId);
+      if (index === -1) return { status: 404, error: "That step is not one of this test's own steps." } as const;
+      if (!sequence[index].targetElement) return { status: 409, error: "That step has no element to find." } as const;
+
+      const previous = sequence[index].targetElement.selector ?? null;
+      const next = sequence.map((step, i) =>
+        i === index ? { ...step, targetElement: { ...step.targetElement, selector: parsed.data.selector } } : step,
+      );
+      const [row] = await tx
+        .update(tests)
+        .set({ sequence: (typeof test.sequence === 'string' ? JSON.stringify(next) : next) as any, updatedAt: new Date() })
+        .where(eq(tests.id, id))
+        .returning();
+      const version = await recordTestVersion(tx, { testId: row.id, organizationId: req.user!.organizationId, userId: req.user!.id, test: row });
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.TEST_UPDATED,
+        actor: auditActor(req),
+        targetType: 'test',
+        targetId: row.id,
+        metadata: { name: row.name, fields: ['sequence'], step: req.params.stepId, previousSelector: previous, selector: parsed.data.selector },
+      });
+      return { status: 200, test: row, version } as const;
+    });
+    if ('error' in outcome) return res.status(outcome.status).json({ error: outcome.error });
+    res.json({ id: outcome.test.id, version: (outcome.version as { version?: number } | undefined)?.version ?? null });
+  } catch (error: any) {
+    logger.error({ message: "Error updating a step's selector", error: error.message, testId: id });
+    res.status(500).json({ error: "Failed to update the step." });
+  }
+});
+
 // DELETE /api/tests/:id - Remove a UI test
 //
 // The other half of the same omission. Without it a list of tests only ever grows, and the

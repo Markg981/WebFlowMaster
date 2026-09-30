@@ -95,11 +95,11 @@ describe('a debug session in a browser', () => {
     value,
   });
 
-  async function start(id: string, breakpoints: string[], sequence: unknown[]) {
+  async function start(id: string, breakpoints: string[], sequence: unknown[], extra: { dataset?: Array<Record<string, string>>; datasetRow?: number } = {}) {
     const channel = await debugChannel();
     await channel.open(id, { userId, organizationId, createdAt: new Date().toISOString() });
     const done = performBrowserTask({
-      task: { kind: 'debug-sequence', sessionId: id, breakpoints, payload: { name: 'debug', url: baseUrl, elements: [], sequence } as never },
+      task: { kind: 'debug-sequence', sessionId: id, breakpoints, datasetRow: extra.datasetRow, payload: { name: 'debug', url: baseUrl, elements: [], sequence, dataset: extra.dataset } as never },
       userId,
       organizationId,
     });
@@ -167,6 +167,17 @@ describe('a debug session in a browser', () => {
     const ended = await until((s) => s.status === 'stopped');
     expect(ended.steps).toEqual([]);
     expect(ended.outcome?.success).toBe(false);
+    await done;
+  }, 90_000);
+
+  it('runs with the dataset row asked for', async () => {
+    const { done, until } = await start('run-4', [], [step('s1', 'assertTextContains', '#t', '{{expected}}')], {
+      dataset: [{ expected: 'Nope' }, { expected: 'Hello' }],
+      datasetRow: 1,
+    });
+    const ended = await until((s) => s.status === 'finished');
+    expect(ended.outcome).toMatchObject({ success: true });
+    expect(ended.variables).toContainEqual({ name: 'expected', value: 'Hello' });
     await done;
   }, 90_000);
 });

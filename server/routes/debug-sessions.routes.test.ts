@@ -126,6 +126,17 @@ describe('debug sessions', () => {
     expect(tasks.start).not.toHaveBeenCalled();
   });
 
+  it('debug the dataset row asked for, and refuse one the dataset does not have', async () => {
+    const dataset = [{ sku: 'A' }, { sku: 'B' }];
+    const started = await request(app).post('/api/debug-sessions').send({ ...body, dataset, datasetRow: 1 });
+    expect(started.status).toBe(201);
+    expect(tasks.start.mock.calls[0][0].task).toMatchObject({ datasetRow: 1 });
+
+    const refused = await request(app).post('/api/debug-sessions').send({ ...body, dataset, datasetRow: 2 });
+    expect(refused.status).toBe(400);
+    expect(refused.body.error).toMatch(/2 row/);
+  });
+
   it('refuse a test with no steps', async () => {
     expect((await request(app).post('/api/debug-sessions').send({ ...body, sequence: [] })).status).toBe(400);
   });

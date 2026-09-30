@@ -402,14 +402,6 @@ export async function runTest(
     };
   }
 }
-// runTestPlan will be added here later
-// Placeholder for executeApiTestInternal - this would need full implementation
-// async function executeApiTestInternal(apiTest: ApiTest, userId: number) {
-//   // Fetch API, execute, run assertions, etc.
-//   // Similar to the logic in POST /api/proxy-api-request in routes.ts
-//   return { success: true, details: { statusCode: 200, responseBody: { message: "ok"} } };
-// }
-
 /**
  * What a caller can say about a run beyond which plan it is.
  *

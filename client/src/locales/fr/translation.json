@@ -2308,7 +2308,78 @@
       "label": "Build"
     },
     "backToReports": "Retour à la liste des rapports",
-    "title": "Rapport de test"
+    "title": "Rapport de test",
+    "charts": {
+      "outcome": "Réussis, échoués et ignorés",
+      "priority": "Par priorité",
+      "severity": "Par gravité",
+      "noData": "Aucun résultat à représenter.",
+      "passedOf": "réussis sur {{total}}"
+    },
+    "filters": {
+      "title": "Filtres",
+      "component": "Composant",
+      "severity": "Gravité",
+      "outcome": "Résultat",
+      "all": "Tous",
+      "clear": "Effacer les filtres",
+      "showing": "{{shown}} résultats affichés sur {{total}}."
+    },
+    "outcome": {
+      "passed": "Réussi",
+      "failed": "Échoué",
+      "skipped": "Ignoré",
+      "error": "Erreur",
+      "pending": "En attente"
+    },
+    "loading": "Chargement du rapport…",
+    "visualizations": "Graphiques",
+    "metrics": {
+      "total": "Tests au total",
+      "passed": "Réussis",
+      "failed": "Échoués",
+      "skippedAndAverage": "Ignorés / durée moyenne",
+      "passRate": "de réussite",
+      "failureRate": "d'échec"
+    },
+    "byModule": {
+      "title": "Résultats par module",
+      "empty": "Aucun résultat à afficher par module.",
+      "noComponents": "Aucun composant dans ce module.",
+      "noTests": "Aucun test dans ce composant."
+    },
+    "columns": {
+      "testName": "Nom du test",
+      "browser": "Navigateur",
+      "reason": "Raison de l'échec",
+      "component": "Composant",
+      "priority": "Priorité",
+      "severity": "Gravité",
+      "duration": "Durée",
+      "issue": "Ticket",
+      "actions": "Actions",
+      "status": "Statut"
+    },
+    "header": {
+      "environment": "Environnement :",
+      "triggeredBy": "Déclenché par :",
+      "started": "Démarré :",
+      "completed": "Terminé :",
+      "status": "Statut :",
+      "totalDuration": "Durée totale :"
+    },
+    "retry": "Réessayer",
+    "refresh": "Actualiser",
+    "actions": {
+      "screenshot": "Voir la capture",
+      "video": "Voir l'exécution",
+      "steps": "Voir les étapes"
+    },
+    "versionHint": "La version du test utilisée par cette exécution",
+    "noReason": "Aucune raison indiquée",
+    "notRecorded": "non enregistré",
+    "noData": "Aucune donnée de rapport.",
+    "failedTests": "Tests échoués"
   },
   "scheduleEnvironment": {
     "label": "Environnement",
@@ -3050,7 +3121,12 @@
       "high": "élevée",
       "medium": "moyenne",
       "low": "faible"
-    }
+    },
+    "apply": "Appliquer au test",
+    "applied": "Appliqué au test.",
+    "appliedVersion": "Appliqué : le test a été enregistré en version {{version}}. La prochaine exécution l'utilise une fois publiée.",
+    "applyFailed": "Le sélecteur n'a pas pu être appliqué.",
+    "inGroup": "L'étape fait partie d'un groupe d'étapes : modifiez-la dans le groupe."
   },
   "debugger": {
     "title": "Débogueur",
@@ -3106,7 +3182,11 @@
       "description": "Enregistrez le test pour la conserver."
     },
     "variables": "Variables",
-    "fromEnvironment": "(de l'environnement, masquée)"
+    "fromEnvironment": "(de l'environnement, masquée)",
+    "row": {
+      "label": "Ligne du jeu de données pour le débogage",
+      "option": "Ligne {{n}}"
+    }
   },
   "browserGrids": {
     "title": "Grilles de navigateurs",

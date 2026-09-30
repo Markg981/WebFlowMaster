@@ -30,6 +30,8 @@ const startSchema = z.object({
   dataset: z.array(z.record(z.string())).optional().nullable(),
   /** Ids of the steps to stop before. */
   breakpoints: z.array(z.string().max(200)).max(1000).optional().default([]),
+  /** Which row of the dataset to debug with, counted from 0. */
+  datasetRow: z.number().int().min(0).optional(),
 });
 
 const commandSchema = z.object({
@@ -63,7 +65,10 @@ router.post("/api/debug-sessions", requireRole("editor"), async (req, res) => {
   const parsed = startSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.flatten() });
   const user = req.user as any;
-  const { breakpoints, ...payload } = parsed.data;
+  const { breakpoints, datasetRow, ...payload } = parsed.data;
+  if (datasetRow !== undefined && datasetRow >= (payload.dataset?.length ?? 0)) {
+    return res.status(400).json({ error: `The dataset has ${payload.dataset?.length ?? 0} row(s); row ${datasetRow + 1} does not exist.` });
+  }
   const id = uuidv4();
 
   try {
@@ -75,7 +80,7 @@ router.post("/api/debug-sessions", requireRole("editor"), async (req, res) => {
     await ch.publish(id, initialState(id, breakpoints));
     await ch.setActive(user.id, id);
     await browserTasks.start({
-      task: { kind: "debug-sequence", sessionId: id, breakpoints, payload: payload as any },
+      task: { kind: "debug-sequence", sessionId: id, breakpoints, datasetRow, payload: payload as any },
       userId: user.id,
       organizationId: user.organizationId,
     });

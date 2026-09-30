@@ -28,7 +28,7 @@ export const BROWSER_TASK_QUEUE_NAME = 'browser-tasks';
 export type BrowserTask =
   | { kind: 'adhoc-sequence'; payload: Omit<AdhocSequencePayload, 'organizationId'> }
   /** A preview that can pause, be corrected and resume — see server/debug-session.ts. */
-  | { kind: 'debug-sequence'; sessionId: string; breakpoints: string[]; payload: Omit<AdhocSequencePayload, 'organizationId'> }
+  | { kind: 'debug-sequence'; sessionId: string; breakpoints: string[]; datasetRow?: number; payload: Omit<AdhocSequencePayload, 'organizationId'> }
   | { kind: 'run-test'; testId: number; environmentId: number | null }
   | { kind: 'load-website'; url: string }
   | { kind: 'detect-elements'; url: string };
@@ -117,8 +117,8 @@ async function runDebugSession(
   });
   try {
     const result = await playwrightService.executeAdhocSequence(
-      // One pass: a data-driven test is debugged with its first row.
-      { ...task.payload, organizationId, dataset: null, rowVariables: task.payload.dataset?.[0] ?? null },
+      // One pass: a data-driven test is debugged with the row chosen in the builder, the first by default.
+      { ...task.payload, organizationId, dataset: null, rowVariables: task.payload.dataset?.[task.datasetRow ?? 0] ?? null },
       userId,
       controller,
     );

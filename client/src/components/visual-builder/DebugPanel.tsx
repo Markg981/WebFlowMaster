@@ -34,6 +34,8 @@ export interface DebugStartPayload {
   environmentId?: number;
   dataset?: Array<Record<string, string>>;
   breakpoints: string[];
+  /** The dataset row to debug with, counted from 0. */
+  datasetRow?: number;
 }
 
 async function asJson(response: Response) {

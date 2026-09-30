@@ -24,6 +24,11 @@ Around it:
 - How a run ended when it did not finish: **Cancelled**, **Timed out** or **Did not finish** (the
   runner stopped).
 
+The **charts** show how the run split — passed, failed and skipped, with the pass rate — and the
+same split for each priority and each severity; hover a bar for its count. The **filters** narrow
+the failed tests and the results by module to one component, one severity or one outcome; the
+counts then are those of the tests shown, and **Clear filters** brings the whole run back.
+
 ### Manual results {#manual-results}
 
 A run's [manual tests](./organizing#manual-tests) show in the **Manual tests** card, one row per
@@ -51,7 +56,12 @@ the screenshot. It answers, in the interface's language, with:
   **Application bug**, **Timing**, **Test data**, **Environment**, or **Unclear**;
 - how sure it is, and the step it blames;
 - why it thinks so, and what to do next;
-- for a locator, a **proposed selector** to copy into the step.
+- for a locator, a **proposed selector**, to copy or to put in the step with **Apply to the test**.
+
+**Apply to the test** changes that one step's selector and saves the test as a new version, which
+the history can undo; plans use it once it is published. It is offered when the step is one of the
+test's own — a step inside a step group is changed in the group — and for runs made from this
+version of WebFlowMaster on, whose steps record which step of the test they were.
 
 The analysis is kept on the result: opening it again, by anyone, costs nothing, and **Analyse
 again** asks for a fresh one. It is a probable cause, not a verdict — check it against the steps.

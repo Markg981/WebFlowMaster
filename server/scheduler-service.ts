@@ -534,49 +534,6 @@ export async function initializeScheduler() {
   }
 }
 
-// Call initializeScheduler on application startup.
-// This should be done in your main server file (e.g., index.ts) after DB is ready.
-// For example:
-// privilegedDb.sync().then(() => { // Or however DB readiness is determined
-//   initializeScheduler();
-//   app.listen(...);
-// });
-
-// TODO:
-// 1. Robust cron pattern generation/validation and nextRunAt calculation for recurring tasks.
-//    Libraries like `cron-parser` can help here.
-// 2. Refined `executeScheduledPlan` to correctly pass parameters (environment, browsers, custom params)
-//    to `runTestPlan`. This requires `runTestPlan` to be adapted.
-// 3. User ID handling for scheduled tasks: determine how `userId` is passed to `runTestPlan` if needed.
-//    It could be a dedicated service account user, or schedules could be tied to users.
-// 4. Full retry logic implementation.
-// 5. Notification implementation.
-// 6. Consider distributed environments: if running multiple instances of the app, a more robust
-//    distributed job scheduler like Agenda.js or BullMQ might be needed to avoid duplicate job executions.
-//    For now, node-cron is fine for single-instance deployments.
-// 7. Graceful shutdown: ensure cron jobs are stopped when the application shuts down.
-// 8. TestPlanSchedule's `nextRunAt` should be reliably updated after each run for recurring tasks.
-//    The current placeholder logic for this is insufficient.
-//    The `cron.schedule` task itself knows its next execution time, but that's internal.
-//    We need to store our `nextRunAt` in the DB for persistence and UI.
-//    This means after a job runs, we calculate its *next* `nextRunAt` based on its frequency and current time.
-//    For example, if a daily job runs at 10:00 UTC, after it runs, `nextRunAt` should be updated to tomorrow 10:00 UTC.
-//    If the server restarts, it will pick up this `nextRunAt`.
-//    The `frequencyToCronPattern` uses `nextRunAt` to set the time part of the cron. This is okay for initial scheduling.
-//    But subsequent `nextRunAt` updates need careful calculation.
-//    A library like `cron-parser` would be essential here to get the next date from a cron string.
-//    Example: `const interval = parser.parseExpression(cronPattern); newNextRunAt = interval.next().toDate();`
-// 9. The `executeScheduledPlan` function should fetch the LATEST schedule details from DB before execution,
-//    in case it was updated since the job was initially created in memory.
-//    The `schedule` object passed to `cron.schedule` callback is a snapshot from when the job was defined.
-//    Inside the callback: `const currentScheduleDetails = await privilegedDb.select()...where(id = schedule.id)`
-//    Then use `currentScheduleDetails` for execution.
-// 10. Error handling in `frequencyToCronPattern` for invalid cron strings in `custom_cron`.
-//     `cron.validate()` should be used before scheduling.
-// 11. For 'once' schedules, the current cron pattern `cronTimeForOnce` will make it run every year on that date/time.
-//     The job needs to explicitly stop itself or be removed after the first execution. The current logic deactivates
-//     the schedule in DB and removes the job from `activeCronJobs`, which is good.
-
 /** Stop all in-memory cron jobs. Called during graceful shutdown. */
 export async function shutdownScheduler(): Promise<void> {
   const resolvedLogger = await logger;

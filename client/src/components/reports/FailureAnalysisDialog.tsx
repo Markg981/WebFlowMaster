@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Copy, Loader2, RefreshCw, Sparkles } from 'lucide-react';
+import { Check, Copy, Loader2, RefreshCw, Sparkles, Wrench } from 'lucide-react';
 import {
   ANALYSIS_LANGUAGES,
   readFailureAnalysis,
@@ -23,6 +23,10 @@ export interface AnalysedResult {
   testName: string;
   browser: string | null;
   aiAnalysis?: FailureAnalysis | null;
+  /** The saved test the result came from, for applying a proposed selector to it. */
+  uiTestId?: number | null;
+  /** The result's steps as the runner recorded them, numbered as the analysis numbers them. */
+  steps?: Array<{ stepId?: string; calledFrom?: string }>;
 }
 
 const interfaceLanguage = (language: string | undefined): AnalysisLanguage => {
@@ -46,6 +50,8 @@ export default function FailureAnalysisDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applied, setApplied] = useState<{ ok: boolean; message: string } | null>(null);
 
   const analyse = async (refresh: boolean) => {
     if (!result) return;
@@ -70,6 +76,7 @@ export default function FailureAnalysisDialog({
 
   useEffect(() => {
     setCopied(false);
+    setApplied(null);
     setError(null);
     const kept = readFailureAnalysis(result?.aiAnalysis);
     setAnalysis(kept);
@@ -77,6 +84,39 @@ export default function FailureAnalysisDialog({
     // Only a different result starts a new analysis.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result?.id]);
+
+  // The step the analysis blames, when it is one of the test's own: a step inside a step group
+  // belongs to the group, and results recorded before steps carried their id cannot be traced.
+  const blamedStep =
+    analysis?.proposedSelector && analysis.failedStep !== null && result?.uiTestId
+      ? result.steps?.[analysis.failedStep - 1]
+      : undefined;
+  const canApply = !!blamedStep?.stepId && !blamedStep.calledFrom;
+
+  const applySelector = async () => {
+    if (!canApply || !analysis?.proposedSelector || !result?.uiTestId) return;
+    setApplying(true);
+    setApplied(null);
+    try {
+      const response = await fetch(`/api/tests/${result.uiTestId}/steps/${encodeURIComponent(blamedStep!.stepId!)}/selector`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selector: analysis.proposedSelector }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || t('failureAnalysis.applyFailed', 'The selector could not be applied.'));
+      setApplied({
+        ok: true,
+        message: body.version
+          ? t('failureAnalysis.appliedVersion', 'Applied: the test was saved as version {{version}}. The next run uses it once it is published.', { version: body.version })
+          : t('failureAnalysis.applied', 'Applied to the test.'),
+      });
+    } catch (applyError: any) {
+      setApplied({ ok: false, message: applyError?.message ?? String(applyError) });
+    } finally {
+      setApplying(false);
+    }
+  };
 
   const copySelector = async () => {
     if (!analysis?.proposedSelector) return;
@@ -142,7 +182,21 @@ export default function FailureAnalysisDialog({
                   <Button variant="outline" size="sm" onClick={copySelector} aria-label={t('failureAnalysis.copy', 'Copy')}>
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
+                  {canApply && (
+                    <Button size="sm" onClick={applySelector} disabled={applying || applied?.ok === true}>
+                      {applying ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Wrench className="mr-1 h-4 w-4" />}
+                      {t('failureAnalysis.apply', 'Apply to the test')}
+                    </Button>
+                  )}
                 </div>
+                {!canApply && blamedStep?.calledFrom && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t('failureAnalysis.inGroup', 'The step is inside a step group: change it in the group.')}
+                  </p>
+                )}
+                {applied && (
+                  <p className={`mt-1 text-xs ${applied.ok ? 'text-success' : 'text-destructive'}`} role="status">{applied.message}</p>
+                )}
               </div>
             )}
             <p className="text-xs text-muted-foreground">

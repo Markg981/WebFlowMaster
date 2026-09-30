@@ -2427,7 +2427,78 @@
       "label": "Build"
     },
     "backToReports": "Torna all'elenco dei report",
-    "title": "Report del test"
+    "title": "Report del test",
+    "charts": {
+      "outcome": "Superati, falliti e saltati",
+      "priority": "Per priorità",
+      "severity": "Per gravità",
+      "noData": "Nessun risultato da rappresentare.",
+      "passedOf": "superati su {{total}}"
+    },
+    "filters": {
+      "title": "Filtri",
+      "component": "Componente",
+      "severity": "Gravità",
+      "outcome": "Esito",
+      "all": "Tutti",
+      "clear": "Azzera i filtri",
+      "showing": "Mostrati {{shown}} risultati su {{total}}."
+    },
+    "outcome": {
+      "passed": "Superato",
+      "failed": "Fallito",
+      "skipped": "Saltato",
+      "error": "Errore",
+      "pending": "In attesa"
+    },
+    "loading": "Caricamento del report…",
+    "visualizations": "Grafici",
+    "metrics": {
+      "total": "Test totali",
+      "passed": "Superati",
+      "failed": "Falliti",
+      "skippedAndAverage": "Saltati / tempo medio per test",
+      "passRate": "di successo",
+      "failureRate": "di fallimento"
+    },
+    "byModule": {
+      "title": "Risultati per modulo",
+      "empty": "Nessun risultato da mostrare per modulo.",
+      "noComponents": "Nessun componente in questo modulo.",
+      "noTests": "Nessun test in questo componente."
+    },
+    "columns": {
+      "testName": "Nome del test",
+      "browser": "Browser",
+      "reason": "Motivo del fallimento",
+      "component": "Componente",
+      "priority": "Priorità",
+      "severity": "Gravità",
+      "duration": "Durata",
+      "issue": "Issue",
+      "actions": "Azioni",
+      "status": "Stato"
+    },
+    "header": {
+      "environment": "Ambiente:",
+      "triggeredBy": "Avviato da:",
+      "started": "Iniziato:",
+      "completed": "Terminato:",
+      "status": "Stato:",
+      "totalDuration": "Durata totale:"
+    },
+    "retry": "Riprova",
+    "refresh": "Aggiorna",
+    "actions": {
+      "screenshot": "Vedi lo screenshot",
+      "video": "Guarda il run",
+      "steps": "Vedi gli step"
+    },
+    "versionHint": "La versione del test usata da questo run",
+    "noReason": "Nessun motivo indicato",
+    "notRecorded": "non registrato",
+    "noData": "Nessun dato per questo report.",
+    "failedTests": "Test falliti"
   },
   "scheduleEnvironment": {
     "label": "Ambiente",
@@ -3169,7 +3240,12 @@
       "high": "alta",
       "medium": "media",
       "low": "bassa"
-    }
+    },
+    "apply": "Applica al test",
+    "applied": "Applicato al test.",
+    "appliedVersion": "Applicato: il test è stato salvato come versione {{version}}. Il prossimo run la usa una volta pubblicata.",
+    "applyFailed": "Non è stato possibile applicare il selettore.",
+    "inGroup": "Lo step è dentro un gruppo di step: modificatelo nel gruppo."
   },
   "debugger": {
     "title": "Debugger",
@@ -3225,7 +3301,11 @@
       "description": "Salvate il test per mantenerla."
     },
     "variables": "Variabili",
-    "fromEnvironment": "(dall'ambiente, nascosta)"
+    "fromEnvironment": "(dall'ambiente, nascosta)",
+    "row": {
+      "label": "Riga del dataset da usare nel debug",
+      "option": "Riga {{n}}"
+    }
   },
   "browserGrids": {
     "title": "Griglie di browser",

@@ -124,7 +124,7 @@ un passo o riprovare. La correzione di uno step del test viene copiata anche nel
 run.
 
 Un run che ha saltato uno step non risulta mai passato. Un test guidato dai dati si esegue in debug
-con la prima riga. Una sessione lasciata in pausa per 15 minuti chiude il browser. Ogni persona ha
+con una riga del suo dataset, scelta accanto a **Debug** (la prima, se non ne scegliete un'altra). Una sessione lasciata in pausa per 15 minuti chiude il browser. Ogni persona ha
 una sessione alla volta: avviarne un'altra ferma la prima.
 
 ## Registrare

@@ -137,6 +137,10 @@ interface TestStep {
 export interface StepResult {
   name: string;
   type: string;
+  /** The test's own id for the step, when it has one. */
+  stepId?: string;
+  /** The step-group call the step came from: its id is the group's, not the test's. */
+  calledFrom?: string;
   selector?: string | null;
   value?: string | null;
   status: 'passed' | 'failed';
@@ -2242,12 +2246,16 @@ export class PlaywrightService {
           stepResults.push({
             name: actionName,
             type: actionId || 'unknown',
+            // Which of the test's steps this was, so a fix proposed from the report can be put
+            // back into that step (client/src/components/reports/FailureAnalysisDialog.tsx).
+            stepId: typeof step.id === 'string' ? step.id : undefined,
+            calledFrom: typeof (step as { calledFrom?: unknown }).calledFrom === 'string' ? (step as { calledFrom?: string }).calledFrom : undefined,
+            selector: step.targetElement?.selector ?? null,
             status: stepStatus,
             screenshot: stepScreenshot,
             error: stepError,
             details: stepStatus === 'passed' ? (stepDetail ?? 'Success') : stepError || 'Failed',
             healed: reporter.lastActionHealed,
-            rca: reporter.lastActionRca,
             visual: stepVisual,
             accessibility: stepAccessibility,
           });

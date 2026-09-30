@@ -145,10 +145,6 @@ export class ReportingService {
     fs.writeFileSync(path.join(this.resultsDir, fileName), JSON.stringify(result, null, 2));
   }
 
-  async generateFinalHtmlReport(): Promise<void> {
-    // Stub for Allure CLI generation
-    console.log("HTML report generation requested.");
-  }
 }
 
 export const reportingService = new ReportingService();

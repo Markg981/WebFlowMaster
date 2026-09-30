@@ -19,7 +19,6 @@ export class PlaywrightReporter {
 
   // State for AI Reporting
   public lastActionHealed: boolean = false;
-  public lastActionRca: string | undefined;
 
   constructor(private page: Page) {}
 
@@ -53,7 +52,6 @@ export class PlaywrightReporter {
   
   resetStepState() {
       this.lastActionHealed = false;
-      this.lastActionRca = undefined;
   }
 
   async goto(url: string, name?: string): Promise<void> {

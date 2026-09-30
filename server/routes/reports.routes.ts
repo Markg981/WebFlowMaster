@@ -56,17 +56,4 @@ router.get("/api/test-plan-executions/:executionId/export/:format", requireRole(
     }
 });
 
-// POST /api/reports/generate - Generate Allure Report
-router.post("/api/reports/generate", requireRole('editor'), async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
-    
-    try {
-        await reportingService.generateFinalHtmlReport();
-        res.json({ success: true, message: "Report generated successfully" });
-    } catch (e: any) {
-        logger.error({ message: "Report handling failed", error: e.message });
-        res.status(500).json({ error: "Failed to generate report" });
-    }
-});
-
 export default router;
