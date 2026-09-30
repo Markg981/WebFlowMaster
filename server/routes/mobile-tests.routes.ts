@@ -6,12 +6,13 @@ import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { desc, eq } from "drizzle-orm";
 import { AUDIT_ACTIONS, browserGrids, environments, mobileTestRuns, mobileTests } from "@shared/schema";
-import { MOBILE_GRID_PROVIDERS, mobileTestSchema } from "@shared/mobile";
+import { MOBILE_GRID_PROVIDERS, mobileStepSchema, mobileTestSchema } from "@shared/mobile";
 import { requireRole } from "../middleware/require-role";
 import { getTenantOrgId, withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { auditActor, recordAudit } from "../audit";
 import { toGridConfig } from "../browser-grids";
 import { executeMobileRun, uploadApp, type RunDeps } from "../mobile-runner";
+import { InspectorError, closeInspector, inspectorAct, inspectorSnapshot, openInspector } from "../mobile-inspector";
 import loggerPromise from "../logger";
 
 /**
@@ -287,6 +288,79 @@ router.post("/api/browser-grids/:id/apps", requireRole("editor"), (req, res) => 
       await cleanup();
     }
   });
+});
+
+// ─── The inspector (server/mobile-inspector.ts) ──────────────────────────────
+
+const inspectSchema = mobileTestSchema
+  .innerType()
+  .pick({ platform: true, app: true, deviceName: true, osVersion: true })
+  .extend({ gridId: z.string().min(1, "Choose the grid the device comes from.") });
+
+const inspectActionSchema = z.union([
+  z.object({ kind: z.literal("step"), step: mobileStepSchema }),
+  z.object({ kind: z.literal("tapAt"), x: z.number().finite().min(0), y: z.number().finite().min(0) }),
+]);
+
+const ownerOf = (req: any) => ({ organizationId: getTenantOrgId()!, userId: req.user!.id as number });
+
+function failInspector(res: Response, error: unknown, what: string) {
+  if (error instanceof InspectorError) return res.status(error.status).json({ error: error.message });
+  return fail(res, error, what);
+}
+
+/**
+ * POST /api/mobile-inspector — { gridId, platform, app, deviceName, osVersion? }: opens a device with
+ * the app and answers its first screen. Takes as long as the grid takes to find the device.
+ */
+router.post("/api/mobile-inspector", requireRole("editor"), async (req, res) => {
+  const parsed = inspectSchema.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid inspector request" });
+  try {
+    const grid = await withTenantTransaction(async (tx) => {
+      const row = await mobileGrid(tx, parsed.data.gridId);
+      await recordAudit(tx, {
+        action: AUDIT_ACTIONS.MOBILE_INSPECTOR_OPENED,
+        actor: auditActor(req),
+        targetType: "browser_grid",
+        targetId: row.id,
+        metadata: { grid: row.name, device: parsed.data.deviceName, platform: parsed.data.platform },
+      });
+      return toGridConfig(row);
+    });
+    const snapshot = await openInspector(ownerOf(req), grid, { ...parsed.data, osVersion: parsed.data.osVersion || null, name: "Inspector" });
+    res.status(201).json(snapshot);
+  } catch (error) {
+    failInspector(res, error, "open the inspector");
+  }
+});
+
+router.get("/api/mobile-inspector/:id", requireRole("editor"), async (req, res) => {
+  try {
+    res.json(await inspectorSnapshot(req.params.id, ownerOf(req)));
+  } catch (error) {
+    failInspector(res, error, "read the device's screen");
+  }
+});
+
+/** POST /api/mobile-inspector/:id/actions — a step, or { kind: 'tapAt', x, y }; answers the screen after it. */
+router.post("/api/mobile-inspector/:id/actions", requireRole("editor"), async (req, res) => {
+  const parsed = inspectActionSchema.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: "Invalid action" });
+  try {
+    res.json(await inspectorAct(req.params.id, ownerOf(req), parsed.data));
+  } catch (error) {
+    failInspector(res, error, "act on the device");
+  }
+});
+
+router.delete("/api/mobile-inspector/:id", requireRole("editor"), async (req, res) => {
+  try {
+    await closeInspector(req.params.id, ownerOf(req));
+    res.status(204).end();
+  } catch (error) {
+    failInspector(res, error, "close the inspector");
+  }
 });
 
 export default router;

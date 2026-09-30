@@ -52,6 +52,18 @@ const ELEMENTS: Record<string, string> = {
   "xpath://*[@text='Sign in']": 'e-title',
 };
 
+/** The screens as UiAutomator describes them, for the inspector. */
+const SIGN_IN_SOURCE = `<?xml version="1.0" encoding="UTF-8"?>
+<hierarchy rotation="0">
+  <android.widget.FrameLayout bounds="[0,0][400,800]">
+    <android.widget.TextView text="Sign in" resource-id="com.shop:id/title" bounds="[40,80][360,140]"/>
+    <android.widget.EditText content-desc="email" text="" bounds="[40,300][360,360]"/>
+    <android.widget.EditText content-desc="password" text="" bounds="[40,400][360,460]"/>
+    <android.widget.Button content-desc="login" text="Sign in" bounds="[40,600][360,680]"/>
+  </android.widget.FrameLayout>
+</hierarchy>`;
+const WELCOME_SOURCE = `<hierarchy><android.widget.FrameLayout bounds="[0,0][400,800]"><android.widget.TextView text="Welcome, Ann &amp; co" resource-id="com.shop:id/welcome" bounds="[40,80][360,140]"/></android.widget.FrameLayout></hierarchy>`;
+
 const server = http.createServer(async (req, res) => {
   const chunks: Buffer[] = [];
   for await (const chunk of req) chunks.push(chunk as Buffer);
@@ -102,7 +114,20 @@ const server = http.createServer(async (req, res) => {
     if (command === 'text') return json(200, { value: id === 'e-welcome' ? 'Welcome, Ann' : 'Sign in' });
   }
   if (rest === '/window/rect') return json(200, { value: { x: 0, y: 0, width: 400, height: 800 } });
-  if (rest === '/actions' || rest === '/back' || rest === '/appium/device/hide_keyboard' || rest === '/execute/sync') return json(200, { value: null });
+  if (rest === '/source') return json(200, { value: hub.signedIn ? WELCOME_SOURCE : SIGN_IN_SOURCE });
+  if (rest === '/actions') {
+    // A tap on a point (one move, down, up): on the sign-in button, it signs in as a click would.
+    const steps: any[] = body?.actions?.[0]?.actions ?? [];
+    const moves = steps.filter((a) => a.type === 'pointerMove');
+    if (moves.length === 1 && steps.some((a) => a.type === 'pointerUp')) {
+      const { x, y } = moves[0];
+      if (x >= 40 && x < 360 && y >= 600 && y < 680) {
+        hub.signedIn = hub.typed['e-email'] === 'ann@shop.test' && hub.typed['e-password'] === 'S3cret!';
+      }
+    }
+    return json(200, { value: null });
+  }
+  if (rest === '/back' || rest === '/appium/device/hide_keyboard' || rest === '/execute/sync') return json(200, { value: null });
   if (rest === '/screenshot') return json(200, { value: 'iVBORw0KGgo=' });
   json(404, { value: { error: 'unknown command', message: rest } });
 });
@@ -157,6 +182,8 @@ beforeAll(async () => {
 
   const { default: routes, mobileRunner } = await import('./mobile-tests.routes');
   mobileRunner.deps = { elementTimeoutMs: 600 };
+  const { inspectorDeps } = await import('../mobile-inspector');
+  inspectorDeps.elementTimeoutMs = 600;
   const { runWithTenant } = await import('../middleware/tenancy');
   app = express();
   app.use(express.json());
@@ -328,6 +355,80 @@ describe('running on a device', () => {
     currentUser = viewer;
     expect((await request(app).post(`/api/mobile-tests/${id}/runs`).send({ gridId: browserstack })).status).toBe(403);
     expect(hub.requests).toHaveLength(0);
+  });
+});
+
+describe('the inspector', () => {
+  const OPEN = { gridId: '', platform: 'android', app: SHOP.app, deviceName: 'Google Pixel 8', osVersion: '14.0' };
+  const find = (tree: any, match: (node: any) => boolean): any => {
+    if (match(tree)) return tree;
+    for (const child of tree.children ?? []) {
+      const found = find(child, match);
+      if (found) return found;
+    }
+    return null;
+  };
+
+  it('opens the app on a device, and follows it screen by screen', async () => {
+    const opened = await request(app).post('/api/mobile-inspector').send({ ...OPEN, gridId: browserstack });
+    expect(opened.status).toBe(201);
+    expect(opened.body).toMatchObject({ platform: 'android', window: { width: 400, height: 800 }, screenshot: 'iVBORw0KGgo=', device: 'Google Pixel 8 · Android 14.0' });
+    const button = find(opened.body.tree, (n) => n.attributes?.['content-desc'] === 'login');
+    expect(button).toMatchObject({ type: 'android.widget.Button', bounds: { x: 40, y: 600, width: 320, height: 80 } });
+    const session = hub.requests.find((r) => r.method === 'POST' && r.path === '/bs-hub/session')!;
+    expect(session.body.capabilities.alwaysMatch['bstack:options'].buildName).toBe('WebFlowMaster · inspector');
+    const id = opened.body.id;
+
+    const act = (body: unknown) => request(app).post(`/api/mobile-inspector/${id}/actions`).send(body);
+    // No environment in the inspector: a value naming a variable is refused with the name.
+    const variable = await act({ kind: 'step', step: { id: 'd', action: 'type', target: '~email', value: '{{user.email}}' } });
+    expect(variable.body.error).toMatch(/Unresolved variable\(s\) user\.email/);
+    expect((await act({ kind: 'step', step: { id: 'a', action: 'type', target: '~email', value: 'ann@shop.test' } })).body.error).toBeNull();
+    await act({ kind: 'step', step: { id: 'b', action: 'type', target: '~password', value: 'S3cret!' } });
+    // A tap on the picture of the button, in the tree's coordinates.
+    const after = await act({ kind: 'tapAt', x: 200, y: 640 });
+    expect(after.status).toBe(200);
+    expect(find(after.body.tree, (n) => n.attributes?.['resource-id'] === 'com.shop:id/welcome').attributes.text).toBe('Welcome, Ann & co');
+
+    const failed = await act({ kind: 'step', step: { id: 'c', action: 'tap', target: '~nothing' } });
+    expect(failed.body.error).toMatch(/No visible element ~nothing/);
+    expect(failed.body.tree).not.toBeNull();
+
+    expect((await request(app).get(`/api/mobile-inspector/${id}`)).status).toBe(200);
+    const audit = await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, organizationId));
+    expect(audit.some((a) => a.action === 'mobile_test.inspector_opened')).toBe(true);
+
+    hub.requests = [];
+    expect((await request(app).delete(`/api/mobile-inspector/${id}`)).status).toBe(204);
+    expect(hub.requests.some((r) => r.method === 'DELETE' && r.path === '/bs-hub/session/sess-1')).toBe(true);
+    const gone = await request(app).get(`/api/mobile-inspector/${id}`);
+    expect(gone.status).toBe(404);
+    expect(gone.body.error).toMatch(/has ended/);
+  });
+
+  it('holds one session per person, and keeps it from everybody else', async () => {
+    const first = (await request(app).post('/api/mobile-inspector').send({ ...OPEN, gridId: browserstack })).body.id;
+    const second = (await request(app).post('/api/mobile-inspector').send({ ...OPEN, gridId: lambdatest })).body.id;
+    expect((await request(app).get(`/api/mobile-inspector/${first}`)).status).toBe(404);
+    expect((await request(app).get(`/api/mobile-inspector/${second}`)).status).toBe(200);
+
+    currentUser = otherOrg;
+    expect((await request(app).get(`/api/mobile-inspector/${second}`)).status).toBe(404);
+    expect((await request(app).delete(`/api/mobile-inspector/${second}`)).status).toBe(404);
+    currentUser = viewer;
+    expect((await request(app).post('/api/mobile-inspector').send({ ...OPEN, gridId: browserstack })).status).toBe(403);
+    currentUser = editor;
+    await request(app).delete(`/api/mobile-inspector/${second}`);
+  });
+
+  it('refuses a Playwright server, and says why a device was not given, without the key', async () => {
+    const playwright = await request(app).post('/api/mobile-inspector').send({ ...OPEN, gridId: playwrightServer });
+    expect(playwright.status).toBe(400);
+    hub.refuseSession = 'Could not find device Google Pixel 99 (key grid-key-123)';
+    const refused = await request(app).post('/api/mobile-inspector').send({ ...OPEN, gridId: browserstack, deviceName: 'Google Pixel 99' });
+    expect(refused.status).toBe(502);
+    expect(refused.body.error).toMatch(/^BrowserStack: .*Could not find device Google Pixel 99/);
+    expect(refused.body.error).not.toContain('grid-key-123');
   });
 });
 

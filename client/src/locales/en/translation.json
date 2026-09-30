@@ -2675,7 +2675,8 @@
       "mobile_test_updated": "Mobile app test changed",
       "mobile_test_deleted": "Mobile app test deleted",
       "mobile_test_run": "Mobile app test run on a device",
-      "mobile_test_app_uploaded": "App uploaded to a device grid"
+      "mobile_test_app_uploaded": "App uploaded to a device grid",
+      "mobile_test_inspector_opened": "Inspector opened on a device"
     }
   },
   "security": {
@@ -3690,6 +3691,32 @@
     "delete": "Delete",
     "planGrid": "Runs in test plans on",
     "noPlanGrid": "No grid: not runnable in plans",
-    "planGridHint": "A test plan runs this test once per run, on this grid, whatever browsers the plan covers."
+    "planGridHint": "A test plan runs this test once per run, on this grid, whatever browsers the plan covers.",
+    "inspect": "Inspector",
+    "inspectNeeds": "The inspector needs a grid, the app and the device."
+  },
+  "mobileInspector": {
+    "title": "Inspector",
+    "description": "Pick elements on a real device: click the screen, then add a step with the locator you want.",
+    "opening": "The grid is finding a {{device}} and installing the app — a minute or two.",
+    "select": "Select",
+    "tapMode": "Tap on the device",
+    "swipeUp": "Swipe up",
+    "swipeDown": "Swipe down",
+    "refresh": "Read the screen again",
+    "screen": "The device's screen",
+    "noScreenshot": "The grid sent no picture of the screen; pick elements from the list.",
+    "record": "Record what I do here as steps",
+    "added": "{{count}} step(s) added to the test.",
+    "addAs": "Add as",
+    "unique": "unique",
+    "notUnique": "not unique",
+    "addStepWith": "Add step with {{locator}}",
+    "tapIt": "Tap it on the device",
+    "text": "Text",
+    "typeIt": "Type it",
+    "pick": "Click an element on the screen, or in the list below.",
+    "elements": "Elements on this screen",
+    "cost": "The device stays yours while this is open and is released when you close it, or after five minutes without use."
   }
 }

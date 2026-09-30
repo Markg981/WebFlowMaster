@@ -59,6 +59,33 @@ and the test cannot be saved until it is corrected. Values can use the environme
 <code v-pre>{{variables}}</code> and [generated values](./web-tests#generated-values), including
 <code v-pre>{{$totp(secret_mfa)}}</code>.
 
+## The inspector {#inspector}
+
+Finding what to call an element is the hard part of a mobile test. **Inspector**, under the steps
+of the test's dialog, opens the app on a real device of the grid — the one the test runs on in
+plans, else the one uploads go to — and shows its screen beside the list of its elements. It
+needs the app and the device filled in; the grid takes a minute or two to find the device.
+
+- **Click the screen** (or an element in the list): the element under the pointer is outlined,
+  with its attributes and the locators a step can use for it — accessibility id, resource id,
+  text, XPath — marked **unique** when they find only that element on this screen, unique ones
+  first. When nothing else is unique, an XPath by position is offered; it works, but breaks as
+  soon as the screen's layout changes.
+- **+** next to a locator adds a step at the end of the test, as the action chosen in **Add as**
+  (Tap by default; Assert visible, Wait for element, Assert not visible, Clear).
+- To reach the next screen, drive the device from here: **Tap it on the device** and **Type it**
+  on the selected element, **Tap on the device** to tap wherever you click the screen, the back
+  and swipe buttons, and ↻ to read the screen again. A step that fails says why, as in a run.
+- **Record what I do here as steps** adds each tap, text, back and swipe that succeeds to the test
+  as a step, so walking through the app writes the test.
+
+The inspector has no environment: a value with a <code v-pre>{{variable}}</code> is refused with
+its name. Type the value itself, then change it in the step.
+
+The device is yours while the inspector is open, and it costs grid minutes: closing the inspector
+gives it back, and so does leaving it unused for five minutes. One inspector per person at a time:
+opening another closes the first. Opening one is recorded in the audit log.
+
 ## Running it
 
 **Run** (▶) on a test's row: choose the grid and, for its variables, the environment. The grid
@@ -112,5 +139,4 @@ In each list it carries the label **Mobile**.
 
 ## What comes next
 
-An **inspector** to pick elements from a live screenshot of the device, then running on a local
-Appium (an emulator or a phone attached to an agent), are the next steps.
+Running on a local Appium — an emulator or a phone attached to an agent — is the next step.

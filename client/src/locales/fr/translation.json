@@ -2681,7 +2681,8 @@
       "mobile_test_updated": "Test d'application mobile modifié",
       "mobile_test_deleted": "Test d'application mobile supprimé",
       "mobile_test_run": "Test d'application mobile exécuté sur un appareil",
-      "mobile_test_app_uploaded": "Application envoyée à une grille d'appareils"
+      "mobile_test_app_uploaded": "Application envoyée à une grille d'appareils",
+      "mobile_test_inspector_opened": "Inspecteur ouvert sur un appareil"
     }
   },
   "security": {
@@ -3696,6 +3697,32 @@
     "delete": "Supprimer",
     "planGrid": "S'exécute dans les plans de test sur",
     "noPlanGrid": "Aucune grille : non exécutable dans les plans",
-    "planGridHint": "Un plan de test exécute ce test une fois par exécution, sur cette grille, quels que soient les navigateurs du plan."
+    "planGridHint": "Un plan de test exécute ce test une fois par exécution, sur cette grille, quels que soient les navigateurs du plan.",
+    "inspect": "Inspecteur",
+    "inspectNeeds": "L'inspecteur a besoin d'une grille, de l'app et de l'appareil."
+  },
+  "mobileInspector": {
+    "title": "Inspecteur",
+    "description": "Choisissez des éléments sur un appareil réel : cliquez sur l'écran, puis ajoutez une étape avec le localisateur voulu.",
+    "opening": "La grille cherche un {{device}} et installe l'app — une minute ou deux.",
+    "select": "Sélectionner",
+    "tapMode": "Toucher sur l'appareil",
+    "swipeUp": "Balayer vers le haut",
+    "swipeDown": "Balayer vers le bas",
+    "refresh": "Relire l'écran",
+    "screen": "L'écran de l'appareil",
+    "noScreenshot": "La grille n'a pas envoyé d'image de l'écran ; choisissez les éléments dans la liste.",
+    "record": "Enregistrer ce que je fais ici comme étapes",
+    "added": "{{count}} étape(s) ajoutée(s) au test.",
+    "addAs": "Ajouter comme",
+    "unique": "unique",
+    "notUnique": "non unique",
+    "addStepWith": "Ajouter une étape avec {{locator}}",
+    "tapIt": "Le toucher sur l'appareil",
+    "text": "Texte",
+    "typeIt": "Le saisir",
+    "pick": "Cliquez sur un élément de l'écran ou de la liste ci-dessous.",
+    "elements": "Éléments de cet écran",
+    "cost": "L'appareil reste à vous tant que ceci est ouvert ; il est libéré à la fermeture, ou après cinq minutes sans utilisation."
   }
 }

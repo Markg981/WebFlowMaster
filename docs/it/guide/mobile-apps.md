@@ -59,6 +59,36 @@ segnato in rosso e il test non si salva finché non è corretto. I valori posson
 <code v-pre>{{variabili}}</code> dell'ambiente e i [valori generati](./web-tests#valori-generati),
 compreso <code v-pre>{{$totp(secret_mfa)}}</code>.
 
+## L'inspector {#inspector}
+
+Trovare come indicare un elemento è la parte difficile di un test mobile. **Inspector**, sotto i
+passi nella finestra del test, apre l'app su un dispositivo reale della griglia — quella su cui il
+test gira nei piani, altrimenti quella scelta per il caricamento — e ne mostra lo schermo accanto
+all'elenco dei suoi elementi. Servono l'app e il dispositivo compilati; la griglia impiega un
+minuto o due a trovare il dispositivo.
+
+- **Cliccate sullo schermo** (o su un elemento dell'elenco): l'elemento sotto il puntatore viene
+  evidenziato, con i suoi attributi e i locator che un passo può usare — accessibility id,
+  resource id, testo, XPath — segnati **unico** quando trovano solo quell'elemento in questa
+  schermata, prima gli unici. Quando nient'altro è unico viene proposto un XPath per posizione:
+  funziona, ma si rompe appena cambia la disposizione della schermata.
+- **+** accanto a un locator aggiunge un passo in fondo al test, con l'azione scelta in
+  **Aggiungi come** (Tocca di default; Verifica visibile, Attendi elemento, Verifica non visibile,
+  Svuota).
+- Per arrivare alla schermata successiva guidate il dispositivo da qui: **Toccalo sul
+  dispositivo** e **Digitalo** sull'elemento selezionato, **Tocca sul dispositivo** per toccare
+  dove cliccate sullo schermo, i pulsanti indietro e scorri, e ↻ per rileggere lo schermo. Un
+  passo che fallisce dice perché, come in un'esecuzione.
+- **Registra come passi ciò che faccio qui** aggiunge al test ogni tocco, testo, indietro e
+  scorrimento riuscito, così percorrere l'app scrive il test.
+
+L'inspector non ha un ambiente: un valore con una <code v-pre>{{variabile}}</code> viene rifiutato
+con il suo nome. Digitate il valore vero e poi cambiatelo nel passo.
+
+Il dispositivo resta vostro finché l'inspector è aperto, e consuma minuti della griglia: chiuderlo
+lo restituisce, e così lasciarlo inutilizzato per cinque minuti. Un inspector per persona alla
+volta: aprirne un altro chiude il primo. L'apertura è registrata nel log di audit.
+
 ## Eseguirlo
 
 **Esegui** (▶) sulla riga di un test: scegliete la griglia e, per le sue variabili, l'ambiente. La
@@ -115,6 +145,5 @@ In ogni elenco porta l'etichetta **Mobile**.
 
 ## Cosa arriva dopo
 
-Un **inspector** per scegliere gli elementi da uno screenshot dal vivo del dispositivo, e poi
-l'esecuzione su un Appium locale (un emulatore o un telefono collegato a un agente), sono i
-prossimi passi.
+L'esecuzione su un Appium locale — un emulatore o un telefono collegato a un agente — è il
+prossimo passo.

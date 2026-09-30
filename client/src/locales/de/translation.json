@@ -2681,7 +2681,8 @@
       "mobile_test_updated": "Test einer mobilen App geändert",
       "mobile_test_deleted": "Test einer mobilen App gelöscht",
       "mobile_test_run": "Test einer mobilen App auf einem Gerät ausgeführt",
-      "mobile_test_app_uploaded": "App in ein Geräte-Grid hochgeladen"
+      "mobile_test_app_uploaded": "App in ein Geräte-Grid hochgeladen",
+      "mobile_test_inspector_opened": "Inspector auf einem Gerät geöffnet"
     }
   },
   "security": {
@@ -3696,6 +3697,32 @@
     "delete": "Löschen",
     "planGrid": "Läuft in Testplänen auf",
     "noPlanGrid": "Kein Grid: in Plänen nicht ausführbar",
-    "planGridHint": "Ein Testplan führt diesen Test einmal pro Lauf auf diesem Grid aus, unabhängig von den Browsern des Plans."
+    "planGridHint": "Ein Testplan führt diesen Test einmal pro Lauf auf diesem Grid aus, unabhängig von den Browsern des Plans.",
+    "inspect": "Inspector",
+    "inspectNeeds": "Der Inspector braucht ein Grid, die App und das Gerät."
+  },
+  "mobileInspector": {
+    "title": "Inspector",
+    "description": "Elemente auf einem echten Gerät auswählen: auf den Bildschirm klicken, dann einen Schritt mit dem gewünschten Locator hinzufügen.",
+    "opening": "Das Grid sucht ein {{device}} und installiert die App — ein bis zwei Minuten.",
+    "select": "Auswählen",
+    "tapMode": "Auf dem Gerät tippen",
+    "swipeUp": "Nach oben wischen",
+    "swipeDown": "Nach unten wischen",
+    "refresh": "Bildschirm neu lesen",
+    "screen": "Der Bildschirm des Geräts",
+    "noScreenshot": "Das Grid hat kein Bild des Bildschirms gesendet; Elemente aus der Liste wählen.",
+    "record": "Was ich hier tue als Schritte aufzeichnen",
+    "added": "{{count}} Schritt(e) zum Test hinzugefügt.",
+    "addAs": "Hinzufügen als",
+    "unique": "eindeutig",
+    "notUnique": "nicht eindeutig",
+    "addStepWith": "Schritt mit {{locator}} hinzufügen",
+    "tapIt": "Auf dem Gerät antippen",
+    "text": "Text",
+    "typeIt": "Eingeben",
+    "pick": "Ein Element auf dem Bildschirm oder in der Liste unten anklicken.",
+    "elements": "Elemente auf diesem Bildschirm",
+    "cost": "Das Gerät bleibt Ihres, solange dies geöffnet ist, und wird beim Schließen oder nach fünf Minuten ohne Nutzung freigegeben."
   }
 }

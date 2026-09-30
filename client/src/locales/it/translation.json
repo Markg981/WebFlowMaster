@@ -2800,7 +2800,8 @@
       "mobile_test_updated": "Test di app mobile modificato",
       "mobile_test_deleted": "Test di app mobile eliminato",
       "mobile_test_run": "Test di app mobile eseguito su un dispositivo",
-      "mobile_test_app_uploaded": "App caricata su una griglia di dispositivi"
+      "mobile_test_app_uploaded": "App caricata su una griglia di dispositivi",
+      "mobile_test_inspector_opened": "Inspector aperto su un dispositivo"
     }
   },
   "security": {
@@ -3815,6 +3816,32 @@
     "delete": "Elimina",
     "planGrid": "Nei piani di test gira su",
     "noPlanGrid": "Nessuna griglia: non eseguibile nei piani",
-    "planGridHint": "Un piano esegue questo test una volta per esecuzione, su questa griglia, qualunque siano i browser del piano."
+    "planGridHint": "Un piano esegue questo test una volta per esecuzione, su questa griglia, qualunque siano i browser del piano.",
+    "inspect": "Inspector",
+    "inspectNeeds": "L'inspector richiede una griglia, l'app e il dispositivo."
+  },
+  "mobileInspector": {
+    "title": "Inspector",
+    "description": "Scegliete gli elementi su un dispositivo reale: cliccate sullo schermo, poi aggiungete un passo con il locator che preferite.",
+    "opening": "La griglia sta cercando un {{device}} e installando l'app — un minuto o due.",
+    "select": "Seleziona",
+    "tapMode": "Tocca sul dispositivo",
+    "swipeUp": "Scorri in su",
+    "swipeDown": "Scorri in giù",
+    "refresh": "Rileggi lo schermo",
+    "screen": "Lo schermo del dispositivo",
+    "noScreenshot": "La griglia non ha inviato l'immagine dello schermo; scegliete gli elementi dall'elenco.",
+    "record": "Registra come passi ciò che faccio qui",
+    "added": "{{count}} passi aggiunti al test.",
+    "addAs": "Aggiungi come",
+    "unique": "unico",
+    "notUnique": "non unico",
+    "addStepWith": "Aggiungi un passo con {{locator}}",
+    "tapIt": "Toccalo sul dispositivo",
+    "text": "Testo",
+    "typeIt": "Digitalo",
+    "pick": "Cliccate un elemento sullo schermo o nell'elenco qui sotto.",
+    "elements": "Elementi di questa schermata",
+    "cost": "Il dispositivo resta vostro finché questa finestra è aperta e si libera quando la chiudete, o dopo cinque minuti senza uso."
   }
 }
