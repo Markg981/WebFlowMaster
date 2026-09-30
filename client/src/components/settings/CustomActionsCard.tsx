@@ -126,7 +126,7 @@ const CustomActionsCard: React.FC = () => {
         )}
 
         {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" aria-label={t('common.loading', 'Loading')} />
+          <Loader2 className="h-4 w-4 animate-spin" aria-label={t('settings.customActions.loading', 'Loading custom actions…')} />
         ) : actions.length === 0 && !draft ? (
           <p className="text-sm text-muted-foreground">{t('settings.customActions.empty', 'No custom actions yet.')}</p>
         ) : (

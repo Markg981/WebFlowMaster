@@ -341,7 +341,8 @@
       "script": "Script",
       "save": "Save",
       "cancel": "Cancel",
-      "new": "New custom action"
+      "new": "New custom action",
+      "loading": "Loading custom actions…"
     }
   },
   "dashboard": {

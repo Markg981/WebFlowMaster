@@ -341,7 +341,8 @@
       "script": "Skript",
       "save": "Speichern",
       "cancel": "Abbrechen",
-      "new": "Neue eigene Aktion"
+      "new": "Neue eigene Aktion",
+      "loading": "Eigene Aktionen werden geladen…"
     }
   },
   "dashboard": {

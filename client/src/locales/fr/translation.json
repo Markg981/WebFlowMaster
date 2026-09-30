@@ -341,7 +341,8 @@
       "script": "Script",
       "save": "Enregistrer",
       "cancel": "Annuler",
-      "new": "Nouvelle action personnalisée"
+      "new": "Nouvelle action personnalisée",
+      "loading": "Chargement des actions personnalisées…"
     }
   },
   "dashboard": {
