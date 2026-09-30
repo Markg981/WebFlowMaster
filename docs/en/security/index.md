@@ -153,6 +153,14 @@ This makes the workers' network position a security decision. See
 [Hardening](./hardening#network) for the rules an operator should apply, in particular on an
 installation where people from different companies can write tests.
 
+**Test inboxes.** A **Wait for email** step reads a Mailpit, which by design holds the mail of
+every address sent to it and has no notion of an owner. The step returns only mail to the exact
+address it names, received since its test started, but anyone who can reach the inbox can read
+all of it. Name the inbox per environment (the `mailpit.url` secret, with `mailpit.username` and
+`mailpit.password` when it is protected) and leave the server-wide `MAILPIT_URL` unset on an
+installation shared by several companies. Test inboxes are for test mail: never point real users'
+mail at one.
+
 ## Local agents
 
 A local agent lets a customer test applications inside their own network without opening it to

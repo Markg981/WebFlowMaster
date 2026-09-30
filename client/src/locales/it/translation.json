@@ -1313,6 +1313,11 @@
       "endLoop": {
         "name": "Fine ciclo",
         "description": "Chiude il blocco Ripeti."
+      },
+      "waitForEmail": {
+        "name": "Attendi email",
+        "description": "Attende l'email inviata a un indirizzo nella casella di test (Mailpit) e la legge nelle variabili email.otp, email.link, email.subject, email.from ed email.text.",
+        "valueHint": "indirizzo, indirizzo|oggetto, oppure indirizzo|oggetto|pattern — es. la variabile email, poi |Verifica il tuo account"
       }
     },
     "testSequenceBuilder": {

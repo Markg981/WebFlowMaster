@@ -166,6 +166,14 @@ Questo rende la posizione in rete dei worker una decisione di sicurezza. Vedi
 [Hardening](./hardening#rete) per le regole che un operatore dovrebbe applicare, in particolare
 su un'installazione dove persone di aziende diverse possono scrivere test.
 
+**Caselle di test.** Uno step **Attendi email** legge un Mailpit, che per costruzione contiene la
+posta di ogni indirizzo che vi arriva e non ha il concetto di proprietario. Lo step restituisce
+solo la posta all'indirizzo esatto che nomina, arrivata dopo l'inizio del suo test, ma chiunque
+raggiunga la casella può leggerla tutta. Indicate la casella per ambiente (il segreto
+`mailpit.url`, con `mailpit.username` e `mailpit.password` se è protetta) e lasciate vuota
+`MAILPIT_URL` del server su un'installazione condivisa da più aziende. Le caselle di test sono per
+la posta di test: non indirizzateci mai la posta di utenti reali.
+
 ## Agenti locali
 
 Un agente locale permette a un cliente di testare applicazioni dentro la propria rete senza

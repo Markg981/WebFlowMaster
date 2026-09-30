@@ -11,6 +11,7 @@ intorno:
 | `keycloak` | identity provider per l'area SSO e per OAuth 2.0 (API-04) | https://keycloak.collaudo.test |
 | `intranet` | applicazione su una rete privata, raggiungibile solo dall'agente (area AGT) | http://intranet.acme.local, solo dall'agente |
 | `ricevitore` | riceve e stampa i webhook delle notifiche (PLN-13) | http://ricevitore:8080, dall'interno |
+| `mailpit` | la casella di test: vi arrivano le email di Keycloak (WEB-45…WEB-47) | http://localhost:8025; SMTP `mailpit:1025` dall'interno |
 | `display` | lo schermo su cui si apre la finestra di registrazione (WEB-11, ENV-04) | http://localhost:6080 |
 | `agente` | l'agente locale (profilo `agente`), avviato quando il suo token esiste | — |
 | `agente-diverso` | un agente con un'altra versione di Playwright (profilo `agente-diverso`, AGT-05) | — |
@@ -130,6 +131,7 @@ registrato nel client. Utenti Keycloak, tutti con password `Collaudo.2026!`:
 | `nonverificata` | nonverificata@acme.test, non verificata | SSO-05 |
 | `fuori` | fuori@altro.test | SSO-05: avviare con un indirizzo `@acme.test`, accedere come fuori |
 | `luca` | luca@acme.test | SSO-05: il suo account è nell'organizzazione B |
+| `reimposta` | reimposta@acme.test | WEB-45: la sua password viene reimpostata via email a ogni esecuzione |
 
 La console di Keycloak (per cambiare un'e-mail o fermare il provider) è su
 https://keycloak.collaudo.test, utente `admin`, password `admin`.
@@ -137,6 +139,10 @@ https://keycloak.collaudo.test, utente `admin`, password `admin`.
 **OAuth 2.0 client credentials (API-04).** Token URL
 `https://keycloak.collaudo.test/realms/acme/protocol/openid-connect/token`, client `api-client`,
 secret `collaudo-api-secret`.
+
+**Email (WEB-45…WEB-47).** Keycloak manda le email di reimpostazione della password al Mailpit
+dello stack, che il worker legge da `MAILPIT_URL=http://mailpit:8025`. La posta arrivata si vede su
+http://localhost:8025.
 
 **Notifiche (PLN-13).** URL del webhook nel piano: `http://ricevitore:8080/notifiche`. Le
 chiamate ricevute si leggono con `wfmc logs -f ricevitore`.

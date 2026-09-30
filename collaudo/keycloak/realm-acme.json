@@ -5,6 +5,8 @@
   "sslRequired": "none",
   "loginWithEmailAllowed": true,
   "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "smtpServer": { "host": "mailpit", "port": "1025", "from": "noreply@acme.test", "fromDisplayName": "Acme" },
   "clients": [
     {
       "clientId": "webflowmaster",
@@ -78,6 +80,15 @@
       "emailVerified": true,
       "firstName": "Luca",
       "lastName": "Gialli",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Collaudo.2026!", "temporary": false }]
+    },
+    {
+      "username": "reimposta",
+      "email": "reimposta@acme.test",
+      "emailVerified": true,
+      "firstName": "Rita",
+      "lastName": "Reimposta",
       "enabled": true,
       "credentials": [{ "type": "password", "value": "Collaudo.2026!", "temporary": false }]
     }

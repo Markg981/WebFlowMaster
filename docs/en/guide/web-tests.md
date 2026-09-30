@@ -48,6 +48,7 @@ choose, the text to expect.
 | **Close tab** | Closes the current tab and goes back to the one that opened it. |
 | **Store text in variable** | Reads the element's text, or a field's value, into the variable the value names, for later steps. |
 | **Set variable** | `name=value`, for later steps. See [generated values](#generated-values). |
+| **Wait for email** | Waits for the email sent to an address and reads its code and link into variables. See [emails](#emails). |
 | **Set cookie** / **Clear cookies** | `name=value` for the current address; or deletes them all. |
 | **Set localStorage** | `key=value` in the current page's storage. |
 | **Run JavaScript** | Runs the value in the page. Fails when it throws or returns `false`, so it can check what no other step can. |
@@ -201,6 +202,45 @@ To skip the login in every test: choose the environment in the builder, start a 
 inside the recording window, and press **Save login for this environment**. Runs against that
 environment then start with that session; the environment shows as *signed in* in the picker. Save
 it again when the session expires.
+
+### Emails: codes and links {#emails}
+
+Sign-up, password reset and two-step sign-in send an email the test has to read. The
+**Wait for email** step reads it from the environment's **test inbox**, a
+[Mailpit](https://mailpit.axllent.org): a mail catcher that accepts everything the application
+sends to its SMTP port, for any address. Point the application's SMTP at it in the test environment
+(port 1025) and every address has a mailbox, including made-up ones.
+
+A sign-up, start to end:
+
+| Action | Value |
+|---|---|
+| Set variable | <code v-pre>email={{$randomEmail}}</code> |
+| Type | <code v-pre>{{email}}</code> in the address field, then submit the form |
+| Wait for email | <code v-pre>{{email}}\|Confirm your account</code> |
+| Type | <code v-pre>{{email.otp}}</code> in the code field — or **Navigate** to <code v-pre>{{email.link}}</code> |
+
+The value is the address, optionally followed by `|` and text the subject contains, and by a
+second `|` and a regular expression for the code: <code v-pre>{{email}}|Your code|code: ([A-Z0-9-]+)</code>
+reads what its first group matches. The step waits up to 60 seconds for the newest email to that
+exact address (in To, Cc or Bcc) that arrived **after the test started**, so a fixed address such
+as a seeded user's does not read the email of the previous run. Then it sets:
+
+| Variable | Holds |
+|---|---|
+| <code v-pre>{{email.otp}}</code> | The code: the first 4–8 digit number after a word such as *code*, *OTP*, *PIN* or *verification*, or the only one in the email; with a pattern, what the pattern found |
+| <code v-pre>{{email.link}}</code> | The first link to follow, skipping unsubscribe links, images and stylesheets |
+| <code v-pre>{{email.subject}}</code>, <code v-pre>{{email.from}}</code>, <code v-pre>{{email.text}}</code> | The subject, the sender's address and the text (an HTML-only email is turned into text) |
+
+A variable the email did not provide — no code, no link — is left undefined, so a later step that
+uses it fails and names it, rather than typing a value from an earlier email. A pattern that
+matches nothing fails the step.
+
+**Which inbox.** The environment's secrets `mailpit.url` (for example `https://mail.staging.example`)
+and, when it asks for them, `mailpit.username` and `mailpit.password`; `mailpit.timeout` changes
+the wait, in seconds. Without them, the server's own (`MAILPIT_URL`, which the docker-compose stack
+sets to its bundled Mailpit, open at http://localhost:8025). The inbox is read from where the
+browser runs, so a plan on a local agent reaches a Mailpit on the agent's network.
 
 ## Preconditions
 

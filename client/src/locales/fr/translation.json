@@ -1252,6 +1252,11 @@
       "endLoop": {
         "name": "Fin de boucle",
         "description": "Ferme le bloc Répéter."
+      },
+      "waitForEmail": {
+        "name": "Attendre un e-mail",
+        "description": "Attend l'e-mail envoyé à une adresse dans la boîte de test (Mailpit) et le lit dans les variables email.otp, email.link, email.subject, email.from et email.text.",
+        "valueHint": "adresse, adresse|objet, ou adresse|objet|motif — ex. la variable email, puis |Vérifiez votre compte"
       }
     },
     "saveTest": {

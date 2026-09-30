@@ -31,7 +31,7 @@ export const FLOW_ACTION_IDS: ReadonlySet<string> = new Set([
  * a hundred identical pictures and a minute of waiting to the report.
  */
 export function leavesPageAlone(actionId: string | undefined): boolean {
-  return !!actionId && (FLOW_ACTION_IDS.has(actionId) || actionId === "setVariable");
+  return !!actionId && (FLOW_ACTION_IDS.has(actionId) || actionId === "setVariable" || actionId === "waitForEmail");
 }
 
 /**
