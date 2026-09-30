@@ -2555,7 +2555,8 @@
       "member_provisioned": "Account creato al primo accesso",
       "custom_action_created": "Azione personalizzata creata",
       "custom_action_updated": "Azione personalizzata modificata",
-      "custom_action_deleted": "Azione personalizzata eliminata"
+      "custom_action_deleted": "Azione personalizzata eliminata",
+      "run_manual_result_recorded": "Esito manuale registrato"
     }
   },
   "security": {
@@ -2982,7 +2983,11 @@
       "actions": "Azioni"
     },
     "history": "Cronologia",
-    "delete": "Elimina"
+    "delete": "Elimina",
+    "newManual": "Nuovo test manuale",
+    "manualBadge": "Manuale",
+    "editManual": "Modifica step",
+    "manualSaved": "Test manuale salvato"
   },
   "authorSteps": {
     "title": "Descrivi il test",
@@ -3076,6 +3081,55 @@
       "account_elsewhere": "Un account con il tuo indirizzo appartiene a un'altra organizzazione di questa installazione.",
       "account_disabled": "Questo account è disattivato.",
       "account_linked": "Il tuo indirizzo è già collegato a un'altra identità presso il provider. Chiedi a un owner della tua organizzazione."
+    }
+  },
+  "manualTests": {
+    "newTitle": "Nuovo test manuale",
+    "editTitle": "Modifica test manuale",
+    "description": "Gli step che una persona esegue, ciascuno con il risultato atteso. In un run di un piano attende un esito nel report.",
+    "name": "Nome",
+    "step": "Step {{n}}",
+    "action": "Azione",
+    "expected": "Risultato atteso",
+    "addStep": "Aggiungi step",
+    "moveUp": "Sposta su",
+    "moveDown": "Sposta giù",
+    "removeStep": "Rimuovi step",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "errors": {
+      "name": "Date un nome al test.",
+      "steps": "Scrivete almeno uno step.",
+      "duplicate": "Esiste già un test con questo nome.",
+      "save": "Impossibile salvare il test."
+    }
+  },
+  "manualResults": {
+    "title": "Test manuali",
+    "waiting": "{{count}} in attesa di esito",
+    "description": "Eseguite ogni test, segnate com’è andato ogni step e date l’esito. I conteggi e lo stato del run si aggiornano.",
+    "notYet": "Gli esiti si possono registrare quando il run è terminato.",
+    "stepOutcome": "Esito dello step {{n}}",
+    "notes": "Note",
+    "notesPlaceholder": "Cosa è successo, la issue aperta, l’ambiente usato",
+    "saveFailed": "Impossibile registrare l’esito.",
+    "recordedBy": "Registrato da {{name}} il {{when}}",
+    "step": {
+      "passed": "OK",
+      "failed": "KO",
+      "skipped": "Non eseguito"
+    },
+    "verdict": {
+      "passed": "Superato",
+      "failed": "Fallito",
+      "blocked": "Bloccato"
+    },
+    "status": {
+      "pending": "In attesa",
+      "blocked": "Bloccato",
+      "passed": "Superato",
+      "failed": "Fallito",
+      "error": "Errore"
     }
   }
 }

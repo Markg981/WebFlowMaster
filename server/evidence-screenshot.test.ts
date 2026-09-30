@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { evidenceScreenshot } from './playwright-service';
 
 /**
  * "Unable to capture screenshot" is Chromium's, and it came through a CI run as a failed
@@ -23,7 +24,6 @@ const fakePage = (outcomes: Array<Buffer | Error>, closed = false) => {
 
 describe('evidenceScreenshot', () => {
   it('tries again once the page has settled, and returns the picture', async () => {
-    const { evidenceScreenshot } = await import('./playwright-service');
     const png = Buffer.from('png');
     const { page, screenshot } = fakePage([new Error('Protocol error (Page.captureScreenshot): Unable to capture screenshot'), png]);
     const missing = vi.fn();
@@ -34,7 +34,6 @@ describe('evidenceScreenshot', () => {
   });
 
   it('returns nothing, and says why, when the picture cannot be had', async () => {
-    const { evidenceScreenshot } = await import('./playwright-service');
     const { page } = fakePage([new Error('Unable to capture screenshot'), new Error('Unable to capture screenshot')]);
     const missing = vi.fn();
 
@@ -43,7 +42,6 @@ describe('evidenceScreenshot', () => {
   });
 
   it('does not wait on a page that is already closed', async () => {
-    const { evidenceScreenshot } = await import('./playwright-service');
     const { page, screenshot } = fakePage([new Error('Target closed')], true);
 
     await expect(evidenceScreenshot(page as never)).resolves.toBeUndefined();

@@ -10,7 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import TagPicker, { type TagRef } from '@/components/tags/TagPicker';
 import TestHistoryDialog from '@/components/tests/TestHistoryDialog';
-import { History, Loader2, Search, Trash2 } from 'lucide-react';
+import ManualTestDialog from '@/components/tests/ManualTestDialog';
+import { isManualSequence } from '@shared/manual-tests';
+import { ClipboardCheck, History, Loader2, Pencil, Search, Trash2 } from 'lucide-react';
 
 /**
  * Every test this organization has, in one place.
@@ -31,6 +33,7 @@ interface LibraryTest {
   status: string;
   updatedAt: string;
   tags: TagRef[];
+  sequence?: unknown;
 }
 
 interface TagSummary extends TagRef {
@@ -46,6 +49,8 @@ const TestLibraryPage: React.FC = () => {
   const [activeTagIds, setActiveTagIds] = useState<string[]>([]);
   const [historyFor, setHistoryFor] = useState<{ id: number; name: string } | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
+  /** The manual test being written or edited: null closed, 'new' for a new one. */
+  const [manualEditing, setManualEditing] = useState<LibraryTest | 'new' | null>(null);
 
   const { data: testsData, isLoading, error } = useQuery<LibraryTest[], Error>({
     queryKey: ['/api/tests'],
@@ -202,6 +207,10 @@ const TestLibraryPage: React.FC = () => {
             </Button>
           )}
         </div>
+        <Button variant="outline" className="ml-auto" onClick={() => setManualEditing('new')}>
+          <ClipboardCheck className="mr-2 h-4 w-4" />
+          {t('testLibrary.newManual', 'New manual test')}
+        </Button>
       </div>
 
       <Card className="mt-4 overflow-hidden">
@@ -233,7 +242,12 @@ const TestLibraryPage: React.FC = () => {
               <TableBody>
                 {visible.map((test) => (
                   <TableRow key={test.id}>
-                    <TableCell className="font-medium">{test.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {test.name}
+                      {isManualSequence(test.sequence) && (
+                        <Badge variant="secondary" className="ml-2 font-normal">{t('testLibrary.manualBadge', 'Manual')}</Badge>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <TagPicker
                         selected={test.tags ?? []}
@@ -244,12 +258,17 @@ const TestLibraryPage: React.FC = () => {
                       />
                     </TableCell>
                     <TableCell className="max-w-xs truncate text-xs text-muted-foreground" title={test.url}>
-                      {test.url}
+                      {test.url || '—'}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {test.updatedAt ? new Date(test.updatedAt).toLocaleString() : '—'}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
+                      {isManualSequence(test.sequence) && (
+                        <Button variant="ghost" size="sm" onClick={() => setManualEditing(test)} title={t('testLibrary.editManual', 'Edit steps')}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -281,6 +300,16 @@ const TestLibraryPage: React.FC = () => {
         onClose={() => setHistoryFor(null)}
         test={historyFor}
         onRestore={(version) => restore(historyFor!.id, version)}
+      />
+
+      <ManualTestDialog
+        isOpen={manualEditing !== null}
+        onClose={() => setManualEditing(null)}
+        test={manualEditing === 'new' || manualEditing === null ? null : manualEditing}
+        onSaved={() => {
+          void refresh();
+          toast({ title: t('testLibrary.manualSaved', 'Manual test saved') });
+        }}
       />
     </div>
   );

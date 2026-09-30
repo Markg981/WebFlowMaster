@@ -26,6 +26,7 @@ import { AgentHttp } from './agents/agent-fetch';
 import type { Assertion, AuthParams } from '@shared/schema';
 import { browsersForRun, describeBrowser, hasConfiguredBrowsers, launchBrowser, onAgents, type BrowserChoice } from './browsers';
 import { LOCALE_VARIABLE, passLabel } from '@shared/locales';
+import { isManualSequence, manualStepsOf, type ManualResultLog } from '@shared/manual-tests';
 import { effectiveConcurrency, runWithConcurrency } from './concurrency';
 import type { VisualContext } from './visual-testing';
 import { shouldRecord } from './run-evidence';
@@ -170,6 +171,19 @@ export async function runTest(
   const testName = test.name;
 
   resolvedLogger.info({ message: `Starting ${testType} test execution`, testId, testName, planId, runId, userId });
+
+  if (testType === 'ui' && isManualSequence((test as Test).sequence)) {
+    // Nothing for a browser to do: a person performs it and records the result in a plan run.
+    return {
+      testId,
+      testType: 'ui',
+      name: testName,
+      success: false,
+      status: 'skipped',
+      error: 'Manual test: it is performed by a person, and its result is recorded in the report of a plan run.',
+      durationMs: 0,
+    };
+  }
 
   if (testType === 'ui') {
     const uiTest = test as Test;
@@ -985,6 +999,19 @@ async function runTestPlanJobInTenant(
 
     if (reportStatus === 'Skipped') {
       // Stopped before it started; recorded below with the reason.
+    } else if (testTypeForRun === 'ui' && testObjectDefinition && isManualSequence((testObjectDefinition as Test).sequence)) {
+      // A manual test: no browser. It waits in the report for somebody's verdict, with the
+      // steps of the version that ran, so a later edit does not change what was asked.
+      reportStatus = 'Pending';
+      const log: ManualResultLog = { manual: true, steps: manualStepsOf((testObjectDefinition as Test).sequence) };
+      stepsOrLogData = JSON.stringify(log);
+      wsEmitter.emitExecutionLog(testPlanRunId, {
+        level: 'info',
+        source: 'system',
+        message: `Manual test: ${testName} is waiting for its result in the run report.`,
+        timestamp: new Date().toISOString(),
+        metadata: { testId: link.testId, manual: true },
+      });
     } else if (testObjectDefinition && testTypeForRun) {
       if (testTypeForRun === 'ui' && typeof (testObjectDefinition as Test).sequence === 'string') {
         try { (testObjectDefinition as Test).sequence = JSON.parse((testObjectDefinition as Test).sequence as any); }
@@ -1220,12 +1247,21 @@ async function runTestPlanJobInTenant(
   // plan of its own, and starts with {{locale}} among its variables so UI and API tests can
   // both read it.
   const runLocales: Array<string | undefined> = snapshot.locales && snapshot.locales.length > 0 ? snapshot.locales : [undefined];
-  const lanes = usablePasses.flatMap((browserChoice) =>
-    runLocales.map((locale) => ({
-      browserChoice,
-      units: selectedTestsLinks.map((link) => ({ browserChoice, locale, link }) as RunUnit),
-      captured: (locale ? { [LOCALE_VARIABLE]: locale } : {}) as Record<string, string>,
-    })),
+  // A manual test is done once per run by a person, not once per browser and language: only the
+  // first lane carries it, and its result names no browser.
+  const isManualLink = (link: (typeof selectedTestsLinks)[number]) =>
+    link.testType === 'ui' && !!link.testId && isManualSequence(uiTestsMap.get(link.testId)?.sequence);
+  const lanes = usablePasses.flatMap((browserChoice, browserIndex) =>
+    runLocales.map((locale, localeIndex) => {
+      const first = browserIndex === 0 && localeIndex === 0;
+      return {
+        browserChoice,
+        units: selectedTestsLinks
+          .filter((link) => first || !isManualLink(link))
+          .map((link) => (isManualLink(link) ? { link } : { browserChoice, locale, link }) as RunUnit),
+        captured: (locale ? { [LOCALE_VARIABLE]: locale } : {}) as Record<string, string>,
+      };
+    }),
   );
 
   /**

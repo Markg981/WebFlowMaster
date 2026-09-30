@@ -24,6 +24,22 @@ Around it:
 - How a run ended when it did not finish: **Cancelled**, **Timed out** or **Did not finish** (the
   runner stopped).
 
+### Manual results {#manual-results}
+
+A run's [manual tests](./organizing#manual-tests) show in the **Manual tests** card, one row per
+test, **Waiting** until somebody records its result; a run with tests waiting still ends as
+completed. Once the run has ended, an editor opens the row, marks each step **OK**, **KO** or **Not
+done** with a note, and records the verdict:
+
+- **Passed** counts with the passed tests.
+- **Failed** counts with the failed ones and fails the run; the reason shown is the note, or else
+  the note of the first KO step.
+- **Blocked** (it could not be performed) counts with the skipped ones.
+
+Each verdict works out the run's totals and status again, so the report mixes manual and automated
+results. A cancelled or timed-out run keeps its ending. A verdict can be corrected by recording it
+again; the row says who recorded it and when, and every recording goes into the audit log.
+
 ### A step's details
 
 Opening a step shows its **screenshot**, the error it failed with, and — when kept by the plan —

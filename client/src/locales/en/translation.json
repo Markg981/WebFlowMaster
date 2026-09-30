@@ -2430,7 +2430,8 @@
       "member_provisioned": "Account created at first sign-in",
       "custom_action_created": "Custom action created",
       "custom_action_updated": "Custom action changed",
-      "custom_action_deleted": "Custom action deleted"
+      "custom_action_deleted": "Custom action deleted",
+      "run_manual_result_recorded": "Manual result recorded"
     }
   },
   "security": {
@@ -2857,7 +2858,11 @@
       "actions": "Actions"
     },
     "history": "History",
-    "delete": "Delete"
+    "delete": "Delete",
+    "newManual": "New manual test",
+    "manualBadge": "Manual",
+    "editManual": "Edit steps",
+    "manualSaved": "Manual test saved"
   },
   "authorSteps": {
     "title": "Describe the test",
@@ -2951,6 +2956,55 @@
       "account_elsewhere": "An account with your address belongs to another organization on this installation.",
       "account_disabled": "This account is disabled.",
       "account_linked": "Your address is already linked to another identity at your provider. Ask an owner of your organization."
+    }
+  },
+  "manualTests": {
+    "newTitle": "New manual test",
+    "editTitle": "Edit manual test",
+    "description": "The steps a person performs, each with the result to expect. In a plan run it waits for a verdict in the report.",
+    "name": "Name",
+    "step": "Step {{n}}",
+    "action": "Action",
+    "expected": "Expected result",
+    "addStep": "Add step",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "removeStep": "Remove step",
+    "cancel": "Cancel",
+    "save": "Save",
+    "errors": {
+      "name": "Give the test a name.",
+      "steps": "Write at least one step.",
+      "duplicate": "A test with this name already exists.",
+      "save": "Could not save the test."
+    }
+  },
+  "manualResults": {
+    "title": "Manual tests",
+    "waiting": "{{count}} waiting for a result",
+    "description": "Perform each test, mark how every step went, and give the verdict. The run’s counts and status follow.",
+    "notYet": "Results can be recorded once the run has finished.",
+    "stepOutcome": "Outcome of step {{n}}",
+    "notes": "Notes",
+    "notesPlaceholder": "What happened, the issue opened, the environment used",
+    "saveFailed": "Could not record the result.",
+    "recordedBy": "Recorded by {{name}} on {{when}}",
+    "step": {
+      "passed": "OK",
+      "failed": "KO",
+      "skipped": "Not done"
+    },
+    "verdict": {
+      "passed": "Passed",
+      "failed": "Failed",
+      "blocked": "Blocked"
+    },
+    "status": {
+      "pending": "Waiting",
+      "blocked": "Blocked",
+      "passed": "Passed",
+      "failed": "Failed",
+      "error": "Error"
     }
   }
 }

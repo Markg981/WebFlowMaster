@@ -9,6 +9,19 @@ salvato l'ultima volta. Cercate per nome, o filtrate cliccando un tag. Da ogni r
 I **tag** sono le etichette della vostra organizzazione — `smoke`, `checkout`, `nightly` — e si
 aggiungono dalla riga del test. Sono ciò con cui le [suite dinamiche](#suite) selezionano i test.
 
+## Test manuali {#test-manuali}
+
+Non tutto vale la pena di automatizzarlo: una verifica fatta una volta a rilascio, un flusso che
+richiede il giudizio di una persona, un dispositivo che nessun browser può sostituire. **Nuovo test
+manuale** nella libreria ne scrive uno: un nome e i suoi step, ciascuno con l'**azione** da
+eseguire e il **risultato atteso**. Compare nella libreria con l'etichetta **Manuale**, e la sua
+matita ne modifica gli step.
+
+Un test manuale è un test come gli altri: ha versioni e revisioni, porta tag, entra in suite e
+piani. In un run non apre alcun browser: attende nel report del run l'esito di una persona (vedi
+[Esiti manuali](./results#esiti-manuali)), una volta per run qualunque siano i browser e le lingue
+del piano.
+
 ## Cronologia e versioni {#cronologia-e-versioni}
 
 Ogni salvataggio di un test è una **versione**, numerata da 1. La **Cronologia** le mostra dalla

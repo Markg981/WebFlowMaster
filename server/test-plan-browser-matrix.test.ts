@@ -167,6 +167,32 @@ describe('a run delivered twice', () => {
   });
 });
 
+describe('a manual test in a plan', () => {
+  it('opens no browser, and waits once per run for a verdict, whatever the matrix', async () => {
+    await seedPlan({ locales: ['it-IT', 'en-US'] });
+    const { toSequence, readManualLog } = await import('@shared/manual-tests');
+    const [manual] = await privilegedDb
+      .insert(testsTable)
+      .values({
+        userId, organizationId, name: 'Refund by hand', url: '',
+        sequence: toSequence([{ action: 'Press Refund', expected: 'Refunded' }]), elements: [],
+      })
+      .returning();
+    await privilegedDb.insert(testPlanSelectedTests).values({ testPlanId: planId, testType: 'ui', testId: manual.id, organizationId } as any);
+
+    await runPlan({ browsers: ['chromium', 'firefox'] });
+
+    const rows = await privilegedDb.select().from(reportTestCaseResults);
+    const manualRows = rows.filter((row) => row.uiTestId === manual.id);
+    expect(manualRows).toHaveLength(1);
+    expect(manualRows[0]).toMatchObject({ status: 'Pending', browser: null });
+    expect(readManualLog(manualRows[0].detailedLog)?.steps).toEqual([{ action: 'Press Refund', expected: 'Refunded' }]);
+    // The automated test still ran on every browser and language.
+    expect(rows.filter((row) => row.uiTestId === uiTestId)).toHaveLength(4);
+    expect(executeTestSequence.mock.calls.every((call) => call[0].id !== manual.id)).toBe(true);
+  });
+});
+
 describe('the languages a plan asks for', () => {
   it('runs each test once per language on each browser, in that language, and labels each result', async () => {
     await seedPlan({ locales: ['it-IT', 'en-US'] });

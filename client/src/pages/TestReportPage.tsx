@@ -21,6 +21,7 @@ import ExportRunMenu from '@/components/reports/ExportRunMenu';
 import type { NetworkSummary } from '@shared/network';
 import { describeCi, type CiContext } from '@shared/ci';
 import CancelRunButton from '@/components/reports/CancelRunButton';
+import ManualResultsCard from '@/components/reports/ManualResultsCard';
 // One list of "still going" states, shared with the server: 'queued' was missing from this page's own copy.
 import { isExecutionInFlight } from '@shared/execution-status';
 
@@ -333,6 +334,12 @@ const TestReportPage: React.FC = () => {
         </CardContent></Card>
 
         {/* Failed Tests Table */}
+        <ManualResultsCard
+          executionId={header.executionId}
+          runStatus={header.status}
+          rows={Object.values(testGroupings ?? {}).flatMap((group) => Object.values(group.components ?? {}).flatMap((component) => component.tests ?? []))}
+          onRecorded={() => refetch()}
+        />
         {failedTestDetails.length > 0 && (<Card className="border-destructive"><CardHeader><CardTitle className={`${getStatusColor('failed')}`}>Failed Tests ({failedTestDetails.length})</CardTitle></CardHeader><CardContent className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead className="min-w-[200px]">Test Name</TableHead><TableHead>Browser</TableHead><TableHead className="min-w-[250px]">Reason for Failure</TableHead><TableHead>Component</TableHead><TableHead>Priority</TableHead><TableHead>Severity</TableHead><TableHead>Duration</TableHead><TableHead>Issue</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader><TableBody>{failedTestDetails.map((test) => (<TableRow key={test.id}><TableCell className="font-medium py-2">{test.testName}{test.testVersion != null && <Badge variant="outline" className="ml-2 font-normal" title="The version of the test this run used">v{test.testVersion}</Badge>}<AttemptsBadge attempts={test.attempts} status="Failed" /><QuarantinedBadge quarantined={test.quarantined} /></TableCell><TableCell className="py-2 whitespace-nowrap text-xs">{test.browser || 'not recorded'}</TableCell><TableCell className="text-xs max-w-xs truncate py-2" title={test.reasonForFailure || undefined}>{test.reasonForFailure || 'No reason provided'}</TableCell><TableCell className="py-2"><Badge variant="outline" className="whitespace-nowrap">{test.component || 'N/A'}</Badge></TableCell><TableCell className="py-2"><Badge variant={test.priority === 'Critical' || test.priority === 'High' ? 'destructive' : 'secondary'} className="whitespace-nowrap">{test.priority || 'N/A'}</Badge></TableCell><TableCell className="py-2"><Badge variant={test.severity === 'Blocker' || test.severity === 'Critical' ? 'destructive' : 'secondary'} className="whitespace-nowrap">{test.severity || 'N/A'}</Badge></TableCell><TableCell className="py-2 whitespace-nowrap">{formatDuration(test.durationMs)}</TableCell><TableCell className="py-2"><IssueCell link={issueFor(test.testName, test.browser)} onFile={() => fileIssue(test.id)} /></TableCell><TableCell className="py-2 space-x-1">{test.screenshotUrl && <Button variant="ghost" size="sm" asChild><a href={test.screenshotUrl} target="_blank" rel="noreferrer" title="View Screenshot"><ImageIcon className="h-4 w-4" /></a></Button>}{test.videoUrl && <Button variant="ghost" size="sm" asChild><a href={test.videoUrl} target="_blank" rel="noreferrer" title="Watch the run"><Video className="h-4 w-4" /></a></Button>}{test.steps?.length > 0 && <Button variant="ghost" size="sm" title="View steps" onClick={() => setOpenedSteps({ testName: test.testName, browser: test.browser, steps: test.steps, videoUrl: test.videoUrl, traceUrl: test.traceUrl, harUrl: test.harUrl, network: test.networkSummary })}><FileText className="h-4 w-4" /></Button>}</TableCell></TableRow>))}</TableBody></Table></CardContent></Card>)}
 
         {/* Accordion */}

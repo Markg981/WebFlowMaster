@@ -1329,6 +1329,8 @@ export const AUDIT_ACTIONS = {
   SOURCE_HOST_CONNECTED: 'source_host.connected',
   SOURCE_HOST_REMOVED: 'source_host.removed',
   RUN_CANCELLED: 'run.cancelled',
+  // A person's verdict on a manual test in a run (shared/manual-tests.ts).
+  RUN_MANUAL_RESULT_RECORDED: 'run.manual_result_recorded',
   // Where tests run and with what. Secrets by name only — never a value.
   ENVIRONMENT_CREATED: 'environment.created',
   ENVIRONMENT_DELETED: 'environment.deleted',
