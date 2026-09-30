@@ -3614,7 +3614,10 @@
     "run": "Esecuzione",
     "noMatch": "Nulla corrisponde ai filtri.",
     "deleteTitle": "Eliminare {{key}}?",
-    "deleteBody": "I suoi collegamenti ai test vengono eliminati; i test e i loro risultati restano. Ciò che contiene passa al primo livello. Nel tracker non cambia nulla."
+    "deleteBody": "I suoi collegamenti ai test vengono eliminati; i test e i loro risultati restano. Ciò che contiene passa al primo livello. Nel tracker non cambia nulla.",
+    "generateTests": "Genera test",
+    "generateTestsFor": "Genera test per {{key}}",
+    "generated": "{{count}} test creati e collegati"
   },
   "testManagement": {
     "clientId": "Client id",
@@ -3683,5 +3686,39 @@
     "planConnection": "La connessione del piano",
     "again": "Pubblica di nuovo",
     "publish": "Pubblica"
+  },
+  "generateTests": {
+    "kind": {
+      "positive": "Percorso principale",
+      "negative": "Errore",
+      "edge": "Limite"
+    },
+    "proposeFailed": "Non è stato possibile proporre test.",
+    "preconditionsStep": "Precondizioni: {{text}}",
+    "nameMissing": "Ogni test scelto deve avere un nome.",
+    "stepsMissing": "Ogni test scelto deve avere almeno un passo.",
+    "createFailed": "I test non sono stati creati.",
+    "title": "Test per {{key}}",
+    "description": "Un modello AI legge la story e i suoi criteri di accettazione e propone casi di test. Correggeteli, tenete quelli che volete, e diventano test manuali collegati alla story.",
+    "count": "Quanti al massimo",
+    "again": "Proponi di nuovo",
+    "propose": "Proponi test",
+    "reading": "Lettura della story e scrittura dei casi di test… può richiedere un minuto.",
+    "fromTracker": "Scritti da {{key}} com'è ora nel tracker",
+    "fromRequirement": "Scritti dalla descrizione di {{key}}",
+    "acceptance": "Criteri di accettazione",
+    "keep": "Tieni {{name}}",
+    "name": "Nome del test {{n}}",
+    "covers": "Copre: {{criterion}}",
+    "preconditions": "Precondizioni",
+    "preconditionsOf": "Precondizioni del test {{n}}",
+    "action": "Azione",
+    "actionOf": "Azione {{step}} del test {{n}}",
+    "expected": "Risultato atteso",
+    "expectedOf": "Risultato atteso {{step}} del test {{n}}",
+    "removeStep": "Rimuovi il passo {{step}} del test {{n}}",
+    "addStep": "Aggiungi passo",
+    "cancel": "Annulla",
+    "create": "Crea {{count}} test"
   }
 }

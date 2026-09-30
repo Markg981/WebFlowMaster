@@ -106,6 +106,24 @@ named, left out of the state, and stays linked when you change the others. Viewe
 add, import, link and delete. Deleting a requirement removes its links, never the tests; what it
 contained moves to the top level.
 
+### Tests from a story {#tests-from-a-story}
+
+The sparkle button on a requirement's row proposes test cases for it, when the operator has set up
+the AI model. It reads the story as the tracker has it **now** — its description and its acceptance
+criteria (Jira: the fields named *Acceptance criteria*; Azure DevOps: *Acceptance Criteria*) — or,
+for a requirement typed in here, its description. **Propose tests** asks for up to the number
+chosen (6 by default, at most 12), written in the language of the interface: the main path, the
+mistakes a user can make, and the limits, each with the criterion it covers, its preconditions and
+its steps (an action and the result expected).
+
+Nothing is created until you say so. Every case can be renamed and corrected — steps added,
+removed, rewritten — and unticked; **Create** makes the ticked ones **manual tests**, linked to the
+requirement, the preconditions as their first step. They run in plans like any manual test, and
+their steps are sentences that [describing a test in sentences](./web-tests#describing-a-test-in-sentences) turns into an
+automated test later. A name that is already taken refuses the lot and is shown in red; nothing is
+half created. **Propose again** asks for new cases. Editors only; the story's text is sent to the
+model (see [AI features](../security/#ai-features)), and nothing is written to the tracker.
+
 ## Test Manager
 
 **Test Manager** is for teams whose test cases live in Excel. **Upload Excel** (.xlsx or .xls)

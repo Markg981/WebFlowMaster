@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import RequirementDialog, { type RequirementPayload } from '@/components/requirements/RequirementDialog';
 import LinkTestsDialog, { type LinkedTest } from '@/components/requirements/LinkTestsDialog';
+import GenerateTestsDialog from '@/components/requirements/GenerateTestsDialog';
 import ImportRequirementsDialog, { type ImportRequest, type TrackerOption } from '@/components/requirements/ImportRequirementsDialog';
 import {
   COVERAGE_STATES,
@@ -27,7 +28,7 @@ import {
 } from '@shared/requirements';
 import {
   CheckCircle2, ChevronDown, ChevronRight, CircleDashed, CircleOff, Download, ExternalLink,
-  Link2, Loader2, Pencil, Plus, Trash2, Upload, XCircle,
+  Link2, Loader2, Pencil, Plus, Sparkles, Trash2, Upload, XCircle,
 } from 'lucide-react';
 
 /**
@@ -141,6 +142,7 @@ const RequirementsPage: React.FC = () => {
   const [linking, setLinking] = useState<{ row: RequirementRow; tests: LinkedTest[] } | null>(null);
   const [importing, setImporting] = useState(false);
   const [deleting, setDeleting] = useState<RequirementRow | null>(null);
+  const [generating, setGenerating] = useState<RequirementRow | null>(null);
 
   const scopeQuery = executionId ? `?executionId=${encodeURIComponent(executionId)}` : planId !== ALL ? `?planId=${encodeURIComponent(planId)}` : '';
 
@@ -442,6 +444,9 @@ const RequirementsPage: React.FC = () => {
                             <Button variant="outline" size="sm" onClick={() => openLinks(row)}>
                               <Link2 className="mr-1 h-4 w-4" /> {t('requirements.linkTests', 'Tests')}
                             </Button>
+                            <Button variant="outline" size="sm" onClick={() => setGenerating(row)} title={t('requirements.generateTests', 'Generate tests')} aria-label={t('requirements.generateTestsFor', 'Generate tests for {{key}}', { key: row.key })}>
+                              <Sparkles className="h-4 w-4" />
+                            </Button>
                             <Button variant="outline" size="sm" onClick={() => setEditing(row)} aria-label={t('requirements.edit', 'Edit')}>
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -503,6 +508,15 @@ const RequirementsPage: React.FC = () => {
         saving={saveLinks.isPending}
         onClose={() => setLinking(null)}
         onSave={(items) => saveLinks.mutate(items)}
+      />
+      <GenerateTestsDialog
+        requirement={generating ? { id: generating.id, key: generating.key, title: generating.title } : null}
+        onClose={() => setGenerating(null)}
+        onCreated={async (count) => {
+          setGenerating(null);
+          await refresh();
+          toast({ title: t('requirements.generated', '{{count}} tests created and linked', { count }) });
+        }}
       />
       <ImportRequirementsDialog
         isOpen={importing}

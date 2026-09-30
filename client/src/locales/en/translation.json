@@ -3489,7 +3489,10 @@
     "run": "Run",
     "noMatch": "Nothing matches the filters.",
     "deleteTitle": "Delete {{key}}?",
-    "deleteBody": "Its links to tests go with it; the tests and their results stay. What it contains moves to the top level. Nothing changes in the tracker."
+    "deleteBody": "Its links to tests go with it; the tests and their results stay. What it contains moves to the top level. Nothing changes in the tracker.",
+    "generateTests": "Generate tests",
+    "generateTestsFor": "Generate tests for {{key}}",
+    "generated": "{{count}} tests created and linked"
   },
   "testManagement": {
     "clientId": "Client id",
@@ -3558,5 +3561,39 @@
     "planConnection": "The plan’s connection",
     "again": "Publish again",
     "publish": "Publish"
+  },
+  "generateTests": {
+    "kind": {
+      "positive": "Main path",
+      "negative": "Error",
+      "edge": "Limit"
+    },
+    "proposeFailed": "No tests could be proposed.",
+    "preconditionsStep": "Preconditions: {{text}}",
+    "nameMissing": "Every chosen test needs a name.",
+    "stepsMissing": "Every chosen test needs at least one step.",
+    "createFailed": "The tests were not created.",
+    "title": "Tests for {{key}}",
+    "description": "An AI model reads the story and its acceptance criteria and proposes test cases. Correct them, keep the ones you want, and they become manual tests linked to the story.",
+    "count": "How many at most",
+    "again": "Propose again",
+    "propose": "Propose tests",
+    "reading": "Reading the story and writing test cases… this can take a minute.",
+    "fromTracker": "Written from {{key}} as the tracker has it now",
+    "fromRequirement": "Written from the description of {{key}}",
+    "acceptance": "Acceptance criteria",
+    "keep": "Keep {{name}}",
+    "name": "Name of test {{n}}",
+    "covers": "Covers: {{criterion}}",
+    "preconditions": "Preconditions",
+    "preconditionsOf": "Preconditions of test {{n}}",
+    "action": "Action",
+    "actionOf": "Action {{step}} of test {{n}}",
+    "expected": "Expected result",
+    "expectedOf": "Expected result {{step}} of test {{n}}",
+    "removeStep": "Remove step {{step}} of test {{n}}",
+    "addStep": "Add step",
+    "cancel": "Cancel",
+    "create": "Create {{count}} tests"
   }
 }
