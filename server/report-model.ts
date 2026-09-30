@@ -88,7 +88,7 @@ function stepsOf(detailedLog: string | null): ReportStepModel[] {
 }
 
 /** The screenshot the last failed step kept, when the runner recorded one. */
-function failedStepScreenshot(detailedLog: string | null): string | null {
+export function failedStepScreenshot(detailedLog: string | null): string | null {
   if (!detailedLog) return null;
   try {
     const parsed = JSON.parse(detailedLog);

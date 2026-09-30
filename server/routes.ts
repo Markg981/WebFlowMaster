@@ -62,6 +62,7 @@ import webhookManagementRoutes from "./routes/webhooks.routes";
 import stepGroupsRoutes from "./routes/step-groups.routes";
 import customActionsRoutes from "./routes/custom-actions.routes";
 import manualResultsRoutes from "./routes/manual-results.routes";
+import failureAnalysisRoutes from "./routes/failure-analysis.routes";
 import projectElementsRoutes from "./routes/project-elements.routes";
 import nlAuthoringRoutes from "./routes/nl-authoring.routes";
 import tagsRoutes from "./routes/tags.routes";
@@ -200,6 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(stepGroupsRoutes);
     app.use(customActionsRoutes);
     app.use(manualResultsRoutes);
+    app.use(failureAnalysisRoutes);
     app.use(projectElementsRoutes);
     app.use(nlAuthoringRoutes);
     app.use(tagsRoutes);
@@ -1444,6 +1446,8 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         // The page's requests: the file, and the failed and slow ones read out of it.
         harUrl: openable(r.harUrl),
         networkSummary: r.networkSummary,
+        // What the AI made of this failure, when somebody asked (routes/failure-analysis.routes.ts).
+        aiAnalysis: r.aiAnalysis ?? null,
         detailedLog: r.detailedLog,
         // The step list the runner already recorded, with its images made openable. The
         // report had no way to show which step failed; the row's reason string was all of it.

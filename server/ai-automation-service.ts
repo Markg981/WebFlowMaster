@@ -64,6 +64,30 @@ export class AIAutomationService {
     }
   }
 
+  /** The model a failure analysis is asked of, as the analysis records it. */
+  get analysisModel(): string {
+    return process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  }
+
+  /**
+   * Answers a failure analysis prompt (server/failure-analysis.ts), with the page's screenshot
+   * when there is one, or nothing. As thin as proposeTestSteps, and for the same reason.
+   */
+  async explainFailure(prompt: string, screenshot?: { bytes: Buffer; contentType: string } | null): Promise<string | null> {
+    if (!this.isAvailable()) return null;
+
+    try {
+      const model = this.genAI.getGenerativeModel({ model: this.analysisModel });
+      const parts: any[] = [{ text: prompt }];
+      if (screenshot) parts.push({ inlineData: { mimeType: screenshot.contentType, data: screenshot.bytes.toString("base64") } });
+      const result = await model.generateContent(parts);
+      return result.response.text();
+    } catch (e: any) {
+      this.logError("AI failure analysis failed", { error: e.message });
+      return null;
+    }
+  }
+
 
 
 
@@ -197,39 +221,6 @@ export class AIAutomationService {
 
     } catch (e: any) {
       this.logError("Failed to update DB with healed selector", { error: e.message });
-    }
-  }
-
-  /**
-   * Root Cause Analysis
-   */
-  async analyzeFailure(error: string, stack: string, networkLogs: string[], _screenshotBase64?: string): Promise<string> {
-    if (!this.isAvailable()) return "AI Analysis Unavailable (No Key)";
-
-    try {
-      this.logInfo("Starting AI Failure Analysis");
-
-      const prompt = `
-        Analyze the following Test Failure.
-        
-        Error Message: ${error}
-        Stack Trace: ${stack}
-        Last 5 Network Logs:
-        ${networkLogs.join("\n")}
-
-        Provide a Root Cause Analysis in natural language (Italian).
-        Explain WHY the test reportedly failed. Distinguish between UI issues (selector not found) and Backend issues (500 errors, timeouts).
-        If network logs show an error, highlight it.
-
-        Format as a short paragraph.
-      `;
-
-      const result = await this.model.generateContent(prompt);
-      return result.response.text();
-
-    } catch (e: any) {
-      this.logError("AI Failure Analysis failed", { error: e.message });
-      return "AI Analysis Failed";
     }
   }
 }

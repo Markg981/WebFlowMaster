@@ -104,8 +104,8 @@ elementi: i browser che una persona aspetta.
 
 | Variabile | Letta da | Default | Descrizione |
 |---|---|---|---|
-| `GEMINI_API_KEY` | entrambi | nessuno | Chiave Google Gemini. Senza, la descrizione dei test a frasi e la correzione AI dei selettori sono disattivate; tutto il resto funziona. |
-| `GEMINI_MODEL` | web | `gemini-2.0-flash` | Il modello che trasforma le frasi in step. La correzione dei selettori usa il proprio. |
+| `GEMINI_API_KEY` | entrambi | nessuno | Chiave Google Gemini. Senza, la descrizione dei test a frasi, la correzione AI dei selettori e l'analisi AI dei fallimenti sono disattivate; tutto il resto funziona. |
+| `GEMINI_MODEL` | web | `gemini-2.0-flash` | Il modello che trasforma le frasi in step e analizza i fallimenti. La correzione dei selettori usa il proprio. |
 
 ## Log
 

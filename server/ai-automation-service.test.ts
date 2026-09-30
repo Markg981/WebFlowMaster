@@ -79,14 +79,23 @@ describe('AIAutomationService', () => {
     });
   });
 
-  describe('analyzeFailure', () => {
-    it('should return analysis text from the AI', async () => {
+  describe('explainFailure', () => {
+    it('sends the prompt with the screenshot as an image, and returns the answer', async () => {
       mockGenerateContent.mockResolvedValueOnce({
-        response: { text: () => 'Analysis: Timeout issue.' },
+        response: { text: () => '{"category":"timing"}' },
       });
 
-      const result = await service.analyzeFailure('Timeout', 'Stack...', [], '');
-      expect(result).toBe('Analysis: Timeout issue.');
+      const result = await service.explainFailure('Why did it fail?', { bytes: Buffer.from('png'), contentType: 'image/png' });
+      expect(result).toBe('{"category":"timing"}');
+      expect(mockGenerateContent).toHaveBeenLastCalledWith([
+        { text: 'Why did it fail?' },
+        { inlineData: { mimeType: 'image/png', data: Buffer.from('png').toString('base64') } },
+      ]);
+    });
+
+    it('returns nothing when the model fails', async () => {
+      mockGenerateContent.mockRejectedValueOnce(new Error('quota'));
+      expect(await service.explainFailure('Why?')).toBeNull();
     });
   });
 

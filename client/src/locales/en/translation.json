@@ -2431,7 +2431,8 @@
       "custom_action_created": "Custom action created",
       "custom_action_updated": "Custom action changed",
       "custom_action_deleted": "Custom action deleted",
-      "run_manual_result_recorded": "Manual result recorded"
+      "run_manual_result_recorded": "Manual result recorded",
+      "run_failure_analysed": "Failure analysed with AI"
     }
   },
   "security": {
@@ -3005,6 +3006,37 @@
       "passed": "Passed",
       "failed": "Failed",
       "error": "Error"
+    }
+  },
+  "failureAnalysis": {
+    "open": "Analyse with AI",
+    "title": "AI failure analysis",
+    "loading": "Reading the steps, the errors and the requests…",
+    "failed": "The analysis could not be made.",
+    "confidenceLabel": "Confidence",
+    "step": "Step {{n}}",
+    "why": "Why",
+    "next": "What to do",
+    "selector": "Proposed selector",
+    "copy": "Copy",
+    "byline": "By {{model}}, asked by {{name}} on {{when}}.",
+    "withScreenshot": "It saw the screenshot.",
+    "noScreenshot": "No screenshot was available.",
+    "caveat": "It is a probable cause, not a verdict: check it against the steps.",
+    "again": "Analyse again",
+    "retry": "Try again",
+    "category": {
+      "locator": "Locator",
+      "application": "Application bug",
+      "timing": "Timing",
+      "test-data": "Test data",
+      "environment": "Environment",
+      "unknown": "Unclear"
+    },
+    "confidence": {
+      "high": "high",
+      "medium": "medium",
+      "low": "low"
     }
   }
 }

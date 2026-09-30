@@ -2437,7 +2437,8 @@
       "custom_action_created": "Action personnalisée créée",
       "custom_action_updated": "Action personnalisée modifiée",
       "custom_action_deleted": "Action personnalisée supprimée",
-      "run_manual_result_recorded": "Résultat manuel enregistré"
+      "run_manual_result_recorded": "Résultat manuel enregistré",
+      "run_failure_analysed": "Échec analysé par l'IA"
     }
   },
   "security": {
@@ -3011,6 +3012,37 @@
       "passed": "Réussi",
       "failed": "Échoué",
       "error": "Erreur"
+    }
+  },
+  "failureAnalysis": {
+    "open": "Analyser avec l'IA",
+    "title": "Analyse de l'échec par l'IA",
+    "loading": "Lecture des étapes, des erreurs et des requêtes…",
+    "failed": "L'analyse n'a pas pu être faite.",
+    "confidenceLabel": "Fiabilité",
+    "step": "Étape {{n}}",
+    "why": "Pourquoi",
+    "next": "Que faire",
+    "selector": "Sélecteur proposé",
+    "copy": "Copier",
+    "byline": "Par {{model}}, demandée par {{name}} le {{when}}.",
+    "withScreenshot": "Elle a vu la capture d'écran.",
+    "noScreenshot": "Aucune capture d'écran disponible.",
+    "caveat": "C'est une cause probable, pas un verdict : vérifiez-la avec les étapes.",
+    "again": "Analyser à nouveau",
+    "retry": "Réessayer",
+    "category": {
+      "locator": "Localisateur",
+      "application": "Bug de l'application",
+      "timing": "Délais",
+      "test-data": "Données de test",
+      "environment": "Environnement",
+      "unknown": "Incertaine"
+    },
+    "confidence": {
+      "high": "élevée",
+      "medium": "moyenne",
+      "low": "faible"
     }
   }
 }

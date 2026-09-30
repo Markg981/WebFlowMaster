@@ -41,6 +41,24 @@ automatici. Un run annullato o scaduto conserva il suo esito. Un esito si può c
 registrandolo di nuovo; la riga dice chi l'ha registrato e quando, e ogni registrazione finisce nel
 registro di audit.
 
+### Analisi AI dei fallimenti {#analisi-ai-dei-fallimenti}
+
+Quando l'installazione ha una chiave AI (`GEMINI_API_KEY`), ogni test fallito nella scheda
+**Failed Tests** ha il pulsante **Analizza con l'AI**. Un editor lo preme e l'AI legge ciò che il
+report contiene già: il motivo dato dal runner, gli step intorno al fallimento con i loro errori, le
+richieste fallite e lente, e lo screenshot. Risponde, nella lingua dell'interfaccia, con:
+
+- una **categoria**: **Locator** (l'elemento c'è ma il test lo cerca nel modo sbagliato),
+  **Bug dell'applicazione**, **Tempi**, **Dati di test**, **Ambiente** o **Non chiara**;
+- quanto è sicura, e lo step a cui attribuisce il problema;
+- perché lo pensa, e cosa fare;
+- per un locator, un **selettore proposto** da copiare nello step.
+
+L'analisi resta sul risultato: riaprirla, per chiunque, non costa nulla, e **Analizza di nuovo**
+ne chiede una nuova. È una causa probabile, non un verdetto: verificatela sugli step. I valori che
+sembrano password, codici o chiavi non vengono mai inviati (vedi
+[Funzioni AI](../security/#funzioni-ai)), e ogni analisi finisce nel registro di audit.
+
 ### I dettagli di uno step
 
 Aprendo uno step si vedono lo **screenshot**, l'errore con cui è fallito e — se il piano li
