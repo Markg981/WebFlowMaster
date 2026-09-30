@@ -2436,7 +2436,8 @@
       "member_provisioned": "Compte créé à la première connexion",
       "custom_action_created": "Action personnalisée créée",
       "custom_action_updated": "Action personnalisée modifiée",
-      "custom_action_deleted": "Action personnalisée supprimée"
+      "custom_action_deleted": "Action personnalisée supprimée",
+      "run_manual_result_recorded": "Résultat manuel enregistré"
     }
   },
   "security": {
@@ -2863,7 +2864,11 @@
       "actions": "Actions"
     },
     "history": "Historique",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "newManual": "Nouveau test manuel",
+    "manualBadge": "Manuel",
+    "editManual": "Modifier les étapes",
+    "manualSaved": "Test manuel enregistré"
   },
   "authorSteps": {
     "title": "Décrire le test",
@@ -2957,6 +2962,55 @@
       "account_elsewhere": "Un compte avec votre adresse appartient à une autre organisation de cette installation.",
       "account_disabled": "Ce compte est désactivé.",
       "account_linked": "Votre adresse est déjà liée à une autre identité chez votre fournisseur. Demandez à un propriétaire de votre organisation."
+    }
+  },
+  "manualTests": {
+    "newTitle": "Nouveau test manuel",
+    "editTitle": "Modifier le test manuel",
+    "description": "Les étapes qu’une personne exécute, chacune avec le résultat attendu. Dans une exécution de plan, il attend un verdict dans le rapport.",
+    "name": "Nom",
+    "step": "Étape {{n}}",
+    "action": "Action",
+    "expected": "Résultat attendu",
+    "addStep": "Ajouter une étape",
+    "moveUp": "Monter",
+    "moveDown": "Descendre",
+    "removeStep": "Supprimer l’étape",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "errors": {
+      "name": "Donnez un nom au test.",
+      "steps": "Écrivez au moins une étape.",
+      "duplicate": "Un test portant ce nom existe déjà.",
+      "save": "Impossible d’enregistrer le test."
+    }
+  },
+  "manualResults": {
+    "title": "Tests manuels",
+    "waiting": "{{count}} en attente de résultat",
+    "description": "Exécutez chaque test, indiquez le résultat de chaque étape et donnez le verdict. Les compteurs et le statut de l’exécution suivent.",
+    "notYet": "Les résultats peuvent être saisis une fois l’exécution terminée.",
+    "stepOutcome": "Résultat de l’étape {{n}}",
+    "notes": "Notes",
+    "notesPlaceholder": "Ce qui s’est passé, le ticket ouvert, l’environnement utilisé",
+    "saveFailed": "Impossible d’enregistrer le résultat.",
+    "recordedBy": "Enregistré par {{name}} le {{when}}",
+    "step": {
+      "passed": "OK",
+      "failed": "KO",
+      "skipped": "Non fait"
+    },
+    "verdict": {
+      "passed": "Réussi",
+      "failed": "Échoué",
+      "blocked": "Bloqué"
+    },
+    "status": {
+      "pending": "En attente",
+      "blocked": "Bloqué",
+      "passed": "Réussi",
+      "failed": "Échoué",
+      "error": "Erreur"
     }
   }
 }

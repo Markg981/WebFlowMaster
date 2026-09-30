@@ -24,6 +24,23 @@ Il report elenca ogni test in ogni browser con il suo esito, e i suoi step con i
 - Come è finito un run che non si è concluso: **Annullato**, **Tempo scaduto** o **Non
   completato** (il runner si è fermato).
 
+### Esiti manuali {#esiti-manuali}
+
+I [test manuali](./organizing#test-manuali) di un run compaiono nella scheda **Test manuali**, una
+riga per test, **In attesa** finché nessuno ne registra l'esito; un run con test in attesa finisce
+comunque come completato. A run concluso, un editor apre la riga, segna ogni step come **OK**,
+**KO** o **Non eseguito** con una nota, e registra l'esito:
+
+- **Superato** conta tra i superati.
+- **Fallito** conta tra i falliti e fa fallire il run; il motivo mostrato è la nota, o in mancanza
+  la nota del primo step KO.
+- **Bloccato** (non è stato possibile eseguirlo) conta tra i saltati.
+
+Ogni esito ricalcola i totali e lo stato del run, così il report mescola risultati manuali e
+automatici. Un run annullato o scaduto conserva il suo esito. Un esito si può correggere
+registrandolo di nuovo; la riga dice chi l'ha registrato e quando, e ogni registrazione finisce nel
+registro di audit.
+
 ### I dettagli di uno step
 
 Aprendo uno step si vedono lo **screenshot**, l'errore con cui è fallito e — se il piano li

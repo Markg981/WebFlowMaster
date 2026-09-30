@@ -2436,7 +2436,8 @@
       "member_provisioned": "Konto bei der ersten Anmeldung angelegt",
       "custom_action_created": "Eigene Aktion erstellt",
       "custom_action_updated": "Eigene Aktion geändert",
-      "custom_action_deleted": "Eigene Aktion gelöscht"
+      "custom_action_deleted": "Eigene Aktion gelöscht",
+      "run_manual_result_recorded": "Manuelles Ergebnis erfasst"
     }
   },
   "security": {
@@ -2863,7 +2864,11 @@
       "actions": "Aktionen"
     },
     "history": "Verlauf",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "newManual": "Neuer manueller Test",
+    "manualBadge": "Manuell",
+    "editManual": "Schritte bearbeiten",
+    "manualSaved": "Manueller Test gespeichert"
   },
   "authorSteps": {
     "title": "Test beschreiben",
@@ -2957,6 +2962,55 @@
       "account_elsewhere": "Ein Konto mit Ihrer Adresse gehört zu einer anderen Organisation dieser Installation.",
       "account_disabled": "Dieses Konto ist deaktiviert.",
       "account_linked": "Ihre Adresse ist bereits mit einer anderen Identität bei Ihrem Anbieter verknüpft. Fragen Sie einen Eigentümer Ihrer Organisation."
+    }
+  },
+  "manualTests": {
+    "newTitle": "Neuer manueller Test",
+    "editTitle": "Manuellen Test bearbeiten",
+    "description": "Die Schritte, die eine Person ausführt, jeweils mit dem erwarteten Ergebnis. In einem Planlauf wartet er im Bericht auf ein Ergebnis.",
+    "name": "Name",
+    "step": "Schritt {{n}}",
+    "action": "Aktion",
+    "expected": "Erwartetes Ergebnis",
+    "addStep": "Schritt hinzufügen",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
+    "removeStep": "Schritt entfernen",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "errors": {
+      "name": "Geben Sie dem Test einen Namen.",
+      "steps": "Schreiben Sie mindestens einen Schritt.",
+      "duplicate": "Ein Test mit diesem Namen existiert bereits.",
+      "save": "Der Test konnte nicht gespeichert werden."
+    }
+  },
+  "manualResults": {
+    "title": "Manuelle Tests",
+    "waiting": "{{count}} warten auf ein Ergebnis",
+    "description": "Führen Sie jeden Test aus, markieren Sie jeden Schritt und geben Sie das Ergebnis an. Zähler und Status des Laufs folgen.",
+    "notYet": "Ergebnisse können erfasst werden, sobald der Lauf beendet ist.",
+    "stepOutcome": "Ergebnis von Schritt {{n}}",
+    "notes": "Notizen",
+    "notesPlaceholder": "Was passiert ist, das eröffnete Ticket, die verwendete Umgebung",
+    "saveFailed": "Das Ergebnis konnte nicht erfasst werden.",
+    "recordedBy": "Erfasst von {{name}} am {{when}}",
+    "step": {
+      "passed": "OK",
+      "failed": "Fehler",
+      "skipped": "Nicht ausgeführt"
+    },
+    "verdict": {
+      "passed": "Bestanden",
+      "failed": "Fehlgeschlagen",
+      "blocked": "Blockiert"
+    },
+    "status": {
+      "pending": "Wartet",
+      "blocked": "Blockiert",
+      "passed": "Bestanden",
+      "failed": "Fehlgeschlagen",
+      "error": "Fehler"
     }
   }
 }

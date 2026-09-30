@@ -9,6 +9,18 @@ tags, or **Delete** it (with its history).
 **Tags** are your organization's own labels — `smoke`, `checkout`, `nightly` — added from the test's
 row. They are what [dynamic suites](#suites) select by.
 
+## Manual tests {#manual-tests}
+
+Not everything is worth automating: a check done once a release, a flow that needs a person's
+judgment, a device no browser can stand in for. **New manual test** in the library writes one: a
+name and its steps, each an **action** to perform and the **expected result**. It shows in the
+library with a **Manual** badge, and its pencil edits the steps.
+
+A manual test is a test like the others: it has versions and reviews, carries tags, goes into
+suites and plans. In a run it opens no browser — it waits in the run's report for somebody's
+verdict (see [Manual results](./results#manual-results)), once per run whatever browsers and
+languages the plan has.
+
 ## History and versions {#history-and-versions}
 
 Every save of a test is a **version**, numbered from 1. **History** shows them newest first, with
