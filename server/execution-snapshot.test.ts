@@ -27,6 +27,7 @@ const plan: TestPlan = {
   captureNetwork: 'on_failure',
   agentPool: 'onprem',
   browserGridId: null,
+  testManagementId: 'tm-3',
   visualTestingEnabled: true,
   pageLoadTimeout: 45_000,
   elementTimeout: 12_000,
@@ -86,6 +87,7 @@ describe('buildExecutionSnapshot', () => {
       issues: { trackerId: 'tracker-9', createOnFailure: true },
       runOn: { agentPool: 'onprem', browserGridId: null },
       locales: ['it-IT', 'en-US'],
+      testManagement: { connectionId: 'tm-3' },
     });
   });
 
@@ -145,6 +147,7 @@ describe('buildExecutionSnapshot', () => {
       'captureNetwork',
       'agentPool',
       'browserGridId',
+      'testManagementId',
       'visualTestingEnabled',
       'pageLoadTimeout',
       'elementTimeout',

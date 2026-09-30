@@ -131,7 +131,9 @@
       "customActions": "Eigene Aktionen",
       "customActionsDescription": "Eigene Schritte in JavaScript, das in der getesteten Seite läuft, im Builder neben den eingebauten angeboten.",
       "browserGrids": "Browser-Grids",
-      "browserGridsDescription": "BrowserStack, LambdaTest oder ein eigener Playwright-Server, für Browser und Systeme, die die Runner nicht haben."
+      "browserGridsDescription": "BrowserStack, LambdaTest oder ein eigener Playwright-Server, für Browser und Systeme, die die Runner nicht haben.",
+      "testManagement": "Testmanagement",
+      "testManagementDescription": "TestRail, Xray oder Zephyr Scale, wo jeder abgeschlossene Lauf Fall für Fall veröffentlicht wird."
     },
     "apiKeys": {
       "openApi": "API-Referenz (OpenAPI)",
@@ -2576,7 +2578,8 @@
       "source_host": "GitHub & GitLab",
       "sso": "Single Sign-on",
       "custom_action": "Eigene Aktionen",
-      "requirement": "Anforderungen"
+      "requirement": "Anforderungen",
+      "test_management": "Testmanagement"
     },
     "actions": {
       "member_role_changed": "Rolle des Mitglieds geändert",
@@ -2655,7 +2658,12 @@
       "requirement_updated": "Anforderung geändert",
       "requirement_deleted": "Anforderung gelöscht",
       "requirement_imported": "Anforderungen aus einem Tracker importiert",
-      "requirement_tests_changed": "Tests einer Anforderung geändert"
+      "requirement_tests_changed": "Tests einer Anforderung geändert",
+      "test_management_connected": "Testmanagement-Tool verbunden",
+      "test_management_updated": "Testmanagement-Verbindung geändert",
+      "test_management_removed": "Testmanagement-Tool entfernt",
+      "test_management_cases_changed": "Mit Tests verknüpfte Testfälle geändert",
+      "test_management_run_published": "Lauf in ein Testmanagement-Tool veröffentlicht"
     }
   },
   "security": {
@@ -3003,6 +3011,11 @@
     "locales": {
       "label": "Sprachen",
       "help": "Jeder Test läuft einmal pro Sprache in jedem Browser, der auf diese Sprache eingestellt ist; Schritte lesen sie als {{token}}. Leer verwendet die Sprache des Browsers."
+    },
+    "testManagement": {
+      "label": "Ergebnisse veröffentlichen in",
+      "none": "Nirgendwo — die Ergebnisse bleiben im Bericht",
+      "help": "Jeder abgeschlossene Lauf wird zu einem TestRail-Run, einer Xray Test Execution oder einem Zephyr-Testzyklus, mit dem Ergebnis jedes Tests unter seinem Fall. Tests ohne Fall werden ausgelassen."
     }
   },
   "network": {
@@ -3473,5 +3486,73 @@
     "noMatch": "Nichts entspricht den Filtern.",
     "deleteTitle": "{{key}} löschen?",
     "deleteBody": "Ihre Verknüpfungen zu Tests werden entfernt; die Tests und ihre Ergebnisse bleiben. Enthaltenes rückt auf die oberste Ebene. Im Tracker ändert sich nichts."
+  },
+  "testManagement": {
+    "clientId": "Client-ID",
+    "user": "Benutzer (E-Mail)",
+    "userOptional": "Benutzer (nur bei einem Passwort)",
+    "clientSecret": "Client-Secret",
+    "patOrPassword": "Personal Access Token oder Passwort",
+    "apiToken": "API-Token",
+    "projectId": "Projekt-ID (eine Zahl)",
+    "projectKey": "Jira-Projektschlüssel",
+    "loadFailed": "Die Verbindungen konnten nicht geladen werden.",
+    "saveFailed": "Die Verbindung konnte nicht gespeichert werden.",
+    "checkFailed": "Die Verbindung konnte nicht geprüft werden.",
+    "deleteFailed": "Die Verbindung konnte nicht gelöscht werden.",
+    "deleted": "{{count}} Plan/Pläne, die hierhin veröffentlichten, veröffentlichen nirgendwo mehr.",
+    "nameRequired": "Ein Name ist erforderlich.",
+    "addressRequired": "Die Adresse des Tools ist erforderlich.",
+    "usernameRequired": "{{field}} ist erforderlich.",
+    "projectRequired": "Das Projekt ist erforderlich.",
+    "title": "Testmanagement",
+    "description": "TestRail, Xray oder Zephyr Scale. Ein Plan, der eines davon nennt, veröffentlicht dort jeden abgeschlossenen Lauf — einen TestRail-Run, eine Xray Test Execution, einen Zephyr-Testzyklus — mit dem Ergebnis jedes Tests unter seinem Fall.",
+    "provider": "Tool",
+    "name": "Name",
+    "address": "Adresse",
+    "addressDefault": "Leer für {{url}}; die EU- oder US-Adresse für dort gespeicherte Daten.",
+    "tokenHint": "Verschlüsselt gespeichert und nie wieder angezeigt.",
+    "suite": "Suite-ID (für ein Projekt mit mehreren Suites)",
+    "testPlan": "Xray-Testplan (optional)",
+    "add": "Verbindung hinzufügen",
+    "checking": "Projekt wird gelesen…",
+    "loading": "Wird geladen…",
+    "empty": "Noch keine Verbindung: Läufe werden nirgendwo veröffentlicht.",
+    "columns": {
+      "name": "Name",
+      "project": "Projekt",
+      "actions": "Aktionen"
+    },
+    "mapCases": "Testfälle",
+    "check": "Verbindung testen",
+    "delete": "Löschen",
+    "cases": {
+      "loadFailed": "Die Tests konnten nicht geladen werden.",
+      "saveFailed": "Die Fälle wurden nicht gespeichert.",
+      "title": "Testfälle in {{name}}",
+      "description": "Der Fall, als der jeder Test veröffentlicht wird. Ist hier nichts eingetragen, gilt ein Schlüssel im Testnamen, etwa [{{example}}] Login. Tests ohne beides werden nicht veröffentlicht.",
+      "filter": "Tests oder Schlüssel filtern…",
+      "keyFor": "Fall von {{name}}",
+      "invalid": "Kein Fallschlüssel dieses Tools (etwa {{example}}): {{keys}}",
+      "save": "{{count}} Änderungen speichern"
+    },
+    "web": "Web",
+    "cancel": "Abbrechen"
+  },
+  "publications": {
+    "failed": "Der Lauf wurde nicht veröffentlicht.",
+    "status": {
+      "published": "Veröffentlicht",
+      "failed": "Fehlgeschlagen",
+      "nothing": "Nichts zu veröffentlichen"
+    },
+    "title": "Testmanagement",
+    "description": "Wo dieser Lauf veröffentlicht wurde, Fall für Fall. Erneutes Veröffentlichen erzeugt einen neuen Run im Tool, mit den Ergebnissen, wie sie jetzt sind.",
+    "none": "Noch nicht veröffentlicht.",
+    "counts": "{{published}} Fall/Fälle veröffentlicht, {{unmapped}} Test(s) ohne Fall ausgelassen.",
+    "target": "Veröffentlichen in",
+    "planConnection": "Die Verbindung des Plans",
+    "again": "Erneut veröffentlichen",
+    "publish": "Veröffentlichen"
   }
 }

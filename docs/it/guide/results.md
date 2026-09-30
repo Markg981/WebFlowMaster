@@ -47,6 +47,39 @@ automatici. Un run annullato o scaduto conserva il suo esito. Un esito si può c
 registrandolo di nuovo; la riga dice chi l'ha registrato e quando, e ogni registrazione finisce nel
 registro di audit.
 
+### Pubblicare su TestRail, Xray o Zephyr {#test-management}
+
+Un piano che nelle impostazioni indica una connessione in **Pubblica i risultati su** invia ogni run
+concluso a quello strumento, con il risultato di ogni test sotto il suo caso:
+
+| Strumento | Che cosa diventa un run |
+|---|---|
+| **TestRail** | Una test run nel progetto (e nella suite), con i soli casi del run e un risultato per ciascuno. |
+| **Xray Cloud**, **Xray Server/Data Center** | Una issue Test Execution, aggiunta al Test Plan di Xray se la connessione ne indica uno. |
+| **Zephyr Scale** (Cloud) | Un test cycle, con una test execution per ogni caso. |
+
+**Quale caso è un test.** In **Impostazioni → Test management**, **Casi di test** su una
+connessione elenca tutti i test con una casella per la chiave: `C123` in TestRail (o solo `123`),
+`SHOP-45` in Xray, `SHOP-T12` in Zephyr. Un test il cui nome inizia con una chiave tra parentesi
+quadre — `[C123] Login` — non ha bisogno di nulla: la chiave appare in grigio nella casella ed è
+usata così com'è. Una chiave scritta nella casella prevale sul nome. I test senza né l'una né
+l'altra vengono esclusi, e la pubblicazione dice quanti sono: un caso che lo strumento non conosce
+farebbe fallire l'intero import.
+
+**Che cosa viene inviato per un caso.** Passato, fallito o saltato, e **non eseguito** per un test
+ancora in attesa di un esito manuale (TODO in Xray, Not Executed in Zephyr; TestRail non riceve
+alcun risultato). Un test eseguito su più browser, o due test sullo stesso caso, danno un solo
+risultato, fallito se uno qualsiasi è fallito, con l'esito di ogni browser, il motivo del
+fallimento (fino a 1000 caratteri) e l'indirizzo del report nel commento. Il titolo della run è il
+nome del piano e il momento in cui è terminato, in UTC.
+
+La scheda **Test management** del report elenca dove è andato il run, con il link alla run di
+TestRail o alla issue di Xray, quanti casi sono stati pubblicati e quanti test non avevano un caso,
+e perché una pubblicazione è fallita (un token errato, un caso rifiutato dallo strumento).
+**Pubblica di nuovo** invia ancora il run — dopo gli esiti manuali, o quando lo strumento era giù —
+alla connessione del piano o a un'altra; ogni volta è una nuova run nello strumento. Una
+pubblicazione fallita non cambia mai il risultato del run.
+
 ### Analisi AI dei fallimenti {#analisi-ai-dei-fallimenti}
 
 Quando l'installazione ha una chiave AI (`GEMINI_API_KEY`), ogni test fallito nella scheda

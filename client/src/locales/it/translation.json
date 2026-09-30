@@ -131,7 +131,9 @@
       "customActions": "Azioni personalizzate",
       "customActionsDescription": "Step vostri, in JavaScript eseguito nella pagina sotto test, offerti nel costruttore accanto a quelli predefiniti.",
       "browserGrids": "Griglie di browser",
-      "browserGridsDescription": "BrowserStack, LambdaTest o un vostro server Playwright, per browser e sistemi che i runner non hanno."
+      "browserGridsDescription": "BrowserStack, LambdaTest o un vostro server Playwright, per browser e sistemi che i runner non hanno.",
+      "testManagement": "Test management",
+      "testManagementDescription": "TestRail, Xray o Zephyr Scale, dove ogni esecuzione conclusa viene pubblicata caso per caso."
     },
     "apiKeys": {
       "openApi": "Riferimento API (OpenAPI)",
@@ -2695,7 +2697,8 @@
       "source_host": "GitHub e GitLab",
       "sso": "Single sign-on",
       "custom_action": "Azioni personalizzate",
-      "requirement": "Requisiti"
+      "requirement": "Requisiti",
+      "test_management": "Gestione test"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
@@ -2774,7 +2777,12 @@
       "requirement_updated": "Requisito modificato",
       "requirement_deleted": "Requisito eliminato",
       "requirement_imported": "Requisiti importati da un tracker",
-      "requirement_tests_changed": "Test che coprono un requisito modificati"
+      "requirement_tests_changed": "Test che coprono un requisito modificati",
+      "test_management_connected": "Strumento di gestione test collegato",
+      "test_management_updated": "Collegamento alla gestione test modificato",
+      "test_management_removed": "Strumento di gestione test rimosso",
+      "test_management_cases_changed": "Casi di test collegati ai test modificati",
+      "test_management_run_published": "Run pubblicato su uno strumento di gestione test"
     }
   },
   "security": {
@@ -3122,6 +3130,11 @@
     "locales": {
       "label": "Lingue",
       "help": "Ogni test gira una volta per lingua su ogni browser, con il browser impostato in quella lingua; gli step la leggono come {{token}}. Vuoto usa la lingua predefinita del browser."
+    },
+    "testManagement": {
+      "label": "Pubblica i risultati su",
+      "none": "Da nessuna parte — i risultati restano nel report",
+      "help": "Ogni esecuzione conclusa diventa una run di TestRail, una Test Execution di Xray o un test cycle di Zephyr, con il risultato di ogni test sotto il suo caso. I test senza caso sono esclusi."
     }
   },
   "network": {
@@ -3592,5 +3605,73 @@
     "noMatch": "Nulla corrisponde ai filtri.",
     "deleteTitle": "Eliminare {{key}}?",
     "deleteBody": "I suoi collegamenti ai test vengono eliminati; i test e i loro risultati restano. Ciò che contiene passa al primo livello. Nel tracker non cambia nulla."
+  },
+  "testManagement": {
+    "clientId": "Client id",
+    "user": "Utente (e-mail)",
+    "userOptional": "Utente (solo con una password)",
+    "clientSecret": "Client secret",
+    "patOrPassword": "Personal access token, o password",
+    "apiToken": "Token API",
+    "projectId": "Id del progetto (un numero)",
+    "projectKey": "Chiave del progetto Jira",
+    "loadFailed": "Impossibile caricare le connessioni.",
+    "saveFailed": "Impossibile salvare la connessione.",
+    "checkFailed": "Impossibile verificare la connessione.",
+    "deleteFailed": "Impossibile eliminare la connessione.",
+    "deleted": "{{count}} piano/i che pubblicavano qui non pubblicano più da nessuna parte.",
+    "nameRequired": "Il nome è obbligatorio.",
+    "addressRequired": "L'indirizzo dello strumento è obbligatorio.",
+    "usernameRequired": "{{field}}: campo obbligatorio.",
+    "projectRequired": "Il progetto è obbligatorio.",
+    "title": "Test management",
+    "description": "TestRail, Xray o Zephyr Scale. Un piano che ne indica uno vi pubblica ogni esecuzione conclusa — una run di TestRail, una Test Execution di Xray, un test cycle di Zephyr — con il risultato di ogni test sotto il suo caso.",
+    "provider": "Strumento",
+    "name": "Nome",
+    "address": "Indirizzo",
+    "addressDefault": "Vuoto per {{url}}; l'indirizzo EU o US per i dati conservati lì.",
+    "tokenHint": "Conservato cifrato e mai più mostrato.",
+    "suite": "Id della suite (per un progetto con più suite)",
+    "testPlan": "Test Plan di Xray (facoltativo)",
+    "add": "Aggiungi connessione",
+    "checking": "Lettura del progetto…",
+    "loading": "Caricamento…",
+    "empty": "Nessuna connessione: le esecuzioni non vengono pubblicate.",
+    "columns": {
+      "name": "Nome",
+      "project": "Progetto",
+      "actions": "Azioni"
+    },
+    "mapCases": "Casi di test",
+    "check": "Verifica connessione",
+    "delete": "Elimina",
+    "cases": {
+      "loadFailed": "Impossibile caricare i test.",
+      "saveFailed": "I casi non sono stati salvati.",
+      "title": "Casi di test in {{name}}",
+      "description": "Il caso con cui ogni test viene pubblicato. Se qui non è scritto nulla vale la chiave nel nome del test, come [{{example}}] Login. I test senza né l'una né l'altra non vengono pubblicati.",
+      "filter": "Filtra test o chiavi…",
+      "keyFor": "Caso di {{name}}",
+      "invalid": "Non è una chiave di caso di questo strumento (come {{example}}): {{keys}}",
+      "save": "Salva {{count}} modifiche"
+    },
+    "web": "Web",
+    "cancel": "Annulla"
+  },
+  "publications": {
+    "failed": "L'esecuzione non è stata pubblicata.",
+    "status": {
+      "published": "Pubblicata",
+      "failed": "Fallita",
+      "nothing": "Niente da pubblicare"
+    },
+    "title": "Test management",
+    "description": "Dove questa esecuzione è stata pubblicata, caso per caso. Pubblicare di nuovo crea una nuova run nello strumento, con gli esiti come sono ora.",
+    "none": "Non ancora pubblicata.",
+    "counts": "{{published}} caso/i pubblicati, {{unmapped}} test senza caso esclusi.",
+    "target": "Pubblica su",
+    "planConnection": "La connessione del piano",
+    "again": "Pubblica di nuovo",
+    "publish": "Pubblica"
   }
 }

@@ -146,6 +146,29 @@ describe('EditTestPlanSettingsModal', () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
     expect(savedBody().issueTrackerId).toBeNull();
     expect(savedBody().createIssuesOnFailure).toBe(false);
+    expect(savedBody().testManagementId).toBeNull();
+  });
+
+  it('publishes nowhere until a test management connection is chosen, then sends it', async () => {
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve({
+        ok: true,
+        json: async () =>
+          String(url).includes('/api/test-management') ? [{ id: 'tm-1', name: 'TestRail QA', provider: 'testrail' }] : String(url).includes('/api/issue-trackers') ? [] : {},
+      }),
+    );
+    const onSaved = vi.fn();
+    render(<EditTestPlanSettingsModal isOpen plan={plan} onClose={() => {}} onSaved={onSaved} />);
+
+    const trigger = screen.getByRole('combobox', { name: 'Publish results to' });
+    expect(trigger).toHaveTextContent('Nowhere — results stay in the report');
+    await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url) === '/api/test-management')).toBe(true));
+    fireEvent.keyDown(trigger, { key: 'Enter', code: 'Enter' });
+    fireEvent.click(await screen.findByRole('option', { name: 'TestRail QA' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(savedBody().testManagementId).toBe('tm-1');
   });
 
   it('runs on the server until a pool of local agents is chosen, then sends that pool', async () => {

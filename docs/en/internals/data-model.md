@@ -72,7 +72,7 @@ erDiagram
 
 | Table | Purpose |
 |---|---|
-| `test_plans` | A plan: browser machines, evidence settings, visual testing, timeouts, failure policies, re-run policy, parallelism, notification settings, issue tracker, agent pool. |
+| `test_plans` | A plan: browser machines, evidence settings, visual testing, timeouts, failure policies, re-run policy, parallelism, notification settings, issue tracker, test management connection, agent pool. |
 | `test_plan_selected_tests` | The tests a plan runs directly, in order. |
 | `test_suites` / `test_suite_items` | Suites: static (listed tests) or dynamic (tests with given tags). |
 | `test_plan_suites` | Suites a plan includes; expanded into tests when a run is created. |
@@ -81,6 +81,7 @@ erDiagram
 | `test_plan_executions` | Runs: status and lifecycle timestamps, heartbeat, runner, snapshot, idempotency key, attempts, CI context, aggregates, failure code and message. |
 | `report_test_case_results` | One row per test per browser per run: status, steps (with screenshots, healing, visual and accessibility results), evidence paths, network summary, test version, quarantine flag, attempts. |
 | `execution_logs` | The live log of a run, replayed by the report page. |
+| `test_management_connections` / `test_case_links` / `test_management_publications` | TestRail, Xray or Zephyr Scale connections (token encrypted), the case each test is in each of them (a test whose name carries `[KEY]` needs none), and each publication of a run: where, with what outcome, the key and link of what it made there (`server/test-management.ts`). |
 | `issue_trackers` / `issue_links` | Jira or Azure DevOps connections (token encrypted), and which failure was filed as which issue (unique per failure, so one failure is filed once). |
 | `source_hosts` | GitHub or GitLab connections for commit statuses (token encrypted), with the last delivery outcome. |
 

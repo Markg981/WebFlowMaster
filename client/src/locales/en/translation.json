@@ -131,7 +131,9 @@
       "customActions": "Custom actions",
       "customActionsDescription": "Steps of your own, in JavaScript that runs in the page under test, offered in the builder beside the built-in ones.",
       "browserGrids": "Browser grids",
-      "browserGridsDescription": "BrowserStack, LambdaTest or a Playwright server of your own, for browsers and systems the runners do not have."
+      "browserGridsDescription": "BrowserStack, LambdaTest or a Playwright server of your own, for browsers and systems the runners do not have.",
+      "testManagement": "Test management",
+      "testManagementDescription": "TestRail, Xray or Zephyr Scale, where each finished run is published case by case."
     },
     "apiKeys": {
       "openApi": "API reference (OpenAPI)",
@@ -2570,7 +2572,8 @@
       "source_host": "GitHub & GitLab",
       "sso": "Single sign-on",
       "custom_action": "Custom actions",
-      "requirement": "Requirements"
+      "requirement": "Requirements",
+      "test_management": "Test management"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -2649,7 +2652,12 @@
       "requirement_updated": "Requirement changed",
       "requirement_deleted": "Requirement deleted",
       "requirement_imported": "Requirements imported from a tracker",
-      "requirement_tests_changed": "Tests covering a requirement changed"
+      "requirement_tests_changed": "Tests covering a requirement changed",
+      "test_management_connected": "Test management tool connected",
+      "test_management_updated": "Test management connection changed",
+      "test_management_removed": "Test management tool removed",
+      "test_management_cases_changed": "Test cases linked to tests changed",
+      "test_management_run_published": "Run published to a test management tool"
     }
   },
   "security": {
@@ -2997,6 +3005,11 @@
     "locales": {
       "label": "Languages",
       "help": "Each test runs once per language on every browser, with the browser set to that language; steps read it as {{token}}. Empty runs in the browser’s own language."
+    },
+    "testManagement": {
+      "label": "Publish results to",
+      "none": "Nowhere — results stay in the report",
+      "help": "Every finished run becomes a TestRail run, an Xray Test Execution or a Zephyr test cycle, with each test’s result under its case. Tests with no case are left out."
     }
   },
   "network": {
@@ -3467,5 +3480,73 @@
     "noMatch": "Nothing matches the filters.",
     "deleteTitle": "Delete {{key}}?",
     "deleteBody": "Its links to tests go with it; the tests and their results stay. What it contains moves to the top level. Nothing changes in the tracker."
+  },
+  "testManagement": {
+    "clientId": "Client id",
+    "user": "User (e-mail)",
+    "userOptional": "User (only for a password)",
+    "clientSecret": "Client secret",
+    "patOrPassword": "Personal access token, or password",
+    "apiToken": "API token",
+    "projectId": "Project id (a number)",
+    "projectKey": "Jira project key",
+    "loadFailed": "Could not load the connections.",
+    "saveFailed": "Could not save the connection.",
+    "checkFailed": "Could not check the connection.",
+    "deleteFailed": "Could not delete the connection.",
+    "deleted": "{{count}} plan(s) that published to it no longer publish anywhere.",
+    "nameRequired": "A name is required.",
+    "addressRequired": "The address of the tool is required.",
+    "usernameRequired": "{{field}} is required.",
+    "projectRequired": "The project is required.",
+    "title": "Test management",
+    "description": "TestRail, Xray or Zephyr Scale. A plan that names one publishes every finished run there — a TestRail run, an Xray Test Execution, a Zephyr test cycle — with each test’s result under its case.",
+    "provider": "Tool",
+    "name": "Name",
+    "address": "Address",
+    "addressDefault": "Empty for {{url}}; the EU or US address for data kept there.",
+    "tokenHint": "Stored encrypted and never shown again.",
+    "suite": "Suite id (for a project with several suites)",
+    "testPlan": "Xray Test Plan (optional)",
+    "add": "Add connection",
+    "checking": "Reading the project…",
+    "loading": "Loading…",
+    "empty": "No connection yet: runs are published nowhere.",
+    "columns": {
+      "name": "Name",
+      "project": "Project",
+      "actions": "Actions"
+    },
+    "mapCases": "Test cases",
+    "check": "Test connection",
+    "delete": "Delete",
+    "cases": {
+      "loadFailed": "Could not load the tests.",
+      "saveFailed": "The cases were not saved.",
+      "title": "Test cases in {{name}}",
+      "description": "The case each test is published as. A key in the test’s name, like [{{example}}] Login, is used when nothing is typed here. Tests with neither are not published.",
+      "filter": "Filter tests or keys…",
+      "keyFor": "Case of {{name}}",
+      "invalid": "Not a case key of this tool (like {{example}}): {{keys}}",
+      "save": "Save {{count}} changes"
+    },
+    "web": "Web",
+    "cancel": "Cancel"
+  },
+  "publications": {
+    "failed": "The run was not published.",
+    "status": {
+      "published": "Published",
+      "failed": "Failed",
+      "nothing": "Nothing to publish"
+    },
+    "title": "Test management",
+    "description": "Where this run was published, case by case. Publishing again makes a new run in the tool, with the verdicts as they are now.",
+    "none": "Not published yet.",
+    "counts": "{{published}} case(s) published, {{unmapped}} test(s) with no case left out.",
+    "target": "Publish to",
+    "planConnection": "The plan’s connection",
+    "again": "Publish again",
+    "publish": "Publish"
   }
 }

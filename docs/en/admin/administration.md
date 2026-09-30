@@ -195,10 +195,11 @@ Owners see and can revoke every key in the organization.
 | Starting plans from CI | API keys and the `wfm` CLI; see [CI integration](../CI_INTEGRATION) | Editors |
 | Webhooks that start a plan | The plan's settings; each has its own token | Editors |
 | Issue trackers (Jira, Azure DevOps) | **Settings → Issue trackers** | Editors |
+| Test management (TestRail, Xray, Zephyr Scale) | **Settings → Test management**; see [Publishing to TestRail, Xray or Zephyr](../guide/results#test-management) | Editors |
 | Commit statuses on GitHub and GitLab | **Settings → GitHub & GitLab**; shows the last delivery error | Owners |
 | Local agents | **Settings → Local agents**; see [Local agents](../LOCAL_AGENT) | Owners |
 
-Tokens for trackers and GitHub/GitLab are encrypted when saved and are never shown again; to
+Tokens for trackers, test management tools and GitHub/GitLab are encrypted when saved and are never shown again; to
 change one, enter the new value.
 
 ## Environments and secrets

@@ -45,6 +45,37 @@ Each verdict works out the run's totals and status again, so the report mixes ma
 results. A cancelled or timed-out run keeps its ending. A verdict can be corrected by recording it
 again; the row says who recorded it and when, and every recording goes into the audit log.
 
+### Publishing to TestRail, Xray or Zephyr {#test-management}
+
+A plan whose settings name a connection under **Publish results to** sends every finished run to
+that tool, each test's result under its case:
+
+| Tool | What a run becomes |
+|---|---|
+| **TestRail** | A test run in the project (and suite), with the run's cases only, and a result for each. |
+| **Xray Cloud**, **Xray Server/Data Center** | A Test Execution issue, added to the Xray Test Plan if the connection names one. |
+| **Zephyr Scale** (Cloud) | A test cycle, with a test execution for each case. |
+
+**Which case a test is.** In **Settings → Test management**, **Test cases** on a connection lists
+every test with a box for its key: `C123` in TestRail (or just `123`), `SHOP-45` in Xray,
+`SHOP-T12` in Zephyr. A test whose name starts with a key in square brackets — `[C123] Login` —
+needs nothing typed: the key is shown greyed in the box and used as it is. A key typed in the box
+wins over the name. Tests with neither are left out, and the publication says how many; a case the
+tool does not know would make the whole import fail.
+
+**What is sent for a case.** Passed, failed or skipped, and **not run** for a test still waiting for
+a manual verdict (Xray TODO, Zephyr Not Executed; TestRail gets no result for it). A test run on
+several browsers, or two tests on the same case, make one result, failed if any failed, with every
+browser's outcome, the reason for a failure (up to 1000 characters) and the address of the report
+in its comment. The run's title is the plan's name and when it ended, in UTC.
+
+The **Test management** card of the report lists where the run went, with a link to the TestRail
+run or the Xray issue, how many cases were published and how many tests had no case, and why a
+publication failed (a wrong token, a case the tool refused). **Publish again** sends the run once
+more — after the manual verdicts are in, or when the tool was down — to the plan's connection or to
+another one; each time is a new run in the tool. A failed publication never changes the run's
+result.
+
 ### AI failure analysis {#ai-failure-analysis}
 
 When the installation has an AI key (`GEMINI_API_KEY`), each failed test in **Failed Tests** has an

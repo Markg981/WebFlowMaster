@@ -92,7 +92,7 @@ export function toHtml(body: string): string {
     .join('<br/>');
 }
 
-async function call(
+export async function call(
   url: string,
   init: RequestInit,
   deps: ProviderDeps,
@@ -125,13 +125,14 @@ async function call(
  * "The field 'Area Path' contains an invalid value" — and that sentence is the difference
  * between a misconfiguration somebody can fix and one they can only guess at.
  */
-function describeFailure(action: string, status: number, body: any, text: string): Error {
+export function describeFailure(action: string, status: number, body: any, text: string): Error {
   const fromJira = Array.isArray(body?.errorMessages) && body.errorMessages.length > 0
     ? body.errorMessages.join('; ')
     : body?.errors && typeof body.errors === 'object'
       ? Object.entries(body.errors).map(([field, message]) => `${field}: ${message}`).join('; ')
       : '';
-  const fromAzure = typeof body?.message === 'string' ? body.message : '';
+  // Azure DevOps and Zephyr Scale say `message`; TestRail says `error`.
+  const fromAzure = typeof body?.message === 'string' ? body.message : typeof body?.error === 'string' ? body.error : '';
   const detail = fromJira || fromAzure || text.slice(0, 300);
   return new Error(`${action} failed (${status})${detail ? `: ${detail}` : '.'}`);
 }

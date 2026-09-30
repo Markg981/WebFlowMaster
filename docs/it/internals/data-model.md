@@ -72,7 +72,7 @@ erDiagram
 
 | Tabella | Scopo |
 |---|---|
-| `test_plans` | Un piano: macchine/browser, evidenze, test visivi, timeout, policy di fallimento, policy di riesecuzione, parallelismo, notifiche, issue tracker, pool di agenti. |
+| `test_plans` | Un piano: macchine/browser, evidenze, test visivi, timeout, policy di fallimento, policy di riesecuzione, parallelismo, notifiche, issue tracker, connessione di test management, pool di agenti. |
 | `test_plan_selected_tests` | I test che un piano esegue direttamente, in ordine. |
 | `test_suites` / `test_suite_items` | Suite: statiche (test elencati) o dinamiche (test con determinati tag). |
 | `test_plan_suites` | Suite incluse da un piano; espanse in test quando si crea un run. |
@@ -81,6 +81,7 @@ erDiagram
 | `test_plan_executions` | Run: stato e timestamp del ciclo di vita, heartbeat, runner, snapshot, chiave di idempotenza, tentativi, contesto CI, aggregati, codice e messaggio di errore. |
 | `report_test_case_results` | Una riga per test per browser per run: stato, step (con screenshot, correzioni, risultati visivi e di accessibilità), percorsi delle evidenze, riepilogo di rete, versione del test, flag di quarantena, tentativi. |
 | `execution_logs` | Il log in diretta di un run, riproposto dalla pagina del report. |
+| `test_management_connections` / `test_case_links` / `test_management_publications` | Connessioni TestRail, Xray o Zephyr Scale (token cifrato), il caso di ogni test in ciascuna (un test il cui nome contiene `[CHIAVE]` non ne ha bisogno), e ogni pubblicazione di un run: dove, con quale esito, la chiave e il link di ciò che ha creato là (`server/test-management.ts`). |
 | `issue_trackers` / `issue_links` | Collegamenti Jira o Azure DevOps (token cifrato), e quale fallimento è diventato quale issue (univoco per fallimento, così un fallimento viene segnalato una volta). |
 | `source_hosts` | Collegamenti GitHub o GitLab per lo stato dei commit (token cifrato), con l'esito dell'ultimo invio. |
 
