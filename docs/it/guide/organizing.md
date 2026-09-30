@@ -58,9 +58,11 @@ versione richiede l'approvazione di un altro membro:
 Una **suite** è un elenco di test tenuto una volta sola e incluso da tutti i piani che ne hanno
 bisogno. **Suite → Nuova suite** ne crea di due tipi:
 
-- **Statica**: questi test, nell'ordine in cui li scegliete.
+- **Statica**: questi test, nell'ordine in cui li scegliete — test web, API e di
+  [app mobili](./mobile-apps) allo stesso modo.
 - **Dinamica**: ogni test che ha **tutti** i tag scelti, calcolato ogni volta che si crea un run.
-  Un test etichettato dopo entra nel run successivo senza modificare nulla.
+  Un test etichettato dopo entra nel run successivo senza modificare nulla. I test di app mobili
+  non hanno tag, quindi li include solo una suite statica.
 
 Una suite mostra quali piani la includono. Eliminarne una usata dai piani fa smettere loro di
 eseguirne i test; i run già fatti conservano ciò che hanno eseguito.
@@ -85,7 +87,7 @@ nuovo, o **Sincronizza importati**, aggiorna titoli, tipi e stato nel tracker; u
 a mano con la stessa chiave diventa quello importato e conserva i suoi test. Nel tracker non viene
 mai scritto nulla. Si importano al massimo 500 elementi per volta.
 
-**Test** su un requisito collega i test web e API che lo coprono. Un'epic conta i propri test e
+**Test** su un requisito collega i test web, API e di [app mobili](./mobile-apps) che lo coprono. Un'epic conta i propri test e
 quelli di tutte le sue story, ciascuno una volta. La copertura si calcola dall'**ultimo risultato di
 ogni test**, tutti i browser di quel run insieme:
 

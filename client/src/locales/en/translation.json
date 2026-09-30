@@ -3502,7 +3502,8 @@
     "deleteBody": "Its links to tests go with it; the tests and their results stay. What it contains moves to the top level. Nothing changes in the tracker.",
     "generateTests": "Generate tests",
     "generateTestsFor": "Generate tests for {{key}}",
-    "generated": "{{count}} tests created and linked"
+    "generated": "{{count}} tests created and linked",
+    "mobile": "Mobile"
   },
   "testManagement": {
     "clientId": "Client id",
@@ -3554,7 +3555,8 @@
       "save": "Save {{count}} changes"
     },
     "web": "Web",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "mobile": "Mobile"
   },
   "publications": {
     "failed": "The run was not published.",

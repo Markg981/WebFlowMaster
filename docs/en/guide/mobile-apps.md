@@ -95,7 +95,22 @@ tool with the rest.
 A mobile test with no grid is reported as an error in the run, with the reason, without asking any
 grid for a device.
 
+## Suites, requirements and test management
+
+A mobile test goes wherever a web or API test does:
+
+- in a **static suite** ([Suites](./organizing#suites)), and so in every plan that includes it —
+  a dynamic suite matches tags, and mobile tests have none;
+- as the coverage of a **requirement** ([Requirements](./organizing#requirements)): its latest
+  result in a plan run counts like any other, and the matrix export says `mobile`;
+- linked to a case of **TestRail, Xray or Zephyr Scale**
+  ([test management](./results#test-management)): its result in a run is published to that case,
+  with the device in the comment. A `[C123]` at the start of its name works as it does for a web
+  test.
+
+In each list it carries the label **Mobile**.
+
 ## What comes next
 
-Mobile tests in **suites**, **requirements** and **test management** mappings, and an
-**inspector** to pick elements from a live screenshot, are the next steps.
+An **inspector** to pick elements from a live screenshot of the device, then running on a local
+Appium (an emulator or a phone attached to an agent), are the next steps.

@@ -22,7 +22,7 @@ import { Loader2 } from 'lucide-react';
 export type SuiteKind = 'static' | 'dynamic';
 
 export interface SuiteTestRef {
-  type: 'ui' | 'api';
+  type: 'ui' | 'api' | 'mobile';
   id: number;
   /** Null when the test is in a project the requester cannot see: counted, not named. */
   name: string | null;
@@ -45,7 +45,7 @@ export interface SuitePayload {
   kind: SuiteKind;
   projectId: number | null;
   tagIds: string[];
-  items: Array<{ type: 'ui' | 'api'; id: number }>;
+  items: Array<{ type: 'ui' | 'api' | 'mobile'; id: number }>;
 }
 
 interface NamedRow {
@@ -73,7 +73,7 @@ async function getJson<T>(url: string, what: string): Promise<T> {
   return response.json();
 }
 
-const key = (type: 'ui' | 'api', id: number) => `${type}:${id}`;
+const key = (type: 'ui' | 'api' | 'mobile', id: number) => `${type}:${id}`;
 
 interface SuiteDialogProps {
   isOpen: boolean;
@@ -115,6 +115,11 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
     queryFn: () => getJson('/api/api-tests', 'the API tests'),
     enabled: isOpen,
   });
+  const { data: mobileTests = [] } = useQuery<NamedRow[]>({
+    queryKey: ['mobileTests'],
+    queryFn: () => getJson('/api/mobile-tests', 'the mobile tests'),
+    enabled: isOpen,
+  });
   // A suite belongs to a project the same way a test does: in a restricted one it is seen and
   // changed only by the project's members. Without this field every suite was created outside
   // any project, and restricting a project left its suites in view of everyone.
@@ -135,9 +140,10 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
     const rows = [
       ...(Array.isArray(uiTests) ? uiTests : []).map((test) => ({ type: 'ui' as const, id: test.id, name: test.name })),
       ...(Array.isArray(apiTests) ? apiTests : []).map((test) => ({ type: 'api' as const, id: test.id, name: test.name })),
+      ...(Array.isArray(mobileTests) ? mobileTests : []).map((test) => ({ type: 'mobile' as const, id: test.id, name: test.name })),
     ];
     return needle ? rows.filter((row) => row.name.toLowerCase().includes(needle)) : rows;
-  }, [uiTests, apiTests, filter]);
+  }, [uiTests, apiTests, mobileTests, filter]);
 
   const toggle = <T,>(list: T[], value: T) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
 
@@ -155,7 +161,7 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
         kind === 'static'
           ? picked.map((entry) => {
               const [type, id] = entry.split(':');
-              return { type: type as 'ui' | 'api', id: Number(id) };
+              return { type: type as 'ui' | 'api' | 'mobile', id: Number(id) };
             })
           : [],
     });
@@ -245,7 +251,7 @@ export default function SuiteDialog({ isOpen, suite, saving, onClose, onSave }: 
                         aria-label={test.name}
                       />
                       <span className="flex-1">{test.name}</span>
-                      <Badge variant="outline">{test.type === 'ui' ? 'UI' : 'API'}</Badge>
+                      <Badge variant="outline">{test.type === 'ui' ? 'UI' : test.type === 'mobile' ? 'Mobile' : 'API'}</Badge>
                     </label>
                   );
                 })}

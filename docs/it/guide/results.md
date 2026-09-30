@@ -59,7 +59,7 @@ concluso a quello strumento, con il risultato di ogni test sotto il suo caso:
 | **Zephyr Scale** (Cloud) | Un test cycle, con una test execution per ogni caso. |
 
 **Quale caso è un test.** In **Impostazioni → Test management**, **Casi di test** su una
-connessione elenca tutti i test con una casella per la chiave: `C123` in TestRail (o solo `123`),
+connessione elenca tutti i test — web, API e di app mobili — con una casella per la chiave: `C123` in TestRail (o solo `123`),
 `SHOP-45` in Xray, `SHOP-T12` in Zephyr. Un test il cui nome inizia con una chiave tra parentesi
 quadre — `[C123] Login` — non ha bisogno di nulla: la chiave appare in grigio nella casella ed è
 usata così com'è. Una chiave scritta nella casella prevale sul nome. I test senza né l'una né

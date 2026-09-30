@@ -57,7 +57,7 @@ that tool, each test's result under its case:
 | **Zephyr Scale** (Cloud) | A test cycle, with a test execution for each case. |
 
 **Which case a test is.** In **Settings → Test management**, **Test cases** on a connection lists
-every test with a box for its key: `C123` in TestRail (or just `123`), `SHOP-45` in Xray,
+every test — web, API and mobile app — with a box for its key: `C123` in TestRail (or just `123`), `SHOP-45` in Xray,
 `SHOP-T12` in Zephyr. A test whose name starts with a key in square brackets — `[C123] Login` —
 needs nothing typed: the key is shown greyed in the box and used as it is. A key typed in the box
 wins over the name. Tests with neither are left out, and the publication says how many; a case the

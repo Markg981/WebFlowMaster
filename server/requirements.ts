@@ -1,5 +1,6 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { apiTests, requirementTests, requirements, testPlanExecutions, testPlans, tests, type Requirement } from '@shared/schema';
+import { itemOf, visibleNames } from './test-refs';
 import {
   computeCoverage,
   coverageSummary,
@@ -23,7 +24,7 @@ import type { TrackedItem } from './issue-providers';
 /** Which results count: the latest anywhere, the latest of one plan, or exactly one run. */
 export type CoverageScope = { planId?: string | null; executionId?: string | null };
 
-const key = (type: 'ui' | 'api', id: number) => `${type}:${id}`;
+const key = (type: CoverageTest['type'], id: number) => `${type}:${id}`;
 
 const idList = (ids: number[]) => sql.join(ids.map((id) => sql`${id}`), sql`, `);
 
@@ -42,15 +43,17 @@ async function latestOutcomes(
   tx: TenantTx,
   uiIds: number[],
   apiIds: number[],
+  mobileIds: number[],
   scope: CoverageScope,
 ): Promise<Map<string, { outcome: CoverageTest['outcome']; lastRun: CoverageRun }>> {
   const found = new Map<string, { outcome: CoverageTest['outcome']; lastRun: CoverageRun }>();
-  if (uiIds.length === 0 && apiIds.length === 0) return found;
+  if (uiIds.length === 0 && apiIds.length === 0 && mobileIds.length === 0) return found;
 
   const which = sql.join(
     [
       ...(uiIds.length ? [sql`r.ui_test_id IN (${idList(uiIds)})`] : []),
       ...(apiIds.length ? [sql`r.api_test_id IN (${idList(apiIds)})`] : []),
+      ...(mobileIds.length ? [sql`r.mobile_test_id IN (${idList(mobileIds)})`] : []),
     ],
     sql` OR `,
   );
@@ -62,13 +65,13 @@ async function latestOutcomes(
 
   const result = await tx.execute(sql`
     WITH ranked AS (
-      SELECT r.ui_test_id, r.api_test_id, r.status, e.id AS execution_id, e.test_plan_id, p.name AS plan_name,
+      SELECT r.ui_test_id, r.api_test_id, r.mobile_test_id, r.status, e.id AS execution_id, e.test_plan_id, p.name AS plan_name,
              -- As milliseconds, not as the timestamp: in a raw query a timestamp without time zone
              -- comes back as whatever the driver makes of it, and node-postgres reads it in the
              -- server's local zone. The column holds UTC (server/db-time-zone.test.ts).
              (EXTRACT(EPOCH FROM COALESCE(e.completed_at, e.started_at, e.queued_at)) * 1000)::bigint AS at_ms,
              DENSE_RANK() OVER (
-               PARTITION BY r.ui_test_id, r.api_test_id
+               PARTITION BY r.ui_test_id, r.api_test_id, r.mobile_test_id
                ORDER BY COALESCE(e.completed_at, e.started_at, e.queued_at) DESC, e.id DESC
              ) AS rnk
       FROM report_test_case_results r
@@ -83,7 +86,12 @@ async function latestOutcomes(
 
   const statuses = new Map<string, { statuses: string[]; lastRun: CoverageRun }>();
   for (const row of result.rows as any[]) {
-    const k = row.ui_test_id != null ? key('ui', Number(row.ui_test_id)) : key('api', Number(row.api_test_id));
+    const k =
+      row.ui_test_id != null
+        ? key('ui', Number(row.ui_test_id))
+        : row.mobile_test_id != null
+          ? key('mobile', Number(row.mobile_test_id))
+          : key('api', Number(row.api_test_id));
     const entry: { statuses: string[]; lastRun: CoverageRun } = statuses.get(k) ?? {
       statuses: [],
       lastRun: { executionId: String(row.execution_id), planId: String(row.test_plan_id), planName: row.plan_name ?? null, at: toIso(row.at_ms) },
@@ -106,25 +114,28 @@ export async function loadCoverage(tx: TenantTx, scope: CoverageScope = {}) {
   const rows = await tx.select().from(requirements).orderBy(asc(requirements.key));
   const links = await tx.select().from(requirementTests);
 
-  const uiIds = Array.from(new Set(links.filter((l) => l.testType === 'ui').map((l) => l.testId!)));
-  const apiIds = Array.from(new Set(links.filter((l) => l.testType === 'api').map((l) => l.apiTestId!)));
   // Through RLS: what comes back is what the requester can see.
-  const uiNames = uiIds.length ? await tx.select({ id: tests.id, name: tests.name }).from(tests).where(inArray(tests.id, uiIds)) : [];
-  const apiNames = apiIds.length ? await tx.select({ id: apiTests.id, name: apiTests.name }).from(apiTests).where(inArray(apiTests.id, apiIds)) : [];
-  const outcomes = await latestOutcomes(tx, uiNames.map((t) => t.id), apiNames.map((t) => t.id), scope);
+  const names = await visibleNames(tx, links.map(itemOf));
+  const seen = Array.from(names.keys()).map((k) => {
+    const [type, id] = k.split(':');
+    return { type: type as CoverageTest['type'], id: Number(id) };
+  });
+  const idsOf = (type: CoverageTest['type']) => seen.filter((t) => t.type === type).map((t) => t.id);
+  const outcomes = await latestOutcomes(tx, idsOf('ui'), idsOf('api'), idsOf('mobile'), scope);
 
   const visible = new Map<string, CoverageTest>();
-  for (const [type, list] of [['ui', uiNames], ['api', apiNames]] as const) {
-    for (const test of list) {
-      const k = key(type, test.id);
-      const latest = outcomes.get(k);
-      visible.set(k, { type, id: test.id, name: test.name, outcome: latest?.outcome ?? 'notRun', lastRun: latest?.lastRun ?? null });
-    }
+  for (const { type, id } of seen) {
+    const k = key(type, id);
+    const latest = outcomes.get(k);
+    visible.set(k, { type, id, name: names.get(k)!, outcome: latest?.outcome ?? 'notRun', lastRun: latest?.lastRun ?? null });
   }
 
   const coverage = computeCoverage(
     rows.map((r) => ({ id: r.id, parentId: r.parentId })),
-    links.map((l) => ({ requirementId: l.requirementId, type: l.testType, testId: (l.testType === 'ui' ? l.testId : l.apiTestId)! })),
+    links.map((l) => {
+      const test = itemOf(l);
+      return { requirementId: l.requirementId, type: test.type, testId: test.id };
+    }),
     visible,
   );
   const direct = new Map<number, number>();
@@ -246,7 +257,7 @@ export function matrixCsv(rows: RequirementRow[]): string {
     }
     for (const test of r.coverage.tests) {
       lines.push(
-        [...base, test.name, test.type === 'ui' ? 'web' : 'api', test.outcome, test.lastRun?.at ?? '', test.lastRun?.planName ?? '', test.lastRun?.executionId ?? '', r.coverage.hidden]
+        [...base, test.name, test.type === 'ui' ? 'web' : test.type, test.outcome, test.lastRun?.at ?? '', test.lastRun?.planName ?? '', test.lastRun?.executionId ?? '', r.coverage.hidden]
           .map(csvCell)
           .join(','),
       );

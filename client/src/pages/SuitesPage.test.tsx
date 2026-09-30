@@ -68,11 +68,12 @@ describe('SuitesPage', () => {
     expect(within(screen.getByTestId('suite-2')).getByText('Dynamic')).toBeInTheDocument();
   });
 
-  it('sends a static suite with its tests in the order they were ticked', async () => {
+  it('sends a static suite with its tests in the order they were ticked, mobile app tests included', async () => {
     answer({
       'GET /api/suites': [],
       'GET /api/tests': [{ id: 10, name: 'Pay by card' }, { id: 11, name: 'Pay by transfer' }],
       'GET /api/api-tests': [{ id: 20, name: 'Orders API' }],
+      'GET /api/mobile-tests': [{ id: 30, name: 'Pay on Android' }],
       'GET /api/tags': [],
       'POST /api/suites': { id: 3 },
     });
@@ -83,6 +84,7 @@ describe('SuitesPage', () => {
     fireEvent.change(await screen.findByLabelText('Name'), { target: { value: 'Checkout' } });
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Orders API' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Pay by card' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Pay on Android' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(sent('POST', '/api/suites')).toBeDefined());
@@ -90,7 +92,7 @@ describe('SuitesPage', () => {
       name: 'Checkout',
       kind: 'static',
       tagIds: [],
-      items: [{ type: 'api', id: 20 }, { type: 'ui', id: 10 }],
+      items: [{ type: 'api', id: 20 }, { type: 'ui', id: 10 }, { type: 'mobile', id: 30 }],
     });
   });
 
