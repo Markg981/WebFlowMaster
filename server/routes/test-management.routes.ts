@@ -121,7 +121,7 @@ router.post("/api/test-management", requireRole("editor"), async (req, res) => {
   const parsed = connectionSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid connection" });
   const settled = settle(parsed.data, !!parsed.data.token);
-  if ("error" in settled) return res.status(400).json({ error: settled.error });
+  if (settled.error) return res.status(400).json({ error: settled.error });
   try {
     const encrypted = encryptSecret(parsed.data.token!);
     const created = await withTenantTransaction(async (tx) => {
@@ -161,7 +161,7 @@ router.put("/api/test-management/:id", requireRole("editor"), async (req, res) =
       const [current] = await tx.select().from(testManagementConnections).where(eq(testManagementConnections.id, req.params.id)).limit(1);
       if (!current) throw new ConnectionError(404, "Connection not found.");
       const settled = settle(parsed.data, !!parsed.data.token || !!current.encryptedToken);
-      if ("error" in settled) throw new ConnectionError(400, settled.error);
+      if (settled.error) throw new ConnectionError(400, settled.error);
       const token = parsed.data.token ? encryptSecret(parsed.data.token) : null;
       const [row] = await tx
         .update(testManagementConnections)

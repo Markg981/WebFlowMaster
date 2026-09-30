@@ -190,7 +190,7 @@ router.delete("/api/browser-grids/:id", requireRole("editor"), async (req, res) 
         .select({ count: sql<number>`count(*)::int` })
         .from(testPlans)
         .where(eq(testPlans.browserGridId, req.params.id));
-      const deleted = await tx.delete(browserGrids).where(eq(browserGrids.id, req.params.id)).returning({ id: browserGrids.id });
+      const deleted = await tx.delete(browserGrids).where(eq(browserGrids.id, req.params.id)).returning();
       return { deleted: deleted.length, plans: Number(count) };
     });
     if (outcome.deleted === 0) return res.status(404).json({ error: "Grid not found." });
