@@ -485,7 +485,8 @@
     },
     "testLibrary": "Bibliothèque de tests",
     "testManager": "Gestionnaire de tests",
-    "requirements": "Exigences"
+    "requirements": "Exigences",
+    "mobileTests": "Applications mobiles"
   },
   "dashboardPage": {
     "user": {
@@ -2589,7 +2590,8 @@
       "sso": "Authentification unique",
       "custom_action": "Actions personnalisées",
       "requirement": "Exigences",
-      "test_management": "Gestion des tests"
+      "test_management": "Gestion des tests",
+      "mobile_test": "Applications mobiles"
     },
     "actions": {
       "member_role_changed": "Rôle du membre modifié",
@@ -2673,7 +2675,12 @@
       "test_management_updated": "Connexion à la gestion des tests modifiée",
       "test_management_removed": "Outil de gestion des tests supprimé",
       "test_management_cases_changed": "Cas de test liés aux tests modifiés",
-      "test_management_run_published": "Exécution publiée dans un outil de gestion des tests"
+      "test_management_run_published": "Exécution publiée dans un outil de gestion des tests",
+      "mobile_test_created": "Test d'application mobile créé",
+      "mobile_test_updated": "Test d'application mobile modifié",
+      "mobile_test_deleted": "Test d'application mobile supprimé",
+      "mobile_test_run": "Test d'application mobile exécuté sur un appareil",
+      "mobile_test_app_uploaded": "Application envoyée à une grille d'appareils"
     }
   },
   "security": {
@@ -3603,5 +3610,86 @@
     "addStep": "Ajouter une étape",
     "cancel": "Annuler",
     "create": "Créer {{count}} tests"
+  },
+  "mobileTests": {
+    "actions": {
+      "tap": "Toucher",
+      "type": "Saisir",
+      "clear": "Effacer",
+      "waitFor": "Attendre l'élément",
+      "assertVisible": "Vérifier visible",
+      "assertNotVisible": "Vérifier non visible",
+      "assertText": "Vérifier que le texte contient",
+      "swipe": "Balayer",
+      "back": "Retour",
+      "hideKeyboard": "Masquer le clavier",
+      "wait": "Attendre (secondes)"
+    },
+    "uploadFailed": "L'application n'a pas été envoyée.",
+    "fixSteps": "Corrigez d'abord les étapes marquées en rouge.",
+    "saveFailed": "Le test n'a pas été enregistré.",
+    "editTitle": "Modifier le test mobile",
+    "newTitle": "Nouveau test mobile",
+    "dialogDescription": "Une application Android ou iOS sur un appareil réel d'une grille BrowserStack ou LambdaTest. Les éléments se désignent par accessibility id (~login), resource id (id=…), texte (text=Connexion) ou XPath.",
+    "name": "Nom",
+    "platform": "Plateforme",
+    "app": "Application",
+    "uploadTo": "Envoyer vers",
+    "appFile": "Fichier de l'application",
+    "upload": "Envoyer .apk / .ipa",
+    "device": "Appareil",
+    "osVersion": "Version du système (facultative)",
+    "steps": "Étapes",
+    "actionOf": "Action de l'étape {{n}}",
+    "targetOf": "Élément de l'étape {{n}}",
+    "valueOf": "Valeur de l'étape {{n}}",
+    "moveUp": "Monter l'étape {{n}}",
+    "moveDown": "Descendre l'étape {{n}}",
+    "removeStep": "Supprimer l'étape {{n}}",
+    "addStep": "Ajouter une étape",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "run": {
+      "startFailed": "L'exécution n'a pas démarré.",
+      "queued": "En attente d'un appareil…",
+      "running": "En cours",
+      "passed": "Réussi",
+      "failed": "Échoué",
+      "error": "Impossible à exécuter",
+      "title": "Exécuter {{name}}",
+      "description": "{{device}} sur la grille choisie. Trouver l'appareil et installer l'application prend une minute ou deux.",
+      "noGrid": "Aucune grille BrowserStack ou LambdaTest : ajoutez-en une dans Paramètres → Grilles de navigateurs.",
+      "grid": "Grille",
+      "environment": "Environnement",
+      "noEnvironment": "Aucun",
+      "session": "Vidéo et journaux sur la grille",
+      "skipped": "Ignoré",
+      "screenshot": "L'appareil à la fin de l'exécution",
+      "again": "Exécuter à nouveau",
+      "start": "Exécuter"
+    },
+    "close": "Fermer",
+    "loadFailed": "Impossible de charger les tests mobiles.",
+    "deleteFailed": "Le test n'a pas été supprimé.",
+    "title": "Applications mobiles",
+    "pageDescription": "Tests d'applications natives Android et iOS, sur des appareils réels de votre grille BrowserStack ou LambdaTest.",
+    "create": "Nouveau test mobile",
+    "loading": "Chargement…",
+    "emptyNoGrid": "Aucun test mobile. Ils s'exécutent sur une grille BrowserStack ou LambdaTest : ajoutez-en d'abord une dans Paramètres → Grilles de navigateurs.",
+    "empty": "Aucun test mobile.",
+    "columns": {
+      "name": "Test",
+      "device": "Appareil",
+      "steps": "Étapes",
+      "lastRun": "Dernière exécution",
+      "actions": "Actions"
+    },
+    "runFor": "Exécuter {{name}}",
+    "editFor": "Modifier {{name}}",
+    "deleteFor": "Supprimer {{name}}",
+    "saved": "Test mobile enregistré",
+    "deleteTitle": "Supprimer {{name}} ?",
+    "deleteBody": "Ses exécutions sont supprimées avec lui. L'application reste sur la grille.",
+    "delete": "Supprimer"
   }
 }

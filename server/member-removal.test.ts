@@ -37,6 +37,8 @@ const PROVENANCE = [
   'test_management_connections.created_by',
   'test_case_links.created_by',
   'test_management_publications.requested_by',
+  'mobile_tests.created_by',
+  'mobile_test_runs.requested_by',
   'password_resets.created_by',
   'source_hosts.created_by',
   'test_plan_executions.requested_by_user_id',

@@ -66,6 +66,7 @@ erDiagram
 | `test_quarantines` | Tests set aside as unreliable, with reason, evidence and release. |
 | `excel_sequences_map` | Test Manager: rows of an imported spreadsheet mapped to saved sequences. |
 | `test_runs` | Results of single test runs started from the builder (not plan runs). |
+| `mobile_tests` / `mobile_test_runs` | Tests of native Android and iOS apps — platform, app on the grid (`bs://`, `lt://`), device, steps with native locators — and their runs on a grid's device, step by step, with the final screenshot and the session's page (`shared/mobile.ts`, `server/mobile-runner.ts`). |
 | `requirements` / `requirement_tests` | Epics, user stories and requirements (typed in or imported from an issue tracker, with their parent) and the tests that cover them. Coverage is never stored: it is worked out from the tests' latest results (`shared/requirements.ts`). |
 
 ## Planning and running

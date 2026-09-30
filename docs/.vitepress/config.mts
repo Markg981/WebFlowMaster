@@ -14,6 +14,7 @@ type Labels = {
   gettingStarted: string;
   webTests: string;
   apiTests: string;
+  mobileApps: string;
   organizing: string;
   running: string;
   results: string;
@@ -54,6 +55,7 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
         { text: t.gettingStarted, link: p('guide/') },
         { text: t.webTests, link: p('guide/web-tests') },
         { text: t.apiTests, link: p('guide/api-tests') },
+        { text: t.mobileApps, link: p('guide/mobile-apps') },
         { text: t.organizing, link: p('guide/organizing') },
         { text: t.running, link: p('guide/running') },
         { text: t.results, link: p('guide/results') },
@@ -112,6 +114,7 @@ const en: Labels = {
   gettingStarted: 'Getting started',
   webTests: 'Web tests',
   apiTests: 'API tests',
+  mobileApps: 'Mobile apps',
   organizing: 'Organizing tests',
   running: 'Running tests',
   results: 'Results',
@@ -148,6 +151,7 @@ const it: Labels = {
   gettingStarted: 'Primi passi',
   webTests: 'Test web',
   apiTests: 'Test API',
+  mobileApps: 'App mobili',
   organizing: 'Organizzare i test',
   running: 'Eseguire i test',
   results: 'Risultati',

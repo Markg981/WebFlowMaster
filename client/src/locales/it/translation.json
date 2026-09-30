@@ -482,7 +482,8 @@
     },
     "testLibrary": "Libreria dei test",
     "testManager": "Test Manager",
-    "requirements": "Requisiti"
+    "requirements": "Requisiti",
+    "mobileTests": "App mobili"
   },
   "dashboardPage": {
     "headerTitle": "Piattaforma WebTest",
@@ -2708,7 +2709,8 @@
       "sso": "Single sign-on",
       "custom_action": "Azioni personalizzate",
       "requirement": "Requisiti",
-      "test_management": "Gestione test"
+      "test_management": "Gestione test",
+      "mobile_test": "App mobili"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
@@ -2792,7 +2794,12 @@
       "test_management_updated": "Collegamento alla gestione test modificato",
       "test_management_removed": "Strumento di gestione test rimosso",
       "test_management_cases_changed": "Casi di test collegati ai test modificati",
-      "test_management_run_published": "Run pubblicato su uno strumento di gestione test"
+      "test_management_run_published": "Run pubblicato su uno strumento di gestione test",
+      "mobile_test_created": "Test di app mobile creato",
+      "mobile_test_updated": "Test di app mobile modificato",
+      "mobile_test_deleted": "Test di app mobile eliminato",
+      "mobile_test_run": "Test di app mobile eseguito su un dispositivo",
+      "mobile_test_app_uploaded": "App caricata su una griglia di dispositivi"
     }
   },
   "security": {
@@ -3722,5 +3729,86 @@
     "addStep": "Aggiungi passo",
     "cancel": "Annulla",
     "create": "Crea {{count}} test"
+  },
+  "mobileTests": {
+    "actions": {
+      "tap": "Tocca",
+      "type": "Digita",
+      "clear": "Svuota",
+      "waitFor": "Attendi elemento",
+      "assertVisible": "Verifica visibile",
+      "assertNotVisible": "Verifica non visibile",
+      "assertText": "Verifica che il testo contenga",
+      "swipe": "Scorri",
+      "back": "Indietro",
+      "hideKeyboard": "Nascondi tastiera",
+      "wait": "Attendi (secondi)"
+    },
+    "uploadFailed": "L'app non è stata caricata.",
+    "fixSteps": "Correggete prima i passi segnati in rosso.",
+    "saveFailed": "Il test non è stato salvato.",
+    "editTitle": "Modifica test mobile",
+    "newTitle": "Nuovo test mobile",
+    "dialogDescription": "Un'app Android o iOS su un dispositivo reale di una griglia BrowserStack o LambdaTest. Gli elementi si indicano per accessibility id (~login), resource id (id=…), testo (text=Accedi) o XPath.",
+    "name": "Nome",
+    "platform": "Piattaforma",
+    "app": "App",
+    "uploadTo": "Carica su",
+    "appFile": "File dell'app",
+    "upload": "Carica .apk / .ipa",
+    "device": "Dispositivo",
+    "osVersion": "Versione del sistema (facoltativa)",
+    "steps": "Passi",
+    "actionOf": "Azione del passo {{n}}",
+    "targetOf": "Elemento del passo {{n}}",
+    "valueOf": "Valore del passo {{n}}",
+    "moveUp": "Sposta su il passo {{n}}",
+    "moveDown": "Sposta giù il passo {{n}}",
+    "removeStep": "Rimuovi il passo {{n}}",
+    "addStep": "Aggiungi passo",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "run": {
+      "startFailed": "L'esecuzione non è partita.",
+      "queued": "In attesa di un dispositivo…",
+      "running": "In esecuzione",
+      "passed": "Superato",
+      "failed": "Fallito",
+      "error": "Non eseguibile",
+      "title": "Esegui {{name}}",
+      "description": "{{device}} sulla griglia che scegliete. Trovare il dispositivo e installare l'app richiede un minuto o due.",
+      "noGrid": "Nessuna griglia BrowserStack o LambdaTest: aggiungetene una in Impostazioni → Griglie di browser.",
+      "grid": "Griglia",
+      "environment": "Ambiente",
+      "noEnvironment": "Nessuno",
+      "session": "Video e log sulla griglia",
+      "skipped": "Saltato",
+      "screenshot": "Il dispositivo alla fine dell'esecuzione",
+      "again": "Esegui di nuovo",
+      "start": "Esegui"
+    },
+    "close": "Chiudi",
+    "loadFailed": "Impossibile caricare i test mobili.",
+    "deleteFailed": "Il test non è stato eliminato.",
+    "title": "App mobili",
+    "pageDescription": "Test di app native Android e iOS, su dispositivi reali della vostra griglia BrowserStack o LambdaTest.",
+    "create": "Nuovo test mobile",
+    "loading": "Caricamento…",
+    "emptyNoGrid": "Nessun test mobile. Girano su una griglia BrowserStack o LambdaTest: aggiungetene prima una in Impostazioni → Griglie di browser.",
+    "empty": "Nessun test mobile.",
+    "columns": {
+      "name": "Test",
+      "device": "Dispositivo",
+      "steps": "Passi",
+      "lastRun": "Ultima esecuzione",
+      "actions": "Azioni"
+    },
+    "runFor": "Esegui {{name}}",
+    "editFor": "Modifica {{name}}",
+    "deleteFor": "Elimina {{name}}",
+    "saved": "Test mobile salvato",
+    "deleteTitle": "Eliminare {{name}}?",
+    "deleteBody": "Le sue esecuzioni vengono eliminate con lui. L'app resta sulla griglia.",
+    "delete": "Elimina"
   }
 }

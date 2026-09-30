@@ -485,7 +485,8 @@
     },
     "testLibrary": "Testbibliothek",
     "testManager": "Testmanager",
-    "requirements": "Anforderungen"
+    "requirements": "Anforderungen",
+    "mobileTests": "Mobile Apps"
   },
   "dashboardPage": {
     "user": {
@@ -2589,7 +2590,8 @@
       "sso": "Single Sign-on",
       "custom_action": "Eigene Aktionen",
       "requirement": "Anforderungen",
-      "test_management": "Testmanagement"
+      "test_management": "Testmanagement",
+      "mobile_test": "Mobile Apps"
     },
     "actions": {
       "member_role_changed": "Rolle des Mitglieds geändert",
@@ -2673,7 +2675,12 @@
       "test_management_updated": "Testmanagement-Verbindung geändert",
       "test_management_removed": "Testmanagement-Tool entfernt",
       "test_management_cases_changed": "Mit Tests verknüpfte Testfälle geändert",
-      "test_management_run_published": "Lauf in ein Testmanagement-Tool veröffentlicht"
+      "test_management_run_published": "Lauf in ein Testmanagement-Tool veröffentlicht",
+      "mobile_test_created": "Test einer mobilen App erstellt",
+      "mobile_test_updated": "Test einer mobilen App geändert",
+      "mobile_test_deleted": "Test einer mobilen App gelöscht",
+      "mobile_test_run": "Test einer mobilen App auf einem Gerät ausgeführt",
+      "mobile_test_app_uploaded": "App in ein Geräte-Grid hochgeladen"
     }
   },
   "security": {
@@ -3603,5 +3610,86 @@
     "addStep": "Schritt hinzufügen",
     "cancel": "Abbrechen",
     "create": "{{count}} Tests erstellen"
+  },
+  "mobileTests": {
+    "actions": {
+      "tap": "Tippen",
+      "type": "Eingeben",
+      "clear": "Leeren",
+      "waitFor": "Auf Element warten",
+      "assertVisible": "Sichtbar prüfen",
+      "assertNotVisible": "Nicht sichtbar prüfen",
+      "assertText": "Text enthält prüfen",
+      "swipe": "Wischen",
+      "back": "Zurück",
+      "hideKeyboard": "Tastatur ausblenden",
+      "wait": "Warten (Sekunden)"
+    },
+    "uploadFailed": "Die App wurde nicht hochgeladen.",
+    "fixSteps": "Korrigieren Sie zuerst die rot markierten Schritte.",
+    "saveFailed": "Der Test wurde nicht gespeichert.",
+    "editTitle": "Mobilen Test bearbeiten",
+    "newTitle": "Neuer mobiler Test",
+    "dialogDescription": "Eine Android- oder iOS-App auf einem echten Gerät eines BrowserStack- oder LambdaTest-Grids. Elemente werden über Accessibility-ID (~login), Resource-ID (id=…), Text (text=Anmelden) oder XPath benannt.",
+    "name": "Name",
+    "platform": "Plattform",
+    "app": "App",
+    "uploadTo": "Hochladen nach",
+    "appFile": "App-Datei",
+    "upload": ".apk / .ipa hochladen",
+    "device": "Gerät",
+    "osVersion": "Betriebssystemversion (optional)",
+    "steps": "Schritte",
+    "actionOf": "Aktion von Schritt {{n}}",
+    "targetOf": "Element von Schritt {{n}}",
+    "valueOf": "Wert von Schritt {{n}}",
+    "moveUp": "Schritt {{n}} nach oben",
+    "moveDown": "Schritt {{n}} nach unten",
+    "removeStep": "Schritt {{n}} entfernen",
+    "addStep": "Schritt hinzufügen",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "run": {
+      "startFailed": "Der Lauf wurde nicht gestartet.",
+      "queued": "Warten auf ein Gerät…",
+      "running": "Läuft",
+      "passed": "Bestanden",
+      "failed": "Fehlgeschlagen",
+      "error": "Nicht ausführbar",
+      "title": "{{name}} ausführen",
+      "description": "{{device}} auf dem gewählten Grid. Gerät finden und App installieren dauert ein bis zwei Minuten.",
+      "noGrid": "Noch kein BrowserStack- oder LambdaTest-Grid: fügen Sie eines unter Einstellungen → Browser-Grids hinzu.",
+      "grid": "Grid",
+      "environment": "Umgebung",
+      "noEnvironment": "Keine",
+      "session": "Video und Logs im Grid",
+      "skipped": "Übersprungen",
+      "screenshot": "Das Gerät am Ende des Laufs",
+      "again": "Erneut ausführen",
+      "start": "Ausführen"
+    },
+    "close": "Schließen",
+    "loadFailed": "Die mobilen Tests konnten nicht geladen werden.",
+    "deleteFailed": "Der Test wurde nicht gelöscht.",
+    "title": "Mobile Apps",
+    "pageDescription": "Tests nativer Android- und iOS-Apps auf echten Geräten Ihres BrowserStack- oder LambdaTest-Grids.",
+    "create": "Neuer mobiler Test",
+    "loading": "Wird geladen…",
+    "emptyNoGrid": "Noch kein mobiler Test. Sie laufen auf einem BrowserStack- oder LambdaTest-Grid: fügen Sie zuerst eines unter Einstellungen → Browser-Grids hinzu.",
+    "empty": "Noch kein mobiler Test.",
+    "columns": {
+      "name": "Test",
+      "device": "Gerät",
+      "steps": "Schritte",
+      "lastRun": "Letzter Lauf",
+      "actions": "Aktionen"
+    },
+    "runFor": "{{name}} ausführen",
+    "editFor": "{{name}} bearbeiten",
+    "deleteFor": "{{name}} löschen",
+    "saved": "Mobiler Test gespeichert",
+    "deleteTitle": "{{name}} löschen?",
+    "deleteBody": "Seine Läufe werden mit gelöscht. Die App bleibt im Grid.",
+    "delete": "Löschen"
   }
 }

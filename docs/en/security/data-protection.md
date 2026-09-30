@@ -58,6 +58,7 @@ configures it:
 | Grafana Loki | If the operator sets `LOKI_URL` | Application logs. |
 | TestRail, Xray, Zephyr Scale | If a plan publishes its results there | For each published run: its plan's name, when it ended, the environment, the names of its tests with their outcome per browser, the reason for each failure (up to 1000 characters) and the address of the report. No screenshot, video, trace, step value or secret. |
 | Jira, Azure DevOps | If an organization connects an issue tracker | Failure details of the runs that open an issue. A requirements import sends only the keys or the query; the titles, types and states it reads are kept with the requirements. |
+| BrowserStack, LambdaTest (apps) | If a mobile app test runs on the grid, or an app is uploaded to it | The app file uploaded (not kept by WebFlowMaster), and everything the test does on the device: the values typed, variables and secrets included, the screens shown, recorded by the grid on video. |
 | BrowserStack, LambdaTest | If an organization adds a browser grid and a plan runs on it | Everything the tests do in the browser: the pages of the application under test, the values typed into them (secrets used in steps included), and the provider's own screenshots, videos and logs of each session, kept under its terms. |
 | GitHub, GitLab | If an organization connects them | Run status, verdict and a link, on the tested commit. |
 | Slack or Microsoft Teams | If a plan's notifications name a webhook | Run summaries. (E-mail addresses can be saved on a plan, but no e-mail is sent.) |

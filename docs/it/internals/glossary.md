@@ -30,6 +30,7 @@ ciascuna vive. I termini restano in inglese quando è così che compaiono nell'i
 | **Idempotency key (chiave di idempotenza)** | Una chiave scelta da chi chiama che fa restituire lo stesso run a una seconda richiesta. |
 | **Issue tracker** | Collegamento a Jira o Azure DevOps usato per segnalare i fallimenti (`issue_trackers`, `issue_links`). |
 | **Login state (stato di login)** | Cookie e storage salvati dell'applicazione sotto test, perché i test partano già autenticati. |
+| **Mobile test (test mobile)** | Un test di un'app nativa Android o iOS su un dispositivo reale di una griglia BrowserStack o LambdaTest, tramite Appium (`mobile_tests`); i suoi passi indicano gli elementi per accessibility id, resource id, testo o XPath. |
 | **Organization (organizzazione)** | Il tenant: ogni cosa appartiene a una (`organizations`). |
 | **Orchestrator** | L'unico punto in cui nascono i run (`server/execution-orchestrator.ts`). |
 | **Plan / test plan (piano)** | Cosa eseguire e come: test, suite, browser, policy, notifiche (`test_plans`). |
