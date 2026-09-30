@@ -2165,6 +2165,137 @@
       "sendInBody": {
         "text": "Nel corpo della richiesta"
       }
+    },
+    "schemeFields": {
+      "algorithm": {
+        "label": "Algoritmo"
+      },
+      "secret": {
+        "label": "Segreto o chiave privata"
+      },
+      "secretBase64": {
+        "label": "Il segreto è codificato in Base64"
+      },
+      "payload": {
+        "label": "Payload (claim in JSON)"
+      },
+      "headers": {
+        "label": "Header JWT aggiuntivi (JSON)"
+      },
+      "headerPrefix": {
+        "label": "Prefisso dell'header"
+      },
+      "queryParam": {
+        "label": "Nome del parametro query"
+      },
+      "username": {
+        "label": "Nome utente"
+      },
+      "password": {
+        "label": "Password"
+      },
+      "signatureMethod": {
+        "label": "Metodo di firma"
+      },
+      "consumerKey": {
+        "label": "Consumer key"
+      },
+      "consumerSecret": {
+        "label": "Consumer secret"
+      },
+      "token": {
+        "label": "Access token"
+      },
+      "tokenSecret": {
+        "label": "Token secret"
+      },
+      "realm": {
+        "label": "Realm (facoltativo)"
+      },
+      "authId": {
+        "label": "Hawk Auth ID"
+      },
+      "authKey": {
+        "label": "Hawk Auth Key"
+      },
+      "ext": {
+        "label": "ext (dati applicativi, facoltativo)"
+      },
+      "includePayloadHash": {
+        "label": "Includi l'hash del body"
+      },
+      "accessKey": {
+        "label": "Access key"
+      },
+      "secretKey": {
+        "label": "Secret key"
+      },
+      "sessionToken": {
+        "label": "Session token (facoltativo)"
+      },
+      "region": {
+        "label": "Regione"
+      },
+      "service": {
+        "label": "Servizio"
+      },
+      "domain": {
+        "label": "Dominio"
+      },
+      "workstation": {
+        "label": "Workstation"
+      },
+      "clientToken": {
+        "label": "Client token"
+      },
+      "clientSecret": {
+        "label": "Client secret"
+      },
+      "accessToken": {
+        "label": "Access token"
+      },
+      "headersToSign": {
+        "label": "Header da firmare (separati da virgola)"
+      },
+      "maxBody": {
+        "label": "Byte massimi del body firmati"
+      },
+      "issuer": {
+        "label": "Issuer (iss)"
+      },
+      "audience": {
+        "label": "Audience (aud)"
+      },
+      "keyId": {
+        "label": "Key ID (kid)"
+      },
+      "privateKey": {
+        "label": "Chiave privata (PEM)"
+      },
+      "subject": {
+        "label": "Subject (sub, facoltativo)"
+      },
+      "expirySeconds": {
+        "label": "Scadenza (secondi, al massimo 3600)"
+      },
+      "additionalClaims": {
+        "label": "Claim aggiuntivi (JSON)"
+      },
+      "addTo": {
+        "label": "Aggiungi a",
+        "header": "Header Authorization",
+        "query": "Parametri della query"
+      }
+    },
+    "schemeHints": {
+      "jwtBearer": "Firma un JWT a ogni richiesta. HS* usano il segreto condiviso; RS* ed ES* una chiave privata PEM. iat viene aggiunto se il payload non lo ha. I valori possono usare le variabili di ambiente.",
+      "digest": "La richiesta parte, il server risponde 401 con le sue condizioni e la richiesta riparte con la risposta (MD5, SHA-256, -sess, qop auth e auth-int).",
+      "oauth1": "Firma ogni richiesta (RFC 5849): metodo, URL, query e body form. Lascia vuoto il token per OAuth a due vie.",
+      "hawk": "Firma metodo, path, host e porta con timestamp e nonce; spunta l'hash del body se il server verifica i payload.",
+      "aws": "AWS Signature Version 4. Lascia vuoto il servizio per ricavarlo da un host *.amazonaws.com; per S3 viene aggiunto anche l'header con l'hash del payload.",
+      "ntlm": "Handshake NTLMv2 su un'unica connessione, dal server o dall'agent. Funziona anche DOMINIO\\utente nel nome utente.",
+      "akamai": "EG1-HMAC-SHA256, con le tre credenziali della sezione del tuo .edgerc. Il body delle POST viene incluso nell'hash fino al massimo indicato.",
+      "asap": "Un JWT di breve durata firmato con la chiave privata del servizio, inviato come Bearer token. Un jti nuovo a ogni richiesta."
     }
   },
   "testPlanExecutionPage": {

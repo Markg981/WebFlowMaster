@@ -1,7 +1,23 @@
-import type { Assertion, AuthParams } from '@shared/schema';
+import { AuthParamsSchema, type Assertion, type AuthParams } from '@shared/schema';
 import { fetchTarget, substituteInValues, substituteVariables } from './outbound-http';
 import { findUnresolvedVariables } from './variables';
 import { accessTokenFor } from './oauth2';
+import {
+  akamaiEdgeGrid,
+  asapToken,
+  awsSigV4,
+  digestAuthorization,
+  hawk,
+  jwtBearer,
+  ntlmAuthenticate,
+  ntlmNegotiate,
+  oauth1,
+  parseChallenge,
+  parseNtlmChallenge,
+  systemClock,
+  type DigestParams,
+  type NtlmParams,
+} from './api-auth';
 
 /**
  * Running one API request, with its assertions and its extractions.
@@ -203,41 +219,44 @@ function valueFrom(
   }
 }
 
-/**
- * Display names for the schemes the enum offers and nothing implements, so the refusal can
- * say which one was asked for in the words the dropdown used.
- */
-const SCHEME_NAMES: Record<string, string> = {
-  jwtBearer: 'JWT Bearer',
-  digest: 'Digest',
-  oauth1: 'OAuth 1.0',
-  hawk: 'Hawk',
-  aws: 'AWS Signature',
-  ntlm: 'NTLM',
-  akamai: 'Akamai EdgeGrid',
-  asap: 'Atlassian ASAP',
-};
+/** Answering a challenge takes a second request: these schemes are sent by `sendWithChallenge`. */
+type Challenge = { scheme: 'digest'; params: DigestParams } | { scheme: 'ntlm'; params: NtlmParams };
+
+/** Every string parameter of a scheme with `{{name}}` substituted, as the other schemes do. */
+function substituted<T extends Record<string, unknown>>(params: T, vars: Record<string, string>): T {
+  return Object.fromEntries(
+    Object.entries(params).map(([key, value]) => [key, typeof value === 'string' ? substituteVariables(value, vars) : value]),
+  ) as T;
+}
 
 /**
  * Adds whatever the test's auth settings imply, to the headers or the query.
  *
- * Returns a message when the request must not be sent, and null when it may be. A scheme
- * the enum offers but nothing implements is the first case: previously it fell through to
- * "send it as written", so the request went out with no credentials at all, the target
- * answered 401, and the report blamed the endpoint. A test that claims a scheme is in force
- * and quietly runs anonymous is worse than one that refuses to run.
+ * Returns a message when the request must not be sent, a challenge scheme when it is sent by
+ * `sendWithChallenge`, and null when it may be sent as it is. It runs after the body is built,
+ * because OAuth 1.0, Hawk, AWS and Akamai sign the body too (server/api-auth.ts).
  *
  * Values go through substitution because the token usually comes from an earlier request
  * in the same plan, or from the environment.
  */
 async function applyAuth(
-  auth: AuthParams | null | undefined,
-  headers: Record<string, string>,
-  url: URL,
+  saved: AuthParams | null | undefined,
+  request: { method: string; url: URL; headers: Record<string, string>; body: string | Buffer | undefined },
   vars: Record<string, string>,
   fetchImpl: typeof fetch,
-): Promise<string | null> {
-  if (!auth?.type) return null;
+): Promise<string | Challenge | null> {
+  if (!saved?.type) return null;
+  // A test saved while a scheme was only a name holds `{ type }` and nothing else: its
+  // parameters come from the schema's defaults, and the scheme then says which one is missing.
+  const parsed = AuthParamsSchema.safeParse(saved);
+  const auth = parsed.success ? parsed.data : saved;
+  const { headers, url } = request;
+  const clock = systemClock();
+  const setAuthorization = (result: { header: string } | { error: string }) => {
+    if ('error' in result) return result.error;
+    headers.Authorization = result.header;
+    return null;
+  };
 
   // A header the tester wrote by hand is more specific than a setting on the test;
   // overwriting it would make a deliberate override look broken.
@@ -276,19 +295,118 @@ async function applyAuth(
       headers.Authorization = result.authorization;
       return null;
     }
+    case 'jwtBearer': {
+      if (hasAuthorization && auth.params.addTo === 'header') return null;
+      const params = substituted(auth.params, vars);
+      const result = jwtBearer(params, clock);
+      if ('error' in result) return result.error;
+      if (params.addTo === 'query') url.searchParams.set(params.queryParam || 'token', result.token);
+      else headers.Authorization = params.headerPrefix ? `${params.headerPrefix} ${result.token}` : result.token;
+      return null;
+    }
+    case 'asap': {
+      if (hasAuthorization) return null;
+      const result = asapToken(substituted(auth.params, vars), clock);
+      if ('error' in result) return result.error;
+      headers.Authorization = `Bearer ${result.token}`;
+      return null;
+    }
+    case 'oauth1': {
+      if (hasAuthorization && auth.params.addTo === 'header') return null;
+      const result = oauth1(substituted(auth.params, vars), request, clock);
+      if ('error' in result) return result.error;
+      if (result.query) result.query.forEach(([key, value]) => url.searchParams.append(key, value));
+      if (result.header) headers.Authorization = result.header;
+      return null;
+    }
+    case 'hawk':
+      if (hasAuthorization) return null;
+      return setAuthorization(hawk(substituted(auth.params, vars), request, clock));
+    case 'akamai':
+      if (hasAuthorization) return null;
+      return setAuthorization(akamaiEdgeGrid(substituted(auth.params, vars), request, clock));
+    case 'aws': {
+      if (hasAuthorization) return null;
+      const result = awsSigV4(substituted(auth.params, vars), request, clock);
+      if ('error' in result) return result.error;
+      Object.assign(headers, result.headers);
+      return null;
+    }
+    case 'digest':
+    case 'ntlm': {
+      if (hasAuthorization) return null;
+      const params = substituted(auth.params, vars);
+      if (!params.username) return `${auth.type === 'digest' ? 'Digest' : 'NTLM'} authentication needs a username.`;
+      return { scheme: auth.type, params } as Challenge;
+    }
     case 'none':
     case 'inherit':
       // Deliberately no credentials. 'inherit' means the same here, because this runner has
       // no collection above the request to inherit from.
       return null;
     default: {
-      const name = SCHEME_NAMES[auth.type] ?? auth.type;
-      return (
-        `${name} authentication is not implemented, so this request would go out with no ` +
-        `credentials. Use Bearer Token, Basic Auth, API Key or OAuth 2.0, or set the ` +
-        `Authorization header yourself on the Headers tab.`
-      );
+      const unknown: never = auth;
+      return `Unknown authentication "${(unknown as { type?: string }).type}".`;
     }
+  }
+}
+
+/**
+ * A fetch whose requests all travel on one connection, for the schemes whose handshake belongs
+ * to the connection rather than to a request — NTLM. Offered by both transports: this server's
+ * (server/outbound-http.ts) and a local agent's (server/agents/agent-fetch.ts).
+ */
+export type OneConnectionFetch = typeof fetch & {
+  oneConnection?: () => { fetch: typeof fetch; close: () => Promise<void> };
+};
+
+/**
+ * Sends a request whose credentials answer the server's challenge: the request goes out, the
+ * server names its terms in WWW-Authenticate, and the request goes again with the answer.
+ * A server that does not challenge gets the first request's answer back, as with any scheme.
+ */
+async function sendWithChallenge(
+  challenge: Challenge,
+  fetchImpl: OneConnectionFetch,
+  url: URL,
+  options: RequestInit,
+): Promise<Response | { error: string }> {
+  const headers = options.headers as Record<string, string>;
+  if (challenge.scheme === 'digest') {
+    const first = await fetchImpl(url.toString(), options);
+    const offered = first.status === 401 ? first.headers.get('www-authenticate') : null;
+    const terms = offered ? parseChallenge(offered, 'Digest') : null;
+    if (!terms) return first;
+    await first.arrayBuffer().catch(() => undefined);
+    const authorization = digestAuthorization(
+      terms,
+      challenge.params,
+      { method: String(options.method ?? 'GET').toUpperCase(), uri: `${url.pathname}${url.search}`, body: options.body as string | Buffer | undefined },
+      systemClock().nonce(),
+    );
+    if (typeof authorization !== 'string') return authorization;
+    return fetchImpl(url.toString(), { ...options, headers: { ...headers, Authorization: authorization } });
+  }
+
+  const connection = fetchImpl.oneConnection?.();
+  if (!connection) return { error: 'NTLM needs the whole handshake on one connection, which this transport cannot keep.' };
+  try {
+    const first = await connection.fetch(url.toString(), { ...options, headers: { ...headers, Authorization: ntlmNegotiate() } });
+    const offered = first.status === 401 ? first.headers.get('www-authenticate') ?? '' : '';
+    const terms = parseNtlmChallenge(offered);
+    if (!terms) return first;
+    await first.arrayBuffer().catch(() => undefined);
+    const authorization = ntlmAuthenticate(challenge.params, terms, systemClock());
+    const answered = await connection.fetch(url.toString(), { ...options, headers: { ...headers, Authorization: authorization } });
+    // Read before the connection closes: the body travels on it.
+    const body = await answered.arrayBuffer();
+    return new Response([204, 205, 304].includes(answered.status) ? null : body, {
+      status: answered.status,
+      statusText: answered.statusText,
+      headers: answered.headers,
+    });
+  } finally {
+    await connection.close().catch(() => {});
   }
 }
 
@@ -296,7 +414,7 @@ export async function runApiRequest(
   spec: ApiRequestSpec,
   vars: Record<string, string>,
   // Where the request is sent from: this server, or a local agent (server/agents/agent-fetch.ts).
-  fetchImpl: typeof fetch = fetchTarget,
+  fetchImpl: OneConnectionFetch = fetchTarget,
 ): Promise<ApiRunResult> {
   const startTime = Date.now();
   const empty = {
@@ -339,14 +457,6 @@ export async function runApiRequest(
   // Set by the transport, and wrong if carried over from a saved request.
   for (const forbidden of ['host', 'Host', 'content-length', 'Content-Length']) delete headers[forbidden];
 
-  // Before the request rather than after a 401: a scheme that cannot be satisfied is a
-  // problem with the test, and saying so beats reporting the target's refusal as if the
-  // endpoint were at fault.
-  const authError = await applyAuth(spec.auth, headers, targetUrl, vars, fetchImpl);
-  if (authError) {
-    return { ...empty, passed: false, durationMs: Date.now() - startTime, error: authError };
-  }
-
   const options: RequestInit = { method: spec.method, headers };
   const carriesBody = spec.method !== 'GET' && spec.method !== 'HEAD';
   if (carriesBody && spec.multipart) {
@@ -373,13 +483,30 @@ export async function runApiRequest(
     }
   }
 
+  // Before the request rather than after a 401: a scheme that cannot be satisfied is a
+  // problem with the test, and saying so beats reporting the target's refusal as if the
+  // endpoint were at fault.
+  const auth = await applyAuth(
+    spec.auth,
+    { method: spec.method, url: targetUrl, headers, body: options.body as string | Buffer | undefined },
+    vars,
+    fetchImpl,
+  );
+  if (typeof auth === 'string') {
+    return { ...empty, passed: false, durationMs: Date.now() - startTime, error: auth };
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   options.signal = controller.signal;
 
   let response: Response;
   try {
-    response = await fetchImpl(targetUrl.toString(), options);
+    const sent = auth ? await sendWithChallenge(auth, fetchImpl, targetUrl, options) : await fetchImpl(targetUrl.toString(), options);
+    if (!(sent instanceof Response)) {
+      return { ...empty, passed: false, durationMs: Date.now() - startTime, error: sent.error };
+    }
+    response = sent;
   } catch (e: any) {
     // A target that is down is a failed test, not a crashed runner: the plan has other
     // tests to run, and this one's result is "could not reach it".

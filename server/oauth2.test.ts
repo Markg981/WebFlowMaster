@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import http from 'http';
+import crypto from 'crypto';
 import type { AddressInfo } from 'net';
 import { runApiRequest } from './api-test-runner';
 import { clearTokenCache } from './oauth2';
@@ -268,8 +269,9 @@ describe('credentials come from the environment', () => {
   });
 });
 
-describe('a scheme nothing implements', () => {
+describe('a scheme saved without its settings', () => {
   it('refuses the request instead of sending it anonymous', async () => {
+    // A row from when NTLM was only a name in the dropdown: `{ type: 'ntlm' }`, no username.
     const result = await runApiRequest(
       { method: 'GET', url: `${targetUrl}/private`, auth: { type: 'ntlm' } as never },
       {},
@@ -299,18 +301,27 @@ describe('a scheme nothing implements', () => {
   it('handles exactly the schemes the product claims to implement', async () => {
     // The list the dropdown greys out and the list the runner accepts are the same list, so
     // neither can promise something the other refuses.
+    const { privateKey } = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+    });
+    const filled: Partial<Record<AuthType, Record<string, unknown>>> = {
+      basic: { username: 'u', password: 'p' },
+      bearer: { token: 'issued-token-1' },
+      apiKey: { key: 'k', value: 'v', addTo: 'header' },
+      jwtBearer: { secret: 's' },
+      digest: { username: 'u', password: 'p' },
+      oauth1: { consumerKey: 'k', consumerSecret: 's' },
+      hawk: { authId: 'id', authKey: 'key' },
+      aws: { accessKey: 'AK', secretKey: 'SK', region: 'eu-west-1', service: 'execute-api' },
+      ntlm: { username: 'u', password: 'p' },
+      akamai: { clientToken: 'c', clientSecret: 's', accessToken: 'a' },
+      asap: { issuer: 'i', audience: 'a', keyId: 'k', privateKey },
+    };
     const accepted: AuthType[] = [];
     for (const type of AuthTypeSchema.options) {
-      const auth =
-        type === 'oauth2'
-          ? oauth2()
-          : type === 'basic'
-            ? ({ type, params: { username: 'u', password: 'p' } } as never)
-            : type === 'bearer'
-              ? ({ type, params: { token: 'issued-token-1' } } as never)
-              : type === 'apiKey'
-                ? ({ type, params: { key: 'k', value: 'v', addTo: 'header' } } as never)
-                : ({ type } as never);
+      const auth = type === 'oauth2' ? oauth2() : (AuthParamsSchema.parse({ type, params: filled[type] ?? {} }) as never);
 
       const result = await runApiRequest({ method: 'GET', url: `${targetUrl}/public`, auth }, {});
       if (!result.error) accepted.push(type);

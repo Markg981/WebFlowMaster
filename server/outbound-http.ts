@@ -88,11 +88,38 @@ export function dispatcherFor(url: string): Agent | undefined {
   return insecureAgent;
 }
 
+const urlOf = (input: RequestInfo | URL) => (typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url);
+
 /** fetch() for systems under test: same contract, plus the per-host TLS exemption. */
-export const fetchTarget: typeof fetch = (input, init = {}) => {
-  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-  const dispatcher = dispatcherFor(url);
-  // `dispatcher` is an undici extension to RequestInit that Node's fetch honours
-  // but the DOM typings don't describe.
-  return fetch(input, dispatcher ? ({ ...init, dispatcher } as RequestInit) : init);
-};
+export const fetchTarget: typeof fetch & {
+  oneConnection: () => { fetch: typeof fetch; close: () => Promise<void> };
+} = Object.assign(
+  (input: RequestInfo | URL, init: RequestInit = {}) => {
+    const dispatcher = dispatcherFor(urlOf(input));
+    // `dispatcher` is an undici extension to RequestInit that Node's fetch honours
+    // but the DOM typings don't describe.
+    return fetch(input, dispatcher ? ({ ...init, dispatcher } as RequestInit) : init);
+  },
+  {
+    /**
+     * Requests that all travel on one connection, for NTLM, whose handshake belongs to the
+     * connection (server/api-test-runner.ts). Closed by the caller when the exchange is over.
+     */
+    oneConnection() {
+      let agent: Agent | undefined;
+      return {
+        fetch: ((input: RequestInfo | URL, init: RequestInit = {}) => {
+          agent ??= new Agent({
+            connections: 1,
+            pipelining: 1,
+            ...(allowsSelfSignedCertificate(urlOf(input)) ? { connect: { rejectUnauthorized: false } } : {}),
+          });
+          return fetch(input, { ...init, dispatcher: agent } as RequestInit);
+        }) as typeof fetch,
+        close: async () => {
+          await agent?.close();
+        },
+      };
+    },
+  },
+);

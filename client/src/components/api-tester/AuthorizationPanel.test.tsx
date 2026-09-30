@@ -131,7 +131,12 @@ describe('changing the scheme', () => {
       type: 'apiKey',
       params: { key: '', value: '', addTo: 'header' },
     });
-    expect(emptyAuthParamsFor('ntlm')).toEqual({ type: 'ntlm' });
+    expect(emptyAuthParamsFor('ntlm')).toEqual({
+      type: 'ntlm',
+      params: { username: '', password: '', domain: '', workstation: '' },
+    });
+    expect(emptyAuthParamsFor('akamai')).toMatchObject({ type: 'akamai', params: { maxBody: 131072 } });
+    expect(emptyAuthParamsFor('none')).toEqual({ type: 'none' });
     expect(emptyAuthParamsFor('oauth2')).toMatchObject({
       type: 'oauth2',
       params: { grantType: 'client_credentials', clientAuth: 'header' },
@@ -139,28 +144,72 @@ describe('changing the scheme', () => {
   });
 });
 
-describe('the schemes nothing implements', () => {
-  it('cannot be picked, and say so in the list', async () => {
+describe('the schemes that used to be names only', () => {
+  it('can all be picked', async () => {
     renderPanel('none', { type: 'none' } as AuthParams);
 
     await openSelect(screen.getByRole('combobox'));
 
-    const ntlm = await screen.findByRole('option', { name: /NTLM/i });
-    expect(ntlm).toHaveAttribute('aria-disabled', 'true');
-    expect(ntlm).toHaveTextContent('(not available)');
-
-    // The ones that do work are still selectable.
-    expect(await screen.findByRole('option', { name: /OAuth 2\.0/i })).not.toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
+    for (const name of [/JWT Bearer/, /Digest/, /OAuth 1\.0/, /Hawk/, /AWS Signature/, /NTLM/, /Akamai/, /ASAP/]) {
+      const option = await screen.findByRole('option', { name });
+      expect(option).not.toHaveAttribute('aria-disabled', 'true');
+      expect(option).not.toHaveTextContent('(not available)');
+    }
   });
 
-  it('explains what would happen, for a saved test that already names one', () => {
-    renderPanel('ntlm', { type: 'ntlm' } as AuthParams);
+  it('opens a test saved when NTLM was only a name, with its fields empty', () => {
+    const { onAuthParamsChange } = renderPanel('ntlm', { type: 'ntlm' } as AuthParams);
 
-    // "not yet configurable" read as though the request would be authenticated anyway.
-    expect(screen.getByRole('note')).toHaveTextContent(/would be sent with no credentials/i);
-    expect(screen.getByRole('note')).toHaveTextContent(/NTLM/);
+    expect(screen.queryByRole('note')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'CORP\\alice' } });
+
+    expect(onAuthParamsChange).toHaveBeenCalledWith({
+      type: 'ntlm',
+      params: { username: 'CORP\\alice', password: '', domain: '', workstation: '' },
+    });
+  });
+
+  it('keeps what was entered when another field changes', () => {
+    const { onAuthParamsChange } = renderPanel('aws', {
+      type: 'aws',
+      params: { accessKey: 'AKID', secretKey: 's', sessionToken: '', region: 'eu-west-1', service: '' },
+    } as AuthParams);
+
+    fireEvent.change(screen.getByLabelText('Service'), { target: { value: 'execute-api' } });
+
+    expect(onAuthParamsChange).toHaveBeenCalledWith({
+      type: 'aws',
+      params: { accessKey: 'AKID', secretKey: 's', sessionToken: '', region: 'eu-west-1', service: 'execute-api' },
+    });
+    expect(screen.getByLabelText('Secret key')).toHaveAttribute('type', 'password');
+  });
+
+  it('asks JWT for a shared secret or a PEM key, as the algorithm needs', () => {
+    const { unmount } = render(
+      <AuthorizationPanel
+        authType="jwtBearer"
+        authParams={{ type: 'jwtBearer', params: { algorithm: 'HS256' } } as AuthParams}
+        onAuthTypeChange={vi.fn()}
+        onAuthParamsChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText('Secret or private key')).toHaveAttribute('type', 'password');
+    expect(screen.getByLabelText('Secret is Base64 encoded')).toBeInTheDocument();
+    unmount();
+
+    renderPanel('jwtBearer', { type: 'jwtBearer', params: { algorithm: 'RS256' } } as AuthParams);
+    expect(screen.getByLabelText('Secret or private key').tagName).toBe('TEXTAREA');
+    expect(screen.queryByLabelText('Secret is Base64 encoded')).not.toBeInTheDocument();
+  });
+
+  it('has a label for every field of every scheme', () => {
+    for (const type of ['jwtBearer', 'digest', 'oauth1', 'hawk', 'aws', 'ntlm', 'akamai', 'asap'] as const) {
+      const { unmount, container } = render(
+        <AuthorizationPanel authType={type} authParams={emptyAuthParamsFor(type)} onAuthTypeChange={vi.fn()} onAuthParamsChange={vi.fn()} />,
+      );
+      // An untranslated key shows as its path.
+      expect(container.textContent).not.toMatch(/authForms\./);
+      unmount();
+    }
   });
 });

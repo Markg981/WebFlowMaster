@@ -1867,6 +1867,137 @@
       "sendInBody": {
         "text": "Dans le corps de la requête"
       }
+    },
+    "schemeFields": {
+      "algorithm": {
+        "label": "Algorithme"
+      },
+      "secret": {
+        "label": "Secret ou clé privée"
+      },
+      "secretBase64": {
+        "label": "Le secret est encodé en Base64"
+      },
+      "payload": {
+        "label": "Payload (claims en JSON)"
+      },
+      "headers": {
+        "label": "En-têtes JWT supplémentaires (JSON)"
+      },
+      "headerPrefix": {
+        "label": "Préfixe d'en-tête"
+      },
+      "queryParam": {
+        "label": "Nom du paramètre de requête"
+      },
+      "username": {
+        "label": "Nom d'utilisateur"
+      },
+      "password": {
+        "label": "Mot de passe"
+      },
+      "signatureMethod": {
+        "label": "Méthode de signature"
+      },
+      "consumerKey": {
+        "label": "Clé consommateur"
+      },
+      "consumerSecret": {
+        "label": "Secret consommateur"
+      },
+      "token": {
+        "label": "Jeton d'accès"
+      },
+      "tokenSecret": {
+        "label": "Secret du jeton"
+      },
+      "realm": {
+        "label": "Realm (facultatif)"
+      },
+      "authId": {
+        "label": "Hawk Auth ID"
+      },
+      "authKey": {
+        "label": "Hawk Auth Key"
+      },
+      "ext": {
+        "label": "ext (données applicatives, facultatif)"
+      },
+      "includePayloadHash": {
+        "label": "Inclure le hash du corps"
+      },
+      "accessKey": {
+        "label": "Clé d'accès"
+      },
+      "secretKey": {
+        "label": "Clé secrète"
+      },
+      "sessionToken": {
+        "label": "Jeton de session (facultatif)"
+      },
+      "region": {
+        "label": "Région"
+      },
+      "service": {
+        "label": "Service"
+      },
+      "domain": {
+        "label": "Domaine"
+      },
+      "workstation": {
+        "label": "Poste de travail"
+      },
+      "clientToken": {
+        "label": "Jeton client"
+      },
+      "clientSecret": {
+        "label": "Secret client"
+      },
+      "accessToken": {
+        "label": "Jeton d'accès"
+      },
+      "headersToSign": {
+        "label": "En-têtes à signer (séparés par des virgules)"
+      },
+      "maxBody": {
+        "label": "Octets maximum du corps signés"
+      },
+      "issuer": {
+        "label": "Émetteur (iss)"
+      },
+      "audience": {
+        "label": "Audience (aud)"
+      },
+      "keyId": {
+        "label": "ID de clé (kid)"
+      },
+      "privateKey": {
+        "label": "Clé privée (PEM)"
+      },
+      "subject": {
+        "label": "Sujet (sub, facultatif)"
+      },
+      "expirySeconds": {
+        "label": "Expiration (secondes, 3600 au maximum)"
+      },
+      "additionalClaims": {
+        "label": "Claims supplémentaires (JSON)"
+      },
+      "addTo": {
+        "label": "Ajouter à",
+        "header": "En-tête Authorization",
+        "query": "Paramètres de requête"
+      }
+    },
+    "schemeHints": {
+      "jwtBearer": "Signe un JWT à chaque requête. HS* utilisent le secret partagé ; RS* et ES* une clé privée PEM. iat est ajouté si le payload n'en a pas. Les valeurs peuvent utiliser des variables d'environnement.",
+      "digest": "La requête part, le serveur répond 401 avec ses conditions, et la requête repart avec la réponse (MD5, SHA-256, -sess, qop auth et auth-int).",
+      "oauth1": "Signe chaque requête (RFC 5849) : méthode, URL, query et corps de formulaire. Laissez le jeton vide pour OAuth à deux pattes.",
+      "hawk": "Signe méthode, chemin, hôte et port avec un horodatage et un nonce ; cochez le hash du corps si le serveur vérifie les payloads.",
+      "aws": "AWS Signature Version 4. Laissez le service vide pour le lire d'un hôte *.amazonaws.com ; S3 reçoit aussi l'en-tête du hash du payload.",
+      "ntlm": "Handshake NTLMv2 sur une seule connexion, depuis le serveur ou l'agent. DOMAINE\\utilisateur dans le nom d'utilisateur fonctionne aussi.",
+      "akamai": "EG1-HMAC-SHA256, avec les trois identifiants de votre section .edgerc. Le corps des requêtes POST est haché jusqu'au maximum.",
+      "asap": "Un JWT de courte durée signé avec la clé privée de votre service, envoyé comme jeton Bearer. Un nouveau jti à chaque requête."
     }
   },
   "testPlanExecutionPage": {

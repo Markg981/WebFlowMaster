@@ -24,10 +24,20 @@ valori al successivo. Si costruiscono in **Tester API**.
 | Bearer Token | `Authorization: Bearer` e il token. |
 | API Key | Una chiave in un header o in un parametro query, con il nome che scegliete. |
 | OAuth 2.0 | Un token richiesto prima al token URL, con il grant **client credentials** o **password**, poi inviato come Bearer. Le credenziali del client vanno in un header Basic o nel corpo. |
+| JWT Bearer | Un JWT firmato a ogni richiesta: **HS256/384/512** con un segreto condiviso (anche in Base64), **RS\*** o **ES\*** con una chiave privata PEM. Claim e campi aggiuntivi dell'header sono JSON; `iat` viene aggiunto se manca. Inviato come `Authorization: <prefisso> <token>` (prefisso *Bearer* di default) o come parametro query. |
+| Digest Auth | La richiesta parte, il server risponde 401 con le sue condizioni e la richiesta riparte con la risposta (RFC 7616: MD5, SHA-256, le varianti `-sess`, qop `auth` e `auth-int`). |
+| OAuth 1.0 | Ogni richiesta firmata (RFC 5849) con **HMAC-SHA1/256/512** o **PLAINTEXT**, su metodo, URL, query e corpo form. Lasciate vuoto il token per OAuth a due vie. Nell'header Authorization o nella query. |
+| Hawk Authentication | Un MAC su metodo, path, host e porta, con timestamp e nonce; facoltativamente l'hash del corpo, per i server che verificano i payload. |
+| AWS Signature | Signature Version 4: `Authorization` e `x-amz-date`, più `x-amz-security-token` con credenziali temporanee e `x-amz-content-sha256` per S3. Lasciate vuoto il servizio per ricavarlo da un host `*.amazonaws.com`. |
+| NTLM Authentication | L'handshake NTLMv2 (negotiate, challenge, authenticate) su un'unica connessione, come NTLM richiede — dal server o dall'agent quando il piano gira su un pool di agent. Funziona anche `DOMINIO\utente` nel nome utente. |
+| Akamai EdgeGrid | `EG1-HMAC-SHA256` con client token, client secret e access token della sezione del vostro `.edgerc`; sono firmati gli header elencati e il corpo delle POST (fino al massimo indicato). |
+| Atlassian ASAP | Un JWT di breve durata (**RS\*** o **ES\***) con issuer, audience, key ID e un `jti` nuovo, inviato come Bearer. |
 
-Gli altri tipi dell'elenco compaiono come *not available*. Il grant authorization code richiede
-una persona davanti a un browser, quindi non può essere usato da un run pianificato. Ogni campo
-di ogni tipo accetta segnaposto dell'ambiente — tenete lì password e client secret, non nel test.
+Un header `Authorization` scritto nella scheda Header prevale sul tipo scelto qui. Se un campo
+obbligatorio è vuoto — un nome utente, una chiave — la richiesta non parte e il risultato dice quale
+campo manca, invece di lasciare che il server risponda 401. Il grant authorization code richiede una
+persona davanti a un browser, quindi non può essere usato da un run pianificato. Ogni campo di ogni
+tipo accetta segnaposto dell'ambiente — tenete lì password, segreti e chiavi private, non nel test.
 
 **Invia** esegue la richiesta dal server e mostra la **Risposta**: stato, tempo, corpo e header,
 e l'esito di ogni asserzione. Ogni richiesta inviata resta nella **Cronologia**, da cui si può
