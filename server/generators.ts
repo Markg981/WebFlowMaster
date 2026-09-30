@@ -1,4 +1,5 @@
 import { randomInt, randomUUID } from 'crypto';
+import { parseTotpSeed, totpAt } from './totp';
 
 /**
  * Values made up at run time: `{{$randomEmail}}`, `{{$randomInt(1,100)}}`, `{{$today(+7)}}`.
@@ -10,6 +11,10 @@ import { randomInt, randomUUID } from 'crypto';
  * start with one, so no environment can shadow a generator by accident.
  *
  * Each placeholder is a fresh value. To use the same one twice, `setVariable` it first.
+ *
+ * `{{$totp(name)}}` is the one that reads a variable: the authenticator code for the seed held in
+ * `{{name}}` (server/totp.ts). The argument is the name, not the seed, so the seed stays an
+ * environment secret instead of being written into the step.
  */
 
 export const GENERATOR_PATTERN = /\{\{\s*\$(\w+)(?:\(([^)]*)\))?\s*\}\}/g;
@@ -35,7 +40,7 @@ function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-type Generator = (args: string[]) => string | null;
+type Generator = (args: string[], vars: Record<string, string>) => string | null;
 
 const GENERATORS: Record<string, Generator> = {
   uuid: () => randomUUID(),
@@ -65,28 +70,34 @@ const GENERATORS: Record<string, Generator> = {
   },
   // Under example.com, which is reserved and delivers nowhere: a test must not mail strangers.
   randomEmail: () => `test.${randomFrom(ALPHANUMERIC, 10)}@example.com`,
+  totp: ([name], vars) => {
+    const key = (name ?? '').trim();
+    if (!key || !(key in vars)) return null;
+    const params = parseTotpSeed(vars[key]);
+    return params ? totpAt(params, Date.now()) : null;
+  },
 };
 
 export const GENERATOR_NAMES = Object.keys(GENERATORS);
 
 /** The generated value, or null when the name is unknown or its arguments do not fit. */
-export function generate(name: string, rawArgs?: string): string | null {
+export function generate(name: string, rawArgs?: string, vars: Record<string, string> = {}): string | null {
   const generator = GENERATORS[name];
   if (!generator) return null;
   const args = rawArgs === undefined ? [] : rawArgs.split(',');
-  return generator(args);
+  return generator(args, vars);
 }
 
 /** Replaces every generator placeholder it can; one it cannot is left as written. */
-export function substituteGenerators(value: string): string {
-  return value.replace(GENERATOR_PATTERN, (match, name: string, args?: string) => generate(name, args) ?? match);
+export function substituteGenerators(value: string, vars: Record<string, string> = {}): string {
+  return value.replace(GENERATOR_PATTERN, (match, name: string, args?: string) => generate(name, args, vars) ?? match);
 }
 
 /** The generator placeholders in a string that would stay as written, for the error message. */
-export function findInvalidGenerators(value: string): string[] {
+export function findInvalidGenerators(value: string, vars: Record<string, string> = {}): string[] {
   const invalid = new Set<string>();
   for (const match of value.matchAll(GENERATOR_PATTERN)) {
-    if (generate(match[1], match[2]) === null) invalid.add(match[0].replace(/^\{\{\s*|\s*\}\}$/g, ''));
+    if (generate(match[1], match[2], vars) === null) invalid.add(match[0].replace(/^\{\{\s*|\s*\}\}$/g, ''));
   }
   return [...invalid];
 }

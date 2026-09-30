@@ -1260,6 +1260,16 @@
         "name": "Attendre un e-mail",
         "description": "Attend l'e-mail envoyé à une adresse dans la boîte de test (Mailpit) et le lit dans les variables email.otp, email.link, email.subject, email.from et email.text.",
         "valueHint": "adresse, adresse|objet, ou adresse|objet|motif — ex. la variable email, puis |Vérifiez votre compte"
+      },
+      "queryDatabase": {
+        "name": "Requête base de données",
+        "description": "Exécute une instruction SQL sur la base de l'environnement (db.url ; db.nom.url avec @nom) et lit la première ligne dans db.value et db.<colonne>, le nombre de lignes dans db.rowCount et les lignes dans db.json.",
+        "valueHint": "SELECT status FROM orders WHERE email = '…', ou @reporting SELECT…"
+      },
+      "assertCondition": {
+        "name": "Vérifier des valeurs",
+        "description": "Fait échouer le test si une comparaison de valeurs n'est pas vraie : le résultat d'une requête, un texte enregistré, l'objet d'un e-mail.",
+        "valueHint": "a == b, a != b, a > 3, a contains b — p. ex. la variable db.value == 1"
       }
     },
     "saveTest": {

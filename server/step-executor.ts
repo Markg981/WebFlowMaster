@@ -20,6 +20,16 @@ import { MAX_LOOP_ITERATIONS } from '@shared/flow';
 import { scanAccessibility } from './accessibility';
 import { allowsSelfSignedCertificate, requestVariables, substituteVariables } from './outbound-http';
 import { EMAIL_TIMEOUT_MS, inboxConfig, parseEmailQuery, waitForEmail, type InboxGet } from './email-inbox';
+import {
+  DATABASE_TIMEOUT_MS,
+  connectionVariable,
+  databaseKind,
+  parseDatabaseQuery,
+  redactMessage,
+  resultVariables,
+  runDatabaseQuery,
+  type DatabaseRunner,
+} from './database-step';
 import { findUnresolvedVariables } from './variables';
 
 /**
@@ -56,6 +66,8 @@ export interface StepContext {
    * so a fixed address does not read the previous run's email. Defaults to the step's own start.
    */
   startedAt?: number;
+  /** Runs a `queryDatabase` statement. The real drivers when omitted. */
+  database?: DatabaseRunner;
 }
 
 export interface StepOutcome {
@@ -244,6 +256,8 @@ interface StepRuntime {
    * runs, so a run on a local agent reaches the Mailpit of the agent's network.
    */
   inboxGet: InboxGet;
+  /** See StepContext.database. */
+  database: DatabaseRunner;
 }
 
 /** Reads the step's value as a non-empty string, or explains what is missing. */
@@ -1159,6 +1173,55 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     return { status: 'passed', detail: `"${excerpt(message.subject)}" from ${message.from || 'an unknown sender'}: ${read.join(', ')}.` };
   },
 
+  queryDatabase: async (rt) => {
+    if (typeof rt.raw !== 'string' || rt.raw.trim() === '') return failed('Value missing for queryDatabase action.');
+    // The connection's name is read before substitution: it names a variable, it is not one.
+    const query = parseDatabaseQuery(rt.raw);
+    if ('error' in query) return failed(query.error);
+    const sql = resolveValue(query.sql, rt.vars);
+    if ('error' in sql) return failed(sql.error);
+    const variable = connectionVariable(query.connection);
+    const url = rt.vars[variable];
+    if (!url) {
+      return failed(`No database is configured: add ${variable} to the environment, for example postgres://user:password@host:5432/shop.`);
+    }
+    const kind = databaseKind(url);
+    if (!kind) return failed(`${variable} is not a postgres://, mysql:// or sqlserver:// address.`);
+    if (!rt.storeVariable) return failed('This run has no variables of its own to store the result in.');
+
+    const seconds = Number(rt.vars['db.timeout']);
+    const timeoutMs = Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : DATABASE_TIMEOUT_MS;
+    // The previous query's columns are forgotten, so {{db.total}} never answers for a query
+    // that had no such column.
+    for (const name of (rt.vars['db.columns'] ?? '').split(',').filter(Boolean)) rt.forgetVariable?.(`db.${name}`);
+    for (const name of ['db.rowCount', 'db.value', 'db.json', 'db.columns']) rt.forgetVariable?.(name);
+
+    let result;
+    try {
+      result = await rt.database(kind, url, sql.value, timeoutMs);
+    } catch (error: any) {
+      return failed(`The database answered: ${redactMessage(String(error?.message ?? error), url)}`);
+    }
+    const values = resultVariables(result);
+    for (const [name, value] of Object.entries(values)) rt.storeVariable(name, value);
+    rt.storeVariable('db.columns', Object.keys(values).filter((n) => !['db.rowCount', 'db.value', 'db.json'].includes(n)).map((n) => n.slice(3)).join(','));
+    const described = result.columns.length
+      ? `${result.rowCount} row(s); {{db.value}} = "${excerpt(values['db.value'])}"`
+      : `${result.rowCount} row(s) changed`;
+    return { status: 'passed', detail: `${described}.` };
+  },
+
+  assertCondition: async (rt) => {
+    const wanted = requireValue(rt, 'assertCondition');
+    if ('error' in wanted) return failed(wanted.error);
+    const compared = compareValues(wanted.value);
+    if ('error' in compared) return failed(compared.error);
+    // What the values were, unless one of them is a secret: the report is read by everyone.
+    const raw = String(rt.raw).trim();
+    const shown = /\{\{\s*secret_/.test(raw) || raw === wanted.value.trim() ? `"${raw}"` : `"${raw}" (${excerpt(wanted.value.trim())})`;
+    return compared.value ? { status: 'passed', detail: `${shown} holds.` } : failed(`${shown} does not hold.`);
+  },
+
   if: async (rt) => {
     const result = await evaluateCondition(rt, 'if');
     if ('error' in result) return failed(result.error);
@@ -1273,6 +1336,7 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
       });
       return { status: response.status(), json: () => response.json() };
     },
+    database: ctx.database ?? runDatabaseQuery,
   };
 
   return handler(rt);

@@ -51,6 +51,8 @@ richiede: il testo da scrivere, l'opzione da scegliere, il testo atteso.
 | **Salva testo in variabile** | Legge il testo dell'elemento, o il valore di un campo, nella variabile indicata dal valore, per gli step successivi. |
 | **Imposta variabile** | `nome=valore`, per gli step successivi. Vedi [valori generati](#valori-generati). |
 | **Attendi email** | Attende l'email inviata a un indirizzo e ne legge codice e link in variabili. Vedi [email](#email). |
+| **Query al database** | Esegue un'istruzione SQL sul database dell'ambiente e legge la prima riga in variabili. Vedi [database](#database). |
+| **Verifica valori** | Fallisce se un confronto non è vero: <code v-pre>{{db.value}} == 1</code>, <code v-pre>{{total}} > 0</code>, <code v-pre>{{email.subject}} contains Benvenuto</code>. Gli stessi confronti di una condizione senza elemento. |
 | **Imposta cookie** / **Cancella cookie** | `nome=valore` per l'indirizzo corrente; oppure li elimina tutti. |
 | **Imposta localStorage** | `chiave=valore` nello storage della pagina corrente. |
 | **Esegui JavaScript** | Esegue il valore nella pagina. Fallisce se lancia un errore o restituisce `false`, così può verificare ciò che nessun altro step sa esprimere. |
@@ -197,6 +199,7 @@ variabili siano accettate — uno step, un URL, un test API:
 | <code v-pre>{{$randomDigits(6)}}</code> | Solo cifre |
 | <code v-pre>{{$today}}</code>, <code v-pre>{{$today(+7)}}</code> | Una data, `aaaa-mm-gg`, oggi o fra quei giorni |
 | <code v-pre>{{$now}}</code>, <code v-pre>{{$timestamp}}</code> | L'istante corrente, ISO o in millisecondi |
+| <code v-pre>{{$totp(secret_mfa)}}</code> | Il codice che un'app di autenticazione mostra adesso per il seme contenuto nella variabile indicata; vedi [accesso in due passaggi](#totp) |
 
 Ogni segnaposto è un valore nuovo. Per usarne uno due volte — registrarsi con un indirizzo e poi
 accedere con lo stesso — dategli prima un nome: **Imposta variabile**
@@ -205,6 +208,21 @@ male fa fallire lo step come una variabile mancante.
 
 I valori dei segreti sono cifrati, non vengono più mostrati dopo il salvataggio, e sono mascherati
 nei log.
+
+### Accesso in due passaggi con un'app di autenticazione {#totp}
+
+Quando l'applicazione chiede il codice a sei cifre di un'app di autenticazione (Google
+Authenticator, Microsoft Authenticator…), <code v-pre>{{$totp(nome)}}</code> digita il codice che
+l'app mostrerebbe in quel momento. Registrate una volta l'account di test e conservate ciò che
+l'applicazione ha mostrato come segreto dell'ambiente, per esempio `secret_mfa`: la chiave scritta
+sotto il QR code (`JBSW Y3DP EHPK 3PXP`, spazi e maiuscole non contano), oppure l'indirizzo
+contenuto nel QR code (`otpauth://totp/…?secret=…`), che porta con sé anche numero di cifre,
+periodo e algoritmo quando non sono i soliti 6, 30 secondi e SHA-1. Poi lo step **Digita**
+<code v-pre>{{$totp(secret_mfa)}}</code> nel campo del codice.
+
+L'argomento è il **nome** della variabile, mai la chiave, così la chiave resta cifrata e fuori dal
+test. Un nome che l'ambiente non definisce, o un valore che non è una chiave, fa fallire lo step e
+lo nomina. Il codice è calcolato dall'orologio del runner, che deve essere giusto a pochi secondi.
 
 ### Partire con l'accesso già fatto
 
@@ -254,6 +272,50 @@ precedente. Un pattern che non trova nulla fa fallire lo step.
 che lo stack docker-compose imposta sul suo Mailpit, aperto su http://localhost:8025). La casella
 viene letta da dove gira il browser, quindi un piano su un agente locale raggiunge un Mailpit della
 rete dell'agente.
+
+### Database: verificare e preparare i dati {#database}
+
+Ciò che uno schermo non mostra — la riga scritta dal checkout, il flag impostato da una pagina di
+amministrazione — o ciò che un test deve preparare senza passare per dieci schermate, uno step
+**Query al database** lo legge o lo scrive direttamente. Il valore è un'istruzione SQL, con
+variabili:
+
+| Azione | Valore |
+|---|---|
+| Query al database | <code v-pre>SELECT status, total FROM orders WHERE email = '{{email}}'</code> |
+| Verifica valori | <code v-pre>{{db.status}} == Paid</code> |
+
+Imposta:
+
+| Variabile | Contiene |
+|---|---|
+| <code v-pre>{{db.value}}</code> | La prima colonna della prima riga (vuota se non ci sono righe) |
+| <code v-pre>{{db.colonna}}</code> | Ogni colonna della prima riga con il suo nome — <code v-pre>{{db.status}}</code>, <code v-pre>{{db.total}}</code>; i caratteri diversi da lettere, cifre, `_` e `.` diventano `_`, quindi date un nome alle colonne calcolate (`count(*) AS n`) |
+| <code v-pre>{{db.rowCount}}</code> | Le righe restituite, o quelle modificate da un INSERT, UPDATE o DELETE |
+| <code v-pre>{{db.json}}</code> | Le prime 100 righe, in JSON |
+
+Le date sono in formato ISO, i valori nulli sono testo vuoto. Ogni query dimentica le colonne della
+precedente, così una colonna che questa query non ha restituito è non definita invece di restare
+dalla volta prima. Un'istruzione rifiutata dal database fa fallire lo step con il messaggio del
+database.
+
+**Quale database.** Il segreto dell'ambiente `db.url`, un indirizzo il cui schema sceglie il database:
+
+| Database | Indirizzo |
+|---|---|
+| PostgreSQL | `postgres://utente:password@host:5432/shop` (`?sslmode=require` per TLS) |
+| MySQL, MariaDB | `mysql://utente:password@host:3306/shop` |
+| SQL Server | `sqlserver://utente:password@host:1433/Shop` — `sqlserver://…@host%5CSQLEXPRESS/Shop` per un'istanza con nome; `?encrypt=false` per un server senza TLS, `?trustServerCertificate=true` per un certificato autofirmato |
+
+Caratteri come `@` o `/` nella password si scrivono `%40` e `%2F`. Per un secondo database
+dategli un nome: `db.reporting.url` e il valore <code v-pre>@reporting SELECT …</code>.
+`db.timeout` cambia il limite di 30 secondi, in secondi. Si tengono al massimo 1000 righe.
+
+L'istruzione gira con i permessi dell'utente dell'indirizzo: usate un utente che possa leggere solo
+ciò che i test verificano e scrivere solo ciò che preparano, e mai un database di produzione. La
+query parte dal runner di WebFlowMaster, non dal browser — anche su un agente locale — quindi il
+runner deve raggiungere il database. I valori entrano nell'SQL così come sono: mettete il testo tra
+apici (`'{{email}}'`) e usate variabili i cui valori sono sotto il controllo del test.
 
 ## Precondizioni
 

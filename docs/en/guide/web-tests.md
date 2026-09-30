@@ -49,6 +49,8 @@ choose, the text to expect.
 | **Store text in variable** | Reads the element's text, or a field's value, into the variable the value names, for later steps. |
 | **Set variable** | `name=value`, for later steps. See [generated values](#generated-values). |
 | **Wait for email** | Waits for the email sent to an address and reads its code and link into variables. See [emails](#emails). |
+| **Query database** | Runs a SQL statement against the environment's database and reads the first row into variables. See [database](#database). |
+| **Assert values** | Fails unless a comparison holds: <code v-pre>{{db.value}} == 1</code>, <code v-pre>{{total}} > 0</code>, <code v-pre>{{email.subject}} contains Welcome</code>. The same comparisons as a condition without an element. |
 | **Set cookie** / **Clear cookies** | `name=value` for the current address; or deletes them all. |
 | **Set localStorage** | `key=value` in the current page's storage. |
 | **Run JavaScript** | Runs the value in the page. Fails when it throws or returns `false`, so it can check what no other step can. |
@@ -189,12 +191,28 @@ accepted — a step, a URL, an API test:
 | <code v-pre>{{$randomDigits(6)}}</code> | Digits only |
 | <code v-pre>{{$today}}</code>, <code v-pre>{{$today(+7)}}</code> | A date, `yyyy-mm-dd`, today or that many days away |
 | <code v-pre>{{$now}}</code>, <code v-pre>{{$timestamp}}</code> | The current time, ISO or in milliseconds |
+| <code v-pre>{{$totp(secret_mfa)}}</code> | The code an authenticator app shows now for the seed in the variable named; see [two-step sign-in](#totp) |
 
 Each placeholder is a new value. To use one twice — register with an address, then log in with
 it — give it a name first: **Set variable** <code v-pre>email={{$randomEmail}}</code>, then
 <code v-pre>{{email}}</code>. A misspelt generator fails the step like a missing variable.
 
 Secret values are encrypted, never shown again after saving, and masked in logs.
+
+### Two-step sign-in with an authenticator app {#totp}
+
+When the application asks for the six-digit code of an authenticator app (Google Authenticator,
+Microsoft Authenticator…), <code v-pre>{{$totp(name)}}</code> types the code the app would show at
+that moment. Enrol the test account once, and keep what the application showed as a secret of the
+environment, say `secret_mfa`: the key written under the QR code (`JBSW Y3DP EHPK 3PXP`, spaces
+and case do not matter), or the address the QR code holds (`otpauth://totp/…?secret=…`), which
+also carries the number of digits, the period and the algorithm when they are not the usual 6, 30
+seconds and SHA-1. Then the step **Type** <code v-pre>{{$totp(secret_mfa)}}</code> in the code field.
+
+The argument is the variable's **name**, never the key itself, so the key stays encrypted and out
+of the test. A name the environment does not define, or a value that is not a key, fails the step
+and names it. The code is worked out from the runner's clock, which must be right to within a few
+seconds.
 
 ### Starting signed in
 
@@ -241,6 +259,48 @@ and, when it asks for them, `mailpit.username` and `mailpit.password`; `mailpit.
 the wait, in seconds. Without them, the server's own (`MAILPIT_URL`, which the docker-compose stack
 sets to its bundled Mailpit, open at http://localhost:8025). The inbox is read from where the
 browser runs, so a plan on a local agent reaches a Mailpit on the agent's network.
+
+### Database: checking and preparing data {#database}
+
+What a screen does not show — the row the checkout wrote, the flag an admin page set — or what a
+test must prepare without clicking through ten screens, a **Query database** step reads or writes
+directly. Its value is a SQL statement, with variables:
+
+| Action | Value |
+|---|---|
+| Query database | <code v-pre>SELECT status, total FROM orders WHERE email = '{{email}}'</code> |
+| Assert values | <code v-pre>{{db.status}} == Paid</code> |
+
+It sets:
+
+| Variable | Holds |
+|---|---|
+| <code v-pre>{{db.value}}</code> | The first column of the first row (empty when there is no row) |
+| <code v-pre>{{db.column}}</code> | Each column of the first row by its name — <code v-pre>{{db.status}}</code>, <code v-pre>{{db.total}}</code>; characters other than letters, digits, `_` and `.` become `_`, so name computed columns (`count(*) AS n`) |
+| <code v-pre>{{db.rowCount}}</code> | The rows returned, or those an INSERT, UPDATE or DELETE changed |
+| <code v-pre>{{db.json}}</code> | The first 100 rows, as JSON |
+
+Dates are ISO, empty values are empty text. Each query forgets the previous one's columns, so a
+column this query did not return is undefined rather than left over. A statement the database
+refuses fails the step with the database's message.
+
+**Which database.** The environment's secret `db.url`, an address whose scheme picks the database:
+
+| Database | Address |
+|---|---|
+| PostgreSQL | `postgres://user:password@host:5432/shop` (`?sslmode=require` for TLS) |
+| MySQL, MariaDB | `mysql://user:password@host:3306/shop` |
+| SQL Server | `sqlserver://user:password@host:1433/Shop` — `sqlserver://…@host%5CSQLEXPRESS/Shop` for a named instance; `?encrypt=false` for a server without TLS, `?trustServerCertificate=true` for a self-signed certificate |
+
+Characters such as `@` or `/` in the password are written as `%40` and `%2F`. For a second
+database, name it: `db.reporting.url` and the value <code v-pre>@reporting SELECT …</code>.
+`db.timeout` changes the 30-second limit, in seconds. At most 1000 rows are kept.
+
+The statement runs with the rights of the user in the address: use a user that can read only what
+the tests check, and write only what they prepare, and never a production database. The query runs
+from the WebFlowMaster runner, not from the browser — also on a local agent — so the runner must
+reach the database. Values are put into the SQL as they are: quote text (`'{{email}}'`), and use
+variables whose values the test controls.
 
 ## Preconditions
 

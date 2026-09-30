@@ -174,6 +174,17 @@ raggiunga la casella può leggerla tutta. Indicate la casella per ambiente (il s
 `MAILPIT_URL` del server su un'installazione condivisa da più aziende. Le caselle di test sono per
 la posta di test: non indirizzateci mai la posta di utenti reali.
 
+**Database di test.** Uno step **Query al database** esegue qualsiasi SQL contenga il suo test, con
+i permessi dell'utente del `db.url` dell'ambiente, dalla rete del runner. Chiunque possa modificare
+i test dell'organizzazione può quindi leggere e cambiare ciò che quell'utente può: dategli il minimo
+indispensabile, su un database di test, e tenete `db.url` come segreto (la password è allora
+cifrata e mai più mostrata). La password non compare mai nell'errore di uno step. Poiché la
+connessione parte dal runner, le [regole di rete](./hardening#rete) dei worker valgono per i
+database come per qualsiasi altro indirizzo.
+
+**Semi degli autenticatori.** <code v-pre>{{$totp(nome)}}</code> legge il seme dalla variabile
+indicata, quindi tenetelo come segreto dell'ambiente; il codice prodotto vale circa 30 secondi.
+
 ## Agenti locali
 
 Un agente locale permette a un cliente di testare applicazioni dentro la propria rete senza
