@@ -23,9 +23,11 @@ import { normalizeLocales } from '@shared/locales';
 export const EXECUTION_SNAPSHOT_VERSION = 1 as const;
 
 export interface SnapshotTestReference {
-  testType: 'ui' | 'api';
+  testType: 'ui' | 'api' | 'mobile';
   testId: number | null;
   apiTestId: number | null;
+  /** Present for a mobile app test (migration 0053); absent in snapshots taken before. */
+  mobileTestId?: number | null;
 }
 
 export interface ExecutionSnapshot {
@@ -127,6 +129,7 @@ export function buildExecutionSnapshot(
       testType: test.testType,
       testId: test.testType === 'ui' ? test.testId : null,
       apiTestId: test.testType === 'api' ? test.apiTestId : null,
+      ...(test.testType === 'mobile' ? { mobileTestId: test.mobileTestId ?? null } : {}),
     })),
     visualTesting: {
       enabled: plan.visualTestingEnabled === true,

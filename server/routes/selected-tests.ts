@@ -1,5 +1,5 @@
 import { and, eq, inArray } from "drizzle-orm";
-import { tests, apiTests } from "@shared/schema";
+import { tests, apiTests, mobileTests } from "@shared/schema";
 import type { TenantTx } from "../middleware/tenancy";
 
 /** Matches the error assertSelectedTestsBelongTo throws, so a caller can map it to a 400. */
@@ -21,9 +21,9 @@ export const SELECTED_TESTS_NOT_FOUND = /selected tests do not exist/i;
 export async function assertSelectedTestsBelongTo(
   tx: Pick<TenantTx, 'select'>,
   organizationId: number,
-  selectedTests: { id: number; type: 'ui' | 'api' }[],
+  selectedTests: { id: number; type: 'ui' | 'api' | 'mobile' }[],
 ): Promise<void> {
-  for (const [type, table] of [['ui', tests], ['api', apiTests]] as const) {
+  for (const [type, table] of [['ui', tests], ['api', apiTests], ['mobile', mobileTests]] as const) {
     const ids = selectedTests.filter((st) => st.type === type).map((st) => st.id);
     if (ids.length === 0) continue;
 

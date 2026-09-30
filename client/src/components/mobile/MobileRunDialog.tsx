@@ -44,7 +44,8 @@ export default function MobileRunDialog({ test, grids, onClose, onFinished }: Pr
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setGridId(grids[0]?.id ?? '');
+    // The grid it runs on in plans, when it names one that is still there.
+    setGridId(grids.find((grid) => grid.id === test?.gridId)?.id ?? grids[0]?.id ?? '');
     setEnvironmentId(NO_ENVIRONMENT);
     setRunId(null);
     setError(null);

@@ -19,7 +19,7 @@ import { useAuth } from '@/hooks/use-auth';
  * next arrives in the log beside it, and its results in the report the link opens.
  */
 interface PlanContents {
-  tests: Array<{ type: 'ui' | 'api'; id: number; name: string | null }>;
+  tests: Array<{ type: 'ui' | 'api' | 'mobile'; id: number; name: string | null }>;
   suites: Array<{ id: number; name: string }>;
   latestRun: { id: string; status: string; startedAt: string } | null;
 }
@@ -193,6 +193,7 @@ const TestPlanExecutionPage: React.FC = () => {
                         <li key={`${test.type}:${test.id}`}>
                           {test.name ?? t('suites.hiddenTest', 'A test in a project you cannot see')}
                           {test.type === 'api' && <span className="ml-1 text-xs">(API)</span>}
+                          {test.type === 'mobile' && <span className="ml-1 text-xs">({t('testPlanExecutionPage.contents.mobile', 'mobile app')})</span>}
                         </li>
                       ))}
                     </ul>

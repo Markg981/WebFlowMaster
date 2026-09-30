@@ -12,12 +12,15 @@ import type { TenantTx } from './middleware/tenancy';
  */
 
 export interface TestReference {
-  testType: 'ui' | 'api';
+  testType: 'ui' | 'api' | 'mobile';
   testId: number | null;
   apiTestId: number | null;
+  /** A mobile app test, which only a plan's own list holds: suites keep web and API tests. */
+  mobileTestId?: number | null;
 }
 
-const keyOf = (ref: TestReference) => (ref.testType === 'ui' ? `ui:${ref.testId}` : `api:${ref.apiTestId}`);
+const keyOf = (ref: TestReference) =>
+  ref.testType === 'ui' ? `ui:${ref.testId}` : ref.testType === 'mobile' ? `mobile:${ref.mobileTestId}` : `api:${ref.apiTestId}`;
 
 /** The tests of one suite, in the order it runs them. */
 export async function testsOfSuite(tx: TenantTx, suite: Pick<TestSuite, 'id' | 'kind' | 'tagIds' | 'projectId'>): Promise<TestReference[]> {

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { checkRunOn } from "../browser-grids";
-import { testPlans, testPlanSchedules, testPlanExecutions, testPlanSelectedTests, testPlanSuites, testSuites, tests, apiTests, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema, testPlanApiPayloadSchema, type TestPlanSchedule } from "@shared/schema";
+import { testPlans, testPlanSchedules, testPlanExecutions, testPlanSelectedTests, testPlanSuites, testSuites, tests, apiTests, mobileTests, insertTestPlanScheduleSchema, updateTestPlanScheduleSchema, testPlanApiPayloadSchema, type TestPlanSchedule } from "@shared/schema";
 import { eq, desc, asc, and, inArray, getTableColumns, sql, type SQL } from "drizzle-orm";
 import { v4 as uuidv4 } from 'uuid';
 import loggerPromise from "../logger";
@@ -97,6 +97,7 @@ router.post("/api/test-plans", requireRole('editor'), async (req, res) => {
                 organizationId: mainPlan.organizationId,
                 testId: st.type === 'ui' ? st.id : null,
                 apiTestId: st.type === 'api' ? st.id : null,
+                mobileTestId: st.type === 'mobile' ? st.id : null,
                 testType: st.type,
               })),
             );
@@ -157,7 +158,7 @@ router.get("/api/test-plans/:id/contents", requireRole('viewer'), async (req, re
         const refs = await runAsOrganization(req.user.organizationId, () =>
           withTenantTransaction(async (tx) => {
             const direct = await tx
-              .select({ testType: testPlanSelectedTests.testType, testId: testPlanSelectedTests.testId, apiTestId: testPlanSelectedTests.apiTestId })
+              .select({ testType: testPlanSelectedTests.testType, testId: testPlanSelectedTests.testId, apiTestId: testPlanSelectedTests.apiTestId, mobileTestId: testPlanSelectedTests.mobileTestId })
               .from(testPlanSelectedTests)
               .where(eq(testPlanSelectedTests.testPlanId, planId))
               .orderBy(asc(testPlanSelectedTests.id));
@@ -170,6 +171,8 @@ router.get("/api/test-plans/:id/contents", requireRole('viewer'), async (req, re
           const apiIds = refs.filter((r) => r.testType === 'api').map((r) => r.apiTestId!);
           const uiNames = new Map(uiIds.length ? (await tx.select({ id: tests.id, name: tests.name }).from(tests).where(inArray(tests.id, uiIds))).map((t) => [t.id, t.name]) : []);
           const apiNames = new Map(apiIds.length ? (await tx.select({ id: apiTests.id, name: apiTests.name }).from(apiTests).where(inArray(apiTests.id, apiIds))).map((t) => [t.id, t.name]) : []);
+          const mobileIds = refs.filter((r) => r.testType === 'mobile').map((r) => r.mobileTestId!);
+          const mobileNames = new Map(mobileIds.length ? (await tx.select({ id: mobileTests.id, name: mobileTests.name }).from(mobileTests).where(inArray(mobileTests.id, mobileIds))).map((t) => [t.id, t.name]) : []);
           // Suites through RLS as well: one in a project the requester cannot see is not listed,
           // though its tests are still counted above.
           const suites = await tx
@@ -188,7 +191,9 @@ router.get("/api/test-plans/:id/contents", requireRole('viewer'), async (req, re
             tests: refs.map((r) =>
               r.testType === 'ui'
                 ? { type: 'ui' as const, id: r.testId!, name: uiNames.get(r.testId!) ?? null }
-                : { type: 'api' as const, id: r.apiTestId!, name: apiNames.get(r.apiTestId!) ?? null },
+                : r.testType === 'mobile'
+                  ? { type: 'mobile' as const, id: r.mobileTestId!, name: mobileNames.get(r.mobileTestId!) ?? null }
+                  : { type: 'api' as const, id: r.apiTestId!, name: apiNames.get(r.apiTestId!) ?? null },
             ),
             suites,
             latestRun: latestRun ?? null,

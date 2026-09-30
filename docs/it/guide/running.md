@@ -13,6 +13,8 @@ cosa conservare di ogni run e chi avvisare.
    installati sul runner. **Aggiungi Suite di Test** sceglie i test del piano (ricerca per nome o
    tag). Sistema operativo e versione del browser vengono registrati ma non applicati: i test
    girano sul sistema del runner, con i browser installati lì, e il report lo dice.
+   Si possono scegliere anche i [test di app mobili](./mobile-apps#in-un-piano-di-test): girano una
+   volta per esecuzione, sul dispositivo e sulla griglia che indicano, qualunque siano i browser.
 3. **Impostazioni**: screenshot (sugli step falliti di default, sempre o mai), timeout, cosa fare
    quando falliscono uno step o un prerequisito, quante volte rieseguire un test fallito, e
    notifiche.

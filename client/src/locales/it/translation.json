@@ -2389,7 +2389,8 @@
     "contents": {
       "title": "Esegue {{count}} test",
       "empty": "Questo piano non ha ancora test.",
-      "suites": "Suite: {{suites}}"
+      "suites": "Suite: {{suites}}",
+      "mobile": "app mobile"
     }
   },
   "filePicker": {
@@ -3809,6 +3810,9 @@
     "saved": "Test mobile salvato",
     "deleteTitle": "Eliminare {{name}}?",
     "deleteBody": "Le sue esecuzioni vengono eliminate con lui. L'app resta sulla griglia.",
-    "delete": "Elimina"
+    "delete": "Elimina",
+    "planGrid": "Nei piani di test gira su",
+    "noPlanGrid": "Nessuna griglia: non eseguibile nei piani",
+    "planGridHint": "Un piano esegue questo test una volta per esecuzione, su questa griglia, qualunque siano i browser del piano."
   }
 }

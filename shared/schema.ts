@@ -459,6 +459,8 @@ export const reportTestCaseResults = pgTable("report_test_case_results", {
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   uiTestId: integer("ui_test_id").references(() => tests.id, { onDelete: 'set null' }),
   apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'set null' }),
+  /** A mobile app test's result (migration 0053). Plain integer here: mobile_tests is declared further down. */
+  mobileTestId: integer("mobile_test_id"),
   testType: text("test_type").notNull(),
   testName: text("test_name").notNull(),
   /**
@@ -614,6 +616,8 @@ export const testPlanSelectedTests = pgTable("test_plan_selected_tests", {
   organizationId: integer('organization_id').notNull().references(() => organizations.id),
   testId: integer('test_id').references(() => tests.id, { onDelete: 'cascade' }),
   apiTestId: integer('api_test_id').references(() => apiTests.id, { onDelete: 'cascade' }),
+  /** A mobile app test in the plan (migration 0053); testType 'mobile'. */
+  mobileTestId: integer('mobile_test_id'),
   testType: text('test_type').notNull(),
 }, (table) => [
   index("test_plan_selected_tests_test_plan_id_idx").on(table.testPlanId),
@@ -1318,6 +1322,8 @@ export const mobileTests = pgTable("mobile_tests", {
   app: text("app").notNull(),
   deviceName: text("device_name").notNull(),
   osVersion: text("os_version"),
+  /** The grid it runs on in a plan (migration 0053). */
+  gridId: text("grid_id").references(() => browserGrids.id, { onDelete: 'set null' }),
   steps: jsonb("steps").$type<MobileStep[]>().notNull().default([]),
   createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1996,15 +2002,15 @@ export const updateTestPlanSchema = insertTestPlanSchema.partial();
 // shape instead of maintaining duplicate, possibly-drifting copies.
 export const testPlanApiPayloadSchema = insertTestPlanSchema.extend({
   selectedTests: z.array(z.object({
-    id: z.number().int(), // This will be either tests.id or apiTests.id
-    type: z.enum(['ui', 'api'])
+    id: z.number().int(), // tests.id, apiTests.id or mobileTests.id
+    type: z.enum(['ui', 'api', 'mobile'])
   })).optional().default([])
 });
 
 export const updateTestPlanApiPayloadSchema = updateTestPlanSchema.extend({
   selectedTests: z.array(z.object({
     id: z.number().int(),
-    type: z.enum(['ui', 'api'])
+    type: z.enum(['ui', 'api', 'mobile'])
   })).optional() // On update, if not provided, selected tests are not changed. If an empty array is provided, all are removed.
 });
 

@@ -17,7 +17,7 @@ interface TagRef {
 interface SelectableTest {
   id: number;
   name: string;
-  type: 'ui' | 'api';
+  type: 'ui' | 'api' | 'mobile';
   description?: string | null;
   /** What the test is for, so a plan can be assembled by meaning instead of by remembering. */
   tags?: TagRef[];

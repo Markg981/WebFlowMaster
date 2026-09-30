@@ -2091,7 +2091,8 @@
     "contents": {
       "title": "Exécute {{count}} tests",
       "empty": "Ce plan n’a pas encore de tests.",
-      "suites": "Suites : {{suites}}"
+      "suites": "Suites : {{suites}}",
+      "mobile": "app mobile"
     }
   },
   "createTestPlanWizard": {
@@ -3690,6 +3691,9 @@
     "saved": "Test mobile enregistré",
     "deleteTitle": "Supprimer {{name}} ?",
     "deleteBody": "Ses exécutions sont supprimées avec lui. L'application reste sur la grille.",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "planGrid": "S'exécute dans les plans de test sur",
+    "noPlanGrid": "Aucune grille : non exécutable dans les plans",
+    "planGridHint": "Un plan de test exécute ce test une fois par exécution, sur cette grille, quels que soient les navigateurs du plan."
   }
 }

@@ -1,3 +1,4 @@
+import { stepListOf } from '@shared/mobile';
 import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { artifactStore, assertSafeKey, RESULTS_PREFIX } from "../artifact-store";
@@ -87,7 +88,7 @@ export function stepsWithArtifactUrls(executionId: string, detailedLog: string |
   if (!detailedLog) return [];
   let parsed: unknown;
   try {
-    parsed = JSON.parse(detailedLog);
+    parsed = stepListOf(JSON.parse(detailedLog));
   } catch {
     return [];
   }

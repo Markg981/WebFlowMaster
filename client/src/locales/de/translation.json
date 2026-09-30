@@ -2091,7 +2091,8 @@
     "contents": {
       "title": "Führt {{count}} Tests aus",
       "empty": "Dieser Plan hat noch keine Tests.",
-      "suites": "Suiten: {{suites}}"
+      "suites": "Suiten: {{suites}}",
+      "mobile": "Mobile App"
     }
   },
   "createTestPlanWizard": {
@@ -3690,6 +3691,9 @@
     "saved": "Mobiler Test gespeichert",
     "deleteTitle": "{{name}} löschen?",
     "deleteBody": "Seine Läufe werden mit gelöscht. Die App bleibt im Grid.",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "planGrid": "Läuft in Testplänen auf",
+    "noPlanGrid": "Kein Grid: in Plänen nicht ausführbar",
+    "planGridHint": "Ein Testplan führt diesen Test einmal pro Lauf auf diesem Grid aus, unabhängig von den Browsern des Plans."
   }
 }

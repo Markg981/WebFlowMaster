@@ -100,7 +100,7 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
   interface SelectedTestSuite {
     id: number;
     name: string;
-    type: 'ui' | 'api';
+    type: 'ui' | 'api' | 'mobile';
   }
   const [selectedTestSuites, setSelectedTestSuites] = useState<SelectedTestSuite[]>([]);
   const [isTestSuiteSelectorOpen, setIsTestSuiteSelectorOpen] = useState(false);

@@ -11,8 +11,13 @@ import {
   testPlanSelectedTests,
   testPlans,
   testPlanExecutions as testPlanExecutionsTable,
-  reportTestCaseResults as reportTestCaseResultsTable // Added
+  reportTestCaseResults as reportTestCaseResultsTable, // Added
+  mobileTests as mobileTestsTable,
+  type MobileTest,
+  type BrowserGrid,
 } from '@shared/schema';
+import { mobileDeviceLabel, performMobileTest, type MobileOutcome } from './mobile-runner';
+import { toGridConfig } from './browser-grids';
 import { and, asc, eq, inArray } from 'drizzle-orm'; // Added sql
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs-extra';
@@ -30,6 +35,7 @@ import { BROWSER_GRID_LABELS, type BrowserGridProvider } from '@shared/browser-g
 import { gridWarnings } from './browser-grids';
 import { LOCALE_VARIABLE, passLabel } from '@shared/locales';
 import { isManualSequence, manualStepsOf, type ManualResultLog } from '@shared/manual-tests';
+import type { MobileResultLog } from '@shared/mobile';
 import { effectiveConcurrency, runWithConcurrency } from './concurrency';
 import type { VisualContext } from './visual-testing';
 import { shouldRecord } from './run-evidence';
@@ -849,6 +855,21 @@ async function runTestPlanJobInTenant(
     apiTests.forEach(t => apiTestsMap.set(t.id, t as ApiTest));
   }
 
+  // Mobile app tests (migration 0053), each with the grid it names: a plan's browsers and its
+  // "run on" do not apply to a device, so the test says where it runs.
+  const mobileTestIds = selectedTestsLinks.filter(l => l.testType === 'mobile' && l.mobileTestId).map(l => l.mobileTestId as number);
+  const mobileTestsMap = new Map<number, { test: MobileTest; grid: BrowserGrid | null }>();
+  if (mobileTestIds.length > 0) {
+    const rows = await withTenantTransaction((tx) =>
+      tx
+        .select({ test: mobileTestsTable, grid: browserGrids })
+        .from(mobileTestsTable)
+        .leftJoin(browserGrids, eq(browserGrids.id, mobileTestsTable.gridId))
+        .where(inArray(mobileTestsTable.id, mobileTestIds)),
+    );
+    rows.forEach((row) => mobileTestsMap.set(row.test.id, { test: row.test as MobileTest, grid: (row.grid as BrowserGrid | null) ?? null }));
+  }
+
   // Tests in quarantine run like the rest; their failures are recorded and do not count against
   // the run (server/test-quarantine.ts). Read as the run starts, like the published versions above.
   const quarantined = await withTenantTransaction((tx) =>
@@ -980,7 +1001,8 @@ async function runTestPlanJobInTenant(
    */
   const runUnit = async ({ browserChoice, locale, link }: RunUnit, captured: Record<string, string>): Promise<void> => {
     let testObjectDefinition: Test | ApiTest | undefined;
-    const testTypeForRun: 'ui' | 'api' | undefined = link.testType as ('ui' | 'api');
+    const testTypeForRun: 'ui' | 'api' | 'mobile' | undefined = link.testType as ('ui' | 'api' | 'mobile');
+    const mobile = link.testType === 'mobile' && link.mobileTestId ? mobileTestsMap.get(link.mobileTestId) : undefined;
 
     if (link.testId && link.testType === 'ui') {
       testObjectDefinition = uiTestsMap.get(link.testId);
@@ -999,7 +1021,7 @@ async function runTestPlanJobInTenant(
     let stepsOrLogData: string | undefined = undefined;
     let attempts = 1;
 
-    const testName = testObjectDefinition?.name || `Unknown Test (ID: ${link.testId || link.apiTestId})`;
+    const testName = testObjectDefinition?.name || mobile?.test.name || `Unknown Test (ID: ${link.testId || link.apiTestId || link.mobileTestId})`;
     const onBrowser =
       (browserChoice ? ` on ${describeBrowser(browserChoice)}` : '') + (locale ? ` in ${locale}` : '');
     // A plan policy, a cancellation or the time limit: either way this test does not start. Nor
@@ -1019,7 +1041,7 @@ async function runTestPlanJobInTenant(
       source: 'system',
       message: `Starting test: ${testName} (${testTypeForRun})${onBrowser}`,
       timestamp: new Date(singleTestStartTime).toISOString(),
-      metadata: { testId: link.testId || link.apiTestId, testType: testTypeForRun, browser: browserChoice?.label, locale }
+      metadata: { testId: link.testId || link.apiTestId || link.mobileTestId, testType: testTypeForRun, browser: browserChoice?.label, locale }
     });
 
     if (reportStatus === 'Skipped') {
@@ -1037,6 +1059,73 @@ async function runTestPlanJobInTenant(
         timestamp: new Date().toISOString(),
         metadata: { testId: link.testId, manual: true },
       });
+    } else if (testTypeForRun === 'mobile') {
+      // A mobile app test: once per run, on a device of the grid it names (server/mobile-runner.ts).
+      if (!mobile) {
+        reportStatus = 'Error';
+        failureReason = 'Mobile test not found: it was deleted after the run was planned.';
+      } else if (!mobile.grid) {
+        reportStatus = 'Error';
+        failureReason = `${mobile.test.name} names no grid to run on. Choose a BrowserStack or LambdaTest grid in the test's settings.`;
+      } else {
+        const grid = toGridConfig(mobile.grid);
+        const attemptOnce = () =>
+          performMobileTest(mobile.test, grid, runVariables(captured), `WebFlowMaster · ${planId} · ${testPlanRunId.slice(0, 8)}`);
+        let outcome: MobileOutcome = await attemptOnce();
+        while (outcome.status !== 'passed' && attempts <= policies.testReruns && !watch.stopReason) {
+          attempts += 1;
+          wsEmitter.emitExecutionLog(testPlanRunId, {
+            level: 'warn',
+            source: 'system',
+            message: `${testName} ${outcome.status}; running it again (attempt ${attempts} of ${policies.testReruns + 1}).`,
+            timestamp: new Date().toISOString(),
+            metadata: { attempt: attempts },
+          });
+          outcome = await attemptOnce();
+        }
+        reportStatus = outcome.status === 'passed' ? 'Passed' : outcome.status === 'failed' ? 'Failed' : 'Error';
+        failureReason = outcome.error ?? undefined;
+        const log: MobileResultLog = {
+          mobile: true,
+          device: mobileDeviceLabel(mobile.test),
+          platform: mobile.test.platform,
+          sessionUrl: outcome.sessionUrl,
+          steps: outcome.steps,
+        };
+        stepsOrLogData = JSON.stringify(log);
+        if (outcome.screenshot) {
+          const dir = path.join('./results', planId, testPlanRunId, `mobile_${mobile.test.id}`);
+          try {
+            await fs.ensureDir(dir);
+            const file = path.join(dir, 'final.png');
+            await fs.writeFile(file, Buffer.from(outcome.screenshot, 'base64'));
+            await publishArtifacts(dir, testPlanRunId);
+            screenshotFinalPath = file.replace(/^\.?\/?results/, '/results').replace(/\\/g, '/');
+          } catch (error: any) {
+            resolvedLogger.warn({ message: 'Could not store a mobile test screenshot', error: error?.message ?? String(error) });
+          }
+        }
+        const reasonToStop = inQuarantine ? null : stopReasonAfter(
+          { testName, status: outcome.status, cause: outcome.steps.some((step) => step.status === 'failed') ? 'step' : 'other' },
+          policies,
+        );
+        if (reasonToStop && !stopReason) {
+          stopReason = reasonToStop;
+          wsEmitter.emitExecutionLog(testPlanRunId, {
+            level: 'error',
+            source: 'system',
+            message: `Stopping the run: ${reasonToStop.replace(/^Not run: /, '')}`,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        wsEmitter.emitExecutionLog(testPlanRunId, {
+          level: reportStatus === 'Passed' ? 'info' : 'error',
+          source: 'system',
+          message: `Finished test: ${testName} on ${log.device}. Status: ${reportStatus} (${Date.now() - singleTestStartTime}ms)`,
+          timestamp: new Date().toISOString(),
+          metadata: { status: reportStatus, device: log.device },
+        });
+      }
     } else if (testObjectDefinition && testTypeForRun) {
       if (testTypeForRun === 'ui' && typeof (testObjectDefinition as Test).sequence === 'string') {
         try { (testObjectDefinition as Test).sequence = JSON.parse((testObjectDefinition as Test).sequence as any); }
@@ -1221,12 +1310,14 @@ async function runTestPlanJobInTenant(
       testPlanExecutionId: testPlanRunId,
       uiTestId: link.testType === 'ui' ? link.testId : null,
       apiTestId: link.testType === 'api' ? link.apiTestId : null,
-      testType: link.testType as 'ui' | 'api',
-      testName: testObjectDefinition?.name || `Unknown Test (ID: ${link.testId || link.apiTestId})`,
+      mobileTestId: link.testType === 'mobile' ? link.mobileTestId ?? null : null,
+      testType: link.testType as 'ui' | 'api' | 'mobile',
+      testName,
       // Null when the plan named no browser, which is every run made before the matrix
       // existed: the report should not claim to know something the run never decided.
       // With a language, the language too: "chromium · it-IT" (shared/locales.ts).
-      browser: passLabel(browserChoice?.label, locale),
+      // A mobile test names the device it ran on instead.
+      browser: mobile ? mobileDeviceLabel(mobile.test) : passLabel(browserChoice?.label, locale),
       // Null for an API test, which has no version history, and for a UI test saved before
       // versions were recorded. Either way the row says it does not know rather than
       // claiming version 1.
@@ -1274,8 +1365,10 @@ async function runTestPlanJobInTenant(
   const runLocales: Array<string | undefined> = snapshot.locales && snapshot.locales.length > 0 ? snapshot.locales : [undefined];
   // A manual test is done once per run by a person, not once per browser and language: only the
   // first lane carries it, and its result names no browser.
+  // So is a mobile app test: it runs on its own device, not in the plan's browsers.
   const isManualLink = (link: (typeof selectedTestsLinks)[number]) =>
-    link.testType === 'ui' && !!link.testId && isManualSequence(uiTestsMap.get(link.testId)?.sequence);
+    link.testType === 'mobile' ||
+    (link.testType === 'ui' && !!link.testId && isManualSequence(uiTestsMap.get(link.testId)?.sequence));
   const lanes = usablePasses.flatMap((browserChoice, browserIndex) =>
     runLocales.map((locale, localeIndex) => {
       const first = browserIndex === 0 && localeIndex === 0;
@@ -1646,6 +1739,7 @@ async function snapshotForRun(
             testType: testPlanSelectedTests.testType,
             testId: testPlanSelectedTests.testId,
             apiTestId: testPlanSelectedTests.apiTestId,
+            mobileTestId: testPlanSelectedTests.mobileTestId,
           })
           .from(testPlanSelectedTests)
           .where(eq(testPlanSelectedTests.testPlanId, planId))
