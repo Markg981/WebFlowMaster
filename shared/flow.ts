@@ -43,6 +43,29 @@ export function leavesPageAlone(actionId: string | undefined): boolean {
  */
 export const MAX_LOOP_ITERATIONS = 200;
 
+/**
+ * How deep in blocks each step sits, for the builder to indent by: the body of an `if` or a
+ * loop is one level in, and the `else` and the end line up with the step that opened them.
+ *
+ * Tolerant where analyseFlow is strict, because the builder draws tests while they are being
+ * written: an `if` whose `endIf` has not been added yet still indents what follows it, and a
+ * stray end never goes below zero.
+ */
+export function flowDepths(steps: ReadonlyArray<{ action?: { id?: string } | null }>): number[] {
+  let depth = 0;
+  return steps.map((step) => {
+    const id = step.action?.id;
+    if (id === ELSE_ACTION) return Math.max(0, depth - 1);
+    if (id === END_IF_ACTION || id === END_LOOP_ACTION) {
+      depth = Math.max(0, depth - 1);
+      return depth;
+    }
+    const at = depth;
+    if (id === IF_ACTION || id === REPEAT_ACTION || id === REPEAT_WHILE_ACTION) depth++;
+    return at;
+  });
+}
+
 /** Where each block step's partners are, by index. */
 export interface FlowBlocks {
   /** `if` → its `else`, when it has one. */

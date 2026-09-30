@@ -39,12 +39,51 @@ choose, the text to expect.
 | **Assert Element Count** | Fails unless the number of matching elements is right, e.g. `==1`, `>=5`, `<3`. |
 | **Assert state** | Fails unless a control is checked, enabled, editable — or the opposite. |
 | **Check accessibility** | Checks the page with axe-core at that point, and fails on violations at or above the severity you choose (serious by default). |
+| **Press key** | Presses a key or a combination — `Enter`, `Tab`, `Escape`, `Control+A` — on the element, or on whatever has focus when the step has none. |
+| **Double-click** / **Right-click** | Double-clicks, or opens the element's context menu. |
+| **Drag and drop** | Drags the element onto the one whose selector is the value. |
+| **Upload file** | Gives a file input — or the button that opens the file chooser — a file made from the value: `invoice.csv`, or `invoice.csv\|its content`. |
+| **Answer dialog** | Says how to answer the next `alert`, `confirm` or `prompt`: `accept`, `dismiss`, or `accept:text`. Put it **before** the step that opens the dialog. A dialog nobody answered is dismissed. |
+| **Switch tab** | Continues in another tab: empty for the newest, a number (from 1), or text in its address or title. |
+| **Close tab** | Closes the current tab and goes back to the one that opened it. |
+| **Store text in variable** | Reads the element's text, or a field's value, into the variable the value names, for later steps. |
+| **Set variable** | `name=value`, for later steps. See [generated values](#generated-values). |
+| **Set cookie** / **Clear cookies** | `name=value` for the current address; or deletes them all. |
+| **Set localStorage** | `key=value` in the current page's storage. |
+| **Run JavaScript** | Runs the value in the page. Fails when it throws or returns `false`, so it can check what no other step can. |
+| **If** / **Else** / **End if** | Runs steps only when a condition holds. See [conditions and loops](#conditions-and-loops). |
+| **Repeat** / **Repeat while** / **End loop** | Runs steps a number of times, or while a condition holds. |
 
 Every action already waits for its element to be ready before acting, so a fixed **Wait** is
 rarely needed; when a step fails because something was slow, wait for the thing itself.
 
 Change a step's action or element from the step, remove it with its bin, and **Clear** to start
 again.
+
+A recorded **Enter** is replayed as a **Press key** step after the value of the field it was
+pressed in, so a search submitted with Enter is submitted again on replay.
+
+## Conditions and loops {#conditions-and-loops}
+
+**If**, **Else** and **End if** are steps like any other, placed around the steps they govern;
+**Repeat** or **Repeat while** and **End loop** likewise. The builder indents what is inside a
+block, and lists the blocks that do not close; a test with one fails before a browser is opened,
+naming the step.
+
+A condition takes one of two forms:
+
+- **With an element**: the state it is in *now* — `visible`, `hidden`, `exists`, `missing`,
+  `checked`, `unchecked`, `enabled`, `disabled`, or `contains:text` / `not contains:text`. The
+  answer is immediate: "if the cookie banner is visible, close it" moves on at once when there is
+  no banner. For something still loading, put a wait step before the condition.
+- **Without an element**: a comparison of values — <code v-pre>{{status}} == Paid</code>,
+  <code v-pre>{{count}} > 3</code>, <code v-pre>{{title}} contains Order</code>, with `==`, `!=`,
+  `>`, `<`, `>=`, `<=`, `contains`, `not contains` — or a variable holding `true` or `false`.
+
+**Repeat** takes a number of times; inside it <code v-pre>{{loopIndex}}</code> counts from 1.
+**Repeat while** asks its condition before every pass. A loop stops the test after 200 passes,
+so a condition that never turns false does not hold a worker forever. With visual testing, each
+pass of a loop is compared with its own baseline.
 
 ## Trying it
 
@@ -97,7 +136,29 @@ runs:
 - from a **dataset** row (below);
 - from values captured by an API test earlier in the same run.
 
+- from **Store text in variable** and **Set variable** steps earlier in the same test. Those
+  values belong to that run only.
+
 A placeholder nothing defines is not blanked: the step fails and names the missing variable.
+
+### Generated values {#generated-values}
+
+A placeholder starting with `$` makes up a value each time it is used, wherever variables are
+accepted — a step, a URL, an API test:
+
+| Placeholder | Value |
+|---|---|
+| <code v-pre>{{$randomEmail}}</code> | `test.k3v9…@example.com` (a domain that delivers nowhere) |
+| <code v-pre>{{$uuid}}</code> | A random UUID |
+| <code v-pre>{{$randomInt(1,100)}}</code> | A whole number between the two, included (0–1000 by default) |
+| <code v-pre>{{$randomString(8)}}</code> | Letters and digits |
+| <code v-pre>{{$randomDigits(6)}}</code> | Digits only |
+| <code v-pre>{{$today}}</code>, <code v-pre>{{$today(+7)}}</code> | A date, `yyyy-mm-dd`, today or that many days away |
+| <code v-pre>{{$now}}</code>, <code v-pre>{{$timestamp}}</code> | The current time, ISO or in milliseconds |
+
+Each placeholder is a new value. To use one twice — register with an address, then log in with
+it — give it a name first: **Set variable** <code v-pre>email={{$randomEmail}}</code>, then
+<code v-pre>{{email}}</code>. A misspelt generator fails the step like a missing variable.
 
 Secret values are encrypted, never shown again after saving, and masked in logs.
 

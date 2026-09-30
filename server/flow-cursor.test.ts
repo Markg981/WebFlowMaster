@@ -75,6 +75,20 @@ describe('FlowCursor', () => {
     expect(vars[LOOP_INDEX_VARIABLE]).toBeUndefined();
   });
 
+  it('names the pass a step is in, for keying visual baselines', () => {
+    const sequence = steps('repeat', 'repeat', 'step', 'endLoop', 'endLoop');
+    const analysis = analyseFlow(sequence);
+    if (!analysis.ok) throw new Error('blocks');
+    const cursor = new FlowCursor(sequence, analysis.blocks);
+    expect(cursor.iterationKey()).toBeNull();
+    cursor.advance({ iterations: 2 });
+    cursor.advance({ iterations: 3 });
+    expect(cursor.iterationKey()).toBe('iter_1_1');
+    cursor.advance({}); // step
+    cursor.advance({}); // inner endLoop → second inner pass
+    expect(cursor.iterationKey()).toBe('iter_1_2');
+  });
+
   it('skips a body repeated zero times', () => {
     expect(walk(['repeat', 'step', 'endLoop', 'stepAfter'], [{ iterations: 0 }]).visited).toEqual([
       'repeat', 'stepAfter@-',

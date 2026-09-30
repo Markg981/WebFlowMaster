@@ -41,6 +41,18 @@ export class FlowCursor {
   }
 
   /**
+   * Which pass of which loops the current step is in — "iter_2", or "iter_2_1" nested — or
+   * null outside any loop.
+   *
+   * A visual baseline is keyed by the step's position, and a loop meets the same position once
+   * per pass: the third row of a list compared against a picture of the first is a difference
+   * the application did not make. This is the rest of the key.
+   */
+  iterationKey(): string | null {
+    return this.loops.length === 0 ? null : `iter_${this.loops.map((loop) => loop.index).join('_')}`;
+  }
+
+  /**
    * Moves past the step at `pc`, given what it reported. Returns the reason the run cannot go
    * on — a loop that did not end — or null.
    */
