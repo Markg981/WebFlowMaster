@@ -127,7 +127,9 @@
       "sourceHosts": "GitHub et GitLab",
       "sourceHostsDescription": "Les exécutions lancées par un pipeline indiquent sur le commit testé si elles sont en cours, réussies ou en échec.",
       "members": "Membres",
-      "membersDescription": "Qui fait partie de l'organisation, leurs rôles, et les invitations pour les nouvelles personnes."
+      "membersDescription": "Qui fait partie de l'organisation, leurs rôles, et les invitations pour les nouvelles personnes.",
+      "customActions": "Actions personnalisées",
+      "customActionsDescription": "Vos propres étapes, en JavaScript exécuté dans la page testée, proposées dans le constructeur à côté des étapes intégrées."
     },
     "apiKeys": {
       "openApi": "Référence de l'API (OpenAPI)",
@@ -323,6 +325,23 @@
       "resetPassword": "Lien de réinitialisation du mot de passe pour {{username}}",
       "resetIntro": "Envoyez ce lien à {{username}} pour choisir un nouveau mot de passe. Il n’est affiché que maintenant, fonctionne une fois et reste valable un jour.",
       "resetLinkLabel": "Lien de réinitialisation"
+    },
+    "customActions": {
+      "title": "Actions personnalisées",
+      "description": "Vos propres étapes, en JavaScript exécuté dans la page testée. Le script lit ses arguments dans args et l’élément de l’étape dans element ; il fait échouer l’étape en levant une erreur ou en renvoyant false.",
+      "saved": "Enregistrée. Chaque test qui l’utilise exécute la nouvelle version.",
+      "empty": "Aucune action personnalisée pour l’instant.",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "confirmDelete": "Supprimer « {{name}} » ? Un test qui l’utilise encore ne pourra pas s’exécuter.",
+      "name": "Nom",
+      "descriptionLabel": "Description",
+      "parameters": "Paramètres",
+      "parametersHint": "Séparés par des virgules ; un ? final en rend un facultatif. Dans un test : code=4711; qty=2.",
+      "script": "Script",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "new": "Nouvelle action personnalisée"
     }
   },
   "dashboard": {
@@ -1305,6 +1324,9 @@
         "description_one": "{{count}} étape a été ajoutée à la fin de la séquence.",
         "description_other": "{{count}} étapes ont été ajoutées à la fin de la séquence."
       }
+    },
+    "customActions": {
+      "title": "Actions personnalisées"
     }
   },
   "notFoundPage": {

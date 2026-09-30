@@ -1,6 +1,7 @@
 import { STEP_GROUP_ACTION_ID } from '@shared/recording';
 import { stepGroups } from '@shared/schema';
 import { withTenantTransaction } from './middleware/tenancy';
+import { expandCustomActionsForRun } from './custom-actions';
 
 /**
  * Turning "call the login group" into the six steps the login group holds.
@@ -149,6 +150,17 @@ export async function loadReferencedGroups(sequence: unknown): Promise<LoadedSte
  * group — which is every test written before this existed.
  */
 export async function expandSequenceForRun(sequence: unknown): Promise<ExpansionResult> {
+  const groups = await expandGroupsForRun(sequence);
+  // Then the organization's custom actions, including any a group uses (server/custom-actions.ts).
+  const actions = await expandCustomActionsForRun(groups.steps);
+  return {
+    steps: actions.steps,
+    errors: [...groups.errors, ...actions.errors],
+    expanded: groups.expanded || actions.steps !== groups.steps,
+  };
+}
+
+async function expandGroupsForRun(sequence: unknown): Promise<ExpansionResult> {
   if (referencedGroupIds(sequence).length === 0) {
     return { steps: asSteps(sequence), errors: [], expanded: false };
   }

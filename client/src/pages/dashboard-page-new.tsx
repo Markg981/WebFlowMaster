@@ -24,6 +24,7 @@ import { PreconditionsPanel } from "@/components/PreconditionsPanel";
 import { DatasetPanel, type DatasetRow } from "@/components/DatasetPanel";
 import type { Precondition } from "@shared/schema";
 import { ACTION_I18N, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from "@shared/recording";
+import { argumentsHint, customActionStepId, type CustomActionParameter } from "@shared/custom-actions";
 import SaveStepGroupModal from "@/components/SaveStepGroupModal";
 import KeepElementModal from "@/components/KeepElementModal";
 import AuthorStepsModal from "@/components/AuthorStepsModal";
@@ -220,6 +221,28 @@ export default function DashboardPage() {
     // Travels with the drag and ends up in the step's `value`, which is where the runner
     // looks for the group a call names.
     groupId: group.id,
+  }));
+
+  // The organization's custom actions (Settings → Custom actions). A call names the action in
+  // its id; its value holds the arguments, and the parameters travel with it for the hint.
+  const { data: customActions = [] } = useQuery<
+    Array<{ id: string; name: string; description: string | null; parameters: CustomActionParameter[] }>,
+    Error
+  >({
+    queryKey: ["customActions"],
+    queryFn: async () => {
+      const res = await fetch("/api/custom-actions");
+      if (!res.ok) throw new Error("Failed to load custom actions");
+      return res.json();
+    },
+  });
+  const customActionItems = (Array.isArray(customActions) ? customActions : []).map((action) => ({
+    id: customActionStepId(action.id),
+    type: "custom",
+    name: action.name,
+    icon: "Puzzle",
+    description: action.description || argumentsHint(action.parameters ?? []),
+    parameters: action.parameters ?? [],
   }));
 
   /**
@@ -1092,6 +1115,17 @@ export default function DashboardPage() {
                         {t('dashboardPageNew.stepGroups.title', 'Step groups')}
                       </h4>
                       {stepGroupActions.map((action) => (
+                        <DraggableAction key={action.id} action={action} stepId="library" onDropElement={() => { }} />
+                      ))}
+                    </>
+                  )}
+
+                  {customActionItems.length > 0 && (
+                    <>
+                      <h4 className="text-sm font-semibold text-muted-foreground pt-4">
+                        {t('dashboardPageNew.customActions.title', 'Custom actions')}
+                      </h4>
+                      {customActionItems.map((action) => (
                         <DraggableAction key={action.id} action={action} stepId="library" onDropElement={() => { }} />
                       ))}
                     </>

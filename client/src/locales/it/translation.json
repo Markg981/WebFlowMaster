@@ -127,7 +127,9 @@
       "sourceHosts": "GitHub e GitLab",
       "sourceHostsDescription": "I run avviati da una pipeline indicano sul commit testato se sono in corso, passati o falliti.",
       "members": "Membri",
-      "membersDescription": "Chi fa parte dell'organizzazione, i loro ruoli e gli inviti per le nuove persone."
+      "membersDescription": "Chi fa parte dell'organizzazione, i loro ruoli e gli inviti per le nuove persone.",
+      "customActions": "Azioni personalizzate",
+      "customActionsDescription": "Step vostri, in JavaScript eseguito nella pagina sotto test, offerti nel costruttore accanto a quelli predefiniti."
     },
     "apiKeys": {
       "openApi": "Riferimento API (OpenAPI)",
@@ -323,6 +325,23 @@
       "resetPassword": "Link di reset della password per {{username}}",
       "resetIntro": "Manda questo link a {{username}} per scegliere una nuova password. Viene mostrato solo ora, funziona una volta e vale un giorno.",
       "resetLinkLabel": "Link di reset della password"
+    },
+    "customActions": {
+      "title": "Azioni personalizzate",
+      "description": "Step vostri, in JavaScript eseguito nella pagina sotto test. Lo script legge gli argomenti in args e l’elemento dello step in element; fa fallire lo step lanciando un errore o restituendo false.",
+      "saved": "Salvata. Ogni test che la usa esegue la nuova versione.",
+      "empty": "Ancora nessuna azione personalizzata.",
+      "edit": "Modifica",
+      "delete": "Elimina",
+      "confirmDelete": "Eliminare «{{name}}»? Un test che la usa ancora non potrà essere eseguito.",
+      "name": "Nome",
+      "descriptionLabel": "Descrizione",
+      "parameters": "Parametri",
+      "parametersHint": "Separati da virgole; un ? finale li rende facoltativi. In un test: codice=4711; qta=2.",
+      "script": "Script",
+      "save": "Salva",
+      "cancel": "Annulla",
+      "new": "Nuova azione personalizzata"
     }
   },
   "dashboard": {
@@ -1423,6 +1442,9 @@
         "description_one": "{{count}} step è stato aggiunto in fondo alla sequenza.",
         "description_other": "{{count}} step sono stati aggiunti in fondo alla sequenza."
       }
+    },
+    "customActions": {
+      "title": "Azioni personalizzate"
     }
   },
   "notFoundPage": {

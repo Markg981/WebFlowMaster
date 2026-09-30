@@ -127,7 +127,9 @@
       "sourceHosts": "GitHub & GitLab",
       "sourceHostsDescription": "Von einer Pipeline gestartete Läufe melden am getesteten Commit, ob sie laufen, bestanden haben oder fehlgeschlagen sind.",
       "members": "Mitglieder",
-      "membersDescription": "Wer zur Organisation gehört, mit welcher Rolle, und Einladungen für neue Personen."
+      "membersDescription": "Wer zur Organisation gehört, mit welcher Rolle, und Einladungen für neue Personen.",
+      "customActions": "Eigene Aktionen",
+      "customActionsDescription": "Eigene Schritte in JavaScript, das in der getesteten Seite läuft, im Builder neben den eingebauten angeboten."
     },
     "apiKeys": {
       "openApi": "API-Referenz (OpenAPI)",
@@ -323,6 +325,23 @@
       "resetPassword": "Link zum Zurücksetzen des Passworts für {{username}}",
       "resetIntro": "Senden Sie diesen Link an {{username}}, um ein neues Passwort zu wählen. Er wird nur jetzt angezeigt, funktioniert einmal und ist einen Tag gültig.",
       "resetLinkLabel": "Link zum Zurücksetzen"
+    },
+    "customActions": {
+      "title": "Eigene Aktionen",
+      "description": "Eigene Schritte in JavaScript, das in der getesteten Seite läuft. Das Skript liest seine Argumente als args und das Element des Schritts als element; es lässt den Schritt fehlschlagen, indem es einen Fehler wirft oder false zurückgibt.",
+      "saved": "Gespeichert. Jeder Test, der sie verwendet, führt die neue Version aus.",
+      "empty": "Noch keine eigenen Aktionen.",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "confirmDelete": "„{{name}}“ löschen? Ein Test, der sie noch verwendet, kann nicht laufen.",
+      "name": "Name",
+      "descriptionLabel": "Beschreibung",
+      "parameters": "Parameter",
+      "parametersHint": "Durch Kommas getrennt; ein ? am Ende macht einen optional. In einem Test: code=4711; qty=2.",
+      "script": "Skript",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "new": "Neue eigene Aktion"
     }
   },
   "dashboard": {
@@ -1305,6 +1324,9 @@
         "description_one": "{{count}} Schritt wurde am Ende der Sequenz hinzugefügt.",
         "description_other": "{{count}} Schritte wurden am Ende der Sequenz hinzugefügt."
       }
+    },
+    "customActions": {
+      "title": "Eigene Aktionen"
     }
   },
   "notFoundPage": {

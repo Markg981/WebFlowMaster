@@ -34,7 +34,8 @@ export interface AuditEntry {
     | 'runner'
     | 'suite'
     | 'agent'
-    | 'source_host';
+    | 'source_host'
+    | 'custom_action';
   /** Text because targets are variously serial ids and uuids. */
   targetId?: string | number;
   /**

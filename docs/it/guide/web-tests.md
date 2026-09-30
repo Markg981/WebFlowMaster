@@ -137,6 +137,34 @@ Una sequenza usata da molti test — l'accesso, la scelta di un cliente — si p
 includerla. Un test esegue il gruppo com'è al momento del run, quindi modificare il gruppo cambia
 ogni test che lo usa.
 
+## Azioni personalizzate {#azioni-personalizzate}
+
+Quando nessuna azione predefinita fa ciò che serve a un test, un editor può scriverne una:
+**Impostazioni → Azioni personalizzate → Nuova azione personalizzata**, con nome, parametri e uno
+script. L'azione compare sotto **Azioni personalizzate** nella palette e un test la usa come
+qualsiasi altro step.
+
+- **I parametri** si elencano separati da virgole; un `?` finale ne rende uno facoltativo
+  (`codice, qta?`). Nel test, il valore dello step dà gli argomenti: `codice=4711; qta=2`. Per un
+  punto e virgola dentro un valore scrivete `\;`. Gli argomenti possono contenere
+  <code v-pre>{{variabili}}</code> e valori generati.
+- **Lo script** è il corpo di una funzione async eseguita nella pagina sotto test. Legge gli
+  argomenti in `args` (`args.codice`) e, quando lo step ha un elemento, quell'elemento in
+  `element` (trovato con `document.querySelector`, quindi un selettore CSS). Fa fallire lo step
+  lanciando un errore o restituendo `false`; qualsiasi altro valore restituito compare nel report.
+
+```js
+const riga = [...document.querySelectorAll('tr')].find((r) => r.textContent.includes(args.codice));
+if (!riga) throw new Error(`Nessun ordine ${args.codice}`);
+riga.querySelector('button.apri').click();
+```
+
+Un'azione personalizzata ha i poteri di uno step **Esegui JavaScript** e nessun altro: gira nella
+pagina del browser, mai sul server o sul runner. I test fanno riferimento all'azione invece di
+copiarla, quindi modificarla cambia ogni test che la usa al run successivo; un'azione ancora usata
+da un test o da un gruppo di step non si può eliminare, e il messaggio dice chi la usa. Creazione,
+modifica ed eliminazione finiscono nel registro di audit, senza lo script.
+
 ## Repository degli elementi {#repository-degli-elementi}
 
 Quando lo stesso elemento è usato da molti test, **salvatelo**: il segnalibro su un elemento

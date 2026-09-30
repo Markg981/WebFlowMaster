@@ -60,6 +60,7 @@ import agentsRoutes from "./routes/agents.routes";
 import sourceHostsRoutes from "./routes/source-hosts.routes";
 import webhookManagementRoutes from "./routes/webhooks.routes";
 import stepGroupsRoutes from "./routes/step-groups.routes";
+import customActionsRoutes from "./routes/custom-actions.routes";
 import projectElementsRoutes from "./routes/project-elements.routes";
 import nlAuthoringRoutes from "./routes/nl-authoring.routes";
 import tagsRoutes from "./routes/tags.routes";
@@ -196,6 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(quarantineRoutes);
     app.use(webhookManagementRoutes);
     app.use(stepGroupsRoutes);
+    app.use(customActionsRoutes);
     app.use(projectElementsRoutes);
     app.use(nlAuthoringRoutes);
     app.use(tagsRoutes);

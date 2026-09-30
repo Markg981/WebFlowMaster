@@ -30,6 +30,7 @@ import {
   KeySquare,
   Gauge,
   Crosshair,
+  Puzzle,
   Bug,
   SlidersHorizontal,
   ScrollText,
@@ -67,6 +68,7 @@ import SecurityCard from "@/components/settings/SecurityCard";
 import SsoCard from "@/components/settings/SsoCard";
 import RunnersCard from "@/components/settings/RunnersCard";
 import ElementRepositoryCard from "@/components/settings/ElementRepositoryCard";
+import CustomActionsCard from "@/components/settings/CustomActionsCard";
 import IssueTrackersCard from "@/components/settings/IssueTrackersCard";
 
 interface Project {
@@ -599,6 +601,16 @@ export default function SettingsPage() {
       ),
       icon: Crosshair,
       content: <ElementRepositoryCard />,
+    },
+    {
+      id: 'customActions',
+      label: t('settings.sections.customActions', 'Custom actions'),
+      description: t(
+        'settings.sections.customActionsDescription',
+        'Steps of your own, in JavaScript that runs in the page under test, offered in the builder beside the built-in ones.',
+      ),
+      icon: Puzzle,
+      content: <CustomActionsCard />,
     },
     {
       id: 'issueTrackers',
