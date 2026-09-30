@@ -10,6 +10,7 @@ import {
   PreconditionSchema,
   apiTestHistory,
   apiTests,
+  mobileTests,
   insertApiTestHistorySchema,
   AssertionSchema,
   ExtractionSchema,
@@ -971,6 +972,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               organizationId: mainPlanUpdated[0].organizationId,
               testId: st.type === 'ui' ? st.id : null,
               apiTestId: st.type === 'api' ? st.id : null,
+              mobileTestId: st.type === 'mobile' ? st.id : null,
               testType: st.type,
             }));
             await tx.insert(testPlanSelectedTests).values(selectedTestValues);
@@ -1123,7 +1125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // GET /api/selectable-tests - List UI and API tests for selection in Test Plans
+  // GET /api/selectable-tests - List UI, API and mobile app tests for selection in Test Plans
   app.get("/api/selectable-tests", requireRole('viewer'), async (req, res) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -1158,7 +1160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Execute queries
       // One tenant transaction for both: RLS bounds them to the caller's organization and hides
       // the restricted projects they are not on.
-      const { uiTestResults, apiTestResults, tagsByTest } = await withTenantTransaction(async (tx) => {
+      const { uiTestResults, apiTestResults, mobileTestResults, tagsByTest } = await withTenantTransaction(async (tx) => {
         if (tagIds.length > 0) {
           // A tag filter that matches nothing must offer nothing. inArray on an empty list is
           // not a predicate, so the empty case is answered here rather than by a query that
@@ -1191,10 +1193,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .from(apiTests)
           .where(and(...apiConditions));
+        // Mobile app tests (migration 0053) carry no tags, so a tag filter leaves them out.
+        const mobileTestResults = tagIds.length > 0
+          ? []
+          : await tx.select({
+              id: mobileTests.id,
+              name: mobileTests.name,
+              description: sql<string>`null`.as('description'),
+              type: sql<string>`'mobile'`.as('type'),
+              updatedAt: mobileTests.updatedAt
+            })
+            .from(mobileTests)
+            .where(searchTerm ? ilike(mobileTests.name, `%${searchTerm}%`) : undefined);
 
         return {
           uiTestResults,
           apiTestResults,
+          mobileTestResults,
           // Shown beside each name, so somebody picking tests can see what they are picking
           // rather than recognising it from the name alone.
           tagsByTest: await tagsOfTests(tx, {
@@ -1208,6 +1223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const combinedResults = [
         ...uiTestResults.map((row) => ({ ...row, tags: tagsByTest.ui.get(row.id) ?? [] })),
         ...apiTestResults.map((row) => ({ ...row, tags: tagsByTest.api.get(row.id) ?? [] })),
+        ...mobileTestResults.map((row) => ({ ...row, tags: [] })),
       ];
 
       // Sort combined results (e.g., by name or updatedAt)

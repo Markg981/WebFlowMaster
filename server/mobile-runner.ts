@@ -229,12 +229,72 @@ async function sessionUrl(grid: GridConfig, sessionId: string, doFetch: Fetch): 
   }
 }
 
+/** How one run of a mobile test ended: on its own page or as a row of a plan's report. */
+export interface MobileOutcome {
+  status: 'passed' | 'failed' | 'error';
+  steps: MobileStepResult[];
+  error: string | null;
+  /** The device's screen at the end, base64 PNG. */
+  screenshot: string | null;
+  sessionUrl: string | null;
+}
+
+/**
+ * Opens a session on the grid's device, runs the steps and closes it. Never throws: a session
+ * that would not open, or a grid that runs no apps, is an 'error' outcome with the reason.
+ */
+export async function performMobileTest(
+  test: Pick<MobileTest, 'platform' | 'app' | 'deviceName' | 'osVersion' | 'name' | 'steps'>,
+  grid: GridConfig,
+  vars: Record<string, string>,
+  build: string,
+  deps: RunDeps & { onStep?: (steps: MobileStepResult[]) => Promise<void> } = {},
+): Promise<MobileOutcome> {
+  const doFetch = deps.fetch ?? ((url, init) => fetch(url, init));
+  const results: MobileStepResult[] = [];
+  let session: AppiumSession | null = null;
+  try {
+    const request = mobileSessionRequest(grid, test, build);
+    session = await AppiumSession.open({ ...request, fetch: doFetch });
+
+    let failure: string | null = null;
+    for (const [index, step] of test.steps.entries()) {
+      if (failure) {
+        results.push({ index, action: step.action, target: step.target, status: 'skipped', durationMs: 0 });
+        continue;
+      }
+      const started = Date.now();
+      try {
+        const detail = await runMobileStep({ session, platform: test.platform, vars, elementTimeoutMs: deps.elementTimeoutMs }, step);
+        results.push({ index, action: step.action, target: step.target, status: 'passed', durationMs: Date.now() - started, ...(detail ? { detail } : {}) });
+      } catch (error: any) {
+        failure = redactGridSecret(String(error?.message ?? error), grid);
+        results.push({ index, action: step.action, target: step.target, status: 'failed', error: failure, durationMs: Date.now() - started });
+      }
+      await deps.onStep?.(results);
+    }
+
+    const screenshot = await session.screenshot();
+    await markSession(session, grid, !failure, failure ?? 'All steps passed');
+    const url = await sessionUrl(grid, session.id, doFetch);
+    return { status: failure ? 'failed' : 'passed', steps: results, error: failure, screenshot, sessionUrl: url };
+  } catch (error: any) {
+    const message = error instanceof WebDriverError ? `${grid.name}: ${error.message}` : String(error?.message ?? error);
+    return { status: 'error', steps: results, error: redactGridSecret(message, grid), screenshot: null, sessionUrl: null };
+  } finally {
+    await session?.close();
+  }
+}
+
+/** The device a mobile test runs on, as a plan's report names it: "Pixel 8 · 14.0". */
+export const mobileDeviceLabel = (test: Pick<MobileTest, 'deviceName' | 'osVersion'>) =>
+  test.osVersion ? `${test.deviceName} · ${test.osVersion}` : test.deviceName;
+
 /**
  * Runs a queued run to its end, writing each step as it goes so the page can follow it. Never
  * throws: whatever went wrong is the run's error.
  */
 export async function executeMobileRun(runId: string, organizationId: number, userId: number, deps: RunDeps = {}): Promise<void> {
-  const doFetch = deps.fetch ?? ((url, init) => fetch(url, init));
   await runWithTenant(organizationId, async () => {
     const update = (values: Partial<typeof mobileTestRuns.$inferInsert>) =>
       withTenantTransaction(async (tx) => {
@@ -255,47 +315,23 @@ export async function executeMobileRun(runId: string, organizationId: number, us
       return;
     }
     const grid = toGridConfig(gridRow);
-    const results: MobileStepResult[] = [];
-    let session: AppiumSession | null = null;
     try {
       await update({ status: 'running', startedAt: new Date() });
       const vars = await resolveVariables({ userId, organizationId, environmentId: run.environmentId });
-      const request = mobileSessionRequest(grid, test, `WebFlowMaster · ${test.name}`);
-      session = await AppiumSession.open({ ...request, fetch: doFetch });
-
-      let failure: string | null = null;
-      for (const [index, step] of test.steps.entries()) {
-        if (failure) {
-          results.push({ index, action: step.action, target: step.target, status: 'skipped', durationMs: 0 });
-          continue;
-        }
-        const started = Date.now();
-        try {
-          const detail = await runMobileStep({ session, platform: test.platform, vars, elementTimeoutMs: deps.elementTimeoutMs }, step);
-          results.push({ index, action: step.action, target: step.target, status: 'passed', durationMs: Date.now() - started, ...(detail ? { detail } : {}) });
-        } catch (error: any) {
-          failure = redactGridSecret(String(error?.message ?? error), grid);
-          results.push({ index, action: step.action, target: step.target, status: 'failed', error: failure, durationMs: Date.now() - started });
-        }
-        await update({ steps: results });
-      }
-
-      const screenshot = await session.screenshot();
-      await markSession(session, grid, !failure, failure ?? 'All steps passed');
-      const url = await sessionUrl(grid, session.id, doFetch);
+      const outcome = await performMobileTest(test, grid, vars, `WebFlowMaster · ${test.name}`, {
+        ...deps,
+        onStep: (steps) => update({ steps }),
+      });
       await update({
-        status: failure ? 'failed' : 'passed',
-        steps: results,
-        error: failure,
-        screenshot,
-        sessionUrl: url,
+        status: outcome.status,
+        steps: outcome.steps,
+        error: outcome.error,
+        screenshot: outcome.screenshot,
+        sessionUrl: outcome.sessionUrl,
         finishedAt: new Date(),
       });
     } catch (error: any) {
-      const message = error instanceof WebDriverError ? `${grid.name}: ${error.message}` : String(error?.message ?? error);
-      await update({ status: 'error', steps: results, error: redactGridSecret(message, grid), finishedAt: new Date() });
-    } finally {
-      await session?.close();
+      await update({ status: 'error', error: redactGridSecret(String(error?.message ?? error), grid), finishedAt: new Date() });
     }
   }, { userId, role: 'editor' });
 }

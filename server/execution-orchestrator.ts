@@ -235,6 +235,7 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
               testType: testPlanSelectedTests.testType,
               testId: testPlanSelectedTests.testId,
               apiTestId: testPlanSelectedTests.apiTestId,
+              mobileTestId: testPlanSelectedTests.mobileTestId,
             })
             .from(testPlanSelectedTests)
             .where(eq(testPlanSelectedTests.testPlanId, plan.id))

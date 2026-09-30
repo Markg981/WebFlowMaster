@@ -26,6 +26,7 @@ Per un **sito** responsive su un telefono non serve: emulate il dispositivo tra 
 | **App** | Dove la trova la griglia: **Carica .apk / .ipa** invia il file alla griglia scelta accanto e ne compila l'indirizzo (`bs://…` o `lt://…`); oppure incollate uno caricato prima, o un indirizzo https:// da cui la griglia la scarica. WebFlowMaster non conserva il file. |
 | **Dispositivo** | Come lo chiama la griglia: `Google Pixel 8`, `Samsung Galaxy S24`, `iPhone 15` — vedi l'elenco dei dispositivi della griglia. |
 | **Versione del sistema** | Facoltativa: `14.0`, `17`. Vuota: quella scelta dalla griglia per quel dispositivo. |
+| **Nei piani di test gira su** | La griglia su cui lo esegue un [piano di test](#in-un-piano-di-test). Un test nuovo parte con la prima griglia BrowserStack o LambdaTest; **Nessuna griglia** lo tiene fuori dalle esecuzioni dei piani (un piano che lo include lo segnala come errore). |
 
 Ogni passo è un'azione e, per quasi tutte, un elemento:
 
@@ -70,8 +71,33 @@ segnata come superata o fallita.
 L'elenco mostra l'ultima esecuzione di ogni test. I viewer vedono test ed esecuzioni; gli editor li
 scrivono, li eseguono e li eliminano.
 
+## In un piano di test
+
+Un piano può includere test mobili accanto ai test web e API: nella procedura guidata del piano,
+**Aggiungi Suite di Test** li elenca con l'etichetta **mobile** (un filtro per tag li esclude: non
+hanno tag). La pagina del piano li elenca con *(app mobile)*.
+
+In un'esecuzione del piano un test mobile:
+
+- gira **una volta**, sul dispositivo che indica e sulla griglia scelta in **Nei piani di test gira
+  su** — non una volta per browser o lingua del piano, i cui browser e il cui "esegui su" non
+  valgono per un dispositivo;
+- legge le variabili dell'ambiente dell'esecuzione, come gli altri test del piano;
+- segue il **Riesegui in Caso di Fallimento** del piano (i tentativi compaiono sul risultato) e la
+  sua politica sui fallimenti: un test mobile fallito fa fallire l'esecuzione, e può fermarla;
+- è una riga del [report](./results#il-report-di-un-run) come le altre: il dispositivo (`Google Pixel 8 · 14.0`) nella
+  colonna *Browser*, i passi sotto il pulsante dei passi con il motivo di quello fallito, l'ultima
+  schermata del dispositivo come screenshot e, su BrowserStack, **Open the session on the grid**
+  per video e log.
+
+Essendo parte del piano, gira anche nelle sue [pianificazioni](./running#pianificazione) e nei
+[pipeline](./running#da-una-pipeline), e il suo risultato arriva a notifiche, JUnit e strumento di test
+management insieme agli altri.
+
+Un test mobile senza griglia è segnalato come errore nell'esecuzione, con il motivo, senza chiedere
+un dispositivo ad alcuna griglia.
+
 ## Cosa arriva dopo
 
-I test mobili nei **piani** (con report, schedulazioni, requisiti e test management) e un
-**inspector** per scegliere gli elementi da uno screenshot dal vivo sono i prossimi passi. Fino ad
-allora un test mobile si esegue dalla sua pagina.
+I test mobili nelle **suite**, nei **requisiti** e nelle mappature di **test management**, e un
+**inspector** per scegliere gli elementi da uno screenshot dal vivo, sono i prossimi passi.

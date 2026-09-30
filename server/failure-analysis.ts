@@ -1,3 +1,4 @@
+import { stepListOf } from "@shared/mobile";
 import {
   ANALYSIS_CONFIDENCE,
   FAILURE_CATEGORIES,
@@ -49,7 +50,7 @@ const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0
 export function evidenceSteps(detailedLog: string | null): EvidenceStep[] {
   if (!detailedLog) return [];
   try {
-    const parsed = JSON.parse(detailedLog);
+    const parsed = stepListOf(JSON.parse(detailedLog));
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter((step): step is Record<string, any> => !!step && typeof step === "object")

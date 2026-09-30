@@ -8,7 +8,7 @@ import { desc, eq } from "drizzle-orm";
 import { AUDIT_ACTIONS, browserGrids, environments, mobileTestRuns, mobileTests } from "@shared/schema";
 import { MOBILE_GRID_PROVIDERS, mobileTestSchema } from "@shared/mobile";
 import { requireRole } from "../middleware/require-role";
-import { getTenantOrgId, withTenantTransaction } from "../middleware/tenancy";
+import { getTenantOrgId, withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { auditActor, recordAudit } from "../audit";
 import { toGridConfig } from "../browser-grids";
 import { executeMobileRun, uploadApp, type RunDeps } from "../mobile-runner";
@@ -101,14 +101,25 @@ router.get("/api/mobile-tests/:id", requireRole("viewer"), async (req, res) => {
   }
 });
 
+/** A grid of the organization (RLS) that runs apps: BrowserStack or LambdaTest. */
+async function mobileGrid(tx: TenantTx, gridId: string) {
+  const [grid] = await tx.select().from(browserGrids).where(eq(browserGrids.id, gridId)).limit(1);
+  if (!grid) throw new MobileError(404, "Grid not found.");
+  if (!(MOBILE_GRID_PROVIDERS as readonly string[]).includes(grid.provider)) {
+    throw new MobileError(400, `"${grid.name}" is a Playwright server, which runs browsers only. Choose a BrowserStack or LambdaTest grid.`);
+  }
+  return grid;
+}
+
 router.post("/api/mobile-tests", requireRole("editor"), async (req, res) => {
   const parsed = mobileTestSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid mobile test", details: parsed.error.flatten() });
   try {
     const created = await withTenantTransaction(async (tx) => {
+      if (parsed.data.gridId) await mobileGrid(tx, parsed.data.gridId);
       const [row] = await tx
         .insert(mobileTests)
-        .values({ ...parsed.data, osVersion: parsed.data.osVersion || null, organizationId: getTenantOrgId()!, createdBy: req.user!.id })
+        .values({ ...parsed.data, osVersion: parsed.data.osVersion || null, gridId: parsed.data.gridId || null, organizationId: getTenantOrgId()!, createdBy: req.user!.id })
         .returning();
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.MOBILE_TEST_CREATED,
@@ -131,9 +142,10 @@ router.put("/api/mobile-tests/:id", requireRole("editor"), async (req, res) => {
   try {
     const id = idOf(req.params.id);
     const updated = await withTenantTransaction(async (tx) => {
+      if (parsed.data.gridId) await mobileGrid(tx, parsed.data.gridId);
       const [row] = await tx
         .update(mobileTests)
-        .set({ ...parsed.data, osVersion: parsed.data.osVersion || null, updatedAt: new Date() })
+        .set({ ...parsed.data, osVersion: parsed.data.osVersion || null, gridId: parsed.data.gridId || null, updatedAt: new Date() })
         .where(eq(mobileTests.id, id))
         .returning();
       if (!row) throw new MobileError(404, "Mobile test not found.");
@@ -188,11 +200,7 @@ router.post("/api/mobile-tests/:id/runs", requireRole("editor"), async (req, res
       const [test] = await tx.select().from(mobileTests).where(eq(mobileTests.id, id)).limit(1);
       if (!test) throw new MobileError(404, "Mobile test not found.");
       if (test.steps.length === 0) throw new MobileError(400, "The test has no steps to run.");
-      const [grid] = await tx.select().from(browserGrids).where(eq(browserGrids.id, parsed.data.gridId)).limit(1);
-      if (!grid) throw new MobileError(404, "Grid not found.");
-      if (!(MOBILE_GRID_PROVIDERS as readonly string[]).includes(grid.provider)) {
-        throw new MobileError(400, `"${grid.name}" is a Playwright server, which runs browsers only. Choose a BrowserStack or LambdaTest grid.`);
-      }
+      const grid = await mobileGrid(tx, parsed.data.gridId);
       if (parsed.data.environmentId) {
         const [environment] = await tx.select({ id: environments.id }).from(environments).where(eq(environments.id, parsed.data.environmentId)).limit(1);
         if (!environment) throw new MobileError(404, "Environment not found.");

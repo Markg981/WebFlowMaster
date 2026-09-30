@@ -2264,7 +2264,8 @@
     "contents": {
       "title": "Runs {{count}} tests",
       "empty": "This plan has no tests yet.",
-      "suites": "Suites: {{suites}}"
+      "suites": "Suites: {{suites}}",
+      "mobile": "mobile app"
     }
   },
   "filePicker": {
@@ -3684,6 +3685,9 @@
     "saved": "Mobile test saved",
     "deleteTitle": "Delete {{name}}?",
     "deleteBody": "Its runs go with it. The app stays on the grid.",
-    "delete": "Delete"
+    "delete": "Delete",
+    "planGrid": "Runs in test plans on",
+    "noPlanGrid": "No grid: not runnable in plans",
+    "planGridHint": "A test plan runs this test once per run, on this grid, whatever browsers the plan covers."
   }
 }

@@ -55,8 +55,24 @@ describe('MobileTestDialog', () => {
     expect(url).toBe('/api/mobile-tests/7');
     expect(init.method).toBe('PUT');
     const body = JSON.parse(init.body);
-    expect(body).toMatchObject({ name: 'Sign in', platform: 'android', app: 'bs://old', deviceName: 'Google Pixel 8', osVersion: '14.0' });
+    // A test saved before it named a grid keeps naming none until somebody chooses one.
+    expect(body).toMatchObject({ name: 'Sign in', platform: 'android', app: 'bs://old', deviceName: 'Google Pixel 8', osVersion: '14.0', gridId: null });
     expect(body.steps.map((s: any) => [s.action, s.target])).toEqual([['tap', 'text=Sign in'], ['tap', '~welcome']]);
+  });
+
+  it('names the grid it runs on in plans: the first one for a new test, the chosen one after', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ id: 8 }) });
+    const onSaved = vi.fn();
+    const twoGrids = [...grids, { id: 'g2', name: 'LambdaTest', provider: 'lambdatest' }];
+    const { unmount } = render(<MobileTestDialog isOpen test={null} grids={twoGrids} onClose={() => {}} onSaved={onSaved} />);
+    expect(screen.getByRole('combobox', { name: 'Runs in test plans on' })).toHaveTextContent('BrowserStack');
+    unmount();
+
+    render(<MobileTestDialog isOpen test={{ ...test, gridId: 'g2' }} grids={twoGrids} onClose={() => {}} onSaved={onSaved} />);
+    expect(screen.getByRole('combobox', { name: 'Runs in test plans on' })).toHaveTextContent('LambdaTest');
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).gridId).toBe('g2');
   });
 
   it('uploads the app to the grid and takes its address and platform', async () => {
@@ -108,6 +124,21 @@ describe('MobileRunDialog', () => {
     expect(screen.getByAltText('The device at the end of the run')).toBeTruthy();
     await waitFor(() => expect(onFinished).toHaveBeenCalled());
     expect(polls).toBeGreaterThan(0);
+  });
+
+  it('starts on the grid the test runs on in plans', () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => [] });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MobileRunDialog
+          test={{ ...test, gridId: 'g2' }}
+          grids={[...grids, { id: 'g2', name: 'LambdaTest', provider: 'lambdatest' }]}
+          onClose={() => {}}
+          onFinished={() => {}}
+        />
+      </QueryClientProvider>,
+    );
+    expect(screen.getAllByRole('combobox')[0]).toHaveTextContent('LambdaTest');
   });
 
   it('points to the settings when there is no device grid', () => {

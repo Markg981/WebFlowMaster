@@ -29,6 +29,8 @@ export interface MobileTestRow {
   app: string;
   deviceName: string;
   osVersion: string | null;
+  /** The grid it runs on in a plan; null when it runs only from its own page. */
+  gridId?: string | null;
   steps: MobileStep[];
 }
 
@@ -46,6 +48,9 @@ interface Props {
   onSaved: () => void;
 }
 
+/** The select's value for "no grid": a plan's run then reports the test as unable to run. */
+const NO_GRID = '__none__';
+
 let counter = 0;
 const newStep = (): MobileStep => ({ id: `m${Date.now().toString(36)}${(counter++).toString(36)}`, action: 'tap', target: '', value: '' });
 
@@ -56,6 +61,7 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
   const [appRef, setAppRef] = useState('');
   const [deviceName, setDeviceName] = useState('');
   const [osVersion, setOsVersion] = useState('');
+  const [planGrid, setPlanGrid] = useState(NO_GRID);
   const [steps, setSteps] = useState<MobileStep[]>([]);
   const [uploadGrid, setUploadGrid] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -70,6 +76,8 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
     setAppRef(test?.app ?? '');
     setDeviceName(test?.deviceName ?? '');
     setOsVersion(test?.osVersion ?? '');
+    // A new test runs in plans on the first grid there is: the choice it would most likely make.
+    setPlanGrid(test ? test.gridId ?? NO_GRID : grids[0]?.id ?? NO_GRID);
     setSteps(test?.steps.length ? test.steps : [newStep()]);
     setUploadGrid(grids[0]?.id ?? '');
     setError(null);
@@ -132,6 +140,7 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
         app: appRef,
         deviceName,
         osVersion: osVersion.trim() || null,
+        gridId: planGrid === NO_GRID ? null : planGrid,
         steps: steps.map((s) => ({
           id: s.id,
           action: s.action,
@@ -228,6 +237,25 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
           <div>
             <Label htmlFor="mobileOs">{t('mobileTests.osVersion', 'OS version (optional)')}</Label>
             <Input id="mobileOs" className="mt-1" value={osVersion} onChange={(e) => setOsVersion(e.target.value)} placeholder={platform === 'ios' ? '17' : '14.0'} />
+          </div>
+          <div className="md:col-span-2">
+            <Label htmlFor="mobilePlanGrid">{t('mobileTests.planGrid', 'Runs in test plans on')}</Label>
+            <Select value={planGrid} onValueChange={setPlanGrid}>
+              <SelectTrigger id="mobilePlanGrid" className="mt-1" aria-label={t('mobileTests.planGrid', 'Runs in test plans on')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_GRID}>{t('mobileTests.noPlanGrid', 'No grid: not runnable in plans')}</SelectItem>
+                {grids.map((grid) => (
+                  <SelectItem key={grid.id} value={grid.id}>
+                    {grid.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t('mobileTests.planGridHint', 'A test plan runs this test once per run, on this grid, whatever browsers the plan covers.')}
+            </p>
           </div>
         </div>
 

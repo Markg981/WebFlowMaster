@@ -248,6 +248,25 @@ describe('a mobile test', () => {
     const audit = await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, organizationId));
     expect(audit.map((a) => a.action)).toEqual(expect.arrayContaining(['mobile_test.created', 'mobile_test.updated', 'mobile_test.deleted']));
   });
+
+  it('names the grid it runs on in a plan: one of the organization that runs apps', async () => {
+    const created = await request(app).post('/api/mobile-tests').send({ ...SHOP, gridId: browserstack });
+    expect(created.status).toBe(201);
+    expect(created.body.gridId).toBe(browserstack);
+    const id = created.body.id;
+
+    expect((await request(app).put(`/api/mobile-tests/${id}`).send({ ...SHOP, gridId: lambdatest })).body.gridId).toBe(lambdatest);
+    const playwright = await request(app).put(`/api/mobile-tests/${id}`).send({ ...SHOP, gridId: playwrightServer });
+    expect(playwright.status).toBe(400);
+    expect(playwright.body.error).toMatch(/runs browsers only/);
+
+    const foreign = uuidv4();
+    await privilegedDb.insert(browserGrids).values({ id: foreign, organizationId: otherOrg.organizationId, name: 'Theirs', provider: 'browserstack' });
+    expect((await request(app).post('/api/mobile-tests').send({ ...SHOP, name: 'Foreign', gridId: foreign })).status).toBe(404);
+
+    // Cleared: the test keeps running from its page, with the grid chosen there.
+    expect((await request(app).put(`/api/mobile-tests/${id}`).send({ ...SHOP, gridId: null })).body.gridId).toBeNull();
+  });
 });
 
 describe('running on a device', () => {

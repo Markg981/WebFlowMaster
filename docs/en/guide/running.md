@@ -12,6 +12,8 @@ keep of each run, and whom to tell.
    WebKit (Safari's engine), shown or headless; Chrome and Edge must be installed on the runner. **Add Test Suites** picks the plan's tests (search by name
    or tag). The operating system and browser version fields are recorded but not applied: tests
    run on the runner's own system, with the browsers installed there, and the report says so.
+   [Mobile app tests](./mobile-apps#in-a-test-plan) can be picked too: they run once per run, on
+   the device and grid they name, whatever the browsers.
 3. **Settings**: screenshots (on failed steps by default, always, or never), timeouts, what to do
    when a step or a prerequisite fails, how many times to re-run a failed test, and
    notifications.

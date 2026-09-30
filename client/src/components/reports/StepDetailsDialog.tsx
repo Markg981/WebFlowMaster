@@ -56,6 +56,8 @@ interface StepDetailsDialogProps {
   harUrl?: string | null;
   /** The page's failed and slowest requests, whenever the network was recorded. */
   network?: NetworkSummary | null;
+  /** A mobile test's session on its grid, with the device's video and logs. */
+  sessionUrl?: string | null;
 }
 
 /** The picture and what it is a picture of, since three unlabelled images say nothing. */
@@ -104,6 +106,7 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
   traceUrl,
   harUrl,
   network,
+  sessionUrl,
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -114,6 +117,15 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
             {browser ? `Steps recorded on ${browser}.` : 'Steps recorded during this run.'}
           </DialogDescription>
         </DialogHeader>
+
+        {sessionUrl && (
+          <p className="text-xs text-muted-foreground">
+            <a href={sessionUrl} target="_blank" rel="noreferrer" className="underline" data-testid="device-session">
+              Open the session on the grid
+            </a>{' '}
+            — the device's video and logs, kept by the grid.
+          </p>
+        )}
 
         {(videoUrl || traceUrl) && (
           <div className="rounded-md border p-3 space-y-2 dark:border-slate-700">

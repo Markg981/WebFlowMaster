@@ -26,6 +26,7 @@ browsers instead ([phones and tablets](./running#mobile-devices)).
 | **App** | Where the grid finds it: **Upload .apk / .ipa** sends the file to the grid chosen next to it and fills in its address (`bs://…` or `lt://…`); or paste one uploaded before, or an https:// address the grid downloads it from. The file is not kept by WebFlowMaster. |
 | **Device** | As the grid names it: `Google Pixel 8`, `Samsung Galaxy S24`, `iPhone 15` — see the grid's device list. |
 | **OS version** | Optional: `14.0`, `17`. Empty: the grid's choice for that device. |
+| **Runs in test plans on** | The grid a [test plan](#in-a-test-plan) runs it on. A new test starts with the first BrowserStack or LambdaTest grid; **No grid** keeps it out of plan runs (a plan that includes it reports an error for it). |
 
 Each step is an action, and for most an element:
 
@@ -69,8 +70,32 @@ its video. The grid's dashboard shows the session named after the test, marked p
 The list shows each test's last run. Viewers see the tests and their runs; editors write, run and
 delete them.
 
+## In a test plan
+
+A plan can include mobile tests beside its web and API tests: in the plan wizard, **Add Test
+Suites** lists them with the label **mobile** (a tag filter leaves them out: they have no tags).
+The plan's page lists them with *(mobile app)*.
+
+In a run of the plan a mobile test:
+
+- runs **once**, on the device it names and the grid chosen in **Runs in test plans on** — not once
+  per browser or language of the plan, whose browsers and "run on" do not apply to a device;
+- reads the variables of the run's environment, like the plan's other tests;
+- follows the plan's **Re-Run On Failure** (the attempts appear on the result) and its failure
+  policy: a failed mobile test fails the run, and can stop it;
+- is a row of the [report](./results#a-runs-report) like any other: the device (`Google Pixel 8 · 14.0`) in the
+  *Browser* column, its steps under the steps button with the reason of the failed one, the
+  device's last screen as the screenshot and, on BrowserStack, **Open the session on the grid**
+  for the video and logs.
+
+Because it is part of the plan, it also runs in the plan's [schedules](./running#scheduling) and
+[pipelines](./running#from-a-pipeline), and its result reaches the notifications, JUnit and the test management
+tool with the rest.
+
+A mobile test with no grid is reported as an error in the run, with the reason, without asking any
+grid for a device.
+
 ## What comes next
 
-Mobile tests in **plans** (with their reports, schedules, requirements and test management) and an
-**inspector** to pick elements from a live screenshot are the next steps. Until then a mobile test
-runs from its own page.
+Mobile tests in **suites**, **requirements** and **test management** mappings, and an
+**inspector** to pick elements from a live screenshot, are the next steps.

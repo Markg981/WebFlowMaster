@@ -119,6 +119,23 @@ describe('StepDetailsDialog', () => {
 
     expect(screen.queryByTestId('run-video')).not.toBeInTheDocument();
     expect(screen.queryByText(/Download the Playwright trace/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('device-session')).not.toBeInTheDocument();
+  });
+
+  it('links a mobile test to its session on the grid, where the device video is', () => {
+    render(
+      <StepDetailsDialog
+        open
+        onOpenChange={() => {}}
+        testName="Login on Android"
+        browser="Google Pixel 8 · 14.0"
+        steps={steps}
+        sessionUrl="https://app-automate.browserstack.com/s/abc"
+      />,
+    );
+
+    expect(screen.getByText(/Steps recorded on Google Pixel 8 · 14.0/)).toBeInTheDocument();
+    expect(screen.getByTestId('device-session')).toHaveAttribute('href', 'https://app-automate.browserstack.com/s/abc');
   });
 
   it("lists an accessibility check's violations, marks the ones that failed the step, and links each rule", () => {

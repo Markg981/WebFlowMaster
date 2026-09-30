@@ -138,6 +138,8 @@ export const mobileTestSchema = z
       .refine((app) => /^(bs|lt):\/\/\S+$/.test(app) || /^https:\/\/\S+$/.test(app), "The app is bs://…, lt://… or an https:// address the grid downloads it from."),
     deviceName: z.string().trim().min(1, "Which device, as the grid names it: Google Pixel 8, iPhone 15.").max(120),
     osVersion: z.string().trim().max(20).optional().nullable(),
+    /** The grid it runs on in a plan: a BrowserStack or LambdaTest one of the organization. */
+    gridId: z.string().trim().max(100).optional().nullable(),
     steps: z.array(mobileStepSchema).max(200),
   })
   .superRefine((test, ctx) => {
@@ -159,4 +161,55 @@ export interface MobileStepResult {
   error?: string;
   detail?: string;
   durationMs: number;
+}
+
+/**
+ * A mobile test's result in a plan's report (report_test_case_results.detailed_log): the device it
+ * ran on, the grid's page for the session and the steps. `mobile: true` tells it from a web test's
+ * step list and a manual test's log.
+ */
+export interface MobileResultLog {
+  mobile: true;
+  device: string;
+  platform: "android" | "ios";
+  sessionUrl: string | null;
+  steps: MobileStepResult[];
+}
+
+export function isMobileResultLog(value: unknown): value is MobileResultLog {
+  return !!value && typeof value === "object" && (value as { mobile?: unknown }).mobile === true && Array.isArray((value as { steps?: unknown }).steps);
+}
+
+/**
+ * A mobile test's steps as the report's step list reads them: name, type, element, outcome. The steps
+ * never reached are left out, as a web test's are: the failed one says why the rest did not run.
+ */
+export function mobileLogSteps(log: MobileResultLog) {
+  return log.steps
+    .filter((step) => step.status !== "skipped")
+    .map((step) => ({
+      name: `${step.index + 1}. ${step.action}${step.target ? ` ${step.target}` : ""}`,
+      type: step.action,
+      selector: step.target ?? null,
+      status: step.status,
+      error: step.error,
+      details: step.detail ?? "",
+      durationMs: step.durationMs,
+    }));
+}
+
+/** A parsed detailed_log as a step list: a mobile test's log becomes one; anything else is as it was. */
+export function stepListOf(parsed: unknown): unknown {
+  return isMobileResultLog(parsed) ? mobileLogSteps(parsed) : parsed;
+}
+
+/** The grid's page for a mobile result's session, read from its detailed_log; null for any other result. */
+export function mobileSessionUrl(detailedLog: string | null | undefined): string | null {
+  if (!detailedLog) return null;
+  try {
+    const parsed: unknown = JSON.parse(detailedLog);
+    return isMobileResultLog(parsed) && typeof parsed.sessionUrl === "string" ? parsed.sessionUrl : null;
+  } catch {
+    return null;
+  }
 }

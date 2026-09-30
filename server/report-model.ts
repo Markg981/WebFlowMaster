@@ -1,3 +1,4 @@
+import { stepListOf } from '@shared/mobile';
 import { asc, eq } from 'drizzle-orm';
 import { reportTestCaseResults, testPlanExecutions, testPlans } from '@shared/schema';
 import type { AccessibilityFinding } from '@shared/accessibility';
@@ -71,7 +72,7 @@ export interface ReportModel {
 function stepsOf(detailedLog: string | null): ReportStepModel[] {
   if (!detailedLog) return [];
   try {
-    const parsed = JSON.parse(detailedLog);
+    const parsed = stepListOf(JSON.parse(detailedLog));
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter((step): step is Record<string, any> => !!step && typeof step === 'object')
@@ -91,7 +92,7 @@ function stepsOf(detailedLog: string | null): ReportStepModel[] {
 export function failedStepScreenshot(detailedLog: string | null): string | null {
   if (!detailedLog) return null;
   try {
-    const parsed = JSON.parse(detailedLog);
+    const parsed = stepListOf(JSON.parse(detailedLog));
     if (!Array.isArray(parsed)) return null;
     for (let i = parsed.length - 1; i >= 0; i -= 1) {
       const step = parsed[i];
