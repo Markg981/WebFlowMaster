@@ -193,6 +193,7 @@ following leaves the installation for Google's API:
 |---|---|
 | Describing a test in sentences | The sentences, the list of allowed actions, and the names and labels of the elements available (never selectors or secrets). |
 | Selector healing, when a step cannot find its element | The failing selector, the error, and up to 30,000 characters of the page's HTML. |
+| Tests from a story, when an editor asks for them | The requirement's key and title, and its description and acceptance criteria as the tracker has them (up to 12,000 characters). |
 | Failure analysis, when an editor asks for it on a failed result | The test's name, the runner's reason, the steps around the failure with their selectors, errors and values (values that look like passwords, codes or keys are replaced by `[hidden]`), the failed and slowest requests, and the screenshot of the failure. |
 
 Page HTML can contain personal data of the application under test. Enable the key only where

@@ -3495,7 +3495,10 @@
     "run": "Exécution",
     "noMatch": "Rien ne correspond aux filtres.",
     "deleteTitle": "Supprimer {{key}} ?",
-    "deleteBody": "Ses liens vers les tests sont supprimés ; les tests et leurs résultats restent. Ce qu'elle contient passe au premier niveau. Rien ne change dans le tracker."
+    "deleteBody": "Ses liens vers les tests sont supprimés ; les tests et leurs résultats restent. Ce qu'elle contient passe au premier niveau. Rien ne change dans le tracker.",
+    "generateTests": "Générer des tests",
+    "generateTestsFor": "Générer des tests pour {{key}}",
+    "generated": "{{count}} tests créés et liés"
   },
   "testManagement": {
     "clientId": "Client id",
@@ -3564,5 +3567,39 @@
     "planConnection": "La connexion du plan",
     "again": "Publier à nouveau",
     "publish": "Publier"
+  },
+  "generateTests": {
+    "kind": {
+      "positive": "Parcours principal",
+      "negative": "Erreur",
+      "edge": "Limite"
+    },
+    "proposeFailed": "Aucun test n'a pu être proposé.",
+    "preconditionsStep": "Préconditions : {{text}}",
+    "nameMissing": "Chaque test choisi doit avoir un nom.",
+    "stepsMissing": "Chaque test choisi doit avoir au moins une étape.",
+    "createFailed": "Les tests n'ont pas été créés.",
+    "title": "Tests pour {{key}}",
+    "description": "Un modèle d'IA lit la story et ses critères d'acceptation et propose des cas de test. Corrigez-les, gardez ceux que vous voulez, et ils deviennent des tests manuels liés à la story.",
+    "count": "Combien au plus",
+    "again": "Proposer à nouveau",
+    "propose": "Proposer des tests",
+    "reading": "Lecture de la story et écriture des cas de test… cela peut prendre une minute.",
+    "fromTracker": "Écrits à partir de {{key}} tel que le tracker l'a maintenant",
+    "fromRequirement": "Écrits à partir de la description de {{key}}",
+    "acceptance": "Critères d'acceptation",
+    "keep": "Garder {{name}}",
+    "name": "Nom du test {{n}}",
+    "covers": "Couvre : {{criterion}}",
+    "preconditions": "Préconditions",
+    "preconditionsOf": "Préconditions du test {{n}}",
+    "action": "Action",
+    "actionOf": "Action {{step}} du test {{n}}",
+    "expected": "Résultat attendu",
+    "expectedOf": "Résultat attendu {{step}} du test {{n}}",
+    "removeStep": "Supprimer l'étape {{step}} du test {{n}}",
+    "addStep": "Ajouter une étape",
+    "cancel": "Annuler",
+    "create": "Créer {{count}} tests"
   }
 }

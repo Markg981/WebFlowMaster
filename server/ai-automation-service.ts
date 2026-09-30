@@ -64,6 +64,23 @@ export class AIAutomationService {
     }
   }
 
+  /**
+   * Answers a story's test proposal prompt (server/story-tests.ts), or nothing. As thin as
+   * proposeTestSteps, and for the same reason.
+   */
+  async proposeTestCases(prompt: string): Promise<string | null> {
+    if (!this.isAvailable()) return null;
+
+    try {
+      const model = this.genAI.getGenerativeModel({ model: this.analysisModel });
+      const result = await model.generateContent(prompt);
+      return result.response.text();
+    } catch (e: any) {
+      this.logError("AI test proposal failed", { error: e.message });
+      return null;
+    }
+  }
+
   /** The model a failure analysis is asked of, as the analysis records it. */
   get analysisModel(): string {
     return process.env.GEMINI_MODEL || "gemini-2.0-flash";

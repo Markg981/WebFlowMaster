@@ -207,6 +207,7 @@ Gemini**. Quando sono attive, lascia l'installazione verso l'API di Google:
 |---|---|
 | Descrivere un test a frasi | Le frasi, l'elenco delle azioni ammesse, e nomi ed etichette degli elementi disponibili (mai selettori o segreti). |
 | Correzione del selettore, quando uno step non trova il suo elemento | Il selettore che fallisce, l'errore, e fino a 30.000 caratteri dell'HTML della pagina. |
+| Test da una story, quando un editor li chiede | Chiave e titolo del requisito, e la sua descrizione e i criteri di accettazione come li ha il tracker (fino a 12.000 caratteri). |
 | Analisi del fallimento, quando un editor la chiede su un risultato fallito | Il nome del test, il motivo dato dal runner, gli step intorno al fallimento con selettori, errori e valori (i valori che sembrano password, codici o chiavi sono sostituiti da `[hidden]`), le richieste fallite e le più lente, e lo screenshot del fallimento. |
 
 L'HTML di una pagina può contenere dati personali dell'applicazione sotto test. Impostate la

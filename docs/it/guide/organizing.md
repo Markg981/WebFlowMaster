@@ -111,6 +111,25 @@ vedere*) ma non nominato, resta fuori dallo stato e rimane collegato quando camb
 viewer leggono; gli editor aggiungono, importano, collegano ed eliminano. Eliminare un requisito
 toglie i suoi collegamenti, mai i test; ciò che conteneva passa al primo livello.
 
+### Test da una story {#test-da-una-story}
+
+Il pulsante con le scintille sulla riga di un requisito propone casi di test, quando l'operatore ha
+configurato il modello AI. Legge la story com'è **adesso** nel tracker — descrizione e criteri di
+accettazione (Jira: i campi chiamati *Acceptance criteria* o *Criteri di accettazione*; Azure
+DevOps: *Acceptance Criteria*) — oppure, per un requisito scritto qui, la sua descrizione.
+**Proponi test** chiede fino al numero scelto (6 di base, al massimo 12), scritti nella lingua
+dell'interfaccia: il percorso principale, gli errori che un utente può fare e i limiti, ciascuno con
+il criterio che copre, le precondizioni e i passi (un'azione e il risultato atteso).
+
+Nulla viene creato finché non lo decidete. Ogni caso si può rinominare e correggere — passi
+aggiunti, tolti, riscritti — e togliere la spunta; **Crea** trasforma quelli spuntati in **test
+manuali**, collegati al requisito, con le precondizioni come primo passo. Girano nei piani come ogni
+test manuale, e i loro passi sono frasi che [descrivere un test a frasi](./web-tests#descrivere-un-test-a-frasi) trasforma poi
+in un test automatico. Un nome già usato fa rifiutare tutto ed è mostrato in rosso: nulla viene
+creato a metà. **Proponi di nuovo** chiede casi nuovi. Solo per gli editor; il testo della story
+viene inviato al modello (vedi [Funzioni AI](../security/#funzioni-ai)) e nel tracker non viene
+scritto nulla.
+
 ## Test Manager
 
 **Test Manager** è per i team i cui casi di test stanno in Excel. **Carica l'Excel** (.xlsx o

@@ -359,6 +359,88 @@ export async function fetchItems(config: TrackerConfig, request: FetchItemsReque
   return fetchAzureItems(config, request, deps);
 }
 
+/** What a story says: the text a test proposal is written from (server/story-tests.ts). */
+export interface ItemText {
+  title: string;
+  description: string;
+  /** Acceptance criteria, where the tracker keeps them apart from the description. */
+  acceptance: string;
+}
+
+/** Custom Jira fields that hold acceptance criteria go by these names, in the languages we serve. */
+const ACCEPTANCE_FIELD = /acceptance|accettazione|criteri|akzeptanz|crit[eè]res? d.acceptation/i;
+
+/** The plain text of a Jira rich-text value: an Atlassian document (Cloud) or a wiki string (Data Center). */
+export function jiraText(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value.trim();
+  const lines: string[] = [];
+  let line = '';
+  const walk = (node: any, inList: boolean) => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'text' && typeof node.text === 'string') line += node.text;
+    else if (node.type === 'hardBreak') line += '\n';
+    for (const child of Array.isArray(node.content) ? node.content : []) walk(child, inList || node.type === 'listItem');
+    if (['paragraph', 'heading', 'codeBlock', 'tableRow'].includes(node.type)) {
+      if (line.trim()) lines.push(inList ? `- ${line.trim()}` : line.trim());
+      line = '';
+    }
+  };
+  walk(value, false);
+  if (line.trim()) lines.push(line.trim());
+  return lines.join('\n');
+}
+
+/**
+ * The title, description and acceptance criteria of one story, as text. Read when a test is
+ * proposed from it, never stored beyond what an import already keeps.
+ */
+export async function fetchItemText(
+  config: TrackerConfig,
+  key: string,
+  htmlToText: (html: string) => string,
+  deps: ProviderDeps = {},
+): Promise<ItemText | null> {
+  const base = normaliseBaseUrl(config.baseUrl);
+  const headers = { Authorization: authHeader(config), Accept: 'application/json' };
+
+  if (config.provider === 'jira') {
+    const path = `issue/${encodeURIComponent(key)}?expand=renderedFields,names`;
+    let result = await call(`${base}/rest/api/3/${path}`, { method: 'GET', headers }, deps);
+    // Jira Data Center has only version 2 of the API.
+    if (result.status === 404) result = await call(`${base}/rest/api/2/${path}`, { method: 'GET', headers }, deps);
+    if (result.status === 404) return null;
+    if (!result.ok) throw describeFailure('Reading the Jira issue', result.status, result.body, result.text);
+    const fields = result.body?.fields ?? {};
+    const rendered = result.body?.renderedFields ?? {};
+    const names: Record<string, string> = result.body?.names ?? {};
+    const textOf = (id: string) => (typeof rendered[id] === 'string' && rendered[id].trim() ? htmlToText(rendered[id]) : jiraText(fields[id]));
+    const acceptance = Object.entries(names)
+      .filter(([id, name]) => id.startsWith('customfield_') && ACCEPTANCE_FIELD.test(String(name)))
+      .map(([id]) => textOf(id))
+      .filter(Boolean)
+      .join('\n\n');
+    return { title: String(fields.summary ?? key), description: textOf('description'), acceptance };
+  }
+
+  const id = Number(key);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  const params = new URLSearchParams({
+    fields: 'System.Title,System.Description,Microsoft.VSTS.Common.AcceptanceCriteria',
+    'api-version': '7.0',
+  });
+  const result = await call(`${base}/${encodeURIComponent(config.projectKey)}/_apis/wit/workitems/${id}?${params}`, { method: 'GET', headers }, deps);
+  if (result.status === 404) return null;
+  if (!result.ok) throw describeFailure('Reading the Azure DevOps work item', result.status, result.body, result.text);
+  const fields = result.body?.fields ?? {};
+  const html = (name: string) => (typeof fields[name] === 'string' ? htmlToText(fields[name]) : '');
+  return {
+    title: String(fields['System.Title'] ?? key),
+    description: html('System.Description'),
+    acceptance: html('Microsoft.VSTS.Common.AcceptanceCriteria'),
+  };
+}
+
 export interface ConnectionCheck {
   ok: boolean;
   /** What was found, or what was wrong — either way, something a person can act on. */
