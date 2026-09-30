@@ -2355,7 +2355,8 @@
       "suite": "Suites",
       "agent": "Local agents",
       "source_host": "GitHub & GitLab",
-      "sso": "Single sign-on"
+      "sso": "Single sign-on",
+      "custom_action": "Custom actions"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -2424,7 +2425,10 @@
       "auth_password_reset_completed": "Password reset with a link",
       "sso_configured": "Single sign-on set up or changed",
       "sso_removed": "Single sign-on removed",
-      "member_provisioned": "Account created at first sign-in"
+      "member_provisioned": "Account created at first sign-in",
+      "custom_action_created": "Custom action created",
+      "custom_action_updated": "Custom action changed",
+      "custom_action_deleted": "Custom action deleted"
     }
   },
   "security": {
