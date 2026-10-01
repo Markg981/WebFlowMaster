@@ -97,6 +97,22 @@ describe('MobileTestsPage quarantine', () => {
     expect(screen.queryByRole('button', { name: 'Quarantine Checkout on Android' })).toBeNull();
   });
 
+  it('marks a test the flaky analysis found unstable, with the device and how often', async () => {
+    const base = fetchMock.getMockImplementation()!;
+    const flaky = (browser: string, id: number) => ({ testName: 'x', browser, test: { type: 'mobile', id }, runs: 6, unexplainedFlips: 4 });
+    fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+      url.startsWith('/api/analytics/flaky')
+        ? Promise.resolve({ ok: true, json: async () => ({ items: [flaky('Pixel 8 · 14.0', 7), flaky('Galaxy S23', 7), flaky('iPhone 15', 8)] }) })
+        : base(url, init),
+    );
+    renderPage();
+    expect(await screen.findByText('Unstable')).toHaveAttribute(
+      'title',
+      'Pixel 8 · 14.0: changed verdict 4× in 6 runs\nGalaxy S23: changed verdict 4× in 6 runs',
+    );
+    expect(fetchMock.mock.calls.some(([url]) => url === '/api/analytics/flaky?days=30')).toBe(true);
+  });
+
   it('offers a viewer no quarantine', async () => {
     role = 'viewer';
     renderPage();

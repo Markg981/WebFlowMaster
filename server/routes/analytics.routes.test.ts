@@ -3,7 +3,7 @@ import express from 'express';
 import request from 'supertest';
 import { sql } from 'drizzle-orm';
 import { privilegedDb } from '../db';
-import { testPlanExecutions, testPlans } from '@shared/schema';
+import { mobileTests, reportTestCaseResults, testPlanExecutions, testPlans, testQuarantines } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({
@@ -198,6 +198,32 @@ describe('GET /api/analytics/flaky', () => {
     expect(res.body.items).toHaveLength(1);
     expect(res.body.items[0]).toMatchObject({ testName: 'Login', flips: 2, runs: 3 });
     expect(res.body.window.days).toBe(30);
+  });
+
+  it('names a mobile test that keeps changing its mind on a device, and whether it is in quarantine', async () => {
+    const plan = await createPlan(userId, 'Devices');
+    const [{ id: mobileTestId }] = await privilegedDb
+      .insert(mobileTests)
+      .values({ organizationId, name: 'Checkout on Android', platform: 'android', app: 'bs://a', deviceName: 'Pixel 8', steps: [] } as any)
+      .returning();
+    for (const [status, daysAgo] of [['Passed', 4], ['Failed', 3], ['Passed', 2]] as const) {
+      const executionId = nextId('exec');
+      const startedAt = new Date(Date.now() - daysAgo * 86_400_000);
+      await privilegedDb.insert(testPlanExecutions).values({ id: executionId, testPlanId: plan, organizationId, status: 'completed', startedAt } as any);
+      await privilegedDb.insert(reportTestCaseResults).values({
+        id: nextId('rep'), testPlanExecutionId: executionId, organizationId, testType: 'mobile', mobileTestId,
+        testName: 'Checkout on Android', browser: 'Pixel 8 · 14.0', status, startedAt,
+      } as any);
+    }
+
+    const before = await request(app).get('/api/analytics/flaky').expect(200);
+    expect(before.body.items).toEqual([
+      expect.objectContaining({ testName: 'Checkout on Android', browser: 'Pixel 8 · 14.0', flips: 2, test: { type: 'mobile', id: mobileTestId }, quarantine: null }),
+    ]);
+
+    await privilegedDb.insert(testQuarantines).values({ organizationId, testType: 'mobile', mobileTestId, reason: 'Device farm drops the session' });
+    const after = await request(app).get('/api/analytics/flaky').expect(200);
+    expect(after.body.items[0].quarantine).toMatchObject({ reason: 'Device farm drops the session' });
   });
 
   it('looks only as far back as it says it does', async () => {

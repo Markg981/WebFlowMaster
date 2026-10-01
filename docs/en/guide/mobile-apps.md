@@ -178,6 +178,13 @@ running in plans and its results are kept, but its failures no longer fail the r
 **Reports**, where it carries the **Mobile** label. In a restricted project only those who may
 edit the test may quarantine or release it.
 
-## Not yet
+## Unstable tests {#unstable}
 
-Mobile tests are not counted as flaky yet.
+Mobile tests are part of **Tests that disagree with themselves** in **Reports**
+([flaky tests and quarantine](./results#flaky-tests-and-quarantine)), with the **Mobile** label.
+Each device counts on its own: a test that fails on one phone and passes on another is a fact
+about the app, not indecision. From there it can be quarantined like any other test.
+
+On **Mobile apps**, a test found unstable over the last 30 days carries the **Unstable** badge;
+hover it to see on which device and how often its verdict changed. Mobile tests have no
+versions, so every change of verdict counts, as for API tests.

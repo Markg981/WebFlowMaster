@@ -80,6 +80,21 @@ describe('summariseFlakiness', () => {
     expect(summaries).toEqual([]);
   });
 
+  it('judges a mobile test per device, and names it so it can be quarantined', () => {
+    const mobile = (status: string, device: string) => ({ ...run('Checkout on Android', status, device), mobileTestId: 9 });
+    const summaries = summariseFlakiness([
+      mobile('Passed', 'Pixel 8'),
+      mobile('Failed', 'Pixel 8'),
+      mobile('Passed', 'Pixel 8'),
+      mobile('Failed', 'Galaxy S23'),
+      mobile('Failed', 'Galaxy S23'),
+      mobile('Failed', 'Galaxy S23'),
+    ]);
+
+    expect(summaries).toHaveLength(1);
+    expect(summaries[0]).toMatchObject({ browser: 'Pixel 8', flips: 2, test: { type: 'mobile', id: 9 } });
+  });
+
   it('steps over runs that never reached a verdict rather than counting them as failures', () => {
     const [summary] = summariseFlakiness([
       run('Login', 'Passed'),

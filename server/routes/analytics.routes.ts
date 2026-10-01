@@ -78,6 +78,7 @@ router.get("/api/analytics/flaky", requireRole('viewer'), async (req, res) => {
           testVersion: reportTestCaseResults.testVersion,
           uiTestId: reportTestCaseResults.uiTestId,
           apiTestId: reportTestCaseResults.apiTestId,
+          mobileTestId: reportTestCaseResults.mobileTestId,
         })
         .from(reportTestCaseResults)
         .innerJoin(testPlanExecutions, eq(reportTestCaseResults.testPlanExecutionId, testPlanExecutions.id))

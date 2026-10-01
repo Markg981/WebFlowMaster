@@ -12,13 +12,14 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { Pencil, Play, Plus, ShieldAlert, Trash2 } from 'lucide-react';
+import { Pencil, Play, Plus, ShieldAlert, Shuffle, Trash2 } from 'lucide-react';
 import { MOBILE_GRID_PROVIDERS, MOBILE_PLATFORM_LABELS, type MobileRunStatus } from '@shared/mobile';
 import MobileTestDialog, { type GridOption, type MobileTestRow } from '@/components/mobile/MobileTestDialog';
 import MobileRunDialog from '@/components/mobile/MobileRunDialog';
 import TagPicker, { type TagRef } from '@/components/tags/TagPicker';
 import QuarantineDialog from '@/components/reports/QuarantineDialog';
 import type { QuarantineRow } from '@/components/reports/QuarantinedTestsCard';
+import type { FlakySummary } from '@/components/reports/FlakyTestsCard';
 
 /**
  * Tests of native Android and iOS apps, run on real devices of the organization's BrowserStack
@@ -79,6 +80,19 @@ const MobileTestsPage: React.FC = () => {
       return response.ok ? response.json() : [];
     },
   });
+  // Flaky detection: the same 30-day analysis as Reports' card, so both say the same thing.
+  const { data: flakyData } = useQuery<{ items: FlakySummary[] }>({
+    queryKey: ['flakyTests', 'all', 30],
+    queryFn: async () => {
+      const response = await fetch('/api/analytics/flaky?days=30');
+      return response.ok ? response.json() : { items: [] };
+    },
+  });
+  // A test can be unstable on more than one device: each one is a line of the hint.
+  const unstable = new Map<number, FlakySummary[]>();
+  for (const item of Array.isArray(flakyData?.items) ? flakyData!.items : []) {
+    if (item.test?.type === 'mobile') unstable.set(item.test.id, [...(unstable.get(item.test.id) ?? []), item]);
+  }
   const quarantined = new Map(
     (Array.isArray(quarantineData) ? quarantineData : []).filter((row) => row.testType === 'mobile').map((row) => [row.testId, row]),
   );
@@ -172,6 +186,25 @@ const MobileTestsPage: React.FC = () => {
                       <Badge variant="outline" className="ml-2 font-normal">
                         {MOBILE_PLATFORM_LABELS[test.platform]}
                       </Badge>
+                      {unstable.has(test.id) && (
+                        <Badge
+                          variant="outline"
+                          className="ml-2 font-normal"
+                          title={unstable
+                            .get(test.id)!
+                            .map((item) =>
+                              t('mobileTests.unstableOn', '{{device}}: changed verdict {{flips}}× in {{runs}} runs', {
+                                device: item.browser ?? '—',
+                                flips: item.unexplainedFlips,
+                                runs: item.runs,
+                              }),
+                            )
+                            .join('\n')}
+                        >
+                          <Shuffle className="mr-1 h-3 w-3" />
+                          {t('mobileTests.unstable', 'Unstable')}
+                        </Badge>
+                      )}
                       {quarantined.has(test.id) && (
                         <Badge variant="secondary" className="ml-2 font-normal" title={quarantined.get(test.id)!.reason}>
                           <ShieldAlert className="mr-1 h-3 w-3" />

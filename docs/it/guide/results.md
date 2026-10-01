@@ -155,7 +155,8 @@ aprirle da solo (vedi [Impostazioni del piano](./running#impostazioni-del-piano)
 
 **Report** mostra anche i **Test che si contraddicono**: negli ultimi giorni, i test il cui esito è
 cambiato da un run all'altro senza nulla che lo spieghi. Un test che si è rotto ed è stato
-sistemato non compare, e nemmeno uno il cui esito è cambiato perché è stato modificato.
+sistemato non compare, e nemmeno uno il cui esito è cambiato perché è stato modificato. I test
+mobili contano per dispositivo ([app mobili](./mobile-apps#instabili)).
 
 Un test instabile si può mettere in **quarantena**, con il motivo. Continua a girare e i suoi
 risultati vengono conservati, ma i suoi fallimenti smettono di far fallire i run, fermare i

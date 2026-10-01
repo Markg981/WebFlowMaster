@@ -22,7 +22,7 @@ export interface FlakyInputRow {
   /**
    * Which version of the test produced this result, when the run recorded one.
    *
-   * Null on everything written before results carried a version, and on API tests. Two nulls
+   * Null on everything written before results carried a version, and on API and mobile tests. Two nulls
    * are read as the same unknown version: an unrecorded version cannot explain a change of
    * verdict, so historical data is counted exactly the way it always was.
    */
@@ -30,12 +30,13 @@ export interface FlakyInputRow {
   /** The test itself, when the result still points at it: what quarantining it needs. */
   uiTestId?: number | null;
   apiTestId?: number | null;
+  mobileTestId?: number | null;
 }
 
 export interface FlakySummary {
   testName: string;
   /** The test behind the name, from its latest result that still points at one; null if deleted. */
-  test: { type: 'ui' | 'api'; id: number } | null;
+  test: { type: 'ui' | 'api' | 'mobile'; id: number } | null;
   browser: string | null;
   runs: number;
   passed: number;
@@ -92,6 +93,8 @@ function keyOf(row: FlakyInputRow): string {
   // The browser is part of the identity: "fails on WebKit, passes on Chromium" is a fact about
   // the application, not a test that cannot make its mind up, and merging the two would report
   // every cross-browser difference as flakiness.
+  // A mobile test's "browser" is its device, so the same holds for a test that fails on one
+  // phone and passes on another.
   return `${row.testName}\u0000${row.browser ?? ''}`;
 }
 
@@ -156,14 +159,16 @@ export function summariseFlakiness(rows: FlakyInputRow[], options: FlakyOptions 
     ).sort((left, right) => left - right);
 
     const passed = judged.filter((entry) => entry.verdict === 'passed').length;
-    const latestWithTest = [...ordered].reverse().find((row) => row.uiTestId || row.apiTestId);
+    const latestWithTest = [...ordered].reverse().find((row) => row.uiTestId || row.apiTestId || row.mobileTestId);
     summaries.push({
       testName: ordered[0].testName,
       test: latestWithTest?.uiTestId
         ? { type: 'ui', id: latestWithTest.uiTestId }
         : latestWithTest?.apiTestId
           ? { type: 'api', id: latestWithTest.apiTestId }
-          : null,
+          : latestWithTest?.mobileTestId
+            ? { type: 'mobile', id: latestWithTest.mobileTestId }
+            : null,
       browser: ordered[0].browser ?? null,
       runs: judged.length,
       passed,

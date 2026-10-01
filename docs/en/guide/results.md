@@ -151,7 +151,8 @@ them by itself (see [Plan settings](./running#plan-settings)).
 
 **Reports** also shows **Tests that disagree with themselves**: over the last days, the tests whose
 verdict changed from one run to the next with nothing to explain it. A test that broke and was
-fixed is not listed, and neither is one whose verdict changed because it was edited.
+fixed is not listed, and neither is one whose verdict changed because it was edited. Mobile
+tests are counted per device ([mobile apps](./mobile-apps#unstable)).
 
 A flaky test can be put in **quarantine**, with the reason. It keeps running and its results are
 kept, but its failures stop failing runs, stopping plans, filing issues and breaking pipelines.

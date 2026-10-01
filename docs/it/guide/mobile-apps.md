@@ -184,6 +184,13 @@ più fallire il run. La riga mostra **In quarantena** (passateci sopra per il mo
 da **Test in quarantena** in **Report**, dove porta l'etichetta **Mobile**. In un progetto
 riservato solo chi può modificare il test può metterlo in quarantena o rilasciarlo.
 
-## Non ancora
+## Test instabili {#instabili}
 
-I test mobili non sono ancora contati come instabili.
+I test mobili fanno parte di **Test che si contraddicono** in **Report**
+([test instabili e quarantena](./results#test-instabili-e-quarantena)), con l'etichetta
+**Mobile**. Ogni dispositivo conta a sé: un test che fallisce su un telefono e passa su un altro
+è un fatto dell'app, non indecisione. Da lì si può mettere in quarantena come ogni altro test.
+
+In **App mobili**, un test trovato instabile negli ultimi 30 giorni porta l'etichetta
+**Instabile**; passateci sopra per vedere su quale dispositivo e quante volte ha cambiato esito. I
+test mobili non hanno versioni, quindi conta ogni cambio di esito, come per i test API.
