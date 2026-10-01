@@ -33,7 +33,7 @@ export interface NotificationSettings {
   onSuccess?: boolean;
   onFailure?: boolean;
   webhookUrl?: string | null;
-  /** Recognised, and reported as not yet a channel — see `describeUnsupported`. */
+  /** Mailed when the installation has SMTP (server/run-mail.ts); otherwise reported — see `describeUnsupported`. */
   emails?: string[] | null;
 }
 
@@ -188,12 +188,12 @@ function reportUrl(planId: string, executionId: string): string | undefined {
 }
 
 /** Settings that name a channel this build cannot deliver on, for the run's console. */
-export function describeUnsupported(settings: NotificationSettings): string[] {
+export function describeUnsupported(settings: NotificationSettings, canEmail = false): string[] {
   const notes: string[] = [];
-  if (settings.emails && settings.emails.length > 0) {
+  if (!canEmail && settings.emails && settings.emails.length > 0) {
     notes.push(
-      `Notification settings list ${settings.emails.length} email address(es); this build ` +
-        `delivers over a webhook only, so no email was sent.`,
+      `Notification settings list ${settings.emails.length} email address(es), but this installation ` +
+        `has no SMTP configured (SMTP_URL), so no email was sent.`,
     );
   }
   return notes;

@@ -7,6 +7,10 @@ export interface UserSettings {
   playwrightDefaultTimeout: number;
   playwrightWaitTime: number;
   language?: string; // Add language preference (e.g., "en", "it")
+  /** E-mail about the runs I start: the master switch, then when. */
+  notifyByEmail?: boolean;
+  notifyRunCompleted?: boolean;
+  notifyRunFailed?: boolean;
 }
 
 export const fetchSettings = async (): Promise<UserSettings> => {

@@ -33,7 +33,7 @@ cosa conservare di ogni run e chi avvisare.
 | **Esegui su** | I runner di questo server, un pool di [agenti locali](../LOCAL_AGENT) dentro la vostra rete, o una [griglia di browser](#griglie-di-browser). |
 | **Registra i fallimenti in** | Un issue tracker (Jira, Azure DevOps) collegato da un owner. Con **Apri una issue quando un test fallisce**, ogni test e browser che fallisce ottiene una issue; lo stesso fallimento in seguito viene aggiunto come commento. |
 | **Pubblica i risultati su** | TestRail, Xray o Zephyr Scale, collegati in **Impostazioni → Test management**: ogni run concluso vi viene pubblicato caso per caso; vedi [Pubblicare su TestRail, Xray o Zephyr](./results#test-management). |
-| **Invia una notifica quando** e l'URL del webhook | Un messaggio a un incoming webhook di Slack o Microsoft Teams, o a qualsiasi URL che accetti un POST, quando un run passa, fallisce, non viene eseguito o viene fermato. |
+| **Invia una notifica quando** e l'URL del webhook | Un messaggio a un incoming webhook di Slack o Microsoft Teams, o a qualsiasi URL che accetti un POST, quando un run passa, fallisce, non viene eseguito o viene fermato. Anche gli indirizzi e-mail elencati lì ricevono una mail, quando l'installazione invia e-mail. |
 
 **Suite** sulla riga aggiunge [suite](./organizing#suite): girano dopo i test del piano,
 nell'ordine in cui sono spuntate, e un test presente in più suite gira una volta sola.

@@ -7,6 +7,9 @@ import { promisify } from "util";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import { sharedStore } from "./middleware/rate-limit-store";
+import { passwordProblem, policyFrom, PASSWORD_MAX_LENGTH } from "@shared/password-policy";
+import { isEmailAddress, mailConfigured, sendMail } from "./mailer";
+import { passwordResetMail } from "./mail-messages";
 import { RedisStore } from "connect-redis";
 import { storage } from "./storage";
 import { AUDIT_ACTIONS, User as SelectUser, type AuditAction } from "@shared/schema";
@@ -99,7 +102,8 @@ export async function recordAuthEvent(
 // and rejects malformed/missing credentials before hashing).
 const registerSchema = z.object({
   username: z.string().trim().min(3, "Username must be at least 3 characters").max(64),
-  password: z.string().min(8, "Password must be at least 8 characters").max(128),
+  // The length and the rest are the password policy's (shared/password-policy.ts), checked below.
+  password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
   // Optional. Present, it makes the new account a member of the inviting organization
   // instead of the owner of a brand new one. 64 hex characters — see randomBytes(32) in
   // server/routes/organization.routes.ts.
@@ -162,7 +166,12 @@ export function passwordStamp(storedHash: string): string {
   return createHmac("sha256", process.env.SESSION_SECRET ?? "").update(storedHash).digest("hex").slice(0, 32);
 }
 
-const newPasswordSchema = z.string().min(8, "Password must be at least 8 characters").max(128);
+const newPasswordSchema = z.string().min(1).max(PASSWORD_MAX_LENGTH);
+
+/** The installation's password policy (PASSWORD_POLICY), applied to a password being chosen. */
+export function newPasswordProblem(password: string, username: string | null): string | null {
+  return passwordProblem(password, username, policyFrom(process.env.PASSWORD_POLICY));
+}
 
 export async function comparePasswords(supplied: string, stored: string) {
   const [hashed, salt] = stored.split(".");
@@ -266,6 +275,11 @@ export function setupAuth(app: Express) {
         return;
       }
       const { username, password, invitationToken } = parsed.data;
+      const weak = newPasswordProblem(password, username);
+      if (weak) {
+        res.status(400).json({ message: weak, errors: { password: [weak] } });
+        return;
+      }
 
       // With an invitation the username check waits until the token has been validated
       // (createUserFromInvitation): a used invitation names a username that now exists, and
@@ -453,6 +467,8 @@ export function setupAuth(app: Express) {
     if (!parsed.success) {
       return res.status(400).json({ message: "Invalid password", errors: parsed.error.flatten().fieldErrors });
     }
+    const weak = newPasswordProblem(parsed.data.newPassword, (req.user as SelectUser).username);
+    if (weak) return res.status(400).json({ message: weak, code: "weak_password" });
     try {
       const user = req.user as SelectUser;
       if (!(await comparePasswords(parsed.data.currentPassword, user.password))) {
@@ -481,6 +497,8 @@ export function setupAuth(app: Express) {
     if (!parsed.success) {
       return res.status(400).json({ message: "Invalid request", errors: parsed.error.flatten().fieldErrors });
     }
+    const weak = newPasswordProblem(parsed.data.newPassword, null);
+    if (weak) return res.status(400).json({ message: weak, code: "weak_password" });
     try {
       const result = await storage.redeemPasswordReset(parsed.data.token, await hashPassword(parsed.data.newPassword), req.ip ?? null);
       if ("error" in result) {
@@ -489,6 +507,53 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "This link is not valid any more. Ask an owner of your organization for a new one.", code: "reset_invalid" });
       }
       res.json({ reset: true, username: result.username });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /** Whether the sign-in page offers "Forgot your password?": only where a link can be mailed. */
+  app.get("/api/password-reset/available", (_req, res) => {
+    res.json({ available: mailConfigured() });
+  });
+
+  /**
+   * "Forgot your password?": a reset link mailed to the account's address. The answer is the same
+   * whether or not the account exists, is a person, or has an address for a username, so it cannot
+   * be used to find out who has an account here. The link is the one an owner would issue.
+   */
+  app.post("/api/password-reset/request", authLimiter, async (req, res, next) => {
+    const parsed = z.object({ username: z.string().trim().min(1).max(254) }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Give the address you sign in with." });
+    if (!mailConfigured()) return res.status(404).json({ message: "Password reset by e-mail is not available here. Ask an owner of your organization for a link." });
+    const answer = { message: "If an account with that address exists, a link to choose a new password is on its way." };
+    try {
+      const user = await storage.getUserByUsername(parsed.data.username);
+      if (user && user.kind === "person" && isEmailAddress(user.username) && user.organizationId) {
+        const { runWithTenant, withTenantTransaction } = await import("./middleware/tenancy");
+        const { issuePasswordReset } = await import("./password-reset");
+        const issued = await runWithTenant(user.organizationId, () =>
+          withTenantTransaction(async (tx) => {
+            const reset = await issuePasswordReset(tx, { organizationId: user.organizationId!, userId: user.id, createdBy: null });
+            const { recordAudit } = await import("./audit");
+            await recordAudit(tx, {
+              action: AUDIT_ACTIONS.PASSWORD_RESET_ISSUED,
+              actor: null,
+              targetType: "user",
+              targetId: user.id,
+              metadata: { username: user.username, expiresAt: reset.expiresAt.toISOString(), requestedByEmail: true },
+            });
+            return reset;
+          }),
+        );
+        const { publicBase } = await import("./routes/sso.routes");
+        const sent = await sendMail(passwordResetMail({ base: publicBase(req), username: user.username, token: issued.token, expiresAt: issued.expiresAt }));
+        if (!sent.sent) {
+          const logger = await loggerPromise;
+          logger.warn({ message: "Password reset link could not be mailed", userId: user.id, error: sent.error });
+        }
+      }
+      res.status(202).json(answer);
     } catch (error) {
       next(error);
     }

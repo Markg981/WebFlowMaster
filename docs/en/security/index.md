@@ -224,7 +224,8 @@ Stated so a review can weigh them, not discovered later:
   logout): a person removed here but not at the provider gets a new account
   at their next sign-in, so access is ended at the provider. E-mail domains are not verified by
   DNS; on a shared installation the first organization to claim a domain has it.
-- No password complexity rules beyond length, and no e-mail delivery: invitation and password
+- **Password complexity is opt-in**: the default policy checks length only; `PASSWORD_POLICY=strong`
+  adds length 12, character mix, no username and no common passwords. Without SMTP, invitation and
   reset links are handed over by the owner.
 - **Rate limits fall back to per-process counting** while Redis does not answer: the counts
   (sign-in, API keys, webhooks, SSO, log ingestion) are kept in Redis and shared by every web

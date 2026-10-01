@@ -78,6 +78,13 @@ export const userSettings = pgTable("user_settings", {
   playwrightDefaultTimeout: integer("playwright_default_timeout").default(30000).notNull(),
   playwrightWaitTime: integer("playwright_wait_time").default(1000).notNull(),
   language: text("language").default('en').notNull(),
+  /**
+   * E-mail about the runs this person starts (server/mail-messages.ts): the master switch, then
+   * when. Off until the person turns it on; nothing is sent while the installation has no SMTP.
+   */
+  notifyByEmail: boolean("notify_by_email").default(false).notNull(),
+  notifyRunCompleted: boolean("notify_run_completed").default(true).notNull(),
+  notifyRunFailed: boolean("notify_run_failed").default(true).notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 

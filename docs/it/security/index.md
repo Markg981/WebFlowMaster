@@ -239,8 +239,9 @@ Dichiarati perché una valutazione possa pesarli, invece di scoprirli dopo:
   account al suo accesso successivo, quindi l'accesso si revoca presso il provider. I domini
   e-mail non vengono verificati via DNS; su un'installazione condivisa il primo che rivendica un
   dominio lo ottiene.
-- Nessuna regola sulla complessità delle password oltre alla lunghezza, e nessun invio di
-  e-mail: i link di invito e di reset della password li consegna l'owner.
+- **La complessità delle password è facoltativa**: la politica di default controlla solo la
+  lunghezza; `PASSWORD_POLICY=strong` aggiunge 12 caratteri, varietà di caratteri, niente username
+  e niente password comuni. Senza SMTP, i link di invito e di reset li consegna l'owner.
 - **I limiti di frequenza tornano a contare per processo** mentre Redis non risponde: i conteggi
   (accesso, chiavi API, webhook, SSO, invio dei log) stanno in Redis e sono condivisi da tutti i
   processi web, ma una richiesta non resta mai in attesa di Redis, quindi durante un guasto ogni

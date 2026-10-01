@@ -30,6 +30,9 @@ x-collaudo-app-env: &collaudo-app-env
   # point. On the worker too: that is where those are sent from, and set only on the web
   # process every notification and issue went out without a link to its report.
   WEBFLOW_PUBLIC_URL: https://wfm.collaudo.test
+  # E-mail (ADM-08…ADM-11): invitations, reset links and run notifications land in mailpit.
+  SMTP_URL: smtp://mailpit:1025
+  SMTP_FROM: WebFlowMaster Collaudo <wfm@collaudo.test>
   # Empty means the product's default; cases PLN-11 and PLN-15 set them for a while.
   ORG_MAX_CONCURRENT_RUNS: ${ORG_MAX_CONCURRENT_RUNS:-}
   ORG_MAX_QUEUED_RUNS: ${ORG_MAX_QUEUED_RUNS:-}

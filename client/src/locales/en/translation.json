@@ -225,13 +225,15 @@
     },
     "notifications": {
       "title": "Notifications",
-      "description": "Choose what notifications you want to receive (Not saved to backend)",
-      "emailLabel": "Email Notifications",
-      "emailDescription": "Receive updates via email",
-      "testCompletionLabel": "Test Completion",
-      "testCompletionDescription": "Notify when tests finish running",
-      "errorAlertsLabel": "Error Alerts",
-      "errorAlertsDescription": "Get notified about test failures"
+      "description": "E-mail about the runs you start, sent to the address you sign in with. A plan's own notifications are set on the plan.",
+      "emailLabel": "E-mail notifications",
+      "emailDescription": "Receive e-mail about the runs you start",
+      "testCompletionLabel": "Every finished run",
+      "testCompletionDescription": "Passed or failed",
+      "errorAlertsLabel": "Failed runs",
+      "errorAlertsDescription": "Failed, could not run, or timed out",
+      "notConfigured": "This installation does not send e-mail yet (an administrator sets SMTP_URL); your choices are kept for when it does.",
+      "save": "Save notifications"
     },
     "account": {
       "title": "Account",
@@ -330,7 +332,9 @@
       "removeConfirm": "Remove member",
       "resetPassword": "Password reset link for {{username}}",
       "resetIntro": "Send this link to {{username}} to choose a new password. It is shown only now, works once, and lasts one day.",
-      "resetLinkLabel": "Password reset link"
+      "resetLinkLabel": "Password reset link",
+      "emailed": "Also e-mailed to {{username}}.",
+      "emailFailed": "Not e-mailed: {{error}} Send the link yourself."
     },
     "customActions": {
       "title": "Custom actions",
@@ -987,6 +991,12 @@
       "confirm": "Repeat the new password",
       "submit": "Set the new password",
       "done": "Your password has been changed. Sign in with the new one."
+    },
+    "forgot": {
+      "link": "Forgot your password?",
+      "label": "The address you sign in with",
+      "submit": "Send me a link",
+      "sent": "If an account with that address exists, a link to choose a new password is on its way. Check your mailbox."
     }
   },
   "dashboardPageNew": {

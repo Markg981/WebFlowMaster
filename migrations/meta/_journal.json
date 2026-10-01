@@ -435,6 +435,13 @@
       "when": 1790800000000,
       "tag": "0061_test_data_sets",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1790900000000,
+      "tag": "0062_user_mail_notifications",
+      "breakpoints": true
     }
   ]
 }

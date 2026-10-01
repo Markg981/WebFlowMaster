@@ -225,13 +225,15 @@
     },
     "notifications": {
       "title": "Benachrichtigungen",
-      "description": "Wählen Sie, welche Benachrichtigungen Sie erhalten möchten (nicht auf dem Server gespeichert)",
+      "description": "E-Mails zu den Läufen, die Sie starten, an die Adresse, mit der Sie sich anmelden. Die Benachrichtigungen eines Plans werden am Plan eingestellt.",
       "emailLabel": "E-Mail-Benachrichtigungen",
-      "emailDescription": "Updates per E-Mail erhalten",
-      "testCompletionLabel": "Testabschluss",
-      "testCompletionDescription": "Benachrichtigen, wenn Tests fertig sind",
-      "errorAlertsLabel": "Fehlerwarnungen",
-      "errorAlertsDescription": "Bei fehlgeschlagenen Tests benachrichtigt werden"
+      "emailDescription": "E-Mails zu den Läufen erhalten, die Sie starten",
+      "testCompletionLabel": "Jeder beendete Lauf",
+      "testCompletionDescription": "Bestanden oder fehlgeschlagen",
+      "errorAlertsLabel": "Fehlgeschlagene Läufe",
+      "errorAlertsDescription": "Fehlgeschlagen, nicht ausgeführt oder abgelaufen",
+      "notConfigured": "Diese Installation versendet noch keine E-Mails (ein Administrator setzt SMTP_URL); Ihre Auswahl bleibt dafür gespeichert.",
+      "save": "Benachrichtigungen speichern"
     },
     "account": {
       "title": "Konto",
@@ -330,7 +332,9 @@
       "removeConfirm": "Mitglied entfernen",
       "resetPassword": "Link zum Zurücksetzen des Passworts für {{username}}",
       "resetIntro": "Senden Sie diesen Link an {{username}}, um ein neues Passwort zu wählen. Er wird nur jetzt angezeigt, funktioniert einmal und ist einen Tag gültig.",
-      "resetLinkLabel": "Link zum Zurücksetzen"
+      "resetLinkLabel": "Link zum Zurücksetzen",
+      "emailed": "Auch per E-Mail an {{username}} gesendet.",
+      "emailFailed": "Nicht per E-Mail gesendet: {{error}} Senden Sie den Link selbst."
     },
     "customActions": {
       "title": "Eigene Aktionen",
@@ -993,6 +997,12 @@
       "confirm": "Neues Passwort wiederholen",
       "submit": "Neues Passwort festlegen",
       "done": "Ihr Passwort wurde geändert. Melden Sie sich mit dem neuen an."
+    },
+    "forgot": {
+      "link": "Passwort vergessen?",
+      "label": "Die Adresse, mit der Sie sich anmelden",
+      "submit": "Link senden",
+      "sent": "Falls ein Konto mit dieser Adresse existiert, ist ein Link zum Wählen eines neuen Passworts unterwegs. Prüfen Sie Ihr Postfach."
     }
   },
   "dashboardPageNew": {

@@ -1,4 +1,7 @@
 import { Router, type Request, type Response } from "express";
+import { isEmailAddress, mailConfigured, sendMail, type MailResult } from "../mailer";
+import { invitationMail, passwordResetMail } from "../mail-messages";
+import { publicBase } from "./sso.routes";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { and, asc, desc, eq, gte, like, lte, ne, sql, type SQL } from "drizzle-orm";
@@ -226,6 +229,20 @@ router.delete("/api/organization", requireRole("owner"), async (req: Request, re
  */
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
+/**
+ * What the answer says about the e-mail: `emailed` true when it left, false with `emailError`
+ * when it was tried and failed, absent when there was nothing to try (no mail configured, or a
+ * username that is not an address) — then the owner hands the link over, as before.
+ */
+async function mailIfPossible(
+  username: string,
+  build: () => Promise<Parameters<typeof sendMail>[0]>,
+): Promise<{ emailed?: boolean; emailError?: string }> {
+  if (!mailConfigured() || !isEmailAddress(username)) return {};
+  const result: MailResult = await sendMail(await build());
+  return result.sent ? { emailed: true } : { emailed: false, emailError: result.error };
+}
+
 router.get("/api/organization/invitations", requireRole("owner"), async (_req: Request, res: Response) => {
   const organizationId = getTenantOrgId()!;
 
@@ -305,14 +322,30 @@ router.post("/api/organization/invitations", requireRole("owner"), async (req: R
       return row;
     });
 
-    // The only time the token is ever returned. Whoever calls this has to deliver it to the
-    // invitee themselves — there is no mail transport in this application.
+    // Mailed when the installation can and the username is an address (server/mailer.ts); the
+    // token is still returned, once, so the owner can hand the link over if the mail does not
+    // arrive — or when there is no mail at all.
+    const mail = await mailIfPossible(created.username, async () => {
+      const [org] = await withTenantTransaction((tx) =>
+        tx.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, organizationId)),
+      );
+      return invitationMail({
+        base: publicBase(req),
+        username: created.username,
+        token: created.token,
+        role: created.role,
+        organizationName: org?.name ?? "your organization",
+        invitedBy: req.user!.username,
+        expiresAt: created.expiresAt,
+      });
+    });
     res.status(201).json({
       id: created.id,
       username: created.username,
       role: created.role,
       token: created.token,
       expiresAt: created.expiresAt,
+      ...mail,
     });
   } catch (e: unknown) {
     if (/unique/i.test((e as Error).message ?? "")) {
@@ -446,7 +479,10 @@ router.post("/api/organization/members/:userId/password-reset", requireRole("own
   });
 
   if (!issued) return res.status(404).json({ error: "Member not found" });
-  res.status(201).json({ username: issued.username, token: issued.token, expiresAt: issued.expiresAt });
+  const mail = await mailIfPossible(issued.username, async () =>
+    passwordResetMail({ base: publicBase(req), username: issued.username, token: issued.token, expiresAt: issued.expiresAt }),
+  );
+  res.status(201).json({ username: issued.username, token: issued.token, expiresAt: issued.expiresAt, ...mail });
 });
 
 router.patch(
