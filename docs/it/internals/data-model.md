@@ -64,7 +64,7 @@ I diagrammi completi, a livello di colonna, di tutte le tabelle sono in [Schema 
 | `detected_elements` | Elementi trovati su una pagina per un test (la palette del builder). |
 | `project_elements` | Il repository degli elementi: una definizione per elemento per progetto, che gli step possono richiamare; la correzione automatica la aggiorna una volta per tutti i test. |
 | `step_groups` | Sequenze di step riutilizzabili con un nome, richiamate dai test; espanse al momento dell'esecuzione. |
-| `api_tests` | Test API: metodo, URL, header, body, autenticazione, asserzioni, estrazioni. |
+| `api_tests` | Test API: metodo, URL, header, body, autenticazione, asserzioni, estrazioni e il controllo prestazioni facoltativo (ripetizioni e soglie sui tempi di risposta). |
 | `api_test_history` | Richieste inviate dall'API tester, per il pannello della cronologia. |
 | `tags` / `test_tags` | Il vocabolario proprio di un'organizzazione, applicato ai test; guida le suite dinamiche. |
 | `test_versions` | Ogni stato salvato di un test. `app_user` non può cancellare: la storia non si può riscrivere. |

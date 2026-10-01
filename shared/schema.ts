@@ -10,6 +10,7 @@ import type { MobilePlatform, MobileRunStatus, MobileStep, MobileStepResult } fr
 import type { NetworkSummary } from './network';
 import type { FailureAnalysis } from './failure-analysis';
 import type { CiContext } from './ci';
+import { ApiPerformanceSchema, type ApiPerformance } from './api-performance';
 import type { RequirementKind } from './requirements';
 import type { TestManagementProvider } from './test-management';
 
@@ -229,6 +230,11 @@ export const apiTests = pgTable("api_tests", {
    * could only check one endpoint in isolation — never a flow. See ExtractionSchema.
    */
   extractions: jsonb('extractions'),
+  /**
+   * Send the request several times and hold its response times against thresholds — see
+   * shared/api-performance.ts. Null: the test sends it once, as it always did.
+   */
+  performance: jsonb('performance').$type<ApiPerformance>(),
   authType: text("auth_type"),
   authParams: jsonb("auth_params"),
   bodyType: text("body_type"),
@@ -2492,6 +2498,7 @@ export const insertApiTestSchema = createInsertSchema(apiTests, {
   // Typed rather than left as raw jsonb: a malformed extraction is only discovered at run
   // time otherwise, in a worker, halfway through a scheduled plan.
   extractions: z.array(ExtractionSchema).optional().nullable(),
+  performance: ApiPerformanceSchema.optional().nullable(),
 })
   .omit({
     id: true,

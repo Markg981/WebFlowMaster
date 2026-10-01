@@ -3894,5 +3894,21 @@
     "addRecorded": "Aggiungi {{count}} step al test",
     "discard": "Scarta",
     "discardRecorded": "Chiudere e perdere i {{count}} step registrati non aggiunti al test?"
+  },
+  "apiPerformance": {
+    "tab": "Prestazioni",
+    "enable": "Controlla i tempi di risposta su più richieste",
+    "help": "In un piano la richiesta viene rinviata fino al numero indicato, alcune alla volta, e il test fallisce quando una soglia viene superata. Le catture vengono solo dalla prima richiesta. Misura un endpoint; non è un test di carico.",
+    "iterations": "Richieste",
+    "concurrency": "Alla volta",
+    "thresholds": "Fai fallire il test quando (vuoto per nessun limite)",
+    "p50": "Mediana (p50)",
+    "p95": "95° percentile (p95)",
+    "max": "La più lenta",
+    "errorRate": "Richieste fallite",
+    "reportTitle": "Tempi di risposta",
+    "reportDescription": "Test API che hanno inviato la richiesta più volte e confrontato i tempi con le soglie.",
+    "verdict": "Esito",
+    "withinThresholds": "entro le soglie"
   }
 }

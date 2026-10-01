@@ -452,6 +452,7 @@ erDiagram
     text request_body
     jsonb assertions
     jsonb extractions
+    jsonb performance
     text auth_type
     jsonb auth_params
     text body_type
@@ -1078,5 +1079,5 @@ Queste relazioni esistono nell'applicazione ma non hanno una chiave esterna. Son
   utente finché è in sospeso (0044); un legame con un'issue è univoco per fallimento (`dedupe_key`), così un
   fallimento si segnala una volta; la chiave di idempotenza di un run è univoca per organizzazione, così una richiesta ripetuta
   restituisce lo stesso run.
-- **Migrazioni.** 60 file SQL numerati in `migrations/` (da `0000` a `0059`), applicati una volta dal migratore
+- **Migrazioni.** 61 file SQL numerati in `migrations/` (da `0000` a `0060`), applicati una volta dal migratore
   prima che partano gli altri processi; il journal è `migrations/meta/_journal.json`.

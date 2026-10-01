@@ -73,6 +73,30 @@ I valori catturati viaggiano all'interno del passaggio di un browser nel piano, 
 girano i test. Un piano che ne dipende deve tenere quei test nell'ordine giusto; con più test in
 parallelo, il piano mantiene in ordine i test API di ogni browser.
 
+## Tempi di risposta su più richieste {#performance}
+
+L'asserzione **response time** giudica una richiesta, e il tempo di una richiesta è rumore: lo
+decidono una cache fredda o una garbage collection. La scheda **Prestazioni** controlla un endpoint
+in modo affidabile: attivate **Controlla i tempi di risposta su più richieste** e impostate
+
+- **Richieste** — quante, da 2 a 200, compresa quella funzionale;
+- **Alla volta** — quante in volo insieme, da 1 a 10;
+- le soglie che fanno fallire il test, ciascuna facoltativa: **Mediana (p50)**, **95° percentile
+  (p95)** e **La più lenta**, in millisecondi, e **Richieste fallite**, in percentuale.
+
+In un piano la richiesta viene inviata una volta come sempre — le sue asserzioni decidono l'esito e
+le sue catture passano ai test successivi — e poi di nuovo fino al numero indicato. Una ripetizione
+conta come fallita quando non si è potuta fare o ha fallito un'asserzione del test. I percentili sono
+nearest rank: il p95 di 20 richieste è la 19ª più veloce. Quando una soglia viene superata il test
+fallisce indicando cosa è stato superato ("p95 412 ms > 300 ms"), e la scheda **Tempi di risposta**
+del report del run elenca ogni test che ha controllato i tempi: richieste, p50, p95, la più lenta,
+richieste fallite ed esito.
+
+Le ripetizioni partono da dove gira il test — la rete di un agente locale quando il piano ne usa
+uno — e si fermano quando il run viene annullato. Una richiesta che non si riesce proprio a fare
+salta il controllo: non c'è nulla da misurare. I limiti sono voluti: risponde a "questo endpoint è
+diventato più lento?" a ogni run, non è un test di carico.
+
 ## Salvare
 
 **Salva test** chiede un nome e, facoltativamente, un progetto; **Salva modifiche** aggiorna il
