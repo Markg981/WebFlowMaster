@@ -365,6 +365,14 @@ wfmc kill worker            # durante un run
 wfmc restart redis
 ```
 
+**Jenkins (INT-08).** `npm run collaudo:jenkins` crea una chiave API (runs:write, runs:read),
+avvia Jenkins (http://localhost:8088, `admin` / `Collaudo.2026!`) configurato da
+`collaudo/jenkins/casc.yaml` e lancia il job **INT-08**. Il job usa la shared library di
+`integrations/jenkins` presa da questo repository (ramo `main`, quindi il template come è stato
+unito) sul piano «Collaudo · rete e trace» in Staging. Pubblica JUnit e report HTML; il run nel
+prodotto riporta la build Jenkins con il link. L'agente è il nodo integrato con Node, non
+`docker { image 'node:20' }` dell'esempio. `npm run collaudo:jenkins -- stop` lo ferma.
+
 ## 8. Cosa non copre
 
 - **Jira o Azure DevOps, GitHub e i sistemi di CI** sono servizi esterni: servono un progetto,
