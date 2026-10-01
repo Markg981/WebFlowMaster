@@ -20,6 +20,7 @@ import {
   saveSsoSettings,
   ssoAvailable,
   testSsoProvider,
+  verifySsoDomain,
   type SignInError,
   type SignedIn,
 } from "../sso";
@@ -71,6 +72,10 @@ const settingsSchema = z.object({
   defaultRole: z.enum(SSO_ROLES as [string, ...string[]]),
   enabled: z.boolean(),
   required: z.boolean(),
+  // Roles from the provider's groups (shared/sso-roles.ts); absent keeps what is stored.
+  groupAttribute: z.string().trim().max(200).nullable().optional(),
+  roleMappings: z.array(z.object({ group: z.string().max(256), role: z.string().max(20) })).max(100).optional(),
+  requireGroup: z.boolean().optional(),
 });
 
 // GET /api/organization/sso — the settings (never the secret) and the address to register.
@@ -107,6 +112,13 @@ router.put("/api/organization/sso", requireRole("owner"), sessionOnly, async (re
 router.delete("/api/organization/sso", requireRole("owner"), sessionOnly, async (req, res) => {
   if (!(await removeSsoSettings(getTenantOrgId()!, auditActor(req)))) return res.status(404).json({ error: "Single sign-on is not set up." });
   res.status(204).end();
+});
+
+// POST /api/organization/sso/domains/:domain/verify — is the TXT record there? (server/sso-domains.ts)
+router.post("/api/organization/sso/domains/:domain/verify", requireRole("owner"), sessionOnly, async (req, res) => {
+  const outcome = await verifySsoDomain(getTenantOrgId()!, auditActor(req), String(req.params.domain));
+  if (!outcome) return res.status(404).json({ error: "This organization does not sign in that domain." });
+  res.json(outcome);
 });
 
 // POST /api/organization/sso/test — does the saved provider answer?

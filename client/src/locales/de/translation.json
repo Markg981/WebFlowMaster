@@ -2699,7 +2699,8 @@
       "mobile_test_inspector_opened": "Inspector auf einem Gerät geöffnet",
       "test_data_set_created": "Gemeinsamer Datensatz angelegt",
       "test_data_set_updated": "Gemeinsamer Datensatz geändert",
-      "test_data_set_deleted": "Gemeinsamer Datensatz gelöscht"
+      "test_data_set_deleted": "Gemeinsamer Datensatz gelöscht",
+      "sso_domain_verified": "Single-Sign-on-Domain nachgewiesen"
     }
   },
   "security": {
@@ -3209,11 +3210,12 @@
     "defaultRole": "Rolle neuer Konten",
     "roleViewer": "Betrachter",
     "roleEditor": "Bearbeiter",
+    "roleOwner": "Eigentümer",
     "enabled": "Single Sign-on anbieten",
     "enabledHint": "Aus behält die Einstellungen, meldet aber niemanden über den Anbieter an.",
     "required": "Verpflichtend machen",
     "requiredHint": "Mitglieder außer Eigentümern können sich nicht mehr mit einem Passwort anmelden, und ihre per Passwort geöffneten Sitzungen enden. Eigentümer behalten ihres, um bei einem Ausfall des Anbieters wieder hineinzukommen. API-Schlüssel sind nicht betroffen.",
-    "removalNote": "Ihr Anbieter entscheidet, wer hineinkommt: Wer hier entfernt wird, kommt bei der nächsten Anmeldung mit einem neuen Konto zurück. Beenden Sie den Zugang beim Anbieter.",
+    "removalNote": "Ihr Anbieter entscheidet, wer hineinkommt: Wer hier entfernt wird, kommt bei der nächsten Anmeldung mit einem neuen Konto zurück. Beenden Sie den Zugang beim Anbieter – oder ordnen Sie Gruppen zu und weisen Sie ab, wer in keiner ist.",
     "save": "Speichern",
     "saved": "Gespeichert.",
     "test": "Anbieter testen",
@@ -3237,7 +3239,8 @@
       "account_elsewhere": "Ein Konto mit Ihrer Adresse gehört zu einer anderen Organisation dieser Installation.",
       "account_disabled": "Dieses Konto ist deaktiviert.",
       "account_linked": "Ihre Adresse ist bereits mit einer anderen Identität bei Ihrem Anbieter verknüpft. Fragen Sie einen Eigentümer Ihrer Organisation.",
-      "browser_mismatch": "Diese Anmeldung wurde in einem anderen Browser gestartet. Starten Sie sie hier neu."
+      "browser_mismatch": "Diese Anmeldung wurde in einem anderen Browser gestartet. Starten Sie sie hier neu.",
+      "no_group": "Ihr Konto beim Identity Provider ist in keiner der Gruppen, die diese Organisation zulässt. Wenden Sie sich an Ihren Administrator."
     },
     "protocol": "Protokoll",
     "saml": {
@@ -3253,6 +3256,27 @@
       "certificate": "Signaturzertifikat (X.509, PEM oder Base64)",
       "certExpired": "Abgelaufen am {{date}}: Anmeldungen werden abgelehnt, bis Sie das neue Zertifikat einfügen.",
       "certValid": "{{subject}} · gültig bis {{date}}"
+    },
+    "domainsProof": {
+      "title": "Nachweis der Domains",
+      "required": "Auf dieser Installation meldet eine Domain niemanden an, bis sie nachgewiesen ist: Veröffentlichen Sie ihren TXT-Eintrag und klicken Sie dann auf Prüfen.",
+      "advice": "Der Nachweis einer Domain ist hier optional und zeigt, dass der Anbieter wirklich Ihrer ist: Veröffentlichen Sie ihren TXT-Eintrag und klicken Sie dann auf Prüfen.",
+      "verified": "nachgewiesen",
+      "unverified": "nicht nachgewiesen",
+      "verify": "Prüfen",
+      "record": "TXT-Eintrag"
+    },
+    "groups": {
+      "title": "Rollen aus den Gruppen des Anbieters",
+      "hint": "Bei jeder Anmeldung folgt die Rolle den Gruppen, die der Anbieter sendet: die höchste zugeordnete Rolle. Ohne Zuordnung werden Rollen hier unter Mitglieder verwaltet.",
+      "attribute": "Claim oder Attribut mit den Gruppen",
+      "groupPlaceholder": "Gruppenname oder -ID",
+      "group": "Gruppe der Zuordnung {{n}}",
+      "role": "Rolle der Zuordnung {{n}}",
+      "remove": "Zuordnung {{n}} entfernen",
+      "add": "Gruppe zuordnen",
+      "require": "Abweisen, wer in keiner dieser Gruppen ist",
+      "requireHint": "Wer dann beim Anbieter aus den Gruppen entfernt wird, verliert hier bei der nächsten Anmeldung den Zugang."
     }
   },
   "manualTests": {

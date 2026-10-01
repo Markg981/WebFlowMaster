@@ -246,6 +246,13 @@ i metadati di `https://keycloak.collaudo.test/realms/acme/protocol/saml/descript
 `acme.test`. Gli utenti sono gli stessi della tabella sopra. Un'organizzazione usa un protocollo
 alla volta: per tornare ai casi OIDC, rimettere Protocollo **OpenID Connect** e il client secret.
 
+**Ruoli dai gruppi e verifica dei domini (SSO-18…SSO-22).** Il realm ha i gruppi `wfm-viewer`,
+`wfm-editor` e `wfm-owner`, inviati come claim `groups` (OIDC) e attributo `groups` (SAML), con il
+solo nome del gruppo. `anna` è in `wfm-editor`, `marco` in nessun gruppo; per spostare qualcuno
+fra i gruppi: console di Keycloak → Users → l'utente → Groups. I domini `.test` non hanno un DNS
+pubblico: nel collaudo il pulsante **Verifica** può solo dire che il record TXT manca, e la
+verifica riuscita è coperta dai test automatici (`server/sso.test.ts`).
+
 La console di Keycloak (per cambiare un'e-mail o fermare il provider) è su
 https://keycloak.collaudo.test, utente `admin`, password `admin`.
 

@@ -5,6 +5,8 @@ import { SAML, ValidateInResponseTo, type CacheProvider, type Profile } from '@n
 import { DOMParser } from '@xmldom/xmldom';
 import { organizationSso, ssoDomains, ssoSamlRequests } from '@shared/schema';
 import { privilegedDb } from './db';
+import { groupsOf } from '@shared/sso-roles';
+import { usableDomain } from './sso-domains';
 
 /**
  * Single sign-on with SAML 2.0: the second language an organization's identity provider can speak,
@@ -35,7 +37,8 @@ import { privilegedDb } from './db';
 export const REQUEST_TTL_MS = 10 * 60 * 1000;
 export const BINDING_COOKIE = 'wfm_saml_request';
 
-export type SamlRow = Pick<typeof organizationSso.$inferSelect, 'organizationId' | 'issuer' | 'samlSsoUrl' | 'samlCertificate'>;
+export type SamlRow = Pick<typeof organizationSso.$inferSelect, 'organizationId' | 'issuer' | 'samlSsoUrl' | 'samlCertificate'> &
+  Partial<Pick<typeof organizationSso.$inferSelect, 'groupAttribute'>>;
 
 // ─── The service provider's addresses ───────────────────────────────────────────
 
@@ -252,6 +255,8 @@ export interface SamlIdentity {
   issuer: string;
   subject: string;
   email: string;
+  /** The groups attribute, for roles (shared/sso-roles.ts). */
+  groups: string[];
 }
 
 /**
@@ -293,9 +298,14 @@ export async function finishSamlSignIn(
   const [allowed] = await privilegedDb
     .select({ domain: ssoDomains.domain })
     .from(ssoDomains)
-    .where(and(eq(ssoDomains.domain, email.split('@')[1]), eq(ssoDomains.organizationId, row.organizationId)));
+    .where(usableDomain(email.split('@')[1], row.organizationId));
   if (!allowed) return { error: 'domain_not_allowed' };
-  return { issuer: profile.issuer || row.issuer, subject: samlSubjectOf(profile, email), email };
+  return {
+    issuer: profile.issuer || row.issuer,
+    subject: samlSubjectOf(profile, email),
+    email,
+    groups: groupsOf(profile as unknown as Record<string, unknown>, row.groupAttribute),
+  };
 }
 
 /** The service provider's metadata, for the owner to give the identity provider. */

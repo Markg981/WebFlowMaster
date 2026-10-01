@@ -39,6 +39,7 @@ harm.
 | `REGISTRATION` | web | `invitation` | `invitation`: accounts are created from an invitation, except the installation's first. `open`: anyone who reaches the server may register and gets an organization of their own. Any other value stops the startup. See [First sign-in](./installation#first-sign-in). |
 | `MFA_ISSUER` | web | `WebFlowMaster` | The name authenticator apps show next to the codes. Set it per installation ("WebFlowMaster Staging") so people with several accounts can tell them apart. |
 | `WEBFLOW_PUBLIC_URL` | both | none | This installation's public address. Used to link to a run from notifications and commit statuses, which without it carry no link, and as the base of the single sign-on redirect URI, which without it is taken from the request. |
+| `SSO_REQUIRE_DOMAIN_VERIFICATION` | web | `false` | `true`: a single sign-on domain routes no sign-in until its organization has proven it with a DNS TXT record, and an unproven claim does not keep another organization from taking the domain. Set it on every installation shared by several organizations. See [Single sign-on](./administration#single-sign-on). |
 | `WORKSPACE_NAME` | web | `WebFlowMaster` | The name the sidebar shows. Only read the first time the installation starts. |
 
 ## Running plans

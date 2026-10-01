@@ -2693,7 +2693,8 @@
       "mobile_test_inspector_opened": "Inspector opened on a device",
       "test_data_set_created": "Shared data set created",
       "test_data_set_updated": "Shared data set changed",
-      "test_data_set_deleted": "Shared data set deleted"
+      "test_data_set_deleted": "Shared data set deleted",
+      "sso_domain_verified": "Single sign-on domain proven"
     }
   },
   "security": {
@@ -3203,11 +3204,12 @@
     "defaultRole": "Role of new accounts",
     "roleViewer": "Viewer",
     "roleEditor": "Editor",
+    "roleOwner": "Owner",
     "enabled": "Offer single sign-on",
     "enabledHint": "Off keeps the settings and signs nobody in through the provider.",
     "required": "Require it",
     "requiredHint": "Members other than owners can no longer sign in with a password, and their password sessions end. Owners keep theirs, to get back in if the provider fails. API keys are not affected.",
-    "removalNote": "Your provider decides who gets in: someone removed here comes back with a new account at their next sign-in. End their access at the provider.",
+    "removalNote": "Your provider decides who gets in: someone removed here comes back with a new account at their next sign-in. End their access at the provider — or map groups and refuse whoever is in none.",
     "save": "Save",
     "saved": "Saved.",
     "test": "Test the provider",
@@ -3231,7 +3233,8 @@
       "account_elsewhere": "An account with your address belongs to another organization on this installation.",
       "account_disabled": "This account is disabled.",
       "account_linked": "Your address is already linked to another identity at your provider. Ask an owner of your organization.",
-      "browser_mismatch": "This sign-in was started in another browser. Start it again here."
+      "browser_mismatch": "This sign-in was started in another browser. Start it again here.",
+      "no_group": "Your account at the identity provider is in none of the groups this organization lets in. Ask your administrator."
     },
     "protocol": "Protocol",
     "saml": {
@@ -3247,6 +3250,27 @@
       "certificate": "Signing certificate (X.509, PEM or base64)",
       "certExpired": "Expired on {{date}}: sign-ins are refused until you paste the new certificate.",
       "certValid": "{{subject}} · valid until {{date}}"
+    },
+    "domainsProof": {
+      "title": "Proof of the domains",
+      "required": "On this installation a domain signs nobody in until it is proven: publish its TXT record, then press Verify.",
+      "advice": "Proving a domain is optional here, and shows your provider is really yours: publish its TXT record, then press Verify.",
+      "verified": "proven",
+      "unverified": "not proven",
+      "verify": "Verify",
+      "record": "TXT record"
+    },
+    "groups": {
+      "title": "Roles from the provider's groups",
+      "hint": "At every sign-in the role follows the groups the provider sends: the highest role any of them maps to. With no mapping, roles are managed here in Members.",
+      "attribute": "Claim or attribute with the groups",
+      "groupPlaceholder": "Group name or id",
+      "group": "Group of mapping {{n}}",
+      "role": "Role of mapping {{n}}",
+      "remove": "Remove mapping {{n}}",
+      "add": "Map a group",
+      "require": "Refuse whoever is in none of these groups",
+      "requireHint": "Then removing someone from the groups at the provider ends their access here at their next sign-in."
     }
   },
   "manualTests": {

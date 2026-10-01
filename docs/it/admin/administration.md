@@ -190,14 +190,54 @@ risponda a una richiesta inviata da questa installazione, cosa che può fare una
 - un'identità già vista accede allo stesso account, anche se l'indirizzo è cambiato;
 - la prima volta, un account esistente dell'organizzazione il cui nome utente è quell'indirizzo
   viene collegato; così passano al SSO i membri che avevano già una password;
-- altrimenti viene **creato** un account, con l'indirizzo come nome utente e il ruolo scelto.
-  Nessun owner viene creato così: si nomina un owner in **Impostazioni → Membri**.
+- altrimenti viene **creato** un account, con l'indirizzo come nome utente e il ruolo scelto, o
+  il ruolo a cui portano i suoi gruppi (sotto). Senza un gruppo mappato su owner, nessun owner
+  viene creato così: si nomina un owner in **Impostazioni → Membri**.
 
 Con OpenID Connect l'indirizzo viene dal claim `email` oppure, se manca, da un
 `preferred_username` in forma di indirizzo, che è ciò che invia Entra ID; un indirizzo che il
 provider segna come non verificato viene rifiutato. Con SAML viene dagli attributi elencati sopra o
 da un NameID in forma di indirizzo. In entrambi i casi un indirizzo fuori dai vostri domini viene
 rifiutato.
+
+**Ruoli dai gruppi del provider.** In **Ruoli dai gruppi del provider** associate i gruppi inviati
+dal provider a un ruolo: viewer, editor o owner. A ogni accesso la persona riceve il ruolo più alto
+fra quelli a cui portano i suoi gruppi: un nuovo account viene creato con quel ruolo, e uno
+esistente lo segue, verso l'alto o verso il basso (il registro di audit registra il cambio come
+`member.role_changed` con `bySsoGroups: true`). Chi non è in nessun gruppo mappato mantiene il
+ruolo che ha, e un nuovo account riceve il ruolo predefinito; senza alcuna mappatura i ruoli si
+gestiscono in **Impostazioni → Membri** come prima. L'ultimo owner dell'organizzazione non viene
+mai retrocesso dai suoi gruppi, così l'organizzazione non resta chiusa fuori.
+
+I gruppi si confrontano senza distinguere maiuscole e minuscole. **Claim o attributo con i
+gruppi** indica dove il provider li mette: `groups` se vuoto; vanno bene sia una lista sia un
+valore singolo.
+
+| Provider | Cosa inviare |
+|---|---|
+| Microsoft Entra ID | Registrazione app → Configurazione token → *Aggiungi attestazione gruppi*. Il claim `groups` contiene gli **object ID** dei gruppi: mappate quelli, non i nomi. Oltre 200 gruppi Entra invia un link al posto della lista; assegnate i gruppi all'applicazione per restare sotto il limite. |
+| Okta | Authorization server → Claims → un claim `groups` con un filtro (es. *Starts with* `wfm-`). Per SAML, un group attribute statement. |
+| Keycloak | Client scope → Mapper *Group Membership*, nome del claim `groups`, *Full group path* disattivato. Per SAML, il mapper *Group list*. |
+| ADFS | Una regola di claim che invia *Token-Groups – Unqualified Names* come attributo (es. `groups`). |
+
+**Rifiuta chi non è in nessuno di questi gruppi** (dopo aver mappato almeno un gruppo) fa della
+mappatura il cancello d'ingresso: chi non è in nessun gruppo mappato non può accedere, che il suo
+account esista o no, e ne vede il motivo nella pagina di accesso. Togliere qualcuno dai gruppi
+presso il provider gli revoca così l'accesso qui al suo accesso successivo.
+
+**Verificare i domini.** Ogni dominio mostra un record DNS TXT da pubblicare:
+`_wfm-verification.<dominio>` con valore `wfm-verification=<token>`. Una volta pubblicato,
+premete **Verifica**: il server cerca il record e segna il dominio come **verificato**; se il record
+non c'è ancora la scheda dice cosa ha trovato (le modifiche DNS possono impiegare un po' a
+raggiungere tutti i server). La verifica resta quando si salvano di nuovo le impostazioni, e si
+perde solo togliendo il dominio dall'elenco.
+
+Se l'installazione imposta `SSO_REQUIRE_DOMAIN_VERIFICATION=true` — ogni installazione condivisa
+o multi-tenant dovrebbe farlo — un dominio non indirizza alcun accesso finché non è verificato, e
+una rivendicazione non verificata non lo trattiene: un'altra organizzazione che aggiunge il dominio
+lo prende, e chi lo verifica per primo lo tiene. Senza la variabile i domini funzionano appena
+salvati e verificarli è facoltativo, il che va bene per un'installazione con una sola
+organizzazione.
 
 **Renderlo obbligatorio.** Con **Rendilo obbligatorio** attivo, i membri che non sono owner non
 possono più accedere con la password, e le sessioni aperte con la password terminano alla
@@ -212,7 +252,8 @@ provider, quindi richiedetelo lì.
 ::: warning È il provider a decidere chi entra
 Rimuovere un membro qui cancella il suo account, ma se il provider lo lascia ancora accedere, il
 suo accesso successivo crea un nuovo account con il ruolo predefinito. Revocate l'accesso presso
-il provider; rimuoverlo anche qui mette in ordine l'elenco dei membri.
+il provider, oppure mappate i gruppi, attivate **Rifiuta chi non è in nessuno di questi gruppi** e
+toglietelo dai gruppi; rimuoverlo anche qui mette in ordine l'elenco dei membri.
 :::
 
 Il registro di audit registra le modifiche o la rimozione delle impostazioni (mai il secret),
@@ -400,8 +441,9 @@ cambio, link di reset); le password già esistenti non vengono controllate.
 
 ## Limiti noti
 
-- Il single sign-on non prende i ruoli dai gruppi del provider: i nuovi account hanno il ruolo
-  predefinito, e gli owner lo cambiano in **Impostazioni → Membri**. Le asserzioni SAML devono
-  essere firmate e non cifrate, l'accesso parte da WebFlowMaster (niente accesso avviato dall'IdP),
-  e il single logout non è supportato.
+- Il single sign-on legge i ruoli dai gruppi solo all'accesso: una modifica presso il provider
+  arriva a WebFlowMaster al successivo accesso della persona, e le sessioni già aperte mantengono
+  il loro ruolo fino ad allora (non c'è SCIM). Le asserzioni SAML devono essere firmate e non
+  cifrate, l'accesso parte da WebFlowMaster (niente accesso avviato dall'IdP), e il single logout
+  non è supportato.
 - Le e-mail sono testo semplice via SMTP; non c'è un editor di modelli e i rimbalzi non vengono tracciati.

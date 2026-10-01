@@ -39,6 +39,7 @@ processo non legge non fa danni.
 | `REGISTRATION` | web | `invitation` | `invitation`: gli account si creano da un invito, tranne il primo dell'installazione. `open`: chiunque raggiunga il server può registrarsi e ottiene una propria organizzazione. Ogni altro valore blocca l'avvio. Vedi [Primo accesso](./installation#primo-accesso). |
 | `MFA_ISSUER` | web | `WebFlowMaster` | Il nome che le app di autenticazione mostrano accanto ai codici. Impostatelo per installazione ("WebFlowMaster Staging") così chi ha più account li distingue. |
 | `WEBFLOW_PUBLIC_URL` | entrambi | nessuno | L'indirizzo pubblico dell'installazione. Serve a collegare un run da notifiche e stati dei commit, che senza non contengono il link, e come base del redirect URI del single sign-on, che senza viene preso dalla richiesta. |
+| `SSO_REQUIRE_DOMAIN_VERIFICATION` | web | `false` | `true`: un dominio del single sign-on non indirizza alcun accesso finché la sua organizzazione non lo ha dimostrato con un record DNS TXT, e una rivendicazione non verificata non impedisce a un'altra organizzazione di prendere il dominio. Impostatela su ogni installazione condivisa da più organizzazioni. Vedere [Single sign-on](./administration#single-sign-on). |
 | `WORKSPACE_NAME` | web | `WebFlowMaster` | Il nome mostrato nella barra laterale. Letta solo al primo avvio dell'installazione. |
 
 ## Esecuzione dei piani {#esecuzione-dei-piani}

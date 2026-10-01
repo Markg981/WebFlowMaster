@@ -2818,7 +2818,8 @@
       "mobile_test_inspector_opened": "Inspector aperto su un dispositivo",
       "test_data_set_created": "Set di dati condiviso creato",
       "test_data_set_updated": "Set di dati condiviso modificato",
-      "test_data_set_deleted": "Set di dati condiviso eliminato"
+      "test_data_set_deleted": "Set di dati condiviso eliminato",
+      "sso_domain_verified": "Dominio del single sign-on verificato"
     }
   },
   "security": {
@@ -3328,11 +3329,12 @@
     "defaultRole": "Ruolo dei nuovi account",
     "roleViewer": "Viewer",
     "roleEditor": "Editor",
+    "roleOwner": "Owner",
     "enabled": "Offri il single sign-on",
     "enabledHint": "Se disattivato, le impostazioni restano ma nessuno accede tramite il provider.",
     "required": "Rendilo obbligatorio",
     "requiredHint": "I membri che non sono owner non possono più accedere con la password, e le loro sessioni aperte con la password terminano. Gli owner mantengono la propria, per poter rientrare se il provider non funziona. Le chiavi API non sono interessate.",
-    "removalNote": "È il provider a decidere chi entra: una persona rimossa qui torna con un nuovo account al successivo accesso. Revocatele l'accesso presso il provider.",
+    "removalNote": "È il provider a decidere chi entra: una persona rimossa qui torna con un nuovo account al successivo accesso. Revocatele l'accesso presso il provider, oppure mappate i gruppi e rifiutate chi non è in nessuno.",
     "save": "Salva",
     "saved": "Salvato.",
     "test": "Prova il provider",
@@ -3356,7 +3358,8 @@
       "account_elsewhere": "Un account con il tuo indirizzo appartiene a un'altra organizzazione di questa installazione.",
       "account_disabled": "Questo account è disattivato.",
       "account_linked": "Il tuo indirizzo è già collegato a un'altra identità presso il provider. Chiedi a un owner della tua organizzazione.",
-      "browser_mismatch": "Questo accesso è stato avviato in un altro browser. Avviatelo di nuovo qui."
+      "browser_mismatch": "Questo accesso è stato avviato in un altro browser. Avviatelo di nuovo qui.",
+      "no_group": "Il vostro account presso l'identity provider non è in nessuno dei gruppi ammessi da questa organizzazione. Rivolgetevi al vostro amministratore."
     },
     "protocol": "Protocollo",
     "saml": {
@@ -3372,6 +3375,27 @@
       "certificate": "Certificato di firma (X.509, PEM o base64)",
       "certExpired": "Scaduto il {{date}}: gli accessi sono rifiutati finché non incollate il nuovo certificato.",
       "certValid": "{{subject}} · valido fino al {{date}}"
+    },
+    "domainsProof": {
+      "title": "Verifica dei domini",
+      "required": "Su questa installazione un dominio non fa accedere nessuno finché non è verificato: pubblicate il suo record TXT, poi premete Verifica.",
+      "advice": "Qui verificare un dominio è facoltativo, e dimostra che il provider è davvero vostro: pubblicate il suo record TXT, poi premete Verifica.",
+      "verified": "verificato",
+      "unverified": "non verificato",
+      "verify": "Verifica",
+      "record": "Record TXT"
+    },
+    "groups": {
+      "title": "Ruoli dai gruppi del provider",
+      "hint": "A ogni accesso il ruolo segue i gruppi inviati dal provider: il ruolo più alto fra quelli mappati. Senza mappature, i ruoli si gestiscono qui in Membri.",
+      "attribute": "Claim o attributo con i gruppi",
+      "groupPlaceholder": "Nome o id del gruppo",
+      "group": "Gruppo della mappatura {{n}}",
+      "role": "Ruolo della mappatura {{n}}",
+      "remove": "Rimuovi la mappatura {{n}}",
+      "add": "Mappa un gruppo",
+      "require": "Rifiuta chi non è in nessuno di questi gruppi",
+      "requireHint": "Così togliere qualcuno dai gruppi presso il provider gli revoca l'accesso qui al successivo accesso."
     }
   },
   "manualTests": {

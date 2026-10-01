@@ -33,7 +33,21 @@
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256"
-      }
+      },
+      "protocolMappers": [
+        {
+          "name": "groups (casi SSO-18…)",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
     },
     {
       "clientId": "api-client",
@@ -76,6 +90,17 @@
             "attribute.name": "email",
             "attribute.nameformat": "Basic"
           }
+        },
+        {
+          "name": "groups",
+          "protocol": "saml",
+          "protocolMapper": "saml-group-membership-mapper",
+          "config": {
+            "attribute.name": "groups",
+            "attribute.nameformat": "Basic",
+            "full.path": "false",
+            "single": "false"
+          }
         }
       ]
     }
@@ -97,6 +122,9 @@
       ],
       "realmRoles": [
         "default-roles-acme"
+      ],
+      "groups": [
+        "/wfm-editor"
       ]
     },
     {
@@ -233,6 +261,20 @@
       "realmRoles": [
         "default-roles-acme"
       ]
+    }
+  ],
+  "groups": [
+    {
+      "name": "wfm-editor",
+      "path": "/wfm-editor"
+    },
+    {
+      "name": "wfm-owner",
+      "path": "/wfm-owner"
+    },
+    {
+      "name": "wfm-viewer",
+      "path": "/wfm-viewer"
     }
   ]
 }

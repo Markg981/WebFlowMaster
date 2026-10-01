@@ -750,6 +750,12 @@ export const organizationSso = pgTable("organization_sso", {
   enabled: boolean("enabled").notNull().default(true),
   /** Members other than owners must sign in through the provider; their passwords stop working. */
   required: boolean("required").notNull().default(false),
+  /** The claim (OpenID Connect) or attribute (SAML) carrying the groups; null means "groups". */
+  groupAttribute: text("group_attribute"),
+  /** Group → role, applied at every sign-in (shared/sso-roles.ts). Empty: roles are managed here. */
+  roleMappings: jsonb("role_mappings").$type<Array<{ group: string; role: "viewer" | "editor" | "owner" }>>().notNull().default([]),
+  /** With mappings, refuse a person who is in none of the mapped groups. */
+  requireGroup: boolean("require_group").notNull().default(false),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -769,6 +775,10 @@ export const ssoDomains = pgTable("sso_domains", {
   /** Lower case. The primary key: one organization per domain. */
   domain: text("domain").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  /** What the TXT record _wfm-verification.<domain> must say (shared/sso-roles.ts). */
+  verificationToken: text("verification_token"),
+  /** When the record was found; null while the domain is unproven. */
+  verifiedAt: timestamp("verified_at"),
 }, (table) => [
   index("sso_domains_organization_id_idx").on(table.organizationId),
 ]);
@@ -1613,6 +1623,7 @@ export const AUDIT_ACTIONS = {
   // Single sign-on: the provider an owner set up or removed, and accounts it created. Never the secret.
   SSO_CONFIGURED: 'sso.configured',
   SSO_REMOVED: 'sso.removed',
+  SSO_DOMAIN_VERIFIED: 'sso.domain_verified',
   MEMBER_PROVISIONED: 'member.provisioned',
   // An organization's own steps. They are code that runs against the applications under test,
   // so who wrote and changed them is kept — the script itself is not, only its size.

@@ -199,11 +199,16 @@ erDiagram
     text default_role
     bool enabled
     bool required
+    text group_attribute
+    jsonb role_mappings
+    bool require_group
     timestamp updated_at
   }
   sso_domains {
     text domain PK
     int organization_id FK
+    text verification_token
+    timestamp verified_at
   }
   sso_identities {
     text issuer
@@ -1092,5 +1097,5 @@ Queste relazioni esistono nell'applicazione ma non hanno una chiave esterna. Son
   utente finché è in sospeso (0044); un legame con un'issue è univoco per fallimento (`dedupe_key`), così un
   fallimento si segnala una volta; la chiave di idempotenza di un run è univoca per organizzazione, così una richiesta ripetuta
   restituisce lo stesso run.
-- **Migrazioni.** 63 file SQL numerati in `migrations/` (da `0000` a `0062`), applicati una volta dal migratore
+- **Migrazioni.** 64 file SQL numerati in `migrations/` (da `0000` a `0063`), applicati una volta dal migratore
   prima che partano gli altri processi; il journal è `migrations/meta/_journal.json`.

@@ -199,11 +199,16 @@ erDiagram
     text default_role
     bool enabled
     bool required
+    text group_attribute
+    jsonb role_mappings
+    bool require_group
     timestamp updated_at
   }
   sso_domains {
     text domain PK
     int organization_id FK
+    text verification_token
+    timestamp verified_at
   }
   sso_identities {
     text issuer
@@ -1090,5 +1095,5 @@ These relationships exist in the application but have no foreign key. Most come 
 - **Uniqueness.** Environment names are unique per organization (migration 0041); an invitation is unique per username
   while pending (0044); an issue link is unique per failure (`dedupe_key`), so one failure is filed once; a run's
   idempotency key is unique per organization, so a retried request returns the same run.
-- **Migrations.** 63 numbered SQL files in `migrations/` (`0000` … `0062`), applied once by the migrator before the other
+- **Migrations.** 64 numbered SQL files in `migrations/` (`0000` … `0063`), applied once by the migrator before the other
   processes start; the journal is `migrations/meta/_journal.json`.

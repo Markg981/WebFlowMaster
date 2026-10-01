@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Copy, KeyRound, Loader2 } from 'lucide-react';
+import { DomainVerification, RoleMappingEditor, type DomainStatus, type RoleMappingRow } from './SsoRolesAndDomains';
 
 /**
  * Single sign-on with the organization's identity provider (server/sso.ts). Owners only.
@@ -31,9 +32,14 @@ export interface SsoSettings {
   samlCertificate: string | null;
   samlCertificateInfo: { subject: string; validTo: string; expired: boolean } | null;
   domains: string[];
+  domainStatus?: DomainStatus[];
+  verificationRequired?: boolean;
   defaultRole: 'viewer' | 'editor';
   enabled: boolean;
   required: boolean;
+  groupAttribute?: string;
+  roleMappings?: RoleMappingRow[];
+  requireGroup?: boolean;
   updatedAt: string;
 }
 
@@ -66,11 +72,15 @@ interface Form {
   defaultRole: 'viewer' | 'editor';
   enabled: boolean;
   required: boolean;
+  groupAttribute: string;
+  roleMappings: RoleMappingRow[];
+  requireGroup: boolean;
 }
 
 const EMPTY: Form = {
   protocol: 'oidc', issuer: '', clientId: '', clientSecret: '', samlSsoUrl: '', samlCertificate: '',
   domains: '', defaultRole: 'viewer', enabled: true, required: false,
+  groupAttribute: 'groups', roleMappings: [], requireGroup: false,
 };
 
 function CopyField({ label, value, testId }: { label: string; value: string; testId: string }) {
@@ -120,6 +130,9 @@ export default function SsoCard() {
             defaultRole: s.defaultRole,
             enabled: s.enabled,
             required: s.required,
+            groupAttribute: s.groupAttribute ?? 'groups',
+            roleMappings: s.roleMappings ?? [],
+            requireGroup: s.requireGroup ?? false,
           }
         : EMPTY,
     );
@@ -150,6 +163,9 @@ export default function SsoCard() {
         defaultRole: form.defaultRole,
         enabled: form.enabled,
         required: form.enabled && form.required,
+        groupAttribute: form.groupAttribute.trim() || null,
+        roleMappings: form.roleMappings.filter((m) => m.group.trim() !== '').map((m) => ({ group: m.group.trim(), role: m.role })),
+        requireGroup: form.requireGroup && form.roleMappings.some((m) => m.group.trim() !== ''),
       };
       const body = form.protocol === 'oidc'
         ? { ...common, clientId: form.clientId, clientSecret: form.clientSecret }
@@ -309,6 +325,21 @@ export default function SsoCard() {
               </div>
             </div>
 
+            {saved?.domainStatus && (
+              <DomainVerification
+                domains={saved.domainStatus}
+                required={!!saved.verificationRequired}
+                onVerified={() => queryClient.invalidateQueries({ queryKey: ['organization-sso'] })}
+              />
+            )}
+
+            <RoleMappingEditor
+              attribute={form.groupAttribute}
+              mappings={form.roleMappings}
+              requireGroup={form.requireGroup}
+              onChange={(next) => setForm((current) => ({ ...current, groupAttribute: next.attribute, roleMappings: next.mappings, requireGroup: next.requireGroup }))}
+            />
+
             <div className="flex items-start justify-between gap-4 border-t pt-4">
               <div>
                 <Label htmlFor="sso-enabled" className="text-sm font-medium">{t('sso.enabled', 'Offer single sign-on')}</Label>
@@ -334,7 +365,7 @@ export default function SsoCard() {
             <p className="text-xs text-muted-foreground">
               {t(
                 'sso.removalNote',
-                'Your provider decides who gets in: someone removed here comes back with a new account at their next sign-in. End their access at the provider.',
+                'Your provider decides who gets in: someone removed here comes back with a new account at their next sign-in. End their access at the provider — or map groups and refuse whoever is in none.',
               )}
             </p>
 
