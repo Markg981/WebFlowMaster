@@ -170,7 +170,8 @@ async function main() {
   ok(`piano "${planName}" (id ${plan.id})`);
 
   const runs = list(await editor('GET', `/api/test-plan-executions?planId=${plan.id}`), 'items')
-    .filter((r) => r.completedAt);
+    // REP-09 purges a run's evidence on purpose: such a run no longer has the HAR REP-04 opens.
+    .filter((r) => r.completedAt && !r.artifactsPurgedAt);
   if (runs.length === 0) {
     const started = await editor('POST', `/api/run-test-plan/${plan.id}`, { environmentId: staging.id });
     const runId = started?.data?.id;
