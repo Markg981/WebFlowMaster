@@ -170,7 +170,9 @@ con classe cambiata», che ha proprio quel fallimento. Per fissare la risposta s
 **Codice OTP (WEB-48, WEB-49).** In Keycloak, l'utente `mfa` ha l'azione «Configure OTP», come nel
 caso. L'utente `mfa-pronto` ha già l'OTP con la chiave `INXWY3DBOVSG6VDPORYDEMBSGZFWK6JB`, da usare
 come `secret_mfa` (e nell'app del telefono, per il confronto del passo 4). Entrambi hanno la password
-`Collaudo.2026!`. Gli utenti arrivano con l'import del realm: su uno stack già avviato,
+`Collaudo.2026!`. Il Chromium dei run si fida dell'autorità di collaudo (`collaudo/worker/trust-ca.sh`,
+all'avvio del worker), quindi i test raggiungono https://keycloak.collaudo.test; Firefox no. Gli
+utenti arrivano con l'import del realm: su uno stack già avviato,
 `wfmc up -d --force-recreate keycloak`.
 
 **Debug abbandonato (WEB-43).** `DEBUG_IDLE_TIMEOUT_MS=60000 wfmc up -d api worker` chiude una sessione
