@@ -25,5 +25,7 @@ until xdpyinfo >/dev/null 2>&1; do
 done
 
 openbox &
-x11vnc -display "$DISPLAY" -forever -shared -nopw -quiet -rfbport 5900 &
+# -noshm: MIT-SHM is not available across the container boundary, and without it x11vnc dies
+# on the first frame and noVNC only says "Failed to connect".
+x11vnc -display "$DISPLAY" -forever -shared -nopw -noshm -quiet -rfbport 5900 &
 exec websockify --web /usr/share/novnc 6080 localhost:5900
