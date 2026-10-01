@@ -211,9 +211,11 @@ const TestSuitesPage: React.FC = () => {
                             </Button>
                             </>
                             )}
+                            {canEdit && (
                             <Button variant="outline" size="sm" onClick={openScheduling}>
                               <CalendarDays size={16} className="mr-1" /> {t('testSuitesPage.schedule.button')}
                             </Button>
+                            )}
                             {canEdit && (
                             <Button variant="outline" size="sm" onClick={() => {
                               setSelectedPlanForWebhooks({ id: item.id, name: item.name });

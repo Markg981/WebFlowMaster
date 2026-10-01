@@ -17,10 +17,12 @@ import { PlusCircle } from 'lucide-react'; // Changed from @radix-ui/react-icons
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'; // DialogClose might be needed
 import { useToast } from '@/components/ui/use-toast';  // Corrected import path
 import { useTranslation } from 'react-i18next';
-// Added imports for header
+import { useAuth } from '@/hooks/use-auth';
 
 const SchedulingPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const canEdit = user?.role !== 'viewer';
   const { toast } = useToast();
   const { t } = useTranslation(); // Added translation hook
 
@@ -126,9 +128,11 @@ const SchedulingPage: React.FC = () => {
         title={t('schedulingPage.title', 'Scheduling')}
         description={t('schedulingPage.description')}
         actions={
-          <Button variant="default" size="sm" onClick={handleOpenCreateForm}>
-            <PlusCircle className="mr-2 h-4 w-4" /> {t('schedulingPage.createSchedule.button', 'Create Schedule')}
-          </Button>
+          canEdit ? (
+            <Button variant="default" size="sm" onClick={handleOpenCreateForm}>
+              <PlusCircle className="mr-2 h-4 w-4" /> {t('schedulingPage.createSchedule.button', 'Create Schedule')}
+            </Button>
+          ) : undefined
         }
       />
 
@@ -179,8 +183,8 @@ const SchedulingPage: React.FC = () => {
 
         <SchedulesList
           schedules={schedules || []}
-          onEdit={handleEditSchedule}
-          onDelete={handleDeleteScheduleAttempt}
+          onEdit={canEdit ? handleEditSchedule : undefined}
+          onDelete={canEdit ? handleDeleteScheduleAttempt : undefined}
           isLoading={isLoading}
           error={error}
         />

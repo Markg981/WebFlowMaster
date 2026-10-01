@@ -30,9 +30,11 @@ interface TagPickerProps {
   /** Adds a word nobody has used yet, and returns it so it can be applied immediately. */
   onCreate: (name: string) => Promise<TagRef>;
   disabled?: boolean;
+  /** Shows the tags without the control that changes them, for someone who may not. */
+  readOnly?: boolean;
 }
 
-const TagPicker: React.FC<TagPickerProps> = ({ selected, available, onChange, onCreate, disabled }) => {
+const TagPicker: React.FC<TagPickerProps> = ({ selected, available, onChange, onCreate, disabled, readOnly }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState('');
@@ -85,7 +87,9 @@ const TagPicker: React.FC<TagPickerProps> = ({ selected, available, onChange, on
           {tag.name}
         </Badge>
       ))}
+      {readOnly && selected.length === 0 && <span className="text-xs text-muted-foreground">—</span>}
 
+      {!readOnly && (
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -145,6 +149,7 @@ const TagPicker: React.FC<TagPickerProps> = ({ selected, available, onChange, on
           </div>
         </PopoverContent>
       </Popover>
+      )}
     </div>
   );
 };

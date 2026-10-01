@@ -7,8 +7,9 @@ import { FileEdit, Trash2 } from 'lucide-react'; // Changed from @radix-ui/react
 
 interface SchedulesListProps {
   schedules: TestPlanScheduleEnhanced[];
-  onEdit: (schedule: TestPlanScheduleEnhanced) => void;
-  onDelete: (scheduleId: string) => void;
+  /** Without these the list is read-only: no actions column. */
+  onEdit?: (schedule: TestPlanScheduleEnhanced) => void;
+  onDelete?: (scheduleId: string) => void;
   isLoading: boolean;
   error?: Error | null;
 }
@@ -53,7 +54,7 @@ const SchedulesList: React.FC<SchedulesListProps> = ({ schedules, onEdit, onDele
             <TableHead>Environment</TableHead>
             <TableHead>Browsers</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Actions</TableHead>
+            {onEdit && onDelete && <TableHead>Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -87,14 +88,16 @@ const SchedulesList: React.FC<SchedulesListProps> = ({ schedules, onEdit, onDele
                   {schedule.isActive ? 'Active' : 'Inactive'}
                 </Badge>
               </TableCell>
-              <TableCell className="space-x-2">
-                <Button variant="ghost" size="icon" onClick={() => onEdit(schedule)} title="Edit Schedule">
-                  <FileEdit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => onDelete(schedule.id)} title="Delete Schedule">
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </TableCell>
+              {onEdit && onDelete && (
+                <TableCell className="space-x-2">
+                  <Button variant="ghost" size="icon" onClick={() => onEdit(schedule)} title="Edit Schedule">
+                    <FileEdit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => onDelete(schedule.id)} title="Delete Schedule">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>

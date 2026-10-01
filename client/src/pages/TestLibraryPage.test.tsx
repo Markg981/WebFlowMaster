@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TestLibraryPage from './TestLibraryPage';
 
 // The history dialog asks who is looking, to offer publishing actions to editors only.
-vi.mock('@/hooks/use-auth', () => ({ useAuth: () => ({ user: { id: 1, role: 'editor' } }) }));
+let role = 'editor';
+vi.mock('@/hooks/use-auth', () => ({ useAuth: () => ({ user: { id: 1, role } }) }));
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) => {
@@ -74,6 +75,7 @@ function renderPage() {
 }
 
 beforeEach(() => {
+  role = 'editor';
   toast.mockReset();
   fetchMock.mockReset();
   fetchMock.mockImplementation((url: string) => Promise.resolve(respond(String(url))));
@@ -155,6 +157,18 @@ describe('TestLibraryPage', () => {
 
     expect(confirmMock).toHaveBeenCalled();
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
+  });
+
+  it('gives a viewer the list and the history, and nothing that changes a test', async () => {
+    role = 'viewer';
+    renderPage();
+    await screen.findByText('Checkout');
+
+    expect(screen.getAllByText('smoke').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByTitle('History').length).toBe(2);
+    expect(screen.queryByText('New manual test')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit tags' })).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Delete')).not.toBeInTheDocument();
   });
 
   it('reports a failed load instead of an empty library', async () => {
