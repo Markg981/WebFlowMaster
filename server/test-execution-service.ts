@@ -1,3 +1,4 @@
+import { failedStepReason } from './failed-step-reason';
 import { playwrightService } from './playwright-service';
 import type { Test, ApiTest, TestPlan, TestPlanExecution, InsertReportTestCaseResult, Precondition, ExecutionTrigger } from '@shared/schema'; // Assuming ApiTest will be defined or Test is generic enough
 import { runPreconditions } from './precondition-runner';
@@ -1250,7 +1251,7 @@ async function runTestPlanJobInTenant(
       else if (resultFromRunTest.status === 'error') reportStatus = 'Error';
       else if (resultFromRunTest.status === 'skipped') reportStatus = 'Skipped';
 
-      failureReason = resultFromRunTest.error;
+      failureReason = resultFromRunTest.error || failedStepReason(resultFromRunTest.status, resultFromRunTest.steps);
       screenshotFinalPath = resultFromRunTest.screenshotPath; // This is a file path
       videoFinalPath = resultFromRunTest.videoPath;
       traceFinalPath = resultFromRunTest.tracePath;
