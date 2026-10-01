@@ -239,8 +239,8 @@ describe('rows that point across organizations', () => {
     `);
     const rows = result.rows as Array<{ conname: string; convalidated: boolean }>;
     // 42 from migration 0034, the two a quarantine's test carries (0035), a password reset's
-    // person (0042), a plan's browser grid (0049), the five of requirements and their tests (0050), the six of test management (0051), the four of mobile tests and their runs (0052), the three of mobile tests in plans (0053), and the three of mobile tests in suites, requirements and case links (0054).
-    expect(rows.length).toBe(67);
+    // person (0042), a plan's browser grid (0049), the five of requirements and their tests (0050), the six of test management (0051), the four of mobile tests and their runs (0052), the three of mobile tests in plans (0053), the three of mobile tests in suites, requirements and case links (0054), and the one of mobile tests' tags (0056).
+    expect(rows.length).toBe(68);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });
 

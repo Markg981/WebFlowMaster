@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
-import { apiTests, testPlanSuites, testSuiteItems, testSuites, testTags, tests, type TestSuite } from '@shared/schema';
+import { apiTests, mobileTests, testPlanSuites, testSuiteItems, testSuites, testTags, tests, type TestSuite } from '@shared/schema';
 import type { TenantTx } from './middleware/tenancy';
 
 /**
@@ -15,7 +15,7 @@ export interface TestReference {
   testType: 'ui' | 'api' | 'mobile';
   testId: number | null;
   apiTestId: number | null;
-  /** A mobile app test: in a plan's own list or a static suite's (a dynamic suite matches tags, which mobile tests have none of). */
+  /** A mobile app test: in a plan's own list, a static suite's, or a dynamic one's by its tags. */
   mobileTestId?: number | null;
 }
 
@@ -40,13 +40,14 @@ export async function testsOfSuite(tx: TenantTx, suite: Pick<TestSuite, 'id' | '
 
   // Tests carrying every one of the tags: one row per tag they carry, counted.
   const tagged = await tx
-    .select({ testId: testTags.testId, apiTestId: testTags.apiTestId, matches: sql<number>`count(distinct ${testTags.tagId})` })
+    .select({ testId: testTags.testId, apiTestId: testTags.apiTestId, mobileTestId: testTags.mobileTestId, matches: sql<number>`count(distinct ${testTags.tagId})` })
     .from(testTags)
     .where(inArray(testTags.tagId, tagIds))
-    .groupBy(testTags.testId, testTags.apiTestId);
+    .groupBy(testTags.testId, testTags.apiTestId, testTags.mobileTestId);
   const complete = tagged.filter((row) => Number(row.matches) === tagIds.length);
   const uiIds = complete.map((row) => row.testId).filter((id): id is number => id !== null);
   const apiIds = complete.map((row) => row.apiTestId).filter((id): id is number => id !== null);
+  const mobileIds = complete.map((row) => row.mobileTestId).filter((id): id is number => id !== null);
 
   // In name order, so the run order of a dynamic suite is stable and readable.
   const ui = uiIds.length
@@ -63,10 +64,18 @@ export async function testsOfSuite(tx: TenantTx, suite: Pick<TestSuite, 'id' | '
         .where(and(inArray(apiTests.id, apiIds), suite.projectId ? eq(apiTests.projectId, suite.projectId) : undefined))
         .orderBy(asc(apiTests.name))
     : [];
+  const mobile = mobileIds.length
+    ? await tx
+        .select({ id: mobileTests.id })
+        .from(mobileTests)
+        .where(and(inArray(mobileTests.id, mobileIds), suite.projectId ? eq(mobileTests.projectId, suite.projectId) : undefined))
+        .orderBy(asc(mobileTests.name))
+    : [];
 
   return [
     ...ui.map((row) => ({ testType: 'ui' as const, testId: row.id, apiTestId: null })),
     ...api.map((row) => ({ testType: 'api' as const, testId: null, apiTestId: row.id })),
+    ...mobile.map((row) => ({ testType: 'mobile' as const, testId: null, apiTestId: null, mobileTestId: row.id })),
   ];
 }
 

@@ -3810,7 +3810,8 @@
       "device": "Dispositivo",
       "steps": "Passi",
       "lastRun": "Ultima esecuzione",
-      "actions": "Azioni"
+      "actions": "Azioni",
+      "tags": "Tag"
     },
     "runFor": "Esegui {{name}}",
     "editFor": "Modifica {{name}}",
@@ -3824,7 +3825,8 @@
     "planGridHint": "Un piano esegue questo test una volta per esecuzione, su questa griglia, qualunque siano i browser del piano.",
     "inspect": "Inspector",
     "inspectNeeds": "L'inspector richiede una griglia, l'app e il dispositivo.",
-    "appPlaceholder": "bs://… / lt://… / un percorso sulla macchina dell’agente"
+    "appPlaceholder": "bs://… / lt://… / un percorso sulla macchina dell’agente",
+    "tagsFailed": "I tag non sono stati modificati."
   },
   "mobileInspector": {
     "title": "Inspector",

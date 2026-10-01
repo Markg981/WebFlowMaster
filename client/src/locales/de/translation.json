@@ -3691,7 +3691,8 @@
       "device": "Gerät",
       "steps": "Schritte",
       "lastRun": "Letzter Lauf",
-      "actions": "Aktionen"
+      "actions": "Aktionen",
+      "tags": "Tags"
     },
     "runFor": "{{name}} ausführen",
     "editFor": "{{name}} bearbeiten",
@@ -3705,7 +3706,8 @@
     "planGridHint": "Ein Testplan führt diesen Test einmal pro Lauf auf diesem Grid aus, unabhängig von den Browsern des Plans.",
     "inspect": "Inspector",
     "inspectNeeds": "Der Inspector braucht ein Grid, die App und das Gerät.",
-    "appPlaceholder": "bs://… / lt://… / ein Pfad auf dem Rechner des Agenten"
+    "appPlaceholder": "bs://… / lt://… / ein Pfad auf dem Rechner des Agenten",
+    "tagsFailed": "Die Tags wurden nicht geändert."
   },
   "mobileInspector": {
     "title": "Inspector",

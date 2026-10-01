@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { asc, eq, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from 'uuid';
-import { apiTests, tags, testTags, tests } from "@shared/schema";
+import { apiTests, mobileTests, tags, testTags, tests, type TaggableType } from "@shared/schema";
 import { withTenantTransaction } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
 import { normaliseTagName, setTagsForTest } from "../test-tags";
@@ -43,6 +43,7 @@ router.get("/api/tags", requireRole('viewer'), async (req, res) => {
           createdAt: tags.createdAt,
           uiCount: sql<number>`count(distinct ${testTags.testId})`,
           apiCount: sql<number>`count(distinct ${testTags.apiTestId})`,
+          mobileCount: sql<number>`count(distinct ${testTags.mobileTestId})`,
         })
         .from(tags)
         .leftJoin(testTags, eq(testTags.tagId, tags.id))
@@ -56,6 +57,7 @@ router.get("/api/tags", requireRole('viewer'), async (req, res) => {
       createdAt: row.createdAt,
       uiCount: Number(row.uiCount ?? 0),
       apiCount: Number(row.apiCount ?? 0),
+      mobileCount: Number(row.mobileCount ?? 0),
     })));
   } catch (error: any) {
     logger.error({ message: 'Failed to list tags', error: error?.message ?? String(error) });
@@ -179,7 +181,12 @@ router.put("/api/api-tests/:id/tags", requireRole('editor'), async (req, res) =>
   await assignTags(req, res, 'api');
 });
 
-async function assignTags(req: any, res: any, testType: 'ui' | 'api') {
+// PUT /api/mobile-tests/:id/tags — the same, for a mobile app test.
+router.put("/api/mobile-tests/:id/tags", requireRole('editor'), async (req, res) => {
+  await assignTags(req, res, 'mobile');
+});
+
+async function assignTags(req: any, res: any, testType: TaggableType) {
   if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
 
   const id = Number(req.params.id);
@@ -194,7 +201,7 @@ async function assignTags(req: any, res: any, testType: 'ui' | 'api') {
     const outcome = await withTenantTransaction(async (tx) => {
       // The test has to be one of ours, and RLS is what decides that: another tenant's id is
       // not found here rather than tagged.
-      const table = testType === 'ui' ? tests : apiTests;
+      const table = testType === 'ui' ? tests : testType === 'api' ? apiTests : mobileTests;
       const [existing] = await tx.select({ id: table.id, projectId: table.projectId }).from(table).where(eq(table.id, id)).limit(1);
       if (!existing) return { missing: true as const };
 

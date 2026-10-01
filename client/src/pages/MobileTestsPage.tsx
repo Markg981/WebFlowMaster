@@ -16,6 +16,7 @@ import { Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import { MOBILE_GRID_PROVIDERS, MOBILE_PLATFORM_LABELS, type MobileRunStatus } from '@shared/mobile';
 import MobileTestDialog, { type GridOption, type MobileTestRow } from '@/components/mobile/MobileTestDialog';
 import MobileRunDialog from '@/components/mobile/MobileRunDialog';
+import TagPicker, { type TagRef } from '@/components/tags/TagPicker';
 
 /**
  * Tests of native Android and iOS apps, run on real devices of the organization's BrowserStack
@@ -23,6 +24,7 @@ import MobileRunDialog from '@/components/mobile/MobileRunDialog';
  */
 
 interface ListedTest extends MobileTestRow {
+  tags?: TagRef[];
   lastRun: { status: MobileRunStatus; createdAt: string } | null;
 }
 
@@ -35,6 +37,7 @@ const MobileTestsPage: React.FC = () => {
   const [editing, setEditing] = useState<MobileTestRow | 'new' | null>(null);
   const [running, setRunning] = useState<MobileTestRow | null>(null);
   const [deleting, setDeleting] = useState<MobileTestRow | null>(null);
+  const [taggingId, setTaggingId] = useState<number | null>(null);
 
   const { data: tests = [], isLoading } = useQuery<ListedTest[]>({
     queryKey: ['mobileTests'],
@@ -54,6 +57,40 @@ const MobileTestsPage: React.FC = () => {
   });
   const deviceGrids = grids.filter((grid) => (MOBILE_GRID_PROVIDERS as readonly string[]).includes(grid.provider));
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['mobileTests'] });
+
+  // Tags as the library has them (migration 0056): what a test is for, and what dynamic suites run.
+  const { data: tagsData } = useQuery<TagRef[]>({
+    queryKey: ['tags'],
+    queryFn: async () => {
+      const response = await fetch('/api/tags');
+      return response.ok ? response.json() : [];
+    },
+  });
+  const allTags = Array.isArray(tagsData) ? tagsData : [];
+  const setTags = async (testId: number, tagIds: string[]) => {
+    setTaggingId(testId);
+    try {
+      const response = await fetch(`/api/mobile-tests/${testId}/tags`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tagIds }),
+      });
+      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || t('mobileTests.tagsFailed', 'The tags were not changed.'));
+      await refresh();
+      await queryClient.invalidateQueries({ queryKey: ['tags'] });
+    } catch (error) {
+      toast({ variant: 'destructive', title: (error as Error).message });
+    } finally {
+      setTaggingId(null);
+    }
+  };
+  const createTag = async (name: string): Promise<TagRef> => {
+    const response = await fetch('/api/tags', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || t('mobileTests.tagsFailed', 'The tags were not changed.'));
+    await queryClient.invalidateQueries({ queryKey: ['tags'] });
+    return body as TagRef;
+  };
 
   const remove = useMutation({
     mutationFn: async (test: MobileTestRow) => {
@@ -105,6 +142,7 @@ const MobileTestsPage: React.FC = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('mobileTests.columns.name', 'Test')}</TableHead>
+                  <TableHead>{t('mobileTests.columns.tags', 'Tags')}</TableHead>
                   <TableHead>{t('mobileTests.columns.device', 'Device')}</TableHead>
                   <TableHead>{t('mobileTests.columns.steps', 'Steps')}</TableHead>
                   <TableHead>{t('mobileTests.columns.lastRun', 'Last run')}</TableHead>
@@ -119,6 +157,23 @@ const MobileTestsPage: React.FC = () => {
                       <Badge variant="outline" className="ml-2 font-normal">
                         {MOBILE_PLATFORM_LABELS[test.platform]}
                       </Badge>
+                    </TableCell>
+                    <TableCell data-testid={`mobile-test-tags-${test.id}`}>
+                      {canEdit ? (
+                        <TagPicker
+                          selected={test.tags ?? []}
+                          available={allTags}
+                          disabled={taggingId === test.id}
+                          onChange={(tagIds) => setTags(test.id, tagIds)}
+                          onCreate={createTag}
+                        />
+                      ) : (
+                        (test.tags ?? []).map((tag) => (
+                          <Badge key={tag.id} variant="secondary" className="mr-1 font-normal">
+                            {tag.name}
+                          </Badge>
+                        ))
+                      )}
                     </TableCell>
                     <TableCell className="text-sm">{[test.deviceName, test.osVersion].filter(Boolean).join(' ')}</TableCell>
                     <TableCell className="text-sm">{test.steps.length}</TableCell>

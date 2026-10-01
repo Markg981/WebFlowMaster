@@ -925,6 +925,8 @@ export const testTags = pgTable("test_tags", {
   tagId: text("tag_id").notNull().references(() => tags.id, { onDelete: 'cascade' }),
   testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
   apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
+  /** A mobile app test (migration 0056). Plain integer here: mobile_tests is declared further down. */
+  mobileTestId: integer("mobile_test_id"),
   testType: text("test_type").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
@@ -938,7 +940,7 @@ export type TestTag = typeof testTags.$inferSelect;
 export type InsertTestTag = typeof testTags.$inferInsert;
 
 /** Which kinds of test a tag can be put on. */
-export const TAGGABLE_TYPES = ['ui', 'api'] as const;
+export const TAGGABLE_TYPES = ['ui', 'api', 'mobile'] as const;
 export type TaggableType = (typeof TAGGABLE_TYPES)[number];
 
 /**

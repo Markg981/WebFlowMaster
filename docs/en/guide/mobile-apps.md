@@ -124,7 +124,7 @@ delete them.
 ## In a test plan
 
 A plan can include mobile tests beside its web and API tests: in the plan wizard, **Add Test
-Suites** lists them with the label **mobile** (a tag filter leaves them out: they have no tags).
+Suites** lists them with the label **mobile**, and its tag filter narrows them like the others.
 The plan's page lists them with *(mobile app)*.
 
 In a run of the plan a mobile test:
@@ -150,8 +150,8 @@ grid for a device.
 
 A mobile test goes wherever a web or API test does:
 
-- in a **static suite** ([Suites](./organizing#suites)), and so in every plan that includes it —
-  a dynamic suite matches tags, and mobile tests have none;
+- in a **suite** ([Suites](./organizing#suites)), and so in every plan that includes it: a static
+  suite by choice, a dynamic one by the tags the test carries;
 - as the coverage of a **requirement** ([Requirements](./organizing#requirements)): its latest
   result in a plan run counts like any other, and the matrix export says `mobile`;
 - linked to a case of **TestRail, Xray or Zephyr Scale**
@@ -161,7 +161,12 @@ A mobile test goes wherever a web or API test does:
 
 In each list it carries the label **Mobile**.
 
+## Tags {#tags}
+
+The **Tags** column of **Mobile apps** puts the organization's tags on a mobile test, as the test
+library does for web tests (viewers see them). A tag is shared by every kind of test: a dynamic
+suite with *smoke* runs the web, API and mobile tests carrying it.
+
 ## Not yet
 
-Mobile tests carry no tags (so no dynamic suite includes them) and are not quarantined or
-counted as flaky; their project cannot be chosen yet.
+Mobile tests are not quarantined or counted as flaky, and their project cannot be chosen yet.
