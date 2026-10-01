@@ -82,6 +82,15 @@ simulatori.ok ? pass('Servizi simulati http://localhost:8090') : fail(`Servizi s
 const grafana = await reachable('http://localhost:13001/api/health');
 grafana.ok ? pass('Grafana http://localhost:13001') : fail(`Grafana: ${grafana.status}`, 'wfmc up -d grafana');
 
+// Opzionale: l'emulatore Android con Appium (npm run collaudo:mobile) serve all'area MOB.
+const appium = await reachable('http://localhost:4723/status');
+if (appium.ok) {
+  const status = await appium.json().catch(() => null);
+  pass(`Appium http://localhost:4723 (emulatore Android)${status?.value?.build?.version ? `, versione ${status.value.build.version}` : ''}`);
+} else {
+  warn(`Appium non raggiungibile (${appium.status}): i casi MOB-16 e successivi sull'emulatore restano Bloccati; avviarlo con npm run collaudo:mobile`);
+}
+
 for (const url of ['https://the-internet.herokuapp.com/login', 'https://httpbin.org/get', 'https://jsonplaceholder.typicode.com/posts/1']) {
   const res = await reachable(url);
   res.ok ? pass(url) : warn(`${url} non raggiungibile (${res.status}): i casi che la usano falliranno per l'ambiente, segnarli Bloccati`);

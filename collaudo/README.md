@@ -275,6 +275,34 @@ La scheda dell'agente mostra la versione diversa; un piano che esegue sul pool `
 con «The agents of pool "diverso" run Playwright 1.60.0, and this server 1.61.1: they must
 match». Un'altra versione si sceglie con `AGENT_PLAYWRIGHT_VERSION` (deve cambiare il minore).
 
+**Emulatore Android (area MOB, Appium locale).** Un emulatore vero, con Appium, nel container
+`budtmo/docker-android`. Serve `/dev/kvm`, che **Docker Desktop non ha**: il container gira nel
+Docker Engine installato dentro la distro WSL `Ubuntu-24.04` (che ha `/dev/kvm`; `.wslconfig` con
+`networkingMode=mirrored`), separato da quello di Docker Desktop.
+
+```powershell
+npm run collaudo:mobile          # avvia, scarica l'immagine (~10 GB) e l'apk, aspetta il boot
+npm run collaudo:mobile -- stop  # lo ferma
+```
+
+Appium risponde su http://localhost:4723, lo schermo dell'emulatore si guarda su
+http://localhost:6081 (noVNC). L'apk di prova, `WikipediaSample.apk`, sta in
+`collaudo/mobile/apps/` (non versionata, la scarica lo script) ed è vista da Appium come
+`/apps/WikipediaSample.apk`: nel test mobile **App** è quel percorso (è il percorso nel container
+di Appium, non sul PC) e **Dispositivo** `emulator-5554`.
+
+Per farlo raggiungere dal prodotto servono un agente locale e una griglia:
+
+1. Impostazioni → Agenti locali: agente nel pool `lab`; avviarlo come sopra
+   (`WFM_AGENT_TOKEN=wfa_... wfmc --profile agente up -d --build agente`).
+2. Impostazioni → Griglie di browser → **Local Appium (agent)**: pool `lab`, indirizzo
+   `http://host.docker.internal:4723` (l'agente gira in Docker Desktop, Appium nel Docker di WSL:
+   si incontrano sull'host Windows). **Verifica connessione** deve dire «Connected through pool "lab"».
+
+`npm run collaudo:check` controlla Appium e l'emulatore. I casi MOB scritti per BrowserStack o
+LambdaTest (upload `bs://`, video e dashboard della griglia) non si eseguono qui; quelli iOS
+non si eseguono senza un Mac.
+
 **Impostazioni che alcuni casi cambiano per un momento.** Si passano come variabili e si
 applicano riavviando i servizi interessati; senza variabile tornano al valore di default:
 

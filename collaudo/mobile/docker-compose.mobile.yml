@@ -1,0 +1,28 @@
+# Emulatore Android con Appium, per l'area MOB del collaudo (MOB-06 e successivi).
+#
+# Gira nel Docker Engine di WSL (distro Ubuntu-24.04), NON in Docker Desktop: l'emulatore
+# ha bisogno di /dev/kvm, che Docker Desktop non espone. Lo avvia `npm run collaudo:mobile`
+# (collaudo/mobile/avvia.mjs).
+#
+# Appium risponde su :4723, lo schermo dell'emulatore si guarda su http://localhost:6081 (noVNC).
+services:
+  android:
+    image: budtmo/docker-android:emulator_14.0
+    container_name: wfm-android
+    # Senza riavvio automatico: l'immagine, riavviata, non riparte (cancella root da /etc/passwd al
+    # primo avvio e `sudo chown /dev/kvm` fallisce al secondo). Si riparte con collaudo:mobile.
+    restart: "no"
+    devices:
+      - /dev/kvm
+    ports:
+      - "4723:4723"
+      - "6081:6080"   # la 6080 è già del servizio `display` dello stack
+    environment:
+      EMULATOR_DEVICE: "Samsung Galaxy S10"
+      WEB_VNC: "true"
+      APPIUM: "true"
+      APPIUM_HOST: "0.0.0.0"
+      APPIUM_PORT: "4723"
+      EMULATOR_ADDITIONAL_ARGS: "-no-snapshot -gpu swiftshader_indirect"
+    volumes:
+      - ./apps:/apps:ro
