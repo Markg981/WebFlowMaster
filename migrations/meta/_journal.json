@@ -400,6 +400,13 @@
       "when": 1790300000000,
       "tag": "0056_mobile_tags",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1790400000000,
+      "tag": "0057_mobile_projects",
+      "breakpoints": true
     }
   ]
 }

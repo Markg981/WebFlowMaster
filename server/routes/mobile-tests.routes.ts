@@ -4,7 +4,7 @@ import fs from "fs";
 import multer from "multer";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { AUDIT_ACTIONS, browserGrids, environments, mobileTestRuns, mobileTests } from "@shared/schema";
 import { MOBILE_GRID_PROVIDERS, mobileStepSchema, mobileTestSchema } from "@shared/mobile";
 import { requireRole } from "../middleware/require-role";
@@ -43,6 +43,8 @@ function fail(res: Response, error: unknown, what: string) {
   if (error instanceof MobileError) return res.status(error.status).json({ error: error.message });
   const message = (error as Error)?.message ?? "";
   if (/unique|duplicate/i.test(message)) return res.status(409).json({ error: "A mobile test with this name already exists." });
+  // A project that does not exist or cannot be edited (migrations 0031, 0057): one answer for both.
+  if (/foreign key|row-level security/i.test(message)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
   logger.error({ message: `Failed to ${what}`, error: message });
   return res.status(500).json({ error: `Failed to ${what}.` });
 }
@@ -104,6 +106,20 @@ router.get("/api/mobile-tests/:id", requireRole("viewer"), async (req, res) => {
   }
 });
 
+/**
+ * The test, seen — and changeable, or a 403 that says why. A viewer on a restricted project sees its
+ * tests and cannot change or run them; asked first, so the answer is not a policy violation.
+ */
+async function editableTest(tx: TenantTx, id: number) {
+  const [test] = await tx.select().from(mobileTests).where(eq(mobileTests.id, id)).limit(1);
+  if (!test) throw new MobileError(404, "Mobile test not found.");
+  const editable = await tx.execute(sql`SELECT app_project_editable(${test.projectId}::int) AS ok`);
+  if (!(editable.rows?.[0] as { ok?: boolean } | undefined)?.ok) {
+    throw new MobileError(403, "You can view this test's project but not change it.");
+  }
+  return test;
+}
+
 /** A grid of the organization (RLS) that runs apps: BrowserStack or LambdaTest. */
 async function mobileGrid(tx: TenantTx, gridId: string) {
   const [grid] = await tx.select().from(browserGrids).where(eq(browserGrids.id, gridId)).limit(1);
@@ -122,7 +138,7 @@ router.post("/api/mobile-tests", requireRole("editor"), async (req, res) => {
       if (parsed.data.gridId) await mobileGrid(tx, parsed.data.gridId);
       const [row] = await tx
         .insert(mobileTests)
-        .values({ ...parsed.data, osVersion: parsed.data.osVersion || null, gridId: parsed.data.gridId || null, organizationId: getTenantOrgId()!, createdBy: req.user!.id })
+        .values({ ...parsed.data, osVersion: parsed.data.osVersion || null, gridId: parsed.data.gridId || null, projectId: parsed.data.projectId ?? null, organizationId: getTenantOrgId()!, createdBy: req.user!.id })
         .returning();
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.MOBILE_TEST_CREATED,
@@ -145,10 +161,11 @@ router.put("/api/mobile-tests/:id", requireRole("editor"), async (req, res) => {
   try {
     const id = idOf(req.params.id);
     const updated = await withTenantTransaction(async (tx) => {
+      await editableTest(tx, id);
       if (parsed.data.gridId) await mobileGrid(tx, parsed.data.gridId);
       const [row] = await tx
         .update(mobileTests)
-        .set({ ...parsed.data, osVersion: parsed.data.osVersion || null, gridId: parsed.data.gridId || null, updatedAt: new Date() })
+        .set({ ...parsed.data, osVersion: parsed.data.osVersion || null, gridId: parsed.data.gridId || null, projectId: parsed.data.projectId ?? null, updatedAt: new Date() })
         .where(eq(mobileTests.id, id))
         .returning();
       if (!row) throw new MobileError(404, "Mobile test not found.");
@@ -171,6 +188,7 @@ router.delete("/api/mobile-tests/:id", requireRole("editor"), async (req, res) =
   try {
     const id = idOf(req.params.id);
     await withTenantTransaction(async (tx) => {
+      await editableTest(tx, id);
       const [row] = await tx.delete(mobileTests).where(eq(mobileTests.id, id)).returning();
       if (!row) throw new MobileError(404, "Mobile test not found.");
       await recordAudit(tx, {
@@ -200,8 +218,7 @@ router.post("/api/mobile-tests/:id/runs", requireRole("editor"), async (req, res
     const id = idOf(req.params.id);
     const organizationId = getTenantOrgId()!;
     const run = await withTenantTransaction(async (tx) => {
-      const [test] = await tx.select().from(mobileTests).where(eq(mobileTests.id, id)).limit(1);
-      if (!test) throw new MobileError(404, "Mobile test not found.");
+      const test = await editableTest(tx, id);
       if (test.steps.length === 0) throw new MobileError(400, "The test has no steps to run.");
       const grid = await mobileGrid(tx, parsed.data.gridId);
       if (parsed.data.environmentId) {

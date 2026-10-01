@@ -146,6 +146,8 @@ export const mobileTestSchema = z
       ),
     deviceName: z.string().trim().min(1, "Which device, as the grid names it: Google Pixel 8, iPhone 15.").max(120),
     osVersion: z.string().trim().max(20).optional().nullable(),
+    /** The project it belongs to; in a restricted one, only its members see it (migration 0057). */
+    projectId: z.number().int().positive().optional().nullable(),
     /** The grid it runs on in a plan: a BrowserStack or LambdaTest one of the organization. */
     gridId: z.string().trim().max(100).optional().nullable(),
     steps: z.array(mobileStepSchema).max(200),

@@ -28,6 +28,8 @@ const snapshot = (tree: unknown, extra: Record<string, unknown> = {}) => ({
 const request = { gridId: 'g1', platform: 'android' as const, app: 'bs://app', deviceName: 'Google Pixel 8', osVersion: '14.0' };
 
 const fetchMock = vi.fn();
+// The dialog reads the projects as it opens; the calls under test are the others.
+const calls = () => fetchMock.mock.calls.filter(([url]) => url !== '/api/projects');
 const reply = (body: unknown, status = 200) => Promise.resolve({ ok: status < 400, status, json: async () => body });
 
 beforeEach(() => {
@@ -48,7 +50,7 @@ describe('MobileInspectorDialog', () => {
     render(<MobileInspectorDialog isOpen request={request} onClose={onClose} onAddStep={onAddStep} />);
     expect(screen.getByTestId('inspector-opening')).toHaveTextContent('finding a Google Pixel 8');
     const picture = await screen.findByAltText("The device's screen");
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(request);
+    expect(JSON.parse(calls()[0][1].body)).toEqual(request);
     expect(screen.getByText('Google Pixel 8 · Android 14')).toBeTruthy();
 
     // (100, 320) on the picture is (200, 640) on the device: the sign-in button.
@@ -128,7 +130,7 @@ describe('MobileTestDialog and the inspector', () => {
 
     fireEvent.click(inspector);
     await screen.findByAltText("The device's screen");
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ gridId: 'g1', app: 'bs://app', deviceName: 'Google Pixel 8', platform: 'android' });
+    expect(JSON.parse(calls()[0][1].body)).toMatchObject({ gridId: 'g1', app: 'bs://app', deviceName: 'Google Pixel 8', platform: 'android' });
     fireEvent.click(within(screen.getByTestId('inspector-tree')).getByText(/Button/));
     fireEvent.click(screen.getByLabelText('Add step with ~login'));
     expect(screen.getAllByLabelText(/^Element of step/)).toHaveLength(1);
