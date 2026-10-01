@@ -28,6 +28,7 @@ processo non legge non fa danni.
 | `SESSION_COOKIE_SECURE` | web | `true` con `NODE_ENV=production` | `true` o `false`; ogni altro valore è ignorato. `false` invia il cookie di sessione su HTTP semplice: solo per uno stack locale senza TLS. |
 | `CONTENT_SECURITY_POLICY` | web | `enforce` con `NODE_ENV=production`, altrimenti `off` | `enforce`, `report-only` (il browser segnala le violazioni nella console ma non blocca nulla) oppure `off`. Qualsiasi altro valore ferma l'avvio. `report-only` serve a verificare una modifica dietro un proxy che inietta script, prima di applicarla. |
 | `API_RATE_LIMIT` | web | `600` | Richieste al minuto per ogni chiave API, e per ogni indirizzo che chiama `/api/v1` senza chiave. Oltre, la risposta è `429` con `Retry-After`. `0` lo disattiva. Contato per processo web. |
+| `AUTH_RATE_LIMIT` | web | `20` | Tentativi di accesso ogni 15 minuti per ogni indirizzo client. Oltre, la risposta è `429`. Alzarlo solo per un ciclo automatico su un'installazione di prova; il caso di collaudo ACC-07 verifica il default. |
 | `WEBHOOK_RATE_LIMIT` | web | `120` | Richieste al minuto per ogni indirizzo su `/api/webhooks`. `0` lo disattiva. |
 | `INSTALLATION_ADMINS` | web | nessuno | Nomi utente, separati da virgola, che possono cambiare le impostazioni dell'installazione (livello e conservazione dei log, svuotamento dei runner). Se non impostata: gli owner, finché l'installazione ha una sola organizzazione. Vedi [Amministratori dell'installazione](./administration#amministratori-dell-installazione). |
 | `CSRF_TRUSTED_ORIGINS` | web | nessuno | Origini separate da virgola accettate per le richieste che modificano dati, oltre all'`Host` della richiesta. Serve quando un proxy presenta un'origine pubblica diversa, per esempio `https://app.example.com`. |
@@ -101,6 +102,12 @@ elementi: i browser che una persona aspetta.
 | `AGENT_RELAY_SECRET` | entrambi | `SESSION_SECRET` | Firma i ticket di un minuto con cui un runner prende in prestito il browser di un agente. Deve essere uguale nei processi web e in ogni worker. |
 | `AGENT_RELAY_URL` | worker | `http://127.0.0.1:<PORT>` | Dove i worker raggiungono il relay nel processo web. Impostatela ogni volta che i worker girano su altre macchine o container, per esempio `http://api:5000`. |
 | `AGENT_RELAY_ADVERTISE_URL` | web | nessuno | Con più processi web: l'indirizzo con cui gli altri raggiungono questo. Gli agenti connessi a un'istanza diventano così utilizzabili da tutte. |
+
+## Test di app mobili
+
+| Variabile | Letta da | Default | Descrizione |
+|---|---|---|---|
+| `MOBILE_INSPECTOR_IDLE_MS` | web | `300000` (5 minuti) | Per quanto una sessione dell'inspector mobile può restare inattiva prima che la sessione sul dispositivo venga chiusa e la griglia rilasciata. |
 
 ## Funzioni AI (facoltative)
 

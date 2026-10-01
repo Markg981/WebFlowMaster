@@ -1,6 +1,6 @@
 # WebFlowMaster
 
-WebFlowMaster is a self-hosted platform for automated testing of web applications and APIs.
+WebFlowMaster is a self-hosted platform for automated testing of web applications, HTTP APIs and native mobile apps.
 Tests are built without code — recorded in a browser or assembled step by step — grouped into
 plans and suites, and run on Chromium, Firefox and WebKit: on demand, on a schedule, or from a CI
 pipeline. Results come back as reports with screenshots, videos, traces and network captures.
@@ -16,6 +16,10 @@ Connect.
   environment. Optional AI assistance (Google Gemini) proposes steps and repairs broken locators.
 - **API tests**: requests with assertions and extracted values, OAuth 2.0 and other
   authentication, run on their own or inside a plan.
+- **Mobile app tests**: Android and iOS apps through Appium on BrowserStack, LambdaTest or your own
+  emulators and devices (via a local agent), with a live inspector to pick locators.
+- **Requirements and test management**: epics and stories with computed coverage; results published to
+  TestRail, Xray and Zephyr Scale.
 - **Plans, suites and schedules**: choose the tests, the browsers and how many run at once; run
   them now, on a cron schedule or from a webhook; quarantine flaky tests; get notified on
   completion.
@@ -164,9 +168,17 @@ section to `docs/pdf/`.
   lifecycle, the data model, the developer guide and design decisions.
 - [Local agents](./docs/en/LOCAL_AGENT.md): testing applications inside a private network.
 
+**New to the project?** Start with [WebFlowMaster at a glance](./docs/en/overview.md). For the architecture in
+diagrams: [system architecture](./docs/en/internals/system-architecture.md),
+[class diagrams](./docs/en/internals/class-diagrams.md),
+[database schema](./docs/en/internals/database-schema.md),
+[sequence diagrams](./docs/en/internals/sequences.md) and the
+[mobile subsystem](./docs/en/internals/mobile.md). Each page also exists in Italian under `docs/it/`.
+
 For acceptance testing, [`collaudo/`](./collaudo/README.md) starts a complete environment — HTTPS,
-a Keycloak identity provider, a private network for the local agent, a webhook receiver — on
-which the manual test protocol runs (instructions in Italian).
+a Keycloak identity provider, simulated TestRail/Jira/GitHub/Gemini, Jenkins, an Android emulator, a
+private network for the local agent — on which the manual test protocol runs (instructions in Italian;
+the [test lab](./docs/en/admin/test-lab.md) page explains it in English).
 
 ## Contributing
 

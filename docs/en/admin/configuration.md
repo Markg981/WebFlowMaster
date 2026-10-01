@@ -29,6 +29,7 @@ harm.
 | `CSRF_TRUSTED_ORIGINS` | web | none | Comma-separated origins accepted for state-changing requests besides the request's own `Host`. Needed when a proxy presents a different public origin, e.g. `https://app.example.com`. |
 | `CONTENT_SECURITY_POLICY` | web | `enforce` when `NODE_ENV=production`, `off` otherwise | `enforce`, `report-only` (the browser reports violations in its console but blocks nothing) or `off`. Any other value stops the startup. `report-only` is for checking a change behind a proxy that injects scripts before enforcing. |
 | `API_RATE_LIMIT` | web | `600` | Requests a minute for each API key, and for each client address calling `/api/v1` without a key. Past it the answer is `429` with `Retry-After`. `0` turns it off. Counted per web process. |
+| `AUTH_RATE_LIMIT` | web | `20` | Sign-in attempts per 15 minutes for each client address. Past it the answer is `429`. Raise it only for an automated cycle against a test installation; acceptance case ACC-07 checks the default. |
 | `WEBHOOK_RATE_LIMIT` | web | `120` | Requests a minute for each client address on `/api/webhooks`. `0` turns it off. |
 | `INSTALLATION_ADMINS` | web | none | Comma-separated usernames who may change the installation-wide settings (log level and retention, draining runners). Unset: the owners, while the installation has a single organization. See [Installation administrators](./administration#installation-administrators). |
 | `REGISTRATION` | web | `invitation` | `invitation`: accounts are created from an invitation, except the installation's first. `open`: anyone who reaches the server may register and gets an organization of their own. Any other value stops the startup. See [First sign-in](./installation#first-sign-in). |
@@ -101,6 +102,12 @@ person waits for.
 | `AGENT_RELAY_SECRET` | both | `SESSION_SECRET` | Signs the one-minute tickets with which a runner borrows an agent's browser. Must be the same in the web processes and every worker. |
 | `AGENT_RELAY_URL` | worker | `http://127.0.0.1:<PORT>` | Where workers reach the relay in the web process. Set it whenever workers run on other machines or containers, e.g. `http://api:5000`. |
 | `AGENT_RELAY_ADVERTISE_URL` | web | none | With several web processes: this one's own address as the others reach it. Agents connected to one instance are then usable from all. |
+
+## Mobile app tests
+
+| Variable | Read by | Default | Description |
+|---|---|---|---|
+| `MOBILE_INSPECTOR_IDLE_MS` | web | `300000` (5 minutes) | How long a mobile inspector session may stay silent before the device session is closed and the grid released. |
 
 ## AI features (optional)
 

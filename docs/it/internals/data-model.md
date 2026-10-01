@@ -47,7 +47,13 @@ erDiagram
 | `projects` / `project_members` | Progetti e, per quelli riservati, chi può vederli e con quale ruolo di progetto. |
 | `api_keys` | Credenziali delle pipeline: hash, prefisso, scope, scadenza, ultimo uso, utente o service account titolare. |
 | `audit_log` | Registro in sola aggiunta di chi ha fatto cosa; `app_user` può solo leggere e inserire. |
+| `password_resets` | Link di reimpostazione della password monouso e con scadenza, creati da un owner o dallo script `password-reset-link`; del token si salva solo l'hash. |
+| `organization_sso` | Un provider OpenID Connect per organizzazione: issuer, client id, client secret (cifrato), ruolo predefinito, se è attivo e se è obbligatorio. Senza RLS e senza permessi per `app_user`: il provider si trova prima che qualcuno abbia effettuato l'accesso. |
+| `sso_domains` | I domini e-mail che indirizzano un accesso al provider di un'organizzazione. Un dominio appartiene a una sola organizzazione. |
+| `sso_identities` | Il legame fra una persona presso il provider (`issuer` + `subject`) e una riga di `users`, con l'ultimo accesso. |
 | `sessions` | Lo store delle sessioni quando le tiene PostgreSQL (in produzione le tiene Redis). Dell'installazione. |
+
+I diagrammi completi, a livello di colonna, di tutte le tabelle sono in [Schema del database](./database-schema).
 
 ## Scrivere i test
 
@@ -64,6 +70,7 @@ erDiagram
 | `test_publications` | Quale versione è stata pubblicata o ripristinata, quando e da chi (solo lettura e inserimento). |
 | `test_reviews` | Richieste di revisione e decisioni, quando l'organizzazione richiede la revisione. |
 | `test_quarantines` | Test messi da parte perché instabili, con motivo, evidenze e rilascio. |
+| `custom_actions` | Gli step propri di un'organizzazione: un nome, parametri tipizzati e uno script che gira nella pagina del browser; un test la usa come qualsiasi azione predefinita. |
 | `excel_sequences_map` | Test Manager: righe di un foglio importato collegate a sequenze salvate. |
 | `test_runs` | Risultati di singoli test avviati dal builder (non run di piani). |
 | `mobile_tests` / `mobile_test_runs` | Test di app native Android e iOS — piattaforma, app sulla griglia (`bs://`, `lt://`), dispositivo, passi con locator nativi — e le loro esecuzioni su un dispositivo della griglia, passo per passo, con lo screenshot finale e la pagina della sessione (`shared/mobile.ts`, `server/mobile-runner.ts`). |
@@ -99,6 +106,7 @@ erDiagram
 |---|---|
 | `runners` | Processi worker registrati, con heartbeat, capacità, browser installati e stato desiderato (drenaggio). Dell'installazione, senza RLS. |
 | `agents` | Agenti locali: pool, hash del token, ciò che hanno dichiarato (host, versioni, browser), revoca. |
+| `browser_grids` | Da dove arrivano browser o dispositivi quando i runner non li hanno: BrowserStack, LambdaTest, un server Playwright proprio, oppure un **Appium locale** raggiunto tramite un pool di agenti. La chiave è cifrata. I piani puntano a una griglia per i browser; i test mobili per i dispositivi (`shared/browser-grids.ts`, `server/browser-grids.ts`). |
 | `system_settings` | Impostazioni dell'installazione (livelli di log e simili). Senza RLS. |
 
 ## Convenzioni

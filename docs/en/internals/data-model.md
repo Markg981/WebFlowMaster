@@ -47,7 +47,13 @@ erDiagram
 | `projects` / `project_members` | Projects and, for restricted ones, who may see them and with which project role. |
 | `api_keys` | Pipeline credentials: hash, prefix, scopes, expiry, last use, owning user or service account. |
 | `audit_log` | Append-only trail of who did what; `app_user` may only select and insert. |
+| `password_resets` | Single-use, expiring password-reset links created by an owner or by the `password-reset-link` script; only the hash of the token is stored. |
+| `organization_sso` | One OpenID Connect provider per organization: issuer, client id, client secret (encrypted), default role, whether it is enabled and whether it is required. No RLS and no grant to `app_user`: the provider is found before anyone is signed in. |
+| `sso_domains` | E-mail domains that route a sign-in to an organization's provider. A domain belongs to one organization. |
+| `sso_identities` | The link between a person at the provider (`issuer` + `subject`) and a `users` row, with the last sign-in. |
 | `sessions` | The session store when PostgreSQL holds sessions (Redis does in production). Installation-wide. |
+
+The complete column-level diagrams of all tables are in [Database schema](./database-schema).
 
 ## Authoring tests
 
@@ -64,6 +70,7 @@ erDiagram
 | `test_publications` | Which version was published or rolled back, when and by whom (select and insert only). |
 | `test_reviews` | Review requests and decisions, when the organization requires review. |
 | `test_quarantines` | Tests set aside as unreliable, with reason, evidence and release. |
+| `custom_actions` | An organization's own steps: a name, typed parameters and a script that runs in the browser page; a test uses one like any built-in action. |
 | `excel_sequences_map` | Test Manager: rows of an imported spreadsheet mapped to saved sequences. |
 | `test_runs` | Results of single test runs started from the builder (not plan runs). |
 | `mobile_tests` / `mobile_test_runs` | Tests of native Android and iOS apps — platform, app on the grid (`bs://`, `lt://`), device, steps with native locators — and their runs on a grid's device, step by step, with the final screenshot and the session's page (`shared/mobile.ts`, `server/mobile-runner.ts`). |
@@ -99,6 +106,7 @@ erDiagram
 |---|---|
 | `runners` | Worker processes that registered, their heartbeat, capacity, installed browsers and desired state (draining). Installation-wide, no RLS. |
 | `agents` | Local agents: pool, token hash, what they reported (host, versions, browsers), revocation. |
+| `browser_grids` | Where browsers or devices come from when the runners do not have them: BrowserStack, LambdaTest, a Playwright server of one's own, or a **local Appium** reached through an agent pool. The key is encrypted. Plans point at a grid for browsers; mobile tests point at one for devices (`shared/browser-grids.ts`, `server/browser-grids.ts`). |
 | `system_settings` | Installation-wide settings (log levels and similar). No RLS. |
 
 ## Conventions

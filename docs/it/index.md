@@ -1,15 +1,17 @@
 # Documentazione di WebFlowMaster
 
-WebFlowMaster è una piattaforma di automazione dei test per applicazioni web e API HTTP: si registrano
+WebFlowMaster è una piattaforma di automazione dei test per applicazioni web, API HTTP e app mobili native: si registrano
 o si descrivono i test, si organizzano in piani e suite, si eseguono su più browser, a orario o dalla
 CI — anche dentro reti che il server non raggiunge — e ogni esecuzione produce un report dettagliato.
+
+**Prima volta qui?** Leggi [WebFlowMaster in breve](./overview): cos'è, com'è fatto e dove si trova ogni cosa.
 
 ## Guida utente
 
 Per chi scrive ed esegue i test:
 
 - [Primi passi](./guide/) — accesso, orientarsi, un primo test dall'inizio alla fine.
-- [Test web](./guide/web-tests) · [Test API](./guide/api-tests) ·
+- [Test web](./guide/web-tests) · [Test API](./guide/api-tests) · [App mobili](./guide/mobile-apps) ·
   [Organizzare i test](./guide/organizing) · [Eseguire i test](./guide/running) ·
   [Risultati](./guide/results)
 
@@ -21,6 +23,7 @@ Per chi gestisce un'installazione e per gli owner di un'organizzazione:
 - [Operatività](./admin/operations) — aggiornamenti, backup, log, monitoraggio, risoluzione dei problemi.
 - [Riferimento della configurazione](./admin/configuration) — tutte le variabili d'ambiente.
 - [Amministrazione](./admin/administration) — ruoli, membri, chiavi, sicurezza, audit, dati.
+- [Ambiente di collaudo](./admin/test-lab) — l'ambiente di accettazione: HTTPS, identity provider, strumenti simulati, Jenkins, emulatore Android.
 
 ## Sicurezza e compliance
 
@@ -47,6 +50,9 @@ Per chi gestisce un'installazione e per gli owner di un'organizzazione:
 Per chi sviluppa e mantiene il prodotto:
 
 - [Panoramica dell'architettura](./internals/) — processi, archivi, tecnologie, flussi principali.
+- [Architettura di sistema](./internals/system-architecture) — contesto, container, componenti, deployment.
+- [Diagrammi delle classi](./internals/class-diagrams) · [Schema del database](./internals/database-schema) ·
+  [Diagrammi di sequenza](./internals/sequences) · [Sottosistema mobile](./internals/mobile)
 - [Tenancy e accessi](./internals/tenancy) · [Ciclo di vita di un run](./internals/execution) ·
   [Modello dati](./internals/data-model) · [Agenti locali (interni)](./internals/agents) ·
   [Client web](./internals/frontend)
