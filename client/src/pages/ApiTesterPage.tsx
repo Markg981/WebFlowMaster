@@ -1,6 +1,7 @@
 // client/src/pages/ApiTesterPage.tsx
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -98,6 +99,8 @@ function fileToBase64(file: File): Promise<string> {
 
 const ApiTesterPage: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const canEdit = user?.role !== 'viewer';
   const isDark = useIsDark();
   const [method, setMethod] = useState<string>(httpMethods[0]);
   const [url, setUrl] = useState<string>('');
@@ -938,10 +941,12 @@ const ApiTesterPage: React.FC = () => {
             ("Save Changes" updates it, with the edits made since loading), a new test otherwise.
             Going through handleOpenSaveModal() here dropped the loaded test, so "Save Changes"
             opened "Save New API Test". */}
-        <Button variant="default" size="sm" onClick={() => setIsSaveModalOpen(true)} disabled={apiProxyMutation.isPending}>
-          <Save className="mr-2 h-4 w-4" />
-          {currentTestToEdit ? t('apiTesterPage.saveChanges.button') : t('apiTesterPage.saveTest.button')}
-        </Button>
+        {canEdit && (
+          <Button variant="default" size="sm" onClick={() => setIsSaveModalOpen(true)} disabled={apiProxyMutation.isPending}>
+            <Save className="mr-2 h-4 w-4" />
+            {currentTestToEdit ? t('apiTesterPage.saveChanges.button') : t('apiTesterPage.saveTest.button')}
+          </Button>
+        )}
       </header>
 
       <div className="flex flex-1 overflow-hidden">

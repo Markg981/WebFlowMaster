@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import TagPicker, { type TagRef } from '@/components/tags/TagPicker';
 import TestHistoryDialog from '@/components/tests/TestHistoryDialog';
 import ManualTestDialog from '@/components/tests/ManualTestDialog';
@@ -45,6 +46,8 @@ const TestLibraryPage: React.FC = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const canEdit = user?.role !== 'viewer';
   const [search, setSearch] = useState('');
   const [activeTagIds, setActiveTagIds] = useState<string[]>([]);
   const [historyFor, setHistoryFor] = useState<{ id: number; name: string } | null>(null);
@@ -207,10 +210,12 @@ const TestLibraryPage: React.FC = () => {
             </Button>
           )}
         </div>
-        <Button variant="outline" className="ml-auto" onClick={() => setManualEditing('new')}>
-          <ClipboardCheck className="mr-2 h-4 w-4" />
-          {t('testLibrary.newManual', 'New manual test')}
-        </Button>
+        {canEdit && (
+          <Button variant="outline" className="ml-auto" onClick={() => setManualEditing('new')}>
+            <ClipboardCheck className="mr-2 h-4 w-4" />
+            {t('testLibrary.newManual', 'New manual test')}
+          </Button>
+        )}
       </div>
 
       <Card className="mt-4 overflow-hidden">
@@ -253,6 +258,7 @@ const TestLibraryPage: React.FC = () => {
                         selected={test.tags ?? []}
                         available={allTags}
                         disabled={busyId === test.id}
+                        readOnly={!canEdit}
                         onChange={(tagIds) => setTags(test.id, tagIds)}
                         onCreate={createTag}
                       />
@@ -264,7 +270,7 @@ const TestLibraryPage: React.FC = () => {
                       {test.updatedAt ? new Date(test.updatedAt).toLocaleString() : '—'}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
-                      {isManualSequence(test.sequence) && (
+                      {canEdit && isManualSequence(test.sequence) && (
                         <Button variant="ghost" size="sm" onClick={() => setManualEditing(test)} title={t('testLibrary.editManual', 'Edit steps')}>
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -277,15 +283,17 @@ const TestLibraryPage: React.FC = () => {
                       >
                         <History className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => remove(test)}
-                        disabled={busyId === test.id}
-                        title={t('testLibrary.delete', 'Delete')}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => remove(test)}
+                          disabled={busyId === test.id}
+                          title={t('testLibrary.delete', 'Delete')}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
