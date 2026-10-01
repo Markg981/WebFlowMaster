@@ -84,6 +84,18 @@ describe('parseLine', () => {
     expect(parseLine('Switch to the new tab')).toMatchObject({ action: 'switchTab' });
     expect(parseLine('Chiudi la scheda')).toMatchObject({ action: 'closeTab' });
     expect(parseLine('Clear cookies')).toMatchObject({ action: 'clearCookies' });
+    // Collaudo WEB-28: "clic", uploads and a prompt's answer.
+    expect(parseLine('Fai doppio clic su Riga 1')).toMatchObject({ action: 'doubleClick', targetPhrase: 'Riga 1' });
+    expect(parseLine('Clic destro su Riga 1')).toMatchObject({ action: 'rightClick', targetPhrase: 'Riga 1' });
+    expect(parseLine('Carica il file fattura.pdf nel campo Allegato')).toMatchObject({
+      action: 'uploadFile',
+      value: 'fattura.pdf',
+      targetPhrase: 'campo Allegato',
+    });
+    expect(parseLine('Upload "report.csv" to the File field')).toMatchObject({ action: 'uploadFile', value: 'report.csv' });
+    expect(parseLine('Rispondi al prompt con «Mario»')).toMatchObject({ action: 'handleDialog', value: 'accept:Mario' });
+    expect(parseLine('Accept the prompt with "42"')).toMatchObject({ action: 'handleDialog', value: 'accept:42' });
+    expect(parseLine('Accetta il dialog')).toMatchObject({ action: 'handleDialog', value: 'accept' });
     expect(parseLine('Salva il testo del numero ordine come numeroOrdine')).toMatchObject({
       action: 'storeText',
       targetPhrase: 'numero ordine',

@@ -62,6 +62,22 @@ export function manualStepsOf(sequence: unknown): ManualStep[] {
     .map((step: any) => ({ action: String(step.value ?? ""), expected: String(step.expected ?? "") }));
 }
 
+/**
+ * Why a sequence cannot be saved as a manual test, or null when it can (or is not manual).
+ *
+ * The dialog drops steps without an action and refuses to save none, but the API took the
+ * same body without either check: a manual test whose every step was blank saved with 201,
+ * and a tester had nothing to do in the run (collaudo LIB-13).
+ */
+export function manualSequenceProblem(sequence: unknown): string | null {
+  const manual = asArray(sequence).filter((step) => (step as any)?.action?.id === MANUAL_STEP_ACTION_ID);
+  if (manual.length === 0) return null;
+  if (manualStepsOf(manual).some((step) => step.action.trim() === "")) {
+    return "Every step of a manual test needs its action: write at least one step, and remove the empty ones.";
+  }
+  return null;
+}
+
 /** The verdicts a tester can give, and the result status each one records. */
 export const MANUAL_VERDICTS = ["passed", "failed", "blocked"] as const;
 export type ManualVerdict = (typeof MANUAL_VERDICTS)[number];

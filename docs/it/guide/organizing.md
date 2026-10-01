@@ -15,7 +15,8 @@ Non tutto vale la pena di automatizzarlo: una verifica fatta una volta a rilasci
 richiede il giudizio di una persona, un dispositivo che nessun browser può sostituire. **Nuovo test
 manuale** nella libreria ne scrive uno: un nome e i suoi step, ciascuno con l'**azione** da
 eseguire e il **risultato atteso**. Compare nella libreria con l'etichetta **Manuale**, e la sua
-matita ne modifica gli step.
+matita ne modifica gli step. Ogni step deve avere la sua azione: quelli vuoti vengono tolti al
+salvataggio, e un test manuale senza step viene rifiutato, anche se arriva dall'API.
 
 Un test manuale è un test come gli altri: ha versioni e revisioni, porta tag, entra in suite e
 piani. In un run non apre alcun browser: attende nel report del run l'esito di una persona (vedi

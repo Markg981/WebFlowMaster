@@ -496,12 +496,23 @@ const RULES: Rule[] = [
     build: (g) => ({ action: 'pressKey', targetPhrase: g.target ?? null, value: canonicalKey(g.key ?? '') }),
   },
   {
-    regex: /^(?:double[- ]?click(?: on)?|fai doppio click su|doppio click su)\s+(?<target>.+)$/i,
+    // "clic" too: it is how Italian spells it, and the one people write by hand.
+    regex: /^(?:double[- ]?click(?: on)?|(?:fai )?(?:un )?doppio clic(?:k)? su)\s+(?<target>.+)$/i,
     build: (g) => ({ action: 'doubleClick', targetPhrase: g.target ?? null }),
   },
   {
-    regex: /^(?:right[- ]?click(?: on)?|fai click destro su|click destro su|clicca col destro su)\s+(?<target>.+)$/i,
+    regex: /^(?:right[- ]?click(?: on)?|(?:fai )?clic(?:k)? destro su|clicca col destro su)\s+(?<target>.+)$/i,
     build: (g) => ({ action: 'rightClick', targetPhrase: g.target ?? null }),
+  },
+  {
+    // The file is one word ("fattura.pdf"), quoted or not; what follows the preposition is the field.
+    regex: /^(?:upload|attach|carica|allega)\s+(?:the\s+file\s+|il\s+file\s+|file\s+)?["«“']?(?<value>[^\s"»”']+\.[\w]+)["»”']?\s+(?:to|into|in|on|nel|nella|nello|sul|sulla|su)\s+(?<target>.+)$/i,
+    build: (g) => ({ action: 'uploadFile', targetPhrase: g.target ?? null, value: g.value ?? null }),
+  },
+  {
+    // A prompt's answer: before the plain accept/dismiss rule, which would stop at "prompt".
+    regex: /^(?:accept|answer|accetta|rispondi)\s+(?:to\s+)?(?:the\s+|il\s+|al\s+|a\s+)?(?:next\s+|prossimo\s+)?(?:prompt|dialog)\s+(?:with|con)\s+["«“']?(?<text>.*?)["»”']?$/i,
+    build: (g) => ({ action: 'handleDialog', value: `accept:${g.text ?? ''}` }),
   },
   {
     regex: /^(?<verb>accept|confirm|ok|dismiss|cancel|close|accetta|conferma|annulla|chiudi|rifiuta)\s+(?:the\s+|il\s+|la\s+|l')?(?:next\s+|prossim[oa]\s+)?(?:dialog|alert|confirm|prompt|popup|finestra di dialogo|messaggio)$/i,

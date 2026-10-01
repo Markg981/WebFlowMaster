@@ -1,7 +1,7 @@
 import express from "express";
 import { registerRoutes } from "./routes";
 import schedulerService from "./scheduler-service"; // Import the scheduler service
-import { serveStatic } from "./static";
+import { apiNotFound, serveStatic } from "./static";
 import 'dotenv/config';
 import loggerPromise, { flushLogs } from './logger'; // Import Winston logger promise
 import { privilegedDb, closeDb, assertTenancyPreconditions } from './db';
@@ -163,6 +163,11 @@ app.use(express.urlencoded({ extended: false }));
   // see server/artifact-retention.ts.
   const { startArtifactRetention } = await import('./artifact-retention');
   const stopArtifactRetention = process.env.NODE_ENV === 'test' ? () => {} : startArtifactRetention();
+
+  // An /api path nothing above answered is not a client route: without this the catch-all
+  // below handed back index.html with 200, so a removed endpoint looked alive and a caller
+  // parsing JSON got HTML (collaudo SEC-17).
+  app.use("/api", apiNotFound);
 
   // Records an incident for every unhandled error, then answers as before.
   const { incidentErrorHandler } = await import("./observability/taps/express");

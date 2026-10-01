@@ -9,6 +9,7 @@ import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
 import { recordTestVersion } from "../test-version-store";
 import { tagsOfTests } from "../test-tags";
+import { manualSequenceProblem } from "@shared/manual-tests";
 
 const router = Router();
 const logger = await loggerPromise;
@@ -58,6 +59,8 @@ router.post("/api/tests", requireRole('editor'), async (req, res) => {
   if (!parseResult.success) {
     return res.status(400).json({ error: "Invalid test data", details: parseResult.error.flatten() });
   }
+  const manualProblem = manualSequenceProblem(parseResult.data.sequence);
+  if (manualProblem) return res.status(400).json({ error: manualProblem, code: "manual_step_empty" });
 
   try {
     const created = await withTenantTransaction(async (tx) => {
@@ -135,6 +138,8 @@ router.put("/api/tests/:id", requireRole('editor'), async (req, res) => {
   if (!parseResult.success) {
     return res.status(400).json({ error: "Invalid test data", details: parseResult.error.flatten() });
   }
+  const manualProblem = manualSequenceProblem(parseResult.data.sequence);
+  if (manualProblem) return res.status(400).json({ error: manualProblem, code: "manual_step_empty" });
 
   try {
     const updated = await withTenantTransaction(async (tx) => {

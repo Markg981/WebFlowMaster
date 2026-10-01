@@ -1409,6 +1409,22 @@ export class PlaywrightService {
     /** Why a debug session ended the run early, when it did. */
     let debugStopped: string | undefined;
 
+    // The preview expands step groups and custom actions exactly as a saved run does, and
+    // like it before a browser is launched or a page loaded: a custom action called with a
+    // missing or unknown argument, or a block that does not close, fails the test without
+    // opening anything (collaudo WEB-36).
+    const adhocExpansion = await expandSequenceForRun(payload.sequence);
+    if (adhocExpansion.errors.length > 0) {
+      return { success: false, steps: [], error: adhocExpansion.errors.join(' '), duration: Date.now() - startTime };
+    }
+    const adhocSequence = (await resolveSequenceForRun(adhocExpansion.steps)).steps as unknown as TestStep[];
+    // After expansion, so a block that opens in a group and closes in the test is judged
+    // as the run will meet it.
+    const adhocFlow = analyseFlow(adhocSequence);
+    if (!adhocFlow.ok) {
+      return { success: false, steps: [], error: adhocFlow.errors.join(' '), duration: Date.now() - startTime };
+    }
+
     try {
       // Preconditions run before the browser is even launched, exactly as the scheduled
       // runner does it (see test-execution-service). Fail-fast: a broken setup call makes
@@ -1531,23 +1547,6 @@ export class PlaywrightService {
         }
       } else {
         stepResults.push({ name: 'Initial State', type: 'setup', status: 'passed', details: 'No initial URL provided for ad-hoc sequence.' });
-      }
-
-      // The preview expands step groups exactly as a saved run does. A builder that ran the
-      // call as nothing, or refused it, would be exercising a different test than the one the
-      // schedule will run — and the preview exists to answer what the schedule will do.
-      const adhocExpansion = await expandSequenceForRun(payload.sequence);
-      if (adhocExpansion.errors.length > 0) {
-        const duration = Date.now() - startTime;
-        return { success: false, steps: stepResults, error: adhocExpansion.errors.join(' '), duration };
-      }
-      const adhocSequence = (await resolveSequenceForRun(adhocExpansion.steps)).steps as unknown as TestStep[];
-      // After expansion, so a block that opens in a group and closes in the test is judged
-      // as the run will meet it.
-      const adhocFlow = analyseFlow(adhocSequence);
-      if (!adhocFlow.ok) {
-        const duration = Date.now() - startTime;
-        return { success: false, steps: stepResults, error: adhocFlow.errors.join(' '), duration };
       }
 
       if (overallSuccess && adhocSequence.length > 0) {

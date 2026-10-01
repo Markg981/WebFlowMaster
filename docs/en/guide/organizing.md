@@ -14,7 +14,8 @@ row. They are what [dynamic suites](#suites) select by.
 Not everything is worth automating: a check done once a release, a flow that needs a person's
 judgment, a device no browser can stand in for. **New manual test** in the library writes one: a
 name and its steps, each an **action** to perform and the **expected result**. It shows in the
-library with a **Manual** badge, and its pencil edits the steps.
+library with a **Manual** badge, and its pencil edits the steps. Every step needs its action:
+empty steps are dropped on save, and a manual test with none is refused — through the API too.
 
 A manual test is a test like the others: it has versions and reviews, carries tags, goes into
 suites and plans. In a run it opens no browser — it waits in the run's report for somebody's

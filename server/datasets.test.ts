@@ -192,3 +192,30 @@ describe('the builder preview with a dataset', () => {
     expect(result.success).toBe(true);
   }, 120_000);
 });
+
+describe('the builder preview, before it opens anything', () => {
+  it('fails a step it cannot expand without loading the page (collaudo WEB-36)', async () => {
+    const result = await playwrightService.executeAdhocSequence(
+      {
+        name: 'preview with a missing custom action',
+        url: `${baseUrl}/?sku=opened`,
+        elements: [],
+        sequence: [
+          {
+            id: 's1',
+            action: { id: 'customAction:00000000-0000-0000-0000-000000000000', type: 'custom', name: 'Gone', icon: 'g', description: 'x' },
+            targetElement: undefined,
+            value: 'cognome=Smith',
+          },
+        ],
+      } as never,
+      userId,
+    );
+
+    // The saved-run path refuses before launching a browser; the preview used to load the
+    // initial URL first, so the report showed a navigation before the error.
+    expect(result.success).toBe(false);
+    expect(result.steps).toEqual([]);
+    expect(submitted).toEqual([]);
+  }, 60_000);
+});
