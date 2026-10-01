@@ -36,6 +36,11 @@ x-collaudo-app-env: &collaudo-app-env
   RUN_MAX_DURATION_MS: ${RUN_MAX_DURATION_MS:-}
   # Both processes ship their logs to the stack's Loki (OPS-09).
   LOKI_URL: http://loki:3100
+  # The AI cases (REP-15…22): GEMINI_API_KEY=finto GEMINI_BASE_URL=http://simulatori:8080/gemini.
+  # Empty by default, so the cases that check the product without a key (WEB-10) still can.
+  GEMINI_BASE_URL: ${GEMINI_BASE_URL:-}
+  # WEB-43: how long a paused debug session waits; the product's 15 minutes when empty.
+  DEBUG_IDLE_TIMEOUT_MS: ${DEBUG_IDLE_TIMEOUT_MS:-}
 
 services:
   postgres:
@@ -150,6 +155,24 @@ services:
       - "127.0.0.1:6080:6080"
     # start-display exits when Xvfb does not come up; this brings it back.
     restart: unless-stopped
+
+  # TestRail, Jira, Xray, Zephyr Scale, Azure DevOps and Gemini, simulated (collaudo/simulatori):
+  # the TMG, TRC and REP AI cases run without accounts. What they received is at
+  # http://localhost:8090; inside the stack the services are http://simulatori:8080/<name>.
+  simulatori:
+    image: node:22-alpine
+    command: ["node", "/simulatori/server.mjs"]
+    environment:
+      SIMULATORI_PUBLIC_URL: http://localhost:8090
+    volumes:
+      - ./collaudo/simulatori:/simulatori:ro
+    ports:
+      - "127.0.0.1:8090:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/_admin/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   # OPS-09: the application's logs, queried from Grafana at http://localhost:13001 (admin / admin).
   loki:

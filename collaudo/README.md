@@ -13,6 +13,7 @@ intorno:
 | `ricevitore` | riceve e stampa i webhook delle notifiche (PLN-13) | http://ricevitore:8080, dall'interno |
 | `mailpit` | la casella di test: vi arrivano le email di Keycloak (WEB-45…WEB-47) | http://localhost:8025; SMTP `mailpit:1025` dall'interno |
 | `display` | lo schermo su cui si apre la finestra di registrazione (WEB-11, ENV-04) | http://localhost:6080 |
+| `simulatori` | TestRail, Jira, Xray, Zephyr Scale, Azure DevOps e Gemini simulati (aree TMG, TRC, analisi AI) | http://localhost:8090; dall'interno `http://simulatori:8080/<servizio>` |
 | `loki`, `grafana` | i log dell'applicazione (OPS-09) | http://localhost:13001 (admin / admin); Loki su http://localhost:13100 |
 | `agente` | l'agente locale (profilo `agente`), avviato quando il suo token esiste | — |
 | `agente-diverso` | un agente con un'altra versione di Playwright (profilo `agente-diverso`, AGT-05) | — |
@@ -121,6 +122,59 @@ wfmc up -d api                        # di nuovo 20, per ACC-07
 Anche `wfmc restart api` azzera i tentativi contati.
 
 **Ripartire da zero:** `npm run collaudo:reset`, poi i tre comandi sopra.
+
+### Servizi esterni simulati
+
+Il servizio `simulatori` risponde come TestRail, Jira (anche Xray Server), Xray Cloud, Zephyr Scale,
+Azure DevOps e Gemini, con i dati che i casi si aspettano. Così TMG-01…07, TRC-03/04 e l'analisi
+AI (REP-15…22) si eseguono senza account esterni. `npm run collaudo:simulatori` crea le connessioni
+«Simulato · …» e ne verifica ciascuna attraverso il prodotto.
+
+| Strumento | Indirizzo (nel prodotto) | Credenziali | Dati |
+|---|---|---|---|
+| TestRail | `http://simulatori:8080/testrail` | `collaudo@acme.test` / `collaudo-testrail` | progetto `3`, casi C1, C2, C3 |
+| Xray Cloud | `http://simulatori:8080/xray` | client id `collaudo`, secret `collaudo-xray` | progetto `SHOP`, test SHOP-45 e SHOP-46, Test Plan SHOP-100 |
+| Jira / Xray Server | `http://simulatori:8080/jira` | `collaudo@acme.test` / `collaudo-jira` | epic SHOP-1 con le story SHOP-10 e SHOP-11 |
+| Zephyr Scale | `http://simulatori:8080/zephyr` | token `collaudo-zephyr` | progetto `SHOP`, casi SHOP-T1 e SHOP-T2 |
+| Azure DevOps | `http://simulatori:8080/ado` | PAT `collaudo-ado` | progetto `Shop`: Epic 1, Feature 2, User Story 3 |
+
+Nei casi che chiedono l'indirizzo «vuoto» (Xray Cloud in TMG-04) si usa quello della tabella: il
+default verso il servizio vero è già verificato dai test automatici.
+
+Ciò che i servizi hanno ricevuto (run di TestRail con esiti e commenti, Test Execution di Xray,
+test cycle di Zephyr, issue e work item, ultime richieste) si legge su **http://localhost:8090**;
+i corpi completi delle richieste su http://localhost:8090/_admin/requests (REP-17: il prompt
+inviato all'AI). Le azioni che un caso fa «nel tool»:
+
+```bash
+# TRC-03: rinominare SHOP-11 e spostarla In Progress
+curl -X POST -H 'Content-Type: application/json' -d '{"summary":"Pagare con bonifico istantaneo","status":"In Progress"}' http://localhost:8090/_admin/jira/SHOP-11
+# Ripartire dai dati iniziali
+curl -X POST http://localhost:8090/_admin/reset
+```
+
+**Analisi AI (REP-15…22).** Si attiva con il Gemini simulato, e si spegne di nuovo per i casi che
+verificano il prodotto senza chiave (WEB-10):
+
+```bash
+GEMINI_API_KEY=finto GEMINI_BASE_URL=http://simulatori:8080/gemini wfmc up -d api worker
+wfmc up -d api worker                      # di nuovo senza AI
+```
+
+Il Gemini simulato legge il prompt di analisi. Con una richiesta fallita 5xx risponde «Bug
+dell'applicazione»; con uno step fallito su un selettore risponde «Locator» e propone
+`button[type="submit"]` per i bottoni. `npm run collaudo:simulatori` crea il test «REP15 · bottone
+con classe cambiata», che ha proprio quel fallimento. Per fissare la risposta successiva:
+`curl -X POST -d '<json della risposta>' http://localhost:8090/_admin/gemini/next`.
+
+**Codice OTP (WEB-48, WEB-49).** In Keycloak, l'utente `mfa` ha l'azione «Configure OTP», come nel
+caso. L'utente `mfa-pronto` ha già l'OTP con la chiave `INXWY3DBOVSG6VDPORYDEMBSGZFWK6JB`, da usare
+come `secret_mfa` (e nell'app del telefono, per il confronto del passo 4). Entrambi hanno la password
+`Collaudo.2026!`. Gli utenti arrivano con l'import del realm: su uno stack già avviato,
+`wfmc up -d --force-recreate keycloak`.
+
+**Debug abbandonato (WEB-43).** `DEBUG_IDLE_TIMEOUT_MS=60000 wfmc up -d api worker` chiude una sessione
+in pausa dopo un minuto invece di 15.
 
 ## 6. Dati di partenza
 

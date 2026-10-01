@@ -241,7 +241,7 @@ export class DebugController implements DebugHooks {
   ) {
     this.breakpoints = new Set(options.breakpoints);
     this.environmentKeys = new Set(options.environmentKeys);
-    this.idleTimeoutMs = options.idleTimeoutMs ?? DEBUG_IDLE_TIMEOUT_MS;
+    this.idleTimeoutMs = options.idleTimeoutMs ?? (Number(process.env.DEBUG_IDLE_TIMEOUT_MS) || DEBUG_IDLE_TIMEOUT_MS);
     this.now = options.now ?? (() => new Date());
   }
 

@@ -8,6 +8,8 @@ export class AIAutomationService {
   private genAI: GoogleGenerativeAI;
   private model: GenerativeModel;
   private apiKey: string | undefined;
+  /** GEMINI_BASE_URL: another endpoint for the same API, such as a test double in the collaudo stack. */
+  private readonly requestOptions = process.env.GEMINI_BASE_URL ? { baseUrl: process.env.GEMINI_BASE_URL } : undefined;
 
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
@@ -15,7 +17,7 @@ export class AIAutomationService {
       this.logWarn("GEMINI_API_KEY not set. AI features disabled.");
     }
     this.genAI = new GoogleGenerativeAI(this.apiKey || "dummy_key");
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
+    this.model = this.genAI.getGenerativeModel({ model: "gemini-pro" }, this.requestOptions);
   }
 
   private async logInfo(message: string, meta?: any) {
@@ -53,9 +55,10 @@ export class AIAutomationService {
     if (!this.isAvailable()) return null;
 
     try {
-      const model = this.genAI.getGenerativeModel({
-        model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
-      });
+      const model = this.genAI.getGenerativeModel(
+        { model: process.env.GEMINI_MODEL || "gemini-2.0-flash" },
+        this.requestOptions,
+      );
       const result = await model.generateContent(prompt);
       return result.response.text();
     } catch (e: any) {
@@ -72,7 +75,7 @@ export class AIAutomationService {
     if (!this.isAvailable()) return null;
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: this.analysisModel });
+      const model = this.genAI.getGenerativeModel({ model: this.analysisModel }, this.requestOptions);
       const result = await model.generateContent(prompt);
       return result.response.text();
     } catch (e: any) {
@@ -94,7 +97,7 @@ export class AIAutomationService {
     if (!this.isAvailable()) return null;
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: this.analysisModel });
+      const model = this.genAI.getGenerativeModel({ model: this.analysisModel }, this.requestOptions);
       const parts: any[] = [{ text: prompt }];
       if (screenshot) parts.push({ inlineData: { mimeType: screenshot.contentType, data: screenshot.bytes.toString("base64") } });
       const result = await model.generateContent(parts);

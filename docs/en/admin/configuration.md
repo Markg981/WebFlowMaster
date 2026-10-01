@@ -108,6 +108,8 @@ person waits for.
 |---|---|---|---|
 | `GEMINI_API_KEY` | both | none | Google Gemini key. Without it, describing a test in sentences, AI selector healing and AI failure analysis are off; everything else works. |
 | `GEMINI_MODEL` | web | `gemini-2.0-flash` | The model used to turn sentences into steps and to analyse failures. Healing uses its own. |
+| `GEMINI_BASE_URL` | both | Google's | Another address for the same Gemini API: a proxy, or a test double such as the one in the collaudo stack. |
+| `DEBUG_IDLE_TIMEOUT_MS` | both | `900000` (15 minutes) | How long a paused debug session waits for a command before it closes its browser. Shorten it only on a test installation. |
 
 ## Logging
 
