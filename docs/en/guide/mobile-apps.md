@@ -101,11 +101,39 @@ needs the app and the device filled in; the grid takes a minute or two to find t
 - To reach the next screen, drive the device from here: **Tap it on the device** and **Type it**
   on the selected element, **Tap on the device** to tap wherever you click the screen, the back
   and swipe buttons, and ↻ to read the screen again. A step that fails says why, as in a run.
-- **Record what I do here as steps** adds each tap, text, back and swipe that succeeds to the test
-  as a step, so walking through the app writes the test.
+
+### Recording a test {#recording}
+
+**Record** turns walking through the app into steps. Every touch on the screen is done on the
+device first, and becomes a step only if it worked:
+
+- **A click** taps the element under the pointer, named with its sturdiest locator (the first one
+  the element panel would offer). Where nothing can be named, the tap is done but not recorded,
+  and the inspector says so.
+- **A click on a text field** then asks what to type; **Type it** (or Enter) records a Type step.
+  In a password field the text is masked and the step is marked **password**.
+- **A drag** on the screen records a swipe in its direction (up, down, left or right). The back,
+  swipe and hide-keyboard buttons are recorded too.
+- **Check it is visible** or **Check its text**, then a click on an element, records an assertion
+  — the text one with the text the element shows now. Both are also offered on the selected
+  element.
+
+Recorded steps wait in **Recorded steps**, not in the test. There you can correct an element or a
+value, move a step up or down, or remove it; **Add N step(s) to the test** puts them at the end of
+the test in that order, and **Discard** drops them. Closing the inspector with steps not added asks
+first. Two badges ask for a look before adding:
+
+- **fragile** — only its position in the screen names the element (an XPath by position): the
+  step breaks when the layout changes. Give the element an accessibility id in the app, or write a
+  sturdier locator.
+- **password** — a password written into the test can be read by everyone who can open it. Replace
+  it with <code v-pre>{{password}}</code> and set the value in the environment.
+
+A swipe is recorded as a direction across the screen, not as the exact path of the drag; a long
+press, pinch or a tap at fixed coordinates are not recorded.
 
 The inspector has no environment: a value with a <code v-pre>{{variable}}</code> is refused with
-its name. Type the value itself, then change it in the step.
+its name. Type the value itself, then change it in the step (in the recorded list, before adding).
 
 The device is yours while the inspector is open, and it costs grid minutes: closing the inspector
 gives it back, and so does leaving it unused for five minutes. One inspector per person at a time:

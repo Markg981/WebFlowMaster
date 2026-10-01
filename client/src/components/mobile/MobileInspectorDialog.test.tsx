@@ -21,6 +21,11 @@ const SIGN_IN = parsePageSource(`<hierarchy><android.widget.FrameLayout bounds="
   <android.widget.EditText content-desc="email" bounds="[40,300][360,360]"/>
   <android.widget.Button content-desc="login" text="Sign in" bounds="[40,600][360,680]"/>
 </android.widget.FrameLayout></hierarchy>`);
+const WITH_PASSWORD = parsePageSource(`<hierarchy><android.widget.FrameLayout bounds="[0,0][400,800]">
+  <android.widget.EditText resource-id="shop:id/pw" password="true" bounds="[40,300][360,360]"/>
+  <android.widget.TextView text="Total 12,00" bounds="[40,500][360,540]"/>
+  <android.widget.Button content-desc="login" text="Sign in" bounds="[40,600][360,680]"/>
+</android.widget.FrameLayout></hierarchy>`);
 const WELCOME = parsePageSource(`<hierarchy><android.widget.TextView text="Welcome" bounds="[40,80][360,140]"/></hierarchy>`);
 const snapshot = (tree: unknown, extra: Record<string, unknown> = {}) => ({
   id: 'insp-1', platform: 'android', screenshot: 'iVBORw0KGgo=', window: { width: 400, height: 800 }, tree, device: 'Google Pixel 8 · Android 14', ...extra,
@@ -71,7 +76,7 @@ describe('MobileInspectorDialog', () => {
     expect(fetchMock.mock.calls.some(([url, init]) => url === '/api/mobile-inspector/insp-1' && init?.method === 'DELETE')).toBe(true);
   });
 
-  it('drives the device, records what was done as steps, and shows a step that failed', async () => {
+  it('drives the device, records what was done as steps, and keeps a step that failed out of the list', async () => {
     let screenNow: unknown = SIGN_IN;
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       if (url === '/api/mobile-inspector') return reply(snapshot(SIGN_IN), 201);
@@ -86,13 +91,14 @@ describe('MobileInspectorDialog', () => {
     const onAddStep = vi.fn();
     render(<MobileInspectorDialog isOpen request={request} onClose={() => {}} onAddStep={onAddStep} />);
     await screen.findByAltText("The device's screen");
-    fireEvent.click(screen.getByText('Record what I do here as steps'));
+    fireEvent.click(screen.getByText('Record'));
 
-    // Picked from the list, then typed into on the device.
+    // Picked from the list, then typed into on the device: recorded, not yet in the test.
     fireEvent.click(within(screen.getByTestId('inspector-tree')).getByText(/EditText/));
     fireEvent.change(screen.getByLabelText('Text'), { target: { value: 'ann@shop.test' } });
     fireEvent.click(screen.getByText('Type it'));
-    await waitFor(() => expect(onAddStep).toHaveBeenCalledWith({ action: 'type', target: '~email', value: 'ann@shop.test' }));
+    await waitFor(() => expect(screen.getAllByTestId('inspector-recorded-step')).toHaveLength(1));
+    expect(onAddStep).not.toHaveBeenCalled();
     const typed = fetchMock.mock.calls.find(([url]) => url === '/api/mobile-inspector/insp-1/actions')!;
     expect(JSON.parse(typed[1].body).step).toMatchObject({ action: 'type', target: '~email', value: 'ann@shop.test' });
 
@@ -107,8 +113,65 @@ describe('MobileInspectorDialog', () => {
     fireEvent.click(within(screen.getByTestId('inspector-tree')).getByText(/Welcome/));
     fireEvent.click(screen.getByText('Tap it on the device'));
     expect((await screen.findByRole('alert')).textContent).toBe('No visible element ~login within 5s.');
-    // A step that failed is not recorded.
+    // A step that failed is not recorded; the one that worked goes into the test when added.
+    fireEvent.click(screen.getByText('Add 1 step(s) to the test'));
     expect(onAddStep).toHaveBeenCalledTimes(1);
+    expect(onAddStep).toHaveBeenCalledWith({ action: 'type', target: '~email', value: 'ann@shop.test' });
+  });
+
+  it('records taps, typing, swipes and checks from the screen, and lets them be corrected before adding', async () => {
+    const actions: any[] = [];
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/mobile-inspector') return reply(snapshot(WITH_PASSWORD), 201);
+      if (init?.body) actions.push(JSON.parse(String(init.body)));
+      return reply(snapshot(WITH_PASSWORD, { error: null }));
+    });
+    const onAddStep = vi.fn();
+    render(<MobileInspectorDialog isOpen request={request} onClose={() => {}} onAddStep={onAddStep} />);
+    const picture = await screen.findByAltText("The device's screen");
+    fireEvent.click(screen.getByText('Record'));
+    const touch = (from: [number, number], to: [number, number] = from) => {
+      fireEvent.mouseDown(picture, { clientX: from[0], clientY: from[1] });
+      fireEvent.mouseUp(picture, { clientX: to[0], clientY: to[1] });
+    };
+    const rows = () => screen.queryAllByTestId('inspector-recorded-step');
+
+    // A tap on the password field (device 200, 660 → picture 100, 165): done by locator, then it asks what to type.
+    touch([100, 165]);
+    await waitFor(() => expect(rows()).toHaveLength(1));
+    expect(actions[0]).toMatchObject({ kind: 'step', step: { action: 'tap', target: 'id=shop:id/pw' } });
+    const field = screen.getByLabelText('Text to type into id=shop:id/pw');
+    expect(field).toHaveAttribute('type', 'password');
+    fireEvent.change(field, { target: { value: 's3cret' } });
+    fireEvent.submit(screen.getByTestId('inspector-typing'));
+    await waitFor(() => expect(rows()).toHaveLength(2));
+    expect(actions[1].step).toMatchObject({ action: 'type', target: 'id=shop:id/pw', value: 's3cret' });
+    expect(within(rows()[1]).getByText('password')).toBeTruthy();
+
+    // A drag upwards is a swipe up.
+    touch([100, 350], [100, 100]);
+    await waitFor(() => expect(rows()).toHaveLength(3));
+    expect(actions[2].step).toMatchObject({ action: 'swipe', value: 'up' });
+
+    // "Check its text", then a click on the total: an assertion with the text it shows now.
+    fireEvent.click(screen.getByText('Check its text'));
+    touch([100, 260]);
+    await waitFor(() => expect(rows()).toHaveLength(4));
+    expect(actions[3].step).toMatchObject({ action: 'assertText', target: 'text=Total 12,00', value: 'Total 12,00' });
+
+    // Corrected before adding: the password becomes a variable, the swipe is removed, the check moves up.
+    fireEvent.change(screen.getByLabelText('Value of recorded step 2'), { target: { value: '{{password}}' } });
+    expect(within(rows()[1]).queryByText('password')).toBeNull();
+    fireEvent.click(screen.getByLabelText('Remove step 3'));
+    fireEvent.click(screen.getByLabelText('Move step 3 up'));
+    fireEvent.click(screen.getByText('Add 3 step(s) to the test'));
+    expect(onAddStep.mock.calls.map(([s]) => s)).toEqual([
+      { action: 'tap', target: 'id=shop:id/pw' },
+      { action: 'assertText', target: 'text=Total 12,00', value: 'Total 12,00' },
+      { action: 'type', target: 'id=shop:id/pw', value: '{{password}}' },
+    ]);
+    expect(rows()).toHaveLength(0);
+    expect(screen.getByTestId('inspector-added')).toHaveTextContent('3 step(s) added');
   });
 
   it('says why the device could not be opened', async () => {
