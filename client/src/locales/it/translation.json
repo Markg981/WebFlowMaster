@@ -3826,7 +3826,9 @@
     "inspect": "Inspector",
     "inspectNeeds": "L'inspector richiede una griglia, l'app e il dispositivo.",
     "appPlaceholder": "bs://… / lt://… / un percorso sulla macchina dell’agente",
-    "tagsFailed": "I tag non sono stati modificati."
+    "tagsFailed": "I tag non sono stati modificati.",
+    "project": "Progetto",
+    "noProject": "Nessun progetto"
   },
   "mobileInspector": {
     "title": "Inspector",

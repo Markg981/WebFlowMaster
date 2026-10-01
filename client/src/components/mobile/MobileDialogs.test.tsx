@@ -18,6 +18,8 @@ vi.mock('react-i18next', () => ({
 /** Writing a mobile app test, uploading its app, and following a run on a device. */
 
 const fetchMock = vi.fn();
+// The dialog reads the projects as it opens; the calls under test are the others.
+const calls = () => fetchMock.mock.calls.filter(([url]) => url !== '/api/projects');
 const grids = [{ id: 'g1', name: 'BrowserStack', provider: 'browserstack' }];
 const test = {
   id: 7,
@@ -44,14 +46,14 @@ describe('MobileTestDialog', () => {
     expect(screen.getByText(/"#login" is not a locator for Android/)).toBeTruthy();
     fireEvent.click(screen.getByText('Save'));
     expect(screen.getByRole('alert').textContent).toBe('Correct the steps marked in red first.');
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(calls()).toHaveLength(0);
 
     fireEvent.change(screen.getByLabelText('Element of step 1'), { target: { value: 'text=Sign in' } });
     fireEvent.click(screen.getByText('Add step'));
     fireEvent.change(screen.getByLabelText('Element of step 2'), { target: { value: '~welcome' } });
     fireEvent.click(screen.getByText('Save'));
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
-    const [url, init] = fetchMock.mock.calls[0];
+    const [url, init] = calls()[0];
     expect(url).toBe('/api/mobile-tests/7');
     expect(init.method).toBe('PUT');
     const body = JSON.parse(init.body);
@@ -72,7 +74,29 @@ describe('MobileTestDialog', () => {
     expect(screen.getByRole('combobox', { name: 'Runs in test plans on' })).toHaveTextContent('LambdaTest');
     fireEvent.click(screen.getByText('Save'));
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body).gridId).toBe('g2');
+    expect(JSON.parse(calls()[0][1].body).gridId).toBe('g2');
+  });
+
+  it('puts the test in a project, never in one the requester only views', async () => {
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve({
+        ok: true,
+        json: async () =>
+          url === '/api/projects'
+            ? [{ id: 4, name: 'Shop app', access: 'editor' }, { id: 5, name: 'Payments', access: 'viewer' }]
+            : { id: 7 },
+      }),
+    );
+    const onSaved = vi.fn();
+    render(<MobileTestDialog isOpen test={{ ...test, projectId: null }} grids={grids} onClose={() => {}} onSaved={onSaved} />);
+    const project = screen.getByRole('combobox', { name: 'Project' });
+    expect(project).toHaveTextContent('No project');
+    fireEvent.keyDown(project, { key: 'Enter', code: 'Enter' });
+    expect(await screen.findByRole('option', { name: 'Payments' })).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(screen.getByRole('option', { name: 'Shop app' }));
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(JSON.parse(calls()[0][1].body).projectId).toBe(4);
   });
 
   it('uploads the app to the grid and takes its address and platform', async () => {
@@ -81,8 +105,8 @@ describe('MobileTestDialog', () => {
     const file = new File(['ipa'], 'Shop.ipa');
     fireEvent.change(screen.getByLabelText('App file'), { target: { files: [file] } });
     await waitFor(() => expect(screen.getByLabelText('App')).toHaveValue('bs://new-app'));
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/browser-grids/g1/apps');
-    expect(fetchMock.mock.calls[0][1].body).toBeInstanceOf(FormData);
+    expect(calls()[0][0]).toBe('/api/browser-grids/g1/apps');
+    expect(calls()[0][1].body).toBeInstanceOf(FormData);
     expect(screen.getByRole('combobox', { name: 'Platform' })).toHaveTextContent('iOS');
   });
 });

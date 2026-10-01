@@ -50,6 +50,7 @@ mobili; i browser di un piano non possono girarci.
 | **App** | Dove la trova la griglia: **Carica .apk / .ipa** invia il file alla griglia scelta accanto e ne compila l'indirizzo (`bs://…` o `lt://…`); oppure incollate uno caricato prima, o un indirizzo https:// da cui la griglia la scarica. WebFlowMaster non conserva il file. |
 | **Dispositivo** | Come lo chiama la griglia: `Google Pixel 8`, `Samsung Galaxy S24`, `iPhone 15` — vedi l'elenco dei dispositivi della griglia. |
 | **Versione del sistema** | Facoltativa: `14.0`, `17`. Vuota: quella scelta dalla griglia per quel dispositivo. |
+| **Progetto** | Come per un test web: in un [progetto riservato](./organizing) solo i suoi membri vedono il test e le sue esecuzioni, e chi ne è viewer non può né modificarlo né eseguirlo. |
 | **Nei piani di test gira su** | La griglia su cui lo esegue un [piano di test](#in-un-piano-di-test). Un test nuovo parte con la prima griglia BrowserStack o LambdaTest; **Nessuna griglia** lo tiene fuori dalle esecuzioni dei piani (un piano che lo include lo segnala come errore). |
 
 Ogni passo è un'azione e, per quasi tutte, un elemento:
@@ -175,5 +176,4 @@ dinamica con *smoke* esegue i test web, API e mobili che lo portano.
 
 ## Non ancora
 
-I test mobili non vanno in quarantena né sono contati come instabili, e il loro progetto non si può
-ancora scegliere.
+I test mobili non vanno ancora in quarantena né sono contati come instabili.

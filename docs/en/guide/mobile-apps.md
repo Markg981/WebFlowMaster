@@ -50,6 +50,7 @@ only; a plan's browsers cannot run on it.
 | **App** | Where the grid finds it: **Upload .apk / .ipa** sends the file to the grid chosen next to it and fills in its address (`bs://…` or `lt://…`); or paste one uploaded before, or an https:// address the grid downloads it from. The file is not kept by WebFlowMaster. |
 | **Device** | As the grid names it: `Google Pixel 8`, `Samsung Galaxy S24`, `iPhone 15` — see the grid's device list. |
 | **OS version** | Optional: `14.0`, `17`. Empty: the grid's choice for that device. |
+| **Project** | Like a web test's: in a [restricted project](./organizing) only its members see the test and its runs, and a viewer on it can neither change nor run it. |
 | **Runs in test plans on** | The grid a [test plan](#in-a-test-plan) runs it on. A new test starts with the first BrowserStack or LambdaTest grid; **No grid** keeps it out of plan runs (a plan that includes it reports an error for it). |
 
 Each step is an action, and for most an element:
@@ -169,4 +170,4 @@ suite with *smoke* runs the web, API and mobile tests carrying it.
 
 ## Not yet
 
-Mobile tests are not quarantined or counted as flaky, and their project cannot be chosen yet.
+Mobile tests are not quarantined or counted as flaky yet.

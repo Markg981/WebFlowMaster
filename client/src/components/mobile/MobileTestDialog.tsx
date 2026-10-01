@@ -32,7 +32,16 @@ export interface MobileTestRow {
   osVersion: string | null;
   /** The grid it runs on in a plan; null when it runs only from its own page. */
   gridId?: string | null;
+  /** Its project; in a restricted one only the project's members see it. */
+  projectId?: number | null;
   steps: MobileStep[];
+}
+
+interface ProjectOption {
+  id: number;
+  name: string;
+  /** What the requester may do in it: a viewer on a restricted project cannot put a test there. */
+  access?: 'viewer' | 'editor' | 'owner' | null;
 }
 
 export interface GridOption {
@@ -51,6 +60,7 @@ interface Props {
 
 /** The select's value for "no grid": a plan's run then reports the test as unable to run. */
 const NO_GRID = '__none__';
+const NO_PROJECT = '__none__';
 
 let counter = 0;
 const newStep = (): MobileStep => ({ id: `m${Date.now().toString(36)}${(counter++).toString(36)}`, action: 'tap', target: '', value: '' });
@@ -63,6 +73,8 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
   const [deviceName, setDeviceName] = useState('');
   const [osVersion, setOsVersion] = useState('');
   const [planGrid, setPlanGrid] = useState(NO_GRID);
+  const [projectId, setProjectId] = useState<number | null>(null);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [steps, setSteps] = useState<MobileStep[]>([]);
   const [uploadGrid, setUploadGrid] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -73,6 +85,19 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
   const uploadGrids = grids.filter((grid) => grid.provider !== 'local_appium');
   const fileInput = useRef<HTMLInputElement>(null);
 
+  // The projects, for the one the test belongs to; none when they cannot be read.
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    fetch('/api/projects')
+      .then((response) => (response.ok ? response.json() : []))
+      .then((rows) => !cancelled && setProjects(Array.isArray(rows) ? rows : []))
+      .catch(() => !cancelled && setProjects([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
     setName(test?.name ?? '');
@@ -82,6 +107,7 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
     setOsVersion(test?.osVersion ?? '');
     // A new test runs in plans on the first grid there is: the choice it would most likely make.
     setPlanGrid(test ? test.gridId ?? NO_GRID : grids[0]?.id ?? NO_GRID);
+    setProjectId(test?.projectId ?? null);
     setSteps(test?.steps.length ? test.steps : [newStep()]);
     setUploadGrid(uploadGrids[0]?.id ?? '');
     setError(null);
@@ -159,6 +185,7 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
         deviceName,
         osVersion: osVersion.trim() || null,
         gridId: planGrid === NO_GRID ? null : planGrid,
+        projectId,
         steps: steps.map((s) => ({
           id: s.id,
           action: s.action,
@@ -255,6 +282,22 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
           <div>
             <Label htmlFor="mobileOs">{t('mobileTests.osVersion', 'OS version (optional)')}</Label>
             <Input id="mobileOs" className="mt-1" value={osVersion} onChange={(e) => setOsVersion(e.target.value)} placeholder={platform === 'ios' ? '17' : '14.0'} />
+          </div>
+          <div className="md:col-span-2">
+            <Label htmlFor="mobileProject">{t('mobileTests.project', 'Project')}</Label>
+            <Select value={projectId == null ? NO_PROJECT : String(projectId)} onValueChange={(value) => setProjectId(value === NO_PROJECT ? null : Number(value))}>
+              <SelectTrigger id="mobileProject" className="mt-1" aria-label={t('mobileTests.project', 'Project')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_PROJECT}>{t('mobileTests.noProject', 'No project')}</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={String(project.id)} disabled={project.access === 'viewer'}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="md:col-span-2">
             <Label htmlFor="mobilePlanGrid">{t('mobileTests.planGrid', 'Runs in test plans on')}</Label>

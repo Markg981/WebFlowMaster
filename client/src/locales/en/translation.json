@@ -3701,7 +3701,9 @@
     "inspect": "Inspector",
     "inspectNeeds": "The inspector needs a grid, the app and the device.",
     "appPlaceholder": "bs://… / lt://… / a path on the agent’s machine",
-    "tagsFailed": "The tags were not changed."
+    "tagsFailed": "The tags were not changed.",
+    "project": "Project",
+    "noProject": "No project"
   },
   "mobileInspector": {
     "title": "Inspector",
