@@ -62,6 +62,14 @@ const send = (res, status, body, type = 'application/json') => {
 };
 const html = (res, title, body) =>
   send(res, 200, `<!doctype html><meta charset=utf-8><title>${title}</title><style>body{font:14px system-ui;margin:24px;max-width:1100px}td,th{border-bottom:1px solid #ddd;padding:4px 8px;text-align:left;vertical-align:top}pre{white-space:pre-wrap;background:#f5f5f5;padding:8px}</style><h1>${title}</h1>${body}`, 'text/html');
+/** The text of a Jira document (ADF), or the value itself when it is already text. */
+const adfText = (doc) => {
+  if (typeof doc === 'string') return doc;
+  const out = [];
+  const walk = (n) => { if (n?.type === 'text') out.push(n.text); (n?.content ?? []).forEach(walk); if (n?.type === 'paragraph') out.push('\n'); };
+  walk(doc);
+  return out.join('').trim();
+};
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 // ─── TestRail ──────────────────────────────────────────────────────────────────
@@ -93,7 +101,7 @@ const jiraIssue = (key) => {
   const i = state.jira.issues[key];
   return {
     key,
-    self: `http://simulatori:8080/jira/rest/api/3/issue/${key}`,
+    self: `${PUBLIC}/jira/rest/api/3/issue/${key}`,
     fields: {
       summary: i.summary,
       issuetype: { name: i.type },
@@ -128,7 +136,7 @@ function jira(req, res, path, query, body) {
   if (/^\/rest\/api\/[23]\/issue$/.test(path) && req.method === 'POST') {
     const key = `SHOP-${state.jira.next++}`;
     state.jira.issues[key] = { type: body.fields?.issuetype?.name ?? 'Bug', summary: body.fields?.summary ?? '', status: 'To Do', parent: null, description: body.fields?.description, createdBy: 'WebFlowMaster' };
-    return send(res, 201, { key, self: `http://simulatori:8080/jira/rest/api/3/issue/${key}` });
+    return send(res, 201, { key, self: `${PUBLIC}/jira/rest/api/3/issue/${key}` });
   }
   if (xrayImport && req.method === 'POST') return xrayImportExecution(res, body, (key) => ({ testExecIssue: { key } }));
   return send(res, 404, { errorMessages: [`Not simulated: ${req.method} ${path}`] });
@@ -142,7 +150,7 @@ function xrayImportExecution(res, body, answer) {
   const key = `SHOP-${state.jira.next++}`;
   state.jira.issues[key] = { type: 'Test Execution', summary: body.info?.summary ?? '', status: 'Done', parent: null };
   state.jira.executions.push({ key, ...body, at: new Date().toISOString() });
-  return send(res, 200, { ...answer(key), self: `http://simulatori:8080/jira/rest/api/2/issue/${key}` });
+  return send(res, 200, { ...answer(key), self: `${PUBLIC}/jira/rest/api/2/issue/${key}` });
 }
 function xray(req, res, path, body, rawAuth) {
   if (path === '/api/v2/authenticate' && req.method === 'POST') {
@@ -269,7 +277,13 @@ function viewer(res, path) {
     const i = state.jira.issues[m[1]];
     const exec = state.jira.executions.find((e) => e.key === m[1]);
     const tests = exec ? `<table><tr><th>Test</th><th>Esito</th><th>Commento</th></tr>${exec.tests.map((t) => `<tr><td>${t.testKey}</td><td>${t.status}</td><td><pre>${esc(t.comment)}</pre></td></tr>`).join('')}</table><p>Test Plan: ${esc(exec.info?.testPlanKey ?? '—')}</p>` : '';
-    return html(res, `${m[1]} — ${esc(i.summary)}`, `<p>${i.type} · ${i.status}${i.parent ? ` · padre ${i.parent}` : ''}${i.createdBy ? ` · creata da ${i.createdBy}` : ''}</p>${tests}<p>Commenti: ${(i.comments ?? []).length}</p>`);
+    return html(res, `${m[1]} — ${esc(i.summary)}`, `<p>${i.type} · ${i.status}${i.parent ? ` · padre ${i.parent}` : ''}${i.createdBy ? ` · creata da ${i.createdBy}` : ''}</p>${tests}<h2>Commenti (${(i.comments ?? []).length})</h2>${(i.comments ?? []).map((c) => `<pre>${esc(adfText(c))}</pre>`).join('')}`);
+  }
+  if ((m = /^\/zephyr\/cycles\/([^/]+)$/.exec(path))) {
+    const cycle = state.zephyr.cycles.find((c) => c.key === m[1]);
+    if (!cycle) return send(res, 404, 'Ciclo non trovato', 'text/plain');
+    const rows = cycle.executions.map((e) => `<tr><td>${e.testCaseKey}</td><td>${e.statusName}</td><td>${e.executionTime ?? ''}</td><td><pre>${esc(String(e.comment ?? '').replace(/<br>/g, '\n'))}</pre></td></tr>`).join('');
+    return html(res, `Zephyr ${cycle.key} — ${esc(cycle.name)}`, `<table><tr><th>Caso</th><th>Esito</th><th>Durata (ms)</th><th>Commento</th></tr>${rows}</table>`);
   }
   if ((m = /^\/ado\/items\/(\d+)$/.exec(path)) && state.ado.items[m[1]]) {
     const i = state.ado.items[m[1]];
@@ -278,7 +292,11 @@ function viewer(res, path) {
   if (path === '/' || path === '') {
     const runs = state.testrail.runs.map((r) => `<li><a href="/testrail/runs/${r.id}">TestRail R${r.id}</a> ${esc(r.name)}</li>`);
     const execs = state.jira.executions.map((e) => `<li><a href="/jira/browse/${e.key}">Xray ${e.key}</a> ${esc(e.info?.summary)}</li>`);
-    const cycles = state.zephyr.cycles.map((c) => `<li>Zephyr ${c.key} ${esc(c.name)}: ${c.executions.map((e) => `${e.testCaseKey} ${e.statusName}`).join(', ')}</li>`);
+    const runs2 = runs.map((r, i) => r.replace('</li>', ` — ${state.testrail.runs[i].results.map((x) => `C${x.case_id} ${TESTRAIL_STATUS[x.status_id] ?? x.status_id}`).join(', ')}</li>`));
+    runs.splice(0, runs.length, ...runs2);
+    const execs2 = execs.map((e, i) => e.replace('</li>', ` — ${state.jira.executions[i].tests.map((t) => `${t.testKey} ${t.status}`).join(', ')}</li>`));
+    execs.splice(0, execs.length, ...execs2);
+    const cycles = state.zephyr.cycles.map((c) => `<li><a href="/zephyr/cycles/${c.key}">Zephyr ${c.key}</a> ${esc(c.name)} — ${c.executions.map((e) => `${e.testCaseKey} ${e.statusName}`).join(', ')}</li>`);
     const issues = Object.entries(state.jira.issues).map(([k, i]) => `<li><a href="/jira/browse/${k}">${k}</a> ${i.type} · ${esc(i.summary)} · ${i.status}</li>`);
     const items = Object.entries(state.ado.items).map(([id, i]) => `<li><a href="/ado/items/${id}">${id}</a> ${i.type} · ${esc(i.title)} · ${i.state}</li>`);
     const requests = state.requests.slice(-60).reverse().map((r) => `<tr><td>${r.at.slice(11, 19)}</td><td>${r.method}</td><td>${esc(r.path)}</td><td>${r.status}</td></tr>`).join('');
