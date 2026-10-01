@@ -486,7 +486,8 @@
     "testLibrary": "Testbibliothek",
     "testManager": "Testmanager",
     "requirements": "Anforderungen",
-    "mobileTests": "Mobile Apps"
+    "mobileTests": "Mobile Apps",
+    "testData": "Testdaten"
   },
   "dashboardPage": {
     "user": {
@@ -2592,7 +2593,8 @@
       "custom_action": "Eigene Aktionen",
       "requirement": "Anforderungen",
       "test_management": "Testmanagement",
-      "mobile_test": "Mobile Apps"
+      "mobile_test": "Mobile Apps",
+      "test_data_set": "Testdaten"
     },
     "actions": {
       "member_role_changed": "Rolle des Mitglieds geändert",
@@ -2682,7 +2684,10 @@
       "mobile_test_deleted": "Test einer mobilen App gelöscht",
       "mobile_test_run": "Test einer mobilen App auf einem Gerät ausgeführt",
       "mobile_test_app_uploaded": "App in ein Geräte-Grid hochgeladen",
-      "mobile_test_inspector_opened": "Inspector auf einem Gerät geöffnet"
+      "mobile_test_inspector_opened": "Inspector auf einem Gerät geöffnet",
+      "test_data_set_created": "Gemeinsamer Datensatz angelegt",
+      "test_data_set_updated": "Gemeinsamer Datensatz geändert",
+      "test_data_set_deleted": "Gemeinsamer Datensatz gelöscht"
     }
   },
   "security": {
@@ -3791,5 +3796,22 @@
     "reportDescription": "API-Tests, die ihre Anfrage mehrmals gesendet und die Zeiten mit Schwellenwerten verglichen haben.",
     "verdict": "Ergebnis",
     "withinThresholds": "innerhalb der Schwellenwerte"
+  },
+  "testData": {
+    "title": "Testdaten",
+    "pageDescription": "Einmal gepflegte Daten, die jeder Test wiederverwendet: Werte als {{data.<set>.<spalte>}} oder die Zeilen, über die ein UI-Test läuft.",
+    "new": "Neuer Datensatz",
+    "edit": "Datensatz bearbeiten",
+    "dialogHint": "Ein Name und eine Tabelle. Die erste Zeile liefert die {{data.…}}-Werte; ein UI-Test kann über alle Zeilen laufen.",
+    "name": "Name",
+    "nameHint": "Kleinbuchstaben, Ziffern und Unterstriche.",
+    "description": "Beschreibung",
+    "usage": "In jedem Test:",
+    "empty": "Noch keine gemeinsamen Daten. Legen Sie einen Satz für die Kunden, Produkte oder Karten an, die Ihre Tests immer wieder kopieren.",
+    "editNamed": "{{name}} bearbeiten",
+    "deleteNamed": "{{name}} löschen",
+    "confirmDelete": "{{name}} löschen?",
+    "deleteFailed": "Nicht gelöscht",
+    "size": "{{rows}} Zeile(n) · {{columns}} Spalte(n)"
   }
 }

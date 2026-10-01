@@ -5,7 +5,7 @@ This page is the reference for the database: every table, every column and every
 purpose of each table, in words, read [Data model](./data-model); for how rows are kept apart between organizations,
 read [Tenancy and access](./tenancy).
 
-**56 tables**, of which 44 carry an `organization_id` and are protected by row-level security. The other 12 are
+**57 tables**, of which 45 carry an `organization_id` and are protected by row-level security. The other 12 are
 installation-wide or are read before an organization is known: `organizations`, `users`, `user_mfa`,
 `user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sso_saml_requests`, `sessions`, `runners`
 and `system_settings`.
@@ -436,6 +436,16 @@ erDiagram
     text description
     jsonb parameters
     text script
+    timestamp created_at
+    timestamp updated_at
+  }
+  test_data_sets {
+    int id PK
+    int organization_id FK
+    text name
+    text description
+    jsonb columns
+    jsonb rows
     timestamp created_at
     timestamp updated_at
   }
@@ -1077,5 +1087,5 @@ These relationships exist in the application but have no foreign key. Most come 
 - **Uniqueness.** Environment names are unique per organization (migration 0041); an invitation is unique per username
   while pending (0044); an issue link is unique per failure (`dedupe_key`), so one failure is filed once; a run's
   idempotency key is unique per organization, so a retried request returns the same run.
-- **Migrations.** 61 numbered SQL files in `migrations/` (`0000` … `0060`), applied once by the migrator before the other
+- **Migrations.** 62 numbered SQL files in `migrations/` (`0000` … `0061`), applied once by the migrator before the other
   processes start; the journal is `migrations/meta/_journal.json`.

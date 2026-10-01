@@ -139,3 +139,25 @@ scritto nulla.
 .xls) importa un caso per riga, con id, priorità e obiettivo. Associate ogni caso a un test
 salvato (**Scegli una sequenza**), selezionate i casi ed **Esegui i selezionati**; accanto a ogni
 caso compaiono lo stato e l'ultimo report.
+
+## Dati di test condivisi {#test-data}
+
+Gli stessi clienti, prodotti o carte venivano copiati da un test all'altro, e finivano per
+divergere. **Dati di test** li tiene una volta per tutta l'organizzazione: un set ha un nome
+(`customers`), una descrizione e una tabella. I viewer leggono i set; gli editor li creano e li
+modificano.
+
+Un set si usa in due modi:
+
+- **Valori, in qualsiasi test.** <code v-pre>{{data.customers.email}}</code> è la colonna `email`
+  della prima riga di `customers`, in uno step UI, una richiesta API o uno step mobile, nei piani
+  come nel builder. I valori di un ambiente con lo stesso nome prevalgono, così un ambiente può
+  sostituirne uno.
+- **Righe, per un test UI.** Nel dataset del test, **Use a shared data set** fa girare il test una
+  volta per riga del set, con le sue colonne come <code v-pre>{{colonna}}</code> — vedere
+  [Dataset](./web-tests#dataset).
+
+I nomi sono lettere minuscole, cifre e trattini bassi; le colonne lettere, cifre e trattini bassi,
+così un segnaposto può nominarle. Un set contiene fino a 1.000 righe e 50 colonne. Un set su cui
+gira un test non si può eliminare finché quel test non smette di usarlo; il rifiuto nomina i test.
+Creazione, modifica ed eliminazione di un set sono registrate nel log di audit.

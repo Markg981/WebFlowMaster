@@ -72,6 +72,7 @@ The complete column-level diagrams of all tables are in [Database schema](./data
 | `test_reviews` | Review requests and decisions, when the organization requires review. |
 | `test_quarantines` | Tests set aside as unreliable, with reason, evidence and release. |
 | `custom_actions` | An organization's own steps: a name, typed parameters and a script that runs in the browser page; a test uses one like any built-in action. |
+| `test_data_sets` | Shared test data: a name, columns and rows. Each column of the first row is `{{data.<name>.<column>}}` in every test; a UI test runs over the rows when its `dataset` holds the marker `[{"$sharedSet": "<id>"}]`, expanded just before it runs (`server/test-data.ts`). |
 | `excel_sequences_map` | Test Manager: rows of an imported spreadsheet mapped to saved sequences. |
 | `test_runs` | Results of single test runs started from the builder (not plan runs). |
 | `mobile_tests` / `mobile_test_runs` | Tests of native Android and iOS apps — platform, app on the grid (`bs://`, `lt://`), device, steps with native locators — and their runs on a grid's device, step by step, with the final screenshot and the session's page (`shared/mobile.ts`, `server/mobile-runner.ts`). |

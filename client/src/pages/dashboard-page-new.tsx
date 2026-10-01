@@ -23,7 +23,7 @@ import { DEBUG_ENDED, type DebugStepPatch } from '@shared/debug-session';
 import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
 import SaveTestModal from "@/components/SaveTestModal"; // Import the modal
 import { PreconditionsPanel } from "@/components/PreconditionsPanel";
-import { DatasetPanel, type DatasetRow } from "@/components/DatasetPanel";
+import { DatasetPanel, type DatasetRow, type SharedSetOption } from "@/components/DatasetPanel";
 import type { Precondition } from "@shared/schema";
 import { ACTION_I18N, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from "@shared/recording";
 import { argumentsHint, customActionStepId, type CustomActionParameter } from "@shared/custom-actions";
@@ -235,6 +235,15 @@ export default function DashboardPage() {
     queryFn: async () => {
       const res = await fetch("/api/custom-actions");
       if (!res.ok) throw new Error("Failed to load custom actions");
+      return res.json();
+    },
+  });
+  // The organization's shared data sets, which a test can take its rows from (shared/test-data.ts).
+  const { data: sharedDataSets = [] } = useQuery<SharedSetOption[], Error>({
+    queryKey: ["testData"],
+    queryFn: async () => {
+      const res = await fetch("/api/test-data");
+      if (!res.ok) throw new Error("Failed to load the shared test data");
       return res.json();
     },
   });
@@ -1394,6 +1403,7 @@ export default function DashboardPage() {
         <DatasetPanel
           dataset={dataset}
           onChange={setDataset}
+          sharedSets={Array.isArray(sharedDataSets) ? sharedDataSets : []}
           disabled={executeDirectTestMutation.isPending || isExecutingPlayback}
         />
       </div>

@@ -480,7 +480,8 @@
     "testLibrary": "Test Library",
     "testManager": "Test Manager",
     "requirements": "Requirements",
-    "mobileTests": "Mobile apps"
+    "mobileTests": "Mobile apps",
+    "testData": "Test data"
   },
   "dashboardPage": {
     "user": {
@@ -2586,7 +2587,8 @@
       "custom_action": "Custom actions",
       "requirement": "Requirements",
       "test_management": "Test management",
-      "mobile_test": "Mobile apps"
+      "mobile_test": "Mobile apps",
+      "test_data_set": "Test data"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -2676,7 +2678,10 @@
       "mobile_test_deleted": "Mobile app test deleted",
       "mobile_test_run": "Mobile app test run on a device",
       "mobile_test_app_uploaded": "App uploaded to a device grid",
-      "mobile_test_inspector_opened": "Inspector opened on a device"
+      "mobile_test_inspector_opened": "Inspector opened on a device",
+      "test_data_set_created": "Shared data set created",
+      "test_data_set_updated": "Shared data set changed",
+      "test_data_set_deleted": "Shared data set deleted"
     }
   },
   "security": {
@@ -3785,5 +3790,22 @@
     "reportDescription": "API tests that sent their request several times and checked the times against thresholds.",
     "verdict": "Verdict",
     "withinThresholds": "within thresholds"
+  },
+  "testData": {
+    "title": "Test data",
+    "pageDescription": "Data kept once and reused by every test: values as {{data.<set>.<column>}}, or the rows a UI test runs over.",
+    "new": "New data set",
+    "edit": "Edit data set",
+    "dialogHint": "A name and a table. The first row gives the {{data.…}} values; a UI test can run over every row.",
+    "name": "Name",
+    "nameHint": "Lowercase letters, digits and underscores.",
+    "description": "Description",
+    "usage": "In any test:",
+    "empty": "No shared data yet. Create a set for the customers, products or cards your tests keep copying.",
+    "editNamed": "Edit {{name}}",
+    "deleteNamed": "Delete {{name}}",
+    "confirmDelete": "Delete {{name}}?",
+    "deleteFailed": "Not deleted",
+    "size": "{{rows}} row(s) · {{columns}} column(s)"
   }
 }

@@ -72,6 +72,7 @@ I diagrammi completi, a livello di colonna, di tutte le tabelle sono in [Schema 
 | `test_reviews` | Richieste di revisione e decisioni, quando l'organizzazione richiede la revisione. |
 | `test_quarantines` | Test messi da parte perché instabili, con motivo, evidenze e rilascio. |
 | `custom_actions` | Gli step propri di un'organizzazione: un nome, parametri tipizzati e uno script che gira nella pagina del browser; un test la usa come qualsiasi azione predefinita. |
+| `test_data_sets` | Dati di test condivisi: un nome, colonne e righe. Ogni colonna della prima riga è `{{data.<nome>.<colonna>}}` in ogni test; un test UI gira sulle righe quando il suo `dataset` contiene il marcatore `[{"$sharedSet": "<id>"}]`, espanso subito prima del run (`server/test-data.ts`). |
 | `excel_sequences_map` | Test Manager: righe di un foglio importato collegate a sequenze salvate. |
 | `test_runs` | Risultati di singoli test avviati dal builder (non run di piani). |
 | `mobile_tests` / `mobile_test_runs` | Test di app native Android e iOS — piattaforma, app sulla griglia (`bs://`, `lt://`), dispositivo, passi con locator nativi — e le loro esecuzioni su un dispositivo della griglia, passo per passo, con lo screenshot finale e la pagina della sessione (`shared/mobile.ts`, `server/mobile-runner.ts`). |

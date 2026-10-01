@@ -53,6 +53,7 @@ import testPublishingRoutes from "./routes/test-publishing.routes";
 import runnersRoutes from "./routes/runners.routes";
 import suitesRoutes from "./routes/suites.routes";
 import requirementsRoutes from "./routes/requirements.routes";
+import testDataRoutes from "./routes/test-data.routes";
 import testManagementRoutes from "./routes/test-management.routes";
 import mobileTestsRoutes from "./routes/mobile-tests.routes";
 import quarantineRoutes from "./routes/quarantine.routes";
@@ -84,6 +85,8 @@ import environmentRoutes from "./routes/environments.routes";
 import analyticsRoutes from "./routes/analytics.routes";
 import organizationRoutes from "./routes/organization.routes";
 import { tenancyMiddleware, withTenantTransaction } from "./middleware/tenancy";
+import { SharedDataError, expandSharedDataset } from "./test-data";
+import { sharedSetIdOf } from "@shared/test-data";
 import { apiKeyAuth } from "./middleware/api-key-auth";
 import { apiRateLimit } from "./middleware/rate-limits";
 import { requireInstallationAdmin } from "./installation-admin";
@@ -204,6 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(runnersRoutes);
     app.use(suitesRoutes);
   app.use(requirementsRoutes);
+  app.use(testDataRoutes);
   app.use(testManagementRoutes);
   app.use(mobileTestsRoutes);
     app.use(quarantineRoutes);
@@ -503,7 +507,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ success: false, error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
-    const payload = parseResult.data;
+    // A test running over a shared data set runs over its rows here too (shared/test-data.ts).
+    let payload: typeof parseResult.data = parseResult.data;
+    try {
+      if (sharedSetIdOf(payload.dataset) !== null) payload = await withTenantTransaction((tx) => expandSharedDataset(tx, parseResult.data));
+    } catch (error) {
+      if (error instanceof SharedDataError) return res.status(400).json({ success: false, error: error.message });
+      throw error;
+    }
     let resultFromService: any; // Keep it flexible to hold partial results in case of error
 
     try {

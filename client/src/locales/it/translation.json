@@ -483,7 +483,8 @@
     "testLibrary": "Libreria dei test",
     "testManager": "Test Manager",
     "requirements": "Requisiti",
-    "mobileTests": "App mobili"
+    "mobileTests": "App mobili",
+    "testData": "Dati di test"
   },
   "dashboardPage": {
     "headerTitle": "Piattaforma WebTest",
@@ -2711,7 +2712,8 @@
       "custom_action": "Azioni personalizzate",
       "requirement": "Requisiti",
       "test_management": "Gestione test",
-      "mobile_test": "App mobili"
+      "mobile_test": "App mobili",
+      "test_data_set": "Dati di test"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
@@ -2801,7 +2803,10 @@
       "mobile_test_deleted": "Test di app mobile eliminato",
       "mobile_test_run": "Test di app mobile eseguito su un dispositivo",
       "mobile_test_app_uploaded": "App caricata su una griglia di dispositivi",
-      "mobile_test_inspector_opened": "Inspector aperto su un dispositivo"
+      "mobile_test_inspector_opened": "Inspector aperto su un dispositivo",
+      "test_data_set_created": "Set di dati condiviso creato",
+      "test_data_set_updated": "Set di dati condiviso modificato",
+      "test_data_set_deleted": "Set di dati condiviso eliminato"
     }
   },
   "security": {
@@ -3910,5 +3915,22 @@
     "reportDescription": "Test API che hanno inviato la richiesta più volte e confrontato i tempi con le soglie.",
     "verdict": "Esito",
     "withinThresholds": "entro le soglie"
+  },
+  "testData": {
+    "title": "Dati di test",
+    "pageDescription": "Dati tenuti una volta e riusati da ogni test: valori come {{data.<set>.<colonna>}}, o le righe su cui gira un test UI.",
+    "new": "Nuovo set di dati",
+    "edit": "Modifica set di dati",
+    "dialogHint": "Un nome e una tabella. La prima riga dà i valori {{data.…}}; un test UI può girare su tutte le righe.",
+    "name": "Nome",
+    "nameHint": "Lettere minuscole, cifre e trattini bassi.",
+    "description": "Descrizione",
+    "usage": "In qualsiasi test:",
+    "empty": "Ancora nessun dato condiviso. Create un set per i clienti, i prodotti o le carte che i test continuano a copiare.",
+    "editNamed": "Modifica {{name}}",
+    "deleteNamed": "Elimina {{name}}",
+    "confirmDelete": "Eliminare {{name}}?",
+    "deleteFailed": "Non eliminato",
+    "size": "{{rows}} righe · {{columns}} colonne"
   }
 }

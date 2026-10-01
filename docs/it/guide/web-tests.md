@@ -334,6 +334,11 @@ colonna diventano variabili. Il test gira una volta per riga. Costruitelo aggiun
 righe, oppure incollatelo da un foglio di calcolo (**Paste from a spreadsheet**): copiate il
 blocco da Excel o Google Sheets, riga di intestazione compresa.
 
+Quando le righe servono anche ad altri test, tenetele in un [set di dati condiviso](./organizing#test-data)
+e sceglietelo in **Use a shared data set**: il test conserva solo un collegamento, gira sulle righe
+del set così come sono al momento del run, e segue il set anche se viene rinominato. **Use a copy as
+this test's own rows** trasforma il collegamento in righe proprie del test.
+
 ## Gruppi di step
 
 Una sequenza usata da molti test — l'accesso, la scelta di un cliente — si può salvare con
