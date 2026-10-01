@@ -3069,7 +3069,8 @@
     "released": "\"{{name}}\" è tornato: i suoi fallimenti contano di nuovo",
     "releaseFailed": "Il test non è stato rilasciato",
     "badge": "in quarantena",
-    "badgeTitle": "Questo test era in quarantena: un suo fallimento non fa fallire l'esecuzione."
+    "badgeTitle": "Questo test era in quarantena: un suo fallimento non fa fallire l'esecuzione.",
+    "mobile": "Mobile"
   },
   "accessibility": {
     "title": "Verifica di accessibilità",
@@ -3828,7 +3829,9 @@
     "appPlaceholder": "bs://… / lt://… / un percorso sulla macchina dell’agente",
     "tagsFailed": "I tag non sono stati modificati.",
     "project": "Progetto",
-    "noProject": "Nessun progetto"
+    "noProject": "Nessun progetto",
+    "quarantined": "In quarantena",
+    "quarantineFor": "Metti in quarantena {{name}}"
   },
   "mobileInspector": {
     "title": "Inspector",

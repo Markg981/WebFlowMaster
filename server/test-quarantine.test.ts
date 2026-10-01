@@ -20,7 +20,7 @@ vi.mock('./logger', () => ({
 
 const { privilegedDb } = await import('./db');
 const schema = await import('@shared/schema');
-const { apiTests, auditLog, projectMembers, projects, reportTestCaseResults, testPlanExecutions, testPlans, testQuarantines, tests, users } = schema;
+const { apiTests, auditLog, mobileTests, projectMembers, projects, reportTestCaseResults, testPlanExecutions, testPlans, testQuarantines, tests, users } = schema;
 const { createTestOrganization } = await import('./tests/factories');
 const { tenancyMiddleware } = await import('./middleware/tenancy');
 const { default: quarantineRoutes } = await import('./routes/quarantine.routes');
@@ -201,6 +201,74 @@ describe('in a restricted project', () => {
     expect((await as(outsider).get('/api/quarantine').expect(200)).body).toEqual([]);
     await as(projectViewer).post(`/api/quarantine/${created.body.id}/release`).send({}).expect(403);
     await as(outsider).post(`/api/quarantine/${created.body.id}/release`).send({}).expect(404);
+  });
+});
+
+describe('a mobile app test (migration 0058)', () => {
+  async function mobileTest(name: string, organizationId = org, projectId: number | null = null) {
+    const [row] = await privilegedDb
+      .insert(mobileTests)
+      .values({ name, platform: 'android', app: 'bs://a', deviceName: 'Google Pixel 8', steps: [], organizationId, projectId } as any)
+      .returning();
+    return row.id;
+  }
+
+  it('is quarantined once at a time, listed with its evidence, audited, and released', async () => {
+    const testId = await mobileTest('Checkout on Android');
+    const created = await as(editor).post('/api/quarantine').send({ testType: 'mobile', testId, reason: 'Device farm drops the session' }).expect(201);
+    expect(created.body).toMatchObject({ testType: 'mobile', mobileTestId: testId, testId: null, apiTestId: null });
+    await as(editor).post('/api/quarantine').send({ testType: 'mobile', testId, reason: 'Again' }).expect(409);
+    await as(editor).post('/api/quarantine').send({ testType: 'mobile', testId: 999_999, reason: 'x' }).expect(404);
+
+    const since = new Date(created.body.quarantinedAt).getTime();
+    const planId = uuidv4();
+    await privilegedDb.insert(testPlans).values({ id: planId, name: 'Nightly', userId: editor.id, organizationId: org } as any);
+    const executionId = uuidv4();
+    await privilegedDb.insert(testPlanExecutions).values({ id: executionId, organizationId: org, testPlanId: planId, status: 'completed' } as any);
+    await privilegedDb.insert(reportTestCaseResults).values({
+      id: uuidv4(), organizationId: org, testPlanExecutionId: executionId, mobileTestId: testId, testType: 'mobile',
+      testName: 'Checkout on Android', status: 'Passed', quarantined: true, startedAt: new Date(since + 1_000),
+    } as any);
+
+    const list = await as(editor).get('/api/quarantine').expect(200);
+    expect(list.body).toEqual([
+      expect.objectContaining({ testType: 'mobile', testId, testName: 'Checkout on Android', evidence: expect.objectContaining({ runs: 1, passingStreak: 1 }) }),
+    ]);
+
+    await as(editor).post(`/api/quarantine/${created.body.id}/release`).send({}).expect(200);
+    const entries = await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, org));
+    expect(entries.filter((e) => e.action.startsWith('test.quarantine')).map((e) => [e.action, e.targetType, e.targetId])).toEqual(
+      expect.arrayContaining([
+        ['test.quarantined', 'mobile_test', String(testId)],
+        ['test.quarantine_released', 'mobile_test', String(testId)],
+      ]),
+    );
+  });
+
+  it("follows the test's project, and cannot point at another organization's test", async () => {
+    const [secret] = await privilegedDb.insert(projects).values({ name: 'Secret app', userId: editor.id, organizationId: org, restricted: true }).returning();
+    const testId = await mobileTest('Payroll on iOS', org, secret.id);
+    const projectViewer = await person('project-viewer', 'editor');
+    const outsider = await person('outsider', 'editor');
+    await privilegedDb.insert(projectMembers).values([
+      { projectId: secret.id, userId: editor.id, organizationId: org, role: 'editor' },
+      { projectId: secret.id, userId: projectViewer.id, organizationId: org, role: 'viewer' },
+    ]);
+
+    expect((await as(projectViewer).post('/api/quarantine').send({ testType: 'mobile', testId, reason: 'x' }).expect(403)).body.code).toBe('project_read_only');
+    await as(outsider).post('/api/quarantine').send({ testType: 'mobile', testId, reason: 'x' }).expect(404);
+    await as(editor).post('/api/quarantine').send({ testType: 'mobile', testId, reason: 'Flaky' }).expect(201);
+    expect((await as(projectViewer).get('/api/quarantine').expect(200)).body).toHaveLength(1);
+    expect((await as(outsider).get('/api/quarantine').expect(200)).body).toEqual([]);
+
+    const theirs = await mobileTest('Theirs', await createTestOrganization('Other Org'));
+    await expect(
+      privilegedDb.insert(testQuarantines).values({ organizationId: org, testType: 'mobile', mobileTestId: theirs, reason: 'x' }),
+    ).rejects.toThrow(/foreign key/i);
+    // One test, of one kind: a mobile quarantine naming a web test too is refused.
+    await expect(
+      privilegedDb.insert(testQuarantines).values({ organizationId: org, testType: 'mobile', mobileTestId: testId, testId: await uiTest('Web'), reason: 'x' }),
+    ).rejects.toThrow(/check constraint|test_quarantines_one_test/i);
   });
 });
 

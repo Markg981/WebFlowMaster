@@ -2950,7 +2950,8 @@
     "released": "„{{name}}“ ist zurück: seine Fehlschläge zählen wieder",
     "releaseFailed": "Der Test wurde nicht entlassen",
     "badge": "in Quarantäne",
-    "badgeTitle": "Dieser Test war in Quarantäne: Sein Fehlschlag lässt den Lauf nicht fehlschlagen."
+    "badgeTitle": "Dieser Test war in Quarantäne: Sein Fehlschlag lässt den Lauf nicht fehlschlagen.",
+    "mobile": "Mobil"
   },
   "accessibility": {
     "title": "Barrierefreiheitsprüfung",
@@ -3709,7 +3710,9 @@
     "appPlaceholder": "bs://… / lt://… / ein Pfad auf dem Rechner des Agenten",
     "tagsFailed": "Die Tags wurden nicht geändert.",
     "project": "Projekt",
-    "noProject": "Kein Projekt"
+    "noProject": "Kein Projekt",
+    "quarantined": "In Quarantäne",
+    "quarantineFor": "{{name}} unter Quarantäne stellen"
   },
   "mobileInspector": {
     "title": "Inspector",

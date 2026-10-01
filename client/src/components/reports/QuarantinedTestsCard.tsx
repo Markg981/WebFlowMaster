@@ -20,7 +20,7 @@ import { Loader2, ShieldAlert } from 'lucide-react';
 
 export interface QuarantineRow {
   id: number;
-  testType: 'ui' | 'api';
+  testType: 'ui' | 'api' | 'mobile';
   testId: number;
   testName: string | null;
   reason: string;
@@ -124,7 +124,7 @@ export default function QuarantinedTestsCard() {
                     <TableRow key={row.id} data-testid={`quarantine-${row.id}`}>
                       <TableCell className="font-medium">
                         {row.testName ?? t('quarantine.hiddenTest', 'A test you cannot see')}
-                        <Badge variant="outline" className="ml-2 font-normal">{row.testType === 'ui' ? 'UI' : 'API'}</Badge>
+                        <Badge variant="outline" className="ml-2 font-normal">{row.testType === 'ui' ? 'UI' : row.testType === 'api' ? 'API' : t('quarantine.mobile', 'Mobile')}</Badge>
                       </TableCell>
                       <TableCell className="text-xs max-w-xs">{row.reason}</TableCell>
                       <TableCell className="text-xs whitespace-nowrap">

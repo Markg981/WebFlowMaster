@@ -2944,7 +2944,8 @@
     "released": "\"{{name}}\" is back: its failures count again",
     "releaseFailed": "The test was not released",
     "badge": "quarantined",
-    "badgeTitle": "This test was in quarantine: a failure of it does not fail the run."
+    "badgeTitle": "This test was in quarantine: a failure of it does not fail the run.",
+    "mobile": "Mobile"
   },
   "accessibility": {
     "title": "Accessibility check",
@@ -3703,7 +3704,9 @@
     "appPlaceholder": "bs://… / lt://… / a path on the agent’s machine",
     "tagsFailed": "The tags were not changed.",
     "project": "Project",
-    "noProject": "No project"
+    "noProject": "No project",
+    "quarantined": "In quarantine",
+    "quarantineFor": "Quarantine {{name}}"
   },
   "mobileInspector": {
     "title": "Inspector",

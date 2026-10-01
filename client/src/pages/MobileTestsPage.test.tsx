@@ -71,3 +71,36 @@ describe('MobileTestsPage tags', () => {
     expect(screen.queryByRole('button', { name: 'Edit tags' })).toBeNull();
   });
 });
+
+describe('MobileTestsPage quarantine', () => {
+  it('quarantines a mobile test with a reason', async () => {
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Quarantine Checkout on Android' }));
+    fireEvent.change(await screen.findByLabelText('Why'), { target: { value: 'Device farm drops the session' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Quarantine' }));
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([url, init]) => url === '/api/quarantine' && init?.method === 'POST');
+      expect(call).toBeDefined();
+      expect(JSON.parse(call![1].body)).toEqual({ testType: 'mobile', testId: 7, reason: 'Device farm drops the session' });
+    });
+  });
+
+  it('marks a test in quarantine, with its reason, and offers no second quarantine', async () => {
+    const base = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+      url === '/api/quarantine' && !init?.method
+        ? Promise.resolve({ ok: true, json: async () => [{ id: 1, testType: 'mobile', testId: 7, testName: 'Checkout on Android', reason: 'Device farm drops the session' }] })
+        : base(url, init),
+    );
+    renderPage();
+    expect(await screen.findByText('In quarantine')).toHaveAttribute('title', 'Device farm drops the session');
+    expect(screen.queryByRole('button', { name: 'Quarantine Checkout on Android' })).toBeNull();
+  });
+
+  it('offers a viewer no quarantine', async () => {
+    role = 'viewer';
+    renderPage();
+    await screen.findByText('Checkout on Android');
+    expect(screen.queryByRole('button', { name: 'Quarantine Checkout on Android' })).toBeNull();
+  });
+});

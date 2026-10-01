@@ -876,6 +876,7 @@ async function runTestPlanJobInTenant(
     openQuarantinesOf(tx, [
       ...uiTestIds.map((id) => ({ type: 'ui' as const, id })),
       ...apiTestIds.map((id) => ({ type: 'api' as const, id })),
+      ...mobileTestIds.map((id) => ({ type: 'mobile' as const, id })),
     ]),
   );
   if (quarantined.size > 0) {
@@ -1030,7 +1031,9 @@ async function runTestPlanJobInTenant(
     const inQuarantine =
       link.testType === 'ui'
         ? !!link.testId && quarantined.has(refKey({ type: 'ui', id: link.testId }))
-        : !!link.apiTestId && quarantined.has(refKey({ type: 'api', id: link.apiTestId }));
+        : link.testType === 'mobile'
+          ? !!link.mobileTestId && quarantined.has(refKey({ type: 'mobile', id: link.mobileTestId }))
+          : !!link.apiTestId && quarantined.has(refKey({ type: 'api', id: link.apiTestId }));
     const haltedBy = stopReason ?? watch.stopReason ?? notPublished;
     if (haltedBy) {
       reportStatus = 'Skipped';

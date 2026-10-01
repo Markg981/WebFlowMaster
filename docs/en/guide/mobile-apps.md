@@ -168,6 +168,16 @@ The **Tags** column of **Mobile apps** puts the organization's tags on a mobile 
 library does for web tests (viewers see them). A tag is shared by every kind of test: a dynamic
 suite with *smoke* runs the web, API and mobile tests carrying it.
 
+## Quarantine {#quarantine}
+
+A mobile test that fails for reasons outside the app (a device farm dropping the session, a
+slow emulator) can be set aside with the shield button of its row, with the reason, like a web
+or API test ([flaky tests and quarantine](./results#flaky-tests-and-quarantine)). It keeps
+running in plans and its results are kept, but its failures no longer fail the run. The row shows
+**In quarantine** (hover it for the reason); it is released from **Tests in quarantine** in
+**Reports**, where it carries the **Mobile** label. In a restricted project only those who may
+edit the test may quarantine or release it.
+
 ## Not yet
 
-Mobile tests are not quarantined or counted as flaky yet.
+Mobile tests are not counted as flaky yet.

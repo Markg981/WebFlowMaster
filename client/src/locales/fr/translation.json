@@ -2950,7 +2950,8 @@
     "released": "« {{name}} » est de retour : ses échecs comptent de nouveau",
     "releaseFailed": "Le test n'a pas été libéré",
     "badge": "en quarantaine",
-    "badgeTitle": "Ce test était en quarantaine : son échec ne fait pas échouer l'exécution."
+    "badgeTitle": "Ce test était en quarantaine : son échec ne fait pas échouer l'exécution.",
+    "mobile": "Mobile"
   },
   "accessibility": {
     "title": "Vérification d'accessibilité",
@@ -3709,7 +3710,9 @@
     "appPlaceholder": "bs://… / lt://… / un chemin sur la machine de l’agent",
     "tagsFailed": "Les tags n'ont pas été modifiés.",
     "project": "Projet",
-    "noProject": "Aucun projet"
+    "noProject": "Aucun projet",
+    "quarantined": "En quarantaine",
+    "quarantineFor": "Mettre {{name}} en quarantaine"
   },
   "mobileInspector": {
     "title": "Inspecteur",

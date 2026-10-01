@@ -1084,9 +1084,11 @@ export const testPlanSuites = pgTable("test_plan_suites", {
 export const testQuarantines = pgTable("test_quarantines", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  testType: text("test_type").$type<'ui' | 'api'>().notNull(),
+  testType: text("test_type").$type<'ui' | 'api' | 'mobile'>().notNull(),
   testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
   apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
+  /** A mobile app test (migration 0058). Plain integer here: mobile_tests is declared further down. */
+  mobileTestId: integer("mobile_test_id"),
   /** Why, in words: the thing whoever releases it will want to know was dealt with. */
   reason: text("reason").notNull(),
   quarantinedBy: integer("quarantined_by").references(() => users.id, { onDelete: 'set null' }),

@@ -156,7 +156,8 @@ fixed is not listed, and neither is one whose verdict changed because it was edi
 A flaky test can be put in **quarantine**, with the reason. It keeps running and its results are
 kept, but its failures stop failing runs, stopping plans, filing issues and breaking pipelines.
 **Tests in quarantine** shows how each has done since; once it has been passing again,
-**Release** it with a note of what fixed it.
+**Release** it with a note of what fixed it. Web, API and [mobile](./mobile-apps#quarantine)
+tests can all be quarantined.
 
 ## How long evidence is kept
 
