@@ -23,7 +23,7 @@ import { Repeat, ShieldAlert } from 'lucide-react';
 export interface FlakySummary {
   testName: string;
   /** The test behind the name; null when it has since been deleted. */
-  test?: { type: 'ui' | 'api'; id: number } | null;
+  test?: { type: 'ui' | 'api' | 'mobile'; id: number } | null;
   /** Its open quarantine, if it is in one. */
   quarantine?: { id: number; reason: string; since: string } | null;
   browser: string | null;
@@ -120,6 +120,11 @@ const FlakyTestsCard: React.FC<FlakyTestsCardProps> = ({ planId, days = 30 }) =>
                   <TableRow key={`${item.testName}-${item.browser ?? 'default'}`}>
                     <TableCell className="font-medium">
                       {item.testName}
+                      {item.test?.type === 'mobile' && (
+                        <Badge variant="outline" className="ml-2 font-normal">
+                          {t('quarantine.mobile', 'Mobile')}
+                        </Badge>
+                      )}
                       {/* A test somebody edited inside the window is not a test that cannot
                           make up its mind, and the count beside it only shows the changes of
                           verdict the edits do not account for. */}

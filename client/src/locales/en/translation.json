@@ -3706,7 +3706,9 @@
     "project": "Project",
     "noProject": "No project",
     "quarantined": "In quarantine",
-    "quarantineFor": "Quarantine {{name}}"
+    "quarantineFor": "Quarantine {{name}}",
+    "unstable": "Unstable",
+    "unstableOn": "{{device}}: changed verdict {{flips}}× in {{runs}} runs"
   },
   "mobileInspector": {
     "title": "Inspector",

@@ -143,6 +143,27 @@ describe('FlakyTestsCard', () => {
     expect(screen.queryByRole('button', { name: 'Quarantine' })).toBeNull();
   });
 
+  it('labels a mobile test, with its device, and quarantines it as one', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...response,
+        items: [{ ...response.items[0], testName: 'Checkout on Android', browser: 'Pixel 8 · 14.0', test: { type: 'mobile', id: 9 } }],
+      }),
+    });
+    renderCard();
+
+    expect(await screen.findByText('Mobile')).toBeInTheDocument();
+    expect(screen.getByText('Pixel 8 · 14.0')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Quarantine' }));
+    fireEvent.change(screen.getByLabelText('Why'), { target: { value: 'Device farm drops the session' } });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Quarantine' }).at(-1)!);
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([url, init]: any[]) => url === '/api/quarantine' && init?.method === 'POST');
+      expect(call && JSON.parse(call[1].body)).toEqual({ testType: 'mobile', testId: 9, reason: 'Device farm drops the session' });
+    });
+  });
+
   it('reports a failed analysis instead of showing an empty list', async () => {
     fetchMock.mockResolvedValue({ ok: false, json: async () => ({}) });
     renderCard();
