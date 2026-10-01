@@ -21,6 +21,12 @@ import loggerPromise from './logger';
 export interface LoginState {
   cookies: unknown[];
   origins: unknown[];
+  /**
+   * The Accept-Language the session was signed in with. Sites that guard against session
+   * hijacking (Rack::Protection, many Java and .NET stacks) bind the session to request headers
+   * and drop it when they change, so a run must send the recorder's value, not its own.
+   */
+  acceptLanguage?: string;
 }
 
 export interface EnvironmentScope {
