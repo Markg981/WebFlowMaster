@@ -114,7 +114,7 @@ ok('1: inspector con Lab di A', r.status === 404, err(r));
 const labB = await findOr(ownerB, '/api/browser-grids', 'SEC · Lab B', { name: 'SEC · Lab B', provider: 'local_appium', endpoint: 'http://host.docker.internal:4723', agentPool: 'lab' });
 r = await ownerB('POST', `/api/browser-grids/${labB.id}/test`);
 // A's agent of pool "lab" is connected; B, with no agent of its own, must not see it.
-ok('2: Lab di B non usa l\'agente di A', r.data?.ok === false && /No agent of pool "lab" is connected/.test(r.text), r.data?.message);
+ok('2: Lab di B non usa l\'agente di A', r.data?.ok === false && /No agent of pool "lab" is connected/.test(r.data?.message ?? ''), r.data?.message);
 r = await editorA('POST', '/api/browser-grids', { name: `SEC28 ${Date.now()}`, provider: 'local_appium', endpoint: 'http://host.docker.internal:4723', agentPool: 'lab', key: 'non-va-salvata' });
 ok('3: griglia locale con chiave → hasKey false', (r.status === 201 || r.status === 200) && r.data?.hasKey === false, `${err(r)} hasKey ${r.data?.hasKey}`);
 if (r.data?.id) await editorA('DELETE', `/api/browser-grids/${r.data.id}`);
