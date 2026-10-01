@@ -372,6 +372,12 @@ avvia Jenkins (http://localhost:8088, `admin` / `Collaudo.2026!`) configurato da
 unito) sul piano «Collaudo · rete e trace» in Staging. Pubblica JUnit e report HTML; il run nel
 prodotto riporta la build Jenkins con il link. L'agente è il nodo integrato con Node, non
 `docker { image 'node:20' }` dell'esempio. `npm run collaudo:jenkins -- stop` lo ferma.
+**Isolamento dei test mobili (SEC-25…30).** Con l'emulatore avviato e MOB-16 eseguito (test
+«Ricerca Wikipedia», griglia «Lab»): `npm run collaudo:sicurezza-mobile` esegue tutti i passi via API.
+Accede da sé come owner.b e come `marco@acme.test` (editor fuori da «Progetto P») e lascia in B
+griglia, test, progetto, requisito e connessione «SEC · …». L'agente di B nel pool `lab` di SEC-28
+non serve: la griglia di B risponde che nessun agente del pool è connesso mentre quello di A lo è,
+cioè il pool vale dentro l'organizzazione.
 
 ## 8. Cosa non copre
 
