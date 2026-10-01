@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import http from 'http';
 import type { AddressInfo } from 'net';
 import { allowedCommands, type DebugState } from '@shared/debug-session';
@@ -51,6 +51,19 @@ describe('what a session accepts', () => {
     const controller = new DebugController('idle', channel, { breakpoints: ['s1'], environmentKeys: [], idleTimeoutMs: 30 });
     const decision = await controller.beforeStep({ pc: 0, step: { id: 's1', action: { id: 'click' } }, screenshot: async () => null, url: () => null });
     expect(decision).toMatchObject({ kind: 'stop' });
+  });
+
+  it('takes the idle timeout from DEBUG_IDLE_TIMEOUT_MS, for a test installation', async () => {
+    vi.stubEnv('DEBUG_IDLE_TIMEOUT_MS', '30');
+    try {
+      const channel = memoryDebugChannel();
+      await channel.open('idle-env', { userId: 1, organizationId: 1, createdAt: '' });
+      const controller = new DebugController('idle-env', channel, { breakpoints: ['s1'], environmentKeys: [] });
+      const decision = await controller.beforeStep({ pc: 0, step: { id: 's1', action: { id: 'click' } }, screenshot: async () => null, url: () => null });
+      expect(decision).toMatchObject({ kind: 'stop' });
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it('shows the values made during the run, and only the names of the environment', async () => {

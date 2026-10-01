@@ -91,6 +91,33 @@
       "lastName": "Reimposta",
       "enabled": true,
       "credentials": [{ "type": "password", "value": "Collaudo.2026!", "temporary": false }]
+    },
+    {
+      "username": "mfa",
+      "email": "mfa@acme.test",
+      "emailVerified": true,
+      "firstName": "Mario",
+      "lastName": "Mfa",
+      "enabled": true,
+      "requiredActions": ["CONFIGURE_TOTP"],
+      "credentials": [{ "type": "password", "value": "Collaudo.2026!", "temporary": false }]
+    },
+    {
+      "username": "mfa-pronto",
+      "email": "mfa-pronto@acme.test",
+      "emailVerified": true,
+      "firstName": "Marta",
+      "lastName": "Mfa",
+      "enabled": true,
+      "credentials": [
+        { "type": "password", "value": "Collaudo.2026!", "temporary": false },
+        {
+          "type": "otp",
+          "userLabel": "collaudo",
+          "secretData": "{\"value\":\"CollaudoTotp2026Key!\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\"}"
+        }
+      ]
     }
   ]
 }

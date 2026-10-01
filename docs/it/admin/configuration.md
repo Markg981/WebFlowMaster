@@ -108,6 +108,8 @@ elementi: i browser che una persona aspetta.
 |---|---|---|---|
 | `GEMINI_API_KEY` | entrambi | nessuno | Chiave Google Gemini. Senza, la descrizione dei test a frasi, la correzione AI dei selettori e l'analisi AI dei fallimenti sono disattivate; tutto il resto funziona. |
 | `GEMINI_MODEL` | web | `gemini-2.0-flash` | Il modello che trasforma le frasi in step e analizza i fallimenti. La correzione dei selettori usa il proprio. |
+| `GEMINI_BASE_URL` | entrambi | quello di Google | Un altro indirizzo per la stessa API Gemini: un proxy, o un servizio simulato come quello dello stack di collaudo. |
+| `DEBUG_IDLE_TIMEOUT_MS` | entrambi | `900000` (15 minuti) | Quanto una sessione di debug in pausa attende un comando prima di chiudere il browser. Da accorciare solo su un'installazione di prova. |
 
 ## Log
 

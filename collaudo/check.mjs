@@ -17,7 +17,7 @@ const BASE = process.env.WFM_URL ?? 'https://wfm.collaudo.test';
 const SESSIONS = join(dirname(fileURLToPath(import.meta.url)), '.sessions');
 const COMPOSE = ['compose', '-p', 'wfm-collaudo', '-f', 'docker-compose.yml', '-f', 'collaudo/docker-compose.collaudo.yml'];
 
-const REQUIRED_SERVICES = ['api', 'worker', 'postgres', 'redis', 'caddy', 'keycloak', 'mailpit', 'ricevitore', 'display', 'loki', 'grafana'];
+const REQUIRED_SERVICES = ['api', 'worker', 'postgres', 'redis', 'caddy', 'keycloak', 'mailpit', 'ricevitore', 'display', 'loki', 'grafana', 'simulatori'];
 
 let failures = 0;
 let warnings = 0;
@@ -75,6 +75,9 @@ mailpit.ok ? pass('Mailpit http://localhost:8025') : fail(`Mailpit: ${mailpit.st
 
 const loki = await reachable('http://localhost:13100/ready');
 loki.ok ? pass('Loki http://localhost:13100') : fail(`Loki: ${loki.status}`, 'wfmc up -d loki; poi wfmc up -d api worker per LOKI_URL');
+
+const simulatori = await reachable('http://localhost:8090/_admin/health');
+simulatori.ok ? pass('Servizi simulati http://localhost:8090') : fail(`Servizi simulati: ${simulatori.status}`, 'wfmc up -d simulatori');
 
 const grafana = await reachable('http://localhost:13001/api/health');
 grafana.ok ? pass('Grafana http://localhost:13001') : fail(`Grafana: ${grafana.status}`, 'wfmc up -d grafana');

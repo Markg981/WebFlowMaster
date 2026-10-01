@@ -19,6 +19,7 @@
     "collaudo:up": "docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml up -d --build --wait",
     "collaudo:prepare": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/prepare.mjs",
     "collaudo:check": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/check.mjs",
+    "collaudo:simulatori": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/prova-simulatori.mjs",
     "collaudo:reset": "docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml down -v",
     "test:migrate": "tsx server/tests/setup.ts",
     "test": "vitest run",
