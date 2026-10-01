@@ -226,7 +226,9 @@ Stated so a review can weigh them, not discovered later:
   DNS; on a shared installation the first organization to claim a domain has it.
 - No password complexity rules beyond length, and no e-mail delivery: invitation and password
   reset links are handed over by the owner.
-- **Rate limits are counted per web process**: with several web processes behind a load
-  balancer the effective limit is that many times higher.
+- **Rate limits fall back to per-process counting** while Redis does not answer: the counts
+  (sign-in, API keys, webhooks, SSO, log ingestion) are kept in Redis and shared by every web
+  process, but a request is never held waiting for Redis, so during an outage each process counts
+  on its own until it is back.
 - **Styles may be inline** under the Content Security Policy, which the interface components
   require.
