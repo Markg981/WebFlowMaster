@@ -14,6 +14,7 @@ plan's browser matrix; see [Running tests](../guide/running).)
 |---|---|---|
 | Model | `shared/mobile.ts` | Platforms, the step actions, `MobileStep`, `parseMobileLocator`, `MobileStepResult`. Shared with the client so the editor and the runner agree. |
 | Inspector model | `shared/mobile-inspector.ts` | Parses Appium's page source into an element tree and proposes the best locator for an element. |
+| Recorder rules | `shared/mobile-recorder.ts` | What a touch on the screenshot becomes: the locator a recorded step uses (and whether it is fragile), a drag's swipe direction, text and password fields, the text an assertion checks. Recording happens in the page; the server only runs each step through `/api/mobile-inspector/:id/actions`. |
 | Grids | `shared/browser-grids.ts`, `server/browser-grids.ts`, `routes/browser-grids.routes.ts` | Where devices come from: BrowserStack, LambdaTest, or **local Appium** through an agent pool. Stores the key encrypted and tests the connection. |
 | Appium client | `server/appium-client.ts` | `AppiumSession`: a minimal W3C WebDriver client (find, click, type, swipe, source, screenshot). |
 | Runner | `server/mobile-runner.ts` | Opens a session on the grid, runs the steps, collects results, uploads apps to a grid. |

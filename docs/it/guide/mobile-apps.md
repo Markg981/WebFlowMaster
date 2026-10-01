@@ -104,11 +104,39 @@ minuto o due a trovare il dispositivo.
   dispositivo** e **Digitalo** sull'elemento selezionato, **Tocca sul dispositivo** per toccare
   dove cliccate sullo schermo, i pulsanti indietro e scorri, e ↻ per rileggere lo schermo. Un
   passo che fallisce dice perché, come in un'esecuzione.
-- **Registra come passi ciò che faccio qui** aggiunge al test ogni tocco, testo, indietro e
-  scorrimento riuscito, così percorrere l'app scrive il test.
+
+### Registrare un test {#recording}
+
+**Registra** trasforma il percorso nell'app in passi. Ogni tocco sullo schermo viene prima fatto sul
+dispositivo, e diventa un passo solo se è riuscito:
+
+- **Un clic** tocca l'elemento sotto il puntatore, indicato con il suo locator più solido (il primo
+  che proporrebbe il pannello dell'elemento). Dove non c'è nulla a cui dare un nome, il tocco viene
+  fatto ma non registrato, e l'inspector lo dice.
+- **Un clic su un campo di testo** chiede poi cosa scrivere; **Digitalo** (o Invio) registra un
+  passo Digita. In un campo password il testo è mascherato e il passo è segnato **password**.
+- **Un trascinamento** sullo schermo registra uno scorrimento nella sua direzione (su, giù,
+  sinistra o destra). Anche i pulsanti indietro, scorri e nascondi tastiera vengono registrati.
+- **Verifica che sia visibile** o **Verifica il testo**, poi un clic su un elemento, registra una
+  verifica — quella sul testo con il testo che l'elemento mostra adesso. Entrambe sono offerte anche
+  sull'elemento selezionato.
+
+I passi registrati aspettano in **Step registrati**, non nel test. Lì si può correggere un elemento o
+un valore, spostare un passo su o giù, o rimuoverlo; **Aggiungi N step al test** li mette in fondo al
+test in quell'ordine, e **Scarta** li elimina. Chiudere l'inspector con passi non aggiunti chiede
+conferma. Due etichette chiedono un'occhiata prima di aggiungere:
+
+- **fragile** — solo la posizione nella schermata identifica l'elemento (un XPath per posizione): il
+  passo si rompe quando cambia la disposizione. Date all'elemento un accessibility id nell'app, o
+  scrivete un locator più solido.
+- **password** — una password scritta nel test la legge chiunque possa aprirlo. Sostituitela con
+  <code v-pre>{{password}}</code> e impostate il valore nell'ambiente.
+
+Uno scorrimento viene registrato come direzione attraverso lo schermo, non come percorso esatto del
+trascinamento; pressione prolungata, pinch e tocchi a coordinate fisse non vengono registrati.
 
 L'inspector non ha un ambiente: un valore con una <code v-pre>{{variabile}}</code> viene rifiutato
-con il suo nome. Digitate il valore vero e poi cambiatelo nel passo.
+con il suo nome. Digitate il valore vero e poi cambiatelo nel passo (nell'elenco registrato, prima di aggiungerlo).
 
 Il dispositivo resta vostro finché l'inspector è aperto, e consuma minuti della griglia: chiuderlo
 lo restituisce, e così lasciarlo inutilizzato per cinque minuti. Un inspector per persona alla
