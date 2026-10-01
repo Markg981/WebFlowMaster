@@ -78,6 +78,9 @@ services:
         condition: service_started
 
   worker:
+    # The browsers of a run trust the collaudo CA too (WEB-48 signs in on Keycloak): collaudo/worker.
+    entrypoint: ["sh", "/collaudo-worker/trust-ca.sh"]
+    command: ["node", "dist/worker.js"]
     environment:
       <<: *collaudo-app-env
       # Where runs borrowing an agent's browser reach the relay in the web process.
@@ -85,6 +88,7 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     volumes:
       - collaudo_ca:/collaudo-ca:ro
+      - ./collaudo/worker:/collaudo-worker:ro
     depends_on:
       ca-export:
         condition: service_completed_successfully
