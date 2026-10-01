@@ -5,7 +5,7 @@ Questa pagina è il riferimento del database: ogni tabella, ogni colonna e ogni 
 scopo di ciascuna tabella, a parole, è in [Modello dati](./data-model); come le righe restano separate fra
 organizzazioni è in [Tenancy e accessi](./tenancy).
 
-**56 tabelle**, di cui 44 hanno un `organization_id` e sono protette dalla row-level security. Le altre 12 sono
+**57 tabelle**, di cui 45 hanno un `organization_id` e sono protette dalla row-level security. Le altre 12 sono
 dell'intera installazione o si leggono prima che l'organizzazione sia nota: `organizations`, `users`, `user_mfa`,
 `user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sso_saml_requests`, `sessions`, `runners`
 e `system_settings`.
@@ -436,6 +436,16 @@ erDiagram
     text description
     jsonb parameters
     text script
+    timestamp created_at
+    timestamp updated_at
+  }
+  test_data_sets {
+    int id PK
+    int organization_id FK
+    text name
+    text description
+    jsonb columns
+    jsonb rows
     timestamp created_at
     timestamp updated_at
   }
@@ -1079,5 +1089,5 @@ Queste relazioni esistono nell'applicazione ma non hanno una chiave esterna. Son
   utente finché è in sospeso (0044); un legame con un'issue è univoco per fallimento (`dedupe_key`), così un
   fallimento si segnala una volta; la chiave di idempotenza di un run è univoca per organizzazione, così una richiesta ripetuta
   restituisce lo stesso run.
-- **Migrazioni.** 61 file SQL numerati in `migrations/` (da `0000` a `0060`), applicati una volta dal migratore
+- **Migrazioni.** 62 file SQL numerati in `migrations/` (da `0000` a `0061`), applicati una volta dal migratore
   prima che partano gli altri processi; il journal è `migrations/meta/_journal.json`.

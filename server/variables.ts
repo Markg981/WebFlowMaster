@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { privilegedDb } from './db';
-import { secrets as secretsTable } from '@shared/schema';
+import { secrets as secretsTable, testDataSets } from '@shared/schema';
+import { dataVariables } from '@shared/test-data';
 import { decryptSecret } from './crypto';
 import loggerPromise from './logger';
 import { findInvalidGenerators } from './generators';
@@ -44,7 +45,13 @@ export function defaultVariables(): Record<string, string> {
 }
 
 export async function resolveVariables(scope: VariableScope): Promise<Record<string, string>> {
-  const vars = defaultVariables();
+  // The organization's shared test data under the environment's values: {{data.<set>.<column>}}
+  // (shared/test-data.ts). Scoped by organization explicitly, like the secrets below.
+  const sets = await privilegedDb
+    .select({ name: testDataSets.name, columns: testDataSets.columns, rows: testDataSets.rows })
+    .from(testDataSets)
+    .where(eq(testDataSets.organizationId, scope.organizationId));
+  const vars = { ...defaultVariables(), ...dataVariables(sets) };
   if (!scope.environmentId) return vars;
 
   const logger = await loggerPromise;

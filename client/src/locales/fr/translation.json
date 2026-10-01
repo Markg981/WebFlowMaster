@@ -486,7 +486,8 @@
     "testLibrary": "Bibliothèque de tests",
     "testManager": "Gestionnaire de tests",
     "requirements": "Exigences",
-    "mobileTests": "Applications mobiles"
+    "mobileTests": "Applications mobiles",
+    "testData": "Données de test"
   },
   "dashboardPage": {
     "user": {
@@ -2592,7 +2593,8 @@
       "custom_action": "Actions personnalisées",
       "requirement": "Exigences",
       "test_management": "Gestion des tests",
-      "mobile_test": "Applications mobiles"
+      "mobile_test": "Applications mobiles",
+      "test_data_set": "Données de test"
     },
     "actions": {
       "member_role_changed": "Rôle du membre modifié",
@@ -2682,7 +2684,10 @@
       "mobile_test_deleted": "Test d'application mobile supprimé",
       "mobile_test_run": "Test d'application mobile exécuté sur un appareil",
       "mobile_test_app_uploaded": "Application envoyée à une grille d'appareils",
-      "mobile_test_inspector_opened": "Inspecteur ouvert sur un appareil"
+      "mobile_test_inspector_opened": "Inspecteur ouvert sur un appareil",
+      "test_data_set_created": "Jeu de données partagé créé",
+      "test_data_set_updated": "Jeu de données partagé modifié",
+      "test_data_set_deleted": "Jeu de données partagé supprimé"
     }
   },
   "security": {
@@ -3791,5 +3796,22 @@
     "reportDescription": "Tests API qui ont envoyé leur requête plusieurs fois et comparé les temps aux seuils.",
     "verdict": "Verdict",
     "withinThresholds": "dans les seuils"
+  },
+  "testData": {
+    "title": "Données de test",
+    "pageDescription": "Des données gardées une fois et réutilisées par chaque test : des valeurs comme {{data.<jeu>.<colonne>}}, ou les lignes sur lesquelles tourne un test UI.",
+    "new": "Nouveau jeu de données",
+    "edit": "Modifier le jeu de données",
+    "dialogHint": "Un nom et un tableau. La première ligne donne les valeurs {{data.…}} ; un test UI peut tourner sur toutes les lignes.",
+    "name": "Nom",
+    "nameHint": "Lettres minuscules, chiffres et tirets bas.",
+    "description": "Description",
+    "usage": "Dans n'importe quel test :",
+    "empty": "Pas encore de données partagées. Créez un jeu pour les clients, produits ou cartes que vos tests recopient.",
+    "editNamed": "Modifier {{name}}",
+    "deleteNamed": "Supprimer {{name}}",
+    "confirmDelete": "Supprimer {{name}} ?",
+    "deleteFailed": "Non supprimé",
+    "size": "{{rows}} ligne(s) · {{columns}} colonne(s)"
   }
 }

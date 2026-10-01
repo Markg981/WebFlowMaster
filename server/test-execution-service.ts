@@ -29,6 +29,7 @@ import { decryptSecret } from './crypto';
 import { defaultVariables } from './variables';
 import { runApiRequest, type ApiRequestSpec, type Extraction } from './api-test-runner';
 import { runPerformance } from './api-performance';
+import { SharedDataError, expandSharedDataset, loadDataVariables } from './test-data';
 import type { ApiPerformance, PerformanceSummary } from '@shared/api-performance';
 import { AgentHttp } from './agents/agent-fetch';
 import type { Assertion, AuthParams } from '@shared/schema';
@@ -738,11 +739,14 @@ async function runTestPlanJobInTenant(
   }
 
   const secretsMap: Record<string, string> = {};
+  // The organization's shared test data, as {{data.<set>.<column>}} (shared/test-data.ts).
+  const dataVariables: Record<string, string> = await withTenantTransaction((tx) => loadDataVariables(tx));
   // The defaults underneath, the environment's secrets on top — so an environment can
   // override `baseUrl` like any other name, and a run against site B does not depend on
   // what a process env var happened to hold.
   const runVariables = (captured: Record<string, string>): Record<string, string> => ({
     ...defaultVariables(),
+    ...dataVariables,
     ...secretsMap,
     // Values captured by tests that already ran in this pass. Last write wins, so a later
     // request can refresh a token an earlier one obtained.
@@ -855,6 +859,23 @@ async function runTestPlanJobInTenant(
         }
       }
     }
+  }
+
+  // A test that runs over a shared data set gets that set's rows now, once for the whole run,
+  // so every browser and every re-run of it sees the same rows (shared/test-data.ts). A set
+  // deleted since is that test's error, not the run's.
+  const datasetErrors = new Map<number, string>();
+  if (uiTestsMap.size > 0) {
+    await withTenantTransaction(async (tx) => {
+      for (const [testId, test] of Array.from(uiTestsMap)) {
+        try {
+          uiTestsMap.set(testId, await expandSharedDataset(tx, test));
+        } catch (error) {
+          if (!(error instanceof SharedDataError)) throw error;
+          datasetErrors.set(testId, error.message);
+        }
+      }
+    });
   }
 
   const apiTestsMap = new Map<number, ApiTest>();
@@ -1048,6 +1069,9 @@ async function runTestPlanJobInTenant(
     if (haltedBy) {
       reportStatus = 'Skipped';
       failureReason = haltedBy;
+    } else if (link.testType === 'ui' && link.testId && datasetErrors.has(link.testId)) {
+      reportStatus = 'Error';
+      failureReason = datasetErrors.get(link.testId);
     }
     if (!haltedBy) wsEmitter.emitExecutionLog(testPlanRunId, {
       level: 'info',
@@ -1057,7 +1081,7 @@ async function runTestPlanJobInTenant(
       metadata: { testId: link.testId || link.apiTestId || link.mobileTestId, testType: testTypeForRun, browser: browserChoice?.label, locale }
     });
 
-    if (reportStatus === 'Skipped') {
+    if (reportStatus === 'Skipped' || reportStatus === 'Error') {
       // Stopped before it started; recorded below with the reason.
     } else if (testTypeForRun === 'ui' && testObjectDefinition && isManualSequence((testObjectDefinition as Test).sequence)) {
       // A manual test: no browser. It waits in the report for somebody's verdict, with the

@@ -318,6 +318,11 @@ To run the same test over several inputs, give it a **dataset**: a table whose c
 variables. The test runs once per row. Build it by adding columns and rows, or **Paste from a
 spreadsheet**: copy the block from Excel or Google Sheets, header row included.
 
+When the rows are shared with other tests, keep them in a [shared data set](./organizing#test-data)
+and choose it in **Use a shared data set** instead: the test keeps only a link, runs over the
+set's rows as they are at the time of the run, and follows the set if it is renamed. **Use a copy
+as this test's own rows** turns the link back into rows of its own.
+
 ## Step groups
 
 A sequence used by many tests — signing in, choosing a customer — can be saved with **Save as

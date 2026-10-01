@@ -133,3 +133,23 @@ model (see [AI features](../security/#ai-features)), and nothing is written to t
 imports one case per row, with its id, priority and objective. Map each case to a saved test
 (**Choose a sequence**), select the cases, and **Run selected**; the status and the latest report of
 each case are shown next to it.
+
+## Shared test data {#test-data}
+
+The same customers, products or cards used to be copied into test after test, and drifted apart.
+**Test data** keeps them once for the whole organization: a set has a name (`customers`), a
+description and a table. Viewers can read the sets; editors create and change them.
+
+A set is used two ways:
+
+- **Values, in any test.** <code v-pre>{{data.customers.email}}</code> is the `email` column of the
+  first row of `customers`, in a UI step, an API request or a mobile step, in plans and in the
+  builder alike. Environment values with the same name win, so an environment can override one.
+- **Rows, for a UI test.** In the test's dataset, **Use a shared data set** makes the test run once
+  per row of the set, with its columns as <code v-pre>{{column}}</code> — see
+  [Datasets](./web-tests#datasets).
+
+Names are lowercase letters, digits and underscores; columns are letters, digits and underscores,
+so a placeholder can name them. A set holds up to 1,000 rows and 50 columns. A set that a test runs
+over cannot be deleted until that test stops using it; the refusal names the tests. Creating,
+changing and deleting a set are recorded in the audit log.

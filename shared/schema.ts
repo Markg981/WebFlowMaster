@@ -876,6 +876,27 @@ export const customActions = pgTable("custom_actions", {
 export type CustomAction = typeof customActions.$inferSelect;
 
 /**
+ * Data an organization keeps once and every test reuses — see shared/test-data.ts. Read as
+ * {{data.<name>.<column>}} by any test, or as the rows a UI test runs over.
+ */
+export const testDataSets = pgTable("test_data_sets", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  columns: jsonb("columns").$type<string[]>().notNull(),
+  rows: jsonb("rows").$type<Array<Record<string, string>>>().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("test_data_sets_organization_id_idx").on(table.organizationId),
+  // The name is how a test refers to it: {{data.customers.email}}.
+  uniqueIndex("test_data_sets_organization_name_idx").on(table.organizationId, table.name),
+]);
+
+export type TestDataSet = typeof testDataSets.$inferSelect;
+
+/**
  * The elements of an application, in one place instead of inside each test.
  *
  * `detected_elements` belongs to a single test, so the same button is written down once per
@@ -1588,6 +1609,9 @@ export const AUDIT_ACTIONS = {
   MEMBER_PROVISIONED: 'member.provisioned',
   // An organization's own steps. They are code that runs against the applications under test,
   // so who wrote and changed them is kept — the script itself is not, only its size.
+  TEST_DATA_SET_CREATED: 'test_data_set.created',
+  TEST_DATA_SET_UPDATED: 'test_data_set.updated',
+  TEST_DATA_SET_DELETED: 'test_data_set.deleted',
   CUSTOM_ACTION_CREATED: 'custom_action.created',
   CUSTOM_ACTION_UPDATED: 'custom_action.updated',
   CUSTOM_ACTION_DELETED: 'custom_action.deleted',
@@ -2716,4 +2740,6 @@ export const ORG_SCOPED_TABLES = [
   'password_resets',
   // The organization's own steps (migration 0046).
   'custom_actions',
+  // Shared test data (migration 0061).
+  'test_data_sets',
 ] as const;

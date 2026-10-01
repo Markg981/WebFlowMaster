@@ -4,6 +4,9 @@ import { v4 as uuidv4 } from "uuid";
 import { AdhocDetectedElementSchema, AdhocTestStepSchema, PreconditionSchema } from "@shared/schema";
 import { DEBUG_COMMANDS, allowedCommands, type DebugState } from "@shared/debug-session";
 import { requireRole } from "../middleware/require-role";
+import { withTenantTransaction } from "../middleware/tenancy";
+import { SharedDataError, expandSharedDataset } from "../test-data";
+import { sharedSetIdOf } from "@shared/test-data";
 import { browserTasks, BrowserTaskError } from "../browser-tasks";
 import { debugChannel } from "../debug-session";
 import loggerPromise from "../logger";
@@ -65,7 +68,15 @@ router.post("/api/debug-sessions", requireRole("editor"), async (req, res) => {
   const parsed = startSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.flatten() });
   const user = req.user as any;
-  const { breakpoints, datasetRow, ...payload } = parsed.data;
+  const { breakpoints, datasetRow, ...given } = parsed.data;
+  // A shared data set's rows, in place of the marker the test keeps (shared/test-data.ts).
+  let payload: typeof given = given;
+  try {
+    if (sharedSetIdOf(given.dataset) !== null) payload = await withTenantTransaction((tx) => expandSharedDataset(tx, given));
+  } catch (error) {
+    if (error instanceof SharedDataError) return res.status(400).json({ error: error.message });
+    throw error;
+  }
   if (datasetRow !== undefined && datasetRow >= (payload.dataset?.length ?? 0)) {
     return res.status(400).json({ error: `The dataset has ${payload.dataset?.length ?? 0} row(s); row ${datasetRow + 1} does not exist.` });
   }
