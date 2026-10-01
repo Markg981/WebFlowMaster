@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { privilegedDb } from './db';
-import { ORG_SCOPED_TABLES } from '@shared/schema';
+import { ORG_SCOPED_TABLES, testPlanExecutions, testPlans } from '@shared/schema';
+import type { ArtifactStore } from './artifact-store';
 import { exportOrganization, eraseOrganization, NOT_EXPORTED } from './organization-lifecycle';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { recordAudit } from './audit';
@@ -140,6 +141,35 @@ describe('eraseOrganization', () => {
 
     await eraseOrganization(orgA);
     expect(await countIn('audit_log', orgA)).toBe(0);
+  });
+
+  it("removes its runs' evidence and its visual baselines from the artifact store, and nobody else's", async () => {
+    await privilegedDb.insert(testPlans).values([
+      { id: 'plan-a', name: 'A', userId: userA, organizationId: orgA },
+      { id: 'plan-b', name: 'B', userId: userB, organizationId: orgB },
+    ] as any);
+    await privilegedDb.insert(testPlanExecutions).values([
+      { id: 'run-a1', organizationId: orgA, testPlanId: 'plan-a', status: 'completed', triggeredBy: 'manual' },
+      { id: 'run-a2', organizationId: orgA, testPlanId: 'plan-a', status: 'completed', triggeredBy: 'manual' },
+      { id: 'run-b1', organizationId: orgB, testPlanId: 'plan-b', status: 'completed', triggeredBy: 'manual' },
+    ] as any);
+    const asked: string[] = [];
+    const store = {
+      kind: 'local',
+      deletePrefix: async (prefix: string) => {
+        asked.push(prefix);
+        if (prefix.includes('run-a2')) throw new Error('bucket unreachable');
+        return 3;
+      },
+    } as unknown as ArtifactStore;
+
+    const { files } = await eraseOrganization(orgA, { store });
+
+    expect(asked.sort()).toEqual(['results/plan-a/run-a1/', 'results/plan-a/run-a2/', `visual-baselines/org_${orgA}/`].sort());
+    expect(files).toEqual({ removed: 6, failed: ['results/plan-a/run-a2/'] });
+    // The rows are gone even though a prefix could not be removed.
+    expect(await countIn('test_plan_executions', orgA)).toBe(0);
+    expect(await countIn('test_plan_executions', orgB)).toBe(1);
   });
 
   it('reports what it deleted', async () => {

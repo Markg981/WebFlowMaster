@@ -310,7 +310,9 @@ several customers should name its operators.
 
 ## Export and erasure *(owners)*
 
-Both are done through the API for now, with an owner's full-access key:
+In **Settings → Export and erasure**: **Download the export**, and **Erase permanently** after
+typing the organization's exact name. The same is available through the API, with an owner's
+full-access key:
 
 ```bash
 export WFM_URL=https://webflowmaster.example.com
@@ -339,16 +341,15 @@ curl -s -X DELETE -H "Authorization: Bearer $KEY" -H "Content-Type: application/
 Export first. The erasure is written to the application log, since the audit log is erased with
 the organization.
 
-Erasure removes the organization's rows from the database. It does not remove its files from
-the artifact store (screenshots, videos and traces under `results/<planId>/`, with the plan ids in the export;
-baselines under `visual-baselines/org_<id>/`), and retention no longer finds them once their runs are gone:
-the installation's operator removes them, and handles database backups, which keep the
-organization until they expire.
+Erasure removes the organization's rows from the database and then its files from the artifact
+store: each run's screenshots, videos and traces under `results/<planId>/<runId>/`, and its
+visual baselines under `visual-baselines/org_<id>/`. The answer says how many files were removed
+and names any folder the store refused (an unreachable bucket, say), which the application log
+records too; the operator removes those by hand. Database backups keep the organization until
+they expire.
 
 ## Known limitations
 
-- Export and erasure have no screen yet; they are done through the API as shown above.
-- Erasing an organization leaves its files in the artifact store for the operator to remove.
 - Single sign-on does not take roles from the provider's groups: new accounts get the default
   role, and owners change it in **Settings → Members**. SAML assertions must be signed and
   unencrypted, sign-in starts from WebFlowMaster (no IdP-initiated sign-in), and single logout is

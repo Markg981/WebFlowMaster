@@ -34,6 +34,7 @@ import {
   Bug,
   SlidersHorizontal,
   ScrollText,
+  DatabaseBackup,
   ShieldCheck,
   Server,
   Lock,
@@ -66,6 +67,7 @@ import AgentsCard from "@/components/settings/AgentsCard";
 import SourceHostsCard from "@/components/settings/SourceHostsCard";
 import RunUsageCard from "@/components/settings/RunUsageCard";
 import AuditLogCard from "@/components/settings/AuditLogCard";
+import ExportEraseCard from "@/components/settings/ExportEraseCard";
 import SecurityCard from "@/components/settings/SecurityCard";
 import SsoCard from "@/components/settings/SsoCard";
 import RunnersCard from "@/components/settings/RunnersCard";
@@ -736,6 +738,13 @@ export default function SettingsPage() {
             ),
             icon: ScrollText,
             content: <AuditLogCard />,
+          },
+          {
+            id: 'organizationData',
+            label: t('settings.sections.organizationData', 'Export and erasure'),
+            description: t('settings.sections.organizationDataDescription', "Take the organization's data with you, or erase it for good."),
+            icon: DatabaseBackup,
+            content: <ExportEraseCard />,
           },
         ]
       : []),

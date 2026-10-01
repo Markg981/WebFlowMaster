@@ -133,7 +133,9 @@
       "browserGrids": "Browser grids",
       "browserGridsDescription": "BrowserStack, LambdaTest or a Playwright server of your own, for browsers and systems the runners do not have.",
       "testManagement": "Test management",
-      "testManagementDescription": "TestRail, Xray or Zephyr Scale, where each finished run is published case by case."
+      "testManagementDescription": "TestRail, Xray or Zephyr Scale, where each finished run is published case by case.",
+      "organizationData": "Export and erasure",
+      "organizationDataDescription": "Take the organization's data with you, or erase it for good."
     },
     "apiKeys": {
       "openApi": "API reference (OpenAPI)",
@@ -3807,5 +3809,15 @@
     "confirmDelete": "Delete {{name}}?",
     "deleteFailed": "Not deleted",
     "size": "{{rows}} row(s) · {{columns}} column(s)"
+  },
+  "organizationData": {
+    "exportTitle": "Export everything",
+    "exportDescription": "One JSON file with every table of the organization: members, projects, tests, plans, runs and the audit log. Passwords and tokens are left out; secrets stay encrypted. Treat the file as confidential.",
+    "download": "Download the export",
+    "eraseTitle": "Erase the organization",
+    "eraseDescription": "Deletes the organization, every member account, all its data and its files (run evidence and visual baselines). It cannot be undone: download an export first if you may need anything.",
+    "typeName": "Type the organization name, {{name}}, to confirm",
+    "erase": "Erase permanently",
+    "lastWarning": "Erase {{name}} and every account in it? This cannot be undone."
   }
 }

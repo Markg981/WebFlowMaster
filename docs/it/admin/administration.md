@@ -331,7 +331,9 @@ da più clienti dovrebbe nominare i propri operatori.
 
 ## Esportazione e cancellazione *(owner)* {#esportazione-e-cancellazione}
 
-Entrambe si fanno per ora tramite l'API, con la chiave ad accesso completo di un owner:
+In **Impostazioni → Esportazione e cancellazione**: **Scarica l'esportazione**, e **Cancella
+definitivamente** dopo aver scritto il nome esatto dell'organizzazione. Lo stesso si può fare
+tramite l'API, con la chiave ad accesso completo di un owner:
 
 ```bash
 export WFM_URL=https://webflowmaster.example.com
@@ -361,18 +363,15 @@ curl -s -X DELETE -H "Authorization: Bearer $KEY" -H "Content-Type: application/
 Esportate prima. La cancellazione viene scritta nel log dell'applicazione, perché il registro di
 audit viene cancellato insieme all'organizzazione.
 
-La cancellazione rimuove le righe dell'organizzazione dal database. Non rimuove i suoi file
-dall'archivio degli artefatti (screenshot, video e trace sotto `results/<planId>/`, con gli id
-dei piani nell'esportazione; baseline sotto `visual-baselines/org_<id>/`), e la conservazione
-non li trova più una volta spariti i run: li rimuove chi gestisce l'installazione, che si occupa
-anche dei backup del database, dove l'organizzazione resta finché non scadono.
+La cancellazione rimuove le righe dell'organizzazione dal database e poi i suoi file
+dall'archivio degli artefatti: screenshot, video e trace di ogni run sotto
+`results/<planId>/<runId>/`, e le baseline visive sotto `visual-baselines/org_<id>/`. La risposta
+dice quanti file sono stati rimossi e nomina le cartelle che l'archivio ha rifiutato (per esempio
+un bucket irraggiungibile), registrate anche nel log dell'applicazione; quelle le rimuove a mano
+chi gestisce l'installazione. I backup del database conservano l'organizzazione finché non scadono.
 
 ## Limiti noti
 
-- Esportazione e cancellazione non hanno ancora una schermata; si fanno tramite l'API come
-  mostrato sopra.
-- Cancellare un'organizzazione lascia i suoi file nell'archivio degli artefatti, da rimuovere a
-  cura di chi gestisce l'installazione.
 - Il single sign-on non prende i ruoli dai gruppi del provider: i nuovi account hanno il ruolo
   predefinito, e gli owner lo cambiano in **Impostazioni → Membri**. Le asserzioni SAML devono
   essere firmate e non cifrate, l'accesso parte da WebFlowMaster (niente accesso avviato dall'IdP),

@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { privilegedDb } from './db';
 import { ORG_SCOPED_TABLES } from '@shared/schema';
+import { BASELINES_PREFIX, RESULTS_PREFIX, artifactStore, type ArtifactStore } from './artifact-store';
 
 /**
  * Export and erasure for a whole organization.
@@ -122,8 +123,21 @@ export async function exportOrganization(organizationId: number): Promise<Record
  * with the organization it describes. Erasure is recorded in the application log instead, which
  * outlives the tenant — the caller is expected to log it.
  */
-export async function eraseOrganization(organizationId: number): Promise<{ deleted: Record<string, number> }> {
+export async function eraseOrganization(
+  organizationId: number,
+  options: { store?: ArtifactStore } = {},
+): Promise<{ deleted: Record<string, number>; files: { removed: number; failed: string[] } }> {
   const order = await deletionOrder();
+
+  // Where its files are, read before the rows that name them are gone: each run's evidence
+  // under results/<plan>/<run>/, and its visual baselines under visual-baselines/org_<id>/.
+  const runs = await privilegedDb.execute(
+    sql`SELECT test_plan_id, id FROM test_plan_executions WHERE organization_id = ${organizationId}`,
+  );
+  const prefixes = [
+    ...(runs.rows as Array<{ test_plan_id: string; id: string }>).map((run) => `${RESULTS_PREFIX}${run.test_plan_id}/${run.id}/`),
+    `${BASELINES_PREFIX}org_${organizationId}/`,
+  ];
 
   // The two drivers name this differently: node-postgres reports rowCount, PGlite affectedRows.
   const rowsAffected = (result: unknown) => {
@@ -144,6 +158,20 @@ export async function eraseOrganization(organizationId: number): Promise<{ delet
     const org = await tx.execute(sql`DELETE FROM organizations WHERE id = ${organizationId}`);
     deleted.organizations = rowsAffected(org);
 
-    return { deleted };
+    return deleted;
+  }).then(async (deleted) => {
+    // The files go after the rows have: a failed transaction must not leave a living
+    // organization without its evidence. A file that cannot be removed is reported, never
+    // thrown — the rows are already gone, and the operator is told exactly what is left.
+    const store = options.store ?? artifactStore();
+    const files = { removed: 0, failed: [] as string[] };
+    for (const prefix of prefixes) {
+      try {
+        files.removed += await store.deletePrefix(prefix);
+      } catch {
+        files.failed.push(prefix);
+      }
+    }
+    return { deleted, files };
   });
 }

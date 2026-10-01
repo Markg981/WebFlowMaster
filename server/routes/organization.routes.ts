@@ -200,7 +200,10 @@ router.delete("/api/organization", requireRole("owner"), async (req: Request, re
     byUsername: req.user!.username,
   });
 
-  const { deleted } = await eraseOrganization(organizationId);
+  const { deleted, files } = await eraseOrganization(organizationId);
+  if (files.failed.length > 0) {
+    logger.error({ message: 'Organization erased, but some of its files could not be removed', organizationId, prefixes: files.failed });
+  }
 
   // The caller's own account is among the rows just deleted, so their session now points at
   // nothing. Ending it is tidier than letting the next request fail to deserialise a user — but
@@ -210,7 +213,7 @@ router.delete("/api/organization", requireRole("owner"), async (req: Request, re
   if (typeof req.logout === 'function') {
     req.logout(() => undefined);
   }
-  res.json({ erased: true, deleted });
+  res.json({ erased: true, deleted, files });
 });
 
 /**

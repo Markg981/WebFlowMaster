@@ -133,7 +133,9 @@
       "browserGrids": "Griglie di browser",
       "browserGridsDescription": "BrowserStack, LambdaTest o un vostro server Playwright, per browser e sistemi che i runner non hanno.",
       "testManagement": "Test management",
-      "testManagementDescription": "TestRail, Xray o Zephyr Scale, dove ogni esecuzione conclusa viene pubblicata caso per caso."
+      "testManagementDescription": "TestRail, Xray o Zephyr Scale, dove ogni esecuzione conclusa viene pubblicata caso per caso.",
+      "organizationData": "Esportazione e cancellazione",
+      "organizationDataDescription": "Portate via i dati dell'organizzazione, o cancellateli definitivamente."
     },
     "apiKeys": {
       "openApi": "Riferimento API (OpenAPI)",
@@ -3932,5 +3934,15 @@
     "confirmDelete": "Eliminare {{name}}?",
     "deleteFailed": "Non eliminato",
     "size": "{{rows}} righe · {{columns}} colonne"
+  },
+  "organizationData": {
+    "exportTitle": "Esporta tutto",
+    "exportDescription": "Un file JSON con ogni tabella dell'organizzazione: membri, progetti, test, piani, run e log di audit. Password e token sono esclusi; i segreti restano cifrati. Trattate il file come riservato.",
+    "download": "Scarica l'esportazione",
+    "eraseTitle": "Cancella l'organizzazione",
+    "eraseDescription": "Elimina l'organizzazione, ogni account dei membri, tutti i suoi dati e i suoi file (evidenze dei run e baseline visive). Non si può annullare: scaricate prima un'esportazione se potrebbe servirvi qualcosa.",
+    "typeName": "Scrivete il nome dell'organizzazione, {{name}}, per confermare",
+    "erase": "Cancella definitivamente",
+    "lastWarning": "Cancellare {{name}} e ogni suo account? Non si può annullare."
   }
 }
