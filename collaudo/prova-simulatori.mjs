@@ -87,18 +87,19 @@ const step = (id, type, selector, value, tag = 'input') => ({
   targetElement: selector ? { id: `e-${id}`, type: tag, selector, text: '', tag, attributes: {} } : null, value,
 });
 const failingName = 'REP15 · bottone con classe cambiata';
+const failingBody = {
+  name: failingName, url: 'https://the-internet.herokuapp.com/login', elements: [],
+  sequence: [
+    step('s1', 'navigate', null, 'https://the-internet.herokuapp.com/login'),
+    step('s2', 'input', '#username', 'tomsmith'),
+    step('s3', 'input', '#password', 'SuperSecretPassword!'),
+    step('s4', 'click', 'button.btn-vecchia', '', 'button'),
+  ],
+};
 let failing = list((await api('GET', '/api/tests')).data).find((t) => t.name === failingName);
-if (!failing) {
-  failing = (await api('POST', '/api/tests', {
-    name: failingName, url: 'https://the-internet.herokuapp.com/login', elements: [],
-    sequence: [
-      step('s1', 'navigate', null, 'https://the-internet.herokuapp.com/login'),
-      step('s2', 'input', '#username', 'tomsmith'),
-      step('s3', 'input', '#password', 'SuperSecretPassword!'),
-      step('s4', 'click', 'button.btn-vecchia', '', 'button'),
-    ],
-  })).data;
-}
+// REP-21 applies the proposed selector, which fixes the test: put the broken one back.
+if (failing) await api('PUT', `/api/tests/${failing.id}`, failingBody);
+else failing = (await api('POST', '/api/tests', failingBody)).data;
 let failingPlan = list((await api('GET', '/api/test-plans')).data).find((p) => p.name === failingName);
 if (!failingPlan) failingPlan = (await api('POST', '/api/test-plans', { name: failingName, elementTimeout: 5000, selectedTests: [{ id: failing.id, type: 'ui' }] })).data;
 const started = await api('POST', `/api/run-test-plan/${failingPlan.id}`, {});
