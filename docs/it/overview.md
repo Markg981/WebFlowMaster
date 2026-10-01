@@ -25,7 +25,7 @@ Un team la usa per:
    HTML, PDF, JUnit e Allure.
 5. **Collegarla** al resto degli strumenti — stati dei commit in GitHub e GitLab, issue in Jira e Azure DevOps,
    pubblicazione su TestRail, Xray e Zephyr Scale, notifiche a Slack, Teams o a un webhook, single sign-on,
-   template per GitHub Actions, GitLab, Jenkins e Azure Pipelines, un client a riga di comando.
+   template per GitHub Actions, GitLab, Jenkins, Azure Pipelines, Bitbucket Pipelines e CircleCI, un client a riga di comando.
 
 È **multi-tenant**: molte organizzazioni condividono un'installazione, e il database stesso ne tiene separati i
 dati. È **self-hosted**: uno stack Docker Compose per una macchina, oppure processi web e worker separati dietro
@@ -113,7 +113,7 @@ funzioni AI; Vitest, Testing Library e supertest per i test; Docker per il confe
 | `shared/` | Schema e tipi usati sia dal client sia dal server |
 | `migrations/` | Le migrazioni SQL (da `0000` a `0058`) |
 | `scripts/` | CLI (`wfm`), agente locale, migratore, schema doctor, importatori |
-| `integrations/` | GitHub Action, template GitLab, shared library Jenkins, template Azure Pipelines |
+| `integrations/` | GitHub Action, template GitLab, shared library Jenkins, template Azure Pipelines, step Bitbucket Pipelines, orb CircleCI |
 | `collaudo/` | L'ambiente di collaudo: HTTPS, Keycloak, simulatori, Jenkins, emulatore Android |
 | `docs/` | Questa documentazione (VitePress, inglese e italiano) |
 | `observability/` | Configurazione di Loki e Grafana |

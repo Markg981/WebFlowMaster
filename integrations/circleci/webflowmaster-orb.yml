@@ -1,0 +1,91 @@
+# WebFlowMaster for CircleCI, as an inline orb.
+#
+# Paste this file's content under `orbs: webflowmaster:` in your .circleci/config.yml, indented
+# one level, then use the job or the command:
+#
+#   version: 2.1
+#   orbs:
+#     webflowmaster:
+#       # … this file …
+#   workflows:
+#     e2e:
+#       jobs:
+#         - webflowmaster/run:
+#             plan: your-plan-id
+#             context: webflowmaster
+#
+# WFM_URL and WFM_API_KEY come from a context (Organization settings → Contexts) or the project's
+# environment variables. The CLI is downloaded from the server it will talk to, so it always
+# matches it. The run is linked to this pipeline, commit and pull request automatically. The JUnit
+# results appear on the job's Tests tab; the HTML report is kept as an artifact.
+
+version: 2.1
+
+description: Run a WebFlowMaster test plan, wait for its verdict and publish its results.
+
+executors:
+  node:
+    docker:
+      - image: cimg/node:20.11
+
+commands:
+  run-plan:
+    description: Start the plan, wait, and write JUnit and HTML into the results directory.
+    parameters:
+      plan:
+        type: string
+      environment:
+        type: string
+        default: ""
+      timeout:
+        type: integer
+        default: 1800
+      results:
+        type: string
+        default: webflowmaster-results
+    steps:
+      - run:
+          name: WebFlowMaster test plan
+          environment:
+            WFM_PLAN: << parameters.plan >>
+            WFM_ENVIRONMENT: << parameters.environment >>
+            WFM_TIMEOUT: << parameters.timeout >>
+            WFM_OUT: << parameters.results >>
+          command: |
+            set -u
+            node -e "fetch(process.env.WFM_URL.replace(/\/+$/, '') + '/cli/wfm.mjs').then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }).then((t) => require('fs').writeFileSync('wfm.mjs', t)).catch((e) => { console.error('Could not download the WebFlowMaster CLI: ' + e.message); process.exit(2); })" || exit 2
+            mkdir -p "$WFM_OUT"
+            set -- run "$WFM_PLAN" --wait --timeout "$WFM_TIMEOUT" --junit "$WFM_OUT/webflowmaster-junit.xml" --html "$WFM_OUT/webflowmaster-report.html"
+            [ -n "$WFM_ENVIRONMENT" ] && set -- "$@" --environment "$WFM_ENVIRONMENT"
+            # CircleCI skips the steps after a failed one, so the verdict is kept and given last,
+            # after the results are stored.
+            code=0
+            node wfm.mjs "$@" || code=$?
+            echo "$code" > "$WFM_OUT/.exit-code"
+      - store_test_results:
+          path: << parameters.results >>
+      - store_artifacts:
+          path: << parameters.results >>/webflowmaster-report.html
+          destination: webflowmaster-report.html
+      - run:
+          name: WebFlowMaster verdict
+          command: exit "$(cat '<< parameters.results >>/.exit-code' 2>/dev/null || echo 2)"
+
+jobs:
+  run:
+    description: Run a WebFlowMaster test plan; the job fails when the plan fails.
+    executor: node
+    parameters:
+      plan:
+        type: string
+      environment:
+        type: string
+        default: ""
+      timeout:
+        type: integer
+        default: 1800
+    steps:
+      - run-plan:
+          plan: << parameters.plan >>
+          environment: << parameters.environment >>
+          timeout: << parameters.timeout >>

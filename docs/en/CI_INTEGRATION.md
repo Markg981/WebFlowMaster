@@ -3,7 +3,7 @@
 A pipeline starts a WebFlowMaster test plan, waits for the verdict, fails the build when the plan
 fails, and publishes the results in the CI system's own test report. Ready-made integrations are
 in [`integrations/`](https://github.com/Markg981/WebFlowMaster/tree/main/integrations): a GitHub Action, a GitLab CI template, a Jenkins shared
-library step and an Azure Pipelines template. Each one is a thin wrapper around the `wfm` CLI, and
+library step, an Azure Pipelines template, a Bitbucket Pipelines step and a CircleCI orb. Each one is a thin wrapper around the `wfm` CLI, and
 anything else that runs Node 18 or later can use the CLI directly.
 
 ## 1. What you need
@@ -138,14 +138,65 @@ steps:
 Define `WFM_URL` and a secret `WFM_API_KEY` in the pipeline's variables or a variable group. The
 results are published to the run's Tests tab and the HTML report is kept as a pipeline artifact.
 
-## 7. Anything else
+## 7. Bitbucket Pipelines
+
+Bitbucket cannot include a step from another repository, so the template is a step to copy:
+take the `definitions` block of
+[`integrations/bitbucket/bitbucket-pipelines.yml`](https://github.com/Markg981/WebFlowMaster/blob/main/integrations/bitbucket/bitbucket-pipelines.yml)
+into your `bitbucket-pipelines.yml` and reference it where the plan should run:
+
+```yaml
+definitions:
+  steps:
+    - step: &webflowmaster
+        # … the step from integrations/bitbucket/bitbucket-pipelines.yml …
+
+pipelines:
+  default:
+    - step: *webflowmaster
+  pull-requests:
+    '**':
+      - step: *webflowmaster
+```
+
+Set `WFM_URL`, `WFM_API_KEY` (secured) and `WFM_PLAN_ID` under Repository settings → Repository
+variables, or on a deployment environment; `WFM_ENVIRONMENT_ID` and `WFM_TIMEOUT` are optional.
+The JUnit file is written under `test-results/`, which Bitbucket reads by itself for the
+pipeline's Tests tab; the HTML report is kept as an artifact.
+
+## 8. CircleCI
+
+The template is an inline orb, so nothing has to be published to the orb registry: paste
+[`integrations/circleci/webflowmaster-orb.yml`](https://github.com/Markg981/WebFlowMaster/blob/main/integrations/circleci/webflowmaster-orb.yml)
+under `orbs: webflowmaster:` in `.circleci/config.yml` and use its job:
+
+```yaml
+version: 2.1
+orbs:
+  webflowmaster:
+    # … the content of integrations/circleci/webflowmaster-orb.yml, indented …
+workflows:
+  e2e:
+    jobs:
+      - webflowmaster/run:
+          plan: your-plan-id
+          context: webflowmaster
+```
+
+Put `WFM_URL` and `WFM_API_KEY` in a context (Organization settings → Contexts) or in the
+project's environment variables. The job's parameters are `plan`, `environment` and `timeout`;
+inside your own job, the `webflowmaster/run-plan` command does the same. The results appear on
+the job's Tests tab and the HTML report is kept as an artifact. CircleCI skips the steps after a
+failed one, so the results are stored first and the plan's verdict is given by a last step.
+
+## 9. Anything else
 
 Any system that can run Node 18 can run the two lines in section 2. Without Node, the API behind
 the CLI is documented at `GET /api/v1/openapi.json`: `POST /api/v1/plans/{planId}/runs`, poll
 `GET /api/v1/runs/{runId}` until `status` is no longer `queued`, `running` or `cancelling`, then
 `GET /api/v1/runs/{runId}/junit` and `/export/{html|pdf|allure}`.
 
-## 8. Commit status on GitHub and GitLab
+## 10. Commit status on GitHub and GitLab
 
 A run started from GitHub Actions or GitLab CI can show on the commit it tested, next to the other
 checks: `WebFlowMaster / <plan>` is *pending* while the run is queued and while it runs, then

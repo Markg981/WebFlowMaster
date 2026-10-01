@@ -17,6 +17,8 @@ const files = [
   'gitlab/webflowmaster.gitlab-ci.yml',
   'jenkins/vars/webflowmaster.groovy',
   'azure-pipelines/webflowmaster.yml',
+  'bitbucket/bitbucket-pipelines.yml',
+  'circleci/webflowmaster-orb.yml',
 ].map((file) => ({ file, text: fs.readFileSync(path.join(root, file), 'utf8') }));
 
 describe('the CI integrations', () => {
@@ -57,5 +59,16 @@ describe('the CI integrations', () => {
     }
     expect(interpolatedInRun).toEqual([]);
     expect(action).toContain('::add-mask::$WFM_API_KEY');
+  });
+
+  it('Bitbucket and CircleCI: results are kept even when the plan fails', () => {
+    const bitbucket = files.find((f) => f.file.startsWith('bitbucket'))!.text;
+    // Bitbucket reads test-results/ by itself, and keeps artifacts of a failed step.
+    expect(bitbucket).toContain('--junit test-results/');
+    expect(bitbucket).toContain('step: &webflowmaster');
+    const circleci = files.find((f) => f.file.startsWith('circleci'))!.text;
+    // CircleCI skips the steps after a failed one: the verdict comes after store_test_results.
+    expect(circleci.indexOf('store_test_results')).toBeLessThan(circleci.indexOf('WebFlowMaster verdict'));
+    expect(circleci).toContain('node wfm.mjs "$@" || code=$?');
   });
 });

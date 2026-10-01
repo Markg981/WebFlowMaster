@@ -6,7 +6,9 @@ il piano fallisce, e pubblica i risultati nel report dei test del sistema di CI.
 - una GitHub Action;
 - un template per GitLab CI;
 - uno step di shared library per Jenkins;
-- un template per Azure Pipelines.
+- un template per Azure Pipelines;
+- uno step per Bitbucket Pipelines;
+- un orb per CircleCI.
 
 Sono tutte involucri sottili attorno alla CLI `wfm`. Qualsiasi altro sistema con Node 18 o
 successivo può usare direttamente la CLI.
@@ -157,7 +159,58 @@ Definite `WFM_URL` e `WFM_API_KEY` (segreta) nelle variabili della pipeline o in
 group. I risultati vanno nella scheda Tests dell'esecuzione e il report HTML resta come artifact
 della pipeline.
 
-## 7. Altri sistemi
+## 7. Bitbucket Pipelines
+
+Bitbucket non può includere uno step da un altro repository, quindi il template è uno step da
+copiare: prendete il blocco `definitions` di
+[`integrations/bitbucket/bitbucket-pipelines.yml`](https://github.com/Markg981/WebFlowMaster/blob/main/integrations/bitbucket/bitbucket-pipelines.yml)
+nel vostro `bitbucket-pipelines.yml` e richiamatelo dove il piano deve girare:
+
+```yaml
+definitions:
+  steps:
+    - step: &webflowmaster
+        # … lo step di integrations/bitbucket/bitbucket-pipelines.yml …
+
+pipelines:
+  default:
+    - step: *webflowmaster
+  pull-requests:
+    '**':
+      - step: *webflowmaster
+```
+
+Impostate `WFM_URL`, `WFM_API_KEY` (secured) e `WFM_PLAN_ID` in Repository settings → Repository
+variables, o su un deployment environment; `WFM_ENVIRONMENT_ID` e `WFM_TIMEOUT` sono facoltative.
+Il file JUnit viene scritto in `test-results/`, che Bitbucket legge da sé per la scheda Tests della
+pipeline; il report HTML resta come artifact.
+
+## 8. CircleCI
+
+Il template è un orb inline, quindi non serve pubblicare nulla nel registro degli orb: incollate
+[`integrations/circleci/webflowmaster-orb.yml`](https://github.com/Markg981/WebFlowMaster/blob/main/integrations/circleci/webflowmaster-orb.yml)
+sotto `orbs: webflowmaster:` in `.circleci/config.yml` e usatene il job:
+
+```yaml
+version: 2.1
+orbs:
+  webflowmaster:
+    # … il contenuto di integrations/circleci/webflowmaster-orb.yml, indentato …
+workflows:
+  e2e:
+    jobs:
+      - webflowmaster/run:
+          plan: id-del-piano
+          context: webflowmaster
+```
+
+Mettete `WFM_URL` e `WFM_API_KEY` in un context (Organization settings → Contexts) o nelle
+variabili d'ambiente del progetto. I parametri del job sono `plan`, `environment` e `timeout`;
+dentro un vostro job, il comando `webflowmaster/run-plan` fa lo stesso. I risultati compaiono nella
+scheda Tests del job e il report HTML resta come artifact. CircleCI salta gli step dopo uno fallito,
+quindi i risultati vengono salvati prima e l'esito del piano lo dà un ultimo step.
+
+## 9. Altri sistemi
 
 Qualsiasi sistema che esegue Node 18 può usare le due righe della sezione 2. Senza Node, l'API
 dietro la CLI è documentata in `GET /api/v1/openapi.json`:
@@ -166,7 +219,7 @@ dietro la CLI è documentata in `GET /api/v1/openapi.json`:
    `cancelling`;
 3. scaricare `GET /api/v1/runs/{runId}/junit` e `/export/{html|pdf|allure}`.
 
-## 8. Stato del commit su GitHub e GitLab
+## 10. Stato del commit su GitHub e GitLab
 
 Un run avviato da GitHub Actions o GitLab CI può comparire sul commit che ha testato, accanto agli
 altri check: `WebFlowMaster / <piano>` è *pending* mentre il run è in coda e mentre gira, poi
