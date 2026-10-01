@@ -186,6 +186,11 @@ Attraversano tutto il codice; conoscerli spiega la maggior parte delle scelte.
 
 ## Dove andare poi
 
+- [Architettura di sistema](./system-architecture) — contesto, container, componenti e deployment, disegnati.
+- [Diagrammi delle classi](./class-diagrams) — il modello di dominio e le classi con un ciclo di vita.
+- [Schema del database](./database-schema) — ogni tabella e colonna, come diagrammi ER.
+- [Diagrammi di sequenza](./sequences) — accesso, SSO, un run, la CLI, agenti, mobile, issue.
+- [Sottosistema mobile](./mobile) — test di app native tramite Appium.
 - [Tenancy e accessi](./tenancy) — organizzazioni, ruoli, progetti, RLS, chiavi API, MFA, audit.
 - [Ciclo di vita di un run](./execution) — dal pulsante Run allo stato del commit.
 - [Modello dati](./data-model) — le tabelle, raggruppate per dominio.

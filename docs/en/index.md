@@ -1,15 +1,17 @@
 # WebFlowMaster documentation
 
-WebFlowMaster is a test automation platform for web applications and HTTP APIs: record or describe
+WebFlowMaster is a test automation platform for web applications, HTTP APIs and native mobile apps: record or describe
 tests, organize them into plans and suites, run them across browsers on a schedule or from CI —
 including inside networks the server cannot reach — and report every run in detail.
+
+**New here?** Read [WebFlowMaster at a glance](./overview): what it is, how it is built, and where everything is.
 
 ## User guide
 
 For the people who write and run tests:
 
 - [Getting started](./guide/) — signing in, finding your way, a first test end to end.
-- [Web tests](./guide/web-tests) · [API tests](./guide/api-tests) ·
+- [Web tests](./guide/web-tests) · [API tests](./guide/api-tests) · [Mobile apps](./guide/mobile-apps) ·
   [Organizing tests](./guide/organizing) · [Running tests](./guide/running) ·
   [Results](./guide/results)
 
@@ -21,6 +23,7 @@ For the people who run an installation and the owners of an organization:
 - [Operations](./admin/operations) — upgrades, backups, logs, monitoring, troubleshooting.
 - [Configuration reference](./admin/configuration) — every environment variable.
 - [Administration](./admin/administration) — roles, members, keys, security, audit, data.
+- [Test lab](./admin/test-lab) — the acceptance environment: HTTPS, identity provider, simulated tools, Jenkins, Android emulator.
 
 ## Security and compliance
 
@@ -46,6 +49,9 @@ For the people who run an installation and the owners of an organization:
 For the people who build and maintain the product:
 
 - [Architecture overview](./internals/) — processes, stores, technology, main flows.
+- [System architecture](./internals/system-architecture) — context, containers, components, deployment.
+- [Class diagrams](./internals/class-diagrams) · [Database schema](./internals/database-schema) ·
+  [Sequence diagrams](./internals/sequences) · [Mobile subsystem](./internals/mobile)
 - [Tenancy and access](./internals/tenancy) · [Run lifecycle](./internals/execution) ·
   [Data model](./internals/data-model) · [Local agents (internals)](./internals/agents) ·
   [Web client](./internals/frontend)

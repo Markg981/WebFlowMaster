@@ -44,11 +44,19 @@ type Labels = {
   reference: string;
   restApi: string;
   cli: string;
+  glance: string;
+  testLab: string;
+  systemArchitecture: string;
+  classDiagrams: string;
+  databaseSchema: string;
+  sequences: string;
+  mobileInternals: string;
 };
 
 function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
   const p = (page: string) => `/${lang}/${page}`;
   return [
+    { text: t.glance, link: p('overview') },
     {
       text: t.guide,
       items: [
@@ -68,6 +76,7 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
         { text: t.operations, link: p('admin/operations') },
         { text: t.configuration, link: p('admin/configuration') },
         { text: t.administration, link: p('admin/administration') },
+        { text: t.testLab, link: p('admin/test-lab') },
       ],
     },
     {
@@ -96,6 +105,11 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
       text: t.internals,
       items: [
         { text: t.overview, link: p('internals/') },
+        { text: t.systemArchitecture, link: p('internals/system-architecture') },
+        { text: t.classDiagrams, link: p('internals/class-diagrams') },
+        { text: t.databaseSchema, link: p('internals/database-schema') },
+        { text: t.sequences, link: p('internals/sequences') },
+        { text: t.mobileInternals, link: p('internals/mobile') },
         { text: t.tenancy, link: p('internals/tenancy') },
         { text: t.execution, link: p('internals/execution') },
         { text: t.dataModel, link: p('internals/data-model') },
@@ -144,6 +158,13 @@ const en: Labels = {
   reference: 'Reference',
   restApi: 'REST API',
   cli: 'wfm command line',
+  glance: 'At a glance',
+  testLab: 'Test lab',
+  systemArchitecture: 'System architecture',
+  classDiagrams: 'Class diagrams',
+  databaseSchema: 'Database schema',
+  sequences: 'Sequence diagrams',
+  mobileInternals: 'Mobile subsystem',
 };
 
 const it: Labels = {
@@ -181,6 +202,13 @@ const it: Labels = {
   reference: 'Riferimento',
   restApi: 'API REST',
   cli: 'Riga di comando wfm',
+  glance: 'In breve',
+  testLab: 'Ambiente di collaudo',
+  systemArchitecture: 'Architettura di sistema',
+  classDiagrams: 'Diagrammi delle classi',
+  databaseSchema: 'Schema del database',
+  sequences: 'Diagrammi di sequenza',
+  mobileInternals: 'Sottosistema mobile',
 };
 
 export default withMermaid(
@@ -188,6 +216,8 @@ export default withMermaid(
     title: 'WebFlowMaster',
     description: 'Documentation for WebFlowMaster, the test automation platform.',
     cleanUrls: true,
+    // Pages name addresses of a local stack (Mailpit at http://localhost:8025): not reachable from a build.
+    ignoreDeadLinks: [/^http:\/\/localhost/],
     lastUpdated: true,
     markdown: {
       // The product's own `{{variable}}` syntax appears all over these pages in inline code, and
@@ -235,6 +265,7 @@ export default withMermaid(
         themeConfig: {
           nav: [
             { text: 'Home', link: '/en/' },
+            { text: 'At a glance', link: '/en/overview' },
             { text: 'Guide', link: '/en/guide/' },
             { text: 'Administration', link: '/en/admin/installation' },
             { text: 'Security', link: '/en/security/' },
@@ -252,6 +283,7 @@ export default withMermaid(
         themeConfig: {
           nav: [
             { text: 'Home', link: '/it/' },
+            { text: 'In breve', link: '/it/overview' },
             { text: 'Guida', link: '/it/guide/' },
             { text: 'Amministrazione', link: '/it/admin/installation' },
             { text: 'Sicurezza', link: '/it/security/' },

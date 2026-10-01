@@ -181,6 +181,11 @@ These run through the whole codebase; knowing them explains most of the code.
 
 ## Where to go next
 
+- [System architecture](./system-architecture) — context, containers, components and deployment, drawn.
+- [Class diagrams](./class-diagrams) — the domain model and the classes with a lifetime.
+- [Database schema](./database-schema) — every table and column, as ER diagrams.
+- [Sequence diagrams](./sequences) — sign-in, SSO, a run, the CLI, agents, mobile, issues.
+- [Mobile subsystem](./mobile) — native app tests through Appium.
 - [Tenancy and access](./tenancy) — organizations, roles, projects, RLS, API keys, MFA, audit.
 - [Run lifecycle](./execution) — from the Run button to the commit status.
 - [Data model](./data-model) — the tables, grouped by domain.
