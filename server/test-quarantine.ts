@@ -2,6 +2,7 @@ import { and, asc, desc, eq, gte, inArray, isNull, or } from 'drizzle-orm';
 import {
   AUDIT_ACTIONS,
   apiTests,
+  mobileTests,
   reportTestCaseResults,
   testQuarantines,
   tests,
@@ -32,7 +33,17 @@ export class QuarantineError extends Error {
   }
 }
 
-export type TestRef = { type: 'ui' | 'api'; id: number };
+export type TestRef = { type: 'ui' | 'api' | 'mobile'; id: number };
+
+/** The test a quarantine row names. */
+const refOf = (row: Pick<TestQuarantine, 'testType' | 'testId' | 'apiTestId' | 'mobileTestId'>): TestRef =>
+  row.testType === 'mobile'
+    ? { type: 'mobile', id: row.mobileTestId! }
+    : row.testType === 'api'
+      ? { type: 'api', id: row.apiTestId! }
+      : { type: 'ui', id: row.testId! };
+
+const targetTypeOf = (type: TestRef['type']) => (type === 'ui' ? 'test' : type === 'api' ? 'api_test' : 'mobile_test') as 'test' | 'api_test' | 'mobile_test';
 
 export const refKey = (ref: TestRef) => `${ref.type}:${ref.id}`;
 
@@ -43,19 +54,20 @@ export async function openQuarantinesOf(
 ): Promise<Map<string, Pick<TestQuarantine, 'id' | 'reason' | 'quarantinedAt'>>> {
   const uiIds = refs.filter((r) => r.type === 'ui').map((r) => r.id);
   const apiIds = refs.filter((r) => r.type === 'api').map((r) => r.id);
+  const mobileIds = refs.filter((r) => r.type === 'mobile').map((r) => r.id);
   const found = new Map<string, Pick<TestQuarantine, 'id' | 'reason' | 'quarantinedAt'>>();
-  if (uiIds.length === 0 && apiIds.length === 0) return found;
+  if (uiIds.length === 0 && apiIds.length === 0 && mobileIds.length === 0) return found;
   const which = [
     ...(uiIds.length ? [inArray(testQuarantines.testId, uiIds)] : []),
     ...(apiIds.length ? [inArray(testQuarantines.apiTestId, apiIds)] : []),
+    ...(mobileIds.length ? [inArray(testQuarantines.mobileTestId, mobileIds)] : []),
   ];
   const rows = await tx
     .select()
     .from(testQuarantines)
     .where(and(isNull(testQuarantines.releasedAt), which.length === 1 ? which[0] : or(...which)));
   for (const row of rows) {
-    const ref: TestRef = row.testType === 'ui' ? { type: 'ui', id: row.testId! } : { type: 'api', id: row.apiTestId! };
-    found.set(refKey(ref), { id: row.id, reason: row.reason, quarantinedAt: row.quarantinedAt });
+    found.set(refKey(refOf(row)), { id: row.id, reason: row.reason, quarantinedAt: row.quarantinedAt });
   }
   return found;
 }
@@ -124,25 +136,30 @@ export async function listOpenQuarantines(tx: TenantTx) {
       quarantine: testQuarantines,
       uiName: tests.name,
       apiName: apiTests.name,
+      mobileName: mobileTests.name,
       quarantinedByName: users.username,
     })
     .from(testQuarantines)
     .leftJoin(tests, eq(tests.id, testQuarantines.testId))
     .leftJoin(apiTests, eq(apiTests.id, testQuarantines.apiTestId))
+    .leftJoin(mobileTests, eq(mobileTests.id, testQuarantines.mobileTestId))
     .leftJoin(users, eq(users.id, testQuarantines.quarantinedBy))
     .where(isNull(testQuarantines.releasedAt))
     .orderBy(desc(testQuarantines.quarantinedAt));
 
   return Promise.all(
-    rows.map(async ({ quarantine, uiName, apiName, quarantinedByName }) => {
+    rows.map(async ({ quarantine, uiName, apiName, mobileName, quarantinedByName }) => {
+      const ref = refOf(quarantine);
       const results = await tx
         .select({ status: reportTestCaseResults.status, startedAt: reportTestCaseResults.startedAt })
         .from(reportTestCaseResults)
         .where(
           and(
-            quarantine.testType === 'ui'
-              ? eq(reportTestCaseResults.uiTestId, quarantine.testId!)
-              : eq(reportTestCaseResults.apiTestId, quarantine.apiTestId!),
+            ref.type === 'ui'
+              ? eq(reportTestCaseResults.uiTestId, ref.id)
+              : ref.type === 'api'
+                ? eq(reportTestCaseResults.apiTestId, ref.id)
+                : eq(reportTestCaseResults.mobileTestId, ref.id),
             gte(reportTestCaseResults.startedAt, quarantine.quarantinedAt),
           ),
         )
@@ -150,8 +167,8 @@ export async function listOpenQuarantines(tx: TenantTx) {
       return {
         id: quarantine.id,
         testType: quarantine.testType,
-        testId: quarantine.testType === 'ui' ? quarantine.testId! : quarantine.apiTestId!,
-        testName: (quarantine.testType === 'ui' ? uiName : apiName) ?? null,
+        testId: ref.id,
+        testName: (ref.type === 'ui' ? uiName : ref.type === 'api' ? apiName : mobileName) ?? null,
         reason: quarantine.reason,
         quarantinedAt: quarantine.quarantinedAt.toISOString(),
         quarantinedBy: quarantinedByName ?? null,
@@ -169,7 +186,7 @@ export async function quarantineTest(
   tx: TenantTx,
   input: { ref: TestRef; reason: string; organizationId: number; actor: AuditActor },
 ): Promise<TestQuarantine> {
-  const table = input.ref.type === 'ui' ? tests : apiTests;
+  const table = input.ref.type === 'ui' ? tests : input.ref.type === 'api' ? apiTests : mobileTests;
   const [test] = await tx.select({ id: table.id, name: table.name }).from(table).where(eq(table.id, input.ref.id)).limit(1);
   if (!test) throw new QuarantineError('test_not_found', 'Test not found.', 404);
 
@@ -182,6 +199,7 @@ export async function quarantineTest(
         testType: input.ref.type,
         testId: input.ref.type === 'ui' ? input.ref.id : null,
         apiTestId: input.ref.type === 'api' ? input.ref.id : null,
+        mobileTestId: input.ref.type === 'mobile' ? input.ref.id : null,
         reason: input.reason,
         quarantinedBy: input.actor.id,
       })
@@ -195,7 +213,7 @@ export async function quarantineTest(
   await recordAudit(tx, {
     action: AUDIT_ACTIONS.TEST_QUARANTINED,
     actor: input.actor,
-    targetType: input.ref.type === 'ui' ? 'test' : 'api_test',
+    targetType: targetTypeOf(input.ref.type),
     targetId: input.ref.id,
     metadata: { name: test.name, reason: input.reason, quarantineId: row.id },
   });
@@ -219,11 +237,11 @@ export async function releaseQuarantine(
   // Seen but not changed: a viewer on the test's restricted project.
   if (!released) throw new QuarantineError('project_read_only', "You can view this test's project but not change it.", 403);
 
-  const testId = existing.testType === 'ui' ? existing.testId! : existing.apiTestId!;
+  const { type, id: testId } = refOf(existing);
   await recordAudit(tx, {
     action: AUDIT_ACTIONS.TEST_QUARANTINE_RELEASED,
     actor: input.actor,
-    targetType: existing.testType === 'ui' ? 'test' : 'api_test',
+    targetType: targetTypeOf(type),
     targetId: testId,
     metadata: { quarantineId: existing.id, reason: existing.reason, note: input.note, since: existing.quarantinedAt.toISOString() },
   });

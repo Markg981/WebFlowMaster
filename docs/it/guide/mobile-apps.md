@@ -174,6 +174,16 @@ La colonna **Tag** di **App mobili** mette i tag dell'organizzazione su un test 
 libreria dei test per i test web (i viewer li vedono). Un tag vale per ogni tipo di test: una suite
 dinamica con *smoke* esegue i test web, API e mobili che lo portano.
 
+## Quarantena {#quarantena}
+
+Un test mobile che fallisce per motivi estranei all'app (una device farm che chiude la sessione,
+un emulatore lento) si può mettere da parte con il pulsante a scudo della sua riga, con il motivo,
+come un test web o API ([test instabili e quarantena](./results#test-instabili-e-quarantena)).
+Continua a girare nei piani e i suoi risultati sono conservati, ma i suoi fallimenti non fanno
+più fallire il run. La riga mostra **In quarantena** (passateci sopra per il motivo); si rilascia
+da **Test in quarantena** in **Report**, dove porta l'etichetta **Mobile**. In un progetto
+riservato solo chi può modificare il test può metterlo in quarantena o rilasciarlo.
+
 ## Non ancora
 
-I test mobili non vanno ancora in quarantena né sono contati come instabili.
+I test mobili non sono ancora contati come instabili.

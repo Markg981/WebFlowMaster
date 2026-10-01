@@ -30,7 +30,7 @@ router.get("/api/quarantine", requireRole("viewer"), async (_req, res) => {
 });
 
 const quarantineSchema = z.object({
-  testType: z.enum(["ui", "api"]),
+  testType: z.enum(["ui", "api", "mobile"]),
   testId: z.number().int().positive(),
   reason: z.string().trim().min(1, "Say why: whoever releases it needs to know what was wrong.").max(2000),
 });

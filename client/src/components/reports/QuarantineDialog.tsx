@@ -15,7 +15,7 @@ import { Loader2 } from 'lucide-react';
 
 interface QuarantineDialogProps {
   /** The test to quarantine; null keeps the dialog closed. */
-  test: { type: 'ui' | 'api'; id: number } | null;
+  test: { type: 'ui' | 'api' | 'mobile'; id: number } | null;
   testName: string;
   onClose: () => void;
 }

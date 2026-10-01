@@ -11,6 +11,7 @@ import {
   testPlanExecutions,
   testPlanSelectedTests,
   testPlans,
+  testQuarantines,
   tests as testsTable,
   users,
 } from '@shared/schema';
@@ -192,6 +193,18 @@ describe('a mobile test in a plan', () => {
 
     expect(mobileRows[0]).toMatchObject({ status: 'Failed', reasonForFailure: failed.error, screenshotUrl: null });
     expect(execution.status).toBe('failed');
+  });
+
+  it('in quarantine, still runs and records its failure, and does not fail the run', async () => {
+    await seedPlan();
+    await privilegedDb.insert(testQuarantines).values({ organizationId, testType: 'mobile', mobileTestId, reason: 'Device farm drops the session' });
+    performMobileTest.mockResolvedValue(failed);
+
+    const { execution, mobileRows } = await runPlan();
+
+    expect(performMobileTest).toHaveBeenCalledTimes(1);
+    expect(mobileRows[0]).toMatchObject({ status: 'Failed', quarantined: true });
+    expect(execution.status).toBe('completed');
   });
 
   it('is run again under the plan’s re-run policy, and records the attempts', async () => {

@@ -160,7 +160,8 @@ sistemato non compare, e nemmeno uno il cui esito è cambiato perché è stato m
 Un test instabile si può mettere in **quarantena**, con il motivo. Continua a girare e i suoi
 risultati vengono conservati, ma i suoi fallimenti smettono di far fallire i run, fermare i
 piani, aprire issue e rompere le pipeline. **Test in quarantena** mostra come è andato ognuno da
-allora; quando torna a passare, usate **Rilascia** con una nota su cosa l'ha sistemato.
+allora; quando torna a passare, usate **Rilascia** con una nota su cosa l'ha sistemato. Possono andare in quarantena i test web,
+API e [mobili](./mobile-apps#quarantena).
 
 ## Per quanto si conservano le evidenze
 

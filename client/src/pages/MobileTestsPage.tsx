@@ -12,11 +12,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { Pencil, Play, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Play, Plus, ShieldAlert, Trash2 } from 'lucide-react';
 import { MOBILE_GRID_PROVIDERS, MOBILE_PLATFORM_LABELS, type MobileRunStatus } from '@shared/mobile';
 import MobileTestDialog, { type GridOption, type MobileTestRow } from '@/components/mobile/MobileTestDialog';
 import MobileRunDialog from '@/components/mobile/MobileRunDialog';
 import TagPicker, { type TagRef } from '@/components/tags/TagPicker';
+import QuarantineDialog from '@/components/reports/QuarantineDialog';
+import type { QuarantineRow } from '@/components/reports/QuarantinedTestsCard';
 
 /**
  * Tests of native Android and iOS apps, run on real devices of the organization's BrowserStack
@@ -38,6 +40,7 @@ const MobileTestsPage: React.FC = () => {
   const [running, setRunning] = useState<MobileTestRow | null>(null);
   const [deleting, setDeleting] = useState<MobileTestRow | null>(null);
   const [taggingId, setTaggingId] = useState<number | null>(null);
+  const [quarantining, setQuarantining] = useState<MobileTestRow | null>(null);
 
   const { data: tests = [], isLoading } = useQuery<ListedTest[]>({
     queryKey: ['mobileTests'],
@@ -67,6 +70,18 @@ const MobileTestsPage: React.FC = () => {
     },
   });
   const allTags = Array.isArray(tagsData) ? tagsData : [];
+
+  // Quarantine (migration 0058): the same list the reports show, so a release there clears it here.
+  const { data: quarantineData } = useQuery<QuarantineRow[]>({
+    queryKey: ['quarantine'],
+    queryFn: async () => {
+      const response = await fetch('/api/quarantine', { credentials: 'include' });
+      return response.ok ? response.json() : [];
+    },
+  });
+  const quarantined = new Map(
+    (Array.isArray(quarantineData) ? quarantineData : []).filter((row) => row.testType === 'mobile').map((row) => [row.testId, row]),
+  );
   const setTags = async (testId: number, tagIds: string[]) => {
     setTaggingId(testId);
     try {
@@ -157,6 +172,12 @@ const MobileTestsPage: React.FC = () => {
                       <Badge variant="outline" className="ml-2 font-normal">
                         {MOBILE_PLATFORM_LABELS[test.platform]}
                       </Badge>
+                      {quarantined.has(test.id) && (
+                        <Badge variant="secondary" className="ml-2 font-normal" title={quarantined.get(test.id)!.reason}>
+                          <ShieldAlert className="mr-1 h-3 w-3" />
+                          {t('mobileTests.quarantined', 'In quarantine')}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell data-testid={`mobile-test-tags-${test.id}`}>
                       {canEdit ? (
@@ -186,6 +207,16 @@ const MobileTestsPage: React.FC = () => {
                           <Button variant="outline" size="sm" onClick={() => setRunning(test)} aria-label={t('mobileTests.runFor', 'Run {{name}}', { name: test.name })}>
                             <Play className="h-4 w-4" />
                           </Button>
+                          {!quarantined.has(test.id) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setQuarantining(test)}
+                              aria-label={t('mobileTests.quarantineFor', 'Quarantine {{name}}', { name: test.name })}
+                            >
+                              <ShieldAlert className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button variant="outline" size="sm" onClick={() => setEditing(test)} aria-label={t('mobileTests.editFor', 'Edit {{name}}', { name: test.name })}>
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -215,6 +246,11 @@ const MobileTestsPage: React.FC = () => {
         }}
       />
       <MobileRunDialog test={running} grids={deviceGrids} onClose={() => setRunning(null)} onFinished={refresh} />
+      <QuarantineDialog
+        test={quarantining ? { type: 'mobile', id: quarantining.id } : null}
+        testName={quarantining?.name ?? ''}
+        onClose={() => setQuarantining(null)}
+      />
 
       <AlertDialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
         <AlertDialogContent>
