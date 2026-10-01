@@ -78,3 +78,7 @@ collaudo-root.crt
 
 # Collaudo: signed-in sessions written by collaudo/prepare.mjs
 collaudo/.sessions/
+
+# collaudo: apk scaricati da collaudo/mobile/avvia.mjs
+collaudo/mobile/apps/*.apk
+collaudo/mobile/.keepalive.pid
