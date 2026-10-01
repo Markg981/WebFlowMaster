@@ -33,7 +33,7 @@ flowchart TB
     TRK["Jira / Azure DevOps<br/>issues and requirements"]
     TM["TestRail / Xray / Zephyr Scale<br/>test cases and executions"]
     NOT["Slack / Microsoft Teams / webhooks<br/>notifications"]
-    IDP["OpenID Connect provider<br/>single sign-on"]
+    IDP["Identity provider<br/>OIDC or SAML single sign-on"]
     GRID["BrowserStack / LambdaTest<br/>browsers and real devices"]
     AI["Google Gemini<br/>optional AI"]
     MAIL["Test inbox (Mailpit)<br/>mail and one-time codes"]

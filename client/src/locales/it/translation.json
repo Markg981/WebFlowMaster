@@ -3300,7 +3300,7 @@
     "title": "Single sign-on",
     "on": "attivo",
     "requiredBadge": "obbligatorio",
-    "description": "I membri accedono con il vostro identity provider (OpenID Connect: Entra ID, Okta, Google Workspace, Keycloak…). La prima volta che qualcuno dei vostri domini accede, il suo account viene creato.",
+    "description": "I membri accedono con il vostro identity provider (OpenID Connect o SAML 2.0: Entra ID, Okta, Google Workspace, ADFS, Keycloak…). La prima volta che qualcuno dei vostri domini accede, il suo account viene creato.",
     "callbackUrl": "Redirect URI da registrare presso il provider",
     "copy": "Copia",
     "issuer": "Issuer",
@@ -3338,7 +3338,23 @@
       "domain_not_allowed": "Il tuo indirizzo e-mail non appartiene a un dominio con cui accede la tua organizzazione.",
       "account_elsewhere": "Un account con il tuo indirizzo appartiene a un'altra organizzazione di questa installazione.",
       "account_disabled": "Questo account è disattivato.",
-      "account_linked": "Il tuo indirizzo è già collegato a un'altra identità presso il provider. Chiedi a un owner della tua organizzazione."
+      "account_linked": "Il tuo indirizzo è già collegato a un'altra identità presso il provider. Chiedi a un owner della tua organizzazione.",
+      "browser_mismatch": "Questo accesso è stato avviato in un altro browser. Avviatelo di nuovo qui."
+    },
+    "protocol": "Protocollo",
+    "saml": {
+      "spHint": "Date al vostro identity provider questi valori, oppure l'URL dei metadati, che li contiene tutti.",
+      "entityId": "Entity ID (audience) di WebFlowMaster",
+      "acsUrl": "URL dell'assertion consumer service (ACS)",
+      "metadataUrl": "URL dei metadati del service provider (disponibile dopo il salvataggio)",
+      "pasteMetadata": "Metadati del vostro provider (facoltativo: compila i tre campi sotto)",
+      "readMetadata": "Leggi i metadati",
+      "metadataRead": "Compilato dai metadati. Controllate i valori, poi salvate.",
+      "idpEntityId": "Entity ID del provider",
+      "ssoUrl": "URL di accesso (HTTP-Redirect)",
+      "certificate": "Certificato di firma (X.509, PEM o base64)",
+      "certExpired": "Scaduto il {{date}}: gli accessi sono rifiutati finché non incollate il nuovo certificato.",
+      "certValid": "{{subject}} · valido fino al {{date}}"
     }
   },
   "manualTests": {

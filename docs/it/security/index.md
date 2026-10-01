@@ -63,10 +63,16 @@ registrazione pubblica, in cui ogni nuovo account ottiene una propria organizzaz
   un'organizzazione, dall'operatore), valido un giorno e salvato solo come hash. Una sessione
   porta un'impronta della password con cui è stata aperta, quindi una nuova password chiude tutte
   le altre sessioni di quella persona.
-- **Single sign-on** con OpenID Connect, per organizzazione
+- **Single sign-on** con OpenID Connect o SAML 2.0, per organizzazione
   ([Amministrazione](../admin/administration#single-sign-on)): flusso authorization code con
   PKCE, state e nonce monouso, e firma, issuer, audience e scadenza dell'ID token verificati con
-  le chiavi pubblicate dal provider. Gli account si riconoscono dal subject stabile del provider,
+  le chiavi pubblicate dal provider. Con SAML la firma XML dell'asserzione è verificata con il
+  certificato salvato dall'owner, insieme a issuer, audience (l'entity ID dell'organizzazione) e
+  finestra di validità; deve rispondere a un'AuthnRequest inviata da questa installazione, e quella
+  richiesta viene consumata in modo atomico nel database, quindi una risposta non si può riusare —
+  nemmeno su un altro server web — e una non richiesta viene rifiutata. Con cookie Secure un cookie
+  di breve durata lega la richiesta al browser che l'ha avviata, contro il login CSRF. I metadati
+  incollati da un owner vengono letti senza DTD. Gli account si riconoscono dal subject stabile del provider,
   non dall'indirizzo e-mail; quelli nuovi hanno viewer o editor, mai owner. Il client secret è
   cifrato come gli altri segreti salvati. Un owner può **renderlo obbligatorio**: le password dei
   membri smettono di funzionare, anche nelle sessioni aperte, mentre gli owner mantengono la
@@ -227,8 +233,9 @@ chiave solo dove inviarlo a Google è accettabile; tutto il resto funziona anche
 
 Dichiarati perché una valutazione possa pesarli, invece di scoprirli dopo:
 
-- **Il single sign-on è solo OpenID Connect**, senza SAML, senza associare i gruppi del provider
-  ai ruoli e senza SCIM: una persona rimossa qui ma non presso il provider ottiene un nuovo
+- **Il single sign-on** non associa i gruppi del provider ai ruoli, non ha SCIM, e per SAML accetta
+  solo asserzioni firmate e non cifrate di accessi avviati da qui (niente accesso avviato dall'IdP,
+  niente single logout): una persona rimossa qui ma non presso il provider ottiene un nuovo
   account al suo accesso successivo, quindi l'accesso si revoca presso il provider. I domini
   e-mail non vengono verificati via DNS; su un'installazione condivisa il primo che rivendica un
   dominio lo ottiene.

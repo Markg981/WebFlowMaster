@@ -20,11 +20,21 @@ vi.mock('react-i18next', () => ({
  */
 
 const CALLBACK = 'https://wfm.example.com/api/sso/callback';
+const SAML = {
+  entityId: 'https://wfm.example.com/api/sso/saml/7',
+  acsUrl: 'https://wfm.example.com/api/sso/saml/7/acs',
+  metadataUrl: 'https://wfm.example.com/api/sso/saml/7/metadata',
+};
+const CERT = '-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n';
 const fetchMock = vi.fn();
 
 const stored: SsoSettings = {
+  protocol: 'oidc',
   issuer: 'https://idp.example.com',
   clientId: 'wfm',
+  samlSsoUrl: null,
+  samlCertificate: null,
+  samlCertificateInfo: null,
   domains: ['example.com'],
   defaultRole: 'viewer',
   enabled: true,
@@ -36,9 +46,12 @@ function renderCard(settings: SsoSettings | null) {
   fetchMock.mockImplementation(async (url: string, init?: any) => {
     const method = init?.method ?? 'GET';
     const body = init?.body ? JSON.parse(init.body) : undefined;
-    if (url === '/api/organization/sso' && method === 'GET') return { ok: true, status: 200, json: async () => ({ settings, callbackUrl: CALLBACK }) };
+    if (url === '/api/organization/sso' && method === 'GET') return { ok: true, status: 200, json: async () => ({ settings, callbackUrl: CALLBACK, saml: SAML }) };
     if (url === '/api/organization/sso' && method === 'PUT') {
-      return { ok: true, status: 200, json: async () => ({ settings: { ...stored, ...body, updatedAt: stored.updatedAt }, callbackUrl: CALLBACK }) };
+      return { ok: true, status: 200, json: async () => ({ settings: { ...stored, ...body, updatedAt: stored.updatedAt }, callbackUrl: CALLBACK, saml: SAML }) };
+    }
+    if (url === '/api/organization/sso/saml-metadata') {
+      return { ok: true, status: 200, json: async () => ({ entityId: 'https://idp.example.com/saml', ssoUrl: 'https://idp.example.com/saml/sso', certificate: CERT }) };
     }
     if (url === '/api/organization/sso/test') return { ok: true, status: 200, json: async () => ({ ok: false, message: 'fetch failed' }) };
     return { ok: false, status: 404, json: async () => ({}) };
@@ -75,6 +88,7 @@ describe('SsoCard', () => {
 
     await waitFor(() => expect(calls('PUT')).toHaveLength(1));
     expect(JSON.parse(calls('PUT')[0][1].body)).toEqual({
+      protocol: 'oidc',
       issuer: 'https://idp.example.com',
       clientId: 'wfm',
       clientSecret: 's3cret',
@@ -99,6 +113,34 @@ describe('SsoCard', () => {
 
     await waitFor(() => expect(calls('PUT')).toHaveLength(1));
     expect(JSON.parse(calls('PUT')[0][1].body)).toMatchObject({ clientSecret: '', required: true, enabled: true });
+  });
+
+  it('for SAML, shows what to give the provider, fills from pasted metadata, and sends no client secret', async () => {
+    renderCard({
+      ...stored,
+      protocol: 'saml',
+      issuer: 'https://old.example.com/saml',
+      clientId: null,
+      samlSsoUrl: 'https://old.example.com/sso',
+      samlCertificate: CERT,
+      samlCertificateInfo: { subject: 'CN=old-idp', validTo: '2030-01-01T00:00:00.000Z', expired: false },
+    });
+    expect(await screen.findByTestId('sso-saml-entity-id')).toHaveValue(SAML.entityId);
+    expect(screen.getByTestId('sso-saml-acs-url')).toHaveValue(SAML.acsUrl);
+    expect(screen.getByTestId('sso-saml-metadata-url')).toHaveValue(SAML.metadataUrl);
+    expect(screen.getByTestId('sso-saml-cert-info')).toHaveTextContent('CN=old-idp · valid until 2030-01-01');
+    expect(screen.queryByLabelText('Client secret')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText(/Your provider's metadata/), { target: { value: '<md:EntityDescriptor/>' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Read the metadata' }));
+    expect(await screen.findByDisplayValue('https://idp.example.com/saml')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://idp.example.com/saml/sso')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(calls('PUT')).toHaveLength(1));
+    const body = JSON.parse(calls('PUT')[0][1].body);
+    expect(body).toMatchObject({ protocol: 'saml', issuer: 'https://idp.example.com/saml', samlSsoUrl: 'https://idp.example.com/saml/sso', samlCertificate: CERT });
+    expect(body).not.toHaveProperty('clientSecret');
   });
 
   it('says when the provider does not answer', async () => {

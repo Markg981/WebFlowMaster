@@ -3181,7 +3181,7 @@
     "title": "Single Sign-on",
     "on": "an",
     "requiredBadge": "Pflicht",
-    "description": "Mitglieder melden sich über Ihren Identitätsanbieter an (OpenID Connect: Entra ID, Okta, Google Workspace, Keycloak…). Bei der ersten Anmeldung einer Person aus Ihren Domains wird ihr Konto angelegt.",
+    "description": "Mitglieder melden sich bei Ihrem Identity Provider an (OpenID Connect oder SAML 2.0: Entra ID, Okta, Google Workspace, ADFS, Keycloak…). Bei der ersten Anmeldung einer Person aus Ihren Domains wird ihr Konto angelegt.",
     "callbackUrl": "Redirect-URI zur Registrierung beim Anbieter",
     "copy": "Kopieren",
     "issuer": "Issuer",
@@ -3219,7 +3219,23 @@
       "domain_not_allowed": "Ihre E-Mail-Adresse gehört zu keiner Domain Ihrer Organisation.",
       "account_elsewhere": "Ein Konto mit Ihrer Adresse gehört zu einer anderen Organisation dieser Installation.",
       "account_disabled": "Dieses Konto ist deaktiviert.",
-      "account_linked": "Ihre Adresse ist bereits mit einer anderen Identität bei Ihrem Anbieter verknüpft. Fragen Sie einen Eigentümer Ihrer Organisation."
+      "account_linked": "Ihre Adresse ist bereits mit einer anderen Identität bei Ihrem Anbieter verknüpft. Fragen Sie einen Eigentümer Ihrer Organisation.",
+      "browser_mismatch": "Diese Anmeldung wurde in einem anderen Browser gestartet. Starten Sie sie hier neu."
+    },
+    "protocol": "Protokoll",
+    "saml": {
+      "spHint": "Geben Sie Ihrem Identity Provider diese Werte oder die Metadaten-URL, die alle enthält.",
+      "entityId": "Entity ID (Audience) von WebFlowMaster",
+      "acsUrl": "URL des Assertion Consumer Service (ACS)",
+      "metadataUrl": "Metadaten-URL des Service Providers (nach dem Speichern verfügbar)",
+      "pasteMetadata": "Metadaten Ihres Providers (optional: füllt die drei Felder unten)",
+      "readMetadata": "Metadaten lesen",
+      "metadataRead": "Aus den Metadaten ausgefüllt. Prüfen Sie die Werte und speichern Sie.",
+      "idpEntityId": "Entity ID des Providers",
+      "ssoUrl": "Anmelde-URL (HTTP-Redirect)",
+      "certificate": "Signaturzertifikat (X.509, PEM oder Base64)",
+      "certExpired": "Abgelaufen am {{date}}: Anmeldungen werden abgelehnt, bis Sie das neue Zertifikat einfügen.",
+      "certValid": "{{subject}} · gültig bis {{date}}"
     }
   },
   "manualTests": {

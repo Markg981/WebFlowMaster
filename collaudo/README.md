@@ -238,6 +238,14 @@ registrato nel client. Utenti Keycloak, tutti con password `Collaudo.2026!`:
 | `luca` | luca@acme.test | SSO-05: il suo account è nell'organizzazione B |
 | `reimposta` | reimposta@acme.test | WEB-45: la sua password viene reimpostata via email a ogni esecuzione |
 
+**Single sign-on SAML (SSO-13…SSO-17, SEC-31).** Il realm `acme` ha anche un client SAML con
+client ID `https://wfm.collaudo.test/api/sso/saml/1` (Acme è l'organizzazione 1), ACS
+`https://wfm.collaudo.test/api/sso/saml/1/acs`, asserzione firmata, NameID persistent e attributo
+`email`. In Impostazioni → Sicurezza → Single sign-on scegliere Protocollo **SAML 2.0** e incollare
+i metadati di `https://keycloak.collaudo.test/realms/acme/protocol/saml/descriptor`; dominio
+`acme.test`. Gli utenti sono gli stessi della tabella sopra. Un'organizzazione usa un protocollo
+alla volta: per tornare ai casi OIDC, rimettere Protocollo **OpenID Connect** e il client secret.
+
 La console di Keycloak (per cambiare un'e-mail o fermare il provider) è su
 https://keycloak.collaudo.test, utente `admin`, password `admin`.
 

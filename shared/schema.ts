@@ -719,11 +719,19 @@ export type PasswordReset = typeof passwordResets.$inferSelect;
  */
 export const organizationSso = pgTable("organization_sso", {
   organizationId: integer("organization_id").primaryKey().references(() => organizations.id, { onDelete: 'cascade' }),
+  /** 'oidc' or 'saml' (migration 0059). */
+  protocol: text("protocol").notNull().default('oidc'),
+  /** OpenID Connect: the issuer URL. SAML: the identity provider's entity ID. */
   issuer: text("issuer").notNull(),
-  clientId: text("client_id").notNull(),
-  clientSecretEncrypted: text("client_secret_encrypted").notNull(),
-  clientSecretIv: text("client_secret_iv").notNull(),
-  clientSecretAuthTag: text("client_secret_auth_tag").notNull(),
+  /** OpenID Connect only, like the secret. */
+  clientId: text("client_id"),
+  clientSecretEncrypted: text("client_secret_encrypted"),
+  clientSecretIv: text("client_secret_iv"),
+  clientSecretAuthTag: text("client_secret_auth_tag"),
+  /** SAML only: where AuthnRequests go (HTTP-Redirect binding). */
+  samlSsoUrl: text("saml_sso_url"),
+  /** SAML only: the provider's signing certificate, PEM. Public, so not encrypted. */
+  samlCertificate: text("saml_certificate"),
   /** The role of an account created on its first sign-in: viewer or editor, never owner. */
   defaultRole: text("default_role").notNull().default('viewer'),
   enabled: boolean("enabled").notNull().default(true),
@@ -731,6 +739,18 @@ export const organizationSso = pgTable("organization_sso", {
   required: boolean("required").notNull().default(false),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+/**
+ * SAML AuthnRequests sent and not yet answered (migration 0059). A response must answer one, and
+ * answering removes it: no replay, no unsolicited response. Not RLS-scoped, like the other sso tables.
+ */
+export const ssoSamlRequests = pgTable("sso_saml_requests", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("sso_saml_requests_created_at_idx").on(table.createdAt),
+]);
 
 export const ssoDomains = pgTable("sso_domains", {
   /** Lower case. The primary key: one organization per domain. */

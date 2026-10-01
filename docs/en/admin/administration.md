@@ -107,11 +107,13 @@ second factor in **Settings → Members**.
 
 ## Single sign-on *(owners)* {#single-sign-on}
 
-Members can sign in with the organization's identity provider through **OpenID Connect**:
-Microsoft Entra ID, Okta, Google Workspace, Keycloak, Auth0 and any other provider that
-publishes a discovery document. SAML is not supported.
+Members can sign in with the organization's identity provider through **OpenID Connect** or
+**SAML 2.0**. OpenID Connect suits Microsoft Entra ID, Okta, Google Workspace, Keycloak, Auth0 and
+any provider that publishes a discovery document; SAML suits providers that speak only SAML —
+ADFS, Shibboleth, PingFederate, older Okta and Entra ID set-ups. An organization uses one provider
+and one protocol at a time; choose it with **Protocol** at the top of the card.
 
-**Setting it up.** In **Settings → Security → Single sign-on**:
+**Setting up OpenID Connect.** In **Settings → Security → Single sign-on**, Protocol **OpenID Connect**:
 
 1. Copy the **redirect URI** shown there (it ends in `/api/sso/callback`; it uses
    `WEBFLOW_PUBLIC_URL` when that is set).
@@ -133,10 +135,46 @@ publishes a discovery document. SAML is not supported.
 The client secret is stored encrypted and never shown again; leave the field empty to keep it
 when changing something else. Each domain belongs to one organization on the installation.
 
+**Setting up SAML 2.0.** Protocol **SAML 2.0**. The card shows what to give your provider; every
+organization is its own service provider:
+
+| WebFlowMaster value | Where it goes at the provider |
+|---|---|
+| **Entity ID** `…/api/sso/saml/{organization}` | Identifier / Audience / *Relying party identifier* / Keycloak *Client ID* |
+| **ACS URL** `…/api/sso/saml/{organization}/acs` | Reply URL / *Assertion Consumer Service*, binding **HTTP-POST** |
+| **Metadata URL** `…/api/sso/saml/{organization}/metadata` | Providers that import service-provider metadata (ADFS, Shibboleth) read everything from here, once saved |
+
+At the provider:
+
+1. Create the application with those values. The **assertion must be signed** (signing the whole
+   response as well is fine). Encrypted assertions are not supported: leave encryption off.
+2. Send the person's **e-mail address**: as an attribute named `email`, `mail`,
+   `urn:oid:0.9.2342.19200300.100.1.3` or Microsoft's `…/claims/emailaddress`, or as the NameID
+   in e-mail format.
+3. Prefer a **persistent** NameID: it identifies the person even when their address changes. With
+   a transient NameID the address is used as the identity.
+
+Back here, paste the provider's **metadata XML** and press **Read the metadata**: it fills the
+provider's **entity ID**, its **sign-on URL** (HTTP-Redirect binding) and its **signing
+certificate**. You can also type them. Add the e-mail domains and the role of new accounts, then
+**Save** and **Test the provider**, which checks that the certificate is valid and the sign-on URL
+answers. The card shows the certificate's subject and expiry date; when the provider rolls its
+certificate, paste the new one — with an expired certificate every sign-in is refused, and the
+card says so.
+
+| Provider | Where to find the metadata |
+|---|---|
+| Microsoft Entra ID | Enterprise application → Single sign-on → *Federation Metadata XML* |
+| Okta | Application → Sign On → *Identity Provider metadata* |
+| ADFS | `https://{host}/FederationMetadata/2007-06/FederationMetadata.xml` |
+| Keycloak | `https://{host}/realms/{realm}/protocol/saml/descriptor` |
+
 **Signing in.** The sign-in page shows **Sign in with SSO** once any organization has set it up.
 The person types their address; its domain picks the organization, and the browser goes to the
-provider. On the way back the application checks the provider's signed answer (issuer,
-audience, signature, expiry, and a one-time nonce and state), then:
+provider. On the way back the application checks the provider's signed answer — for OpenID
+Connect the ID token's issuer, audience, signature, expiry, nonce and state; for SAML the
+assertion's signature against the saved certificate, its issuer, audience, validity window and
+that it answers a request this installation sent, which it can do only once — then:
 
 - an identity it has seen before signs in to the same account, even if the address changed;
 - the first time, an existing account of the organization whose username is that address is
@@ -144,9 +182,10 @@ audience, signature, expiry, and a one-time nonce and state), then:
 - otherwise an account is **created**, with the address as its username and the role you
   chose. Owners are never created this way: make someone an owner in **Settings → Members**.
 
-The address comes from the `email` claim or, when that is missing, from a `preferred_username`
-shaped like an address, which is what Entra ID sends. An address the provider marks as
-unverified is refused, as is one outside your domains.
+With OpenID Connect the address comes from the `email` claim or, when that is missing, from a
+`preferred_username` shaped like an address, which is what Entra ID sends; an address the provider
+marks as unverified is refused. With SAML it comes from the attributes listed above or an
+address-shaped NameID. Either way an address outside your domains is refused.
 
 **Requiring it.** With **Require it** on, members other than owners can no longer sign in with a
 password, and password sessions already open end at their next request. Owners keep their
@@ -310,7 +349,9 @@ organization until they expire.
 
 - Export and erasure have no screen yet; they are done through the API as shown above.
 - Erasing an organization leaves its files in the artifact store for the operator to remove.
-- Single sign-on is OpenID Connect only (no SAML), and roles are not taken from the provider's
-  groups: new accounts get the default role, and owners change it in **Settings → Members**.
+- Single sign-on does not take roles from the provider's groups: new accounts get the default
+  role, and owners change it in **Settings → Members**. SAML assertions must be signed and
+  unencrypted, sign-in starts from WebFlowMaster (no IdP-initiated sign-in), and single logout is
+  not supported.
 - There is no e-mail delivery; invitations are handed over by hand.
 - The **Notifications** section of Settings is not saved yet; notifications are set per plan.

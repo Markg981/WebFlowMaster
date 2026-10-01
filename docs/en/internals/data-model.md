@@ -48,7 +48,8 @@ erDiagram
 | `api_keys` | Pipeline credentials: hash, prefix, scopes, expiry, last use, owning user or service account. |
 | `audit_log` | Append-only trail of who did what; `app_user` may only select and insert. |
 | `password_resets` | Single-use, expiring password-reset links created by an owner or by the `password-reset-link` script; only the hash of the token is stored. |
-| `organization_sso` | One OpenID Connect provider per organization: issuer, client id, client secret (encrypted), default role, whether it is enabled and whether it is required. No RLS and no grant to `app_user`: the provider is found before anyone is signed in. |
+| `organization_sso` | One identity provider per organization, OpenID Connect or SAML 2.0 (`protocol`): the issuer (entity ID for SAML), then client id and client secret (encrypted) for OpenID Connect or sign-on URL and signing certificate for SAML, plus default role, whether it is enabled and whether it is required. No RLS and no grant to `app_user`: the provider is found before anyone is signed in. |
+| `sso_saml_requests` | SAML AuthnRequests waiting for their answer: id and organization, kept ten minutes. The answer must match one, which is deleted as it is used, so a response cannot be replayed. Kept in the database, not the session, because the provider posts back cross-site. No RLS and no grant to `app_user`. |
 | `sso_domains` | E-mail domains that route a sign-in to an organization's provider. A domain belongs to one organization. |
 | `sso_identities` | The link between a person at the provider (`issuer` + `subject`) and a `users` row, with the last sign-in. |
 | `sessions` | The session store when PostgreSQL holds sessions (Redis does in production). Installation-wide. |

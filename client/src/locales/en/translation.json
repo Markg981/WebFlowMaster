@@ -3175,7 +3175,7 @@
     "title": "Single sign-on",
     "on": "on",
     "requiredBadge": "required",
-    "description": "Members sign in with your identity provider (OpenID Connect: Entra ID, Okta, Google Workspace, Keycloak…). The first time someone from your domains signs in, their account is created.",
+    "description": "Members sign in with your identity provider (OpenID Connect or SAML 2.0: Entra ID, Okta, Google Workspace, ADFS, Keycloak…). The first time someone from your domains signs in, their account is created.",
     "callbackUrl": "Redirect URI to register with your provider",
     "copy": "Copy",
     "issuer": "Issuer",
@@ -3213,7 +3213,23 @@
       "domain_not_allowed": "Your e-mail address is not in a domain your organization signs in.",
       "account_elsewhere": "An account with your address belongs to another organization on this installation.",
       "account_disabled": "This account is disabled.",
-      "account_linked": "Your address is already linked to another identity at your provider. Ask an owner of your organization."
+      "account_linked": "Your address is already linked to another identity at your provider. Ask an owner of your organization.",
+      "browser_mismatch": "This sign-in was started in another browser. Start it again here."
+    },
+    "protocol": "Protocol",
+    "saml": {
+      "spHint": "Give your identity provider these values, or the metadata URL, which carries them all.",
+      "entityId": "Entity ID (audience) of WebFlowMaster",
+      "acsUrl": "Assertion consumer service (ACS) URL",
+      "metadataUrl": "Service provider metadata URL (available once saved)",
+      "pasteMetadata": "Your provider's metadata (optional: fills the three fields below)",
+      "readMetadata": "Read the metadata",
+      "metadataRead": "Filled from the metadata. Check the values, then save.",
+      "idpEntityId": "Provider's entity ID",
+      "ssoUrl": "Sign-on URL (HTTP-Redirect)",
+      "certificate": "Signing certificate (X.509, PEM or base64)",
+      "certExpired": "Expired on {{date}}: sign-ins are refused until you paste the new certificate.",
+      "certValid": "{{subject}} · valid until {{date}}"
     }
   },
   "manualTests": {
