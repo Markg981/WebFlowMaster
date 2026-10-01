@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   setDefaultTimeout: vi.fn(),
   setDefaultNavigationTimeout: vi.fn(),
   getUserSettings: vi.fn(),
+  newContext: vi.fn(),
+  loadLoginState: vi.fn(),
 }));
 
 vi.mock('./browsers', async (importOriginal) => {
@@ -28,15 +30,16 @@ vi.mock('./browsers', async (importOriginal) => {
     screenshot: mocks.screenshot,
   };
   const context = { newPage: vi.fn().mockResolvedValue(page), close: vi.fn().mockResolvedValue(undefined) };
+  mocks.newContext.mockResolvedValue(context);
   return {
     ...actual,
-    launchBrowser: vi.fn(async () => ({ newContext: vi.fn().mockResolvedValue(context), isConnected: () => true })),
+    launchBrowser: vi.fn(async () => ({ newContext: mocks.newContext, isConnected: () => true })),
   };
 });
 vi.mock('./browser-pool', () => ({ browserPool: Promise.resolve({ release: vi.fn() }) }));
 vi.mock('./storage', () => ({ storage: { getUserSettings: mocks.getUserSettings } }));
 vi.mock('./step-executor', () => ({ executeStep: mocks.executeStep }));
-vi.mock('./login-state', () => ({ loadLoginState: vi.fn(), saveLoginState: vi.fn() }));
+vi.mock('./login-state', () => ({ loadLoginState: mocks.loadLoginState, saveLoginState: vi.fn() }));
 vi.mock('./websocket', () => ({ getWsEmitter: () => ({ emitExecutionLog: vi.fn() }) }));
 vi.mock('./playwright-reporter', () => ({
   PlaywrightReporter: class {
@@ -77,6 +80,34 @@ beforeEach(() => {
   mocks.getUserSettings.mockResolvedValue({ playwrightDefaultTimeout: 90_000, playwrightHeadless: true });
   mocks.screenshot.mockResolvedValue(Buffer.from('png'));
   mocks.executeStep.mockResolvedValue({ status: 'passed' });
+});
+
+describe('saved login', () => {
+  const staging = { environmentId: 3, organizationId: 1 };
+  const runIn = (options?: { locale?: string }) =>
+    playwrightService.executeTestSequence(oneStepTest(), 1, undefined, undefined, {}, staging, options as any);
+  const contextOptions = () => mocks.newContext.mock.calls[0][0];
+
+  it("sends the recorder's Accept-Language, which sites bind their session to", async () => {
+    mocks.loadLoginState.mockResolvedValue({ cookies: [{ name: 'rack.session' }], origins: [], acceptLanguage: 'en-US,en;q=0.9' });
+    await runIn();
+    expect(contextOptions().storageState).toEqual({ cookies: [{ name: 'rack.session' }], origins: [] });
+    expect(contextOptions().extraHTTPHeaders).toEqual({ 'Accept-Language': 'en-US,en;q=0.9' });
+  });
+
+  it("keeps a plan's own locale, which is what the plan tests", async () => {
+    mocks.loadLoginState.mockResolvedValue({ cookies: [], origins: [], acceptLanguage: 'en-US,en;q=0.9' });
+    await runIn({ locale: 'it-IT' });
+    expect(contextOptions().locale).toBe('it-IT');
+    expect(contextOptions().extraHTTPHeaders).toBeUndefined();
+  });
+
+  it('adds no header for a login saved before the header was kept', async () => {
+    mocks.loadLoginState.mockResolvedValue({ cookies: [], origins: [] });
+    await runIn();
+    expect(contextOptions().storageState).toEqual({ cookies: [], origins: [] });
+    expect(contextOptions().extraHTTPHeaders).toBeUndefined();
+  });
 });
 
 describe('timeouts', () => {

@@ -24,7 +24,7 @@ import { LOCALE_VARIABLE } from '@shared/locales';
 import { analyseFlow, leavesPageAlone } from '@shared/flow';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import { resolveVariables } from './variables';
-import { loadLoginState, saveLoginState, type EnvironmentScope } from './login-state';
+import { loadLoginState, saveLoginState, type EnvironmentScope, type LoginState } from './login-state';
 import { describeBrowser, deviceContextOptions, launchBrowser, resolveBrowser, type BrowserChoice } from './browsers';
 import { compareStepScreenshot, isVisualFailure, stableScreenshot, type VisualContext } from './visual-testing';
 import { expandSequenceForRun, type SequenceStep } from './step-groups';
@@ -833,6 +833,19 @@ export class PlaywrightService {
    * empty cookie jar would silently turn "reuse the login" into "log in every time", and
    * the tester would have no way to tell which they had.
    */
+  /** The Accept-Language this page's requests carry, read off a real request. */
+  private async acceptLanguageOf(page: Page): Promise<string | undefined> {
+    try {
+      const [request] = await Promise.all([
+        page.waitForRequest(() => true, { timeout: 5000 }),
+        page.evaluate(() => fetch(location.href, { method: 'HEAD', credentials: 'include' }).catch(() => undefined)),
+      ]);
+      return (await request.allHeaders())['accept-language'];
+    } catch {
+      return undefined;
+    }
+  }
+
   async captureLoginState(sessionId: string, environment: EnvironmentScope): Promise<boolean> {
     const session = this.activeSessions.get(sessionId);
     if (!session) {
@@ -845,7 +858,8 @@ export class PlaywrightService {
     }
 
     const state = await session.context.storageState();
-    await saveLoginState(environment, state as any);
+    const acceptLanguage = await this.acceptLanguageOf(session.page);
+    await saveLoginState(environment, { ...(state as any), ...(acceptLanguage ? { acceptLanguage } : {}) });
     resolvedLogger.info({
       message: 'PS:captureLoginState - login state saved',
       sessionId,
@@ -1970,8 +1984,13 @@ export class PlaywrightService {
       // Start from the environment's saved session when there is one, so the test does not
       // spend its first thirty seconds logging in — and does not fail for a reason that has
       // nothing to do with what it checks.
-      const storageState = environment ? await loadLoginState(environment) : undefined;
-      if (storageState) {
+      const savedLogin = environment ? await loadLoginState(environment) : undefined;
+      const { acceptLanguage: savedAcceptLanguage, ...storageState } = savedLogin ?? ({} as Partial<LoginState>);
+      // A plan's own locale wins: it is what the plan tests. Otherwise the recorder's header, so
+      // a site that binds its session to it keeps the session.
+      const replayHeaders =
+        savedLogin && savedAcceptLanguage && !options?.locale ? { 'Accept-Language': savedAcceptLanguage } : undefined;
+      if (savedLogin) {
         resolvedLogger.debug({
           message: 'PS:executeTestSequence - starting from the saved login state',
           testName: test.name,
@@ -1986,7 +2005,8 @@ export class PlaywrightService {
         userAgent,
         ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl ?? ''),
         ...emulated,
-        ...(storageState ? { storageState: storageState as any } : {}),
+        ...(savedLogin ? { storageState: storageState as any } : {}),
+        ...(replayHeaders ? { extraHTTPHeaders: replayHeaders } : {}),
         // Playwright sends it as Accept-Language and answers navigator.language with it.
         ...(options?.locale ? { locale: options.locale } : {}),
         // Recording has to be asked for when the context is made; whether the file is kept is
