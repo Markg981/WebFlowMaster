@@ -414,6 +414,13 @@
       "when": 1790500000000,
       "tag": "0058_mobile_quarantine",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1790600000000,
+      "tag": "0059_sso_saml",
+      "breakpoints": true
     }
   ]
 }

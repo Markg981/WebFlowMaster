@@ -7,18 +7,24 @@ import { getTenantOrgId } from "../middleware/tenancy";
 import { auditActor } from "../audit";
 import { recordAuthEvent } from "../auth";
 import {
+  SSO_PROTOCOLS,
   SSO_ROLES,
   SsoConfigError,
   beginSignIn,
+  finishSamlSignIn,
   finishSignIn,
+  samlProviderOf,
   getSsoSettings,
   removeSsoSettings,
   saveSsoSettings,
   ssoAvailable,
   testSsoProvider,
   type SignInError,
+  type SignedIn,
 } from "../sso";
 import loggerPromise from "../logger";
+import { BINDING_COOKIE, REQUEST_TTL_MS, parseIdpMetadata, serviceProviderMetadata, spUrls } from "../sso-saml";
+import { sessionCookieSecure } from "../config";
 
 /**
  * Single sign-on (server/sso.ts): an owner's settings for the organization's identity provider,
@@ -38,16 +44,28 @@ function sessionOnly(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+/** This installation as its users reach it. */
+export function publicBase(req: Request, env: NodeJS.ProcessEnv = process.env): string {
+  return env.WEBFLOW_PUBLIC_URL?.trim().replace(/\/+$/, "") || `${req.protocol}://${req.get("host")}`;
+}
+
 /** Where the provider sends the browser back: the address to register with it. */
 export function callbackUrl(req: Request, env: NodeJS.ProcessEnv = process.env): string {
-  const base = env.WEBFLOW_PUBLIC_URL?.trim().replace(/\/+$/, "") || `${req.protocol}://${req.get("host")}`;
-  return `${base}/api/sso/callback`;
+  return `${publicBase(req, env)}/api/sso/callback`;
+}
+
+/** What the owner gives the provider: the OpenID Connect redirect URI, or the SAML service provider's addresses. */
+function providerFacing(req: Request) {
+  return { callbackUrl: callbackUrl(req), saml: spUrls(publicBase(req), getTenantOrgId()!) };
 }
 
 const settingsSchema = z.object({
+  protocol: z.enum(SSO_PROTOCOLS as [string, ...string[]]).default("oidc"),
   issuer: z.string().trim().min(1).max(500),
-  clientId: z.string().trim().min(1).max(500),
+  clientId: z.string().trim().max(500).optional(),
   clientSecret: z.string().max(2000).optional(),
+  samlSsoUrl: z.string().trim().max(2000).optional(),
+  samlCertificate: z.string().max(20000).optional(),
   domains: z.array(z.string().max(253)).min(1).max(50),
   defaultRole: z.enum(SSO_ROLES as [string, ...string[]]),
   enabled: z.boolean(),
@@ -56,7 +74,17 @@ const settingsSchema = z.object({
 
 // GET /api/organization/sso — the settings (never the secret) and the address to register.
 router.get("/api/organization/sso", requireRole("owner"), sessionOnly, async (req, res) => {
-  res.json({ settings: await getSsoSettings(getTenantOrgId()!), callbackUrl: callbackUrl(req) });
+  res.json({ settings: await getSsoSettings(getTenantOrgId()!), ...providerFacing(req) });
+});
+
+// POST /api/organization/sso/saml-metadata — reads entity ID, sign-on URL and certificate out of the
+// provider's metadata XML, to fill the form. Saves nothing.
+router.post("/api/organization/sso/saml-metadata", requireRole("owner"), sessionOnly, (req, res) => {
+  const xml = typeof req.body?.xml === "string" ? req.body.xml : "";
+  if (!xml.trim()) return res.status(400).json({ error: "Paste the provider's metadata XML." });
+  const parsed = parseIdpMetadata(xml);
+  if ("error" in parsed) return res.status(400).json({ error: parsed.error });
+  res.json(parsed);
 });
 
 // PUT /api/organization/sso — set the provider up, or change it. An empty secret keeps the stored one.
@@ -65,7 +93,7 @@ router.put("/api/organization/sso", requireRole("owner"), sessionOnly, async (re
   if (!parsed.success) return res.status(400).json({ error: "Invalid single sign-on settings", details: parsed.error.flatten().fieldErrors });
   try {
     const settings = await saveSsoSettings(getTenantOrgId()!, auditActor(req), parsed.data as Parameters<typeof saveSsoSettings>[2]);
-    res.json({ settings, callbackUrl: callbackUrl(req) });
+    res.json({ settings, ...providerFacing(req) });
   } catch (error) {
     if (error instanceof SsoConfigError) {
       return res.status(error.code === "domain_taken" ? 409 : 400).json({ error: error.message, code: error.code });
@@ -115,6 +143,16 @@ router.get("/api/sso/start", signInLimiter, async (req, res, next) => {
       if (started.detail) logger.warn({ message: "Single sign-on could not start", error: started.error, detail: started.detail });
       return backToSignIn(res, started.error);
     }
+    if (started.samlRequestId) {
+      // Binds the request to this browser (server/sso-saml.ts). Cross-site, so SameSite=None, which
+      // browsers accept only on a Secure cookie: without TLS the binding is not set, nor required.
+      if (sessionCookieSecure()) {
+        res.cookie(BINDING_COOKIE, started.samlRequestId, {
+          httpOnly: true, secure: true, sameSite: "none", path: "/api/sso/saml", maxAge: REQUEST_TTL_MS,
+        });
+      }
+      return res.redirect(303, started.url.href);
+    }
     req.session.ssoPending = started.pending;
     req.session.save((error) => (error ? next(error) : res.redirect(303, started.url.href)));
   } catch (error) {
@@ -133,20 +171,61 @@ router.get("/api/sso/callback", signInLimiter, async (req, res, next) => {
       logger.warn({ message: "Single sign-on refused", error: result.error, detail: result.detail, organizationId: result.organizationId });
       return backToSignIn(res, result.error);
     }
-    const { user, created, linked } = result;
-    // req.login starts a new session: the one that carried the state does not become the signed-in one.
-    req.login(user, (loginError) => {
-      if (loginError) return next(loginError);
-      req.session.signedInWith = "sso";
-      req.session.save(async (saveError) => {
-        if (saveError) return next(saveError);
-        await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_SUCCEEDED, req.ip, { method: "sso", ...(created ? { created } : {}), ...(linked ? { linked } : {}) });
-        res.redirect(303, "/");
-      });
-    });
+    signIn(req, res, next, result, "oidc");
   } catch (error) {
     next(error);
   }
 });
+
+function cookieValue(req: Request, name: string): string | null {
+  for (const part of (req.headers.cookie ?? "").split(";")) {
+    const [key, ...rest] = part.trim().split("=");
+    if (key === name) return decodeURIComponent(rest.join("="));
+  }
+  return null;
+}
+
+// GET /api/sso/saml/:organizationId/metadata — the service provider's metadata, for the identity
+// provider: entity ID, ACS address and binding. Public, like every SAML metadata document.
+router.get("/api/sso/saml/:organizationId/metadata", async (req, res) => {
+  const organizationId = Number(req.params.organizationId);
+  const row = Number.isInteger(organizationId) ? await samlProviderOf(organizationId) : null;
+  if (!row) return res.status(404).json({ error: "This organization does not sign in with SAML." });
+  res.type("application/samlmetadata+xml").send(serviceProviderMetadata(row, publicBase(req)));
+});
+
+// POST /api/sso/saml/:organizationId/acs — the provider POSTs the signed response here (cross-site:
+// exempt from the origin check, server/middleware/csrf.ts; the signature is the proof).
+router.post("/api/sso/saml/:organizationId/acs", signInLimiter, async (req, res, next) => {
+  const organizationId = Number(req.params.organizationId);
+  const samlResponse = typeof req.body?.SAMLResponse === "string" ? req.body.SAMLResponse : "";
+  res.clearCookie(BINDING_COOKIE, { path: "/api/sso/saml", secure: true, sameSite: "none", httpOnly: true });
+  if (!Number.isInteger(organizationId) || !samlResponse) return backToSignIn(res, "expired");
+  try {
+    const bound = sessionCookieSecure() ? cookieValue(req, BINDING_COOKIE) : undefined;
+    const result = await finishSamlSignIn(organizationId, publicBase(req), samlResponse, bound);
+    if ("error" in result) {
+      logger.warn({ message: "Single sign-on refused", protocol: "saml", error: result.error, detail: result.detail, organizationId });
+      return backToSignIn(res, result.error);
+    }
+    signIn(req, res, next, result, "saml");
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Opens the session for an account the provider vouched for, by either protocol. */
+function signIn(req: Request, res: Response, next: NextFunction, { user, created, linked }: SignedIn, protocol: "oidc" | "saml") {
+  // req.login starts a new session: the one that carried the state does not become the signed-in one.
+  req.login(user, (loginError) => {
+    if (loginError) return next(loginError);
+    req.session.signedInWith = "sso";
+    req.session.save(async (saveError) => {
+      if (saveError) return next(saveError);
+      await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_SUCCEEDED, req.ip, { method: "sso", protocol, ...(created ? { created } : {}), ...(linked ? { linked } : {}) });
+      res.redirect(303, "/");
+    });
+  });
+}
 
 export default router;

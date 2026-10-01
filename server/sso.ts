@@ -15,9 +15,19 @@ import { privilegedDb } from './db';
 import { decryptSecret, encryptSecret } from './crypto';
 import { sqlState } from './db-errors';
 import type { AuditActor } from './audit';
+import {
+  certificateInfo,
+  finishSamlSignIn as checkSamlResponse,
+  normaliseCertificate,
+  startSamlSignIn,
+  testSamlProvider,
+  type CertificateInfo,
+} from './sso-saml';
 
 /**
- * Single sign-on with OpenID Connect, one identity provider per organization.
+ * Single sign-on, one identity provider per organization, speaking OpenID Connect or SAML 2.0.
+ * This module owns the settings and the accounts; the SAML conversation is in server/sso-saml.ts.
+ * What follows describes OpenID Connect; SAML differs only in how the identity is proven.
  *
  * An owner registers the application with their provider (Entra ID, Okta, Google Workspace,
  * Keycloak and the like) and enters here its issuer, the client id and secret, and the e-mail
@@ -42,11 +52,19 @@ import type { AuditActor } from './audit';
 
 export type SsoRole = 'viewer' | 'editor';
 export const SSO_ROLES: readonly SsoRole[] = ['viewer', 'editor'];
+export type SsoProtocol = 'oidc' | 'saml';
+export const SSO_PROTOCOLS: readonly SsoProtocol[] = ['oidc', 'saml'];
 
 /** What an owner sees. Never the secret. */
 export interface SsoSettings {
+  protocol: SsoProtocol;
+  /** OpenID Connect: the issuer URL. SAML: the provider's entity ID. */
   issuer: string;
-  clientId: string;
+  clientId: string | null;
+  samlSsoUrl: string | null;
+  /** The SAML signing certificate as stored (it is public) and what it says. */
+  samlCertificate: string | null;
+  samlCertificateInfo: CertificateInfo | null;
   domains: string[];
   defaultRole: SsoRole;
   enabled: boolean;
@@ -55,10 +73,13 @@ export interface SsoSettings {
 }
 
 export interface SsoInput {
+  protocol?: SsoProtocol;
   issuer: string;
-  clientId: string;
+  clientId?: string;
   /** Empty or absent keeps the stored one. */
   clientSecret?: string;
+  samlSsoUrl?: string;
+  samlCertificate?: string;
   domains: string[];
   defaultRole: SsoRole;
   enabled: boolean;
@@ -90,6 +111,9 @@ const DISCOVERY_TTL_MS = 60 * 60 * 1000;
 
 type SsoError =
   | 'invalid_issuer'
+  | 'client_id_required'
+  | 'invalid_sso_url'
+  | 'invalid_certificate'
   | 'invalid_domain'
   | 'secret_required'
   | 'domain_taken'
@@ -150,8 +174,12 @@ export async function getSsoSettings(organizationId: number): Promise<SsoSetting
     .where(eq(ssoDomains.organizationId, organizationId))
     .orderBy(ssoDomains.domain);
   return {
+    protocol: row.protocol as SsoProtocol,
     issuer: row.issuer,
     clientId: row.clientId,
+    samlSsoUrl: row.samlSsoUrl,
+    samlCertificate: row.samlCertificate,
+    samlCertificateInfo: row.samlCertificate ? certificateInfo(row.samlCertificate) : null,
     domains: domains.map((d) => d.domain),
     defaultRole: row.defaultRole as SsoRole,
     enabled: row.enabled,
@@ -161,9 +189,30 @@ export async function getSsoSettings(organizationId: number): Promise<SsoSetting
 }
 
 export async function saveSsoSettings(organizationId: number, actor: AuditActor, input: SsoInput): Promise<SsoSettings> {
-  const issuer = validIssuer(input.issuer);
-  if (!issuer) {
-    throw new SsoConfigError('invalid_issuer', 'The issuer must be the provider\'s https address, as its discovery document states it.');
+  const protocol: SsoProtocol = input.protocol ?? 'oidc';
+  let samlCertificate: string | null = null;
+  let samlSsoUrl: string | null = null;
+  if (protocol === 'oidc') {
+    if (!validIssuer(input.issuer)) {
+      throw new SsoConfigError('invalid_issuer', 'The issuer must be the provider\'s https address, as its discovery document states it.');
+    }
+    if (!input.clientId?.trim()) throw new SsoConfigError('client_id_required', 'Enter the client ID.');
+  } else {
+    // An entity ID is a URI or a URN, as the provider's metadata states it; it is compared, not fetched.
+    if (!input.issuer.trim() || /\s/.test(input.issuer.trim())) {
+      throw new SsoConfigError('invalid_issuer', 'Enter the provider\'s entity ID, as its metadata states it (entityID).');
+    }
+    if (!input.samlSsoUrl || !validIssuer(input.samlSsoUrl.split('?')[0])) {
+      throw new SsoConfigError('invalid_sso_url', 'The sign-on URL must be the provider\'s https address for the HTTP-Redirect binding.');
+    }
+    samlSsoUrl = input.samlSsoUrl.trim();
+    samlCertificate = input.samlCertificate ? normaliseCertificate(input.samlCertificate) : null;
+    if (!samlCertificate) {
+      throw new SsoConfigError('invalid_certificate', 'Paste the provider\'s signing certificate (X.509, PEM or base64).');
+    }
+    if (certificateInfo(samlCertificate)!.expired) {
+      throw new SsoConfigError('invalid_certificate', 'That certificate has expired: every sign-in would be refused. Paste the provider\'s current one.');
+    }
   }
   const domains = [...new Set(input.domains.map(normaliseDomain).filter((d) => d !== ''))];
   const invalid = domains.filter((d) => !DOMAIN.test(d));
@@ -181,7 +230,12 @@ export async function saveSsoSettings(organizationId: number, actor: AuditActor,
         .select({ organizationId: organizationSso.organizationId })
         .from(organizationSso)
         .where(eq(organizationSso.organizationId, organizationId));
-      if (!existing && !secret) throw new SsoConfigError('secret_required', 'Enter the client secret.');
+      if (protocol === 'oidc' && !secret) {
+        const [stored] = existing
+          ? await tx.select({ secret: organizationSso.clientSecretEncrypted }).from(organizationSso).where(eq(organizationSso.organizationId, organizationId))
+          : [];
+        if (!stored?.secret) throw new SsoConfigError('secret_required', 'Enter the client secret.');
+      }
 
       const taken = await tx
         .select({ domain: ssoDomains.domain })
@@ -192,31 +246,35 @@ export async function saveSsoSettings(organizationId: number, actor: AuditActor,
       }
 
       const values = {
+        protocol,
         // As typed: openid-client compares it with the discovery document's after normalising both.
         issuer: input.issuer.trim(),
-        clientId: input.clientId.trim(),
         defaultRole: input.defaultRole,
         enabled: input.enabled,
         required: input.required,
         updatedAt: new Date(),
-        ...(secret ? secretColumns(secret) : {}),
+        ...(protocol === 'oidc'
+          ? { clientId: input.clientId!.trim(), samlSsoUrl: null, samlCertificate: null, ...(secret ? secretColumns(secret) : {}) }
+          : { samlSsoUrl, samlCertificate, clientId: null, clientSecretEncrypted: null, clientSecretIv: null, clientSecretAuthTag: null }),
       };
       if (existing) {
         await tx.update(organizationSso).set(values).where(eq(organizationSso.organizationId, organizationId));
       } else {
-        await tx.insert(organizationSso).values({ organizationId, ...values, ...secretColumns(secret) });
+        await tx.insert(organizationSso).values({ organizationId, ...values });
       }
       await tx.delete(ssoDomains).where(eq(ssoDomains.organizationId, organizationId));
       await tx.insert(ssoDomains).values(domains.map((domain) => ({ domain, organizationId })));
 
       await audit(tx, organizationId, actor, AUDIT_ACTIONS.SSO_CONFIGURED, 'organization', String(organizationId), {
+        protocol,
         issuer: values.issuer,
         clientId: values.clientId,
+        ...(protocol === 'saml' ? { samlSsoUrl, certificateFingerprint: certificateInfo(samlCertificate!)!.fingerprint256 } : {}),
         domains,
         defaultRole: input.defaultRole,
         enabled: input.enabled,
         required: input.required,
-        secretChanged: Boolean(secret),
+        secretChanged: protocol === 'oidc' && Boolean(secret),
       });
     });
   } catch (error) {
@@ -272,8 +330,8 @@ function clientFor(row: typeof organizationSso.$inferSelect): Promise<oidc.Confi
   if (cached && cached.key === key && Date.now() - cached.at < DISCOVERY_TTL_MS) return cached.config;
 
   const issuer = new URL(row.issuer);
-  const secret = decryptSecret(row.clientSecretEncrypted, row.clientSecretIv, row.clientSecretAuthTag);
-  const config = oidc.discovery(issuer, row.clientId, undefined, oidc.ClientSecretBasic(secret), {
+  const secret = decryptSecret(row.clientSecretEncrypted!, row.clientSecretIv!, row.clientSecretAuthTag!);
+  const config = oidc.discovery(issuer, row.clientId!, undefined, oidc.ClientSecretBasic(secret), {
     timeout: 10,
     ...(issuer.protocol === 'http:' ? { execute: [oidc.allowInsecureRequests] } : {}),
   });
@@ -289,6 +347,7 @@ function clientFor(row: typeof organizationSso.$inferSelect): Promise<oidc.Confi
 export async function testSsoProvider(organizationId: number): Promise<{ ok: true; issuer: string } | { ok: false; message: string }> {
   const row = await providerRow(organizationId);
   if (!row) return { ok: false, message: 'Single sign-on is not set up.' };
+  if (row.protocol === 'saml') return testSamlProvider(row);
   forgetDiscovery(organizationId);
   try {
     const config = await clientFor(row);
@@ -326,13 +385,17 @@ export type SignInError =
   | 'domain_not_allowed'
   | 'account_elsewhere'
   | 'account_disabled'
-  | 'account_linked';
+  | 'account_linked'
+  | 'browser_mismatch';
 
-/** Where to send the browser for an e-mail address, and what to remember until it comes back. */
+/**
+ * Where to send the browser for an e-mail address, and what to remember until it comes back: a
+ * pending sign-in in the session for OpenID Connect, a request id to bind to the browser for SAML.
+ */
 export async function beginSignIn(
   email: string,
   redirectUri: string,
-): Promise<{ url: URL; pending: SsoPending } | { error: SignInError; detail?: string }> {
+): Promise<{ url: URL; pending?: SsoPending; samlRequestId?: string } | { error: SignInError; detail?: string }> {
   const domain = normaliseDomain(email.split('@').pop() ?? '');
   if (!email.includes('@') || !DOMAIN.test(domain)) return { error: 'unknown_domain' };
   const [match] = await privilegedDb
@@ -344,6 +407,14 @@ export async function beginSignIn(
 
   const row = await providerRow(match.organizationId);
   if (!row) return { error: 'unknown_domain' };
+  if (row.protocol === 'saml') {
+    try {
+      const started = await startSamlSignIn(row, publicBaseOf(redirectUri));
+      return { url: new URL(started.url), samlRequestId: started.requestId };
+    } catch (error) {
+      return { error: 'provider_unreachable', detail: describe(error) };
+    }
+  }
   let config: oidc.Configuration;
   try {
     config = await clientFor(row);
@@ -426,6 +497,40 @@ export async function finishSignIn(
     if (sqlState(error) === '23505') return resolveAccount(pending.organizationId, identity, email, row.defaultRole as SsoRole);
     throw error;
   }
+}
+
+/** The installation's public address, from the OpenID Connect callback built on it. */
+function publicBaseOf(redirectUri: string): string {
+  return redirectUri.replace(/\/api\/sso\/callback$/, '');
+}
+
+/**
+ * The provider POSTed a SAML response to an organization's ACS: check it (server/sso-saml.ts) and find
+ * or create the account, exactly as for OpenID Connect.
+ */
+export async function finishSamlSignIn(
+  organizationId: number,
+  publicBase: string,
+  samlResponse: string,
+  boundRequestId: string | null | undefined,
+): Promise<SignedIn | { error: SignInError; detail?: string; organizationId?: number }> {
+  const row = await providerRow(organizationId);
+  if (!row || !row.enabled || row.protocol !== 'saml') return { error: 'expired' };
+  const result = await checkSamlResponse(row, publicBase, samlResponse, boundRequestId);
+  if ('error' in result) return { ...result, organizationId };
+  const identity = { issuer: result.issuer, subject: result.subject };
+  try {
+    return await resolveAccount(organizationId, identity, result.email, row.defaultRole as SsoRole);
+  } catch (error) {
+    if (sqlState(error) === '23505') return resolveAccount(organizationId, identity, result.email, row.defaultRole as SsoRole);
+    throw error;
+  }
+}
+
+/** The SAML provider's row, for its metadata and ACS. Null when the organization does not use SAML. */
+export async function samlProviderOf(organizationId: number) {
+  const row = await providerRow(organizationId);
+  return row && row.protocol === 'saml' ? row : null;
 }
 
 /** The address the token vouches for: `email`, or an address-shaped `preferred_username` (Entra ID's UPN). */

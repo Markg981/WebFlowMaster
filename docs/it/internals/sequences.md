@@ -45,15 +45,24 @@ sequenceDiagram
   participant B as Browser
   participant W as Web process
   participant DB as PostgreSQL
-  participant IDP as OpenID Connect provider
+  participant IDP as Identity provider
   U->>B: e-mail address
   B->>W: GET /api/sso/start?email=…
   W->>DB: sso_domains, organization_sso
-  W-->>B: redirect to the provider (PKCE, state)
-  B->>IDP: authorize
-  IDP-->>B: redirect with code
-  B->>W: GET /api/sso/callback
-  W->>IDP: exchange code, read ID token and claims
+  alt OpenID Connect
+    W-->>B: redirect to the provider (PKCE, state)
+    B->>IDP: authorize
+    IDP-->>B: redirect with code
+    B->>W: GET /api/sso/callback
+    W->>IDP: exchange code, read ID token and claims
+  else SAML 2.0
+    W->>DB: insert sso_saml_requests (AuthnRequest id)
+    W-->>B: redirect with AuthnRequest (+ binding cookie)
+    B->>IDP: sign in
+    IDP-->>B: auto-submitting form
+    B->>W: POST /api/sso/saml/{org}/acs (signed assertion)
+    W->>DB: delete sso_saml_requests by InResponseTo (once)
+  end
   W->>DB: sso_identities by issuer + subject
   alt known identity
     W->>DB: update last sign-in

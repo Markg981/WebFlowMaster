@@ -15,6 +15,11 @@ import type { Request, Response, NextFunction } from "express";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+// The SAML assertion consumer service: the identity provider's page POSTs the signed response from its
+// own origin, by design. What protects it is the response's signature, the request it must answer and
+// the browser binding (server/sso-saml.ts), not the origin.
+const CROSS_SITE_BY_DESIGN = /^\/api\/sso\/saml\/\d+\/acs$/;
+
 function hostOf(urlOrHost: string | undefined): string | null {
   if (!urlOrHost) return null;
   try {
@@ -41,6 +46,7 @@ function trustedHosts(req: Request): Set<string> {
 
 export function csrfOriginCheck(req: Request, res: Response, next: NextFunction): void {
   if (SAFE_METHODS.has(req.method)) return next();
+  if (req.method === "POST" && CROSS_SITE_BY_DESIGN.test(req.path)) return next();
 
   const originHost = hostOf(req.headers.origin) ?? hostOf(req.headers.referer);
   // No browser-supplied origin -> server-to-server client, not a CSRF vector.

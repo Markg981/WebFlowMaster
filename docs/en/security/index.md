@@ -58,10 +58,16 @@ sign-up, where each new account gets an organization of its own.
   forgotten password is recovered with a one-time link an owner issues (or, for an organization's
   only owner, the operator), valid for a day and stored only as a hash. A session carries a stamp
   of the password it was opened with, so a new password ends every other session of that person.
-- **Single sign-on** with OpenID Connect, per organization
+- **Single sign-on** with OpenID Connect or SAML 2.0, per organization
   ([Administration](../admin/administration#single-sign-on)): authorization code flow with PKCE,
   a one-time state and nonce, and the ID token's signature, issuer, audience and expiry checked
-  against the provider's published keys. Accounts are matched by the provider's stable subject,
+  against the provider's published keys. With SAML, the assertion's XML signature is checked
+  against the certificate the owner saved, along with its issuer, audience (the organization's own
+  entity ID) and validity window; it must answer an AuthnRequest this installation sent, and that
+  request is consumed atomically in the database, so a response cannot be replayed — not even on
+  another web server — and an unsolicited one is refused. With Secure cookies a short-lived
+  cookie binds the request to the browser that started it, against login CSRF. Metadata pasted by
+  an owner is parsed without DTDs. Accounts are matched by the provider's stable subject,
   not by e-mail address; new ones get viewer or editor, never owner. The client secret is
   encrypted like other stored secrets. An owner can **require** it: members' passwords then stop
   working, including in open sessions, while owners keep theirs as a way back in.
@@ -213,8 +219,9 @@ sending it to Google is acceptable; everything else works without it.
 
 Stated so a review can weigh them, not discovered later:
 
-- **Single sign-on is OpenID Connect only**, without SAML, without mapping the provider's groups
-  to roles, and without SCIM: a person removed here but not at the provider gets a new account
+- **Single sign-on** maps no provider groups to roles, has no SCIM, and for SAML accepts only
+  signed, unencrypted assertions from sign-ins it started (no IdP-initiated sign-in, no single
+  logout): a person removed here but not at the provider gets a new account
   at their next sign-in, so access is ended at the provider. E-mail domains are not verified by
   DNS; on a shared installation the first organization to claim a domain has it.
 - No password complexity rules beyond length, and no e-mail delivery: invitation and password

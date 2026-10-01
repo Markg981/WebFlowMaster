@@ -113,11 +113,14 @@ azzeri il suo secondo fattore in **Impostazioni → Membri**.
 
 ## Single sign-on *(owner)* {#single-sign-on}
 
-I membri possono accedere con l'identity provider dell'organizzazione tramite **OpenID
-Connect**: Microsoft Entra ID, Okta, Google Workspace, Keycloak, Auth0 e qualsiasi altro
-provider che pubblichi un documento di discovery. SAML non è supportato.
+I membri possono accedere con l'identity provider dell'organizzazione tramite **OpenID Connect**
+o **SAML 2.0**. OpenID Connect va bene per Microsoft Entra ID, Okta, Google Workspace, Keycloak,
+Auth0 e qualsiasi provider che pubblichi un documento di discovery; SAML per i provider che
+parlano solo SAML — ADFS, Shibboleth, PingFederate, configurazioni Okta ed Entra ID meno recenti.
+Un'organizzazione usa un provider e un protocollo alla volta; si sceglie con **Protocollo** in cima
+alla scheda.
 
-**Configurazione.** In **Impostazioni → Sicurezza → Single sign-on**:
+**Configurare OpenID Connect.** In **Impostazioni → Sicurezza → Single sign-on**, Protocollo **OpenID Connect**:
 
 1. Copiate il **redirect URI** mostrato (termina con `/api/sso/callback`; usa
    `WEBFLOW_PUBLIC_URL` se impostata).
@@ -141,10 +144,47 @@ Il client secret è salvato cifrato e non viene più mostrato; lasciate il campo
 mantenerlo quando cambiate altro. Ogni dominio appartiene a una sola organizzazione
 dell'installazione.
 
+**Configurare SAML 2.0.** Protocollo **SAML 2.0**. La scheda mostra cosa dare al provider; ogni
+organizzazione è un service provider a sé:
+
+| Valore di WebFlowMaster | Dove va presso il provider |
+|---|---|
+| **Entity ID** `…/api/sso/saml/{organizzazione}` | Identifier / Audience / *Relying party identifier* / *Client ID* di Keycloak |
+| **URL ACS** `…/api/sso/saml/{organizzazione}/acs` | Reply URL / *Assertion Consumer Service*, binding **HTTP-POST** |
+| **URL dei metadati** `…/api/sso/saml/{organizzazione}/metadata` | I provider che importano i metadati del service provider (ADFS, Shibboleth) leggono tutto da qui, dopo il salvataggio |
+
+Presso il provider:
+
+1. Create l'applicazione con quei valori. L'**asserzione deve essere firmata** (firmare anche
+   l'intera risposta va bene). Le asserzioni cifrate non sono supportate: lasciate la cifratura
+   spenta.
+2. Inviate l'**indirizzo e-mail** della persona: come attributo `email`, `mail`,
+   `urn:oid:0.9.2342.19200300.100.1.3` o `…/claims/emailaddress` di Microsoft, oppure come NameID
+   in formato e-mail.
+3. Preferite un NameID **persistent**: identifica la persona anche quando cambia indirizzo. Con un
+   NameID transient come identità si usa l'indirizzo.
+
+Tornati qui, incollate i **metadati XML** del provider e premete **Leggi i metadati**: compilano
+l'**entity ID** del provider, il suo **URL di accesso** (binding HTTP-Redirect) e il suo
+**certificato di firma**. Si possono anche scrivere a mano. Aggiungete domini e ruolo dei nuovi
+account, poi **Salva** e **Prova il provider**, che controlla che il certificato sia valido e che
+l'URL di accesso risponda. La scheda mostra soggetto e scadenza del certificato; quando il provider
+lo rinnova incollate il nuovo — con un certificato scaduto ogni accesso viene rifiutato, e la
+scheda lo dice.
+
+| Provider | Dove trovare i metadati |
+|---|---|
+| Microsoft Entra ID | Enterprise application → Single sign-on → *Federation Metadata XML* |
+| Okta | Applicazione → Sign On → *Identity Provider metadata* |
+| ADFS | `https://{host}/FederationMetadata/2007-06/FederationMetadata.xml` |
+| Keycloak | `https://{host}/realms/{realm}/protocol/saml/descriptor` |
+
 **Accesso.** La pagina di accesso mostra **Accedi con SSO** appena un'organizzazione lo ha
 configurato. La persona scrive il proprio indirizzo; il dominio sceglie l'organizzazione, e il
-browser va al provider. Al ritorno l'applicazione verifica la risposta firmata del provider
-(issuer, audience, firma, scadenza, e un nonce e uno state monouso), poi:
+browser va al provider. Al ritorno l'applicazione verifica la risposta firmata del provider —
+per OpenID Connect issuer, audience, firma, scadenza, nonce e state dell'ID token; per SAML la
+firma dell'asserzione con il certificato salvato, issuer, audience, finestra di validità e che
+risponda a una richiesta inviata da questa installazione, cosa che può fare una sola volta — poi:
 
 - un'identità già vista accede allo stesso account, anche se l'indirizzo è cambiato;
 - la prima volta, un account esistente dell'organizzazione il cui nome utente è quell'indirizzo
@@ -152,9 +192,11 @@ browser va al provider. Al ritorno l'applicazione verifica la risposta firmata d
 - altrimenti viene **creato** un account, con l'indirizzo come nome utente e il ruolo scelto.
   Nessun owner viene creato così: si nomina un owner in **Impostazioni → Membri**.
 
-L'indirizzo viene dal claim `email` oppure, se manca, da un `preferred_username` in forma di
-indirizzo, che è ciò che invia Entra ID. Un indirizzo che il provider segna come non verificato
-viene rifiutato, come uno fuori dai vostri domini.
+Con OpenID Connect l'indirizzo viene dal claim `email` oppure, se manca, da un
+`preferred_username` in forma di indirizzo, che è ciò che invia Entra ID; un indirizzo che il
+provider segna come non verificato viene rifiutato. Con SAML viene dagli attributi elencati sopra o
+da un NameID in forma di indirizzo. In entrambi i casi un indirizzo fuori dai vostri domini viene
+rifiutato.
 
 **Renderlo obbligatorio.** Con **Rendilo obbligatorio** attivo, i membri che non sono owner non
 possono più accedere con la password, e le sessioni aperte con la password terminano alla
@@ -331,8 +373,9 @@ anche dei backup del database, dove l'organizzazione resta finché non scadono.
   mostrato sopra.
 - Cancellare un'organizzazione lascia i suoi file nell'archivio degli artefatti, da rimuovere a
   cura di chi gestisce l'installazione.
-- Il single sign-on è solo OpenID Connect (niente SAML), e i ruoli non vengono presi dai gruppi
-  del provider: i nuovi account hanno il ruolo predefinito, e gli owner lo cambiano in
-  **Impostazioni → Membri**.
+- Il single sign-on non prende i ruoli dai gruppi del provider: i nuovi account hanno il ruolo
+  predefinito, e gli owner lo cambiano in **Impostazioni → Membri**. Le asserzioni SAML devono
+  essere firmate e non cifrate, l'accesso parte da WebFlowMaster (niente accesso avviato dall'IdP),
+  e il single logout non è supportato.
 - Non c'è invio di e-mail; gli inviti si consegnano a mano.
 - La sezione **Notifiche** di Impostazioni non viene ancora salvata; le notifiche si impostano per piano.

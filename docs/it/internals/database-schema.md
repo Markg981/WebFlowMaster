@@ -5,9 +5,9 @@ Questa pagina è il riferimento del database: ogni tabella, ogni colonna e ogni 
 scopo di ciascuna tabella, a parole, è in [Modello dati](./data-model); come le righe restano separate fra
 organizzazioni è in [Tenancy e accessi](./tenancy).
 
-**55 tabelle**, di cui 44 hanno un `organization_id` e sono protette dalla row-level security. Le altre 11 sono
+**56 tabelle**, di cui 44 hanno un `organization_id` e sono protette dalla row-level security. Le altre 12 sono
 dell'intera installazione o si leggono prima che l'organizzazione sia nota: `organizations`, `users`, `user_mfa`,
-`user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sessions`, `runners`
+`user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sso_saml_requests`, `sessions`, `runners`
 e `system_settings`.
 
 ## Come leggere i diagrammi
@@ -108,6 +108,7 @@ erDiagram
   organizations ||--o{ organization_sso : "organization_id"
   organizations ||--o{ sso_domains : "organization_id"
   users ||--o{ sso_identities : "user_id"
+  organizations ||--o{ sso_saml_requests : "organization_id"
   users ||--o{ projects : "user_id"
   organizations ||--o{ projects : "organization_id"
   projects ||--o{ project_members : "project_id"
@@ -184,11 +185,14 @@ erDiagram
   }
   organization_sso {
     int organization_id PK,FK
+    text protocol
     text issuer
     text client_id
     text client_secret_encrypted
     text client_secret_iv
     text client_secret_auth_tag
+    text saml_sso_url
+    text saml_certificate
     text default_role
     bool enabled
     bool required
@@ -204,6 +208,11 @@ erDiagram
     int user_id FK
     timestamp created_at
     timestamp last_sign_in_at
+  }
+  sso_saml_requests {
+    text id PK
+    int organization_id FK
+    timestamp created_at
   }
   projects {
     int id PK
@@ -1049,7 +1058,7 @@ erDiagram
 
 Queste relazioni esistono nell'applicazione ma non hanno una chiave esterna. Sono il prezzo di un disegno polimorfo (tre tipi di test nello stesso insieme di colonne) o del conservare la storia quando la destinazione non c'è più.
 
-| Colonna | Punta a | Nota |
+| Colonna | Punta a | Perché non c'è un vincolo |
 |---|---|---|
 | `mobile_test_id` in `report_test_case_results`, `test_plan_selected_tests`, `test_suite_items`, `test_tags`, `test_quarantines`, `test_case_links` | `mobile_tests.id` | Aggiunto dopo le colonne UI e API; fa eccezione `requirement_tests`, che lo referenzia davvero. |
 | `execution_logs.test_case_result_id` | `report_test_case_results.id` | Facoltativa: lega una riga di log a un test del run. |
@@ -1060,8 +1069,8 @@ Queste relazioni esistono nell'applicazione ma non hanno una chiave esterna. Son
 
 ## Vincoli da conoscere
 
-- **Legami nella stessa organizzazione.** Quando una tabella di organizzazione ne richiama un'altra, una chiave
-  esterna composta `(id, organization_id)` garantisce che le due righe siano della stessa organizzazione (migrazione 0034 e successive); un test di
+- **Legami nella stessa organizzazione.** Quando una tabella di organizzazione ne richiama un'altra, un vincolo o un
+  trigger garantisce che le due righe siano della stessa organizzazione (migrazione 0034 e successive); un test di
   deriva fallisce se un nuovo legame ne è privo.
 - **Tabelle in sola aggiunta.** `audit_log`, `test_versions` e `test_publications` danno a `app_user` solo
   `SELECT` e `INSERT`: l'applicazione non può riscriverle.
@@ -1069,5 +1078,5 @@ Queste relazioni esistono nell'applicazione ma non hanno una chiave esterna. Son
   utente finché è in sospeso (0044); un legame con un'issue è univoco per fallimento (`dedupe_key`), così un
   fallimento si segnala una volta; la chiave di idempotenza di un run è univoca per organizzazione, così una richiesta ripetuta
   restituisce lo stesso run.
-- **Migrazioni.** 59 file SQL numerati in `migrations/` (da `0000` a `0058`), applicati una volta dal migratore
+- **Migrazioni.** 60 file SQL numerati in `migrations/` (da `0000` a `0059`), applicati una volta dal migratore
   prima che partano gli altri processi; il journal è `migrations/meta/_journal.json`.

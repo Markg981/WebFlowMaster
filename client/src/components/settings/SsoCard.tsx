@@ -7,19 +7,29 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Copy, KeyRound, Loader2 } from 'lucide-react';
 
 /**
  * Single sign-on with the organization's identity provider (server/sso.ts). Owners only.
  *
- * The owner registers the application with their provider, using the callback address shown
- * here, and copies back the issuer, the client id and the secret.
+ * OpenID Connect: the owner registers the application with their provider, using the callback
+ * address shown here, and copies back the issuer, the client id and the secret.
+ * SAML 2.0 (server/sso-saml.ts): the owner gives the provider this organization's entity ID and ACS
+ * address (or its metadata URL), and copies back the provider's entity ID, sign-on URL and signing
+ * certificate — or pastes the provider's metadata, which fills the three.
  */
 
+type Protocol = 'oidc' | 'saml';
+
 export interface SsoSettings {
+  protocol: Protocol;
   issuer: string;
-  clientId: string;
+  clientId: string | null;
+  samlSsoUrl: string | null;
+  samlCertificate: string | null;
+  samlCertificateInfo: { subject: string; validTo: string; expired: boolean } | null;
   domains: string[];
   defaultRole: 'viewer' | 'editor';
   enabled: boolean;
@@ -30,6 +40,7 @@ export interface SsoSettings {
 interface SsoResponse {
   settings: SsoSettings | null;
   callbackUrl: string;
+  saml: { entityId: string; acsUrl: string; metadataUrl: string };
 }
 
 async function send(method: string, url: string, body?: unknown) {
@@ -44,12 +55,44 @@ async function send(method: string, url: string, body?: unknown) {
   return payload;
 }
 
-const EMPTY = { issuer: '', clientId: '', clientSecret: '', domains: '', defaultRole: 'viewer' as const, enabled: true, required: false };
+interface Form {
+  protocol: Protocol;
+  issuer: string;
+  clientId: string;
+  clientSecret: string;
+  samlSsoUrl: string;
+  samlCertificate: string;
+  domains: string;
+  defaultRole: 'viewer' | 'editor';
+  enabled: boolean;
+  required: boolean;
+}
+
+const EMPTY: Form = {
+  protocol: 'oidc', issuer: '', clientId: '', clientSecret: '', samlSsoUrl: '', samlCertificate: '',
+  domains: '', defaultRole: 'viewer', enabled: true, required: false,
+};
+
+function CopyField({ label, value, testId }: { label: string; value: string; testId: string }) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-1">
+      <Label>{label}</Label>
+      <div className="flex gap-2">
+        <Input readOnly value={value} data-testid={testId} className="font-mono text-xs" />
+        <Button type="button" variant="outline" size="icon" aria-label={t('sso.copy', 'Copy')} onClick={() => navigator.clipboard?.writeText(value)}>
+          <Copy className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function SsoCard() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [form, setForm] = useState<{ issuer: string; clientId: string; clientSecret: string; domains: string; defaultRole: 'viewer' | 'editor'; enabled: boolean; required: boolean }>(EMPTY);
+  const [form, setForm] = useState<Form>(EMPTY);
+  const [metadataXml, setMetadataXml] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
@@ -63,14 +106,26 @@ export default function SsoCard() {
 
   useEffect(() => {
     if (!data) return;
+    const s = data.settings;
     setForm(
-      data.settings
-        ? { ...data.settings, clientSecret: '', domains: data.settings.domains.join(', ') }
+      s
+        ? {
+            protocol: s.protocol ?? 'oidc',
+            issuer: s.issuer,
+            clientId: s.clientId ?? '',
+            clientSecret: '',
+            samlSsoUrl: s.samlSsoUrl ?? '',
+            samlCertificate: s.samlCertificate ?? '',
+            domains: s.domains.join(', '),
+            defaultRole: s.defaultRole,
+            enabled: s.enabled,
+            required: s.required,
+          }
         : EMPTY,
     );
   }, [data]);
 
-  const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((current) => ({ ...current, [key]: value }));
+  const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm((current) => ({ ...current, [key]: value }));
 
   const run = async (work: () => Promise<void>) => {
     setBusy(true);
@@ -88,15 +143,30 @@ export default function SsoCard() {
   const save = (event: React.FormEvent) => {
     event.preventDefault();
     run(async () => {
-      const result = await send('PUT', '/api/organization/sso', {
-        ...form,
+      const common = {
+        protocol: form.protocol,
+        issuer: form.issuer,
         domains: form.domains.split(/[\s,;]+/).filter(Boolean),
+        defaultRole: form.defaultRole,
+        enabled: form.enabled,
         required: form.enabled && form.required,
-      });
+      };
+      const body = form.protocol === 'oidc'
+        ? { ...common, clientId: form.clientId, clientSecret: form.clientSecret }
+        : { ...common, samlSsoUrl: form.samlSsoUrl, samlCertificate: form.samlCertificate };
+      const result = await send('PUT', '/api/organization/sso', body);
       queryClient.setQueryData(['organization-sso'], result);
       setNotice(t('sso.saved', 'Saved.'));
     });
   };
+
+  const readMetadata = () =>
+    run(async () => {
+      const parsed = await send('POST', '/api/organization/sso/saml-metadata', { xml: metadataXml });
+      setForm((current) => ({ ...current, issuer: parsed.entityId, samlSsoUrl: parsed.ssoUrl, samlCertificate: parsed.certificate }));
+      setMetadataXml('');
+      setNotice(t('sso.saml.metadataRead', 'Filled from the metadata. Check the values, then save.'));
+    });
 
   const test = () =>
     run(async () => {
@@ -112,7 +182,10 @@ export default function SsoCard() {
       queryClient.invalidateQueries({ queryKey: ['organization-sso'] });
     });
 
-  const canSave = form.issuer.trim() && form.clientId.trim() && form.domains.trim() && (saved || form.clientSecret.trim());
+  const oidcReady = form.clientId.trim() && (saved?.protocol === 'oidc' || form.clientSecret.trim());
+  const samlReady = form.samlSsoUrl.trim() && form.samlCertificate.trim();
+  const canSave = form.issuer.trim() && form.domains.trim() && (form.protocol === 'oidc' ? oidcReady : samlReady);
+  const certInfo = saved?.protocol === 'saml' && form.samlCertificate === saved.samlCertificate ? saved.samlCertificateInfo : null;
 
   return (
     <Card>
@@ -122,11 +195,12 @@ export default function SsoCard() {
           <span>{t('sso.title', 'Single sign-on')}</span>
           {saved?.enabled && <Badge variant="secondary">{t('sso.on', 'on')}</Badge>}
           {saved?.required && <Badge variant="secondary">{t('sso.requiredBadge', 'required')}</Badge>}
+          {saved && <Badge variant="outline">{saved.protocol === 'saml' ? 'SAML 2.0' : 'OpenID Connect'}</Badge>}
         </CardTitle>
         <CardDescription>
           {t(
             'sso.description',
-            'Members sign in with your identity provider (OpenID Connect: Entra ID, Okta, Google Workspace, Keycloak…). The first time someone from your domains signs in, their account is created.',
+            'Members sign in with your identity provider (OpenID Connect or SAML 2.0: Entra ID, Okta, Google Workspace, ADFS, Keycloak…). The first time someone from your domains signs in, their account is created.',
           )}
         </CardDescription>
       </CardHeader>
@@ -136,41 +210,87 @@ export default function SsoCard() {
         ) : (
           <form onSubmit={save} className="space-y-4" data-testid="sso-form">
             <div className="space-y-1">
-              <Label>{t('sso.callbackUrl', 'Redirect URI to register with your provider')}</Label>
-              <div className="flex gap-2">
-                <Input readOnly value={data.callbackUrl} data-testid="sso-callback-url" className="font-mono text-xs" />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label={t('sso.copy', 'Copy')}
-                  onClick={() => navigator.clipboard?.writeText(data.callbackUrl)}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
+              <Label htmlFor="sso-protocol">{t('sso.protocol', 'Protocol')}</Label>
+              <Select value={form.protocol} onValueChange={(value) => set('protocol', value as Protocol)}>
+                <SelectTrigger id="sso-protocol" data-testid="sso-protocol" className="md:w-64">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="oidc">OpenID Connect</SelectItem>
+                  <SelectItem value="saml">SAML 2.0</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
+            {form.protocol === 'oidc' ? (
+              <>
+                <CopyField label={t('sso.callbackUrl', 'Redirect URI to register with your provider')} value={data.callbackUrl} testId="sso-callback-url" />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-1 md:col-span-2">
+                    <Label htmlFor="sso-issuer">{t('sso.issuer', 'Issuer')}</Label>
+                    <Input id="sso-issuer" placeholder="https://login.microsoftonline.com/<tenant>/v2.0" value={form.issuer} onChange={(e) => set('issuer', e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="sso-client-id">{t('sso.clientId', 'Client ID')}</Label>
+                    <Input id="sso-client-id" value={form.clientId} onChange={(e) => set('clientId', e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="sso-client-secret">{t('sso.clientSecret', 'Client secret')}</Label>
+                    <Input
+                      id="sso-client-secret"
+                      type="password"
+                      autoComplete="off"
+                      placeholder={saved?.protocol === 'oidc' ? t('sso.secretKept', 'Stored. Leave empty to keep it.') : ''}
+                      value={form.clientSecret}
+                      onChange={(e) => set('clientSecret', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  {t('sso.saml.spHint', 'Give your identity provider these values, or the metadata URL, which carries them all.')}
+                </p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <CopyField label={t('sso.saml.entityId', 'Entity ID (audience) of WebFlowMaster')} value={data.saml.entityId} testId="sso-saml-entity-id" />
+                  <CopyField label={t('sso.saml.acsUrl', 'Assertion consumer service (ACS) URL')} value={data.saml.acsUrl} testId="sso-saml-acs-url" />
+                  <div className="md:col-span-2">
+                    <CopyField label={t('sso.saml.metadataUrl', 'Service provider metadata URL (available once saved)')} value={data.saml.metadataUrl} testId="sso-saml-metadata-url" />
+                  </div>
+                </div>
+                <div className="space-y-1 border-t pt-4">
+                  <Label htmlFor="sso-saml-metadata">{t('sso.saml.pasteMetadata', "Your provider's metadata (optional: fills the three fields below)")}</Label>
+                  <Textarea id="sso-saml-metadata" rows={3} className="font-mono text-xs" placeholder="<md:EntityDescriptor …>" value={metadataXml} onChange={(e) => setMetadataXml(e.target.value)} />
+                  <Button type="button" size="sm" variant="outline" disabled={busy || !metadataXml.trim()} onClick={readMetadata}>
+                    {t('sso.saml.readMetadata', 'Read the metadata')}
+                  </Button>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="sso-saml-issuer">{t('sso.saml.idpEntityId', "Provider's entity ID")}</Label>
+                    <Input id="sso-saml-issuer" placeholder="https://sts.windows.net/<tenant>/" value={form.issuer} onChange={(e) => set('issuer', e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="sso-saml-sso-url">{t('sso.saml.ssoUrl', 'Sign-on URL (HTTP-Redirect)')}</Label>
+                    <Input id="sso-saml-sso-url" placeholder="https://login.microsoftonline.com/<tenant>/saml2" value={form.samlSsoUrl} onChange={(e) => set('samlSsoUrl', e.target.value)} />
+                  </div>
+                  <div className="space-y-1 md:col-span-2">
+                    <Label htmlFor="sso-saml-cert">{t('sso.saml.certificate', 'Signing certificate (X.509, PEM or base64)')}</Label>
+                    <Textarea id="sso-saml-cert" rows={4} className="font-mono text-xs" placeholder="-----BEGIN CERTIFICATE-----" value={form.samlCertificate} onChange={(e) => set('samlCertificate', e.target.value)} />
+                    {certInfo && (
+                      <p className={`text-xs ${certInfo.expired ? 'text-destructive' : 'text-muted-foreground'}`} data-testid="sso-saml-cert-info">
+                        {certInfo.expired
+                          ? t('sso.saml.certExpired', 'Expired on {{date}}: sign-ins are refused until you paste the new certificate.', { date: certInfo.validTo.slice(0, 10) })
+                          : t('sso.saml.certValid', '{{subject}} · valid until {{date}}', { subject: certInfo.subject, date: certInfo.validTo.slice(0, 10) })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1 md:col-span-2">
-                <Label htmlFor="sso-issuer">{t('sso.issuer', 'Issuer')}</Label>
-                <Input id="sso-issuer" placeholder="https://login.microsoftonline.com/<tenant>/v2.0" value={form.issuer} onChange={(e) => set('issuer', e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="sso-client-id">{t('sso.clientId', 'Client ID')}</Label>
-                <Input id="sso-client-id" value={form.clientId} onChange={(e) => set('clientId', e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="sso-client-secret">{t('sso.clientSecret', 'Client secret')}</Label>
-                <Input
-                  id="sso-client-secret"
-                  type="password"
-                  autoComplete="off"
-                  placeholder={saved ? t('sso.secretKept', 'Stored. Leave empty to keep it.') : ''}
-                  value={form.clientSecret}
-                  onChange={(e) => set('clientSecret', e.target.value)}
-                />
-              </div>
               <div className="space-y-1">
                 <Label htmlFor="sso-domains">{t('sso.domains', 'E-mail domains')}</Label>
                 <Input id="sso-domains" placeholder="example.com, example.org" value={form.domains} onChange={(e) => set('domains', e.target.value)} />

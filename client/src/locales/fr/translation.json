@@ -3181,7 +3181,7 @@
     "title": "Authentification unique (SSO)",
     "on": "activée",
     "requiredBadge": "obligatoire",
-    "description": "Les membres se connectent avec votre fournisseur d'identité (OpenID Connect : Entra ID, Okta, Google Workspace, Keycloak…). La première fois qu'une personne de vos domaines se connecte, son compte est créé.",
+    "description": "Les membres se connectent avec votre fournisseur d'identité (OpenID Connect ou SAML 2.0 : Entra ID, Okta, Google Workspace, ADFS, Keycloak…). À la première connexion d'une personne de vos domaines, son compte est créé.",
     "callbackUrl": "URI de redirection à enregistrer chez votre fournisseur",
     "copy": "Copier",
     "issuer": "Émetteur (issuer)",
@@ -3219,7 +3219,23 @@
       "domain_not_allowed": "Votre adresse e-mail n'appartient pas à un domaine de votre organisation.",
       "account_elsewhere": "Un compte avec votre adresse appartient à une autre organisation de cette installation.",
       "account_disabled": "Ce compte est désactivé.",
-      "account_linked": "Votre adresse est déjà liée à une autre identité chez votre fournisseur. Demandez à un propriétaire de votre organisation."
+      "account_linked": "Votre adresse est déjà liée à une autre identité chez votre fournisseur. Demandez à un propriétaire de votre organisation.",
+      "browser_mismatch": "Cette connexion a été lancée dans un autre navigateur. Relancez-la ici."
+    },
+    "protocol": "Protocole",
+    "saml": {
+      "spHint": "Donnez ces valeurs à votre fournisseur d'identité, ou l'URL des métadonnées, qui les contient toutes.",
+      "entityId": "Entity ID (audience) de WebFlowMaster",
+      "acsUrl": "URL de l'assertion consumer service (ACS)",
+      "metadataUrl": "URL des métadonnées du fournisseur de service (disponible après l'enregistrement)",
+      "pasteMetadata": "Métadonnées de votre fournisseur (facultatif : remplit les trois champs ci-dessous)",
+      "readMetadata": "Lire les métadonnées",
+      "metadataRead": "Rempli à partir des métadonnées. Vérifiez les valeurs, puis enregistrez.",
+      "idpEntityId": "Entity ID du fournisseur",
+      "ssoUrl": "URL de connexion (HTTP-Redirect)",
+      "certificate": "Certificat de signature (X.509, PEM ou base64)",
+      "certExpired": "Expiré le {{date}} : les connexions sont refusées tant que vous ne collez pas le nouveau certificat.",
+      "certValid": "{{subject}} · valable jusqu'au {{date}}"
     }
   },
   "manualTests": {

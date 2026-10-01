@@ -5,9 +5,9 @@ This page is the reference for the database: every table, every column and every
 purpose of each table, in words, read [Data model](./data-model); for how rows are kept apart between organizations,
 read [Tenancy and access](./tenancy).
 
-**55 tables**, of which 44 carry an `organization_id` and are protected by row-level security. The other 11 are
+**56 tables**, of which 44 carry an `organization_id` and are protected by row-level security. The other 12 are
 installation-wide or are read before an organization is known: `organizations`, `users`, `user_mfa`,
-`user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sessions`, `runners`
+`user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sso_saml_requests`, `sessions`, `runners`
 and `system_settings`.
 
 ## How to read the diagrams
@@ -108,6 +108,7 @@ erDiagram
   organizations ||--o{ organization_sso : "organization_id"
   organizations ||--o{ sso_domains : "organization_id"
   users ||--o{ sso_identities : "user_id"
+  organizations ||--o{ sso_saml_requests : "organization_id"
   users ||--o{ projects : "user_id"
   organizations ||--o{ projects : "organization_id"
   projects ||--o{ project_members : "project_id"
@@ -184,11 +185,14 @@ erDiagram
   }
   organization_sso {
     int organization_id PK,FK
+    text protocol
     text issuer
     text client_id
     text client_secret_encrypted
     text client_secret_iv
     text client_secret_auth_tag
+    text saml_sso_url
+    text saml_certificate
     text default_role
     bool enabled
     bool required
@@ -204,6 +208,11 @@ erDiagram
     int user_id FK
     timestamp created_at
     timestamp last_sign_in_at
+  }
+  sso_saml_requests {
+    text id PK
+    int organization_id FK
+    timestamp created_at
   }
   projects {
     int id PK
@@ -1060,12 +1069,12 @@ These relationships exist in the application but have no foreign key. Most come 
 
 ## Constraints worth knowing
 
-- **Same-organization links.** Where one organization table points at another, a composite foreign key `(id, organization_id)` makes sure both
+- **Same-organization links.** Where one organization table points at another, a constraint or trigger makes sure both
   rows belong to the same organization (migration 0034 and later); a drift test fails when a new link lacks one.
 - **Append-only tables.** `audit_log`, `test_versions` and `test_publications` give `app_user` only `SELECT` and
   `INSERT`: the application cannot rewrite them.
 - **Uniqueness.** Environment names are unique per organization (migration 0041); an invitation is unique per username
   while pending (0044); an issue link is unique per failure (`dedupe_key`), so one failure is filed once; a run's
   idempotency key is unique per organization, so a retried request returns the same run.
-- **Migrations.** 59 numbered SQL files in `migrations/` (`0000` … `0058`), applied once by the migrator before the other
+- **Migrations.** 60 numbered SQL files in `migrations/` (`0000` … `0059`), applied once by the migrator before the other
   processes start; the journal is `migrations/meta/_journal.json`.
