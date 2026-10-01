@@ -178,6 +178,28 @@ services:
       timeout: 3s
       retries: 10
 
+  # INT-08: Jenkins running the shared library of integrations/jenkins (profile "jenkins",
+  # started by npm run collaudo:jenkins, which also makes its API key). http://localhost:8088,
+  # admin / Collaudo.2026!.
+  jenkins:
+    profiles: ["jenkins"]
+    build:
+      context: ./collaudo/jenkins
+    environment:
+      WFM_URL: https://wfm.collaudo.test
+      WFM_API_KEY: ${WFM_JENKINS_API_KEY:-}
+      WFM_PLAN: ${WFM_JENKINS_PLAN:-}
+      WFM_ENVIRONMENT: ${WFM_JENKINS_ENVIRONMENT:-}
+      NODE_EXTRA_CA_CERTS: /collaudo-ca/root.crt
+    volumes:
+      - collaudo_ca:/collaudo-ca:ro
+      - .:/wfm-repo:ro
+    ports:
+      - "127.0.0.1:8088:8080"
+    depends_on:
+      ca-export:
+        condition: service_completed_successfully
+
   # OPS-09: the application's logs, queried from Grafana at http://localhost:13001 (admin / admin).
   loki:
     image: grafana/loki:2.9.0

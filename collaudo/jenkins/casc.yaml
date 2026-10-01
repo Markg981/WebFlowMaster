@@ -1,0 +1,59 @@
+# INT-08. Values come from the environment npm run collaudo:jenkins gives the container.
+jenkins:
+  systemMessage: "Jenkins di collaudo (INT-08): non usare altrove."
+  numExecutors: 2
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: admin
+          password: "Collaudo.2026!"
+  authorizationStrategy: loggedInUsersCanDoAnything
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - string:
+              id: webflowmaster-api-key
+              scope: GLOBAL
+              secret: "${WFM_API_KEY}"
+
+unclassified:
+  location:
+    url: http://localhost:8088/
+  globalLibraries:
+    libraries:
+      # This repository, mounted at /wfm-repo: the template as committed on its main branch.
+      - name: webflowmaster
+        defaultVersion: main
+        implicit: false
+        retriever:
+          modernSCM:
+            libraryPath: integrations/jenkins/
+            scm:
+              git:
+                remote: file:///wfm-repo
+
+jobs:
+  - script: >
+      pipelineJob('INT-08') {
+        description('WebFlowMaster dal template di integrations/jenkins, sul piano di collaudo.')
+        definition {
+          cps {
+            sandbox(true)
+            script("""
+              @Library('webflowmaster') _
+              pipeline {
+                agent any
+                environment { WFM_URL = '${WFM_URL}' }
+                stages {
+                  stage('E2E') {
+                    steps { webflowmaster plan: '${WFM_PLAN}', environment: '${WFM_ENVIRONMENT}', onFailure: 'unstable' }
+                  }
+                }
+              }
+            """.stripIndent())
+          }
+        }
+      }

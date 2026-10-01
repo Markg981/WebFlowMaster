@@ -22,6 +22,7 @@
     "collaudo:simulatori": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/prova-simulatori.mjs",
     "collaudo:sicurezza-mobile": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/prova-sicurezza-mobile.mjs",
     "collaudo:mobile": "node collaudo/mobile/avvia.mjs",
+    "collaudo:jenkins": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/jenkins/avvia.mjs",
     "collaudo:reset": "docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml down -v",
     "test:migrate": "tsx server/tests/setup.ts",
     "test": "vitest run",
