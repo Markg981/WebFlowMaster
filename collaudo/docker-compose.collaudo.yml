@@ -34,6 +34,8 @@ x-collaudo-app-env: &collaudo-app-env
   ORG_MAX_CONCURRENT_RUNS: ${ORG_MAX_CONCURRENT_RUNS:-}
   ORG_MAX_QUEUED_RUNS: ${ORG_MAX_QUEUED_RUNS:-}
   RUN_MAX_DURATION_MS: ${RUN_MAX_DURATION_MS:-}
+  # Both processes ship their logs to the stack's Loki (OPS-09).
+  LOKI_URL: http://loki:3100
 
 services:
   postgres:
@@ -55,6 +57,9 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       API_RATE_LIMIT: ${API_RATE_LIMIT:-600}
       WEBHOOK_RATE_LIMIT: ${WEBHOOK_RATE_LIMIT:-120}
+      # Sign-in attempts per address in 15 minutes. 20 is the product's value and what ACC-07
+      # checks; an automated cycle raises it, or a run of logins fails cases for no fault.
+      AUTH_RATE_LIMIT: ${AUTH_RATE_LIMIT:-20}
       # The screen the recording window opens on (WEB-11, ENV-04). Without a DISPLAY a Linux
       # server cannot record, and says so.
       DISPLAY: display:0
@@ -146,6 +151,35 @@ services:
     # start-display exits when Xvfb does not come up; this brings it back.
     restart: unless-stopped
 
+  # OPS-09: the application's logs, queried from Grafana at http://localhost:13001 (admin / admin).
+  loki:
+    image: grafana/loki:2.9.0
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./observability/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    ports:
+      - "127.0.0.1:13100:3100"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./observability/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    ports:
+      - "127.0.0.1:13001:3000"
+    depends_on:
+      loki:
+        condition: service_healthy
+
   agente:
     profiles: ["agente"]
     build:
@@ -193,3 +227,4 @@ networks:
 volumes:
   caddy_data:
   collaudo_ca:
+  loki_data:

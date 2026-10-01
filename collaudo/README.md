@@ -13,6 +13,7 @@ intorno:
 | `ricevitore` | riceve e stampa i webhook delle notifiche (PLN-13) | http://ricevitore:8080, dall'interno |
 | `mailpit` | la casella di test: vi arrivano le email di Keycloak (WEB-45…WEB-47) | http://localhost:8025; SMTP `mailpit:1025` dall'interno |
 | `display` | lo schermo su cui si apre la finestra di registrazione (WEB-11, ENV-04) | http://localhost:6080 |
+| `loki`, `grafana` | i log dell'applicazione (OPS-09) | http://localhost:13001 (admin / admin); Loki su http://localhost:13100 |
 | `agente` | l'agente locale (profilo `agente`), avviato quando il suo token esiste | — |
 | `agente-diverso` | un agente con un'altra versione di Playwright (profilo `agente-diverso`, AGT-05) | — |
 
@@ -81,7 +82,47 @@ Un nuovo `down -v` genera un'autorità nuova: va importata di nuovo.
   (`/collaudo/seed.mjs` diventa `C:/Program Files/Git/collaudo/seed.mjs`): anteporre
   `MSYS_NO_PATHCONV=1` ai comandi `wfmc exec`. PowerShell non ha questo problema.
 
-## 5. Dati di partenza
+## 5. Preparare e verificare l'ambiente (ogni ciclo)
+
+Prima di ogni ciclo, e dopo ogni modifica all'applicazione, questi tre comandi portano lo stack a
+uno stato noto e dicono se è pronto. Un caso che fallisce dopo un controllo «Pronto» fallisce per
+l'applicazione, non per l'ambiente.
+
+```bash
+npm run collaudo:up        # costruisce l'immagine con il codice attuale e avvia tutto, attende i servizi
+npm run collaudo:prepare   # persone, sessioni per ruolo e dati di partenza (ripetibile)
+npm run collaudo:check     # «Pronto» o, per ogni problema, cosa fare
+```
+
+`collaudo:prepare` (richiede Node 18+ e `collaudo/collaudo-root.crt`, passo 4):
+
+| Crea | Per i casi |
+|---|---|
+| le persone di `seed.mjs` | tutti, se si salta l'area Accesso |
+| una sessione aperta per owner.a, editor.a e viewer.a in `collaudo/.sessions/` (`curl --cookie collaudo/.sessions/viewer.a.cookies …`) | MEM-04…MEM-06 e ogni verifica via API, senza consumare tentativi di accesso |
+| l'ambiente **Staging** con `baseUrl`, `USERNAME`, `PASSWORD`, `apiBase`, `token` | ENV, WEB, API-05 |
+| il test **Login ok** e il piano **Collaudo · rete e trace**, già eseguito una volta | PLN, REP-04 (pannello Rete e HAR) |
+| **Progetto P**, riservato, con editor.a come viewer | MEM-06 |
+
+`collaudo:check` controlla i servizi (compresi Loki e Grafana per OPS-09), HTTPS e Keycloak,
+Mailpit, le sessioni con il loro ruolo e i dati. Segnala come avviso i siti pubblici usati dai casi
+(the-internet, httpbin, jsonplaceholder): se non rispondono, quei casi vanno segnati Bloccati, non
+Falliti.
+
+**Limite agli accessi.** L'applicazione accetta 20 accessi ogni 15 minuti per indirizzo, ed è ciò
+che ACC-07 verifica. Un ciclo automatico, che accede molte volte, alza il limite e lo riporta a 20
+per ACC-07:
+
+```bash
+AUTH_RATE_LIMIT=1000 wfmc up -d api   # ciclo automatico
+wfmc up -d api                        # di nuovo 20, per ACC-07
+```
+
+Anche `wfmc restart api` azzera i tentativi contati.
+
+**Ripartire da zero:** `npm run collaudo:reset`, poi i tre comandi sopra.
+
+## 6. Dati di partenza
 
 - **Ciclo completo**: il database parte vuoto e i casi ACC-01…ACC-03 creano owner.a, editor.a e
   viewer.a dall'interfaccia. Per l'organizzazione B serve la registrazione aperta per il tempo
@@ -110,7 +151,7 @@ Un nuovo `down -v` genera un'autorità nuova: va importata di nuovo.
   | `owner.b` | Beta | owner |
   | `luca@acme.test` | Beta | editor (rifiutato via SSO in SSO-05) |
 
-## 6. Valori per i casi
+## 7. Valori per i casi
 
 **Single sign-on (SSO-01).** In Impostazioni → Sicurezza → Single sign-on di owner.a:
 
@@ -232,7 +273,7 @@ wfmc kill worker            # durante un run
 wfmc restart redis
 ```
 
-## 7. Cosa non copre
+## 8. Cosa non copre
 
 - **Jira o Azure DevOps, GitHub e i sistemi di CI** sono servizi esterni: servono un progetto,
   un repository e i token di prova.
