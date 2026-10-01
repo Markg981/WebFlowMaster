@@ -11,7 +11,7 @@ A release can change the database schema, so the order matters.
    finishes what it has and takes nothing new; wait until its running count is zero. Runs
    requested meanwhile wait in the queue and start after the upgrade.
 2. **Stop the web processes and workers.**
-3. **Back up the database** (see [Backups](#backups)).
+3. **Back up the database**: `npm run backup:create` (see [Backups](#backups)).
 4. **Apply the migrations** with the new version: `node dist/apply-migrations.js`, or the
    `migrate` service in Compose (`docker compose up migrate`). `npm run db:doctor` reports the
    state of the schema and exits non-zero when something needs doing, so it can gate a
@@ -31,21 +31,86 @@ connected but is not chosen for runs, and **Settings → Local agents** shows wh
 
 | What | Where | How |
 |---|---|---|
-| **Database** | PostgreSQL | `pg_dump`, or the managed service's snapshots. Everything the product knows is here. |
-| **`ENCRYPTION_KEY`** | Your secret manager | Stored separately from the database backup. Without it the encrypted secrets in a restored database are unreadable. |
-| **Artifacts** | `results/` and `data/visual-baselines/`, or the S3 bucket | File or bucket backups. Visual baselines are the ones that matter: losing them means approving new ones. Screenshots, videos and traces are removed by retention anyway. |
+| **Database** | PostgreSQL | `npm run backup:create` (below), `pg_dump`, or the managed service's snapshots. Everything the product knows is here. |
+| **`ENCRYPTION_KEY`** | Your secret manager | Stored separately from the database backup, and never inside it. Without it the encrypted secrets in a restored database are unreadable. |
+| **Artifacts** | `results/` and `data/visual-baselines/`, or the S3 bucket | Included by `backup:create` when the store is local; the bucket's own versioning or replication when it is S3. Visual baselines are the ones that matter: losing them means approving new ones. Screenshots, videos and traces are removed by retention anyway. |
 | **Redis** | Redis | Optional. It holds queues, sessions and the BullMQ schedules, which are rebuilt from the database when the web process starts. |
 
 If Redis loses its data, everyone is signed out, and runs that were waiting in the queue stay
 *queued* without starting: cancel them and start them again.
 
-### Restoring
+### The backup tool
 
-1. Restore the database into an empty PostgreSQL server with the same roles. After a restore,
-   check that the connecting role is still a member of `app_user` and has `BYPASSRLS`: dumps do
-   not carry role attributes, and the web process refuses to start without them (see
-   [Prepare PostgreSQL](./installation#prepare-postgresql)).
-2. Start the processes with the same `ENCRYPTION_KEY`.
+For the Docker Compose installation the repository ships, `scripts/wfm-backup.ts` does the three things
+an operator needs, from the repository folder on the Docker host. It needs only Docker and Node:
+`pg_dump` and `pg_restore` run in the `postgres` container, `tar` in the `api` container.
+
+```bash
+npm run backup:create                              # into ./backups/wfm-backup-<UTC time>/
+npm run backup:verify  -- backups/wfm-backup-20261001-020000
+npm run backup:restore -- backups/wfm-backup-20261001-020000 --yes
+```
+
+With another Compose project or extra files, pass them as to `docker compose`:
+`npm run backup:create -- -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml`.
+`--db-name` and `--db-user` change the defaults (`webflowmaster`, `postgres`).
+
+A backup is a folder:
+
+| File | Contents |
+|---|---|
+| `database.dump` | `pg_dump --format=custom --no-owner`: tables, data, grants, row-level security policies. |
+| `results.tar`, `visual-baselines.tar` | The run evidence and the visual baselines (local store only). |
+| `manifest.json` | When and from which version it was taken; the number of applied migrations; how many tables have row-level security; exact row counts of the main tables; the size and SHA-256 of every file; a **fingerprint** of the encryption key (a hash of a hash: it identifies the key without revealing it). |
+
+**`verify` is the restore drill.** It checks every file against its checksum, restores the dump into a
+scratch database next to the live one (`webflowmaster_restore_check`), compares row counts, migrations,
+row-level security and the `app_user` grants with the manifest, says whether the running installation
+has the backup's key, and drops the scratch database. It touches nothing the installation uses, so it
+can run every night after `create`: a backup that has never been restored is a hope, not a backup.
+
+**`restore` replaces the installation's data.** In order, it:
+
+1. checks the checksums, and **refuses** when the running installation has a different
+   `ENCRYPTION_KEY` from the backup's (`--ignore-key` overrides it: the secrets must then be entered
+   again) or when the backup comes from a newer version than the code (more migrations);
+2. asks for `--yes`; without it, it says what would be lost and stops;
+3. stops `api` and `worker`, drops and recreates the database, creates the `app_user` role if this
+   PostgreSQL server does not have it, and restores the dump;
+4. replaces the artifact folders with the archives;
+5. runs `migrate`, which applies the migrations added since the backup, and starts `api` and `worker`;
+6. compares the result with the manifest again.
+
+To move an installation to a new server: install it there with `docker compose up -d` and the
+**same** `ENCRYPTION_KEY`, copy the backup folder, run `backup:restore`. Sessions do not move with it:
+people sign in again.
+
+Exit codes: `0` done, `1` the check found a problem (a damaged file, a different count, a refused
+restore), `2` the command could not be carried out (Docker not reachable, wrong arguments).
+
+#### Scheduling it
+
+A nightly backup with its drill, keeping fourteen days, from cron on the Docker host:
+
+```bash
+0 2 * * *  cd /opt/webflowmaster && npm run -s backup:create && \
+           npm run -s backup:verify -- "$(ls -d backups/wfm-backup-* | tail -n 1)" && \
+           find backups -maxdepth 1 -name 'wfm-backup-*' -mtime +14 -exec rm -rf {} +
+```
+
+Copy the folder off the host (object storage, another site): a backup on the same disk as the database
+does not survive the disk.
+
+### Restoring without the tool
+
+For a managed PostgreSQL, or an installation not run with Compose:
+
+1. Restore the database into an empty PostgreSQL server: create the `app_user` role first
+   (`CREATE ROLE app_user NOLOGIN`), then `pg_restore --no-owner`. Check that the connecting role is a
+   member of `app_user` and has `BYPASSRLS`: dumps do not carry role attributes, and the web process
+   refuses to start without them (see [Prepare PostgreSQL](./installation#prepare-postgresql)).
+2. Start the processes with the same `ENCRYPTION_KEY`. `node dist/apply-migrations.js` first if the code
+   is newer than the backup.
 3. Restore the artifacts to the same paths or bucket keys; the reports refer to them by path.
 
 ## Artifact retention

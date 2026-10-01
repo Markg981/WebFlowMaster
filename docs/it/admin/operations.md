@@ -11,7 +11,7 @@ Una release può cambiare lo schema del database, quindi l'ordine conta.
    svuotamento finisce ciò che ha e non prende altro; aspettate che i job in corso arrivino a
    zero. I run richiesti nel frattempo restano in coda e partono dopo l'aggiornamento.
 2. **Fermate i processi web e i worker.**
-3. **Fate il backup del database** (vedi [Backup](#backup)).
+3. **Fate il backup del database**: `npm run backup:create` (vedi [Backup](#backup)).
 4. **Applicate le migrazioni** con la nuova versione: `node dist/apply-migrations.js`, oppure il
    servizio `migrate` in Compose (`docker compose up migrate`). `npm run db:doctor` riporta lo
    stato dello schema ed esce con codice diverso da zero quando c'è qualcosa da fare, quindi può
@@ -32,21 +32,87 @@ una versione diversa resta connesso ma non viene scelto per i run, e
 
 | Cosa | Dove | Come |
 |---|---|---|
-| **Database** | PostgreSQL | `pg_dump`, o gli snapshot del servizio gestito. Tutto ciò che il prodotto sa è qui. |
-| **`ENCRYPTION_KEY`** | Il vostro secret manager | Conservata separatamente dal backup del database. Senza di essa i segreti cifrati di un database ripristinato sono illeggibili. |
-| **Artefatti** | `results/` e `data/visual-baselines/`, oppure il bucket S3 | Backup dei file o del bucket. Contano le baseline visive: perderle significa approvarne di nuove. Screenshot, video e trace vengono comunque rimossi dalla conservazione. |
+| **Database** | PostgreSQL | `npm run backup:create` (sotto), `pg_dump`, o gli snapshot del servizio gestito. Tutto ciò che il prodotto sa è qui. |
+| **`ENCRYPTION_KEY`** | Il vostro secret manager | Conservata separatamente dal backup del database, e mai al suo interno. Senza di essa i segreti cifrati di un database ripristinato sono illeggibili. |
+| **Artefatti** | `results/` e `data/visual-baselines/`, oppure il bucket S3 | Inclusi da `backup:create` quando l'archivio è locale; versioning o replica del bucket quando è S3. Contano le baseline visive: perderle significa approvarne di nuove. Screenshot, video e trace vengono comunque rimossi dalla conservazione. |
 | **Redis** | Redis | Facoltativo. Contiene code, sessioni e le schedulazioni BullMQ, che vengono ricostruite dal database all'avvio del processo web. |
 
 Se Redis perde i dati, tutti vengono disconnessi, e i run che aspettavano in coda restano
 *in coda* senza partire: annullateli e avviateli di nuovo.
 
-### Ripristino
+### Lo strumento di backup
 
-1. Ripristinate il database in un server PostgreSQL vuoto con gli stessi ruoli. Dopo il
-   ripristino verificate che il ruolo di connessione sia ancora membro di `app_user` e abbia
-   `BYPASSRLS`: i dump non portano con sé gli attributi dei ruoli, e senza di essi il processo
-   web non parte (vedi [Preparare PostgreSQL](./installation#preparare-postgresql)).
-2. Avviate i processi con la stessa `ENCRYPTION_KEY`.
+Per l'installazione Docker Compose fornita dal repository, `scripts/wfm-backup.ts` fa le tre cose che
+servono a un operatore, dalla cartella del repository sull'host Docker. Richiede solo Docker e Node:
+`pg_dump` e `pg_restore` girano nel container `postgres`, `tar` nel container `api`.
+
+```bash
+npm run backup:create                              # in ./backups/wfm-backup-<ora UTC>/
+npm run backup:verify  -- backups/wfm-backup-20261001-020000
+npm run backup:restore -- backups/wfm-backup-20261001-020000 --yes
+```
+
+Con un altro progetto Compose o file aggiuntivi, si passano come a `docker compose`:
+`npm run backup:create -- -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml`.
+`--db-name` e `--db-user` cambiano i default (`webflowmaster`, `postgres`).
+
+Un backup è una cartella:
+
+| File | Contenuto |
+|---|---|
+| `database.dump` | `pg_dump --format=custom --no-owner`: tabelle, dati, permessi, policy di row-level security. |
+| `results.tar`, `visual-baselines.tar` | Le evidenze dei run e le baseline visive (solo con archivio locale). |
+| `manifest.json` | Quando e da quale versione è stato fatto; il numero di migrazioni applicate; quante tabelle hanno la row-level security; il numero esatto di righe delle tabelle principali; dimensione e SHA-256 di ogni file; un'**impronta** della chiave di cifratura (l'hash di un hash: identifica la chiave senza rivelarla). |
+
+**`verify` è la prova di ripristino.** Controlla ogni file con il suo checksum, ripristina il dump in un
+database di prova accanto a quello vivo (`webflowmaster_restore_check`), confronta righe, migrazioni,
+row-level security e permessi di `app_user` con il manifest, dice se l'installazione in esecuzione ha la
+chiave del backup, ed elimina il database di prova. Non tocca nulla di ciò che l'installazione usa, quindi
+può girare ogni notte dopo `create`: un backup mai ripristinato è una speranza, non un backup.
+
+**`restore` sostituisce i dati dell'installazione.** In ordine:
+
+1. controlla i checksum, e **rifiuta** quando l'installazione in esecuzione ha una `ENCRYPTION_KEY`
+   diversa da quella del backup (`--ignore-key` lo forza: i segreti vanno poi reinseriti) o quando il
+   backup viene da una versione più recente del codice (più migrazioni);
+2. chiede `--yes`; senza, dice cosa andrebbe perso e si ferma;
+3. ferma `api` e `worker`, elimina e ricrea il database, crea il ruolo `app_user` se questo server
+   PostgreSQL non lo ha, e ripristina il dump;
+4. sostituisce le cartelle degli artefatti con gli archivi;
+5. esegue `migrate`, che applica le migrazioni aggiunte dopo il backup, e avvia `api` e `worker`;
+6. confronta di nuovo il risultato con il manifest.
+
+Per spostare un'installazione su un server nuovo: installarla lì con `docker compose up -d` e la
+**stessa** `ENCRYPTION_KEY`, copiare la cartella del backup, eseguire `backup:restore`. Le sessioni non
+si spostano: le persone accedono di nuovo.
+
+Codici di uscita: `0` fatto, `1` il controllo ha trovato un problema (un file danneggiato, un conteggio
+diverso, un ripristino rifiutato), `2` il comando non si è potuto eseguire (Docker non raggiungibile,
+argomenti sbagliati).
+
+#### Pianificarlo
+
+Un backup notturno con la sua prova, conservando quattordici giorni, da cron sull'host Docker:
+
+```bash
+0 2 * * *  cd /opt/webflowmaster && npm run -s backup:create && \
+           npm run -s backup:verify -- "$(ls -d backups/wfm-backup-* | tail -n 1)" && \
+           find backups -maxdepth 1 -name 'wfm-backup-*' -mtime +14 -exec rm -rf {} +
+```
+
+Copiate la cartella fuori dall'host (object storage, un'altra sede): un backup sullo stesso disco del
+database non sopravvive al disco.
+
+### Ripristino senza lo strumento
+
+Per un PostgreSQL gestito, o un'installazione non eseguita con Compose:
+
+1. Ripristinate il database in un server PostgreSQL vuoto: create prima il ruolo `app_user`
+   (`CREATE ROLE app_user NOLOGIN`), poi `pg_restore --no-owner`. Verificate che il ruolo di connessione
+   sia membro di `app_user` e abbia `BYPASSRLS`: i dump non portano con sé gli attributi dei ruoli, e
+   senza di essi il processo web non parte (vedi [Preparare PostgreSQL](./installation#preparare-postgresql)).
+2. Avviate i processi con la stessa `ENCRYPTION_KEY`. Prima `node dist/apply-migrations.js` se il codice
+   è più recente del backup.
 3. Ripristinate gli artefatti negli stessi percorsi o chiavi del bucket; i report vi fanno
    riferimento per percorso.
 

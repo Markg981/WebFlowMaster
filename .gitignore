@@ -82,3 +82,6 @@ collaudo/.sessions/
 # collaudo: apk scaricati da collaudo/mobile/avvia.mjs
 collaudo/mobile/apps/*.apk
 collaudo/mobile/.keepalive.pid
+
+# Backups made by scripts/wfm-backup.ts: customer data, never in the repository or an image.
+backups/

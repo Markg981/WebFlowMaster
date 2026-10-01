@@ -62,7 +62,7 @@ people. Each item names the setting or the page that explains it. The
 
 ## Data
 
-- Database backups encrypted and tested with a restore
+- Database backups taken nightly, copied off the host, encrypted, and tested with a restore: `backup:verify` after every `backup:create`
   ([Backups](../admin/operations#backups)).
 - Disk, database and bucket encryption at rest, as offered by your platform.
 - `ARTIFACT_RETENTION_DAYS` set to what your organizations need, not more.

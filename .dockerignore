@@ -43,3 +43,5 @@ coverage
 **/*.repro.ts
 **/__repro__
 *.log
+
+backups

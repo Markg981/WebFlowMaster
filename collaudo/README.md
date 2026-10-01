@@ -357,6 +357,24 @@ rimosse ed esiti e step restano. Le baseline visuali (`/app/data/visual-baseline
 **Database (OPS-03, SEC-09).** `localhost:55432`, utente `postgres`, password `password`,
 database `webflowmaster`. Per agire come l'applicazione: `SET ROLE app_user;`.
 
+**Backup e ripristino (OPS-11…OPS-14).** Lo strumento è `scripts/wfm-backup.ts` (documentato in Operatività →
+Backup). Sullo stack di collaudo:
+
+```bash
+npm run backup:create -- -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml
+npm run backup:verify -- backups/wfm-backup-<ora> -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml
+```
+
+Il ripristino (OPS-13, OPS-14) si prova su un secondo stack usa-e-getta, mai su quello del collaudo: un file
+`drill.yml` con `ports: !reset []` su redis, postgres, mailpit e api e `image: wfm-collaudo-api:latest` /
+`wfm-collaudo-worker:latest` su migrate, api e worker, poi
+
+```bash
+docker compose -p wfm-drill -f docker-compose.yml -f drill.yml up -d --no-build
+npm run backup:restore -- backups/wfm-backup-<ora> -p wfm-drill -f docker-compose.yml -f drill.yml --yes
+docker compose -p wfm-drill -f docker-compose.yml -f drill.yml down -v     # alla fine
+```
+
 **Più worker e guasti (OPS-04…OPS-06).**
 
 ```bash
