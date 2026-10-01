@@ -73,6 +73,29 @@ Captured values travel within one browser's pass through the plan, in the order 
 A plan that relies on them should keep those tests in the right order; with several tests running
 at once, the plan keeps the API tests of each browser in order.
 
+## Response times over several requests {#performance}
+
+The **response time** assertion judges one request, and one request's time is noise: a cold cache
+or a garbage collection decides it. The **Performance** tab checks an endpoint the way a person
+would trust: switch on **Check response times over several requests** and set
+
+- **Requests** — how many, 2 to 200, the functional request included;
+- **At once** — how many are in flight together, 1 to 10;
+- the thresholds the test fails on, each optional: **Median (p50)**, **95th percentile (p95)** and
+  **Slowest**, in milliseconds, and **Failed requests**, in percent.
+
+In a plan the request is sent once as usual — its assertions decide the result and its captures
+go on to the next tests — and then again until the count is reached. A repetition counts as
+failed when it could not be made or failed one of the test's assertions. Percentiles are nearest
+rank: p95 of 20 requests is the 19th fastest. When a threshold is exceeded the test fails with
+what was exceeded ("p95 412 ms > 300 ms"), and the run report's **Response times** card lists
+every test that checked its times: requests, p50, p95, slowest, failed requests and verdict.
+
+The repetitions leave from where the test runs — a local agent's network when the plan uses one —
+and stop when the run is cancelled. A request that cannot be made at all skips the check: there is
+nothing to time. The caps are deliberate: this answers "did this endpoint get slower?" on every
+run, it is not a load test.
+
 ## Saving
 
 **Save Test** asks for a name and, optionally, a project; **Save Changes** updates the test you

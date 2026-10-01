@@ -3769,5 +3769,21 @@
     "addRecorded": "Add {{count}} step(s) to the test",
     "discard": "Discard",
     "discardRecorded": "Close and lose the {{count}} recorded step(s) not added to the test?"
+  },
+  "apiPerformance": {
+    "tab": "Performance",
+    "enable": "Check response times over several requests",
+    "help": "In a plan, the request is sent again until the count is reached, a few at once, and the test fails when a threshold is exceeded. Captures come from the first request only. This measures an endpoint; it is not a load test.",
+    "iterations": "Requests",
+    "concurrency": "At once",
+    "thresholds": "Fail the test when (leave empty for no limit)",
+    "p50": "Median (p50)",
+    "p95": "95th percentile (p95)",
+    "max": "Slowest",
+    "errorRate": "Failed requests",
+    "reportTitle": "Response times",
+    "reportDescription": "API tests that sent their request several times and checked the times against thresholds.",
+    "verdict": "Verdict",
+    "withinThresholds": "within thresholds"
   }
 }

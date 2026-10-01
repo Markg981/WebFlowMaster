@@ -3775,5 +3775,21 @@
     "addRecorded": "Ajouter {{count}} étape(s) au test",
     "discard": "Abandonner",
     "discardRecorded": "Fermer et perdre les {{count}} étape(s) enregistrée(s) non ajoutée(s) au test ?"
+  },
+  "apiPerformance": {
+    "tab": "Performance",
+    "enable": "Vérifier les temps de réponse sur plusieurs requêtes",
+    "help": "Dans un plan, la requête est renvoyée jusqu'au nombre indiqué, quelques-unes à la fois, et le test échoue quand un seuil est dépassé. Les captures viennent de la première requête seulement. Cela mesure un endpoint ; ce n'est pas un test de charge.",
+    "iterations": "Requêtes",
+    "concurrency": "En même temps",
+    "thresholds": "Faire échouer le test quand (vide pour aucune limite)",
+    "p50": "Médiane (p50)",
+    "p95": "95e percentile (p95)",
+    "max": "La plus lente",
+    "errorRate": "Requêtes en échec",
+    "reportTitle": "Temps de réponse",
+    "reportDescription": "Tests API qui ont envoyé leur requête plusieurs fois et comparé les temps aux seuils.",
+    "verdict": "Verdict",
+    "withinThresholds": "dans les seuils"
   }
 }

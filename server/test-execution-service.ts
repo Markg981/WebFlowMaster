@@ -27,7 +27,9 @@ import { getWsEmitter, type ExecutionLogEntry } from './websocket';
 import { secrets as secretsTable } from '@shared/schema';
 import { decryptSecret } from './crypto';
 import { defaultVariables } from './variables';
-import { runApiRequest, type Extraction } from './api-test-runner';
+import { runApiRequest, type ApiRequestSpec, type Extraction } from './api-test-runner';
+import { runPerformance } from './api-performance';
+import type { ApiPerformance, PerformanceSummary } from '@shared/api-performance';
 import { AgentHttp } from './agents/agent-fetch';
 import type { Assertion, AuthParams } from '@shared/schema';
 import { browsersForRun, describeBrowser, hasConfiguredBrowsers, launchBrowser, onAgents, onGrid, type BrowserChoice } from './browsers';
@@ -127,6 +129,8 @@ export interface IndividualTestRunResult {
   /** Values an API test captured, for the requests that come after it in the plan. */
   extracted?: Record<string, string>;
   extractionErrors?: Array<{ name: string; reason: string }>;
+  /** An API test's performance check, when it has one (shared/api-performance.ts). */
+  performance?: PerformanceSummary;
   screenshotPath?: string; // General screenshot for API tests if applicable, or last step for UI
   /** Kept only when the plan asked for them — see server/run-evidence.ts. */
   videoPath?: string;
@@ -343,26 +347,31 @@ export async function runTest(
 
     // This used to be `Math.random() > 0.2` under a TODO: no request was made, and every
     // API test in a plan reported a fabricated result that looked exactly like a real one.
-    const result = await runApiRequest(
-      {
-        method: apiTest.method,
-        url: apiTest.url,
-        queryParams: apiTest.queryParams as Record<string, string> | null,
-        headers: apiTest.requestHeaders as Record<string, string> | null,
-        body: apiTest.requestBody ?? undefined,
-        assertions: (apiTest.assertions as Assertion[] | null) ?? [],
-        extractions: (apiTest.extractions as Extraction[] | null) ?? [],
-        // The test's own auth settings, which only the API Tester page used to apply — so a
-        // scheduled run sent the request anonymous and failed for the wrong reason.
-        auth: apiTest.authParams as AuthParams | null,
-      },
-      vars,
-      options?.http,
-    );
+    const spec: ApiRequestSpec = {
+      method: apiTest.method,
+      url: apiTest.url,
+      queryParams: apiTest.queryParams as Record<string, string> | null,
+      headers: apiTest.requestHeaders as Record<string, string> | null,
+      body: apiTest.requestBody ?? undefined,
+      assertions: (apiTest.assertions as Assertion[] | null) ?? [],
+      extractions: (apiTest.extractions as Extraction[] | null) ?? [],
+      // The test's own auth settings, which only the API Tester page used to apply — so a
+      // scheduled run sent the request anonymous and failed for the wrong reason.
+      auth: apiTest.authParams as AuthParams | null,
+    };
+    const result = await runApiRequest(spec, vars, options?.http);
+
+    // The performance check runs only when the request could be made at all: timing an
+    // endpoint that cannot be reached would measure nothing but the timeout.
+    const settings = (apiTest as ApiTest & { performance?: ApiPerformance | null }).performance;
+    const performance =
+      settings && !result.error
+        ? await runPerformance(spec, vars, settings, result, options?.http, () => !!options?.signal?.aborted)
+        : undefined;
 
     const durationMs = Date.now() - startTime;
     const failedAssertions = result.assertions.filter((a) => !a.pass);
-    const success = result.passed && !result.error;
+    const success = result.passed && !result.error && !(performance && performance.breaches.length > 0);
 
     resolvedLogger.info({
       message: `API Test completed`,
@@ -382,19 +391,19 @@ export async function runTest(
       status: result.error ? 'error' : success ? 'passed' : 'failed',
       error:
         result.error ??
-        (failedAssertions.length > 0
-          ? failedAssertions
-              .map(
-                (a) =>
-                  `${a.assertion.source}${a.assertion.property ? ` "${a.assertion.property}"` : ''} ` +
-                  `${a.assertion.comparison} "${a.assertion.targetValue ?? ''}" — actual: ${JSON.stringify(a.actualValue)}` +
-                  (a.error ? ` (${a.error})` : ''),
-              )
-              .join('; ')
-          : undefined),
+        ([
+          ...failedAssertions.map(
+            (a) =>
+              `${a.assertion.source}${a.assertion.property ? ` "${a.assertion.property}"` : ''} ` +
+              `${a.assertion.comparison} "${a.assertion.targetValue ?? ''}" — actual: ${JSON.stringify(a.actualValue)}` +
+              (a.error ? ` (${a.error})` : ''),
+          ),
+          ...(performance?.breaches.length ? [`Performance over ${performance.iterations} requests: ${performance.breaches.join(', ')}`] : []),
+        ].join('; ') || undefined),
       durationMs,
       extracted: result.extracted,
       extractionErrors: result.extractionErrors,
+      ...(performance ? { performance } : {}),
     };
   } else {
     const durationMs = Date.now() - startTime;
@@ -1257,7 +1266,11 @@ async function runTestPlanJobInTenant(
       traceFinalPath = resultFromRunTest.tracePath;
       harFinalPath = resultFromRunTest.harPath;
       networkSummary = resultFromRunTest.network;
-      stepsOrLogData = resultFromRunTest.steps ? JSON.stringify(resultFromRunTest.steps) : undefined; // For UI tests
+      stepsOrLogData = resultFromRunTest.steps
+        ? JSON.stringify(resultFromRunTest.steps) // For UI tests
+        : resultFromRunTest.performance
+          ? JSON.stringify({ api: true, performance: resultFromRunTest.performance }) // shared/api-performance.ts
+          : undefined;
 
       const singleTestDurationMs = Date.now() - singleTestStartTime;
       wsEmitter.emitExecutionLog(testPlanRunId, {

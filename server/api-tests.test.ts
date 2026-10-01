@@ -289,6 +289,22 @@ describe('API Tests Endpoints', () => {
       expect(response.body.requestHeaders).toEqual({ 'X-Api-Key': 'abc' });
     });
 
+    it('keeps a performance check, and refuses one beyond the caps', async () => {
+      currentMockUser = seededUser1;
+      const performance = { iterations: 30, concurrency: 3, thresholds: { p95Ms: 400, errorRatePct: 1 } };
+      const response = await request(app)
+        .post('/api/api-tests')
+        .send({ ...newTestPayload(), name: 'Timed', performance })
+        .expect(201);
+      const [stored] = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, response.body.id));
+      expect(stored.performance).toEqual(performance);
+
+      await request(app)
+        .post('/api/api-tests')
+        .send({ ...newTestPayload(), name: 'Load test in disguise', performance: { ...performance, iterations: 10_000 } })
+        .expect(400);
+    });
+
     it('should reject an unknown projectId with 400, not 500', async () => {
       currentMockUser = seededUser1;
       await request(app)

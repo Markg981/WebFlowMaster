@@ -64,7 +64,7 @@ The complete column-level diagrams of all tables are in [Database schema](./data
 | `detected_elements` | Elements found on a page for one test (the builder's palette). |
 | `project_elements` | The element repository: one definition per element per project, which steps may reference; healing updates it once for every test. |
 | `step_groups` | Named, reusable step sequences called from tests; expanded at run time. |
-| `api_tests` | API tests: method, URL, headers, body, authentication, assertions, extractions. |
+| `api_tests` | API tests: method, URL, headers, body, authentication, assertions, extractions, and the optional performance check (repetitions and response-time thresholds). |
 | `api_test_history` | Requests sent from the API tester, for the history panel. |
 | `tags` / `test_tags` | An organization's own vocabulary, attached to tests; drives dynamic suites. |
 | `test_versions` | Every saved state of a test. `app_user` cannot delete from it: the history cannot be rewritten. |

@@ -3775,5 +3775,21 @@
     "addRecorded": "{{count}} Schritt(e) zum Test hinzufügen",
     "discard": "Verwerfen",
     "discardRecorded": "Schließen und die {{count}} nicht hinzugefügten aufgezeichneten Schritte verlieren?"
+  },
+  "apiPerformance": {
+    "tab": "Performance",
+    "enable": "Antwortzeiten über mehrere Anfragen prüfen",
+    "help": "In einem Plan wird die Anfrage erneut gesendet, bis die Anzahl erreicht ist, einige gleichzeitig, und der Test schlägt fehl, wenn ein Schwellenwert überschritten wird. Erfasste Werte stammen nur aus der ersten Anfrage. Das misst einen Endpunkt; es ist kein Lasttest.",
+    "iterations": "Anfragen",
+    "concurrency": "Gleichzeitig",
+    "thresholds": "Test fehlschlagen lassen, wenn (leer für kein Limit)",
+    "p50": "Median (p50)",
+    "p95": "95. Perzentil (p95)",
+    "max": "Langsamste",
+    "errorRate": "Fehlgeschlagene Anfragen",
+    "reportTitle": "Antwortzeiten",
+    "reportDescription": "API-Tests, die ihre Anfrage mehrmals gesendet und die Zeiten mit Schwellenwerten verglichen haben.",
+    "verdict": "Ergebnis",
+    "withinThresholds": "innerhalb der Schwellenwerte"
   }
 }

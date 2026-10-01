@@ -29,6 +29,8 @@ import { SavedTestsPanel } from '@/components/api-tester/SavedTestsPanel';
 import { SaveApiTestModal } from '@/components/api-tester/SaveApiTestModal';
 import { AssertionEditor } from '@/components/api-tester/AssertionEditor';
 import { ExtractionEditor } from '@/components/api-tester/ExtractionEditor';
+import { PerformanceEditor } from '@/components/api-tester/PerformanceEditor';
+import type { ApiPerformance } from '@shared/api-performance';
 import { EnvironmentSelect } from '@/components/EnvironmentSelect';
 import { NO_ENVIRONMENT, environmentIdFor } from '@/hooks/use-environments';
 import { AuthorizationPanel, emptyAuthParamsFor } from '@/components/api-tester/AuthorizationPanel';
@@ -112,6 +114,8 @@ const ApiTesterPage: React.FC = () => {
   // Values this request hands to the ones after it in a plan, and what the last run of it
   // actually captured — so a capture can be confirmed here rather than when a plan fails.
   const [extractions, setExtractions] = useState<Extraction[]>([]);
+  // Repetitions and response-time thresholds for plan runs (shared/api-performance.ts).
+  const [performance, setPerformance] = useState<ApiPerformance | null>(null);
   // Which environment resolves {{variables}} here. Saved tests legitimately hold
   // {{baseUrl}}/… and {{secret_…}}, and without a choice they could only ever resolve
   // against the process defaults — so a request that worked here could fail in a plan.
@@ -622,6 +626,7 @@ const ApiTesterPage: React.FC = () => {
     setDuration(item.durationMs ?? null);
     setAssertions([]);
     setAssertionResults(null);
+    setPerformance(null);
 
     // Reset new auth and body states for history items
     setAuthType('none');
@@ -676,6 +681,7 @@ const ApiTesterPage: React.FC = () => {
     try {
       setAssertions(test.assertions ? (typeof test.assertions === 'string' ? JSON.parse(test.assertions) : test.assertions) : []);
       setExtractions((test as any).extractions ? (typeof (test as any).extractions === 'string' ? JSON.parse((test as any).extractions) : (test as any).extractions) : []);
+      setPerformance((test as any).performance ?? null);
     } catch (e) {
       console.error("Error parsing assertions from saved test:", e);
       setAssertions([]);
@@ -814,6 +820,7 @@ const ApiTesterPage: React.FC = () => {
         selectedBodyType === 'GraphQL' ? JSON.stringify({ query: graphqlQuery, variables: graphqlVariables }) : null,
       assertions: assertions,
       extractions: extractions.filter(e => e.name.trim() !== ''),
+      performance,
       // New fields
       authType: authType,
       authParams: authParams,
@@ -1018,13 +1025,14 @@ const ApiTesterPage: React.FC = () => {
             </div>
 
             <Tabs defaultValue="body" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-7">
                 <TabsTrigger value="params" disabled={apiProxyMutation.isPending}>{t('apiTesterPage.queryParams.label')}</TabsTrigger>
                 <TabsTrigger value="auth" disabled={apiProxyMutation.isPending}>{t('apiTesterPage.authorization.label')}</TabsTrigger>
                 <TabsTrigger value="headers" disabled={apiProxyMutation.isPending}>{t('apiTesterPage.headers.label')}</TabsTrigger>
                 <TabsTrigger value="body" disabled={apiProxyMutation.isPending}>{t('apiTesterPage.body.label')}</TabsTrigger>
                 <TabsTrigger value="assertions" disabled={apiProxyMutation.isPending}>{t('apiTesterPage.assertions.label')}</TabsTrigger>
                 <TabsTrigger value="captures" disabled={apiProxyMutation.isPending}>Captures</TabsTrigger>
+                <TabsTrigger value="performance" disabled={apiProxyMutation.isPending}>{t('apiPerformance.tab', 'Performance')}</TabsTrigger>
               </TabsList>
               <TabsContent value="params">
                 <div className="p-4 border rounded-md min-h-[200px] space-y-2">
@@ -1311,6 +1319,11 @@ const ApiTesterPage: React.FC = () => {
                     lastCaptured={lastCaptured}
                     lastErrors={lastCaptureErrors}
                   />
+                </div>
+              </TabsContent>
+              <TabsContent value="performance">
+                <div className="p-4 border rounded-md min-h-[240px]">
+                  <PerformanceEditor value={performance} onChange={setPerformance} disabled={apiProxyMutation.isPending} />
                 </div>
               </TabsContent>
             </Tabs>
