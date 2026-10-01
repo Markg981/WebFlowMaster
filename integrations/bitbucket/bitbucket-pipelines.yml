@@ -1,0 +1,38 @@
+# WebFlowMaster for Bitbucket Pipelines.
+#
+# Bitbucket cannot include a step from another repository, so copy the `definitions` block below
+# into your bitbucket-pipelines.yml and reference the step where you want the plan to run:
+#
+#   pipelines:
+#     default:
+#       - step: *webflowmaster
+#     pull-requests:
+#       '**':
+#         - step: *webflowmaster
+#
+# WFM_URL, WFM_API_KEY (secured) and WFM_PLAN_ID come from Repository settings → Repository
+# variables, or from a deployment environment. WFM_ENVIRONMENT_ID and WFM_TIMEOUT are optional.
+# The CLI is downloaded from the server it will talk to, so it always matches it. The run is linked
+# to this pipeline, commit and pull request automatically. Bitbucket reads JUnit files under
+# test-results/ by itself and shows them on the pipeline's Tests tab.
+
+definitions:
+  steps:
+    - step: &webflowmaster
+        name: WebFlowMaster test plan
+        image: node:20-alpine
+        script:
+          - test -n "$WFM_PLAN_ID" || { echo "Set WFM_PLAN_ID to the plan to run."; exit 2; }
+          - >
+            node -e "fetch(process.env.WFM_URL.replace(/\/+$/, '') + '/cli/wfm.mjs')
+            .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+            .then((t) => require('fs').writeFileSync('wfm.mjs', t))
+            .catch((e) => { console.error('Could not download the WebFlowMaster CLI: ' + e.message); process.exit(2); })"
+          - mkdir -p test-results
+          - >
+            node wfm.mjs run "$WFM_PLAN_ID" --wait --timeout "${WFM_TIMEOUT:-1800}"
+            --junit test-results/webflowmaster-junit.xml --html webflowmaster-report.html
+            ${WFM_ENVIRONMENT_ID:+--environment "$WFM_ENVIRONMENT_ID"}
+        artifacts:
+          - webflowmaster-report.html
+          - test-results/**

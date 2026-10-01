@@ -24,7 +24,7 @@ A team uses it to:
    PDF, JUnit and Allure.
 5. **Connect** it to the rest of the toolchain — commit statuses in GitHub and GitLab, issues in Jira and
    Azure DevOps, publication to TestRail, Xray and Zephyr Scale, notifications to Slack, Teams or a webhook,
-   single sign-on, GitHub Actions, GitLab, Jenkins and Azure Pipelines templates, a command-line client.
+   single sign-on, GitHub Actions, GitLab, Jenkins, Azure Pipelines, Bitbucket Pipelines and CircleCI templates, a command-line client.
 
 It is **multi-tenant**: many organizations share one installation, and the database itself keeps their data
 apart. It is **self-hosted**: a Docker Compose stack for one machine, or separate web and worker processes
@@ -112,7 +112,7 @@ Gemini for AI features; Vitest, Testing Library and supertest for tests; Docker 
 | `shared/` | Schema and types used by both client and server |
 | `migrations/` | The SQL migrations (`0000` … `0058`) |
 | `scripts/` | CLI (`wfm`), local agent, migrator, schema doctor, importers |
-| `integrations/` | GitHub Action, GitLab template, Jenkins shared library, Azure Pipelines template |
+| `integrations/` | GitHub Action, GitLab template, Jenkins shared library, Azure Pipelines template, Bitbucket Pipelines step, CircleCI orb |
 | `collaudo/` | The acceptance test lab: HTTPS, Keycloak, simulators, Jenkins, Android emulator |
 | `docs/` | This documentation (VitePress, English and Italian) |
 | `observability/` | Loki and Grafana configuration |
