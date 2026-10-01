@@ -160,6 +160,9 @@ erDiagram
     int playwright_default_timeout
     int playwright_wait_time
     text language
+    bool notify_by_email
+    bool notify_run_completed
+    bool notify_run_failed
     timestamp updated_at
   }
   invitations {
@@ -1089,5 +1092,5 @@ Queste relazioni esistono nell'applicazione ma non hanno una chiave esterna. Son
   utente finché è in sospeso (0044); un legame con un'issue è univoco per fallimento (`dedupe_key`), così un
   fallimento si segnala una volta; la chiave di idempotenza di un run è univoca per organizzazione, così una richiesta ripetuta
   restituisce lo stesso run.
-- **Migrazioni.** 62 file SQL numerati in `migrations/` (da `0000` a `0061`), applicati una volta dal migratore
+- **Migrazioni.** 63 file SQL numerati in `migrations/` (da `0000` a `0062`), applicati una volta dal migratore
   prima che partano gli altri processi; il journal è `migrations/meta/_journal.json`.

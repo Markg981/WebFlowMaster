@@ -225,13 +225,15 @@
     },
     "notifications": {
       "title": "Notifications",
-      "description": "Choisissez les notifications que vous souhaitez recevoir (non enregistrées sur le serveur)",
+      "description": "Des e-mails sur les exécutions que vous lancez, à l'adresse avec laquelle vous vous connectez. Les notifications d'un plan se règlent sur le plan.",
       "emailLabel": "Notifications par e-mail",
-      "emailDescription": "Recevoir les mises à jour par e-mail",
-      "testCompletionLabel": "Fin des tests",
-      "testCompletionDescription": "Prévenir lorsque l'exécution des tests est terminée",
-      "errorAlertsLabel": "Alertes d'erreur",
-      "errorAlertsDescription": "Être prévenu des échecs de tests"
+      "emailDescription": "Recevoir des e-mails sur les exécutions que vous lancez",
+      "testCompletionLabel": "Chaque exécution terminée",
+      "testCompletionDescription": "Réussie ou en échec",
+      "errorAlertsLabel": "Exécutions en échec",
+      "errorAlertsDescription": "En échec, non exécutées ou expirées",
+      "notConfigured": "Cette installation n'envoie pas encore d'e-mails (un administrateur définit SMTP_URL) ; vos choix sont conservés pour le moment où elle le fera.",
+      "save": "Enregistrer les notifications"
     },
     "account": {
       "title": "Compte",
@@ -330,7 +332,9 @@
       "removeConfirm": "Retirer le membre",
       "resetPassword": "Lien de réinitialisation du mot de passe pour {{username}}",
       "resetIntro": "Envoyez ce lien à {{username}} pour choisir un nouveau mot de passe. Il n’est affiché que maintenant, fonctionne une fois et reste valable un jour.",
-      "resetLinkLabel": "Lien de réinitialisation"
+      "resetLinkLabel": "Lien de réinitialisation",
+      "emailed": "Également envoyé par e-mail à {{username}}.",
+      "emailFailed": "Non envoyé par e-mail : {{error}} Envoyez le lien vous-même."
     },
     "customActions": {
       "title": "Actions personnalisées",
@@ -993,6 +997,12 @@
       "confirm": "Répétez le nouveau mot de passe",
       "submit": "Définir le nouveau mot de passe",
       "done": "Votre mot de passe a été modifié. Connectez-vous avec le nouveau."
+    },
+    "forgot": {
+      "link": "Mot de passe oublié ?",
+      "label": "L'adresse avec laquelle vous vous connectez",
+      "submit": "Envoyez-moi un lien",
+      "sent": "Si un compte existe avec cette adresse, un lien pour choisir un nouveau mot de passe est en route. Consultez votre boîte de réception."
     }
   },
   "dashboardPageNew": {

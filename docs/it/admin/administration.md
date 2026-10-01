@@ -40,9 +40,10 @@ ancora in attesa.
 
 **Invitare qualcuno.** Inserite lo username che avrà il nuovo account e il suo ruolo (viewer o
 editor; il ruolo di owner si concede dopo), poi **Crea invito**. La pagina mostra un link, una
-volta sola: mandatelo alla persona con un canale di cui vi fidate, perché l'applicazione non
-invia e-mail. Il link apre il modulo di registrazione con invito e username già compilati; la
-persona sceglie una password (almeno 8 caratteri) ed è dentro. Un invito vale sette giorni e si
+volta sola. Quando l'installazione invia e-mail ([E-mail](#e-mail)) e lo username è un indirizzo, il
+link viene anche spedito lì, e la pagina dice se è partito; altrimenti mandatelo con un canale di
+cui vi fidate. Il link apre il modulo di registrazione con invito e username già compilati; la
+persona sceglie una password (come chiede la [politica delle password](#password-policy)) ed è dentro. Un invito vale sette giorni e si
 può revocare finché è in attesa. Un account esistente non può essere spostato tra
 organizzazioni: un invito crea sempre un account nuovo.
 
@@ -56,8 +57,8 @@ se stesso lo passa a un altro owner. Il registro di audit ne conserva il nome e 
 subentrato.
 
 **Emettere un link di reset della password** con l'icona del link, per un membro che ha
-dimenticato la password. La pagina mostra il link una volta sola: consegnatelo voi, perché non
-viene inviata alcuna e-mail. Apre un modulo per scegliere una nuova password, funziona una volta e
+dimenticato la password. La pagina mostra il link una volta sola, e lo spedisce come
+si spedisce un invito. Apre un modulo per scegliere una nuova password, funziona una volta e
 vale un giorno; emetterne un altro sostituisce il precedente. Il membro poi accede come sempre,
 con il secondo fattore se lo ha. Per l'unico owner di un'organizzazione, il link lo emette
 l'operatore dalla riga di comando (vedi [Recuperare l'accesso](./operations#recuperare-l-accesso)).
@@ -370,11 +371,37 @@ dice quanti file sono stati rimossi e nomina le cartelle che l'archivio ha rifiu
 un bucket irraggiungibile), registrate anche nel log dell'applicazione; quelle le rimuove a mano
 chi gestisce l'installazione. I backup del database conservano l'organizzazione finché non scadono.
 
+## E-mail {#e-mail}
+
+Con `SMTP_URL` e `SMTP_FROM` impostate (vedere [Configurazione](./configuration)), l'installazione invia:
+
+- **Inviti e link di reset della password** emessi da un owner, agli username che sono indirizzi.
+  Il link resta mostrato una volta, per quando la mail non arriva.
+- **"Password dimenticata?"** nella pagina di accesso: un link di reset spedito all'indirizzo con
+  cui la persona accede. La risposta è la stessa che l'account esista o no, così non serve a
+  scoprire chi ne ha uno. La richiesta è registrata nel log di audit.
+- **Notifiche dei run**: agli indirizzi nelle notifiche di un piano, quando i suoi interruttori lo
+  prevedono per quell'esito, e alla persona che ha avviato il run, da **Impostazioni → Notifiche**:
+  e-mail sì o no (no di default), poi ogni run concluso o solo i run falliti. Un messaggio rifiutato
+  viene segnalato nella console del run; non cambia mai il run.
+
+Senza SMTP tutto funziona come prima: gli owner consegnano i link, e i piani notificano solo tramite
+il loro webhook.
+
+## Politica delle password {#password-policy}
+
+`PASSWORD_POLICY` decide come deve essere una nuova password, quando la si sceglie (registrazione,
+cambio, link di reset); le password già esistenti non vengono controllate.
+
+- `basic` (default): da 8 a 128 caratteri, diversa dallo username.
+- `strong`: almeno 12 caratteri; almeno tre fra minuscole, maiuscole, cifre e simboli; non contiene
+  lo username (o la parte di un indirizzo prima della @); non è fra le password da cui parte ogni
+  lista di tentativi.
+
 ## Limiti noti
 
 - Il single sign-on non prende i ruoli dai gruppi del provider: i nuovi account hanno il ruolo
   predefinito, e gli owner lo cambiano in **Impostazioni → Membri**. Le asserzioni SAML devono
   essere firmate e non cifrate, l'accesso parte da WebFlowMaster (niente accesso avviato dall'IdP),
   e il single logout non è supportato.
-- Non c'è invio di e-mail; gli inviti si consegnano a mano.
-- La sezione **Notifiche** di Impostazioni non viene ancora salvata; le notifiche si impostano per piano.
+- Le e-mail sono testo semplice via SMTP; non c'è un editor di modelli e i rimbalzi non vengono tracciati.

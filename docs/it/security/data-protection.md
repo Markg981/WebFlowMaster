@@ -61,7 +61,8 @@ Il prodotto invia dati a terze parti solo dove un'organizzazione o l'operatore l
 | BrowserStack, LambdaTest (app) | Se un test di app mobile gira sulla griglia, o vi si carica un'app | Il file dell'app caricato (WebFlowMaster non lo conserva), e tutto ciò che il test fa sul dispositivo: i valori digitati, variabili e segreti compresi, le schermate mostrate, registrate in video dalla griglia. |
 | BrowserStack, LambdaTest | Se un'organizzazione aggiunge una griglia di browser e un piano gira su di essa | Tutto ciò che i test fanno nel browser: le pagine dell'applicazione sotto test, i valori digitati (compresi i segreti usati negli step), e screenshot, video e log di ogni sessione del fornitore, conservati secondo i suoi termini. |
 | GitHub, GitLab | Se un'organizzazione li collega | Stato del run, verdetto e link, sul commit testato. |
-| Slack o Microsoft Teams | Se le notifiche di un piano indicano un webhook | Riepiloghi dei run. (Sul piano si possono salvare indirizzi e-mail, ma nessuna e-mail viene inviata.) |
+| Slack o Microsoft Teams | Se le notifiche di un piano indicano un webhook | Riepiloghi dei run. |
+| Il server SMTP dell'installazione | Se `SMTP_URL` è impostata | Link di invito e di reset (alla persona interessata), riepiloghi dei run (agli indirizzi del piano e alla persona che ha avviato il run, se l'ha chiesto). |
 
 Le applicazioni sotto test ricevono ciò che i test inviano loro: è lo scopo di un test.
 

@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { motion, AnimatePresence } from "framer-motion";
 import MfaChallengeForm from "@/components/security/MfaChallengeForm";
 import SsoSignIn from "@/components/security/SsoSignIn";
+import ForgotPassword from "@/components/security/ForgotPassword";
 import { ApiError } from "@/lib/queryClient";
 
 interface RegistrationPolicy {
@@ -308,6 +309,9 @@ export default function AuthPage() {
                           {loginMutation.isPending ? t('authPage.signingIn.button') : t('authPage.signIn.button')}
                         </Button>
                       </motion.form>
+                      <div className="mt-3">
+                        <ForgotPassword username={loginData.username} />
+                      </div>
                       <div className="mt-5">
                         <SsoSignIn key={ssoRequired ? 'required' : 'offered'} open={ssoRequired} />
                       </div>

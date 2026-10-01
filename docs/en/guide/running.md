@@ -32,7 +32,7 @@ keep of each run, and whom to tell.
 | **Run on** | This server's runners, a pool of [local agents](../LOCAL_AGENT) inside your own network, or a [browser grid](#browser-grids). |
 | **File failures in** | An issue tracker (Jira, Azure DevOps) connected by an owner. With **Open an issue when a test fails**, each failing test and browser gets one issue; the same failure later is added to it as a comment. |
 | **Publish results to** | TestRail, Xray or Zephyr Scale, connected in **Settings → Test management**: every finished run is published there case by case; see [Publishing to TestRail, Xray or Zephyr](./results#test-management). |
-| **Send notification when** and the webhook URL | A message to a Slack or Microsoft Teams incoming webhook, or any URL that accepts a POST, when a run passes, fails, is not executed or is stopped. |
+| **Send notification when** and the webhook URL | A message to a Slack or Microsoft Teams incoming webhook, or any URL that accepts a POST, when a run passes, fails, is not executed or is stopped. The e-mail addresses listed there are mailed too, when the installation sends e-mail. |
 
 **Suites** on the row adds [suites](./organizing#suites): they run after the plan's own tests, in the
 order ticked, and a test in more than one runs once.

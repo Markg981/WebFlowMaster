@@ -225,13 +225,15 @@
     },
     "notifications": {
       "title": "Notifiche",
-      "description": "Scegli quali notifiche ricevere (non salvate sul server)",
-      "emailLabel": "Notifiche via email",
-      "emailDescription": "Ricevi aggiornamenti via email",
-      "testCompletionLabel": "Completamento dei test",
-      "testCompletionDescription": "Avvisa quando i test terminano",
-      "errorAlertsLabel": "Avvisi di errore",
-      "errorAlertsDescription": "Ricevi una notifica quando un test fallisce"
+      "description": "E-mail sui run che avviate, all'indirizzo con cui accedete. Le notifiche di un piano si impostano sul piano.",
+      "emailLabel": "Notifiche via e-mail",
+      "emailDescription": "Ricevere e-mail sui run che avviate",
+      "testCompletionLabel": "Ogni run concluso",
+      "testCompletionDescription": "Superato o fallito",
+      "errorAlertsLabel": "Run falliti",
+      "errorAlertsDescription": "Falliti, non eseguiti o scaduti",
+      "notConfigured": "Questa installazione non invia ancora e-mail (un amministratore imposta SMTP_URL); le vostre scelte restano salvate per quando lo farà.",
+      "save": "Salva le notifiche"
     },
     "account": {
       "title": "Account",
@@ -330,7 +332,9 @@
       "removeConfirm": "Rimuovi membro",
       "resetPassword": "Link di reset della password per {{username}}",
       "resetIntro": "Manda questo link a {{username}} per scegliere una nuova password. Viene mostrato solo ora, funziona una volta e vale un giorno.",
-      "resetLinkLabel": "Link di reset della password"
+      "resetLinkLabel": "Link di reset della password",
+      "emailed": "Inviato anche per e-mail a {{username}}.",
+      "emailFailed": "Non inviato per e-mail: {{error}} Mandate voi il link."
     },
     "customActions": {
       "title": "Azioni personalizzate",
@@ -1054,6 +1058,12 @@
       "confirm": "Ripeti la nuova password",
       "submit": "Imposta la nuova password",
       "done": "La password è stata cambiata. Accedi con quella nuova."
+    },
+    "forgot": {
+      "link": "Password dimenticata?",
+      "label": "L'indirizzo con cui accedete",
+      "submit": "Inviatemi un link",
+      "sent": "Se esiste un account con quell'indirizzo, è in arrivo un link per scegliere una nuova password. Controllate la casella di posta."
     }
   },
   "dashboardPageNew": {

@@ -35,8 +35,29 @@ interface Invitation {
   acceptedAt: string | null;
 }
 
-interface CreatedInvitation extends Invitation {
+/** Whether the server mailed the link (server/mailer.ts): absent when it could not try. */
+interface MailOutcome {
+  emailed?: boolean;
+  emailError?: string;
+}
+
+interface CreatedInvitation extends Invitation, MailOutcome {
   token: string;
+}
+
+/** "Sent to …", or why not; nothing when there was no mail to try. */
+function MailNote({ outcome, username }: { outcome: MailOutcome; username: string }) {
+  const { t } = useTranslation();
+  if (outcome.emailed === undefined) return null;
+  return outcome.emailed ? (
+    <p className="text-sm text-green-700 dark:text-green-400" data-testid="mail-sent">
+      {t('settings.members.emailed', 'Also e-mailed to {{username}}.', { username })}
+    </p>
+  ) : (
+    <p className="text-sm text-destructive" data-testid="mail-failed">
+      {t('settings.members.emailFailed', 'Not e-mailed: {{error}} Send the link yourself.', { error: outcome.emailError ?? '' })}
+    </p>
+  );
 }
 
 async function send(method: string, url: string, body?: unknown) {
@@ -82,7 +103,7 @@ const MembersCard: React.FC = () => {
   const [inviteError, setInviteError] = useState('');
   const [created, setCreated] = useState<CreatedInvitation | null>(null);
   const [copied, setCopied] = useState(false);
-  const [resetShown, setResetShown] = useState<{ username: string; link: string } | null>(null);
+  const [resetShown, setResetShown] = useState<({ username: string; link: string } & MailOutcome) | null>(null);
   const [resetCopied, setResetCopied] = useState(false);
   const [removing, setRemoving] = useState<Member | null>(null);
   const [heir, setHeir] = useState<string>('');
@@ -137,10 +158,10 @@ const MembersCard: React.FC = () => {
 
   const issueReset = useMutation({
     mutationFn: (member: Member) =>
-      send('POST', `/api/organization/members/${member.id}/password-reset`) as Promise<{ username: string; token: string }>,
+      send('POST', `/api/organization/members/${member.id}/password-reset`) as Promise<{ username: string; token: string } & MailOutcome>,
     onSuccess: (reset) => {
       setResetCopied(false);
-      setResetShown({ username: reset.username, link: passwordResetLink(window.location.origin, reset) });
+      setResetShown({ username: reset.username, link: passwordResetLink(window.location.origin, reset), emailed: reset.emailed, emailError: reset.emailError });
     },
     onError: (error: Error) => setNotice(error.message),
   });
@@ -290,6 +311,7 @@ const MembersCard: React.FC = () => {
                 { username: resetShown.username },
               )}
             </p>
+            <MailNote outcome={resetShown} username={resetShown.username} />
             <div className="flex gap-2">
               <Input readOnly value={resetShown.link} className="font-mono text-xs" aria-label={t('settings.members.resetLinkLabel', 'Password reset link')} />
               <Button
@@ -354,6 +376,7 @@ const MembersCard: React.FC = () => {
                   { username: created.username },
                 )}
               </p>
+              <MailNote outcome={created} username={created.username} />
               <div className="flex gap-2">
                 <Input readOnly value={link} className="font-mono text-xs" aria-label={t('settings.members.linkLabel', 'Invitation link')} />
                 <Button variant="outline" onClick={copyLink}>

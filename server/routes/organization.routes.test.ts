@@ -119,6 +119,24 @@ describe('the audit trail records what the member routes do', () => {
     expect((await auditFor()).rows).toHaveLength(0);
   });
 
+  it('mails the invitation link when the username is an address and mail is configured, and says when it could not', async () => {
+    const { mailerDeps } = await import('../mailer');
+    const mails: any[] = [];
+    mailerDeps.transport = { sendMail: async (m: any) => { if (m.to.startsWith('bounce')) throw new Error('550 no such mailbox'); mails.push(m); return {}; } } as any;
+    try {
+      const plain = await request(app).post('/api/organization/invitations').send({ username: 'not-an-address' }).expect(201);
+      expect(plain.body.emailed).toBeUndefined();
+      const mailed = await request(app).post('/api/organization/invitations').send({ username: 'invitee@shop.test', role: 'viewer' }).expect(201);
+      expect(mailed.body).toMatchObject({ emailed: true, token: expect.any(String) });
+      expect(mails[0].to).toBe('invitee@shop.test');
+      expect(mails[0].text).toContain(`invitation=${mailed.body.token}`);
+      const bounced = await request(app).post('/api/organization/invitations').send({ username: 'bounce@shop.test' }).expect(201);
+      expect(bounced.body).toMatchObject({ emailed: false, emailError: expect.stringContaining('550 no such mailbox') });
+    } finally {
+      mailerDeps.transport = undefined;
+    }
+  });
+
   it('records invitation creation and revocation, never the token', async () => {
     const created = await request(app)
       .post('/api/organization/invitations')

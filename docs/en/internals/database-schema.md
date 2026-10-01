@@ -160,6 +160,9 @@ erDiagram
     int playwright_default_timeout
     int playwright_wait_time
     text language
+    bool notify_by_email
+    bool notify_run_completed
+    bool notify_run_failed
     timestamp updated_at
   }
   invitations {
@@ -1087,5 +1090,5 @@ These relationships exist in the application but have no foreign key. Most come 
 - **Uniqueness.** Environment names are unique per organization (migration 0041); an invitation is unique per username
   while pending (0044); an issue link is unique per failure (`dedupe_key`), so one failure is filed once; a run's
   idempotency key is unique per organization, so a retried request returns the same run.
-- **Migrations.** 62 numbered SQL files in `migrations/` (`0000` … `0061`), applied once by the migrator before the other
+- **Migrations.** 63 numbered SQL files in `migrations/` (`0000` … `0062`), applied once by the migrator before the other
   processes start; the journal is `migrations/meta/_journal.json`.

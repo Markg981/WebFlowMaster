@@ -243,6 +243,14 @@ export default function SettingsPage() {
 
   // Owned by useTheme, which reads the document rather than a cached copy of the settings.
   const { isDark, setTheme } = useTheme();
+  const [emailNotifications, setEmailNotifications] = useState(false);
+  const [testCompletionNotifications, setTestCompletionNotifications] = useState(true);
+  const [errorNotifications, setErrorNotifications] = useState(true);
+  // Whether this installation sends e-mail at all (SMTP_URL), to say so next to the switches.
+  const { data: mailStatus } = useQuery<{ available: boolean }>({
+    queryKey: ["mailAvailable"],
+    queryFn: async () => (await fetch("/api/password-reset/available")).json(),
+  });
   const [defaultUrl, setDefaultUrl] = useState("");
   const [browser, setBrowser] = useState<"chromium" | "firefox" | "webkit">("chromium");
   const [headless, setHeadless] = useState(true);
@@ -277,6 +285,9 @@ export default function SettingsPage() {
       setDefaultTimeout(String(settingsData.playwrightDefaultTimeout));
       setWaitTime(String(settingsData.playwrightWaitTime));
       setLanguage(settingsData.language || "en");
+      setEmailNotifications(settingsData.notifyByEmail ?? false);
+      setTestCompletionNotifications(settingsData.notifyRunCompleted ?? true);
+      setErrorNotifications(settingsData.notifyRunFailed ?? true);
     }
   }, [settingsData]);
 
@@ -302,9 +313,6 @@ export default function SettingsPage() {
     i18n.changeLanguage(language);
   }, [language, i18n]);
 
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [testCompletionNotifications, setTestCompletionNotifications] = useState(true);
-  const [errorNotifications, setErrorNotifications] = useState(true);
 
   const userSettingsMutation = useMutation<UserSettings, Error, Partial<UserSettings>>({
     mutationFn: saveSettings,
@@ -367,6 +375,9 @@ export default function SettingsPage() {
       playwrightDefaultTimeout: parseInt(defaultTimeout, 10),
       playwrightWaitTime: parseInt(waitTime, 10),
       language: language,
+      notifyByEmail: emailNotifications,
+      notifyRunCompleted: testCompletionNotifications,
+      notifyRunFailed: errorNotifications,
     };
     if (isNaN(settingsToSave.playwrightDefaultTimeout!) || settingsToSave.playwrightDefaultTimeout! <= 0) {
       toast({ title: "Invalid Timeout", description: "Default timeout must be a positive number.", variant: "destructive" });
@@ -387,7 +398,7 @@ export default function SettingsPage() {
     setDefaultTimeout("30000");
     setWaitTime("1000");
     setLanguage("en");
-    setEmailNotifications(true);
+    setEmailNotifications(false);
     setTestCompletionNotifications(true);
     setErrorNotifications(true);
     setLogRetentionDays("7"); // Reset log retention to default as well
@@ -877,7 +888,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2"><Bell className="h-4 w-4 text-muted-foreground" /><span>{t('settings.notifications.title',"Notifications")}</span></CardTitle>
-            <CardDescription>{t('settings.notifications.description',"Choose what notifications you want to receive (Not saved to backend)")}</CardDescription>
+            <CardDescription>{t('settings.notifications.description',"E-mail about the runs you start, sent to the address you sign in with. A plan's own notifications are set on the plan.")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
@@ -892,6 +903,14 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div><Label className="text-sm font-medium">{t('settings.notifications.errorAlertsLabel',"Error Alerts")}</Label><p className="text-sm text-muted-foreground">{t('settings.notifications.errorAlertsDescription',"Get notified about test failures")}</p></div>
               <Switch checked={errorNotifications} onCheckedChange={setErrorNotifications} disabled={isPageDisabled} />
+            </div>
+            {mailStatus && !mailStatus.available && (
+              <p className="text-sm text-muted-foreground" data-testid="mail-not-configured">
+                {t('settings.notifications.notConfigured', "This installation does not send e-mail yet (an administrator sets SMTP_URL); your choices are kept for when it does.")}
+              </p>
+            )}
+            <div className="flex justify-end">
+              <Button onClick={handleSaveUserSettings} disabled={isPageDisabled}>{t('settings.notifications.save', 'Save notifications')}</Button>
             </div>
           </CardContent>
         </Card>

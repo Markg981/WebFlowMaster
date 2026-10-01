@@ -29,6 +29,8 @@ import { decryptSecret } from './crypto';
 import { defaultVariables } from './variables';
 import { runApiRequest, type ApiRequestSpec, type Extraction } from './api-test-runner';
 import { runPerformance } from './api-performance';
+import { mailRunFinished } from './run-mail';
+import { mailConfigured } from './mailer';
 import { SharedDataError, expandSharedDataset, loadDataVariables } from './test-data';
 import type { ApiPerformance, PerformanceSummary } from '@shared/api-performance';
 import { AgentHttp } from './agents/agent-fetch';
@@ -1926,7 +1928,7 @@ async function publishToTestManagement(executionId: string): Promise<void> {
  */
 async function notifyRunFinished(input: {
   plan: { notificationSettings?: unknown } | undefined;
-  execution: { scheduleId?: string | null };
+  execution: { scheduleId?: string | null; requestedByUserId?: number | null };
   summary: RunSummary;
 }): Promise<void> {
   const resolvedLogger = await loggerPromise;
@@ -1947,7 +1949,23 @@ async function notifyRunFinished(input: {
     }
 
     const settings = mergeNotificationSettings(input.plan?.notificationSettings, override);
-    for (const note of describeUnsupported(settings)) {
+
+    // E-mail first, on its own: the plan's addresses and the person who started the run
+    // (server/run-mail.ts). A mail server that refuses is said on the run's console.
+    try {
+      for (const outcome of await mailRunFinished(settings, input.execution.requestedByUserId, input.summary)) {
+        wsEmitter.emitExecutionLog(input.summary.executionId, {
+          level: outcome.sent ? 'info' : 'warn',
+          source: 'system',
+          message: outcome.sent ? `Run notification e-mailed to ${outcome.to}.` : `Run notification not e-mailed to ${outcome.to}: ${outcome.error}`,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (error: any) {
+      resolvedLogger.warn({ message: `Run notification e-mail could not be attempted: ${error?.message ?? error}`, executionId: input.summary.executionId });
+    }
+
+    for (const note of describeUnsupported(settings, mailConfigured())) {
       resolvedLogger.warn({ message: note, executionId: input.summary.executionId });
       wsEmitter.emitExecutionLog(input.summary.executionId, {
         level: 'warn',

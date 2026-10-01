@@ -37,9 +37,10 @@ invitations still waiting.
 
 **Invite someone.** Enter the username the new account will have and its role (viewer or
 editor; ownership is granted afterwards), then **Create invitation**. The page shows a link,
-once: send it to the person by a channel you trust, since the application sends no e-mail. The
-link opens the registration form with the invitation and the username already filled in; the
-person chooses a password (at least 8 characters) and is in. An invitation is valid for seven
+once. When the installation sends e-mail ([E-mail](#e-mail)) and the username is an address, the
+link is also mailed to it, and the page says whether it left; otherwise send it by a channel you
+trust. The link opens the registration form with the invitation and the username already filled
+in; the person chooses a password (as the [password policy](#password-policy) asks) and is in. An invitation is valid for seven
 days and can be revoked while it waits. An existing account cannot be moved between
 organizations: an invitation always creates a new one.
 
@@ -52,7 +53,7 @@ member: you, unless you choose someone else in the dialog. An owner removing the
 it to another owner. The audit log keeps their name and records who took over.
 
 **Issue a password reset link** with the link icon, for a member who forgot their password.
-The page shows the link once: hand it over, since no e-mail is sent. It opens a form to choose a
+The page shows the link once, and mails it as an invitation is mailed. It opens a form to choose a
 new password, works once and lasts a day; issuing another replaces it. The member then signs in
 as usual, with their second factor if they have one. For the organization's only owner, the
 operator issues the link from the command line (see
@@ -348,11 +349,37 @@ and names any folder the store refused (an unreachable bucket, say), which the a
 records too; the operator removes those by hand. Database backups keep the organization until
 they expire.
 
+## E-mail {#e-mail}
+
+With `SMTP_URL` and `SMTP_FROM` set (see [Configuration](./configuration)), the installation sends:
+
+- **Invitations and password reset links** an owner issues, to usernames that are addresses. The
+  link is still shown once, for when the mail does not arrive.
+- **"Forgot your password?"** on the sign-in page: a reset link mailed to the address the person
+  signs in with. The answer is the same whether or not the account exists, so it cannot be used to
+  find out who has one. The request is recorded in the audit log.
+- **Run notifications**: to the addresses in a plan's notifications, when its switches say so for
+  the outcome, and to the person who started a run, from **Settings → Notifications**: e-mail on or
+  off (off by default), then every finished run or failed runs only. A refused message is said on
+  the run's console; it never changes the run.
+
+Without SMTP everything works as before: owners hand the links over, and plans notify through
+their webhook only.
+
+## Password policy {#password-policy}
+
+`PASSWORD_POLICY` decides what a new password must be, when it is chosen (registration, change,
+reset link); existing passwords are not checked.
+
+- `basic` (default): 8 to 128 characters, not the username.
+- `strong`: at least 12 characters; at least three of lowercase, uppercase, digits and symbols;
+  not containing the username (or the part of an address before the @); not one of the passwords
+  every guessing list starts with.
+
 ## Known limitations
 
 - Single sign-on does not take roles from the provider's groups: new accounts get the default
   role, and owners change it in **Settings → Members**. SAML assertions must be signed and
   unencrypted, sign-in starts from WebFlowMaster (no IdP-initiated sign-in), and single logout is
   not supported.
-- There is no e-mail delivery; invitations are handed over by hand.
-- The **Notifications** section of Settings is not saved yet; notifications are set per plan.
+- E-mail is plain text over SMTP; there is no template editor, and bounces are not tracked.

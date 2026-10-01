@@ -196,8 +196,9 @@ describe('sendRunNotification', () => {
 });
 
 describe('describeUnsupported', () => {
-  it('admits that an email list in the override is not delivered by this build', () => {
-    expect(describeUnsupported({ emails: ['qa@example.com'] }).join(' ')).toContain('webhook only');
+  it('says an email list is not delivered only when the installation has no SMTP', () => {
+    expect(describeUnsupported({ emails: ['qa@example.com'] }).join(' ')).toContain('no SMTP configured');
+    expect(describeUnsupported({ emails: ['qa@example.com'] }, true)).toEqual([]);
     expect(describeUnsupported({})).toEqual([]);
   });
 });
