@@ -16,7 +16,8 @@ vi.mock('react-i18next', () => ({
 /**
  * The owner's single sign-on settings. What is worth a test: it shows the address to register
  * with the provider; it sends what was typed, domains split; an empty secret keeps the stored one;
- * requiring it needs it on; and the provider test says what happened.
+ * requiring it needs it on; the provider test says what happened; domains show their TXT record
+ * and can be verified; group mappings are sent, and "require a group" needs one.
  */
 
 const CALLBACK = 'https://wfm.example.com/api/sso/callback';
@@ -53,6 +54,7 @@ function renderCard(settings: SsoSettings | null) {
     if (url === '/api/organization/sso/saml-metadata') {
       return { ok: true, status: 200, json: async () => ({ entityId: 'https://idp.example.com/saml', ssoUrl: 'https://idp.example.com/saml/sso', certificate: CERT }) };
     }
+    if (url === '/api/organization/sso/domains/example.com/verify') return { ok: true, status: 200, json: async () => ({ verified: false, message: 'No TXT record at _wfm-verification.example.com yet.' }) };
     if (url === '/api/organization/sso/test') return { ok: true, status: 200, json: async () => ({ ok: false, message: 'fetch failed' }) };
     return { ok: false, status: 404, json: async () => ({}) };
   });
@@ -96,6 +98,9 @@ describe('SsoCard', () => {
       defaultRole: 'viewer',
       enabled: true,
       required: false,
+      groupAttribute: 'groups',
+      roleMappings: [],
+      requireGroup: false,
     });
     expect(await screen.findByTestId('sso-notice')).toHaveTextContent('Saved.');
   });
@@ -141,6 +146,47 @@ describe('SsoCard', () => {
     const body = JSON.parse(calls('PUT')[0][1].body);
     expect(body).toMatchObject({ protocol: 'saml', issuer: 'https://idp.example.com/saml', samlSsoUrl: 'https://idp.example.com/saml/sso', samlCertificate: CERT });
     expect(body).not.toHaveProperty('clientSecret');
+  });
+
+  it('shows each domain\'s TXT record, and says what the check found', async () => {
+    renderCard({
+      ...stored,
+      domains: ['example.com', 'example.org'],
+      verificationRequired: true,
+      domainStatus: [
+        { domain: 'example.com', verified: false, verifiedAt: null, record: { name: '_wfm-verification.example.com', value: 'wfm-verification=abc123' } },
+        { domain: 'example.org', verified: true, verifiedAt: '2026-09-30T10:00:00.000Z', record: null },
+      ],
+    });
+    const rows = await screen.findAllByTestId('sso-domain-row');
+    expect(rows[0]).toHaveTextContent('_wfm-verification.example.com = wfm-verification=abc123');
+    expect(rows[1]).toHaveTextContent('proven');
+    expect(screen.getByTestId('sso-domain-verification')).toHaveTextContent('signs nobody in until it is proven');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
+    expect(await screen.findByText('No TXT record at _wfm-verification.example.com yet.')).toBeInTheDocument();
+    expect(calls('POST').map(([url]: any[]) => url)).toEqual(['/api/organization/sso/domains/example.com/verify']);
+  });
+
+  it('sends the group mappings, and refuses whoever is in none only once a group is mapped', async () => {
+    renderCard(stored);
+    const requireGroup = await screen.findByRole('switch', { name: 'Refuse whoever is in none of these groups' });
+    expect(requireGroup).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Claim or attribute with the groups'), { target: { value: 'roles' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Map a group' }));
+    fireEvent.change(screen.getByLabelText('Group of mapping 1'), { target: { value: ' wfm-users ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Map a group' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove mapping 2' }));
+    fireEvent.click(requireGroup);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(calls('PUT')).toHaveLength(1));
+    expect(JSON.parse(calls('PUT')[0][1].body)).toMatchObject({
+      groupAttribute: 'roles',
+      roleMappings: [{ group: 'wfm-users', role: 'viewer' }],
+      requireGroup: true,
+    });
   });
 
   it('says when the provider does not answer', async () => {

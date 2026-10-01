@@ -181,12 +181,50 @@ that it answers a request this installation sent, which it can do only once — 
 - the first time, an existing account of the organization whose username is that address is
   linked to it; this is how members who already had a password move over;
 - otherwise an account is **created**, with the address as its username and the role you
-  chose. Owners are never created this way: make someone an owner in **Settings → Members**.
+  chose — or the role its groups map to, below. Without a group mapped to owner, owners are
+  never created this way: make someone an owner in **Settings → Members**.
 
 With OpenID Connect the address comes from the `email` claim or, when that is missing, from a
 `preferred_username` shaped like an address, which is what Entra ID sends; an address the provider
 marks as unverified is refused. With SAML it comes from the attributes listed above or an
 address-shaped NameID. Either way an address outside your domains is refused.
+
+**Roles from the provider's groups.** Under **Roles from the provider's groups**, map the groups
+the provider sends to a role — viewer, editor or owner. At every sign-in the person gets the
+highest role any of their groups maps to: a new account is created with it, and an existing one
+follows it, up or down (the audit log records the change as `member.role_changed` with
+`bySsoGroups: true`). Someone in none of the mapped groups keeps the role they have, and a new
+account gets the default role; nothing mapped at all, roles are managed in **Settings → Members**
+as before. The organization's last owner is never demoted by their groups, so it cannot lock
+itself out.
+
+Groups are compared without regard to case. **Claim or attribute with the groups** names where the
+provider puts them — `groups` when empty; a list or a single value both work.
+
+| Provider | What to send |
+|---|---|
+| Microsoft Entra ID | App registration → Token configuration → *Add groups claim*. The `groups` claim carries the groups' **object IDs**: map those, not the names. Over 200 groups Entra sends a link instead of the list; assign the groups to the application to stay under it. |
+| Okta | Authorization server → Claims → a `groups` claim with a filter (e.g. *Starts with* `wfm-`). For SAML, a group attribute statement. |
+| Keycloak | Client scope → Mapper *Group Membership*, token claim name `groups`, *Full group path* off. For SAML, the *Group list* mapper. |
+| ADFS | A claim rule sending *Token-Groups – Unqualified Names* as an attribute (e.g. `groups`). |
+
+**Refuse whoever is in none of these groups** (once a group is mapped) turns the mapping into the
+gate: a person in none of the mapped groups cannot sign in, whether their account exists or not,
+and sees why on the sign-in page. Removing someone from the groups at the provider then ends their
+access here at their next sign-in.
+
+**Proving the domains.** Each domain shows a DNS TXT record to publish:
+`_wfm-verification.<domain>` with the value `wfm-verification=<token>`. Once it is published,
+press **Verify**: the server looks the record up and marks the domain **proven**; the card says
+what it found when the record is not there yet (DNS changes can take a while to reach every
+server). The proof is kept when the settings are saved again, and lost only when the domain is
+removed from the list.
+
+Where the installation sets `SSO_REQUIRE_DOMAIN_VERIFICATION=true` — every shared or multi-tenant
+installation should — a domain routes no sign-in until it is proven, and an unproven claim does not
+hold it: another organization that adds the domain takes it over, and whoever proves it first
+keeps it. Without the variable domains work as soon as they are saved and proving them is
+optional, which suits an installation with one organization.
 
 **Requiring it.** With **Require it** on, members other than owners can no longer sign in with a
 password, and password sessions already open end at their next request. Owners keep their
@@ -200,7 +238,8 @@ require it there.
 ::: warning The provider decides who gets in
 Removing a member here deletes their account, but if the provider still lets them sign in,
 their next sign-in creates a new account with the default role. End people's access at the
-provider; removing them here as well tidies up the member list.
+provider — or map groups and turn on **Refuse whoever is in none of these groups**, then take
+them out of the groups; removing them here as well tidies up the member list.
 :::
 
 The audit log records the settings being changed or removed (never the secret), each account
@@ -378,8 +417,8 @@ reset link); existing passwords are not checked.
 
 ## Known limitations
 
-- Single sign-on does not take roles from the provider's groups: new accounts get the default
-  role, and owners change it in **Settings → Members**. SAML assertions must be signed and
-  unencrypted, sign-in starts from WebFlowMaster (no IdP-initiated sign-in), and single logout is
-  not supported.
+- Single sign-on reads roles from groups only at sign-in: a change at the provider reaches
+  WebFlowMaster at the person's next sign-in, and sessions already open keep their role until then
+  (there is no SCIM). SAML assertions must be signed and unencrypted, sign-in starts from
+  WebFlowMaster (no IdP-initiated sign-in), and single logout is not supported.
 - E-mail is plain text over SMTP; there is no template editor, and bounces are not tracked.

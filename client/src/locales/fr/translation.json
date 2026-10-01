@@ -2699,7 +2699,8 @@
       "mobile_test_inspector_opened": "Inspecteur ouvert sur un appareil",
       "test_data_set_created": "Jeu de données partagé créé",
       "test_data_set_updated": "Jeu de données partagé modifié",
-      "test_data_set_deleted": "Jeu de données partagé supprimé"
+      "test_data_set_deleted": "Jeu de données partagé supprimé",
+      "sso_domain_verified": "Domaine de l'authentification unique vérifié"
     }
   },
   "security": {
@@ -3209,11 +3210,12 @@
     "defaultRole": "Rôle des nouveaux comptes",
     "roleViewer": "Lecteur",
     "roleEditor": "Éditeur",
+    "roleOwner": "Propriétaire",
     "enabled": "Proposer l'authentification unique",
     "enabledHint": "Désactivée, les paramètres sont conservés et personne ne se connecte par le fournisseur.",
     "required": "La rendre obligatoire",
     "requiredHint": "Les membres autres que les propriétaires ne peuvent plus se connecter avec un mot de passe, et leurs sessions ouvertes par mot de passe se terminent. Les propriétaires gardent le leur, pour revenir si le fournisseur tombe en panne. Les clés API ne sont pas concernées.",
-    "removalNote": "C'est votre fournisseur qui décide qui entre : une personne retirée ici revient avec un nouveau compte à sa prochaine connexion. Mettez fin à son accès chez le fournisseur.",
+    "removalNote": "C'est votre fournisseur qui décide qui entre : une personne retirée ici revient avec un nouveau compte à sa prochaine connexion. Mettez fin à son accès chez le fournisseur, ou associez des groupes et refusez qui n'est dans aucun.",
     "save": "Enregistrer",
     "saved": "Enregistré.",
     "test": "Tester le fournisseur",
@@ -3237,7 +3239,8 @@
       "account_elsewhere": "Un compte avec votre adresse appartient à une autre organisation de cette installation.",
       "account_disabled": "Ce compte est désactivé.",
       "account_linked": "Votre adresse est déjà liée à une autre identité chez votre fournisseur. Demandez à un propriétaire de votre organisation.",
-      "browser_mismatch": "Cette connexion a été lancée dans un autre navigateur. Relancez-la ici."
+      "browser_mismatch": "Cette connexion a été lancée dans un autre navigateur. Relancez-la ici.",
+      "no_group": "Votre compte chez le fournisseur d'identité n'est dans aucun des groupes admis par cette organisation. Adressez-vous à votre administrateur."
     },
     "protocol": "Protocole",
     "saml": {
@@ -3253,6 +3256,27 @@
       "certificate": "Certificat de signature (X.509, PEM ou base64)",
       "certExpired": "Expiré le {{date}} : les connexions sont refusées tant que vous ne collez pas le nouveau certificat.",
       "certValid": "{{subject}} · valable jusqu'au {{date}}"
+    },
+    "domainsProof": {
+      "title": "Preuve des domaines",
+      "required": "Sur cette installation, un domaine ne connecte personne tant qu'il n'est pas prouvé : publiez son enregistrement TXT, puis cliquez sur Vérifier.",
+      "advice": "Prouver un domaine est facultatif ici, et montre que le fournisseur est bien le vôtre : publiez son enregistrement TXT, puis cliquez sur Vérifier.",
+      "verified": "prouvé",
+      "unverified": "non prouvé",
+      "verify": "Vérifier",
+      "record": "Enregistrement TXT"
+    },
+    "groups": {
+      "title": "Rôles depuis les groupes du fournisseur",
+      "hint": "À chaque connexion, le rôle suit les groupes envoyés par le fournisseur : le rôle le plus élevé parmi ceux associés. Sans association, les rôles se gèrent ici dans Membres.",
+      "attribute": "Claim ou attribut contenant les groupes",
+      "groupPlaceholder": "Nom ou id du groupe",
+      "group": "Groupe de l'association {{n}}",
+      "role": "Rôle de l'association {{n}}",
+      "remove": "Supprimer l'association {{n}}",
+      "add": "Associer un groupe",
+      "require": "Refuser qui n'est dans aucun de ces groupes",
+      "requireHint": "Retirer alors quelqu'un des groupes chez le fournisseur met fin à son accès ici à sa prochaine connexion."
     }
   },
   "manualTests": {

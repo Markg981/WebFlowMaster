@@ -233,12 +233,14 @@ chiave solo dove inviarlo a Google è accettabile; tutto il resto funziona anche
 
 Dichiarati perché una valutazione possa pesarli, invece di scoprirli dopo:
 
-- **Il single sign-on** non associa i gruppi del provider ai ruoli, non ha SCIM, e per SAML accetta
-  solo asserzioni firmate e non cifrate di accessi avviati da qui (niente accesso avviato dall'IdP,
-  niente single logout): una persona rimossa qui ma non presso il provider ottiene un nuovo
-  account al suo accesso successivo, quindi l'accesso si revoca presso il provider. I domini
-  e-mail non vengono verificati via DNS; su un'installazione condivisa il primo che rivendica un
-  dominio lo ottiene.
+- **Il single sign-on** non ha SCIM: i ruoli dai gruppi del provider, e il rifiuto di chi non è in
+  nessuno, si applicano all'accesso, quindi una sessione aperta mantiene il suo ruolo fino al
+  successivo. Per SAML accetta solo asserzioni firmate e non cifrate di accessi avviati da qui
+  (niente accesso avviato dall'IdP, niente single logout). Senza un gruppo obbligatorio, una persona
+  rimossa qui ma non presso il provider ottiene un nuovo account al suo accesso successivo, quindi
+  l'accesso si revoca presso il provider. I domini e-mail si dimostrano con un record DNS TXT; la
+  verifica è obbligatoria solo con `SSO_REQUIRE_DOMAIN_VERIFICATION=true`, e senza, su
+  un'installazione condivisa, il primo che rivendica un dominio lo ottiene.
 - **La complessità delle password è facoltativa**: la politica di default controlla solo la
   lunghezza; `PASSWORD_POLICY=strong` aggiunge 12 caratteri, varietà di caratteri, niente username
   e niente password comuni. Senza SMTP, i link di invito e di reset li consegna l'owner.

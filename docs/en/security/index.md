@@ -219,11 +219,13 @@ sending it to Google is acceptable; everything else works without it.
 
 Stated so a review can weigh them, not discovered later:
 
-- **Single sign-on** maps no provider groups to roles, has no SCIM, and for SAML accepts only
-  signed, unencrypted assertions from sign-ins it started (no IdP-initiated sign-in, no single
-  logout): a person removed here but not at the provider gets a new account
-  at their next sign-in, so access is ended at the provider. E-mail domains are not verified by
-  DNS; on a shared installation the first organization to claim a domain has it.
+- **Single sign-on** has no SCIM: roles from the provider's groups, and the refusal of people in
+  none of them, apply at sign-in, so an open session keeps its role until the next one. For SAML it
+  accepts only signed, unencrypted assertions from sign-ins it started (no IdP-initiated sign-in,
+  no single logout). Without a required group, a person removed here but not at the provider gets
+  a new account at their next sign-in, so access is ended at the provider. E-mail domains are
+  proven by a DNS TXT record; proof is required only with `SSO_REQUIRE_DOMAIN_VERIFICATION=true`,
+  and without it, on a shared installation, the first organization to claim a domain has it.
 - **Password complexity is opt-in**: the default policy checks length only; `PASSWORD_POLICY=strong`
   adds length 12, character mix, no username and no common passwords. Without SMTP, invitation and
   reset links are handed over by the owner.

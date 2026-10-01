@@ -25,6 +25,7 @@ export const SSO_ERRORS = [
   'account_disabled',
   'account_linked',
   'browser_mismatch',
+  'no_group',
 ] as const;
 
 export function ssoErrorFromUrl(): string {
@@ -59,6 +60,7 @@ export default function SsoSignIn({ open: openAtStart = false }: { open?: boolea
     account_disabled: t('sso.errors.account_disabled', 'This account is disabled.'),
     account_linked: t('sso.errors.account_linked', 'Your address is already linked to another identity at your provider. Ask an owner of your organization.'),
     browser_mismatch: t('sso.errors.browser_mismatch', 'This sign-in was started in another browser. Start it again here.'),
+    no_group: t('sso.errors.no_group', 'Your account at the identity provider is in none of the groups this organization lets in. Ask your administrator.'),
   };
   const errorMessage = error ? (messages as Record<string, string>)[error] ?? messages.provider_error : '';
 

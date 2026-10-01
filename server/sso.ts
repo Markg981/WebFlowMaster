@@ -14,6 +14,8 @@ import {
 import { privilegedDb } from './db';
 import { decryptSecret, encryptSecret } from './crypto';
 import { sqlState } from './db-errors';
+import { DEFAULT_GROUP_ATTRIBUTE, domainVerificationRecord, groupsOf, roleFromGroups, roleMappingSchema, type RoleMapping } from '@shared/sso-roles';
+import { checkDomainRecord, domainVerificationRequired, newVerificationToken, usableDomain } from './sso-domains';
 import type { AuditActor } from './audit';
 import {
   certificateInfo,
@@ -66,9 +68,16 @@ export interface SsoSettings {
   samlCertificate: string | null;
   samlCertificateInfo: CertificateInfo | null;
   domains: string[];
+  /** Each domain with its DNS proof (server/sso-domains.ts). */
+  domainStatus: Array<{ domain: string; verified: boolean; verifiedAt: Date | null; record: { name: string; value: string } | null }>;
+  /** Whether unproven domains are refused on this installation (SSO_REQUIRE_DOMAIN_VERIFICATION). */
+  verificationRequired: boolean;
   defaultRole: SsoRole;
   enabled: boolean;
   required: boolean;
+  groupAttribute: string;
+  roleMappings: RoleMapping[];
+  requireGroup: boolean;
   updatedAt: Date;
 }
 
@@ -84,6 +93,10 @@ export interface SsoInput {
   defaultRole: SsoRole;
   enabled: boolean;
   required: boolean;
+  /** Absent keeps the stored value. */
+  groupAttribute?: string | null;
+  roleMappings?: RoleMapping[];
+  requireGroup?: boolean;
 }
 
 /** What a sign-in in progress keeps in the session between leaving for the provider and coming back. */
@@ -117,7 +130,9 @@ type SsoError =
   | 'invalid_domain'
   | 'secret_required'
   | 'domain_taken'
-  | 'required_needs_enabled';
+  | 'required_needs_enabled'
+  | 'invalid_mapping'
+  | 'require_group_needs_mappings';
 
 export class SsoConfigError extends Error {
   constructor(readonly code: SsoError, message: string) {
@@ -169,7 +184,7 @@ export async function getSsoSettings(organizationId: number): Promise<SsoSetting
   const [row] = await privilegedDb.select().from(organizationSso).where(eq(organizationSso.organizationId, organizationId));
   if (!row) return null;
   const domains = await privilegedDb
-    .select({ domain: ssoDomains.domain })
+    .select({ domain: ssoDomains.domain, token: ssoDomains.verificationToken, verifiedAt: ssoDomains.verifiedAt })
     .from(ssoDomains)
     .where(eq(ssoDomains.organizationId, organizationId))
     .orderBy(ssoDomains.domain);
@@ -181,9 +196,19 @@ export async function getSsoSettings(organizationId: number): Promise<SsoSetting
     samlCertificate: row.samlCertificate,
     samlCertificateInfo: row.samlCertificate ? certificateInfo(row.samlCertificate) : null,
     domains: domains.map((d) => d.domain),
+    domainStatus: domains.map((d) => ({
+      domain: d.domain,
+      verified: d.verifiedAt !== null,
+      verifiedAt: d.verifiedAt,
+      record: d.token ? domainVerificationRecord(d.domain, d.token) : null,
+    })),
+    verificationRequired: domainVerificationRequired(),
     defaultRole: row.defaultRole as SsoRole,
     enabled: row.enabled,
     required: row.required,
+    groupAttribute: row.groupAttribute ?? DEFAULT_GROUP_ATTRIBUTE,
+    roleMappings: row.roleMappings ?? [],
+    requireGroup: row.requireGroup,
     updatedAt: row.updatedAt,
   };
 }
@@ -222,6 +247,20 @@ export async function saveSsoSettings(organizationId: number, actor: AuditActor,
   if (input.required && !input.enabled) {
     throw new SsoConfigError('required_needs_enabled', 'Single sign-on can only be required while it is on.');
   }
+  const mappingsGiven = input.roleMappings !== undefined;
+  const mappings: RoleMapping[] = [];
+  for (const raw of input.roleMappings ?? []) {
+    const parsed = roleMappingSchema.safeParse(raw);
+    if (!parsed.success) throw new SsoConfigError('invalid_mapping', 'Each mapping needs a group and a role (viewer, editor or owner).');
+    if (mappings.some((m) => m.group.toLowerCase() === parsed.data.group.toLowerCase())) {
+      throw new SsoConfigError('invalid_mapping', `The group "${parsed.data.group}" is mapped twice.`);
+    }
+    mappings.push(parsed.data);
+  }
+  const groupAttribute = input.groupAttribute === undefined ? undefined : input.groupAttribute?.trim() || null;
+  if (groupAttribute && (groupAttribute.length > 200 || /\s/.test(groupAttribute))) {
+    throw new SsoConfigError('invalid_mapping', 'The group claim or attribute is one name, without spaces.');
+  }
   const secret = input.clientSecret?.trim() ?? '';
 
   try {
@@ -238,12 +277,16 @@ export async function saveSsoSettings(organizationId: number, actor: AuditActor,
       }
 
       const taken = await tx
-        .select({ domain: ssoDomains.domain })
+        .select({ domain: ssoDomains.domain, verifiedAt: ssoDomains.verifiedAt })
         .from(ssoDomains)
         .where(and(inArray(ssoDomains.domain, domains), ne(ssoDomains.organizationId, organizationId)));
-      if (taken.length > 0) {
-        throw new SsoConfigError('domain_taken', `Another organization on this installation signs in ${taken.map((t) => t.domain).join(', ')}.`);
+      // Where proof is required, only a proven claim keeps a domain; an unproven one is released.
+      const blocking = domainVerificationRequired() ? taken.filter((t) => t.verifiedAt !== null) : taken;
+      if (blocking.length > 0) {
+        throw new SsoConfigError('domain_taken', `Another organization on this installation signs in ${blocking.map((t) => t.domain).join(', ')}.`);
       }
+      const released = taken.map((t) => t.domain);
+      if (released.length > 0) await tx.delete(ssoDomains).where(inArray(ssoDomains.domain, released));
 
       const values = {
         protocol,
@@ -252,6 +295,9 @@ export async function saveSsoSettings(organizationId: number, actor: AuditActor,
         defaultRole: input.defaultRole,
         enabled: input.enabled,
         required: input.required,
+        ...(mappingsGiven ? { roleMappings: mappings } : {}),
+        ...(groupAttribute !== undefined ? { groupAttribute } : {}),
+        ...(input.requireGroup !== undefined ? { requireGroup: input.requireGroup } : {}),
         updatedAt: new Date(),
         ...(protocol === 'oidc'
           ? { clientId: input.clientId!.trim(), samlSsoUrl: null, samlCertificate: null, ...(secret ? secretColumns(secret) : {}) }
@@ -262,8 +308,21 @@ export async function saveSsoSettings(organizationId: number, actor: AuditActor,
       } else {
         await tx.insert(organizationSso).values({ organizationId, ...values });
       }
-      await tx.delete(ssoDomains).where(eq(ssoDomains.organizationId, organizationId));
-      await tx.insert(ssoDomains).values(domains.map((domain) => ({ domain, organizationId })));
+      const [saved] = await tx
+        .select({ roleMappings: organizationSso.roleMappings, requireGroup: organizationSso.requireGroup })
+        .from(organizationSso)
+        .where(eq(organizationSso.organizationId, organizationId));
+      if (saved.requireGroup && (saved.roleMappings ?? []).length === 0) {
+        throw new SsoConfigError('require_group_needs_mappings', 'Map at least one group before refusing people who are in none.');
+      }
+      // Domains kept keep their proof; only the ones removed go, and new ones get a token.
+      const kept = await tx.select({ domain: ssoDomains.domain }).from(ssoDomains).where(eq(ssoDomains.organizationId, organizationId));
+      const removed = kept.map((k) => k.domain).filter((d) => !domains.includes(d));
+      if (removed.length > 0) await tx.delete(ssoDomains).where(and(eq(ssoDomains.organizationId, organizationId), inArray(ssoDomains.domain, removed)));
+      const added = domains.filter((d) => !kept.some((k) => k.domain === d));
+      if (added.length > 0) {
+        await tx.insert(ssoDomains).values(added.map((domain) => ({ domain, organizationId, verificationToken: newVerificationToken() })));
+      }
 
       await audit(tx, organizationId, actor, AUDIT_ACTIONS.SSO_CONFIGURED, 'organization', String(organizationId), {
         protocol,
@@ -275,6 +334,9 @@ export async function saveSsoSettings(organizationId: number, actor: AuditActor,
         enabled: input.enabled,
         required: input.required,
         secretChanged: protocol === 'oidc' && Boolean(secret),
+        roleMappings: saved.roleMappings,
+        requireGroup: saved.requireGroup,
+        ...(released.length > 0 ? { takenFromUnverifiedClaims: released } : {}),
       });
     });
   } catch (error) {
@@ -291,6 +353,33 @@ export async function saveSsoSettings(organizationId: number, actor: AuditActor,
 function secretColumns(secret: string) {
   const { encryptedValue, iv, authTag } = encryptSecret(secret);
   return { clientSecretEncrypted: encryptedValue, clientSecretIv: iv, clientSecretAuthTag: authTag };
+}
+
+/**
+ * Looks for the domain's TXT record and, when it carries the token, marks the domain proven.
+ * The owner's "Verify" button.
+ */
+export async function verifySsoDomain(
+  organizationId: number,
+  actor: AuditActor,
+  domain: string,
+): Promise<{ verified: true } | { verified: false; message: string } | null> {
+  const name = normaliseDomain(domain);
+  const [row] = await privilegedDb
+    .select()
+    .from(ssoDomains)
+    .where(and(eq(ssoDomains.domain, name), eq(ssoDomains.organizationId, organizationId)));
+  if (!row) return null;
+  if (row.verifiedAt) return { verified: true };
+  const token = row.verificationToken ?? newVerificationToken();
+  if (!row.verificationToken) await privilegedDb.update(ssoDomains).set({ verificationToken: token }).where(eq(ssoDomains.domain, name));
+  const problem = await checkDomainRecord(name, token);
+  if (problem) return { verified: false, message: problem };
+  await privilegedDb.transaction(async (tx) => {
+    await tx.update(ssoDomains).set({ verifiedAt: new Date() }).where(and(eq(ssoDomains.domain, name), eq(ssoDomains.organizationId, organizationId)));
+    await audit(tx, organizationId, actor, AUDIT_ACTIONS.SSO_DOMAIN_VERIFIED, 'organization', String(organizationId), { domain: name });
+  });
+  return { verified: true };
 }
 
 /** Removes the provider and its domains. The links between accounts and identities stay, for a provider set up again. */
@@ -386,7 +475,8 @@ export type SignInError =
   | 'account_elsewhere'
   | 'account_disabled'
   | 'account_linked'
-  | 'browser_mismatch';
+  | 'browser_mismatch'
+  | 'no_group';
 
 /**
  * Where to send the browser for an e-mail address, and what to remember until it comes back: a
@@ -402,7 +492,7 @@ export async function beginSignIn(
     .select({ organizationId: ssoDomains.organizationId })
     .from(ssoDomains)
     .innerJoin(organizationSso, eq(organizationSso.organizationId, ssoDomains.organizationId))
-    .where(and(eq(ssoDomains.domain, domain), eq(organizationSso.enabled, true)));
+    .where(and(usableDomain(domain), eq(organizationSso.enabled, true)));
   if (!match) return { error: 'unknown_domain' };
 
   const row = await providerRow(match.organizationId);
@@ -486,15 +576,16 @@ export async function finishSignIn(
   const [allowed] = await privilegedDb
     .select({ domain: ssoDomains.domain })
     .from(ssoDomains)
-    .where(and(eq(ssoDomains.domain, domain), eq(ssoDomains.organizationId, pending.organizationId)));
+    .where(usableDomain(domain, pending.organizationId));
   if (!allowed) return { error: 'domain_not_allowed', organizationId: pending.organizationId };
 
   const identity = { issuer: claims.iss, subject: claims.sub };
+  const groups = groupsOf(claims as Record<string, unknown>, row.groupAttribute);
   try {
-    return await resolveAccount(pending.organizationId, identity, email, row.defaultRole as SsoRole);
+    return await resolveAccount(pending.organizationId, identity, email, row, groups);
   } catch (error) {
     // Two first sign-ins of one person at once: the second finds what the first created.
-    if (sqlState(error) === '23505') return resolveAccount(pending.organizationId, identity, email, row.defaultRole as SsoRole);
+    if (sqlState(error) === '23505') return resolveAccount(pending.organizationId, identity, email, row, groups);
     throw error;
   }
 }
@@ -520,9 +611,9 @@ export async function finishSamlSignIn(
   if ('error' in result) return { ...result, organizationId };
   const identity = { issuer: result.issuer, subject: result.subject };
   try {
-    return await resolveAccount(organizationId, identity, result.email, row.defaultRole as SsoRole);
+    return await resolveAccount(organizationId, identity, result.email, row, result.groups);
   } catch (error) {
-    if (sqlState(error) === '23505') return resolveAccount(organizationId, identity, result.email, row.defaultRole as SsoRole);
+    if (sqlState(error) === '23505') return resolveAccount(organizationId, identity, result.email, row, result.groups);
     throw error;
   }
 }
@@ -548,15 +639,52 @@ function unusablePassword(): string {
   return `${randomBytes(64).toString('hex')}.${randomBytes(16).toString('hex')}`;
 }
 
+/**
+ * The role the provider's groups give, when the organization maps groups: the highest mapped role,
+ * null when none of the person's groups is mapped (or nothing is mapped at all).
+ */
+function mappedRoleOf(provider: Pick<typeof organizationSso.$inferSelect, 'roleMappings'>, groups: string[]) {
+  const mappings = provider.roleMappings ?? [];
+  return mappings.length > 0 ? roleFromGroups(groups, mappings) : null;
+}
+
 async function resolveAccount(
   organizationId: number,
   identity: { issuer: string; subject: string },
   email: string,
-  defaultRole: SsoRole,
+  provider: Pick<typeof organizationSso.$inferSelect, 'defaultRole' | 'roleMappings' | 'requireGroup'>,
+  groups: string[],
 ): Promise<SignedIn | { error: SignInError; organizationId: number }> {
+  const mapped = mappedRoleOf(provider, groups);
+  if (mapped === null && provider.requireGroup && (provider.roleMappings ?? []).length > 0) {
+    return { error: 'no_group', organizationId };
+  }
+  const defaultRole = (mapped ?? provider.defaultRole) as User['role'];
   return privilegedDb.transaction(async (tx) => {
     const refuse = (error: SignInError) => ({ error, organizationId });
     const usable = (user: User) => user.kind === 'person' && !user.disabledAt;
+    /**
+     * The role the groups say, applied to an existing account at each sign-in. The organization's
+     * last owner is never demoted this way: a provider group renamed must not lock everyone out.
+     */
+    const followGroups = async (user: User): Promise<User> => {
+      if (mapped === null || user.role === mapped) return user;
+      if (user.role === 'owner') {
+        const [{ others }] = await tx
+          .select({ others: sql<number>`count(*)::int` })
+          .from(users)
+          .where(and(eq(users.organizationId, organizationId), eq(users.role, 'owner'), ne(users.id, user.id), sql`${users.disabledAt} IS NULL`));
+        if (others === 0) return user;
+      }
+      const [updated] = await tx.update(users).set({ role: mapped }).where(eq(users.id, user.id)).returning();
+      await audit(tx, organizationId, { id: user.id, username: user.username, ipAddress: null }, AUDIT_ACTIONS.MEMBER_ROLE_CHANGED, 'user', String(user.id), {
+        username: user.username,
+        from: user.role,
+        to: mapped,
+        bySsoGroups: true,
+      });
+      return updated;
+    };
 
     const [known] = await tx
       .select({ userId: ssoIdentities.userId })
@@ -570,7 +698,7 @@ async function resolveAccount(
         .update(ssoIdentities)
         .set({ lastSignInAt: new Date() })
         .where(and(eq(ssoIdentities.issuer, identity.issuer), eq(ssoIdentities.subject, identity.subject)));
-      return { user, created: false, linked: false };
+      return { user: await followGroups(user), created: false, linked: false };
     }
 
     // First sign-in of this identity. Usernames are unique across the installation, so the
@@ -583,7 +711,7 @@ async function resolveAccount(
       const [alreadyLinked] = await tx.select({ issuer: ssoIdentities.issuer }).from(ssoIdentities).where(eq(ssoIdentities.userId, existing.id));
       if (alreadyLinked) return refuse('account_linked');
       await tx.insert(ssoIdentities).values({ ...identity, userId: existing.id });
-      return { user: existing, created: false, linked: true };
+      return { user: await followGroups(existing), created: false, linked: true };
     }
 
     const [user] = await tx
@@ -594,6 +722,7 @@ async function resolveAccount(
     await audit(tx, organizationId, { id: user.id, username: user.username, ipAddress: null }, AUDIT_ACTIONS.MEMBER_PROVISIONED, 'user', String(user.id), {
       role: defaultRole,
       issuer: identity.issuer,
+      ...(mapped ? { bySsoGroups: true } : {}),
     });
     return { user, created: true, linked: false };
   });
