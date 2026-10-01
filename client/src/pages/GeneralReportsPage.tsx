@@ -61,8 +61,8 @@ async function fetchTestExecutions(
   return {
     items: data.items.map((item: any) => ({
       ...item,
-      startedAt: item.startedAt ? new Date(item.startedAt * 1000) : null,
-      completedAt: item.completedAt ? new Date(item.completedAt * 1000) : null,
+      startedAt: item.startedAt ? new Date(item.startedAt) : null,
+      completedAt: item.completedAt ? new Date(item.completedAt) : null,
     })),
     totalItems: totalItems,
     totalPages: Math.ceil(totalItems / limit),

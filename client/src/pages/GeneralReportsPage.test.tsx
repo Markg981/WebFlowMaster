@@ -40,6 +40,16 @@ const queuedExecution = {
   scheduleName: null,
 };
 
+// The API sends timestamps as ISO strings; read as epoch seconds they made the page throw.
+const finishedExecution = {
+  ...queuedExecution,
+  id: 'execution-done-1',
+  status: 'completed',
+  startedAt: '2026-09-17T10:01:00.000Z',
+  completedAt: '2026-09-17T10:02:00.000Z',
+  testPlanName: 'Finished smoke test',
+};
+
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -57,7 +67,7 @@ describe('GeneralReportsPage', () => {
       }
       if (url.startsWith('/api/test-plan-executions')) {
         return Promise.resolve(new Response(JSON.stringify({
-          items: [queuedExecution],
+          items: [queuedExecution, finishedExecution],
           totalItems: 1,
           totalPages: 1,
           currentPage: 1,
@@ -92,5 +102,12 @@ describe('GeneralReportsPage', () => {
     expect(await screen.findByRole('option', { name: 'queued' })).toBeInTheDocument();
     // The word the server no longer writes is no longer offered as if it matched something.
     expect(screen.queryByRole('option', { name: 'pending' })).not.toBeInTheDocument();
+  });
+
+  it('shows the start time of a finished run', async () => {
+    renderPage();
+
+    expect(await screen.findByText('Finished smoke test')).toBeInTheDocument();
+    expect(screen.getByText(/Sep 17, 2026/)).toBeInTheDocument();
   });
 });
