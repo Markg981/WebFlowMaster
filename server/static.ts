@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response } from "express";
 import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -25,6 +25,11 @@ import { fileURLToPath } from "url";
 export const CLIENT_BUILD_DIRNAME = "public";
 
 const currentModuleFilePath = fileURLToPath(import.meta.url);
+
+/** The answer to an /api path no route handles: a JSON 404, never the client's index.html. */
+export function apiNotFound(_req: Request, res: Response) {
+  res.status(404).json({ error: "No such endpoint." });
+}
 
 export function serveStatic(app: Express) {
   // In the built image this module is bundled into dist/index.js, so this resolves to

@@ -164,7 +164,10 @@ qualsiasi cosa, così una frase letta nel modo sbagliato si scopre prima che div
 passa per il motivo sbagliato. Gli elementi vengono cercati fra quelli rilevati, e nel
 repository degli elementi di un progetto se ne scegliete uno. Le formulazioni comuni vengono
 capite senza AI; se l'installazione ha una chiave AI, il resto viene letto anche dal modello
-(righe segnate **AI**).
+(righe segnate **AI**). Senza AI questo comprende i tasti (`Premi Invio nel campo Password`),
+`Doppio clic su …` / `Clic destro su …`, `Carica il file fattura.pdf nel campo Allegato`,
+`Accetta il dialog` / `Rispondi al prompt con «Mario»`, le schede, i cookie e
+`Salva il testo di … come numeroOrdine`.
 
 ## Variabili e ambienti {#variabili-e-ambienti}
 
@@ -348,7 +351,9 @@ qualsiasi altro step.
 - **I parametri** si elencano separati da virgole; un `?` finale ne rende uno facoltativo
   (`codice, qta?`). Nel test, il valore dello step dà gli argomenti: `codice=4711; qta=2`. Per un
   punto e virgola dentro un valore scrivete `\;`. Gli argomenti possono contenere
-  <code v-pre>{{variabili}}</code> e valori generati.
+  <code v-pre>{{variabili}}</code> e valori generati. Un argomento mancante o sconosciuto, o un
+  valore senza `=`, fa fallire il test prima che si apra il browser, sia con **Esegui test** nel
+  costruttore sia in un piano, con un messaggio che nomina l'argomento.
 - **Lo script** è il corpo di una funzione async eseguita nella pagina sotto test. Legge gli
   argomenti in `args` (`args.codice`) e, quando lo step ha un elemento, quell'elemento in
   `element` (trovato con `document.querySelector`, quindi un selettore CSS). Fa fallire lo step

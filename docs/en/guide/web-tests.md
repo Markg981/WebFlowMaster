@@ -156,7 +156,10 @@ Check that the dashboard is visible
 sentence read the wrong way is caught before it becomes a test that passes for the wrong reason.
 Elements are matched against the detected elements, and against a project's element repository if
 you choose one. Common phrasings are understood without AI; when the installation has an AI key,
-the rest is read by the model as well (lines marked **AI**).
+the rest is read by the model as well (lines marked **AI**). Without AI that includes keys
+(`Press Enter in the Password field`), `Double-click …` / `Right-click …`, `Upload invoice.pdf to
+the Attachment field`, `Accept the dialog` / `Accept the prompt with "42"`, tabs, cookies and
+`Save the text of … as orderNumber`.
 
 ## Variables and environments {#variables-and-environments}
 
@@ -331,7 +334,8 @@ actions → New custom action**, with a name, parameters and a script. The actio
 - **Parameters** are listed separated by commas; a trailing `?` makes one optional
   (`code, qty?`). In the test, the step's value gives the arguments: `code=4711; qty=2`. Write
   `\;` for a semicolon inside a value. Arguments may contain <code v-pre>{{variables}}</code> and
-  generated values.
+  generated values. A missing or unknown argument, or a value without `=`, fails the test before
+  the browser opens — in the builder's **Run test** as in a plan — naming the argument.
 - **The script** is the body of an async function that runs in the page under test. It reads
   its arguments as `args` (`args.code`) and, when the step has an element, that element as
   `element` (found with `document.querySelector`, so a CSS selector). It fails the step by
