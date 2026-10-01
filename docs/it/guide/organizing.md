@@ -61,8 +61,8 @@ bisogno. **Suite → Nuova suite** ne crea di due tipi:
 - **Statica**: questi test, nell'ordine in cui li scegliete — test web, API e di
   [app mobili](./mobile-apps) allo stesso modo.
 - **Dinamica**: ogni test che ha **tutti** i tag scelti, calcolato ogni volta che si crea un run.
-  Un test etichettato dopo entra nel run successivo senza modificare nulla. I test di app mobili
-  non hanno tag, quindi li include solo una suite statica.
+  Un test etichettato dopo entra nel run successivo senza modificare nulla — test web, API e di
+  [app mobili](./mobile-apps#tag) allo stesso modo.
 
 Una suite mostra quali piani la includono. Eliminarne una usata dai piani fa smettere loro di
 eseguirne i test; i run già fatti conservano ciò che hanno eseguito.

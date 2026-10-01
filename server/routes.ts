@@ -1150,11 +1150,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // organization's, and one built by a colleague has to be able to include anybody's tests.
       const uiConditions: SQL[] = [];
       const apiConditions: SQL[] = [];
+      const mobileConditions: SQL[] = [];
 
       if (searchTerm) {
         const searchPattern = `%${searchTerm}%`;
         uiConditions.push(ilike(tests.name, searchPattern));
         apiConditions.push(ilike(apiTests.name, searchPattern));
+        mobileConditions.push(ilike(mobileTests.name, searchPattern));
       }
 
       // Execute queries
@@ -1165,10 +1167,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // A tag filter that matches nothing must offer nothing. inArray on an empty list is
           // not a predicate, so the empty case is answered here rather than by a query that
           // would quietly return everything.
-          const [uiIds, apiIds] = await Promise.all([
+          const [uiIds, apiIds, mobileIds] = await Promise.all([
             testIdsWithTags(tx, { tagIds, testType: 'ui' }),
             testIdsWithTags(tx, { tagIds, testType: 'api' }),
+            testIdsWithTags(tx, { tagIds, testType: 'mobile' }),
           ]);
+          if (mobileIds.length === 0) mobileConditions.push(sql`false`);
+          else mobileConditions.push(inArray(mobileTests.id, mobileIds));
           if (uiIds.length === 0) uiConditions.push(sql`false`);
           else uiConditions.push(inArray(tests.id, uiIds));
           if (apiIds.length === 0) apiConditions.push(sql`false`);
@@ -1193,18 +1198,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .from(apiTests)
           .where(and(...apiConditions));
-        // Mobile app tests (migration 0053) carry no tags, so a tag filter leaves them out.
-        const mobileTestResults = tagIds.length > 0
-          ? []
-          : await tx.select({
-              id: mobileTests.id,
-              name: mobileTests.name,
-              description: sql<string>`null`.as('description'),
-              type: sql<string>`'mobile'`.as('type'),
-              updatedAt: mobileTests.updatedAt
-            })
-            .from(mobileTests)
-            .where(searchTerm ? ilike(mobileTests.name, `%${searchTerm}%`) : undefined);
+        // Mobile app tests (migrations 0053, 0056), narrowed by name and tags like the others.
+        const mobileTestResults = await tx.select({
+            id: mobileTests.id,
+            name: mobileTests.name,
+            description: sql<string>`null`.as('description'),
+            type: sql<string>`'mobile'`.as('type'),
+            updatedAt: mobileTests.updatedAt
+          })
+          .from(mobileTests)
+          .where(and(...mobileConditions));
 
         return {
           uiTestResults,
@@ -1215,6 +1218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           tagsByTest: await tagsOfTests(tx, {
             testIds: uiTestResults.map((row) => row.id),
             apiTestIds: apiTestResults.map((row) => row.id),
+            mobileTestIds: mobileTestResults.map((row) => row.id),
           }),
         };
       });
@@ -1223,7 +1227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const combinedResults = [
         ...uiTestResults.map((row) => ({ ...row, tags: tagsByTest.ui.get(row.id) ?? [] })),
         ...apiTestResults.map((row) => ({ ...row, tags: tagsByTest.api.get(row.id) ?? [] })),
-        ...mobileTestResults.map((row) => ({ ...row, tags: [] })),
+        ...mobileTestResults.map((row) => ({ ...row, tags: tagsByTest.mobile.get(row.id) ?? [] })),
       ];
 
       // Sort combined results (e.g., by name or updatedAt)

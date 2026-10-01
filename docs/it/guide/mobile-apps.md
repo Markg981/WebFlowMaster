@@ -128,8 +128,8 @@ scrivono, li eseguono e li eliminano.
 ## In un piano di test
 
 Un piano può includere test mobili accanto ai test web e API: nella procedura guidata del piano,
-**Aggiungi Suite di Test** li elenca con l'etichetta **mobile** (un filtro per tag li esclude: non
-hanno tag). La pagina del piano li elenca con *(app mobile)*.
+**Aggiungi Suite di Test** li elenca con l'etichetta **mobile**, e il suo filtro per tag li
+restringe come gli altri. La pagina del piano li elenca con *(app mobile)*.
 
 In un'esecuzione del piano un test mobile:
 
@@ -155,8 +155,8 @@ un dispositivo ad alcuna griglia.
 
 Un test mobile va ovunque va un test web o API:
 
-- in una **suite statica** ([Suite](./organizing#suite)), e quindi in ogni piano che la include —
-  una suite dinamica cerca per tag, e i test mobili non ne hanno;
+- in una **suite** ([Suite](./organizing#suite)), e quindi in ogni piano che la include: in una
+  statica per scelta, in una dinamica per i tag che il test porta;
 - come copertura di un **requisito** ([Requisiti](./organizing#requisiti)): il suo ultimo
   risultato in un'esecuzione di un piano conta come gli altri, e l'export della matrice dice
   `mobile`;
@@ -167,7 +167,13 @@ Un test mobile va ovunque va un test web o API:
 
 In ogni elenco porta l'etichetta **Mobile**.
 
+## Tag {#tag}
+
+La colonna **Tag** di **App mobili** mette i tag dell'organizzazione su un test mobile, come fa la
+libreria dei test per i test web (i viewer li vedono). Un tag vale per ogni tipo di test: una suite
+dinamica con *smoke* esegue i test web, API e mobili che lo portano.
+
 ## Non ancora
 
-I test mobili non hanno tag (quindi nessuna suite dinamica li include), non vanno in quarantena né
-sono contati come instabili; il loro progetto non si può ancora scegliere.
+I test mobili non vanno in quarantena né sono contati come instabili, e il loro progetto non si può
+ancora scegliere.

@@ -33,6 +33,7 @@ export function normaliseTagName(name: string): string {
 export interface TagsByTest {
   ui: Map<number, TagRef[]>;
   api: Map<number, TagRef[]>;
+  mobile: Map<number, TagRef[]>;
 }
 
 /**
@@ -43,21 +44,24 @@ export interface TagsByTest {
  */
 export async function tagsOfTests(
   tx: TenantTx,
-  input: { testIds?: number[]; apiTestIds?: number[] },
+  input: { testIds?: number[]; apiTestIds?: number[]; mobileTestIds?: number[] },
 ): Promise<TagsByTest> {
-  const result: TagsByTest = { ui: new Map(), api: new Map() };
+  const result: TagsByTest = { ui: new Map(), api: new Map(), mobile: new Map() };
   const testIds = input.testIds ?? [];
   const apiTestIds = input.apiTestIds ?? [];
-  if (testIds.length === 0 && apiTestIds.length === 0) return result;
+  const mobileTestIds = input.mobileTestIds ?? [];
+  if (testIds.length === 0 && apiTestIds.length === 0 && mobileTestIds.length === 0) return result;
 
   const conditions: SQL[] = [];
   if (testIds.length > 0) conditions.push(inArray(testTags.testId, testIds));
   if (apiTestIds.length > 0) conditions.push(inArray(testTags.apiTestId, apiTestIds));
+  if (mobileTestIds.length > 0) conditions.push(inArray(testTags.mobileTestId, mobileTestIds));
 
   const rows = await tx
     .select({
       testId: testTags.testId,
       apiTestId: testTags.apiTestId,
+      mobileTestId: testTags.mobileTestId,
       tagId: tags.id,
       tagName: tags.name,
     })
@@ -66,15 +70,15 @@ export async function tagsOfTests(
     .where(conditions.length === 1 ? conditions[0] : or(...conditions));
 
   for (const row of rows) {
-    const bucket = row.testId != null ? result.ui : result.api;
-    const key = row.testId ?? row.apiTestId;
+    const bucket = row.testId != null ? result.ui : row.mobileTestId != null ? result.mobile : result.api;
+    const key = row.testId ?? row.mobileTestId ?? row.apiTestId;
     if (key == null) continue;
     const existing = bucket.get(key) ?? [];
     existing.push({ id: row.tagId, name: row.tagName });
     bucket.set(key, existing);
   }
 
-  for (const bucket of [result.ui, result.api]) {
+  for (const bucket of [result.ui, result.api, result.mobile]) {
     for (const list of bucket.values()) list.sort((a, b) => a.name.localeCompare(b.name));
   }
 
@@ -114,8 +118,8 @@ export async function setTagsForTest(
     return { ok: false, unknownTagIds: wanted.filter((id) => !known.has(id)) };
   }
 
-  const isUi = input.testType === 'ui';
-  const owner = isUi ? eq(testTags.testId, input.testId) : eq(testTags.apiTestId, input.testId);
+  const column = { ui: testTags.testId, api: testTags.apiTestId, mobile: testTags.mobileTestId }[input.testType];
+  const owner = eq(column, input.testId);
   await tx.delete(testTags).where(and(owner, eq(testTags.testType, input.testType)));
 
   if (found.length > 0) {
@@ -123,8 +127,9 @@ export async function setTagsForTest(
       found.map((tag) => ({
         organizationId: input.organizationId,
         tagId: tag.id,
-        testId: isUi ? input.testId : null,
-        apiTestId: isUi ? null : input.testId,
+        testId: input.testType === 'ui' ? input.testId : null,
+        apiTestId: input.testType === 'api' ? input.testId : null,
+        mobileTestId: input.testType === 'mobile' ? input.testId : null,
         testType: input.testType,
       })),
     );
@@ -141,7 +146,7 @@ export async function testIdsWithTags(
   const tagIds = Array.from(new Set(input.tagIds));
   if (tagIds.length === 0) return [];
 
-  const column = input.testType === 'ui' ? testTags.testId : testTags.apiTestId;
+  const column = { ui: testTags.testId, api: testTags.apiTestId, mobile: testTags.mobileTestId }[input.testType];
   const rows = await tx
     .select({ testId: column, tagId: testTags.tagId })
     .from(testTags)

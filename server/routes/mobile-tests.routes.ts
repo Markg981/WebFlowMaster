@@ -13,6 +13,7 @@ import { auditActor, recordAudit } from "../audit";
 import { toGridConfig } from "../browser-grids";
 import { executeMobileRun, uploadApp, type RunDeps } from "../mobile-runner";
 import { InspectorError, closeInspector, inspectorAct, inspectorSnapshot, openInspector } from "../mobile-inspector";
+import { tagsOfTests } from "../test-tags";
 import loggerPromise from "../logger";
 
 /**
@@ -78,7 +79,8 @@ router.get("/api/mobile-tests", requireRole("viewer"), async (_req, res) => {
         .from(mobileTestRuns)
         .orderBy(mobileTestRuns.mobileTestId, desc(mobileTestRuns.createdAt));
       const byTest = new Map(latest.map((r) => [r.mobileTestId, r]));
-      return all.map((test) => ({ ...test, lastRun: byTest.get(test.id) ?? null }));
+      const tagged = await tagsOfTests(tx, { mobileTestIds: all.map((test) => test.id) });
+      return all.map((test) => ({ ...test, tags: tagged.mobile.get(test.id) ?? [], lastRun: byTest.get(test.id) ?? null }));
     });
     res.json(rows);
   } catch (error) {

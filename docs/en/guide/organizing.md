@@ -56,8 +56,8 @@ suite** makes one of two kinds:
 - **Static**: these tests, in the order you pick them — web, API and [mobile app](./mobile-apps)
   tests alike.
 - **Dynamic**: every test that carries **all** the chosen tags, worked out each time a run is
-  created. A test tagged later is included in the next run without editing anything. Mobile app
-  tests have no tags, so only a static suite includes them.
+  created. A test tagged later is included in the next run without editing anything — web, API
+  and [mobile app](./mobile-apps#tags) tests alike.
 
 A suite shows which plans include it. Deleting one used by plans makes them stop running its
 tests; runs already made keep what they ran.

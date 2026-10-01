@@ -3691,7 +3691,8 @@
       "device": "Appareil",
       "steps": "Étapes",
       "lastRun": "Dernière exécution",
-      "actions": "Actions"
+      "actions": "Actions",
+      "tags": "Tags"
     },
     "runFor": "Exécuter {{name}}",
     "editFor": "Modifier {{name}}",
@@ -3705,7 +3706,8 @@
     "planGridHint": "Un plan de test exécute ce test une fois par exécution, sur cette grille, quels que soient les navigateurs du plan.",
     "inspect": "Inspecteur",
     "inspectNeeds": "L'inspecteur a besoin d'une grille, de l'app et de l'appareil.",
-    "appPlaceholder": "bs://… / lt://… / un chemin sur la machine de l’agent"
+    "appPlaceholder": "bs://… / lt://… / un chemin sur la machine de l’agent",
+    "tagsFailed": "Les tags n'ont pas été modifiés."
   },
   "mobileInspector": {
     "title": "Inspecteur",
