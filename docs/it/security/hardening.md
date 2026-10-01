@@ -66,7 +66,7 @@ persone. Ogni punto indica l'impostazione o la pagina che lo spiega. La
 
 ## Dati
 
-- Backup del database cifrati e verificati con un ripristino
+- Backup del database notturni, copiati fuori dall'host, cifrati e verificati con un ripristino: `backup:verify` dopo ogni `backup:create`
   ([Backup](../admin/operations#backup)).
 - Cifratura a riposo di dischi, database e bucket, come la offre la vostra piattaforma.
 - `ARTIFACT_RETENTION_DAYS` impostato a ciò che serve alle vostre organizzazioni, non di più.
