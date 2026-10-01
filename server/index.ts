@@ -130,6 +130,12 @@ app.use(express.urlencoded({ extended: false }));
     }
   }
 
+  // Rate limits counted in Redis, so every web process shares one budget (server/middleware/rate-limit-store.ts).
+  if (process.env.NODE_ENV !== "test") {
+    const { useRedisForRateLimits } = await import("./middleware/rate-limit-store");
+    useRedisForRateLimits(redisConnection);
+  }
+
   const server = await registerRoutes(app);
   
   const { webhooksRouter } = await import("./webhooks");

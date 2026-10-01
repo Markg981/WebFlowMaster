@@ -6,6 +6,7 @@ import { createHmac, scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
+import { sharedStore } from "./middleware/rate-limit-store";
 import { RedisStore } from "connect-redis";
 import { storage } from "./storage";
 import { AUDIT_ACTIONS, User as SelectUser, type AuditAction } from "@shared/schema";
@@ -142,6 +143,8 @@ const authLimiter = rateLimit({
   max: process.env.NODE_ENV === "test" ? 100000 : Number(process.env.AUTH_RATE_LIMIT) || 20,
   standardHeaders: true,
   legacyHeaders: false,
+  // Shared by every web process (server/middleware/rate-limit-store.ts).
+  store: sharedStore("auth"),
   message: { message: "Too many attempts, please try again later." },
 });
 

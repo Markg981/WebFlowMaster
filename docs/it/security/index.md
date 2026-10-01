@@ -241,7 +241,9 @@ Dichiarati perché una valutazione possa pesarli, invece di scoprirli dopo:
   dominio lo ottiene.
 - Nessuna regola sulla complessità delle password oltre alla lunghezza, e nessun invio di
   e-mail: i link di invito e di reset della password li consegna l'owner.
-- **I limiti di frequenza si contano per processo web**: con più processi web dietro un
-  bilanciatore il limite effettivo è moltiplicato per il loro numero.
+- **I limiti di frequenza tornano a contare per processo** mentre Redis non risponde: i conteggi
+  (accesso, chiavi API, webhook, SSO, invio dei log) stanno in Redis e sono condivisi da tutti i
+  processi web, ma una richiesta non resta mai in attesa di Redis, quindi durante un guasto ogni
+  processo conta per conto suo finché Redis non torna.
 - **Gli stili possono essere inline** sotto la Content Security Policy, come richiedono i
   componenti dell'interfaccia.

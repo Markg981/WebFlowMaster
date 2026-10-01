@@ -1,5 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
+import { sharedStore } from '../middleware/rate-limit-store';
 import loggerPromise from '../logger';
 import { ClientLogBatchSchema, ClientIncidentReportSchema } from '@shared/observability';
 import { recordIncident } from '../observability/incident';
@@ -24,6 +25,7 @@ function allowAnonymousOutsideProduction(req: Request, res: Response, next: Next
 const ingestLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: process.env.NODE_ENV === 'test' ? 100000 : 120,
+  store: sharedStore('ingest'),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many log batches, slow down.' },

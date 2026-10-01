@@ -216,8 +216,8 @@ load balancer:
 
 - Impostate `SCHEDULER_BACKEND=bullmq` su tutti. Con il default `cron` ogni processo web esegue
   ogni schedulazione per conto suo, e una schedulazione parte una volta per processo.
-- Date a tutti gli stessi `SESSION_SECRET`, `ENCRYPTION_KEY` e Redis: le sessioni stanno in
-  Redis, quindi non serve il routing sticky.
+- Date a tutti gli stessi `SESSION_SECRET`, `ENCRYPTION_KEY` e Redis: sessioni e conteggi dei
+  limiti di frequenza stanno in Redis, quindi non serve il routing sticky e i limiti valgono fra i processi.
 - Se le organizzazioni usano agenti locali, impostate su ciascuno `AGENT_RELAY_ADVERTISE_URL` con
   un indirizzo a cui gli altri lo raggiungono (vedi
   [Agenti locali, interni](../internals/agents)).

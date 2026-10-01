@@ -208,8 +208,8 @@ One web process is enough for most installations. To run several behind a load b
 
 - Set `SCHEDULER_BACKEND=bullmq` on all of them. With the default `cron`, each web process runs
   every schedule itself and a schedule starts once per process.
-- Give every one the same `SESSION_SECRET`, `ENCRYPTION_KEY` and Redis: sessions are in Redis,
-  so no sticky routing is needed.
+- Give every one the same `SESSION_SECRET`, `ENCRYPTION_KEY` and Redis: sessions and rate-limit
+  counts are in Redis, so no sticky routing is needed and the limits hold across processes.
 - If organizations use local agents, set `AGENT_RELAY_ADVERTISE_URL` on each to an address the
   others can reach it at (see [Local agents, internals](../internals/agents)).
 - Use `ARTIFACT_STORE=s3`.

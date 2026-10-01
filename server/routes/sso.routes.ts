@@ -1,5 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import rateLimit from "express-rate-limit";
+import { sharedStore } from "../middleware/rate-limit-store";
 import { z } from "zod";
 import { AUDIT_ACTIONS } from "@shared/schema";
 import { requireRole } from "../middleware/require-role";
@@ -120,6 +121,7 @@ router.post("/api/organization/sso/test", requireRole("owner"), sessionOnly, asy
 const signInLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: process.env.NODE_ENV === "test" ? 100000 : 200,
+  store: sharedStore("sso"),
   standardHeaders: "draft-7",
   legacyHeaders: false,
 });

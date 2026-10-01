@@ -1,6 +1,7 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import type { Request, RequestHandler } from 'express';
 import { apiError } from './require-scope';
+import { sharedStore } from './rate-limit-store';
 
 /**
  * How often a machine may call.
@@ -17,8 +18,8 @@ import { apiError } from './require-scope';
  *
  * Past it the answer is 429 with Retry-After and the RateLimit headers. 0 turns a limit off.
  *
- * The counts are kept in each web process's memory, like the sign-in limit's: with several web
- * processes behind a load balancer the effective limit is that many times higher.
+ * The counts are kept in Redis (./rate-limit-store), so several web processes behind a load
+ * balancer share one budget; while Redis does not answer, each process counts on its own.
  */
 
 function perMinute(value: string | undefined, fallback: number): number {
@@ -37,6 +38,7 @@ export function apiRateLimit(env: NodeJS.ProcessEnv = process.env): RequestHandl
   return rateLimit({
     windowMs: 60_000,
     limit,
+    store: sharedStore('api'),
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     // A signed-in person in a browser is not what this limits; a key, or anonymous calls to the
@@ -58,6 +60,7 @@ export function webhookRateLimit(env: NodeJS.ProcessEnv = process.env): RequestH
   return rateLimit({
     windowMs: 60_000,
     limit,
+    store: sharedStore('webhook'),
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     keyGenerator: (req) => `ip:${ipKeyGenerator(req.ip ?? '')}`,
