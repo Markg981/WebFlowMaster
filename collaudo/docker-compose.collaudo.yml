@@ -160,8 +160,8 @@ services:
     # start-display exits when Xvfb does not come up; this brings it back.
     restart: unless-stopped
 
-  # TestRail, Jira, Xray, Zephyr Scale, Azure DevOps and Gemini, simulated (collaudo/simulatori):
-  # the TMG, TRC and REP AI cases run without accounts. What they received is at
+  # TestRail, Jira, Xray, Zephyr Scale, Azure DevOps, GitHub, GitLab and Gemini, simulated
+  # (collaudo/simulatori): the TMG, TRC, INT-07 and AI cases run without accounts. What they received is at
   # http://localhost:8090; inside the stack the services are http://simulatori:8080/<name>.
   simulatori:
     image: node:22-alpine

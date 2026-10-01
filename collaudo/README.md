@@ -13,7 +13,7 @@ intorno:
 | `ricevitore` | riceve e stampa i webhook delle notifiche (PLN-13) | http://ricevitore:8080, dall'interno |
 | `mailpit` | la casella di test: vi arrivano le email di Keycloak (WEB-45…WEB-47) | http://localhost:8025; SMTP `mailpit:1025` dall'interno |
 | `display` | lo schermo su cui si apre la finestra di registrazione (WEB-11, ENV-04) | http://localhost:6080 |
-| `simulatori` | TestRail, Jira, Xray, Zephyr Scale, Azure DevOps e Gemini simulati (aree TMG, TRC, analisi AI) | http://localhost:8090; dall'interno `http://simulatori:8080/<servizio>` |
+| `simulatori` | TestRail, Jira, Xray, Zephyr Scale, Azure DevOps, GitHub, GitLab e Gemini simulati (aree TMG, TRC, INT, analisi AI) | http://localhost:8090; dall'interno `http://simulatori:8080/<servizio>` |
 | `loki`, `grafana` | i log dell'applicazione (OPS-09) | http://localhost:13001 (admin / admin); Loki su http://localhost:13100 |
 | `agente` | l'agente locale (profilo `agente`), avviato quando il suo token esiste | — |
 | `agente-diverso` | un agente con un'altra versione di Playwright (profilo `agente-diverso`, AGT-05) | — |
@@ -137,6 +137,13 @@ AI (REP-15…22) si eseguono senza account esterni. `npm run collaudo:simulatori
 | Jira / Xray Server | `http://simulatori:8080/jira` | `collaudo@acme.test` / `collaudo-jira` | epic SHOP-1 con le story SHOP-10 e SHOP-11 |
 | Zephyr Scale | `http://simulatori:8080/zephyr` | token `collaudo-zephyr` | progetto `SHOP`, casi SHOP-T1 e SHOP-T2 |
 | Azure DevOps | `http://simulatori:8080/ado` | PAT `collaudo-ado` | progetto `Shop`: Epic 1, Feature 2, User Story 3 |
+| GitHub (INT-07) | `http://simulatori:8080/github` | token `collaudo-github` | repository `acme/shop`, ogni commit esadecimale |
+| GitLab (INT-07) | `http://simulatori:8080/gitlab` | token `collaudo-gitlab` | progetto `acme/shop`, ogni commit esadecimale |
+
+Gli stati dei commit ricevuti sono sulla pagina http://localhost:8090 e su `/_admin/statuses`.
+`npm run collaudo:simulatori` verifica anche INT-10 (tracker con token sbagliato), WEB-16 (elemento
+`WEB16 · username` con `#usernameX`, corretto in `#username` dal Gemini simulato) e INT-07 (GitHub
+collegato, run avviato con una chiave API su un commit casuale).
 
 Nei casi che chiedono l'indirizzo «vuoto» (Xray Cloud in TMG-04) si usa quello della tabella: il
 default verso il servizio vero è già verificato dai test automatici.
@@ -164,7 +171,8 @@ wfmc up -d api worker                      # di nuovo senza AI
 Il Gemini simulato legge il prompt di analisi. Con una richiesta fallita 5xx risponde «Bug
 dell'applicazione»; con uno step fallito su un selettore risponde «Locator» e propone
 `button[type="submit"]` per i bottoni. `npm run collaudo:simulatori` crea il test «REP15 · bottone
-con classe cambiata», che ha proprio quel fallimento. Per fissare la risposta successiva:
+con classe cambiata», che ha proprio quel fallimento. Al prompt di self-healing risponde con l'`id`
+della pagina più simile al selettore rotto. Per fissare la risposta successiva:
 `curl -X POST -d '<json della risposta>' http://localhost:8090/_admin/gemini/next`.
 
 **Codice OTP (WEB-48, WEB-49).** In Keycloak, l'utente `mfa` ha l'azione «Configure OTP», come nel

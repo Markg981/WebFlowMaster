@@ -52,6 +52,7 @@ function reset() {
       next: 100,
     },
     gemini: { next: null },
+    statuses: [],
   };
 }
 reset();
@@ -248,6 +249,19 @@ function failureAnswer(prompt) {
   }
   return { category: 'unknown', confidence: 'low', summary: italian ? 'Le evidenze non bastano a dire la causa.' : 'Not enough evidence.', explanation: '', suggestion: '', failedStep: null, proposedSelector: null };
 }
+/**
+ * WEB-16: a broken selector healed the way a model would, from the page in the prompt: the id on the
+ * page that shares the longest beginning with the broken one (#usernameX → #username).
+ */
+function healedSelector(prompt) {
+  const broken = /selector "([^"]+)" was not found/.exec(prompt)?.[1] ?? '';
+  const wanted = broken.replace(/^#/, '');
+  const ids = [...prompt.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+  const common = (a) => { let i = 0; while (i < a.length && i < wanted.length && a[i] === wanted[i]) i++; return i; };
+  const best = ids.sort((a, b) => common(b) - common(a))[0];
+  return best && common(best) > 0 ? `#${best}` : broken;
+}
+
 function gemini(req, res, path, body) {
   if (!/:generateContent$/.test(path)) return send(res, 404, { error: { code: 404, message: `Not simulated: ${path}` } });
   const prompt = (body.contents ?? []).flatMap((c) => c.parts ?? []).map((p) => p.text ?? '').join('\n');
@@ -257,11 +271,32 @@ function gemini(req, res, path, body) {
     state.gemini.next = null;
   } else if (/analysing why an automated end-to-end test failed/.test(prompt)) {
     text = JSON.stringify(failureAnswer(prompt));
+  } else if (/Return ONLY the new CSS or XPath selector/.test(prompt)) {
+    text = healedSelector(prompt);
   } else {
     // Authoring and proposals: nothing understood, which the product treats as "no AI answer".
     text = '[]';
   }
   return send(res, 200, { candidates: [{ content: { role: 'model', parts: [{ text }] }, finishReason: 'STOP', index: 0 }], usageMetadata: { promptTokenCount: prompt.length, candidatesTokenCount: text.length } });
+}
+
+// ─── GitHub and GitLab: commit statuses (INT-07) ───────────────────────────────
+/** Repository acme/shop on both; any commit given as 7 to 40 hex characters exists. */
+function scm(req, res, provider, path, body) {
+  const authorized = provider === 'github' ? req.headers.authorization === 'Bearer collaudo-github' : req.headers['private-token'] === 'collaudo-gitlab';
+  if (!authorized) return send(res, 401, { message: provider === 'github' ? 'Bad credentials' : '401 Unauthorized' });
+  if (path === '/user') return send(res, 200, provider === 'github' ? { login: 'collaudo-bot' } : { username: 'collaudo-bot' });
+  const m = provider === 'github'
+    ? /^\/repos\/([^/]+)\/([^/]+)\/statuses\/([^/]+)$/.exec(path)
+    : /^\/projects\/([^/]+)\/statuses\/([^/]+)$/.exec(path);
+  if (!m || req.method !== 'POST') return send(res, 404, { message: 'Not Found' });
+  const repository = provider === 'github' ? `${m[1]}/${m[2]}` : decodeURIComponent(m[1]);
+  const sha = provider === 'github' ? m[3] : m[2];
+  if (repository !== 'acme/shop') return send(res, 404, { message: 'Not Found' });
+  if (!/^[0-9a-f]{7,40}$/i.test(sha)) return send(res, 422, { message: 'No commit found for SHA: ' + sha });
+  const status = { provider, repository, sha, state: body.state, context: body.context ?? body.name, description: body.description, target_url: body.target_url, at: new Date().toISOString() };
+  state.statuses.push(status);
+  return send(res, 201, { id: state.statuses.length, ...status });
 }
 
 // ─── The tester's view ─────────────────────────────────────────────────────────
@@ -300,7 +335,7 @@ function viewer(res, path) {
     const issues = Object.entries(state.jira.issues).map(([k, i]) => `<li><a href="/jira/browse/${k}">${k}</a> ${i.type} · ${esc(i.summary)} · ${i.status}</li>`);
     const items = Object.entries(state.ado.items).map(([id, i]) => `<li><a href="/ado/items/${id}">${id}</a> ${i.type} · ${esc(i.title)} · ${i.state}</li>`);
     const requests = state.requests.slice(-60).reverse().map((r) => `<tr><td>${r.at.slice(11, 19)}</td><td>${r.method}</td><td>${esc(r.path)}</td><td>${r.status}</td></tr>`).join('');
-    return html(res, 'Servizi simulati del collaudo', `<h2>Pubblicazioni</h2><ul>${[...runs, ...execs, ...cycles].join('') || '<li>nessuna</li>'}</ul><h2>Jira</h2><ul>${issues.join('')}</ul><h2>Azure DevOps (progetto Shop)</h2><ul>${items.join('')}</ul><h2>Ultime richieste</h2><p>Corpi completi: <a href="/_admin/requests">/_admin/requests</a></p><table>${requests}</table>`);
+    return html(res, 'Servizi simulati del collaudo', `<h2>Pubblicazioni</h2><ul>${[...runs, ...execs, ...cycles].join('') || '<li>nessuna</li>'}</ul><h2>Stati dei commit (GitHub e GitLab, repository acme/shop)</h2><table>${state.statuses.slice().reverse().map((s) => `<tr><td>${s.at.slice(11, 19)}</td><td>${s.provider}</td><td>${s.sha.slice(0, 10)}</td><td>${s.context ?? ''}</td><td><b>${s.state}</b></td><td>${esc(s.description)}</td><td>${s.target_url ? `<a href="${esc(s.target_url)}">report</a>` : ''}</td></tr>`).join('') || '<tr><td>nessuno</td></tr>'}</table><h2>Jira</h2><ul>${issues.join('')}</ul><h2>Azure DevOps (progetto Shop)</h2><ul>${items.join('')}</ul><h2>Ultime richieste</h2><p>Corpi completi: <a href="/_admin/requests">/_admin/requests</a></p><table>${requests}</table>`);
   }
   return null;
 }
@@ -309,6 +344,7 @@ function viewer(res, path) {
 function admin(req, res, path, body) {
   if (path === '/_admin/reset' && req.method === 'POST') { reset(); return send(res, 200, { reset: true }); }
   if (path === '/_admin/requests') return send(res, 200, state.requests);
+  if (path === '/_admin/statuses') return send(res, 200, state.statuses);
   if (path === '/_admin/gemini/next' && req.method === 'POST') { state.gemini.next = typeof body === 'string' ? body : JSON.stringify(body); return send(res, 200, { queued: true }); }
   let m;
   // A change made "in Jira" by the tester, as TRC-03 asks: { "summary": "...", "status": "In Progress" }.
@@ -342,6 +378,7 @@ createServer((req, res) => {
       if (service === 'zephyr') return zephyr(req, res, sub, body);
       if (service === 'ado') return ado(req, res, sub, url.searchParams, body);
       if (service === 'gemini') return gemini(req, res, sub, body);
+      if (service === 'github' || service === 'gitlab') return scm(req, res, service, sub, body);
       send(res, 404, { error: `Not simulated: ${req.method} ${url.pathname}` });
     } catch (error) {
       send(res, 500, { error: error.message });
