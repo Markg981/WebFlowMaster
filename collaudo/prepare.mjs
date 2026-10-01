@@ -170,7 +170,8 @@ async function main() {
   ok(`piano "${planName}" (id ${plan.id})`);
 
   const runs = list(await editor('GET', `/api/test-plan-executions?planId=${plan.id}`), 'items')
-    .filter((r) => r.completedAt);
+    // REP-09 purges a run's evidence on purpose: such a run no longer has the HAR REP-04 opens.
+    .filter((r) => r.completedAt && !r.artifactsPurgedAt);
   if (runs.length === 0) {
     const started = await editor('POST', `/api/run-test-plan/${plan.id}`, { environmentId: staging.id });
     const runId = started?.data?.id;
@@ -190,8 +191,9 @@ async function main() {
   }
 
   step('Progetto riservato P');
-  const projectP = await ensureProject(editor, 'Progetto P');
-  await ensureTest(editor, 'P · login', projectP.id);
+  // As owner.a: once P is restricted editor.a is only its viewer, and a second run would fail.
+  const projectP = await ensureProject(owner, 'Progetto P');
+  await ensureTest(owner, 'P · login', projectP.id);
   const { members } = await owner('GET', '/api/organization');
   const editorA = members.find((m) => m.username === 'editor.a');
   await owner('PUT', `/api/projects/${projectP.id}/access`, {

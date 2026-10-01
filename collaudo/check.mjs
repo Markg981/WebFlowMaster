@@ -110,7 +110,7 @@ if (editor) {
   const plans = (await api(editor, '/api/test-plans')) ?? [];
   const plan = (Array.isArray(plans) ? plans : plans.testPlans ?? []).find((p) => p.name === 'Collaudo · rete e trace');
   const runs = plan ? ((await api(editor, `/api/test-plan-executions?planId=${plan.id}`))?.items ?? []) : [];
-  runs.some((r) => r.completedAt) ? pass('piano con rete e trace già eseguito (REP-04)') : fail('nessun run con cattura di rete', 'npm run collaudo:prepare');
+  runs.some((r) => r.completedAt && !r.artifactsPurgedAt) ? pass('piano con rete e trace già eseguito (REP-04)') : fail('nessun run con cattura di rete', 'npm run collaudo:prepare');
 }
 if (owner) {
   const projects = (await api(owner, '/api/projects')) ?? [];
