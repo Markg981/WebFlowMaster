@@ -75,3 +75,6 @@ docs/pdf/
 
 # Exported by the collaudo procedure (collaudo/README.md)
 collaudo-root.crt
+
+# Collaudo: signed-in sessions written by collaudo/prepare.mjs
+collaudo/.sessions/

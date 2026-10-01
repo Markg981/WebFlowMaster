@@ -139,7 +139,7 @@ export function createSessionStore(): session.Store {
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   // Effectively disabled under test so the suite isn't throttled; enforced in real runs.
-  max: process.env.NODE_ENV === "test" ? 100000 : 20,
+  max: process.env.NODE_ENV === "test" ? 100000 : Number(process.env.AUTH_RATE_LIMIT) || 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many attempts, please try again later." },
