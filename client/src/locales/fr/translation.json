@@ -133,7 +133,9 @@
       "browserGrids": "Grilles de navigateurs",
       "browserGridsDescription": "BrowserStack, LambdaTest ou votre propre serveur Playwright, pour les navigateurs et systèmes que les runners n'ont pas.",
       "testManagement": "Gestion des tests",
-      "testManagementDescription": "TestRail, Xray ou Zephyr Scale, où chaque exécution terminée est publiée cas par cas."
+      "testManagementDescription": "TestRail, Xray ou Zephyr Scale, où chaque exécution terminée est publiée cas par cas.",
+      "organizationData": "Export et effacement",
+      "organizationDataDescription": "Emportez les données de l'organisation, ou effacez-les définitivement."
     },
     "apiKeys": {
       "openApi": "Référence de l'API (OpenAPI)",
@@ -3813,5 +3815,15 @@
     "confirmDelete": "Supprimer {{name}} ?",
     "deleteFailed": "Non supprimé",
     "size": "{{rows}} ligne(s) · {{columns}} colonne(s)"
+  },
+  "organizationData": {
+    "exportTitle": "Tout exporter",
+    "exportDescription": "Un fichier JSON avec chaque table de l'organisation : membres, projets, tests, plans, exécutions et journal d'audit. Mots de passe et jetons sont exclus ; les secrets restent chiffrés. Traitez le fichier comme confidentiel.",
+    "download": "Télécharger l'export",
+    "eraseTitle": "Effacer l'organisation",
+    "eraseDescription": "Supprime l'organisation, chaque compte membre, toutes ses données et ses fichiers (preuves d'exécution et références visuelles). C'est irréversible : téléchargez d'abord un export si vous pourriez en avoir besoin.",
+    "typeName": "Saisissez le nom de l'organisation, {{name}}, pour confirmer",
+    "erase": "Effacer définitivement",
+    "lastWarning": "Effacer {{name}} et tous ses comptes ? C'est irréversible."
   }
 }

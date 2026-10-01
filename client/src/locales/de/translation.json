@@ -133,7 +133,9 @@
       "browserGrids": "Browser-Grids",
       "browserGridsDescription": "BrowserStack, LambdaTest oder ein eigener Playwright-Server, für Browser und Systeme, die die Runner nicht haben.",
       "testManagement": "Testmanagement",
-      "testManagementDescription": "TestRail, Xray oder Zephyr Scale, wo jeder abgeschlossene Lauf Fall für Fall veröffentlicht wird."
+      "testManagementDescription": "TestRail, Xray oder Zephyr Scale, wo jeder abgeschlossene Lauf Fall für Fall veröffentlicht wird.",
+      "organizationData": "Export und Löschung",
+      "organizationDataDescription": "Nehmen Sie die Daten der Organisation mit, oder löschen Sie sie endgültig."
     },
     "apiKeys": {
       "openApi": "API-Referenz (OpenAPI)",
@@ -3813,5 +3815,15 @@
     "confirmDelete": "{{name}} löschen?",
     "deleteFailed": "Nicht gelöscht",
     "size": "{{rows}} Zeile(n) · {{columns}} Spalte(n)"
+  },
+  "organizationData": {
+    "exportTitle": "Alles exportieren",
+    "exportDescription": "Eine JSON-Datei mit jeder Tabelle der Organisation: Mitglieder, Projekte, Tests, Pläne, Läufe und Audit-Log. Passwörter und Tokens sind ausgeschlossen; Geheimnisse bleiben verschlüsselt. Behandeln Sie die Datei vertraulich.",
+    "download": "Export herunterladen",
+    "eraseTitle": "Organisation löschen",
+    "eraseDescription": "Löscht die Organisation, jedes Mitgliedskonto, alle Daten und Dateien (Laufnachweise und visuelle Referenzen). Das lässt sich nicht rückgängig machen: Laden Sie zuerst einen Export herunter, falls Sie etwas brauchen könnten.",
+    "typeName": "Geben Sie zur Bestätigung den Namen der Organisation ein: {{name}}",
+    "erase": "Endgültig löschen",
+    "lastWarning": "{{name}} und alle Konten darin löschen? Das lässt sich nicht rückgängig machen."
   }
 }
