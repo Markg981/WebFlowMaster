@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, writeFile, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createCollaudoServer } from './server.mjs';
@@ -231,4 +231,176 @@ test('downloads provide restorable JSON and CSV with escaped formulas and quotes
   assert.match(text, /"Bloccato"/);
   assert.ok(text.includes('"\'=SUM(1;2)\n""quoted"""'));
   assert.equal((await f.request('/api/csv?cycle=unknown')).status, 400);
+});
+
+test('catalogue updates keep cycle definitions, fingerprints and CSV frozen', async (t) => {
+  const f = await fixture(t);
+  const cycle = await (await f.request('/api/cycles', { name: 'Old' })).json();
+  await f.request('/api/results', {
+    cycleId: cycle.id,
+    caseId: 'API-01',
+    status: 'pass',
+    note: 'Original note',
+    tester: 'Marco',
+    revision: 1,
+  });
+  const updated = {
+    ...catalog,
+    version: 17,
+    cases: [
+      { ...catalog.cases[0], title: 'Changed title' },
+      { ...catalog.cases[0], id: 'API-02', title: 'New case' },
+    ],
+  };
+  const reopened = await createCollaudoServer({ directory: f.directory, initialCatalog: updated });
+  await new Promise((resolve) => reopened.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise((resolve) => reopened.close(resolve)));
+  const base = `http://127.0.0.1:${reopened.address().port}`;
+  const request = (path, body) =>
+    fetch(
+      base + path,
+      body
+        ? {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Origin: base },
+            body: JSON.stringify(body),
+          }
+        : {},
+    );
+  assert.deepEqual(await (await request('/api/catalog?cycle=' + cycle.id)).json(), catalog);
+  assert.equal((await (await request('/api/catalog')).json()).cases.length, 2);
+  const csv = await (await request('/api/csv?cycle=' + cycle.id)).text();
+  assert.match(csv, /Una richiesta/);
+  assert.doesNotMatch(csv, /Changed title|API-02/);
+  const state = await (await request('/api/state')).json();
+  assert.match(state.cycles[0].catalogHash, /^[a-f0-9]{64}$/);
+  assert.match(state.results[cycle.id]['API-01'].caseHash, /^[a-f0-9]{64}$/);
+  assert.equal(state.results[cycle.id]['API-01'].note, 'Original note');
+  assert.equal(
+    (
+      await request('/api/results', {
+        cycleId: cycle.id,
+        caseId: 'API-02',
+        status: 'pass',
+        note: '',
+        tester: '',
+        revision: state.revision,
+      })
+    ).status,
+    400,
+  );
+  const newer = await (await request('/api/cycles', { name: 'New' })).json();
+  assert.deepEqual(await (await request('/api/catalog?cycle=' + newer.id)).json(), updated);
+  assert.equal((await request('/api/catalog?cycle=unknown')).status, 400);
+  const exported = await (await request('/api/backup')).json();
+  const fresh = await fixture(t);
+  assert.equal((await fresh.request('/api/import', exported)).status, 200);
+  assert.deepEqual(await (await fresh.request('/api/catalog?cycle=' + cycle.id)).json(), catalog);
+  assert.equal((await fresh.request('/api/import', exported)).status, 200);
+  exported.state.snapshots[cycle.catalogHash].cases[0].title = 'Tampered';
+  assert.equal((await fresh.request('/api/import', exported)).status, 400);
+});
+
+test('legacy migration freezes the saved catalogue before applying repository updates', async (t) => {
+  const f = await fixture(t);
+  const legacy = {
+    catalog,
+    revision: 7,
+    cycles: [{ id: 'legacy', name: 'Legacy' }],
+    results: { legacy: { 'API-01': { status: 'block', note: 'Historical note' } } },
+  };
+  await writeFile(join(f.directory, 'state.json'), JSON.stringify(legacy));
+  const updated = {
+    ...catalog,
+    version: 17,
+    cases: [{ ...catalog.cases[0], expected: 'New expected' }],
+  };
+  const reopened = await createCollaudoServer({ directory: f.directory, initialCatalog: updated });
+  await new Promise((resolve) => reopened.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise((resolve) => reopened.close(resolve)));
+  const base = `http://127.0.0.1:${reopened.address().port}`;
+  assert.deepEqual(await (await fetch(base + '/api/catalog?cycle=legacy')).json(), catalog);
+  const files = await readdir(join(f.directory, 'backups'));
+  assert.equal(files.length, 1);
+  const backup = JSON.parse(await readFile(join(f.directory, 'backups', files[0]), 'utf8'));
+  assert.deepEqual(backup.state.results, legacy.results);
+  assert.deepEqual(backup.catalog, catalog);
+});
+
+test('automatic backups retain the last 30 valid pre-write states and can be imported', async (t) => {
+  const f = await fixture(t);
+  await mkdir(join(f.directory, 'backups'));
+  await writeFile(join(f.directory, 'backups', 'manual.json'), '{"manual":true}');
+  for (let n = 0; n < 33; n++)
+    assert.equal((await f.request('/api/cycles', { name: 'Cycle ' + n })).status, 200);
+  const allFiles = await readdir(join(f.directory, 'backups'));
+  assert.ok(allFiles.includes('manual.json'));
+  const files = allFiles.filter((name) => name.startsWith('auto-'));
+  assert.equal(files.length, 30);
+  const backups = await Promise.all(
+    files.map(async (name) =>
+      JSON.parse(await readFile(join(f.directory, 'backups', name), 'utf8')),
+    ),
+  );
+  assert.deepEqual(
+    backups.map((item) => item.state.cycles.length).sort((a, b) => a - b),
+    Array.from({ length: 30 }, (_, n) => n + 3),
+  );
+  const fresh = await fixture(t);
+  assert.equal((await fresh.request('/api/import', backups[0])).status, 200);
+  const before = await readdir(join(f.directory, 'backups'));
+  assert.equal((await f.request('/api/cycles', { name: '' })).status, 400);
+  assert.deepEqual(await readdir(join(f.directory, 'backups')), before);
+});
+
+test('a backup failure refuses the write without modifying history', async (t) => {
+  const f = await fixture(t);
+  const cycle = await (await f.request('/api/cycles', { name: 'Protected' })).json();
+  const before = await readFile(join(f.directory, 'state.json'), 'utf8');
+  await rm(join(f.directory, 'backups'), { recursive: true });
+  await writeFile(join(f.directory, 'backups'), 'not a directory');
+  assert.equal(
+    (
+      await f.request('/api/results', {
+        cycleId: cycle.id,
+        caseId: 'API-01',
+        status: 'fail',
+        note: '',
+        tester: '',
+        revision: 1,
+      })
+    ).status,
+    500,
+  );
+  assert.equal(await readFile(join(f.directory, 'state.json'), 'utf8'), before);
+  assert.equal((await (await f.request('/api/state')).json()).revision, 1);
+});
+
+test('snapshot imports reject missing definitions, altered case hashes and conflicting history', async (t) => {
+  const f = await fixture(t);
+  const cycle = await (await f.request('/api/cycles', { name: 'Immutable' })).json();
+  await f.request('/api/results', {
+    cycleId: cycle.id,
+    caseId: 'API-01',
+    status: 'pass',
+    note: '',
+    tester: '',
+    revision: 1,
+  });
+  const backup = await (await f.request('/api/backup')).json();
+  const missing = structuredClone(backup);
+  delete missing.state.snapshots[cycle.catalogHash];
+  assert.equal((await f.request('/api/import', missing)).status, 400);
+  const altered = structuredClone(backup);
+  altered.state.results[cycle.id]['API-01'].caseHash = '0'.repeat(64);
+  assert.equal((await f.request('/api/import', altered)).status, 400);
+  const conflicting = structuredClone(backup);
+  conflicting.state.results[cycle.id]['API-01'].status = 'fail';
+  assert.equal((await f.request('/api/import', conflicting)).status, 409);
+  assert.deepEqual(await (await f.request('/api/backup')).json(), backup);
+  // Property order does not change the definition's identity.
+  backup.state.snapshots[cycle.catalogHash].cases[0] = Object.fromEntries(
+    Object.entries(backup.state.snapshots[cycle.catalogHash].cases[0]).reverse(),
+  );
+  assert.equal((await f.request('/api/import', backup)).status, 200);
 });

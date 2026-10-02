@@ -157,8 +157,8 @@ organizzazione è un service provider a sé:
 Presso il provider:
 
 1. Create l'applicazione con quei valori. L'**asserzione deve essere firmata** (firmare anche
-   l'intera risposta va bene). Le asserzioni cifrate non sono supportate: lasciate la cifratura
-   spenta.
+   l'intera risposta va bene). Per abilitare le asserzioni cifrate, configurate prima certificato
+   RSA e chiave privata del service provider come descritto sotto e date al provider i metadati aggiornati.
 2. Inviate l'**indirizzo e-mail** della persona: come attributo `email`, `mail`,
    `urn:oid:0.9.2342.19200300.100.1.3` o `…/claims/emailaddress` di Microsoft, oppure come NameID
    in formato e-mail.

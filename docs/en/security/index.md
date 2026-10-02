@@ -223,9 +223,12 @@ Stated so a review can weigh them, not discovered later:
   people in none of them, at sign-in, so an open session keeps its role until the next one; with
   SCIM provisioning, deactivation and group changes apply at once, and the SCIM token, held by the
   provider, can create, deactivate and remove the organization's members (never its last active
-  owner). For SAML it
-  accepts only signed, unencrypted assertions from sign-ins it started (no IdP-initiated sign-in,
-  no single logout). Without a required group, a person removed here but not at the provider gets
+  owner). SAML requires signed assertions and supports encrypted assertions with a configured
+  service-provider RSA key pair, optional IdP-initiated sign-in and signed single logout.
+  IdP-initiated sign-in is disabled by default and lacks request/browser binding; single logout
+  requires a provider logout URL and compatible bindings and signatures. See
+  [advanced SAML configuration](../admin/administration.md#single-sign-on) before enabling these options.
+  Without a required group, a person removed here but not at the provider gets
   a new account at their next sign-in, so access is ended at the provider. E-mail domains are
   proven by a DNS TXT record; proof is required only with `SSO_REQUIRE_DOMAIN_VERIFICATION=true`,
   and without it, on a shared installation, the first organization to claim a domain has it.

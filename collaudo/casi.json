@@ -1,5 +1,5 @@
 {
-  "version": 16,
+  "version": 17,
   "areas": [
     {
       "id": "ACC",
@@ -5922,6 +5922,48 @@
         "Come owner di B tentare di consultare lo storico di A."
       ],
       "expected": "Visibili solo le consegne della propria organizzazione."
+    },
+    {
+      "area": "OPS",
+      "actor": "collaudatore locale",
+      "id": "OPS-17",
+      "title": "Catalogo del collaudo congelato per ciclo",
+      "priority": "P1",
+      "preconditions": "Pagina locale avviata con npm run dev:collaudo. Usare una copia isolata di collaudo/.local, senza alterare cicli reali.",
+      "steps": [
+        "Creare un ciclo A e registrare un esito con nota su un caso.",
+        "Cambiare titolo, passi e risultato atteso del caso in collaudo/casi.json e aggiungere un caso con ID nuovo. Riavviare il server.",
+        "Aprire il ciclo A ed esportare il CSV. Creare un ciclo B e aprirlo."
+      ],
+      "expected": "Il ciclo A mantiene definizioni, elenco, esito e nota originali; il CSV usa le stesse definizioni. B mostra il catalogo aggiornato ed esiti Da eseguire. Il backup JSON contiene catalogHash del ciclo e caseHash degli esiti."
+    },
+    {
+      "area": "OPS",
+      "actor": "collaudatore locale",
+      "id": "OPS-18",
+      "title": "Backup automatico dello storico locale e ripristino",
+      "priority": "P1",
+      "preconditions": "Pagina di collaudo locale e cartella .local isolata per la prova. Un ciclo con esiti e note.",
+      "steps": [
+        "Salvare una nuova nota e controllare collaudo/.local/backups/auto-*.json.",
+        "Arrestare il server e conservare una copia della cartella .local. Rinominare state.json e riavviare.",
+        "Importare il backup automatico precedente tramite Importa backup JSON."
+      ],
+      "expected": "Il backup conserva lo stato precedente al salvataggio ed è importabile. Cicli, cataloghi congelati, esiti e note del backup vengono ripristinati. Dopo oltre 30 salvataggi restano gli ultimi 30 backup automatici; i backup manuali rimangono."
+    },
+    {
+      "area": "OPS",
+      "actor": "collaudatore locale",
+      "id": "OPS-19",
+      "title": "Backup con impronte alterate rifiutato",
+      "priority": "P2",
+      "preconditions": "Un backup JSON della pagina locale contiene almeno un ciclo congelato e un esito. Lavorare su una copia del file.",
+      "steps": [
+        "Modificare un passo del caso nel catalogo della sezione state.snapshots lasciando invariata la sua chiave SHA-256.",
+        "Tentare di importare il file modificato.",
+        "Ricaricare il ciclo già presente e verificare esiti e note."
+      ],
+      "expected": "L'importazione segnala un'impronta non valida. Nessun ciclo, esito, nota o definizione del catalogo locale viene modificato."
     }
   ],
   "presentation": {

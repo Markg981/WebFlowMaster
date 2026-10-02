@@ -19,6 +19,18 @@ The catalogue is versioned in `collaudo/casi.json`; cycles and results are store
 `collaudo/.local/state.json`, excluded from Git. The page itself needs neither Claude
 nor Docker. Use the lab below to execute the product acceptance cases.
 
+Each cycle freezes its catalogue, including instructions and presentation, under a SHA-256
+`catalogHash`; recorded results carry the corresponding `caseHash`. Historical pages and CSV
+exports use that frozen catalogue. Create a new cycle to test updated definitions. Existing
+cycles freeze the locally saved catalogue before repository updates are applied; definitions
+already overwritten before this migration cannot be recovered automatically.
+Before each save or migration, a restorable JSON backup is written to
+`collaudo/.local/backups/auto-*.json`. The last 30 automatic backups are retained; manual files
+are untouched. A failed backup prevents the save. Import accepts files up to 50 MiB and merges
+history without overwriting conflicting results. For rollback, stop the server, copy `.local`
+somewhere safe, rename `state.json`, restart and import the selected backup. Keep an off-machine
+copy too: local backups do not protect against disk failure.
+
 The automated tests prove the code; the lab proves the *product as a person meets it*: the real images,
 TLS, cookies, single sign-on, e-mail, agents in another network, a real emulator. The protocol is a
 list of numbered cases (areas ACC, MFA, SSO, MEM, ENV, WEB, API, LIB, PLN, SCH, REP, INT, AGT, ADM, SEC,

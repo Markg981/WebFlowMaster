@@ -148,7 +148,8 @@ organization is its own service provider:
 At the provider:
 
 1. Create the application with those values. The **assertion must be signed** (signing the whole
-   response as well is fine). Encrypted assertions are not supported: leave encryption off.
+   response as well is fine). To enable encrypted assertions, first configure the service-provider
+   RSA certificate and private key below and give the provider the updated metadata.
 2. Send the person's **e-mail address**: as an attribute named `email`, `mail`,
    `urn:oid:0.9.2342.19200300.100.1.3` or Microsoft's `…/claims/emailaddress`, or as the NameID
    in e-mail format.
