@@ -55,6 +55,7 @@ richiede: il testo da scrivere, l'opzione da scegliere, il testo atteso.
 | **Salva testo in variabile** | Legge il testo dell'elemento, o il valore di un campo, nella variabile indicata dal valore, per gli step successivi. |
 | **Imposta variabile** | `nome=valore`, per gli step successivi. Vedi [valori generati](#valori-generati). |
 | **Attendi email** | Attende l'email inviata a un indirizzo e ne legge codice e link in variabili. Vedi [email](#email). |
+| **Attendi SMS** | Attende l'SMS inviato a un numero di test e ne legge il codice in una variabile. Vedi [SMS](#sms). |
 | **Query al database** | Esegue un'istruzione SQL sul database dell'ambiente e legge la prima riga in variabili. Vedi [database](#database). |
 | **Verifica valori** | Fallisce se un confronto non è vero: <code v-pre>{{db.value}} == 1</code>, <code v-pre>{{total}} > 0</code>, <code v-pre>{{email.subject}} contains Benvenuto</code>. Gli stessi confronti di una condizione senza elemento. |
 | **Imposta cookie** / **Cancella cookie** | `nome=valore` per l'indirizzo corrente; oppure li elimina tutti. |
@@ -282,6 +283,27 @@ precedente. Un pattern che non trova nulla fa fallire lo step.
 che lo stack docker-compose imposta sul suo Mailpit, aperto su http://localhost:8025). La casella
 viene letta da dove gira il browser, quindi un piano su un agente locale raggiunge un Mailpit della
 rete dell'agente.
+
+### SMS {#sms}
+
+**Attendi SMS** fa per un codice inviato via SMS ciò che **Attendi email** fa per uno inviato via
+email. Legge la **casella SMS** dell'organizzazione (Impostazioni → Casella SMS): un owner vi crea
+un indirizzo di ricezione, mostrato una sola volta, e lo imposta come webhook dei messaggi in arrivo
+dei numeri di test presso il provider SMS — *A message comes in* di Twilio, l'inbound URL di
+Vonage, o qualunque provider che invii `To` e `Body` (o `to` e `text`), come form o JSON. Ogni
+messaggio ricevuto da quei numeri viene archiviato lì e conservato sette giorni; la pagina delle
+impostazioni mostra gli ultimi.
+
+Il valore dello step è il numero, oppure il numero e un pattern per il codice:
+`+39 333 1234567` o `+39 333 1234567|codice (\d{6})`. Spazi, trattini e un `00` iniziale non contano.
+Attende un messaggio a quel numero arrivato dopo l'inizio del test — 60 secondi, oppure
+<code v-pre>sms.timeout</code> dall'ambiente — e imposta <code v-pre>{{sms.otp}}</code> (il codice,
+trovato come in un'email), <code v-pre>{{sms.text}}</code> e <code v-pre>{{sms.from}}</code>. Due test
+che girano insieme dovrebbero usare numeri diversi.
+
+L'indirizzo di ricezione è un segreto dell'organizzazione: sostituirlo disattiva subito il vecchio, e
+revocarlo rifiuta ogni messaggio. Le richieste sono limitate come quelle dei webhook
+(`WEBHOOK_RATE_LIMIT`).
 
 ### Database: verificare e preparare i dati {#database}
 

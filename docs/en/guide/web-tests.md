@@ -53,6 +53,7 @@ choose, the text to expect.
 | **Store text in variable** | Reads the element's text, or a field's value, into the variable the value names, for later steps. |
 | **Set variable** | `name=value`, for later steps. See [generated values](#generated-values). |
 | **Wait for email** | Waits for the email sent to an address and reads its code and link into variables. See [emails](#emails). |
+| **Wait for SMS** | Waits for the text message sent to a test number and reads its code into a variable. See [SMS](#sms). |
 | **Query database** | Runs a SQL statement against the environment's database and reads the first row into variables. See [database](#database). |
 | **Assert values** | Fails unless a comparison holds: <code v-pre>{{db.value}} == 1</code>, <code v-pre>{{total}} > 0</code>, <code v-pre>{{email.subject}} contains Welcome</code>. The same comparisons as a condition without an element. |
 | **Set cookie** / **Clear cookies** | `name=value` for the current address; or deletes them all. |
@@ -269,6 +270,26 @@ and, when it asks for them, `mailpit.username` and `mailpit.password`; `mailpit.
 the wait, in seconds. Without them, the server's own (`MAILPIT_URL`, which the docker-compose stack
 sets to its bundled Mailpit, open at http://localhost:8025). The inbox is read from where the
 browser runs, so a plan on a local agent reaches a Mailpit on the agent's network.
+
+### Text messages (SMS) {#sms}
+
+**Wait for SMS** does for a code sent by text message what **Wait for email** does for one sent by
+email. It reads the organization's **SMS inbox** (Settings → SMS inbox): an owner creates an
+inbound address there, shown once, and sets it as the incoming-message webhook of the test numbers
+at the SMS provider — Twilio's *A message comes in*, Vonage's inbound URL, or any provider that
+posts `To` and `Body` (or `to` and `text`), as a form or JSON. Every message those numbers receive
+is filed there and kept seven days; the settings page lists the latest.
+
+The step's value is the number, or the number and a pattern for the code:
+`+39 333 1234567` or `+39 333 1234567|codice (\d{6})`. Spaces, dashes and a leading `00` do not
+matter. It waits for a message to that number that arrived after the test started — 60 seconds, or
+<code v-pre>sms.timeout</code> from the environment — and sets <code v-pre>{{sms.otp}}</code> (the
+code, found as in an email), <code v-pre>{{sms.text}}</code> and <code v-pre>{{sms.from}}</code>.
+Two tests that run at once should use different numbers.
+
+The inbound address is the organization's secret: replacing it stops the old one at once, and
+revoking it refuses every message. Requests to it are limited like webhooks
+(`WEBHOOK_RATE_LIMIT`).
 
 ### Database: checking and preparing data {#database}
 

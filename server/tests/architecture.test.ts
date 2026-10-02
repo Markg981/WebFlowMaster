@@ -148,6 +148,13 @@ describe('route modules cannot query outside the tenant context', () => {
         'organization_sso, sso_domains and users. Its audit entries are written through the transaction of ' +
         'the change they describe; removing a member runs as the organization, like the owner\'s removal.',
     },
+    'sms-inbox.ts': {
+      max: 0,
+      why:
+        'An SMS provider posts with nothing but the inbound token, so finding the organization is a ' +
+        'privileged read of organizations, which is not org-scoped. The message itself is written ' +
+        'under that organization through withTenantTransaction.',
+    },
     'execution-orchestrator.ts': {
       max: 1,
       why:

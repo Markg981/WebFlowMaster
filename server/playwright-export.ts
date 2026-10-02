@@ -289,6 +289,7 @@ export function toPlaywright(test: ExportableTest): PlaywrightExport {
         break;
       }
       case 'waitForEmail': skip(step, 'it reads the environment\'s test inbox (Mailpit), which only a WebFlowMaster run has'); break;
+      case 'waitForSms': skip(step, 'it reads the organization\'s SMS inbox, which only a WebFlowMaster run has'); break;
       case 'queryDatabase': skip(step, 'it queries the environment\'s database through WebFlowMaster'); break;
       case 'assertAccessible': skip(step, 'add @axe-core/playwright and check AxeBuilder results here'); break;
       case 'measurePerformance': skip(step, 'read the PerformanceObserver entries (LCP, layout-shift) with page.evaluate and assert them'); break;

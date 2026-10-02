@@ -60,6 +60,9 @@ export const ADHOC_ACTION_IDS = [
   // Clicks the element, takes the file it downloads, and checks its name, size and content —
   // a PDF's text, a CSV's rows. See shared/downloads.ts.
   "expectDownload",
+  // A code sent by text message to a test number, read from the organization's SMS inbox
+  // (server/sms-inbox.ts) as {{sms.otp}}.
+  "waitForSms",
   // Interactions a click and a typed value cannot stand in for. Without them a test could reach
   // a search box and never submit it, open a context menu only by accident, and not get past
   // an upload field, a confirm() or a link that opens in a new tab at all.
@@ -255,6 +258,7 @@ export const ACTION_REQUIREMENTS: Record<
   auditLighthouse: { target: false, value: true, valueRequired: false },
   setGeolocation: { target: false, value: true, valueRequired: true },
   expectDownload: { target: true, value: true, valueRequired: false },
+  waitForSms: { target: false, value: true, valueRequired: true },
   // No element required: after typing, the key usually goes to the field that has focus. A
   // recorded Enter keeps the field it was pressed in, and the runner uses it when it is there.
   pressKey: { target: false, value: true, valueRequired: true, optionalTarget: true },
@@ -438,6 +442,11 @@ export const ACTION_I18N: Record<
     description: "dashboardPageNew.actions.expectDownload.description",
     icon: "FileDown",
   },
+  waitForSms: {
+    name: "dashboardPageNew.actions.waitForSms.name",
+    description: "dashboardPageNew.actions.waitForSms.description",
+    icon: "MessageSquareText",
+  },
   auditLighthouse: {
     name: "dashboardPageNew.actions.auditLighthouse.name",
     description: "dashboardPageNew.actions.auditLighthouse.description",
@@ -588,6 +597,7 @@ export const ACTION_VALUE_HINTS: Partial<Record<AdhocActionId, string>> = {
   uploadFile: "dashboardPageNew.actions.uploadFile.valueHint",
   setGeolocation: "dashboardPageNew.actions.setGeolocation.valueHint",
   expectDownload: "dashboardPageNew.actions.expectDownload.valueHint",
+  waitForSms: "dashboardPageNew.actions.waitForSms.valueHint",
   handleDialog: "dashboardPageNew.actions.handleDialog.valueHint",
   switchTab: "dashboardPageNew.actions.switchTab.valueHint",
   storeText: "dashboardPageNew.actions.storeText.valueHint",

@@ -40,6 +40,7 @@ import {
   Lightbulb,
   MapPin,
   FileDown,
+  MessageSquareText,
 } from 'lucide-react';
 
 import type { AdhocActionId } from '@shared/recording';
@@ -78,6 +79,7 @@ const ACTION_ICONS: Record<AdhocActionId, LucideIcon> = {
   auditLighthouse: Lightbulb,
   setGeolocation: MapPin,
   expectDownload: FileDown,
+  waitForSms: MessageSquareText,
   pressKey: CornerDownLeft,
   doubleClick: MousePointerClick,
   rightClick: MousePointer2,

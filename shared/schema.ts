@@ -29,6 +29,10 @@ export const organizations = pgTable("organizations", {
   mfaRequired: boolean("mfa_required").notNull().default(false),
   /** Publishing a test needs another member's approval, and plans run published tests only. */
   testReviewRequired: boolean("test_review_required").notNull().default(false),
+  /** The test SMS inbox's inbound address token, hashed (server/sms-inbox.ts, migration 0070). */
+  smsInboundTokenHash: text("sms_inbound_token_hash"),
+  smsInboundTokenPrefix: text("sms_inbound_token_prefix"),
+  smsInboundTokenCreatedAt: timestamp("sms_inbound_token_created_at"),
 });
 
 export const users = pgTable("users", {
@@ -1019,6 +1023,21 @@ export const impactRules = pgTable("impact_rules", {
 
 export type ImpactRule = typeof impactRules.$inferSelect;
 
+/** Text messages the organization's test numbers received (server/sms-inbox.ts, migration 0070). */
+export const smsMessages = pgTable("sms_messages", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  toNumber: text("to_number").notNull(),
+  fromNumber: text("from_number"),
+  body: text("body").notNull(),
+  provider: text("provider"),
+  receivedAt: timestamp("received_at").defaultNow().notNull(),
+}, (table) => [
+  index("sms_messages_organization_to_idx").on(table.organizationId, table.toNumber, table.receivedAt),
+]);
+
+export type SmsMessage = typeof smsMessages.$inferSelect;
+
 /**
  * The elements of an application, in one place instead of inside each test.
  *
@@ -1754,6 +1773,9 @@ export const AUDIT_ACTIONS = {
   // The impact map: which files map to which tests (server/test-impact.ts).
   IMPACT_RULE_CREATED: 'impact_rule.created',
   IMPACT_RULE_DELETED: 'impact_rule.deleted',
+  // The test SMS inbox's inbound address (server/sms-inbox.ts).
+  SMS_INBOX_TOKEN_ISSUED: 'sms_inbox.token_issued',
+  SMS_INBOX_TOKEN_REVOKED: 'sms_inbox.token_revoked',
   CUSTOM_ACTION_CREATED: 'custom_action.created',
   CUSTOM_ACTION_UPDATED: 'custom_action.updated',
   CUSTOM_ACTION_DELETED: 'custom_action.deleted',
@@ -2920,4 +2942,6 @@ export const ORG_SCOPED_TABLES = [
   'run_work_items',
   // Which files map to which tests' tags (migration 0068).
   'impact_rules',
+  // Text messages the test numbers received (migration 0070).
+  'sms_messages',
 ] as const;

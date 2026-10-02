@@ -46,6 +46,7 @@ erDiagram
   test_plan_executions ||--o{ execution_logs : "test_plan_execution_id"
   test_plan_executions ||--o{ run_work_items : "execution_id"
   tags ||--o{ impact_rules : "tag_id"
+  organizations ||--o{ sms_messages : "organization_id"
   environments ||--o{ secrets : "environment_id"
   test_plans ||--o{ test_plan_webhooks : "test_plan_id"
   test_plans ||--o{ test_plan_selected_tests : "test_plan_id"
@@ -489,6 +490,15 @@ erDiagram
     jsonb rows
     timestamp created_at
     timestamp updated_at
+  }
+  sms_messages {
+    int id PK
+    int organization_id FK
+    text to_number
+    text from_number
+    text body
+    text provider
+    timestamp received_at
   }
   impact_rules {
     text id PK

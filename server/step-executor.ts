@@ -22,6 +22,7 @@ import os from 'os';
 import path from 'path';
 import fs from 'fs-extra';
 import type { Download } from 'playwright';
+import { parseSmsQuery, SMS_TIMEOUT_MS, waitForSms as waitForSmsInInbox, type SmsQuery } from './sms-inbox';
 import { inspectDownload } from './download-check';
 import { parseDownloadChecks, parseGeolocation, runDownloadChecks, type DownloadFinding } from '@shared/downloads';
 import { measurePagePerformance, runLighthouse } from './web-performance';
@@ -38,7 +39,7 @@ import {
 } from '@shared/web-performance';
 import { scanAccessibility } from './accessibility';
 import { allowsSelfSignedCertificate, requestVariables, substituteVariables } from './outbound-http';
-import { EMAIL_TIMEOUT_MS, inboxConfig, parseEmailQuery, waitForEmail, type InboxGet } from './email-inbox';
+import { EMAIL_TIMEOUT_MS, findOtp, inboxConfig, parseEmailQuery, waitForEmail, type InboxGet } from './email-inbox';
 import {
   DATABASE_TIMEOUT_MS,
   connectionVariable,
@@ -89,6 +90,8 @@ export interface StepContext {
   database?: DatabaseRunner;
   /** Where an `auditLighthouse` step keeps its HTML report; none in the builder's preview. */
   artifactDir?: string;
+  /** Waits for a text message in the organization's SMS inbox. The real inbox when omitted. */
+  waitForSms?: StepRuntime['waitForSms'];
   /** Stand-ins for the performance measurements, for tests. The real ones when omitted. */
   measurePerformance?: StepRuntime['measurePerformance'];
   runLighthouse?: StepRuntime['runLighthouse'];
@@ -292,6 +295,8 @@ interface StepRuntime {
   measurePerformance: () => Promise<{ url: string; metrics: Record<PerformanceMetric, number | null> }>;
   /** Where a step keeps a file it produced (StepContext.artifactDir); none in the builder's preview. */
   artifactDir?: string;
+  /** A text message to the number, received after `since`; null when none came in time. */
+  waitForSms: (query: SmsQuery, since: number, timeoutMs: number) => Promise<{ body: string; fromNumber: string | null } | null>;
   /** Lighthouse on the page's address, with the test's cookies for it. */
   runLighthouse: (formFactor: 'mobile' | 'desktop') => Promise<Omit<LighthouseFinding, 'checks'>>;
 }
@@ -1357,6 +1362,35 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     return { status: 'passed', detail: `"${excerpt(message.subject)}" from ${message.from || 'an unknown sender'}: ${read.join(', ')}.` };
   },
 
+  /**
+   * Waits for a text message to a test number in the organization's SMS inbox
+   * (server/sms-inbox.ts), received after the test started, and reads the code in it:
+   * {{sms.otp}}, {{sms.text}}, {{sms.from}}. "number" or "number|pattern", like waitForEmail.
+   */
+  waitForSms: async (rt) => {
+    const wanted = requireValue(rt, 'waitForSms');
+    if ('error' in wanted) return failed(wanted.error);
+    const query = parseSmsQuery(wanted.value);
+    if ('error' in query) return failed(query.error);
+    if (!rt.storeVariable) return failed('This run has no variables of its own to store the message in.');
+    const seconds = Number(rt.vars['sms.timeout']);
+    const timeoutMs = Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : SMS_TIMEOUT_MS;
+    for (const field of ['otp', 'text', 'from']) rt.forgetVariable?.(`sms.${field}`);
+    const message = await rt.waitForSms(query, rt.startedAt, timeoutMs);
+    if (!message) {
+      return failed(
+        `No text message to ${query.number} arrived within ${Math.round(timeoutMs / 1000)}s. Check that the number's provider ` +
+          'forwards incoming messages to the inbound address in Settings → SMS inbox.',
+      );
+    }
+    const otp = findOtp(message.body, query.pattern);
+    rt.storeVariable('sms.text', message.body);
+    rt.storeVariable('sms.from', message.fromNumber ?? '');
+    if (otp !== null) rt.storeVariable('sms.otp', otp);
+    if (query.pattern && otp === null) return failed(`A message arrived, but the pattern /${query.pattern.source}/ matched nothing in it.`);
+    return { status: 'passed', detail: `Text from ${message.fromNumber || 'an unknown sender'}: ${otp !== null ? `{{sms.otp}} = "${otp}"` : 'no code found'}.` };
+  },
+
   queryDatabase: async (rt) => {
     if (typeof rt.raw !== 'string' || rt.raw.trim() === '') return failed('Value missing for queryDatabase action.');
     // The connection's name is read before substitution: it names a variable, it is not one.
@@ -1513,6 +1547,7 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
       : {}),
     startedAt: ctx.startedAt ?? Date.now(),
     artifactDir: ctx.artifactDir,
+    waitForSms: ctx.waitForSms ?? ((query, since, timeoutMs) => waitForSmsInInbox(query, since, timeoutMs)),
     inboxGet: async (url, headers) => {
       const response = await page.context().request.get(url, {
         headers,
