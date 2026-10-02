@@ -11,10 +11,18 @@ because the acceptance protocol itself is. This page explains what the lab is ma
 
 ## What it is for
 
+Run `npm run dev:collaudo` from the repository root and open `http://localhost:4322`
+for the local acceptance page. It reproduces the original artifact presentation and
+provides search, filters, progress, outcome buttons, automatic note saving and JSON
+backup import/export. `npm run dev:docs` remains the documentation command.
+The catalogue is versioned in `collaudo/casi.json`; cycles and results are stored in
+`collaudo/.local/state.json`, excluded from Git. The page itself needs neither Claude
+nor Docker. Use the lab below to execute the product acceptance cases.
+
 The automated tests prove the code; the lab proves the *product as a person meets it*: the real images,
 TLS, cookies, single sign-on, e-mail, agents in another network, a real emulator. The protocol is a
 list of numbered cases (areas ACC, MFA, SSO, MEM, ENV, WEB, API, LIB, PLN, SCH, REP, INT, AGT, ADM, SEC,
-OPS, UX, TMG, TRC, MOB) kept as the "Collaudo WebFlowMaster" artifact; each recorded result is keyed by
+OPS, UX, TMG, TRC, MOB) kept locally in `collaudo/casi.json`; each recorded result is keyed by
 the case id, so ids are never renamed.
 
 ## Topology

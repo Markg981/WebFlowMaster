@@ -78,6 +78,8 @@ collaudo-root.crt
 
 # Collaudo: signed-in sessions written by collaudo/prepare.mjs
 collaudo/.sessions/
+# Manual collaudo cycles, notes and historical outcomes stay local.
+collaudo/.local/
 # collaudo: esito della prova di carico (collaudo/prova-carico.mjs)
 collaudo/carico-esito.json
 
