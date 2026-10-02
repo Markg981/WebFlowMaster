@@ -87,7 +87,10 @@ in the process (`onExecutionTransition`); the commit status module is one of the
 
 1. **Take.** `takeExecution` counts the organization's running runs under a lock and moves the run
    to `running` only if it is under `max_concurrent_runs`. Otherwise the job is delayed by
-   `RUN_DEFERRAL_MS` (10 s) and the run stays `queued` — it waits, it does not fail. A run that is no
+   `RUN_DEFERRAL_MS` (10 s), marked as deferred for the limit, and the run stays `queued` — it waits,
+   it does not fail. When a run of the organization ends, `server/run-promotion.ts` promotes the
+   delayed jobs of its oldest waiting runs, up to its free slots, so they are taken at once; the
+   delay is the fallback. A run that is no
    longer `queued` (taken already, cancelled) is not taken, which is what makes a job delivered
    twice run once.
 2. **Watch.** `watchRun` (`server/run-watch.ts`) starts a heartbeat every

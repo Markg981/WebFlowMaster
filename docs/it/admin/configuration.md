@@ -50,7 +50,7 @@ processo non legge non fa danni.
 | `RUN_MAX_PARALLEL` | worker | `16` | Il massimo di sessioni browser che un run apre insieme, qualunque cosa chieda il piano. |
 | `ORG_MAX_CONCURRENT_RUNS` | entrambi | `2` | Run di un'organizzazione in corso contemporaneamente. Gli altri aspettano. |
 | `ORG_MAX_QUEUED_RUNS` | web | `100` | Run di un'organizzazione in attesa contemporaneamente. Oltre, un nuovo run viene rifiutato con `429`. |
-| `RUN_DEFERRAL_MS` | worker | `10000` | Quanto aspetta un run trattenuto dal limite della sua organizzazione prima di essere riconsiderato. |
+| `RUN_DEFERRAL_MS` | worker | `10000` | Quanto aspetta un run trattenuto dal limite della sua organizzazione prima di essere riconsiderato, se nel frattempo la fine di un altro run dell'organizzazione non l'ha già fatto partire. |
 | `RUN_HEARTBEAT_INTERVAL_MS` | entrambi | `15000` | Ogni quanto un worker conferma che un run sta ancora andando. |
 | `RUN_STALE_AFTER_MS` | web | il maggiore tra 8 heartbeat e `120000` | Un run il cui heartbeat tace per questo tempo termina come *error: worker lost*. |
 | `RUN_MAX_DURATION_MS` | entrambi | `10800000` (3 ore) | Oltre questo tempo un run smette di avviare test e termina come *timed out*. Il processo web lo impone anche lui, cinque minuti dopo, nel caso il worker sia bloccato. |

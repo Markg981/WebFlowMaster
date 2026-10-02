@@ -50,7 +50,7 @@ harm.
 | `RUN_MAX_PARALLEL` | worker | `16` | The most browser sessions one run opens at once, whatever the plan asks for. |
 | `ORG_MAX_CONCURRENT_RUNS` | both | `2` | Runs of one organization in progress at once. Further runs wait. |
 | `ORG_MAX_QUEUED_RUNS` | web | `100` | Runs of one organization waiting at once. Past it, a new run is refused with `429`. |
-| `RUN_DEFERRAL_MS` | worker | `10000` | How long a run held back by its organization's limit waits before it is looked at again. |
+| `RUN_DEFERRAL_MS` | worker | `10000` | How long a run held back by its organization's limit waits before it is looked at again, when no run of the organization ending has started it first. |
 | `RUN_HEARTBEAT_INTERVAL_MS` | both | `15000` | How often a worker confirms that a run is still going. |
 | `RUN_STALE_AFTER_MS` | web | the larger of 8 heartbeats and `120000` | A run whose heartbeat is quiet this long ends as *error: worker lost*. |
 | `RUN_MAX_DURATION_MS` | both | `10800000` (3 hours) | Past this a run stops starting tests and ends as *timed out*. The web process enforces it too, five minutes later, in case the worker is stuck. |

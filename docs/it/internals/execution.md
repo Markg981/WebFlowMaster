@@ -89,7 +89,10 @@ nel processo (`onExecutionTransition`); il modulo dello stato dei commit è uno 
 
 1. **Presa.** `takeExecution` conta, sotto lock, i run in esecuzione dell'organizzazione e porta il run a
    `running` solo se è sotto `max_concurrent_runs`. Altrimenti il job è ritardato di `RUN_DEFERRAL_MS`
-   (10 s) e il run resta `queued` — aspetta, non fallisce. Un run non più `queued` (già preso, annullato)
+   (10 s), segnato come rimandato per il limite, e il run resta `queued` — aspetta, non fallisce. Quando
+   un run dell'organizzazione finisce, `server/run-promotion.ts` promuove i job ritardati dei suoi run in
+   attesa più vecchi, fino ai posti liberi, così vengono presi subito; il ritardo resta come riserva. Un
+   run non più `queued` (già preso, annullato)
    non viene preso, ed è questo che fa girare una sola volta un job consegnato due volte.
 2. **Sorveglianza.** `watchRun` (`server/run-watch.ts`) avvia un heartbeat ogni
    `RUN_HEARTBEAT_INTERVAL_MS` (15 s). Ogni battito dice anche al worker se qualcuno ha chiesto di

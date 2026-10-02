@@ -214,11 +214,11 @@ threshold is breached — read p95 over `--max-p95-ms` (1000), errors over `--ma
 runs in progress than `--max-concurrent`, a run ending other than `completed`, or not ending within
 `--run-timeout` — and `0` otherwise.
 
-A run held back by its organization's limit is looked at again every `RUN_DEFERRAL_MS` (10 s), not
-as soon as a slot frees. With short runs that dominates the wait: in a measurement with two runs at
-once and runs of 2 s, eight runs per organization ended after 33 s with the default and after 9 s
-with `RUN_DEFERRAL_MS=1000`. Lower it when most runs are short and organizations reach their limit;
-each look is one query under a lock.
+A run held back by its organization's limit starts as soon as one of the organization's runs ends:
+the end promotes the oldest waiting runs, as many as there are slots free
+(`server/run-promotion.ts`). `RUN_DEFERRAL_MS` (10 s) is only the fallback, for a promotion missed
+while a process restarted. In a measurement with two runs at once and runs of 2 s, eight runs per
+organization ended after 9 s, where waiting for the next look took 33 s.
 
 ## Troubleshooting
 

@@ -153,6 +153,9 @@ app.use(express.urlencoded({ extended: false }));
   await setupAgentRelay(server);
   // Runs queued and cancelled from here report on their commit; the worker reports the rest.
   registerCommitStatus();
+  // A run that ends lets its organization's next waiting run start at once (server/run-promotion.ts).
+  const { registerRunPromotion } = await import('./run-promotion');
+  registerRunPromotion();
 
   // Initialize the scheduler after routes are registered and DB is presumably ready
   // In a real app, ensure DB connection/migration is complete before this.
