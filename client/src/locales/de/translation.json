@@ -2743,7 +2743,8 @@
       "scim_group_created": "Gruppe des Anbieters übertragen",
       "scim_group_updated": "Gruppe des Anbieters geändert",
       "scim_group_deleted": "Gruppe des Anbieters entfernt",
-      "api_test_imported": "API-Tests aus OpenAPI oder Postman importiert"
+      "api_test_imported": "API-Tests aus OpenAPI oder Postman importiert",
+      "test_imported": "Tests aus einer Datei importiert"
     }
   },
   "security": {
@@ -3187,7 +3188,8 @@
     "newManual": "Neuer manueller Test",
     "manualBadge": "Manuell",
     "editManual": "Schritte bearbeiten",
-    "manualSaved": "Manueller Test gespeichert"
+    "manualSaved": "Manueller Test gespeichert",
+    "playwright": "Als Playwright-Test herunterladen"
   },
   "authorSteps": {
     "title": "Test beschreiben",
@@ -3922,5 +3924,29 @@
     "description": "API-Aufrufe nach dem Test, ob bestanden oder nicht, die die erzeugten Daten entfernen. Von Schritten gespeicherte Werte wie {{example}} sind nutzbar; ein Aufruf mit einem nie gesetzten Wert wird übersprungen.",
     "add": "Gespeicherten API-Test zum Aufräumen hinzufügen…",
     "empty": "Kein Aufräumen. Was der Test anlegt, bleibt in der Anwendung."
+  },
+  "testFiles": {
+    "button": "Dateien",
+    "title": "Tests als Dateien",
+    "description": "Die Web- und API-Tests eines Projekts als eine YAML- oder JSON-Datei, zum Ablegen in einem Repository neben der Anwendung. Der Re-Import aktualisiert gleichnamige Tests — jeder erhält eine neue Version — und legt die übrigen an. Geheimnisse in API-Tests werden als Variablen geschrieben.",
+    "export": "Exportieren",
+    "project": "Projekt",
+    "allTests": "Alle Tests",
+    "noProject": "Tests ohne Projekt",
+    "format": "Format",
+    "download": "Herunterladen",
+    "import": "Importieren",
+    "openFile": "Datei öffnen…",
+    "newTestsGoTo": "Neue Tests kommen in",
+    "noProjectShort": "Kein Projekt",
+    "done": "Importiert.",
+    "preview": "Änderungen zeigen",
+    "importButton": "Importieren",
+    "outcomes": {
+      "created": "neu",
+      "updated": "aktualisiert",
+      "unchanged": "unverändert",
+      "invalid": "nicht importiert"
+    }
   }
 }

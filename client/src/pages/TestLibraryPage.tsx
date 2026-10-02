@@ -13,7 +13,8 @@ import TagPicker, { type TagRef } from '@/components/tags/TagPicker';
 import TestHistoryDialog from '@/components/tests/TestHistoryDialog';
 import ManualTestDialog from '@/components/tests/ManualTestDialog';
 import { isManualSequence } from '@shared/manual-tests';
-import { ClipboardCheck, History, Loader2, Pencil, Search, Trash2 } from 'lucide-react';
+import { TestFilesDialog } from '@/components/tests/TestFilesDialog';
+import { ClipboardCheck, FileCode, FileStack, History, Loader2, Pencil, Search, Trash2 } from 'lucide-react';
 
 /**
  * Every test this organization has, in one place.
@@ -54,6 +55,8 @@ const TestLibraryPage: React.FC = () => {
   const [busyId, setBusyId] = useState<number | null>(null);
   /** The manual test being written or edited: null closed, 'new' for a new one. */
   const [manualEditing, setManualEditing] = useState<LibraryTest | 'new' | null>(null);
+  /** Export and import of the tests as a file (server/test-bundle.ts). */
+  const [filesOpen, setFilesOpen] = useState(false);
 
   const { data: testsData, isLoading, error } = useQuery<LibraryTest[], Error>({
     queryKey: ['/api/tests'],
@@ -210,8 +213,12 @@ const TestLibraryPage: React.FC = () => {
             </Button>
           )}
         </div>
+        <Button variant="outline" className="ml-auto" onClick={() => setFilesOpen(true)} data-testid="open-test-files">
+          <FileStack className="mr-2 h-4 w-4" />
+          {t('testFiles.button', 'Files')}
+        </Button>
         {canEdit && (
-          <Button variant="outline" className="ml-auto" onClick={() => setManualEditing('new')}>
+          <Button variant="outline" onClick={() => setManualEditing('new')}>
             <ClipboardCheck className="mr-2 h-4 w-4" />
             {t('testLibrary.newManual', 'New manual test')}
           </Button>
@@ -275,6 +282,13 @@ const TestLibraryPage: React.FC = () => {
                           <Pencil className="h-4 w-4" />
                         </Button>
                       )}
+                      {!isManualSequence(test.sequence) && (
+                        <Button asChild variant="ghost" size="sm" title={t('testLibrary.playwright', 'Download as a Playwright test')}>
+                          <a href={`/api/tests/${test.id}/playwright`} download aria-label={t('testLibrary.playwright', 'Download as a Playwright test')}>
+                            <FileCode className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -309,6 +323,8 @@ const TestLibraryPage: React.FC = () => {
         test={historyFor}
         onRestore={(version) => restore(historyFor!.id, version)}
       />
+
+      <TestFilesDialog open={filesOpen} onOpenChange={setFilesOpen} canEdit={canEdit} onImported={() => void refresh()} />
 
       <ManualTestDialog
         isOpen={manualEditing !== null}

@@ -23,6 +23,8 @@ node wfm.mjs run 12 --wait --junit junit.xml
 | `wfm status RUN_ID` | Prints a run's state. |
 | `wfm junit RUN_ID --junit FILE` | Writes a finished run's JUnit XML. |
 | `wfm export RUN_ID --html FILE` | Writes a finished run's reports (`--html`, `--pdf`, `--allure`). |
+| `wfm tests export [--project ID\|none] [--format yaml\|json] [--out FILE]` | Writes a project's web and API tests as one file — see [Tests as files](../guide/organizing#tests-as-files). |
+| `wfm tests import FILE [--project ID] [--dry-run]` | Reads such a file back: tests of the same name are updated, the others created in `--project`. `--dry-run` only says what would change. Exits `1` when tests were left out. |
 | `wfm help` | Prints the usage. |
 
 ## Options
@@ -53,6 +55,12 @@ node wfm.mjs run 12 --wait --junit junit.xml
 | `2` | The command could not be carried out: bad usage, no key, the server unreachable or refusing, or the wait timed out. |
 
 A pipeline step that runs `wfm run … --wait` therefore fails exactly when it should.
+
+`wfm tests` uses the application's own endpoints, not `/api/v1`, so it needs a **full-access** API
+key (one created without scopes); a scoped key is refused, and the CLI says so. A typical use keeps
+the tests in the application's repository: a nightly job runs `wfm tests export --project 12 --out
+tests/shop.wfm.yaml` and commits the file when it changed, and a job on the main branch runs
+`wfm tests import tests/shop.wfm.yaml` after a pull request edited it.
 
 ## What it reads from the CI system
 

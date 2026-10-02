@@ -2862,7 +2862,8 @@
       "scim_group_created": "Gruppo del provider inviato",
       "scim_group_updated": "Gruppo del provider modificato",
       "scim_group_deleted": "Gruppo del provider rimosso",
-      "api_test_imported": "Test API importati da OpenAPI o Postman"
+      "api_test_imported": "Test API importati da OpenAPI o Postman",
+      "test_imported": "Test importati da un file"
     }
   },
   "security": {
@@ -3306,7 +3307,8 @@
     "newManual": "Nuovo test manuale",
     "manualBadge": "Manuale",
     "editManual": "Modifica step",
-    "manualSaved": "Test manuale salvato"
+    "manualSaved": "Test manuale salvato",
+    "playwright": "Scarica come test Playwright"
   },
   "authorSteps": {
     "title": "Descrivi il test",
@@ -4041,5 +4043,29 @@
     "description": "Chiamate API eseguite dopo il test, che sia passato o no, per rimuovere i dati che ha creato. Si possono usare i valori salvati dagli step, come {{example}}; una chiamata che ne nomina uno mai impostato viene saltata.",
     "add": "Aggiungi un test API salvato come pulizia…",
     "empty": "Nessuna pulizia. Ciò che il test crea resta nell'applicazione."
+  },
+  "testFiles": {
+    "button": "File",
+    "title": "Test come file",
+    "description": "I test web e API di un progetto in un unico file YAML o JSON, da tenere in un repository accanto all'applicazione. Reimportarlo aggiorna i test con lo stesso nome — ciascuno riceve una nuova versione — e crea gli altri. I segreti dei test API sono scritti come variabili.",
+    "export": "Esporta",
+    "project": "Progetto",
+    "allTests": "Tutti i test",
+    "noProject": "Test senza progetto",
+    "format": "Formato",
+    "download": "Scarica",
+    "import": "Importa",
+    "openFile": "Apri un file…",
+    "newTestsGoTo": "I nuovi test vanno in",
+    "noProjectShort": "Nessun progetto",
+    "done": "Importato.",
+    "preview": "Mostra cosa cambia",
+    "importButton": "Importa",
+    "outcomes": {
+      "created": "nuovo",
+      "updated": "aggiornato",
+      "unchanged": "invariato",
+      "invalid": "non importato"
+    }
   }
 }

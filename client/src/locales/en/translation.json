@@ -2737,7 +2737,8 @@
       "scim_group_created": "Provider group pushed",
       "scim_group_updated": "Provider group changed",
       "scim_group_deleted": "Provider group removed",
-      "api_test_imported": "API tests imported from OpenAPI or Postman"
+      "api_test_imported": "API tests imported from OpenAPI or Postman",
+      "test_imported": "Tests imported from a file"
     }
   },
   "security": {
@@ -3181,7 +3182,8 @@
     "newManual": "New manual test",
     "manualBadge": "Manual",
     "editManual": "Edit steps",
-    "manualSaved": "Manual test saved"
+    "manualSaved": "Manual test saved",
+    "playwright": "Download as a Playwright test"
   },
   "authorSteps": {
     "title": "Describe the test",
@@ -3916,5 +3918,29 @@
     "description": "API calls made after the test, whether it passed or not, to remove the data it created. Values the steps stored, like {{example}}, can be used; a call naming one the run never set is skipped.",
     "add": "Add a saved API test as cleanup…",
     "empty": "No cleanup. What the test creates stays in the application."
+  },
+  "testFiles": {
+    "button": "Files",
+    "title": "Tests as files",
+    "description": "A project's web and API tests as one YAML or JSON file, to keep in a repository beside the application. Importing it back updates the tests of the same name — each gets a new version — and creates the others. Secrets in API tests are written as variables.",
+    "export": "Export",
+    "project": "Project",
+    "allTests": "All tests",
+    "noProject": "Tests in no project",
+    "format": "Format",
+    "download": "Download",
+    "import": "Import",
+    "openFile": "Open a file…",
+    "newTestsGoTo": "New tests go to",
+    "noProjectShort": "No project",
+    "done": "Imported.",
+    "preview": "Show what changes",
+    "importButton": "Import",
+    "outcomes": {
+      "created": "new",
+      "updated": "updated",
+      "unchanged": "unchanged",
+      "invalid": "not imported"
+    }
   }
 }

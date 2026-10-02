@@ -32,6 +32,33 @@ usata.
 **Ripristina** rimette una versione precedente salvandola di nuovo come versione più recente:
 nulla in mezzo viene rimosso, così anche il lavoro di oggi resta recuperabile.
 
+## Test come file {#test-come-file}
+
+**Libreria dei test → File** esporta i test web e API di un progetto — o tutti — in un unico file
+YAML o JSON, da tenere in un repository accanto all'applicazione, rivedere nelle pull request e
+importare in un'altra installazione. Il file contiene ciò che i test sono (step, precondizioni,
+pulizia, dataset, richieste, asserzioni, campi di reportistica) e niente che appartenga a questa
+installazione: né id, né autori, né date, così un diff mostra solo cosa è cambiato nei test. Un
+segreto scritto nell'autorizzazione di un test API diventa una variabile
+(<code v-pre>{{bearer_token}}</code>…): impostatela in un ambiente dove i test vengono importati.
+
+**Importa** rilegge quel file. **Mostra cosa cambia** elenca ogni test come nuovo, aggiornato,
+invariato o non importato (con il motivo); **Importa** poi salva: un test con lo stesso nome viene
+aggiornato e riceve una nuova [versione](#cronologia-e-versioni), gli altri vengono creati nel progetto
+scelto. Gli step che chiamano un gruppo di step o un'azione personalizzata, o nominano un elemento
+condiviso, vi si riferiscono per id, quindi quei test si importano nella loro organizzazione;
+l'esportazione dice quanti sono. La CLI fa lo stesso da una pipeline: `wfm tests export` e
+`wfm tests import` ([CLI](../reference/cli)).
+
+**Come test Playwright.** L'icona del file su un test web lo scarica come file Playwright Test
+(`*.spec.ts`), con gli step che un run esegue — gruppi di step e azioni personalizzate espansi,
+elementi condivisi risolti. Le variabili vengono da variabili d'ambiente chiamate `WFM_<NOME>`
+(`WFM_BASEURL` per <code v-pre>{{baseUrl}}</code>); le precondizioni girano prima tramite il fixture
+request di Playwright e la pulizia dopo, qualunque cosa sia successa; un dataset diventa un test per
+riga. Gli step senza un equivalente fuori da WebFlowMaster — attesa di un'email, una query al
+database, la scansione di accessibilità — sono scritti come commenti, e le prime righe del file
+dicono quanti sono.
+
 ## Pubblicazione e revisioni {#pubblicazione-e-revisioni}
 
 Un test salvato è una **copia di lavoro**. I piani eseguono la versione **pubblicata** quando ce

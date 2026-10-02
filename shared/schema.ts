@@ -1619,6 +1619,8 @@ export const AUDIT_ACTIONS = {
   TEST_UPDATED: 'test.updated',
   TEST_DELETED: 'test.deleted',
   TEST_VERSION_RESTORED: 'test.version_restored',
+  // Tests read back from a file made by the export (server/test-bundle.ts), in one entry.
+  TESTS_IMPORTED: 'test.imported',
   API_TEST_CREATED: 'api_test.created',
   API_TEST_UPDATED: 'api_test.updated',
   API_TEST_DELETED: 'api_test.deleted',
