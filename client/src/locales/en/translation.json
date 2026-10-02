@@ -2602,7 +2602,8 @@
       "requirement": "Requirements",
       "test_management": "Test management",
       "mobile_test": "Mobile apps",
-      "test_data_set": "Test data"
+      "test_data_set": "Test data",
+      "scim": "Provisioning (SCIM)"
     },
     "actions": {
       "member_role_changed": "Member role changed",

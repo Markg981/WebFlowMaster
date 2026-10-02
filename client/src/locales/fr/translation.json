@@ -2608,7 +2608,8 @@
       "requirement": "Exigences",
       "test_management": "Gestion des tests",
       "mobile_test": "Applications mobiles",
-      "test_data_set": "Données de test"
+      "test_data_set": "Données de test",
+      "scim": "Provisionnement (SCIM)"
     },
     "actions": {
       "member_role_changed": "Rôle du membre modifié",

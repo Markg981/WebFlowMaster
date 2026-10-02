@@ -2727,7 +2727,8 @@
       "requirement": "Requisiti",
       "test_management": "Gestione test",
       "mobile_test": "App mobili",
-      "test_data_set": "Dati di test"
+      "test_data_set": "Dati di test",
+      "scim": "Provisioning (SCIM)"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
