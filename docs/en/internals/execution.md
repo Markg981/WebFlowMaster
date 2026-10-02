@@ -178,7 +178,9 @@ With `shards = 1` none of this runs.
   step names one, so every test using it is fixed at once.
 - **Evidence.** Screenshots per the plan's policy; video, Playwright trace and HAR network capture
   per the evidence settings (`never`, `on_failure`, `always`); visual comparison against per-step
-  baselines when visual testing is on; accessibility findings for `assertAccessible` steps.
+  baselines when visual testing is on; accessibility findings for `assertAccessible` steps; Web
+  Vitals for `measurePerformance` and scores plus the HTML report for `auditLighthouse`
+  (`server/web-performance.ts`, Lighthouse run as a separate process).
 - **API tests** run through `server/api-test-runner.ts`: variables substituted, authentication
   applied (Bearer, Basic, API key, OAuth 2.0 client credentials or password grant, and the
   signing and challenge schemes of `server/api-auth.ts`: JWT, OAuth 1.0, Hawk, AWS SigV4, Akamai

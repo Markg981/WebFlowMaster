@@ -18,6 +18,18 @@ import {
   type AccessibilityImpact,
 } from '@shared/accessibility';
 import { MAX_LOOP_ITERATIONS } from '@shared/flow';
+import { measurePagePerformance, runLighthouse } from './web-performance';
+import {
+  DEFAULT_PERFORMANCE_LIMITS,
+  check,
+  describeChecks,
+  formatMetric,
+  parseLighthouseLimits,
+  parsePerformanceLimits,
+  type LighthouseFinding,
+  type PerformanceFinding,
+  type PerformanceMetric,
+} from '@shared/web-performance';
 import { scanAccessibility } from './accessibility';
 import { allowsSelfSignedCertificate, requestVariables, substituteVariables } from './outbound-http';
 import { EMAIL_TIMEOUT_MS, inboxConfig, parseEmailQuery, waitForEmail, type InboxGet } from './email-inbox';
@@ -69,6 +81,11 @@ export interface StepContext {
   startedAt?: number;
   /** Runs a `queryDatabase` statement. The real drivers when omitted. */
   database?: DatabaseRunner;
+  /** Where an `auditLighthouse` step keeps its HTML report; none in the builder's preview. */
+  artifactDir?: string;
+  /** Stand-ins for the performance measurements, for tests. The real ones when omitted. */
+  measurePerformance?: StepRuntime['measurePerformance'];
+  runLighthouse?: StepRuntime['runLighthouse'];
 }
 
 export interface StepOutcome {
@@ -85,6 +102,10 @@ export interface StepOutcome {
   detail?: string;
   /** What an `assertAccessible` step found, kept on the step for the report. */
   accessibility?: AccessibilityFinding;
+  /** What a `measurePerformance` step measured (shared/web-performance.ts). */
+  performance?: PerformanceFinding;
+  /** What an `auditLighthouse` step scored. */
+  lighthouse?: LighthouseFinding;
   /**
    * The tab the rest of the test runs in, when this step moved it (`switchTab`, `closeTab`).
    *
@@ -259,6 +280,10 @@ interface StepRuntime {
   inboxGet: InboxGet;
   /** See StepContext.database. */
   database: DatabaseRunner;
+  /** The browser's own measurements of the page (server/web-performance.ts). */
+  measurePerformance: () => Promise<{ url: string; metrics: Record<PerformanceMetric, number | null> }>;
+  /** Lighthouse on the page's address, with the test's cookies for it. */
+  runLighthouse: (formFactor: 'mobile' | 'desktop') => Promise<Omit<LighthouseFinding, 'checks'>>;
 }
 
 /** Reads the step's value as a non-empty string, or explains what is missing. */
@@ -855,6 +880,54 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
   },
 
   /**
+   * The page's speed as the browser measured it: Core Web Vitals and the timings around them,
+   * against the limits in the value (shared/web-performance.ts). Empty checks the Core Web
+   * Vitals' "good" thresholds. A metric this browser cannot measure is reported, not failed.
+   */
+  measurePerformance: async (rt) => {
+    const text = typeof rt.raw === 'string' && rt.raw.trim() ? rt.raw : DEFAULT_PERFORMANCE_LIMITS;
+    const resolved = resolveValue(text, rt.vars);
+    if ('error' in resolved) return failed(resolved.error);
+    const limits = parsePerformanceLimits(resolved.value);
+    if ('error' in limits) return failed(limits.error);
+    const measured = await rt.measurePerformance();
+    const checks = check(limits, measured.metrics);
+    const finding: PerformanceFinding = { url: measured.url, metrics: measured.metrics, checks };
+    const line = describeChecks(checks, formatMetric);
+    return checks.some((c) => c.ok === false)
+      ? { status: 'failed', error: line, performance: finding }
+      : { status: 'passed', detail: line, performance: finding };
+  },
+
+  /**
+   * Lighthouse on the page the test is on: category scores against the limits in the value,
+   * and its HTML report kept with the run. Empty records the scores and checks nothing.
+   */
+  auditLighthouse: async (rt) => {
+    const text = typeof rt.raw === 'string' ? rt.raw : '';
+    const resolved = text.trim() ? resolveValue(text, rt.vars) : { value: '' };
+    if ('error' in resolved) return failed(resolved.error);
+    const parsed = parseLighthouseLimits(resolved.value);
+    if ('error' in parsed) return failed(parsed.error);
+    const url = rt.page.url();
+    if (!/^https?:/i.test(url)) return failed('Lighthouse needs a page with a web address: navigate first.');
+    let audit: Omit<LighthouseFinding, 'checks'>;
+    try {
+      audit = await rt.runLighthouse(parsed.formFactor);
+    } catch (error) {
+      return failed((error as Error).message);
+    }
+    const checks = check(parsed.limits, audit.scores);
+    const finding: LighthouseFinding = { ...audit, checks };
+    const scores = Object.entries(audit.scores).map(([k, v]) => `${k} ${v}`).join(', ');
+    const failing = checks.filter((c) => c.ok === false);
+    if (failing.length) {
+      return { status: 'failed', error: `Lighthouse (${audit.formFactor}) below the limit: ${failing.map((c) => `${c.metric} ${c.actual} (limit ${c.op} ${c.value})`).join('; ')}.`, lighthouse: finding };
+    }
+    return { status: 'passed', detail: `Lighthouse (${audit.formFactor}): ${scores || 'no scores'}.`, lighthouse: finding };
+  },
+
+  /**
    * Picks an option from a dropdown that is not a native `<select>`.
    *
    * `select` calls `page.selectOption`, which only drives real `<select>` elements. Angular
@@ -1367,6 +1440,19 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
       return { status: response.status(), json: () => response.json() };
     },
     database: ctx.database ?? runDatabaseQuery,
+    measurePerformance: ctx.measurePerformance ?? (() => measurePagePerformance(page)),
+    runLighthouse:
+      ctx.runLighthouse ??
+      (async (formFactor) => {
+        const url = page.url();
+        const cookies = await page.context().cookies(url).catch(() => []);
+        return runLighthouse({
+          url,
+          formFactor,
+          cookieHeader: cookies.map((c) => `${c.name}=${c.value}`).join('; ') || undefined,
+          outputDir: ctx.artifactDir,
+        });
+      }),
   };
 
   return handler(rt);

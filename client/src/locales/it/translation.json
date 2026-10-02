@@ -1363,6 +1363,16 @@
       "clearMocks": {
         "name": "Rimuovi simulazioni",
         "description": "Toglie tutte le simulazioni e i blocchi del test: la pagina torna a raggiungere i server veri."
+      },
+      "measurePerformance": {
+        "name": "Misura la velocità della pagina",
+        "description": "Legge ciò che il browser ha misurato sulla pagina a questo punto — Core Web Vitals (LCP, CLS, INP), FCP, TBT, TTFB, tempo di caricamento, richieste e peso — e fallisce quando un limite non è rispettato. Vuoto controlla le soglie «buone» delle Core Web Vitals.",
+        "valueHint": "LCP < 2.5s, CLS <= 0.1, TTFB < 800ms, weight < 2MB"
+      },
+      "auditLighthouse": {
+        "name": "Audit Lighthouse",
+        "description": "Esegue Lighthouse sulla pagina corrente, con i cookie del test, e conserva il suo report con l'esecuzione. Fallisce quando una categoria ha un punteggio sotto il limite; vuoto registra solo i punteggi.",
+        "valueHint": "performance >= 80, accessibility >= 90, desktop"
       }
     },
     "testSequenceBuilder": {

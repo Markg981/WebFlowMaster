@@ -1302,6 +1302,16 @@
       "clearMocks": {
         "name": "Retirer les simulations",
         "description": "Retire toutes les simulations et blocages du test : la page atteint de nouveau les vrais serveurs."
+      },
+      "measurePerformance": {
+        "name": "Mesurer la vitesse de la page",
+        "description": "Lit ce que le navigateur a mesuré sur la page à ce moment — Core Web Vitals (LCP, CLS, INP), FCP, TBT, TTFB, temps de chargement, requêtes et poids — et échoue quand une limite n'est pas respectée. Vide vérifie les seuils « bons » des Core Web Vitals.",
+        "valueHint": "LCP < 2.5s, CLS <= 0.1, TTFB < 800ms, weight < 2MB"
+      },
+      "auditLighthouse": {
+        "name": "Audit Lighthouse",
+        "description": "Exécute Lighthouse sur la page courante, avec les cookies du test, et conserve son rapport avec l'exécution. Échoue quand une catégorie est sous sa limite ; vide enregistre seulement les scores.",
+        "valueHint": "performance >= 80, accessibility >= 90, desktop"
       }
     },
     "saveTest": {

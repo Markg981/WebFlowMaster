@@ -36,6 +36,8 @@ import {
   Variable,
   X,
   type LucideIcon,
+  Gauge,
+  Lightbulb,
 } from 'lucide-react';
 
 import type { AdhocActionId } from '@shared/recording';
@@ -70,6 +72,8 @@ const ACTION_ICONS: Record<AdhocActionId, LucideIcon> = {
   waitForText: Type,
   waitForNetworkIdle: Activity,
   assertAccessible: Accessibility,
+  measurePerformance: Gauge,
+  auditLighthouse: Lightbulb,
   pressKey: CornerDownLeft,
   doubleClick: MousePointerClick,
   rightClick: MousePointer2,

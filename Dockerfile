@@ -36,6 +36,12 @@ COPY . .
 # why they were installed above and are pruned below rather than skipped.
 RUN npm run build && npm prune --omit=dev
 
+# Lighthouse, for the auditLighthouse step (server/web-performance.ts). Installed as a program on
+# its own rather than as a dependency of the application: it brings a browser driver and a
+# telemetry SDK the application has no use for, and it runs as a separate process anyway. It uses
+# the image's Playwright Chromium. Version 12 runs on any Node the image has; 13 needs 22.19.
+RUN npm install -g --no-audit --no-fund lighthouse@12.8.2 && npm cache clean --force
+
 # Matches the default in server/config.ts. The compose file publishes it; PORT overrides it.
 EXPOSE 5000
 

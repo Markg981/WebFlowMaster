@@ -4,6 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, Wand2, Image as ImageIcon } from 'lucide-react';
 import type { AccessibilityFinding } from '@shared/accessibility';
+import { PERFORMANCE_METRICS, formatMetric, type LighthouseFinding, type PerformanceFinding } from '@shared/web-performance';
 import AccessibilityPanel from './AccessibilityPanel';
 import NetworkPanel from './NetworkPanel';
 import type { NetworkSummary } from '@shared/network';
@@ -40,6 +41,8 @@ export interface ReportStep {
   screenshot?: string | null;
   visual?: ReportStepVisual;
   accessibility?: AccessibilityFinding;
+  performance?: PerformanceFinding;
+  lighthouse?: LighthouseFinding;
 }
 
 interface StepDetailsDialogProps {
@@ -61,6 +64,47 @@ interface StepDetailsDialogProps {
 }
 
 /** The picture and what it is a picture of, since three unlabelled images say nothing. */
+/** What a measurePerformance step measured, with the limits it checked. */
+function SpeedPanel({ finding }: { finding: PerformanceFinding }) {
+  const limited = new Map(finding.checks.map((c) => [c.metric, c]));
+  return (
+    <div className="mt-3 rounded-md border p-3 dark:border-slate-700" data-testid="speed-panel">
+      <p className="mb-2 text-sm font-medium">Page speed · <span className="font-normal text-muted-foreground break-all">{finding.url}</span></p>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+        {PERFORMANCE_METRICS.map((m) => {
+          const c = limited.get(m);
+          return (
+            <div key={m} className="flex justify-between gap-2">
+              <dt className="text-muted-foreground">{m}</dt>
+              <dd className={`tabular-nums ${c?.ok === false ? 'font-semibold text-destructive' : ''}`}>
+                {formatMetric(m, finding.metrics[m] ?? null)}{c ? ` (${c.op} ${formatMetric(m, c.value)})` : ''}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+    </div>
+  );
+}
+
+/** What an auditLighthouse step scored, and its report. */
+function LighthousePanel({ finding }: { finding: LighthouseFinding }) {
+  const broken = new Set(finding.checks.filter((c) => c.ok === false).map((c) => c.metric));
+  return (
+    <div className="mt-3 rounded-md border p-3 dark:border-slate-700" data-testid="lighthouse-panel">
+      <p className="mb-2 text-sm font-medium">
+        Lighthouse · {finding.formFactor}
+        {finding.reportUrl && <a href={finding.reportUrl} target="_blank" rel="noreferrer" className="ml-2 text-xs font-normal text-primary underline">report</a>}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {Object.entries(finding.scores).map(([category, score]) => (
+          <Badge key={category} variant={broken.has(category as never) ? 'destructive' : 'secondary'}>{category} {score}</Badge>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ImagePanel({ label, src }: { label: string; src?: string | null }) {
   if (!src) return null;
   return (
@@ -192,6 +236,8 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
 
                   {step.visual && <VisualPanel visual={step.visual} />}
                   {step.accessibility && <AccessibilityPanel finding={step.accessibility} />}
+                  {step.performance && <SpeedPanel finding={step.performance} />}
+                  {step.lighthouse && <LighthousePanel finding={step.lighthouse} />}
 
                   {/* The step's own screenshot comes last, and not at all when a visual
                       comparison already showed this run's page beside its baseline. */}

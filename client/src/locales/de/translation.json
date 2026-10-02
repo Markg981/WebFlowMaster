@@ -1302,6 +1302,16 @@
       "clearMocks": {
         "name": "Simulationen entfernen",
         "description": "Nimmt alle Simulationen und Sperren des Tests zurück: Die Seite erreicht wieder die echten Server."
+      },
+      "measurePerformance": {
+        "name": "Seitengeschwindigkeit messen",
+        "description": "Liest, was der Browser an dieser Stelle über die Seite gemessen hat — Core Web Vitals (LCP, CLS, INP), FCP, TBT, TTFB, Ladezeit, Anfragen und Größe — und schlägt fehl, wenn ein Grenzwert verletzt ist. Leer prüft die „guten“ Schwellen der Core Web Vitals.",
+        "valueHint": "LCP < 2.5s, CLS <= 0.1, TTFB < 800ms, weight < 2MB"
+      },
+      "auditLighthouse": {
+        "name": "Lighthouse-Audit",
+        "description": "Führt Lighthouse auf der aktuellen Seite mit den Cookies des Tests aus und bewahrt den Bericht beim Lauf auf. Schlägt fehl, wenn eine Kategorie unter ihrem Grenzwert liegt; leer zeichnet nur die Werte auf.",
+        "valueHint": "performance >= 80, accessibility >= 90, desktop"
       }
     },
     "saveTest": {

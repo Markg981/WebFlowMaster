@@ -24,6 +24,7 @@ import type { BrowserGridProvider } from '@shared/browser-grids';
 import { LOCALE_VARIABLE } from '@shared/locales';
 import { analyseFlow, leavesPageAlone } from '@shared/flow';
 import type { AccessibilityFinding } from '@shared/accessibility';
+import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performance';
 import { resolveVariables } from './variables';
 import { loadLoginState, saveLoginState, type EnvironmentScope, type LoginState } from './login-state';
 import { describeBrowser, deviceContextOptions, launchBrowser, resolveBrowser, type BrowserChoice } from './browsers';
@@ -166,6 +167,10 @@ export interface StepResult {
   };
   /** What an accessibility check found on the page, every violation with whether it failed the step. */
   accessibility?: AccessibilityFinding;
+  /** What a measurePerformance step measured (shared/web-performance.ts). */
+  performance?: PerformanceFinding;
+  /** What an auditLighthouse step scored. */
+  lighthouse?: LighthouseFinding;
 }
 
 /**
@@ -1627,6 +1632,8 @@ export class PlaywrightService {
           let stepScreenshot: string | undefined;
           let stepDetail: string | undefined;
           let stepAccessibility: AccessibilityFinding | undefined;
+          let stepPerformance: PerformanceFinding | undefined;
+          let stepLighthouse: LighthouseFinding | undefined;
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
           resolvedLogger.verbose({ message: `PS:executeAdhocSequence - LOOP START for step`, testName, actionName, actionId, pageClosed: page?.isClosed() });
@@ -1653,6 +1660,8 @@ export class PlaywrightService {
             // question anyone asks of a precondition afterwards.
             stepDetail = outcome.detail;
             stepAccessibility = outcome.accessibility;
+            stepPerformance = outcome.performance;
+            stepLighthouse = outcome.lighthouse;
             if (!leavesPageAlone(actionId)) {
               // Let the UI settle before capturing: a click often dismisses a menu and opens a
               // dialog with an animation, and may fire XHRs. Without this the screenshot catches a
@@ -1704,7 +1713,7 @@ export class PlaywrightService {
           }
           await debug?.record({ name: actionName, type: actionId || 'unknown', stepId: step.id ?? null, status: stepStatus, detail: stepStatus === 'passed' ? (stepDetail ?? 'Action executed successfully.') : (stepError || 'Unknown error'), corrected });
 
-          stepResults.push({ name: actionName, type: actionId || 'unknown', selector: step.targetElement?.selector, value: step.value, status: stepStatus, screenshot: stepScreenshot, error: stepError, details: stepStatus === 'passed' ? (stepDetail ?? 'Action executed successfully.') : `Action failed: ${stepError || 'Unknown error'}`, accessibility: stepAccessibility, });
+          stepResults.push({ name: actionName, type: actionId || 'unknown', selector: step.targetElement?.selector, value: step.value, status: stepStatus, screenshot: stepScreenshot, error: stepError, details: stepStatus === 'passed' ? (stepDetail ?? 'Action executed successfully.') : `Action failed: ${stepError || 'Unknown error'}`, accessibility: stepAccessibility, performance: stepPerformance, lighthouse: stepLighthouse, });
           if (!overallSuccess) {
             resolvedLogger.info({ message: `PS:executeAdhocSequence - Step failed. Stopping sequence execution.`, testName, failedStep: actionName });
             break;
@@ -2136,6 +2145,8 @@ export class PlaywrightService {
           let stepScreenshot: string | undefined;
           let stepDetail: string | undefined;
           let stepAccessibility: AccessibilityFinding | undefined;
+          let stepPerformance: PerformanceFinding | undefined;
+          let stepLighthouse: LighthouseFinding | undefined;
           let stepVisual: StepResult['visual'];
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
@@ -2162,7 +2173,7 @@ export class PlaywrightService {
 
             let outcome: Awaited<ReturnType<typeof executeStep>>;
             try {
-              outcome = await executeStep({ page, reporter, vars, startedAt: startTime }, step);
+              outcome = await executeStep({ page, reporter, vars, startedAt: startTime, artifactDir: screenshotBaseDir }, step);
             } catch (firstError: any) {
               // Retried below like a failed outcome; without the plan's retry it fails as it did.
               if (!options?.runtime?.retryFailedStep) throw firstError;
@@ -2182,7 +2193,7 @@ export class PlaywrightService {
                 });
               }
               reporter.resetStepState();
-              outcome = await executeStep({ page, reporter, vars, startedAt: startTime }, step);
+              outcome = await executeStep({ page, reporter, vars, startedAt: startTime, artifactDir: screenshotBaseDir }, step);
             }
             // A step that moved the test to another tab: the steps after it, the healing pass
             // and this step's screenshot all belong to that tab.
@@ -2199,6 +2210,8 @@ export class PlaywrightService {
             // that changed it both pass, and the report has to tell them apart.
             stepDetail = outcome.detail;
             stepAccessibility = outcome.accessibility;
+            stepPerformance = outcome.performance;
+            stepLighthouse = outcome.lighthouse;
 
             // One screenshot, used twice: as the step's evidence when the plan keeps it, and —
             // when the plan asked for visual testing — as the image compared against this
@@ -2307,6 +2320,8 @@ export class PlaywrightService {
             healed: reporter.lastActionHealed,
             visual: stepVisual,
             accessibility: stepAccessibility,
+            performance: stepPerformance,
+            lighthouse: stepLighthouse,
           });
 
           if (!overallSuccess) break;

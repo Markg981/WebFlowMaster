@@ -1296,6 +1296,16 @@
       "clearMocks": {
         "name": "Clear mocks",
         "description": "Takes back every mock and block of the test: the page reaches the real servers again."
+      },
+      "measurePerformance": {
+        "name": "Measure page speed",
+        "description": "Reads what the browser measured about the page at this point — Core Web Vitals (LCP, CLS, INP), FCP, TBT, TTFB, load time, requests and weight — and fails when a limit is broken. Empty checks the Core Web Vitals' good thresholds.",
+        "valueHint": "LCP < 2.5s, CLS <= 0.1, TTFB < 800ms, weight < 2MB"
+      },
+      "auditLighthouse": {
+        "name": "Lighthouse audit",
+        "description": "Runs Lighthouse on the current page, with the test's cookies, and keeps its report with the run. Fails when a category scores below its limit; empty records the scores only.",
+        "valueHint": "performance >= 80, accessibility >= 90, desktop"
       }
     },
     "playbackStatus": "Step {{current}}/{{total}}: {{name}} - {{details}}",

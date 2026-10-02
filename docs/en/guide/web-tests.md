@@ -39,6 +39,8 @@ choose, the text to expect.
 | **Assert Element Count** | Fails unless the number of matching elements is right, e.g. `==1`, `>=5`, `<3`. |
 | **Assert state** | Fails unless a control is checked, enabled, editable — or the opposite. |
 | **Check accessibility** | Checks the page with axe-core at that point, and fails on violations at or above the severity you choose (serious by default). |
+| **Measure page speed** | Checks the Core Web Vitals and timings the browser measured for the page against limits — see [Page speed](#page-speed). |
+| **Lighthouse audit** | Runs Lighthouse on the current page and checks its scores — see [Page speed](#page-speed). |
 | **Press key** | Presses a key or a combination — `Enter`, `Tab`, `Escape`, `Control+A` — on the element, or on whatever has focus when the step has none. |
 | **Double-click** / **Right-click** | Double-clicks, or opens the element's context menu. |
 | **Drag and drop** | Drags the element onto the one whose selector is the value. |
@@ -307,6 +309,41 @@ the tests check, and write only what they prepare, and never a production databa
 from the WebFlowMaster runner, not from the browser — also on a local agent — so the runner must
 reach the database. Values are put into the SQL as they are: quote text (`'{{email}}'`), and use
 variables whose values the test controls.
+
+## Page speed {#page-speed}
+
+**Measure page speed** reads what the browser itself recorded about the page the test is on, at that
+point of the flow, and fails when a limit is broken. Its value lists the limits:
+
+`LCP < 2.5s, CLS <= 0.1, INP < 200, TTFB < 800ms, weight < 2MB`
+
+| Metric | What it is |
+|---|---|
+| `LCP` | Largest Contentful Paint: when the main content appeared. |
+| `CLS` | Cumulative Layout Shift: how much the page jumped (largest 5-second window). |
+| `INP` | Interaction to Next Paint: the slowest response to a click or key so far; measured only after the test has interacted. |
+| `FCP`, `TTFB`, `DCL`, `LOAD` | First paint, first byte, DOM ready, load event. |
+| `TBT` | Total Blocking Time: long tasks after the first paint. |
+| `REQUESTS`, `WEIGHT` | How many requests, and how many bytes were transferred (cross-origin files without `Timing-Allow-Origin` count as 0). |
+
+Times take `ms` or `s`, sizes `KB` or `MB`. Left empty, it checks the Core Web Vitals' *good*
+thresholds: `LCP <= 2500, CLS <= 0.1, INP <= 200`. Put it after the page has loaded — after a
+**Wait for element** on the main content, for instance — and after an interaction when INP matters.
+Only Chromium measures LCP, CLS, INP and TBT; in Firefox and WebKit they are shown as — and a limit
+on them is reported as not measured rather than failed, so the same test runs on every browser.
+
+**Lighthouse audit** runs [Lighthouse](https://developer.chrome.com/docs/lighthouse) on the current
+page's address and checks its category scores (0–100): `performance >= 80, accessibility >= 90,
+best-practices >= 90, seo >= 80`, plus `desktop` for the desktop preset (mobile by default). Empty
+records the scores and checks nothing. Lighthouse loads the page again in a Chromium of its own on
+the runner, sending the test's cookies for that address, so a page behind a login is audited
+logged in; it takes 15–60 seconds. Its full HTML report is kept with the run's evidence. It runs on
+the server's runners only: a plan on local agents or on a browser grid cannot be audited from where
+the page is.
+
+The run report's **Page speed** card lists every measured page — the vitals per browser, and the
+Lighthouse scores with a link to the report — with the limits each one broke, and each step's
+details show the same numbers.
 
 ## Mocking the network {#mocking-the-network}
 

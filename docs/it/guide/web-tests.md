@@ -41,6 +41,8 @@ richiede: il testo da scrivere, l'opzione da scegliere, il testo atteso.
 | **Verifica Conteggio Elementi** | Fallisce se il numero di elementi corrispondenti non è quello giusto, per esempio `==1`, `>=5`, `<3`. |
 | **Verifica stato** | Fallisce se un controllo non è selezionato, abilitato, modificabile — o il contrario. |
 | **Verifica accessibilità** | Controlla la pagina in quel punto con axe-core, e fallisce sulle violazioni di gravità pari o superiore a quella scelta (serious di default). |
+| **Misura la velocità della pagina** | Controlla le Core Web Vitals e i tempi misurati dal browser per la pagina rispetto a dei limiti — vedi [Velocità delle pagine](#velocita-delle-pagine). |
+| **Audit Lighthouse** | Esegue Lighthouse sulla pagina corrente e ne controlla i punteggi — vedi [Velocità delle pagine](#velocita-delle-pagine). |
 | **Premi tasto** | Preme un tasto o una combinazione — `Enter`, `Tab`, `Escape`, `Control+A` — sull'elemento, o su quello che ha il focus se lo step non ne ha. |
 | **Doppio click** / **Click destro** | Fa doppio click, o apre il menu contestuale dell'elemento. |
 | **Trascina e rilascia** | Trascina l'elemento su quello il cui selettore è il valore. |
@@ -322,6 +324,42 @@ ciò che i test verificano e scrivere solo ciò che preparano, e mai un database
 query parte dal runner di WebFlowMaster, non dal browser — anche su un agente locale — quindi il
 runner deve raggiungere il database. I valori entrano nell'SQL così come sono: mettete il testo tra
 apici (`'{{email}}'`) e usate variabili i cui valori sono sotto il controllo del test.
+
+## Velocità delle pagine {#velocita-delle-pagine}
+
+**Misura la velocità della pagina** legge ciò che il browser stesso ha registrato sulla pagina in cui
+si trova il test, in quel punto del flusso, e fallisce quando un limite non è rispettato. Il valore
+elenca i limiti:
+
+`LCP < 2.5s, CLS <= 0.1, INP < 200, TTFB < 800ms, weight < 2MB`
+
+| Metrica | Cos'è |
+|---|---|
+| `LCP` | Largest Contentful Paint: quando è comparso il contenuto principale. |
+| `CLS` | Cumulative Layout Shift: quanto si è spostata la pagina (la finestra di 5 secondi peggiore). |
+| `INP` | Interaction to Next Paint: la risposta più lenta a un clic o a un tasto finora; misurata solo dopo che il test ha interagito. |
+| `FCP`, `TTFB`, `DCL`, `LOAD` | Primo disegno, primo byte, DOM pronto, evento load. |
+| `TBT` | Total Blocking Time: i task lunghi dopo il primo disegno. |
+| `REQUESTS`, `WEIGHT` | Quante richieste, e quanti byte trasferiti (i file di altri domini senza `Timing-Allow-Origin` contano 0). |
+
+I tempi accettano `ms` o `s`, le dimensioni `KB` o `MB`. Se vuoto, controlla le soglie *buone* delle
+Core Web Vitals: `LCP <= 2500, CLS <= 0.1, INP <= 200`. Mettetelo dopo che la pagina si è caricata —
+dopo un **Attendi elemento** sul contenuto principale, per esempio — e dopo un'interazione quando
+conta l'INP. Solo Chromium misura LCP, CLS, INP e TBT; in Firefox e WebKit compaiono come — e un
+limite su di esse risulta non misurato invece che fallito, così lo stesso test gira su ogni browser.
+
+**Audit Lighthouse** esegue [Lighthouse](https://developer.chrome.com/docs/lighthouse) sull'indirizzo
+della pagina corrente e ne controlla i punteggi per categoria (0–100): `performance >= 80,
+accessibility >= 90, best-practices >= 90, seo >= 80`, più `desktop` per il profilo desktop (mobile
+di default). Se vuoto registra i punteggi e non controlla nulla. Lighthouse ricarica la pagina in un
+proprio Chromium sul runner, inviando i cookie del test per quell'indirizzo, così una pagina dietro
+un accesso viene analizzata con l'accesso fatto; richiede 15–60 secondi. Il suo report HTML completo
+resta con le evidenze dell'esecuzione. Gira solo sui runner del server: un piano su agenti locali o
+su una griglia di browser non può essere analizzato da dove si trova la pagina.
+
+La scheda **Velocità delle pagine** del report elenca ogni pagina misurata — le metriche per browser,
+e i punteggi Lighthouse con il link al report — con i limiti non rispettati, e i dettagli di ogni
+step mostrano gli stessi numeri.
 
 ## Simulare la rete {#simulare-la-rete}
 
