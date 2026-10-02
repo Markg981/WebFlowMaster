@@ -33,6 +33,7 @@ const propertyLabelBySource: Record<Extraction['source'], string | null> = {
   header: 'Header name',
   body_json_path: 'JSON path (e.g. data.id)',
   body_text: null,
+  body_xpath: 'XPath (e.g. //OrderId)',
 };
 
 const NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;

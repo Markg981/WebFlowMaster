@@ -26,7 +26,7 @@ interface PreviewTest {
 }
 
 interface Preview {
-  format: 'openapi' | 'swagger' | 'postman';
+  format: 'openapi' | 'swagger' | 'postman' | 'wsdl';
   title: string;
   tests: PreviewTest[];
   variables: Array<{ name: string; value: string | null; why: string }>;
@@ -39,7 +39,7 @@ interface Outcome {
   invalid: Array<{ name: string; reason: string }>;
 }
 
-const FORMAT_LABEL: Record<Preview['format'], string> = { openapi: 'OpenAPI 3', swagger: 'Swagger 2', postman: 'Postman' };
+const FORMAT_LABEL: Record<Preview['format'], string> = { openapi: 'OpenAPI 3', swagger: 'Swagger 2', postman: 'Postman', wsdl: 'WSDL (SOAP)' };
 const NO_PROJECT = 'none';
 
 async function post(body: unknown) {
@@ -156,7 +156,7 @@ export function ImportApiTestsDialog({ open, onOpenChange }: { open: boolean; on
             <Label htmlFor="import-file" className="inline-flex cursor-pointer items-center gap-2 text-sm">
               <FileUp className="h-4 w-4" /> {t('apiTester.import.openFile', 'Open a file…')}
             </Label>
-            <input id="import-file" type="file" accept=".json,.yaml,.yml" className="sr-only" onChange={(e) => readFile(e.target.files?.[0])} />
+            <input id="import-file" type="file" accept=".json,.yaml,.yml,.wsdl,.xml" className="sr-only" onChange={(e) => readFile(e.target.files?.[0])} />
             <Textarea
               rows={10}
               className="font-mono text-xs"

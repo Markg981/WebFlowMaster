@@ -1,4 +1,5 @@
 import { AuthParamsSchema, type Assertion, type AuthParams } from '@shared/schema';
+import { runGrpc, runWebSocket, xpathValue, type ProtocolResponse } from './api-protocols';
 import { fetchTarget, substituteInValues, substituteVariables } from './outbound-http';
 import { findUnresolvedVariables } from './variables';
 import { accessTokenFor } from './oauth2';
@@ -37,7 +38,7 @@ import {
 const REQUEST_TIMEOUT_MS = 30_000;
 
 /** Where a value comes from — the same vocabulary the assertions use. */
-export type ExtractionSource = 'status_code' | 'header' | 'body_json_path' | 'body_text';
+export type ExtractionSource = 'status_code' | 'header' | 'body_json_path' | 'body_text' | 'body_xpath';
 
 /**
  * A value captured from a response, to be used by a later request as `{{name}}`.
@@ -79,6 +80,8 @@ export interface ApiRequestSpec {
   multipart?: MultipartPart[] | null;
   /** A file sent as the whole body, in place of `body` — base64 for the same reason. */
   binary?: { contentType?: string | null; base64: string } | null;
+  /** A gRPC test's service definition (server/api-protocols.ts). */
+  protoDefinition?: string | null;
 }
 
 export type MultipartPart =
@@ -215,6 +218,13 @@ function valueFrom(
       return typeof response.body === 'object' && response.body !== null
         ? getValueByPath(response.body, property ?? '$')
         : undefined;
+    // An XML answer (SOAP): the text an XPath selects, namespaces ignored when it uses no prefix.
+    case 'body_xpath':
+      try {
+        return xpathValue(response.text, property ?? '/');
+      } catch {
+        return undefined;
+      }
     default: return undefined;
   }
 }
@@ -457,6 +467,11 @@ export async function runApiRequest(
   // Set by the transport, and wrong if carried over from a saved request.
   for (const forbidden of ['host', 'Host', 'content-length', 'Content-Length']) delete headers[forbidden];
 
+  // WebSocket and gRPC: a connection of their own rather than one request (server/api-protocols.ts).
+  if (/^(wss?|grpcs?):$/.test(targetUrl.protocol) || spec.method === 'WEBSOCKET' || spec.method === 'GRPC') {
+    return runOtherProtocol(spec, vars, targetUrl, headers, fetchImpl, startTime, empty);
+  }
+
   const options: RequestInit = { method: spec.method, headers };
   const carriesBody = spec.method !== 'GET' && spec.method !== 'HEAD';
   if (carriesBody && spec.multipart) {
@@ -532,7 +547,14 @@ export async function runApiRequest(
   }
 
   const snapshot = { status: response.status, headers: responseHeaders, body, text, durationMs };
+  return { ...evaluate(spec, snapshot), status: response.status, statusText: response.statusText, headers: responseHeaders, body, durationMs };
+}
 
+/** The assertions and captures of a request, on whatever answered it. */
+function evaluate(
+  spec: ApiRequestSpec,
+  snapshot: { status: number; headers: Record<string, string>; body: unknown; text: string; durationMs: number },
+): Pick<ApiRunResult, 'passed' | 'assertions' | 'extracted' | 'extractionErrors'> {
   const assertions: AssertionOutcome[] = [];
   for (const assertion of spec.assertions ?? []) {
     if (assertion.enabled === false) continue;
@@ -562,15 +584,38 @@ export async function runApiRequest(
     extracted[extraction.name] = typeof value === 'string' ? value : JSON.stringify(value).replace(/^"|"$/g, '');
   }
 
-  return {
-    passed: assertions.every((a) => a.pass),
-    status: response.status,
-    statusText: response.statusText,
-    headers: responseHeaders,
-    body,
-    durationMs,
-    assertions,
-    extracted,
-    extractionErrors,
-  };
+  return { passed: assertions.every((a) => a.pass), assertions, extracted, extractionErrors };
+}
+
+async function runOtherProtocol(
+  spec: ApiRequestSpec,
+  vars: Record<string, string>,
+  targetUrl: URL,
+  headers: Record<string, string>,
+  fetchImpl: OneConnectionFetch,
+  startTime: number,
+  empty: Omit<ApiRunResult, 'passed' | 'durationMs'>,
+): Promise<ApiRunResult> {
+  const fail = (error: string): ApiRunResult => ({ ...empty, passed: false, durationMs: Date.now() - startTime, error });
+  const grpc = targetUrl.protocol === 'grpc:' || targetUrl.protocol === 'grpcs:' || spec.method === 'GRPC';
+  const kind = grpc ? 'gRPC' : 'WebSocket';
+  if (fetchImpl !== fetchTarget) return fail(`${kind} tests are sent from the server's runners, not through a local agent.`);
+  if (grpc && targetUrl.protocol !== 'grpc:' && targetUrl.protocol !== 'grpcs:') return fail('A gRPC address starts with grpc:// or grpcs://.');
+  if (!grpc && targetUrl.protocol !== 'ws:' && targetUrl.protocol !== 'wss:') return fail('A WebSocket address starts with ws:// or wss://.');
+  // Header-based authorizations (bearer, basic, API key…) go on the handshake or the metadata.
+  const auth = await applyAuth(spec.auth, { method: 'GET', url: targetUrl, headers, body: undefined }, vars, fetchImpl);
+  if (typeof auth === 'string') return fail(auth);
+  if (auth) return fail(`${auth.scheme === 'ntlm' ? 'NTLM' : 'Digest'} authentication is not available for ${kind}.`);
+  const body = typeof spec.body === 'string' ? substituteVariables(spec.body, vars) : spec.body == null ? '' : substituteVariables(JSON.stringify(spec.body), vars);
+  let answer: ProtocolResponse;
+  try {
+    answer = grpc
+      ? await runGrpc({ url: targetUrl, proto: spec.protoDefinition ?? '', headers, body, timeoutMs: REQUEST_TIMEOUT_MS })
+      : await runWebSocket({ url: targetUrl.toString(), headers, body, timeoutMs: REQUEST_TIMEOUT_MS });
+  } catch (error) {
+    return fail((error as Error).message);
+  }
+  const durationMs = Date.now() - startTime;
+  const snapshot = { status: answer.status, headers: answer.headers, body: answer.body, text: answer.text, durationMs };
+  return { ...evaluate(spec, snapshot), status: answer.status, statusText: answer.statusText, headers: answer.headers, body: answer.body, durationMs };
 }

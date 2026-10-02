@@ -4,6 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, Wand2, Image as ImageIcon } from 'lucide-react';
 import type { AccessibilityFinding } from '@shared/accessibility';
+import type { DownloadFinding } from '@shared/downloads';
 import { PERFORMANCE_METRICS, formatMetric, type LighthouseFinding, type PerformanceFinding } from '@shared/web-performance';
 import AccessibilityPanel from './AccessibilityPanel';
 import NetworkPanel from './NetworkPanel';
@@ -43,6 +44,7 @@ export interface ReportStep {
   accessibility?: AccessibilityFinding;
   performance?: PerformanceFinding;
   lighthouse?: LighthouseFinding;
+  download?: DownloadFinding;
 }
 
 interface StepDetailsDialogProps {
@@ -101,6 +103,32 @@ function LighthousePanel({ finding }: { finding: LighthouseFinding }) {
           <Badge key={category} variant={broken.has(category as never) ? 'destructive' : 'secondary'}>{category} {score}</Badge>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** The file an expectDownload step took, what it held, and the checks on it. */
+function DownloadPanel({ finding }: { finding: DownloadFinding }) {
+  return (
+    <div className="mt-3 rounded-md border p-3 dark:border-slate-700" data-testid="download-panel">
+      <p className="mb-1 text-sm font-medium">
+        Download · {finding.fileUrl ? <a href={finding.fileUrl} target="_blank" rel="noreferrer" className="text-primary underline">{finding.name}</a> : finding.name}
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {finding.type} · {Math.max(1, Math.round(finding.size / 1024))} KB
+        {finding.rows !== undefined && ` · ${finding.rows} rows × ${finding.columns} columns`}
+        {finding.pages !== undefined && ` · ${finding.pages} page(s)`}
+      </p>
+      {finding.checks.length > 0 && (
+        <ul className="mt-2 space-y-0.5 text-xs">
+          {finding.checks.map((c) => (
+            <li key={c.text} className={c.ok ? '' : 'font-semibold text-destructive'}>
+              {c.ok ? '✓' : '✗'} {c.text}{!c.ok && c.actual ? ` — ${c.actual}` : ''}
+            </li>
+          ))}
+        </ul>
+      )}
+      {finding.sample && <p className="mt-2 line-clamp-3 break-all text-xs text-muted-foreground">{finding.sample}</p>}
     </div>
   );
 }
@@ -238,6 +266,7 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
                   {step.accessibility && <AccessibilityPanel finding={step.accessibility} />}
                   {step.performance && <SpeedPanel finding={step.performance} />}
                   {step.lighthouse && <LighthousePanel finding={step.lighthouse} />}
+                  {step.download && <DownloadPanel finding={step.download} />}
 
                   {/* The step's own screenshot comes last, and not at all when a visual
                       comparison already showed this run's page beside its baseline. */}

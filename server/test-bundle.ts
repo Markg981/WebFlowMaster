@@ -33,7 +33,7 @@ const API_TEST_FIELDS = [
   'name', 'method', 'url', 'module', 'featureArea', 'scenario', 'component', 'priority', 'severity',
   'queryParams', 'requestHeaders', 'requestBody', 'assertions', 'extractions', 'performance',
   'authType', 'authParams', 'bodyType', 'bodyRawContentType', 'bodyFormData', 'bodyUrlEncoded',
-  'bodyGraphqlQuery', 'bodyGraphqlVariables',
+  'bodyGraphqlQuery', 'bodyGraphqlVariables', 'protoDefinition',
 ] as const;
 
 /** The parameters of an authorization that are secrets, by authorization type. */

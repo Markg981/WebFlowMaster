@@ -5,6 +5,7 @@ import { artifactStore, assertSafeKey, RESULTS_PREFIX } from "../artifact-store"
 import { testPlanExecutions } from "@shared/schema";
 import type { AccessibilityFinding } from "@shared/accessibility";
 import type { LighthouseFinding, PerformanceFinding } from "@shared/web-performance";
+import type { DownloadFinding } from "@shared/downloads";
 import { withTenantTransaction } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
 import loggerPromise from "../logger";
@@ -78,6 +79,7 @@ export interface ReportStep {
   accessibility?: AccessibilityFinding;
   performance?: PerformanceFinding;
   lighthouse?: LighthouseFinding;
+  download?: DownloadFinding;
 }
 
 /**
@@ -127,6 +129,9 @@ export function stepsWithArtifactUrls(executionId: string, detailedLog: string |
       performance: step.performance && step.performance.metrics ? (step.performance as PerformanceFinding) : undefined,
       lighthouse: step.lighthouse && step.lighthouse.scores
         ? { ...(step.lighthouse as LighthouseFinding), reportUrl: artifactUrl(executionId, step.lighthouse.reportUrl) ?? undefined }
+        : undefined,
+      download: step.download && typeof step.download.name === 'string'
+        ? { ...(step.download as DownloadFinding), fileUrl: artifactUrl(executionId, step.download.fileUrl) ?? undefined }
         : undefined,
     }));
 }

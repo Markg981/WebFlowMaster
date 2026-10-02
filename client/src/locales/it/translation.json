@@ -137,7 +137,9 @@
       "organizationData": "Esportazione e cancellazione",
       "organizationDataDescription": "Portate via i dati dell'organizzazione, o cancellateli definitivamente.",
       "impactMap": "Mappa dell'impatto",
-      "impactMapDescription": "Quali file riguardano quali test, così una pipeline esegue i test che un commit tocca invece di tutti."
+      "impactMapDescription": "Quali file riguardano quali test, così una pipeline esegue i test che un commit tocca invece di tutti.",
+      "smsInbox": "Casella SMS",
+      "smsInboxDescription": "Gli SMS ricevuti dai vostri numeri di test, per gli step che attendono un codice via SMS."
     },
     "apiKeys": {
       "openApi": "Riferimento API (OpenAPI)",
@@ -696,6 +698,13 @@
         "title": "Caricamento non riuscito",
         "description": "Impossibile caricare il test con ID {{id}}."
       }
+    },
+    "websocket": {
+      "hint": "Un indirizzo ws:// o wss://. Il body raw contiene i messaggi da inviare, uno per riga, oppure {\"send\": [...], \"waitMs\": 2000, \"until\": 1}. Le asserzioni leggono il body JSON { messages, last, count }: last.type, messages[0].id, count."
+    },
+    "grpc": {
+      "proto": "Definizione del servizio (.proto)",
+      "hint": "Indirizzo grpc://host:porta/pacchetto.Servizio/Metodo (grpcs:// per TLS). Il body raw è il messaggio di richiesta in JSON; gli header sono inviati come metadata. Lo stato è il codice gRPC, 0 per OK."
     }
   },
   "dashboardOverviewPage": {
@@ -1373,6 +1382,21 @@
         "name": "Audit Lighthouse",
         "description": "Esegue Lighthouse sulla pagina corrente, con i cookie del test, e conserva il suo report con l'esecuzione. Fallisce quando una categoria ha un punteggio sotto il limite; vuoto registra solo i punteggi.",
         "valueHint": "performance >= 80, accessibility >= 90, desktop"
+      },
+      "setGeolocation": {
+        "name": "Imposta la posizione",
+        "description": "Da qui in poi il browser comunica alla pagina questa posizione (navigator.geolocation), e la pagina può chiederla senza richiesta di permesso.",
+        "valueHint": "45.4642, 9.19 (latitudine, longitudine[, precisione m])"
+      },
+      "expectDownload": {
+        "name": "Verifica un download",
+        "description": "Clicca l'elemento, prende il file scaricato e lo controlla: nome, tipo, dimensione e contenuto di un PDF, CSV, Excel o file di testo. Imposta {{download.name}}, {{download.rows}}, {{download.text}}…",
+        "valueHint": "name: *.pdf; contains: Totale; pages >= 1"
+      },
+      "waitForSms": {
+        "name": "Attendi SMS",
+        "description": "Attende un SMS a un numero di test nella casella SMS dell'organizzazione (Impostazioni → Casella SMS), arrivato dopo l'inizio del test, e ne legge il codice come {{sms.otp}}.",
+        "valueHint": "+39 333 1234567 oppure +39 333 1234567|codice (\\d{6})"
       }
     },
     "testSequenceBuilder": {
@@ -1787,6 +1811,9 @@
       },
       "addAssertion": {
         "button": "Aggiungi asserzione"
+      },
+      "xpath": {
+        "label": "XPath"
       }
     },
     "authTypeDropdown": {
@@ -2772,7 +2799,8 @@
       "mobile_test": "App mobili",
       "test_data_set": "Dati di test",
       "scim": "Provisioning (SCIM)",
-      "impact_rule": "Mappa dell'impatto"
+      "impact_rule": "Mappa dell'impatto",
+      "sms_inbox": "Casella SMS"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
@@ -2878,7 +2906,9 @@
       "api_test_imported": "Test API importati da OpenAPI o Postman",
       "test_imported": "Test importati da un file",
       "impact_rule_created": "Regola d'impatto aggiunta",
-      "impact_rule_deleted": "Regola d'impatto rimossa"
+      "impact_rule_deleted": "Regola d'impatto rimossa",
+      "sms_inbox_token_issued": "Indirizzo SMS emesso",
+      "sms_inbox_token_revoked": "Indirizzo SMS revocato"
     }
   },
   "security": {
@@ -4112,5 +4142,17 @@
     "withinLimits": "entro i limiti",
     "noLimits": "nessun limite",
     "report": "report"
+  },
+  "smsInbox": {
+    "title": "Casella SMS",
+    "description": "Codici inviati via SMS, per gli step Attendi SMS. Impostate l'indirizzo qui sotto come webhook dei messaggi in arrivo dei vostri numeri di test su Twilio, Vonage o qualunque provider che invii To e Body (o to e text). I messaggi sono conservati sette giorni.",
+    "copyNow": "Indirizzo di ricezione — copiatelo ora, non verrà più mostrato",
+    "active": "Indirizzo di ricezione attivo ({{prefix}}…), emesso {{date}}.",
+    "none": "Nessun indirizzo di ricezione: nessun messaggio può arrivare.",
+    "replace": "Sostituisci l'indirizzo",
+    "issue": "Crea un indirizzo di ricezione",
+    "revoke": "Revoca",
+    "recent": "Ultimi messaggi",
+    "noMessages": "Non è ancora arrivato nulla."
   }
 }

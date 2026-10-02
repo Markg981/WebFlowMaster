@@ -137,7 +137,9 @@
       "organizationData": "Export et effacement",
       "organizationDataDescription": "Emportez les données de l'organisation, ou effacez-les définitivement.",
       "impactMap": "Carte d'impact",
-      "impactMapDescription": "Quels fichiers concernent quels tests, pour qu'un pipeline exécute les tests qu'un commit touche plutôt que tous."
+      "impactMapDescription": "Quels fichiers concernent quels tests, pour qu'un pipeline exécute les tests qu'un commit touche plutôt que tous.",
+      "smsInbox": "Boîte SMS",
+      "smsInboxDescription": "Les SMS reçus par vos numéros de test, pour les étapes qui attendent un code par SMS."
     },
     "apiKeys": {
       "openApi": "Référence de l'API (OpenAPI)",
@@ -661,6 +663,13 @@
         "title": "Échec du chargement",
         "description": "Impossible de charger le test d'ID {{id}}."
       }
+    },
+    "websocket": {
+      "hint": "Une adresse ws:// ou wss://. Le corps brut contient les messages à envoyer, un par ligne, ou {\"send\": [...], \"waitMs\": 2000, \"until\": 1}. Les assertions lisent le corps JSON { messages, last, count } : last.type, messages[0].id, count."
+    },
+    "grpc": {
+      "proto": "Définition du service (.proto)",
+      "hint": "Adresse grpc://hôte:port/paquet.Service/Méthode (grpcs:// pour TLS). Le corps brut est le message de requête en JSON ; les en-têtes sont envoyés comme métadonnées. Le statut est le code gRPC, 0 pour OK."
     }
   },
   "dashboardOverviewPage": {
@@ -1312,6 +1321,21 @@
         "name": "Audit Lighthouse",
         "description": "Exécute Lighthouse sur la page courante, avec les cookies du test, et conserve son rapport avec l'exécution. Échoue quand une catégorie est sous sa limite ; vide enregistre seulement les scores.",
         "valueHint": "performance >= 80, accessibility >= 90, desktop"
+      },
+      "setGeolocation": {
+        "name": "Définir la position",
+        "description": "Désormais le navigateur indique cette position à la page (navigator.geolocation), et la page peut la demander sans autorisation.",
+        "valueHint": "45.4642, 9.19 (latitude, longitude[, précision m])"
+      },
+      "expectDownload": {
+        "name": "Vérifier un téléchargement",
+        "description": "Clique l'élément, récupère le fichier téléchargé et le vérifie : nom, type, taille et contenu d'un PDF, CSV, Excel ou texte. Définit {{download.name}}, {{download.rows}}, {{download.text}}…",
+        "valueHint": "name: *.pdf; contains: Total; pages >= 1"
+      },
+      "waitForSms": {
+        "name": "Attendre un SMS",
+        "description": "Attend un SMS vers un numéro de test dans la boîte SMS de l'organisation (Paramètres → Boîte SMS), reçu après le début du test, et en lit le code comme {{sms.otp}}.",
+        "valueHint": "+33 6 12345678 ou +33 6 12345678|code (\\d{6})"
       }
     },
     "saveTest": {
@@ -1668,6 +1692,9 @@
       },
       "addAssertion": {
         "button": "Ajouter une assertion"
+      },
+      "xpath": {
+        "label": "XPath"
       }
     },
     "authTypeDropdown": {
@@ -2653,7 +2680,8 @@
       "mobile_test": "Applications mobiles",
       "test_data_set": "Données de test",
       "scim": "Provisionnement (SCIM)",
-      "impact_rule": "Carte d'impact"
+      "impact_rule": "Carte d'impact",
+      "sms_inbox": "Boîte SMS"
     },
     "actions": {
       "member_role_changed": "Rôle du membre modifié",
@@ -2759,7 +2787,9 @@
       "api_test_imported": "Tests API importés depuis OpenAPI ou Postman",
       "test_imported": "Tests importés depuis un fichier",
       "impact_rule_created": "Règle d'impact ajoutée",
-      "impact_rule_deleted": "Règle d'impact supprimée"
+      "impact_rule_deleted": "Règle d'impact supprimée",
+      "sms_inbox_token_issued": "Adresse SMS émise",
+      "sms_inbox_token_revoked": "Adresse SMS révoquée"
     }
   },
   "security": {
@@ -3993,5 +4023,17 @@
     "withinLimits": "dans les limites",
     "noLimits": "aucune limite",
     "report": "rapport"
+  },
+  "smsInbox": {
+    "title": "Boîte SMS",
+    "description": "Codes envoyés par SMS, pour les étapes Attendre un SMS. Indiquez l'adresse ci-dessous comme webhook des messages entrants de vos numéros de test chez Twilio, Vonage ou tout fournisseur qui envoie To et Body (ou to et text). Les messages sont conservés sept jours.",
+    "copyNow": "Adresse de réception — copiez-la maintenant, elle ne sera plus affichée",
+    "active": "Adresse de réception active ({{prefix}}…), émise {{date}}.",
+    "none": "Aucune adresse de réception : aucun message ne peut arriver.",
+    "replace": "Remplacer l'adresse",
+    "issue": "Créer une adresse de réception",
+    "revoke": "Révoquer",
+    "recent": "Derniers messages",
+    "noMessages": "Rien n'est encore arrivé."
   }
 }

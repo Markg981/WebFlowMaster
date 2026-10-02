@@ -28,6 +28,10 @@ const validComparisonsBySource: Record<Assertion['source'], Array<Assertion['com
   ],
   body_text: ['equals', 'not_equals', 'contains', 'not_contains', 'is_empty', 'is_not_empty', 'matches_regex', 'not_matches_regex'],
   response_time: ['greater_than', 'less_than', 'greater_than_or_equals', 'less_than_or_equals'],
+  body_xpath: [
+    'equals', 'not_equals', 'contains', 'not_contains', 'exists', 'not_exists',
+    'is_empty', 'is_not_empty', 'greater_than', 'less_than', 'matches_regex',
+  ],
 };
 
 // Define if 'property' field is needed for a source
@@ -37,6 +41,7 @@ const propertyRequiredBySource: Record<Assertion['source'], boolean> = {
   body_json_path: true,
   body_text: false,
   response_time: false,
+  body_xpath: true,
 };
 
 // Define if 'targetValue' field is generally needed (some comparisons like exists/is_empty don't need it)
@@ -152,6 +157,7 @@ export const AssertionEditor: React.FC<AssertionEditorProps> = ({ assertions, on
                 <Label htmlFor={`property-${assertion.id}`} className="text-xs">
                   {assertion.source === 'header' ? t('apiTester.assertionEditor.headerName.label') :
                    assertion.source === 'body_json_path' ? t('apiTester.assertionEditor.jsonPathEgDataid.label') :
+                   assertion.source === 'body_xpath' ? t('apiTester.assertionEditor.xpath.label', 'XPath') :
                    t('apiTester.assertionEditor.property.label')}
                 </Label>
                 <Input
@@ -160,7 +166,8 @@ export const AssertionEditor: React.FC<AssertionEditorProps> = ({ assertions, on
                   onChange={(e) => handleChangeAssertion(assertion.id, 'property', e.target.value)}
                   placeholder={
                     assertion.source === 'header' ? t('apiTester.assertionEditor.egContentType.placeholder') :
-                    assertion.source === 'body_json_path' ? t('apiTester.assertionEditor.egUsernameOrItems0id.placeholder') : ''
+                    assertion.source === 'body_json_path' ? t('apiTester.assertionEditor.egUsernameOrItems0id.placeholder') :
+                    assertion.source === 'body_xpath' ? '//OrderId' : ''
                   }
                   disabled={isExecuting}
                   className="text-sm"

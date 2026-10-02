@@ -18,6 +18,13 @@ import {
   type AccessibilityImpact,
 } from '@shared/accessibility';
 import { MAX_LOOP_ITERATIONS } from '@shared/flow';
+import os from 'os';
+import path from 'path';
+import fs from 'fs-extra';
+import type { Download } from 'playwright';
+import { parseSmsQuery, SMS_TIMEOUT_MS, waitForSms as waitForSmsInInbox, type SmsQuery } from './sms-inbox';
+import { inspectDownload } from './download-check';
+import { parseDownloadChecks, parseGeolocation, runDownloadChecks, type DownloadFinding } from '@shared/downloads';
 import { measurePagePerformance, runLighthouse } from './web-performance';
 import {
   DEFAULT_PERFORMANCE_LIMITS,
@@ -32,7 +39,7 @@ import {
 } from '@shared/web-performance';
 import { scanAccessibility } from './accessibility';
 import { allowsSelfSignedCertificate, requestVariables, substituteVariables } from './outbound-http';
-import { EMAIL_TIMEOUT_MS, inboxConfig, parseEmailQuery, waitForEmail, type InboxGet } from './email-inbox';
+import { EMAIL_TIMEOUT_MS, findOtp, inboxConfig, parseEmailQuery, waitForEmail, type InboxGet } from './email-inbox';
 import {
   DATABASE_TIMEOUT_MS,
   connectionVariable,
@@ -83,6 +90,8 @@ export interface StepContext {
   database?: DatabaseRunner;
   /** Where an `auditLighthouse` step keeps its HTML report; none in the builder's preview. */
   artifactDir?: string;
+  /** Waits for a text message in the organization's SMS inbox. The real inbox when omitted. */
+  waitForSms?: StepRuntime['waitForSms'];
   /** Stand-ins for the performance measurements, for tests. The real ones when omitted. */
   measurePerformance?: StepRuntime['measurePerformance'];
   runLighthouse?: StepRuntime['runLighthouse'];
@@ -106,6 +115,8 @@ export interface StepOutcome {
   performance?: PerformanceFinding;
   /** What an `auditLighthouse` step scored. */
   lighthouse?: LighthouseFinding;
+  /** The file an `expectDownload` step took, and its checks (shared/downloads.ts). */
+  download?: DownloadFinding;
   /**
    * The tab the rest of the test runs in, when this step moved it (`switchTab`, `closeTab`).
    *
@@ -282,6 +293,10 @@ interface StepRuntime {
   database: DatabaseRunner;
   /** The browser's own measurements of the page (server/web-performance.ts). */
   measurePerformance: () => Promise<{ url: string; metrics: Record<PerformanceMetric, number | null> }>;
+  /** Where a step keeps a file it produced (StepContext.artifactDir); none in the builder's preview. */
+  artifactDir?: string;
+  /** A text message to the number, received after `since`; null when none came in time. */
+  waitForSms: (query: SmsQuery, since: number, timeoutMs: number) => Promise<{ body: string; fromNumber: string | null } | null>;
   /** Lighthouse on the page's address, with the test's cookies for it. */
   runLighthouse: (formFactor: 'mobile' | 'desktop') => Promise<Omit<LighthouseFinding, 'checks'>>;
 }
@@ -884,6 +899,77 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
    * against the limits in the value (shared/web-performance.ts). Empty checks the Core Web
    * Vitals' "good" thresholds. A metric this browser cannot measure is reported, not failed.
    */
+  /**
+   * Where the browser says it is: navigator.geolocation answers with this point from now on, in
+   * every tab of the test, and the page is allowed to ask without a prompt.
+   */
+  setGeolocation: async (rt) => {
+    const wanted = requireValue(rt, 'setGeolocation');
+    if ('error' in wanted) return failed(wanted.error);
+    const point = parseGeolocation(wanted.value);
+    if ('error' in point) return failed(point.error);
+    const context = rt.page.context();
+    await context.grantPermissions(['geolocation']);
+    await context.setGeolocation(point);
+    return { status: 'passed', detail: `The browser is now at ${point.latitude}, ${point.longitude} (±${point.accuracy} m).` };
+  },
+
+  /**
+   * Clicks the element and takes the file it downloads: checks its name, kind, size and content
+   * (shared/downloads.ts), keeps it with the run's evidence, and sets {{download.name}},
+   * {{download.size}}, {{download.rows}}, {{download.pages}} and {{download.text}} for later steps.
+   */
+  expectDownload: async (rt) => {
+    const target = requireSelector(rt, 'expectDownload');
+    if ('error' in target) return failed(target.error);
+    const text = typeof rt.raw === 'string' ? rt.raw : '';
+    const resolved = text.trim() ? resolveValue(text, rt.vars) : { value: '' };
+    if ('error' in resolved) return failed(resolved.error);
+    const checks = parseDownloadChecks(resolved.value);
+    if ('error' in checks) return failed(checks.error);
+
+    let download: Download;
+    try {
+      [download] = await Promise.all([
+        rt.page.waitForEvent('download', { timeout: rt.timeoutMs }),
+        rt.click(target.selector),
+      ]);
+    } catch (error) {
+      if (error instanceof Error && /timeout/i.test(error.message)) {
+        return failed(`Clicking ${target.selector} did not download a file within ${Math.round(rt.timeoutMs / 1000)} s.`);
+      }
+      throw error;
+    }
+    const failure = await download.failure();
+    if (failure) return failed(`The download failed: ${failure}.`);
+    const name = download.suggestedFilename();
+    const dir = rt.artifactDir ?? (await fs.mkdtemp(path.join(os.tmpdir(), 'wfm-download-')));
+    await fs.ensureDir(dir);
+    const file = path.join(dir, `download_${Date.now()}_${name.replace(/[^\w.-]+/g, '_').slice(-80)}`);
+    await download.saveAs(file);
+    let inspected: Awaited<ReturnType<typeof inspectDownload>>;
+    try {
+      inspected = await inspectDownload(file, name);
+    } catch (error) {
+      return failed(`${name} could not be read: ${(error as Error).message}`);
+    } finally {
+      if (!rt.artifactDir) await fs.remove(dir).catch(() => undefined);
+    }
+    const results = runDownloadChecks(inspected.file, inspected.text, checks);
+    const finding: DownloadFinding = { ...inspected.file, checks: results, ...(rt.artifactDir ? { fileUrl: file } : {}) };
+    rt.storeVariable?.('download.name', name);
+    rt.storeVariable?.('download.size', String(inspected.file.size));
+    if (inspected.file.rows !== undefined) rt.storeVariable?.('download.rows', String(inspected.file.rows));
+    if (inspected.file.pages !== undefined) rt.storeVariable?.('download.pages', String(inspected.file.pages));
+    rt.storeVariable?.('download.text', inspected.text.slice(0, 2000));
+    const kind = `${name} (${inspected.file.type}, ${Math.max(1, Math.round(inspected.file.size / 1024))} KB${inspected.file.rows !== undefined ? `, ${inspected.file.rows} rows` : ''}${inspected.file.pages !== undefined ? `, ${inspected.file.pages} page(s)` : ''})`;
+    const wrong = results.filter((r) => !r.ok);
+    if (wrong.length) {
+      return { status: 'failed', error: `Downloaded ${kind}, but: ${wrong.map((r) => (r.actual ? `${r.text} (found ${r.actual})` : `${r.text} (not found)`)).join('; ')}.`, download: finding };
+    }
+    return { status: 'passed', detail: `Downloaded ${kind}${results.length ? `; ${results.length} check(s) hold` : ''}.`, download: finding };
+  },
+
   measurePerformance: async (rt) => {
     const text = typeof rt.raw === 'string' && rt.raw.trim() ? rt.raw : DEFAULT_PERFORMANCE_LIMITS;
     const resolved = resolveValue(text, rt.vars);
@@ -1276,6 +1362,35 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     return { status: 'passed', detail: `"${excerpt(message.subject)}" from ${message.from || 'an unknown sender'}: ${read.join(', ')}.` };
   },
 
+  /**
+   * Waits for a text message to a test number in the organization's SMS inbox
+   * (server/sms-inbox.ts), received after the test started, and reads the code in it:
+   * {{sms.otp}}, {{sms.text}}, {{sms.from}}. "number" or "number|pattern", like waitForEmail.
+   */
+  waitForSms: async (rt) => {
+    const wanted = requireValue(rt, 'waitForSms');
+    if ('error' in wanted) return failed(wanted.error);
+    const query = parseSmsQuery(wanted.value);
+    if ('error' in query) return failed(query.error);
+    if (!rt.storeVariable) return failed('This run has no variables of its own to store the message in.');
+    const seconds = Number(rt.vars['sms.timeout']);
+    const timeoutMs = Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : SMS_TIMEOUT_MS;
+    for (const field of ['otp', 'text', 'from']) rt.forgetVariable?.(`sms.${field}`);
+    const message = await rt.waitForSms(query, rt.startedAt, timeoutMs);
+    if (!message) {
+      return failed(
+        `No text message to ${query.number} arrived within ${Math.round(timeoutMs / 1000)}s. Check that the number's provider ` +
+          'forwards incoming messages to the inbound address in Settings → SMS inbox.',
+      );
+    }
+    const otp = findOtp(message.body, query.pattern);
+    rt.storeVariable('sms.text', message.body);
+    rt.storeVariable('sms.from', message.fromNumber ?? '');
+    if (otp !== null) rt.storeVariable('sms.otp', otp);
+    if (query.pattern && otp === null) return failed(`A message arrived, but the pattern /${query.pattern.source}/ matched nothing in it.`);
+    return { status: 'passed', detail: `Text from ${message.fromNumber || 'an unknown sender'}: ${otp !== null ? `{{sms.otp}} = "${otp}"` : 'no code found'}.` };
+  },
+
   queryDatabase: async (rt) => {
     if (typeof rt.raw !== 'string' || rt.raw.trim() === '') return failed('Value missing for queryDatabase action.');
     // The connection's name is read before substitution: it names a variable, it is not one.
@@ -1431,6 +1546,8 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
         }
       : {}),
     startedAt: ctx.startedAt ?? Date.now(),
+    artifactDir: ctx.artifactDir,
+    waitForSms: ctx.waitForSms ?? ((query, since, timeoutMs) => waitForSmsInInbox(query, since, timeoutMs)),
     inboxGet: async (url, headers) => {
       const response = await page.context().request.get(url, {
         headers,

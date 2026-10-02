@@ -38,7 +38,9 @@ import { ApiTestHistoryEntry, InsertApiTestHistoryPayload, ApiTest, InsertApiTes
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { v4 as uuidv4 } from 'uuid';
 
-const httpMethods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
+// WEBSOCKET and GRPC are not HTTP methods: the runner opens a connection of that kind instead
+// (server/api-protocols.ts). The URL says where: ws(s):// or grpc(s)://host:port/package.Service/Method.
+const httpMethods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "WEBSOCKET", "GRPC"];
 const bodyTypes = ['none', 'form-data', 'x-www-form-urlencoded', 'raw', 'binary', 'GraphQL'] as const;
 type BodyType = typeof bodyTypes[number];
 
@@ -132,6 +134,8 @@ const ApiTesterPage: React.FC = () => {
   const [rawContentType, setRawContentType] = useState<string>('application/json');
   const [binaryBodyFile, setBinaryBodyFile] = useState<File | null>(null);
   const [graphqlQuery, setGraphqlQuery] = useState<string>('');
+  /** A gRPC test's .proto. */
+  const [protoDefinition, setProtoDefinition] = useState<string>('');
   const [graphqlVariables, setGraphqlVariables] = useState<string>('');
   const [formDataBody, setFormDataBody] = useState<FormDataField[]>([{ id: uuidv4(), key: '', value: '', enabled: true, type: 'text' }]);
   const [urlEncodedBody, setUrlEncodedBody] = useState<KeyValuePair[]>([{ id: uuidv4(), key: '', value: '', enabled: true }]);
@@ -498,6 +502,7 @@ const ApiTesterPage: React.FC = () => {
       extractions: extractions.filter(e => e.name.trim() !== ''),
       environmentId: environmentIdFor(selectedEnvironment),
       auth: authParams,
+      ...(method === 'GRPC' ? { protoDefinition } : {}),
     });
   };
 
@@ -705,6 +710,7 @@ const ApiTesterPage: React.FC = () => {
     setSelectedBodyType((test.bodyType as BodyType) || 'raw');
     setRawContentType(test.bodyRawContentType || 'application/json');
     setGraphqlQuery(test.bodyGraphqlQuery || '');
+    setProtoDefinition((test as { protoDefinition?: string | null }).protoDefinition || '');
     setGraphqlVariables(test.bodyGraphqlVariables || '');
     setBinaryBodyFile(null); // Files cannot be re-loaded from DB, user must re-select
 
@@ -830,6 +836,7 @@ const ApiTesterPage: React.FC = () => {
       bodyUrlEncoded: selectedBodyType === 'x-www-form-urlencoded' ? urlEncodedBody : undefined,
       bodyGraphqlQuery: selectedBodyType === 'GraphQL' ? graphqlQuery : undefined,
       bodyGraphqlVariables: selectedBodyType === 'GraphQL' ? graphqlVariables : undefined,
+      protoDefinition: method === 'GRPC' ? protoDefinition : null,
     };
     saveApiTestMutation.mutate({ name, projectId, ...config });
   };
@@ -1008,6 +1015,20 @@ const ApiTesterPage: React.FC = () => {
                   {apiProxyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {t('apiTesterPage.send.button')}
                 </Button>
               </div>
+              {method === 'WEBSOCKET' && (
+                <p className="text-xs text-muted-foreground" data-testid="websocket-hint">
+                  {t('apiTesterPage.websocket.hint', 'A ws:// or wss:// address. The raw body holds the messages to send, one per line, or {"send": [...], "waitMs": 2000, "until": 1}. Assertions read the JSON body { messages, last, count }: last.type, messages[0].id, count.')}
+                </p>
+              )}
+              {method === 'GRPC' && (
+                <div className="space-y-1" data-testid="grpc-proto">
+                  <Label htmlFor="protoDefinition">{t('apiTesterPage.grpc.proto', 'Service definition (.proto)')}</Label>
+                  <Textarea id="protoDefinition" rows={6} className="font-mono text-xs" value={protoDefinition} onChange={(e) => setProtoDefinition(e.target.value)} placeholder={'syntax = "proto3";\npackage shop;\nservice Orders { rpc Get (GetRequest) returns (Order); }'} />
+                  <p className="text-xs text-muted-foreground">
+                    {t('apiTesterPage.grpc.hint', 'Address grpc://host:port/package.Service/Method (grpcs:// for TLS). The raw body is the request message as JSON; headers are sent as metadata. The status is the gRPC code, 0 for OK.')}
+                  </p>
+                </div>
+              )}
               <div className="pt-2 max-w-xs">
                 {/* Beside the URL, because {{baseUrl}} in the URL is the most common reason
                     to need one. */}

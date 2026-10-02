@@ -137,7 +137,9 @@
       "organizationData": "Export and erasure",
       "organizationDataDescription": "Take the organization's data with you, or erase it for good.",
       "impactMap": "Impact map",
-      "impactMapDescription": "Which files affect which tests, so a pipeline runs the tests a commit affects instead of all of them."
+      "impactMapDescription": "Which files affect which tests, so a pipeline runs the tests a commit affects instead of all of them.",
+      "smsInbox": "SMS inbox",
+      "smsInboxDescription": "Text messages your test numbers receive, for steps that wait for a code sent by SMS."
     },
     "apiKeys": {
       "openApi": "API reference (OpenAPI)",
@@ -655,6 +657,13 @@
         "title": "Load Failed",
         "description": "Could not load the test with ID {{id}}."
       }
+    },
+    "websocket": {
+      "hint": "A ws:// or wss:// address. The raw body holds the messages to send, one per line, or {\"send\": [...], \"waitMs\": 2000, \"until\": 1}. Assertions read the JSON body { messages, last, count }: last.type, messages[0].id, count."
+    },
+    "grpc": {
+      "proto": "Service definition (.proto)",
+      "hint": "Address grpc://host:port/package.Service/Method (grpcs:// for TLS). The raw body is the request message as JSON; headers are sent as metadata. The status is the gRPC code, 0 for OK."
     }
   },
   "dashboardOverviewPage": {
@@ -1306,6 +1315,21 @@
         "name": "Lighthouse audit",
         "description": "Runs Lighthouse on the current page, with the test's cookies, and keeps its report with the run. Fails when a category scores below its limit; empty records the scores only.",
         "valueHint": "performance >= 80, accessibility >= 90, desktop"
+      },
+      "setGeolocation": {
+        "name": "Set location",
+        "description": "From now on the browser reports this position to the page (navigator.geolocation), and the page may ask for it without a prompt.",
+        "valueHint": "45.4642, 9.19 (latitude, longitude[, accuracy m])"
+      },
+      "expectDownload": {
+        "name": "Check a download",
+        "description": "Clicks the element, takes the file it downloads and checks it: name, type, size, and the content of a PDF, CSV, Excel or text file. Sets {{download.name}}, {{download.rows}}, {{download.text}}…",
+        "valueHint": "name: *.pdf; contains: Total; pages >= 1"
+      },
+      "waitForSms": {
+        "name": "Wait for SMS",
+        "description": "Waits for a text message to a test number in the organization's SMS inbox (Settings → SMS inbox), received after the test started, and reads the code in it as {{sms.otp}}.",
+        "valueHint": "+39 333 1234567 or +39 333 1234567|code (\\d{6})"
       }
     },
     "playbackStatus": "Step {{current}}/{{total}}: {{name}} - {{details}}",
@@ -1662,6 +1686,9 @@
       },
       "addAssertion": {
         "button": "Add Assertion"
+      },
+      "xpath": {
+        "label": "XPath"
       }
     },
     "authTypeDropdown": {
@@ -2647,7 +2674,8 @@
       "mobile_test": "Mobile apps",
       "test_data_set": "Test data",
       "scim": "Provisioning (SCIM)",
-      "impact_rule": "Impact map"
+      "impact_rule": "Impact map",
+      "sms_inbox": "SMS inbox"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -2753,7 +2781,9 @@
       "api_test_imported": "API tests imported from OpenAPI or Postman",
       "test_imported": "Tests imported from a file",
       "impact_rule_created": "Impact rule added",
-      "impact_rule_deleted": "Impact rule removed"
+      "impact_rule_deleted": "Impact rule removed",
+      "sms_inbox_token_issued": "SMS inbound address issued",
+      "sms_inbox_token_revoked": "SMS inbound address revoked"
     }
   },
   "security": {
@@ -3987,5 +4017,17 @@
     "withinLimits": "within the limits",
     "noLimits": "no limits",
     "report": "report"
+  },
+  "smsInbox": {
+    "title": "SMS inbox",
+    "description": "Codes sent by text message, for Wait for SMS steps. Set the inbound address below as the incoming-message webhook of your test numbers at Twilio, Vonage or any provider that posts To and Body (or to and text). Messages are kept seven days.",
+    "copyNow": "Inbound address — copy it now, it will not be shown again",
+    "active": "Inbound address active ({{prefix}}…), issued {{date}}.",
+    "none": "No inbound address: no message can arrive.",
+    "replace": "Replace the address",
+    "issue": "Create an inbound address",
+    "revoke": "Revoke",
+    "recent": "Latest messages",
+    "noMessages": "Nothing has arrived yet."
   }
 }

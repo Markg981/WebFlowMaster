@@ -44,6 +44,7 @@ import {
   Cloud,
   ClipboardList,
   GitBranch,
+  MessageSquareText,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProjectAccessDialog from "@/components/settings/ProjectAccessDialog";
@@ -75,6 +76,7 @@ import RunnersCard from "@/components/settings/RunnersCard";
 import ElementRepositoryCard from "@/components/settings/ElementRepositoryCard";
 import CustomActionsCard from "@/components/settings/CustomActionsCard";
 import ImpactMapCard from "@/components/settings/ImpactMapCard";
+import SmsInboxCard from "@/components/settings/SmsInboxCard";
 import IssueTrackersCard from "@/components/settings/IssueTrackersCard";
 import BrowserGridsCard from "@/components/settings/BrowserGridsCard";
 import TestManagementCard from "@/components/settings/TestManagementCard";
@@ -641,6 +643,17 @@ export default function SettingsPage() {
       icon: GitBranch,
       content: <ImpactMapCard />,
     },
+    ...(user?.role !== 'viewer'
+      ? [
+          {
+            id: 'smsInbox',
+            label: t('settings.sections.smsInbox', 'SMS inbox'),
+            description: t('settings.sections.smsInboxDescription', 'Text messages your test numbers receive, for steps that wait for a code sent by SMS.'),
+            icon: MessageSquareText,
+            content: <SmsInboxCard isOwner={user?.role === 'owner'} />,
+          },
+        ]
+      : []),
     {
       id: 'issueTrackers',
       label: t('settings.sections.issueTrackers', 'Issue trackers'),

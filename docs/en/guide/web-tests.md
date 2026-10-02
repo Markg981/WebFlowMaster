@@ -39,6 +39,8 @@ choose, the text to expect.
 | **Assert Element Count** | Fails unless the number of matching elements is right, e.g. `==1`, `>=5`, `<3`. |
 | **Assert state** | Fails unless a control is checked, enabled, editable — or the opposite. |
 | **Check accessibility** | Checks the page with axe-core at that point, and fails on violations at or above the severity you choose (serious by default). |
+| **Set location** | From then on the browser reports this position to the page — see [Location and downloads](#location-and-downloads). |
+| **Check a download** | Clicks the element and checks the file it downloads — see [Location and downloads](#location-and-downloads). |
 | **Measure page speed** | Checks the Core Web Vitals and timings the browser measured for the page against limits — see [Page speed](#page-speed). |
 | **Lighthouse audit** | Runs Lighthouse on the current page and checks its scores — see [Page speed](#page-speed). |
 | **Press key** | Presses a key or a combination — `Enter`, `Tab`, `Escape`, `Control+A` — on the element, or on whatever has focus when the step has none. |
@@ -51,6 +53,7 @@ choose, the text to expect.
 | **Store text in variable** | Reads the element's text, or a field's value, into the variable the value names, for later steps. |
 | **Set variable** | `name=value`, for later steps. See [generated values](#generated-values). |
 | **Wait for email** | Waits for the email sent to an address and reads its code and link into variables. See [emails](#emails). |
+| **Wait for SMS** | Waits for the text message sent to a test number and reads its code into a variable. See [SMS](#sms). |
 | **Query database** | Runs a SQL statement against the environment's database and reads the first row into variables. See [database](#database). |
 | **Assert values** | Fails unless a comparison holds: <code v-pre>{{db.value}} == 1</code>, <code v-pre>{{total}} > 0</code>, <code v-pre>{{email.subject}} contains Welcome</code>. The same comparisons as a condition without an element. |
 | **Set cookie** / **Clear cookies** | `name=value` for the current address; or deletes them all. |
@@ -268,6 +271,26 @@ the wait, in seconds. Without them, the server's own (`MAILPIT_URL`, which the d
 sets to its bundled Mailpit, open at http://localhost:8025). The inbox is read from where the
 browser runs, so a plan on a local agent reaches a Mailpit on the agent's network.
 
+### Text messages (SMS) {#sms}
+
+**Wait for SMS** does for a code sent by text message what **Wait for email** does for one sent by
+email. It reads the organization's **SMS inbox** (Settings → SMS inbox): an owner creates an
+inbound address there, shown once, and sets it as the incoming-message webhook of the test numbers
+at the SMS provider — Twilio's *A message comes in*, Vonage's inbound URL, or any provider that
+posts `To` and `Body` (or `to` and `text`), as a form or JSON. Every message those numbers receive
+is filed there and kept seven days; the settings page lists the latest.
+
+The step's value is the number, or the number and a pattern for the code:
+`+39 333 1234567` or `+39 333 1234567|codice (\d{6})`. Spaces, dashes and a leading `00` do not
+matter. It waits for a message to that number that arrived after the test started — 60 seconds, or
+<code v-pre>sms.timeout</code> from the environment — and sets <code v-pre>{{sms.otp}}</code> (the
+code, found as in an email), <code v-pre>{{sms.text}}</code> and <code v-pre>{{sms.from}}</code>.
+Two tests that run at once should use different numbers.
+
+The inbound address is the organization's secret: replacing it stops the old one at once, and
+revoking it refuses every message. Requests to it are limited like webhooks
+(`WEBHOOK_RATE_LIMIT`).
+
 ### Database: checking and preparing data {#database}
 
 What a screen does not show — the row the checkout wrote, the flag an admin page set — or what a
@@ -309,6 +332,33 @@ the tests check, and write only what they prepare, and never a production databa
 from the WebFlowMaster runner, not from the browser — also on a local agent — so the runner must
 reach the database. Values are put into the SQL as they are: quote text (`'{{email}}'`), and use
 variables whose values the test controls.
+
+## Location and downloads {#location-and-downloads}
+
+**Set location** makes the browser report a position to the page: `45.4642, 9.19`, or with an
+accuracy in metres, `45.4642, 9.19, 50`. From that step on, `navigator.geolocation` answers with it
+in every tab of the test, and the page may ask without a permission prompt — for a store locator,
+delivery areas or prices by region. A later **Set location** moves it.
+
+**Check a download** clicks its element, takes the file the click downloads, keeps it with the
+run's evidence and checks it. The value lists the checks, separated by `;` (a text may contain
+commas):
+
+`name: invoice-*.pdf; contains: Total 1.234,50 €; pages >= 1`
+`type: csv; rows >= 10; columns = 5; contains: Rossi, Mario`
+
+- `name:` a pattern for the file name (`*` any characters); `type:` `pdf`, `csv`, `xlsx`, `json` or
+  `txt`;
+- `contains:` a text the content must include, ignoring case and spacing — a PDF's text, a CSV's or
+  an Excel sheet's cells (the first sheet), or the file as text; repeat it for several;
+- `size`, `rows`, `columns`, `pages` with `<`, `<=`, `>`, `>=` or `=`; sizes take `KB` or `MB`.
+
+Empty, it only checks that a file was downloaded. A click that downloads nothing within the wait
+fails the step. Later steps can use <code v-pre>{{download.name}}</code>,
+<code v-pre>{{download.size}}</code>, <code v-pre>{{download.rows}}</code>,
+<code v-pre>{{download.pages}}</code> and <code v-pre>{{download.text}}</code> (the first 2,000
+characters) — in an **Assert values** step, for instance. The report links the file and shows what it
+held.
 
 ## Page speed {#page-speed}
 

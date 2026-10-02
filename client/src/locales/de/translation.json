@@ -137,7 +137,9 @@
       "organizationData": "Export und Löschung",
       "organizationDataDescription": "Nehmen Sie die Daten der Organisation mit, oder löschen Sie sie endgültig.",
       "impactMap": "Auswirkungskarte",
-      "impactMapDescription": "Welche Dateien welche Tests betreffen, damit eine Pipeline die von einem Commit betroffenen Tests ausführt statt aller."
+      "impactMapDescription": "Welche Dateien welche Tests betreffen, damit eine Pipeline die von einem Commit betroffenen Tests ausführt statt aller.",
+      "smsInbox": "SMS-Postfach",
+      "smsInboxDescription": "SMS, die Ihre Testnummern empfangen, für Schritte, die auf einen per SMS gesendeten Code warten."
     },
     "apiKeys": {
       "openApi": "API-Referenz (OpenAPI)",
@@ -661,6 +663,13 @@
         "title": "Laden fehlgeschlagen",
         "description": "Der Test mit der ID {{id}} konnte nicht geladen werden."
       }
+    },
+    "websocket": {
+      "hint": "Eine ws://- oder wss://-Adresse. Der Raw-Body enthält die zu sendenden Nachrichten, eine pro Zeile, oder {\"send\": [...], \"waitMs\": 2000, \"until\": 1}. Assertions lesen den JSON-Body { messages, last, count }: last.type, messages[0].id, count."
+    },
+    "grpc": {
+      "proto": "Dienstdefinition (.proto)",
+      "hint": "Adresse grpc://host:port/paket.Dienst/Methode (grpcs:// für TLS). Der Raw-Body ist die Anfrage als JSON; Header werden als Metadaten gesendet. Der Status ist der gRPC-Code, 0 für OK."
     }
   },
   "dashboardOverviewPage": {
@@ -1312,6 +1321,21 @@
         "name": "Lighthouse-Audit",
         "description": "Führt Lighthouse auf der aktuellen Seite mit den Cookies des Tests aus und bewahrt den Bericht beim Lauf auf. Schlägt fehl, wenn eine Kategorie unter ihrem Grenzwert liegt; leer zeichnet nur die Werte auf.",
         "valueHint": "performance >= 80, accessibility >= 90, desktop"
+      },
+      "setGeolocation": {
+        "name": "Standort setzen",
+        "description": "Ab jetzt meldet der Browser der Seite diese Position (navigator.geolocation), und die Seite darf sie ohne Rückfrage abfragen.",
+        "valueHint": "45.4642, 9.19 (Breite, Länge[, Genauigkeit m])"
+      },
+      "expectDownload": {
+        "name": "Download prüfen",
+        "description": "Klickt das Element, nimmt die heruntergeladene Datei und prüft sie: Name, Typ, Größe und Inhalt einer PDF-, CSV-, Excel- oder Textdatei. Setzt {{download.name}}, {{download.rows}}, {{download.text}}…",
+        "valueHint": "name: *.pdf; contains: Summe; pages >= 1"
+      },
+      "waitForSms": {
+        "name": "Auf SMS warten",
+        "description": "Wartet auf eine SMS an eine Testnummer im SMS-Postfach der Organisation (Einstellungen → SMS-Postfach), die nach dem Teststart eingeht, und liest den Code als {{sms.otp}}.",
+        "valueHint": "+49 151 1234567 oder +49 151 1234567|Code (\\d{6})"
       }
     },
     "saveTest": {
@@ -1668,6 +1692,9 @@
       },
       "addAssertion": {
         "button": "Prüfung hinzufügen"
+      },
+      "xpath": {
+        "label": "XPath"
       }
     },
     "authTypeDropdown": {
@@ -2653,7 +2680,8 @@
       "mobile_test": "Mobile Apps",
       "test_data_set": "Testdaten",
       "scim": "Bereitstellung (SCIM)",
-      "impact_rule": "Auswirkungskarte"
+      "impact_rule": "Auswirkungskarte",
+      "sms_inbox": "SMS-Postfach"
     },
     "actions": {
       "member_role_changed": "Rolle des Mitglieds geändert",
@@ -2759,7 +2787,9 @@
       "api_test_imported": "API-Tests aus OpenAPI oder Postman importiert",
       "test_imported": "Tests aus einer Datei importiert",
       "impact_rule_created": "Auswirkungsregel hinzugefügt",
-      "impact_rule_deleted": "Auswirkungsregel entfernt"
+      "impact_rule_deleted": "Auswirkungsregel entfernt",
+      "sms_inbox_token_issued": "SMS-Empfangsadresse ausgestellt",
+      "sms_inbox_token_revoked": "SMS-Empfangsadresse widerrufen"
     }
   },
   "security": {
@@ -3993,5 +4023,17 @@
     "withinLimits": "innerhalb der Grenzwerte",
     "noLimits": "keine Grenzwerte",
     "report": "Bericht"
+  },
+  "smsInbox": {
+    "title": "SMS-Postfach",
+    "description": "Per SMS gesendete Codes für Schritte „Auf SMS warten“. Tragen Sie die Empfangsadresse unten als Webhook für eingehende Nachrichten Ihrer Testnummern bei Twilio, Vonage oder einem Anbieter ein, der To und Body (oder to und text) sendet. Nachrichten werden sieben Tage aufbewahrt.",
+    "copyNow": "Empfangsadresse — jetzt kopieren, sie wird nicht erneut angezeigt",
+    "active": "Empfangsadresse aktiv ({{prefix}}…), ausgestellt {{date}}.",
+    "none": "Keine Empfangsadresse: Es kann keine Nachricht ankommen.",
+    "replace": "Adresse ersetzen",
+    "issue": "Empfangsadresse erstellen",
+    "revoke": "Widerrufen",
+    "recent": "Letzte Nachrichten",
+    "noMessages": "Noch nichts angekommen."
   }
 }
