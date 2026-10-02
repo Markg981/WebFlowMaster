@@ -254,7 +254,13 @@ What it does here:
 - **Groups** apply the mappings of **Roles from the provider's groups** as soon as someone joins
   or leaves one: the group's name, or its external ID (Entra ID's object ID), is what is matched.
   Changing the mappings applies them to the pushed groups at once. Someone in none of the mapped
-  groups keeps their role, as at sign-in.
+  groups keeps their role, as at sign-in — unless **Refuse whoever is in none of these groups** is
+  on: then an account the provider manages is **deactivated at once** when it leaves the last
+  mapped group (its sessions end, `reason: no_group` in the audit log) and reactivated when it joins
+  one again; a new account waits deactivated until a mapped group holds it. One the provider
+  deactivated itself (`active: false`) stays so until the provider says otherwise. The gate judges
+  only once the provider pushes groups, so a provider that syncs people alone does not lock them
+  out.
 - The organization's **last active owner** is never deactivated, demoted or removed by the
   provider; it answers 409 instead.
 

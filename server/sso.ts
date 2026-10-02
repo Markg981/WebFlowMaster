@@ -352,8 +352,8 @@ export async function saveSsoSettings(organizationId: number, actor: AuditActor,
     throw error;
   }
   forgetDiscovery(organizationId);
-  // New mappings apply to the groups the provider pushes through SCIM at once, not at the next change.
-  if (mappingsGiven) await reapplyGroupRoles(organizationId, actor.ipAddress ?? null);
+  // New mappings, and "require a group", apply to what the provider pushes through SCIM at once, not at the next change.
+  if (mappingsGiven || input.requireGroup !== undefined) await reapplyGroupRoles(organizationId, actor.ipAddress ?? null);
   return (await getSsoSettings(organizationId))!;
 }
 

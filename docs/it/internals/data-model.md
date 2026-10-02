@@ -52,7 +52,7 @@ erDiagram
 | `sso_saml_requests` | Le AuthnRequest SAML in attesa di risposta: id e organizzazione, conservate dieci minuti. La risposta deve corrispondere a una di esse, che viene cancellata mentre la si usa, così una risposta non si può riusare. Stanno nel database e non nella sessione perché il provider risponde con un POST cross-site. Senza RLS e senza permessi per `app_user`. |
 | `sso_domains` | I domini e-mail che indirizzano un accesso al provider di un'organizzazione. Un dominio appartiene a una sola organizzazione; `verification_token` è il valore del suo record DNS TXT e `verified_at` dice quando è stato verificato. |
 | `sso_identities` | Il legame fra una persona presso il provider (`issuer` + `subject`) e una riga di `users`, con l'ultimo accesso. |
-| `scim_users` | Gli account che l'identity provider gestisce via SCIM, con l'`external_id` con cui li conosce. L'account è la riga di `users`; il suo id SCIM è l'id utente. Senza RLS e senza permessi per `app_user`. |
+| `scim_users` | Gli account che l'identity provider gestisce via SCIM, con l'`external_id` con cui li conosce e se sono stati disattivati dai suoi gruppi (`disabled_by_groups`). L'account è la riga di `users`; il suo id SCIM è l'id utente. Senza RLS e senza permessi per `app_user`. |
 | `scim_groups` / `scim_group_members` | I gruppi del provider come li invia via SCIM, e chi ne fa parte. Le mappature dei ruoli confrontano il `display_name` o l'`external_id` del gruppo. Senza RLS e senza permessi per `app_user`. |
 | `sessions` | Lo store delle sessioni quando le tiene PostgreSQL (in produzione le tiene Redis). Dell'installazione. |
 

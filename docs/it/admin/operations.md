@@ -231,6 +231,7 @@ organizzazione sono finiti dopo 9 s, dove aspettare il controllo successivo ne r
 | Sintomo | Causa probabile | Cosa fare |
 |---|---|---|
 | Il server esce all'avvio citando `app_user`, `BYPASSRLS` o `SET ROLE` | I ruoli del database non sono come li richiede la tenancy | Eseguite il comando indicato nel messaggio (vedi [Preparare PostgreSQL](./installation#preparare-postgresql)). |
+| `db:migrate` si ferma con `permission denied to create role` | Il ruolo che esegue le migrazioni non può creare `app_user` | `ALTER ROLE <ruolo> CREATEROLE;` come superuser, rieseguite le migrazioni, poi `NOCREATEROLE` (vedi [Preparare PostgreSQL](./installation#preparare-postgresql)). |
 | Il server esce dicendo che il database è stato creato con `db:push` | Tabelle presenti senza il journal delle migrazioni | `npm run db:doctor`; ricreate il database con `db:migrate`. |
 | `SESSION_SECRET must be set` o `ENCRYPTION_KEY is missing` | Un segreto non è impostato in quel processo | Impostatelo (vedi [Segreti](./installation#segreti)); anche i worker hanno bisogno di `ENCRYPTION_KEY`. |
 | I segreti salvati non si decifrano dopo uno spostamento o un ripristino | Una `ENCRYPTION_KEY` diversa | Usate la chiave con cui sono stati salvati; non c'è altro modo di leggerli. |

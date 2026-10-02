@@ -268,7 +268,13 @@ Cosa fa qui:
 - I **gruppi** applicano le mappature di **Ruoli dai gruppi del provider** appena qualcuno entra
   o esce da uno di essi: si confronta il nome del gruppo, o il suo ID esterno (l'object ID di Entra
   ID). Cambiare le mappature le applica subito ai gruppi inviati. Chi non è in nessun gruppo
-  mappato mantiene il suo ruolo, come all'accesso.
+  mappato mantiene il suo ruolo, come all'accesso — a meno che **Rifiuta chi non è in nessuno di
+  questi gruppi** sia attivo: allora un account gestito dal provider viene **disattivato subito**
+  quando esce dall'ultimo gruppo mappato (le sue sessioni terminano, `reason: no_group` nel registro
+  di audit) e riattivato quando rientra in uno; un nuovo account attende disattivato finché un
+  gruppo mappato non lo contiene. Uno disattivato dal provider stesso (`active: false`) resta tale
+  finché il provider non dice altrimenti. Il controllo vale solo da quando il provider invia gruppi,
+  così un provider che sincronizza solo le persone non le chiude fuori.
 - L'**ultimo owner attivo** dell'organizzazione non viene mai disattivato, declassato o rimosso
   dal provider, che riceve invece un 409.
 

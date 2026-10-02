@@ -40,12 +40,12 @@ beforeEach(async () => {
 const SCIM = 'application/scim+json';
 
 /** An organization with single sign-on for example.com, its owner signed in, and a SCIM token. */
-async function provisioned(roleMappings: Array<{ group: string; role: string }> = []) {
+async function provisioned(roleMappings: Array<{ group: string; role: string }> = [], requireGroup = false) {
   const owner = request.agent(app);
   const registered = await owner.post('/api/register').send({ username: 'olivia@example.com', password: 'password123' }).expect(201);
   await owner
     .put('/api/organization/sso')
-    .send({ issuer: 'https://idp.example.com', clientId: 'wfm', clientSecret: 's', domains: ['example.com'], defaultRole: 'viewer', enabled: true, required: false, roleMappings })
+    .send({ issuer: 'https://idp.example.com', clientId: 'wfm', clientSecret: 's', domains: ['example.com'], defaultRole: 'viewer', enabled: true, required: false, roleMappings, requireGroup })
     .expect(200);
   const issued = await owner.post('/api/organization/sso/scim-token').expect(201);
   const token = issued.body.token as string;
@@ -244,6 +244,66 @@ describe('groups', () => {
       .send({ issuer: 'https://idp.example.com', clientId: 'wfm', domains: ['example.com'], defaultRole: 'viewer', enabled: true, required: false, roleMappings: [{ group: 'wfm-editors', role: 'editor' }] })
       .expect(200);
     expect((await privilegedDb.select().from(users).where(eq(users.id, Number(ada))))[0].role).toBe('editor');
+  });
+});
+
+describe('refusing whoever is in none of the mapped groups', () => {
+  const editors = [{ group: 'wfm-editors', role: 'editor' }];
+  const account = async (id: string | number) => (await privilegedDb.select().from(users).where(eq(users.id, Number(id))))[0];
+
+  it('deactivates at once someone who leaves every mapped group, and brings them back when they join one', async () => {
+    const { call, organizationId } = await provisioned(editors, true);
+    const group = (await call('post', '/Groups').send({ displayName: 'wfm-editors' }).expect(201)).body.id;
+    // A new account waits, deactivated, for a mapped group to hold it.
+    const ada = (await call('post', '/Users').send({ userName: 'ada@example.com' }).expect(201)).body;
+    expect(ada.active).toBe(false);
+    await call('patch', `/Groups/${group}`).send({ Operations: [{ op: 'add', path: 'members', value: [{ value: ada.id }] }] }).expect(200);
+    expect(await account(ada.id)).toMatchObject({ disabledAt: null, role: 'editor' });
+
+    await call('patch', `/Groups/${group}`).send({ Operations: [{ op: 'remove', path: `members[value eq "${ada.id}"]` }] }).expect(200);
+    expect((await account(ada.id)).disabledAt).not.toBeNull();
+    // The provider saying active does not let them past the gate…
+    expect((await call('patch', `/Users/${ada.id}`).send({ Operations: [{ op: 'replace', path: 'active', value: true }] }).expect(200)).body.active).toBe(false);
+    // …a mapped group does.
+    await call('patch', `/Groups/${group}`).send({ Operations: [{ op: 'add', path: 'members', value: [{ value: ada.id }] }] }).expect(200);
+    expect((await account(ada.id)).disabledAt).toBeNull();
+
+    const reasons = (await privilegedDb.select().from(auditLog).where(eq(auditLog.organizationId, organizationId)))
+      .filter((e) => e.action === 'member.deactivated' || e.action === 'member.reactivated')
+      .map((e) => `${e.action}:${(e.metadata as { reason?: string }).reason}`);
+    expect(reasons).toEqual(['member.deactivated:no_group', 'member.reactivated:group', 'member.deactivated:no_group', 'member.reactivated:group']);
+  });
+
+  it('does not bring back someone the provider itself deactivated', async () => {
+    const { call } = await provisioned(editors, true);
+    const ada = (await call('post', '/Users').send({ userName: 'ada@example.com' }).expect(201)).body.id;
+    await call('post', '/Groups').send({ displayName: 'wfm-editors', members: [{ value: ada }] }).expect(201);
+    await call('patch', `/Users/${ada}`).send({ Operations: [{ op: 'replace', path: 'active', value: false }] }).expect(200);
+    const other = (await call('post', '/Groups').send({ displayName: 'wfm-editors-2' }).expect(201)).body.id;
+    await call('put', `/Groups/${other}`).send({ displayName: 'wfm-editors-2', members: [{ value: ada }] }).expect(200);
+    expect((await account(ada)).disabledAt).not.toBeNull();
+  });
+
+  it('judges no one while the provider pushes no groups, and applies once turned on', async () => {
+    const { owner, call } = await provisioned(editors, true);
+    const ada = (await call('post', '/Users').send({ userName: 'ada@example.com' }).expect(201)).body;
+    expect(ada.active).toBe(true);
+    await call('post', '/Groups').send({ displayName: 'Unmapped' }).expect(201);
+    // Saving the settings applies the gate to every account the provider manages.
+    await owner
+      .put('/api/organization/sso')
+      .send({ issuer: 'https://idp.example.com', clientId: 'wfm', domains: ['example.com'], defaultRole: 'viewer', enabled: true, required: false, roleMappings: editors, requireGroup: true })
+      .expect(200);
+    expect((await account(ada.id)).disabledAt).not.toBeNull();
+  });
+
+  it('never deactivates the last active owner', async () => {
+    const { call, ownerId } = await provisioned(editors, true);
+    // Adopted by the provider, in no mapped group.
+    await call('patch', `/Users/${ownerId}`).send({ Operations: [{ op: 'replace', path: 'externalId', value: 'olivia-oid' }] }).expect(200);
+    const group = (await call('post', '/Groups').send({ displayName: 'Unmapped', members: [{ value: String(ownerId) }] }).expect(201)).body.id;
+    await call('delete', `/Groups/${group}`).expect(204);
+    expect((await account(ownerId)).disabledAt).toBeNull();
   });
 });
 

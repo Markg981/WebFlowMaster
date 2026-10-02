@@ -130,12 +130,16 @@ before choosing it. A typical setup:
 
 ```sql
 -- as the administrator of the PostgreSQL server
-CREATE ROLE webflowmaster LOGIN PASSWORD '…' BYPASSRLS;
+CREATE ROLE webflowmaster LOGIN PASSWORD '…' BYPASSRLS CREATEROLE;
 CREATE DATABASE webflowmaster OWNER webflowmaster;
 ```
 
-Then run the migrations as `webflowmaster`: migration `0005` grants it membership of `app_user`.
-If the application later connects with a different role, grant the membership by hand.
+Then run the migrations as `webflowmaster`: migration `0003` creates `app_user`, which is what
+`CREATEROLE` is for — without it the first migration stops with `permission denied to create
+role` — and migration `0005` grants `webflowmaster` membership of it. Once the migrations have run,
+`CREATEROLE` can be taken back (`ALTER ROLE webflowmaster NOCREATEROLE;`): no later migration and
+nothing at run time needs it. If the application later connects with a different role, grant the
+membership by hand.
 
 `DATABASE_URL` takes the connection string:
 `postgres://webflowmaster:…@db.internal:5432/webflowmaster`.

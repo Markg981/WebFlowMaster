@@ -225,6 +225,7 @@ organization ended after 9 s, where waiting for the next look took 33 s.
 | Symptom | Likely cause | What to do |
 |---|---|---|
 | The server exits at startup naming `app_user`, `BYPASSRLS` or `SET ROLE` | The database roles are not as the tenancy design requires | Run the command in the message (see [Prepare PostgreSQL](./installation#prepare-postgresql)). |
+| `db:migrate` stops with `permission denied to create role` | The role running the migrations cannot create `app_user` | `ALTER ROLE <role> CREATEROLE;` as a superuser, run the migrations again, then `NOCREATEROLE` (see [Prepare PostgreSQL](./installation#prepare-postgresql)). |
 | The server exits saying the database was created with `db:push` | Tables exist without the migration journal | `npm run db:doctor`; recreate the database with `db:migrate`. |
 | `SESSION_SECRET must be set` or `ENCRYPTION_KEY is missing` | A secret is not set in that process | Set it (see [Secrets](./installation#secrets)); workers need `ENCRYPTION_KEY` too. |
 | Saved secrets fail to decrypt after a move or restore | A different `ENCRYPTION_KEY` | Use the key the secrets were saved with; there is no other way to read them. |
