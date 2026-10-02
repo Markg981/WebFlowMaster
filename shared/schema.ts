@@ -257,6 +257,8 @@ export const apiTests = pgTable("api_tests", {
   bodyUrlEncoded: jsonb("body_url_encoded"),
   bodyGraphqlQuery: text("body_graphql_query"),
   bodyGraphqlVariables: text("body_graphql_variables"),
+  /** A gRPC test's .proto (server/api-protocols.ts, migration 0069). */
+  protoDefinition: text("proto_definition"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 
@@ -2337,6 +2339,8 @@ export const AssertionSourceSchema = z.enum([
   "body_json_path",
   "body_text",
   "response_time",
+  // An XML answer, such as SOAP's (server/api-protocols.ts).
+  "body_xpath",
 ]);
 export const AssertionComparisonSchema = z.enum([
   "equals",
@@ -2389,6 +2393,7 @@ export const ExtractionSourceSchema = z.enum([
   "header",
   "body_json_path",
   "body_text",
+  "body_xpath",
 ]);
 
 export const ExtractionSchema = z.object({

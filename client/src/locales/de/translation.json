@@ -661,6 +661,13 @@
         "title": "Laden fehlgeschlagen",
         "description": "Der Test mit der ID {{id}} konnte nicht geladen werden."
       }
+    },
+    "websocket": {
+      "hint": "Eine ws://- oder wss://-Adresse. Der Raw-Body enthält die zu sendenden Nachrichten, eine pro Zeile, oder {\"send\": [...], \"waitMs\": 2000, \"until\": 1}. Assertions lesen den JSON-Body { messages, last, count }: last.type, messages[0].id, count."
+    },
+    "grpc": {
+      "proto": "Dienstdefinition (.proto)",
+      "hint": "Adresse grpc://host:port/paket.Dienst/Methode (grpcs:// für TLS). Der Raw-Body ist die Anfrage als JSON; Header werden als Metadaten gesendet. Der Status ist der gRPC-Code, 0 für OK."
     }
   },
   "dashboardOverviewPage": {
@@ -1678,6 +1685,9 @@
       },
       "addAssertion": {
         "button": "Prüfung hinzufügen"
+      },
+      "xpath": {
+        "label": "XPath"
       }
     },
     "authTypeDropdown": {

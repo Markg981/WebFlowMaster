@@ -57,6 +57,8 @@
     "@aws-sdk/client-s3": "^3.1138.0",
     "@electric-sql/pglite": "^0.4.5",
     "@google/generative-ai": "^0.24.1",
+    "@grpc/grpc-js": "^1.14.5",
+    "@grpc/proto-loader": "^0.8.1",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@neondatabase/serverless": "^0.10.4",
     "@node-saml/node-saml": "^5.1.0",
@@ -104,6 +106,7 @@
     "winston-daily-rotate-file": "^5.0.0",
     "winston-transport": "^4.9.0",
     "ws": "^8.18.0",
+    "xpath": "^0.0.34",
     "yaml": "^2.9.1",
     "zod-validation-error": "^3.4.0"
   },

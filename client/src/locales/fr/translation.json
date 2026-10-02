@@ -661,6 +661,13 @@
         "title": "Échec du chargement",
         "description": "Impossible de charger le test d'ID {{id}}."
       }
+    },
+    "websocket": {
+      "hint": "Une adresse ws:// ou wss://. Le corps brut contient les messages à envoyer, un par ligne, ou {\"send\": [...], \"waitMs\": 2000, \"until\": 1}. Les assertions lisent le corps JSON { messages, last, count } : last.type, messages[0].id, count."
+    },
+    "grpc": {
+      "proto": "Définition du service (.proto)",
+      "hint": "Adresse grpc://hôte:port/paquet.Service/Méthode (grpcs:// pour TLS). Le corps brut est le message de requête en JSON ; les en-têtes sont envoyés comme métadonnées. Le statut est le code gRPC, 0 pour OK."
     }
   },
   "dashboardOverviewPage": {
@@ -1678,6 +1685,9 @@
       },
       "addAssertion": {
         "button": "Ajouter une assertion"
+      },
+      "xpath": {
+        "label": "XPath"
       }
     },
     "authTypeDropdown": {

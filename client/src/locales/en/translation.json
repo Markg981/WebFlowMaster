@@ -655,6 +655,13 @@
         "title": "Load Failed",
         "description": "Could not load the test with ID {{id}}."
       }
+    },
+    "websocket": {
+      "hint": "A ws:// or wss:// address. The raw body holds the messages to send, one per line, or {\"send\": [...], \"waitMs\": 2000, \"until\": 1}. Assertions read the JSON body { messages, last, count }: last.type, messages[0].id, count."
+    },
+    "grpc": {
+      "proto": "Service definition (.proto)",
+      "hint": "Address grpc://host:port/package.Service/Method (grpcs:// for TLS). The raw body is the request message as JSON; headers are sent as metadata. The status is the gRPC code, 0 for OK."
     }
   },
   "dashboardOverviewPage": {
@@ -1672,6 +1679,9 @@
       },
       "addAssertion": {
         "button": "Add Assertion"
+      },
+      "xpath": {
+        "label": "XPath"
       }
     },
     "authTypeDropdown": {

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { fromWsdl, looksLikeWsdl } from './wsdl-import';
 import { parse as parseYaml } from 'yaml';
 import type { Assertion, AuthParams } from '@shared/schema';
 
@@ -21,7 +22,7 @@ import type { Assertion, AuthParams } from '@shared/schema';
  * beyond the status check, OAuth flows.
  */
 
-export type ImportFormat = 'openapi' | 'swagger' | 'postman';
+export type ImportFormat = 'openapi' | 'swagger' | 'postman' | 'wsdl';
 
 export interface ImportedApiTest {
   name: string;
@@ -73,6 +74,11 @@ export function importApiDescription(content: string): ImportResult {
   let doc: unknown;
   const text = content.trim();
   if (!text) throw new ImportError('The file is empty.');
+  // A SOAP service's WSDL (server/wsdl-import.ts).
+  if (text.startsWith('<')) {
+    if (looksLikeWsdl(text)) return fromWsdl(text);
+    throw new ImportError('An XML file, but not a WSDL 1.1 document.');
+  }
   try {
     doc = text.startsWith('{') || text.startsWith('[') ? JSON.parse(text) : parseYaml(text, { maxAliasCount: 100 });
   } catch (error) {
@@ -83,7 +89,7 @@ export function importApiDescription(content: string): ImportResult {
   if (typeof root.openapi === 'string' && root.openapi.startsWith('3')) return fromOpenApi(root, 'openapi');
   if (String(root.swagger) === '2.0') return fromOpenApi(root, 'swagger');
   if (Array.isArray(root.item) && (root.info?.schema?.includes?.('postman') || root.info?._postman_id || root.info?.name)) return fromPostman(root);
-  throw new ImportError('Neither OpenAPI 3, Swagger 2 nor a Postman collection (v2.0 or v2.1).');
+  throw new ImportError('Neither OpenAPI 3, Swagger 2, a Postman collection (v2.0 or v2.1) nor a WSDL.');
 }
 
 const variableName = (value: string) => value.replace(/[^\w.]/g, '_').replace(/^_+|_+$/g, '') || 'value';

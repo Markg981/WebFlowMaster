@@ -400,6 +400,7 @@ export async function runTest(
       // The test's own auth settings, which only the API Tester page used to apply — so a
       // scheduled run sent the request anonymous and failed for the wrong reason.
       auth: apiTest.authParams as AuthParams | null,
+      protoDefinition: apiTest.protoDefinition,
     };
     const result = await runApiRequest(spec, vars, options?.http);
 

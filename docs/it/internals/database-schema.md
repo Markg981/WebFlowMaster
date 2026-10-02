@@ -532,6 +532,7 @@ erDiagram
     jsonb body_url_encoded
     text body_graphql_query
     text body_graphql_variables
+    text proto_definition
     timestamp created_at
     timestamp updated_at
     text module

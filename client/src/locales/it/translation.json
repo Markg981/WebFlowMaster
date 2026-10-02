@@ -696,6 +696,13 @@
         "title": "Caricamento non riuscito",
         "description": "Impossibile caricare il test con ID {{id}}."
       }
+    },
+    "websocket": {
+      "hint": "Un indirizzo ws:// o wss://. Il body raw contiene i messaggi da inviare, uno per riga, oppure {\"send\": [...], \"waitMs\": 2000, \"until\": 1}. Le asserzioni leggono il body JSON { messages, last, count }: last.type, messages[0].id, count."
+    },
+    "grpc": {
+      "proto": "Definizione del servizio (.proto)",
+      "hint": "Indirizzo grpc://host:porta/pacchetto.Servizio/Metodo (grpcs:// per TLS). Il body raw è il messaggio di richiesta in JSON; gli header sono inviati come metadata. Lo stato è il codice gRPC, 0 per OK."
     }
   },
   "dashboardOverviewPage": {
@@ -1797,6 +1804,9 @@
       },
       "addAssertion": {
         "button": "Aggiungi asserzione"
+      },
+      "xpath": {
+        "label": "XPath"
       }
     },
     "authTypeDropdown": {

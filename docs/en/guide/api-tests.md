@@ -56,6 +56,7 @@ Each assertion reads one part of the answer and compares it:
 | body json path | a path in the JSON body | `items[0].id` exists |
 | body text | — | contains `"status":"ok"` |
 | response time | — | less than `500` (milliseconds) |
+| body xpath | an XPath in an XML body | `//status` equals `Shipped` — see [SOAP](#protocols) |
 
 Comparisons: equals, not equals, contains, not contains, exists, not exists, is empty, is not
 empty, greater than, less than (or equal), matches regex, not matches regex. An assertion can be
@@ -98,10 +99,37 @@ and stop when the run is cancelled. A request that cannot be made at all skips t
 nothing to time. The caps are deliberate: this answers "did this endpoint get slower?" on every
 run, it is not a load test.
 
-## Importing from OpenAPI or Postman {#import}
+## SOAP, WebSocket and gRPC {#protocols}
+
+**SOAP** is HTTP: a `POST` with the XML envelope as a raw body (`text/xml`, or
+`application/soap+xml` for SOAP 1.2) and, for SOAP 1.1, a `SOAPAction` header. Read the answer with
+**body xpath** assertions and captures: `//status` equals `Shipped`, `//Fault` not exists,
+`count(//item)` greater than `2`, `//order/@id` captured as `orderId`. An expression without a
+prefix ignores the namespaces, so `//status` finds `<ns2:status>`; one with a prefix uses the
+document's own (`//ns2:status`). A service's WSDL can be [imported](#import).
+
+**WebSocket**: choose the method **WEBSOCKET** and a `ws://` or `wss://` address. The raw body holds
+the messages to send, one per line, or a plan —
+<code v-pre>{"send": ["subscribe", {"op": "ping"}], "waitMs": 3000, "until": 2}</code> — that also
+says how long to listen (2 seconds by default, at most 60) and after how many messages to stop.
+Headers and header-based authorizations go on the handshake. The answer is a JSON body
+`{ messages, last, count }`: assert `count` equals `2`, `last.type` equals `pong`, or
+`messages[0].id` exists; JSON messages are parsed, others kept as text.
+
+**gRPC**: choose the method **GRPC**, an address `grpc://host:port/package.Service/Method`
+(`grpcs://` for TLS), and paste the service's `.proto` in the field that appears. The raw body is
+the request message as JSON, headers are sent as metadata, and the answer's body is the response
+message as JSON. The status is the gRPC status code — `0` for OK, `5` for NOT_FOUND… — so an
+expected error is asserted with **status code** like any other. Unary calls only.
+
+WebSocket and gRPC tests are sent from the server's runners: a plan on local agents runs them from
+there, not from the agents' network.
+
+## Importing from OpenAPI, Postman or WSDL {#import}
 
 **Saved Tests → Import** makes tests from what a team already has: an **OpenAPI 3** or
-**Swagger 2** description, in JSON or YAML, or a **Postman collection** (v2.0 or v2.1). Open the
+**Swagger 2** description, in JSON or YAML, a **Postman collection** (v2.0 or v2.1), or a SOAP
+service's **WSDL** (1.1). Open the
 file or paste it, press **Show what it makes**, keep the tests you want — those whose method and
 address already exist here are left unticked — choose a project and import.
 
@@ -118,6 +146,9 @@ address already exist here are left unticked — choose a project and import.
   Postman collection is not imported.
 - The expected status is an assertion: OpenAPI's first 2xx response, or Postman's
   `pm.response.to.have.status(…)`.
+- From a WSDL: one `POST` per operation of the SOAP binding (1.1 when there is one, else 1.2), with
+  the envelope, the `SOAPAction`, and the request element written out from the schema, its fields
+  as `?` to fill in. Each test expects `200` and no `//Fault`.
 
 The preview lists the variables the tests need, with the server address as a suggestion for
 <code v-pre>{{baseUrl}}</code>: set them in an [environment](./web-tests#variables-and-environments)
