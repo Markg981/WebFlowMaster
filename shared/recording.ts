@@ -81,6 +81,14 @@ export const ADHOC_ACTION_IDS = [
   // Runs the value as JavaScript in the page. Fails when it throws or returns exactly false,
   // so it can check what no other step can express.
   "executeScript",
+  // Answers the page's requests to an address for the rest of the test, instead of the server:
+  // "[METHOD ]pattern | status[ after <n>ms] | body". See server/network-mocks.ts.
+  "mockRequest",
+  // Makes the page's requests to an address fail, as if the network were down: a third party
+  // (analytics, chat) kept out of the run, or the screen for a backend that cannot be reached.
+  "blockRequests",
+  // Takes back every mock and block: the page talks to the real servers again.
+  "clearMocks",
   // "name=value": a variable for the steps after this one. With a generator such as
   // {{$randomEmail}} it is how a test makes up a value once and uses it twice.
   "setVariable",
@@ -251,6 +259,9 @@ export const ACTION_REQUIREMENTS: Record<
   clearCookies: { target: false, value: false, valueRequired: false },
   setLocalStorage: { target: false, value: true, valueRequired: true },
   executeScript: { target: false, value: true, valueRequired: true },
+  mockRequest: { target: false, value: true, valueRequired: true },
+  blockRequests: { target: false, value: true, valueRequired: true },
+  clearMocks: { target: false, value: false, valueRequired: false },
   setVariable: { target: false, value: true, valueRequired: true },
   waitForEmail: { target: false, value: true, valueRequired: true },
   queryDatabase: { target: false, value: true, valueRequired: true },
@@ -464,6 +475,21 @@ export const ACTION_I18N: Record<
     description: "dashboardPageNew.actions.executeScript.description",
     icon: "Code",
   },
+  mockRequest: {
+    name: "dashboardPageNew.actions.mockRequest.name",
+    description: "dashboardPageNew.actions.mockRequest.description",
+    icon: "Server",
+  },
+  blockRequests: {
+    name: "dashboardPageNew.actions.blockRequests.name",
+    description: "dashboardPageNew.actions.blockRequests.description",
+    icon: "Ban",
+  },
+  clearMocks: {
+    name: "dashboardPageNew.actions.clearMocks.name",
+    description: "dashboardPageNew.actions.clearMocks.description",
+    icon: "Eraser",
+  },
   setVariable: {
     name: "dashboardPageNew.actions.setVariable.name",
     description: "dashboardPageNew.actions.setVariable.description",
@@ -533,6 +559,8 @@ export const ACTION_VALUE_HINTS: Partial<Record<AdhocActionId, string>> = {
   setCookie: "dashboardPageNew.actions.setCookie.valueHint",
   setLocalStorage: "dashboardPageNew.actions.setLocalStorage.valueHint",
   executeScript: "dashboardPageNew.actions.executeScript.valueHint",
+  mockRequest: "dashboardPageNew.actions.mockRequest.valueHint",
+  blockRequests: "dashboardPageNew.actions.blockRequests.valueHint",
   setVariable: "dashboardPageNew.actions.setVariable.valueHint",
   waitForEmail: "dashboardPageNew.actions.waitForEmail.valueHint",
   queryDatabase: "dashboardPageNew.actions.queryDatabase.valueHint",

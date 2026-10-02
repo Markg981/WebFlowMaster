@@ -1286,6 +1286,20 @@
         "name": "Vérifier des valeurs",
         "description": "Fait échouer le test si une comparaison de valeurs n'est pas vraie : le résultat d'une requête, un texte enregistré, l'objet d'un e-mail.",
         "valueHint": "a == b, a != b, a > 3, a contains b — p. ex. la variable db.value == 1"
+      },
+      "mockRequest": {
+        "name": "Simuler une requête",
+        "description": "Désormais les requêtes de la page vers cette adresse reçoivent cette réponse au lieu de celle du serveur : une erreur, une liste vide, une réponse lente ou un backend pas encore prêt. Une simulation ultérieure de la même adresse la remplace ; elle vaut dans tous les onglets.",
+        "valueHint": "[MÉTHODE] motif | statut [after 1500ms] | corps, ex. GET **/api/orders | 200 | []"
+      },
+      "blockRequests": {
+        "name": "Bloquer des requêtes",
+        "description": "Désormais les requêtes de la page vers cette adresse échouent comme si le réseau était coupé : écarte analytics, chat ou paiement du run, ou montre l'écran d'un backend injoignable.",
+        "valueHint": "URL ou motif, ex. **/analytics/**"
+      },
+      "clearMocks": {
+        "name": "Retirer les simulations",
+        "description": "Retire toutes les simulations et blocages du test : la page atteint de nouveau les vrais serveurs."
       }
     },
     "saveTest": {

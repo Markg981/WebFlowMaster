@@ -56,6 +56,9 @@ richiede: il testo da scrivere, l'opzione da scegliere, il testo atteso.
 | **Imposta cookie** / **Cancella cookie** | `nome=valore` per l'indirizzo corrente; oppure li elimina tutti. |
 | **Imposta localStorage** | `chiave=valore` nello storage della pagina corrente. |
 | **Esegui JavaScript** | Esegue il valore nella pagina. Fallisce se lancia un errore o restituisce `false`, così può verificare ciò che nessun altro step sa esprimere. |
+| **Simula richiesta** | Da quel momento risponde alle richieste della pagina a un indirizzo al posto del server — vedi [Simulare la rete](#simulare-la-rete). |
+| **Blocca richieste** | Da quel momento le richieste della pagina a un indirizzo falliscono come se la rete fosse giù. |
+| **Rimuovi simulazioni** | Toglie tutte le simulazioni e i blocchi: la pagina torna a raggiungere i server veri. |
 | **Se** / **Altrimenti** / **Fine se** | Esegue degli step solo quando una condizione è vera. Vedi [condizioni e cicli](#condizioni-e-cicli). |
 | **Ripeti** / **Ripeti finché** / **Fine ciclo** | Esegue degli step un numero di volte, o finché una condizione è vera. |
 
@@ -319,6 +322,31 @@ ciò che i test verificano e scrivere solo ciò che preparano, e mai un database
 query parte dal runner di WebFlowMaster, non dal browser — anche su un agente locale — quindi il
 runner deve raggiungere il database. I valori entrano nell'SQL così come sono: mettete il testo tra
 apici (`'{{email}}'`) e usate variabili i cui valori sono sotto il controllo del test.
+
+## Simulare la rete {#simulare-la-rete}
+
+Un test può rispondere da sé alle richieste della pagina, per vedere le schermate che il backend vero
+mostra di rado — un errore, una lista vuota, una risposta lenta — o per girare quando il backend non
+è pronto. **Simula richiesta** prende
+
+<code v-pre>[METODO] indirizzo | stato [after 1500ms] | corpo</code>
+
+- **indirizzo**: un URL, o un pattern dove `**` vale qualunque carattere e `*` qualunque tranne `/`:
+  <code v-pre>**/api/orders*</code>, <code v-pre>{{baseUrl}}/api/orders/42</code>. Con un metodo davanti
+  (`GET`, `POST`…) risponde solo a quel metodo; gli altri arrivano al server.
+- **stato**: `200` se omesso; `after 1500ms` (o `after 2s`, fino a 30 s) ritarda la risposta, per
+  verificare uno stato di caricamento.
+- **corpo**: tutto ciò che segue il secondo `|`, variabili comprese. Il JSON è inviato come
+  `application/json`, il resto come testo.
+
+<code v-pre>GET **/api/orders | 200 | []</code> mostra la lista vuota;
+<code v-pre>POST **/api/orders | 500 | {"error":"out of stock"}</code> l'ordine fallito. La simulazione
+vale per il resto del test e in tutte le schede che apre; una simulazione successiva dello stesso
+indirizzo la sostituisce, così un test può cambiare risposta a metà. **Blocca richieste** prende un
+indirizzo e fa fallire quelle richieste — <code v-pre>**/analytics/**</code> tiene fuori una terza
+parte — e **Rimuovi simulazioni** toglie tutto ciò che è stato impostato.
+
+Riguarda solo ciò che chiede la pagina: precondizioni, pulizia e test API vanno ai server veri.
 
 ## Precondizioni
 

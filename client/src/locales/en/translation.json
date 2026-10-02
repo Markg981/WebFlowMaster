@@ -1280,6 +1280,20 @@
         "name": "Assert values",
         "description": "Fails the test unless a comparison of values holds, such as the result of a query, a stored text or an email subject.",
         "valueHint": "a == b, a != b, a > 3, a contains b — e.g. the db.value variable == 1"
+      },
+      "mockRequest": {
+        "name": "Mock request",
+        "description": "From now on the page's requests to this address are answered here, not by the server: an error, an empty list, a slow answer, or a backend that is not ready. A later mock of the same address replaces it; it holds in every tab.",
+        "valueHint": "[METHOD] pattern | status [after 1500ms] | body, e.g. GET **/api/orders | 200 | []"
+      },
+      "blockRequests": {
+        "name": "Block requests",
+        "description": "From now on the page's requests to this address fail as if the network were down: keeps analytics, chat or payment widgets out of the run, or shows the screen for an unreachable backend.",
+        "valueHint": "URL or pattern, e.g. **/analytics/**"
+      },
+      "clearMocks": {
+        "name": "Clear mocks",
+        "description": "Takes back every mock and block of the test: the page reaches the real servers again."
       }
     },
     "playbackStatus": "Step {{current}}/{{total}}: {{name}} - {{details}}",

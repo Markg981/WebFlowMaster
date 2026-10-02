@@ -1,4 +1,5 @@
 import type { Locator, Page } from 'playwright';
+import { clearMocks, installBlock, installMock, parseMockSpec } from './network-mocks';
 import type { PlaywrightReporter } from './playwright-reporter';
 import {
   ADHOC_ACTION_IDS,
@@ -1054,6 +1055,35 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
   clearCookies: async (rt) => {
     await rt.page.context().clearCookies();
     return passed;
+  },
+
+  /** Answers the page's requests to an address instead of the server (server/network-mocks.ts). */
+  mockRequest: async (rt) => {
+    const wanted = requireValue(rt, 'mockRequest');
+    if ('error' in wanted) return failed(wanted.error);
+    const spec = parseMockSpec(wanted.value);
+    if ('error' in spec) return failed(spec.error);
+    await installMock(rt.page.context(), spec);
+    return {
+      status: 'passed',
+      detail:
+        `${spec.method ?? 'Any'} request to ${spec.pattern} is answered ${spec.status}` +
+        `${spec.delayMs ? ` after ${spec.delayMs} ms` : ''}${spec.body ? ` with ${spec.body.length} characters (${spec.contentType.split(';')[0]})` : ', empty'}, for the rest of the test.`,
+    };
+  },
+
+  blockRequests: async (rt) => {
+    const wanted = requireValue(rt, 'blockRequests');
+    if ('error' in wanted) return failed(wanted.error);
+    const pattern = wanted.value.trim();
+    if (!pattern) return failed('Name the address to block: a URL or a pattern such as **/analytics/**.');
+    await installBlock(rt.page.context(), pattern);
+    return { status: 'passed', detail: `Requests to ${pattern} fail, for the rest of the test.` };
+  },
+
+  clearMocks: async (rt) => {
+    const count = await clearMocks(rt.page.context());
+    return { status: 'passed', detail: count === 0 ? 'No mock or block was set.' : `${count} mock(s) and block(s) taken back: the page reaches the servers again.` };
   },
 
   setLocalStorage: async (rt) => {

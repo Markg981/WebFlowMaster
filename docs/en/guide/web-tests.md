@@ -54,6 +54,9 @@ choose, the text to expect.
 | **Set cookie** / **Clear cookies** | `name=value` for the current address; or deletes them all. |
 | **Set localStorage** | `key=value` in the current page's storage. |
 | **Run JavaScript** | Runs the value in the page. Fails when it throws or returns `false`, so it can check what no other step can. |
+| **Mock request** | From then on, answers the page's requests to an address instead of the server — see [Mocking the network](#mocking-the-network). |
+| **Block requests** | From then on, the page's requests to an address fail as if the network were down. |
+| **Clear mocks** | Takes back every mock and block: the page reaches the real servers again. |
 | **If** / **Else** / **End if** | Runs steps only when a condition holds. See [conditions and loops](#conditions-and-loops). |
 | **Repeat** / **Repeat while** / **End loop** | Runs steps a number of times, or while a condition holds. |
 
@@ -304,6 +307,31 @@ the tests check, and write only what they prepare, and never a production databa
 from the WebFlowMaster runner, not from the browser — also on a local agent — so the runner must
 reach the database. Values are put into the SQL as they are: quote text (`'{{email}}'`), and use
 variables whose values the test controls.
+
+## Mocking the network {#mocking-the-network}
+
+A test can answer the page's requests itself, to see the screens the real backend rarely shows —
+an error, an empty list, a slow answer — or to run while the backend is not ready. **Mock request**
+takes
+
+<code v-pre>[METHOD] address | status [after 1500ms] | body</code>
+
+- **address**: a URL, or a pattern where `**` stands for any characters and `*` for any but `/`:
+  <code v-pre>**/api/orders*</code>, <code v-pre>{{baseUrl}}/api/orders/42</code>. With a method in
+  front (`GET`, `POST`…) only that method is answered; others reach the server.
+- **status**: `200` when left out; `after 1500ms` (or `after 2s`, up to 30 s) delays the answer, to
+  check a loading state.
+- **body**: everything after the second `|`, variables included. JSON is sent as
+  `application/json`, anything else as text.
+
+<code v-pre>GET **/api/orders | 200 | []</code> shows the empty list;
+<code v-pre>POST **/api/orders | 500 | {"error":"out of stock"}</code> the failed order. The mock holds
+for the rest of the test and in every tab it opens; a later mock of the same address replaces it, so
+a test can change its answer halfway. **Block requests** takes an address and makes those requests
+fail — <code v-pre>**/analytics/**</code> keeps a third party out of the run — and **Clear mocks**
+takes back everything set so far.
+
+Only what the page requests is affected: preconditions, cleanup and API tests go to the real servers.
 
 ## Preconditions
 

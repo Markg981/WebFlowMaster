@@ -1286,6 +1286,20 @@
         "name": "Werte prüfen",
         "description": "Lässt den Test fehlschlagen, wenn ein Vergleich von Werten nicht zutrifft: das Ergebnis einer Abfrage, ein gespeicherter Text, ein E-Mail-Betreff.",
         "valueHint": "a == b, a != b, a > 3, a contains b — z. B. die Variable db.value == 1"
+      },
+      "mockRequest": {
+        "name": "Anfrage simulieren",
+        "description": "Ab hier beantwortet der Test die Anfragen der Seite an diese Adresse statt des Servers: ein Fehler, eine leere Liste, eine langsame Antwort oder ein noch nicht fertiges Backend. Eine spätere Simulation derselben Adresse ersetzt sie; sie gilt in allen Tabs.",
+        "valueHint": "[METHODE] Muster | Status [after 1500ms] | Inhalt, z. B. GET **/api/orders | 200 | []"
+      },
+      "blockRequests": {
+        "name": "Anfragen blockieren",
+        "description": "Ab hier schlagen die Anfragen der Seite an diese Adresse fehl, als wäre das Netz weg: hält Analytics, Chat oder Zahlungen aus dem Lauf heraus oder zeigt den Bildschirm für ein unerreichbares Backend.",
+        "valueHint": "URL oder Muster, z. B. **/analytics/**"
+      },
+      "clearMocks": {
+        "name": "Simulationen entfernen",
+        "description": "Nimmt alle Simulationen und Sperren des Tests zurück: Die Seite erreicht wieder die echten Server."
       }
     },
     "saveTest": {
