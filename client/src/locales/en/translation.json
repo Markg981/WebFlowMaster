@@ -1280,6 +1280,20 @@
         "name": "Assert values",
         "description": "Fails the test unless a comparison of values holds, such as the result of a query, a stored text or an email subject.",
         "valueHint": "a == b, a != b, a > 3, a contains b — e.g. the db.value variable == 1"
+      },
+      "mockRequest": {
+        "name": "Mock request",
+        "description": "From now on the page's requests to this address are answered here, not by the server: an error, an empty list, a slow answer, or a backend that is not ready. A later mock of the same address replaces it; it holds in every tab.",
+        "valueHint": "[METHOD] pattern | status [after 1500ms] | body, e.g. GET **/api/orders | 200 | []"
+      },
+      "blockRequests": {
+        "name": "Block requests",
+        "description": "From now on the page's requests to this address fail as if the network were down: keeps analytics, chat or payment widgets out of the run, or shows the screen for an unreachable backend.",
+        "valueHint": "URL or pattern, e.g. **/analytics/**"
+      },
+      "clearMocks": {
+        "name": "Clear mocks",
+        "description": "Takes back every mock and block of the test: the page reaches the real servers again."
       }
     },
     "playbackStatus": "Step {{current}}/{{total}}: {{name}} - {{details}}",
@@ -1785,6 +1799,23 @@
       "noProject": {
         "label": "No project"
       }
+    },
+    "import": {
+      "button": "Import",
+      "title": "Import API tests",
+      "description": "From an OpenAPI 3 or Swagger 2 description (JSON or YAML) or a Postman collection: one test per operation or request, starting from {{baseUrl}}, with the expected status as an assertion. Secrets become variables to set in an environment.",
+      "openFile": "Open a file…",
+      "paste": "Or paste the description or the collection here",
+      "selectedCount": "{{selected}} of {{total}} selected",
+      "exists": "already there",
+      "variables": "Set these in an environment before running them:",
+      "project": "Project",
+      "preview": "Show what it makes",
+      "back": "Back",
+      "confirm": "Import {{count}} tests",
+      "created": "{{count}} tests imported.",
+      "skipped": "{{count}} left out: they already exist.",
+      "close": "Close"
     }
   },
   "authForms": {
@@ -2705,7 +2736,8 @@
       "member_renamed": "Member renamed by the identity provider",
       "scim_group_created": "Provider group pushed",
       "scim_group_updated": "Provider group changed",
-      "scim_group_deleted": "Provider group removed"
+      "scim_group_deleted": "Provider group removed",
+      "api_test_imported": "API tests imported from OpenAPI or Postman"
     }
   },
   "security": {

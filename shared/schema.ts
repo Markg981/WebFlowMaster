@@ -1622,6 +1622,8 @@ export const AUDIT_ACTIONS = {
   API_TEST_CREATED: 'api_test.created',
   API_TEST_UPDATED: 'api_test.updated',
   API_TEST_DELETED: 'api_test.deleted',
+  // Tests made from an OpenAPI description or a Postman collection, in one entry (server/api-import.ts).
+  API_TESTS_IMPORTED: 'api_test.imported',
   PLAN_CREATED: 'plan.created',
   PLAN_UPDATED: 'plan.updated',
   PLAN_DELETED: 'plan.deleted',
@@ -2601,10 +2603,28 @@ export const insertApiTestHistorySchema = createInsertSchema(
 });
 export type InsertApiTestHistoryPayload = z.infer<typeof insertApiTestHistorySchema>;
 
+/**
+ * A request's address: absolute, or made absolute by its {{variables}} — `{{baseUrl}}/orders`,
+ * `https://{{host}}/api` — which the runner fills in from the environment (server/api-test-runner.ts).
+ * A plain `.url()` refused those, so a test could not follow an environment's base address.
+ */
+export function isRequestUrl(value: string): boolean {
+  const filled = value
+    .trim()
+    .replace(/^\{\{\s*[\w.$]+\s*\}\}/, 'https://placeholder.invalid')
+    .replace(/\{\{[^}]*\}\}/g, 'x');
+  try {
+    new URL(filled);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const insertApiTestSchema = createInsertSchema(apiTests, {
   name: z.string().min(1, "Test name cannot be empty"),
   method: z.string().min(1, "HTTP method is required"),
-  url: z.string().url("Invalid URL format"),
+  url: z.string().refine(isRequestUrl, "Invalid URL format: an absolute URL, or one starting with a variable such as {{baseUrl}}"),
   module: z.string().optional().nullable(),
   featureArea: z.string().optional().nullable(),
   scenario: z.string().optional().nullable(),

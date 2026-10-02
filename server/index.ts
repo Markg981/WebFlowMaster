@@ -23,6 +23,8 @@ const app = express();
 // proxy gets a larger allowance than the 100KB default everything else keeps. Mounted first:
 // the general parser below skips a body that has already been read.
 app.use('/api/proxy-api-request', express.json({ limit: '20mb' }));
+// An OpenAPI description or a Postman collection can be several megabytes (server/api-import.ts).
+app.use('/api/api-tests/import', express.json({ limit: '12mb' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

@@ -1347,6 +1347,20 @@
         "name": "Verifica valori",
         "description": "Fa fallire il test se un confronto di valori non è vero: il risultato di una query, un testo salvato, l'oggetto di un'email.",
         "valueHint": "a == b, a != b, a > 3, a contains b — es. la variabile db.value == 1"
+      },
+      "mockRequest": {
+        "name": "Simula richiesta",
+        "description": "Da qui in poi le richieste della pagina a questo indirizzo ricevono questa risposta, non quella del server: un errore, una lista vuota, una risposta lenta o un backend non ancora pronto. Una simulazione successiva dello stesso indirizzo la sostituisce; vale in tutte le schede.",
+        "valueHint": "[METODO] pattern | stato [after 1500ms] | corpo, es. GET **/api/orders | 200 | []"
+      },
+      "blockRequests": {
+        "name": "Blocca richieste",
+        "description": "Da qui in poi le richieste della pagina a questo indirizzo falliscono come se la rete fosse giù: tiene fuori analytics, chat o pagamenti, o mostra la schermata di un backend irraggiungibile.",
+        "valueHint": "URL o pattern, es. **/analytics/**"
+      },
+      "clearMocks": {
+        "name": "Rimuovi simulazioni",
+        "description": "Toglie tutte le simulazioni e i blocchi del test: la pagina torna a raggiungere i server veri."
       }
     },
     "testSequenceBuilder": {
@@ -1910,6 +1924,23 @@
       "noProject": {
         "label": "Nessun progetto"
       }
+    },
+    "import": {
+      "button": "Importa",
+      "title": "Importa test API",
+      "description": "Da una descrizione OpenAPI 3 o Swagger 2 (JSON o YAML) o da una collection Postman: un test per operazione o richiesta, che parte da {{baseUrl}}, con lo stato atteso come asserzione. I segreti diventano variabili da impostare in un ambiente.",
+      "openFile": "Apri un file…",
+      "paste": "Oppure incolla qui la descrizione o la collection",
+      "selectedCount": "{{selected}} di {{total}} selezionati",
+      "exists": "già presente",
+      "variables": "Impostate queste variabili in un ambiente prima di eseguirli:",
+      "project": "Progetto",
+      "preview": "Mostra cosa crea",
+      "back": "Indietro",
+      "confirm": "Importa {{count}} test",
+      "created": "{{count}} test importati.",
+      "skipped": "{{count}} esclusi: esistono già.",
+      "close": "Chiudi"
     }
   },
   "createTestPlanWizard": {
@@ -2830,7 +2861,8 @@
       "member_renamed": "Membro rinominato dall'identity provider",
       "scim_group_created": "Gruppo del provider inviato",
       "scim_group_updated": "Gruppo del provider modificato",
-      "scim_group_deleted": "Gruppo del provider rimosso"
+      "scim_group_deleted": "Gruppo del provider rimosso",
+      "api_test_imported": "Test API importati da OpenAPI o Postman"
     }
   },
   "security": {

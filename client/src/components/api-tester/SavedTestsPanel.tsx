@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Edit2, Trash2, PlusCircle, Download, ChevronRight } from 'lucide-react';
+import { Edit2, Trash2, PlusCircle, Download, ChevronRight, FileUp } from 'lucide-react';
+import { ImportApiTestsDialog } from './ImportApiTestsDialog';
 
 interface SavedTestsPanelProps {
   savedTests: ApiTest[];
@@ -39,6 +40,7 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
   isDeletingTestId,
 }) => {
   const { t } = useTranslation();
+  const [importOpen, setImportOpen] = useState(false);
 
   // Fetch project names so tests can be grouped under a readable project header.
   const { data: projects = [] } = useQuery<Project[]>({ queryKey: ['/api/projects'] });
@@ -131,9 +133,15 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
     <Card className="h-full flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between py-3 px-4 border-b">
         <CardTitle className="text-lg">{t('apiTester.savedTestsPanel.savedTests.title')}</CardTitle>
-        <Button variant="outline" size="sm" onClick={onOpenSaveModal} disabled={isLoading}>
-          <PlusCircle className="mr-2 h-4 w-4" /> {t('apiTester.savedTestsPanel.newTest.button')}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} disabled={isLoading} data-testid="open-import">
+            <FileUp className="mr-2 h-4 w-4" /> {t('apiTester.import.button', 'Import')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={onOpenSaveModal} disabled={isLoading}>
+            <PlusCircle className="mr-2 h-4 w-4" /> {t('apiTester.savedTestsPanel.newTest.button')}
+          </Button>
+        </div>
+        <ImportApiTestsDialog open={importOpen} onOpenChange={setImportOpen} />
       </CardHeader>
       <CardContent className="p-0 flex-1">
         <ScrollArea className="h-full p-3">

@@ -103,6 +103,7 @@
     "winston-daily-rotate-file": "^5.0.0",
     "winston-transport": "^4.9.0",
     "ws": "^8.18.0",
+    "yaml": "^2.9.1",
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {

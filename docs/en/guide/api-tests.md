@@ -7,6 +7,8 @@ You build them in **API Tester**.
 ## The request
 
 - **Method** and **Base URL**; **Query Params** are added below and shown in the **Effective URL**.
+  The address may start with a variable — <code v-pre>{{baseUrl}}/orders</code> — so one test
+  follows each environment's server.
 - **Environment**: which environment's secrets fill the <code v-pre>{{placeholders}}</code> in
   the address, the headers, the body and the authorization, as for
   [web tests](./web-tests#variables-and-environments).
@@ -95,6 +97,34 @@ The repetitions leave from where the test runs — a local agent's network when 
 and stop when the run is cancelled. A request that cannot be made at all skips the check: there is
 nothing to time. The caps are deliberate: this answers "did this endpoint get slower?" on every
 run, it is not a load test.
+
+## Importing from OpenAPI or Postman {#import}
+
+**Saved Tests → Import** makes tests from what a team already has: an **OpenAPI 3** or
+**Swagger 2** description, in JSON or YAML, or a **Postman collection** (v2.0 or v2.1). Open the
+file or paste it, press **Show what it makes**, keep the tests you want — those whose method and
+address already exist here are left unticked — choose a project and import.
+
+- One test per operation (OpenAPI) or request (Postman), named after its summary, operation id or
+  Postman name, grouped by its tag or folder as the module.
+- The address starts with <code v-pre>{{baseUrl}}</code>; path parameters become
+  <code v-pre>{{name}}</code> (Postman's `:name` too). Postman's own <code v-pre>{{variables}}</code>
+  are the same syntax and stay as they are.
+- Required query and header parameters get their example, default or first allowed value, or a
+  variable. The body is the operation's example, or one made from its schema (JSON and URL-encoded
+  forms); Postman's raw, URL-encoded and GraphQL bodies are kept.
+- Security becomes the test's authorization — bearer, basic or API key — with the secret as a
+  variable (<code v-pre>{{token}}</code>, <code v-pre>{{password}}</code>…). A secret written into a
+  Postman collection is not imported.
+- The expected status is an assertion: OpenAPI's first 2xx response, or Postman's
+  `pm.response.to.have.status(…)`.
+
+The preview lists the variables the tests need, with the server address as a suggestion for
+<code v-pre>{{baseUrl}}</code>: set them in an [environment](./web-tests#variables-and-environments)
+before running. What could not be carried over is said for each test: multipart bodies, Postman
+scripts beyond the status check, pre-request scripts, OAuth flows (the test then sends
+<code v-pre>{{token}}</code>). At most 500 tests per import, 12 MB per file; the audit log records
+each import.
 
 ## Saving
 
