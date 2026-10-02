@@ -39,6 +39,8 @@ choose, the text to expect.
 | **Assert Element Count** | Fails unless the number of matching elements is right, e.g. `==1`, `>=5`, `<3`. |
 | **Assert state** | Fails unless a control is checked, enabled, editable — or the opposite. |
 | **Check accessibility** | Checks the page with axe-core at that point, and fails on violations at or above the severity you choose (serious by default). |
+| **Set location** | From then on the browser reports this position to the page — see [Location and downloads](#location-and-downloads). |
+| **Check a download** | Clicks the element and checks the file it downloads — see [Location and downloads](#location-and-downloads). |
 | **Measure page speed** | Checks the Core Web Vitals and timings the browser measured for the page against limits — see [Page speed](#page-speed). |
 | **Lighthouse audit** | Runs Lighthouse on the current page and checks its scores — see [Page speed](#page-speed). |
 | **Press key** | Presses a key or a combination — `Enter`, `Tab`, `Escape`, `Control+A` — on the element, or on whatever has focus when the step has none. |
@@ -309,6 +311,33 @@ the tests check, and write only what they prepare, and never a production databa
 from the WebFlowMaster runner, not from the browser — also on a local agent — so the runner must
 reach the database. Values are put into the SQL as they are: quote text (`'{{email}}'`), and use
 variables whose values the test controls.
+
+## Location and downloads {#location-and-downloads}
+
+**Set location** makes the browser report a position to the page: `45.4642, 9.19`, or with an
+accuracy in metres, `45.4642, 9.19, 50`. From that step on, `navigator.geolocation` answers with it
+in every tab of the test, and the page may ask without a permission prompt — for a store locator,
+delivery areas or prices by region. A later **Set location** moves it.
+
+**Check a download** clicks its element, takes the file the click downloads, keeps it with the
+run's evidence and checks it. The value lists the checks, separated by `;` (a text may contain
+commas):
+
+`name: invoice-*.pdf; contains: Total 1.234,50 €; pages >= 1`
+`type: csv; rows >= 10; columns = 5; contains: Rossi, Mario`
+
+- `name:` a pattern for the file name (`*` any characters); `type:` `pdf`, `csv`, `xlsx`, `json` or
+  `txt`;
+- `contains:` a text the content must include, ignoring case and spacing — a PDF's text, a CSV's or
+  an Excel sheet's cells (the first sheet), or the file as text; repeat it for several;
+- `size`, `rows`, `columns`, `pages` with `<`, `<=`, `>`, `>=` or `=`; sizes take `KB` or `MB`.
+
+Empty, it only checks that a file was downloaded. A click that downloads nothing within the wait
+fails the step. Later steps can use <code v-pre>{{download.name}}</code>,
+<code v-pre>{{download.size}}</code>, <code v-pre>{{download.rows}}</code>,
+<code v-pre>{{download.pages}}</code> and <code v-pre>{{download.text}}</code> (the first 2,000
+characters) — in an **Assert values** step, for instance. The report links the file and shows what it
+held.
 
 ## Page speed {#page-speed}
 

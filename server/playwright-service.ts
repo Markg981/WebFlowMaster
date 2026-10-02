@@ -25,6 +25,7 @@ import { LOCALE_VARIABLE } from '@shared/locales';
 import { analyseFlow, leavesPageAlone } from '@shared/flow';
 import type { AccessibilityFinding } from '@shared/accessibility';
 import type { LighthouseFinding, PerformanceFinding } from '@shared/web-performance';
+import type { DownloadFinding } from '@shared/downloads';
 import { resolveVariables } from './variables';
 import { loadLoginState, saveLoginState, type EnvironmentScope, type LoginState } from './login-state';
 import { describeBrowser, deviceContextOptions, launchBrowser, resolveBrowser, type BrowserChoice } from './browsers';
@@ -171,6 +172,8 @@ export interface StepResult {
   performance?: PerformanceFinding;
   /** What an auditLighthouse step scored. */
   lighthouse?: LighthouseFinding;
+  /** The file an expectDownload step checked (shared/downloads.ts). */
+  download?: DownloadFinding;
 }
 
 /**
@@ -1634,6 +1637,7 @@ export class PlaywrightService {
           let stepAccessibility: AccessibilityFinding | undefined;
           let stepPerformance: PerformanceFinding | undefined;
           let stepLighthouse: LighthouseFinding | undefined;
+          let stepDownload: DownloadFinding | undefined;
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
           resolvedLogger.verbose({ message: `PS:executeAdhocSequence - LOOP START for step`, testName, actionName, actionId, pageClosed: page?.isClosed() });
@@ -1662,6 +1666,7 @@ export class PlaywrightService {
             stepAccessibility = outcome.accessibility;
             stepPerformance = outcome.performance;
             stepLighthouse = outcome.lighthouse;
+            stepDownload = outcome.download;
             if (!leavesPageAlone(actionId)) {
               // Let the UI settle before capturing: a click often dismisses a menu and opens a
               // dialog with an animation, and may fire XHRs. Without this the screenshot catches a
@@ -1713,7 +1718,7 @@ export class PlaywrightService {
           }
           await debug?.record({ name: actionName, type: actionId || 'unknown', stepId: step.id ?? null, status: stepStatus, detail: stepStatus === 'passed' ? (stepDetail ?? 'Action executed successfully.') : (stepError || 'Unknown error'), corrected });
 
-          stepResults.push({ name: actionName, type: actionId || 'unknown', selector: step.targetElement?.selector, value: step.value, status: stepStatus, screenshot: stepScreenshot, error: stepError, details: stepStatus === 'passed' ? (stepDetail ?? 'Action executed successfully.') : `Action failed: ${stepError || 'Unknown error'}`, accessibility: stepAccessibility, performance: stepPerformance, lighthouse: stepLighthouse, });
+          stepResults.push({ name: actionName, type: actionId || 'unknown', selector: step.targetElement?.selector, value: step.value, status: stepStatus, screenshot: stepScreenshot, error: stepError, details: stepStatus === 'passed' ? (stepDetail ?? 'Action executed successfully.') : `Action failed: ${stepError || 'Unknown error'}`, accessibility: stepAccessibility, performance: stepPerformance, lighthouse: stepLighthouse, download: stepDownload, });
           if (!overallSuccess) {
             resolvedLogger.info({ message: `PS:executeAdhocSequence - Step failed. Stopping sequence execution.`, testName, failedStep: actionName });
             break;
@@ -2147,6 +2152,7 @@ export class PlaywrightService {
           let stepAccessibility: AccessibilityFinding | undefined;
           let stepPerformance: PerformanceFinding | undefined;
           let stepLighthouse: LighthouseFinding | undefined;
+          let stepDownload: DownloadFinding | undefined;
           let stepVisual: StepResult['visual'];
           const actionId = step.action?.id;
           const actionName = step.action?.name || 'Unnamed Action';
@@ -2212,6 +2218,7 @@ export class PlaywrightService {
             stepAccessibility = outcome.accessibility;
             stepPerformance = outcome.performance;
             stepLighthouse = outcome.lighthouse;
+            stepDownload = outcome.download;
 
             // One screenshot, used twice: as the step's evidence when the plan keeps it, and —
             // when the plan asked for visual testing — as the image compared against this
@@ -2322,6 +2329,7 @@ export class PlaywrightService {
             accessibility: stepAccessibility,
             performance: stepPerformance,
             lighthouse: stepLighthouse,
+            download: stepDownload,
           });
 
           if (!overallSuccess) break;

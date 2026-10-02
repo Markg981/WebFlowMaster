@@ -98,6 +98,7 @@
     "qrcode": "^1.5.4",
     "redis": "^6.1.0",
     "undici": "^6.28.0",
+    "unpdf": "^1.2.2",
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",

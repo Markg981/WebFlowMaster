@@ -38,6 +38,8 @@ import {
   type LucideIcon,
   Gauge,
   Lightbulb,
+  MapPin,
+  FileDown,
 } from 'lucide-react';
 
 import type { AdhocActionId } from '@shared/recording';
@@ -74,6 +76,8 @@ const ACTION_ICONS: Record<AdhocActionId, LucideIcon> = {
   assertAccessible: Accessibility,
   measurePerformance: Gauge,
   auditLighthouse: Lightbulb,
+  setGeolocation: MapPin,
+  expectDownload: FileDown,
   pressKey: CornerDownLeft,
   doubleClick: MousePointerClick,
   rightClick: MousePointer2,

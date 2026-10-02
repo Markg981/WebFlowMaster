@@ -41,6 +41,8 @@ richiede: il testo da scrivere, l'opzione da scegliere, il testo atteso.
 | **Verifica Conteggio Elementi** | Fallisce se il numero di elementi corrispondenti non è quello giusto, per esempio `==1`, `>=5`, `<3`. |
 | **Verifica stato** | Fallisce se un controllo non è selezionato, abilitato, modificabile — o il contrario. |
 | **Verifica accessibilità** | Controlla la pagina in quel punto con axe-core, e fallisce sulle violazioni di gravità pari o superiore a quella scelta (serious di default). |
+| **Imposta la posizione** | Da quel momento il browser comunica alla pagina questa posizione — vedi [Posizione e download](#posizione-e-download). |
+| **Verifica un download** | Clicca l'elemento e controlla il file scaricato — vedi [Posizione e download](#posizione-e-download). |
 | **Misura la velocità della pagina** | Controlla le Core Web Vitals e i tempi misurati dal browser per la pagina rispetto a dei limiti — vedi [Velocità delle pagine](#velocita-delle-pagine). |
 | **Audit Lighthouse** | Esegue Lighthouse sulla pagina corrente e ne controlla i punteggi — vedi [Velocità delle pagine](#velocita-delle-pagine). |
 | **Premi tasto** | Preme un tasto o una combinazione — `Enter`, `Tab`, `Escape`, `Control+A` — sull'elemento, o su quello che ha il focus se lo step non ne ha. |
@@ -324,6 +326,36 @@ ciò che i test verificano e scrivere solo ciò che preparano, e mai un database
 query parte dal runner di WebFlowMaster, non dal browser — anche su un agente locale — quindi il
 runner deve raggiungere il database. I valori entrano nell'SQL così come sono: mettete il testo tra
 apici (`'{{email}}'`) e usate variabili i cui valori sono sotto il controllo del test.
+
+## Posizione e download {#posizione-e-download}
+
+**Imposta la posizione** fa comunicare al browser una posizione alla pagina: `45.4642, 9.19`, oppure
+con una precisione in metri, `45.4642, 9.19, 50`. Da quello step in poi `navigator.geolocation`
+risponde con quella posizione in ogni scheda del test, e la pagina può chiederla senza richiesta di
+permesso — per la ricerca di un negozio, le zone di consegna o i prezzi per regione. Un **Imposta la
+posizione** successivo la sposta.
+
+**Verifica un download** clicca il suo elemento, prende il file che il clic scarica, lo conserva con
+le evidenze dell'esecuzione e lo controlla. Il valore elenca i controlli, separati da `;` (un testo
+può contenere virgole):
+
+`name: fattura-*.pdf; contains: Totale 1.234,50 €; pages >= 1`
+`type: csv; rows >= 10; columns = 5; contains: Rossi, Mario`
+
+- `name:` un pattern per il nome del file (`*` qualsiasi carattere); `type:` `pdf`, `csv`, `xlsx`,
+  `json` o `txt`;
+- `contains:` un testo che il contenuto deve includere, ignorando maiuscole e spazi — il testo di un
+  PDF, le celle di un CSV o del primo foglio di un Excel, oppure il file come testo; ripetetelo per
+  più testi;
+- `size`, `rows`, `columns`, `pages` con `<`, `<=`, `>`, `>=` o `=`; le dimensioni accettano `KB` o
+  `MB`.
+
+Vuoto, controlla solo che un file sia stato scaricato. Un clic che non scarica nulla entro l'attesa
+fa fallire lo step. Gli step successivi possono usare <code v-pre>{{download.name}}</code>,
+<code v-pre>{{download.size}}</code>, <code v-pre>{{download.rows}}</code>,
+<code v-pre>{{download.pages}}</code> e <code v-pre>{{download.text}}</code> (i primi 2.000
+caratteri) — in uno step **Verifica valori**, per esempio. Il report collega il file e mostra cosa
+conteneva.
 
 ## Velocità delle pagine {#velocita-delle-pagine}
 

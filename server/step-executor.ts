@@ -18,6 +18,12 @@ import {
   type AccessibilityImpact,
 } from '@shared/accessibility';
 import { MAX_LOOP_ITERATIONS } from '@shared/flow';
+import os from 'os';
+import path from 'path';
+import fs from 'fs-extra';
+import type { Download } from 'playwright';
+import { inspectDownload } from './download-check';
+import { parseDownloadChecks, parseGeolocation, runDownloadChecks, type DownloadFinding } from '@shared/downloads';
 import { measurePagePerformance, runLighthouse } from './web-performance';
 import {
   DEFAULT_PERFORMANCE_LIMITS,
@@ -106,6 +112,8 @@ export interface StepOutcome {
   performance?: PerformanceFinding;
   /** What an `auditLighthouse` step scored. */
   lighthouse?: LighthouseFinding;
+  /** The file an `expectDownload` step took, and its checks (shared/downloads.ts). */
+  download?: DownloadFinding;
   /**
    * The tab the rest of the test runs in, when this step moved it (`switchTab`, `closeTab`).
    *
@@ -282,6 +290,8 @@ interface StepRuntime {
   database: DatabaseRunner;
   /** The browser's own measurements of the page (server/web-performance.ts). */
   measurePerformance: () => Promise<{ url: string; metrics: Record<PerformanceMetric, number | null> }>;
+  /** Where a step keeps a file it produced (StepContext.artifactDir); none in the builder's preview. */
+  artifactDir?: string;
   /** Lighthouse on the page's address, with the test's cookies for it. */
   runLighthouse: (formFactor: 'mobile' | 'desktop') => Promise<Omit<LighthouseFinding, 'checks'>>;
 }
@@ -884,6 +894,77 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
    * against the limits in the value (shared/web-performance.ts). Empty checks the Core Web
    * Vitals' "good" thresholds. A metric this browser cannot measure is reported, not failed.
    */
+  /**
+   * Where the browser says it is: navigator.geolocation answers with this point from now on, in
+   * every tab of the test, and the page is allowed to ask without a prompt.
+   */
+  setGeolocation: async (rt) => {
+    const wanted = requireValue(rt, 'setGeolocation');
+    if ('error' in wanted) return failed(wanted.error);
+    const point = parseGeolocation(wanted.value);
+    if ('error' in point) return failed(point.error);
+    const context = rt.page.context();
+    await context.grantPermissions(['geolocation']);
+    await context.setGeolocation(point);
+    return { status: 'passed', detail: `The browser is now at ${point.latitude}, ${point.longitude} (±${point.accuracy} m).` };
+  },
+
+  /**
+   * Clicks the element and takes the file it downloads: checks its name, kind, size and content
+   * (shared/downloads.ts), keeps it with the run's evidence, and sets {{download.name}},
+   * {{download.size}}, {{download.rows}}, {{download.pages}} and {{download.text}} for later steps.
+   */
+  expectDownload: async (rt) => {
+    const target = requireSelector(rt, 'expectDownload');
+    if ('error' in target) return failed(target.error);
+    const text = typeof rt.raw === 'string' ? rt.raw : '';
+    const resolved = text.trim() ? resolveValue(text, rt.vars) : { value: '' };
+    if ('error' in resolved) return failed(resolved.error);
+    const checks = parseDownloadChecks(resolved.value);
+    if ('error' in checks) return failed(checks.error);
+
+    let download: Download;
+    try {
+      [download] = await Promise.all([
+        rt.page.waitForEvent('download', { timeout: rt.timeoutMs }),
+        rt.click(target.selector),
+      ]);
+    } catch (error) {
+      if (error instanceof Error && /timeout/i.test(error.message)) {
+        return failed(`Clicking ${target.selector} did not download a file within ${Math.round(rt.timeoutMs / 1000)} s.`);
+      }
+      throw error;
+    }
+    const failure = await download.failure();
+    if (failure) return failed(`The download failed: ${failure}.`);
+    const name = download.suggestedFilename();
+    const dir = rt.artifactDir ?? (await fs.mkdtemp(path.join(os.tmpdir(), 'wfm-download-')));
+    await fs.ensureDir(dir);
+    const file = path.join(dir, `download_${Date.now()}_${name.replace(/[^\w.-]+/g, '_').slice(-80)}`);
+    await download.saveAs(file);
+    let inspected: Awaited<ReturnType<typeof inspectDownload>>;
+    try {
+      inspected = await inspectDownload(file, name);
+    } catch (error) {
+      return failed(`${name} could not be read: ${(error as Error).message}`);
+    } finally {
+      if (!rt.artifactDir) await fs.remove(dir).catch(() => undefined);
+    }
+    const results = runDownloadChecks(inspected.file, inspected.text, checks);
+    const finding: DownloadFinding = { ...inspected.file, checks: results, ...(rt.artifactDir ? { fileUrl: file } : {}) };
+    rt.storeVariable?.('download.name', name);
+    rt.storeVariable?.('download.size', String(inspected.file.size));
+    if (inspected.file.rows !== undefined) rt.storeVariable?.('download.rows', String(inspected.file.rows));
+    if (inspected.file.pages !== undefined) rt.storeVariable?.('download.pages', String(inspected.file.pages));
+    rt.storeVariable?.('download.text', inspected.text.slice(0, 2000));
+    const kind = `${name} (${inspected.file.type}, ${Math.max(1, Math.round(inspected.file.size / 1024))} KB${inspected.file.rows !== undefined ? `, ${inspected.file.rows} rows` : ''}${inspected.file.pages !== undefined ? `, ${inspected.file.pages} page(s)` : ''})`;
+    const wrong = results.filter((r) => !r.ok);
+    if (wrong.length) {
+      return { status: 'failed', error: `Downloaded ${kind}, but: ${wrong.map((r) => (r.actual ? `${r.text} (found ${r.actual})` : `${r.text} (not found)`)).join('; ')}.`, download: finding };
+    }
+    return { status: 'passed', detail: `Downloaded ${kind}${results.length ? `; ${results.length} check(s) hold` : ''}.`, download: finding };
+  },
+
   measurePerformance: async (rt) => {
     const text = typeof rt.raw === 'string' && rt.raw.trim() ? rt.raw : DEFAULT_PERFORMANCE_LIMITS;
     const resolved = resolveValue(text, rt.vars);
@@ -1431,6 +1512,7 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
         }
       : {}),
     startedAt: ctx.startedAt ?? Date.now(),
+    artifactDir: ctx.artifactDir,
     inboxGet: async (url, headers) => {
       const response = await page.context().request.get(url, {
         headers,

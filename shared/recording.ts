@@ -55,6 +55,11 @@ export const ADHOC_ACTION_IDS = [
   // Lighthouse's scores. See shared/web-performance.ts.
   "measurePerformance",
   "auditLighthouse",
+  // Where the browser says it is (navigator.geolocation), for pages that show what is near.
+  "setGeolocation",
+  // Clicks the element, takes the file it downloads, and checks its name, size and content —
+  // a PDF's text, a CSV's rows. See shared/downloads.ts.
+  "expectDownload",
   // Interactions a click and a typed value cannot stand in for. Without them a test could reach
   // a search box and never submit it, open a context menu only by accident, and not get past
   // an upload field, a confirm() or a link that opens in a new tab at all.
@@ -248,6 +253,8 @@ export const ACTION_REQUIREMENTS: Record<
   assertAccessible: { target: false, value: true, valueRequired: false },
   measurePerformance: { target: false, value: true, valueRequired: false },
   auditLighthouse: { target: false, value: true, valueRequired: false },
+  setGeolocation: { target: false, value: true, valueRequired: true },
+  expectDownload: { target: true, value: true, valueRequired: false },
   // No element required: after typing, the key usually goes to the field that has focus. A
   // recorded Enter keeps the field it was pressed in, and the runner uses it when it is there.
   pressKey: { target: false, value: true, valueRequired: true, optionalTarget: true },
@@ -421,6 +428,16 @@ export const ACTION_I18N: Record<
     description: "dashboardPageNew.actions.measurePerformance.description",
     icon: "Gauge",
   },
+  setGeolocation: {
+    name: "dashboardPageNew.actions.setGeolocation.name",
+    description: "dashboardPageNew.actions.setGeolocation.description",
+    icon: "MapPin",
+  },
+  expectDownload: {
+    name: "dashboardPageNew.actions.expectDownload.name",
+    description: "dashboardPageNew.actions.expectDownload.description",
+    icon: "FileDown",
+  },
   auditLighthouse: {
     name: "dashboardPageNew.actions.auditLighthouse.name",
     description: "dashboardPageNew.actions.auditLighthouse.description",
@@ -569,6 +586,8 @@ export const ACTION_VALUE_HINTS: Partial<Record<AdhocActionId, string>> = {
   pressKey: "dashboardPageNew.actions.pressKey.valueHint",
   dragAndDrop: "dashboardPageNew.actions.dragAndDrop.valueHint",
   uploadFile: "dashboardPageNew.actions.uploadFile.valueHint",
+  setGeolocation: "dashboardPageNew.actions.setGeolocation.valueHint",
+  expectDownload: "dashboardPageNew.actions.expectDownload.valueHint",
   handleDialog: "dashboardPageNew.actions.handleDialog.valueHint",
   switchTab: "dashboardPageNew.actions.switchTab.valueHint",
   storeText: "dashboardPageNew.actions.storeText.valueHint",

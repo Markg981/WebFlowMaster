@@ -1373,6 +1373,16 @@
         "name": "Audit Lighthouse",
         "description": "Esegue Lighthouse sulla pagina corrente, con i cookie del test, e conserva il suo report con l'esecuzione. Fallisce quando una categoria ha un punteggio sotto il limite; vuoto registra solo i punteggi.",
         "valueHint": "performance >= 80, accessibility >= 90, desktop"
+      },
+      "setGeolocation": {
+        "name": "Imposta la posizione",
+        "description": "Da qui in poi il browser comunica alla pagina questa posizione (navigator.geolocation), e la pagina può chiederla senza richiesta di permesso.",
+        "valueHint": "45.4642, 9.19 (latitudine, longitudine[, precisione m])"
+      },
+      "expectDownload": {
+        "name": "Verifica un download",
+        "description": "Clicca l'elemento, prende il file scaricato e lo controlla: nome, tipo, dimensione e contenuto di un PDF, CSV, Excel o file di testo. Imposta {{download.name}}, {{download.rows}}, {{download.text}}…",
+        "valueHint": "name: *.pdf; contains: Totale; pages >= 1"
       }
     },
     "testSequenceBuilder": {

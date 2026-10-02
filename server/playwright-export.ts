@@ -292,6 +292,13 @@ export function toPlaywright(test: ExportableTest): PlaywrightExport {
       case 'queryDatabase': skip(step, 'it queries the environment\'s database through WebFlowMaster'); break;
       case 'assertAccessible': skip(step, 'add @axe-core/playwright and check AxeBuilder results here'); break;
       case 'measurePerformance': skip(step, 'read the PerformanceObserver entries (LCP, layout-shift) with page.evaluate and assert them'); break;
+      case 'setGeolocation': {
+        const [lat, lon, acc] = String(step.value ?? '').split(',').map((v) => Number(v.trim()));
+        emit(`await p.context().grantPermissions(['geolocation']);`);
+        emit(`await p.context().setGeolocation({ latitude: ${lat}, longitude: ${lon}, accuracy: ${Number.isFinite(acc) ? acc : 10} });`);
+        break;
+      }
+      case 'expectDownload': skip(step, 'wait for page.waitForEvent("download") around the click, then read download.path()'); break;
       case 'auditLighthouse': skip(step, 'run Lighthouse on page.url(), for example with playwright-lighthouse'); break;
       default: skip(step, id ? `"${id}" has no Playwright equivalent here` : 'no action'); break;
     }
