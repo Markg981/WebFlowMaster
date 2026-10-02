@@ -22,8 +22,24 @@ function typeOf(name: string, head: Buffer): DownloadType {
 
 /** CSV rows, with the delimiter guessed from the first line (`,`, `;` or tab) and quoted fields. */
 export function parseCsv(text: string): string[][] {
-  const firstLine = text.split(/\r?\n/, 1)[0] ?? '';
-  const counts = [',', ';', '\t'].map((d) => [d, firstLine.split(d).length] as const);
+  text = text.replace(/^\uFEFF/, '');
+  // Count separators in the first logical record, outside quoted fields. A header can
+  // itself contain commas, semicolons or newlines without defining the CSV dialect.
+  const candidates = [',', ';', '\t'];
+  const frequencies = [0, 0, 0];
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (inQuotes && text[i + 1] === '"') i++;
+      else inQuotes = !inQuotes;
+    } else if (!inQuotes) {
+      if (c === '\n' || c === '\r') break;
+      const index = candidates.indexOf(c);
+      if (index >= 0) frequencies[index]++;
+    }
+  }
+  const counts = candidates.map((d, i) => [d, frequencies[i]] as const);
   const delimiter = counts.sort((a, b) => b[1] - a[1])[0][0];
   const rows: string[][] = [];
   let row: string[] = [];

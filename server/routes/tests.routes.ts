@@ -1,7 +1,7 @@
 import { Router, type Response } from "express";
-import { tests, insertTestSchema, apiTests, insertApiTestSchema, updateApiTestSchema, users, projects, AUDIT_ACTIONS } from "@shared/schema";
+import { tests, insertTestSchema, apiTests, insertApiTestSchema, updateApiTestSchema, users, projects, projectMembers, AUDIT_ACTIONS } from "@shared/schema";
 import { auditActor, changedFields, recordAudit } from "../audit";
-import { eq, desc, getTableColumns, isNull } from "drizzle-orm";
+import { eq, and, desc, getTableColumns, isNull } from "drizzle-orm";
 import { z } from "zod";
 import loggerPromise from "../logger";
 import { BrowserTaskError, browserTasks } from "../browser-tasks";
@@ -15,6 +15,7 @@ import { API_TEST_FIELDS, BundleError, TEST_FIELDS, exportBundle, parseBundle, s
 import { toPlaywright } from "../playwright-export";
 import { expandSequenceForRun } from "../step-groups";
 import { resolveSequenceForRun } from "../step-elements";
+import { GherkinError } from "../gherkin";
 
 const router = Router();
 const logger = await loggerPromise;
@@ -587,9 +588,11 @@ function projectFilter(value: unknown): { ok: true; projectId: number | null | u
 
 // GET /api/tests/export — the web and API tests of a project as one YAML (or ?format=json) file.
 router.get("/api/tests/export", requireRole('viewer'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
   const filter = projectFilter(req.query.projectId);
   if (!filter.ok) return res.status(400).json({ error: "projectId is a project id, or none." });
-  const format = req.query.format === 'json' ? 'json' : 'yaml';
+  if (req.query.format !== undefined && !['yaml', 'json', 'gherkin'].includes(String(req.query.format))) return res.status(400).json({ error: "format is yaml, json or gherkin." });
+  const format = req.query.format === 'json' ? 'json' : req.query.format === 'gherkin' ? 'gherkin' : 'yaml';
   const { projectId } = filter;
   const data = await withTenantTransaction(async (tx) => {
     const where = <T extends typeof tests | typeof apiTests>(table: T) =>
@@ -603,12 +606,17 @@ router.get("/api/tests/export", requireRole('viewer'), async (req, res) => {
     };
   });
   if (data.projectMissing) return res.status(404).json({ error: "Project not found" });
-  const bundle = exportBundle(data, format);
+  let bundle;
+  try { bundle = exportBundle(data, format); }
+  catch (error) {
+    if (error instanceof GherkinError) return res.status(400).json({ error: error.message });
+    throw error;
+  }
   res.setHeader("Content-Disposition", `attachment; filename="${bundle.fileName}"`);
   // What the file left out or refers to, for the client to say so; the file itself is the body.
   res.setHeader("X-WFM-Secrets-Replaced", String(bundle.secretsReplaced.length));
   res.setHeader("X-WFM-Tests-With-References", String(bundle.withReferences.length));
-  res.type(format === 'json' ? 'application/json' : 'application/yaml').send(bundle.content);
+  res.type(format === 'json' ? 'application/json' : format === 'gherkin' ? 'text/plain' : 'application/yaml').send(bundle.content);
 });
 
 const importBundleSchema = z.object({
@@ -616,18 +624,21 @@ const importBundleSchema = z.object({
   /** Where new tests go; existing tests keep their project. */
   projectId: projectIdField,
   dryRun: z.boolean().optional().default(false),
+  format: z.literal('gherkin').optional(),
 });
+class BundleProjectAccessError extends Error {}
 
 // POST /api/tests/import-bundle — a file made by the export: tests of the same name are updated
 // (a new version each), the others created. Unchanged tests are left alone.
 router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
   const parsed = importBundleSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid import", details: parsed.error.flatten() });
   let bundle;
   try {
-    bundle = parseBundle(parsed.data.content);
+    bundle = parseBundle(parsed.data.content, parsed.data.format);
   } catch (error) {
-    if (error instanceof BundleError) return res.status(400).json({ error: error.message });
+    if (error instanceof BundleError || error instanceof GherkinError) return res.status(400).json({ error: error.message });
     throw error;
   }
   const projectId = parsed.data.projectId ?? null;
@@ -636,6 +647,21 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
   try {
     const outcomes = await withTenantTransaction(async (tx) => {
       const results: Outcome[] = [];
+      const projectAccess = new Map<number, boolean>();
+      const canEditProject = async (id: number | null): Promise<boolean> => {
+        if (id === null) return true;
+        if (projectAccess.has(id)) return projectAccess.get(id)!;
+        const [project] = await tx.select({ restricted: projects.restricted }).from(projects).where(eq(projects.id, id)).limit(1);
+        let allowed = Boolean(project) && (!project.restricted || req.user!.role === 'owner');
+        if (project?.restricted && req.user!.role !== 'owner') {
+          const [member] = await tx.select({ role: projectMembers.role }).from(projectMembers).where(and(eq(projectMembers.projectId, id), eq(projectMembers.userId, req.user!.id))).limit(1);
+          allowed = member?.role === 'editor';
+        }
+        projectAccess.set(id, allowed);
+        return allowed;
+      };
+      // A preview must not promise writes the selected project's policy will refuse.
+      if (!await canEditProject(projectId)) throw new BundleProjectAccessError();
       for (const raw of bundle.tests) {
         const name = String(raw.name ?? '');
         // The detected elements are the builder's palette, not part of the test: the file leaves them out.
@@ -656,6 +682,10 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
           continue;
         }
         const [existing] = await tx.select().from(tests).where(eq(tests.name, candidate.data.name)).limit(1);
+        if (existing && !await canEditProject(existing.projectId)) {
+          results.push({ kind: 'test', name, outcome: 'invalid', reason: 'You can view this test\'s project but not change it.' });
+          continue;
+        }
         if (existing && sameAs(existing as unknown as Record<string, unknown>, raw, TEST_FIELDS)) {
           results.push({ kind: 'test', name, outcome: 'unchanged' });
           continue;
@@ -687,6 +717,10 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
           continue;
         }
         const existing = same[0];
+        if (existing && !await canEditProject(existing.projectId)) {
+          results.push({ kind: 'api_test', name, outcome: 'invalid', reason: 'You can view this test\'s project but not change it.' });
+          continue;
+        }
         if (existing && sameAs(existing as unknown as Record<string, unknown>, raw, API_TEST_FIELDS)) {
           results.push({ kind: 'api_test', name, outcome: 'unchanged' });
           continue;
@@ -712,6 +746,7 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
     });
     res.status(parsed.data.dryRun ? 200 : 201).json({ dryRun: parsed.data.dryRun, results: outcomes });
   } catch (error: any) {
+    if (error instanceof BundleProjectAccessError) return res.status(400).json({ error: "Invalid project ID or project does not allow edits." });
     if (isForeignKeyError(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
     throw error;
   }

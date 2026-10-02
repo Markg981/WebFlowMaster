@@ -276,6 +276,8 @@ describe('route modules cannot query outside the tenant context', () => {
         // The SAML assertion consumer is where a person who is not signed in yet arrives: the
         // identity provider's signed response is the credential, checked in server/sso-saml.ts.
         if (name === 'sso.routes.ts' && line.includes('"/api/sso/saml/:organizationId/acs"')) return;
+        // SLO is authenticated by the IdP signature, including POSTs without a browser cookie.
+        if (name === 'sso.routes.ts' && line.includes('"/api/sso/saml/:organizationId/slo"')) return;
         // requireScope (server/middleware/require-scope.ts) is the /api/v1 form of the same check:
         // it applies the minimum role its scope names before looking at the key's scopes.
         if (!window.includes('requireRole') && !window.includes('requireScope')) {

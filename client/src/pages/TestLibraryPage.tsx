@@ -14,6 +14,8 @@ import TestHistoryDialog from '@/components/tests/TestHistoryDialog';
 import ManualTestDialog from '@/components/tests/ManualTestDialog';
 import { isManualSequence } from '@shared/manual-tests';
 import { TestFilesDialog } from '@/components/tests/TestFilesDialog';
+import CommentsPanel from '@/components/tests/CommentsPanel';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ClipboardCheck, FileCode, FileStack, History, Loader2, Pencil, Search, Trash2 } from 'lucide-react';
 
 /**
@@ -57,6 +59,7 @@ const TestLibraryPage: React.FC = () => {
   const [manualEditing, setManualEditing] = useState<LibraryTest | 'new' | null>(null);
   /** Export and import of the tests as a file (server/test-bundle.ts). */
   const [filesOpen, setFilesOpen] = useState(false);
+  const [commentsFor, setCommentsFor] = useState<LibraryTest | null>(null);
 
   const { data: testsData, isLoading, error } = useQuery<LibraryTest[], Error>({
     queryKey: ['/api/tests'],
@@ -277,6 +280,7 @@ const TestLibraryPage: React.FC = () => {
                       {test.updatedAt ? new Date(test.updatedAt).toLocaleString() : '—'}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
+                      <Button variant="ghost" size="sm" onClick={() => setCommentsFor(test)}>{t('comments.title', 'Comments')}</Button>
                       {canEdit && isManualSequence(test.sequence) && (
                         <Button variant="ghost" size="sm" onClick={() => setManualEditing(test)} title={t('testLibrary.editManual', 'Edit steps')}>
                           <Pencil className="h-4 w-4" />
@@ -325,6 +329,12 @@ const TestLibraryPage: React.FC = () => {
       />
 
       <TestFilesDialog open={filesOpen} onOpenChange={setFilesOpen} canEdit={canEdit} onImported={() => void refresh()} />
+      <Dialog open={commentsFor !== null} onOpenChange={open => { if (!open) setCommentsFor(null); }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
+          <DialogHeader><DialogTitle>{commentsFor?.name}</DialogTitle></DialogHeader>
+          {commentsFor && <CommentsPanel key={commentsFor.id} kind="ui" targetId={commentsFor.id} />}
+        </DialogContent>
+      </Dialog>
 
       <ManualTestDialog
         isOpen={manualEditing !== null}

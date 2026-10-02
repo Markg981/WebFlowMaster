@@ -5,9 +5,9 @@ This page is the reference for the database: every table, every column and every
 purpose of each table, in words, read [Data model](./data-model); for how rows are kept apart between organizations,
 read [Tenancy and access](./tenancy).
 
-**60 tables**, of which 45 carry an `organization_id` and are protected by row-level security. The other 15 are
+**69 tables**, of which 52 carry an `organization_id` and are protected by row-level security. The other 17 are
 installation-wide or are read before an organization is known: `organizations`, `users`, `user_mfa`,
-`user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sso_saml_requests`, `scim_users`, `scim_groups`, `scim_group_members`, `sessions`, `runners`
+`user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sso_saml_requests`, `sso_saml_replay`, `sso_saml_sessions`, `scim_users`, `scim_groups`, `scim_group_members`, `sessions`, `runners`
 and `system_settings`.
 
 ## How to read the diagrams
@@ -204,6 +204,13 @@ erDiagram
     text client_secret_auth_tag
     text saml_sso_url
     text saml_certificate
+    bool saml_allow_idp_initiated
+    bool saml_require_encrypted_assertions
+    text saml_slo_url
+    text saml_sp_certificate
+    text saml_sp_private_key_encrypted
+    text saml_sp_private_key_iv
+    text saml_sp_private_key_auth_tag
     text default_role
     bool enabled
     bool required
@@ -233,6 +240,8 @@ erDiagram
     text id PK
     int organization_id FK
     timestamp created_at
+    text purpose
+    text session_id
   }
   scim_users {
     int user_id PK,FK
@@ -1159,5 +1168,84 @@ These relationships exist in the application but have no foreign key. Most come 
 - **Uniqueness.** Environment names are unique per organization (migration 0041); an invitation is unique per username
   while pending (0044); an issue link is unique per failure (`dedupe_key`), so one failure is filed once; a run's
   idempotency key is unique per organization, so a retried request returns the same run.
-- **Migrations.** 64 numbered SQL files in `migrations/` (`0000` … `0063`), applied once by the migrator before the other
+- **Migrations.** 75 numbered SQL files in `migrations/` (`0000` … `0074`), applied once by the migrator before the other
   processes start; the journal is `migrations/meta/_journal.json`.
+
+## Administration additions — migrations 0073 and 0074
+
+SAML protocol registries use privileged access before authentication, with explicit organization
+predicates and no application-role grants. Email histories use forced RLS and SELECT-only grants;
+provider callbacks write using opaque message correlation. No content or credential tokens are retained.
+
+```mermaid
+erDiagram
+  organizations ||--o{ sso_saml_replay : owns
+  organizations ||--o{ sso_saml_sessions : owns
+  users ||--o{ sso_saml_sessions : opens
+  organizations |o--o{ mail_deliveries : owns
+  mail_deliveries ||--o{ mail_delivery_events : receives
+  organizations |o--o{ mail_delivery_events : owns
+  sso_saml_replay {
+    text id PK
+    int organization_id FK
+    timestamp expires_at
+  }
+  sso_saml_sessions {
+    text session_id PK
+    int organization_id FK
+    int user_id FK
+    text issuer
+    text name_id
+    text name_id_format
+    text session_index
+    timestamp created_at
+  }
+  mail_deliveries {
+    text id PK
+    int organization_id FK
+    text recipient
+    text purpose
+    text state
+    timestamp created_at
+    timestamp updated_at
+  }
+  mail_delivery_events {
+    text id PK
+    text delivery_id FK
+    int organization_id FK
+    text state
+    timestamp received_at
+  }
+```
+
+## Collaboration — migrations 0071 and 0072
+
+```mermaid
+erDiagram
+  organizations ||--o{ comments : owns
+  users |o--o{ comments : writes
+  tests |o--o{ comments : discussed
+  api_tests |o--o{ comments : discussed
+  mobile_tests |o--o{ comments : discussed
+  report_test_case_results |o--o{ comments : discussed
+  organizations ||--o{ user_dashboard_layouts : owns
+  users ||--o{ user_dashboard_layouts : customizes
+  comments {
+    int id PK
+    int organization_id FK
+    int author_id FK
+    int ui_test_id FK
+    int api_test_id FK
+    int mobile_test_id FK
+    text result_id FK
+    text body
+    timestamp created_at
+    timestamp updated_at
+  }
+  user_dashboard_layouts {
+    int organization_id PK,FK
+    int user_id PK,FK
+    jsonb widgets
+    timestamp updated_at
+  }
+```

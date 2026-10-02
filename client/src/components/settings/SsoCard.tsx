@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Copy, KeyRound, Loader2 } from 'lucide-react';
 import { DomainVerification, RoleMappingEditor, type DomainStatus, type RoleMappingRow } from './SsoRolesAndDomains';
 import { ScimProvisioning, type ScimTokenStatus } from './ScimProvisioning';
+import SamlAdvancedSettings, { type SamlAdvancedForm } from './SamlAdvancedSettings';
 
 /**
  * Single sign-on with the organization's identity provider (server/sso.ts). Owners only.
@@ -32,6 +33,11 @@ export interface SsoSettings {
   samlSsoUrl: string | null;
   samlCertificate: string | null;
   samlCertificateInfo: { subject: string; validTo: string; expired: boolean } | null;
+  samlAllowIdpInitiated?: boolean;
+  samlRequireEncryptedAssertions?: boolean;
+  samlSloUrl?: string | null;
+  samlSpCertificate?: string | null;
+  samlSpPrivateKeyConfigured?: boolean;
   domains: string[];
   domainStatus?: DomainStatus[];
   verificationRequired?: boolean;
@@ -48,7 +54,7 @@ export interface SsoSettings {
 interface SsoResponse {
   settings: SsoSettings | null;
   callbackUrl: string;
-  saml: { entityId: string; acsUrl: string; metadataUrl: string };
+  saml: { entityId: string; acsUrl: string; metadataUrl: string; sloUrl?: string };
   scim?: { baseUrl: string };
 }
 
@@ -64,7 +70,7 @@ async function send(method: string, url: string, body?: unknown) {
   return payload;
 }
 
-interface Form {
+interface Form extends SamlAdvancedForm {
   protocol: Protocol;
   issuer: string;
   clientId: string;
@@ -84,6 +90,8 @@ const EMPTY: Form = {
   protocol: 'oidc', issuer: '', clientId: '', clientSecret: '', samlSsoUrl: '', samlCertificate: '',
   domains: '', defaultRole: 'viewer', enabled: true, required: false,
   groupAttribute: 'groups', roleMappings: [], requireGroup: false,
+  samlAllowIdpInitiated: false, samlRequireEncryptedAssertions: false,
+  samlSloUrl: '', samlSpCertificate: '', samlSpPrivateKey: '', samlClearSpKey: false,
 };
 
 function CopyField({ label, value, testId }: { label: string; value: string; testId: string }) {
@@ -111,7 +119,7 @@ export default function SsoCard() {
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
-  const { data, isLoading } = useQuery<SsoResponse>({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery<SsoResponse>({
     queryKey: ['organization-sso'],
     queryFn: () => send('GET', '/api/organization/sso'),
   });
@@ -129,6 +137,12 @@ export default function SsoCard() {
             clientSecret: '',
             samlSsoUrl: s.samlSsoUrl ?? '',
             samlCertificate: s.samlCertificate ?? '',
+            samlAllowIdpInitiated: s.samlAllowIdpInitiated ?? false,
+            samlRequireEncryptedAssertions: s.samlRequireEncryptedAssertions ?? false,
+            samlSloUrl: s.samlSloUrl ?? '',
+            samlSpCertificate: s.samlSpCertificate ?? '',
+            samlSpPrivateKey: '',
+            samlClearSpKey: false,
             domains: s.domains.join(', '),
             defaultRole: s.defaultRole,
             enabled: s.enabled,
@@ -172,8 +186,17 @@ export default function SsoCard() {
       };
       const body = form.protocol === 'oidc'
         ? { ...common, clientId: form.clientId, clientSecret: form.clientSecret }
-        : { ...common, samlSsoUrl: form.samlSsoUrl, samlCertificate: form.samlCertificate };
+        : {
+          ...common, samlSsoUrl: form.samlSsoUrl, samlCertificate: form.samlCertificate,
+          samlAllowIdpInitiated: form.samlAllowIdpInitiated,
+          samlRequireEncryptedAssertions: form.samlRequireEncryptedAssertions,
+          samlSloUrl: form.samlSloUrl.trim() || null,
+          samlSpCertificate: form.samlClearSpKey ? null : form.samlSpCertificate || null,
+          samlSpPrivateKey: form.samlClearSpKey ? '' : form.samlSpPrivateKey,
+          samlClearSpKey: form.samlClearSpKey,
+        };
       const result = await send('PUT', '/api/organization/sso', body);
+      setForm(current => ({ ...current, samlSpPrivateKey: '', samlClearSpKey: false }));
       queryClient.setQueryData(['organization-sso'], result);
       setNotice(t('sso.saved', 'Saved.'));
     });
@@ -182,7 +205,7 @@ export default function SsoCard() {
   const readMetadata = () =>
     run(async () => {
       const parsed = await send('POST', '/api/organization/sso/saml-metadata', { xml: metadataXml });
-      setForm((current) => ({ ...current, issuer: parsed.entityId, samlSsoUrl: parsed.ssoUrl, samlCertificate: parsed.certificate }));
+      setForm((current) => ({ ...current, issuer: parsed.entityId, samlSsoUrl: parsed.ssoUrl, samlCertificate: parsed.certificate, samlSloUrl: parsed.sloUrl ?? '' }));
       setMetadataXml('');
       setNotice(t('sso.saml.metadataRead', 'Filled from the metadata. Check the values, then save.'));
     });
@@ -224,7 +247,12 @@ export default function SsoCard() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading || !data ? (
+        {isError && !data ? (
+          <div role="alert" className="space-y-2 text-sm text-destructive">
+            <p>{t('sso.loadFailed', 'Could not load single sign-on settings.')}</p>
+            <Button variant="outline" size="sm" disabled={isFetching} onClick={() => refetch()}>{t('sso.retry', 'Retry')}</Button>
+          </div>
+        ) : isLoading || !data ? (
           <p className="text-sm text-muted-foreground">{t('security.loading', 'Loading…')}</p>
         ) : (
           <form onSubmit={save} className="space-y-4" data-testid="sso-form">
@@ -274,12 +302,13 @@ export default function SsoCard() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <CopyField label={t('sso.saml.entityId', 'Entity ID (audience) of WebFlowMaster')} value={data.saml.entityId} testId="sso-saml-entity-id" />
                   <CopyField label={t('sso.saml.acsUrl', 'Assertion consumer service (ACS) URL')} value={data.saml.acsUrl} testId="sso-saml-acs-url" />
+                  {data.saml.sloUrl && <CopyField label={t('sso.saml.spSloUrl', 'WebFlowMaster single logout callback URL')} value={data.saml.sloUrl} testId="sso-saml-slo-url" />}
                   <div className="md:col-span-2">
                     <CopyField label={t('sso.saml.metadataUrl', 'Service provider metadata URL (available once saved)')} value={data.saml.metadataUrl} testId="sso-saml-metadata-url" />
                   </div>
                 </div>
                 <div className="space-y-1 border-t pt-4">
-                  <Label htmlFor="sso-saml-metadata">{t('sso.saml.pasteMetadata', "Your provider's metadata (optional: fills the three fields below)")}</Label>
+                  <Label htmlFor="sso-saml-metadata">{t('sso.saml.pasteMetadata', "Your provider's metadata (optional: fills the provider fields below)")}</Label>
                   <Textarea id="sso-saml-metadata" rows={3} className="font-mono text-xs" placeholder="<md:EntityDescriptor …>" value={metadataXml} onChange={(e) => setMetadataXml(e.target.value)} />
                   <Button type="button" size="sm" variant="outline" disabled={busy || !metadataXml.trim()} onClick={readMetadata}>
                     {t('sso.saml.readMetadata', 'Read the metadata')}
@@ -306,6 +335,7 @@ export default function SsoCard() {
                     )}
                   </div>
                 </div>
+                <SamlAdvancedSettings value={form} privateKeyConfigured={!!saved?.samlSpPrivateKeyConfigured} disabled={busy} onChange={next => setForm(current => ({ ...current, ...next }))} />
               </>
             )}
 

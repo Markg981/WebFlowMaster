@@ -11,6 +11,31 @@ row. They are what [dynamic suites](#suites) select by.
 
 ## Manual tests {#manual-tests}
 
+**Gherkin/Cucumber files.** In **Files**, select **Gherkin (.feature)** to export web tests,
+or open a `.feature` file and preview its import. English Feature, Background, Scenario and
+Scenario Outline/Examples are supported. Ordinary prose becomes manual steps; WebFlowMaster
+metadata in its own exports restores the original browser actions. Cucumber execution needs
+your own step definitions. Unsupported constructs are rejected with a line number. See
+[Gherkin file details](../../gherkin-files).
+
+## Comments
+
+Open **Comments** on a saved test or on a test result in its report to discuss it with your
+organization. Viewers can participate. Authors can edit or delete their own comments, and
+organization owners can moderate them. Comments are plain text, up to 5,000 characters, and
+follow the target's project access: a discussion does not grant access to a private test.
+Deleting a saved test also removes discussions on its historical results, while the reports
+remain available. This prevents a private discussion becoming public when its test is removed.
+
+## Personal dashboard
+
+On **Dashboard**, choose **Customize dashboard** to show or hide metrics, status, trend,
+schedules and recent reports. Move widgets up or down, then **Save layout**. The choice is
+saved for your account across sessions; other members retain their own layout. **Reset layout**
+restores the original order and visibility.
+
+## Writing a manual test
+
 Not everything is worth automating: a check done once a release, a flow that needs a person's
 judgment, a device no browser can stand in for. **New manual test** in the library writes one: a
 name and its steps, each an **action** to perform and the **expected result**. It shows in the

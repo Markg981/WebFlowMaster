@@ -57,6 +57,9 @@ import requirementsRoutes from "./routes/requirements.routes";
 import testDataRoutes from "./routes/test-data.routes";
 import impactRulesRoutes from "./routes/impact-rules.routes";
 import smsInboxRoutes from "./routes/sms-inbox.routes";
+import commentsRoutes from "./routes/comments.routes";
+import dashboardLayoutRoutes from "./routes/dashboard-layout.routes";
+import mailDeliveryRoutes, { mailDeliveryWebhookRouter } from "./routes/mail-delivery.routes";
 import testManagementRoutes from "./routes/test-management.routes";
 import mobileTestsRoutes from "./routes/mobile-tests.routes";
 import quarantineRoutes from "./routes/quarantine.routes";
@@ -170,6 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Auth First
     setupAuth(app); // Attaches passport strategies
+    app.use(mailDeliveryWebhookRouter);
 
     // A request may authenticate as a person (the session passport just attached) or as a
     // pipeline (an API key). This turns the second into the first, so everything after it —
@@ -217,6 +221,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(testDataRoutes);
   app.use(impactRulesRoutes);
   app.use(smsInboxRoutes);
+  app.use(commentsRoutes);
+  app.use(dashboardLayoutRoutes);
+  app.use(mailDeliveryRoutes);
   app.use(testManagementRoutes);
   app.use(mobileTestsRoutes);
     app.use(quarantineRoutes);

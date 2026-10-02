@@ -29,6 +29,17 @@ describe("csrfOriginCheck", () => {
     delete process.env.CSRF_TRUSTED_ORIGINS;
   });
 
+  it('allows signed SAML protocol POST callbacks, but keeps settings protected', () => {
+    for (const endpoint of ['acs', 'slo']) {
+      const protocol = { ...makeReq('POST', { origin: 'https://idp.example' }), path: `/api/sso/saml/12/${endpoint}` } as Request;
+      csrfOriginCheck(protocol, makeRes(), next);
+    }
+    expect(next).toHaveBeenCalledTimes(2);
+    next = vi.fn();
+    csrfOriginCheck({ ...makeReq('POST', { origin: 'https://idp.example' }), path: '/api/organization/sso' } as Request, makeRes(), next);
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it("passes safe methods without checking origin", () => {
     const res = makeRes();
     csrfOriginCheck(makeReq("GET", { origin: "https://evil.example" }), res, next);

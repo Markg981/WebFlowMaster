@@ -681,7 +681,27 @@
     },
     "description": "How your tests have been doing, and what is scheduled to run next.",
     "loadFailed": "The dashboard figures could not be loaded, so the panels below may be empty or out of date.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "customize": {
+      "open": "Customize dashboard",
+      "description": "Choose which widgets to show and change their order. Changes apply only to your dashboard.",
+      "kpis": "Key metrics",
+      "status": "Test status",
+      "trend": "Test trend",
+      "schedules": "Schedules",
+      "reports": "Recent reports",
+      "move": "Move",
+      "up": "up",
+      "down": "down",
+      "save": "Save layout",
+      "reset": "Reset layout",
+      "cancel": "Cancel",
+      "loading": "Loading your layout…",
+      "saving": "Saving your layout…",
+      "loadFailed": "Could not load your layout.",
+      "saveFailed": "Could not save your layout. Try again.",
+      "retry": "Retry"
+    }
   },
   "testSuitesPage": {
     "testSuites": {
@@ -3344,7 +3364,21 @@
       "ssoUrl": "Sign-on URL (HTTP-Redirect)",
       "certificate": "Signing certificate (X.509, PEM or base64)",
       "certExpired": "Expired on {{date}}: sign-ins are refused until you paste the new certificate.",
-      "certValid": "{{subject}} · valid until {{date}}"
+      "certValid": "{{subject}} · valid until {{date}}",
+      "advanced": "Advanced SAML settings",
+      "allowIdpInitiated": "Allow identity provider initiated sign-in",
+      "idpInitiatedCaution": "Off by default. Unsolicited sign-in can sign this browser into another account without a login request from WebFlowMaster. Enable only when you trust your provider’s launch flow. Signatures, audience, time limits, domain checks and replay protection still apply.",
+      "requireEncrypted": "Require encrypted assertions",
+      "encryptedHint": "Requires a matching service provider certificate and private key. Configure your provider to encrypt assertions with this public certificate.",
+      "idpSloUrl": "Provider single logout URL (optional)",
+      "sloHint": "Use the provider’s HTTPS HTTP-Redirect logout endpoint. Single logout requires the matching service provider certificate and private key below.",
+      "spCertificate": "Service provider certificate",
+      "spCertificateHint": "Public RSA X.509 certificate for signing logout messages and decrypting assertions. The certificate must match the private key.",
+      "spPrivateKey": "Service provider private key",
+      "spPrivateKeyHint": "Paste the RSA PEM private key. It is stored encrypted and never returned. Leave this field blank to retain a stored key.",
+      "removeSpKey": "Remove the stored service provider key and certificate",
+      "removeSpKeyHint": "Turn off required encryption and clear the provider logout URL before removing the key.",
+      "spSloUrl": "WebFlowMaster single logout callback URL"
     },
     "domainsProof": {
       "title": "Proof of the domains",
@@ -3380,7 +3414,9 @@
       "revoke": "Revoke",
       "revokeConfirm": "Revoke: the provider stops provisioning",
       "replaceHint": "Replacing the token ends the old one at once: paste the new one at the provider."
-    }
+    },
+    "loadFailed": "Could not load single sign-on settings.",
+    "retry": "Retry"
   },
   "manualTests": {
     "newTitle": "New manual test",
@@ -3991,7 +4027,9 @@
       "updated": "updated",
       "unchanged": "unchanged",
       "invalid": "not imported"
-    }
+    },
+    "gherkinExport": "Exports web tests only. WebFlowMaster metadata preserves original actions; Cucumber execution requires your own step definitions.",
+    "gherkinImport": "English Feature, Background, Scenario, Scenario Outline, Examples and tags are supported. Prose imports as manual steps. Descriptions, Rule, doc strings, step data tables and Examples tags are rejected. WFM metadata restores exported web actions."
   },
   "impactMap": {
     "title": "Impact map",
@@ -4029,5 +4067,51 @@
     "revoke": "Revoke",
     "recent": "Latest messages",
     "noMessages": "Nothing has arrived yet."
+  },
+  "comments": {
+    "title": "Comments",
+    "loadFailed": "Could not load comments",
+    "saveFailed": "Could not save the comment",
+    "loading": "Loading comments…",
+    "empty": "No comments yet.",
+    "formerMember": "Former member",
+    "edit": "Edit comment",
+    "save": "Save comment",
+    "cancel": "Cancel",
+    "delete": "Delete comment",
+    "new": "New comment",
+    "add": "Add comment"
+  },
+  "GET": "/api/mail-deliveries?limit=100",
+  "emailDelivery": {
+    "states": {
+      "queued": "Preparing",
+      "accepted": "Accepted by SMTP",
+      "delivered": "Delivered",
+      "soft_bounce": "Temporary bounce",
+      "hard_bounce": "Hard bounce",
+      "rejected": "Rejected by SMTP",
+      "failed": "Send failed",
+      "suppressed": "Suppressed after hard bounce"
+    },
+    "purposes": {
+      "invitation": "Invitation",
+      "password_reset": "Password reset",
+      "run_finished": "Run notification",
+      "other": "Email"
+    },
+    "title": "Email delivery",
+    "description": "Invitations, password resets and run notifications include HTML and plain text. SMTP acceptance does not confirm delivery.",
+    "loading": "Loading…",
+    "error": "Email delivery history could not be loaded.",
+    "notConfigured": "Email sending is not configured on this installation.",
+    "noTracking": "Delivery and bounce tracking is not configured.",
+    "refresh": "Refresh",
+    "empty": "No messages recorded yet.",
+    "history": "Latest 100 messages for this organization",
+    "recipient": "Recipient",
+    "purpose": "Message",
+    "state": "Status",
+    "created": "Sent at"
   }
 }

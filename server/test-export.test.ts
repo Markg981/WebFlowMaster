@@ -4,7 +4,7 @@ import express, { type Application } from 'express';
 import { eq } from 'drizzle-orm';
 import { parse as parseYaml } from 'yaml';
 import { privilegedDb } from './db';
-import { apiTests, auditLog, projects, testVersions, tests, users, type User } from '@shared/schema';
+import { apiTests, auditLog, projects, projectMembers, testVersions, tests, users, type User } from '@shared/schema';
 import { createTestOrganization } from './tests/factories';
 import { tenancyMiddleware } from './middleware/tenancy';
 import { envName, toPlaywright } from './playwright-export';
@@ -101,6 +101,59 @@ describe('the test file', () => {
     await privilegedDb.delete(testVersions);
     await privilegedDb.delete(tests);
     await privilegedDb.delete(apiTests);
+  });
+
+  it('imports Gherkin manually with a preview, exports actions losslessly, and isolates organizations', async () => {
+    const source = await organization('GherkinSource');
+    const content = '@smoke\nFeature: Cart\nBackground:\nGiven a cart\nScenario Outline: Pay <method>\nWhen I pay by <method>\nThen paid\nExamples:\n| method |\n| card |\n| cash |';
+    const preview = await request(app).post('/api/tests/import-bundle').send({ content, format: 'gherkin', dryRun: true, projectId }).expect(200);
+    expect(preview.body.results.map((r: any) => r.outcome)).toEqual(['created', 'created']);
+    expect(await privilegedDb.select().from(tests).where(eq(tests.organizationId, source))).toHaveLength(0);
+    await request(app).post('/api/tests/import-bundle').send({ content, projectId }).expect(201);
+    const imported = await privilegedDb.select().from(tests).where(eq(tests.organizationId, source));
+    expect(imported).toHaveLength(2);
+    expect((imported[0].sequence as any[]).every(s => s.action.id === 'manualStep')).toBe(true);
+    expect(await privilegedDb.select().from(testVersions)).toHaveLength(2);
+    const exported = await request(app).get('/api/tests/export').query({ format: 'gherkin', projectId }).expect(200);
+    expect(exported.headers['content-disposition']).toContain('.feature');
+    expect(exported.text).toContain('# wfm-test:');
+    expect(exported.text).not.toContain('organizationId');
+    const target = await organization('GherkinTarget');
+    await request(app).get('/api/tests/export').query({ format: 'gherkin', projectId: imported[0].projectId }).expect(404);
+    await request(app).post('/api/tests/import-bundle').send({ content: exported.text, projectId }).expect(201);
+    expect((await privilegedDb.select().from(tests).where(eq(tests.organizationId, target)))[0].sequence).toEqual(imported[0].sequence);
+    await request(app).post('/api/tests/import-bundle').send({ content: exported.text }).expect(201).expect(res => expect(res.body.results.every((r: any) => r.outcome === 'unchanged')).toBe(true));
+  });
+
+  it('rejects unsupported Gherkin and forbids viewers from importing', async () => {
+    await organization('GherkinStrict');
+    await request(app).post('/api/tests/import-bundle').send({ content: 'Feature: F\nRule: R', format: 'gherkin' }).expect(400);
+    await request(app).get('/api/tests/export').query({ format: 'cucumber' }).expect(400);
+    user = { ...user, role: 'viewer' };
+    await request(app).post('/api/tests/import-bundle').send({ content: 'Feature: F\nScenario: S\nGiven something', format: 'gherkin' }).expect(403);
+  });
+
+  it('does not export or import into a restricted project without membership', async () => {
+    const organizationId = await organization('GherkinRestricted');
+    await privilegedDb.update(projects).set({ restricted: true }).where(eq(projects.id, projectId));
+    await request(app).get('/api/tests/export').query({ projectId, format: 'gherkin' }).expect(404);
+    await request(app).post('/api/tests/import-bundle').send({ content: 'Feature: F\nScenario: S\nGiven a', format: 'gherkin', projectId, dryRun: true }).expect(400);
+    await request(app).post('/api/tests/import-bundle').send({ content: 'Feature: F\nScenario: S\nGiven a', format: 'gherkin', projectId }).expect(400);
+    expect(await privilegedDb.select().from(tests).where(eq(tests.organizationId, organizationId))).toHaveLength(0);
+  });
+
+  it('reports readonly project tests as invalid during both preview and import', async () => {
+    const organizationId = await organization('GherkinReadonly');
+    await privilegedDb.update(projects).set({ restricted: true }).where(eq(projects.id, projectId));
+    await privilegedDb.insert(projectMembers).values({ projectId, userId: user.id, organizationId, role: 'viewer' });
+    const [existing] = await privilegedDb.insert(tests).values({ name: 'F / S', url: '', sequence: [step('click', '#old')], elements: [], projectId, userId: user.id, organizationId }).returning();
+    const content = 'Feature: F\nScenario: S\nGiven a';
+    for (const dryRun of [true, false]) {
+      const result = await request(app).post('/api/tests/import-bundle').send({ content, format: 'gherkin', dryRun }).expect(dryRun ? 200 : 201);
+      expect(result.body.results[0]).toMatchObject({ outcome: 'invalid', reason: expect.stringContaining('not change') });
+    }
+    const [unchanged] = await privilegedDb.select().from(tests).where(eq(tests.id, existing.id));
+    expect(unchanged.sequence).toEqual(existing.sequence);
   });
 
   it('exports a project as YAML without ids or secrets, and imports it into another organization', async () => {

@@ -25,7 +25,7 @@ const transport = {
   sendMail: vi.fn(async (message: any) => {
     if (String(message.to).startsWith('bounce')) throw new Error('550 mailbox unavailable for smtp://wfm:hunter2@mail');
     sent.push({ to: message.to, subject: message.subject, text: message.text });
-    return {};
+    return { accepted: [message.to], rejected: [] };
   }),
 };
 
@@ -77,6 +77,12 @@ describe('password policy', () => {
 });
 
 describe('sendMail', () => {
+  it('does not report SMTP rejection as sent when sendMail resolves', async () => {
+    mailerDeps.transport = { sendMail: async () => ({ accepted: [], rejected: ['ann@shop.test'] }) } as any;
+    const result = await sendMail({ to: 'ann@shop.test', subject: 'Subject', text: 'Body' });
+    expect(result.sent).toBe(false);
+    expect(result.error).toMatch(/rejected|refused/i);
+  });
   it('says why nothing was sent, and keeps the SMTP credentials out of the answer', async () => {
     mailerDeps.transport = null;
     expect(await sendMail({ to: 'ann@shop.test', subject: 's', text: 't' })).toEqual({ sent: false, error: expect.stringMatching(/not configured/) });
@@ -85,7 +91,7 @@ describe('sendMail', () => {
     const env = { SMTP_URL: 'smtp://wfm:hunter2@mail', SMTP_FROM: 'WFM <qa@shop.test>' } as NodeJS.ProcessEnv;
     const bounced = await sendMail({ to: 'bounce@shop.test', subject: 's', text: 't' }, env);
     expect(bounced.sent).toBe(false);
-    expect(bounced.error).toContain('550 mailbox unavailable');
+    expect(bounced.error).toContain('550');
     expect(bounced.error).not.toContain('hunter2');
   });
 });

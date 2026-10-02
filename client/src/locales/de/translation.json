@@ -687,7 +687,27 @@
     },
     "description": "Wie Ihre Tests laufen und was als Nächstes geplant ist.",
     "loadFailed": "Die Kennzahlen konnten nicht geladen werden; die Bereiche unten sind möglicherweise leer oder veraltet.",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "customize": {
+      "open": "Dashboard anpassen",
+      "description": "Wählen Sie die sichtbaren Widgets und deren Reihenfolge. Die Änderungen gelten nur für Ihr Dashboard.",
+      "kpis": "Kennzahlen",
+      "status": "Teststatus",
+      "trend": "Testverlauf",
+      "schedules": "Zeitpläne",
+      "reports": "Aktuelle Berichte",
+      "move": "Verschieben",
+      "up": "nach oben",
+      "down": "nach unten",
+      "save": "Layout speichern",
+      "reset": "Layout zurücksetzen",
+      "cancel": "Abbrechen",
+      "loading": "Layout wird geladen…",
+      "saving": "Layout wird gespeichert…",
+      "loadFailed": "Layout konnte nicht geladen werden.",
+      "saveFailed": "Layout konnte nicht gespeichert werden. Versuchen Sie es erneut.",
+      "retry": "Erneut versuchen"
+    }
   },
   "testSuitesPage": {
     "testSuites": {
@@ -3300,7 +3320,7 @@
     "issuer": "Issuer",
     "clientId": "Client-ID",
     "clientSecret": "Client-Secret",
-    "secretKept": "Gespeichert. Leer lassen, um es zu behalten.",
+    "secretKept": "Stored. Leave empty to keep it.",
     "domains": "E-Mail-Domains",
     "defaultRole": "Rolle neuer Konten",
     "roleViewer": "Betrachter",
@@ -3350,7 +3370,21 @@
       "ssoUrl": "Anmelde-URL (HTTP-Redirect)",
       "certificate": "Signaturzertifikat (X.509, PEM oder Base64)",
       "certExpired": "Abgelaufen am {{date}}: Anmeldungen werden abgelehnt, bis Sie das neue Zertifikat einfügen.",
-      "certValid": "{{subject}} · gültig bis {{date}}"
+      "certValid": "{{subject}} · gültig bis {{date}}",
+      "advanced": "Erweiterte SAML-Einstellungen",
+      "allowIdpInitiated": "Vom Identitätsanbieter gestartete Anmeldung zulassen",
+      "idpInitiatedCaution": "Standardmäßig deaktiviert. Eine unaufgeforderte Anmeldung kann diesen Browser ohne Anmeldeanforderung von WebFlowMaster mit einem anderen Konto verbinden. Nur für einen vertrauenswürdigen Startablauf des Anbieters aktivieren. Signatur-, Audience-, Zeit-, Domain- und Wiederholungsschutz bleiben erhalten.",
+      "requireEncrypted": "Verschlüsselte Assertions verlangen",
+      "encryptedHint": "Erfordert ein passendes Zertifikat und einen privaten Schlüssel des Dienstanbieters. Den Identitätsanbieter zur Verschlüsselung mit diesem öffentlichen Zertifikat konfigurieren.",
+      "idpSloUrl": "URL für Single Logout des Anbieters (optional)",
+      "sloHint": "Den HTTPS-Endpunkt mit HTTP-Redirect des Anbieters verwenden. Single Logout erfordert das passende Zertifikat und den privaten Schlüssel des Dienstanbieters.",
+      "spCertificate": "Zertifikat des Dienstanbieters",
+      "spCertificateHint": "Öffentliches RSA-X.509-Zertifikat zum Signieren der Abmeldung und Entschlüsseln der Assertions. Es muss zum privaten Schlüssel passen.",
+      "spPrivateKey": "Privater Schlüssel des Dienstanbieters",
+      "spPrivateKeyHint": "Den privaten RSA-PEM-Schlüssel einfügen. Er wird verschlüsselt gespeichert und niemals zurückgegeben. Leer lassen, um den gespeicherten Schlüssel zu behalten.",
+      "removeSpKey": "Gespeicherten Schlüssel und Zertifikat des Dienstanbieters entfernen",
+      "removeSpKeyHint": "Verschlüsselungspflicht deaktivieren und die Abmelde-URL leeren, bevor der Schlüssel entfernt wird.",
+      "spSloUrl": "Single-Logout-Rückruf-URL von WebFlowMaster"
     },
     "domainsProof": {
       "title": "Nachweis der Domains",
@@ -3386,7 +3420,9 @@
       "revoke": "Widerrufen",
       "revokeConfirm": "Widerrufen: Der Anbieter stellt nichts mehr bereit",
       "replaceHint": "Ein neues Token beendet das alte sofort: Fügen Sie das neue beim Anbieter ein."
-    }
+    },
+    "loadFailed": "SSO-Einstellungen konnten nicht geladen werden.",
+    "retry": "Erneut versuchen"
   },
   "manualTests": {
     "newTitle": "Neuer manueller Test",
@@ -3997,7 +4033,9 @@
       "updated": "aktualisiert",
       "unchanged": "unverändert",
       "invalid": "nicht importiert"
-    }
+    },
+    "gherkinExport": "Exportiert nur Webtests. WebFlowMaster-Metadaten erhalten die ursprünglichen Aktionen; die Cucumber-Ausführung benötigt eigene Schrittdefinitionen.",
+    "gherkinImport": "Feature, Background, Scenario, Scenario Outline, Examples und Tags auf Englisch werden unterstützt. Text wird als manuelle Schritte importiert. Beschreibungen, Rule, Doc Strings, Schritttabellen und Examples-Tags werden abgelehnt. WFM-Metadaten stellen exportierte Webaktionen wieder her."
   },
   "impactMap": {
     "title": "Auswirkungskarte",
@@ -4035,5 +4073,51 @@
     "revoke": "Widerrufen",
     "recent": "Letzte Nachrichten",
     "noMessages": "Noch nichts angekommen."
+  },
+  "comments": {
+    "title": "Kommentare",
+    "loadFailed": "Kommentare konnten nicht geladen werden",
+    "saveFailed": "Kommentar konnte nicht gespeichert werden",
+    "loading": "Kommentare werden geladen…",
+    "empty": "Noch keine Kommentare.",
+    "formerMember": "Ehemaliges Mitglied",
+    "edit": "Kommentar bearbeiten",
+    "save": "Kommentar speichern",
+    "cancel": "Abbrechen",
+    "delete": "Kommentar löschen",
+    "new": "Neuer Kommentar",
+    "add": "Kommentar hinzufügen"
+  },
+  "GET": "/api/mail-deliveries?limit=100",
+  "emailDelivery": {
+    "states": {
+      "queued": "In Vorbereitung",
+      "accepted": "Von SMTP angenommen",
+      "delivered": "Zugestellt",
+      "soft_bounce": "Vorübergehender Rückläufer",
+      "hard_bounce": "Dauerhafter Rückläufer",
+      "rejected": "Von SMTP abgelehnt",
+      "failed": "Versand fehlgeschlagen",
+      "suppressed": "Nach dauerhaftem Rückläufer gesperrt"
+    },
+    "purposes": {
+      "invitation": "Einladung",
+      "password_reset": "Passwortzurücksetzung",
+      "run_finished": "Laufbenachrichtigung",
+      "other": "E-Mail"
+    },
+    "title": "E-Mail-Zustellung",
+    "description": "Einladungen, Passwortzurücksetzungen und Laufmeldungen enthalten HTML und Klartext. SMTP-Annahme bestätigt keine Zustellung.",
+    "loading": "Wird geladen…",
+    "error": "E-Mail-Verlauf konnte nicht geladen werden.",
+    "notConfigured": "E-Mail-Versand ist für diese Installation nicht konfiguriert.",
+    "noTracking": "Zustellungs- und Rückläuferverfolgung ist nicht konfiguriert.",
+    "refresh": "Aktualisieren",
+    "empty": "Noch keine Nachrichten erfasst.",
+    "history": "Die letzten 100 Nachrichten dieser Organisation",
+    "recipient": "Empfänger",
+    "purpose": "Nachricht",
+    "state": "Status",
+    "created": "Erstellt am"
   }
 }

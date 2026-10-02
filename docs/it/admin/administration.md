@@ -180,6 +180,26 @@ scheda lo dice.
 | ADFS | `https://{host}/FederationMetadata/2007-06/FederationMetadata.xml` |
 | Keycloak | `https://{host}/realms/{realm}/protocol/saml/descriptor` |
 
+**SAML avanzato.** L'accesso avviato dall'identity provider è disabilitato per default. Abilitarlo
+esplicitamente per l'avvio dal portale del provider. Ogni asserzione viene verificata per firma,
+issuer, audience, destinazione ACS, destinatario, validità e dominio; il suo identificativo viene
+consumato atomicamente per impedire il replay. Manca il binding al browser di una richiesta avviata
+qui: abilitare solo per un flusso di avvio del provider considerato attendibile.
+
+Per le **asserzioni cifrate**, inserire certificato RSA del service provider e chiave privata PEM
+corrispondente. La chiave viene cifrata al salvataggio e non viene mai restituita; il campo vuoto
+la mantiene. Dare al provider i metadati aggiornati con il certificato di cifratura. **Richiedi
+asserzioni cifrate** rifiuta quelle non cifrate; anche quelle cifrate devono essere firmate.
+
+Per il **single logout**, impostare l'URL HTTP-Redirect del provider e la stessa coppia RSA.
+Registrare nel provider il callback mostrato (`/api/sso/saml/<organizationId>/slo`). Il logout da
+WebFlowMaster termina la sessione locale e invia una LogoutRequest firmata; la LogoutResponse
+di ritorno deve essere firmata e correlata. Il logout avviato dal provider accetta richieste
+Redirect o POST firmate e revoca le sessioni corrispondenti a NameID e SessionIndex, anche quando
+il POST cross-site non porta il cookie. I messaggi devono rispettare issuer, destinazione e
+validità e non possono essere riutilizzati. Esportare i metadati aggiornati dopo aver configurato
+chiavi o logout; verificare binding e firme supportati dal provider.
+
 **Accesso.** La pagina di accesso mostra **Accedi con SSO** appena un'organizzazione lo ha
 configurato. La persona scrive il proprio indirizzo; il dominio sceglie l'organizzazione, e il
 browser va al provider. Al ritorno l'applicazione verifica la risposta firmata del provider —
@@ -473,6 +493,26 @@ Con `SMTP_URL` e `SMTP_FROM` impostate (vedere [Configurazione](./configuration)
 Senza SMTP tutto funziona come prima: gli owner consegnano i link, e i piani notificano solo tramite
 il loro webhook.
 
+I messaggi includono **modelli HTML e un'alternativa in testo semplice** per inviti, reset della
+password e notifiche dei run. Il testo dinamico viene escapato e i link accettano solo HTTP(S).
+Non è presente un editor dei modelli.
+
+Gli owner vedono gli ultimi 100 messaggi della propria organizzazione in **Impostazioni → Sicurezza →
+Consegna email**. **Accettato da SMTP** indica che il relay ha accettato il destinatario, senza
+confermare la consegna. Consegna, rimbalzo temporaneo e rimbalzo permanente arrivano da eventi
+autenticati. Un rimbalzo permanente blocca ulteriori invii allo stesso indirizzo nella stessa
+organizzazione. La cronologia conserva destinatario, scopo, stato e date, mai contenuti o token.
+
+Configurare `MAIL_DELIVERY_WEBHOOK_SECRET` (almeno 32 caratteri) e un adattatore per il provider di
+posta. Ogni email contiene `X-Wfm-Delivery-Id` e un Message-ID con il relativo UUID. L'adattatore
+invia a `/api/mail-deliveries/events` un JSON con `eventId`, `messageId` (UUID) e `status`
+(`delivered`, `soft_bounce` o `hard_bounce`). `X-Wfm-Mail-Timestamp` contiene il tempo Unix in
+secondi; `X-Wfm-Mail-Signature` contiene l'HMAC-SHA256 esadecimale di
+`timestamp.eventId.messageId.status`, calcolato con il segreto configurato. La firma deve essere
+recente (cinque minuti). Gli eventi duplicati sono idempotenti; quelli ritardati non annullano
+un rimbalzo permanente. I webhook nativi richiedono l'adattatore: SMTP da solo non conferma la
+consegna. Vedere i casi riproducibili di [collaudo amministrazione](../../administration-acceptance.md).
+
 ## Politica delle password {#password-policy}
 
 `PASSWORD_POLICY` decide come deve essere una nuova password, quando la si sceglie (registrazione,
@@ -489,7 +529,10 @@ cambio, link di reset); le password già esistenti non vengono controllate.
   provider arriva a WebFlowMaster al successivo accesso della persona, e le sessioni già aperte
   mantengono il loro ruolo fino ad allora. SCIM supporta filtri `eq` su un attributo, niente
   operazioni bulk né ordinamento, e di un utente conserva l'indirizzo, lo stato attivo e l'ID
-  esterno (nomi e altri attributi sono accettati e ignorati). Le asserzioni SAML devono essere firmate e non
-  cifrate, l'accesso parte da WebFlowMaster (niente accesso avviato dall'IdP), e il single logout
-  non è supportato.
-- Le e-mail sono testo semplice via SMTP; non c'è un editor di modelli e i rimbalzi non vengono tracciati.
+  esterno (nomi e altri attributi sono accettati e ignorati).
+- Il single logout SAML richiede una coppia RSA del service provider e messaggi firmati; verificare
+  la compatibilità del provider prima di abilitarlo. L'accesso avviato dall'IdP manca del binding al browser.
+- Le email hanno modelli HTML integrati senza editor. Consegna e rimbalzi richiedono un adattatore
+  che invii eventi firmati; l'accettazione SMTP da sola non conferma la consegna.
+- Fatturazione SaaS e piani a consumo sospesi per decisione del 2026-10-02: provider, listino,
+  valuta e unità fatturabile restano da definire. Le quote dei run per organizzazione sono disponibili.

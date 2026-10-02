@@ -34,6 +34,7 @@ vi.mock('bullmq', () => {
 });
 
 import { setupAuth } from './auth';
+import { forgetSamlSession, registerSamlSession } from './sso-saml';
 import { installWorkerLogEmitter, setupWebSockets, type WsEmitter } from './websocket';
 
 /**
@@ -115,6 +116,15 @@ beforeAll(async () => {
   app = express();
   app.use(express.json());
   setupAuth(app);
+  app.post('/test/saml-session', async (req, res, next) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const identity = { organizationId: req.user.organizationId, issuer: 'https://idp.test', nameId: 'socket-user', nameIdFormat: null, sessionIndex: 'socket-session' };
+      req.session.samlIdentity = identity;
+      await registerSamlSession(req.sessionID, req.user.id, identity);
+      req.session.save(error => error ? next(error) : res.json({ sessionId: req.sessionID }));
+    } catch (error) { next(error); }
+  });
 
   const regA = await request(app)
     .post('/api/register')
@@ -248,6 +258,25 @@ describe('execution log delivery', () => {
 });
 
 // Last in the file: it replaces the process's emitter, as the worker does at start.
+describe('SAML logout on live sockets', () => {
+  it('blocks both new upgrades and existing broadcasts after registry revocation despite a stale session store', async () => {
+    const configured = await request(app).post('/test/saml-session').set('Cookie', cookieA).expect(200);
+    const ws = connectWs(cookieA);
+    await waitForOpen(ws);
+    ws.send(JSON.stringify({ type: 'subscribe-execution', executionId: execAId }));
+    await waitForMessage(ws, message => message.type === 'subscribed');
+    await forgetSamlSession(configured.body.sessionId);
+    const denied = connectWs(cookieA);
+    await expect(waitForOpen(denied)).rejects.toThrow('401');
+    const closed = new Promise<number>(resolve => ws.once('close', code => resolve(code)));
+    const messages: string[] = [];
+    ws.on('message', raw => messages.push(raw.toString()));
+    emitter.emitExecutionLog(execAId, { level: 'info', source: 'system', message: 'revoked-session-secret', timestamp: new Date().toISOString() });
+    expect(await closed).toBe(1008);
+    expect(messages.join('')).not.toContain('revoked-session-secret');
+  });
+});
+
 describe('run logs from the queue worker', () => {
   it('are stored, so the report and /logs have them — the worker has no socket server of its own', async () => {
     const workerEmitter = installWorkerLogEmitter();

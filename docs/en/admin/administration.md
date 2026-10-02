@@ -170,6 +170,26 @@ card says so.
 | ADFS | `https://{host}/FederationMetadata/2007-06/FederationMetadata.xml` |
 | Keycloak | `https://{host}/realms/{realm}/protocol/saml/descriptor` |
 
+**Advanced SAML.** Identity provider initiated sign-in is off by default. Enable it explicitly
+when users launch this application from the provider's portal. An unsolicited response is checked
+for a signed assertion, issuer, audience, ACS destination and recipient, validity and allowed domain;
+its assertion identifier is consumed atomically so replay is refused. It cannot carry the browser
+binding of an application-initiated request, so enable it only for a trusted provider launch flow.
+
+For **encrypted assertions**, paste a matching RSA service provider certificate and PEM private
+key. The private key is encrypted at rest and never returned; a blank field retains it. Give the
+provider the updated metadata containing the encryption certificate. Turn on **Require encrypted
+assertions** to refuse unencrypted assertions; encrypted assertions still need a valid signature.
+
+For **single logout**, set the provider's HTTP-Redirect logout URL and the same service provider
+key pair. Register the callback shown in the card (`/api/sso/saml/<organizationId>/slo`) with the
+provider. Logout from WebFlowMaster ends the local session and sends a signed LogoutRequest;
+the returning LogoutResponse must be signed and correlated. Provider-initiated logout accepts
+signed Redirect or POST requests and revokes matching sessions by NameID and SessionIndex, even
+when a cross-site POST carries no session cookie. Logout messages must match the configured issuer,
+destination and validity window and cannot be replayed. Export the updated service provider metadata
+after configuring keys or logout. Providers must use the supported bindings and signatures.
+
 **Signing in.** The sign-in page shows **Sign in with SSO** once any organization has set it up.
 The person types their address; its domain picks the organization, and the browser goes to the
 provider. On the way back the application checks the provider's signed answer — for OpenID
@@ -449,6 +469,31 @@ With `SMTP_URL` and `SMTP_FROM` set (see [Configuration](./configuration)), the 
 Without SMTP everything works as before: owners hand the links over, and plans notify through
 their webhook only.
 
+Messages include built-in **HTML templates and a plain-text alternative** for invitations,
+password resets and run notifications. Dynamic text is escaped; links are restricted to HTTP(S).
+There is no template editor.
+
+Owners can inspect the latest 100 messages for their organization in **Settings → Security →
+Email delivery**. **Accepted by SMTP** means the relay accepted the recipient; it does not prove
+delivery. Confirmed delivery, temporary bounces and hard bounces come from authenticated events.
+A hard bounce suppresses later sends to that address within the same organization. The history
+stores recipient, purpose, state and timestamps, never message bodies or reset/invitation tokens.
+
+To record events, configure `MAIL_DELIVERY_WEBHOOK_SECRET` (at least 32 characters) and an adapter
+for your mail provider or relay. Each outgoing message carries an `X-Wfm-Delivery-Id` UUID and a
+Message-ID containing that UUID. The adapter posts JSON to `/api/mail-deliveries/events`:
+
+```json
+{"eventId":"provider-event-123","messageId":"e3dab9f5-d6c4-4a74-af2e-a665498b18cd","status":"hard_bounce"}
+```
+
+`status` is `delivered`, `soft_bounce` or `hard_bounce`. Set `X-Wfm-Mail-Timestamp` to the current
+Unix time in seconds and `X-Wfm-Mail-Signature` to the hex HMAC-SHA256, using the configured secret,
+of `timestamp.eventId.messageId.status`. The timestamp must be within five minutes. Duplicate
+events are idempotent; delayed events cannot undo a hard bounce. Native provider webhook payloads
+need an adapter; SMTP alone supplies no delivery/bounce confirmations. See the reproducible
+acceptance cases in [Administration acceptance](../../administration-acceptance.md).
+
 ## Password policy {#password-policy}
 
 `PASSWORD_POLICY` decides what a new password must be, when it is chosen (registration, change,
@@ -465,6 +510,10 @@ reset link); existing passwords are not checked.
   reaches WebFlowMaster at the person's next sign-in, and sessions already open keep their role
   until then. SCIM supports `eq` filters on one attribute, no bulk operations and no sorting, and
   keeps the address, the active flag and the external ID of a user (names and other attributes are
-  accepted and ignored). SAML assertions must be signed and unencrypted, sign-in starts from
-  WebFlowMaster (no IdP-initiated sign-in), and single logout is not supported.
-- E-mail is plain text over SMTP; there is no template editor, and bounces are not tracked.
+  accepted and ignored).
+- SAML single logout requires a configured SP RSA key pair and signed protocol messages; provider
+  compatibility must be verified before enabling it. IdP-initiated sign-in lacks request/browser binding.
+- E-mail has built-in HTML templates without an editor. Delivery/bounce tracking requires a mail-provider
+  adapter posting signed events; SMTP acceptance alone cannot confirm delivery.
+- SaaS billing and consumption plans are deferred by decision on 2026-10-02. Provider, pricing,
+  currency and the billable unit remain to be defined; organization execution quotas remain available.

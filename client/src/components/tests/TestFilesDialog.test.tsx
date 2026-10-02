@@ -30,6 +30,16 @@ function renderDialog(canEdit = true, onImported = vi.fn()) {
 }
 
 describe('TestFilesDialog', () => {
+  it('previews Gherkin with explicit format and explains manual execution', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ dryRun: true, results: [] }) });
+    renderDialog();
+    fireEvent.change(screen.getByLabelText('Format'), { target: { value: 'gherkin' } });
+    expect(screen.getByText(/Prose imports as manual steps/)).toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('test-files-content'), { target: { value: 'Feature: F\nScenario: S\nGiven a' } });
+    fireEvent.click(screen.getByTestId('test-files-preview'));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ format: 'gherkin', dryRun: true });
+  });
   it('downloads the export from a link', () => {
     renderDialog();
     expect(screen.getByTestId('test-files-export')).toHaveAttribute('href', '/api/tests/export?format=yaml');

@@ -5,9 +5,9 @@ Questa pagina è il riferimento del database: ogni tabella, ogni colonna e ogni 
 scopo di ciascuna tabella, a parole, è in [Modello dati](./data-model); come le righe restano separate fra
 organizzazioni è in [Tenancy e accessi](./tenancy).
 
-**60 tabelle**, di cui 45 hanno un `organization_id` e sono protette dalla row-level security. Le altre 15 sono
+**69 tabelle**, di cui 52 hanno un `organization_id` e sono protette dalla row-level security. Le altre 17 sono
 dell'intera installazione o si leggono prima che l'organizzazione sia nota: `organizations`, `users`, `user_mfa`,
-`user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sso_saml_requests`, `scim_users`, `scim_groups`, `scim_group_members`, `sessions`, `runners`
+`user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sso_saml_requests`, `sso_saml_replay`, `sso_saml_sessions`, `scim_users`, `scim_groups`, `scim_group_members`, `sessions`, `runners`
 e `system_settings`.
 
 ## Come leggere i diagrammi
@@ -204,6 +204,13 @@ erDiagram
     text client_secret_auth_tag
     text saml_sso_url
     text saml_certificate
+    bool saml_allow_idp_initiated
+    bool saml_require_encrypted_assertions
+    text saml_slo_url
+    text saml_sp_certificate
+    text saml_sp_private_key_encrypted
+    text saml_sp_private_key_iv
+    text saml_sp_private_key_auth_tag
     text default_role
     bool enabled
     bool required
@@ -233,6 +240,8 @@ erDiagram
     text id PK
     int organization_id FK
     timestamp created_at
+    text purpose
+    text session_id
   }
   scim_users {
     int user_id PK,FK
@@ -1161,5 +1170,84 @@ Queste relazioni esistono nell'applicazione ma non hanno una chiave esterna. Son
   utente finché è in sospeso (0044); un legame con un'issue è univoco per fallimento (`dedupe_key`), così un
   fallimento si segnala una volta; la chiave di idempotenza di un run è univoca per organizzazione, così una richiesta ripetuta
   restituisce lo stesso run.
-- **Migrazioni.** 64 file SQL numerati in `migrations/` (da `0000` a `0063`), applicati una volta dal migratore
+- **Migrazioni.** 75 file SQL numerati in `migrations/` (da `0000` a `0074`), applicati una volta dal migratore
   prima che partano gli altri processi; il journal è `migrations/meta/_journal.json`.
+
+## Amministrazione — migrazioni 0073 e 0074
+
+I registri SAML usano accesso privilegiato prima del login, con filtri espliciti per organizzazione e
+nessun grant al ruolo applicativo. La cronologia email usa RLS forzata e grant di sola lettura;
+i callback scrivono correlando identificativi opachi. Non si conservano contenuti o token.
+
+```mermaid
+erDiagram
+  organizations ||--o{ sso_saml_replay : owns
+  organizations ||--o{ sso_saml_sessions : owns
+  users ||--o{ sso_saml_sessions : opens
+  organizations |o--o{ mail_deliveries : owns
+  mail_deliveries ||--o{ mail_delivery_events : receives
+  organizations |o--o{ mail_delivery_events : owns
+  sso_saml_replay {
+    text id PK
+    int organization_id FK
+    timestamp expires_at
+  }
+  sso_saml_sessions {
+    text session_id PK
+    int organization_id FK
+    int user_id FK
+    text issuer
+    text name_id
+    text name_id_format
+    text session_index
+    timestamp created_at
+  }
+  mail_deliveries {
+    text id PK
+    int organization_id FK
+    text recipient
+    text purpose
+    text state
+    timestamp created_at
+    timestamp updated_at
+  }
+  mail_delivery_events {
+    text id PK
+    text delivery_id FK
+    int organization_id FK
+    text state
+    timestamp received_at
+  }
+```
+
+## Collaborazione — migrazioni 0071 e 0072
+
+```mermaid
+erDiagram
+  organizations ||--o{ comments : owns
+  users |o--o{ comments : writes
+  tests |o--o{ comments : discussed
+  api_tests |o--o{ comments : discussed
+  mobile_tests |o--o{ comments : discussed
+  report_test_case_results |o--o{ comments : discussed
+  organizations ||--o{ user_dashboard_layouts : owns
+  users ||--o{ user_dashboard_layouts : customizes
+  comments {
+    int id PK
+    int organization_id FK
+    int author_id FK
+    int ui_test_id FK
+    int api_test_id FK
+    int mobile_test_id FK
+    text result_id FK
+    text body
+    timestamp created_at
+    timestamp updated_at
+  }
+  user_dashboard_layouts {
+    int organization_id PK,FK
+    int user_id PK,FK
+    jsonb widgets
+    timestamp updated_at
+  }
+```

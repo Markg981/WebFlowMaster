@@ -238,6 +238,10 @@ registrato nel client. Utenti Keycloak, tutti con password `Collaudo.2026!`:
 | `luca` | luca@acme.test | SSO-05: il suo account è nell'organizzazione B |
 | `reimposta` | reimposta@acme.test | WEB-45: la sua password viene reimpostata via email a ogni esecuzione |
 
+Per SAML avanzato (avvio IdP, cifratura, logout) ed email HTML con rimbalzi, usare anche i
+[casi di collaudo amministrazione](../docs/administration-acceptance.md), con chiavi e relay di test.
+La fatturazione è sospesa per decisione del 2026-10-02; non configurare pagamenti per questi casi.
+
 **Single sign-on SAML (SSO-13…SSO-17, SEC-31).** Il realm `acme` ha anche un client SAML con
 client ID `https://wfm.collaudo.test/api/sso/saml/1` (Acme è l'organizzazione 1), ACS
 `https://wfm.collaudo.test/api/sso/saml/1/acs`, asserzione firmata, NameID persistent e attributo
