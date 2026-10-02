@@ -509,6 +509,16 @@ export async function runTestPlan(
   }
 }
 
+/** The one privileged read of a job: which organization its execution belongs to. Shared by both job kinds. */
+async function organizationOfExecution(executionId: string): Promise<{ organizationId: number } | undefined> {
+  const [execution] = await privilegedDb
+    .select({ organizationId: testPlanExecutionsTable.organizationId })
+    .from(testPlanExecutionsTable)
+    .where(eq(testPlanExecutionsTable.id, executionId))
+    .limit(1);
+  return execution;
+}
+
 /**
  * Establishes the tenant context for a queue job, then runs it.
  *
@@ -530,11 +540,7 @@ export async function processTestPlanJob(
   jobOptions: { updateBaselines?: boolean } = {},
 ): Promise<any> {
   const bootstrapLogger = await loggerPromise;
-  const [execution] = await privilegedDb
-    .select({ organizationId: testPlanExecutionsTable.organizationId })
-    .from(testPlanExecutionsTable)
-    .where(eq(testPlanExecutionsTable.id, testPlanRunId))
-    .limit(1);
+  const execution = await organizationOfExecution(testPlanRunId);
 
   if (!execution) {
     bootstrapLogger.error({ message: 'Test plan execution record not found', testPlanRunId });
@@ -558,11 +564,7 @@ export async function processShardJob(
   shard: number,
   jobOptions: { updateBaselines?: boolean } = {},
 ): Promise<any> {
-  const [execution] = await privilegedDb
-    .select({ organizationId: testPlanExecutionsTable.organizationId })
-    .from(testPlanExecutionsTable)
-    .where(eq(testPlanExecutionsTable.id, executionId))
-    .limit(1);
+  const execution = await organizationOfExecution(executionId);
   if (!execution) return { skipped: true, reason: 'Execution not found.', testPlanRunId: executionId };
   return runWithTenant(execution.organizationId, () =>
     runTestPlanJobInTenant(planId, executionId, userId, jobOptions, { shard }),
