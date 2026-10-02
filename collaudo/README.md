@@ -406,6 +406,21 @@ wfmc kill worker            # durante un run
 wfmc restart redis
 ```
 
+**Prova di carico (OPS-15…OPS-17).** `npm run collaudo:carico` carica lo stack con
+`scripts/wfm-load.ts` (Operatività → Capacità e limiti): in Acme e in Beta crea un test API
+«CARICO · salute» verso i simulatori, un piano che lo contiene e una chiave, poi 10 client leggono
+per 30 secondi (OPS-15: p95 entro 1 s, nessun errore) e partono 10 run per organizzazione insieme
+(OPS-16: mai più di 2 in corso per organizzazione, tutti `completed`; OPS-17: le due organizzazioni
+servite alla pari, come dicono primo avvio e ultima fine di ciascuna). Alla fine cancella piani, run, risultati, test e chiavi, anche se la prova
+fallisce; l'esito resta in `collaudo/carico-esito.json`. Il limite delle API va spento per la
+misura:
+
+```bash
+API_RATE_LIMIT=0 wfmc up -d api
+npm run collaudo:carico            # CARICO_ARGOMENTI="--runs 30 --readers 20" per caricare di più
+wfmc up -d api
+```
+
 **Jenkins (INT-08).** `npm run collaudo:jenkins` crea una chiave API (runs:write, runs:read),
 avvia Jenkins (http://localhost:8088, `admin` / `Collaudo.2026!`) configurato da
 `collaudo/jenkins/casc.yaml` e lancia il job **INT-08**. Il job usa la shared library di

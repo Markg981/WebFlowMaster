@@ -196,6 +196,36 @@ limiti da sola:
 UPDATE organizations SET max_concurrent_runs = 5, max_queued_runs = 300 WHERE id = 42;
 ```
 
+### Misurarla {#prova-di-carico}
+
+`scripts/wfm-load.ts` carica un'installazione come fanno le pipeline, tramite `/api/v1`, e dice se
+ha retto:
+
+```bash
+npx tsx scripts/wfm-load.ts --url https://wfm.example.com \
+  --target <chiave A>:<id piano A> --target <chiave B>:<id piano B> \
+  --readers 10 --read-seconds 30 --runs 10 --max-concurrent 2 --json carico.json
+```
+
+Ogni target è una chiave API (scope `plans:read`, `runs:read`, `runs:write`) e un piano di
+un'organizzazione; datene uno per organizzazione per vedere come si dividono i runner. Usate un
+piano leggero — un test API verso qualcosa di vicino — a meno che non vogliate caricare proprio i
+browser; i suoi run restano nella cronologia del piano. Prima `--readers` client elencano piani e
+run per `--read-seconds` (latenza p50/p95/p99, richieste al secondo, errori; i `429` di
+`API_RATE_LIMIT` sono contati a parte, quindi mettetelo a `0` durante la misura). Poi partono
+insieme `--runs` run di ogni piano, seguiti fino alla fine: quanto hanno aspettato e girato, come
+sono finiti, quanti la coda ha rifiutato, e il massimo in corso insieme per organizzazione,
+ricavato dagli orari di inizio e fine. Esce con `1` quando una soglia è superata — p95 delle letture
+oltre `--max-p95-ms` (1000), errori oltre `--max-error-rate` (0), più run in corso di
+`--max-concurrent`, un run finito diversamente da `completed`, o non finito entro `--run-timeout` —
+e con `0` altrimenti.
+
+Un run trattenuto dal limite della sua organizzazione viene riguardato ogni `RUN_DEFERRAL_MS`
+(10 s), e non nel momento in cui si libera un posto. Con run brevi è questo a pesare sull'attesa: in una misura
+con due run insieme e run di 2 s, otto run per organizzazione sono finiti dopo 33 s con il default e
+dopo 9 s con `RUN_DEFERRAL_MS=1000`. Abbassatelo quando la maggior parte dei run è breve e le
+organizzazioni arrivano al limite; ogni controllo è una query sotto lock.
+
 ## Risoluzione dei problemi
 
 | Sintomo | Causa probabile | Cosa fare |

@@ -191,6 +191,35 @@ permission to change these columns, so an organization cannot raise its own limi
 UPDATE organizations SET max_concurrent_runs = 5, max_queued_runs = 300 WHERE id = 42;
 ```
 
+### Measuring it {#load-test}
+
+`scripts/wfm-load.ts` loads an installation the way pipelines do, through `/api/v1`, and says
+whether it held:
+
+```bash
+npx tsx scripts/wfm-load.ts --url https://wfm.example.com \
+  --target <key A>:<plan id A> --target <key B>:<plan id B> \
+  --readers 10 --read-seconds 30 --runs 10 --max-concurrent 2 --json load.json
+```
+
+Each target is an API key (scopes `plans:read`, `runs:read`, `runs:write`) and a plan of one
+organization; give one per organization to see how they share the runners. Use a cheap plan — one
+API test against something nearby — unless the browsers are what you want to load; its runs stay
+in the plan's history. First `--readers` clients list plans and runs for `--read-seconds`
+(latency p50/p95/p99, requests a second, errors; `429` from `API_RATE_LIMIT` is counted apart, so
+set it to `0` while measuring). Then `--runs` runs of each plan start at once and are followed to
+their end: how long they waited and ran, how they ended, how many the queue refused, and the most in
+progress at once per organization, worked out from their start and end times. It exits `1` when a
+threshold is breached — read p95 over `--max-p95-ms` (1000), errors over `--max-error-rate` (0), more
+runs in progress than `--max-concurrent`, a run ending other than `completed`, or not ending within
+`--run-timeout` — and `0` otherwise.
+
+A run held back by its organization's limit is looked at again every `RUN_DEFERRAL_MS` (10 s), not
+as soon as a slot frees. With short runs that dominates the wait: in a measurement with two runs at
+once and runs of 2 s, eight runs per organization ended after 33 s with the default and after 9 s
+with `RUN_DEFERRAL_MS=1000`. Lower it when most runs are short and organizations reach their limit;
+each look is one query under a lock.
+
 ## Troubleshooting
 
 | Symptom | Likely cause | What to do |
