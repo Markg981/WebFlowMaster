@@ -3984,5 +3984,14 @@
     "choosePlan": "Plan wählen",
     "filesPlaceholder": "Eine geänderte Datei pro Zeile, wie git diff --name-only sie auflistet",
     "preview": "Zeigen, welche Tests laufen würden"
+  },
+  "pagePerformance": {
+    "title": "Seitengeschwindigkeit",
+    "description": "Von den Tests gemessene Seiten: die vom Browser erfassten Core Web Vitals und die Lighthouse-Werte, verglichen mit den Grenzwerten jedes Schritts. — bedeutet, dass dieser Browser den Wert nicht misst.",
+    "page": "Seite",
+    "weight": "Größe",
+    "withinLimits": "innerhalb der Grenzwerte",
+    "noLimits": "keine Grenzwerte",
+    "report": "Bericht"
   }
 }

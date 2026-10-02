@@ -3978,5 +3978,14 @@
     "choosePlan": "Choose a plan",
     "filesPlaceholder": "One changed file per line, as git diff --name-only lists them",
     "preview": "Show which tests would run"
+  },
+  "pagePerformance": {
+    "title": "Page speed",
+    "description": "Pages the tests measured: the Core Web Vitals the browser recorded, and Lighthouse scores, against each step’s limits. — means this browser does not measure it.",
+    "page": "Page",
+    "weight": "Weight",
+    "withinLimits": "within the limits",
+    "noLimits": "no limits",
+    "report": "report"
   }
 }

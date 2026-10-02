@@ -4103,5 +4103,14 @@
     "choosePlan": "Scegli un piano",
     "filesPlaceholder": "Un file cambiato per riga, come li elenca git diff --name-only",
     "preview": "Mostra quali test verrebbero eseguiti"
+  },
+  "pagePerformance": {
+    "title": "Velocità delle pagine",
+    "description": "Le pagine misurate dai test: le Core Web Vitals registrate dal browser e i punteggi Lighthouse, rispetto ai limiti di ogni step. — indica che questo browser non la misura.",
+    "page": "Pagina",
+    "weight": "Peso",
+    "withinLimits": "entro i limiti",
+    "noLimits": "nessun limite",
+    "report": "report"
   }
 }

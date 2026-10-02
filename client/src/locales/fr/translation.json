@@ -3984,5 +3984,14 @@
     "choosePlan": "Choisir un plan",
     "filesPlaceholder": "Un fichier modifié par ligne, comme git diff --name-only les liste",
     "preview": "Montrer quels tests seraient exécutés"
+  },
+  "pagePerformance": {
+    "title": "Vitesse des pages",
+    "description": "Les pages mesurées par les tests : les Core Web Vitals enregistrées par le navigateur et les scores Lighthouse, comparés aux limites de chaque étape. — signifie que ce navigateur ne la mesure pas.",
+    "page": "Page",
+    "weight": "Poids",
+    "withinLimits": "dans les limites",
+    "noLimits": "aucune limite",
+    "report": "rapport"
   }
 }
