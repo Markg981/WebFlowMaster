@@ -237,8 +237,12 @@ Dichiarati perché una valutazione possa pesarli, invece di scoprirli dopo:
   non è in nessuno, all'accesso, quindi una sessione aperta mantiene il suo ruolo fino al
   successivo; con il provisioning SCIM disattivazioni e cambi di gruppo valgono subito, e il token
   SCIM, custodito dal provider, può creare, disattivare e rimuovere i membri dell'organizzazione
-  (mai il suo ultimo owner attivo). Per SAML accetta solo asserzioni firmate e non cifrate di accessi avviati da qui
-  (niente accesso avviato dall'IdP, niente single logout). Senza un gruppo obbligatorio, una persona
+  (mai il suo ultimo owner attivo). SAML richiede asserzioni firmate e supporta asserzioni cifrate
+  con una coppia RSA del service provider, accesso facoltativo avviato dall'IdP e single logout firmato.
+  L'accesso avviato dall'IdP è disabilitato per default e manca del binding richiesta/browser;
+  il single logout richiede l'URL di logout del provider e binding e firme compatibili. Consultare
+  la [configurazione SAML avanzata](../admin/administration.md#single-sign-on) prima di abilitare queste opzioni.
+  Senza un gruppo obbligatorio, una persona
   rimossa qui ma non presso il provider ottiene un nuovo account al suo accesso successivo, quindi
   l'accesso si revoca presso il provider. I domini e-mail si dimostrano con un record DNS TXT; la
   verifica è obbligatoria solo con `SSO_REQUIRE_DOMAIN_VERIFICATION=true`, e senza, su

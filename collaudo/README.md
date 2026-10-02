@@ -14,14 +14,29 @@ Docker o il database del prodotto. `npm run dev:docs` resta dedicato alla docume
 Per una porta diversa impostare `COLLAUDO_PORT` prima del comando.
 
 - **Casi:** `collaudo/casi.json`, versionato in Git. Contiene i 358 casi originali
-  e i 46 nuovi casi delle funzionalità 6–13: 404 casi, 20 aree, protocollo versione 16.
+  e i 46 nuovi casi delle funzionalità 6–13, più OPS-17…OPS-19 per storico e backup locali:
+  407 casi, 20 aree, protocollo versione 17.
   Gli ID esistenti non si rinominano. Dopo una modifica riavviare il comando e ricaricare la pagina.
 - **Cicli, esiti e note:** `collaudo/.local/state.json`, escluso da Git.
   Le note si salvano automaticamente; il nome del collaudatore si imposta in fondo alla pagina.
-  Nuovo ciclo parte sempre da esiti da eseguire; il catalogo rimane comune ai cicli.
+  Nuovo ciclo parte sempre da esiti da eseguire e congela il catalogo corrente, comprese
+  istruzioni, aree e presentazione. Pagina e CSV dei cicli storici usano questa copia.
+  `catalogHash` identifica la copia con SHA-256; `caseHash` collega ogni esito alla sua definizione.
+  Modificare il catalogo e creare un nuovo ciclo per collaudare le definizioni aggiornate.
+  Alla prima apertura dopo questo aggiornamento, i cicli esistenti congelano il catalogo
+  presente nello storico locale, prima di applicare quello del repository. Le definizioni
+  precedentemente sovrascritte non possono essere ricostruite.
 - **Backup:** Esporta backup JSON conserva catalogo e storico. Importa backup JSON
   aggiunge i dati e rifiuta conflitti, senza sostituire esiti diversi già presenti.
   Esporta CSV produce un riepilogo del ciclo selezionato, non un backup ripristinabile.
+  Prima di ogni salvataggio e migrazione lo stato precedente viene copiato in
+  `collaudo/.local/backups/auto-*.json`: si conservano gli ultimi 30 backup automatici,
+  mentre i file manuali non vengono eliminati. Se la copia fallisce, il salvataggio viene rifiutato.
+  I backup automatici usano lo stesso formato dell'esportazione e si possono importare
+  dalla pagina (limite 50 MiB). L'importazione aggiunge cicli mancanti e rifiuta esiti diversi:
+  per tornare a uno stato precedente, arrestare il server, conservare una copia della cartella
+  `.local`, rinominare `state.json`, riavviare e importare il backup scelto.
+  Copiare periodicamente i backup su un altro disco per proteggersi da guasti della macchina.
 - **Verifica tecnica:** `npm run test:collaudo` controlla persistenza, import e conflitti.
 
 Su questa macchina è stato trasferito il ciclo visibile nell'artifact del 27/09/2026
@@ -29,7 +44,8 @@ Su questa macchina è stato trasferito il ciclo visibile nell'artifact del 27/09
 Il relativo backup è in `collaudo/.local/backups/artifact-migrato.json`.
 Questi dati locali non sono distribuiti con il repository: su una nuova macchina
 importare il backup oppure creare un ciclo. Non sono stati recuperati altri cicli.
-I 46 nuovi casi restano **Da eseguire**; la fatturazione SaaS resta sospesa.
+I 46 nuovi casi erano **Da eseguire** al momento della migrazione; i cicli già congelati
+mantengono il proprio elenco di casi. La fatturazione SaaS resta sospesa.
 
 ## Installazione del prodotto da collaudare
 

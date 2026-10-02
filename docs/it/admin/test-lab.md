@@ -19,6 +19,19 @@ filtri, avanzamento, esiti, salvataggio automatico delle note e backup JSON impo
 La pagina funziona senza Claude e senza Docker. Per eseguire i casi sul prodotto,
 usare l'ambiente descritto qui sotto.
 
+Ogni ciclo congela il catalogo, comprese istruzioni e presentazione, con un `catalogHash`
+SHA-256; gli esiti registrati contengono il relativo `caseHash`. Pagine storiche ed export CSV
+usano quel catalogo. Per provare definizioni aggiornate creare un nuovo ciclo. I cicli esistenti
+congelano il catalogo salvato localmente prima dell'aggiornamento dal repository; le definizioni
+già sovrascritte prima della migrazione non sono recuperabili automaticamente.
+Prima di ogni salvataggio o migrazione viene scritto un backup JSON ripristinabile in
+`collaudo/.local/backups/auto-*.json`. Si conservano gli ultimi 30 backup automatici, senza
+eliminare file manuali. Se il backup fallisce, il salvataggio viene rifiutato. L'importazione
+accetta file fino a 50 MiB e unisce lo storico senza sovrascrivere esiti in conflitto.
+Per ripristinare uno stato precedente, arrestare il server, copiare `.local` al sicuro,
+rinominare `state.json`, riavviare e importare il backup scelto. Conservare anche una copia
+su un'altra macchina: i backup locali non proteggono da guasti del disco.
+
 I test automatici provano il codice; l'ambiente di collaudo prova il *prodotto come lo incontra una persona*: le
 immagini vere, TLS, cookie, single sign-on, e-mail, agenti in un'altra rete, un emulatore vero. Il protocollo è
 un elenco di casi numerati (aree ACC, MFA, SSO, MEM, ENV, WEB, API, LIB, PLN, SCH, REP, INT, AGT, ADM, SEC, OPS,

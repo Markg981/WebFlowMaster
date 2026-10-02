@@ -176,8 +176,9 @@ function renderCases() {
   progress();
 }
 async function load() {
-  [catalog, state] = await Promise.all([api('/api/catalog'), api('/api/state')]);
+  state = await api('/api/state');
   if (!state.cycles.some((c) => c.id === cycleId)) cycleId = state.cycles.at(-1)?.id || '';
+  catalog = await api('/api/catalog' + (cycleId ? '?cycle=' + encodeURIComponent(cycleId) : ''));
   $('version').textContent = `Protocollo di collaudo manuale · versione ${catalog.version}`;
   $('cycleSelect').innerHTML = state.cycles.length
     ? state.cycles
@@ -202,9 +203,11 @@ async function load() {
     }
     css.textContent = catalog.presentation.css;
     $('prepBody').innerHTML = cleanHTML(catalog.presentation.preparationHtml);
-  } else
+  } else {
+    $('originalStyle')?.remove();
     $('prepBody').textContent =
       'Procedura di preparazione in collaudo/README.md. I nuovi casi sono da eseguire.';
+  }
   renderCases();
 }
 function save(id, status) {
@@ -300,7 +303,11 @@ $('cycleSelect').onchange = async () => {
     return;
   }
   cycleId = selected;
-  renderCases();
+  try {
+    await load();
+  } catch (err) {
+    error(err);
+  }
 };
 $('newCycleBtn').onclick = async () => {
   if (await flushNotes()) $('cycleDialog').showModal();
