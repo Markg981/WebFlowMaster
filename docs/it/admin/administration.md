@@ -239,6 +239,44 @@ lo prende, e chi lo verifica per primo lo tiene. Senza la variabile i domini fun
 salvati e verificarli è facoltativo, il che va bene per un'installazione con una sola
 organizzazione.
 
+**Provisioning con SCIM.** Il single sign-on viene a sapere delle persone quando accedono. Con
+SCIM 2.0 il provider avvisa WebFlowMaster appena qualcosa cambia presso di lui: crea gli account, li
+disattiva e li rimuove, e invia i suoi gruppi. In **Provisioning (SCIM)** premete **Emetti un
+token** e date al provider l'**URL di base SCIM** (`<il vostro indirizzo>/api/scim/v2`) e il token,
+che viene mostrato una sola volta; **Sostituisci il token** chiude subito quello vecchio,
+**Revoca** chiude il provisioning. Prima va configurato il single sign-on: gli account creati così
+non hanno password e accedono tramite il provider, che li collega per indirizzo al primo accesso.
+
+| Provider | Dove |
+|---|---|
+| Microsoft Entra ID | Applicazione enterprise → Provisioning → *Automatico*: **Tenant URL** è l'URL di base, **Secret token** il token. Mappate `userPrincipalName` (o `mail`) su `userName`; *Provision Microsoft Entra ID Groups* invia i gruppi. |
+| Okta | Scheda *Provisioning* dell'app → SCIM 2.0, **Base URL** e autenticazione *HTTP Header* con il token; identificativo univoco `userName` (l'indirizzo e-mail); attivate *Create*, *Update* e *Deactivate Users*, e *Push Groups*. |
+| Altri (OneLogin, JumpCloud, Keycloak con un'estensione SCIM…) | SCIM 2.0 con un bearer token: l'URL di base e il token. |
+
+Cosa fa qui:
+
+- Gli **utenti** sono i membri dell'organizzazione; `userName` è il loro indirizzo e-mail, in uno
+  dei domini del single sign-on. Un nuovo utente riceve il **Ruolo dei nuovi account**. Anche i
+  membri già presenti sono elencati, così un provider che confronta per `userName` li prende in
+  carico invece di crearli di nuovo.
+- **`active: false` disattiva** subito l'account: le sue sessioni terminano alla richiesta
+  successiva, non può accedere e le sue chiavi API smettono di funzionare. **Impostazioni →
+  Membri** lo segna come *disattivato*. `active: true` lo restituisce con il suo ruolo e tutto ciò
+  che ha creato.
+- **Cancellare** un utente rimuove il membro come farebbe un owner: ciò che ha creato passa
+  all'owner presente da più tempo.
+- I **gruppi** applicano le mappature di **Ruoli dai gruppi del provider** appena qualcuno entra
+  o esce da uno di essi: si confronta il nome del gruppo, o il suo ID esterno (l'object ID di Entra
+  ID). Cambiare le mappature le applica subito ai gruppi inviati. Chi non è in nessun gruppo
+  mappato mantiene il suo ruolo, come all'accesso.
+- L'**ultimo owner attivo** dell'organizzazione non viene mai disattivato, declassato o rimosso
+  dal provider, che riceve invece un 409.
+
+Il registro di audit indica come autore `SCIM` per ogni modifica del provider: account creati
+(`member.provisioned`), disattivati, riattivati, rinominati o rimossi, ruoli cambiati dai gruppi
+(`bySsoGroups` e `byScim`), e gruppi inviati, modificati o rimossi; l'emissione e la revoca del
+token sono registrate a nome dell'owner che le ha fatte, mai il token.
+
 **Renderlo obbligatorio.** Con **Rendilo obbligatorio** attivo, i membri che non sono owner non
 possono più accedere con la password, e le sessioni aperte con la password terminano alla
 richiesta successiva. Gli owner mantengono la password, perché qualcuno possa ancora entrare e
@@ -252,7 +290,7 @@ provider, quindi richiedetelo lì.
 ::: warning È il provider a decidere chi entra
 Rimuovere un membro qui cancella il suo account, ma se il provider lo lascia ancora accedere, il
 suo accesso successivo crea un nuovo account con il ruolo predefinito. Revocate l'accesso presso
-il provider, oppure mappate i gruppi, attivate **Rifiuta chi non è in nessuno di questi gruppi** e
+il provider (con il provisioning SCIM viene disattivato qui all'istante), oppure mappate i gruppi, attivate **Rifiuta chi non è in nessuno di questi gruppi** e
 toglietelo dai gruppi; rimuoverlo anche qui mette in ordine l'elenco dei membri.
 :::
 
@@ -441,9 +479,11 @@ cambio, link di reset); le password già esistenti non vengono controllate.
 
 ## Limiti noti
 
-- Il single sign-on legge i ruoli dai gruppi solo all'accesso: una modifica presso il provider
-  arriva a WebFlowMaster al successivo accesso della persona, e le sessioni già aperte mantengono
-  il loro ruolo fino ad allora (non c'è SCIM). Le asserzioni SAML devono essere firmate e non
+- Senza SCIM, il single sign-on legge i ruoli dai gruppi solo all'accesso: una modifica presso il
+  provider arriva a WebFlowMaster al successivo accesso della persona, e le sessioni già aperte
+  mantengono il loro ruolo fino ad allora. SCIM supporta filtri `eq` su un attributo, niente
+  operazioni bulk né ordinamento, e di un utente conserva l'indirizzo, lo stato attivo e l'ID
+  esterno (nomi e altri attributi sono accettati e ignorati). Le asserzioni SAML devono essere firmate e non
   cifrate, l'accesso parte da WebFlowMaster (niente accesso avviato dall'IdP), e il single logout
   non è supportato.
 - Le e-mail sono testo semplice via SMTP; non c'è un editor di modelli e i rimbalzi non vengono tracciati.

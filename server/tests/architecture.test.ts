@@ -140,6 +140,14 @@ describe('route modules cannot query outside the tenant context', () => {
         'sso_domains, sso_identities) and users. Its audit entries are written through the transaction ' +
         'of the change they describe, never through the handle directly.',
     },
+    'scim.ts': {
+      max: 0,
+      why:
+        'SCIM finds the organization from the provider\'s bearer token before any tenant exists, so it holds ' +
+        'the privileged handle, but only for its own tables (scim_users, scim_groups, scim_group_members), ' +
+        'organization_sso, sso_domains and users. Its audit entries are written through the transaction of ' +
+        'the change they describe; removing a member runs as the organization, like the owner\'s removal.',
+    },
     'execution-orchestrator.ts': {
       max: 1,
       why:

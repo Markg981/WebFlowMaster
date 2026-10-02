@@ -5,9 +5,9 @@ Questa pagina è il riferimento del database: ogni tabella, ogni colonna e ogni 
 scopo di ciascuna tabella, a parole, è in [Modello dati](./data-model); come le righe restano separate fra
 organizzazioni è in [Tenancy e accessi](./tenancy).
 
-**57 tabelle**, di cui 45 hanno un `organization_id` e sono protette dalla row-level security. Le altre 12 sono
+**60 tabelle**, di cui 45 hanno un `organization_id` e sono protette dalla row-level security. Le altre 15 sono
 dell'intera installazione o si leggono prima che l'organizzazione sia nota: `organizations`, `users`, `user_mfa`,
-`user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sso_saml_requests`, `sessions`, `runners`
+`user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sso_saml_requests`, `scim_users`, `scim_groups`, `scim_group_members`, `sessions`, `runners`
 e `system_settings`.
 
 ## Come leggere i diagrammi
@@ -109,6 +109,11 @@ erDiagram
   organizations ||--o{ sso_domains : "organization_id"
   users ||--o{ sso_identities : "user_id"
   organizations ||--o{ sso_saml_requests : "organization_id"
+  users ||--o| scim_users : "user_id"
+  organizations ||--o{ scim_users : "organization_id"
+  organizations ||--o{ scim_groups : "organization_id"
+  scim_groups ||--o{ scim_group_members : "group_id"
+  users ||--o{ scim_group_members : "user_id"
   users ||--o{ projects : "user_id"
   organizations ||--o{ projects : "organization_id"
   projects ||--o{ project_members : "project_id"
@@ -202,6 +207,10 @@ erDiagram
     text group_attribute
     jsonb role_mappings
     bool require_group
+    text scim_token_hash
+    text scim_token_prefix
+    timestamp scim_token_created_at
+    timestamp scim_token_last_used_at
     timestamp updated_at
   }
   sso_domains {
@@ -221,6 +230,25 @@ erDiagram
     text id PK
     int organization_id FK
     timestamp created_at
+  }
+  scim_users {
+    int user_id PK,FK
+    int organization_id FK
+    text external_id
+    timestamp created_at
+    timestamp updated_at
+  }
+  scim_groups {
+    text id PK
+    int organization_id FK
+    text display_name
+    text external_id
+    timestamp created_at
+    timestamp updated_at
+  }
+  scim_group_members {
+    text group_id PK,FK
+    int user_id PK,FK
   }
   projects {
     int id PK

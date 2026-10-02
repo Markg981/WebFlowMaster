@@ -23,6 +23,7 @@
     "collaudo:prepare": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/prepare.mjs",
     "collaudo:check": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/check.mjs",
     "collaudo:simulatori": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/prova-simulatori.mjs",
+    "collaudo:scim": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/prova-scim.mjs",
     "collaudo:sicurezza-mobile": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/prova-sicurezza-mobile.mjs",
     "collaudo:mobile": "node collaudo/mobile/avvia.mjs",
     "collaudo:jenkins": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/jenkins/avvia.mjs",

@@ -43,7 +43,11 @@ export const users = pgTable("users", {
   kind: text("kind").notNull().default('person'),
   /** What a service account is called. Its username is generated, being unique across organizations. */
   displayName: text("display_name"),
-  /** A disabled service account keeps its row, so the runs it started still name it. */
+  /**
+   * A disabled service account keeps its row, so the runs it started still name it. A person is
+   * disabled by their identity provider through SCIM (server/scim.ts): they cannot sign in, their
+   * sessions and keys stop working, and the account comes back as it was when they are reactivated.
+   */
   disabledAt: timestamp("disabled_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -756,8 +760,56 @@ export const organizationSso = pgTable("organization_sso", {
   roleMappings: jsonb("role_mappings").$type<Array<{ group: string; role: "viewer" | "editor" | "owner" }>>().notNull().default([]),
   /** With mappings, refuse a person who is in none of the mapped groups. */
   requireGroup: boolean("require_group").notNull().default(false),
+  /**
+   * The bearer token the provider's SCIM client presents (server/scim.ts, migration 0064): its
+   * SHA-256, like an API key's, and enough of it to recognise in a list. Null: no provisioning.
+   */
+  scimTokenHash: text("scim_token_hash"),
+  scimTokenPrefix: text("scim_token_prefix"),
+  scimTokenCreatedAt: timestamp("scim_token_created_at"),
+  scimTokenLastUsedAt: timestamp("scim_token_last_used_at"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex("organization_sso_scim_token_hash_idx").on(table.scimTokenHash),
+]);
+
+/**
+ * Provisioning with SCIM 2.0 (server/scim.ts, migration 0064). Not RLS-scoped, like the other
+ * single sign-on tables: the token names the organization before any tenant exists, and every
+ * statement in server/scim.ts names it.
+ *
+ * scim_users marks the accounts the provider manages and keeps the id it knows them by; the
+ * account itself is an ordinary users row, its SCIM id the user id.
+ */
+export const scimUsers = pgTable("scim_users", {
+  userId: integer("user_id").primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  externalId: text("external_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("scim_users_organization_id_idx").on(table.organizationId),
+]);
+
+/** The provider's groups as it pushes them. Their names and external ids are what role mappings match. */
+export const scimGroups = pgTable("scim_groups", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  displayName: text("display_name").notNull(),
+  externalId: text("external_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("scim_groups_organization_id_idx").on(table.organizationId),
+]);
+
+export const scimGroupMembers = pgTable("scim_group_members", {
+  groupId: text("group_id").notNull().references(() => scimGroups.id, { onDelete: 'cascade' }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+}, (table) => [
+  primaryKey({ name: "scim_group_members_pkey", columns: [table.groupId, table.userId] }),
+  index("scim_group_members_user_id_idx").on(table.userId),
+]);
 
 /**
  * SAML AuthnRequests sent and not yet answered (migration 0059). A response must answer one, and
@@ -1625,6 +1677,16 @@ export const AUDIT_ACTIONS = {
   SSO_REMOVED: 'sso.removed',
   SSO_DOMAIN_VERIFIED: 'sso.domain_verified',
   MEMBER_PROVISIONED: 'member.provisioned',
+  // Provisioning with SCIM: the token the provider holds, and what it does to accounts and groups.
+  // Never the token.
+  SCIM_TOKEN_ISSUED: 'scim.token_issued',
+  SCIM_TOKEN_REVOKED: 'scim.token_revoked',
+  MEMBER_DEACTIVATED: 'member.deactivated',
+  MEMBER_REACTIVATED: 'member.reactivated',
+  MEMBER_RENAMED: 'member.renamed',
+  SCIM_GROUP_CREATED: 'scim.group_created',
+  SCIM_GROUP_UPDATED: 'scim.group_updated',
+  SCIM_GROUP_DELETED: 'scim.group_deleted',
   // An organization's own steps. They are code that runs against the applications under test,
   // so who wrote and changed them is kept — the script itself is not, only its size.
   TEST_DATA_SET_CREATED: 'test_data_set.created',

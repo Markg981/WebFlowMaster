@@ -226,6 +226,43 @@ hold it: another organization that adds the domain takes it over, and whoever pr
 keeps it. Without the variable domains work as soon as they are saved and proving them is
 optional, which suits an installation with one organization.
 
+**Provisioning with SCIM.** Single sign-on learns about people when they sign in. With SCIM
+2.0 the provider tells WebFlowMaster as soon as something changes there: it creates accounts,
+deactivates and removes them, and pushes its groups. Under **Provisioning (SCIM)**, press **Issue a
+token** and give the provider the **SCIM base URL** (`<your address>/api/scim/v2`) and the token,
+which is shown once; **Replace the token** ends the old one at once, **Revoke** ends provisioning.
+Single sign-on must be set up first: provisioned accounts have no password and sign in through
+the provider, which links them by address at the first sign-in.
+
+| Provider | Where |
+|---|---|
+| Microsoft Entra ID | Enterprise application → Provisioning → *Automatic*: **Tenant URL** is the base URL, **Secret token** the token. Map `userPrincipalName` (or `mail`) to `userName`; *Provision Microsoft Entra ID Groups* pushes the groups. |
+| Okta | The app's *Provisioning* tab → SCIM 2.0, **Base URL** and *HTTP Header* authentication with the token; unique identifier `userName` (the e-mail address); turn on *Create*, *Update* and *Deactivate Users*, and *Push Groups*. |
+| Others (OneLogin, JumpCloud, Keycloak with a SCIM extension…) | SCIM 2.0 with a bearer token: the base URL and the token. |
+
+What it does here:
+
+- **Users** are the organization's members; `userName` is their e-mail address, in one of the
+  single sign-on domains. A new user gets **Role of new accounts**. Members who were here before
+  are listed too, so a provider matching by `userName` takes them over instead of creating them
+  again.
+- **`active: false` deactivates** the account at once: its sessions end at their next request, it
+  cannot sign in, and its API keys stop working. **Settings → Members** marks it *deactivated*.
+  `active: true` gives it back with its role and everything it made.
+- **Deleting** a user removes the member as an owner would: what they made goes to the
+  longest-standing owner.
+- **Groups** apply the mappings of **Roles from the provider's groups** as soon as someone joins
+  or leaves one: the group's name, or its external ID (Entra ID's object ID), is what is matched.
+  Changing the mappings applies them to the pushed groups at once. Someone in none of the mapped
+  groups keeps their role, as at sign-in.
+- The organization's **last active owner** is never deactivated, demoted or removed by the
+  provider; it answers 409 instead.
+
+The audit log names the actor `SCIM` for every change the provider makes: accounts created
+(`member.provisioned`), deactivated, reactivated, renamed or removed, roles changed by groups
+(`bySsoGroups` and `byScim`), and groups pushed, changed or removed; issuing and revoking the token
+are recorded under the owner who did it, never the token.
+
 **Requiring it.** With **Require it** on, members other than owners can no longer sign in with a
 password, and password sessions already open end at their next request. Owners keep their
 password so that someone can still get in, and fix the settings, if the provider is down or
@@ -238,8 +275,9 @@ require it there.
 ::: warning The provider decides who gets in
 Removing a member here deletes their account, but if the provider still lets them sign in,
 their next sign-in creates a new account with the default role. End people's access at the
-provider — or map groups and turn on **Refuse whoever is in none of these groups**, then take
-them out of the groups; removing them here as well tidies up the member list.
+provider — with SCIM provisioning, that deactivates them here at once — or map groups and turn
+on **Refuse whoever is in none of these groups**, then take them out of the groups; removing them
+here as well tidies up the member list.
 :::
 
 The audit log records the settings being changed or removed (never the secret), each account
@@ -417,8 +455,10 @@ reset link); existing passwords are not checked.
 
 ## Known limitations
 
-- Single sign-on reads roles from groups only at sign-in: a change at the provider reaches
-  WebFlowMaster at the person's next sign-in, and sessions already open keep their role until then
-  (there is no SCIM). SAML assertions must be signed and unencrypted, sign-in starts from
+- Without SCIM, single sign-on reads roles from groups only at sign-in: a change at the provider
+  reaches WebFlowMaster at the person's next sign-in, and sessions already open keep their role
+  until then. SCIM supports `eq` filters on one attribute, no bulk operations and no sorting, and
+  keeps the address, the active flag and the external ID of a user (names and other attributes are
+  accepted and ignored). SAML assertions must be signed and unencrypted, sign-in starts from
   WebFlowMaster (no IdP-initiated sign-in), and single logout is not supported.
 - E-mail is plain text over SMTP; there is no template editor, and bounces are not tracked.

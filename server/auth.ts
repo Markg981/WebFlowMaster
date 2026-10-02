@@ -257,7 +257,8 @@ export function setupAuth(app: Express) {
       const stamped = payload as { id?: unknown; pw?: unknown } | null;
       if (!stamped || typeof stamped !== 'object' || typeof stamped.id !== 'number') return done(null, false);
       const user = await storage.getUser(stamped.id);
-      if (!user || stamped.pw !== passwordStamp(user.password)) return done(null, false);
+      // A disabled account's sessions end with it (an identity provider deactivating someone, server/scim.ts).
+      if (!user || stamped.pw !== passwordStamp(user.password) || user.disabledAt) return done(null, false);
       done(null, user);
     } catch (error) {
       done(error);

@@ -25,6 +25,8 @@ interface Member {
   username: string;
   role: Role;
   createdAt: string;
+  /** Deactivated by the identity provider through SCIM: cannot sign in until it reactivates them. */
+  disabledAt?: string | null;
 }
 
 interface Invitation {
@@ -247,6 +249,11 @@ const MembersCard: React.FC = () => {
                     {isMe && (
                       <Badge variant="secondary" className="ml-2">
                         {t('settings.members.you', 'you')}
+                      </Badge>
+                    )}
+                    {member.disabledAt && (
+                      <Badge variant="outline" className="ml-2" title={t('settings.members.deactivatedHint', 'Deactivated by your identity provider: they cannot sign in until it reactivates them.')}>
+                        {t('settings.members.deactivated', 'deactivated')}
                       </Badge>
                     )}
                   </span>

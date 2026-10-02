@@ -142,6 +142,10 @@ app.use(express.urlencoded({ extended: false }));
   // Per client address (server/middleware/rate-limits.ts).
   const { webhookRateLimit } = await import("./middleware/rate-limits");
   app.use("/api/webhooks", webhookRateLimit(), webhooksRouter);
+
+  // Provisioning by the organizations' identity providers, with a bearer token of their own.
+  const { default: scimRouter, SCIM_BASE_PATH } = await import("./routes/scim.routes");
+  app.use(SCIM_BASE_PATH, scimRouter);
   
   // Set up WebSockets for real-time logging
   await setupWebSockets(server);

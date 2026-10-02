@@ -17,6 +17,7 @@ import { sqlState } from './db-errors';
 import { DEFAULT_GROUP_ATTRIBUTE, domainVerificationRecord, groupsOf, roleFromGroups, roleMappingSchema, type RoleMapping } from '@shared/sso-roles';
 import { checkDomainRecord, domainVerificationRequired, newVerificationToken, usableDomain } from './sso-domains';
 import type { AuditActor } from './audit';
+import { reapplyGroupRoles } from './scim';
 import {
   certificateInfo,
   finishSamlSignIn as checkSamlResponse,
@@ -46,7 +47,8 @@ import {
  *
  * The provider decides who gets in, and that includes people removed here: removing a member
  * deletes their account, and their next sign-in through the provider creates a new one. Access is
- * ended at the provider.
+ * ended at the provider — at once when it provisions through SCIM (server/scim.ts), which
+ * deactivates the account.
  *
  * Everything runs on the privileged handle, like server/mfa.ts: the provider for a domain has to
  * be found before anyone is signed in. Every statement names the organization it is about.
@@ -78,6 +80,8 @@ export interface SsoSettings {
   groupAttribute: string;
   roleMappings: RoleMapping[];
   requireGroup: boolean;
+  /** The provider's SCIM token (server/scim.ts), never the token itself. Null: no provisioning. */
+  scimToken: { prefix: string; createdAt: Date | null; lastUsedAt: Date | null } | null;
   updatedAt: Date;
 }
 
@@ -209,6 +213,7 @@ export async function getSsoSettings(organizationId: number): Promise<SsoSetting
     groupAttribute: row.groupAttribute ?? DEFAULT_GROUP_ATTRIBUTE,
     roleMappings: row.roleMappings ?? [],
     requireGroup: row.requireGroup,
+    scimToken: row.scimTokenPrefix ? { prefix: row.scimTokenPrefix, createdAt: row.scimTokenCreatedAt, lastUsedAt: row.scimTokenLastUsedAt } : null,
     updatedAt: row.updatedAt,
   };
 }
@@ -347,6 +352,8 @@ export async function saveSsoSettings(organizationId: number, actor: AuditActor,
     throw error;
   }
   forgetDiscovery(organizationId);
+  // New mappings apply to the groups the provider pushes through SCIM at once, not at the next change.
+  if (mappingsGiven) await reapplyGroupRoles(organizationId, actor.ipAddress ?? null);
   return (await getSsoSettings(organizationId))!;
 }
 
