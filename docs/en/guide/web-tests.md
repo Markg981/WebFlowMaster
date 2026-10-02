@@ -312,6 +312,30 @@ test needs — create a customer, empty a cart. Pick them from your saved
 [API tests](./api-tests); they run in the order listed. A test whose precondition fails is reported
 as blocked, not as failed.
 
+## Cleanup {#cleanup}
+
+**Cleanup** calls are API calls made after the test, whether it passed, failed or was blocked by
+a precondition, to remove the data it created — the order it placed, the customer a precondition
+made — so the next run starts from the same state and the application under test does not fill up
+with test data. Pick them from your saved [API tests](./api-tests), usually `DELETE` requests; they
+run in the order listed.
+
+- They can use the values the steps stored: <code v-pre>DELETE {{baseUrl}}/orders/{{orderId}}</code>
+  after a **Store text in variable** step that kept the order number as `orderId`. A call naming a variable the run
+  never set — the test failed before the step that stores it — is not made, and the report says
+  it was skipped.
+- Every call is attempted, even after one fails. `404` and `410` count as **already gone**, so a
+  cleanup can be run again safely.
+- With a [dataset](#datasets), the cleanup runs once for each row, after all the rows, with that
+  row's values; what a precondition created is deleted by the first row and already gone for the
+  others.
+- The cleanup never changes the test's result. The report shows it as a **Cleanup** line after the
+  steps, failed when a call failed — data may have been left behind — and the run log names the
+  call.
+
+**Run test** in the builder runs the cleanup too. The debugger does not: a session paused halfway
+would delete what you are looking at.
+
 ## Datasets
 
 To run the same test over several inputs, give it a **dataset**: a table whose column names become

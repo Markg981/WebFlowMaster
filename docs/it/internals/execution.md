@@ -139,6 +139,11 @@ piano, con la propria mappa di valori catturati. `max_parallel_tests` del piano 
 - Le **precondizioni** (chiamate API che preparano lo stato) girano per prime; ciascuna può essere
   saltata quando un controllo mostra che lo stato esiste già. Cosa significhi una precondizione fallita
   lo decide la policy del piano: bloccare il test (`error`), saltarlo o proseguire comunque.
+- Le chiamate di **pulizia** (`server/cleanup-runner.ts`) girano dopo il test qualunque sia l'esito,
+  anche se bloccato da una precondizione, una volta per ogni esecuzione degli step (ogni riga del
+  dataset) con le variabili con cui quella esecuzione è finita; ogni chiamata viene tentata, 404/410
+  significano già rimosso, e una chiamata che nomina una variabile non impostata viene saltata. Sono
+  l'ultima riga degli step del test (`type: cleanup`) e non ne cambiano mai lo stato.
 - I **test UI** girano tramite `playwrightService.executeTestSequence`. Prima del primo step si espandono
   i gruppi di step (la chiamata a un gruppo diventa gli step attuali del gruppo) e si risolvono gli
   elementi del repository (uno step che nomina un elemento condiviso usa il selettore attuale

@@ -253,6 +253,14 @@ fra i gruppi: console di Keycloak → Users → l'utente → Groups. I domini `.
 pubblico: nel collaudo il pulsante **Verifica** può solo dire che il record TXT manca, e la
 verifica riuscita è coperta dai test automatici (`server/sso.test.ts`).
 
+**Provisioning SCIM (SSO-23…SSO-26).** Keycloak non ha un client SCIM: fa da provider lo script
+`npm run collaudo:scim`, che parla come Entra ID e Okta. Richiede il single sign-on di Acme
+configurato (SSO-01) e la mappatura `wfm-editor` → editor (SSO-18); emette un token come `owner.a`
+(sostituendo quello eventualmente emesso prima), crea `scim.ada@acme.test`, la mette nel gruppo,
+la disattiva (e controlla che **Impostazioni → Membri** la segni come *disattivata*) e la
+riattiva, poi rimuove utente e gruppo. Il token resta emesso: revocarlo da **Impostazioni →
+Single sign-on → Provisioning (SCIM)** fa parte di SSO-23.
+
 La console di Keycloak (per cambiare un'e-mail o fermare il provider) è su
 https://keycloak.collaudo.test, utente `admin`, password `admin`.
 

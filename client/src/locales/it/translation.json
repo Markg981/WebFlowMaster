@@ -334,7 +334,9 @@
       "resetIntro": "Manda questo link a {{username}} per scegliere una nuova password. Viene mostrato solo ora, funziona una volta e vale un giorno.",
       "resetLinkLabel": "Link di reset della password",
       "emailed": "Inviato anche per e-mail a {{username}}.",
-      "emailFailed": "Non inviato per e-mail: {{error}} Mandate voi il link."
+      "emailFailed": "Non inviato per e-mail: {{error}} Mandate voi il link.",
+      "deactivated": "disattivato",
+      "deactivatedHint": "Disattivato dal vostro identity provider: non può accedere finché il provider non lo riattiva."
     },
     "customActions": {
       "title": "Azioni personalizzate",
@@ -2725,7 +2727,8 @@
       "requirement": "Requisiti",
       "test_management": "Gestione test",
       "mobile_test": "App mobili",
-      "test_data_set": "Dati di test"
+      "test_data_set": "Dati di test",
+      "scim": "Provisioning (SCIM)"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
@@ -2819,7 +2822,15 @@
       "test_data_set_created": "Set di dati condiviso creato",
       "test_data_set_updated": "Set di dati condiviso modificato",
       "test_data_set_deleted": "Set di dati condiviso eliminato",
-      "sso_domain_verified": "Dominio del single sign-on verificato"
+      "sso_domain_verified": "Dominio del single sign-on verificato",
+      "scim_token_issued": "Token SCIM emesso",
+      "scim_token_revoked": "Token SCIM revocato",
+      "member_deactivated": "Membro disattivato dall'identity provider",
+      "member_reactivated": "Membro riattivato dall'identity provider",
+      "member_renamed": "Membro rinominato dall'identity provider",
+      "scim_group_created": "Gruppo del provider inviato",
+      "scim_group_updated": "Gruppo del provider modificato",
+      "scim_group_deleted": "Gruppo del provider rimosso"
     }
   },
   "security": {
@@ -3334,7 +3345,7 @@
     "enabledHint": "Se disattivato, le impostazioni restano ma nessuno accede tramite il provider.",
     "required": "Rendilo obbligatorio",
     "requiredHint": "I membri che non sono owner non possono più accedere con la password, e le loro sessioni aperte con la password terminano. Gli owner mantengono la propria, per poter rientrare se il provider non funziona. Le chiavi API non sono interessate.",
-    "removalNote": "È il provider a decidere chi entra: una persona rimossa qui torna con un nuovo account al successivo accesso. Revocatele l'accesso presso il provider, oppure mappate i gruppi e rifiutate chi non è in nessuno.",
+    "removalNote": "È il provider a decidere chi entra: una persona rimossa qui torna con un nuovo account al successivo accesso. Revocatele l'accesso presso il provider (con il provisioning SCIM viene disattivata qui all'istante), oppure mappate i gruppi e rifiutate chi non è in nessuno.",
     "save": "Salva",
     "saved": "Salvato.",
     "test": "Prova il provider",
@@ -3396,6 +3407,20 @@
       "add": "Mappa un gruppo",
       "require": "Rifiuta chi non è in nessuno di questi gruppi",
       "requireHint": "Così togliere qualcuno dai gruppi presso il provider gli revoca l'accesso qui al successivo accesso."
+    },
+    "scim": {
+      "title": "Provisioning (SCIM)",
+      "on": "attivo",
+      "description": "Il vostro identity provider crea, disattiva e rimuove gli account qui, e invia i suoi gruppi, appena cambiano presso di lui, non al prossimo accesso. Dategli l'URL di base e un token.",
+      "baseUrl": "URL di base SCIM (tenant URL)",
+      "tokenShown": "Token: copiatelo ora, non verrà più mostrato",
+      "status": "Token {{prefix}}… emesso {{created}}, ultimo uso {{used}}.",
+      "none": "Nessun token: il provisioning è spento.",
+      "replace": "Sostituisci il token",
+      "issue": "Emetti un token",
+      "revoke": "Revoca",
+      "revokeConfirm": "Revoca: il provider smette di fare provisioning",
+      "replaceHint": "Sostituire il token chiude subito quello vecchio: incollate il nuovo presso il provider."
     }
   },
   "manualTests": {
@@ -3978,5 +4003,11 @@
     "typeName": "Scrivete il nome dell'organizzazione, {{name}}, per confermare",
     "erase": "Cancella definitivamente",
     "lastWarning": "Cancellare {{name}} e ogni suo account? Non si può annullare."
+  },
+  "cleanup": {
+    "title": "Pulizia",
+    "description": "Chiamate API eseguite dopo il test, che sia passato o no, per rimuovere i dati che ha creato. Si possono usare i valori salvati dagli step, come {{example}}; una chiamata che ne nomina uno mai impostato viene saltata.",
+    "add": "Aggiungi un test API salvato come pulizia…",
+    "empty": "Nessuna pulizia. Ciò che il test crea resta nell'applicazione."
   }
 }

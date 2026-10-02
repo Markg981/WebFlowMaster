@@ -188,6 +188,7 @@ router.post("/api/tests/:id/versions/:version/restore", requireRole('editor'), a
           sequence: snapshot.sequence,
           elements: snapshot.elements,
           preconditions: snapshot.preconditions,
+          cleanups: snapshot.cleanups,
           dataset: snapshot.dataset,
           updatedAt: new Date(),
         })

@@ -59,6 +59,8 @@ router.get("/api/organization", requireRole("viewer"), async (_req: Request, res
         username: users.username,
         role: users.role,
         createdAt: users.createdAt,
+        // Set when the identity provider deactivated them through SCIM (server/scim.ts).
+        disabledAt: users.disabledAt,
       })
       .from(users)
       // People. Service accounts are listed, and managed, under /api/service-accounts.

@@ -48,10 +48,12 @@ erDiagram
 | `api_keys` | Pipeline credentials: hash, prefix, scopes, expiry, last use, owning user or service account. |
 | `audit_log` | Append-only trail of who did what; `app_user` may only select and insert. |
 | `password_resets` | Single-use, expiring password-reset links created by an owner or by the `password-reset-link` script; only the hash of the token is stored. |
-| `organization_sso` | One identity provider per organization, OpenID Connect or SAML 2.0 (`protocol`): the issuer (entity ID for SAML), then client id and client secret (encrypted) for OpenID Connect or sign-on URL and signing certificate for SAML, plus default role, whether it is enabled and whether it is required, and the roles taken from the provider's groups (`group_attribute`, `role_mappings` as `[{group, role}]`, `require_group`). No RLS and no grant to `app_user`: the provider is found before anyone is signed in. |
+| `organization_sso` | One identity provider per organization, OpenID Connect or SAML 2.0 (`protocol`): the issuer (entity ID for SAML), then client id and client secret (encrypted) for OpenID Connect or sign-on URL and signing certificate for SAML, plus default role, whether it is enabled and whether it is required, and the roles taken from the provider's groups (`group_attribute`, `role_mappings` as `[{group, role}]`, `require_group`) and the SCIM token (its hash and prefix, when it was issued and last used). No RLS and no grant to `app_user`: the provider is found before anyone is signed in. |
 | `sso_saml_requests` | SAML AuthnRequests waiting for their answer: id and organization, kept ten minutes. The answer must match one, which is deleted as it is used, so a response cannot be replayed. Kept in the database, not the session, because the provider posts back cross-site. No RLS and no grant to `app_user`. |
 | `sso_domains` | E-mail domains that route a sign-in to an organization's provider. A domain belongs to one organization; `verification_token` is the value of its DNS TXT record and `verified_at` says when it was proven. |
 | `sso_identities` | The link between a person at the provider (`issuer` + `subject`) and a `users` row, with the last sign-in. |
+| `scim_users` | The accounts the identity provider manages through SCIM, with the `external_id` it knows them by. The account is the `users` row; its SCIM id is the user id. No RLS and no grant to `app_user`. |
+| `scim_groups` / `scim_group_members` | The provider's groups as it pushes them through SCIM, and who is in them. Role mappings match a group's `display_name` or `external_id`. No RLS and no grant to `app_user`. |
 | `sessions` | The session store when PostgreSQL holds sessions (Redis does in production). Installation-wide. |
 
 The complete column-level diagrams of all tables are in [Database schema](./database-schema).
@@ -60,7 +62,7 @@ The complete column-level diagrams of all tables are in [Database schema](./data
 
 | Table | Purpose |
 |---|---|
-| `tests` | UI tests: the step sequence, detected elements, preconditions, dataset, published version pointer. |
+| `tests` | UI tests: the step sequence, detected elements, preconditions, cleanup calls (`cleanups`, run after the test), dataset, published version pointer. |
 | `detected_elements` | Elements found on a page for one test (the builder's palette). |
 | `project_elements` | The element repository: one definition per element per project, which steps may reference; healing updates it once for every test. |
 | `step_groups` | Named, reusable step sequences called from tests; expanded at run time. |

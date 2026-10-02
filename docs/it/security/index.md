@@ -233,9 +233,11 @@ chiave solo dove inviarlo a Google è accettabile; tutto il resto funziona anche
 
 Dichiarati perché una valutazione possa pesarli, invece di scoprirli dopo:
 
-- **Il single sign-on** non ha SCIM: i ruoli dai gruppi del provider, e il rifiuto di chi non è in
-  nessuno, si applicano all'accesso, quindi una sessione aperta mantiene il suo ruolo fino al
-  successivo. Per SAML accetta solo asserzioni firmate e non cifrate di accessi avviati da qui
+- **Il single sign-on** senza SCIM applica i ruoli dai gruppi del provider, e il rifiuto di chi
+  non è in nessuno, all'accesso, quindi una sessione aperta mantiene il suo ruolo fino al
+  successivo; con il provisioning SCIM disattivazioni e cambi di gruppo valgono subito, e il token
+  SCIM, custodito dal provider, può creare, disattivare e rimuovere i membri dell'organizzazione
+  (mai il suo ultimo owner attivo). Per SAML accetta solo asserzioni firmate e non cifrate di accessi avviati da qui
   (niente accesso avviato dall'IdP, niente single logout). Senza un gruppo obbligatorio, una persona
   rimossa qui ma non presso il provider ottiene un nuovo account al suo accesso successivo, quindi
   l'accesso si revoca presso il provider. I domini e-mail si dimostrano con un record DNS TXT; la
@@ -245,7 +247,7 @@ Dichiarati perché una valutazione possa pesarli, invece di scoprirli dopo:
   lunghezza; `PASSWORD_POLICY=strong` aggiunge 12 caratteri, varietà di caratteri, niente username
   e niente password comuni. Senza SMTP, i link di invito e di reset li consegna l'owner.
 - **I limiti di frequenza tornano a contare per processo** mentre Redis non risponde: i conteggi
-  (accesso, chiavi API, webhook, SSO, invio dei log) stanno in Redis e sono condivisi da tutti i
+  (accesso, chiavi API, webhook, SSO, SCIM, invio dei log) stanno in Redis e sono condivisi da tutti i
   processi web, ma una richiesta non resta mai in attesa di Redis, quindi durante un guasto ogni
   processo conta per conto suo finché Redis non torna.
 - **Gli stili possono essere inline** sotto la Content Security Policy, come richiedono i

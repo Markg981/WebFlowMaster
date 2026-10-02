@@ -334,7 +334,9 @@
       "resetIntro": "Send this link to {{username}} to choose a new password. It is shown only now, works once, and lasts one day.",
       "resetLinkLabel": "Password reset link",
       "emailed": "Also e-mailed to {{username}}.",
-      "emailFailed": "Not e-mailed: {{error}} Send the link yourself."
+      "emailFailed": "Not e-mailed: {{error}} Send the link yourself.",
+      "deactivated": "deactivated",
+      "deactivatedHint": "Deactivated by your identity provider: they cannot sign in until it reactivates them."
     },
     "customActions": {
       "title": "Custom actions",
@@ -2600,7 +2602,8 @@
       "requirement": "Requirements",
       "test_management": "Test management",
       "mobile_test": "Mobile apps",
-      "test_data_set": "Test data"
+      "test_data_set": "Test data",
+      "scim": "Provisioning (SCIM)"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -2694,7 +2697,15 @@
       "test_data_set_created": "Shared data set created",
       "test_data_set_updated": "Shared data set changed",
       "test_data_set_deleted": "Shared data set deleted",
-      "sso_domain_verified": "Single sign-on domain proven"
+      "sso_domain_verified": "Single sign-on domain proven",
+      "scim_token_issued": "SCIM token issued",
+      "scim_token_revoked": "SCIM token revoked",
+      "member_deactivated": "Member deactivated by the identity provider",
+      "member_reactivated": "Member reactivated by the identity provider",
+      "member_renamed": "Member renamed by the identity provider",
+      "scim_group_created": "Provider group pushed",
+      "scim_group_updated": "Provider group changed",
+      "scim_group_deleted": "Provider group removed"
     }
   },
   "security": {
@@ -3209,7 +3220,7 @@
     "enabledHint": "Off keeps the settings and signs nobody in through the provider.",
     "required": "Require it",
     "requiredHint": "Members other than owners can no longer sign in with a password, and their password sessions end. Owners keep theirs, to get back in if the provider fails. API keys are not affected.",
-    "removalNote": "Your provider decides who gets in: someone removed here comes back with a new account at their next sign-in. End their access at the provider — or map groups and refuse whoever is in none.",
+    "removalNote": "Your provider decides who gets in: someone removed here comes back with a new account at their next sign-in. End their access at the provider — with SCIM provisioning, that deactivates them here at once — or map groups and refuse whoever is in none.",
     "save": "Save",
     "saved": "Saved.",
     "test": "Test the provider",
@@ -3271,6 +3282,20 @@
       "add": "Map a group",
       "require": "Refuse whoever is in none of these groups",
       "requireHint": "Then removing someone from the groups at the provider ends their access here at their next sign-in."
+    },
+    "scim": {
+      "title": "Provisioning (SCIM)",
+      "on": "on",
+      "description": "Your identity provider creates, deactivates and removes accounts here, and pushes its groups, as soon as they change there — not at the next sign-in. Give it the base URL and a token.",
+      "baseUrl": "SCIM base URL (tenant URL)",
+      "tokenShown": "Token — copy it now, it is not shown again",
+      "status": "Token {{prefix}}… issued {{created}}, last used {{used}}.",
+      "none": "No token: provisioning is off.",
+      "replace": "Replace the token",
+      "issue": "Issue a token",
+      "revoke": "Revoke",
+      "revokeConfirm": "Revoke: the provider stops provisioning",
+      "replaceHint": "Replacing the token ends the old one at once: paste the new one at the provider."
     }
   },
   "manualTests": {
@@ -3853,5 +3878,11 @@
     "typeName": "Type the organization name, {{name}}, to confirm",
     "erase": "Erase permanently",
     "lastWarning": "Erase {{name}} and every account in it? This cannot be undone."
+  },
+  "cleanup": {
+    "title": "Cleanup",
+    "description": "API calls made after the test, whether it passed or not, to remove the data it created. Values the steps stored, like {{example}}, can be used; a call naming one the run never set is skipped.",
+    "add": "Add a saved API test as cleanup…",
+    "empty": "No cleanup. What the test creates stays in the application."
   }
 }

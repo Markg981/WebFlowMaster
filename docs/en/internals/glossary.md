@@ -16,6 +16,7 @@ each lives.
 | **Browser pass / lane** | One browser's run through every test of a plan, with its own captured values. |
 | **Browser task** | Browser work a person waits for (preview, single run, page survey), run by a worker on its own queue. |
 | **CI context** | The provider, repository, commit, branch and build a pipeline sends with a run (`ci_context`, `shared/ci.ts`). |
+| **Cleanup** | API calls after a UI test, whatever its outcome, that remove the data it created; 404 counts as already gone. |
 | **Commit status** | A run's state shown on the commit it tested, in GitHub or GitLab (`server/commit-status.ts`). |
 | **Dataset** | Rows of input a test runs over, one run per row, each row's keys becoming variables. |
 | **Detected elements** | Elements found on a page by the builder, for one test (`detected_elements`). |

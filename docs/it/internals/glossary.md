@@ -15,6 +15,7 @@ ciascuna vive. I termini restano in inglese quando è così che compaiono nell'i
 | **Baseline** | Lo screenshot accettato di uno step, con cui confrontano i test visivi. |
 | **Browser task** | Lavoro su browser che una persona aspetta (anteprima, singola esecuzione, rilevazione della pagina), eseguito da un worker sulla sua coda. |
 | **CI context (contesto CI)** | Provider, repository, commit, branch e build che una pipeline invia con un run (`ci_context`, `shared/ci.ts`). |
+| **Cleanup (pulizia)** | Chiamate API dopo un test UI, qualunque sia l'esito, che rimuovono i dati che ha creato; 404 vale come già rimosso. |
 | **Commit status (stato del commit)** | Lo stato di un run mostrato sul commit testato, in GitHub o GitLab (`server/commit-status.ts`). |
 | **Corsia / passaggio per browser** | Il percorso di un browser su tutti i test di un piano, con i propri valori catturati. |
 | **Dataset** | Righe di input su cui gira un test, un'esecuzione per riga; le chiavi di ogni riga diventano variabili. |

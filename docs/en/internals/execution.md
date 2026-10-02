@@ -137,6 +137,11 @@ map of captured values. The plan's `max_parallel_tests` (capped by the installat
 - **Preconditions** (API calls that set up state) run first; each can be skipped when a check shows
   the state already exists. What a failed precondition means is the plan's policy: block the test
   (`error`), skip it, or continue anyway.
+- **Cleanup** calls (`server/cleanup-runner.ts`) run after the test whatever its outcome, blocked by
+  a precondition included, once per run of the steps (each dataset row) with the variables that run
+  ended with; every call is attempted, 404/410 mean already gone, and a call naming an unset
+  variable is skipped. They are the test's last step line (`type: cleanup`) and never change its
+  status.
 - **UI tests** run through `playwrightService.executeTestSequence`. Before the first step, step
   groups are expanded (a group call becomes the group's current steps) and repository elements are
   resolved (a step naming a shared element uses the element's current selector). A test with a

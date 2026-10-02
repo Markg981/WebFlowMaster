@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ApiTest, Precondition } from '@shared/schema';
+import { ApiTest, Cleanup, Precondition } from '@shared/schema';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,16 +13,17 @@ import {
   SelectTrigger,
 } from '@/components/ui/select';
 import { ArrowUp, ArrowDown, Trash2, PlusCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface PreconditionsPanelProps {
   preconditions: Precondition[];
   onChange: (next: Precondition[]) => void;
 }
 
-// Turn a saved API test into a precondition (an ordered setup call).
-function apiTestToPrecondition(t: ApiTest): Precondition {
+// Turn a saved API test into a precondition (an ordered setup call), or a cleanup call.
+function apiTestToPrecondition(t: ApiTest, prefix = 'pc'): Precondition {
   return {
-    id: `pc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     name: t.name,
     method: t.method,
     url: t.url,
@@ -33,7 +34,54 @@ function apiTestToPrecondition(t: ApiTest): Precondition {
   };
 }
 
-export const PreconditionsPanel: React.FC<PreconditionsPanelProps> = ({ preconditions, onChange }) => {
+interface ApiCallsPanelProps {
+  calls: Precondition[];
+  onChange: (next: Precondition[]) => void;
+  title: string;
+  description: string;
+  addLabel: string;
+  emptyText: string;
+  idPrefix: string;
+  testId?: string;
+}
+
+export const PreconditionsPanel: React.FC<PreconditionsPanelProps> = ({ preconditions, onChange }) => (
+  <ApiCallsPanel
+    calls={preconditions}
+    onChange={onChange}
+    title="Preconditions"
+    description="API setup calls run in order (through the app under test) before the UI sequence."
+    addLabel="Add a saved API test as setup…"
+    emptyText="No preconditions. The test will run against the current app state."
+    idPrefix="pc"
+  />
+);
+
+/**
+ * Cleanup (server/cleanup-runner.ts): API calls made after the test, whatever its outcome, to remove
+ * the data it created. Every one is attempted; 404 counts as already gone.
+ */
+export const CleanupPanel: React.FC<{ cleanups: Cleanup[]; onChange: (next: Cleanup[]) => void }> = ({ cleanups, onChange }) => {
+  const { t } = useTranslation();
+  return (
+    <ApiCallsPanel
+      calls={cleanups as Precondition[]}
+      onChange={(next) => onChange(next.map(({ check: _check, ...call }) => call))}
+      title={t('cleanup.title', 'Cleanup')}
+      description={t(
+        'cleanup.description',
+        'API calls made after the test, whether it passed or not, to remove the data it created. Values the steps stored, like {{example}}, can be used; a call naming one the run never set is skipped.',
+        { example: '{{orderId}}' },
+      )}
+      addLabel={t('cleanup.add', 'Add a saved API test as cleanup…')}
+      emptyText={t('cleanup.empty', 'No cleanup. What the test creates stays in the application.')}
+      idPrefix="cl"
+      testId="cleanup-panel"
+    />
+  );
+};
+
+const ApiCallsPanel: React.FC<ApiCallsPanelProps> = ({ calls: preconditions, onChange, title, description, addLabel, emptyText, idPrefix, testId }) => {
   const { data: apiTests = [] } = useQuery<ApiTest[]>({ queryKey: ['/api/api-tests'] });
 
   // Group the saved API tests by module for a readable picker.
@@ -46,7 +94,7 @@ export const PreconditionsPanel: React.FC<PreconditionsPanelProps> = ({ precondi
 
   const add = (apiTestId: string) => {
     const t = apiTests.find((x) => String(x.id) === apiTestId);
-    if (t) onChange([...preconditions, apiTestToPrecondition(t)]);
+    if (t) onChange([...preconditions, apiTestToPrecondition(t, idPrefix)]);
   };
   const remove = (id: string) => onChange(preconditions.filter((p) => p.id !== id));
   const move = (index: number, delta: number) => {
@@ -58,21 +106,19 @@ export const PreconditionsPanel: React.FC<PreconditionsPanelProps> = ({ precondi
   };
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col" data-testid={testId}>
       <CardHeader className="py-3 px-4 border-b">
         <CardTitle className="text-base flex items-center gap-2">
-          Preconditions
+          {title}
           <Badge variant="outline" className="text-xs">{preconditions.length}</Badge>
         </CardTitle>
-        <p className="text-xs text-muted-foreground mt-1">
-          API setup calls run in order (through the app under test) before the UI sequence.
-        </p>
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
       </CardHeader>
       <CardContent className="p-3 flex-1 space-y-3">
         <Select onValueChange={add} value="">
           <SelectTrigger className="h-9">
             <span className="flex items-center gap-2 text-sm text-muted-foreground">
-              <PlusCircle className="h-4 w-4" /> Add a saved API test as setup…
+              <PlusCircle className="h-4 w-4" /> {addLabel}
             </span>
           </SelectTrigger>
           <SelectContent>
@@ -92,7 +138,7 @@ export const PreconditionsPanel: React.FC<PreconditionsPanelProps> = ({ precondi
 
         {preconditions.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-4">
-            No preconditions. The test will run against the current app state.
+            {emptyText}
           </p>
         ) : (
           <ol className="space-y-2">

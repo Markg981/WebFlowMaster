@@ -334,7 +334,9 @@
       "resetIntro": "Senden Sie diesen Link an {{username}}, um ein neues Passwort zu wählen. Er wird nur jetzt angezeigt, funktioniert einmal und ist einen Tag gültig.",
       "resetLinkLabel": "Link zum Zurücksetzen",
       "emailed": "Auch per E-Mail an {{username}} gesendet.",
-      "emailFailed": "Nicht per E-Mail gesendet: {{error}} Senden Sie den Link selbst."
+      "emailFailed": "Nicht per E-Mail gesendet: {{error}} Senden Sie den Link selbst.",
+      "deactivated": "deaktiviert",
+      "deactivatedHint": "Von Ihrem Identitätsanbieter deaktiviert: Anmeldung erst wieder möglich, wenn er die Person reaktiviert."
     },
     "customActions": {
       "title": "Eigene Aktionen",
@@ -2606,7 +2608,8 @@
       "requirement": "Anforderungen",
       "test_management": "Testmanagement",
       "mobile_test": "Mobile Apps",
-      "test_data_set": "Testdaten"
+      "test_data_set": "Testdaten",
+      "scim": "Bereitstellung (SCIM)"
     },
     "actions": {
       "member_role_changed": "Rolle des Mitglieds geändert",
@@ -2700,7 +2703,15 @@
       "test_data_set_created": "Gemeinsamer Datensatz angelegt",
       "test_data_set_updated": "Gemeinsamer Datensatz geändert",
       "test_data_set_deleted": "Gemeinsamer Datensatz gelöscht",
-      "sso_domain_verified": "Single-Sign-on-Domain nachgewiesen"
+      "sso_domain_verified": "Single-Sign-on-Domain nachgewiesen",
+      "scim_token_issued": "SCIM-Token ausgestellt",
+      "scim_token_revoked": "SCIM-Token widerrufen",
+      "member_deactivated": "Mitglied vom Identitätsanbieter deaktiviert",
+      "member_reactivated": "Mitglied vom Identitätsanbieter reaktiviert",
+      "member_renamed": "Mitglied vom Identitätsanbieter umbenannt",
+      "scim_group_created": "Gruppe des Anbieters übertragen",
+      "scim_group_updated": "Gruppe des Anbieters geändert",
+      "scim_group_deleted": "Gruppe des Anbieters entfernt"
     }
   },
   "security": {
@@ -3215,7 +3226,7 @@
     "enabledHint": "Aus behält die Einstellungen, meldet aber niemanden über den Anbieter an.",
     "required": "Verpflichtend machen",
     "requiredHint": "Mitglieder außer Eigentümern können sich nicht mehr mit einem Passwort anmelden, und ihre per Passwort geöffneten Sitzungen enden. Eigentümer behalten ihres, um bei einem Ausfall des Anbieters wieder hineinzukommen. API-Schlüssel sind nicht betroffen.",
-    "removalNote": "Ihr Anbieter entscheidet, wer hineinkommt: Wer hier entfernt wird, kommt bei der nächsten Anmeldung mit einem neuen Konto zurück. Beenden Sie den Zugang beim Anbieter – oder ordnen Sie Gruppen zu und weisen Sie ab, wer in keiner ist.",
+    "removalNote": "Ihr Anbieter entscheidet, wer hineinkommt: Wer hier entfernt wird, kommt bei der nächsten Anmeldung mit einem neuen Konto zurück. Beenden Sie den Zugang beim Anbieter – mit SCIM-Bereitstellung wird die Person hier sofort deaktiviert – oder ordnen Sie Gruppen zu und weisen Sie ab, wer in keiner ist.",
     "save": "Speichern",
     "saved": "Gespeichert.",
     "test": "Anbieter testen",
@@ -3277,6 +3288,20 @@
       "add": "Gruppe zuordnen",
       "require": "Abweisen, wer in keiner dieser Gruppen ist",
       "requireHint": "Wer dann beim Anbieter aus den Gruppen entfernt wird, verliert hier bei der nächsten Anmeldung den Zugang."
+    },
+    "scim": {
+      "title": "Bereitstellung (SCIM)",
+      "on": "an",
+      "description": "Ihr Identitätsanbieter legt Konten hier an, deaktiviert und entfernt sie und überträgt seine Gruppen, sobald sie sich dort ändern – nicht erst bei der nächsten Anmeldung. Geben Sie ihm die Basis-URL und ein Token.",
+      "baseUrl": "SCIM-Basis-URL (Tenant-URL)",
+      "tokenShown": "Token – jetzt kopieren, es wird nicht noch einmal angezeigt",
+      "status": "Token {{prefix}}… ausgestellt {{created}}, zuletzt verwendet {{used}}.",
+      "none": "Kein Token: Die Bereitstellung ist aus.",
+      "replace": "Token ersetzen",
+      "issue": "Token ausstellen",
+      "revoke": "Widerrufen",
+      "revokeConfirm": "Widerrufen: Der Anbieter stellt nichts mehr bereit",
+      "replaceHint": "Ein neues Token beendet das alte sofort: Fügen Sie das neue beim Anbieter ein."
     }
   },
   "manualTests": {
@@ -3859,5 +3884,11 @@
     "typeName": "Geben Sie zur Bestätigung den Namen der Organisation ein: {{name}}",
     "erase": "Endgültig löschen",
     "lastWarning": "{{name}} und alle Konten darin löschen? Das lässt sich nicht rückgängig machen."
+  },
+  "cleanup": {
+    "title": "Aufräumen",
+    "description": "API-Aufrufe nach dem Test, ob bestanden oder nicht, die die erzeugten Daten entfernen. Von Schritten gespeicherte Werte wie {{example}} sind nutzbar; ein Aufruf mit einem nie gesetzten Wert wird übersprungen.",
+    "add": "Gespeicherten API-Test zum Aufräumen hinzufügen…",
+    "empty": "Kein Aufräumen. Was der Test anlegt, bleibt in der Anwendung."
   }
 }

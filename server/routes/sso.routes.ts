@@ -27,6 +27,7 @@ import {
 import loggerPromise from "../logger";
 import { BINDING_COOKIE, REQUEST_TTL_MS, parseIdpMetadata, serviceProviderMetadata, spUrls } from "../sso-saml";
 import { sessionCookieSecure } from "../config";
+import { SCIM_BASE_PATH, issueScimToken, revokeScimToken } from "../scim";
 
 /**
  * Single sign-on (server/sso.ts): an owner's settings for the organization's identity provider,
@@ -56,9 +57,9 @@ export function callbackUrl(req: Request, env: NodeJS.ProcessEnv = process.env):
   return `${publicBase(req, env)}/api/sso/callback`;
 }
 
-/** What the owner gives the provider: the OpenID Connect redirect URI, or the SAML service provider's addresses. */
+/** What the owner gives the provider: the OpenID Connect redirect URI, the SAML service provider's addresses, the SCIM base URL. */
 function providerFacing(req: Request) {
-  return { callbackUrl: callbackUrl(req), saml: spUrls(publicBase(req), getTenantOrgId()!) };
+  return { callbackUrl: callbackUrl(req), saml: spUrls(publicBase(req), getTenantOrgId()!), scim: { baseUrl: `${publicBase(req)}${SCIM_BASE_PATH}` } };
 }
 
 const settingsSchema = z.object({
@@ -119,6 +120,20 @@ router.post("/api/organization/sso/domains/:domain/verify", requireRole("owner")
   const outcome = await verifySsoDomain(getTenantOrgId()!, auditActor(req), String(req.params.domain));
   if (!outcome) return res.status(404).json({ error: "This organization does not sign in that domain." });
   res.json(outcome);
+});
+
+// POST /api/organization/sso/scim-token — a new token for the provider's SCIM client (server/scim.ts),
+// replacing the one it had. Shown once.
+router.post("/api/organization/sso/scim-token", requireRole("owner"), sessionOnly, async (req, res) => {
+  const issued = await issueScimToken(getTenantOrgId()!, auditActor(req));
+  if (!issued) return res.status(404).json({ error: "Set single sign-on up first: provisioned accounts sign in through it." });
+  res.status(201).json({ token: issued.token, scimToken: issued.status, baseUrl: `${publicBase(req)}${SCIM_BASE_PATH}` });
+});
+
+// DELETE /api/organization/sso/scim-token — the provider's next SCIM request is refused.
+router.delete("/api/organization/sso/scim-token", requireRole("owner"), sessionOnly, async (req, res) => {
+  if (!(await revokeScimToken(getTenantOrgId()!, auditActor(req)))) return res.status(404).json({ error: "No SCIM token has been issued." });
+  res.status(204).end();
 });
 
 // POST /api/organization/sso/test — does the saved provider answer?

@@ -334,7 +334,9 @@
       "resetIntro": "Envoyez ce lien à {{username}} pour choisir un nouveau mot de passe. Il n’est affiché que maintenant, fonctionne une fois et reste valable un jour.",
       "resetLinkLabel": "Lien de réinitialisation",
       "emailed": "Également envoyé par e-mail à {{username}}.",
-      "emailFailed": "Non envoyé par e-mail : {{error}} Envoyez le lien vous-même."
+      "emailFailed": "Non envoyé par e-mail : {{error}} Envoyez le lien vous-même.",
+      "deactivated": "désactivé",
+      "deactivatedHint": "Désactivé par votre fournisseur d'identité : connexion impossible tant qu'il ne le réactive pas."
     },
     "customActions": {
       "title": "Actions personnalisées",
@@ -2606,7 +2608,8 @@
       "requirement": "Exigences",
       "test_management": "Gestion des tests",
       "mobile_test": "Applications mobiles",
-      "test_data_set": "Données de test"
+      "test_data_set": "Données de test",
+      "scim": "Provisionnement (SCIM)"
     },
     "actions": {
       "member_role_changed": "Rôle du membre modifié",
@@ -2700,7 +2703,15 @@
       "test_data_set_created": "Jeu de données partagé créé",
       "test_data_set_updated": "Jeu de données partagé modifié",
       "test_data_set_deleted": "Jeu de données partagé supprimé",
-      "sso_domain_verified": "Domaine de l'authentification unique vérifié"
+      "sso_domain_verified": "Domaine de l'authentification unique vérifié",
+      "scim_token_issued": "Jeton SCIM émis",
+      "scim_token_revoked": "Jeton SCIM révoqué",
+      "member_deactivated": "Membre désactivé par le fournisseur d'identité",
+      "member_reactivated": "Membre réactivé par le fournisseur d'identité",
+      "member_renamed": "Membre renommé par le fournisseur d'identité",
+      "scim_group_created": "Groupe du fournisseur transmis",
+      "scim_group_updated": "Groupe du fournisseur modifié",
+      "scim_group_deleted": "Groupe du fournisseur supprimé"
     }
   },
   "security": {
@@ -3215,7 +3226,7 @@
     "enabledHint": "Désactivée, les paramètres sont conservés et personne ne se connecte par le fournisseur.",
     "required": "La rendre obligatoire",
     "requiredHint": "Les membres autres que les propriétaires ne peuvent plus se connecter avec un mot de passe, et leurs sessions ouvertes par mot de passe se terminent. Les propriétaires gardent le leur, pour revenir si le fournisseur tombe en panne. Les clés API ne sont pas concernées.",
-    "removalNote": "C'est votre fournisseur qui décide qui entre : une personne retirée ici revient avec un nouveau compte à sa prochaine connexion. Mettez fin à son accès chez le fournisseur, ou associez des groupes et refusez qui n'est dans aucun.",
+    "removalNote": "C'est votre fournisseur qui décide qui entre : une personne retirée ici revient avec un nouveau compte à sa prochaine connexion. Mettez fin à son accès chez le fournisseur (avec le provisionnement SCIM, elle est désactivée ici immédiatement), ou associez des groupes et refusez qui n'est dans aucun.",
     "save": "Enregistrer",
     "saved": "Enregistré.",
     "test": "Tester le fournisseur",
@@ -3277,6 +3288,20 @@
       "add": "Associer un groupe",
       "require": "Refuser qui n'est dans aucun de ces groupes",
       "requireHint": "Retirer alors quelqu'un des groupes chez le fournisseur met fin à son accès ici à sa prochaine connexion."
+    },
+    "scim": {
+      "title": "Provisionnement (SCIM)",
+      "on": "actif",
+      "description": "Votre fournisseur d'identité crée, désactive et supprime les comptes ici, et transmet ses groupes, dès qu'ils changent chez lui — pas à la prochaine connexion. Donnez-lui l'URL de base et un jeton.",
+      "baseUrl": "URL de base SCIM (URL du tenant)",
+      "tokenShown": "Jeton — copiez-le maintenant, il ne sera plus affiché",
+      "status": "Jeton {{prefix}}… émis le {{created}}, dernière utilisation {{used}}.",
+      "none": "Aucun jeton : le provisionnement est désactivé.",
+      "replace": "Remplacer le jeton",
+      "issue": "Émettre un jeton",
+      "revoke": "Révoquer",
+      "revokeConfirm": "Révoquer : le fournisseur cesse le provisionnement",
+      "replaceHint": "Remplacer le jeton met fin à l'ancien immédiatement : collez le nouveau chez le fournisseur."
     }
   },
   "manualTests": {
@@ -3859,5 +3884,11 @@
     "typeName": "Saisissez le nom de l'organisation, {{name}}, pour confirmer",
     "erase": "Effacer définitivement",
     "lastWarning": "Effacer {{name}} et tous ses comptes ? C'est irréversible."
+  },
+  "cleanup": {
+    "title": "Nettoyage",
+    "description": "Appels API effectués après le test, réussi ou non, pour supprimer les données qu'il a créées. Les valeurs enregistrées par les étapes, comme {{example}}, sont utilisables ; un appel qui en nomme une jamais définie est ignoré.",
+    "add": "Ajouter un test API enregistré comme nettoyage…",
+    "empty": "Aucun nettoyage. Ce que le test crée reste dans l'application."
   }
 }

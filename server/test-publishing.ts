@@ -248,6 +248,7 @@ export interface RunnableContent {
   sequence: unknown;
   elements: unknown;
   preconditions: unknown;
+  cleanups: unknown;
   dataset: unknown;
 }
 
@@ -272,6 +273,7 @@ export async function publishedContentOf(tx: TenantTx, testIds: number[]): Promi
       sequence: version.sequence,
       elements: version.elements,
       preconditions: version.preconditions,
+      cleanups: version.cleanups,
       dataset: version.dataset,
     });
   }

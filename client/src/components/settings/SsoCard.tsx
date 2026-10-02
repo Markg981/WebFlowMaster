@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Copy, KeyRound, Loader2 } from 'lucide-react';
 import { DomainVerification, RoleMappingEditor, type DomainStatus, type RoleMappingRow } from './SsoRolesAndDomains';
+import { ScimProvisioning, type ScimTokenStatus } from './ScimProvisioning';
 
 /**
  * Single sign-on with the organization's identity provider (server/sso.ts). Owners only.
@@ -40,6 +41,7 @@ export interface SsoSettings {
   groupAttribute?: string;
   roleMappings?: RoleMappingRow[];
   requireGroup?: boolean;
+  scimToken?: ScimTokenStatus | null;
   updatedAt: string;
 }
 
@@ -47,6 +49,7 @@ interface SsoResponse {
   settings: SsoSettings | null;
   callbackUrl: string;
   saml: { entityId: string; acsUrl: string; metadataUrl: string };
+  scim?: { baseUrl: string };
 }
 
 async function send(method: string, url: string, body?: unknown) {
@@ -340,6 +343,14 @@ export default function SsoCard() {
               onChange={(next) => setForm((current) => ({ ...current, groupAttribute: next.attribute, roleMappings: next.mappings, requireGroup: next.requireGroup }))}
             />
 
+            {saved && data.scim && (
+              <ScimProvisioning
+                baseUrl={data.scim.baseUrl}
+                token={saved.scimToken ?? null}
+                onChanged={() => queryClient.invalidateQueries({ queryKey: ['organization-sso'] })}
+              />
+            )}
+
             <div className="flex items-start justify-between gap-4 border-t pt-4">
               <div>
                 <Label htmlFor="sso-enabled" className="text-sm font-medium">{t('sso.enabled', 'Offer single sign-on')}</Label>
@@ -365,7 +376,7 @@ export default function SsoCard() {
             <p className="text-xs text-muted-foreground">
               {t(
                 'sso.removalNote',
-                'Your provider decides who gets in: someone removed here comes back with a new account at their next sign-in. End their access at the provider — or map groups and refuse whoever is in none.',
+                'Your provider decides who gets in: someone removed here comes back with a new account at their next sign-in. End their access at the provider — with SCIM provisioning, that deactivates them here at once — or map groups and refuse whoever is in none.',
               )}
             </p>
 

@@ -22,9 +22,9 @@ import DebugPanel, { useDebugSession } from '@/components/visual-builder/DebugPa
 import { DEBUG_ENDED, type DebugStepPatch } from '@shared/debug-session';
 import { TestStep as DragDropTestStep } from "@/components/drag-drop-provider";
 import SaveTestModal from "@/components/SaveTestModal"; // Import the modal
-import { PreconditionsPanel } from "@/components/PreconditionsPanel";
+import { CleanupPanel, PreconditionsPanel } from "@/components/PreconditionsPanel";
 import { DatasetPanel, type DatasetRow, type SharedSetOption } from "@/components/DatasetPanel";
-import type { Precondition } from "@shared/schema";
+import type { Cleanup, Precondition } from "@shared/schema";
 import { ACTION_I18N, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from "@shared/recording";
 import { argumentsHint, customActionStepId, type CustomActionParameter } from "@shared/custom-actions";
 import SaveStepGroupModal from "@/components/SaveStepGroupModal";
@@ -122,6 +122,8 @@ export default function DashboardPage() {
   const [detectedElements, setDetectedElements] = useState<DetectedElement[]>([]);
   const [testSequence, setTestSequence] = useState<DragDropTestStep[]>([]);
   const [preconditions, setPreconditions] = useState<Precondition[]>([]);
+  // API calls after the test that remove what it created (server/cleanup-runner.ts).
+  const [cleanups, setCleanups] = useState<Cleanup[]>([]);
   // Rows this test runs over, one run each. Empty means a single run, which is what every
   // test did before datasets existed.
   const [dataset, setDataset] = useState<DatasetRow[]>([]);
@@ -562,7 +564,7 @@ export default function DashboardPage() {
   });
 
   const saveTestMutation = useMutation({
-    mutationFn: async (payload: { name: string; url: string; sequence: DragDropTestStep[]; elements: DetectedElement[]; status: string; projectId?: number; preconditions?: Precondition[]; dataset?: DatasetRow[] | null }) => {
+    mutationFn: async (payload: { name: string; url: string; sequence: DragDropTestStep[]; elements: DetectedElement[]; status: string; projectId?: number; preconditions?: Precondition[]; cleanups?: Cleanup[]; dataset?: DatasetRow[] | null }) => {
       // Saving under a name that already exists used to quietly create a second test, so
       // refining a recording left a pile of rows with one name between them. The server
       // answers 409 with the id of the one already there; the choice of what to do about it
@@ -656,6 +658,7 @@ export default function DashboardPage() {
       sequence: testSequence,
       elements: detectedElements,
       preconditions,
+      cleanups,
       // Null rather than an empty array: the runner reads an empty one as "no dataset"
       // anyway, and storing one would suggest a dataset exists where none does.
       dataset: dataset.length > 0 ? dataset : null,
@@ -734,7 +737,7 @@ export default function DashboardPage() {
   });
 
   const executeDirectTestMutation = useMutation({
-    mutationFn: async (payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string, preconditions?: Precondition[], environmentId?: number, dataset?: DatasetRow[] }) => {
+    mutationFn: async (payload: { url: string, sequence: DragDropTestStep[], elements: DetectedElement[], name?: string, preconditions?: Precondition[], cleanups?: Cleanup[], environmentId?: number, dataset?: DatasetRow[] }) => {
       const res = await apiRequest("POST", "/api/execute-test-direct", payload);
       // The backend for /api/execute-test-direct should directly return { success: boolean; steps?: StepResult[]; error?: string; duration?: number }
       const result = await res.json();
@@ -940,6 +943,7 @@ export default function DashboardPage() {
       elements: detectedElements,
       // Sent so the preview runs the same setup calls as a scheduled run would.
       preconditions,
+      cleanups,
       name: testName || t('dashboardPageNew.toasts.adhocTestName', { url: currentUrl || t('dashboardPageNew.toasts.untitled') }),
       // Without this the preview resolves against the process defaults only, and would
       // disagree with a scheduled run of the very same test.
@@ -1399,6 +1403,7 @@ export default function DashboardPage() {
       </div>
       <div className="px-4 pb-4 space-y-4">
         <PreconditionsPanel preconditions={preconditions} onChange={setPreconditions} />
+        <CleanupPanel cleanups={cleanups} onChange={setCleanups} />
         {/* Below the preconditions, because both describe the run rather than the steps. */}
         <DatasetPanel
           dataset={dataset}

@@ -219,8 +219,11 @@ sending it to Google is acceptable; everything else works without it.
 
 Stated so a review can weigh them, not discovered later:
 
-- **Single sign-on** has no SCIM: roles from the provider's groups, and the refusal of people in
-  none of them, apply at sign-in, so an open session keeps its role until the next one. For SAML it
+- **Single sign-on** without SCIM applies roles from the provider's groups, and the refusal of
+  people in none of them, at sign-in, so an open session keeps its role until the next one; with
+  SCIM provisioning, deactivation and group changes apply at once, and the SCIM token, held by the
+  provider, can create, deactivate and remove the organization's members (never its last active
+  owner). For SAML it
   accepts only signed, unencrypted assertions from sign-ins it started (no IdP-initiated sign-in,
   no single logout). Without a required group, a person removed here but not at the provider gets
   a new account at their next sign-in, so access is ended at the provider. E-mail domains are
@@ -230,7 +233,7 @@ Stated so a review can weigh them, not discovered later:
   adds length 12, character mix, no username and no common passwords. Without SMTP, invitation and
   reset links are handed over by the owner.
 - **Rate limits fall back to per-process counting** while Redis does not answer: the counts
-  (sign-in, API keys, webhooks, SSO, log ingestion) are kept in Redis and shared by every web
+  (sign-in, API keys, webhooks, SSO, SCIM, log ingestion) are kept in Redis and shared by every web
   process, but a request is never held waiting for Redis, so during an outage each process counts
   on its own until it is back.
 - **Styles may be inline** under the Content Security Policy, which the interface components
