@@ -52,6 +52,8 @@ harm.
 | `ORG_MAX_QUEUED_RUNS` | web | `100` | Runs of one organization waiting at once. Past it, a new run is refused with `429`. |
 | `RUN_DEFERRAL_MS` | worker | `10000` | How long a run held back by its organization's limit waits before it is looked at again, when no run of the organization ending has started it first. |
 | `RUN_HEARTBEAT_INTERVAL_MS` | both | `15000` | How often a worker confirms that a run is still going. |
+| `WORK_ITEM_HEARTBEAT_MS` | worker | `15000` | In a run shared by several workers, how often a worker confirms the tests it holds. |
+| `STALE_CLAIM_MS` | worker | `120000` | In a run shared by several workers, how long a held test may go without a heartbeat before another worker takes it back. |
 | `RUN_STALE_AFTER_MS` | web | the larger of 8 heartbeats and `120000` | A run whose heartbeat is quiet this long ends as *error: worker lost*. |
 | `RUN_MAX_DURATION_MS` | both | `10800000` (3 hours) | Past this a run stops starting tests and ends as *timed out*. The web process enforces it too, five minutes later, in case the worker is stuck. |
 | `SCHEDULER_BACKEND` | web | `cron` | `cron`: schedules run in the web process; fine for one web process. `bullmq`: schedules live in Redis, run once however many web processes there are, and survive restarts. Requires a worker. |

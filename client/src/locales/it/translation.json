@@ -3174,7 +3174,8 @@
       "webhookUrlInvalid": "L'URL per le notifiche deve iniziare con http:// o https://.",
       "parallelInvalid": "\"Esegui al massimo\" deve essere un numero intero fra 1 e 16.",
       "localesInvalid": "Non è un codice di lingua: {{codes}}. Usate codici come it, it-IT o en-US.",
-      "localesTooMany": "Al massimo {{max}} lingue."
+      "localesTooMany": "Al massimo {{max}} lingue.",
+      "shardsInvalid": "I worker devono essere un numero intero tra 1 e 8."
     },
     "browsers": {
       "label": "Browser",
@@ -3219,6 +3220,10 @@
       "label": "Pubblica i risultati su",
       "none": "Da nessuna parte — i risultati restano nel report",
       "help": "Ogni esecuzione conclusa diventa una run di TestRail, una Test Execution di Xray o un test cycle di Zephyr, con il risultato di ogni test sotto il suo caso. I test senza caso sono esclusi."
+    },
+    "shards": {
+      "label": "Worker che si dividono un'esecuzione",
+      "help": "Divide un'esecuzione su un massimo di questi runner, ciascuno con il numero indicato sopra di test in contemporanea. I test vengono assegnati uno alla volta al runner libero e il report resta un'unica esecuzione. 1 mantiene l'esecuzione su un solo runner."
     }
   },
   "network": {

@@ -27,6 +27,7 @@ keep of each run, and whom to tell.
 | **Browsers** | Every test runs once per browser listed, each on the desktop or as a phone or tablet ([devices](#mobile-devices)). None listed: the browser from your own settings. |
 | **Languages** | Language codes such as `it-IT, en-US` (at most 10). Every test runs once per language on each browser; see [Testing in several languages](#languages). Empty: the browser's own language. |
 | **Run at most (tests at once)** | 1 to 16 browser sessions at the same time. 1 runs the plan one test at a time, browser by browser. |
+| **Workers sharing a run** | 1 to 8 runners for one run, each running the number above at once; see [One run on several runners](#shards). 1 keeps the run on one runner. |
 | **Keep a recording of the run** | A **video** and a Playwright **trace** of each test — never, when the test fails, or always — and the **network** traffic as a HAR file. They answer what a screenshot cannot, and use disk on every run. |
 | **Visual testing** | Compares each step's screenshot with its baseline; see [Visual testing](./results#visual-testing). |
 | **Run on** | This server's runners, a pool of [local agents](../LOCAL_AGENT) inside your own network, or a [browser grid](#browser-grids). |
@@ -36,6 +37,23 @@ keep of each run, and whom to tell.
 
 **Suites** on the row adds [suites](./organizing#suites): they run after the plan's own tests, in the
 order ticked, and a test in more than one runs once.
+
+### One run on several runners {#shards}
+
+A long plan finishes sooner when several runners share it. With **Workers sharing a run** above 1,
+the runner that takes the run writes its work down — one piece per test on each browser and language
+— and asks the queue for helpers. Every runner that joins, the first included, takes the next piece
+nobody holds, runs it, and takes another, so a slow test never holds up a fixed batch.
+
+- The report is one run, as always: one set of results, one verdict, one notification.
+- A plan whose API tests capture values for later requests keeps them together: each browser and
+  language is one piece, run in order on one runner.
+- A runner that stops while it holds a piece (a crash, a lost machine) stops answering; after two
+  minutes another runner takes that piece back and runs it.
+- A stop policy (for example *stop the run* on a failure) stops every runner: tests not started yet
+  are recorded as skipped, with the reason.
+- Helpers are ordinary jobs on the queue: they take free runners, and only help if there are any.
+  With no free runner the first one runs every test itself, and the log says so.
 
 ### Browser grids {#browser-grids}
 

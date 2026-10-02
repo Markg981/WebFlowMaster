@@ -3055,7 +3055,8 @@
       "webhookUrlInvalid": "Die Benachrichtigungs-URL muss mit http:// oder https:// beginnen.",
       "parallelInvalid": "„Höchstens ausführen“ muss eine ganze Zahl zwischen 1 und 16 sein.",
       "localesInvalid": "Kein Sprachcode: {{codes}}. Verwenden Sie Codes wie it, it-IT oder en-US.",
-      "localesTooMany": "Höchstens {{max}} Sprachen."
+      "localesTooMany": "Höchstens {{max}} Sprachen.",
+      "shardsInvalid": "Worker muss eine ganze Zahl zwischen 1 und 8 sein."
     },
     "browsers": {
       "label": "Browser",
@@ -3100,6 +3101,10 @@
       "label": "Ergebnisse veröffentlichen in",
       "none": "Nirgendwo — die Ergebnisse bleiben im Bericht",
       "help": "Jeder abgeschlossene Lauf wird zu einem TestRail-Run, einer Xray Test Execution oder einem Zephyr-Testzyklus, mit dem Ergebnis jedes Tests unter seinem Fall. Tests ohne Fall werden ausgelassen."
+    },
+    "shards": {
+      "label": "Worker pro Ausführung",
+      "help": "Verteilt eine Ausführung auf bis zu so viele Runner, die jeweils die obige Anzahl gleichzeitig ausführen. Tests werden einzeln an den jeweils freien Runner vergeben; der Bericht bleibt eine Ausführung. 1 lässt die Ausführung auf einem Runner."
     }
   },
   "network": {

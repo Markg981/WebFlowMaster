@@ -28,6 +28,7 @@ cosa conservare di ogni run e chi avvisare.
 | **Browser** | Ogni test gira una volta per ogni browser elencato, ciascuno sul desktop o come telefono o tablet ([dispositivi](#dispositivi-mobili)). Nessuno elencato: il browser delle vostre impostazioni. |
 | **Lingue** | Codici di lingua come `it-IT, en-US` (al massimo 10). Ogni test gira una volta per lingua su ogni browser; vedi [Testare in più lingue](#lingue). Vuoto: la lingua predefinita del browser. |
 | **Esegui al massimo (test contemporanei)** | Da 1 a 16 sessioni di browser contemporanee. Con 1 il piano esegue un test alla volta, browser per browser. |
+| **Worker che si dividono un'esecuzione** | Da 1 a 8 runner per un'esecuzione, ciascuno con il numero indicato sopra di test contemporanei; vedi [Un'esecuzione su più runner](#shard). Con 1 l'esecuzione resta su un solo runner. |
 | **Conserva una registrazione del run** | Un **video** e una **trace** di Playwright di ogni test — mai, quando il test fallisce o sempre — e il traffico di **rete** come file HAR. Rispondono a ciò che uno screenshot non dice, e occupano disco a ogni run. |
 | **Test visivi** | Confronta lo screenshot di ogni step con la sua baseline; vedi [Test visivi](./results#test-visivi). |
 | **Esegui su** | I runner di questo server, un pool di [agenti locali](../LOCAL_AGENT) dentro la vostra rete, o una [griglia di browser](#griglie-di-browser). |
@@ -37,6 +38,24 @@ cosa conservare di ogni run e chi avvisare.
 
 **Suite** sulla riga aggiunge [suite](./organizing#suite): girano dopo i test del piano,
 nell'ordine in cui sono spuntate, e un test presente in più suite gira una volta sola.
+
+### Un'esecuzione su più runner {#shard}
+
+Un piano lungo finisce prima se più runner se lo dividono. Con **Worker che si dividono un'esecuzione**
+maggiore di 1, il runner che prende l'esecuzione ne scrive il lavoro — un pezzo per ogni test su ogni
+browser e lingua — e chiede aiuto alla coda. Ogni runner che si unisce, il primo compreso, prende il
+pezzo successivo non ancora assegnato, lo esegue e ne prende un altro: un test lento non blocca un
+gruppo fisso.
+
+- Il report resta un'unica esecuzione: un insieme di risultati, un esito, una notifica.
+- Un piano i cui test API catturano valori per le richieste successive li tiene insieme: ogni browser
+  e lingua è un unico pezzo, eseguito in ordine su un solo runner.
+- Un runner che si ferma mentre ha un pezzo (un crash, una macchina persa) smette di rispondere; dopo
+  due minuti un altro runner riprende quel pezzo e lo esegue.
+- Una regola di arresto (per esempio *ferma l'esecuzione* a un fallimento) ferma tutti i runner: i test
+  non ancora iniziati vengono registrati come saltati, con il motivo.
+- Gli aiutanti sono normali job in coda: usano i runner liberi, e aiutano solo se ce ne sono. Senza
+  runner liberi il primo esegue tutti i test da solo, e il log lo dice.
 
 ### Griglie di browser {#griglie-di-browser}
 

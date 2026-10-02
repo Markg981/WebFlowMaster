@@ -63,6 +63,22 @@ import { takeExecution, transitionExecution } from './execution-state';
 import { artifactStore } from './artifact-store';
 import { watchRun } from './run-watch';
 import {
+  claimWorkItem,
+  finishWorkItem,
+  heartbeatWorkItems,
+  openWorkItems,
+  recordStopReason,
+  shardCount,
+  shardDispatcher,
+  sharedStopReason,
+  workItemResults,
+  workerName,
+  writeWorkItems,
+  WORK_ITEM_HEARTBEAT_MS,
+  WORK_POLL_MS,
+  type WorkUnit,
+} from './run-shards';
+import {
   describePolicies,
   runPoliciesFrom,
   stopReasonAfter,
@@ -530,15 +546,60 @@ export async function processTestPlanJob(
   );
 }
 
+/**
+ * A helper's share of a run on several workers (server/run-shards.ts): the job the coordinator
+ * queued as `execute-shard`. Same boundary as processTestPlanJob: one privileged lookup of the
+ * organization, everything else under it.
+ */
+export async function processShardJob(
+  planId: string,
+  executionId: string,
+  userId: number,
+  shard: number,
+  jobOptions: { updateBaselines?: boolean } = {},
+): Promise<any> {
+  const [execution] = await privilegedDb
+    .select({ organizationId: testPlanExecutionsTable.organizationId })
+    .from(testPlanExecutionsTable)
+    .where(eq(testPlanExecutionsTable.id, executionId))
+    .limit(1);
+  if (!execution) return { skipped: true, reason: 'Execution not found.', testPlanRunId: executionId };
+  return runWithTenant(execution.organizationId, () =>
+    runTestPlanJobInTenant(planId, executionId, userId, jobOptions, { shard }),
+  );
+}
+
 async function runTestPlanJobInTenant(
   planId: string,
   testPlanRunId: string,
   userId: number,
   jobOptions: { updateBaselines?: boolean } = {},
+  /** Set for a helper sharing a run another worker took (server/run-shards.ts). */
+  helper?: { shard: number },
 ): Promise<any> {
   const resolvedLogger = await loggerPromise;
-  const wsEmitter = getWsEmitter();
-  const overallStartTime = Date.now();
+  // A helper repeats the coordinator's setup; its informational lines would only say everything twice.
+  let quiet = !!helper;
+  const sharedEmitter = getWsEmitter();
+  const wsEmitter: typeof sharedEmitter = helper
+    ? { ...sharedEmitter, emitExecutionLog: (id, entry) => { if (!(quiet && entry.level === 'info')) sharedEmitter.emitExecutionLog(id, entry); } }
+    : sharedEmitter;
+  let overallStartTime = Date.now();
+  if (helper) {
+    // A helper does not take the run: it joins one that is running, and it is the coordinator's
+    // to end. Its time limit counts from when the run started, not from when the helper did.
+    const [row] = await withTenantTransaction((tx) =>
+      tx.select({ status: testPlanExecutionsTable.status, startedAt: testPlanExecutionsTable.startedAt })
+        .from(testPlanExecutionsTable)
+        .where(eq(testPlanExecutionsTable.id, testPlanRunId))
+        .limit(1),
+    );
+    if (row?.status !== 'running') {
+      return { skipped: true, reason: `Execution is ${row?.status ?? 'missing'}, not running.`, testPlanRunId };
+    }
+    overallStartTime = row.startedAt?.getTime() ?? overallStartTime;
+    return joinRun();
+  }
 
   const startLog: ExecutionLogEntry = {
     level: 'info',
@@ -572,7 +633,9 @@ async function runTestPlanJobInTenant(
   }
   resolvedLogger.info(startLog);
   wsEmitter.emitExecutionLog(testPlanRunId, startLog);
+  return joinRun();
 
+  async function joinRun(): Promise<any> {
   // From here on the run is this worker's: it keeps a heartbeat on it, hears a cancellation, and
   // stops it at its time limit — see server/run-watch.ts. Stopped however the run ends.
   const watch = watchRun(testPlanRunId, {
@@ -602,6 +665,8 @@ async function runTestPlanJobInTenant(
     await fs.ensureDir(baseResultsDir);
   } catch (dirError: any) {
     resolvedLogger.error({ message: 'Failed to create base results directory', baseResultsDir, error: dirError.message });
+    // A helper that cannot write leaves the run to the others.
+    if (helper) return { error: `Failed to create results directory: ${dirError.message}`, testPlanRunId };
     await transitionExecution(testPlanRunId, 'error', {
       failureCode: 'results_directory_unavailable',
       failureMessage: `Failed to create results directory: ${dirError.message}`,
@@ -749,6 +814,20 @@ async function runTestPlanJobInTenant(
    * leaves the application in a state nobody asked for.
    */
   let stopReason: string | null = null;
+  // Set below, once it is known whether workers share this run.
+  let sharedRun = false;
+  const stopRun = async (reason: string) => {
+    if (stopReason) return;
+    stopReason = reason;
+    wsEmitter.emitExecutionLog(testPlanRunId, {
+      level: 'error',
+      source: 'system',
+      message: `Stopping the run: ${reason.replace(/^Not run: /, '')}`,
+      timestamp: new Date().toISOString(),
+    });
+    // The other workers sharing it read it before each item they take.
+    if (sharedRun) await recordStopReason(testPlanRunId, reason).catch(() => undefined);
+  };
 
   const visualTesting = snapshot.visualTesting.enabled;
   const updateBaselines = snapshot.visualTesting.updateBaselines;
@@ -959,7 +1038,8 @@ async function runTestPlanJobInTenant(
    */
   const browserStartupFailures: string[] = [];
   const usablePasses: Array<BrowserChoice | undefined> = [];
-  for (const pass of runPasses) {
+  // A helper runs the browsers the coordinator resolved, as its work items say.
+  for (const pass of helper ? [] : runPasses) {
     if (!pass) {
       usablePasses.push(pass);
       continue;
@@ -1057,7 +1137,12 @@ async function runTestPlanJobInTenant(
    * running the same flow each create their own records, and one pass reading the id the
    * other captured is how a parallel run quietly tests the wrong thing.
    */
-  const runUnit = async ({ browserChoice, locale, link }: RunUnit, captured: Record<string, string>): Promise<void> => {
+  const runUnit = async (
+    { browserChoice, locale, link }: RunUnit,
+    captured: Record<string, string>,
+    // Where its entry of the legacy results list goes: a shared run keeps them with each work item.
+    sink: IndividualTestRunResult[] = legacyIndividualTestResultsForJsonBlob,
+  ): Promise<void> => {
     let testObjectDefinition: Test | ApiTest | undefined;
     const testTypeForRun: 'ui' | 'api' | 'mobile' | undefined = link.testType as ('ui' | 'api' | 'mobile');
     const mobile = link.testType === 'mobile' && link.mobileTestId ? mobileTestsMap.get(link.mobileTestId) : undefined;
@@ -1172,15 +1257,7 @@ async function runTestPlanJobInTenant(
           { testName, status: outcome.status, cause: outcome.steps.some((step) => step.status === 'failed') ? 'step' : 'other' },
           policies,
         );
-        if (reasonToStop && !stopReason) {
-          stopReason = reasonToStop;
-          wsEmitter.emitExecutionLog(testPlanRunId, {
-            level: 'error',
-            source: 'system',
-            message: `Stopping the run: ${reasonToStop.replace(/^Not run: /, '')}`,
-            timestamp: new Date().toISOString(),
-          });
-        }
+        if (reasonToStop) await stopRun(reasonToStop);
         wsEmitter.emitExecutionLog(testPlanRunId, {
           level: reportStatus === 'Passed' ? 'info' : 'error',
           source: 'system',
@@ -1254,7 +1331,7 @@ async function runTestPlanJobInTenant(
         });
         resultFromRunTest = await attemptOnce();
       }
-      legacyIndividualTestResultsForJsonBlob.push(resultFromRunTest); // Keep populating the old JSON blob for now
+      sink.push(resultFromRunTest); // Keep populating the old JSON blob for now
 
       // Once its last attempt is over, the test's evidence goes where the report is served
       // from. Per test rather than at the end, so a report opened while the run goes on shows
@@ -1276,15 +1353,7 @@ async function runTestPlanJobInTenant(
         },
         policies,
       );
-      if (reasonToStop && !stopReason) {
-        stopReason = reasonToStop;
-        wsEmitter.emitExecutionLog(testPlanRunId, {
-          level: 'error',
-          source: 'system',
-          message: `Stopping the run: ${reasonToStop.replace(/^Not run: /, '')}`,
-          timestamp: new Date().toISOString(),
-        });
-      }
+      if (reasonToStop) await stopRun(reasonToStop);
 
       if (resultFromRunTest.extracted) {
         Object.assign(captured, resultFromRunTest.extracted);
@@ -1359,7 +1428,7 @@ async function runTestPlanJobInTenant(
       resolvedLogger.warn({ message: `Test object not found or type mismatch for link`, testType: link.testType, testId: link.testId ?? link.apiTestId });
       reportStatus = 'Error';
       failureReason = 'Test definition not found or type mismatch during plan execution.';
-      legacyIndividualTestResultsForJsonBlob.push({
+      sink.push({
         testId: link.testId || link.apiTestId || -1,
         testType: (link.testType as 'ui' | 'api' || 'unknown') as 'ui' | 'api',
         name: `Unknown Test (ID: ${link.testId || link.apiTestId})`,
@@ -1479,13 +1548,13 @@ async function runTestPlanJobInTenant(
 
   /** Surfaced like a browser that would not start: something ran, and it was not the test. */
   const unitFailures: string[] = [];
-  const recordSettled = (settled: PromiseSettledResult<void>[]) => {
+  const recordSettled = (settled: PromiseSettledResult<void>[], into: string[] = unitFailures) => {
     for (const outcome of settled) {
       if (outcome.status !== 'rejected') continue;
       const message = `A test in this run could not be executed: ${
         (outcome.reason as any)?.message ?? String(outcome.reason)
       }`;
-      unitFailures.push(message);
+      into.push(message);
       const entry: ExecutionLogEntry = {
         level: 'error',
         source: 'system',
@@ -1497,8 +1566,82 @@ async function runTestPlanJobInTenant(
     }
   };
 
+  const shards = shardCount(snapshot.shards);
+  sharedRun = !!helper || shards > 1;
+  quiet = false;
+
+  /**
+   * Shares the run's work with other workers (server/run-shards.ts): the coordinator writes it
+   * down and asks for helpers; then everyone, the coordinator included, takes items until none
+   * are left. The coordinator also waits for the items others hold, and takes back any whose
+   * worker stopped answering.
+   */
+  const runShared = async () => {
+    const worker = workerName();
+    if (!helper) {
+      const spec = (unit: RunUnit) => ({ link: selectedTestsLinks.indexOf(unit.link), browserChoice: unit.browserChoice, locale: unit.locale });
+      const items: Array<{ key: string; unit: WorkUnit }> = laneIsChained
+        ? lanes.map((lane, i) => ({ key: `lane-${i}`, unit: { units: lane.units.map(spec), captured: lane.captured } }))
+        : lanes.flatMap((lane, i) => lane.units.map((unit, j) => ({ key: `${i}-${j}`, unit: { units: [spec(unit)], captured: lane.captured } })));
+      await writeWorkItems(testPlanRunId, executionRecord[0].organizationId, items);
+      const dispatch = shardDispatcher();
+      const helpers = Math.min(shards - 1, Math.max(0, items.length - 1));
+      let asked = 0;
+      for (let shard = 1; dispatch && shard <= helpers; shard++) {
+        await dispatch({ executionId: testPlanRunId, planId, userId, shard, updateBaselines })
+          .then(() => asked++)
+          .catch((error: any) => resolvedLogger.warn({ message: 'Could not queue a helper for a shared run', testPlanRunId, shard, error: error?.message }));
+      }
+      wsEmitter.emitExecutionLog(testPlanRunId, {
+        level: asked > 0 || helpers === 0 ? 'info' : 'warn',
+        source: 'system',
+        message: asked > 0
+          ? `Sharing this run with up to ${asked} more worker(s): ${items.length} piece(s) of work, taken one at a time by whichever worker is free.`
+          : helpers === 0
+            ? 'This run has one piece of work; it runs on this worker.'
+            : `This plan asks for ${shards} workers, but no other could be asked: this worker runs every test.`,
+        timestamp: new Date().toISOString(),
+        metadata: { shards, helpers: asked, items: items.length },
+      });
+    }
+    const beat = setInterval(() => heartbeatWorkItems(testPlanRunId, worker).catch(() => undefined), WORK_ITEM_HEARTBEAT_MS);
+    try {
+      const takeItems = async () => {
+        for (;;) {
+          if (watch.cause === 'lost') return;
+          const item = await claimWorkItem(testPlanRunId, worker);
+          if (!item) {
+            // A helper is done when nothing is left to take; the coordinator, when nothing is left at all.
+            if (helper || (await openWorkItems(testPlanRunId)) === 0) return;
+            await new Promise((resolve) => setTimeout(resolve, WORK_POLL_MS));
+            continue;
+          }
+          if (!stopReason) stopReason = await sharedStopReason(testPlanRunId);
+          const legacy: IndividualTestRunResult[] = [];
+          const failures: string[] = [];
+          const captured = { ...item.unit.captured };
+          for (const spec of item.unit.units) {
+            const link = selectedTestsLinks[spec.link];
+            if (!link) continue;
+            try {
+              await runUnit({ browserChoice: spec.browserChoice, locale: spec.locale, link }, captured, legacy);
+            } catch (error: any) {
+              recordSettled([{ status: 'rejected', reason: error }], failures);
+            }
+          }
+          await finishWorkItem(testPlanRunId, item.key, worker, { legacy, failures });
+        }
+      };
+      recordSettled(await runWithConcurrency(parallelism, Array.from({ length: parallelism }, () => takeItems)));
+    } finally {
+      clearInterval(beat);
+    }
+  };
+
   try {
-    if (parallelism <= 1) {
+    if (sharedRun) {
+      await runShared();
+    } else if (parallelism <= 1) {
       // The order every plan has always run in: one browser at a time, its tests in sequence.
       for (const lane of lanes) {
         for (const unit of lane.units) {
@@ -1535,6 +1678,14 @@ async function runTestPlanJobInTenant(
   // Whatever is left in the run's directory — a test that ended before it returned its own, a
   // file written outside any test — is published with the rest.
   await publishArtifacts(baseResultsDir, testPlanRunId);
+
+  // A helper's share is done; ending the run is the coordinator's.
+  if (helper) return { shard: helper.shard, testPlanRunId };
+  if (sharedRun) {
+    const shared = await workItemResults(testPlanRunId);
+    legacyIndividualTestResultsForJsonBlob.push(...(shared.legacy as IndividualTestRunResult[]));
+    unitFailures.push(...shared.failures);
+  }
 
   // After all tests have run, calculate final aggregates from reportTestCaseResultsTable
   const finalDetailedResults = await withTenantTransaction((tx) =>
@@ -1733,6 +1884,7 @@ async function runTestPlanJobInTenant(
     } as any;
   }
   } // runTakenPlan
+  } // joinRun
 }
 
 /**

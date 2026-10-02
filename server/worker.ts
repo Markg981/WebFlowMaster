@@ -1,7 +1,8 @@
 import { DelayedError, Worker, type Job } from 'bullmq';
 import { connection } from './redis';
-import { TEST_EXECUTION_QUEUE_NAME } from './queue';
-import { processTestPlanJob } from './test-execution-service';
+import { TEST_EXECUTION_QUEUE_NAME, testExecutionQueue } from './queue';
+import { processShardJob, processTestPlanJob } from './test-execution-service';
+import { SHARD_JOB, registerShardDispatcher } from './run-shards';
 import loggerPromise from './logger';
 import { correlationStore } from './middleware/correlation';
 import { closeDb, privilegedDb } from './db';
@@ -25,6 +26,11 @@ import 'dotenv/config';
   // A run this worker moves reports on the commit it tested, when a pipeline started it.
   registerCommitStatus();
   registerRunPromotion();
+  // A plan with several shards asks for helpers on the same queue (server/run-shards.ts). The job id
+  // makes asking twice for the same share harmless; first in the queue, since the run is under way.
+  registerShardDispatcher(async ({ executionId, planId, userId, shard, updateBaselines }) => {
+    await testExecutionQueue.add(SHARD_JOB, { executionId, planId, userId, shard, updateBaselines }, { jobId: `${executionId}-shard-${shard}`, priority: 1 });
+  });
   // Every run executes here: its log lines are stored, and relayed to the web process's sockets.
   installWorkerLogEmitter();
   // Notifications, issues and commit statuses are sent from here, and link to the report only
@@ -89,6 +95,12 @@ import 'dotenv/config';
           await job.moveToDelayed(Date.now() + (outcome.retryInMs ?? 10_000), token);
           throw new DelayedError();
         }
+      } else if (job.name === SHARD_JOB) {
+        // A share of a run another worker took: tests from its work list until none are left.
+        const { executionId, planId, userId, shard, updateBaselines } = job.data;
+        await correlationStore.run({ correlationId: `shard-${String(executionId).slice(0, 8)}-${shard}` }, () =>
+          processShardJob(planId, executionId, userId, Number(shard), { updateBaselines: updateBaselines === true }),
+        );
       } else if (job.name === TRIGGER_SCHEDULE_JOB) {
         // Fired by a BullMQ job scheduler (SCHEDULER_BACKEND=bullmq). Load the latest
         // schedule + plan from the DB and run it via the shared execution logic.

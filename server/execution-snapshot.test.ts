@@ -38,6 +38,7 @@ const plan: TestPlan = {
   onTestStepPreRequisiteFailure: 'stop_run',
   reRunOnFailure: 'once',
   maxParallelTests: 4,
+  shards: 2,
   locales: ['it-IT', 'en-US'],
   issueTrackerId: 'tracker-9',
   createIssuesOnFailure: true,
@@ -73,6 +74,7 @@ describe('buildExecutionSnapshot', () => {
       visualTesting: { enabled: true, updateBaselines: true },
       evidence: { video: 'on_failure', trace: 'always', network: 'on_failure' },
       maxParallelTests: 4,
+      shards: 2,
       captureScreenshots: 'always',
       timeouts: { pageLoadMs: 45_000, elementMs: 12_000 },
       failurePolicies: {
@@ -158,6 +160,7 @@ describe('buildExecutionSnapshot', () => {
       'onTestStepPreRequisiteFailure',
       'reRunOnFailure',
       'maxParallelTests',
+      'shards',
       'locales',
       'issueTrackerId',
       'createIssuesOnFailure',

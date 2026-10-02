@@ -47,6 +47,8 @@ export interface ExecutionSnapshot {
   /** `network` is absent on snapshots taken before it existed, and read as 'never'. */
   evidence: { video: EvidenceCaptureMode; trace: EvidenceCaptureMode; network?: EvidenceCaptureMode };
   maxParallelTests: number;
+  /** Workers sharing the run (server/run-shards.ts); absent on snapshots from before it existed, read as 1. */
+  shards?: number;
   captureScreenshots: string;
   /** As the plan stored them; server/run-policies.ts reads them, units and all. */
   timeouts: { pageLoadMs: number; elementMs: number };
@@ -141,6 +143,7 @@ export function buildExecutionSnapshot(
       network: evidenceMode(plan.captureNetwork),
     },
     maxParallelTests: plan.maxParallelTests ?? 1,
+    shards: plan.shards ?? 1,
     captureScreenshots: plan.captureScreenshots ?? 'on_failed_steps',
     timeouts: { pageLoadMs: plan.pageLoadTimeout ?? 30_000, elementMs: plan.elementTimeout ?? 30_000 },
     failurePolicies: {

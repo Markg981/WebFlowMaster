@@ -147,6 +147,8 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
   /** How many of this plan's runs may be in flight at once. 1 is what every plan did before. */
   const [maxParallelTests, setMaxParallelTests] = useState('1');
   const [maxParallelError, setMaxParallelError] = useState('');
+  /** How many workers share one run of this plan (server/run-shards.ts). 1 is one worker, as before. */
+  const [shards, setShards] = useState('1');
   /** Languages, as typed: "it-IT, en-US". Empty is the browser's own. */
   const [locales, setLocales] = useState('');
   const [localesError, setLocalesError] = useState('');
@@ -174,6 +176,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
     const planGrid = (plan as { browserGridId?: string | null } | null)?.browserGridId;
     setRunOn(planGrid ? `${GRID_PREFIX}${planGrid}` : (plan as { agentPool?: string | null } | null)?.agentPool ?? ON_RUNNERS);
     setMaxParallelTests(String(plan?.maxParallelTests ?? 1));
+    setShards(String((plan as { shards?: number } | null)?.shards ?? 1));
     setLocales(normalizeLocales((plan as { locales?: unknown } | null)?.locales).join(', '));
     setLocalesError('');
     setIssueTrackerId((plan as { issueTrackerId?: string | null } | null)?.issueTrackerId ?? NO_TRACKER);
@@ -250,6 +253,13 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
       );
       return;
     }
+    const shardCount = Number(shards);
+    if (!Number.isInteger(shardCount) || shardCount < 1 || shardCount > 8) {
+      setMaxParallelError(
+        t('editTestPlanSettings.validation.shardsInvalid', 'Workers must be a whole number between 1 and 8.'),
+      );
+      return;
+    }
     setMaxParallelError('');
 
     // Refused by name, like the server does: "inglese" quietly meaning no language at all would
@@ -290,6 +300,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
           agentPool: runOn === ON_RUNNERS || runOn.startsWith(GRID_PREFIX) ? null : runOn,
           browserGridId: runOn.startsWith(GRID_PREFIX) ? runOn.slice(GRID_PREFIX.length) : null,
           maxParallelTests: parallel,
+          shards: shardCount,
           locales: normalizeLocales(typedLocales),
           issueTrackerId: issueTrackerId === NO_TRACKER ? null : issueTrackerId,
           // Filing is off unless a tracker is named: a plan set to file into nothing would
@@ -473,6 +484,21 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({ i
                 {t(
                   'editTestPlanSettings.parallel.help',
                   'Each one is a real browser session, so this is a statement about the runner. 1 runs the plan one test at a time, browser by browser. A plan whose API tests capture values for later requests keeps those in order within each browser.',
+                )}
+              </p>
+              <Label htmlFor="editShards" className="mt-3 block">
+                {t('editTestPlanSettings.shards.label', 'Workers sharing a run')}
+              </Label>
+              <Input
+                id="editShards"
+                value={shards}
+                onChange={(e) => setShards(e.target.value)}
+                className="mt-1 w-32"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {t(
+                  'editTestPlanSettings.shards.help',
+                  'Splits one run across up to this many runners, each running the number above at once. Tests are handed out one at a time to whichever runner is free, and the report is one run as usual. 1 keeps the run on one runner.',
                 )}
               </p>
               {maxParallelError && <p className="text-sm text-destructive mt-1">{maxParallelError}</p>}

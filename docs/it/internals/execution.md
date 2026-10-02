@@ -132,6 +132,24 @@ piano, con la propria mappa di valori catturati. `max_parallel_tests` del piano 
   affiancati, test in ordine dentro ogni corsia.
 - `> 1` negli altri casi — qualsiasi test di qualsiasi corsia, fino al limite.
 
+### Shard: un run su più worker
+
+`shards` del piano (1–8, nello snapshot) permette a più worker di dividersi un run
+(`server/run-shards.ts`). Il worker che ha preso il run — il coordinatore — scrive il lavoro in
+`run_work_items`: un elemento per unità, o uno per corsia quando le corsie sono concatenate. Ogni
+elemento porta l'unità come l'ha risolta il coordinatore (browser, ripiego headless, motore), così gli
+aiutanti non sondano i browser. Poi accoda `shards − 1` job `execute-shard` (id `<run>-shard-<n>`).
+
+Ogni partecipante esegue `maxParallelTests` cicli di presa. Una presa è `SELECT … FOR UPDATE SKIP
+LOCKED` sul primo elemento `pending`, o su uno `claimed` il cui heartbeat è più vecchio di
+`STALE_CLAIM_MS` (2 minuti); le prese hanno un heartbeat ogni `WORK_ITEM_HEARTBEAT_MS`. Solo chi tiene
+un elemento può chiuderlo. Un aiutante esce quando non resta niente da prendere; il coordinatore aspetta
+che ogni elemento sia chiuso, riprendendo quelli fermi, poi chiude il run come sempre. La vecchia lista
+`results` e i test che non si sono potuti eseguire sono salvati su ogni elemento e uniti; l'arresto di
+una regola del piano è scritto in `test_plan_executions.stop_reason` e letto prima di ogni presa. Un
+aiutante si unisce solo a un run `running`, lo sorveglia come il coordinatore (annullamento, limite di
+tempo dall'inizio del run) e non ne cambia mai lo stato. Con `shards = 1` nulla di questo entra in gioco.
+
 ### Un test
 
 `runTest` gestisce un test su un browser:
