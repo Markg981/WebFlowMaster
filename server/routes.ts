@@ -55,6 +55,7 @@ import runnersRoutes from "./routes/runners.routes";
 import suitesRoutes from "./routes/suites.routes";
 import requirementsRoutes from "./routes/requirements.routes";
 import testDataRoutes from "./routes/test-data.routes";
+import impactRulesRoutes from "./routes/impact-rules.routes";
 import testManagementRoutes from "./routes/test-management.routes";
 import mobileTestsRoutes from "./routes/mobile-tests.routes";
 import quarantineRoutes from "./routes/quarantine.routes";
@@ -211,6 +212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(suitesRoutes);
   app.use(requirementsRoutes);
   app.use(testDataRoutes);
+  app.use(impactRulesRoutes);
   app.use(testManagementRoutes);
   app.use(mobileTestsRoutes);
     app.use(quarantineRoutes);

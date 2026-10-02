@@ -159,3 +159,28 @@ The dashboard lists the next scheduled runs.
 
 A plan can be started by your CI system and its result can fail the build: with an API key and the
 `wfm` command line, or with the plan's webhook. See [CI integration](../CI_INTEGRATION).
+
+### Running only what a change affects {#impact}
+
+A pipeline that runs the whole plan on every commit waits for tests the commit cannot have
+broken. **Settings → Impact map** says which files affect which tests: each rule maps a file
+pattern to one of your [tags](./organizing#the-test-library) — `src/checkout/**` → `checkout`. A rule with
+**No test** marks files that affect nothing, such as `docs/**` or `*.md`.
+
+Start the run with the files the commit changed — `wfm run <plan> --changed-since origin/main`, or
+the `changed-since` input of the GitHub Action — and it runs:
+
+- the tests carrying a tag a changed file maps to;
+- the tests the map does not cover (none of their tags appears in a rule), since nothing says the
+  change cannot break them;
+- the tests that failed or errored in the plan's last finished run, so the run that should show a
+  fix does.
+
+It errs towards running more: a changed file **no rule matches** runs the whole plan, and with no
+rules at all every test runs. The run's log, the API's `selection` field and the CLI say what was
+decided — for example *3 changed file(s) affect the tags checkout: 7 of 40 tests run* — so a test
+that did not run is a choice, not a gap. **Try it on a change** in the same settings section shows
+which tests a list of files would run, without running them.
+
+Patterns are git-style: `**` any path, `*` and `?` within one folder, `{ts,tsx}` either; a pattern
+without `/` names a file anywhere (`*.md`), and one ending in `/` a whole folder.

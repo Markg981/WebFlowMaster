@@ -41,6 +41,8 @@ richiede: il testo da scrivere, l'opzione da scegliere, il testo atteso.
 | **Verifica Conteggio Elementi** | Fallisce se il numero di elementi corrispondenti non è quello giusto, per esempio `==1`, `>=5`, `<3`. |
 | **Verifica stato** | Fallisce se un controllo non è selezionato, abilitato, modificabile — o il contrario. |
 | **Verifica accessibilità** | Controlla la pagina in quel punto con axe-core, e fallisce sulle violazioni di gravità pari o superiore a quella scelta (serious di default). |
+| **Misura la velocità della pagina** | Controlla le Core Web Vitals e i tempi misurati dal browser per la pagina rispetto a dei limiti — vedi [Velocità delle pagine](#velocita-delle-pagine). |
+| **Audit Lighthouse** | Esegue Lighthouse sulla pagina corrente e ne controlla i punteggi — vedi [Velocità delle pagine](#velocita-delle-pagine). |
 | **Premi tasto** | Preme un tasto o una combinazione — `Enter`, `Tab`, `Escape`, `Control+A` — sull'elemento, o su quello che ha il focus se lo step non ne ha. |
 | **Doppio click** / **Click destro** | Fa doppio click, o apre il menu contestuale dell'elemento. |
 | **Trascina e rilascia** | Trascina l'elemento su quello il cui selettore è il valore. |
@@ -148,7 +150,7 @@ gli step o descrivendoli.
 :::
 
 Le password scritte durante la registrazione non vengono salvate nel test: diventano segnaposto
-<code v-pre>{{secret_…}}</code>, che definite come segreti di un ambiente.
+<code v-pre>{{secret&#95;…}}</code>, che definite come segreti di un ambiente.
 
 ## Descrivere un test a frasi
 
@@ -178,7 +180,7 @@ Qualsiasi valore di uno step può contenere segnaposto <code v-pre>{{nome}}</cod
 quando il test gira:
 
 - dall'**ambiente** scelto nel costruttore, nel run del piano o nella pianificazione: i suoi
-  segreti (**Impostazioni → Ambienti**), per esempio <code v-pre>{{ADMIN_PASSWORD}}</code>. Un
+  segreti (**Impostazioni → Ambienti**), per esempio <code v-pre>{{ADMIN&#95;PASSWORD}}</code>. Un
   segreto chiamato `baseUrl` imposta <code v-pre>{{baseUrl}}</code>, così un test può partire da
   <code v-pre>{{baseUrl}}/login</code> su ogni ambiente;
 - da una riga di un **dataset** (sotto);
@@ -205,7 +207,7 @@ variabili siano accettate — uno step, un URL, un test API:
 | <code v-pre>{{$randomDigits(6)}}</code> | Solo cifre |
 | <code v-pre>{{$today}}</code>, <code v-pre>{{$today(+7)}}</code> | Una data, `aaaa-mm-gg`, oggi o fra quei giorni |
 | <code v-pre>{{$now}}</code>, <code v-pre>{{$timestamp}}</code> | L'istante corrente, ISO o in millisecondi |
-| <code v-pre>{{$totp(secret_mfa)}}</code> | Il codice che un'app di autenticazione mostra adesso per il seme contenuto nella variabile indicata; vedi [accesso in due passaggi](#totp) |
+| <code v-pre>{{$totp(secret&#95;mfa)}}</code> | Il codice che un'app di autenticazione mostra adesso per il seme contenuto nella variabile indicata; vedi [accesso in due passaggi](#totp) |
 
 Ogni segnaposto è un valore nuovo. Per usarne uno due volte — registrarsi con un indirizzo e poi
 accedere con lo stesso — dategli prima un nome: **Imposta variabile**
@@ -224,7 +226,7 @@ l'applicazione ha mostrato come segreto dell'ambiente, per esempio `secret_mfa`:
 sotto il QR code (`JBSW Y3DP EHPK 3PXP`, spazi e maiuscole non contano), oppure l'indirizzo
 contenuto nel QR code (`otpauth://totp/…?secret=…`), che porta con sé anche numero di cifre,
 periodo e algoritmo quando non sono i soliti 6, 30 secondi e SHA-1. Poi lo step **Digita**
-<code v-pre>{{$totp(secret_mfa)}}</code> nel campo del codice.
+<code v-pre>{{$totp(secret&#95;mfa)}}</code> nel campo del codice.
 
 L'argomento è il **nome** della variabile, mai la chiave, così la chiave resta cifrata e fuori dal
 test. Un nome che l'ambiente non definisce, o un valore che non è una chiave, fa fallire lo step e
@@ -257,7 +259,7 @@ Una registrazione, dall'inizio alla fine:
 
 Il valore è l'indirizzo, seguito facoltativamente da `|` e da un testo contenuto nell'oggetto, e
 da un secondo `|` e un'espressione regolare per il codice:
-<code v-pre>{{email}}|Il tuo codice|codice: ([A-Z0-9-]+)</code> legge ciò che trova il primo gruppo.
+<code v-pre>{{email}}|Il tuo codice|codice: (&#91;A-Z0-9-]+)</code> legge ciò che trova il primo gruppo.
 Lo step attende fino a 60 secondi l'email più recente a quell'indirizzo esatto (in A, Cc o Ccn)
 arrivata **dopo l'inizio del test**, così un indirizzo fisso, come quello di un utente di prova,
 non legge l'email del run precedente. Poi imposta:
@@ -314,7 +316,7 @@ database.
 | SQL Server | `sqlserver://utente:password@host:1433/Shop` — `sqlserver://…@host%5CSQLEXPRESS/Shop` per un'istanza con nome; `?encrypt=false` per un server senza TLS, `?trustServerCertificate=true` per un certificato autofirmato |
 
 Caratteri come `@` o `/` nella password si scrivono `%40` e `%2F`. Per un secondo database
-dategli un nome: `db.reporting.url` e il valore <code v-pre>@reporting SELECT …</code>.
+dategli un nome: `db.reporting.url` e il valore `@reporting SELECT …`.
 `db.timeout` cambia il limite di 30 secondi, in secondi. Si tengono al massimo 1000 righe.
 
 L'istruzione gira con i permessi dell'utente dell'indirizzo: usate un utente che possa leggere solo
@@ -323,27 +325,63 @@ query parte dal runner di WebFlowMaster, non dal browser — anche su un agente 
 runner deve raggiungere il database. I valori entrano nell'SQL così come sono: mettete il testo tra
 apici (`'{{email}}'`) e usate variabili i cui valori sono sotto il controllo del test.
 
+## Velocità delle pagine {#velocita-delle-pagine}
+
+**Misura la velocità della pagina** legge ciò che il browser stesso ha registrato sulla pagina in cui
+si trova il test, in quel punto del flusso, e fallisce quando un limite non è rispettato. Il valore
+elenca i limiti:
+
+`LCP < 2.5s, CLS <= 0.1, INP < 200, TTFB < 800ms, weight < 2MB`
+
+| Metrica | Cos'è |
+|---|---|
+| `LCP` | Largest Contentful Paint: quando è comparso il contenuto principale. |
+| `CLS` | Cumulative Layout Shift: quanto si è spostata la pagina (la finestra di 5 secondi peggiore). |
+| `INP` | Interaction to Next Paint: la risposta più lenta a un clic o a un tasto finora; misurata solo dopo che il test ha interagito. |
+| `FCP`, `TTFB`, `DCL`, `LOAD` | Primo disegno, primo byte, DOM pronto, evento load. |
+| `TBT` | Total Blocking Time: i task lunghi dopo il primo disegno. |
+| `REQUESTS`, `WEIGHT` | Quante richieste, e quanti byte trasferiti (i file di altri domini senza `Timing-Allow-Origin` contano 0). |
+
+I tempi accettano `ms` o `s`, le dimensioni `KB` o `MB`. Se vuoto, controlla le soglie *buone* delle
+Core Web Vitals: `LCP <= 2500, CLS <= 0.1, INP <= 200`. Mettetelo dopo che la pagina si è caricata —
+dopo un **Attendi elemento** sul contenuto principale, per esempio — e dopo un'interazione quando
+conta l'INP. Solo Chromium misura LCP, CLS, INP e TBT; in Firefox e WebKit compaiono come — e un
+limite su di esse risulta non misurato invece che fallito, così lo stesso test gira su ogni browser.
+
+**Audit Lighthouse** esegue [Lighthouse](https://developer.chrome.com/docs/lighthouse) sull'indirizzo
+della pagina corrente e ne controlla i punteggi per categoria (0–100): `performance >= 80,
+accessibility >= 90, best-practices >= 90, seo >= 80`, più `desktop` per il profilo desktop (mobile
+di default). Se vuoto registra i punteggi e non controlla nulla. Lighthouse ricarica la pagina in un
+proprio Chromium sul runner, inviando i cookie del test per quell'indirizzo, così una pagina dietro
+un accesso viene analizzata con l'accesso fatto; richiede 15–60 secondi. Il suo report HTML completo
+resta con le evidenze dell'esecuzione. Gira solo sui runner del server: un piano su agenti locali o
+su una griglia di browser non può essere analizzato da dove si trova la pagina.
+
+La scheda **Velocità delle pagine** del report elenca ogni pagina misurata — le metriche per browser,
+e i punteggi Lighthouse con il link al report — con i limiti non rispettati, e i dettagli di ogni
+step mostrano gli stessi numeri.
+
 ## Simulare la rete {#simulare-la-rete}
 
 Un test può rispondere da sé alle richieste della pagina, per vedere le schermate che il backend vero
 mostra di rado — un errore, una lista vuota, una risposta lenta — o per girare quando il backend non
 è pronto. **Simula richiesta** prende
 
-<code v-pre>[METODO] indirizzo | stato [after 1500ms] | corpo</code>
+`[METODO] indirizzo | stato [after 1500ms] | corpo`
 
 - **indirizzo**: un URL, o un pattern dove `**` vale qualunque carattere e `*` qualunque tranne `/`:
-  <code v-pre>**/api/orders*</code>, <code v-pre>{{baseUrl}}/api/orders/42</code>. Con un metodo davanti
+  `**/api/orders*`, <code v-pre>{{baseUrl}}/api/orders/42</code>. Con un metodo davanti
   (`GET`, `POST`…) risponde solo a quel metodo; gli altri arrivano al server.
 - **stato**: `200` se omesso; `after 1500ms` (o `after 2s`, fino a 30 s) ritarda la risposta, per
   verificare uno stato di caricamento.
 - **corpo**: tutto ciò che segue il secondo `|`, variabili comprese. Il JSON è inviato come
   `application/json`, il resto come testo.
 
-<code v-pre>GET **/api/orders | 200 | []</code> mostra la lista vuota;
-<code v-pre>POST **/api/orders | 500 | {"error":"out of stock"}</code> l'ordine fallito. La simulazione
+`GET **/api/orders | 200 | []` mostra la lista vuota;
+`POST **/api/orders | 500 | {"error":"out of stock"}` l'ordine fallito. La simulazione
 vale per il resto del test e in tutte le schede che apre; una simulazione successiva dello stesso
 indirizzo la sostituisce, così un test può cambiare risposta a metà. **Blocca richieste** prende un
-indirizzo e fa fallire quelle richieste — <code v-pre>**/analytics/**</code> tiene fuori una terza
+indirizzo e fa fallire quelle richieste — `**/analytics/**` tiene fuori una terza
 parte — e **Rimuovi simulazioni** toglie tutto ciò che è stato impostato.
 
 Riguarda solo ciò che chiede la pagina: precondizioni, pulizia e test API vanno ai server veri.

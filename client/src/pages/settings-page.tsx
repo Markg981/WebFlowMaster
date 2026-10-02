@@ -43,6 +43,7 @@ import {
   GitCommitHorizontal,
   Cloud,
   ClipboardList,
+  GitBranch,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProjectAccessDialog from "@/components/settings/ProjectAccessDialog";
@@ -73,6 +74,7 @@ import SsoCard from "@/components/settings/SsoCard";
 import RunnersCard from "@/components/settings/RunnersCard";
 import ElementRepositoryCard from "@/components/settings/ElementRepositoryCard";
 import CustomActionsCard from "@/components/settings/CustomActionsCard";
+import ImpactMapCard from "@/components/settings/ImpactMapCard";
 import IssueTrackersCard from "@/components/settings/IssueTrackersCard";
 import BrowserGridsCard from "@/components/settings/BrowserGridsCard";
 import TestManagementCard from "@/components/settings/TestManagementCard";
@@ -628,6 +630,16 @@ export default function SettingsPage() {
       ),
       icon: Puzzle,
       content: <CustomActionsCard />,
+    },
+    {
+      id: 'impactMap',
+      label: t('settings.sections.impactMap', 'Impact map'),
+      description: t(
+        'settings.sections.impactMapDescription',
+        'Which files affect which tests, so a pipeline runs the tests a commit affects instead of all of them.',
+      ),
+      icon: GitBranch,
+      content: <ImpactMapCard />,
     },
     {
       id: 'issueTrackers',

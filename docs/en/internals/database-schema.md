@@ -45,6 +45,7 @@ erDiagram
   api_tests |o--o{ report_test_case_results : "api_test_id"
   test_plan_executions ||--o{ execution_logs : "test_plan_execution_id"
   test_plan_executions ||--o{ run_work_items : "execution_id"
+  tags ||--o{ impact_rules : "tag_id"
   environments ||--o{ secrets : "environment_id"
   test_plans ||--o{ test_plan_webhooks : "test_plan_id"
   test_plans ||--o{ test_plan_selected_tests : "test_plan_id"
@@ -488,6 +489,13 @@ erDiagram
     jsonb rows
     timestamp created_at
     timestamp updated_at
+  }
+  impact_rules {
+    text id PK
+    int organization_id FK
+    text pattern
+    text tag_id FK
+    timestamp created_at
   }
   run_work_items {
     text execution_id PK

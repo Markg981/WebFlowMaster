@@ -39,6 +39,8 @@ choose, the text to expect.
 | **Assert Element Count** | Fails unless the number of matching elements is right, e.g. `==1`, `>=5`, `<3`. |
 | **Assert state** | Fails unless a control is checked, enabled, editable — or the opposite. |
 | **Check accessibility** | Checks the page with axe-core at that point, and fails on violations at or above the severity you choose (serious by default). |
+| **Measure page speed** | Checks the Core Web Vitals and timings the browser measured for the page against limits — see [Page speed](#page-speed). |
+| **Lighthouse audit** | Runs Lighthouse on the current page and checks its scores — see [Page speed](#page-speed). |
 | **Press key** | Presses a key or a combination — `Enter`, `Tab`, `Escape`, `Control+A` — on the element, or on whatever has focus when the step has none. |
 | **Double-click** / **Right-click** | Double-clicks, or opens the element's context menu. |
 | **Drag and drop** | Drags the element onto the one whose selector is the value. |
@@ -142,7 +144,7 @@ recording is not available, and you build tests by dragging steps or describing 
 :::
 
 Passwords typed while recording are not stored in the test: they become
-<code v-pre>{{secret_…}}</code> placeholders, which you define as secrets of an environment.
+<code v-pre>{{secret&#95;…}}</code> placeholders, which you define as secrets of an environment.
 
 ## Describing a test in sentences
 
@@ -170,7 +172,7 @@ Any value in a step can contain <code v-pre>{{name}}</code> placeholders, filled
 runs:
 
 - from the **environment** chosen in the builder, the plan's run, or the schedule: its secrets
-  (**Settings → Environments**), for example <code v-pre>{{ADMIN_PASSWORD}}</code>. A secret named
+  (**Settings → Environments**), for example <code v-pre>{{ADMIN&#95;PASSWORD}}</code>. A secret named
   `baseUrl` sets <code v-pre>{{baseUrl}}</code>, so one test can start at
   <code v-pre>{{baseUrl}}/login</code> on every environment;
 - from a **dataset** row (below);
@@ -197,7 +199,7 @@ accepted — a step, a URL, an API test:
 | <code v-pre>{{$randomDigits(6)}}</code> | Digits only |
 | <code v-pre>{{$today}}</code>, <code v-pre>{{$today(+7)}}</code> | A date, `yyyy-mm-dd`, today or that many days away |
 | <code v-pre>{{$now}}</code>, <code v-pre>{{$timestamp}}</code> | The current time, ISO or in milliseconds |
-| <code v-pre>{{$totp(secret_mfa)}}</code> | The code an authenticator app shows now for the seed in the variable named; see [two-step sign-in](#totp) |
+| <code v-pre>{{$totp(secret&#95;mfa)}}</code> | The code an authenticator app shows now for the seed in the variable named; see [two-step sign-in](#totp) |
 
 Each placeholder is a new value. To use one twice — register with an address, then log in with
 it — give it a name first: **Set variable** <code v-pre>email={{$randomEmail}}</code>, then
@@ -213,7 +215,7 @@ that moment. Enrol the test account once, and keep what the application showed a
 environment, say `secret_mfa`: the key written under the QR code (`JBSW Y3DP EHPK 3PXP`, spaces
 and case do not matter), or the address the QR code holds (`otpauth://totp/…?secret=…`), which
 also carries the number of digits, the period and the algorithm when they are not the usual 6, 30
-seconds and SHA-1. Then the step **Type** <code v-pre>{{$totp(secret_mfa)}}</code> in the code field.
+seconds and SHA-1. Then the step **Type** <code v-pre>{{$totp(secret&#95;mfa)}}</code> in the code field.
 
 The argument is the variable's **name**, never the key itself, so the key stays encrypted and out
 of the test. A name the environment does not define, or a value that is not a key, fails the step
@@ -245,7 +247,7 @@ A sign-up, start to end:
 | Type | <code v-pre>{{email.otp}}</code> in the code field — or **Navigate** to <code v-pre>{{email.link}}</code> |
 
 The value is the address, optionally followed by `|` and text the subject contains, and by a
-second `|` and a regular expression for the code: <code v-pre>{{email}}|Your code|code: ([A-Z0-9-]+)</code>
+second `|` and a regular expression for the code: <code v-pre>{{email}}|Your code|code: (&#91;A-Z0-9-]+)</code>
 reads what its first group matches. The step waits up to 60 seconds for the newest email to that
 exact address (in To, Cc or Bcc) that arrived **after the test started**, so a fixed address such
 as a seeded user's does not read the email of the previous run. Then it sets:
@@ -299,7 +301,7 @@ refuses fails the step with the database's message.
 | SQL Server | `sqlserver://user:password@host:1433/Shop` — `sqlserver://…@host%5CSQLEXPRESS/Shop` for a named instance; `?encrypt=false` for a server without TLS, `?trustServerCertificate=true` for a self-signed certificate |
 
 Characters such as `@` or `/` in the password are written as `%40` and `%2F`. For a second
-database, name it: `db.reporting.url` and the value <code v-pre>@reporting SELECT …</code>.
+database, name it: `db.reporting.url` and the value `@reporting SELECT …`.
 `db.timeout` changes the 30-second limit, in seconds. At most 1000 rows are kept.
 
 The statement runs with the rights of the user in the address: use a user that can read only what
@@ -308,27 +310,62 @@ from the WebFlowMaster runner, not from the browser — also on a local agent �
 reach the database. Values are put into the SQL as they are: quote text (`'{{email}}'`), and use
 variables whose values the test controls.
 
+## Page speed {#page-speed}
+
+**Measure page speed** reads what the browser itself recorded about the page the test is on, at that
+point of the flow, and fails when a limit is broken. Its value lists the limits:
+
+`LCP < 2.5s, CLS <= 0.1, INP < 200, TTFB < 800ms, weight < 2MB`
+
+| Metric | What it is |
+|---|---|
+| `LCP` | Largest Contentful Paint: when the main content appeared. |
+| `CLS` | Cumulative Layout Shift: how much the page jumped (largest 5-second window). |
+| `INP` | Interaction to Next Paint: the slowest response to a click or key so far; measured only after the test has interacted. |
+| `FCP`, `TTFB`, `DCL`, `LOAD` | First paint, first byte, DOM ready, load event. |
+| `TBT` | Total Blocking Time: long tasks after the first paint. |
+| `REQUESTS`, `WEIGHT` | How many requests, and how many bytes were transferred (cross-origin files without `Timing-Allow-Origin` count as 0). |
+
+Times take `ms` or `s`, sizes `KB` or `MB`. Left empty, it checks the Core Web Vitals' *good*
+thresholds: `LCP <= 2500, CLS <= 0.1, INP <= 200`. Put it after the page has loaded — after a
+**Wait for element** on the main content, for instance — and after an interaction when INP matters.
+Only Chromium measures LCP, CLS, INP and TBT; in Firefox and WebKit they are shown as — and a limit
+on them is reported as not measured rather than failed, so the same test runs on every browser.
+
+**Lighthouse audit** runs [Lighthouse](https://developer.chrome.com/docs/lighthouse) on the current
+page's address and checks its category scores (0–100): `performance >= 80, accessibility >= 90,
+best-practices >= 90, seo >= 80`, plus `desktop` for the desktop preset (mobile by default). Empty
+records the scores and checks nothing. Lighthouse loads the page again in a Chromium of its own on
+the runner, sending the test's cookies for that address, so a page behind a login is audited
+logged in; it takes 15–60 seconds. Its full HTML report is kept with the run's evidence. It runs on
+the server's runners only: a plan on local agents or on a browser grid cannot be audited from where
+the page is.
+
+The run report's **Page speed** card lists every measured page — the vitals per browser, and the
+Lighthouse scores with a link to the report — with the limits each one broke, and each step's
+details show the same numbers.
+
 ## Mocking the network {#mocking-the-network}
 
 A test can answer the page's requests itself, to see the screens the real backend rarely shows —
 an error, an empty list, a slow answer — or to run while the backend is not ready. **Mock request**
 takes
 
-<code v-pre>[METHOD] address | status [after 1500ms] | body</code>
+`[METHOD] address | status [after 1500ms] | body`
 
 - **address**: a URL, or a pattern where `**` stands for any characters and `*` for any but `/`:
-  <code v-pre>**/api/orders*</code>, <code v-pre>{{baseUrl}}/api/orders/42</code>. With a method in
+  `**/api/orders*`, <code v-pre>{{baseUrl}}/api/orders/42</code>. With a method in
   front (`GET`, `POST`…) only that method is answered; others reach the server.
 - **status**: `200` when left out; `after 1500ms` (or `after 2s`, up to 30 s) delays the answer, to
   check a loading state.
 - **body**: everything after the second `|`, variables included. JSON is sent as
   `application/json`, anything else as text.
 
-<code v-pre>GET **/api/orders | 200 | []</code> shows the empty list;
-<code v-pre>POST **/api/orders | 500 | {"error":"out of stock"}</code> the failed order. The mock holds
+`GET **/api/orders | 200 | []` shows the empty list;
+`POST **/api/orders | 500 | {"error":"out of stock"}` the failed order. The mock holds
 for the rest of the test and in every tab it opens; a later mock of the same address replaces it, so
 a test can change its answer halfway. **Block requests** takes an address and makes those requests
-fail — <code v-pre>**/analytics/**</code> keeps a third party out of the run — and **Clear mocks**
+fail — `**/analytics/**` keeps a third party out of the run — and **Clear mocks**
 takes back everything set so far.
 
 Only what the page requests is affected: preconditions, cleanup and API tests go to the real servers.

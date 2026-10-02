@@ -15,6 +15,7 @@ import { privilegedDb } from './db';
 import { getCorrelationId } from './middleware/correlation';
 import { runAsOrganization, withTenantTransaction } from './middleware/tenancy';
 import { expandPlanTests, type TestReference } from './test-suites';
+import { selectForChanges } from './test-impact';
 import { announceExecution, transitionExecution } from './execution-state';
 import { buildExecutionSnapshot, readExecutionSnapshot, type SnapshotTestReference } from './execution-snapshot';
 import { testExecutionQueue } from './queue';
@@ -64,6 +65,11 @@ export interface EnqueueExecutionInput {
   environmentLabel?: string | null;
   /** The build, commit and branch a pipeline started this run for (shared/ci.ts). */
   ciContext?: CiContext | null;
+  /**
+   * The files the change under test touched. When given, the run is narrowed to the tests they
+   * affect, by the organization's impact map (server/test-impact.ts).
+   */
+  changedFiles?: string[] | null;
 }
 
 /** More than this is not a retry policy, it is a loop. */
@@ -244,12 +250,16 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
           // The plan's own tests, then its suites' — worked out now, so the snapshot says exactly
           // what this run executes even after a suite or a tag changes.
           const expanded = await expandPlanTests(tx, plan.id, selected as TestReference[]);
+          const narrowed = input.changedFiles
+            ? await selectForChanges(tx, plan.id, expanded, input.changedFiles)
+            : null;
 
-          const snapshot = buildExecutionSnapshot(plan, expanded as SnapshotTestReference[], {
+          const snapshot = buildExecutionSnapshot(plan, (narrowed?.refs ?? expanded) as SnapshotTestReference[], {
             environmentId: input.environmentId ?? null,
             browsers: input.browsers,
             updateBaselines: input.updateBaselines,
           });
+          if (narrowed) snapshot.selection = narrowed.selection;
 
           const [inserted] = await tx
             .insert(testPlanExecutions)

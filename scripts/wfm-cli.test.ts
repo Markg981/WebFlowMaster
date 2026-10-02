@@ -389,3 +389,35 @@ describe('wfm tests', () => {
     expect(context.errors[0]).toContain('full-access API key');
   });
 });
+
+describe('running what a change affects', () => {
+  it('reads --changed-since and --changed-files, one at a time, with run', () => {
+    expect(parseArgs(['run', 'p', '--changed-since', 'origin/main'], {})).toMatchObject({ changedSince: 'origin/main' });
+    expect(parseArgs(['run', 'p', '--changed-files', 'changed.txt'], {})).toMatchObject({ changedFilesPath: 'changed.txt' });
+    expect(parseArgs(['run', 'p', '--changed-since', 'a', '--changed-files', 'b'], {})).toEqual({ error: expect.stringContaining('not both') });
+    expect(parseArgs(['status', 'r', '--changed-since', 'a'], {})).toEqual({ error: expect.stringContaining('go with run') });
+  });
+
+  it('sends the files git lists, and prints what the server decided', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse({ id: 'run-1', status: 'queued', selection: { mode: 'affected', reason: '2 changed file(s) affect the tags checkout: 3 of 9 tests run.', selected: 3, total: 9 } }, 202),
+    );
+    const context = Object.assign(io(fetchImpl), { changedFilesSince: async (ref: string) => (ref === 'origin/main' ? ['src/a.ts', 'src/b.ts'] : []) });
+    expect(await runCli(options({ changedSince: 'origin/main' }), context)).toBe(EXIT_PASSED);
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).changedFiles).toEqual(['src/a.ts', 'src/b.ts']);
+    expect(context.lines.join('\n')).toContain('3 of 9 tests run');
+  });
+
+  it('reads a list from a file, and starts nothing when it cannot list the changes', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(started());
+    const fromFile = Object.assign(io(fetchImpl), { readFile: async () => 'src/a.ts\r\n\r\ndocs/x.md\n' });
+    await runCli(options({ changedFilesPath: 'changed.txt' }), fromFile);
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).changedFiles).toEqual(['src/a.ts', 'docs/x.md']);
+
+    const noGit = vi.fn();
+    const failing = Object.assign(io(noGit), { changedFilesSince: async () => { throw new Error('fatal: bad revision'); } });
+    expect(await runCli(options({ changedSince: 'nope' }), failing)).toBe(EXIT_TOOL_ERROR);
+    expect(noGit).not.toHaveBeenCalled();
+    expect(failing.errors[0]).toContain('bad revision');
+  });
+});

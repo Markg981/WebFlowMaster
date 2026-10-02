@@ -291,6 +291,8 @@ export function toPlaywright(test: ExportableTest): PlaywrightExport {
       case 'waitForEmail': skip(step, 'it reads the environment\'s test inbox (Mailpit), which only a WebFlowMaster run has'); break;
       case 'queryDatabase': skip(step, 'it queries the environment\'s database through WebFlowMaster'); break;
       case 'assertAccessible': skip(step, 'add @axe-core/playwright and check AxeBuilder results here'); break;
+      case 'measurePerformance': skip(step, 'read the PerformanceObserver entries (LCP, layout-shift) with page.evaluate and assert them'); break;
+      case 'auditLighthouse': skip(step, 'run Lighthouse on page.url(), for example with playwright-lighthouse'); break;
       default: skip(step, id ? `"${id}" has no Playwright equivalent here` : 'no action'); break;
     }
   }

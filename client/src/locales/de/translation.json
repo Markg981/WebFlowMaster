@@ -135,7 +135,9 @@
       "testManagement": "Testmanagement",
       "testManagementDescription": "TestRail, Xray oder Zephyr Scale, wo jeder abgeschlossene Lauf Fall für Fall veröffentlicht wird.",
       "organizationData": "Export und Löschung",
-      "organizationDataDescription": "Nehmen Sie die Daten der Organisation mit, oder löschen Sie sie endgültig."
+      "organizationDataDescription": "Nehmen Sie die Daten der Organisation mit, oder löschen Sie sie endgültig.",
+      "impactMap": "Auswirkungskarte",
+      "impactMapDescription": "Welche Dateien welche Tests betreffen, damit eine Pipeline die von einem Commit betroffenen Tests ausführt statt aller."
     },
     "apiKeys": {
       "openApi": "API-Referenz (OpenAPI)",
@@ -1300,6 +1302,16 @@
       "clearMocks": {
         "name": "Simulationen entfernen",
         "description": "Nimmt alle Simulationen und Sperren des Tests zurück: Die Seite erreicht wieder die echten Server."
+      },
+      "measurePerformance": {
+        "name": "Seitengeschwindigkeit messen",
+        "description": "Liest, was der Browser an dieser Stelle über die Seite gemessen hat — Core Web Vitals (LCP, CLS, INP), FCP, TBT, TTFB, Ladezeit, Anfragen und Größe — und schlägt fehl, wenn ein Grenzwert verletzt ist. Leer prüft die „guten“ Schwellen der Core Web Vitals.",
+        "valueHint": "LCP < 2.5s, CLS <= 0.1, TTFB < 800ms, weight < 2MB"
+      },
+      "auditLighthouse": {
+        "name": "Lighthouse-Audit",
+        "description": "Führt Lighthouse auf der aktuellen Seite mit den Cookies des Tests aus und bewahrt den Bericht beim Lauf auf. Schlägt fehl, wenn eine Kategorie unter ihrem Grenzwert liegt; leer zeichnet nur die Werte auf.",
+        "valueHint": "performance >= 80, accessibility >= 90, desktop"
       }
     },
     "saveTest": {
@@ -2640,7 +2652,8 @@
       "test_management": "Testmanagement",
       "mobile_test": "Mobile Apps",
       "test_data_set": "Testdaten",
-      "scim": "Bereitstellung (SCIM)"
+      "scim": "Bereitstellung (SCIM)",
+      "impact_rule": "Auswirkungskarte"
     },
     "actions": {
       "member_role_changed": "Rolle des Mitglieds geändert",
@@ -2744,7 +2757,9 @@
       "scim_group_updated": "Gruppe des Anbieters geändert",
       "scim_group_deleted": "Gruppe des Anbieters entfernt",
       "api_test_imported": "API-Tests aus OpenAPI oder Postman importiert",
-      "test_imported": "Tests aus einer Datei importiert"
+      "test_imported": "Tests aus einer Datei importiert",
+      "impact_rule_created": "Auswirkungsregel hinzugefügt",
+      "impact_rule_deleted": "Auswirkungsregel entfernt"
     }
   },
   "security": {
@@ -3953,5 +3968,30 @@
       "unchanged": "unverändert",
       "invalid": "nicht importiert"
     }
+  },
+  "impactMap": {
+    "title": "Auswirkungskarte",
+    "description": "Welche Dateien welche Tests betreffen. Ordnen Sie ein Dateimuster einem Tag zu: Eine mit den geänderten Dateien eines Commits gestartete Ausführung (wfm run --changed-since) führt die Tests mit den zugeordneten Tags aus, die von der Karte nicht erfassten Tests und die zuletzt fehlgeschlagenen. Eine geänderte Datei, die keine Regel erfasst, führt alle Tests aus.",
+    "empty": "Keine Regeln: Jede Ausführung führt alle Tests aus.",
+    "noTest": "kein Test",
+    "remove": "Regel entfernen",
+    "pattern": "Dateien",
+    "tag": "Betreffen die Tests mit dem Tag",
+    "chooseTag": "Tag wählen",
+    "noTestOption": "Kein Test (Dokumentation…)",
+    "add": "Regel hinzufügen",
+    "tryTitle": "An einer Änderung ausprobieren",
+    "choosePlan": "Plan wählen",
+    "filesPlaceholder": "Eine geänderte Datei pro Zeile, wie git diff --name-only sie auflistet",
+    "preview": "Zeigen, welche Tests laufen würden"
+  },
+  "pagePerformance": {
+    "title": "Seitengeschwindigkeit",
+    "description": "Von den Tests gemessene Seiten: die vom Browser erfassten Core Web Vitals und die Lighthouse-Werte, verglichen mit den Grenzwerten jedes Schritts. — bedeutet, dass dieser Browser den Wert nicht misst.",
+    "page": "Seite",
+    "weight": "Größe",
+    "withinLimits": "innerhalb der Grenzwerte",
+    "noLimits": "keine Grenzwerte",
+    "report": "Bericht"
   }
 }

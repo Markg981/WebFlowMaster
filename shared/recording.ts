@@ -51,6 +51,10 @@ export const ADHOC_ACTION_IDS = [
   // Runs axe-core on the page as it is at this point of the flow, and fails on violations at or
   // above a severity (the value; "serious" when empty). See shared/accessibility.ts.
   "assertAccessible",
+  // How fast the page is: the Core Web Vitals the browser measured, against limits; and
+  // Lighthouse's scores. See shared/web-performance.ts.
+  "measurePerformance",
+  "auditLighthouse",
   // Interactions a click and a typed value cannot stand in for. Without them a test could reach
   // a search box and never submit it, open a context menu only by accident, and not get past
   // an upload field, a confirm() or a link that opens in a new tab at all.
@@ -242,6 +246,8 @@ export const ACTION_REQUIREMENTS: Record<
   assertState: { target: true, value: true, valueRequired: true },
   ensureState: { target: true, value: true, valueRequired: true },
   assertAccessible: { target: false, value: true, valueRequired: false },
+  measurePerformance: { target: false, value: true, valueRequired: false },
+  auditLighthouse: { target: false, value: true, valueRequired: false },
   // No element required: after typing, the key usually goes to the field that has focus. A
   // recorded Enter keeps the field it was pressed in, and the runner uses it when it is there.
   pressKey: { target: false, value: true, valueRequired: true, optionalTarget: true },
@@ -410,6 +416,16 @@ export const ACTION_I18N: Record<
     description: "dashboardPageNew.actions.assertAccessible.description",
     icon: "Accessibility",
   },
+  measurePerformance: {
+    name: "dashboardPageNew.actions.measurePerformance.name",
+    description: "dashboardPageNew.actions.measurePerformance.description",
+    icon: "Gauge",
+  },
+  auditLighthouse: {
+    name: "dashboardPageNew.actions.auditLighthouse.name",
+    description: "dashboardPageNew.actions.auditLighthouse.description",
+    icon: "Lightbulb",
+  },
   pressKey: {
     name: "dashboardPageNew.actions.pressKey.name",
     description: "dashboardPageNew.actions.pressKey.description",
@@ -561,6 +577,8 @@ export const ACTION_VALUE_HINTS: Partial<Record<AdhocActionId, string>> = {
   executeScript: "dashboardPageNew.actions.executeScript.valueHint",
   mockRequest: "dashboardPageNew.actions.mockRequest.valueHint",
   blockRequests: "dashboardPageNew.actions.blockRequests.valueHint",
+  measurePerformance: "dashboardPageNew.actions.measurePerformance.valueHint",
+  auditLighthouse: "dashboardPageNew.actions.auditLighthouse.valueHint",
   setVariable: "dashboardPageNew.actions.setVariable.valueHint",
   waitForEmail: "dashboardPageNew.actions.waitForEmail.valueHint",
   queryDatabase: "dashboardPageNew.actions.queryDatabase.valueHint",

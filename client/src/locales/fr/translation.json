@@ -135,7 +135,9 @@
       "testManagement": "Gestion des tests",
       "testManagementDescription": "TestRail, Xray ou Zephyr Scale, où chaque exécution terminée est publiée cas par cas.",
       "organizationData": "Export et effacement",
-      "organizationDataDescription": "Emportez les données de l'organisation, ou effacez-les définitivement."
+      "organizationDataDescription": "Emportez les données de l'organisation, ou effacez-les définitivement.",
+      "impactMap": "Carte d'impact",
+      "impactMapDescription": "Quels fichiers concernent quels tests, pour qu'un pipeline exécute les tests qu'un commit touche plutôt que tous."
     },
     "apiKeys": {
       "openApi": "Référence de l'API (OpenAPI)",
@@ -1300,6 +1302,16 @@
       "clearMocks": {
         "name": "Retirer les simulations",
         "description": "Retire toutes les simulations et blocages du test : la page atteint de nouveau les vrais serveurs."
+      },
+      "measurePerformance": {
+        "name": "Mesurer la vitesse de la page",
+        "description": "Lit ce que le navigateur a mesuré sur la page à ce moment — Core Web Vitals (LCP, CLS, INP), FCP, TBT, TTFB, temps de chargement, requêtes et poids — et échoue quand une limite n'est pas respectée. Vide vérifie les seuils « bons » des Core Web Vitals.",
+        "valueHint": "LCP < 2.5s, CLS <= 0.1, TTFB < 800ms, weight < 2MB"
+      },
+      "auditLighthouse": {
+        "name": "Audit Lighthouse",
+        "description": "Exécute Lighthouse sur la page courante, avec les cookies du test, et conserve son rapport avec l'exécution. Échoue quand une catégorie est sous sa limite ; vide enregistre seulement les scores.",
+        "valueHint": "performance >= 80, accessibility >= 90, desktop"
       }
     },
     "saveTest": {
@@ -2640,7 +2652,8 @@
       "test_management": "Gestion des tests",
       "mobile_test": "Applications mobiles",
       "test_data_set": "Données de test",
-      "scim": "Provisionnement (SCIM)"
+      "scim": "Provisionnement (SCIM)",
+      "impact_rule": "Carte d'impact"
     },
     "actions": {
       "member_role_changed": "Rôle du membre modifié",
@@ -2744,7 +2757,9 @@
       "scim_group_updated": "Groupe du fournisseur modifié",
       "scim_group_deleted": "Groupe du fournisseur supprimé",
       "api_test_imported": "Tests API importés depuis OpenAPI ou Postman",
-      "test_imported": "Tests importés depuis un fichier"
+      "test_imported": "Tests importés depuis un fichier",
+      "impact_rule_created": "Règle d'impact ajoutée",
+      "impact_rule_deleted": "Règle d'impact supprimée"
     }
   },
   "security": {
@@ -3953,5 +3968,30 @@
       "unchanged": "inchangé",
       "invalid": "non importé"
     }
+  },
+  "impactMap": {
+    "title": "Carte d'impact",
+    "description": "Quels fichiers concernent quels tests. Associez un motif de fichiers à un tag : une exécution lancée avec les fichiers modifiés par un commit (wfm run --changed-since) exécute les tests portant les tags associés, les tests que la carte ne couvre pas et ceux qui ont échoué la dernière fois. Un fichier modifié qu'aucune règle ne reconnaît fait exécuter tous les tests.",
+    "empty": "Aucune règle : chaque exécution lance tous les tests.",
+    "noTest": "aucun test",
+    "remove": "Supprimer la règle",
+    "pattern": "Fichiers",
+    "tag": "Concernent les tests avec le tag",
+    "chooseTag": "Choisir un tag",
+    "noTestOption": "Aucun test (documentation…)",
+    "add": "Ajouter la règle",
+    "tryTitle": "L'essayer sur une modification",
+    "choosePlan": "Choisir un plan",
+    "filesPlaceholder": "Un fichier modifié par ligne, comme git diff --name-only les liste",
+    "preview": "Montrer quels tests seraient exécutés"
+  },
+  "pagePerformance": {
+    "title": "Vitesse des pages",
+    "description": "Les pages mesurées par les tests : les Core Web Vitals enregistrées par le navigateur et les scores Lighthouse, comparés aux limites de chaque étape. — signifie que ce navigateur ne la mesure pas.",
+    "page": "Page",
+    "weight": "Poids",
+    "withinLimits": "dans les limites",
+    "noLimits": "aucune limite",
+    "report": "rapport"
   }
 }

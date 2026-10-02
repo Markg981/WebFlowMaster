@@ -48,6 +48,8 @@ Opzioni:
 - `--junit`, `--html`, `--pdf`, `--allure <file>`;
 - `--update-baselines`;
 - `--idempotency-key <chiave>` o `$WFM_IDEMPOTENCY_KEY`;
+- `--changed-since <ref git>` o `--changed-files <file>`: esegue solo i test che la modifica tocca,
+  secondo la [mappa dell'impatto](./guide/running#impatto);
 - `--no-ci` e `--json`.
 
 **Il codice di uscita è l'interfaccia:**
@@ -100,6 +102,11 @@ Lo step fallisce se il piano fallisce. Inoltre:
 - aggiunge un'annotazione sul fallimento;
 - imposta gli output `run-id`, `status` e `report-url`, che si possono usare per esempio per
   commentare una pull request.
+
+Su una pull request, <code v-pre>changed-since: origin/${{ github.base_ref }}</code> esegue solo i test che la pull
+request tocca. Serve la cronologia: fate il checkout con `actions/checkout@v4` e `fetch-depth: 0`
+prima di questo step. Senza quella cronologia la CLI non può elencare le modifiche, e lo step fallisce
+invece di eseguire meno test di quelli chiesti.
 
 ## 4. GitLab CI
 

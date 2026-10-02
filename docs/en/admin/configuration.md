@@ -87,6 +87,9 @@ person waits for.
 | `MAILPIT_URL` | both | none | The test inbox **Wait for email** steps read when the environment names none (`mailpit.url`), e.g. `http://mailpit:8025`. The docker-compose stack sets it to its bundled Mailpit. On an installation shared by several companies leave it unset and let each environment name its own: one inbox for everyone lets a test read another company's mail, if it can guess the address. See [emails](../guide/web-tests#emails). |
 | `MAILPIT_USERNAME`, `MAILPIT_PASSWORD` | both | none | Basic authentication for that inbox, when it asks for it. |
 | `INSECURE_TLS_HOSTS` | both | none | Comma-separated `host:port` values allowed to present a certificate Node would reject (a self-signed dev server). Per host, never global, and ignored when `NODE_ENV=production`. |
+| `LIGHTHOUSE_BIN` | both | `lighthouse` | The Lighthouse program **Lighthouse audit** steps run. The Docker images include it; elsewhere `npm install -g lighthouse@12`. See [page speed](../guide/web-tests#page-speed). |
+| `LIGHTHOUSE_TIMEOUT_MS` | both | `120000` | How long one Lighthouse audit may take. |
+| `CHROME_PATH` | both | Playwright's Chromium | The browser Lighthouse audits in. |
 
 ## Artifacts
 

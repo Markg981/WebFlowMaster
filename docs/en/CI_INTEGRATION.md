@@ -35,7 +35,9 @@ node wfm.mjs run <planId> --wait --junit junit.xml --html report.html
 
 Options: `--url` / `$WFM_URL`, `--key` / `$WFM_API_KEY`, `--environment <id>`, `--timeout <seconds>`
 (default 1800), `--junit`, `--html`, `--pdf`, `--allure <file>`, `--update-baselines`,
-`--idempotency-key <key>` / `$WFM_IDEMPOTENCY_KEY`, `--no-ci`, `--json`.
+`--idempotency-key <key>` / `$WFM_IDEMPOTENCY_KEY`, `--changed-since <git ref>` or
+`--changed-files <file>` (run only the tests the change affects, by the
+[impact map](./guide/running#impact)), `--no-ci`, `--json`.
 
 **The exit code is the interface:** `0` the run passed, `1` the run failed (including errored,
 cancelled and timed out), `2` the step could not be carried out (no key, wrong URL, server
@@ -79,8 +81,13 @@ jobs:
 The step fails when the plan fails. It writes the run to the job's summary page, annotates a
 failure on the run, and sets the outputs `run-id`, `status` and `report-url`, for example to comment
 on a pull request. Its inputs are `url`, `api-key`, `plan`, `environment`, `wait`, `timeout`,
-`junit` (default `webflowmaster-junit.xml`), `html`, `pdf`, `allure`, `update-baselines` and
-`idempotency-key`.
+`junit` (default `webflowmaster-junit.xml`), `html`, `pdf`, `allure`, `update-baselines`,
+`idempotency-key` and `changed-since`.
+
+On a pull request, <code v-pre>changed-since: origin/${{ github.base_ref }}</code> runs only the tests the pull
+request affects. It needs the history: check out with `actions/checkout@v4` and `fetch-depth: 0`
+before this step. Without that history the CLI cannot list the changes, and the step fails rather
+than run fewer tests than asked.
 
 ## 4. GitLab CI
 

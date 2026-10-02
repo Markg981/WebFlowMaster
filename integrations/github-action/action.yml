@@ -55,6 +55,13 @@ inputs:
     description: Start at most one run for this key; a re-run of the job with the same key follows the run already started.
     required: false
     default: ''
+  changed-since:
+    description: >-
+      Run only the tests the files changed since this git ref affect, by the organization's impact map
+      (e.g. origin/main, or origin/ followed by the pull request base branch). Needs a checkout
+      with that history (actions/checkout with fetch-depth 0). Every test runs when empty.
+    required: false
+    default: ''
 
 outputs:
   run-id:
@@ -94,6 +101,7 @@ runs:
         INPUT_ALLURE: ${{ inputs.allure }}
         INPUT_UPDATE_BASELINES: ${{ inputs.update-baselines }}
         INPUT_IDEMPOTENCY_KEY: ${{ inputs.idempotency-key }}
+        INPUT_CHANGED_SINCE: ${{ inputs.changed-since }}
       run: |
         set -uo pipefail
         echo "::add-mask::$WFM_API_KEY"
@@ -106,5 +114,6 @@ runs:
         [ -n "$INPUT_ALLURE" ] && args+=(--allure "$INPUT_ALLURE")
         [ "$INPUT_UPDATE_BASELINES" = "true" ] && args+=(--update-baselines)
         [ -n "$INPUT_IDEMPOTENCY_KEY" ] && args+=(--idempotency-key "$INPUT_IDEMPOTENCY_KEY")
+        [ -n "$INPUT_CHANGED_SINCE" ] && args+=(--changed-since "$INPUT_CHANGED_SINCE")
         # Exit codes: 0 passed, 1 the run failed, 2 the step could not be carried out.
         node "$RUNNER_TEMP/wfm.mjs" "${args[@]}"

@@ -135,7 +135,9 @@
       "testManagement": "Test management",
       "testManagementDescription": "TestRail, Xray or Zephyr Scale, where each finished run is published case by case.",
       "organizationData": "Export and erasure",
-      "organizationDataDescription": "Take the organization's data with you, or erase it for good."
+      "organizationDataDescription": "Take the organization's data with you, or erase it for good.",
+      "impactMap": "Impact map",
+      "impactMapDescription": "Which files affect which tests, so a pipeline runs the tests a commit affects instead of all of them."
     },
     "apiKeys": {
       "openApi": "API reference (OpenAPI)",
@@ -1294,6 +1296,16 @@
       "clearMocks": {
         "name": "Clear mocks",
         "description": "Takes back every mock and block of the test: the page reaches the real servers again."
+      },
+      "measurePerformance": {
+        "name": "Measure page speed",
+        "description": "Reads what the browser measured about the page at this point — Core Web Vitals (LCP, CLS, INP), FCP, TBT, TTFB, load time, requests and weight — and fails when a limit is broken. Empty checks the Core Web Vitals' good thresholds.",
+        "valueHint": "LCP < 2.5s, CLS <= 0.1, TTFB < 800ms, weight < 2MB"
+      },
+      "auditLighthouse": {
+        "name": "Lighthouse audit",
+        "description": "Runs Lighthouse on the current page, with the test's cookies, and keeps its report with the run. Fails when a category scores below its limit; empty records the scores only.",
+        "valueHint": "performance >= 80, accessibility >= 90, desktop"
       }
     },
     "playbackStatus": "Step {{current}}/{{total}}: {{name}} - {{details}}",
@@ -2634,7 +2646,8 @@
       "test_management": "Test management",
       "mobile_test": "Mobile apps",
       "test_data_set": "Test data",
-      "scim": "Provisioning (SCIM)"
+      "scim": "Provisioning (SCIM)",
+      "impact_rule": "Impact map"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -2738,7 +2751,9 @@
       "scim_group_updated": "Provider group changed",
       "scim_group_deleted": "Provider group removed",
       "api_test_imported": "API tests imported from OpenAPI or Postman",
-      "test_imported": "Tests imported from a file"
+      "test_imported": "Tests imported from a file",
+      "impact_rule_created": "Impact rule added",
+      "impact_rule_deleted": "Impact rule removed"
     }
   },
   "security": {
@@ -3947,5 +3962,30 @@
       "unchanged": "unchanged",
       "invalid": "not imported"
     }
+  },
+  "impactMap": {
+    "title": "Impact map",
+    "description": "Which files affect which tests. Map a file pattern to a tag: a run started with the files a commit changed (wfm run --changed-since) runs the tests carrying the tags those files map to, the tests the map does not cover, and those that failed last time. A changed file no rule matches runs every test.",
+    "empty": "No rules: every run runs every test.",
+    "noTest": "no test",
+    "remove": "Remove rule",
+    "pattern": "Files",
+    "tag": "Affect the tests tagged",
+    "chooseTag": "Choose a tag",
+    "noTestOption": "No test (documentation…)",
+    "add": "Add rule",
+    "tryTitle": "Try it on a change",
+    "choosePlan": "Choose a plan",
+    "filesPlaceholder": "One changed file per line, as git diff --name-only lists them",
+    "preview": "Show which tests would run"
+  },
+  "pagePerformance": {
+    "title": "Page speed",
+    "description": "Pages the tests measured: the Core Web Vitals the browser recorded, and Lighthouse scores, against each step’s limits. — means this browser does not measure it.",
+    "page": "Page",
+    "weight": "Weight",
+    "withinLimits": "within the limits",
+    "noLimits": "no limits",
+    "report": "report"
   }
 }

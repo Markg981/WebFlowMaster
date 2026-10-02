@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { artifactStore, assertSafeKey, RESULTS_PREFIX } from "../artifact-store";
 import { testPlanExecutions } from "@shared/schema";
 import type { AccessibilityFinding } from "@shared/accessibility";
+import type { LighthouseFinding, PerformanceFinding } from "@shared/web-performance";
 import { withTenantTransaction } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
 import loggerPromise from "../logger";
@@ -75,6 +76,8 @@ export interface ReportStep {
     diffImage?: string | null;
   };
   accessibility?: AccessibilityFinding;
+  performance?: PerformanceFinding;
+  lighthouse?: LighthouseFinding;
 }
 
 /**
@@ -120,6 +123,11 @@ export function stepsWithArtifactUrls(executionId: string, detailedLog: string |
         : undefined,
       // Selectors and rule names, no images: passed through as the runner wrote it.
       accessibility: step.accessibility && Array.isArray(step.accessibility.violations) ? (step.accessibility as AccessibilityFinding) : undefined,
+      // Numbers, and the Lighthouse report as a link like any other file of the run.
+      performance: step.performance && step.performance.metrics ? (step.performance as PerformanceFinding) : undefined,
+      lighthouse: step.lighthouse && step.lighthouse.scores
+        ? { ...(step.lighthouse as LighthouseFinding), reportUrl: artifactUrl(executionId, step.lighthouse.reportUrl) ?? undefined }
+        : undefined,
     }));
 }
 
@@ -166,6 +174,16 @@ router.get("/api/test-plan-executions/:executionId/artifacts/*", requireRole('vi
   // is read far more often than it is produced.
   res.setHeader('Cache-Control', 'private, max-age=3600');
   res.setHeader('Content-Type', artifact.contentType);
+  // An HTML artifact (a Lighthouse report) runs its own inline scripts. Sandboxed without
+  // allow-same-origin it gets an opaque origin: it cannot read this application's cookies or call
+  // its API, whatever the audited page put into it.
+  if (/^text\/html/i.test(artifact.contentType)) {
+    res.setHeader(
+      'Content-Security-Policy',
+      "sandbox allow-scripts allow-popups; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:",
+    );
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+  }
   if (artifact.size !== undefined) res.setHeader('Content-Length', String(artifact.size));
   artifact.stream.on('error', (error) => {
     logger.error({ message: "Artifact stream failed", executionId, key, error: error.message });

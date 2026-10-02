@@ -168,3 +168,29 @@ La dashboard elenca i prossimi run pianificati.
 Un piano può essere avviato dal vostro sistema di CI e il suo esito può far fallire la build: con
 una chiave API e la riga di comando `wfm`, oppure con il webhook del piano. Vedi
 [Integrazione CI](../CI_INTEGRATION).
+
+### Eseguire solo ciò che una modifica tocca {#impatto}
+
+Una pipeline che esegue tutto il piano a ogni commit aspetta test che quel commit non può aver
+rotto. **Impostazioni → Mappa dell'impatto** dice quali file riguardano quali test: ogni regola
+associa un pattern di file a uno dei vostri [tag](./organizing#la-libreria-dei-test) — `src/checkout/**` → `checkout`.
+Una regola con **Nessun test** indica file che non riguardano nulla, come `docs/**` o `*.md`.
+
+Avviate l'esecuzione con i file cambiati dal commit — `wfm run <piano> --changed-since origin/main`,
+oppure l'input `changed-since` della GitHub Action — ed esegue:
+
+- i test con un tag a cui porta un file cambiato;
+- i test che la mappa non copre (nessuno dei loro tag compare in una regola), perché niente dice che
+  la modifica non possa romperli;
+- i test falliti o in errore nell'ultima esecuzione conclusa del piano, così l'esecuzione che deve
+  mostrare una correzione la mostra.
+
+Nel dubbio esegue di più: un file cambiato che **nessuna regola riconosce** fa eseguire tutto il
+piano, e senza regole si eseguono tutti i test. Il log dell'esecuzione, il campo `selection` dell'API
+e la CLI dicono cosa è stato deciso — per esempio *3 changed file(s) affect the tags checkout: 7 of
+40 tests run* — così un test non eseguito è una scelta, non un buco. **Provala su una modifica**, nella
+stessa sezione, mostra quali test eseguirebbe un elenco di file, senza eseguirli.
+
+I pattern sono come quelli di git: `**` qualsiasi percorso, `*` e `?` dentro una cartella, `{ts,tsx}`
+l'uno o l'altro; un pattern senza `/` indica un file in qualunque cartella (`*.md`), uno che finisce
+con `/` un'intera cartella.

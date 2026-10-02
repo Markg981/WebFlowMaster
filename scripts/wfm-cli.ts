@@ -50,6 +50,10 @@ export interface CliOptions {
   format?: 'yaml' | 'json';
   outPath?: string;
   dryRun?: boolean;
+  /** run: only the tests the files changed since this git ref affect (server/test-impact.ts). */
+  changedSince?: string;
+  /** run: the same, from a file listing the changed files one per line. */
+  changedFilesPath?: string;
 }
 
 export interface CliIo {
@@ -61,8 +65,10 @@ export interface CliIo {
   sleep: (ms: number) => Promise<void>;
   now: () => number;
   env: Record<string, string | undefined>;
-  /** For `wfm tests import`. */
+  /** For `wfm tests import` and `--changed-files`. */
   readFile?: (path: string) => Promise<string>;
+  /** For `--changed-since`: the files changed between the ref and HEAD, from git. */
+  changedFilesSince?: (ref: string) => Promise<string[]>;
 }
 
 export const USAGE = `wfm — run WebFlowMaster test plans from a pipeline
@@ -70,6 +76,7 @@ export const USAGE = `wfm — run WebFlowMaster test plans from a pipeline
 Usage:
   wfm run <planId> [--wait] [--junit <file>] [--html <file>] [--pdf <file>] [--allure <file>]
                    [--environment <id>] [--update-baselines]
+                   [--changed-since <git ref> | --changed-files <file>]
   wfm status <runId>
   wfm junit <runId> [--junit <file>]
   wfm export <runId> [--html <file>] [--pdf <file>] [--allure <file>]
@@ -91,6 +98,9 @@ Options:
   --idempotency-key <k>  Start at most one run for this key (default: $WFM_IDEMPOTENCY_KEY).
                          Pass the build id, and a re-run of the same step follows the run
                          it already started instead of starting another.
+  --changed-since <ref>  Run only the tests the files changed since this git ref affect
+                         (git diff <ref>...HEAD), by the organization's impact map
+  --changed-files <file> The same, from a file listing the changed files, one per line
   --no-ci                Do not send the build, commit and branch read from the CI's environment
   --json                 Print the final run as JSON
   --project <id|none>    tests: the project to export, or where imported new tests go
@@ -154,6 +164,8 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
       case '--format': options.format = value() as 'yaml' | 'json'; break;
       case '--out': options.outPath = value(); break;
       case '--dry-run': options.dryRun = true; break;
+      case '--changed-since': options.changedSince = value(); break;
+      case '--changed-files': options.changedFilesPath = value(); break;
       default:
         if (argument.startsWith('-')) return { error: `Unknown option "${argument}".` };
         positional.push(argument);
@@ -185,6 +197,14 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
   }
   if (options.idempotencyKey !== undefined && !options.idempotencyKey.trim()) {
     return { error: '--idempotency-key needs a value.' };
+  }
+  if (options.changedSince !== undefined || options.changedFilesPath !== undefined) {
+    if (options.command !== 'run') return { error: '--changed-since and --changed-files go with run.' };
+    if (options.changedSince !== undefined && options.changedFilesPath !== undefined) {
+      return { error: 'Use --changed-since or --changed-files, not both.' };
+    }
+    if (options.changedSince !== undefined && !options.changedSince.trim()) return { error: '--changed-since needs a git ref.' };
+    if (options.changedFilesPath !== undefined && !options.changedFilesPath.trim()) return { error: '--changed-files needs a file.' };
   }
   if (options.command === 'export' && !options.htmlPath && !options.pdfPath && !options.allurePath) {
     return { error: 'export needs at least one of --html, --pdf or --allure.' };
@@ -222,6 +242,8 @@ export interface RunRecord {
   };
   failure?: { code: string; message?: string | null } | null;
   links?: { report?: string | null };
+  /** Present when the run was narrowed to what a change affects. */
+  selection?: { mode: string; reason: string; selected: number; total: number } | null;
 }
 
 /** The build, commit and branch, as /api/v1 takes them (shared/ci.ts has the server's rules). */
@@ -393,6 +415,20 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
     let runId = options.target!;
     if (options.command === 'run') {
       const ci = options.ci ? detectCi(io.env) : undefined;
+      let changedFiles: string[] | undefined;
+      if (options.changedSince !== undefined || options.changedFilesPath !== undefined) {
+        try {
+          changedFiles = options.changedSince !== undefined
+            ? await (io.changedFilesSince ?? (async () => { throw new Error('This build cannot run git.'); }))(options.changedSince)
+            : (await (io.readFile ?? (async () => { throw new Error('This build cannot read files.'); }))(options.changedFilesPath!))
+                .split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+        } catch (error) {
+          // Never a narrower run than asked for by accident: without the list, nothing runs.
+          io.error(`Could not list the changed files: ${(error as Error).message}`);
+          return EXIT_TOOL_ERROR;
+        }
+        io.log(`${changedFiles.length} changed file(s): the run is narrowed to the tests they affect.`);
+      }
       const response = await call(`/api/v1/plans/${encodeURIComponent(options.target!)}/runs`, {
         method: 'POST',
         ...(options.idempotencyKey ? { headers: { 'Idempotency-Key': options.idempotencyKey } } : {}),
@@ -400,6 +436,7 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
           ...(options.environmentId !== undefined ? { environmentId: options.environmentId } : {}),
           ...(options.updateBaselines ? { updateBaselines: true } : {}),
           ...(ci ? { ci } : {}),
+          ...(changedFiles ? { changedFiles } : {}),
         }),
       });
       if (!response.ok) {
@@ -413,6 +450,7 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
         return EXIT_TOOL_ERROR;
       }
       io.log(`Started run ${runId}${ci ? ` for ${ci.repository ?? ci.provider}${ci.commit ? `@${ci.commit.slice(0, 7)}` : ''}` : ''}.`);
+      if (started.selection) io.log(started.selection.reason);
       await githubOutputs(io, { id: runId, status: started.status, links: started.links });
       if (!options.wait) return EXIT_PASSED;
     }
@@ -625,6 +663,15 @@ export async function main(argv: string[]): Promise<number> {
     now: () => Date.now(),
     env: process.env,
     readFile: (file) => fs.readFile(file, 'utf8'),
+    changedFilesSince: async (ref) => {
+      const { execFile } = await import('node:child_process');
+      const out = await new Promise<string>((resolve, reject) =>
+        execFile('git', ['diff', '--name-only', '--no-renames', `${ref}...HEAD`], { maxBuffer: 16 * 1024 * 1024 }, (error, stdout, stderr) =>
+          error ? reject(new Error(stderr.trim() || error.message)) : resolve(stdout),
+        ),
+      );
+      return out.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    },
   });
 }
 

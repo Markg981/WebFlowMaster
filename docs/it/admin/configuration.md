@@ -87,6 +87,9 @@ elementi: i browser che una persona aspetta.
 | `MAILPIT_URL` | entrambi | nessuno | La casella di test che gli step **Attendi email** leggono quando l'ambiente non ne indica una (`mailpit.url`), per esempio `http://mailpit:8025`. Lo stack docker-compose la imposta sul suo Mailpit. Su un'installazione condivisa da più aziende lasciatela vuota e fate indicare a ogni ambiente la propria: un'unica casella per tutti permette a un test di leggere la posta di un'altra azienda, se ne indovina l'indirizzo. Vedi [email](../guide/web-tests#email). |
 | `MAILPIT_USERNAME`, `MAILPIT_PASSWORD` | entrambi | nessuno | Autenticazione Basic per quella casella, se la richiede. |
 | `INSECURE_TLS_HOSTS` | entrambi | nessuno | Valori `host:porta` separati da virgola a cui è permesso presentare un certificato che Node rifiuterebbe (un server di sviluppo autofirmato). Per host, mai globale, e ignorato con `NODE_ENV=production`. |
+| `LIGHTHOUSE_BIN` | entrambi | `lighthouse` | Il programma Lighthouse che eseguono gli step **Audit Lighthouse**. Le immagini Docker lo includono; altrove `npm install -g lighthouse@12`. Vedi [velocità delle pagine](../guide/web-tests#velocita-delle-pagine). |
+| `LIGHTHOUSE_TIMEOUT_MS` | entrambi | `120000` | Quanto può durare un audit Lighthouse. |
+| `CHROME_PATH` | entrambi | il Chromium di Playwright | Il browser in cui Lighthouse analizza la pagina. |
 
 ## Artefatti
 

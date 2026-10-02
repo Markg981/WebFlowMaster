@@ -1,4 +1,6 @@
 import { Router, type Request } from "express";
+import { readExecutionSnapshot } from '../execution-snapshot';
+import { MAX_CHANGED_FILES } from '../test-impact';
 import { z } from "zod";
 import { and, desc, eq, sql, type SQL } from "drizzle-orm";
 import { AUDIT_ACTIONS, testPlanExecutions, testPlans, type TestPlanExecution } from "@shared/schema";
@@ -56,6 +58,8 @@ function toRun(row: TestPlanExecution & { testPlanName?: string | null }) {
     runner: row.runnerId ?? null,
     /** The build that asked for it, as it was sent; null for a run no pipeline started. */
     ci: row.ciContext ?? null,
+    /** When the run was narrowed to the tests a change affects: what was decided, and why. */
+    selection: readExecutionSnapshot(row.configurationSnapshot)?.selection ?? null,
     links: {
       self: `/api/v1/runs/${row.id}`,
       junit: `/api/v1/runs/${row.id}/junit`,
@@ -95,6 +99,8 @@ const startRunSchema = z.object({
   updateBaselines: z.boolean().optional(),
   /** The build, commit and branch asking for the run. The CLI fills it in from the CI's environment. */
   ci: ciContextSchema.optional(),
+  /** The files the change touched: the run is narrowed to the tests they affect (server/test-impact.ts). */
+  changedFiles: z.array(z.string().min(1).max(1000)).max(MAX_CHANGED_FILES).optional(),
 }).strict();
 
 router.post("/api/v1/plans/:planId/runs", requireScope('runs:write'), async (req, res) => {
@@ -124,6 +130,7 @@ router.post("/api/v1/plans/:planId/runs", requireScope('runs:write'), async (req
       updateBaselines: parsed.data.updateBaselines,
       idempotencyKey,
       ciContext: parsed.data.ci ?? null,
+      changedFiles: parsed.data.changedFiles ?? null,
     });
     logger.info({ message: 'Run started through /api/v1', planId: plan.id, executionId: execution.id, userId: req.user!.id });
     // 202: the run is queued, not done. `Location` is where to ask how it is going.
