@@ -64,12 +64,12 @@ export async function writeWorkItems(
   items: Array<{ key: string; unit: WorkUnit }>,
 ): Promise<void> {
   if (items.length === 0) return;
-  await withTenantTransaction((tx) =>
-    tx
+  await withTenantTransaction(async (tx) => {
+    await tx
       .insert(runWorkItems)
       .values(items.map((item, position) => ({ executionId, organizationId, key: item.key, position, unit: item.unit })))
-      .onConflictDoNothing(),
-  );
+      .onConflictDoNothing();
+  });
 }
 
 /**
@@ -105,12 +105,12 @@ export async function claimWorkItem(executionId: string, worker: string): Promis
 
 /** The items this worker holds are still being worked on. */
 export async function heartbeatWorkItems(executionId: string, worker: string): Promise<void> {
-  await withTenantTransaction((tx) =>
-    tx
+  await withTenantTransaction(async (tx) => {
+    await tx
       .update(runWorkItems)
       .set({ heartbeatAt: sql`now()` })
-      .where(and(eq(runWorkItems.executionId, executionId), eq(runWorkItems.claimedBy, worker), eq(runWorkItems.state, 'claimed'))),
-  );
+      .where(and(eq(runWorkItems.executionId, executionId), eq(runWorkItems.claimedBy, worker), eq(runWorkItems.state, 'claimed')));
+  });
 }
 
 /**
@@ -128,7 +128,7 @@ export async function finishWorkItem(
       .update(runWorkItems)
       .set({ state: 'done', finishedAt: sql`now()`, results, error: results.failures[0] ?? null })
       .where(and(eq(runWorkItems.executionId, executionId), eq(runWorkItems.key, key), eq(runWorkItems.claimedBy, worker)))
-      .returning({ key: runWorkItems.key }),
+      .returning(),
   );
   return rows.length > 0;
 }
@@ -164,12 +164,12 @@ export async function workItemResults(executionId: string): Promise<WorkItemResu
 
 /** A plan policy stopped the run: said once, on the run, for every worker sharing it. The first reason stays. */
 export async function recordStopReason(executionId: string, reason: string): Promise<void> {
-  await withTenantTransaction((tx) =>
-    tx
+  await withTenantTransaction(async (tx) => {
+    await tx
       .update(testPlanExecutions)
       .set({ stopReason: reason })
-      .where(and(eq(testPlanExecutions.id, executionId), isNull(testPlanExecutions.stopReason))),
-  );
+      .where(and(eq(testPlanExecutions.id, executionId), isNull(testPlanExecutions.stopReason)));
+  });
 }
 
 export async function sharedStopReason(executionId: string): Promise<string | null> {
