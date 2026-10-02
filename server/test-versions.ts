@@ -23,6 +23,7 @@ export interface TestSnapshot {
   sequence: unknown;
   elements: unknown;
   preconditions?: unknown;
+  cleanups?: unknown;
   dataset?: unknown;
 }
 
@@ -109,6 +110,12 @@ export function describeChange(previous: TestSnapshot | null, next: TestSnapshot
   const nextPre = asSteps(next.preconditions).length;
   if (previousPre !== nextPre) parts.push(`preconditions ${previousPre} → ${nextPre}`);
 
+  // By content, not only by count: a cleanup pointed at another URL deletes something else.
+  const previousCleanups = asSteps(previous.cleanups);
+  const nextCleanups = asSteps(next.cleanups);
+  if (previousCleanups.length !== nextCleanups.length) parts.push(`cleanup ${previousCleanups.length} → ${nextCleanups.length}`);
+  else if (JSON.stringify(previousCleanups) !== JSON.stringify(nextCleanups)) parts.push('cleanup changed');
+
   if (parts.length === 0) return '';
   const sentence = parts.join(', ');
   return `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)}.`;
@@ -126,6 +133,7 @@ export function snapshotOf(test: {
   sequence: unknown;
   elements: unknown;
   preconditions?: unknown;
+  cleanups?: unknown;
   dataset?: unknown;
 }): TestSnapshot {
   return {
@@ -134,6 +142,7 @@ export function snapshotOf(test: {
     sequence: test.sequence,
     elements: test.elements,
     preconditions: test.preconditions ?? null,
+    cleanups: test.cleanups ?? null,
     dataset: test.dataset ?? null,
   };
 }

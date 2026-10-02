@@ -327,6 +327,30 @@ stato che il test richiede — creare un cliente, svuotare un carrello. Si scelg
 [test API](./api-tests) salvati e girano nell'ordine dell'elenco. Un test la cui precondizione
 fallisce viene riportato come bloccato, non come fallito.
 
+## Pulizia {#pulizia}
+
+Le chiamate di **pulizia** sono chiamate API eseguite dopo il test, che sia passato, fallito o
+bloccato da una precondizione, per rimuovere i dati che ha creato — l'ordine che ha inserito, il
+cliente creato da una precondizione — così l'esecuzione successiva parte dallo stesso stato e
+l'applicazione sotto test non si riempie di dati di prova. Si scelgono fra i vostri
+[test API](./api-tests) salvati, di solito richieste `DELETE`, e girano nell'ordine dell'elenco.
+
+- Possono usare i valori salvati dagli step: <code v-pre>DELETE {{baseUrl}}/orders/{{orderId}}</code>
+  dopo uno step **Salva testo in variabile** che ha conservato il numero d'ordine come `orderId`. Una chiamata che nomina una
+  variabile mai impostata nell'esecuzione — il test è fallito prima dello step che la salva — non
+  viene fatta, e il report dice che è stata saltata.
+- Ogni chiamata viene tentata, anche dopo che una fallisce. `404` e `410` valgono come **già
+  rimosso**, quindi una pulizia si può ripetere senza danni.
+- Con un [dataset](#dataset), la pulizia gira una volta per ogni riga, dopo tutte le righe, con i
+  valori di quella riga; ciò che ha creato una precondizione lo cancella la prima riga, e per le
+  altre risulta già rimosso.
+- La pulizia non cambia mai l'esito del test. Il report la mostra come riga **Cleanup** dopo gli
+  step, fallita quando una chiamata è fallita — possono essere rimasti dei dati — e il log
+  dell'esecuzione nomina la chiamata.
+
+Anche **Esegui test** nel builder esegue la pulizia. Il debugger no: una sessione in pausa a metà
+cancellerebbe ciò che state guardando.
+
 ## Dataset
 
 Per eseguire lo stesso test su più input, dategli un **dataset**: una tabella i cui nomi di

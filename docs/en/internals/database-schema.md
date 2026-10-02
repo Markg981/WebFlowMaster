@@ -359,6 +359,7 @@ erDiagram
     jsonb sequence
     jsonb elements
     jsonb preconditions
+    jsonb cleanups
     jsonb dataset
     text status
     int published_version
@@ -381,6 +382,7 @@ erDiagram
     jsonb sequence
     jsonb elements
     jsonb preconditions
+    jsonb cleanups
     jsonb dataset
     text summary
     int restored_from_version

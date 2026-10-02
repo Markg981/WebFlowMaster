@@ -62,7 +62,7 @@ I diagrammi completi, a livello di colonna, di tutte le tabelle sono in [Schema 
 
 | Tabella | Scopo |
 |---|---|
-| `tests` | Test UI: la sequenza di step, gli elementi rilevati, le precondizioni, il dataset, il riferimento alla versione pubblicata. |
+| `tests` | Test UI: la sequenza di step, gli elementi rilevati, le precondizioni, le chiamate di pulizia (`cleanups`, eseguite dopo il test), il dataset, il riferimento alla versione pubblicata. |
 | `detected_elements` | Elementi trovati su una pagina per un test (la palette del builder). |
 | `project_elements` | Il repository degli elementi: una definizione per elemento per progetto, che gli step possono richiamare; la correzione automatica la aggiorna una volta per tutti i test. |
 | `step_groups` | Sequenze di step riutilizzabili con un nome, richiamate dai test; espanse al momento dell'esecuzione. |

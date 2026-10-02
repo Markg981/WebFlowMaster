@@ -20,6 +20,7 @@ export interface VersionableTest {
   sequence: unknown;
   elements: unknown;
   preconditions?: unknown;
+  cleanups?: unknown;
   dataset?: unknown;
 }
 
@@ -102,6 +103,7 @@ export async function recordTestVersion(
     sequence: snapshot.sequence,
     elements: snapshot.elements,
     preconditions: snapshot.preconditions ?? null,
+    cleanups: snapshot.cleanups ?? null,
     dataset: snapshot.dataset ?? null,
     summary,
     restoredFromVersion: input.restoredFromVersion ?? null,

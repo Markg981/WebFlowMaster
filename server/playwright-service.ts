@@ -3,11 +3,12 @@ import { v4 as uuidv4 } from 'uuid'; // For generating session IDs
 import loggerPromise from './logger';
 import type { Logger as WinstonLogger } from 'winston';
 import { storage } from './storage'; // To fetch user settings
-import type { Test, Precondition } from '@shared/schema'; // Import Test and UserSettings type
+import type { Test, Precondition, Cleanup } from '@shared/schema'; // Import Test and UserSettings type
 import { type RecordedAction, RecordedActionSchema } from '@shared/recording';
 import { RECORDER_SCRIPT } from './recorder-script';
 import { VOLATILE_ID_PATTERNS } from '@shared/selectors';
 import { runPreconditions } from './precondition-runner';
+import { cleanupReportStep, runCleanups } from './cleanup-runner';
 import { recordRunnerFailure } from './observability/taps/runner';
 import fs from 'fs-extra';
 import path from 'path';
@@ -222,6 +223,11 @@ export interface ExecuteSequenceOptions {
    * the formats Intl uses (shared/locales.ts). Absent: the browser's own default.
    */
   locale?: string;
+  /**
+   * Told the variables of each run of the steps (one per dataset row), as the steps leave them:
+   * what they stored is there too. The cleanup after the test reads them (server/cleanup-runner.ts).
+   */
+  onVariables?: (vars: Record<string, string>) => void;
 }
 
 // Interface for the ad-hoc sequence payload
@@ -232,6 +238,8 @@ export interface AdhocSequencePayload {
   name?: string;
   /** Same setup calls the scheduled runner performs, so the preview matches the real run. */
   preconditions?: Precondition[] | null;
+  /** Same cleanup calls the scheduled runner makes after the test (server/cleanup-runner.ts). */
+  cleanups?: Cleanup[] | null;
   /** Environment whose secrets resolve `{{name}}` placeholders, as picked in the builder. */
   environmentId?: number | null;
   /** Organization the environment must belong to — set by the route, never by the client. */
@@ -1384,6 +1392,21 @@ export class PlaywrightService {
   }
 
   async executeAdhocSequence(payload: AdhocSequencePayload, userId: number, debug?: DebugHooks): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detection?: DetectionResult }> {
+    if (!payload.cleanups || payload.cleanups.length === 0) return this.runAdhocSequence(payload, userId, debug);
+    // The cleanup runs once the steps are over — after every row, as a saved run does it — with
+    // the variables each row ended with.
+    const variableSets: Array<Record<string, string>> = [];
+    const result = await this.runAdhocSequence({ ...payload, cleanups: null }, userId, debug, variableSets);
+    const cleanup = await runCleanups(payload.cleanups, variableSets);
+    return { ...result, steps: [...(result.steps ?? []), cleanupReportStep(cleanup)] };
+  }
+
+  private async runAdhocSequence(
+    payload: AdhocSequencePayload,
+    userId: number,
+    debug?: DebugHooks,
+    variableSets?: Array<Record<string, string>>,
+  ): Promise<{ success: boolean; steps?: StepResult[]; error?: string; duration?: number; detection?: DetectionResult }> {
     const testName = payload.name || "Ad-hoc Test";
     resolvedLogger.http({ message: "PlaywrightService: executeAdhocSequence called", testName, userId, url: payload.url });
 
@@ -1394,7 +1417,7 @@ export class PlaywrightService {
     if (adhocRows) {
       const adhocStart = Date.now();
       const merged = await runOverDataset(adhocRows, (row) =>
-        this.executeAdhocSequence({ ...payload, dataset: null, rowVariables: row }, userId),
+        this.runAdhocSequence({ ...payload, dataset: null, rowVariables: row }, userId, undefined, variableSets),
       );
       return { ...merged, duration: Date.now() - adhocStart };
     }
@@ -1411,6 +1434,7 @@ export class PlaywrightService {
       // The dataset row for this pass, layered over the environment's values.
       ...(payload.rowVariables ?? {}),
     };
+    variableSets?.push(vars);
     debug?.watch(vars);
     const targetUrl = payload.url ? substituteVariables(payload.url, vars) : payload.url;
     const startTime = Date.now();
@@ -1871,6 +1895,8 @@ export class PlaywrightService {
     vars = { ...vars };
     // {{locale}} for the steps that expect a translated text, when the run chose a language.
     if (options?.locale) vars[LOCALE_VARIABLE] = options.locale;
+    // The object itself: the steps store into it, and the cleanup after the test reads what they stored.
+    options?.onVariables?.(vars);
     const wsEmitter = getWsEmitter();
     resolvedLogger.http({ message: "PlaywrightService: executeTestSequence called", testName: test.name, testId: test.id, userId, testUrl: test.url, screenshotBaseDir });
 

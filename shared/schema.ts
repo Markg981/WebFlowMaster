@@ -140,6 +140,9 @@ export const tests = pgTable("tests", {
   // system under test is in the required state (e.g. a static scale check before a
   // tare check). Nullable: existing/most tests have none. See PreconditionSchema.
   preconditions: jsonb("preconditions"),
+  // API calls after the test, whatever its outcome, that remove what it created (migration 0065,
+  // server/cleanup-runner.ts). Nullable: most tests have none. See CleanupSchema.
+  cleanups: jsonb("cleanups"),
   /**
    * Rows of input this test runs over, one run each.
    *
@@ -1083,6 +1086,7 @@ export const testVersions = pgTable("test_versions", {
   sequence: jsonb("sequence").notNull(),
   elements: jsonb("elements").notNull(),
   preconditions: jsonb("preconditions"),
+  cleanups: jsonb("cleanups"),
   dataset: jsonb("dataset"),
   /** What changed since the version before, worked out when the row is written. */
   summary: text("summary"),
@@ -1955,12 +1959,21 @@ export const PreconditionSchema = z.object({
 });
 export type Precondition = z.infer<typeof PreconditionSchema>;
 
+/**
+ * A cleanup: an API call made after the test, whatever its outcome, to remove what it created
+ * (server/cleanup-runner.ts). The request shape of a precondition, without the check: 404 and 410
+ * already mean "gone", and `satisfiedStatuses` adds others.
+ */
+export const CleanupSchema = PreconditionSchema.omit({ check: true });
+export type Cleanup = z.infer<typeof CleanupSchema>;
+
 export const insertTestSchema = createInsertSchema(tests, {
   module: z.string().optional().nullable(), // Zod handles .nullable() correctly for optional fields
   featureArea: z.string().optional().nullable(),
   scenario: z.string().optional().nullable(),
   component: z.string().optional().nullable(),
   preconditions: z.array(PreconditionSchema).optional().nullable(),
+  cleanups: z.array(CleanupSchema).max(50).optional().nullable(),
   // Rows of input, each key a {{variable}} for that run. Typed rather than raw jsonb so a
   // malformed dataset is refused at save time instead of halfway through a scheduled run.
   dataset: z.array(z.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))).optional().nullable(),

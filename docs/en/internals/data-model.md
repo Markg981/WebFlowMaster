@@ -62,7 +62,7 @@ The complete column-level diagrams of all tables are in [Database schema](./data
 
 | Table | Purpose |
 |---|---|
-| `tests` | UI tests: the step sequence, detected elements, preconditions, dataset, published version pointer. |
+| `tests` | UI tests: the step sequence, detected elements, preconditions, cleanup calls (`cleanups`, run after the test), dataset, published version pointer. |
 | `detected_elements` | Elements found on a page for one test (the builder's palette). |
 | `project_elements` | The element repository: one definition per element per project, which steps may reference; healing updates it once for every test. |
 | `step_groups` | Named, reusable step sequences called from tests; expanded at run time. |

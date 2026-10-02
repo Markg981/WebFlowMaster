@@ -3878,5 +3878,11 @@
     "typeName": "Type the organization name, {{name}}, to confirm",
     "erase": "Erase permanently",
     "lastWarning": "Erase {{name}} and every account in it? This cannot be undone."
+  },
+  "cleanup": {
+    "title": "Cleanup",
+    "description": "API calls made after the test, whether it passed or not, to remove the data it created. Values the steps stored, like {{example}}, can be used; a call naming one the run never set is skipped.",
+    "add": "Add a saved API test as cleanup…",
+    "empty": "No cleanup. What the test creates stays in the application."
   }
 }

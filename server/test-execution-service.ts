@@ -1,7 +1,8 @@
 import { failedStepReason } from './failed-step-reason';
 import { playwrightService } from './playwright-service';
-import type { Test, ApiTest, TestPlan, TestPlanExecution, InsertReportTestCaseResult, Precondition, ExecutionTrigger } from '@shared/schema'; // Assuming ApiTest will be defined or Test is generic enough
+import type { Test, ApiTest, TestPlan, TestPlanExecution, InsertReportTestCaseResult, Precondition, Cleanup, ExecutionTrigger } from '@shared/schema'; // Assuming ApiTest will be defined or Test is generic enough
 import { runPreconditions } from './precondition-runner';
+import { cleanupReportStep, runCleanups } from './cleanup-runner';
 import type { StepResult } from './playwright-service'; // Import StepResult type
 import loggerPromise from './logger';
 import { privilegedDb } from './db';
@@ -205,6 +206,27 @@ export async function runTest(
 
   if (testType === 'ui') {
     const uiTest = test as Test;
+    // The variables each run of the steps ended with (one per dataset row), for the cleanup.
+    const variableSets: Array<Record<string, string>> = [];
+    /**
+     * The test's cleanup (server/cleanup-runner.ts), after the test whatever became of it — passed,
+     * failed, blocked by a precondition that may have created half of what it meant to. Shown as the
+     * last line of its steps; it never changes the result.
+     */
+    const withCleanup = async (result: IndividualTestRunResult): Promise<IndividualTestRunResult> => {
+      const cleanups = (uiTest as unknown as { cleanups?: Cleanup[] | null }).cleanups;
+      if (!cleanups || cleanups.length === 0) return result;
+      const cleanup = await runCleanups(cleanups, variableSets.length > 0 ? variableSets : [vars], options?.http);
+      for (const step of cleanup.steps.filter((s) => s.status === 'failed' || s.status === 'skipped')) {
+        getWsEmitter().emitExecutionLog(runId, {
+          level: 'warn',
+          source: 'system',
+          message: `"${uiTest.name}": cleanup "${step.name}" ${step.status === 'failed' ? 'failed' : 'was skipped'}: ${step.detail}`,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      return { ...result, steps: [...(result.steps ?? []), cleanupReportStep(cleanup) as StepResult] };
+    };
     // One directory per browser, because a plan covering two browsers runs this test twice
     // and the second run would otherwise overwrite the first one's evidence.
     const screenshotBaseDir = path.join(
@@ -243,7 +265,7 @@ export async function runTest(
           testId, testName, planId, runId, failedAt: preResult.failedAt, reason: preResult.reason,
         });
         const skipped = options?.onPreconditionFailure === 'skip';
-        return {
+        return withCleanup({
           testId,
           testType: 'ui',
           name: uiTest.name,
@@ -253,7 +275,7 @@ export async function runTest(
           blockedByPrecondition: true,
           error: skipped ? `Skipped: ${reason}` : reason,
           durationMs,
-        };
+        });
       }
 
       const result = await playwrightService.executeTestSequence(
@@ -281,6 +303,7 @@ export async function runTest(
           runtime: options?.runtime,
           signal: options?.signal,
           locale: options?.locale,
+          onVariables: (set) => variableSets.push(set),
         },
       );
       const durationMs = Date.now() - startTime;
@@ -315,7 +338,7 @@ export async function runTest(
 
 
       resolvedLogger.info({ message: `UI Test completed`, testId, testName, planId, runId, success: result.success, durationMs });
-      return {
+      return withCleanup({
         testId,
         testType: 'ui',
         name: uiTest.name,
@@ -330,11 +353,11 @@ export async function runTest(
         harPath: result.evidence?.harPath,
         network: result.evidence?.network,
         artifactDir: screenshotBaseDir,
-      };
+      });
     } catch (error: any) {
       const durationMs = Date.now() - startTime;
       resolvedLogger.error({ message: `Critical error during UI test execution`, testId, testName, planId, runId, error: error.message, stack: error.stack });
-      return {
+      return withCleanup({
         testId,
         testType: 'ui',
         name: uiTest.name,
@@ -342,7 +365,7 @@ export async function runTest(
         status: 'error',
         error: `Execution failed: ${error.message}`,
         durationMs,
-      };
+      });
     }
   } else if (testType === 'api') {
     const apiTest = test as ApiTest; // Cast to ApiTest
@@ -850,6 +873,7 @@ async function runTestPlanJobInTenant(
         sequence: content.sequence,
         elements: content.elements,
         preconditions: content.preconditions,
+        cleanups: content.cleanups,
         dataset: content.dataset,
       } as Test);
       testVersionsInRun.set(testId, content.version);
@@ -1245,7 +1269,8 @@ async function runTestPlanJobInTenant(
           status: resultFromRunTest.status,
           cause: resultFromRunTest.blockedByPrecondition
             ? 'precondition'
-            : resultFromRunTest.steps?.some((step) => step.status === 'failed')
+            // The cleanup's line is not one of the test's steps: it never decides why a test stopped.
+            : resultFromRunTest.steps?.some((step) => step.status === 'failed' && step.type !== 'cleanup')
               ? 'step'
               : 'other',
         },

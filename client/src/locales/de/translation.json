@@ -3884,5 +3884,11 @@
     "typeName": "Geben Sie zur Bestätigung den Namen der Organisation ein: {{name}}",
     "erase": "Endgültig löschen",
     "lastWarning": "{{name}} und alle Konten darin löschen? Das lässt sich nicht rückgängig machen."
+  },
+  "cleanup": {
+    "title": "Aufräumen",
+    "description": "API-Aufrufe nach dem Test, ob bestanden oder nicht, die die erzeugten Daten entfernen. Von Schritten gespeicherte Werte wie {{example}} sind nutzbar; ein Aufruf mit einem nie gesetzten Wert wird übersprungen.",
+    "add": "Gespeicherten API-Test zum Aufräumen hinzufügen…",
+    "empty": "Kein Aufräumen. Was der Test anlegt, bleibt in der Anwendung."
   }
 }

@@ -4003,5 +4003,11 @@
     "typeName": "Scrivete il nome dell'organizzazione, {{name}}, per confermare",
     "erase": "Cancella definitivamente",
     "lastWarning": "Cancellare {{name}} e ogni suo account? Non si può annullare."
+  },
+  "cleanup": {
+    "title": "Pulizia",
+    "description": "Chiamate API eseguite dopo il test, che sia passato o no, per rimuovere i dati che ha creato. Si possono usare i valori salvati dagli step, come {{example}}; una chiamata che ne nomina uno mai impostato viene saltata.",
+    "add": "Aggiungi un test API salvato come pulizia…",
+    "empty": "Nessuna pulizia. Ciò che il test crea resta nell'applicazione."
   }
 }

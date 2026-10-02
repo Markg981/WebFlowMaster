@@ -3884,5 +3884,11 @@
     "typeName": "Saisissez le nom de l'organisation, {{name}}, pour confirmer",
     "erase": "Effacer définitivement",
     "lastWarning": "Effacer {{name}} et tous ses comptes ? C'est irréversible."
+  },
+  "cleanup": {
+    "title": "Nettoyage",
+    "description": "Appels API effectués après le test, réussi ou non, pour supprimer les données qu'il a créées. Les valeurs enregistrées par les étapes, comme {{example}}, sont utilisables ; un appel qui en nomme une jamais définie est ignoré.",
+    "add": "Ajouter un test API enregistré comme nettoyage…",
+    "empty": "Aucun nettoyage. Ce que le test crée reste dans l'application."
   }
 }

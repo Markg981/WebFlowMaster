@@ -66,6 +66,7 @@ vi.mock('@/components/SaveTestModal', () => ({
 
 vi.mock('@/components/PreconditionsPanel', () => ({
   PreconditionsPanel: () => <div data-testid="preconditions-panel" />,
+  CleanupPanel: () => <div data-testid="cleanup-panel" />,
 }));
 
 vi.mock('@/components/visual-builder/VisualTestBuilder', () => ({
