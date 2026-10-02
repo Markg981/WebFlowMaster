@@ -23,6 +23,8 @@ node wfm.mjs run 12 --wait --junit junit.xml
 | `wfm status RUN_ID` | Stampa lo stato di un run. |
 | `wfm junit RUN_ID --junit FILE` | Scrive il JUnit XML di un run concluso. |
 | `wfm export RUN_ID --html FILE` | Scrive i report di un run concluso (`--html`, `--pdf`, `--allure`). |
+| `wfm tests export [--project ID\|none] [--format yaml\|json] [--out FILE]` | Scrive i test web e API di un progetto in un unico file — vedi [Test come file](../guide/organizing#test-come-file). |
+| `wfm tests import FILE [--project ID] [--dry-run]` | Rilegge quel file: i test con lo stesso nome vengono aggiornati, gli altri creati in `--project`. `--dry-run` dice solo cosa cambierebbe. Esce con `1` se qualche test è stato escluso. |
 | `wfm help` | Stampa l'uso. |
 
 ## Opzioni
@@ -53,6 +55,12 @@ node wfm.mjs run 12 --wait --junit junit.xml
 | `2` | Il comando non è stato eseguito: uso errato, nessuna chiave, server irraggiungibile o che rifiuta, o attesa scaduta. |
 
 Uno step di pipeline che esegue `wfm run … --wait` fallisce quindi esattamente quando deve.
+
+`wfm tests` usa gli endpoint dell'applicazione, non `/api/v1`, quindi serve una chiave API ad
+**accesso completo** (creata senza scope); una chiave con scope viene rifiutata, e la CLI lo dice. Un
+uso tipico tiene i test nel repository dell'applicazione: un job notturno esegue `wfm tests export
+--project 12 --out tests/shop.wfm.yaml` e committa il file se è cambiato, e un job sul ramo principale
+esegue `wfm tests import tests/shop.wfm.yaml` dopo che una pull request l'ha modificato.
 
 ## Cosa legge dal sistema di CI
 

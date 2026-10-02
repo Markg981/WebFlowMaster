@@ -346,3 +346,46 @@ describe('describing a run', () => {
       .toBe('### ✅ Smoke: passed\n\n| Tests | Passed | Failed | Skipped | Duration |\n| ---: | ---: | ---: | ---: | ---: |\n| 2 | 2 | 0 | 0 | 1.0 s |\n\n[Open the report](https://wfm.test/r/1) · run `run-1`\n');
   });
 });
+
+describe('wfm tests', () => {
+  const withHeaders = (response: Response, headers: Record<string, string>) =>
+    Object.assign(response, { headers: new Headers(headers) }) as Response;
+
+  it('reads export and import, and refuses what it cannot do', () => {
+    expect(parseArgs(['tests', 'export', '--project', '12', '--format', 'json'], {})).toMatchObject({ command: 'tests', testsAction: 'export', project: '12', format: 'json' });
+    expect(parseArgs(['tests', 'import', 'shop.wfm.yaml', '--dry-run'], {})).toMatchObject({ testsAction: 'import', target: 'shop.wfm.yaml', dryRun: true });
+    expect(parseArgs(['tests'], {})).toEqual({ error: expect.stringContaining('export or import') });
+    expect(parseArgs(['tests', 'import'], {})).toEqual({ error: expect.stringContaining('needs the file') });
+    expect(parseArgs(['tests', 'export', '--project', 'shop'], {})).toEqual({ error: expect.stringContaining('--project') });
+  });
+
+  it('writes the export where the server names it, and says what it left out', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      withHeaders(textResponse('kind: webflowmaster/tests\n'), { 'content-disposition': 'attachment; filename="shop.wfm.yaml"', 'x-wfm-secrets-replaced': '2', 'x-wfm-tests-with-references': '0' }),
+    );
+    const context = io(fetchImpl);
+    const code = await runCli(options({ command: 'tests', testsAction: 'export', project: '12' }), context);
+    expect(code).toBe(EXIT_PASSED);
+    expect(fetchImpl.mock.calls[0][0]).toBe('https://wfm.test/api/tests/export?format=yaml&projectId=12');
+    expect(context.files.get('shop.wfm.yaml')).toBe('kind: webflowmaster/tests\n');
+    expect(context.lines.join('\n')).toContain('2 secret(s)');
+  });
+
+  it('imports a file, lists what happened, and fails when tests were left out', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse({ dryRun: false, results: [{ kind: 'test', name: 'Login', outcome: 'updated' }, { kind: 'api_test', name: 'Broken', outcome: 'invalid', reason: 'url: Invalid URL' }] }, 201),
+    );
+    const context = Object.assign(io(fetchImpl), { readFile: async () => 'kind: webflowmaster/tests' });
+    const code = await runCli(options({ command: 'tests', testsAction: 'import', target: 'shop.wfm.yaml', project: '3' }), context);
+    expect(code).toBe(EXIT_RUN_FAILED);
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ content: 'kind: webflowmaster/tests', dryRun: false, projectId: 3 });
+    expect(context.lines.join('\n')).toContain('1 updated');
+    expect(context.lines.join('\n')).toContain('API Broken — url: Invalid URL');
+  });
+
+  it('explains a refused key', async () => {
+    const context = io(vi.fn().mockResolvedValue(jsonResponse({}, 401)));
+    expect(await runCli(options({ command: 'tests', testsAction: 'export' }), context)).toBe(EXIT_TOOL_ERROR);
+    expect(context.errors[0]).toContain('full-access API key');
+  });
+});

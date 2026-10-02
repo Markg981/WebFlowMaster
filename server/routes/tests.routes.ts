@@ -1,7 +1,7 @@
 import { Router, type Response } from "express";
 import { tests, insertTestSchema, apiTests, insertApiTestSchema, updateApiTestSchema, users, projects, AUDIT_ACTIONS } from "@shared/schema";
 import { auditActor, changedFields, recordAudit } from "../audit";
-import { eq, desc, getTableColumns } from "drizzle-orm";
+import { eq, desc, getTableColumns, isNull } from "drizzle-orm";
 import { z } from "zod";
 import loggerPromise from "../logger";
 import { BrowserTaskError, browserTasks } from "../browser-tasks";
@@ -11,6 +11,10 @@ import { recordTestVersion } from "../test-version-store";
 import { tagsOfTests } from "../test-tags";
 import { manualSequenceProblem } from "@shared/manual-tests";
 import { ImportError, MAX_IMPORTED_TESTS, importApiDescription } from "../api-import";
+import { API_TEST_FIELDS, BundleError, TEST_FIELDS, exportBundle, parseBundle, sameAs } from "../test-bundle";
+import { toPlaywright } from "../playwright-export";
+import { expandSequenceForRun } from "../step-groups";
+import { resolveSequenceForRun } from "../step-elements";
 
 const router = Router();
 const logger = await loggerPromise;
@@ -569,6 +573,173 @@ router.delete("/api/api-tests/:id", requireRole('editor'), async (req, res) => {
         logger.error({ message: `Error deleting API test ${id}`, error: e.message, userId: req.user?.id });
         res.status(500).json({ error: "Failed to delete API test" });
     }
+});
+
+// ─── Tests as files: a versionable bundle, and Playwright (server/test-bundle.ts, server/playwright-export.ts) ───
+
+/** `?projectId=12`, `?projectId=none` (tests in no project), or absent (all of them). */
+function projectFilter(value: unknown): { ok: true; projectId: number | null | undefined } | { ok: false } {
+  if (value === undefined || value === '') return { ok: true, projectId: undefined };
+  if (value === 'none') return { ok: true, projectId: null };
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? { ok: true, projectId: id } : { ok: false };
+}
+
+// GET /api/tests/export — the web and API tests of a project as one YAML (or ?format=json) file.
+router.get("/api/tests/export", requireRole('viewer'), async (req, res) => {
+  const filter = projectFilter(req.query.projectId);
+  if (!filter.ok) return res.status(400).json({ error: "projectId is a project id, or none." });
+  const format = req.query.format === 'json' ? 'json' : 'yaml';
+  const { projectId } = filter;
+  const data = await withTenantTransaction(async (tx) => {
+    const where = <T extends typeof tests | typeof apiTests>(table: T) =>
+      projectId === undefined ? undefined : projectId === null ? isNull(table.projectId) : eq(table.projectId, projectId);
+    const [project] = projectId ? await tx.select({ name: projects.name }).from(projects).where(eq(projects.id, projectId)) : [];
+    return {
+      project: project?.name ?? null,
+      projectMissing: Boolean(projectId) && !project,
+      tests: await tx.select().from(tests).where(where(tests)),
+      apiTests: await tx.select().from(apiTests).where(where(apiTests)),
+    };
+  });
+  if (data.projectMissing) return res.status(404).json({ error: "Project not found" });
+  const bundle = exportBundle(data, format);
+  res.setHeader("Content-Disposition", `attachment; filename="${bundle.fileName}"`);
+  // What the file left out or refers to, for the client to say so; the file itself is the body.
+  res.setHeader("X-WFM-Secrets-Replaced", String(bundle.secretsReplaced.length));
+  res.setHeader("X-WFM-Tests-With-References", String(bundle.withReferences.length));
+  res.type(format === 'json' ? 'application/json' : 'application/yaml').send(bundle.content);
+});
+
+const importBundleSchema = z.object({
+  content: z.string().min(1).max(20 * 1024 * 1024),
+  /** Where new tests go; existing tests keep their project. */
+  projectId: projectIdField,
+  dryRun: z.boolean().optional().default(false),
+});
+
+// POST /api/tests/import-bundle — a file made by the export: tests of the same name are updated
+// (a new version each), the others created. Unchanged tests are left alone.
+router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) => {
+  const parsed = importBundleSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid import", details: parsed.error.flatten() });
+  let bundle;
+  try {
+    bundle = parseBundle(parsed.data.content);
+  } catch (error) {
+    if (error instanceof BundleError) return res.status(400).json({ error: error.message });
+    throw error;
+  }
+  const projectId = parsed.data.projectId ?? null;
+
+  type Outcome = { kind: 'test' | 'api_test'; name: string; outcome: 'created' | 'updated' | 'unchanged' | 'invalid'; reason?: string };
+  try {
+    const outcomes = await withTenantTransaction(async (tx) => {
+      const results: Outcome[] = [];
+      for (const raw of bundle.tests) {
+        const name = String(raw.name ?? '');
+        // The detected elements are the builder's palette, not part of the test: the file leaves them out.
+        const candidate = insertTestSchema.safeParse({ elements: [], ...raw, projectId });
+        if (!candidate.success) {
+          results.push({ kind: 'test', name, outcome: 'invalid', reason: Object.entries(candidate.error.flatten().fieldErrors).map(([k, v]) => `${k}: ${v?.join(', ')}`).join('; ') || 'invalid' });
+          continue;
+        }
+        // The column is free jsonb: a file edited by hand must still hold a list of steps.
+        const sequence = candidate.data.sequence;
+        if (!Array.isArray(sequence) || sequence.some((s) => !s || typeof s !== 'object' || Array.isArray(s))) {
+          results.push({ kind: 'test', name, outcome: 'invalid', reason: 'sequence: a list of steps' });
+          continue;
+        }
+        const manualProblem = manualSequenceProblem(candidate.data.sequence);
+        if (manualProblem) {
+          results.push({ kind: 'test', name, outcome: 'invalid', reason: manualProblem });
+          continue;
+        }
+        const [existing] = await tx.select().from(tests).where(eq(tests.name, candidate.data.name)).limit(1);
+        if (existing && sameAs(existing as unknown as Record<string, unknown>, raw, TEST_FIELDS)) {
+          results.push({ kind: 'test', name, outcome: 'unchanged' });
+          continue;
+        }
+        if (parsed.data.dryRun) {
+          results.push({ kind: 'test', name, outcome: existing ? 'updated' : 'created' });
+          continue;
+        }
+        const { projectId: _projectId, ...fields } = candidate.data;
+        const [row] = existing
+          ? await tx.update(tests).set({ ...fields, updatedAt: new Date() }).where(eq(tests.id, existing.id)).returning()
+          : await tx
+              .insert(tests)
+              .values({ ...candidate.data, userId: req.user!.id, organizationId: req.user!.organizationId })
+              .returning();
+        await recordTestVersion(tx, { testId: row.id, organizationId: req.user!.organizationId, userId: req.user!.id, test: row });
+        results.push({ kind: 'test', name, outcome: existing ? 'updated' : 'created' });
+      }
+      for (const raw of bundle.apiTests) {
+        const name = String(raw.name ?? '');
+        const candidate = createApiTestSchema.safeParse({ ...raw, projectId });
+        if (!candidate.success) {
+          results.push({ kind: 'api_test', name, outcome: 'invalid', reason: Object.entries(candidate.error.flatten().fieldErrors).map(([k, v]) => `${k}: ${v?.join(', ')}`).join('; ') || 'invalid' });
+          continue;
+        }
+        const same = await tx.select().from(apiTests).where(eq(apiTests.name, candidate.data.name)).limit(2);
+        if (same.length > 1) {
+          results.push({ kind: 'api_test', name, outcome: 'invalid', reason: 'several API tests have this name here: rename them, or import into a fresh organization' });
+          continue;
+        }
+        const existing = same[0];
+        if (existing && sameAs(existing as unknown as Record<string, unknown>, raw, API_TEST_FIELDS)) {
+          results.push({ kind: 'api_test', name, outcome: 'unchanged' });
+          continue;
+        }
+        if (!parsed.data.dryRun) {
+          const { projectId: _projectId, ...fields } = candidate.data;
+          if (existing) await tx.update(apiTests).set({ ...fields, updatedAt: new Date() }).where(eq(apiTests.id, existing.id));
+          else await tx.insert(apiTests).values({ ...candidate.data, userId: req.user!.id, organizationId: req.user!.organizationId });
+        }
+        results.push({ kind: 'api_test', name, outcome: existing ? 'updated' : 'created' });
+      }
+      const count = (o: Outcome['outcome']) => results.filter((r) => r.outcome === o).length;
+      if (!parsed.data.dryRun && (count('created') > 0 || count('updated') > 0)) {
+        await recordAudit(tx, {
+          action: AUDIT_ACTIONS.TESTS_IMPORTED,
+          actor: auditActor(req),
+          targetType: 'project',
+          targetId: projectId ?? 'none',
+          metadata: { project: bundle.project ?? null, created: count('created'), updated: count('updated'), unchanged: count('unchanged'), invalid: count('invalid') },
+        });
+      }
+      return results;
+    });
+    res.status(parsed.data.dryRun ? 200 : 201).json({ dryRun: parsed.data.dryRun, results: outcomes });
+  } catch (error: any) {
+    if (isForeignKeyError(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
+    throw error;
+  }
+});
+
+// GET /api/tests/:id/playwright — the test as a Playwright Test file, with the steps a run would
+// execute (groups and custom actions expanded, repository elements resolved). ?format=json adds what
+// could not be exported.
+router.get("/api/tests/:id/playwright", requireRole('viewer'), async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid test id" });
+  const [test] = await withTenantTransaction((tx) => tx.select().from(tests).where(eq(tests.id, id)).limit(1));
+  if (!test) return res.status(404).json({ error: "Test not found" });
+  const expansion = await expandSequenceForRun(test.sequence);
+  if (expansion.errors.length > 0) return res.status(409).json({ error: expansion.errors.join(' ') });
+  const resolution = await resolveSequenceForRun(expansion.steps);
+  const exported = toPlaywright({
+    name: test.name,
+    url: test.url,
+    sequence: resolution.steps as never,
+    preconditions: (test.preconditions as never) ?? null,
+    cleanups: ((test as { cleanups?: unknown }).cleanups as never) ?? null,
+    dataset: Array.isArray(test.dataset) ? (test.dataset as Array<Record<string, unknown>>) : null,
+    version: test.publishedVersion ?? null,
+  });
+  if (req.query.format === 'json') return res.json(exported);
+  res.setHeader("Content-Disposition", `attachment; filename="${exported.fileName}"`);
+  res.type('text/plain').send(exported.code);
 });
 
 export default router;

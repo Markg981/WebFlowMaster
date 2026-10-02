@@ -30,6 +30,31 @@ who saved each one, how many steps it had, and how the runs that used it went.
 **Restore** puts an earlier version back by saving it again as the newest version: nothing in
 between is removed, so today's work stays recoverable too.
 
+## Tests as files {#tests-as-files}
+
+**Test library → Files** exports a project's web and API tests — or all of them — as one YAML or
+JSON file, to keep in a repository beside the application, review in pull requests and import into
+another installation. The file holds what the tests are (steps, preconditions, cleanup, datasets,
+requests, assertions, reporting fields) and nothing that belongs to this installation: no ids,
+authors or dates, so a diff shows only what changed in the tests. A literal secret in an API test's
+authorization is written as a variable (<code v-pre>{{bearer_token}}</code>…): set it in an
+environment where the tests are imported.
+
+**Import** reads such a file back. **Show what changes** lists each test as new, updated, unchanged
+or not imported (with the reason); **Import** then saves: a test with the same name is updated and
+gets a new [version](#history-and-versions), the others are created in the project chosen. Steps
+that call a step group or a custom action, or name a shared element, refer to it by id, so those
+tests import into their own organization; the export says how many there are. The CLI does the same
+from a pipeline: `wfm tests export` and `wfm tests import` ([CLI](../reference/cli)).
+
+**As a Playwright test.** The file icon on a web test downloads it as a Playwright Test file
+(`*.spec.ts`), with the steps a run executes — step groups and custom actions expanded, shared
+elements resolved. Variables come from environment variables named `WFM_<NAME>`
+(`WFM_BASEURL` for <code v-pre>{{baseUrl}}</code>); preconditions run first through Playwright's
+request fixture and the cleanup afterwards, whatever happened; a dataset becomes one test per row.
+Steps with no equivalent outside WebFlowMaster — waiting for an email, a database query, the
+accessibility scan — are written as comments, and the file's first lines say how many.
+
 ## Publishing and reviews {#publishing-and-reviews}
 
 A saved test is a **working copy**. Plans run the **published** version when there is one; if a

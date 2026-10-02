@@ -2862,7 +2862,8 @@
       "scim_group_created": "Gruppo del provider inviato",
       "scim_group_updated": "Gruppo del provider modificato",
       "scim_group_deleted": "Gruppo del provider rimosso",
-      "api_test_imported": "Test API importati da OpenAPI o Postman"
+      "api_test_imported": "Test API importati da OpenAPI o Postman",
+      "test_imported": "Test importati da un file"
     }
   },
   "security": {
@@ -3173,7 +3174,8 @@
       "webhookUrlInvalid": "L'URL per le notifiche deve iniziare con http:// o https://.",
       "parallelInvalid": "\"Esegui al massimo\" deve essere un numero intero fra 1 e 16.",
       "localesInvalid": "Non è un codice di lingua: {{codes}}. Usate codici come it, it-IT o en-US.",
-      "localesTooMany": "Al massimo {{max}} lingue."
+      "localesTooMany": "Al massimo {{max}} lingue.",
+      "shardsInvalid": "I worker devono essere un numero intero tra 1 e 8."
     },
     "browsers": {
       "label": "Browser",
@@ -3218,6 +3220,10 @@
       "label": "Pubblica i risultati su",
       "none": "Da nessuna parte — i risultati restano nel report",
       "help": "Ogni esecuzione conclusa diventa una run di TestRail, una Test Execution di Xray o un test cycle di Zephyr, con il risultato di ogni test sotto il suo caso. I test senza caso sono esclusi."
+    },
+    "shards": {
+      "label": "Worker che si dividono un'esecuzione",
+      "help": "Divide un'esecuzione su un massimo di questi runner, ciascuno con il numero indicato sopra di test in contemporanea. I test vengono assegnati uno alla volta al runner libero e il report resta un'unica esecuzione. 1 mantiene l'esecuzione su un solo runner."
     }
   },
   "network": {
@@ -3306,7 +3312,8 @@
     "newManual": "Nuovo test manuale",
     "manualBadge": "Manuale",
     "editManual": "Modifica step",
-    "manualSaved": "Test manuale salvato"
+    "manualSaved": "Test manuale salvato",
+    "playwright": "Scarica come test Playwright"
   },
   "authorSteps": {
     "title": "Descrivi il test",
@@ -4041,5 +4048,29 @@
     "description": "Chiamate API eseguite dopo il test, che sia passato o no, per rimuovere i dati che ha creato. Si possono usare i valori salvati dagli step, come {{example}}; una chiamata che ne nomina uno mai impostato viene saltata.",
     "add": "Aggiungi un test API salvato come pulizia…",
     "empty": "Nessuna pulizia. Ciò che il test crea resta nell'applicazione."
+  },
+  "testFiles": {
+    "button": "File",
+    "title": "Test come file",
+    "description": "I test web e API di un progetto in un unico file YAML o JSON, da tenere in un repository accanto all'applicazione. Reimportarlo aggiorna i test con lo stesso nome — ciascuno riceve una nuova versione — e crea gli altri. I segreti dei test API sono scritti come variabili.",
+    "export": "Esporta",
+    "project": "Progetto",
+    "allTests": "Tutti i test",
+    "noProject": "Test senza progetto",
+    "format": "Formato",
+    "download": "Scarica",
+    "import": "Importa",
+    "openFile": "Apri un file…",
+    "newTestsGoTo": "I nuovi test vanno in",
+    "noProjectShort": "Nessun progetto",
+    "done": "Importato.",
+    "preview": "Mostra cosa cambia",
+    "importButton": "Importa",
+    "outcomes": {
+      "created": "nuovo",
+      "updated": "aggiornato",
+      "unchanged": "invariato",
+      "invalid": "non importato"
+    }
   }
 }

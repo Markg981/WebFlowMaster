@@ -25,6 +25,8 @@ const app = express();
 app.use('/api/proxy-api-request', express.json({ limit: '20mb' }));
 // An OpenAPI description or a Postman collection can be several megabytes (server/api-import.ts).
 app.use('/api/api-tests/import', express.json({ limit: '12mb' }));
+// A project's tests as a file (server/test-bundle.ts) can be large.
+app.use('/api/tests/import-bundle', express.json({ limit: '24mb' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

@@ -23,7 +23,7 @@ export const EXIT_PASSED = 0;
 export const EXIT_RUN_FAILED = 1;
 export const EXIT_TOOL_ERROR = 2;
 
-type Command = 'run' | 'status' | 'junit' | 'export' | 'help';
+type Command = 'run' | 'status' | 'junit' | 'export' | 'tests' | 'help';
 
 export interface CliOptions {
   command: Command;
@@ -43,6 +43,13 @@ export interface CliOptions {
   idempotencyKey?: string;
   /** Send the build, commit and branch read from the CI's environment. On unless --no-ci. */
   ci: boolean;
+  /** `wfm tests export|import`: the tests as a file (server/test-bundle.ts). */
+  testsAction?: 'export' | 'import';
+  /** A project id, or `none` for tests in no project. */
+  project?: string;
+  format?: 'yaml' | 'json';
+  outPath?: string;
+  dryRun?: boolean;
 }
 
 export interface CliIo {
@@ -54,6 +61,8 @@ export interface CliIo {
   sleep: (ms: number) => Promise<void>;
   now: () => number;
   env: Record<string, string | undefined>;
+  /** For `wfm tests import`. */
+  readFile?: (path: string) => Promise<string>;
 }
 
 export const USAGE = `wfm — run WebFlowMaster test plans from a pipeline
@@ -64,6 +73,8 @@ Usage:
   wfm status <runId>
   wfm junit <runId> [--junit <file>]
   wfm export <runId> [--html <file>] [--pdf <file>] [--allure <file>]
+  wfm tests export [--project <id|none>] [--format yaml|json] [--out <file>]
+  wfm tests import <file> [--project <id>] [--dry-run]
 
 Options:
   --url <url>            Server base URL (default: $WFM_URL)
@@ -82,6 +93,13 @@ Options:
                          it already started instead of starting another.
   --no-ci                Do not send the build, commit and branch read from the CI's environment
   --json                 Print the final run as JSON
+  --project <id|none>    tests: the project to export, or where imported new tests go
+  --format yaml|json     tests export: the file's format (default: yaml)
+  --out <file>           tests export: where to write it (default: <project>.wfm.yaml)
+  --dry-run              tests import: say what would change, change nothing
+
+wfm tests keeps a project's tests in a repository: export them in a pipeline and commit the file,
+or import the file a pull request changed. It needs a full-access API key (one without scopes).
 
 On GitHub Actions it also sets the step outputs run-id, status and report-url, and writes a
 summary of the run to the job's page.
@@ -102,7 +120,7 @@ const defaults = (command: Command): CliOptions => ({
 export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env): CliOptions | { error: string } {
   const [command, ...rest] = argv;
   if (!command || command === 'help' || command === '--help' || command === '-h') return defaults('help');
-  if (command !== 'run' && command !== 'status' && command !== 'junit' && command !== 'export') {
+  if (command !== 'run' && command !== 'status' && command !== 'junit' && command !== 'export' && command !== 'tests') {
     return { error: `Unknown command "${command}".` };
   }
 
@@ -132,10 +150,26 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
       case '--poll': options.pollSeconds = Number(value()); break;
       case '--environment': options.environmentId = Number(value()); break;
       case '--idempotency-key': options.idempotencyKey = value(); break;
+      case '--project': options.project = value(); break;
+      case '--format': options.format = value() as 'yaml' | 'json'; break;
+      case '--out': options.outPath = value(); break;
+      case '--dry-run': options.dryRun = true; break;
       default:
         if (argument.startsWith('-')) return { error: `Unknown option "${argument}".` };
         positional.push(argument);
     }
+  }
+
+  if (command === 'tests') {
+    const [action, file] = positional;
+    if (action !== 'export' && action !== 'import') return { error: 'tests needs export or import. See --help.' };
+    if (action === 'import' && !file) return { error: 'tests import needs the file. See --help.' };
+    if (options.format && options.format !== 'yaml' && options.format !== 'json') return { error: '--format is yaml or json.' };
+    if (options.project !== undefined && options.project !== 'none' && !/^\d+$/.test(options.project)) {
+      return { error: '--project is a project id, or none.' };
+    }
+    if (action === 'import' && options.project === 'none') options.project = undefined;
+    return { ...options, testsAction: action, target: file };
   }
 
   options.target = positional[0];
@@ -348,6 +382,7 @@ export async function runCli(options: CliOptions, io: CliIo): Promise<number> {
     });
 
   try {
+    if (options.command === 'tests') return await testsFile(options, io, call);
     if (options.command === 'junit') {
       return await download(io, call, options.target!, 'junit', options.junitPath ?? `junit-${options.target}.xml`);
     }
@@ -528,6 +563,45 @@ async function errorText(response: Response): Promise<string> {
   }
 }
 
+/** How a 401 reads for `wfm tests`: the usual cause is a key with scopes, which only opens /api/v1. */
+const FULL_ACCESS_NEEDED = 'The key was refused: wfm tests needs a full-access API key (one without scopes).';
+
+/**
+ * `wfm tests export` writes a project's tests as one file; `wfm tests import` reads one back (tests
+ * of the same name updated, the others created). Exit 1 when the import left tests out.
+ */
+async function testsFile(options: CliOptions, io: CliIo, call: Call): Promise<number> {
+  if (options.testsAction === 'export') {
+    const query = new URLSearchParams({ format: options.format ?? 'yaml', ...(options.project ? { projectId: options.project } : {}) });
+    const response = await call(`/api/tests/export?${query}`);
+    if (response.status === 401) { io.error(FULL_ACCESS_NEEDED); return EXIT_TOOL_ERROR; }
+    if (!response.ok) { io.error(`Could not export: ${response.status} ${await errorText(response)}`); return EXIT_TOOL_ERROR; }
+    const named = /filename="([^"]+)"/.exec(response.headers.get('content-disposition') ?? '')?.[1];
+    const target = options.outPath ?? named ?? `tests.wfm.${options.format ?? 'yaml'}`;
+    await io.writeFile(target, await response.text());
+    const secrets = Number(response.headers.get('x-wfm-secrets-replaced') ?? 0);
+    const references = Number(response.headers.get('x-wfm-tests-with-references') ?? 0);
+    io.log(`Wrote ${target}.`);
+    if (secrets > 0) io.log(`${secrets} secret(s) in API tests were written as variables.`);
+    if (references > 0) io.log(`${references} test(s) use step groups, custom actions or shared elements by id: they import into this organization only.`);
+    return EXIT_PASSED;
+  }
+
+  if (!io.readFile) { io.error('This build cannot read files.'); return EXIT_TOOL_ERROR; }
+  const content = await io.readFile(options.target!);
+  const response = await call('/api/tests/import-bundle', {
+    method: 'POST',
+    body: JSON.stringify({ content, dryRun: options.dryRun === true, ...(options.project ? { projectId: Number(options.project) } : {}) }),
+  });
+  if (response.status === 401) { io.error(FULL_ACCESS_NEEDED); return EXIT_TOOL_ERROR; }
+  if (!response.ok) { io.error(`Could not import: ${response.status} ${await errorText(response)}`); return EXIT_TOOL_ERROR; }
+  const body = (await response.json()) as { dryRun: boolean; results: Array<{ kind: string; name: string; outcome: string; reason?: string }> };
+  for (const r of body.results) io.log(`${r.outcome.padEnd(9)} ${r.kind === 'api_test' ? 'API ' : ''}${r.name}${r.reason ? ` — ${r.reason}` : ''}`);
+  const count = (o: string) => body.results.filter((r) => r.outcome === o).length;
+  io.log(`${body.dryRun ? 'Would import' : 'Imported'}: ${count('created')} new, ${count('updated')} updated, ${count('unchanged')} unchanged, ${count('invalid')} left out.`);
+  return count('invalid') > 0 ? EXIT_RUN_FAILED : EXIT_PASSED;
+}
+
 /* c8 ignore start — the process wrapper; everything it calls is tested directly. */
 export async function main(argv: string[]): Promise<number> {
   const fs = await import('node:fs/promises');
@@ -550,6 +624,7 @@ export async function main(argv: string[]): Promise<number> {
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     now: () => Date.now(),
     env: process.env,
+    readFile: (file) => fs.readFile(file, 'utf8'),
   });
 }
 

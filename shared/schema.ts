@@ -347,6 +347,11 @@ export const testPlans = pgTable("test_plans", {
    * constant.
    */
   maxParallelTests: integer('max_parallel_tests').default(1).notNull(),
+  /**
+   * How many workers may share one run of this plan (server/run-shards.ts), each running
+   * `maxParallelTests` at a time. 1 is one worker, as before this existed (migration 0067).
+   */
+  shards: integer('shards').default(1).notNull(),
   /** Languages every test runs in, one pass each; empty for the browser's default (migration 0047). */
   locales: jsonb('locales').$type<string[]>().notNull().default([]),
   /**
@@ -432,6 +437,8 @@ export const testPlanExecutions = pgTable("test_plan_executions", {
   startedAt: timestamp('started_at'),
   completedAt: timestamp('completed_at'),
   cancelRequestedAt: timestamp('cancel_requested_at'),
+  /** Why a sharded run stopped early under the plan's stop policy, for every worker sharing it (migration 0067). */
+  stopReason: text('stop_reason'),
   /** Stamped when a worker takes the run, so "is anyone still on this?" has an answer. */
   heartbeatAt: timestamp('heartbeat_at'),
   /** Why a run ended in `error`: a code to branch on, and a sentence for a person. */
@@ -969,6 +976,30 @@ export const testDataSets = pgTable("test_data_sets", {
 ]);
 
 export type TestDataSet = typeof testDataSets.$inferSelect;
+
+/**
+ * The work of a run shared by several workers (server/run-shards.ts): one item per test of a
+ * browser and language, or per browser and language when its API tests pass values on. Claimed
+ * one at a time; a claim whose heartbeat stops is taken back (migration 0067).
+ */
+export const runWorkItems = pgTable("run_work_items", {
+  executionId: text("execution_id").notNull().references(() => testPlanExecutions.id, { onDelete: 'cascade' }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  key: text("key").notNull(),
+  position: integer("position").notNull(),
+  unit: jsonb("unit").notNull(),
+  state: text("state").$type<'pending' | 'claimed' | 'done'>().notNull().default('pending'),
+  claimedBy: text("claimed_by"),
+  heartbeatAt: timestamp("heartbeat_at"),
+  finishedAt: timestamp("finished_at"),
+  error: text("error"),
+  results: jsonb("results"),
+}, (table) => [
+  primaryKey({ columns: [table.executionId, table.key] }),
+  index("run_work_items_organization_id_idx").on(table.organizationId),
+]);
+
+export type RunWorkItem = typeof runWorkItems.$inferSelect;
 
 /**
  * The elements of an application, in one place instead of inside each test.
@@ -1619,6 +1650,8 @@ export const AUDIT_ACTIONS = {
   TEST_UPDATED: 'test.updated',
   TEST_DELETED: 'test.deleted',
   TEST_VERSION_RESTORED: 'test.version_restored',
+  // Tests read back from a file made by the export (server/test-bundle.ts), in one entry.
+  TESTS_IMPORTED: 'test.imported',
   API_TEST_CREATED: 'api_test.created',
   API_TEST_UPDATED: 'api_test.updated',
   API_TEST_DELETED: 'api_test.deleted',
@@ -2109,6 +2142,8 @@ export const insertTestPlanSchema = createInsertSchema(testPlans, {
   // Capped rather than open: each unit is a real browser, and a number typed into a form is
   // not a statement about how much memory the runner has.
   maxParallelTests: z.number().int().min(1).max(16).default(1),
+  // Workers sharing one run; each is a runner process, so the cap is small (migration 0067).
+  shards: z.number().int().min(1).max(8).default(1),
   // The languages each test runs in (shared/locales.ts). Refused by name rather than dropped:
   // "english" silently becoming no language at all would be a run in the browser's default.
   locales: z
@@ -2857,4 +2892,6 @@ export const ORG_SCOPED_TABLES = [
   'custom_actions',
   // Shared test data (migration 0061).
   'test_data_sets',
+  // The work of a run shared by several workers (migration 0067).
+  'run_work_items',
 ] as const;

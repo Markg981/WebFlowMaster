@@ -52,6 +52,8 @@ processo non legge non fa danni.
 | `ORG_MAX_QUEUED_RUNS` | web | `100` | Run di un'organizzazione in attesa contemporaneamente. Oltre, un nuovo run viene rifiutato con `429`. |
 | `RUN_DEFERRAL_MS` | worker | `10000` | Quanto aspetta un run trattenuto dal limite della sua organizzazione prima di essere riconsiderato, se nel frattempo la fine di un altro run dell'organizzazione non l'ha già fatto partire. |
 | `RUN_HEARTBEAT_INTERVAL_MS` | entrambi | `15000` | Ogni quanto un worker conferma che un run sta ancora andando. |
+| `WORK_ITEM_HEARTBEAT_MS` | worker | `15000` | In un run diviso fra più worker, ogni quanto un worker conferma i test che tiene. |
+| `STALE_CLAIM_MS` | worker | `120000` | In un run diviso fra più worker, quanto un test tenuto può restare senza heartbeat prima che un altro worker lo riprenda. |
 | `RUN_STALE_AFTER_MS` | web | il maggiore tra 8 heartbeat e `120000` | Un run il cui heartbeat tace per questo tempo termina come *error: worker lost*. |
 | `RUN_MAX_DURATION_MS` | entrambi | `10800000` (3 ore) | Oltre questo tempo un run smette di avviare test e termina come *timed out*. Il processo web lo impone anche lui, cinque minuti dopo, nel caso il worker sia bloccato. |
 | `SCHEDULER_BACKEND` | web | `cron` | `cron`: le schedulazioni girano nel processo web; va bene con un solo processo web. `bullmq`: le schedulazioni stanno in Redis, partono una volta sola comunque siano i processi web, e sopravvivono ai riavvii. Richiede un worker. |

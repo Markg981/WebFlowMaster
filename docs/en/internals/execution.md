@@ -130,6 +130,24 @@ map of captured values. The plan's `max_parallel_tests` (capped by the installat
   tests in order within each lane.
 - `> 1` otherwise — any test of any lane, up to the limit.
 
+### Shards: one run on several workers
+
+A plan's `shards` (1–8, in the snapshot) lets several workers share a run (`server/run-shards.ts`).
+The worker that took the run — the coordinator — writes the work to `run_work_items`: one item per
+unit, or one per lane when the lanes are chained. Each item carries the unit as the coordinator
+resolved it (browser, headless fallback, engine), so helpers do not probe browsers. It then queues
+`shards − 1` jobs `execute-shard` (job id `<execution>-shard-<n>`).
+
+Every participant runs `maxParallelTests` claim loops. A claim is `SELECT … FOR UPDATE SKIP LOCKED`
+on the first `pending` item, or a `claimed` one whose heartbeat is older than `STALE_CLAIM_MS`
+(2 minutes); claims are heartbeated every `WORK_ITEM_HEARTBEAT_MS`. Only the holder can mark an item
+done. A helper leaves when nothing is left to claim; the coordinator waits until every item is done,
+taking back stale ones, then finalizes as usual. The legacy `results` list and the tests that could not
+be executed are stored on each item and merged; a plan policy's stop is written to
+`test_plan_executions.stop_reason` and read before each claim. A helper joins only a `running` run,
+watches it like the coordinator (cancel, time limit from the run's start) and never transitions it.
+With `shards = 1` none of this runs.
+
 ### One test
 
 `runTest` handles one test on one browser:
