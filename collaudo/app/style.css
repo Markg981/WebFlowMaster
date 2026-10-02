@@ -1,0 +1,93 @@
+/* The captured artifact presentation is supplied by the versioned catalogue. */
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+}
+body {
+  margin: 0;
+}
+.wrap {
+  max-width: 1180px;
+  margin: auto;
+  padding: 20px;
+}
+.bar-row,
+.filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 28px;
+}
+.index {
+  display: grid;
+  align-content: start;
+}
+.btn,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+.local-tools {
+  margin-top: 40px;
+  border-top: 1px solid var(--rule, #ccc);
+  padding-top: 16px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.local-tools p {
+  width: 100%;
+  color: var(--ink-faint, #777);
+  font-size: 12px;
+}
+dialog {
+  background: var(--sheet, #fff);
+  color: var(--ink, #222);
+  border: 1px solid var(--rule, #ccc);
+  border-radius: 10px;
+  max-width: min(700px, 95vw);
+  width: 650px;
+}
+dialog::backdrop {
+  background: #0008;
+}
+dialog form {
+  display: grid;
+  gap: 16px;
+}
+dialog label {
+  display: grid;
+  gap: 6px;
+}
+dialog textarea {
+  width: 100%;
+  min-height: 260px;
+}
+dialog h2 {
+  margin: 0;
+}
+.record input {
+  width: 100%;
+  margin-bottom: 10px;
+}
+.empty {
+  color: var(--ink-faint, #777);
+  padding: 12px;
+}
+[hidden] {
+  display: none !important;
+}
+@media (max-width: 880px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

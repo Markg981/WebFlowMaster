@@ -1,5 +1,38 @@
 # Ambiente di collaudo
 
+## Pagina di collaudo locale
+
+Dalla radice del repository:
+
+```bash
+npm run dev:collaudo
+```
+
+Aprire **http://localhost:4322**. La pagina riprende stile, filtri, indice, schede,
+avanzamento ed esiti dell'artifact originale. Funziona senza Claude e senza avviare
+Docker o il database del prodotto. `npm run dev:docs` resta dedicato alla documentazione.
+Per una porta diversa impostare `COLLAUDO_PORT` prima del comando.
+
+- **Casi:** `collaudo/casi.json`, versionato in Git. Contiene i 358 casi originali
+  e i 46 nuovi casi delle funzionalità 6–13: 404 casi, 20 aree, protocollo versione 16.
+  Gli ID esistenti non si rinominano. Dopo una modifica riavviare il comando e ricaricare la pagina.
+- **Cicli, esiti e note:** `collaudo/.local/state.json`, escluso da Git.
+  Le note si salvano automaticamente; il nome del collaudatore si imposta in fondo alla pagina.
+  Nuovo ciclo parte sempre da esiti da eseguire; il catalogo rimane comune ai cicli.
+- **Backup:** Esporta backup JSON conserva catalogo e storico. Importa backup JSON
+  aggiunge i dati e rifiuta conflitti, senza sostituire esiti diversi già presenti.
+  Esporta CSV produce un riepilogo del ciclo selezionato, non un backup ripristinabile.
+- **Verifica tecnica:** `npm run test:collaudo` controlla persistenza, import e conflitti.
+
+Su questa macchina è stato trasferito il ciclo visibile nell'artifact del 27/09/2026
+(299 esiti: 290 superati, 8 bloccati, 1 N/A), comprese note e attribuzioni visibili.
+Il relativo backup è in `collaudo/.local/backups/artifact-migrato.json`.
+Questi dati locali non sono distribuiti con il repository: su una nuova macchina
+importare il backup oppure creare un ciclo. Non sono stati recuperati altri cicli.
+I 46 nuovi casi restano **Da eseguire**; la fatturazione SaaS resta sospesa.
+
+## Installazione del prodotto da collaudare
+
 L'installazione su cui si esegue il **protocollo di collaudo manuale**: il prodotto come lo avvia
 `docker-compose.yml`, in modalità produzione e dietro HTTPS, più tutto ciò che i casi richiedono
 intorno:

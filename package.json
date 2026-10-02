@@ -39,6 +39,7 @@
     "test:client": "npm test --prefix client",
     "docs:pdf": "npm run docs:build && node scripts/generate-docs-pdf.js",
     "docs:dev": "vitepress dev docs",
+    "dev:docs": "npm run docs:dev",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "lint": "eslint . --ext .ts,.tsx",
@@ -51,7 +52,9 @@
     "build:agent": "esbuild scripts/wfm-agent.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/wfm-agent.js",
     "agent": "tsx --require dotenv/config scripts/wfm-agent.ts",
     "user:reset-link": "tsx --require dotenv/config scripts/password-reset-link.ts",
-    "build:reset-link": "esbuild scripts/password-reset-link.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/password-reset-link.js"
+    "build:reset-link": "esbuild scripts/password-reset-link.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/password-reset-link.js",
+    "dev:collaudo": "node collaudo/app/server.mjs",
+    "test:collaudo": "node --test collaudo/app/server.test.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1138.0",

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Collaudo WebFlowMaster</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="mast">
+        <span class="eyebrow" id="version">Protocollo di collaudo manuale</span>
+        <h1>Collaudo di WebFlowMaster</h1>
+        <p>
+          L'intera applicazione, caso per caso: accesso, creazione ed esecuzione dei test,
+          risultati, integrazioni, amministrazione, sicurezza e operatività. Ogni esito registrato
+          qui è condiviso con chi sta collaudando insieme a te, e resta legato al ciclo di collaudo scelto.
+        </p>
+      </header>
+      <section class="bar" aria-label="Ciclo e avanzamento">
+        <div class="bar-row">
+          <div class="cycle">
+            <span class="label">Ciclo</span
+            ><select id="cycleSelect" aria-label="Ciclo di collaudo"></select
+            ><button class="btn" id="newCycleBtn">Nuovo ciclo</button>
+          </div>
+          <span class="spacer"></span><button class="btn" id="exportBtn">Esporta CSV</button>
+        </div>
+        <div class="progress">
+          <div class="meter" id="meter"></div>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="filters">
+          <input
+            type="search"
+            id="q"
+            placeholder="Cerca per ID, titolo o testo"
+            aria-label="Cerca"
+          /><select id="fArea" aria-label="Area">
+            <option value="">Tutte le aree</option></select
+          ><select id="fPrio" aria-label="Priorità">
+            <option value="">Tutte le priorità</option>
+            <option value="P1">P1 · essenziale</option>
+            <option value="P2">P2 · importante</option>
+            <option value="P3">P3 · secondario</option></select
+          ><select id="fStatus" aria-label="Esito">
+            <option value="">Tutti gli esiti</option>
+            <option value="todo">Da eseguire</option>
+            <option value="pass">Superati</option>
+            <option value="fail">Falliti</option>
+            <option value="block">Bloccati</option>
+            <option value="na">Non applicabili</option></select
+          ><button class="btn" id="expandBtn">Espandi tutti</button>
+        </div>
+      </section>
+      <p class="notice warn" id="error" role="alert" hidden></p>
+      <div class="layout">
+        <nav class="index" id="index" aria-label="Aree"></nav>
+        <main>
+          <details class="prep" open>
+            <summary>Prima di iniziare: ambiente, dati e regole</summary>
+            <div class="prep-body" id="prepBody"></div>
+          </details>
+          <div id="areas"></div>
+        </main>
+      </div>
+      <footer class="local-tools">
+        <span class="label">Dati locali</span
+        ><label
+          >Collaudatore
+          <input id="tester" type="text" maxlength="300" aria-label="Collaudatore" /></label
+        ><button class="btn" id="backupBtn">Esporta backup JSON</button
+        ><button class="btn" id="importBtn">Importa backup JSON</button
+        ><button class="btn" id="pasteBtn">Importa da testo JSON</button>
+        <p>
+          Casi nel repository · Esiti e note in collaudo/.local/state.json · Nessun collegamento a
+          Claude
+        </p>
+      </footer>
+    </div>
+    <dialog id="cycleDialog">
+      <form id="cycleForm">
+        <h2>Nuovo ciclo</h2>
+        <label>Nome del ciclo<input name="name" required maxlength="500" type="text" /></label
+        ><label>Versione o commit<input name="version" maxlength="200" type="text" /></label
+        ><label>Ambiente<input name="environment" maxlength="1000" type="text" /></label>
+        <div class="bar-row">
+          <button class="btn primary" type="submit">Crea ciclo</button
+          ><button class="btn" type="button" data-close>Annulla</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="importDialog">
+      <form id="importForm">
+        <h2>Importa backup JSON</h2>
+        <p>
+          L'importazione aggiunge casi, cicli ed esiti senza sovrascrivere dati diversi già
+          presenti.
+        </p>
+        <label
+          >Backup JSON<textarea id="importText" required aria-label="Backup JSON"></textarea>
+        </label>
+        <div class="bar-row">
+          <button class="btn primary" type="submit">Importa</button
+          ><button class="btn" type="button" data-close>Annulla</button>
+        </div>
+      </form>
+    </dialog>
+    <input type="file" id="importFile" accept="application/json,.json" hidden />
+  </body>
+</html>
