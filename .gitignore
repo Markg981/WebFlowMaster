@@ -78,6 +78,8 @@ collaudo-root.crt
 
 # Collaudo: signed-in sessions written by collaudo/prepare.mjs
 collaudo/.sessions/
+# collaudo: esito della prova di carico (collaudo/prova-carico.mjs)
+collaudo/carico-esito.json
 
 # collaudo: apk scaricati da collaudo/mobile/avvia.mjs
 collaudo/mobile/apps/*.apk
