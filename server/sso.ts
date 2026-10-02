@@ -25,6 +25,8 @@ import {
   startSamlSignIn,
   testSamlProvider,
   type CertificateInfo,
+  validSpKeyPair,
+  type SamlSessionIdentity,
 } from './sso-saml';
 
 /**
@@ -69,6 +71,11 @@ export interface SsoSettings {
   /** The SAML signing certificate as stored (it is public) and what it says. */
   samlCertificate: string | null;
   samlCertificateInfo: CertificateInfo | null;
+  samlAllowIdpInitiated: boolean;
+  samlRequireEncryptedAssertions: boolean;
+  samlSloUrl: string | null;
+  samlSpCertificate: string | null;
+  samlSpPrivateKeyConfigured: boolean;
   domains: string[];
   /** Each domain with its DNS proof (server/sso-domains.ts). */
   domainStatus: Array<{ domain: string; verified: boolean; verifiedAt: Date | null; record: { name: string; value: string } | null }>;
@@ -93,6 +100,12 @@ export interface SsoInput {
   clientSecret?: string;
   samlSsoUrl?: string;
   samlCertificate?: string;
+  samlAllowIdpInitiated?: boolean;
+  samlRequireEncryptedAssertions?: boolean;
+  samlSloUrl?: string | null;
+  samlSpCertificate?: string | null;
+  samlSpPrivateKey?: string;
+  samlClearSpKey?: boolean;
   domains: string[];
   defaultRole: SsoRole;
   enabled: boolean;
@@ -118,6 +131,7 @@ declare module 'express-session' {
     ssoPending?: SsoPending;
     /** 'sso' when this session was opened through the organization's identity provider. */
     signedInWith?: 'sso';
+    samlIdentity?: SamlSessionIdentity;
   }
 }
 
@@ -131,6 +145,8 @@ type SsoError =
   | 'client_id_required'
   | 'invalid_sso_url'
   | 'invalid_certificate'
+  | 'invalid_saml_key'
+  | 'invalid_slo_url'
   | 'invalid_domain'
   | 'secret_required'
   | 'domain_taken'
@@ -199,6 +215,11 @@ export async function getSsoSettings(organizationId: number): Promise<SsoSetting
     samlSsoUrl: row.samlSsoUrl,
     samlCertificate: row.samlCertificate,
     samlCertificateInfo: row.samlCertificate ? certificateInfo(row.samlCertificate) : null,
+    samlAllowIdpInitiated: row.samlAllowIdpInitiated,
+    samlRequireEncryptedAssertions: row.samlRequireEncryptedAssertions,
+    samlSloUrl: row.samlSloUrl,
+    samlSpCertificate: row.samlSpCertificate,
+    samlSpPrivateKeyConfigured: Boolean(row.samlSpPrivateKeyEncrypted),
     domains: domains.map((d) => d.domain),
     domainStatus: domains.map((d) => ({
       domain: d.domain,
@@ -271,7 +292,7 @@ export async function saveSsoSettings(organizationId: number, actor: AuditActor,
   try {
     await privilegedDb.transaction(async (tx) => {
       const [existing] = await tx
-        .select({ organizationId: organizationSso.organizationId })
+        .select()
         .from(organizationSso)
         .where(eq(organizationSso.organizationId, organizationId));
       if (protocol === 'oidc' && !secret) {
@@ -293,6 +314,25 @@ export async function saveSsoSettings(organizationId: number, actor: AuditActor,
       const released = taken.map((t) => t.domain);
       if (released.length > 0) await tx.delete(ssoDomains).where(inArray(ssoDomains.domain, released));
 
+      const spCertificate = input.samlClearSpKey ? null : input.samlSpCertificate === undefined ? existing?.samlSpCertificate ?? null : input.samlSpCertificate?.trim() ? normaliseCertificate(input.samlSpCertificate) : null;
+      const keyGiven = input.samlSpPrivateKey?.trim() || '';
+      const storedKey = existing?.samlSpPrivateKeyEncrypted && existing.samlSpPrivateKeyIv && existing.samlSpPrivateKeyAuthTag ? decryptSecret(existing.samlSpPrivateKeyEncrypted, existing.samlSpPrivateKeyIv, existing.samlSpPrivateKeyAuthTag) : '';
+      const spKey = input.samlClearSpKey ? '' : keyGiven || storedKey;
+      const sloUrl = input.samlSloUrl === undefined ? existing?.samlSloUrl ?? null : input.samlSloUrl?.trim() || null;
+      const requireEncrypted = input.samlRequireEncryptedAssertions ?? existing?.samlRequireEncryptedAssertions ?? false;
+      if (protocol === 'saml') {
+        if (sloUrl && !validIssuer(sloUrl.split('?')[0])) throw new SsoConfigError('invalid_slo_url', 'The logout URL must be the provider\'s HTTPS HTTP-Redirect endpoint.');
+        if ((spKey || spCertificate || sloUrl || requireEncrypted) && (!spKey || !spCertificate || !validSpKeyPair(spKey, spCertificate))) throw new SsoConfigError('invalid_saml_key', 'Supply a matching RSA private key (at least 2048 bits) and current SP X.509 certificate; signing logout and requiring encryption need this pair.');
+      }
+      const encryptedSpKey = keyGiven && !input.samlClearSpKey ? encryptSecret(keyGiven) : null;
+      const advancedSaml = protocol === 'saml' ? {
+        samlAllowIdpInitiated: input.samlAllowIdpInitiated ?? existing?.samlAllowIdpInitiated ?? false,
+        samlRequireEncryptedAssertions: requireEncrypted,
+        samlSloUrl: sloUrl,
+        samlSpCertificate: spCertificate,
+        ...(input.samlClearSpKey ? { samlSpPrivateKeyEncrypted: null, samlSpPrivateKeyIv: null, samlSpPrivateKeyAuthTag: null } : encryptedSpKey ? { samlSpPrivateKeyEncrypted: encryptedSpKey.encryptedValue, samlSpPrivateKeyIv: encryptedSpKey.iv, samlSpPrivateKeyAuthTag: encryptedSpKey.authTag } : {}),
+      } : { samlAllowIdpInitiated: false, samlRequireEncryptedAssertions: false, samlSloUrl: null, samlSpCertificate: null, samlSpPrivateKeyEncrypted: null, samlSpPrivateKeyIv: null, samlSpPrivateKeyAuthTag: null };
+
       const values = {
         protocol,
         // As typed: openid-client compares it with the discovery document's after normalising both.
@@ -304,6 +344,7 @@ export async function saveSsoSettings(organizationId: number, actor: AuditActor,
         ...(groupAttribute !== undefined ? { groupAttribute } : {}),
         ...(input.requireGroup !== undefined ? { requireGroup: input.requireGroup } : {}),
         updatedAt: new Date(),
+        ...advancedSaml,
         ...(protocol === 'oidc'
           ? { clientId: input.clientId!.trim(), samlSsoUrl: null, samlCertificate: null, ...(secret ? secretColumns(secret) : {}) }
           : { samlSsoUrl, samlCertificate, clientId: null, clientSecretEncrypted: null, clientSecretIv: null, clientSecretAuthTag: null }),
@@ -546,6 +587,7 @@ export interface SignedIn {
   created: boolean;
   /** An existing account, linked to this identity for the first time. */
   linked: boolean;
+  samlSession?: SamlSessionIdentity;
 }
 
 /**
@@ -618,9 +660,13 @@ export async function finishSamlSignIn(
   if ('error' in result) return { ...result, organizationId };
   const identity = { issuer: result.issuer, subject: result.subject };
   try {
-    return await resolveAccount(organizationId, identity, result.email, row, result.groups);
+    const account = await resolveAccount(organizationId, identity, result.email, row, result.groups);
+    return 'error' in account ? account : { ...account, samlSession: result.session };
   } catch (error) {
-    if (sqlState(error) === '23505') return resolveAccount(organizationId, identity, result.email, row, result.groups);
+    if (sqlState(error) === '23505') {
+      const account = await resolveAccount(organizationId, identity, result.email, row, result.groups);
+      return 'error' in account ? account : { ...account, samlSession: result.session };
+    }
     throw error;
   }
 }

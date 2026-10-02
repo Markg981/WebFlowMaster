@@ -32,6 +32,7 @@ processo non legge non fa danni.
 | `PASSWORD_POLICY` | web | `basic` | Come deve essere una nuova password: `basic` (8 caratteri, diversa dallo username) o `strong` (12 caratteri, tre tipi di carattere, niente username, niente password comuni). Vedere [Amministrazione](./administration#password-policy). |
 | `SMTP_URL` | web, worker | nessuno | Il server di posta, come `smtp://utente:password@host:587` (STARTTLS se offerto) o `smtps://…:465`. Con `SMTP_FROM` attiva le e-mail: inviti, link di reset, "Password dimenticata?" e notifiche dei run. |
 | `SMTP_FROM` | web, worker | nessuno | Il mittente, per esempio `WebFlowMaster <qa@example.com>`. |
+| `MAIL_DELIVERY_WEBHOOK_SECRET` | web | nessuno | Almeno 32 caratteri. Autentica gli eventi normalizzati di consegna/rimbalzo da un adattatore del provider; vedere [E-mail](./administration#e-mail). Senza questo segreto si registra solo l'accettazione/rifiuto SMTP. |
 | `SMTP_TLS_REJECT_UNAUTHORIZED` | web, worker | `true` | `false` accetta un relay con certificato self-signed dentro la vostra rete. |
 | `WEBHOOK_RATE_LIMIT` | web | `120` | Richieste al minuto per ogni indirizzo su `/api/webhooks`. `0` lo disattiva. |
 | `INSTALLATION_ADMINS` | web | nessuno | Nomi utente, separati da virgola, che possono cambiare le impostazioni dell'installazione (livello e conservazione dei log, svuotamento dei runner). Se non impostata: gli owner, finché l'installazione ha una sola organizzazione. Vedi [Amministratori dell'installazione](./administration#amministratori-dell-installazione). |

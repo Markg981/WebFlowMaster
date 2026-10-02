@@ -54,7 +54,15 @@ erDiagram
 | `sso_identities` | The link between a person at the provider (`issuer` + `subject`) and a `users` row, with the last sign-in. |
 | `scim_users` | The accounts the identity provider manages through SCIM, with the `external_id` it knows them by and whether its groups deactivated them (`disabled_by_groups`). The account is the `users` row; its SCIM id is the user id. No RLS and no grant to `app_user`. |
 | `scim_groups` / `scim_group_members` | The provider's groups as it pushes them through SCIM, and who is in them. Role mappings match a group's `display_name` or `external_id`. No RLS and no grant to `app_user`. |
+| `sso_saml_replay` | Atomic signed assertion/logout identifiers consumed once until their validation window expires. Privileged pre-authentication access only; no grant to `app_user`. |
+| `sso_saml_sessions` | Session ids linked to SAML issuer, NameID and SessionIndex for provider-initiated logout. Revocation is authoritative even if the session store fails. Personal rows cascade with the user. Privileged access only. |
+| `mail_deliveries` / `mail_delivery_events` | SMTP acceptance and signed delivery/bounce events: recipient, purpose, state and timestamps without content or tokens. Owner reads use RLS; signed callbacks use opaque privileged correlation. Null-organization system records are never visible through tenant APIs. |
 | `sessions` | The session store when PostgreSQL holds sessions (Redis does in production). Installation-wide. |
+
+Migration 0073 adds optional IdP-initiated login, required encrypted assertions, the SP public
+certificate and encrypted private key, and provider logout URL to `organization_sso`.
+`sso_saml_requests` distinguishes authentication and logout correlation by `purpose`.
+Migration 0074 adds the mail tracking tables with forced RLS and SELECT-only application grants.
 
 The complete column-level diagrams of all tables are in [Database schema](./database-schema).
 

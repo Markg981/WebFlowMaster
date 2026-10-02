@@ -9,6 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Edit2, Trash2, PlusCircle, Download, ChevronRight, FileUp } from 'lucide-react';
 import { ImportApiTestsDialog } from './ImportApiTestsDialog';
+import CommentsPanel from '@/components/tests/CommentsPanel';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { MessageSquare } from 'lucide-react';
 
 interface SavedTestsPanelProps {
   savedTests: ApiTest[];
@@ -41,6 +44,7 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
 }) => {
   const { t } = useTranslation();
   const [importOpen, setImportOpen] = useState(false);
+  const [commentsFor, setCommentsFor] = useState<ApiTest | null>(null);
 
   // Fetch project names so tests can be grouped under a readable project header.
   const { data: projects = [] } = useQuery<Project[]>({ queryKey: ['/api/projects'] });
@@ -109,6 +113,11 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
         </div>
         {/* Icons sit inside the clickable card, so each stops the click from also loading it. */}
         <div className="flex items-center shrink-0">
+          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={t('comments.title', 'Comments')}
+            onKeyDown={event => event.stopPropagation()}
+            onClick={event => { event.stopPropagation(); setCommentsFor(test); }}>
+            <MessageSquare className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7"
             onClick={(e) => { e.stopPropagation(); onEditTest(test); }}
             title={t('apiTester.savedTestsPanel.editTest.button')} disabled={isLoading || !!isDeletingTestId}>
@@ -132,6 +141,12 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between py-3 px-4 border-b">
+        <Dialog open={commentsFor !== null} onOpenChange={open => { if (!open) setCommentsFor(null); }}>
+          <DialogContent className="max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
+            <DialogHeader><DialogTitle>{commentsFor?.name}</DialogTitle></DialogHeader>
+            {commentsFor && <CommentsPanel key={commentsFor.id} kind="api" targetId={commentsFor.id} />}
+          </DialogContent>
+        </Dialog>
         <CardTitle className="text-lg">{t('apiTester.savedTestsPanel.savedTests.title')}</CardTitle>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} disabled={isLoading} data-testid="open-import">

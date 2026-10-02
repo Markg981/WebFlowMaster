@@ -117,7 +117,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      const response = await apiRequest("POST", "/api/logout");
+      if (response.headers.get('content-type')?.includes('application/json')) {
+        const { redirectUrl } = await response.json();
+        if (typeof redirectUrl === 'string') window.location.assign(redirectUrl);
+      }
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);

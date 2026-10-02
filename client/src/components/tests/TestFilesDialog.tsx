@@ -43,7 +43,8 @@ export function TestFilesDialog({ open, onOpenChange, canEdit, onImported }: { o
   const { t } = useTranslation();
   const { data: projects = [] } = useQuery<Array<{ id: number; name: string }>>({ queryKey: ['/api/projects'], enabled: open });
   const [exportProject, setExportProject] = useState(ALL);
-  const [format, setFormat] = useState<'yaml' | 'json'>('yaml');
+  const [format, setFormat] = useState<'yaml' | 'json' | 'gherkin'>('yaml');
+  const [importFormat, setImportFormat] = useState<'bundle' | 'gherkin'>('bundle');
   const [content, setContent] = useState('');
   const [importProject, setImportProject] = useState(NONE);
   const [results, setResults] = useState<{ dryRun: boolean; results: Outcome[] } | null>(null);
@@ -56,7 +57,7 @@ export function TestFilesDialog({ open, onOpenChange, canEdit, onImported }: { o
     setBusy(true);
     setError('');
     try {
-      const outcome = await importBundle({ content, dryRun, projectId: importProject === NONE ? null : Number(importProject) });
+      const outcome = await importBundle({ content, dryRun, projectId: importProject === NONE ? null : Number(importProject), ...(importFormat === 'gherkin' ? { format: 'gherkin' } : {}) });
       setResults(outcome);
       if (!dryRun) onImported();
     } catch (e) {
@@ -104,11 +105,12 @@ export function TestFilesDialog({ open, onOpenChange, canEdit, onImported }: { o
             </div>
             <div className="space-y-1">
               <Label>{t('testFiles.format', 'Format')}</Label>
-              <Select value={format} onValueChange={(value) => setFormat(value as 'yaml' | 'json')}>
+              <Select value={format} onValueChange={(value) => setFormat(value as 'yaml' | 'json' | 'gherkin')}>
                 <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="yaml">YAML</SelectItem>
                   <SelectItem value="json">JSON</SelectItem>
+                  <SelectItem value="gherkin">Gherkin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -118,25 +120,34 @@ export function TestFilesDialog({ open, onOpenChange, canEdit, onImported }: { o
               </a>
             </Button>
           </div>
+          {format === 'gherkin' && <p className="text-sm text-muted-foreground">{t('testFiles.gherkinExport', 'Exports web tests only. WebFlowMaster metadata preserves original actions; Cucumber execution requires your own step definitions.')}</p>}
         </section>
 
         {canEdit && (
           <section className="space-y-2 rounded-md border p-3">
             <p className="text-sm font-medium">{t('testFiles.import', 'Import')}</p>
+            <div className="space-y-1">
+              <Label htmlFor="test-files-import-format">{t('testFiles.format', 'Format')}</Label>
+              <select id="test-files-import-format" className="rounded-md border bg-background p-2 text-sm" value={importFormat} onChange={(e) => { setImportFormat(e.target.value as 'bundle' | 'gherkin'); setResults(null); }}>
+                <option value="bundle">YAML / JSON</option>
+                <option value="gherkin">Gherkin (.feature)</option>
+              </select>
+            </div>
+            {importFormat === 'gherkin' && <p className="text-sm text-muted-foreground">{t('testFiles.gherkinImport', 'English Feature, Background, Scenario, Scenario Outline, Examples and tags are supported. Prose imports as manual steps. Descriptions, Rule, doc strings, step data tables and Examples tags are rejected. WFM metadata restores exported web actions.')}</p>}
             <Label htmlFor="test-files-file" className="inline-flex cursor-pointer items-center gap-2 text-sm">
               <FileUp className="h-4 w-4" /> {t('testFiles.openFile', 'Open a file…')}
             </Label>
             <input
               id="test-files-file"
               type="file"
-              accept=".yaml,.yml,.json"
+              accept=".yaml,.yml,.json,.feature"
               className="sr-only"
-              onChange={(e) => e.target.files?.[0]?.text().then((text) => { setContent(text); setResults(null); })}
+              onChange={(e) => { const file = e.target.files?.[0]; file?.text().then((text) => { setContent(text); setImportFormat(file.name.toLowerCase().endsWith('.feature') ? 'gherkin' : 'bundle'); setResults(null); }); }}
             />
-            <Textarea rows={6} className="font-mono text-xs" placeholder="kind: webflowmaster/tests" value={content} onChange={(e) => { setContent(e.target.value); setResults(null); }} data-testid="test-files-content" />
+            <Textarea rows={6} className="font-mono text-xs" placeholder={importFormat === 'gherkin' ? 'Feature: Login' : 'kind: webflowmaster/tests'} value={content} onChange={(e) => { setContent(e.target.value); setResults(null); }} data-testid="test-files-content" />
             <div className="space-y-1">
               <Label>{t('testFiles.newTestsGoTo', 'New tests go to')}</Label>
-              <Select value={importProject} onValueChange={setImportProject}>
+              <Select value={importProject} onValueChange={(value) => { setImportProject(value); setResults(null); }}>
                 <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE}>{t('testFiles.noProjectShort', 'No project')}</SelectItem>

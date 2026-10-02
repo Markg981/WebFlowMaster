@@ -351,6 +351,31 @@ describe('wfm tests', () => {
   const withHeaders = (response: Response, headers: Record<string, string>) =>
     Object.assign(response, { headers: new Headers(headers) }) as Response;
 
+  it('accepts Gherkin export format and rejects unsupported formats', () => {
+    expect(parseArgs(['tests', 'export', '--format', 'gherkin'], {})).toMatchObject({ testsAction: 'export', format: 'gherkin' });
+    expect(parseArgs(['tests', 'export', '--format', 'xml'], {})).toEqual({ error: expect.stringContaining('gherkin') });
+  });
+
+  it('exports Gherkin with a feature fallback filename and preserves the requested output path', async () => {
+    for (const outPath of [undefined, 'specs/login.feature']) {
+      const fetchImpl = vi.fn().mockResolvedValue(withHeaders(textResponse('Feature: Login\n'), {}));
+      const context = io(fetchImpl);
+      expect(await runCli(options({ command: 'tests', testsAction: 'export', format: 'gherkin', outPath }), context)).toBe(EXIT_PASSED);
+      expect(fetchImpl.mock.calls[0][0]).toBe('https://wfm.test/api/tests/export?format=gherkin');
+      expect(context.files.get(outPath ?? 'tests.feature')).toBe('Feature: Login\n');
+    }
+  });
+
+  it('imports feature text unchanged so the server can autodetect Gherkin, including dry runs', async () => {
+    const content = '@smoke\nFeature: Login\nScenario: Valid user\nGiven a login page';
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ dryRun: true, results: [{ kind: 'test', name: 'Login / Valid user', outcome: 'created' }] }));
+    const context = Object.assign(io(fetchImpl), { readFile: vi.fn().mockResolvedValue(content) });
+    expect(await runCli(options({ command: 'tests', testsAction: 'import', target: 'login.feature', dryRun: true }), context)).toBe(EXIT_PASSED);
+    expect(context.readFile).toHaveBeenCalledWith('login.feature');
+    expect(fetchImpl.mock.calls[0][0]).toBe('https://wfm.test/api/tests/import-bundle');
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ content, dryRun: true });
+  });
+
   it('reads export and import, and refuses what it cannot do', () => {
     expect(parseArgs(['tests', 'export', '--project', '12', '--format', 'json'], {})).toMatchObject({ command: 'tests', testsAction: 'export', project: '12', format: 'json' });
     expect(parseArgs(['tests', 'import', 'shop.wfm.yaml', '--dry-run'], {})).toMatchObject({ testsAction: 'import', target: 'shop.wfm.yaml', dryRun: true });

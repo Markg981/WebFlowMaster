@@ -3,12 +3,13 @@ import request from 'supertest';
 import express, { type Express } from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
-import { inflateRawSync } from 'node:zlib';
+import { randomUUID, sign, X509Certificate } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { deflateRawSync, inflateRawSync } from 'node:zlib';
 import { eq } from 'drizzle-orm';
 import { SignedXml } from 'xml-crypto';
 import { privilegedDb } from './db';
-import { auditLog, invitations, organizations, ssoSamlRequests, users } from '@shared/schema';
+import { auditLog, invitations, organizations, organizationSso, ssoSamlRequests, ssoSamlSessions, users } from '@shared/schema';
 import { inResponseToOf, normaliseCertificate, parseIdpMetadata, samlEmailOf, samlSubjectOf } from './sso-saml';
 
 // SAML sign-in against the real (PGlite) test database. The identity provider is this file: it reads
@@ -76,6 +77,10 @@ async function owner(username = 'olivia@example.com') {
 // ─── The identity provider ──────────────────────────────────────────────────────
 
 interface Assertion {
+  unsolicited?: boolean;
+  destination?: string;
+  recipient?: string;
+  sessionIndex?: string;
   email?: string;
   nameId?: string;
   nameIdFormat?: string;
@@ -101,9 +106,9 @@ function samlResponse(organizationId: number, inResponseTo: string, a: Assertion
     `<saml:Assertion xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="${assertionId}" Version="2.0" IssueInstant="${now.toISOString()}">` +
     `<saml:Issuer>${issuer}</saml:Issuer>` +
     `<saml:Subject><saml:NameID Format="${a.nameIdFormat ?? 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent'}">${a.nameId ?? 'ada-1'}</saml:NameID>` +
-    `<saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer"><saml:SubjectConfirmationData InResponseTo="${inResponseTo}" NotOnOrAfter="${later.toISOString()}" Recipient="${acs}"/></saml:SubjectConfirmation></saml:Subject>` +
+    `<saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer"><saml:SubjectConfirmationData ${a.unsolicited ? '' : `InResponseTo="${inResponseTo}"`} NotOnOrAfter="${later.toISOString()}" Recipient="${a.recipient ?? acs}"/></saml:SubjectConfirmation></saml:Subject>` +
     `<saml:Conditions NotBefore="${new Date(now.getTime() - 60_000).toISOString()}" NotOnOrAfter="${later.toISOString()}"><saml:AudienceRestriction><saml:Audience>${audience}</saml:Audience></saml:AudienceRestriction></saml:Conditions>` +
-    `<saml:AuthnStatement AuthnInstant="${now.toISOString()}"><saml:AuthnContext><saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:Password</saml:AuthnContextClassRef></saml:AuthnContext></saml:AuthnStatement>` +
+    `<saml:AuthnStatement AuthnInstant="${now.toISOString()}"${a.sessionIndex ? ` SessionIndex="${a.sessionIndex}"` : ''}><saml:AuthnContext><saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:Password</saml:AuthnContextClassRef></saml:AuthnContext></saml:AuthnStatement>` +
     attributes +
     `</saml:Assertion>`;
   let signed = assertion;
@@ -122,7 +127,7 @@ function samlResponse(organizationId: number, inResponseTo: string, a: Assertion
     signed = sig.getSignedXml();
   }
   const response =
-    `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_r${randomUUID()}" Version="2.0" IssueInstant="${now.toISOString()}" Destination="${acs}" InResponseTo="${inResponseTo}">` +
+    `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_r${randomUUID()}" Version="2.0" IssueInstant="${now.toISOString()}" Destination="${a.destination ?? acs}" ${a.unsolicited ? '' : `InResponseTo="${inResponseTo}"`}>` +
     `<saml:Issuer>${issuer}</saml:Issuer><samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>` +
     signed +
     `</samlp:Response>`;
@@ -141,6 +146,110 @@ async function startSignIn(browser: ReturnType<typeof request.agent>, email: str
 async function postResponse(browser: ReturnType<typeof request.agent>, organizationId: number, body: string, origin = 'https://idp.example.com') {
   return browser.post(`/api/sso/saml/${organizationId}/acs`).set('Origin', origin).type('form').send({ SAMLResponse: body }).expect(303);
 }
+
+async function encryptedResponse(organizationId: number, requestId: string, a: Assertion = {}, cert = IDP_CERT) {
+  const xml = Buffer.from(samlResponse(organizationId, requestId, a), 'base64').toString();
+  const assertion = /<saml:Assertion\b[\s\S]*?<\/saml:Assertion>/.exec(xml)![0];
+  const xmlenc = createRequire(import.meta.url)('xml-encryption');
+  const encrypted = await new Promise<string>((resolve, reject) => xmlenc.encrypt(assertion, {
+    rsa_pub: new X509Certificate(cert).publicKey.export({ type: 'spki', format: 'pem' }), pem: cert,
+    encryptionAlgorithm: 'http://www.w3.org/2009/xmlenc11#aes256-gcm',
+    keyEncryptionAlgorithm: 'http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p',
+  }, (error: Error | null, value: string) => error ? reject(error) : resolve(value)));
+  return Buffer.from(xml.replace(assertion, `<saml:EncryptedAssertion>${encrypted}</saml:EncryptedAssertion>`)).toString('base64');
+}
+
+function logoutXml(organizationId: number, options: { responseTo?: string; sessionIndex?: string; nameId?: string; destination?: string } = {}) {
+  const type = options.responseTo ? 'LogoutResponse' : 'LogoutRequest';
+  const id = `_logout${randomUUID()}`;
+  return `<samlp:${type} xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="${id}" Version="2.0" IssueInstant="${new Date().toISOString()}" Destination="${options.destination ?? `${BASE}/api/sso/saml/${organizationId}/slo`}"${options.responseTo ? ` InResponseTo="${options.responseTo}"` : ''}><saml:Issuer>${IDP_ENTITY}</saml:Issuer>${options.responseTo ? '<samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>' : `<saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent">${options.nameId ?? 'ada-1'}</saml:NameID><samlp:SessionIndex>${options.sessionIndex ?? 'session-1'}</samlp:SessionIndex>`}</samlp:${type}>`;
+}
+function signedLogoutPost(xml: string) {
+  const sig = new SignedXml({ privateKey: IDP_KEY, canonicalizationAlgorithm: 'http://www.w3.org/2001/10/xml-exc-c14n#', signatureAlgorithm: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256' });
+  sig.addReference({ xpath: '/*', transforms: ['http://www.w3.org/2000/09/xmldsig#enveloped-signature', 'http://www.w3.org/2001/10/xml-exc-c14n#'], digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256' });
+  sig.computeSignature(xml, { location: { reference: "//*[local-name()='Issuer']", action: 'after' } });
+  return Buffer.from(sig.getSignedXml()).toString('base64');
+}
+function signedLogoutQuery(xml: string, response = false) {
+  const query = new URLSearchParams({ [response ? 'SAMLResponse' : 'SAMLRequest']: deflateRawSync(Buffer.from(xml)).toString('base64'), SigAlg: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256' }).toString();
+  return `${query}&Signature=${encodeURIComponent(sign('RSA-SHA256', Buffer.from(query), IDP_KEY).toString('base64'))}`;
+}
+async function configuredSlo() {
+  const { agent, organizationId } = await owner();
+  await agent.put('/api/organization/sso').send(samlSettings({ samlSpCertificate: IDP_CERT, samlSpPrivateKey: IDP_KEY, samlSloUrl: 'https://idp.example.com/logout' })).expect(200);
+  const browser = request.agent(app);
+  const { requestId } = await startSignIn(browser, 'ada@example.com');
+  const result = await postResponse(browser, organizationId, samlResponse(organizationId, requestId!, { email: 'ada@example.com', sessionIndex: 'session-1' }));
+  expect(result.headers.location).toBe('/');
+  return { agent, browser, organizationId };
+}
+
+describe('advanced SAML protocol security', () => {
+  it('prevents a SAML registry row from linking another organization’s user', async () => {
+    const { organizationId } = await owner();
+    const outsider = await owner('outside@another.example');
+    const [user] = await privilegedDb.select().from(users).where(eq(users.organizationId, outsider.organizationId));
+    await expect(privilegedDb.insert(ssoSamlSessions).values({ sessionId: 'cross-tenant', organizationId, userId: user.id,
+      issuer: IDP_ENTITY, nameId: 'foreign' })).rejects.toThrow(/foreign key/i);
+  });
+  it('decrypts signed encrypted assertions and refuses plaintext or misleading nested encryption markers', async () => {
+    const { agent, organizationId } = await owner();
+    await agent.put('/api/organization/sso').send(samlSettings({ samlSpCertificate: IDP_CERT, samlSpPrivateKey: IDP_KEY, samlRequireEncryptedAssertions: true })).expect(200);
+    const browser = request.agent(app);
+    let { requestId } = await startSignIn(browser, 'ada@example.com');
+    const valid = await postResponse(browser, organizationId, await encryptedResponse(organizationId, requestId!, { email: 'ada@example.com' }));
+    expect(valid.headers.location).toBe('/');
+    ({ requestId } = await startSignIn(browser, 'ada@example.com'));
+    const plaintext = Buffer.from(samlResponse(organizationId, requestId!, { email: 'ada@example.com' }), 'base64').toString();
+    const misleading = plaintext.replace('<saml:Issuer>', '<samlp:Extensions><saml:EncryptedAssertion/></samlp:Extensions><saml:Issuer>');
+    const denied = await postResponse(browser, organizationId, Buffer.from(misleading).toString('base64'));
+    expect(denied.headers.location).toContain('sso_error=provider_error');
+  });
+  it('starts signed SP logout, ends the local session and accepts the correlated signed response only once', async () => {
+    const { browser, organizationId } = await configuredSlo();
+    const ended = await browser.post('/api/logout').expect(200);
+    const location = new URL(ended.body.redirectUrl);
+    expect(location.origin).toBe('https://idp.example.com');
+    expect(location.searchParams.has('Signature')).toBe(true);
+    const requestXml = inflateRawSync(Buffer.from(location.searchParams.get('SAMLRequest')!, 'base64')).toString();
+    const requestId = /\sID="([^"]+)"/.exec(requestXml)![1];
+    await browser.get('/api/user').expect(401);
+    const callback = `/api/sso/saml/${organizationId}/slo?${signedLogoutQuery(logoutXml(organizationId, { responseTo: requestId }), true)}`;
+    await browser.get(callback).expect(303);
+    await browser.get(callback).expect(400);
+    expect(await privilegedDb.select().from(ssoSamlSessions)).toHaveLength(0);
+  });
+  it.each(['GET', 'POST'])('revokes matching sessions with signed provider logout via %s without cookies', async method => {
+    const { browser, organizationId } = await configuredSlo();
+    const message = logoutXml(organizationId);
+    const route = `/api/sso/saml/${organizationId}/slo`;
+    const send = () => method === 'GET' ? request(app).get(`${route}?${signedLogoutQuery(message)}`) : request(app).post(route).set('Origin', 'https://idp.example.com').type('form').send({ SAMLRequest: signedLogoutPost(message) });
+    const result = await send().expect(303);
+    expect(result.headers.location).toContain('SAMLResponse=');
+    await browser.get('/api/user').expect(401);
+    await send().expect(400);
+  });
+  it('refuses unsigned, wrong-session and wrong-destination provider logout without ending a valid session', async () => {
+    const { browser, organizationId } = await configuredSlo();
+    const route = `/api/sso/saml/${organizationId}/slo`;
+    await request(app).post(route).type('form').send({ SAMLRequest: Buffer.from(logoutXml(organizationId)).toString('base64') }).expect(400);
+    for (const options of [{ sessionIndex: 'other-session' }, { destination: 'https://elsewhere.example/slo' }]) {
+      await request(app).get(`${route}?${signedLogoutQuery(logoutXml(organizationId, options))}`).expect(400);
+    }
+    await browser.get('/api/user').expect(200);
+  });
+  it('bounds compressed logout XML before library verification', async () => {
+    const { organizationId } = await configuredSlo();
+    const bomb = deflateRawSync(Buffer.from('x'.repeat(1_000_001))).toString('base64');
+    await request(app).get(`/api/sso/saml/${organizationId}/slo`).query({ SAMLRequest: bomb, SigAlg: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256', Signature: 'invalid' }).expect(400);
+  });
+  it('logs out all sessions for the signed NameID when SessionIndex is absent', async () => {
+    const { browser, organizationId } = await configuredSlo();
+    const xml = logoutXml(organizationId).replace(/<samlp:SessionIndex>.*?<\/samlp:SessionIndex>/, '');
+    await request(app).post(`/api/sso/saml/${organizationId}/slo`).type('form').send({ SAMLRequest: signedLogoutPost(xml) }).expect(303);
+    await browser.get('/api/user').expect(401);
+  });
+});
 
 // ─── Pure parts ─────────────────────────────────────────────────────────────────
 
@@ -161,7 +270,7 @@ describe('reading what an owner pastes', () => {
         <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="${IDP_SSO}/post"/>
         <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="${IDP_SSO}"/>
       </md:IDPSSODescriptor></md:EntityDescriptor>`;
-    expect(parseIdpMetadata(xml)).toEqual({ entityId: IDP_ENTITY, ssoUrl: IDP_SSO, certificate: normaliseCertificate(IDP_CERT) });
+    expect(parseIdpMetadata(xml)).toEqual({ entityId: IDP_ENTITY, ssoUrl: IDP_SSO, certificate: normaliseCertificate(IDP_CERT), sloUrl: null });
     expect(parseIdpMetadata(`<!DOCTYPE x [<!ENTITY a "b">]>${xml}`)).toEqual({ error: 'The metadata must not contain a DOCTYPE.' });
     expect(parseIdpMetadata('<md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata"/>')).toHaveProperty('error');
   });
@@ -188,6 +297,7 @@ describe('setting SAML up', () => {
       entityId: `${BASE}/api/sso/saml/${organizationId}`,
       acsUrl: `${BASE}/api/sso/saml/${organizationId}/acs`,
       metadataUrl: `${BASE}/api/sso/saml/${organizationId}/metadata`,
+      sloUrl: `${BASE}/api/sso/saml/${organizationId}/slo`,
     });
 
     const metadata = await request(app).get(`/api/sso/saml/${organizationId}/metadata`).expect(200);
@@ -221,6 +331,35 @@ describe('setting SAML up', () => {
 });
 
 describe('signing in with SAML', () => {
+  it('keeps unsolicited login disabled by default, accepts opt-in signed login once and rejects wrong destination/recipient', async () => {
+    const { agent, organizationId } = await owner();
+    await agent.put('/api/organization/sso').send(samlSettings()).expect(200);
+    const response = samlResponse(organizationId, '', { email: 'ada@example.com', unsolicited: true });
+    expect((await postResponse(request.agent(app), organizationId, response)).headers.location).toContain('sso_error=provider_error');
+    await agent.put('/api/organization/sso').send(samlSettings({ samlAllowIdpInitiated: true })).expect(200);
+    expect((await postResponse(request.agent(app), organizationId, response)).headers.location).toBe('/');
+    expect((await postResponse(request.agent(app), organizationId, response)).headers.location).toContain('sso_error=expired');
+    for (const bad of [{ destination: 'https://evil.example' }, { recipient: 'https://evil.example' }, { unsigned: true }]) {
+      expect((await postResponse(request.agent(app), organizationId, samlResponse(organizationId, '', { email: 'ada@example.com', unsolicited: true, ...bad }))).headers.location).toContain('sso_error=provider_error');
+    }
+  });
+
+  it('encrypts a matching SP private key at rest, retains a blank key and never returns it', async () => {
+    const { agent, organizationId } = await owner();
+    const input = samlSettings({ samlSpPrivateKey: IDP_KEY, samlSpCertificate: IDP_CERT, samlSloUrl: `${IDP_SSO}/logout`, samlRequireEncryptedAssertions: true });
+    const saved = await agent.put('/api/organization/sso').send(input).expect(200);
+    expect(saved.body.settings.samlSpPrivateKeyConfigured).toBe(true);
+    expect(JSON.stringify(saved.body)).not.toContain('PRIVATE KEY');
+    const [stored] = await privilegedDb.select().from(organizationSso).where(eq(organizationSso.organizationId, organizationId));
+    expect(stored.samlSpPrivateKeyEncrypted).toBeTruthy();
+    expect(stored.samlSpPrivateKeyEncrypted).not.toContain('PRIVATE KEY');
+    await agent.put('/api/organization/sso').send({ ...input, samlSpPrivateKey: '' }).expect(200);
+    await agent.put('/api/organization/sso').send({ ...input, samlSpPrivateKey: OTHER_KEY }).expect(400);
+    await agent.put('/api/organization/sso').send({ ...input, samlSpPrivateKey: '', samlClearSpKey: true }).expect(400);
+    const metadata = await request(app).get(`/api/sso/saml/${organizationId}/metadata`).expect(200);
+    expect(metadata.text).toContain('SingleLogoutService');
+    expect(metadata.text).toContain('use="encryption"');
+  });
   it('sends an AuthnRequest, accepts the signed answer, creates the account, and finds it again by NameID', async () => {
     const { agent, organizationId } = await owner();
     await agent.put('/api/organization/sso').send(samlSettings()).expect(200);

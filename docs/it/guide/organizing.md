@@ -11,6 +11,34 @@ aggiungono dalla riga del test. Sono ciò con cui le [suite dinamiche](#suite) s
 
 ## Test manuali {#test-manuali}
 
+**File Gherkin/Cucumber.** In **File**, scegliete **Gherkin (.feature)** per esportare i test web,
+oppure aprite un `.feature` e visualizzate l'anteprima di importazione. Sono supportati Feature,
+Background, Scenario e Scenario Outline/Examples in inglese. La prosa diventa step manuali;
+i metadati negli export WebFlowMaster ripristinano le azioni browser originali. Per eseguire
+con Cucumber servono le vostre definizioni degli step. I costrutti non supportati vengono
+rifiutati indicando la riga. Vedi [Dettagli dei file Gherkin](../../gherkin-files).
+
+## Commenti
+
+Aprite **Commenti** su un test salvato o sul risultato di un test nel report per discuterne con
+l'organizzazione. Possono partecipare anche i viewer. Gli autori possono modificare o eliminare
+i propri commenti, e gli owner possono moderarli. I commenti sono testo semplice, fino a 5.000
+caratteri, e rispettano l'accesso al progetto del test: una discussione non concede accesso
+a un test privato.
+Eliminando un test salvato vengono eliminate anche le discussioni sui suoi risultati storici,
+mentre i report restano disponibili. Così una discussione privata non diventa visibile a tutti
+quando il test viene rimosso.
+
+## Dashboard personale
+
+Nella **Dashboard**, scegliete **Personalizza dashboard** per mostrare o nascondere indicatori,
+stato, andamento, pianificazioni e report recenti. Spostate i widget su o giù e scegliete
+**Salva disposizione**. La preferenza resta salvata per il vostro account tra le sessioni;
+gli altri membri mantengono la propria. **Ripristina disposizione** ripristina ordine e
+visibilità originali.
+
+## Scrivere un test manuale
+
 Non tutto vale la pena di automatizzarlo: una verifica fatta una volta a rilascio, un flusso che
 richiede il giudizio di una persona, un dispositivo che nessun browser può sostituire. **Nuovo test
 manuale** nella libreria ne scrive uno: un nome e i suoi step, ciascuno con l'**azione** da

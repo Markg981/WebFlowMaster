@@ -23,12 +23,15 @@ const PERSONAL = [
   'scim_group_members.user_id',
   'scim_users.user_id',
   'sso_identities.user_id',
+  'sso_saml_sessions.user_id',
   'user_mfa.user_id',
   'user_settings.user_id',
+  'user_dashboard_layouts.user_id',
 ];
 
 /** References that only record who did something; they become null. */
 const PROVENANCE = [
+  'comments.author_id',
   'agents.created_by',
   'audit_log.actor_user_id',
   'invitations.invited_by_user_id',

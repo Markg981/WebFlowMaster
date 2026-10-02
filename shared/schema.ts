@@ -13,6 +13,9 @@ import type { CiContext } from './ci';
 import { ApiPerformanceSchema, type ApiPerformance } from './api-performance';
 import type { RequirementKind } from './requirements';
 import type { TestManagementProvider } from './test-management';
+export * from './comments';
+export * from './dashboard-layout';
+export * from './mail-delivery';
 
 // Table Definitions
 export const organizations = pgTable("organizations", {
@@ -765,6 +768,13 @@ export const organizationSso = pgTable("organization_sso", {
   samlSsoUrl: text("saml_sso_url"),
   /** SAML only: the provider's signing certificate, PEM. Public, so not encrypted. */
   samlCertificate: text("saml_certificate"),
+  samlAllowIdpInitiated: boolean("saml_allow_idp_initiated").notNull().default(false),
+  samlRequireEncryptedAssertions: boolean("saml_require_encrypted_assertions").notNull().default(false),
+  samlSloUrl: text("saml_slo_url"),
+  samlSpCertificate: text("saml_sp_certificate"),
+  samlSpPrivateKeyEncrypted: text("saml_sp_private_key_encrypted"),
+  samlSpPrivateKeyIv: text("saml_sp_private_key_iv"),
+  samlSpPrivateKeyAuthTag: text("saml_sp_private_key_auth_tag"),
   /** The role of an account created on its first sign-in: viewer or editor, never owner. */
   defaultRole: text("default_role").notNull().default('viewer'),
   enabled: boolean("enabled").notNull().default(true),
@@ -831,15 +841,37 @@ export const scimGroupMembers = pgTable("scim_group_members", {
 
 /**
  * SAML AuthnRequests sent and not yet answered (migration 0059). A response must answer one, and
- * answering removes it: no replay, no unsolicited response. Not RLS-scoped, like the other sso tables.
+ * answering removes it. Logout requests are correlated separately; opt-in unsolicited assertions
+ * use the replay registry. Not RLS-scoped, like the other sso tables.
  */
 export const ssoSamlRequests = pgTable("sso_saml_requests", {
   id: text("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  purpose: text("purpose").notNull().default('authn'),
+  sessionId: text("session_id"),
 }, (table) => [
   index("sso_saml_requests_created_at_idx").on(table.createdAt),
 ]);
+
+/** Signed SAML message identifiers consumed once, before authentication or logout. */
+export const ssoSamlReplay = pgTable("sso_saml_replay", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp("expires_at").notNull(),
+}, table => [index("sso_saml_replay_expires_at_idx").on(table.expiresAt)]);
+
+/** SAML sessions addressable by signed logout messages even without a cross-site cookie. */
+export const ssoSamlSessions = pgTable("sso_saml_sessions", {
+  sessionId: text("session_id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  issuer: text("issuer").notNull(),
+  nameId: text("name_id").notNull(),
+  nameIdFormat: text("name_id_format"),
+  sessionIndex: text("session_index"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, table => [index("sso_saml_sessions_identity_idx").on(table.organizationId, table.issuer, table.nameId, table.sessionIndex)]);
 
 export const ssoDomains = pgTable("sso_domains", {
   /** Lower case. The primary key: one organization per domain. */
@@ -2944,4 +2976,7 @@ export const ORG_SCOPED_TABLES = [
   'impact_rules',
   // Text messages the test numbers received (migration 0070).
   'sms_messages',
+  'comments',
+  'user_dashboard_layouts',
+  'mail_deliveries', 'mail_delivery_events',
 ] as const;

@@ -25,7 +25,7 @@ import {
   type SignedIn,
 } from "../sso";
 import loggerPromise from "../logger";
-import { BINDING_COOKIE, REQUEST_TTL_MS, parseIdpMetadata, serviceProviderMetadata, spUrls } from "../sso-saml";
+import { BINDING_COOKIE, SLO_BINDING_COOKIE, REQUEST_TTL_MS, parseIdpMetadata, serviceProviderMetadata, spUrls, registerSamlSession, finishSamlLogout } from "../sso-saml";
 import { sessionCookieSecure } from "../config";
 import { SCIM_BASE_PATH, issueScimToken, revokeScimToken } from "../scim";
 
@@ -69,6 +69,12 @@ const settingsSchema = z.object({
   clientSecret: z.string().max(2000).optional(),
   samlSsoUrl: z.string().trim().max(2000).optional(),
   samlCertificate: z.string().max(20000).optional(),
+  samlAllowIdpInitiated: z.boolean().optional(),
+  samlRequireEncryptedAssertions: z.boolean().optional(),
+  samlSloUrl: z.string().trim().max(2000).nullable().optional(),
+  samlSpCertificate: z.string().max(20000).nullable().optional(),
+  samlSpPrivateKey: z.string().max(20000).optional(),
+  samlClearSpKey: z.boolean().optional(),
   domains: z.array(z.string().max(253)).min(1).max(50),
   defaultRole: z.enum(SSO_ROLES as [string, ...string[]]),
   enabled: z.boolean(),
@@ -244,16 +250,42 @@ router.post("/api/sso/saml/:organizationId/acs", signInLimiter, async (req, res,
 });
 
 /** Opens the session for an account the provider vouched for, by either protocol. */
-function signIn(req: Request, res: Response, next: NextFunction, { user, created, linked }: SignedIn, protocol: "oidc" | "saml") {
+function signIn(req: Request, res: Response, next: NextFunction, { user, created, linked, samlSession }: SignedIn, protocol: "oidc" | "saml") {
   // req.login starts a new session: the one that carried the state does not become the signed-in one.
-  req.login(user, (loginError) => {
+  req.login(user, async (loginError) => {
     if (loginError) return next(loginError);
     req.session.signedInWith = "sso";
+    if (samlSession) {
+      try {
+        req.session.samlIdentity = samlSession;
+        await registerSamlSession(req.sessionID, user.id, samlSession);
+      } catch (error) { return next(error); }
+    }
     req.session.save(async (saveError) => {
       if (saveError) return next(saveError);
       await recordAuthEvent(user, AUDIT_ACTIONS.LOGIN_SUCCEEDED, req.ip, { method: "sso", protocol, ...(created ? { created } : {}), ...(linked ? { linked } : {}) });
       res.redirect(303, "/");
     });
+});
+}
+
+// SAML SLO is public: signed requests identify the sessions even when SameSite cookies are absent.
+for (const method of ['get', 'post'] as const) {
+  router[method]("/api/sso/saml/:organizationId/slo", signInLimiter, async (req, res) => {
+    const organizationId = Number(req.params.organizationId);
+    const row = Number.isInteger(organizationId) && organizationId > 0 ? await samlProviderOf(organizationId) : null;
+    if (!row?.enabled) return res.status(404).json({ error: "SAML single logout is unavailable." });
+    try {
+      const result = await finishSamlLogout(row, publicBase(req), req);
+      if (result.response) {
+        res.clearCookie(SLO_BINDING_COOKIE, { path: '/api/sso/saml', httpOnly: true, secure: sessionCookieSecure(), sameSite: sessionCookieSecure() ? 'none' : 'lax' });
+        return res.redirect(303, '/auth');
+      }
+      return res.redirect(303, result.redirectUrl!);
+    } catch (error) {
+      logger.warn({ message: 'SAML single logout refused', organizationId, detail: error instanceof Error ? error.message : String(error) });
+      return res.status(400).json({ error: 'Invalid SAML single logout message.' });
+    }
   });
 }
 

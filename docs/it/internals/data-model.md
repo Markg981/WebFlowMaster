@@ -54,7 +54,15 @@ erDiagram
 | `sso_identities` | Il legame fra una persona presso il provider (`issuer` + `subject`) e una riga di `users`, con l'ultimo accesso. |
 | `scim_users` | Gli account che l'identity provider gestisce via SCIM, con l'`external_id` con cui li conosce e se sono stati disattivati dai suoi gruppi (`disabled_by_groups`). L'account è la riga di `users`; il suo id SCIM è l'id utente. Senza RLS e senza permessi per `app_user`. |
 | `scim_groups` / `scim_group_members` | I gruppi del provider come li invia via SCIM, e chi ne fa parte. Le mappature dei ruoli confrontano il `display_name` o l'`external_id` del gruppo. Senza RLS e senza permessi per `app_user`. |
+| `sso_saml_replay` | Identificativi firmati di asserzioni e logout consumati atomicamente fino alla scadenza. Solo accesso privilegiato prima del login; nessun grant per `app_user`. |
+| `sso_saml_sessions` | Sessioni associate a issuer, NameID e SessionIndex per il logout avviato dal provider. La revoca resta valida se lo store fallisce. Righe personali cancellate insieme all'utente; solo accesso privilegiato. |
+| `mail_deliveries` / `mail_delivery_events` | Accettazione SMTP ed eventi firmati di consegna/rimbalzo: destinatario, scopo, stato e date, senza contenuto o token. Gli owner leggono tramite RLS; i callback correlano identificativi opachi. I record senza organizzazione non sono visibili tramite API tenant. |
 | `sessions` | Lo store delle sessioni quando le tiene PostgreSQL (in produzione le tiene Redis). Dell'installazione. |
+
+La migrazione 0073 aggiunge avvio IdP facoltativo, cifratura obbligatoria, certificato pubblico SP,
+chiave privata cifrata e URL di logout a `organization_sso`. `sso_saml_requests` distingue le
+richieste di accesso e logout tramite `purpose`. La 0074 aggiunge le tabelle email con RLS forzata
+e grant di sola lettura per l'applicazione.
 
 I diagrammi completi, a livello di colonna, di tutte le tabelle sono in [Schema del database](./database-schema).
 

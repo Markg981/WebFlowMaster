@@ -722,7 +722,27 @@
     },
     "description": "Come stanno andando i tuoi test e che cosa è in programma.",
     "loadFailed": "Non è stato possibile caricare i dati della dashboard: i pannelli qui sotto possono essere vuoti o non aggiornati.",
-    "retry": "Riprova"
+    "retry": "Riprova",
+    "customize": {
+      "open": "Personalizza dashboard",
+      "description": "Scegli i widget da mostrare e modifica il loro ordine. Le modifiche valgono solo per la tua dashboard.",
+      "kpis": "Indicatori principali",
+      "status": "Stato dei test",
+      "trend": "Andamento dei test",
+      "schedules": "Pianificazioni",
+      "reports": "Report recenti",
+      "move": "Sposta",
+      "up": "su",
+      "down": "giù",
+      "save": "Salva disposizione",
+      "reset": "Ripristina disposizione",
+      "cancel": "Annulla",
+      "loading": "Caricamento disposizione…",
+      "saving": "Salvataggio disposizione…",
+      "loadFailed": "Impossibile caricare la disposizione.",
+      "saveFailed": "Impossibile salvare la disposizione. Riprova.",
+      "retry": "Riprova"
+    }
   },
   "testSuitesPage": {
     "testSuites": {
@@ -3419,7 +3439,7 @@
     "issuer": "Issuer",
     "clientId": "Client ID",
     "clientSecret": "Client secret",
-    "secretKept": "Salvato. Lasciate vuoto per mantenerlo.",
+    "secretKept": "Stored. Leave empty to keep it.",
     "domains": "Domini e-mail",
     "defaultRole": "Ruolo dei nuovi account",
     "roleViewer": "Viewer",
@@ -3469,7 +3489,21 @@
       "ssoUrl": "URL di accesso (HTTP-Redirect)",
       "certificate": "Certificato di firma (X.509, PEM o base64)",
       "certExpired": "Scaduto il {{date}}: gli accessi sono rifiutati finché non incollate il nuovo certificato.",
-      "certValid": "{{subject}} · valido fino al {{date}}"
+      "certValid": "{{subject}} · valido fino al {{date}}",
+      "advanced": "Impostazioni SAML avanzate",
+      "allowIdpInitiated": "Consenti l'accesso avviato dall'identity provider",
+      "idpInitiatedCaution": "Disabilitato per default. Un accesso non richiesto può collegare questo browser a un altro account senza una richiesta avviata da WebFlowMaster. Abilitare solo per un flusso di avvio del provider attendibile. Restano i controlli di firma, audience, validità, dominio e protezione dal replay.",
+      "requireEncrypted": "Richiedi asserzioni cifrate",
+      "encryptedHint": "Richiede certificato e chiave privata corrispondenti del service provider. Configurare il provider per cifrare le asserzioni con questo certificato pubblico.",
+      "idpSloUrl": "URL single logout del provider (facoltativo)",
+      "sloHint": "Usare il servizio HTTPS HTTP-Redirect di logout del provider. Il single logout richiede certificato e chiave privata corrispondenti del service provider.",
+      "spCertificate": "Certificato del service provider",
+      "spCertificateHint": "Certificato pubblico RSA X.509 per firmare il logout e decifrare le asserzioni. Deve corrispondere alla chiave privata.",
+      "spPrivateKey": "Chiave privata del service provider",
+      "spPrivateKeyHint": "Incollare la chiave privata RSA PEM. Viene salvata cifrata e non viene mai restituita. Lasciare vuoto per mantenere la chiave salvata.",
+      "removeSpKey": "Rimuovi chiave e certificato salvati del service provider",
+      "removeSpKeyHint": "Disattivare la cifratura obbligatoria e svuotare l'URL di logout del provider prima di rimuovere la chiave.",
+      "spSloUrl": "URL callback single logout di WebFlowMaster"
     },
     "domainsProof": {
       "title": "Verifica dei domini",
@@ -3505,7 +3539,9 @@
       "revoke": "Revoca",
       "revokeConfirm": "Revoca: il provider smette di fare provisioning",
       "replaceHint": "Sostituire il token chiude subito quello vecchio: incollate il nuovo presso il provider."
-    }
+    },
+    "loadFailed": "Impossibile caricare le impostazioni single sign-on.",
+    "retry": "Riprova"
   },
   "manualTests": {
     "newTitle": "Nuovo test manuale",
@@ -4116,7 +4152,9 @@
       "updated": "aggiornato",
       "unchanged": "invariato",
       "invalid": "non importato"
-    }
+    },
+    "gherkinExport": "Esporta solo i test web. I metadati WebFlowMaster conservano le azioni originali; per eseguire con Cucumber servono le tue definizioni degli step.",
+    "gherkinImport": "Sono supportati Feature, Background, Scenario, Scenario Outline, Examples e tag in inglese. Il testo viene importato come step manuali. Descrizioni, Rule, doc string, tabelle degli step e tag degli Examples vengono rifiutati. I metadati WFM ripristinano le azioni web esportate."
   },
   "impactMap": {
     "title": "Mappa dell'impatto",
@@ -4154,5 +4192,51 @@
     "revoke": "Revoca",
     "recent": "Ultimi messaggi",
     "noMessages": "Non è ancora arrivato nulla."
+  },
+  "comments": {
+    "title": "Commenti",
+    "loadFailed": "Impossibile caricare i commenti",
+    "saveFailed": "Impossibile salvare il commento",
+    "loading": "Caricamento commenti…",
+    "empty": "Nessun commento.",
+    "formerMember": "Ex membro",
+    "edit": "Modifica commento",
+    "save": "Salva commento",
+    "cancel": "Annulla",
+    "delete": "Elimina commento",
+    "new": "Nuovo commento",
+    "add": "Aggiungi commento"
+  },
+  "GET": "/api/mail-deliveries?limit=100",
+  "emailDelivery": {
+    "states": {
+      "queued": "Preparazione",
+      "accepted": "Accettato da SMTP",
+      "delivered": "Consegnato",
+      "soft_bounce": "Rimbalzo temporaneo",
+      "hard_bounce": "Rimbalzo permanente",
+      "rejected": "Rifiutato da SMTP",
+      "failed": "Invio fallito",
+      "suppressed": "Bloccato dopo un rimbalzo permanente"
+    },
+    "purposes": {
+      "invitation": "Invito",
+      "password_reset": "Reset password",
+      "run_finished": "Notifica del run",
+      "other": "Email"
+    },
+    "title": "Consegna email",
+    "description": "Inviti, reset password e notifiche dei run includono HTML e testo semplice. L'accettazione SMTP non conferma la consegna.",
+    "loading": "Caricamento…",
+    "error": "Impossibile caricare la cronologia delle email.",
+    "notConfigured": "L'invio email non è configurato su questa installazione.",
+    "noTracking": "Il tracciamento di consegna e rimbalzi non è configurato.",
+    "refresh": "Aggiorna",
+    "empty": "Nessun messaggio registrato.",
+    "history": "Ultimi 100 messaggi di questa organizzazione",
+    "recipient": "Destinatario",
+    "purpose": "Messaggio",
+    "state": "Stato",
+    "created": "Creato il"
   }
 }

@@ -12,6 +12,7 @@ import { eq } from 'drizzle-orm';
 import { getCorrelationId } from './middleware/correlation';
 import { getSessionMiddleware } from './auth';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import { isSamlSessionActive } from './sso-saml';
 
 /**
  * Execution Log Entry — the structure sent to WebSocket subscribers
@@ -35,7 +36,7 @@ export interface WsEmitter {
 }
 
 /** A socket that has completed the authenticated upgrade handshake. */
-type AuthenticatedWebSocket = WebSocket & { organizationId: number; userId: number };
+type AuthenticatedWebSocket = WebSocket & { organizationId: number; userId: number; samlSessionId?: string };
 
 // Global emitter reference, set after setupWebSockets is called
 let globalWsEmitter: WsEmitter | null = null;
@@ -74,7 +75,18 @@ async function authenticateUpgrade(req: IncomingMessage): Promise<SelectUser | u
   await runMiddleware(getSessionMiddleware(), req, res);
   await runMiddleware(passport.initialize(), req, res);
   await runMiddleware(passport.session(), req, res);
-  return (req as any).user as SelectUser | undefined;
+  const user = (req as any).user as SelectUser | undefined;
+  if (user && (req as any).session?.samlIdentity && !await isSamlSessionActive((req as any).sessionID, user.id, user.organizationId)) return undefined;
+  return user;
+}
+
+async function socketSamlSessionActive(client: AuthenticatedWebSocket): Promise<boolean> {
+  if (!client.samlSessionId) return true;
+  try {
+    if (await isSamlSessionActive(client.samlSessionId, client.userId, client.organizationId)) return true;
+  } catch { /* A failed registry check never authorizes live data. */ }
+  client.close(1008, 'Session ended');
+  return false;
 }
 
 /**
@@ -206,7 +218,11 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
     const payload = JSON.stringify(message);
     for (const client of clients) {
       if (client.readyState === WebSocket.OPEN) {
-        client.send(payload);
+        const authenticated = client as AuthenticatedWebSocket;
+        if (!authenticated.samlSessionId) client.send(payload);
+        else void socketSamlSessionActive(authenticated).then(active => {
+          if (active && client.readyState === WebSocket.OPEN) client.send(payload);
+        });
       }
     }
   }
@@ -246,16 +262,18 @@ export async function setupWebSockets(server: Server): Promise<WsEmitter> {
       });
   });
 
-  wss.on('connection', (ws: WebSocket, _req: IncomingMessage, user: SelectUser) => {
+  wss.on('connection', (ws: WebSocket, req: IncomingMessage, user: SelectUser) => {
     const authedWs = ws as AuthenticatedWebSocket;
     authedWs.organizationId = user.organizationId;
     authedWs.userId = user.id;
+    if ((req as any).session?.samlIdentity) authedWs.samlSessionId = (req as any).sessionID;
 
     logger.info('WebSocket client connected', { userId: user.id, organizationId: user.organizationId });
 
     authedWs.on('message', (raw) => {
       void (async () => {
         try {
+          if (!await socketSamlSessionActive(authedWs)) return;
           const msg = JSON.parse(raw.toString());
 
           // Client subscribes to a specific execution's logs. Refused (not added to the room)

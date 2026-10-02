@@ -47,7 +47,7 @@ export interface CliOptions {
   testsAction?: 'export' | 'import';
   /** A project id, or `none` for tests in no project. */
   project?: string;
-  format?: 'yaml' | 'json';
+  format?: 'yaml' | 'json' | 'gherkin';
   outPath?: string;
   dryRun?: boolean;
   /** run: only the tests the files changed since this git ref affect (server/test-impact.ts). */
@@ -80,7 +80,7 @@ Usage:
   wfm status <runId>
   wfm junit <runId> [--junit <file>]
   wfm export <runId> [--html <file>] [--pdf <file>] [--allure <file>]
-  wfm tests export [--project <id|none>] [--format yaml|json] [--out <file>]
+  wfm tests export [--project <id|none>] [--format yaml|json|gherkin] [--out <file>]
   wfm tests import <file> [--project <id>] [--dry-run]
 
 Options:
@@ -104,12 +104,13 @@ Options:
   --no-ci                Do not send the build, commit and branch read from the CI's environment
   --json                 Print the final run as JSON
   --project <id|none>    tests: the project to export, or where imported new tests go
-  --format yaml|json     tests export: the file's format (default: yaml)
-  --out <file>           tests export: where to write it (default: <project>.wfm.yaml)
+  --format <format>      tests export: yaml, json or gherkin (default: yaml)
+  --out <file>           tests export: where to write it (default: server filename, or tests.wfm.yaml / tests.feature)
   --dry-run              tests import: say what would change, change nothing
 
 wfm tests keeps a project's tests in a repository: export them in a pipeline and commit the file,
 or import the file a pull request changed. It needs a full-access API key (one without scopes).
+Gherkin exports web tests only; imported .feature prose becomes manual steps unless WFM metadata restores actions.
 
 On GitHub Actions it also sets the step outputs run-id, status and report-url, and writes a
 summary of the run to the job's page.
@@ -161,7 +162,7 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
       case '--environment': options.environmentId = Number(value()); break;
       case '--idempotency-key': options.idempotencyKey = value(); break;
       case '--project': options.project = value(); break;
-      case '--format': options.format = value() as 'yaml' | 'json'; break;
+      case '--format': options.format = value() as CliOptions['format']; break;
       case '--out': options.outPath = value(); break;
       case '--dry-run': options.dryRun = true; break;
       case '--changed-since': options.changedSince = value(); break;
@@ -176,7 +177,7 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
     const [action, file] = positional;
     if (action !== 'export' && action !== 'import') return { error: 'tests needs export or import. See --help.' };
     if (action === 'import' && !file) return { error: 'tests import needs the file. See --help.' };
-    if (options.format && options.format !== 'yaml' && options.format !== 'json') return { error: '--format is yaml or json.' };
+    if (options.format && options.format !== 'yaml' && options.format !== 'json' && options.format !== 'gherkin') return { error: '--format is yaml, json or gherkin.' };
     if (options.project !== undefined && options.project !== 'none' && !/^\d+$/.test(options.project)) {
       return { error: '--project is a project id, or none.' };
     }
@@ -615,7 +616,7 @@ async function testsFile(options: CliOptions, io: CliIo, call: Call): Promise<nu
     if (response.status === 401) { io.error(FULL_ACCESS_NEEDED); return EXIT_TOOL_ERROR; }
     if (!response.ok) { io.error(`Could not export: ${response.status} ${await errorText(response)}`); return EXIT_TOOL_ERROR; }
     const named = /filename="([^"]+)"/.exec(response.headers.get('content-disposition') ?? '')?.[1];
-    const target = options.outPath ?? named ?? `tests.wfm.${options.format ?? 'yaml'}`;
+    const target = options.outPath ?? named ?? (options.format === 'gherkin' ? 'tests.feature' : `tests.wfm.${options.format ?? 'yaml'}`);
     await io.writeFile(target, await response.text());
     const secrets = Number(response.headers.get('x-wfm-secrets-replaced') ?? 0);
     const references = Number(response.headers.get('x-wfm-tests-with-references') ?? 0);

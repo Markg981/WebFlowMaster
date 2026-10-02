@@ -332,6 +332,7 @@ router.post("/api/organization/invitations", requireRole("owner"), async (req: R
         tx.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, organizationId)),
       );
       return invitationMail({
+        organizationId,
         base: publicBase(req),
         username: created.username,
         token: created.token,
@@ -482,7 +483,7 @@ router.post("/api/organization/members/:userId/password-reset", requireRole("own
 
   if (!issued) return res.status(404).json({ error: "Member not found" });
   const mail = await mailIfPossible(issued.username, async () =>
-    passwordResetMail({ base: publicBase(req), username: issued.username, token: issued.token, expiresAt: issued.expiresAt }),
+    passwordResetMail({ base: publicBase(req), username: issued.username, token: issued.token, expiresAt: issued.expiresAt, organizationId: getTenantOrgId()! }),
   );
   res.status(201).json({ username: issued.username, token: issued.token, expiresAt: issued.expiresAt, ...mail });
 });

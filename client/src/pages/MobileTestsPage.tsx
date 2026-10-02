@@ -20,6 +20,8 @@ import TagPicker, { type TagRef } from '@/components/tags/TagPicker';
 import QuarantineDialog from '@/components/reports/QuarantineDialog';
 import type { QuarantineRow } from '@/components/reports/QuarantinedTestsCard';
 import type { FlakySummary } from '@/components/reports/FlakyTestsCard';
+import CommentsPanel from '@/components/tests/CommentsPanel';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 /**
  * Tests of native Android and iOS apps, run on real devices of the organization's BrowserStack
@@ -42,6 +44,7 @@ const MobileTestsPage: React.FC = () => {
   const [deleting, setDeleting] = useState<MobileTestRow | null>(null);
   const [taggingId, setTaggingId] = useState<number | null>(null);
   const [quarantining, setQuarantining] = useState<MobileTestRow | null>(null);
+  const [commentsFor, setCommentsFor] = useState<MobileTestRow | null>(null);
 
   const { data: tests = [], isLoading } = useQuery<ListedTest[]>({
     queryKey: ['mobileTests'],
@@ -235,6 +238,7 @@ const MobileTestsPage: React.FC = () => {
                       {test.lastRun ? `${statusLabel(test.lastRun.status)} · ${new Date(test.lastRun.createdAt).toLocaleString()}` : '—'}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap space-x-1">
+                      <Button variant="ghost" size="sm" onClick={() => setCommentsFor(test)}>{t('comments.title', 'Comments')}</Button>
                       {canEdit && (
                         <>
                           <Button variant="outline" size="sm" onClick={() => setRunning(test)} aria-label={t('mobileTests.runFor', 'Run {{name}}', { name: test.name })}>
@@ -279,6 +283,12 @@ const MobileTestsPage: React.FC = () => {
         }}
       />
       <MobileRunDialog test={running} grids={deviceGrids} onClose={() => setRunning(null)} onFinished={refresh} />
+      <Dialog open={commentsFor !== null} onOpenChange={open => { if (!open) setCommentsFor(null); }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
+          <DialogHeader><DialogTitle>{commentsFor?.name}</DialogTitle></DialogHeader>
+          {commentsFor && <CommentsPanel key={commentsFor.id} kind="mobile" targetId={commentsFor.id} />}
+        </DialogContent>
+      </Dialog>
       <QuarantineDialog
         test={quarantining ? { type: 'mobile', id: quarantining.id } : null}
         testName={quarantining?.name ?? ''}

@@ -687,7 +687,27 @@
     },
     "description": "Où en sont vos tests et ce qui est prévu ensuite.",
     "loadFailed": "Les chiffres du tableau de bord n’ont pas pu être chargés : les panneaux ci-dessous peuvent être vides ou périmés.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "customize": {
+      "open": "Personnaliser le tableau de bord",
+      "description": "Choisissez les widgets à afficher et leur ordre. Ces modifications concernent uniquement votre tableau de bord.",
+      "kpis": "Indicateurs clés",
+      "status": "État des tests",
+      "trend": "Évolution des tests",
+      "schedules": "Planifications",
+      "reports": "Rapports récents",
+      "move": "Déplacer",
+      "up": "vers le haut",
+      "down": "vers le bas",
+      "save": "Enregistrer la disposition",
+      "reset": "Réinitialiser la disposition",
+      "cancel": "Annuler",
+      "loading": "Chargement de la disposition…",
+      "saving": "Enregistrement de la disposition…",
+      "loadFailed": "Impossible de charger la disposition.",
+      "saveFailed": "Impossible d’enregistrer la disposition. Réessayez.",
+      "retry": "Réessayer"
+    }
   },
   "testSuitesPage": {
     "testSuites": {
@@ -3300,7 +3320,7 @@
     "issuer": "Émetteur (issuer)",
     "clientId": "ID client",
     "clientSecret": "Secret client",
-    "secretKept": "Enregistré. Laissez vide pour le conserver.",
+    "secretKept": "Stored. Leave empty to keep it.",
     "domains": "Domaines e-mail",
     "defaultRole": "Rôle des nouveaux comptes",
     "roleViewer": "Lecteur",
@@ -3350,7 +3370,21 @@
       "ssoUrl": "URL de connexion (HTTP-Redirect)",
       "certificate": "Certificat de signature (X.509, PEM ou base64)",
       "certExpired": "Expiré le {{date}} : les connexions sont refusées tant que vous ne collez pas le nouveau certificat.",
-      "certValid": "{{subject}} · valable jusqu'au {{date}}"
+      "certValid": "{{subject}} · valable jusqu'au {{date}}",
+      "advanced": "Paramètres SAML avancés",
+      "allowIdpInitiated": "Autoriser la connexion initiée par le fournisseur d'identité",
+      "idpInitiatedCaution": "Désactivé par défaut. Une connexion non sollicitée peut connecter ce navigateur à un autre compte sans demande de WebFlowMaster. Activez uniquement pour un flux de lancement fiable du fournisseur. Les contrôles de signature, audience, validité, domaine et rejeu restent appliqués.",
+      "requireEncrypted": "Exiger des assertions chiffrées",
+      "encryptedHint": "Nécessite un certificat et une clé privée correspondants du fournisseur de service. Configurez le fournisseur pour chiffrer les assertions avec ce certificat public.",
+      "idpSloUrl": "URL de déconnexion unique du fournisseur (facultatif)",
+      "sloHint": "Utilisez le point de déconnexion HTTPS HTTP-Redirect du fournisseur. La déconnexion unique nécessite le certificat et la clé privée correspondants du fournisseur de service.",
+      "spCertificate": "Certificat du fournisseur de service",
+      "spCertificateHint": "Certificat public RSA X.509 pour signer la déconnexion et déchiffrer les assertions. Il doit correspondre à la clé privée.",
+      "spPrivateKey": "Clé privée du fournisseur de service",
+      "spPrivateKeyHint": "Collez la clé privée RSA PEM. Elle est stockée chiffrée et jamais renvoyée. Laissez vide pour conserver la clé enregistrée.",
+      "removeSpKey": "Supprimer la clé et le certificat enregistrés du fournisseur de service",
+      "removeSpKeyHint": "Désactivez le chiffrement obligatoire et videz l'URL de déconnexion avant de supprimer la clé.",
+      "spSloUrl": "URL de rappel de déconnexion unique WebFlowMaster"
     },
     "domainsProof": {
       "title": "Preuve des domaines",
@@ -3386,7 +3420,9 @@
       "revoke": "Révoquer",
       "revokeConfirm": "Révoquer : le fournisseur cesse le provisionnement",
       "replaceHint": "Remplacer le jeton met fin à l'ancien immédiatement : collez le nouveau chez le fournisseur."
-    }
+    },
+    "loadFailed": "Impossible de charger les paramètres de connexion unique.",
+    "retry": "Réessayer"
   },
   "manualTests": {
     "newTitle": "Nouveau test manuel",
@@ -3997,7 +4033,9 @@
       "updated": "mis à jour",
       "unchanged": "inchangé",
       "invalid": "non importé"
-    }
+    },
+    "gherkinExport": "Exporte uniquement les tests web. Les métadonnées WebFlowMaster conservent les actions originales ; l’exécution Cucumber nécessite vos définitions d’étapes.",
+    "gherkinImport": "Feature, Background, Scenario, Scenario Outline, Examples et les tags en anglais sont pris en charge. Le texte est importé en étapes manuelles. Descriptions, Rule, doc strings, tables d’étapes et tags Examples sont refusés. Les métadonnées WFM restaurent les actions web exportées."
   },
   "impactMap": {
     "title": "Carte d'impact",
@@ -4035,5 +4073,51 @@
     "revoke": "Révoquer",
     "recent": "Derniers messages",
     "noMessages": "Rien n'est encore arrivé."
+  },
+  "comments": {
+    "title": "Commentaires",
+    "loadFailed": "Impossible de charger les commentaires",
+    "saveFailed": "Impossible d’enregistrer le commentaire",
+    "loading": "Chargement des commentaires…",
+    "empty": "Aucun commentaire.",
+    "formerMember": "Ancien membre",
+    "edit": "Modifier le commentaire",
+    "save": "Enregistrer le commentaire",
+    "cancel": "Annuler",
+    "delete": "Supprimer le commentaire",
+    "new": "Nouveau commentaire",
+    "add": "Ajouter un commentaire"
+  },
+  "GET": "/api/mail-deliveries?limit=100",
+  "emailDelivery": {
+    "states": {
+      "queued": "Préparation",
+      "accepted": "Accepté par SMTP",
+      "delivered": "Livré",
+      "soft_bounce": "Rejet temporaire",
+      "hard_bounce": "Rejet permanent",
+      "rejected": "Refusé par SMTP",
+      "failed": "Échec de l'envoi",
+      "suppressed": "Bloqué après un rejet permanent"
+    },
+    "purposes": {
+      "invitation": "Invitation",
+      "password_reset": "Réinitialisation du mot de passe",
+      "run_finished": "Notification d'exécution",
+      "other": "Email"
+    },
+    "title": "Livraison des emails",
+    "description": "Les invitations, réinitialisations et notifications comprennent du HTML et du texte brut. L'acceptation SMTP ne confirme pas la livraison.",
+    "loading": "Chargement…",
+    "error": "Impossible de charger l'historique des emails.",
+    "notConfigured": "L'envoi des emails n'est pas configuré sur cette installation.",
+    "noTracking": "Le suivi de livraison et des rejets n'est pas configuré.",
+    "refresh": "Actualiser",
+    "empty": "Aucun message enregistré.",
+    "history": "Les 100 derniers messages de cette organisation",
+    "recipient": "Destinataire",
+    "purpose": "Message",
+    "state": "État",
+    "created": "Créé le"
   }
 }

@@ -33,6 +33,7 @@ harm.
 | `PASSWORD_POLICY` | web | `basic` | What a new password must be: `basic` (8 characters, not the username) or `strong` (12 characters, three kinds of character, no username, no common passwords). See [Administration](./administration#password-policy). |
 | `SMTP_URL` | web, worker | none | The mail server, as `smtp://user:password@host:587` (STARTTLS when offered) or `smtps://…:465`. With `SMTP_FROM`, turns on e-mail: invitations, reset links, "Forgot your password?" and run notifications. |
 | `SMTP_FROM` | web, worker | none | The sender, e.g. `WebFlowMaster <qa@example.com>`. |
+| `MAIL_DELIVERY_WEBHOOK_SECRET` | web | none | At least 32 characters. Authenticates normalized delivery/bounce events from a mail-provider adapter; see [E-mail](./administration#e-mail). Without it only SMTP acceptance/rejection is recorded. |
 | `SMTP_TLS_REJECT_UNAUTHORIZED` | web, worker | `true` | `false` accepts a relay with a self-signed certificate inside your network. |
 | `WEBHOOK_RATE_LIMIT` | web | `120` | Requests a minute for each client address on `/api/webhooks`. `0` turns it off. |
 | `INSTALLATION_ADMINS` | web | none | Comma-separated usernames who may change the installation-wide settings (log level and retention, draining runners). Unset: the owners, while the installation has a single organization. See [Installation administrators](./administration#installation-administrators). |

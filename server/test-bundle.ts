@@ -5,6 +5,7 @@ import { referencedGroupIds } from './step-groups';
 import { referencedCustomActionIds } from './custom-actions';
 import { referencedElementIds } from './step-elements';
 import { asSteps } from './step-groups';
+import { exportGherkin, parseGherkin } from './gherkin';
 
 /**
  * An organization's tests as a file to keep under version control: the web and API tests of a
@@ -91,7 +92,7 @@ function withoutSecrets(test: Record<string, unknown>, replaced: string[]): Reco
 
 export function exportBundle(
   input: { project: string | null; tests: Test[]; apiTests: ApiTest[] },
-  format: 'yaml' | 'json' = 'yaml',
+  format: 'yaml' | 'json' | 'gherkin' = 'yaml',
 ): BundleExport {
   const secretsReplaced: string[] = [];
   const withReferences: string[] = [];
@@ -107,6 +108,9 @@ export function exportBundle(
     .sort(byName)
     .map((test) => withoutSecrets(pick(test as unknown as Record<string, unknown>, API_TEST_FIELDS), secretsReplaced));
   const bundle = { kind: BUNDLE_KIND, version: BUNDLE_VERSION, project: input.project, tests, apiTests };
+  if (format === 'gherkin') {
+    return { ...exportGherkin({ project: input.project, tests }), secretsReplaced: [], withReferences };
+  }
   const content = format === 'json' ? `${JSON.stringify(bundle, null, 2)}\n` : toYaml(bundle, { lineWidth: 0 });
   const slug = (input.project ?? 'tests').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'tests';
   return { content, fileName: `${slug}.wfm.${format === 'json' ? 'json' : 'yaml'}`, secretsReplaced, withReferences };
@@ -124,9 +128,13 @@ export type Bundle = z.infer<typeof bundleSchema>;
 export class BundleError extends Error {}
 
 /** Reads a bundle; the tests in it are checked one by one by the caller, against the same schemas as a save. */
-export function parseBundle(content: string): Bundle {
+export function parseBundle(content: string, format?: 'gherkin'): Bundle {
   let doc: unknown;
   const text = content.trim();
+  const firstContentLine = text.split(/\r?\n/).find(line => line.trim() && !/^[ \t]*[#@]/.test(line));
+  if (format === 'gherkin' || /^[ \t]*Feature:/.test(firstContentLine ?? '')) {
+    return { kind: BUNDLE_KIND, version: BUNDLE_VERSION, ...parseGherkin(content) };
+  }
   try {
     doc = text.startsWith('{') ? JSON.parse(text) : parseYaml(text, { maxAliasCount: 100 });
   } catch (error) {

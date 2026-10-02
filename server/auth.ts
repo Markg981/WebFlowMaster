@@ -24,6 +24,8 @@ import { registrationMode, registrationPolicy } from "./registration";
 import { securityHeaders } from "./security-headers";
 import { canManageInstallation } from "./installation-admin";
 import { ssoRequiredFor } from "./sso";
+import { requireActiveSamlSession } from "./middleware/saml-session";
+import { forgetSamlSession, startSessionSamlLogout, SLO_BINDING_COOKIE, REQUEST_TTL_MS } from "./sso-saml";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -224,6 +226,7 @@ export function setupAuth(app: Express) {
   app.use(sharedSessionMiddleware);
   app.use(passport.initialize());
   app.use(passport.session());
+  app.use(requireActiveSamlSession);
 
   passport.use(
     new LocalStrategy({ passReqToCallback: true }, async (req, username, password, done) => {
@@ -435,13 +438,34 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", async (req, res, next) => {
+    const sessionId = req.sessionID;
+    let samlLogout: { url: string; requestId: string } | null = null;
+    try {
+      if (req.session.samlIdentity) {
+        const { publicBase } = await import('./routes/sso.routes');
+        samlLogout = await startSessionSamlLogout(req, publicBase(req));
+        await forgetSamlSession(sessionId);
+      }
+    } catch (error) {
+      // The provider being unavailable must not prevent local logout.
+      const logger = await loggerPromise;
+      logger.warn({ message: 'SAML provider logout could not start', error: error instanceof Error ? error.message : String(error) });
+    }
     // Before the session is gone, while it still says who this was.
     if (req.isAuthenticated?.() && req.user) {
       await recordAuthEvent(req.user as SelectUser, AUDIT_ACTIONS.LOGOUT, req.ip);
     }
     req.logout((err) => {
       if (err) return next(err);
-      res.sendStatus(200);
+      req.session.destroy(destroyError => {
+        if (destroyError) return next(destroyError);
+        if (!samlLogout) return res.sendStatus(200);
+        res.cookie(SLO_BINDING_COOKIE, samlLogout.requestId, {
+          path: '/api/sso/saml', httpOnly: true, secure: sessionCookieSecure(),
+          sameSite: sessionCookieSecure() ? 'none' : 'lax', maxAge: REQUEST_TTL_MS,
+        });
+        res.json({ redirectUrl: samlLogout.url });
+      });
     });
   });
 
@@ -548,7 +572,7 @@ export function setupAuth(app: Express) {
           }),
         );
         const { publicBase } = await import("./routes/sso.routes");
-        const sent = await sendMail(passwordResetMail({ base: publicBase(req), username: user.username, token: issued.token, expiresAt: issued.expiresAt }));
+        const sent = await sendMail({ ...passwordResetMail({ base: publicBase(req), username: user.username, token: issued.token, expiresAt: issued.expiresAt }), organizationId: user.organizationId });
         if (!sent.sent) {
           const logger = await loggerPromise;
           logger.warn({ message: "Password reset link could not be mailed", userId: user.id, error: sent.error });
