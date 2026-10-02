@@ -1,0 +1,8 @@
+-- SCIM and "refuse whoever is in none of these groups" (server/scim.ts): an account the provider's
+-- groups deactivated, as opposed to one the provider deactivated itself (active: false). Only the
+-- first comes back on its own when the person joins a mapped group again.
+ALTER TABLE "scim_users" ADD COLUMN IF NOT EXISTS "disabled_by_groups" boolean DEFAULT false NOT NULL;
+--> statement-breakpoint
+-- The account a provisioning row is about is in the row's organization, as for API keys (migration 0034).
+ALTER TABLE "scim_users" ADD CONSTRAINT "scim_users_user_id_same_org_fk"
+  FOREIGN KEY ("user_id", "organization_id") REFERENCES "users"("id", "organization_id");

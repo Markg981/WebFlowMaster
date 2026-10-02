@@ -13,6 +13,7 @@ import { artifactStore } from './artifact-store';
 import { BROWSER_TASK_QUEUE_NAME, performBrowserTask, type BrowserTaskEnvelope } from './browser-tasks';
 import { RunnerAgent, type PausableQueue } from './runner-registry';
 import { registerCommitStatus } from './commit-status';
+import { registerRunPromotion } from './run-promotion';
 import { installWorkerLogEmitter } from './websocket';
 import { publicBaseUrl } from './report-links';
 import 'dotenv/config';
@@ -23,6 +24,7 @@ import 'dotenv/config';
   logger.info(`Artifact store: ${artifactStore().kind}`);
   // A run this worker moves reports on the commit it tested, when a pipeline started it.
   registerCommitStatus();
+  registerRunPromotion();
   // Every run executes here: its log lines are stored, and relayed to the web process's sockets.
   installWorkerLogEmitter();
   // Notifications, issues and commit statuses are sent from here, and link to the report only
@@ -82,6 +84,8 @@ import 'dotenv/config';
         // Its organization is at its limit of runs at once: the run stays queued and the job goes
         // back for a while, so this worker can serve somebody else's run in the meantime.
         if (outcome?.deferred) {
+          // Marked, so that a run of the organization ending promotes it at once (server/run-promotion.ts).
+          if (job.data.deferredForQuota !== true) await job.updateData({ ...job.data, deferredForQuota: true });
           await job.moveToDelayed(Date.now() + (outcome.retryInMs ?? 10_000), token);
           throw new DelayedError();
         }

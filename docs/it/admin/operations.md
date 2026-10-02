@@ -220,17 +220,18 @@ oltre `--max-p95-ms` (1000), errori oltre `--max-error-rate` (0), più run in co
 `--max-concurrent`, un run finito diversamente da `completed`, o non finito entro `--run-timeout` —
 e con `0` altrimenti.
 
-Un run trattenuto dal limite della sua organizzazione viene riguardato ogni `RUN_DEFERRAL_MS`
-(10 s), e non nel momento in cui si libera un posto. Con run brevi è questo a pesare sull'attesa: in una misura
-con due run insieme e run di 2 s, otto run per organizzazione sono finiti dopo 33 s con il default e
-dopo 9 s con `RUN_DEFERRAL_MS=1000`. Abbassatelo quando la maggior parte dei run è breve e le
-organizzazioni arrivano al limite; ogni controllo è una query sotto lock.
+Un run trattenuto dal limite della sua organizzazione parte appena finisce uno dei run
+dell'organizzazione: la fine promuove i run in attesa più vecchi, tanti quanti sono i posti liberi
+(`server/run-promotion.ts`). `RUN_DEFERRAL_MS` (10 s) resta solo come riserva, per una promozione
+persa mentre un processo ripartiva. In una misura con due run insieme e run di 2 s, otto run per
+organizzazione sono finiti dopo 9 s, dove aspettare il controllo successivo ne richiedeva 33.
 
 ## Risoluzione dei problemi
 
 | Sintomo | Causa probabile | Cosa fare |
 |---|---|---|
 | Il server esce all'avvio citando `app_user`, `BYPASSRLS` o `SET ROLE` | I ruoli del database non sono come li richiede la tenancy | Eseguite il comando indicato nel messaggio (vedi [Preparare PostgreSQL](./installation#preparare-postgresql)). |
+| `db:migrate` si ferma con `permission denied to create role` | Il ruolo che esegue le migrazioni non può creare `app_user` | `ALTER ROLE <ruolo> CREATEROLE;` come superuser, rieseguite le migrazioni, poi `NOCREATEROLE` (vedi [Preparare PostgreSQL](./installation#preparare-postgresql)). |
 | Il server esce dicendo che il database è stato creato con `db:push` | Tabelle presenti senza il journal delle migrazioni | `npm run db:doctor`; ricreate il database con `db:migrate`. |
 | `SESSION_SECRET must be set` o `ENCRYPTION_KEY is missing` | Un segreto non è impostato in quel processo | Impostatelo (vedi [Segreti](./installation#segreti)); anche i worker hanno bisogno di `ENCRYPTION_KEY`. |
 | I segreti salvati non si decifrano dopo uno spostamento o un ripristino | Una `ENCRYPTION_KEY` diversa | Usate la chiave con cui sono stati salvati; non c'è altro modo di leggerli. |

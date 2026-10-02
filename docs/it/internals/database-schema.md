@@ -235,6 +235,7 @@ erDiagram
     int user_id PK,FK
     int organization_id FK
     text external_id
+    bool disabled_by_groups
     timestamp created_at
     timestamp updated_at
   }

@@ -214,17 +214,18 @@ threshold is breached — read p95 over `--max-p95-ms` (1000), errors over `--ma
 runs in progress than `--max-concurrent`, a run ending other than `completed`, or not ending within
 `--run-timeout` — and `0` otherwise.
 
-A run held back by its organization's limit is looked at again every `RUN_DEFERRAL_MS` (10 s), not
-as soon as a slot frees. With short runs that dominates the wait: in a measurement with two runs at
-once and runs of 2 s, eight runs per organization ended after 33 s with the default and after 9 s
-with `RUN_DEFERRAL_MS=1000`. Lower it when most runs are short and organizations reach their limit;
-each look is one query under a lock.
+A run held back by its organization's limit starts as soon as one of the organization's runs ends:
+the end promotes the oldest waiting runs, as many as there are slots free
+(`server/run-promotion.ts`). `RUN_DEFERRAL_MS` (10 s) is only the fallback, for a promotion missed
+while a process restarted. In a measurement with two runs at once and runs of 2 s, eight runs per
+organization ended after 9 s, where waiting for the next look took 33 s.
 
 ## Troubleshooting
 
 | Symptom | Likely cause | What to do |
 |---|---|---|
 | The server exits at startup naming `app_user`, `BYPASSRLS` or `SET ROLE` | The database roles are not as the tenancy design requires | Run the command in the message (see [Prepare PostgreSQL](./installation#prepare-postgresql)). |
+| `db:migrate` stops with `permission denied to create role` | The role running the migrations cannot create `app_user` | `ALTER ROLE <role> CREATEROLE;` as a superuser, run the migrations again, then `NOCREATEROLE` (see [Prepare PostgreSQL](./installation#prepare-postgresql)). |
 | The server exits saying the database was created with `db:push` | Tables exist without the migration journal | `npm run db:doctor`; recreate the database with `db:migrate`. |
 | `SESSION_SECRET must be set` or `ENCRYPTION_KEY is missing` | A secret is not set in that process | Set it (see [Secrets](./installation#secrets)); workers need `ENCRYPTION_KEY` too. |
 | Saved secrets fail to decrypt after a move or restore | A different `ENCRYPTION_KEY` | Use the key the secrets were saved with; there is no other way to read them. |

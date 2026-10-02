@@ -6,7 +6,8 @@ import { z } from "zod";
  * A mapping names a group as the provider sends it (a name, or Entra ID's object id) and the role
  * it gives. At every sign-in the person's role follows their groups: the highest role any of them
  * maps to. Someone in no mapped group keeps their role — or, with "require a group", is refused,
- * which is how access is ended from the provider without SCIM.
+ * which is how access is ended from the provider without SCIM (with SCIM, server/scim.ts applies it
+ * as soon as a membership changes).
  */
 
 export const MAPPED_ROLES = ["viewer", "editor", "owner"] as const;

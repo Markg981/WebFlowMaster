@@ -788,6 +788,8 @@ export const scimUsers = pgTable("scim_users", {
   userId: integer("user_id").primaryKey().references(() => users.id, { onDelete: 'cascade' }),
   organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   externalId: text("external_id"),
+  /** Deactivated because, with "require a group", the person is in none of the mapped groups (migration 0066). */
+  disabledByGroups: boolean("disabled_by_groups").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [

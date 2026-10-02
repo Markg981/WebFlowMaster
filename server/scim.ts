@@ -11,7 +11,7 @@ import {
   users,
   type AuditAction,
 } from '@shared/schema';
-import { roleFromGroups } from '@shared/sso-roles';
+import { roleFromGroups, type RoleMapping } from '@shared/sso-roles';
 import { privilegedDb } from './db';
 import { hashesMatch } from './api-keys';
 import { sqlState } from './db-errors';
@@ -471,6 +471,8 @@ export async function createUser(context: ScimContext, body: Record<string, unkn
         byScim: true,
         ...(changes.active === false ? { active: false } : {}),
       });
+      // With "require a group" a new account waits, deactivated, for a mapped group to hold it.
+      await followGroups(tx, context, [user.id]);
       return user.id;
     });
     return readUser(context, id);
@@ -490,6 +492,7 @@ async function applyUserChanges(context: ScimContext, id: number, changes: UserC
         .from(users)
         .where(and(eq(users.id, id), personOf(organizationId)));
       if (!user) throw new ScimError(404, `No user ${id}.`);
+      let blockedByGroups = false;
 
       if (changes.userName !== undefined && changes.userName.trim().toLowerCase() !== user.username.toLowerCase()) {
         const username = await checkedUserName(tx, organizationId, changes.userName);
@@ -503,16 +506,29 @@ async function applyUserChanges(context: ScimContext, id: number, changes: UserC
         await tx.update(users).set({ disabledAt: new Date() }).where(eq(users.id, id));
         await audit(tx, context, AUDIT_ACTIONS.MEMBER_DEACTIVATED, 'user', id, { username: user.username, byScim: true });
       } else if (changes.active === true && user.disabledAt !== null) {
-        await tx.update(users).set({ disabledAt: null }).where(eq(users.id, id));
-        await audit(tx, context, AUDIT_ACTIONS.MEMBER_REACTIVATED, 'user', id, { username: user.username, byScim: true });
+        // The provider says active; "require a group" still refuses someone in none of the mapped
+        // groups, and lets them back when they join one.
+        const { mappings, gate } = await gateOf(tx, organizationId);
+        if (gate && (await mappedRoleOfPerson(tx, organizationId, id, mappings)) === null) {
+          blockedByGroups = true;
+        } else {
+          await tx.update(users).set({ disabledAt: null }).where(eq(users.id, id));
+          await audit(tx, context, AUDIT_ACTIONS.MEMBER_REACTIVATED, 'user', id, { username: user.username, byScim: true });
+        }
       }
-      // Any change from the provider makes the account one it manages (a member who was here first is adopted).
+      // Any change from the provider makes the account one it manages (a member who was here first is
+      // adopted). Its own word on `active` decides whether the groups are why the account is off.
+      const disabledByGroups = changes.active === false ? false : changes.active === true ? blockedByGroups : undefined;
       await tx
         .insert(scimUsers)
-        .values({ userId: id, organizationId, externalId: changes.externalId ?? null })
+        .values({ userId: id, organizationId, externalId: changes.externalId ?? null, disabledByGroups: disabledByGroups ?? false })
         .onConflictDoUpdate({
           target: scimUsers.userId,
-          set: { updatedAt: new Date(), ...(changes.externalId !== undefined ? { externalId: changes.externalId } : {}) },
+          set: {
+            updatedAt: new Date(),
+            ...(changes.externalId !== undefined ? { externalId: changes.externalId } : {}),
+            ...(disabledByGroups !== undefined ? { disabledByGroups } : {}),
+          },
         });
     });
   } catch (error) {
@@ -677,29 +693,70 @@ function checkedDisplayName(value: unknown): string {
   return value.trim();
 }
 
+/** The organization's mappings, whether it refuses people in none of them, and whether its provider pushes groups at all. */
+async function gateOf(tx: Pick<Tx, 'select'>, organizationId: number) {
+  const [provider] = await tx
+    .select({ mappings: organizationSso.roleMappings, requireGroup: organizationSso.requireGroup })
+    .from(organizationSso)
+    .where(eq(organizationSso.organizationId, organizationId));
+  const mappings = provider?.mappings ?? [];
+  const [pushed] = await tx.select({ id: scimGroups.id }).from(scimGroups).where(eq(scimGroups.organizationId, organizationId)).limit(1);
+  // The gate needs groups to judge by: a provider that provisions people but pushes no groups would
+  // otherwise have everyone it creates refused.
+  return { mappings, gate: Boolean(provider?.requireGroup) && mappings.length > 0 && pushed !== undefined };
+}
+
+/** The role this person's pushed groups map to, or null when none of them is mapped. */
+async function mappedRoleOfPerson(tx: Pick<Tx, 'select'>, organizationId: number, userId: number, mappings: RoleMapping[]) {
+  const held = await tx
+    .select({ name: scimGroups.displayName, externalId: scimGroups.externalId })
+    .from(scimGroupMembers)
+    .innerJoin(scimGroups, eq(scimGroups.id, scimGroupMembers.groupId))
+    .where(and(eq(scimGroupMembers.userId, userId), eq(scimGroups.organizationId, organizationId)));
+  return roleFromGroups(held.flatMap((g) => (g.externalId ? [g.name, g.externalId] : [g.name])), mappings);
+}
+
 /**
- * The role each of these people's groups now gives them, applied: the highest role the
- * organization's mappings give any of their groups' names or external ids. Nothing mapped, the role
- * stays, as at sign-in; the last active owner is never demoted.
+ * What each of these people's groups now say, applied:
+ *
+ * - the role: the highest role the organization's mappings give any of their groups' names or
+ *   external ids. Nothing mapped, the role stays, as at sign-in; the last active owner is never
+ *   demoted.
+ * - with "refuse whoever is in none of these groups", whether they may be here at all: an account
+ *   the provider manages, in none of the mapped groups, is deactivated at once — its sessions end,
+ *   as if the provider had sent `active: false` — and comes back when it joins one again. Only an
+ *   account the groups deactivated comes back this way; one the provider deactivated stays so until
+ *   it says otherwise. The last active owner is never deactivated.
  */
 async function followGroups(tx: Tx, context: ScimContext, userIds: number[]): Promise<void> {
   if (userIds.length === 0) return;
-  const [provider] = await tx.select({ mappings: organizationSso.roleMappings }).from(organizationSso).where(eq(organizationSso.organizationId, context.organizationId));
-  const mappings = provider?.mappings ?? [];
+  const { mappings, gate } = await gateOf(tx, context.organizationId);
   if (mappings.length === 0) return;
   const people = await tx
-    .select({ id: users.id, username: users.username, role: users.role })
+    .select({ id: users.id, username: users.username, role: users.role, disabledAt: users.disabledAt, managed: scimUsers.userId, disabledByGroups: scimUsers.disabledByGroups })
     .from(users)
+    .leftJoin(scimUsers, eq(scimUsers.userId, users.id))
     .where(and(inArray(users.id, [...new Set(userIds)]), personOf(context.organizationId)))
     .orderBy(asc(users.id));
   for (const person of people) {
-    const held = await tx
-      .select({ name: scimGroups.displayName, externalId: scimGroups.externalId })
-      .from(scimGroupMembers)
-      .innerJoin(scimGroups, eq(scimGroups.id, scimGroupMembers.groupId))
-      .where(and(eq(scimGroupMembers.userId, person.id), eq(scimGroups.organizationId, context.organizationId)));
-    const mapped = roleFromGroups(held.flatMap((g) => (g.externalId ? [g.name, g.externalId] : [g.name])), mappings);
-    if (mapped === null || mapped === person.role) continue;
+    const mapped = await mappedRoleOfPerson(tx, context.organizationId, person.id, mappings);
+
+    if (mapped === null) {
+      if (gate && person.managed !== null && person.disabledAt === null) {
+        if (person.role === 'owner' && !(await anotherActiveOwner(tx, context.organizationId, person.id))) continue;
+        await tx.update(users).set({ disabledAt: new Date() }).where(eq(users.id, person.id));
+        await tx.update(scimUsers).set({ disabledByGroups: true, updatedAt: new Date() }).where(eq(scimUsers.userId, person.id));
+        await audit(tx, context, AUDIT_ACTIONS.MEMBER_DEACTIVATED, 'user', person.id, { username: person.username, byScim: true, reason: 'no_group' });
+      }
+      continue;
+    }
+
+    if (person.disabledAt !== null && person.disabledByGroups) {
+      await tx.update(users).set({ disabledAt: null }).where(eq(users.id, person.id));
+      await tx.update(scimUsers).set({ disabledByGroups: false, updatedAt: new Date() }).where(eq(scimUsers.userId, person.id));
+      await audit(tx, context, AUDIT_ACTIONS.MEMBER_REACTIVATED, 'user', person.id, { username: person.username, byScim: true, reason: 'group' });
+    }
+    if (mapped === person.role) continue;
     if (person.role === 'owner' && !(await anotherActiveOwner(tx, context.organizationId, person.id))) continue;
     await tx.update(users).set({ role: mapped satisfies Role }).where(eq(users.id, person.id));
     await audit(tx, context, AUDIT_ACTIONS.MEMBER_ROLE_CHANGED, 'user', person.id, {
@@ -718,12 +775,15 @@ async function followGroups(tx: Tx, context: ScimContext, userIds: number[]): Pr
  */
 export async function reapplyGroupRoles(organizationId: number, ipAddress: string | null = null): Promise<void> {
   await privilegedDb.transaction(async (tx) => {
+    // Every account the provider manages, in a group or not: turning "require a group" on concerns
+    // the people in none of them most of all.
     const members = await tx
       .selectDistinct({ userId: scimGroupMembers.userId })
       .from(scimGroupMembers)
       .innerJoin(scimGroups, eq(scimGroups.id, scimGroupMembers.groupId))
       .where(eq(scimGroups.organizationId, organizationId));
-    await followGroups(tx, { organizationId, baseUrl: '', ipAddress }, members.map((m) => m.userId));
+    const managed = await tx.select({ userId: scimUsers.userId }).from(scimUsers).where(eq(scimUsers.organizationId, organizationId));
+    await followGroups(tx, { organizationId, baseUrl: '', ipAddress }, [...members, ...managed].map((m) => m.userId));
   });
 }
 

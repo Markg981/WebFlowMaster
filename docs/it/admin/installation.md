@@ -134,13 +134,16 @@ che il vostro lo consenta prima di sceglierlo. Una configurazione tipica:
 
 ```sql
 -- come amministratore del server PostgreSQL
-CREATE ROLE webflowmaster LOGIN PASSWORD '…' BYPASSRLS;
+CREATE ROLE webflowmaster LOGIN PASSWORD '…' BYPASSRLS CREATEROLE;
 CREATE DATABASE webflowmaster OWNER webflowmaster;
 ```
 
-Poi eseguite le migrazioni come `webflowmaster`: la migrazione `0005` gli concede
-l'appartenenza a `app_user`. Se in seguito l'applicazione si connette con un ruolo diverso,
-concedetela a mano.
+Poi eseguite le migrazioni come `webflowmaster`: la migrazione `0003` crea `app_user`, ed è a questo
+che serve `CREATEROLE` — senza, la prima migrazione si ferma con `permission denied to create
+role` — e la migrazione `0005` concede a `webflowmaster` l'appartenenza a quel ruolo. Dopo le
+migrazioni `CREATEROLE` si può togliere (`ALTER ROLE webflowmaster NOCREATEROLE;`): non serve a
+nessuna migrazione successiva né all'applicazione in esecuzione. Se in seguito l'applicazione si
+connette con un ruolo diverso, concedetela a mano.
 
 `DATABASE_URL` contiene la stringa di connessione:
 `postgres://webflowmaster:…@db.internal:5432/webflowmaster`.

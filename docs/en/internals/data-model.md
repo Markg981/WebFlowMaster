@@ -52,7 +52,7 @@ erDiagram
 | `sso_saml_requests` | SAML AuthnRequests waiting for their answer: id and organization, kept ten minutes. The answer must match one, which is deleted as it is used, so a response cannot be replayed. Kept in the database, not the session, because the provider posts back cross-site. No RLS and no grant to `app_user`. |
 | `sso_domains` | E-mail domains that route a sign-in to an organization's provider. A domain belongs to one organization; `verification_token` is the value of its DNS TXT record and `verified_at` says when it was proven. |
 | `sso_identities` | The link between a person at the provider (`issuer` + `subject`) and a `users` row, with the last sign-in. |
-| `scim_users` | The accounts the identity provider manages through SCIM, with the `external_id` it knows them by. The account is the `users` row; its SCIM id is the user id. No RLS and no grant to `app_user`. |
+| `scim_users` | The accounts the identity provider manages through SCIM, with the `external_id` it knows them by and whether its groups deactivated them (`disabled_by_groups`). The account is the `users` row; its SCIM id is the user id. No RLS and no grant to `app_user`. |
 | `scim_groups` / `scim_group_members` | The provider's groups as it pushes them through SCIM, and who is in them. Role mappings match a group's `display_name` or `external_id`. No RLS and no grant to `app_user`. |
 | `sessions` | The session store when PostgreSQL holds sessions (Redis does in production). Installation-wide. |
 
