@@ -1799,6 +1799,23 @@
       "noProject": {
         "label": "No project"
       }
+    },
+    "import": {
+      "button": "Import",
+      "title": "Import API tests",
+      "description": "From an OpenAPI 3 or Swagger 2 description (JSON or YAML) or a Postman collection: one test per operation or request, starting from {{baseUrl}}, with the expected status as an assertion. Secrets become variables to set in an environment.",
+      "openFile": "Open a file…",
+      "paste": "Or paste the description or the collection here",
+      "selectedCount": "{{selected}} of {{total}} selected",
+      "exists": "already there",
+      "variables": "Set these in an environment before running them:",
+      "project": "Project",
+      "preview": "Show what it makes",
+      "back": "Back",
+      "confirm": "Import {{count}} tests",
+      "created": "{{count}} tests imported.",
+      "skipped": "{{count}} left out: they already exist.",
+      "close": "Close"
     }
   },
   "authForms": {
@@ -2719,7 +2736,8 @@
       "member_renamed": "Member renamed by the identity provider",
       "scim_group_created": "Provider group pushed",
       "scim_group_updated": "Provider group changed",
-      "scim_group_deleted": "Provider group removed"
+      "scim_group_deleted": "Provider group removed",
+      "api_test_imported": "API tests imported from OpenAPI or Postman"
     }
   },
   "security": {

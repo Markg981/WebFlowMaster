@@ -1805,6 +1805,23 @@
       "noProject": {
         "label": "Kein Projekt"
       }
+    },
+    "import": {
+      "button": "Importieren",
+      "title": "API-Tests importieren",
+      "description": "Aus einer OpenAPI-3- oder Swagger-2-Beschreibung (JSON oder YAML) oder einer Postman-Collection: ein Test pro Operation oder Anfrage, ab {{baseUrl}}, mit dem erwarteten Status als Prüfung. Geheimnisse werden zu Variablen, die in einer Umgebung gesetzt werden.",
+      "openFile": "Datei öffnen…",
+      "paste": "Oder die Beschreibung bzw. Collection hier einfügen",
+      "selectedCount": "{{selected}} von {{total}} ausgewählt",
+      "exists": "schon vorhanden",
+      "variables": "Vor dem Ausführen in einer Umgebung setzen:",
+      "project": "Projekt",
+      "preview": "Zeigen, was entsteht",
+      "back": "Zurück",
+      "confirm": "{{count}} Tests importieren",
+      "created": "{{count}} Tests importiert.",
+      "skipped": "{{count}} ausgelassen: schon vorhanden.",
+      "close": "Schließen"
     }
   },
   "authForms": {
@@ -2725,7 +2742,8 @@
       "member_renamed": "Mitglied vom Identitätsanbieter umbenannt",
       "scim_group_created": "Gruppe des Anbieters übertragen",
       "scim_group_updated": "Gruppe des Anbieters geändert",
-      "scim_group_deleted": "Gruppe des Anbieters entfernt"
+      "scim_group_deleted": "Gruppe des Anbieters entfernt",
+      "api_test_imported": "API-Tests aus OpenAPI oder Postman importiert"
     }
   },
   "security": {

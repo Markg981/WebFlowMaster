@@ -7,7 +7,8 @@ valori al successivo. Si costruiscono in **Tester API**.
 ## La richiesta
 
 - **Metodo** e **URL di base**; i **Parametri query** si aggiungono sotto e si vedono
-  nell'**URL effettivo**.
+  nell'**URL effettivo**. L'indirizzo può iniziare con una variabile —
+  <code v-pre>{{baseUrl}}/orders</code> — così un test segue il server di ogni ambiente.
 - **Ambiente**: quale ambiente riempie con i suoi segreti i
   <code v-pre>{{segnaposto}}</code> dell'indirizzo, degli header, del corpo e
   dell'autorizzazione, come per i [test web](./web-tests#variabili-e-ambienti).
@@ -96,6 +97,34 @@ Le ripetizioni partono da dove gira il test — la rete di un agente locale quan
 uno — e si fermano quando il run viene annullato. Una richiesta che non si riesce proprio a fare
 salta il controllo: non c'è nulla da misurare. I limiti sono voluti: risponde a "questo endpoint è
 diventato più lento?" a ogni run, non è un test di carico.
+
+## Importare da OpenAPI o Postman {#import}
+
+**Test salvati → Importa** crea test da ciò che un team ha già: una descrizione **OpenAPI 3** o
+**Swagger 2**, in JSON o YAML, o una **collection Postman** (v2.0 o v2.1). Aprite il file o
+incollatelo, premete **Mostra cosa crea**, tenete i test che volete — quelli con metodo e indirizzo
+già presenti restano non selezionati — scegliete un progetto e importate.
+
+- Un test per operazione (OpenAPI) o richiesta (Postman), chiamato col suo summary, operation id o
+  nome Postman, raggruppato per tag o cartella come modulo.
+- L'indirizzo parte da <code v-pre>{{baseUrl}}</code>; i parametri di percorso diventano
+  <code v-pre>{{nome}}</code> (anche i `:nome` di Postman). Le <code v-pre>{{variabili}}</code> di
+  Postman hanno la stessa sintassi e restano come sono.
+- I parametri di query e di header obbligatori ricevono l'esempio, il default o il primo valore
+  ammesso, oppure una variabile. Il corpo è l'esempio dell'operazione, o uno costruito dal suo schema
+  (JSON e form URL-encoded); i corpi raw, URL-encoded e GraphQL di Postman sono mantenuti.
+- La sicurezza diventa l'autorizzazione del test — bearer, basic o API key — con il segreto come
+  variabile (<code v-pre>{{token}}</code>, <code v-pre>{{password}}</code>…). Un segreto scritto in
+  una collection Postman non viene importato.
+- Lo stato atteso è un'asserzione: la prima risposta 2xx di OpenAPI, o il
+  `pm.response.to.have.status(…)` di Postman.
+
+L'anteprima elenca le variabili di cui i test hanno bisogno, con l'indirizzo del server come
+suggerimento per <code v-pre>{{baseUrl}}</code>: impostatele in un
+[ambiente](./web-tests#variabili-e-ambienti) prima di eseguire. Ciò che non si è potuto riportare è
+indicato per ogni test: corpi multipart, script Postman oltre al controllo dello stato, script di
+pre-request, flussi OAuth (il test invia allora <code v-pre>{{token}}</code>). Al massimo 500 test
+per importazione, 12 MB per file; il registro di audit registra ogni importazione.
 
 ## Salvare
 

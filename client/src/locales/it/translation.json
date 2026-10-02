@@ -1924,6 +1924,23 @@
       "noProject": {
         "label": "Nessun progetto"
       }
+    },
+    "import": {
+      "button": "Importa",
+      "title": "Importa test API",
+      "description": "Da una descrizione OpenAPI 3 o Swagger 2 (JSON o YAML) o da una collection Postman: un test per operazione o richiesta, che parte da {{baseUrl}}, con lo stato atteso come asserzione. I segreti diventano variabili da impostare in un ambiente.",
+      "openFile": "Apri un file…",
+      "paste": "Oppure incolla qui la descrizione o la collection",
+      "selectedCount": "{{selected}} di {{total}} selezionati",
+      "exists": "già presente",
+      "variables": "Impostate queste variabili in un ambiente prima di eseguirli:",
+      "project": "Progetto",
+      "preview": "Mostra cosa crea",
+      "back": "Indietro",
+      "confirm": "Importa {{count}} test",
+      "created": "{{count}} test importati.",
+      "skipped": "{{count}} esclusi: esistono già.",
+      "close": "Chiudi"
     }
   },
   "createTestPlanWizard": {
@@ -2844,7 +2861,8 @@
       "member_renamed": "Membro rinominato dall'identity provider",
       "scim_group_created": "Gruppo del provider inviato",
       "scim_group_updated": "Gruppo del provider modificato",
-      "scim_group_deleted": "Gruppo del provider rimosso"
+      "scim_group_deleted": "Gruppo del provider rimosso",
+      "api_test_imported": "Test API importati da OpenAPI o Postman"
     }
   },
   "security": {

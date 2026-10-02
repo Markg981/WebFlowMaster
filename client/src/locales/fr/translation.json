@@ -1805,6 +1805,23 @@
       "noProject": {
         "label": "Aucun projet"
       }
+    },
+    "import": {
+      "button": "Importer",
+      "title": "Importer des tests API",
+      "description": "Depuis une description OpenAPI 3 ou Swagger 2 (JSON ou YAML) ou une collection Postman : un test par opération ou requête, partant de {{baseUrl}}, avec le statut attendu comme assertion. Les secrets deviennent des variables à définir dans un environnement.",
+      "openFile": "Ouvrir un fichier…",
+      "paste": "Ou collez ici la description ou la collection",
+      "selectedCount": "{{selected}} sur {{total}} sélectionnés",
+      "exists": "déjà présent",
+      "variables": "Définissez-les dans un environnement avant de les lancer :",
+      "project": "Projet",
+      "preview": "Voir ce qui sera créé",
+      "back": "Retour",
+      "confirm": "Importer {{count}} tests",
+      "created": "{{count}} tests importés.",
+      "skipped": "{{count}} écartés : ils existent déjà.",
+      "close": "Fermer"
     }
   },
   "authForms": {
@@ -2725,7 +2742,8 @@
       "member_renamed": "Membre renommé par le fournisseur d'identité",
       "scim_group_created": "Groupe du fournisseur transmis",
       "scim_group_updated": "Groupe du fournisseur modifié",
-      "scim_group_deleted": "Groupe du fournisseur supprimé"
+      "scim_group_deleted": "Groupe du fournisseur supprimé",
+      "api_test_imported": "Tests API importés depuis OpenAPI ou Postman"
     }
   },
   "security": {

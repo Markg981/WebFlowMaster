@@ -10,6 +10,7 @@ import { requireRole } from "../middleware/require-role";
 import { recordTestVersion } from "../test-version-store";
 import { tagsOfTests } from "../test-tags";
 import { manualSequenceProblem } from "@shared/manual-tests";
+import { ImportError, MAX_IMPORTED_TESTS, importApiDescription } from "../api-import";
 
 const router = Router();
 const logger = await loggerPromise;
@@ -322,6 +323,79 @@ router.post("/api/tests/:id/run", requireRole('editor'), async (req, res) => {
 // zod strips it and every saved test lands with projectId = null, ungrouped in the UI.
 const projectIdField = z.number().int().positive().optional().nullable();
 const createApiTestSchema = insertApiTestSchema.extend({ projectId: projectIdField });
+
+const importSchema = z.object({
+  /** The file as text: OpenAPI 3 or Swagger 2 (JSON or YAML), or a Postman collection. */
+  content: z.string().min(1).max(10 * 1024 * 1024),
+  /** Read the file and say what it would make, without saving anything. */
+  dryRun: z.boolean().optional().default(false),
+  projectId: projectIdField,
+  /** Which of the tests the preview listed, by position; all of them when absent. */
+  select: z.array(z.number().int().min(0)).max(MAX_IMPORTED_TESTS).optional(),
+  /** Leave out tests whose method and address the organization already has. */
+  skipExisting: z.boolean().optional().default(true),
+});
+
+// POST /api/api-tests/import — tests from an OpenAPI description or a Postman collection
+// (server/api-import.ts): a preview with dryRun, then the ones kept, saved in one transaction.
+router.post("/api/api-tests/import", requireRole('editor'), async (req, res) => {
+    const parsed = importSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Invalid import", details: parsed.error.flatten() });
+    let result;
+    try {
+        result = importApiDescription(parsed.data.content);
+    } catch (error) {
+        if (error instanceof ImportError) return res.status(400).json({ error: error.message });
+        throw error;
+    }
+
+    const existing = await withTenantTransaction((tx) => tx.select({ method: apiTests.method, url: apiTests.url }).from(apiTests));
+    const known = new Set(existing.map((t) => `${t.method.toUpperCase()} ${t.url}`));
+    const listed = result.tests.map((test, index) => ({ ...test, index, exists: known.has(`${test.method} ${test.url}`) }));
+    if (parsed.data.dryRun) return res.json({ ...result, tests: listed });
+
+    const chosen = parsed.data.select ? listed.filter((t) => parsed.data.select!.includes(t.index)) : listed;
+    const skipped = parsed.data.skipExisting ? chosen.filter((t) => t.exists).map((t) => ({ index: t.index, name: t.name, reason: 'already exists' })) : [];
+    const invalid: Array<{ index: number; name: string; reason: string }> = [];
+    const rows: Array<z.infer<typeof createApiTestSchema>> = [];
+    for (const test of chosen) {
+        if (parsed.data.skipExisting && test.exists) continue;
+        const candidate = createApiTestSchema.safeParse({
+            name: test.name, method: test.method, url: test.url, queryParams: test.queryParams, requestHeaders: test.requestHeaders,
+            requestBody: test.requestBody, bodyType: test.bodyType, bodyRawContentType: test.bodyRawContentType,
+            bodyGraphqlQuery: test.bodyGraphqlQuery, bodyGraphqlVariables: test.bodyGraphqlVariables,
+            authType: test.authType, authParams: test.authParams, assertions: test.assertions, module: test.module,
+            projectId: parsed.data.projectId ?? null,
+        });
+        if (!candidate.success) {
+            invalid.push({ index: test.index, name: test.name, reason: Object.values(candidate.error.flatten().fieldErrors).flat().join('; ') || 'invalid' });
+            continue;
+        }
+        rows.push(candidate.data);
+    }
+
+    try {
+        const created = await withTenantTransaction(async (tx) => {
+            if (rows.length === 0) return [];
+            const inserted = await tx
+                .insert(apiTests)
+                .values(rows.map((row) => ({ ...row, userId: req.user!.id, organizationId: req.user!.organizationId })))
+                .returning();
+            await recordAudit(tx, {
+                action: AUDIT_ACTIONS.API_TESTS_IMPORTED,
+                actor: auditActor(req),
+                targetType: 'api_test',
+                targetId: inserted[0].id,
+                metadata: { format: result.format, title: result.title, created: inserted.length, skipped: skipped.length, invalid: invalid.length, names: inserted.slice(0, 50).map((t) => t.name) },
+            });
+            return inserted;
+        });
+        res.status(201).json({ created: created.map((t) => ({ id: t.id, name: t.name })), skipped, invalid, variables: result.variables });
+    } catch (e: any) {
+        if (isForeignKeyError(e)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
+        throw e;
+    }
+});
 const editApiTestSchema = updateApiTestSchema.extend({ projectId: projectIdField });
 
 // Saved tests are returned with the creator/project names already resolved so the client
