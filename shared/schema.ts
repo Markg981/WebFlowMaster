@@ -1002,6 +1002,22 @@ export const runWorkItems = pgTable("run_work_items", {
 export type RunWorkItem = typeof runWorkItems.$inferSelect;
 
 /**
+ * Which tests a change affects (server/test-impact.ts): the files a glob pattern matches map to a
+ * tag. A rule without a tag marks files that affect no test (migration 0068).
+ */
+export const impactRules = pgTable("impact_rules", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  pattern: text("pattern").notNull(),
+  tagId: text("tag_id").references(() => tags.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("impact_rules_organization_id_idx").on(table.organizationId),
+]);
+
+export type ImpactRule = typeof impactRules.$inferSelect;
+
+/**
  * The elements of an application, in one place instead of inside each test.
  *
  * `detected_elements` belongs to a single test, so the same button is written down once per
@@ -1733,6 +1749,9 @@ export const AUDIT_ACTIONS = {
   TEST_DATA_SET_CREATED: 'test_data_set.created',
   TEST_DATA_SET_UPDATED: 'test_data_set.updated',
   TEST_DATA_SET_DELETED: 'test_data_set.deleted',
+  // The impact map: which files map to which tests (server/test-impact.ts).
+  IMPACT_RULE_CREATED: 'impact_rule.created',
+  IMPACT_RULE_DELETED: 'impact_rule.deleted',
   CUSTOM_ACTION_CREATED: 'custom_action.created',
   CUSTOM_ACTION_UPDATED: 'custom_action.updated',
   CUSTOM_ACTION_DELETED: 'custom_action.deleted',
@@ -2894,4 +2913,6 @@ export const ORG_SCOPED_TABLES = [
   'test_data_sets',
   // The work of a run shared by several workers (migration 0067).
   'run_work_items',
+  // Which files map to which tests' tags (migration 0068).
+  'impact_rules',
 ] as const;

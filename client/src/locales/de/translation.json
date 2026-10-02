@@ -135,7 +135,9 @@
       "testManagement": "Testmanagement",
       "testManagementDescription": "TestRail, Xray oder Zephyr Scale, wo jeder abgeschlossene Lauf Fall für Fall veröffentlicht wird.",
       "organizationData": "Export und Löschung",
-      "organizationDataDescription": "Nehmen Sie die Daten der Organisation mit, oder löschen Sie sie endgültig."
+      "organizationDataDescription": "Nehmen Sie die Daten der Organisation mit, oder löschen Sie sie endgültig.",
+      "impactMap": "Auswirkungskarte",
+      "impactMapDescription": "Welche Dateien welche Tests betreffen, damit eine Pipeline die von einem Commit betroffenen Tests ausführt statt aller."
     },
     "apiKeys": {
       "openApi": "API-Referenz (OpenAPI)",
@@ -2640,7 +2642,8 @@
       "test_management": "Testmanagement",
       "mobile_test": "Mobile Apps",
       "test_data_set": "Testdaten",
-      "scim": "Bereitstellung (SCIM)"
+      "scim": "Bereitstellung (SCIM)",
+      "impact_rule": "Auswirkungskarte"
     },
     "actions": {
       "member_role_changed": "Rolle des Mitglieds geändert",
@@ -2744,7 +2747,9 @@
       "scim_group_updated": "Gruppe des Anbieters geändert",
       "scim_group_deleted": "Gruppe des Anbieters entfernt",
       "api_test_imported": "API-Tests aus OpenAPI oder Postman importiert",
-      "test_imported": "Tests aus einer Datei importiert"
+      "test_imported": "Tests aus einer Datei importiert",
+      "impact_rule_created": "Auswirkungsregel hinzugefügt",
+      "impact_rule_deleted": "Auswirkungsregel entfernt"
     }
   },
   "security": {
@@ -3953,5 +3958,21 @@
       "unchanged": "unverändert",
       "invalid": "nicht importiert"
     }
+  },
+  "impactMap": {
+    "title": "Auswirkungskarte",
+    "description": "Welche Dateien welche Tests betreffen. Ordnen Sie ein Dateimuster einem Tag zu: Eine mit den geänderten Dateien eines Commits gestartete Ausführung (wfm run --changed-since) führt die Tests mit den zugeordneten Tags aus, die von der Karte nicht erfassten Tests und die zuletzt fehlgeschlagenen. Eine geänderte Datei, die keine Regel erfasst, führt alle Tests aus.",
+    "empty": "Keine Regeln: Jede Ausführung führt alle Tests aus.",
+    "noTest": "kein Test",
+    "remove": "Regel entfernen",
+    "pattern": "Dateien",
+    "tag": "Betreffen die Tests mit dem Tag",
+    "chooseTag": "Tag wählen",
+    "noTestOption": "Kein Test (Dokumentation…)",
+    "add": "Regel hinzufügen",
+    "tryTitle": "An einer Änderung ausprobieren",
+    "choosePlan": "Plan wählen",
+    "filesPlaceholder": "Eine geänderte Datei pro Zeile, wie git diff --name-only sie auflistet",
+    "preview": "Zeigen, welche Tests laufen würden"
   }
 }

@@ -43,6 +43,8 @@ node wfm.mjs run 12 --wait --junit junit.xml
 | `--environment ID` | — | Run against this environment. |
 | `--update-baselines` | off | Accept this run's screenshots as the new visual baselines. |
 | `--idempotency-key KEY` | `$WFM_IDEMPOTENCY_KEY` | Start at most one run for this key: pass the build id, and a retried step follows the run it already started. |
+| `--changed-since REF` | — | Run only the tests the files changed since this git ref affect (`git diff --name-only REF...HEAD`), by the [impact map](../guide/running#impact). Exits `2`, starting nothing, when git cannot list them. |
+| `--changed-files FILE` | — | The same, from a file listing the changed files one per line. |
 | `--no-ci` | — | Do not send the build, commit and branch read from the CI system. |
 | `--json` | off | Print the final run as JSON, as the API returns it. |
 

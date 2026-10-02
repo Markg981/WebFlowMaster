@@ -148,7 +148,7 @@ gli step o descrivendoli.
 :::
 
 Le password scritte durante la registrazione non vengono salvate nel test: diventano segnaposto
-<code v-pre>{{secret_…}}</code>, che definite come segreti di un ambiente.
+<code v-pre>{{secret&#95;…}}</code>, che definite come segreti di un ambiente.
 
 ## Descrivere un test a frasi
 
@@ -178,7 +178,7 @@ Qualsiasi valore di uno step può contenere segnaposto <code v-pre>{{nome}}</cod
 quando il test gira:
 
 - dall'**ambiente** scelto nel costruttore, nel run del piano o nella pianificazione: i suoi
-  segreti (**Impostazioni → Ambienti**), per esempio <code v-pre>{{ADMIN_PASSWORD}}</code>. Un
+  segreti (**Impostazioni → Ambienti**), per esempio <code v-pre>{{ADMIN&#95;PASSWORD}}</code>. Un
   segreto chiamato `baseUrl` imposta <code v-pre>{{baseUrl}}</code>, così un test può partire da
   <code v-pre>{{baseUrl}}/login</code> su ogni ambiente;
 - da una riga di un **dataset** (sotto);
@@ -205,7 +205,7 @@ variabili siano accettate — uno step, un URL, un test API:
 | <code v-pre>{{$randomDigits(6)}}</code> | Solo cifre |
 | <code v-pre>{{$today}}</code>, <code v-pre>{{$today(+7)}}</code> | Una data, `aaaa-mm-gg`, oggi o fra quei giorni |
 | <code v-pre>{{$now}}</code>, <code v-pre>{{$timestamp}}</code> | L'istante corrente, ISO o in millisecondi |
-| <code v-pre>{{$totp(secret_mfa)}}</code> | Il codice che un'app di autenticazione mostra adesso per il seme contenuto nella variabile indicata; vedi [accesso in due passaggi](#totp) |
+| <code v-pre>{{$totp(secret&#95;mfa)}}</code> | Il codice che un'app di autenticazione mostra adesso per il seme contenuto nella variabile indicata; vedi [accesso in due passaggi](#totp) |
 
 Ogni segnaposto è un valore nuovo. Per usarne uno due volte — registrarsi con un indirizzo e poi
 accedere con lo stesso — dategli prima un nome: **Imposta variabile**
@@ -224,7 +224,7 @@ l'applicazione ha mostrato come segreto dell'ambiente, per esempio `secret_mfa`:
 sotto il QR code (`JBSW Y3DP EHPK 3PXP`, spazi e maiuscole non contano), oppure l'indirizzo
 contenuto nel QR code (`otpauth://totp/…?secret=…`), che porta con sé anche numero di cifre,
 periodo e algoritmo quando non sono i soliti 6, 30 secondi e SHA-1. Poi lo step **Digita**
-<code v-pre>{{$totp(secret_mfa)}}</code> nel campo del codice.
+<code v-pre>{{$totp(secret&#95;mfa)}}</code> nel campo del codice.
 
 L'argomento è il **nome** della variabile, mai la chiave, così la chiave resta cifrata e fuori dal
 test. Un nome che l'ambiente non definisce, o un valore che non è una chiave, fa fallire lo step e
@@ -257,7 +257,7 @@ Una registrazione, dall'inizio alla fine:
 
 Il valore è l'indirizzo, seguito facoltativamente da `|` e da un testo contenuto nell'oggetto, e
 da un secondo `|` e un'espressione regolare per il codice:
-<code v-pre>{{email}}|Il tuo codice|codice: ([A-Z0-9-]+)</code> legge ciò che trova il primo gruppo.
+<code v-pre>{{email}}|Il tuo codice|codice: (&#91;A-Z0-9-]+)</code> legge ciò che trova il primo gruppo.
 Lo step attende fino a 60 secondi l'email più recente a quell'indirizzo esatto (in A, Cc o Ccn)
 arrivata **dopo l'inizio del test**, così un indirizzo fisso, come quello di un utente di prova,
 non legge l'email del run precedente. Poi imposta:
@@ -314,7 +314,7 @@ database.
 | SQL Server | `sqlserver://utente:password@host:1433/Shop` — `sqlserver://…@host%5CSQLEXPRESS/Shop` per un'istanza con nome; `?encrypt=false` per un server senza TLS, `?trustServerCertificate=true` per un certificato autofirmato |
 
 Caratteri come `@` o `/` nella password si scrivono `%40` e `%2F`. Per un secondo database
-dategli un nome: `db.reporting.url` e il valore <code v-pre>@reporting SELECT …</code>.
+dategli un nome: `db.reporting.url` e il valore `@reporting SELECT …`.
 `db.timeout` cambia il limite di 30 secondi, in secondi. Si tengono al massimo 1000 righe.
 
 L'istruzione gira con i permessi dell'utente dell'indirizzo: usate un utente che possa leggere solo
@@ -329,21 +329,21 @@ Un test può rispondere da sé alle richieste della pagina, per vedere le scherm
 mostra di rado — un errore, una lista vuota, una risposta lenta — o per girare quando il backend non
 è pronto. **Simula richiesta** prende
 
-<code v-pre>[METODO] indirizzo | stato [after 1500ms] | corpo</code>
+`[METODO] indirizzo | stato [after 1500ms] | corpo`
 
 - **indirizzo**: un URL, o un pattern dove `**` vale qualunque carattere e `*` qualunque tranne `/`:
-  <code v-pre>**/api/orders*</code>, <code v-pre>{{baseUrl}}/api/orders/42</code>. Con un metodo davanti
+  `**/api/orders*`, <code v-pre>{{baseUrl}}/api/orders/42</code>. Con un metodo davanti
   (`GET`, `POST`…) risponde solo a quel metodo; gli altri arrivano al server.
 - **stato**: `200` se omesso; `after 1500ms` (o `after 2s`, fino a 30 s) ritarda la risposta, per
   verificare uno stato di caricamento.
 - **corpo**: tutto ciò che segue il secondo `|`, variabili comprese. Il JSON è inviato come
   `application/json`, il resto come testo.
 
-<code v-pre>GET **/api/orders | 200 | []</code> mostra la lista vuota;
-<code v-pre>POST **/api/orders | 500 | {"error":"out of stock"}</code> l'ordine fallito. La simulazione
+`GET **/api/orders | 200 | []` mostra la lista vuota;
+`POST **/api/orders | 500 | {"error":"out of stock"}` l'ordine fallito. La simulazione
 vale per il resto del test e in tutte le schede che apre; una simulazione successiva dello stesso
 indirizzo la sostituisce, così un test può cambiare risposta a metà. **Blocca richieste** prende un
-indirizzo e fa fallire quelle richieste — <code v-pre>**/analytics/**</code> tiene fuori una terza
+indirizzo e fa fallire quelle richieste — `**/analytics/**` tiene fuori una terza
 parte — e **Rimuovi simulazioni** toglie tutto ciò che è stato impostato.
 
 Riguarda solo ciò che chiede la pagina: precondizioni, pulizia e test API vanno ai server veri.

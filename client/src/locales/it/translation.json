@@ -135,7 +135,9 @@
       "testManagement": "Test management",
       "testManagementDescription": "TestRail, Xray o Zephyr Scale, dove ogni esecuzione conclusa viene pubblicata caso per caso.",
       "organizationData": "Esportazione e cancellazione",
-      "organizationDataDescription": "Portate via i dati dell'organizzazione, o cancellateli definitivamente."
+      "organizationDataDescription": "Portate via i dati dell'organizzazione, o cancellateli definitivamente.",
+      "impactMap": "Mappa dell'impatto",
+      "impactMapDescription": "Quali file riguardano quali test, così una pipeline esegue i test che un commit tocca invece di tutti."
     },
     "apiKeys": {
       "openApi": "Riferimento API (OpenAPI)",
@@ -2759,7 +2761,8 @@
       "test_management": "Gestione test",
       "mobile_test": "App mobili",
       "test_data_set": "Dati di test",
-      "scim": "Provisioning (SCIM)"
+      "scim": "Provisioning (SCIM)",
+      "impact_rule": "Mappa dell'impatto"
     },
     "actions": {
       "member_role_changed": "Ruolo del membro cambiato",
@@ -2863,7 +2866,9 @@
       "scim_group_updated": "Gruppo del provider modificato",
       "scim_group_deleted": "Gruppo del provider rimosso",
       "api_test_imported": "Test API importati da OpenAPI o Postman",
-      "test_imported": "Test importati da un file"
+      "test_imported": "Test importati da un file",
+      "impact_rule_created": "Regola d'impatto aggiunta",
+      "impact_rule_deleted": "Regola d'impatto rimossa"
     }
   },
   "security": {
@@ -4072,5 +4077,21 @@
       "unchanged": "invariato",
       "invalid": "non importato"
     }
+  },
+  "impactMap": {
+    "title": "Mappa dell'impatto",
+    "description": "Quali file riguardano quali test. Associate un pattern di file a un tag: un'esecuzione avviata con i file cambiati da un commit (wfm run --changed-since) esegue i test con i tag a cui quei file portano, i test che la mappa non copre e quelli falliti l'ultima volta. Un file cambiato che nessuna regola riconosce fa eseguire tutti i test.",
+    "empty": "Nessuna regola: ogni esecuzione esegue tutti i test.",
+    "noTest": "nessun test",
+    "remove": "Rimuovi la regola",
+    "pattern": "File",
+    "tag": "Riguardano i test con il tag",
+    "chooseTag": "Scegli un tag",
+    "noTestOption": "Nessun test (documentazione…)",
+    "add": "Aggiungi la regola",
+    "tryTitle": "Provala su una modifica",
+    "choosePlan": "Scegli un piano",
+    "filesPlaceholder": "Un file cambiato per riga, come li elenca git diff --name-only",
+    "preview": "Mostra quali test verrebbero eseguiti"
   }
 }

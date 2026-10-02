@@ -907,6 +907,16 @@ async function runTestPlanJobInTenant(
     message: `Found ${selectedTestsLinks.length} tests to execute in this plan.`,
     timestamp: new Date().toISOString()
   });
+  // Narrowed to what a change affects, or not and why (server/test-impact.ts).
+  if (snapshot.selection) {
+    wsEmitter.emitExecutionLog(testPlanRunId, {
+      level: 'info',
+      source: 'system',
+      message: snapshot.selection.reason,
+      timestamp: new Date().toISOString(),
+      metadata: { selection: snapshot.selection.mode, affectedTags: snapshot.selection.affectedTags },
+    });
+  }
 
   // ⚡ BOLT OPTIMIZATION: Resolve N+1 query problem by batch-fetching all required
   // UI and API test definitions in a single database roundtrip.

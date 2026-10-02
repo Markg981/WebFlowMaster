@@ -133,6 +133,18 @@ export const openApiDocument = {
             properties: { code: { type: 'string' }, message: { type: ['string', 'null'] } },
           },
           ci: { oneOf: [ref('CiContext'), { type: 'null' }], description: 'The build that asked for the run, when a pipeline did.' },
+          selection: {
+            type: ['object', 'null'],
+            description: 'When the run was narrowed to the tests a change affects (changedFiles): what was decided and why.',
+            properties: {
+              mode: { type: 'string', enum: ['affected', 'all'] },
+              reason: { type: 'string' },
+              changedFiles: { type: 'integer' },
+              affectedTags: { type: 'array', items: { type: 'string' } },
+              selected: { type: 'integer' },
+              total: { type: 'integer' },
+            },
+          },
           links: {
             type: 'object',
             properties: {
@@ -191,6 +203,12 @@ export const openApiDocument = {
                   environmentId: { type: 'integer', description: 'The environment to run against.' },
                   updateBaselines: { type: 'boolean', description: "Make this run's screenshots the new visual baselines." },
                   ci: ref('CiContext'),
+                  changedFiles: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    maxItems: 5000,
+                    description: "The files the change touched, relative to the repository root. The run is narrowed to the tests they affect, by the organization's impact map; a file no rule matches runs every test.",
+                  },
                 },
               },
             },

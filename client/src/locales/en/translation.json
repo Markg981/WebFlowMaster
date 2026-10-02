@@ -135,7 +135,9 @@
       "testManagement": "Test management",
       "testManagementDescription": "TestRail, Xray or Zephyr Scale, where each finished run is published case by case.",
       "organizationData": "Export and erasure",
-      "organizationDataDescription": "Take the organization's data with you, or erase it for good."
+      "organizationDataDescription": "Take the organization's data with you, or erase it for good.",
+      "impactMap": "Impact map",
+      "impactMapDescription": "Which files affect which tests, so a pipeline runs the tests a commit affects instead of all of them."
     },
     "apiKeys": {
       "openApi": "API reference (OpenAPI)",
@@ -2634,7 +2636,8 @@
       "test_management": "Test management",
       "mobile_test": "Mobile apps",
       "test_data_set": "Test data",
-      "scim": "Provisioning (SCIM)"
+      "scim": "Provisioning (SCIM)",
+      "impact_rule": "Impact map"
     },
     "actions": {
       "member_role_changed": "Member role changed",
@@ -2738,7 +2741,9 @@
       "scim_group_updated": "Provider group changed",
       "scim_group_deleted": "Provider group removed",
       "api_test_imported": "API tests imported from OpenAPI or Postman",
-      "test_imported": "Tests imported from a file"
+      "test_imported": "Tests imported from a file",
+      "impact_rule_created": "Impact rule added",
+      "impact_rule_deleted": "Impact rule removed"
     }
   },
   "security": {
@@ -3947,5 +3952,21 @@
       "unchanged": "unchanged",
       "invalid": "not imported"
     }
+  },
+  "impactMap": {
+    "title": "Impact map",
+    "description": "Which files affect which tests. Map a file pattern to a tag: a run started with the files a commit changed (wfm run --changed-since) runs the tests carrying the tags those files map to, the tests the map does not cover, and those that failed last time. A changed file no rule matches runs every test.",
+    "empty": "No rules: every run runs every test.",
+    "noTest": "no test",
+    "remove": "Remove rule",
+    "pattern": "Files",
+    "tag": "Affect the tests tagged",
+    "chooseTag": "Choose a tag",
+    "noTestOption": "No test (documentation…)",
+    "add": "Add rule",
+    "tryTitle": "Try it on a change",
+    "choosePlan": "Choose a plan",
+    "filesPlaceholder": "One changed file per line, as git diff --name-only lists them",
+    "preview": "Show which tests would run"
   }
 }

@@ -1,4 +1,5 @@
 import { EVIDENCE_CAPTURE_MODES, type EvidenceCaptureMode, type TestPlan } from '@shared/schema';
+import type { RunSelection } from './test-impact';
 import { normalizeLocales } from '@shared/locales';
 
 /**
@@ -75,6 +76,8 @@ export interface ExecutionSnapshot {
    * Absent on older snapshots: published nowhere.
    */
   testManagement?: { connectionId: string | null };
+  /** Present when the run was narrowed to the tests a change affects (server/test-impact.ts). */
+  selection?: RunSelection;
 }
 
 /** What the request may say that the plan does not. Anything absent comes from the plan. */

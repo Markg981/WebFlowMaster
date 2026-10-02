@@ -42,7 +42,8 @@ export interface AuditEntry {
     | 'test_plan_execution'
     | 'mobile_test'
     | 'browser_grid'
-    | 'test_data_set';
+    | 'test_data_set'
+    | 'impact_rule';
   /** Text because targets are variously serial ids and uuids. */
   targetId?: string | number;
   /**

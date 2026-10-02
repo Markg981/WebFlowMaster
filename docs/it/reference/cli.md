@@ -43,6 +43,8 @@ node wfm.mjs run 12 --wait --junit junit.xml
 | `--environment ID` | — | Esegue su questo ambiente. |
 | `--update-baselines` | no | Accetta gli screenshot di questo run come nuove baseline visive. |
 | `--idempotency-key KEY` | `$WFM_IDEMPOTENCY_KEY` | Avvia al massimo un run per questa chiave: passate l'id della build, e uno step ripetuto segue il run già avviato. |
+| `--changed-since REF` | — | Esegue solo i test che i file cambiati da questo ref git toccano (`git diff --name-only REF...HEAD`), secondo la [mappa dell'impatto](../guide/running#impatto). Esce con `2`, senza avviare nulla, se git non riesce a elencarli. |
+| `--changed-files FILE` | — | Lo stesso, da un file con i file cambiati, uno per riga. |
 | `--no-ci` | — | Non invia build, commit e branch letti dal sistema di CI. |
 | `--json` | no | Stampa il run finale in JSON, come lo restituisce l'API. |
 
