@@ -1,5 +1,5 @@
 {
-  "version": 18,
+  "version": 19,
   "areas": [
     {
       "id": "ACC",
@@ -4401,6 +4401,77 @@
         "Collegarlo ed eseguire un piano sul suo pool."
       ],
       "title": "Versione di Playwright diversa"
+    },
+    {
+      "actor": "editor.a",
+      "area": "AGT",
+      "id": "AGT-06",
+      "title": "gRPC unario nella rete privata",
+      "preconditions": "Agente 1.1.0 nel pool interno; servizio gRPC unario raggiungibile solo dalla rete agente e relativo proto.",
+      "steps": [
+        "Creare un test GRPC con indirizzo grpc://host:porta/pacchetto.Servizio/Metodo, proto e body JSON.",
+        "Aggiungere asserzioni sul codice 0, body e metadati; assegnare il piano al pool interno ed eseguirlo.",
+        "Eseguire lo stesso test sui runner del server."
+      ],
+      "expected": "Sul pool il servizio riceve la chiamata e le asserzioni passano. Sui runner il servizio privato non è raggiungibile. Non compare il rifiuto dei protocolli su agente.",
+      "priority": "P1",
+      "detailHtml": "<h4>Precondizioni</h4><p>Agente 1.1.0 nel pool interno; servizio gRPC unario raggiungibile solo dalla rete agente e relativo proto.</p><h4>Passi</h4><ol><li>Creare un test GRPC con indirizzo grpc://host:porta/pacchetto.Servizio/Metodo, proto e body JSON.</li><li>Aggiungere asserzioni sul codice 0, body e metadati; assegnare il piano al pool interno ed eseguirlo.</li><li>Eseguire lo stesso test sui runner del server.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Sul pool il servizio riceve la chiamata e le asserzioni passano. Sui runner il servizio privato non è raggiungibile. Non compare il rifiuto dei protocolli su agente.</p>"
+    },
+    {
+      "actor": "editor.a",
+      "area": "AGT",
+      "id": "AGT-07",
+      "title": "WebSocket nella rete privata con estrazioni",
+      "preconditions": "Agente 1.1.0 nel pool interno; endpoint WebSocket echo raggiungibile solo dalla rete agente.",
+      "steps": [
+        "Creare un test WEBSOCKET con header bearer e body {\"send\":[\"hello {{name}}\"],\"until\":1}.",
+        "Asserire last e count; estrarre last in una variabile. Eseguire il piano sul pool interno."
+      ],
+      "expected": "Il servizio riceve header e messaggio sostituito dalla rete agente. Asserzioni ed estrazione passano nel report.",
+      "priority": "P1",
+      "detailHtml": "<h4>Precondizioni</h4><p>Agente 1.1.0 nel pool interno; endpoint WebSocket echo raggiungibile solo dalla rete agente.</p><h4>Passi</h4><ol><li>Creare un test WEBSOCKET con header bearer e body {\"send\":[\"hello {{name}}\"],\"until\":1}.</li><li>Asserire last e count; estrarre last in una variabile. Eseguire il piano sul pool interno.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Il servizio riceve header e messaggio sostituito dalla rete agente. Asserzioni ed estrazione passano nel report.</p>"
+    },
+    {
+      "actor": "editor.a",
+      "area": "AGT",
+      "id": "AGT-08",
+      "title": "Agente precedente privo delle capacità native",
+      "preconditions": "Pool legacy con agente 1.0.0 collegato; test HTTP e WebSocket disponibili.",
+      "steps": [
+        "Eseguire il test HTTP sul pool legacy.",
+        "Eseguire il test WebSocket sul medesimo pool."
+      ],
+      "expected": "HTTP resta funzionante. WebSocket fallisce con istruzioni per aggiornare l’agente; il servizio non riceve una chiamata alternativa dai runner server.",
+      "priority": "P1",
+      "detailHtml": "<h4>Precondizioni</h4><p>Pool legacy con agente 1.0.0 collegato; test HTTP e WebSocket disponibili.</p><h4>Passi</h4><ol><li>Eseguire il test HTTP sul pool legacy.</li><li>Eseguire il test WebSocket sul medesimo pool.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">HTTP resta funzionante. WebSocket fallisce con istruzioni per aggiornare l’agente; il servizio non riceve una chiamata alternativa dai runner server.</p>"
+    },
+    {
+      "actor": "editor.a",
+      "area": "AGT",
+      "id": "AGT-09",
+      "title": "OAuth e protocollo nativo con un solo slot",
+      "preconditions": "Agente 1.1.0 con WFM_AGENT_MAX_SESSIONS=1 e Chromium; endpoint OAuth e WebSocket privati.",
+      "steps": [
+        "Configurare un test WEBSOCKET con OAuth2 client_credentials e tokenUrl privato.",
+        "Eseguire il piano sul pool, senza test UI simultanei."
+      ],
+      "expected": "Il token viene ottenuto dalla rete agente; il browser HTTP viene restituito e WebSocket usa lo slot liberato. Il servizio riceve il bearer e il test passa.",
+      "priority": "P1",
+      "detailHtml": "<h4>Precondizioni</h4><p>Agente 1.1.0 con WFM_AGENT_MAX_SESSIONS=1 e Chromium; endpoint OAuth e WebSocket privati.</p><h4>Passi</h4><ol><li>Configurare un test WEBSOCKET con OAuth2 client_credentials e tokenUrl privato.</li><li>Eseguire il piano sul pool, senza test UI simultanei.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Il token viene ottenuto dalla rete agente; il browser HTTP viene restituito e WebSocket usa lo slot liberato. Il servizio riceve il bearer e il test passa.</p>"
+    },
+    {
+      "actor": "editor.a",
+      "area": "AGT",
+      "id": "AGT-10",
+      "title": "Rilascio della sessione nativa dopo timeout",
+      "preconditions": "Agente 1.1.0; servizio gRPC che non risponde alla chiamata unary.",
+      "steps": [
+        "Eseguire un test gRPC sul pool con il servizio che non risponde.",
+        "Dopo il deadline, eseguire un secondo test valido sullo stesso pool."
+      ],
+      "expected": "Il primo test restituisce DEADLINE_EXCEEDED (4), valutabile dalle asserzioni. La sessione viene liberata e il secondo test può eseguire.",
+      "priority": "P1",
+      "detailHtml": "<h4>Precondizioni</h4><p>Agente 1.1.0; servizio gRPC che non risponde alla chiamata unary.</p><h4>Passi</h4><ol><li>Eseguire un test gRPC sul pool con il servizio che non risponde.</li><li>Dopo il deadline, eseguire un secondo test valido sullo stesso pool.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">Il primo test restituisce DEADLINE_EXCEEDED (4), valutabile dalle asserzioni. La sessione viene liberata e il secondo test può eseguire.</p>"
     },
     {
       "actor": "owner.a",

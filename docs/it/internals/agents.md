@@ -96,6 +96,23 @@ la lista dei certificati self-signed ammessi vale come sul server, e un'interruz
 subito. Non è servita alcuna modifica all'agente: qualsiasi agente che presta un browser può inviare
 richieste.
 
+## Sessioni API native
+
+L'agente 1.1.0 dichiara `apiProtocols: ["grpc", "websocket"]` nell'hello v1. Il ticket firmato
+aggiunge `apiProtocol`; il relay filtra per organizzazione, pool, capacità, stato di drenaggio
+e capacità condivisa delle sessioni. Le sessioni native non richiedono browser installati né
+la stessa versione di Playwright. Il relay apre il consueto canale in uscita e inoltra una
+richiesta/risposta con indirizzo, header, body e proto. `scripts/agent-api-session.ts` richiama
+gli stessi helper di rete del runner server; il runner valuta stato, header e body restituiti.
+
+`AgentHttp` serializza le operazioni di trasporto, mantiene il lease della connessione NTLM durante
+l'handshake e restituisce il browser HTTP inattivo prima di una richiesta nativa: anche un pool
+con un solo slot può eseguire OAuth seguito da gRPC/WebSocket. La chiusura della sessione annulla
+il lavoro nativo e libera lo slot. Gli agenti precedenti privi di capacità restano collegati per
+browser/HTTP ma non ricevono sessioni native. Il bundle usa le API file di Node e import gRPC
+differiti; `@grpc/grpc-js` e `@grpc/proto-loader` vengono installati dall'immagine Docker e dal
+comando di configurazione generato.
+
 ## Più server web
 
 Ogni server web ha la propria istanza del relay, e un agente è connesso all'istanza che gli ha assegnato

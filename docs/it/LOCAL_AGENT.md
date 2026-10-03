@@ -35,6 +35,19 @@ ingresso, VPN o modifiche al firewall oltre all'accesso in uscita verso il serve
    richieste viene preso alla prima richiesta, quindi un piano senza chiamate API non ne chiede.
    Per questo l'agente deve avere Chromium installato, qualunque browser usino i test UI del piano.
 
+## gRPC e WebSocket nella rete privata
+
+I piani assegnati a un pool locale eseguono chiamate gRPC unarie e scambi WebSocket sull'agente,
+anche con indirizzi TLS (`grpcs://`, `wss://`). Asserzioni ed estrazioni restano sul server.
+Le sessioni native non richiedono browser installati; HTTP e richieste OAuth richiedono Chromium.
+Le sessioni condividono `WFM_AGENT_MAX_SESSIONS`: il run restituisce il browser HTTP inattivo prima
+di aprire una sessione nativa, anche dopo il recupero del token OAuth. La chiusura del trasporto del run annulla la chiamata attiva.
+
+Usate l'agente **1.1.0 o successivo**: scaricate nuovamente lo script e installate i pacchetti del
+comando seguente, oppure ricostruite e riavviate l'immagine Docker. Gli agenti v1 precedenti continuano
+a servire browser e HTTP; se il pool non supporta i protocolli nativi, l'esecuzione fallisce con
+un invito esplicito ad aggiornarli. Le chiamate non vengono ripetute dalla rete del server.
+
 ## Configurazione
 
 ### 1. Crea l'agente (owner)
@@ -59,7 +72,7 @@ Con Node 20 o successivo:
 
 ```bash
 curl -fsSL https://webflowmaster.example.com/cli/wfm-agent.mjs -o wfm-agent.mjs
-npm install playwright@<versione del server> ws
+npm install playwright@<versione del server> ws @grpc/grpc-js @grpc/proto-loader
 npx playwright install chromium        # e firefox / webkit / msedge se i piani li usano
 WFM_URL=https://webflowmaster.example.com WFM_AGENT_TOKEN=wfa_... node wfm-agent.mjs
 ```
@@ -68,7 +81,7 @@ WFM_URL=https://webflowmaster.example.com WFM_AGENT_TOKEN=wfa_... node wfm-agent
 |---|---|
 | `WFM_URL` | Il server WebFlowMaster |
 | `WFM_AGENT_TOKEN` | Il token da Settings |
-| `WFM_AGENT_MAX_SESSIONS` | Browser prestati contemporaneamente (default 2, max 16) |
+| `WFM_AGENT_MAX_SESSIONS` | Sessioni browser e API native contemporanee (default 2, max 16) |
 
 L'agente si riconnette da solo quando la connessione cade. Esce con codice **2** quando il server
 rifiuta il token (revocato) o la versione del protocollo: sono errori che non si risolvono

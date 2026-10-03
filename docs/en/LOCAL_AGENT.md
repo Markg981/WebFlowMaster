@@ -35,6 +35,19 @@ and no firewall change beyond outbound access to the server.
    borrowed on the first request, so a plan without API calls never asks for one. The agent needs
    Chromium installed for this, whatever browsers the plan's UI tests use.
 
+## gRPC and WebSocket inside the private network
+
+Plans assigned to a local pool execute unary gRPC calls and WebSocket exchanges on the agent,
+including TLS addresses (`grpcs://`, `wss://`). Assertions and captures still run on the server.
+Native sessions need no installed browser; HTTP and OAuth token requests still need Chromium.
+Sessions share `WFM_AGENT_MAX_SESSIONS`; the run returns an idle HTTP browser before opening a
+native session, including after OAuth token acquisition. Closing the run transport cancels its active API call.
+
+Use agent **1.1.0 or later**: download the script again and install the packages in the setup
+command below, or rebuild and restart the Docker agent. Existing v1 agents still serve browsers
+and HTTP; a pool without native protocol support fails explicitly and asks you to update it.
+The runner never falls back to making these calls from the server's network.
+
 ## Set up
 
 ### 1. Create the agent (owners)
@@ -59,7 +72,7 @@ With Node 20 or later:
 
 ```bash
 curl -fsSL https://webflowmaster.example.com/cli/wfm-agent.mjs -o wfm-agent.mjs
-npm install playwright@<server version> ws
+npm install playwright@<server version> ws @grpc/grpc-js @grpc/proto-loader
 npx playwright install chromium        # and firefox / webkit / msedge if plans use them
 WFM_URL=https://webflowmaster.example.com WFM_AGENT_TOKEN=wfa_... node wfm-agent.mjs
 ```
@@ -68,7 +81,7 @@ WFM_URL=https://webflowmaster.example.com WFM_AGENT_TOKEN=wfa_... node wfm-agent
 |---|---|
 | `WFM_URL` | The WebFlowMaster server |
 | `WFM_AGENT_TOKEN` | The token from Settings |
-| `WFM_AGENT_MAX_SESSIONS` | Browsers lent at once (default 2, max 16) |
+| `WFM_AGENT_MAX_SESSIONS` | Browser and native API sessions at once (default 2, max 16) |
 
 The agent reconnects on its own when the connection drops. It exits with code **2** when the server
 refuses its token (revoked) or its protocol version: those do not fix themselves by retrying.

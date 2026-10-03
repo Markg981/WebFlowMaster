@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import http from 'http';
 import express from 'express';
 import type { AddressInfo } from 'net';
-import WebSocket from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
 
 /**
  * The agent relay, end to end: the real agent program, the real relay, a real browser.
@@ -32,6 +32,7 @@ const { runPreconditions } = await import('../precondition-runner');
 const SECRET = 'relay-test-secret';
 const AGENTS: Record<string, { id: string; organizationId: number; pool: string; name: string }> = {
   wfa_onprem: { id: 'agent-onprem', organizationId: 1, pool: 'onprem', name: 'Build box' },
+  wfa_single: { id: 'agent-single', organizationId: 1, pool: 'single', name: 'Single slot' },
   wfa_revoked: { id: 'agent-revoked', organizationId: 1, pool: 'spare', name: 'Old box' },
 };
 
@@ -165,6 +166,38 @@ describe('sending API requests from the agent', () => {
   const borrow = (agent: { organizationId: number; pool: string }) =>
     connectToAgentBrowser({ engine: 'chromium', headless: true, agent }, env());
 
+  it('returns the idle HTTP browser before a native request, including OAuth, in a one-slot pool', async () => {
+    const agent = runAgent({ url: base, token: 'wfa_single', maxSessions: 1, browsers: ['chromium'], log: () => {} });
+    running.push(agent);
+    await agent.ready;
+    const target = new WebSocketServer({ port: 0, host: '127.0.0.1' });
+    await new Promise<void>((resolve) => target.once('listening', resolve));
+    target.on('connection', (ws, req) => ws.send(req.headers.authorization ?? 'missing'));
+    const http = new AgentHttp({ organizationId: 1, pool: 'single' }, borrow);
+    const savedUrl = process.env.AGENT_RELAY_URL;
+    const savedSecret = process.env.AGENT_RELAY_SECRET;
+    process.env.AGENT_RELAY_URL = base;
+    process.env.AGENT_RELAY_SECRET = SECRET;
+    try {
+      await http.fetch(`${privateUrl}api/echo`);
+      const result = await runApiRequest({ method: 'WEBSOCKET',
+        url: `ws://127.0.0.1:${(target.address() as AddressInfo).port}`,
+        body: '{"send":[],"until":1}',
+        auth: { type: 'oauth2', params: { grantType: 'client_credentials', tokenUrl: `${privateUrl}oauth/token`, clientId: 'one-slot', clientSecret: 'test' } },
+      }, {}, http.fetch);
+      expect(result.error).toBeUndefined();
+      expect(result.body).toMatchObject({ last: 'Bearer from-inside' });
+    } finally {
+      if (savedUrl === undefined) delete process.env.AGENT_RELAY_URL;
+      else process.env.AGENT_RELAY_URL = savedUrl;
+      if (savedSecret === undefined) delete process.env.AGENT_RELAY_SECRET;
+      else process.env.AGENT_RELAY_SECRET = savedSecret;
+      await http.close();
+      target.clients.forEach((ws) => ws.terminate());
+      await new Promise<void>((resolve) => target.close(() => resolve()));
+    }
+  }, 60_000);
+
   it('answers like fetch: status, headers (repeated ones too), body; and sent by Playwright, not by the runner', async () => {
     const http = new AgentHttp(onprem, borrow);
     try {
@@ -190,6 +223,33 @@ describe('sending API requests from the agent', () => {
     }
     await expect.poll(() => relay.sessionsOf('agent-onprem'), { timeout: 10_000 }).toBe(0);
   }, 60_000);
+
+  it('rejects queued HTTP work after close without borrowing another browser', async () => {
+    const borrowing = vi.fn(borrow);
+    const http = new AgentHttp(onprem, borrowing);
+    const first = http.fetch(`${privateUrl}api/slow`);
+    void first.catch(() => {});
+    await expect.poll(() => relay.sessionsOf('agent-onprem')).toBe(1);
+    const queued = http.fetch(`${privateUrl}api/echo`);
+    void queued.catch(() => {});
+    await http.close();
+    expect((await Promise.allSettled([first, queued])).map((r) => r.status)).toEqual(['rejected', 'rejected']);
+    expect(borrowing).toHaveBeenCalledTimes(1);
+    await expect.poll(() => relay.sessionsOf('agent-onprem')).toBe(0);
+  }, 60_000);
+
+  it('does not borrow a browser if an NTLM lease is closed during acquisition', async () => {
+    const borrowing = vi.fn(borrow);
+    const http = new AgentHttp(onprem, borrowing);
+    const lease = http.fetch.oneConnection!();
+    const pending = lease.fetch(`${privateUrl}api/echo`);
+    void pending.catch(() => {});
+    await Promise.resolve();
+    await http.close();
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    await lease.close();
+    expect(borrowing).not.toHaveBeenCalled();
+  });
 
   it('keeps no cookies between requests, as fetch does not', async () => {
     const http = new AgentHttp(onprem, borrow);

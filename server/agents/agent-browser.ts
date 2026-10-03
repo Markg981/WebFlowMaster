@@ -1,5 +1,6 @@
 import { createRequire } from 'module';
 import playwright, { type Browser } from 'playwright';
+import { setTimeout as delay } from 'node:timers/promises';
 import { AGENT_PATHS } from '@shared/agents';
 import { relaySecret, signTicket } from './agent-credentials';
 
@@ -23,7 +24,7 @@ export function relayBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
 }
 
 export async function connectToAgentBrowser(
-  choice: { engine: 'chromium' | 'firefox' | 'webkit'; channel?: string; headless: boolean; agent: AgentTarget },
+  choice: { engine: 'chromium' | 'firefox' | 'webkit'; channel?: string; headless: boolean; agent: AgentTarget; availabilityWaitMs?: number },
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<Browser> {
   const ticket = signTicket(
@@ -42,8 +43,14 @@ export async function connectToAgentBrowser(
   // Asked first, for an error that says which agent is missing rather than "WebSocket error 503".
   let availability: { available: boolean; reason?: string };
   try {
-    const response = await fetch(`${base}/api/agent/v1/availability?ticket=${encodeURIComponent(ticket)}`);
-    availability = await response.json();
+    const deadline = Date.now() + (choice.availabilityWaitMs ?? 0);
+    const signal = AbortSignal.timeout(10_000);
+    do {
+      const response = await fetch(`${base}/api/agent/v1/availability?ticket=${encodeURIComponent(ticket)}`, { signal });
+      availability = await response.json();
+      if (availability.available || !availability.reason?.includes('busy or draining') || Date.now() >= deadline) break;
+      await delay(100, undefined, { signal });
+    } while (true);
   } catch (error) {
     throw new Error(`The agent relay at ${base} could not be reached: ${(error as Error).message}. Set AGENT_RELAY_URL on the runners.`);
   }

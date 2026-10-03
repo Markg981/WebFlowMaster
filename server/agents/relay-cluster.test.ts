@@ -2,7 +2,8 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import http from 'http';
 import net from 'net';
 import type { AddressInfo } from 'net';
-import WebSocket from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
+import { runProtocolOnAgent } from './agent-protocol';
 
 /**
  * The relay with several web servers, end to end: two relay instances sharing a directory, a load
@@ -131,6 +132,35 @@ afterAll(async () => {
 });
 
 describe('several relay instances', () => {
+  it('executes native WebSocket on B when the runner and agent session both reach A', async () => {
+    tokens.set('wfa_native_single', { id: 'native-single', organizationId: 1, pool: 'native-single', name: 'Single native slot' });
+    const agent = runAgent({ url: balancerUrl, token: 'wfa_native_single', maxSessions: 1, browsers: [], log: () => {} });
+    running.push(agent);
+    await agent.ready;
+    await b.relay.sync();
+    await a.relay.sync();
+    const target = new WebSocketServer({ port: 0, host: '127.0.0.1' });
+    await new Promise<void>((resolve) => target.once('listening', resolve));
+    target.on('connection', (socket) => socket.on('message', (data) => socket.send(data)));
+    try {
+      const request = {
+        protocol: 'websocket', url: `ws://127.0.0.1:${(target.address() as AddressInfo).port}`,
+        body: '{"send":["from-private-network"],"until":1}', headers: {}, timeoutMs: 1000,
+      } as const;
+      const answer = await runProtocolOnAgent({ organizationId: 1, pool: 'native-single' }, request, env(a.url));
+      expect(answer.body).toMatchObject({ last: 'from-private-network', count: 1 });
+      // Publish the stale occupied slot, as a non-owner relay can observe before close propagates.
+      await directory.publish({ id: 'instance-b', url: b.url, agents: [{ id: 'native-single', organizationId: 1, pool: 'native-single', playwrightVersion: '0.0.0', browsers: [], apiProtocols: ['websocket'], maxSessions: 1, activeSessions: 1, draining: false }] }, 60_000);
+      await a.relay.sync();
+      const second = await runProtocolOnAgent({ organizationId: 1, pool: 'native-single' }, request, env(a.url));
+      expect(second.body).toMatchObject({ count: 1 });
+      await expect.poll(() => b.relay.sessionsOf('native-single')).toBe(0);
+    } finally {
+      target.clients.forEach((socket) => socket.terminate());
+      await new Promise<void>((resolve) => target.close(() => resolve()));
+    }
+  });
+
   it('lends a browser held by B to a runner that asked A, with the agent\'s second connection landing on A too', async () => {
     expect(b.relay.sessionsOf('agent-onprem')).toBe(0);
     const browser = await connectToAgentBrowser({ engine: 'chromium', headless: true, agent: { organizationId: 1, pool: 'onprem' } }, env(a.url));

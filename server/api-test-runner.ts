@@ -368,6 +368,7 @@ async function applyAuth(
  */
 export type OneConnectionFetch = typeof fetch & {
   oneConnection?: () => { fetch: typeof fetch; close: () => Promise<void> };
+  runProtocol?: (request: import('@shared/agent-protocol').AgentProtocolRequest) => Promise<ProtocolResponse>;
 };
 
 /**
@@ -599,7 +600,7 @@ async function runOtherProtocol(
   const fail = (error: string): ApiRunResult => ({ ...empty, passed: false, durationMs: Date.now() - startTime, error });
   const grpc = targetUrl.protocol === 'grpc:' || targetUrl.protocol === 'grpcs:' || spec.method === 'GRPC';
   const kind = grpc ? 'gRPC' : 'WebSocket';
-  if (fetchImpl !== fetchTarget) return fail(`${kind} tests are sent from the server's runners, not through a local agent.`);
+  if (fetchImpl !== fetchTarget && !fetchImpl.runProtocol) return fail(`The selected transport does not support ${kind} tests.`);
   if (grpc && targetUrl.protocol !== 'grpc:' && targetUrl.protocol !== 'grpcs:') return fail('A gRPC address starts with grpc:// or grpcs://.');
   if (!grpc && targetUrl.protocol !== 'ws:' && targetUrl.protocol !== 'wss:') return fail('A WebSocket address starts with ws:// or wss://.');
   // Header-based authorizations (bearer, basic, API key…) go on the handshake or the metadata.
@@ -609,7 +610,9 @@ async function runOtherProtocol(
   const body = typeof spec.body === 'string' ? substituteVariables(spec.body, vars) : spec.body == null ? '' : substituteVariables(JSON.stringify(spec.body), vars);
   let answer: ProtocolResponse;
   try {
-    answer = grpc
+    answer = fetchImpl.runProtocol
+      ? await fetchImpl.runProtocol({ protocol: grpc ? 'grpc' : 'websocket', url: targetUrl.toString(), proto: spec.protoDefinition ?? undefined, headers, body, timeoutMs: REQUEST_TIMEOUT_MS })
+      : grpc
       ? await runGrpc({ url: targetUrl, proto: spec.protoDefinition ?? '', headers, body, timeoutMs: REQUEST_TIMEOUT_MS })
       : await runWebSocket({ url: targetUrl.toString(), headers, body, timeoutMs: REQUEST_TIMEOUT_MS });
   } catch (error) {

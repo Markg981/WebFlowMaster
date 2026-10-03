@@ -93,6 +93,22 @@ browser context (a context keeps cookies; `fetch` does not), repeated headers su
 self-signed-certificate allowlist applies as on the server, and an abort is honoured immediately. No
 agent change was needed: any agent that can lend a browser can send requests.
 
+## Native API sessions
+
+Agent 1.1.0 advertises `apiProtocols: ["grpc", "websocket"]` in its v1 hello. A signed ticket
+adds `apiProtocol`; the relay filters by organization, pool, capability, drain state and shared
+session capacity. Native sessions do not require an installed browser or matching Playwright.
+The relay opens the same outbound session pipe and forwards one request/reply, including the
+target, headers, body and inline proto. `scripts/agent-api-session.ts` invokes the same network
+helpers as the server runner; the runner evaluates the returned status, headers and body.
+
+`AgentHttp` serializes transport operations, keeps an NTLM connection lease through its handshake,
+and returns an idle HTTP browser before a native request so a one-slot pool can handle OAuth
+followed by gRPC/WebSocket. Session closures abort native work and free the slot. An old agent
+without capabilities stays connected for browser/HTTP work but cannot receive native sessions.
+The agent bundle uses Node file APIs and lazy gRPC imports; gRPC requires `@grpc/grpc-js` and
+`@grpc/proto-loader`, installed by the Docker image and generated setup command.
+
 ## Several web servers
 
 Each web server runs its own relay instance, and an agent is connected to whichever instance the load

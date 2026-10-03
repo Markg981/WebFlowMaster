@@ -9,8 +9,9 @@
  * accessibility, video, trace and HAR all work unchanged. The difference is where the browser is,
  * and so what it can reach.
  *
- * What does not move is what the runner does itself. API tests and API preconditions are sent
- * from the runner, so an internal API they call must still be reachable from it.
+ * HTTP API tests, preconditions and OAuth requests use the borrowed browser's request API.
+ * Native gRPC and WebSocket tests use an authenticated API session on an updated agent.
+ * The runner retains assertions and captures; all target connections leave the agent's network.
  */
 
 /** Paths on the server. The agent dials all of them; nothing dials the agent. */
@@ -45,13 +46,15 @@ export interface AgentHello {
   browsers: AgentEngine[];
   /** How many browsers it lends at once. */
   maxSessions: number;
+  /** Optional for v1 agents installed before native API protocol execution. */
+  apiProtocols?: Array<import('./agent-protocol').AgentApiProtocol>;
 }
 
 /** Server → agent. */
 export type ServerToAgent =
   | { type: 'welcome'; agentId: string; name: string; pool: string }
   | { type: 'refused'; reason: string }
-  | { type: 'open'; sessionId: string; engine: AgentEngine; channel?: string; headless: boolean };
+  | { type: 'open'; sessionId: string; engine: AgentEngine; channel?: string; headless: boolean; apiProtocol?: import('./agent-protocol').AgentApiProtocol };
 
 /** Agent → server, after hello. */
 export type AgentToServer =

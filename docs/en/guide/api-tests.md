@@ -122,8 +122,10 @@ the request message as JSON, headers are sent as metadata, and the answer's body
 message as JSON. The status is the gRPC status code — `0` for OK, `5` for NOT_FOUND… — so an
 expected error is asserted with **status code** like any other. Unary calls only.
 
-WebSocket and gRPC tests are sent from the server's runners: a plan on local agents runs them from
-there, not from the agents' network.
+Plans assigned to local agents send WebSocket and unary gRPC requests from the agent's network.
+Update to agent 1.1.0 or later and install its gRPC dependencies (see [Local agents](../LOCAL_AGENT)).
+Agents without these capabilities fail with an upgrade message. Assertions, captures and reports
+work as on server runners. The editor's **Send** preview still executes from the server.
 
 ## Importing from OpenAPI, Postman or WSDL {#import}
 
