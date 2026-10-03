@@ -171,11 +171,11 @@ describe('WebSocket', () => {
     expect(lastHeaders.authorization).toBe('Bearer t-1');
   });
 
-  it('says why it could not connect, and refuses to go through an agent', async () => {
+  it('says why it could not connect, and refuses a transport without protocol support', async () => {
     const refused = await runApiRequest({ method: 'WEBSOCKET', url: 'ws://127.0.0.1:1/x', assertions: [] }, {});
     expect(refused.error).toMatch(/WebSocket error|Could not connect/);
     const viaAgent = Object.assign(async () => new Response(''), {}) as any;
-    expect((await runApiRequest({ method: 'WEBSOCKET', url, assertions: [] }, {}, viaAgent)).error).toContain('not through a local agent');
+    expect((await runApiRequest({ method: 'WEBSOCKET', url, assertions: [] }, {}, viaAgent)).error).toContain('does not support WebSocket');
   });
 });
 

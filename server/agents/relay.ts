@@ -247,6 +247,7 @@ export class AgentRelay {
       maxSessions: c.hello.maxSessions,
       activeSessions: c.sessions.size,
       draining: c.draining,
+      apiProtocols: c.hello.apiProtocols,
     }));
   }
 
@@ -361,6 +362,7 @@ export class AgentRelay {
       activeSessions: c.sessions.size,
       draining: c.draining,
       local: c,
+      apiProtocols: c.hello.apiProtocols,
     }));
     const remote: Candidate[] = localOnly
       ? []
@@ -370,7 +372,7 @@ export class AgentRelay {
 
     const inPool = [...local, ...remote].filter((c) => c.organizationId === ticket.organizationId && c.pool === ticket.pool);
     if (inPool.length === 0) return { reason: `No agent of pool "${ticket.pool}" is connected. Start one, or run the plan on the server's runners.` };
-    const compatible = inPool.filter((c) => playwrightCompatible(c.playwrightVersion, ticket.playwrightVersion));
+    const compatible = ticket.apiProtocol ? inPool : inPool.filter((c) => playwrightCompatible(c.playwrightVersion, ticket.playwrightVersion));
     if (compatible.length === 0) {
       return {
         reason:
@@ -378,8 +380,12 @@ export class AgentRelay {
           `and this server ${ticket.playwrightVersion}: they must match. Update the agents.`,
       };
     }
-    const withBrowser = compatible.filter((c) => c.browsers.includes(ticket.engine));
-    if (withBrowser.length === 0) return { reason: `No agent of pool "${ticket.pool}" has ${ticket.engine} installed.` };
+    const withBrowser = ticket.apiProtocol
+      ? compatible.filter((c) => c.apiProtocols?.includes(ticket.apiProtocol!))
+      : compatible.filter((c) => c.browsers.includes(ticket.engine));
+    if (withBrowser.length === 0) return { reason: ticket.apiProtocol
+      ? `No agent of pool "${ticket.pool}" supports ${ticket.apiProtocol}. Update the agents by downloading /cli/wfm-agent.mjs again or rebuilding their Docker image.`
+      : `No agent of pool "${ticket.pool}" has ${ticket.engine} installed.` };
     const free = withBrowser.filter((c) => !c.draining && c.activeSessions < c.maxSessions);
     if (free.length === 0) return { reason: `Every agent of pool "${ticket.pool}" is busy or draining.` };
     // Least busy first; between equals, one held here saves a hop.
@@ -422,7 +428,7 @@ export class AgentRelay {
         if (this.pending.delete(id)) clearTimeout(session.timer);
         agent.sessions.delete(id);
       });
-      this.send(agent.ws, { type: 'open', sessionId: id, engine: verified.engine, channel: verified.channel, headless: verified.headless });
+      this.send(agent.ws, { type: 'open', sessionId: id, engine: verified.engine, channel: verified.channel, headless: verified.headless, ...(verified.apiProtocol ? { apiProtocol: verified.apiProtocol } : {}) });
     });
   }
 
@@ -461,7 +467,10 @@ export class AgentRelay {
       for (const { data, isBinary } of session.buffered) lent.send(data, { binary: isBinary });
       session.buffered = [];
       runner.removeAllListeners('message');
-      pipe(runner, lent, () => this.connected.get(agent.id)?.sessions.delete(sessionId));
+      pipe(runner, lent, () => {
+        this.connected.get(agent.id)?.sessions.delete(sessionId);
+        this.syncSoon();
+      });
     });
   }
 

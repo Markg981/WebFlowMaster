@@ -26,13 +26,17 @@ ENV NODE_ENV=production
 # another Playwright version, whose browsers the image does not have. Empty in every real build.
 ARG PLAYWRIGHT_VERSION=
 
-# The agent is one bundled file with two dependencies, and the browsers come with the image.
+# The agent is one bundled file; native API protocols also need the gRPC packages.
 # The playwright library is installed at exactly the resolved version, never a range: the
 # image's browsers are built for that version and no other.
 COPY --from=build /src/node_modules/playwright/package.json /tmp/playwright-package.json
+COPY --from=build /src/node_modules/@grpc/grpc-js/package.json /tmp/grpc-package.json
+COPY --from=build /src/node_modules/@grpc/proto-loader/package.json /tmp/proto-package.json
 RUN npm init -y >/dev/null \
   && npm install --omit=dev "playwright@${PLAYWRIGHT_VERSION:-$(node -p "require('/tmp/playwright-package.json').version")}" "ws@^8.18.0" \
-  && rm /tmp/playwright-package.json
+     "@grpc/grpc-js@$(node -p "require('/tmp/grpc-package.json').version")" \
+     "@grpc/proto-loader@$(node -p "require('/tmp/proto-package.json').version")" \
+  && rm /tmp/playwright-package.json /tmp/grpc-package.json /tmp/proto-package.json
 COPY --from=build /src/dist/wfm-agent.js ./wfm-agent.mjs
 
 # Lets the running sessions finish on `docker stop`.

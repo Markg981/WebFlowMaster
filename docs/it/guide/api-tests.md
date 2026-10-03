@@ -122,8 +122,11 @@ messaggio di richiesta in JSON, gli header sono inviati come metadata, e il body
 il messaggio di risposta in JSON. Lo stato è il codice gRPC — `0` per OK, `5` per NOT_FOUND… — quindi
 un errore atteso si verifica con **status code** come gli altri. Solo chiamate unarie.
 
-I test WebSocket e gRPC partono dai runner del server: un piano su agenti locali li esegue da lì,
-non dalla rete degli agenti.
+I piani assegnati agli agenti locali inviano WebSocket e chiamate gRPC unarie dalla rete dell'agente.
+Aggiornate all'agente 1.1.0 o successivo e installate le dipendenze gRPC (vedere [Agenti locali](../LOCAL_AGENT)).
+Gli agenti privi di queste capacità restituiscono un messaggio di aggiornamento. Asserzioni,
+estrazioni e report funzionano come sui runner del server. L'anteprima **Invia** nell'editor
+continua a eseguire dal server.
 
 ## Importare da OpenAPI, Postman o WSDL {#import}
 

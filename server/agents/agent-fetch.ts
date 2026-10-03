@@ -1,6 +1,8 @@
 import type { Browser, BrowserContext } from 'playwright';
 import { allowsSelfSignedCertificate } from '../outbound-http';
 import { connectToAgentBrowser, type AgentTarget } from './agent-browser';
+import { runProtocolOnAgent } from './agent-protocol';
+import type { OneConnectionFetch } from '../api-test-runner';
 
 /**
  * HTTP requests sent from a local agent's machine, for the API tests, API preconditions and
@@ -143,17 +145,78 @@ export function fetchThroughBrowser(browser: () => Promise<Browser>): typeof fet
  */
 export class AgentHttp {
   private borrowed: Promise<Browser> | null = null;
-  readonly fetch: typeof fetch;
+  private readonly protocolRequests = new Set<AbortController>();
+  private requestQueue: Promise<unknown> = Promise.resolve();
+  private closed = false;
+  readonly fetch: OneConnectionFetch;
 
   constructor(
     readonly agent: AgentTarget,
     private readonly connect: (agent: AgentTarget) => Promise<Browser> = (target) =>
-      connectToAgentBrowser({ engine: 'chromium', headless: true, agent: target }),
+      connectToAgentBrowser({ engine: 'chromium', headless: true, agent: target, availabilityWaitMs: 6000 }),
   ) {
-    this.fetch = fetchThroughBrowser(() => this.browser());
+    const http = fetchThroughBrowser(() => this.browser());
+    this.fetch = Object.assign(((input: RequestInfo | URL, init?: RequestInit) =>
+      this.exclusive(() => http(input, init))) as typeof fetch, {
+      oneConnection: () => {
+        const connection = http.oneConnection();
+        let release = () => {};
+        let opening: Promise<void> | undefined;
+        let finished: Promise<unknown> | undefined;
+        const acquire = () => opening ??= new Promise<void>((resolve, reject) => {
+          finished = this.exclusive(async () => {
+            const held = new Promise<void>((done) => { release = done; });
+            resolve();
+            await held;
+            await connection.close();
+          });
+          void finished.catch(reject);
+        });
+        return {
+          fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
+            await acquire();
+            if (this.closed) throw abortError();
+            return connection.fetch(input, init);
+          }) as typeof fetch,
+          close: async () => {
+            if (!opening) return;
+            await opening;
+            release();
+            await finished;
+          },
+        };
+      },
+      runProtocol: async (request: import('@shared/agent-protocol').AgentProtocolRequest) => {
+        const controller = new AbortController();
+        this.protocolRequests.add(controller);
+        try {
+          return await this.exclusive(async () => {
+            // OAuth token acquisition or an earlier HTTP test may hold the pool's only slot.
+            // Wait for HTTP (including an NTLM connection lease) before returning that browser.
+            const borrowed = this.borrowed;
+            this.borrowed = null;
+            await (await borrowed?.catch(() => null))?.close().catch(() => {});
+            return runProtocolOnAgent(this.agent, request, process.env, controller.signal);
+          });
+        } finally {
+          this.protocolRequests.delete(controller);
+        }
+      },
+    });
+  }
+
+  private exclusive<T>(operation: () => Promise<T>): Promise<T> {
+    const run = () => {
+      if (this.closed) throw abortError();
+      return operation();
+    };
+    const pending = this.requestQueue.then(run, run);
+    this.requestQueue = pending.catch(() => {});
+    return pending;
   }
 
   private async browser(): Promise<Browser> {
+    if (this.closed) throw abortError();
     const existing = this.borrowed;
     if (existing) {
       const current = await existing.catch(() => null);
@@ -169,6 +232,8 @@ export class AgentHttp {
   }
 
   async close(): Promise<void> {
+    this.closed = true;
+    for (const controller of this.protocolRequests) controller.abort();
     const browser = await this.borrowed?.catch(() => null);
     this.borrowed = null;
     await browser?.close().catch(() => {});

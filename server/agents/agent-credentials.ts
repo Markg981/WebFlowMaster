@@ -24,6 +24,8 @@ export function hashAgentToken(token: string): string {
 }
 
 export interface BrowserTicket {
+  /** Absent for browser sessions; present for a native API protocol session. */
+  apiProtocol?: import('@shared/agent-protocol').AgentApiProtocol;
   organizationId: number;
   pool: string;
   engine: AgentEngine;
@@ -69,5 +71,6 @@ export function verifyTicket(value: string, secret: string, now = Date.now()): B
   if (typeof ticket.expiresAt !== 'number' || ticket.expiresAt < now) return { error: 'expired ticket' };
   if (!Number.isInteger(ticket.organizationId) || !AGENT_POOL_PATTERN.test(ticket.pool)) return { error: 'malformed ticket' };
   if (!['chromium', 'firefox', 'webkit'].includes(ticket.engine)) return { error: 'malformed ticket' };
+  if (ticket.apiProtocol !== undefined && !['grpc', 'websocket'].includes(ticket.apiProtocol)) return { error: 'malformed ticket' };
   return ticket;
 }

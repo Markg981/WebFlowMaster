@@ -20,6 +20,7 @@ export interface PublishedAgent {
   maxSessions: number;
   activeSessions: number;
   draining: boolean;
+  apiProtocols?: Array<import('@shared/agent-protocol').AgentApiProtocol>;
 }
 
 export interface RelayInstance {

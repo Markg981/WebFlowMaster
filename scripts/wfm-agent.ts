@@ -23,8 +23,10 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import WebSocket from 'ws';
 import type { BrowserServer } from 'playwright';
+import { serveApiSession } from './agent-api-session';
+import type { AgentApiProtocol } from '../shared/agent-protocol';
 
-export const AGENT_VERSION = '1.0.0';
+export const AGENT_VERSION = '1.1.0';
 /** Kept in step with shared/agents.ts, written out because this script is shipped on its own. */
 const PROTOCOL = 1;
 const PATHS = { connect: '/api/agent/v1/connect', session: '/api/agent/v1/session/' };
@@ -129,6 +131,12 @@ export function runAgent(options: AgentOptions): RunningAgent {
     log(`Lent ${engine}${headless ? '' : ' (headed)'} to a run (${sessions.size} lent).`);
   }
 
+  function lendApi(sessionId: string, protocol: AgentApiProtocol) {
+    const remote = new WebSocket(`${base}${PATHS.session}${sessionId}`, { headers, maxPayload: 16 * 1024 * 1024 });
+    sessions.set(sessionId, { sockets: [remote] });
+    serveApiSession(remote, protocol, () => sessions.delete(sessionId));
+  }
+
   function connect() {
     if (stopping) return;
     const ws = new WebSocket(`${base}${PATHS.connect}`, { headers });
@@ -150,6 +158,7 @@ export function runAgent(options: AgentOptions): RunningAgent {
           hostname: os.hostname(),
           browsers: options.browsers ?? (await installedBrowsers()),
           maxSessions: options.maxSessions,
+          apiProtocols: ['grpc', 'websocket'],
         }),
       );
     });
@@ -170,7 +179,8 @@ export function runAgent(options: AgentOptions): RunningAgent {
           ws.send(JSON.stringify({ type: 'open_failed', sessionId: message.sessionId, error: 'The agent is stopping.' }));
           return;
         }
-        void lend(message.sessionId, message.engine, message.channel, message.headless !== false);
+        if (message.apiProtocol === 'grpc' || message.apiProtocol === 'websocket') lendApi(message.sessionId, message.apiProtocol);
+        else void lend(message.sessionId, message.engine, message.channel, message.headless !== false);
       }
     });
     ws.on('error', () => {
