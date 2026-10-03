@@ -58,7 +58,7 @@
     "build:reset-link": "esbuild scripts/password-reset-link.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/password-reset-link.js",
     "dev:collaudo": "node collaudo/app/server.mjs",
     "test:collaudo": "node --test collaudo/app/server.test.mjs",
-    "test:network:unit": "node --test deployment/saas-network/policy.test.mjs",
+    "test:network:unit": "node --test deployment/saas-network/policy.test.mjs deployment/saas-network/wait-worker.test.mjs",
     "test:network": "node deployment/saas-network/network-check.mjs",
     "test:network:production": "node deployment/saas-network/production-check.mjs",
     "build:network-probe": "esbuild scripts/check-saas-transports.ts --platform=node --packages=external --bundle --format=esm --outfile=tmp/saas-transports.mjs"

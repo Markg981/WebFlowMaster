@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
+import { waitForWorker } from './wait-worker.mjs';
 
 // Full product bootstrap in its own disposable project. No persisted credentials.
 const project = `saas-production-check-${randomBytes(4).toString('hex')}`;
@@ -28,7 +29,7 @@ try {
     "SELECT rolname,rolsuper,rolcreaterole,rolcreatedb,rolbypassrls FROM pg_roles WHERE rolname IN ('app_user','wfm_runtime') ORDER BY rolname"], true);
   assert.equal(roles, 'app_user|f|f|f|f\nwfm_runtime|f|f|f|t');
   compose(['exec', '-T', 'worker', 'node', '-e',
-    "const{Queue}=require('bullmq');const q=new Queue('test-execution-queue',{connection:{url:process.env.REDIS_URL}});q.getWorkers().then(async w=>{if(!w.length)throw Error('No live worker');await q.close()}).catch(e=>{console.error(e.message);process.exit(1)})"]);
+    `${waitForWorker.toString()};const{Queue}=require('bullmq');const q=new Queue('test-execution-queue',{connection:{url:process.env.REDIS_URL}});waitForWorker(q).then(()=>q.close()).catch(e=>{console.error(e.message);process.exit(1)})`]);
   console.log('PASS actual production images, loopback ingress, non-superuser runtime, tenant registration and live queue worker');
 } finally {
   compose(['down', '--volumes', '--remove-orphans', '--rmi', 'local'], false, true);

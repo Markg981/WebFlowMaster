@@ -72,6 +72,10 @@ Files: package scripts, CI, EN/IT security/installation guides, acceptance evide
   tenant account registration succeed, and the worker registers with authenticated Redis.
   The same bootstrap is covered by `test:network:production` in CI.
 - Final local verification: 208 server files / 2,033 passed / 3 skipped; 452 client tests;
-  13 Collaudo tests; 8 policy tests; typecheck, lint (10 existing warnings), application
+  13 Collaudo tests; 11 policy/readiness tests; typecheck, lint (10 existing warnings), application
   build and documentation build passed. Repeated full-product bootstrap and boundary
   harness both exited successfully, including real loopback ingress.
+- CI readiness correction: Compose reported a started worker before BullMQ registered it.
+  The production smoke now waits up to 60 seconds for actual queue registration, with tests
+  for delayed registration, no registration and a stalled lookup. This changes the acceptance
+  probe only; a worker that never becomes ready still fails the gate.
