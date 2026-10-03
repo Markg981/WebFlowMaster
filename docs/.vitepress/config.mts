@@ -73,6 +73,7 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
       text: t.admin,
       items: [
         { text: t.installation, link: p('admin/installation') },
+        { text: lang === 'en' ? 'Shared SaaS network' : 'Rete SaaS condiviso', link: p('admin/saas-network') },
         { text: t.operations, link: p('admin/operations') },
         { text: t.configuration, link: p('admin/configuration') },
         { text: t.administration, link: p('admin/administration') },

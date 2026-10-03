@@ -68,11 +68,11 @@ docker run -d --restart unless-stopped \
   webflowmaster-agent
 ```
 
-With Node 20 or later:
+With Node 20.18.1 or later:
 
 ```bash
 curl -fsSL https://webflowmaster.example.com/cli/wfm-agent.mjs -o wfm-agent.mjs
-npm install playwright@<server version> ws @grpc/grpc-js @grpc/proto-loader
+npm install playwright@<server version> ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7
 npx playwright install chromium        # and firefox / webkit / msedge if plans use them
 WFM_URL=https://webflowmaster.example.com WFM_AGENT_TOKEN=wfa_... node wfm-agent.mjs
 ```

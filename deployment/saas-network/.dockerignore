@@ -1,0 +1,7 @@
+# Guards/proxy never need production credentials or fixture artefacts.
+*
+!guard.Dockerfile
+!egress.Dockerfile
+!guard.sh
+!egress.sh
+!policy.mjs

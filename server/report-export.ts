@@ -1,4 +1,5 @@
 import type { Response } from 'express';
+import { browserEgressOptions } from './egress-proxy';
 import { loadReportModel, readScreenshot, type ReportModel } from './report-model';
 import { renderReportHtml } from './report-html';
 import { buildAllureResults } from './allure-export';
@@ -43,7 +44,7 @@ export const chromiumPdf: PdfRenderer = async (html) => {
   const { chromium } = await import('playwright');
   let browser;
   try {
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({ ...browserEgressOptions(), headless: true });
   } catch (error) {
     throw new ReportExportError(
       'pdf_unavailable',

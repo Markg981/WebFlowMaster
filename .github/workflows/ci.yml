@@ -118,6 +118,28 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  network-on-guarded-installation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Validate destination policy
+        run: npm run test:network:unit
+      - name: Bundle production transports for the guarded namespaces
+        run: npm run build:network-probe
+      - name: Verify real firewalls, proxy policy and all three browser engines
+        env:
+          WFM_SAAS_TRANSPORT_BUNDLE: ${{ github.workspace }}/tmp/saas-transports.mjs
+          WFM_SAAS_NODE_MODULES: ${{ github.workspace }}/node_modules
+        run: npm run test:network
+      - name: Bootstrap actual API and worker images in the isolated deployment
+        run: npm run test:network:production
+
   ui-on-real-installation:
     needs: build-and-test
     runs-on: ubuntu-latest

@@ -94,7 +94,7 @@ describe('AgentsCard', () => {
     const issued = await screen.findByTestId('agent-token');
     expect(issued).toHaveTextContent('it will not be shown again');
     expect(issued).toHaveTextContent('/cli/wfm-agent.mjs');
-    expect(issued).toHaveTextContent('npm install playwright@1.61.1 ws @grpc/grpc-js @grpc/proto-loader');
+    expect(issued).toHaveTextContent('npm install playwright@1.61.1 ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7');
     expect(issued).toHaveTextContent('WFM_AGENT_TOKEN=wfa_secret-token node wfm-agent.mjs');
     const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST');
     expect(JSON.parse(post![1].body)).toEqual({ name: 'New box', pool: 'lab' });

@@ -1,4 +1,5 @@
-import { Agent } from 'undici';
+import { Agent, ProxyAgent, type Dispatcher } from 'undici';
+import { egressProxy, targetEgressDispatcher } from './egress-proxy';
 import { defaultVariables } from './variables';
 import { substituteGenerators } from './generators';
 
@@ -83,7 +84,9 @@ export function allowsSelfSignedCertificate(url: string): boolean {
 let insecureAgent: Agent | undefined;
 
 /** The dispatcher to use for a target URL, or undefined for normal verification. */
-export function dispatcherFor(url: string): Agent | undefined {
+export function dispatcherFor(url: string): Dispatcher | undefined {
+  const proxy = targetEgressDispatcher(allowsSelfSignedCertificate(url));
+  if (proxy) return proxy;
   if (!allowsSelfSignedCertificate(url)) return undefined;
   insecureAgent ??= new Agent({ connect: { rejectUnauthorized: false } });
   return insecureAgent;
@@ -107,10 +110,14 @@ export const fetchTarget: typeof fetch & {
      * connection (server/api-test-runner.ts). Closed by the caller when the exchange is over.
      */
     oneConnection() {
-      let agent: Agent | undefined;
+      let agent: Agent | ProxyAgent | undefined;
       return {
         fetch: ((input: RequestInfo | URL, init: RequestInit = {}) => {
-          agent ??= new Agent({
+          const proxy = egressProxy();
+          agent ??= proxy ? new ProxyAgent({
+            uri: proxy.origin, connections: 1, pipelining: 1,
+            ...(allowsSelfSignedCertificate(urlOf(input)) ? { requestTls: { rejectUnauthorized: false } } : {}),
+          }) : new Agent({
             connections: 1,
             pipelining: 1,
             ...(allowsSelfSignedCertificate(urlOf(input)) ? { connect: { rejectUnauthorized: false } } : {}),

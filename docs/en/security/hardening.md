@@ -24,6 +24,11 @@ people. Each item names the setting or the page that explains it. The
 
 ## Network {#network}
 
+For a shared SaaS, deploy the supplied [network isolation profile](../admin/saas-network).
+It enforces an operator-managed exact domain/port allowlist, a mandatory proxy and guarded
+API/worker namespaces. An empty allowlist denies all test destinations. The following
+checks also apply to other deployments where the operator provides equivalent controls.
+
 - PostgreSQL and Redis are not reachable from the internet; only the web process and the
   workers connect to them. Redis requires a password (`redis://:password@host:6379`).
 - The web process is the only public entry point. Workers need no inbound connections.

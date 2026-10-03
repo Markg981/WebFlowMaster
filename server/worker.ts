@@ -1,4 +1,5 @@
 import { DelayedError, Worker, type Job } from 'bullmq';
+import { configureEgressProxy } from './egress-proxy';
 import { connection } from './redis';
 import { TEST_EXECUTION_QUEUE_NAME, testExecutionQueue } from './queue';
 import { processShardJob, processTestPlanJob } from './test-execution-service';
@@ -18,6 +19,7 @@ import { registerRunPromotion } from './run-promotion';
 import { installWorkerLogEmitter } from './websocket';
 import { publicBaseUrl } from './report-links';
 import 'dotenv/config';
+configureEgressProxy();
 
 (async () => {
   const logger = await loggerPromise;

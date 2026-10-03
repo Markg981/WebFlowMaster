@@ -1,5 +1,6 @@
 
 import playwright, { Browser } from 'playwright';
+import { browserEgressOptions } from './egress-proxy';
 import { v4 as uuidv4 } from 'uuid';
 import loggerPromise from './logger';
 
@@ -66,7 +67,7 @@ export class BrowserPool {
     // 3. Launch new browser
     this.logger?.debug(`BrowserPool: Launching new ${browserType} browser (Headless: ${headless})`);
     const browserEngine = playwright[browserType];
-    const browser = await browserEngine.launch({ headless });
+    const browser = await browserEngine.launch({ ...browserEgressOptions(), headless });
     
     const newItem: PoolItem = {
       id: uuidv4(),
