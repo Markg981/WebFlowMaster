@@ -28,6 +28,7 @@ logs/
 allure-results/
 results/
 coverage/
+e2e-artifacts/
 uploads/
 
 # Misc build artifacts

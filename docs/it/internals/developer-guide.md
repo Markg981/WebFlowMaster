@@ -43,18 +43,67 @@ esegue il processo web.
 | Comando | Cosa fa |
 |---|---|
 | `npm run dev` / `npm run dev:worker` | Processo web / worker, con `tsx` e `.env`. |
-| `npx tsc -b` | Controllo dei tipi di server, client, codice condiviso e script. |
+| `npm run check` | Controllo dei tipi di server, client, codice condiviso, script, Collaudo e test E2E. |
 | `npm run lint` | ESLint su `.ts` e `.tsx`. |
 | `npx vitest run --config vitest.config.ts` | Test del server e degli script. |
 | `npm run test:client -- --run` | Test del client. |
+| `npm run test:collaudo` | Test di storage, storico e import/export dell'applicazione di Collaudo. |
+| `npm run test:e2e` | Accettazione UI sui bundle applicativi e store reali dedicati. |
 | `npm run test:rls` | Test di tenancy e isolamento; richiede un `DATABASE_URL` PostgreSQL reale e rifiuta PGlite. |
 | `npm run build` | Bundle di client, server, worker, migrator, CLI e agente in `dist/`. |
 | `npm run docs:dev` / `npm run docs:build` | Questo sito di documentazione: in diretta / build verificata. |
 | `npm run cli -- run <planId> --wait` | La CLI per pipeline contro il server locale. |
 | `npm run agent` | Un agente locale contro il server locale (`WFM_URL`, `WFM_AGENT_TOKEN`). |
 
-Prima di un commit devono passare tutti e quattro i controlli: `tsc -b`, `lint`, i test del server e i
-test del client (e `docs:build` quando cambia la documentazione).
+La CI richiede `check`, `lint`, test server e client, `test:collaudo`, `build` e `docs:build`.
+L'isolamento PostgreSQL resta un controllo separato. Il job `ui-on-real-installation` scarica gli
+stessi bundle prodotti dal job di build e verifica processo web produttivo, worker delle code,
+Redis e un PostgreSQL appena migrato, con ruolo applicativo non superuser.
+
+### Accettazione dell'interfaccia su un'installazione reale
+
+`npm run test:e2e` usa `e2e/playwright.config.ts`, indipendente dalla configurazione radice per i
+test esportati. Chromium verifica registrazione/logout/login e persistenza della sessione,
+salvataggio e ricaricamento di un test API con richiesta HTTP reale, avvio di un piano dalla UI
+e ricaricamento del report completato. Pubblicazione, asserzioni sulla risposta e creazione del
+piano nell'ultimo percorso sono preparate attraverso le API reali. Le richieste del prodotto non
+sono intercettate: solo il servizio da testare è una fixture HTTP locale. Il worker deve eseguire
+il test e superare l'asserzione sulla risposta.
+
+Avvia gli store locali dedicati e crea il database **una sola volta**, senza modificare il Collaudo:
+
+```sh
+docker compose -p wfm-ci-e2e -f e2e/docker-compose.yml up -d --wait
+docker compose -p wfm-ci-e2e -f e2e/docker-compose.yml exec -T postgres psql -U postgres -v ON_ERROR_STOP=1 -c "CREATE ROLE wfm_e2e LOGIN PASSWORD 'wfm_e2e' CREATEROLE BYPASSRLS;" -c "CREATE DATABASE wfm_ci_e2e OWNER wfm_e2e;"
+```
+
+Imposta questi valori per le fixture temporanee nella shell (PowerShell: `$env:NOME='valore'`;
+bash: `export NOME='valore'`):
+
+| Variabile | Valore |
+|---|---|
+| `DATABASE_URL` | `postgresql://wfm_e2e:wfm_e2e@127.0.0.1:5438/wfm_ci_e2e` |
+| `REDIS_URL` | `redis://127.0.0.1:6388` |
+| `SESSION_SECRET` | `ci-e2e-disposable-session-secret` |
+| `ENCRYPTION_KEY` | 64 zeri esadecimali |
+
+```sh
+npm run build
+node dist/apply-migrations.js
+npx playwright install chromium
+npm run test:e2e
+docker compose -p wfm-ci-e2e -f e2e/docker-compose.yml down -v
+```
+
+Il runner rifiuta database diversi da `wfm_ci_e2e` e Redis diversi dalla porta loopback dedicata
+6388. Avvia i bundle produttivi sulle porte 5080/5081 e li arresta dopo la suite. Registrazione
+aperta e cookie HTTP valgono solo per questa installazione temporanea. Report HTML, log dei
+servizi e screenshot/video/trace dei fallimenti sono salvati in `e2e-artifacts/`, esclusa da Git,
+e caricati dalla CI anche in caso di errore, con conservazione di sette giorni.
+
+Questi percorsi di base non sostituiscono accettazione manuale, dispositivi mobile o matrici di
+browser/provider. `test:collaudo` verifica storico e import/export dell'applicazione di Collaudo;
+non esegue ogni caso del catalogo di accettazione manuale.
 
 ## Come funzionano i test
 
