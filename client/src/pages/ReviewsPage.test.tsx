@@ -82,7 +82,8 @@ describe('ReviewsPage', () => {
   it('offers no decision on one’s own change, and no policy switch to a non-owner', async () => {
     renderPage();
     const own = await screen.findByTestId('review-2');
-    expect(within(own).queryByRole('button')).toBeNull();
+    expect(within(own).queryByRole('button', { name: 'Approve and publish' })).toBeNull();
+    expect(within(own).queryByRole('button', { name: 'Reject' })).toBeNull();
     expect(screen.queryByRole('switch')).toBeNull();
   });
 
@@ -91,4 +92,15 @@ describe('ReviewsPage', () => {
     renderPage();
     expect(await screen.findByRole('switch')).toBeChecked();
   });
+});
+
+it.each(['api', 'mobile'] as const)('opens the %s review history using its canonical target', async (testType) => {
+  const base = fetchMock.getMockImplementation()!;
+  fetchMock.mockImplementation((url: string) => url === '/api/test-reviews'
+    ? Promise.resolve({ ok: true, json: async () => [{ ...reviews[0], testType, testId: 42 }] }) : base(url));
+  renderPage();
+  const item = await screen.findByTestId('review-1');
+  fireEvent.click(within(item).getByRole('button', { name: 'History' }));
+  await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => url === `/api/${testType}-tests/42/versions`)).toBe(true));
+  expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
 });

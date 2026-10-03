@@ -1,3 +1,4 @@
+import { testRoute, type VersionedTestType } from './test-kind';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -52,19 +53,21 @@ interface TestHistoryDialogProps {
   isOpen: boolean;
   onClose: () => void;
   test: { id: number; name: string } | null;
+  testType?: VersionedTestType;
+  readOnly?: boolean;
   /** Puts the test back to that version; the parent refreshes what it is showing. */
   onRestore: (version: number) => Promise<void>;
 }
 
-const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, test, onRestore }) => {
+const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, test, onRestore, testType = 'ui', readOnly = false }) => {
   const { t } = useTranslation();
   const [restoring, setRestoring] = useState<number | null>(null);
   const [error, setError] = useState('');
 
   const { data, isLoading, error: loadError, refetch } = useQuery<TestHistoryResponse, Error>({
-    queryKey: ['testVersions', test?.id],
+    queryKey: ['testVersions', testType, test?.id],
     queryFn: async () => {
-      const response = await fetch(`/api/tests/${test!.id}/versions`);
+      const response = await fetch(`${testRoute(testType, test!.id)}/versions`);
       if (!response.ok) throw new Error('Could not load the history');
       return response.json();
     },
@@ -72,24 +75,25 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
   });
 
   const { user } = useAuth();
-  const canEdit = user?.role !== 'viewer';
+  const roleCanEdit = !readOnly && !!user && user.role !== 'viewer';
   // What plans run: the published version, the working copy, or nothing (migration 0032).
   const { data: publishing, refetch: refetchPublishing } = useQuery<PublishingState, Error>({
-    queryKey: ['testPublishing', test?.id],
+    queryKey: ['testPublishing', testType, test?.id],
     queryFn: async () => {
-      const response = await fetch(`/api/tests/${test!.id}/publishing`);
+      const response = await fetch(`${testRoute(testType, test!.id)}/publishing`);
       if (!response.ok) throw new Error('Could not load the publishing state');
       return response.json();
     },
     enabled: isOpen && test !== null,
   });
+  const canEdit = roleCanEdit && publishing !== undefined && publishing.canEdit !== false;
   const [rollingBack, setRollingBack] = useState<number | null>(null);
 
   const handleRollback = async (version: number) => {
     setError('');
     setRollingBack(version);
     try {
-      const response = await fetch(`/api/tests/${test!.id}/rollback`, {
+      const response = await fetch(`${testRoute(testType, test!.id)}/rollback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ version }),
@@ -103,6 +107,23 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
       setRollingBack(null);
     }
   };
+
+  const [compareVersion, setCompareVersion] = useState<number | null>(null);
+  const { data: comparison, isLoading: comparing, error: compareError } = useQuery({
+    queryKey: ['testVersionComparison', testType, test?.id, compareVersion, data?.versions?.[0]?.version],
+    queryFn: async () => {
+      const latest = data!.versions[0].version;
+      const read = async (version: number) => {
+        const response = await fetch(`${testRoute(testType, test!.id)}/versions/${version}`);
+        if (!response.ok) throw new Error(t('testHistory.compareError', 'Could not load the versions.'));
+        const detail = await response.json();
+        return detail.snapshot ?? detail;
+      };
+      const [before, after] = await Promise.all([read(compareVersion!), read(latest)]);
+      return { before, after, latest };
+    },
+    enabled: isOpen && test !== null && compareVersion !== null && !!data?.versions?.length,
+  });
 
   const versions = Array.isArray(data?.versions) ? data!.versions : [];
   const unversionedRuns = data?.unversionedRuns ?? 0;
@@ -123,7 +144,7 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <History className="mr-2 h-5 w-5" />
@@ -140,6 +161,7 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
         {publishing?.runs && (
           <PublishingPanel
             state={publishing}
+            testType={testType}
             currentUserId={user?.id ?? null}
             canEdit={canEdit}
             onChanged={() => {
@@ -225,6 +247,11 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
                   </Button>
                 )}
                 {index > 0 && (
+                  <Button variant="ghost" size="sm" onClick={() => setCompareVersion(version.version)}>
+                    {t('testHistory.compare', 'Compare with current')}
+                  </Button>
+                )}
+                {canEdit && index > 0 && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -242,6 +269,24 @@ const TestHistoryDialog: React.FC<TestHistoryDialogProps> = ({ isOpen, onClose, 
               </div>
             ))}
           </div>
+        )}
+
+        {compareVersion !== null && (
+          <section aria-label={t('testHistory.comparison', 'Version comparison')} className="space-y-2">
+            <h3 className="font-medium">{t('testHistory.comparison', 'Version comparison')}</h3>
+            {comparing && <p>{t('testHistory.loading', 'Reading the history…')}</p>}
+            {compareError && <p className="text-destructive">{(compareError as Error).message}</p>}
+            {comparison && (
+              <div className="grid md:grid-cols-2 gap-3">
+                {[{ version: compareVersion, snapshot: comparison.before }, { version: comparison.latest, snapshot: comparison.after }].map(({ version, snapshot }) => (
+                  <div key={version} className="min-w-0 rounded border p-3">
+                    <h4>{t('testHistory.version', 'Version {{n}}', { n: version })}</h4>
+                    <pre className="overflow-auto whitespace-pre-wrap break-all text-xs mt-2">{JSON.stringify(snapshot, null, 2)}</pre>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         )}
 
         {unversionedRuns > 0 && (

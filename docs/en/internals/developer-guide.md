@@ -47,7 +47,7 @@ web process.
 | `npm run lint` | ESLint over `.ts` and `.tsx`. |
 | `npx vitest run --config vitest.config.ts` | Server and scripts tests. |
 | `npm run test:client -- --run` | Client tests. |
-| `npm run test:rls` | The tenancy and isolation tests alone. |
+| `npm run test:rls` | Tenancy and isolation tests; requires a real PostgreSQL `DATABASE_URL` and refuses PGlite. |
 | `npm run build` | Client, server, worker, migrator, CLI and agent bundles into `dist/`. |
 | `npm run docs:dev` / `npm run docs:build` | This documentation site: live / checked build. |
 | `npm run cli -- run <planId> --wait` | The pipeline CLI against your local server. |

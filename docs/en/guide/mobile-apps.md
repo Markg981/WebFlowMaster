@@ -216,3 +216,9 @@ about the app, not indecision. From there it can be quarantined like any other t
 On **Mobile apps**, a test found unstable over the last 30 days carries the **Unstable** badge;
 hover it to see on which device and how often its verdict changed. Mobile tests have no
 versions, so every change of verdict counts, as for API tests.
+
+## Versions and publication
+
+Saved tests have [history, comparison and restore](./organizing#history-and-versions).
+[Publication and reviews](./organizing#publishing-and-reviews) choose the revision plans execute;
+saving or restoring a working copy leaves an existing publication in place. A debug run uses the saved mobile working copy captured when the run is requested.

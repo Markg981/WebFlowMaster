@@ -154,7 +154,7 @@ tempo dall'inizio del run) e non ne cambia mai lo stato. Con `shards = 1` nulla 
 
 `runTest` gestisce un test su un browser:
 
-- **Quale versione.** I piani eseguono la **versione pubblicata** di un test quando esiste; se
+- **Quale versione.** I piani eseguono la **versione pubblicata** di un test web, API o mobile quando esiste; se
   l'organizzazione richiede la revisione, un test non pubblicato viene saltato invece di essere eseguito
   senza revisione (`server/test-publishing.ts`).
 - Le **precondizioni** (chiamate API che preparano lo stato) girano per prime; ciascuna può essere

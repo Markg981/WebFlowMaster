@@ -1,4 +1,4 @@
-import { pgTable, text, integer, bigint, serial, timestamp, boolean, jsonb, index, uniqueIndex, unique, primaryKey, type AnyPgColumn } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, bigint, serial, timestamp, boolean, jsonb, index, uniqueIndex, unique, primaryKey, check, foreignKey, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { relations, sql } from 'drizzle-orm';
@@ -237,6 +237,7 @@ export const apiTests = pgTable("api_tests", {
   userId: integer("user_id").notNull().references(() => users.id),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
+  publishedVersion: integer("published_version"),
   name: text("name").notNull(),
   method: text("method").notNull(),
   url: text("url").notNull(),
@@ -1180,7 +1181,9 @@ export type TaggableType = (typeof TAGGABLE_TYPES)[number];
 export const testVersions = pgTable("test_versions", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  testId: integer("test_id").notNull().references(() => tests.id, { onDelete: 'cascade' }),
+  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
+  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
+  mobileTestId: integer("mobile_test_id").references((): AnyPgColumn => mobileTests.id, { onDelete: 'cascade' }),
   /** 1-based and per test, so "version 4" names one row. */
   version: integer("version").notNull(),
   name: text("name").notNull(),
@@ -1191,15 +1194,22 @@ export const testVersions = pgTable("test_versions", {
   cleanups: jsonb("cleanups"),
   dataset: jsonb("dataset"),
   /** What changed since the version before, worked out when the row is written. */
+  snapshot: jsonb("snapshot").$type<Record<string, unknown>>(),
   summary: text("summary"),
   /** Set when this version exists because somebody restored an older one. */
   restoredFromVersion: integer("restored_from_version"),
   createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
+  foreignKey({name:"test_versions_api_test_id_same_org_fk",columns:[table.apiTestId,table.organizationId],foreignColumns:[apiTests.id,apiTests.organizationId]}).onDelete('cascade'),
+  foreignKey({name:"test_versions_mobile_test_id_same_org_fk",columns:[table.mobileTestId,table.organizationId],foreignColumns:[mobileTests.id,mobileTests.organizationId]}).onDelete('cascade'),
+  check("test_versions_typed_snapshot", sql`${table.testId} IS NOT NULL OR ${table.snapshot} IS NOT NULL`),
+  check("test_versions_one_target", sql`num_nonnulls(${table.testId}, ${table.apiTestId}, ${table.mobileTestId}) = 1`),
   index("test_versions_organization_id_idx").on(table.organizationId),
   index("test_versions_test_id_idx").on(table.testId),
   unique("test_versions_test_version_unique").on(table.testId, table.version),
+  unique("test_versions_api_version_unique").on(table.apiTestId, table.version),
+  unique("test_versions_mobile_version_unique").on(table.mobileTestId, table.version),
 ]);
 
 export type TestVersion = typeof testVersions.$inferSelect;
@@ -1212,7 +1222,9 @@ export type TestPublicationKind = (typeof TEST_PUBLICATION_KINDS)[number];
 export const testPublications = pgTable("test_publications", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  testId: integer("test_id").notNull().references(() => tests.id, { onDelete: 'cascade' }),
+  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
+  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
+  mobileTestId: integer("mobile_test_id").references((): AnyPgColumn => mobileTests.id, { onDelete: 'cascade' }),
   /** Null for an 'unpublish': plans went back to the working copy. */
   version: integer("version"),
   kind: text("kind").$type<TestPublicationKind>().notNull(),
@@ -1220,6 +1232,9 @@ export const testPublications = pgTable("test_publications", {
   publishedBy: integer("published_by").references(() => users.id, { onDelete: 'set null' }),
   publishedAt: timestamp("published_at").defaultNow().notNull(),
 }, (table) => [
+  foreignKey({name:"test_publications_api_test_id_same_org_fk",columns:[table.apiTestId,table.organizationId],foreignColumns:[apiTests.id,apiTests.organizationId]}).onDelete('cascade'),
+  foreignKey({name:"test_publications_mobile_test_id_same_org_fk",columns:[table.mobileTestId,table.organizationId],foreignColumns:[mobileTests.id,mobileTests.organizationId]}).onDelete('cascade'),
+  check("test_publications_one_target", sql`num_nonnulls(${table.testId}, ${table.apiTestId}, ${table.mobileTestId}) = 1`),
   index("test_publications_test_id_idx").on(table.testId),
   index("test_publications_organization_id_idx").on(table.organizationId),
 ]);
@@ -1231,7 +1246,9 @@ export type TestReviewStatus = (typeof TEST_REVIEW_STATUSES)[number];
 export const testReviews = pgTable("test_reviews", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  testId: integer("test_id").notNull().references(() => tests.id, { onDelete: 'cascade' }),
+  testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
+  apiTestId: integer("api_test_id").references(() => apiTests.id, { onDelete: 'cascade' }),
+  mobileTestId: integer("mobile_test_id").references((): AnyPgColumn => mobileTests.id, { onDelete: 'cascade' }),
   version: integer("version").notNull(),
   status: text("status").$type<TestReviewStatus>().notNull().default('pending'),
   note: text("note"),
@@ -1241,6 +1258,9 @@ export const testReviews = pgTable("test_reviews", {
   decidedAt: timestamp("decided_at"),
   decisionComment: text("decision_comment"),
 }, (table) => [
+  foreignKey({name:"test_reviews_api_test_id_same_org_fk",columns:[table.apiTestId,table.organizationId],foreignColumns:[apiTests.id,apiTests.organizationId]}).onDelete('cascade'),
+  foreignKey({name:"test_reviews_mobile_test_id_same_org_fk",columns:[table.mobileTestId,table.organizationId],foreignColumns:[mobileTests.id,mobileTests.organizationId]}).onDelete('cascade'),
+  check("test_reviews_one_target", sql`num_nonnulls(${table.testId}, ${table.apiTestId}, ${table.mobileTestId}) = 1`),
   index("test_reviews_organization_status_idx").on(table.organizationId, table.status),
   index("test_reviews_test_id_idx").on(table.testId),
 ]);
@@ -1549,6 +1569,7 @@ export const mobileTests = pgTable("mobile_tests", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
+  publishedVersion: integer("published_version"),
   name: text("name").notNull(),
   platform: text("platform").$type<MobilePlatform>().notNull(),
   app: text("app").notNull(),
@@ -1573,6 +1594,8 @@ export const mobileTestRuns = pgTable("mobile_test_runs", {
   mobileTestId: integer("mobile_test_id").notNull().references(() => mobileTests.id, { onDelete: 'cascade' }),
   gridId: text("grid_id").references(() => browserGrids.id, { onDelete: 'set null' }),
   environmentId: integer("environment_id").references(() => environments.id, { onDelete: 'set null' }),
+  testVersion: integer("test_version"),
+  testSnapshot: jsonb("test_snapshot").$type<Record<string, unknown>>(),
   status: text("status").$type<MobileRunStatus>().notNull(),
   device: text("device").notNull(),
   steps: jsonb("steps").$type<MobileStepResult[]>().notNull().default([]),
@@ -2754,6 +2777,7 @@ export const insertApiTestSchema = createInsertSchema(apiTests, {
 })
   .omit({
     id: true,
+    publishedVersion: true,
     createdAt: true,
     updatedAt: true,
     userId: true,

@@ -162,3 +162,9 @@ per importazione, 12 MB per file; il registro di audit registra ogni importazion
 **Salva test** chiede un nome e, facoltativamente, un progetto; **Salva modifiche** aggiorna il
 test aperto dai **Test salvati**. Un test API salvato si può aggiungere ai piani di test, e usare
 come [precondizione](./web-tests#precondizioni) di un test web.
+
+## Versioni e pubblicazione
+
+I test salvati hanno [cronologia, confronto e ripristino](./organizing#cronologia-e-versioni).
+[Pubblicazione e revisioni](./organizing#pubblicazione-e-revisioni) scelgono la revisione eseguita
+dai piani; salvare o ripristinare la copia di lavoro conserva la pubblicazione esistente. **Prova** esegue la copia di lavoro API salvata.

@@ -2904,7 +2904,12 @@
     "approve": "Approve and publish",
     "reject": "Reject",
     "reasonRequired": "Say what needs to change before rejecting.",
-    "notYours": "Someone other than its author has to decide on this change."
+    "notYours": "Someone other than its author has to decide on this change.",
+    "kinds": {
+      "ui": "UI",
+      "api": "API",
+      "mobile": "Mobile"
+    }
   },
   "testHistory": {
     "published": "Published",
@@ -2930,7 +2935,13 @@
     "noVerdict_other": "{{count}} never got to answer",
     "restore": "Restore",
     "unversioned_one": "{{count}} earlier run of this test did not record which version it used.",
-    "unversioned_other": "{{count}} earlier runs of this test did not record which version they used."
+    "unversioned_other": "{{count}} earlier runs of this test did not record which version they used.",
+    "compare": "Compare with current",
+    "comparison": "Version comparison",
+    "compareError": "Could not load the versions.",
+    "open": "History",
+    "openFor": "History of {{name}}",
+    "restoreError": "Could not restore that version."
   },
   "runners": {
     "loading": "Loading…",

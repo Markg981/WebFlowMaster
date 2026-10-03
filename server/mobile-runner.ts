@@ -345,7 +345,8 @@ export async function executeMobileRun(runId: string, organizationId: number, us
       if (!run) return null;
       const [test] = await tx.select().from(mobileTests).where(eq(mobileTests.id, run.mobileTestId)).limit(1);
       const [grid] = run.gridId ? await tx.select().from(browserGrids).where(eq(browserGrids.id, run.gridId)).limit(1) : [];
-      return { run, test, grid };
+      // A delayed debug run must use the working copy it was started with.
+      return { run, test: test && run.testSnapshot ? { ...test, ...run.testSnapshot } as MobileTest : test, grid };
     });
     if (!loaded) return;
     const { run, test, grid: gridRow } = loaded;

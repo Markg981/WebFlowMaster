@@ -152,7 +152,7 @@ With `shards = 1` none of this runs.
 
 `runTest` handles one test on one browser:
 
-- **Which version.** Plans run a test's **published version** when it has one; with review required
+- **Which version.** Plans run a web, API or mobile test's **published version** when it has one; with review required
   by the organization, an unpublished test is skipped rather than run unreviewed
   (`server/test-publishing.ts`).
 - **Preconditions** (API calls that set up state) run first; each can be skipped when a check shows

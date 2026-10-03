@@ -2,6 +2,8 @@ import { desc, eq, inArray, max } from 'drizzle-orm';
 import { testVersions } from '@shared/schema';
 import type { TenantTx } from './middleware/tenancy';
 import { describeChange, snapshotOf } from './test-versions';
+import { typedSnapshotOf, describeTypedChange, type VersionedTestType } from '@shared/test-versioning';
+import { targetColumn, targetValues } from './test-version-target';
 
 /**
  * Writing down what a test was, every time it is saved.
@@ -40,20 +42,21 @@ export interface RecordedVersion {
  * it can only be one saved before versions were recorded, and the result should say it does
  * not know instead of inventing a number.
  */
-export async function currentVersionsOf(tx: TenantTx, testIds: number[]): Promise<Map<number, number>> {
+export async function currentVersionsOf(tx: TenantTx, testIds: number[], testType: VersionedTestType = 'ui'): Promise<Map<number, number>> {
+  const column = targetColumn(testVersions, testType);
   const versions = new Map<number, number>();
   const wanted = Array.from(new Set(testIds));
   if (wanted.length === 0) return versions;
 
   const rows = await tx
-    .select({ testId: testVersions.testId, version: max(testVersions.version) })
+    .select({ testId: column, version: max(testVersions.version) })
     .from(testVersions)
-    .where(inArray(testVersions.testId, wanted))
-    .groupBy(testVersions.testId);
+    .where(inArray(column, wanted))
+    .groupBy(column);
 
   for (const row of rows) {
     const version = Number(row.version);
-    if (Number.isFinite(version) && version > 0) versions.set(row.testId, version);
+    if (Number.isFinite(version) && version > 0) versions.set(row.testId!, version);
   }
   return versions;
 }
@@ -111,4 +114,25 @@ export async function recordTestVersion(
   });
 
   return { version, summary };
+}
+
+/** Immutable latest definitions: version and execution content come from the same row. */
+export async function currentContentOf(tx: TenantTx, testIds: number[], testType: 'api'|'mobile'): Promise<Map<number,{version:number;snapshot:Record<string,unknown>}>> {
+  const content = new Map<number,{version:number;snapshot:Record<string,unknown>}>();
+  const wanted = [...new Set(testIds)];
+  if (!wanted.length) return content;
+  const column = targetColumn(testVersions,testType);
+  const rows = await tx.selectDistinctOn([column],{testId:column,version:testVersions.version,snapshot:testVersions.snapshot}).from(testVersions).where(inArray(column,wanted)).orderBy(column,desc(testVersions.version));
+  for (const row of rows) if (row.testId !== null && row.snapshot && !content.has(row.testId)) content.set(row.testId,{version:row.version,snapshot:row.snapshot});
+  return content;
+}
+export async function recordTypedTestVersion(tx: TenantTx,input: {testType:'api'|'mobile';testId:number;organizationId:number;userId:number|null;test:Record<string,unknown>;restoredFromVersion?:number|null}): Promise<RecordedVersion|null> {
+  const column = targetColumn(testVersions,input.testType);
+  const [latest] = await tx.select().from(testVersions).where(eq(column,input.testId)).orderBy(desc(testVersions.version)).limit(1);
+  const snapshot = typedSnapshotOf(input.testType,input.test);
+  const summary = describeTypedChange(latest?.snapshot ?? null,snapshot);
+  if (!summary) return null;
+  const version = (latest?.version ?? 0)+1;
+  await tx.insert(testVersions).values({organizationId:input.organizationId,...targetValues(input.testType,input.testId),version,name:String(snapshot.name),url:input.testType==='api'?String(snapshot.url):'',sequence:[],elements:[],snapshot,summary,createdBy:input.userId,restoredFromVersion:input.restoredFromVersion??null});
+  return {version,summary};
 }

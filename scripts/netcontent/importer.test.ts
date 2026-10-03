@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { privilegedDb } from '../../server/db';
-import { users, projects, apiTests } from '@shared/schema';
+import { users, projects, apiTests, testVersions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { resolveUserId, findOrCreateProject, importApiTests } from './importer';
 import { mapEndpoints } from './map-to-apitests';
@@ -63,6 +63,11 @@ describe('importApiTests (first run)', () => {
     const rows = await privilegedDb.select().from(apiTests).where(eq(apiTests.projectId, pid));
     expect(rows).toHaveLength(2);
     expect(rows.map((r) => r.method).sort()).toEqual(['GET', 'POST']);
+    const versions = await privilegedDb.select().from(testVersions);
+    expect(versions).toHaveLength(2);
+    expect(versions.every(row => row.version === 1 && row.apiTestId !== null)).toBe(true);
+    await importApiTests(privilegedDb, records, pid);
+    expect(await privilegedDb.select().from(testVersions)).toHaveLength(2);
   });
 });
 
@@ -101,5 +106,8 @@ describe('importApiTests (re-run)', () => {
     const params = after.queryParams as any[];
     expect(params.find((p) => p.key === 'id').value).toBe('42'); // filled value preserved
     expect(params.find((p) => p.key === 'mode')).toBeTruthy(); // new param appended
+    const history = await privilegedDb.select().from(testVersions).where(eq(testVersions.apiTestId, getX.id));
+    expect(history.map(row => row.version).sort()).toEqual([1, 2]);
+    expect(history.find(row => row.version === 2)?.snapshot?.assertions).toEqual(editedAssertions);
   });
 });

@@ -222,3 +222,9 @@ I test mobili fanno parte di **Test che si contraddicono** in **Report**
 In **App mobili**, un test trovato instabile negli ultimi 30 giorni porta l'etichetta
 **Instabile**; passateci sopra per vedere su quale dispositivo e quante volte ha cambiato esito. I
 test mobili non hanno versioni, quindi conta ogni cambio di esito, come per i test API.
+
+## Versioni e pubblicazione
+
+I test salvati hanno [cronologia, confronto e ripristino](./organizing#cronologia-e-versioni).
+[Pubblicazione e revisioni](./organizing#pubblicazione-e-revisioni) scelgono la revisione eseguita
+dai piani; salvare o ripristinare la copia di lavoro conserva la pubblicazione esistente. Il debug usa la copia di lavoro mobile salvata, congelata alla richiesta del run.

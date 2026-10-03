@@ -49,11 +49,17 @@ languages the plan has.
 
 ## History and versions {#history-and-versions}
 
-Every save of a test is a **version**, numbered from 1. **History** shows them newest first, with
-who saved each one, how many steps it had, and how the runs that used it went.
+Web, API and mobile tests have their own **versions**, numbered from 1. Saving a changed
+executable configuration creates a revision; saving an unchanged configuration does not.
+**History** shows revisions newest first, with their author and date, and lets you compare them.
+API comparisons include protocol, request, authorization, assertions, captures, performance and
+cleanup; mobile comparisons include platform, app, device, OS, grid and steps.
 
-**Restore** puts an earlier version back by saving it again as the newest version: nothing in
-between is removed, so today's work stays recoverable too.
+**Restore** saves the earlier configuration as a new working-copy revision and keeps every
+intermediate revision. It does not publish it or change the version plans execute.
+
+Existing API and mobile tests start at version 1 with the configuration saved when the migration
+runs. Earlier edits cannot be reconstructed; older results without a version remain unversioned.
 
 ## Tests as files {#tests-as-files}
 
@@ -82,7 +88,7 @@ accessibility scan — are written as comments, and the file's first lines say h
 
 ## Publishing and reviews {#publishing-and-reviews}
 
-A saved test is a **working copy**. Plans run the **published** version when there is one; if a
+These rules apply to **web, API and mobile** tests. A saved test is a **working copy**. Plans run the **published** version when there is one; if a
 test was never published, plans run its latest save — unless your organization requires reviews.
 
 The publishing panel of a test says which version plans run and whether there are newer changes:
@@ -91,13 +97,18 @@ The publishing panel of a test says which version plans run and whether there ar
 - **Roll back to this**, in the history, makes plans run an earlier published version again.
 
 When an owner turns on **Require a review to publish** (in **Reviews**), publishing a version takes
-another member's approval:
+another authorized member's approval. The shared **Reviews** page includes all three test kinds:
 
 1. The author uses **Ask for review of version N**, with a note for the reviewer.
 2. Another member opens **Reviews**, reads the change, and either **Approve and publish**, or
    **Reject** with a comment saying what needs to change. Nobody approves their own change.
 3. Until something is published, plans skip the test. Rolling back to a version that was live
    before stays possible without a review.
+
+History, publishing and review operations respect organization and restricted-project access.
+Editing after publication leaves plans on the published revision. A direct API test or mobile
+debug run uses the saved working copy; the mobile run captures that configuration when requested,
+so a later edit cannot change an already requested run. Plan results record the revision executed.
 
 ## Suites {#suites}
 

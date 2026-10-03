@@ -1,14 +1,20 @@
 # Database schema
 
 This page is the reference for the database: every table, every column and every relationship, drawn from
-`shared/schema.ts` (the single declaration of the schema) by a script, so it cannot drift from the code. For the
-purpose of each table, in words, read [Data model](./data-model); for how rows are kept apart between organizations,
+`shared/schema.ts` (the single declaration of the schema), with the typed-version additions of migration
+0075 reflected below. For the purpose of each table, in words, read [Data model](./data-model); for how rows are kept apart between organizations,
 read [Tenancy and access](./tenancy).
 
 **69 tables**, of which 52 carry an `organization_id` and are protected by row-level security. The other 17 are
 installation-wide or are read before an organization is known: `organizations`, `users`, `user_mfa`,
 `user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sso_saml_requests`, `sso_saml_replay`, `sso_saml_sessions`, `scim_users`, `scim_groups`, `scim_group_members`, `sessions`, `runners`
 and `system_settings`.
+
+Migration **0075** extends `test_versions`, `test_publications` and `test_reviews` with API/mobile
+references. Exactly one of `test_id`, `api_test_id` and `mobile_test_id` is set. API/mobile revisions
+hold their executable definition in `snapshot`; publications point at a revision of the same kind.
+Existing API/mobile definitions become revision 1; earlier results remain unversioned.
+`mobile_test_runs.test_version` and `test_snapshot` pin a debug request to its saved working copy.
 
 ## How to read the diagrams
 
@@ -58,9 +64,15 @@ erDiagram
   tags ||--o{ test_tags : "tag_id"
   tests |o--o{ test_tags : "test_id"
   api_tests |o--o{ test_tags : "api_test_id"
-  tests ||--o{ test_versions : "test_id"
-  tests ||--o{ test_publications : "test_id"
-  tests ||--o{ test_reviews : "test_id"
+  tests |o--o{ test_versions : "test_id"
+  api_tests |o--o{ test_versions : "api_test_id"
+  mobile_tests |o--o{ test_versions : "mobile_test_id"
+  tests |o--o{ test_publications : "test_id"
+  api_tests |o--o{ test_publications : "api_test_id"
+  mobile_tests |o--o{ test_publications : "mobile_test_id"
+  tests |o--o{ test_reviews : "test_id"
+  api_tests |o--o{ test_reviews : "api_test_id"
+  mobile_tests |o--o{ test_reviews : "mobile_test_id"
   projects |o--o{ test_suites : "project_id"
   test_suites ||--o{ test_suite_items : "suite_id"
   tests |o--o{ test_suite_items : "test_id"
@@ -320,11 +332,17 @@ erDiagram
   users ||--o{ projects : "user_id"
   users ||--o{ tests : "user_id"
   projects |o--o{ tests : "project_id"
-  tests ||--o{ test_versions : "test_id"
+  tests |o--o{ test_versions : "test_id"
+  api_tests |o--o{ test_versions : "api_test_id"
+  mobile_tests |o--o{ test_versions : "mobile_test_id"
   users |o--o{ test_versions : "created_by"
-  tests ||--o{ test_publications : "test_id"
+  tests |o--o{ test_publications : "test_id"
+  api_tests |o--o{ test_publications : "api_test_id"
+  mobile_tests |o--o{ test_publications : "mobile_test_id"
   users |o--o{ test_publications : "published_by"
-  tests ||--o{ test_reviews : "test_id"
+  tests |o--o{ test_reviews : "test_id"
+  api_tests |o--o{ test_reviews : "api_test_id"
+  mobile_tests |o--o{ test_reviews : "mobile_test_id"
   users |o--o{ test_reviews : "requested_by"
   users |o--o{ test_reviews : "decided_by"
   tests |o--o{ test_quarantines : "test_id"
@@ -389,6 +407,9 @@ erDiagram
     int id PK
     int organization_id FK
     int test_id FK
+    int api_test_id FK
+    int mobile_test_id FK
+    jsonb snapshot
     int version
     text name
     text url
@@ -406,6 +427,8 @@ erDiagram
     int id PK
     int organization_id FK
     int test_id FK
+    int api_test_id FK
+    int mobile_test_id FK
     int version
     text kind
     int review_id
@@ -416,6 +439,8 @@ erDiagram
     int id PK
     int organization_id FK
     int test_id FK
+    int api_test_id FK
+    int mobile_test_id FK
     int version
     text status
     text note
@@ -552,6 +577,7 @@ erDiagram
     text body_graphql_query
     text body_graphql_variables
     text proto_definition
+    int published_version
     timestamp created_at
     timestamp updated_at
     text module
@@ -620,6 +646,7 @@ erDiagram
     text grid_id FK
     jsonb steps
     int created_by FK
+    int published_version
     timestamp created_at
     timestamp updated_at
   }
@@ -627,6 +654,8 @@ erDiagram
     text id PK
     int organization_id FK
     int mobile_test_id FK
+    int test_version
+    jsonb test_snapshot
     text grid_id FK
     int environment_id FK
     text status
@@ -1098,6 +1127,8 @@ erDiagram
     text id PK
     int organization_id FK
     int mobile_test_id FK
+    int test_version
+    jsonb test_snapshot
     text grid_id FK
     int environment_id FK
     text status

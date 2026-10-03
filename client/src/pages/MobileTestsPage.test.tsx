@@ -120,3 +120,11 @@ describe('MobileTestsPage quarantine', () => {
     expect(screen.queryByRole('button', { name: 'Quarantine Checkout on Android' })).toBeNull();
   });
 });
+
+it('keeps mobile history available to viewers and uses the mobile version route', async () => {
+  role = 'viewer';
+  renderPage();
+  fireEvent.click(await screen.findByRole('button', { name: 'History of Checkout on Android' }));
+  await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => url === '/api/mobile-tests/7/versions')).toBe(true));
+  expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
+});
