@@ -136,6 +136,13 @@ Git-ignored session directory, and checks the real worker API runner through the
 The mobile pool `lab` remains independent. This verifies transport, assertions, extraction,
 OAuth and deadline recovery; manual plan/report acceptance and legacy-agent checks are separate.
 
+`npm run collaudo:protocolli:piani` publishes named API tests, queues real plan runs and verifies
+their results and JUnit/HTML exports. It keeps tests, plans and reports for inspection and writes
+execution IDs to the ignored sessions directory. `WFM_LEGACY_POOL` adds HTTP compatibility and
+native-protocol refusal checks against an original 1.0.0 agent in a dedicated pool.
+`WFM_PROTOCOL_SCOPE=server` or `legacy` resumes those checks independently after an interruption.
+This command does not certify the visual report UI or mark manual catalogue cases automatically.
+
 - Agent and server Playwright must share major.minor. The Docker image is tagged with the server's
   version, and Settings flags a mismatch.
 - API requests through an agent need Chromium on the agent.

@@ -141,6 +141,14 @@ worker attraverso il relay. Il pool mobile `lab` resta indipendente. La prova ve
 asserzioni, estrazioni, OAuth e recupero dopo deadline; l'accettazione manuale di piani/report
 e la verifica dell'agente legacy sono procedure distinte.
 
+`npm run collaudo:protocolli:piani` pubblica test API nominati, avvia piani reali e verifica
+risultati ed esportazioni JUnit/HTML. Conserva test, piani e report per l'ispezione e scrive
+gli ID delle esecuzioni nella cartella delle sessioni ignorata da Git. `WFM_LEGACY_POOL`
+aggiunge la verifica di HTTP e del rifiuto dei protocolli nativi con un agente originale 1.0.0
+in un pool dedicato. `WFM_PROTOCOL_SCOPE=server` oppure `legacy` riprende queste verifiche
+separatamente dopo un'interruzione. Il comando non certifica l'interfaccia visiva del report
+e non segna automaticamente i casi del catalogo manuale.
+
 - Playwright dell'agente e del server devono avere la stessa major.minor. L'immagine Docker ha il tag
   della versione del server, e Settings segnala una discrepanza.
 - Le richieste API tramite un agente richiedono Chromium sull'agente.
