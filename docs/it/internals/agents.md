@@ -133,6 +133,14 @@ che tengono ogni 5 secondi (le voci durano almeno 15 secondi) e leggono quelli d
 
 ## Limiti
 
+Il collaudo Docker include fixture ripetibili nella rete privata per gRPC unario, WebSocket
+e OAuth. Eseguire `npm run collaudo:protocolli` dopo la preparazione delle sessioni e l'avvio
+dello stack. Il comando registra e riutilizza un agente con un solo slot nel pool `interno`,
+conserva il token nella cartella delle sessioni ignorata da Git e verifica il runner API del
+worker attraverso il relay. Il pool mobile `lab` resta indipendente. La prova verifica trasporto,
+asserzioni, estrazioni, OAuth e recupero dopo deadline; l'accettazione manuale di piani/report
+e la verifica dell'agente legacy sono procedure distinte.
+
 - Playwright dell'agente e del server devono avere la stessa major.minor. L'immagine Docker ha il tag
   della versione del server, e Settings segnala una discrepanza.
 - Le richieste API tramite un agente richiedono Chromium sull'agente.

@@ -38,6 +38,12 @@ coverage
 .env
 .env.*
 !.env.example
+collaudo/.sessions
+collaudo/.local
+tmp
+outputs
+cookies.txt
+scratch_cookies.txt
 
 # Test artefacts and editor noise.
 **/*.repro.ts

@@ -1,0 +1,7 @@
+syntax = "proto3";
+package collaudo;
+service Echo {
+  rpc Say (Message) returns (Message);
+  rpc Wait (Message) returns (Message);
+}
+message Message { string text = 1; }

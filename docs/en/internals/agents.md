@@ -129,6 +129,13 @@ Redis every 5 seconds (entries live at least 15 seconds) and read what the other
 
 ## Limits
 
+The Docker collaudo includes repeatable private-network fixtures for unary gRPC, WebSocket
+and OAuth. Run `npm run collaudo:protocolli` after preparing sessions and starting the stack.
+It enrolls and reuses a dedicated single-slot agent in pool `interno`, keeps its token in the
+Git-ignored session directory, and checks the real worker API runner through the relay.
+The mobile pool `lab` remains independent. This verifies transport, assertions, extraction,
+OAuth and deadline recovery; manual plan/report acceptance and legacy-agent checks are separate.
+
 - Agent and server Playwright must share major.minor. The Docker image is tagged with the server's
   version, and Settings flags a mismatch.
 - API requests through an agent need Chromium on the agent.
