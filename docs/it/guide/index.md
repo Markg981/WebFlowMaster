@@ -30,7 +30,7 @@ La barra laterale contiene tutto:
 
 | Sezione | A cosa serve |
 |---|---|
-| **Dashboard** | Com'è andato l'ultimo periodo, gli ultimi 30 giorni, i prossimi run pianificati. |
+| **Dashboard** | Viste private e condivise di run, andamento e pianificazioni. Vedi [Conversazioni e dashboard](./collaboration). |
 | **Tester API** | Costruire e salvare test API. Vedi [Test API](./api-tests). |
 | **Crea Test** | Il costruttore dei test web. Vedi [Test web](./web-tests). |
 | **Libreria dei test** | Ogni test salvato, con tag e cronologia. Vedi [Organizzare i test](./organizing). |

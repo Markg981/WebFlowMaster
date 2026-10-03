@@ -10,10 +10,11 @@ import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 
-const TestSchedulingsTable: React.FC = () => {
+const TestSchedulingsTable: React.FC<{ data?: TestPlanScheduleEnhanced[]; isLoading?: boolean; scoped?: boolean }> = ({ data, isLoading: externalLoading, scoped = false }) => {
   const { t } = useTranslation();
 
-  const { data: schedules = [], isLoading, error } = useQuery<TestPlanScheduleEnhanced[]>({
+  const { data: fetched = [], isLoading: queryLoading, error } = useQuery<TestPlanScheduleEnhanced[]>({
+    enabled: !scoped,
     queryKey: ['allActiveSchedulesForDashboard'], // Unique query key
     queryFn: async () => {
       const allSchedules = await fetchAllSchedules();
@@ -29,7 +30,9 @@ const TestSchedulingsTable: React.FC = () => {
     // Refetch interval can be added if real-time updates are desired, e.g., refetchInterval: 60000, // every minute
   });
 
-    const displayedSchedules = schedules.slice(0, 5); // Display top 5 upcoming active schedules
+    const schedules = data ?? fetched;
+    const isLoading = externalLoading ?? queryLoading;
+    const displayedSchedules = scoped ? schedules : schedules.slice(0, 5);
 
     return(
     <div className = "bg-card text-card-foreground p-4 rounded-lg border shadow-sm min-w-0 overflow-hidden" >

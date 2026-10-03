@@ -3002,5 +3002,6 @@ export const ORG_SCOPED_TABLES = [
   'sms_messages',
   'comments',
   'user_dashboard_layouts',
+  'dashboards', 'user_dashboard_preferences',
   'mail_deliveries', 'mail_delivery_events',
 ] as const;

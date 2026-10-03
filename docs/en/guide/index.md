@@ -28,7 +28,7 @@ The sidebar has everything:
 
 | Section | What it is for |
 |---|---|
-| **Dashboard** | How the last runs went, the last 30 days, and the next scheduled runs. |
+| **Dashboard** | Private and shared views of runs, trends and schedules. See [Conversations and dashboards](./collaboration). |
 | **API Tester** | Building and saving API tests. See [API tests](./api-tests). |
 | **Create Test** | The test builder for web tests. See [Web tests](./web-tests). |
 | **Test Library** | Every saved test, with tags and history. See [Organizing tests](./organizing). |

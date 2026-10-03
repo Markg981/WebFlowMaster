@@ -20,19 +20,16 @@ your own step definitions. Unsupported constructs are rejected with a line numbe
 
 ## Comments
 
-Open **Comments** on a saved test or on a test result in its report to discuss it with your
-organization. Viewers can participate. Authors can edit or delete their own comments, and
-organization owners can moderate them. Comments are plain text, up to 5,000 characters, and
-follow the target's project access: a discussion does not grant access to a private test.
-Deleting a saved test also removes discussions on its historical results, while the reports
-remain available. This prevents a private discussion becoming public when its test is removed.
+Open **Comments** on a saved web, API or mobile test, or on a test result in a report.
+Reply, mention members who can read the target, and resolve conversations. See
+[Conversations and dashboards](./collaboration#discussing-a-test-or-result) for permissions,
+filters and deletion behavior.
 
-## Personal dashboard
+## Dashboards
 
-On **Dashboard**, choose **Customize dashboard** to show or hide metrics, status, trend,
-schedules and recent reports. Move widgets up or down, then **Save layout**. The choice is
-saved for your account across sessions; other members retain their own layout. **Reset layout**
-restores the original order and visibility.
+Keep several private dashboards or share them with your organization. Select a personal default
+and customize widget instances, filters, titles and widths. Existing personal layouts are retained.
+See [Conversations and dashboards](./collaboration#choosing-and-sharing-dashboards).
 
 ## Writing a manual test
 
