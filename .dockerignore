@@ -33,6 +33,7 @@ graphify-out
 attached_assets
 migrations_old
 coverage
+e2e-artifacts
 
 # Secrets never belong in an image layer; the compose file and the runtime supply them.
 .env

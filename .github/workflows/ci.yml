@@ -101,6 +101,87 @@ jobs:
       - name: Client tests
         run: npm test --prefix client
 
+      - name: Collaudo application tests
+        run: npm run test:collaudo
+
+      - name: Build all application deliverables
+        run: npm run build
+
+      - name: Build documentation (including link checks)
+        run: npm run docs:build
+
+      - name: Pass the verified application bundles to the installation tests
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-bundles
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  ui-on-real-installation:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: e2e-postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6388:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://wfm_e2e:wfm_e2e@127.0.0.1:5432/wfm_ci_e2e
+      REDIS_URL: redis://127.0.0.1:6388
+      SESSION_SECRET: ci-e2e-disposable-session-secret
+      ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
+      LOG_LEVEL: warn
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: application-bundles
+          path: dist/
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Create a disposable installation with a non-superuser application role
+        env:
+          PGPASSWORD: e2e-postgres
+        run: |
+          psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE wfm_e2e LOGIN PASSWORD 'wfm_e2e' CREATEROLE BYPASSRLS;"
+          psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 \
+            -c "CREATE DATABASE wfm_ci_e2e OWNER wfm_e2e;"
+          node dist/apply-migrations.js
+      - name: Run interface journeys against the production bundles and queue worker
+        run: npm run test:e2e
+      - name: Preserve E2E report, failure traces and service logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: installation-e2e-evidence
+          path: e2e-artifacts/
+          if-no-files-found: warn
+          retention-days: 7
+
   # The suite above runs on PGlite, which connects as `postgres` — a superuser. Row-level
   # security is SILENTLY INERT under a superuser: with ENABLE, FORCE and a correct policy in
   # place, a superuser still sees every organization's rows and can UPDATE across them, with no

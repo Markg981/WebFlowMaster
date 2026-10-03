@@ -43,18 +43,66 @@ web process.
 | Command | What it does |
 |---|---|
 | `npm run dev` / `npm run dev:worker` | Web process / worker, with `tsx` and `.env`. |
-| `npx tsc -b` | Type-checks server, client, shared and scripts. |
+| `npm run check` | Type-checks server, client, shared, scripts, Collaudo and E2E tests. |
 | `npm run lint` | ESLint over `.ts` and `.tsx`. |
 | `npx vitest run --config vitest.config.ts` | Server and scripts tests. |
 | `npm run test:client -- --run` | Client tests. |
+| `npm run test:collaudo` | Collaudo application storage, history and import/export tests. |
+| `npm run test:e2e` | Interface acceptance against the built application and dedicated real stores. |
 | `npm run test:rls` | Tenancy and isolation tests; requires a real PostgreSQL `DATABASE_URL` and refuses PGlite. |
 | `npm run build` | Client, server, worker, migrator, CLI and agent bundles into `dist/`. |
 | `npm run docs:dev` / `npm run docs:build` | This documentation site: live / checked build. |
 | `npm run cli -- run <planId> --wait` | The pipeline CLI against your local server. |
 | `npm run agent` | A local agent against your local server (`WFM_URL`, `WFM_AGENT_TOKEN`). |
 
-Before a change is committed, all four checks must pass: `tsc -b`, `lint`, the server tests and
-the client tests (and `docs:build` when documentation changed).
+CI requires `check`, `lint`, server and client tests, `test:collaudo`, `build` and `docs:build`.
+PostgreSQL isolation remains a separate gate. The `ui-on-real-installation` job downloads the
+exact application bundles from the build job and tests the production web process, queue worker,
+Redis and a freshly migrated PostgreSQL database with a non-superuser application role.
+
+### Interface acceptance on a real installation
+
+`npm run test:e2e` uses `e2e/playwright.config.ts`, independently of the root configuration for
+exported tests. Chromium covers registration/logout/login and session persistence, saving and
+reloading an API test and sending a real HTTP request, and starting a plan in the interface and
+reloading its completed report. Publishing, response assertions and plan creation for the last
+journey are setup calls to the real API. Product requests are not intercepted; only the application
+under test is a local HTTP fixture. The queue worker must execute and pass its response assertion.
+
+Start dedicated local stores and create their database **once**, without touching Collaudo:
+
+```sh
+docker compose -p wfm-ci-e2e -f e2e/docker-compose.yml up -d --wait
+docker compose -p wfm-ci-e2e -f e2e/docker-compose.yml exec -T postgres psql -U postgres -v ON_ERROR_STOP=1 -c "CREATE ROLE wfm_e2e LOGIN PASSWORD 'wfm_e2e' CREATEROLE BYPASSRLS;" -c "CREATE DATABASE wfm_ci_e2e OWNER wfm_e2e;"
+```
+
+Set these disposable fixture values in your shell (PowerShell: `$env:NAME='value'`; bash:
+`export NAME='value'`):
+
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | `postgresql://wfm_e2e:wfm_e2e@127.0.0.1:5438/wfm_ci_e2e` |
+| `REDIS_URL` | `redis://127.0.0.1:6388` |
+| `SESSION_SECRET` | `ci-e2e-disposable-session-secret` |
+| `ENCRYPTION_KEY` | 64 hexadecimal zeros |
+
+```sh
+npm run build
+node dist/apply-migrations.js
+npx playwright install chromium
+npm run test:e2e
+docker compose -p wfm-ci-e2e -f e2e/docker-compose.yml down -v
+```
+
+The runner refuses a database other than `wfm_ci_e2e` and Redis other than the dedicated loopback
+port 6388. It starts production bundles on ports 5080/5081 and stops them after the suite. Open
+registration and HTTP cookies apply only to this disposable installation. The HTML report,
+service logs and failure screenshots/videos/traces are written to ignored `e2e-artifacts/` and
+uploaded by CI even after failure, with seven-day retention.
+
+This smoke suite does not replace manual acceptance, mobile devices or browser/provider matrices.
+`test:collaudo` checks the Collaudo application's history and import/export behavior; it does not
+execute every case in the manual acceptance catalogue.
 
 ## How the tests work
 
