@@ -1,13 +1,36 @@
-import { describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { afterEach, describe, expect, it } from 'vitest';
+import { eq, inArray } from 'drizzle-orm';
 import { privilegedDb } from '../db';
 import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
-import { apiTests, mobileTests, testVersions, testPublications, testReviews } from '@shared/schema';
+import {
+  apiTests,
+  mobileTests,
+  testVersions,
+  testPublications,
+  testReviews,
+  users,
+  organizations,
+} from '@shared/schema';
 import { createTestOrganization, createTestUser } from './factories';
+
+const fixtureOrgIds: number[] = [];
+
+afterEach(async () => {
+  if (fixtureOrgIds.length === 0) return;
+  // Real-Postgres suites share a database. Remove only this test's fixtures, in FK order;
+  // deleting the targets also cascades their immutable history, publications and reviews.
+  await privilegedDb.delete(apiTests).where(inArray(apiTests.organizationId, fixtureOrgIds));
+  await privilegedDb.delete(mobileTests).where(inArray(mobileTests.organizationId, fixtureOrgIds));
+  await privilegedDb.delete(users).where(inArray(users.organizationId, fixtureOrgIds));
+  await privilegedDb.delete(organizations).where(inArray(organizations.id, fixtureOrgIds));
+  fixtureOrgIds.length = 0;
+});
 
 async function fixture(kind: 'api' | 'mobile') {
   const organizationId = await createTestOrganization('Typed history isolation');
+  fixtureOrgIds.push(organizationId);
   const otherOrg = await createTestOrganization('Other history tenant');
+  fixtureOrgIds.push(otherOrg);
   const userId = await createTestUser(organizationId);
   const otherUser = await createTestUser(otherOrg);
   const create = async (org: number, user: number) =>
