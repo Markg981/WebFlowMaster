@@ -251,6 +251,40 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  # Keep the private API pool independent of the mobile agent in pool lab.
+  agente-interno:
+    profiles: ["protocolli"]
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    environment:
+      WFM_URL: https://wfm.collaudo.test
+      WFM_AGENT_TOKEN: ${WFM_AGENT_TOKEN_INTERNO:-}
+      WFM_AGENT_MAX_SESSIONS: "1"
+      NODE_EXTRA_CA_CERTS: /collaudo-ca/root.crt
+    volumes:
+      - collaudo_ca:/collaudo-ca:ro
+    networks: [default, privata]
+    depends_on:
+      ca-export:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  protocolli:
+    profiles: ["protocolli"]
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    command: ["node", "/agent/fixtures/server.mjs"]
+    volumes:
+      - ./collaudo/protocolli:/agent/fixtures:ro
+    networks: [privata]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
   # AGT-05: an agent on another Playwright minor, which the server must refuse to use. Created in
   # Settings → Local agents like the other, in a pool of its own, with its own token.
   agente-diverso:

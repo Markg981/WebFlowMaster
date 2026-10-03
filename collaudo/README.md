@@ -342,6 +342,26 @@ wfmc logs -f agente
 Il test di AGT-02 usa `http://intranet.acme.local` (titolo «Intranet Acme», testo
 «Benvenuto nell'intranet»): dall'agente passa, dai runner del server fallisce.
 
+**Protocolli privati (AGT-06/07/09/10).** Dopo `collaudo:prepare`, con lo stack e il worker
+avviati, eseguire `npm run collaudo:protocolli`. Il comando crea una volta l'agente
+`agente-protocolli` nel pool `interno`, salva il token soltanto in
+`collaudo/.sessions/agent-interno.json` (ignorato da Git), e avvia il profilo `protocolli`.
+Riutilizza lo stesso agente alle esecuzioni successive. Se è stato revocato, rimuovere quel
+file locale per crearne uno nuovo. `DOCKER_BIN` permette di scegliere il percorso del CLI Docker.
+
+Il pool usa un solo slot; l'agente mobile nel pool `lab` continua a funzionare. Il servizio
+`protocolli` appartiene soltanto alla rete privata e non pubblica porte: gRPC su
+`grpc://protocolli:50051/collaudo.Echo/Say`, WebSocket su `ws://protocolli:8080/echo`, OAuth
+su `http://protocolli:8080/token`; la definizione è `collaudo/protocolli/echo.proto`.
+Le credenziali OAuth di fixture sono `collaudo` / `fixture-secret`, il bearer di fixture
+è `private-fixture-token`. `Wait` non risponde, per verificare il deadline.
+
+La prova usa il runner API e il relay del worker reali: verifica isolamento della rete,
+metadati e asserzioni gRPC, sostituzione delle variabili, asserzioni ed estrazione WebSocket,
+OAuth privato e riuso dello slot dopo un deadline gRPC. Non crea piani o report e non
+segna automaticamente i casi del protocollo manuale: la verifica UI/report e AGT-08 con
+un agente legacy restano procedure distinte. Non cancella volumi, cicli o risultati storici.
+
 **Agente con un'altra versione di Playwright (AGT-05).** Creare un secondo agente in un pool
 proprio (per esempio `diverso`) e avviarlo con il suo token: l'immagine installa Playwright
 1.60.0 invece della versione del server.
