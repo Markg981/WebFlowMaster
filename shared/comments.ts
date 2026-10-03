@@ -1,11 +1,12 @@
-import { check, index, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { check, index, integer, jsonb, pgTable, serial, text, timestamp, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { organizations, users, tests, apiTests, mobileTests, reportTestCaseResults } from './schema';
 
 export const COMMENT_KINDS = ['ui', 'api', 'mobile', 'result'] as const;
 export type CommentKind = typeof COMMENT_KINDS[number];
-export const commentBodySchema = z.object({ body: z.string().trim().min(1).max(5000) });
+export const commentBodySchema = z.object({ body: z.string().trim().min(1).max(5000), mentionedUserIds: z.array(z.number().int().positive()).max(20).refine(ids => new Set(ids).size === ids.length).optional() });
+export const commentCreateSchema = commentBodySchema.extend({ parentId: z.number().int().positive().optional() });
 export const comments = pgTable('comments', {
   id: serial('id').primaryKey(),
   organizationId: integer('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
@@ -15,11 +16,18 @@ export const comments = pgTable('comments', {
   mobileTestId: integer('mobile_test_id').references(() => mobileTests.id, { onDelete: 'cascade' }),
   resultId: text('result_id').references(() => reportTestCaseResults.id, { onDelete: 'cascade' }),
   body: text('body').notNull(),
+  parentId: integer('parent_id').references((): AnyPgColumn => comments.id, { onDelete: 'cascade' }),
+  mentionedUserIds: jsonb('mentioned_user_ids').$type<number[]>().notNull().default([]),
+  resolvedAt: timestamp('resolved_at'),
+  resolvedBy: integer('resolved_by').references(() => users.id, { onDelete: 'set null' }),
+  deletedAt: timestamp('deleted_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, table => [
   check('comments_one_target', sql`num_nonnulls(${table.uiTestId}, ${table.apiTestId}, ${table.mobileTestId}, ${table.resultId}) = 1`),
-  check('comments_body_length', sql`length(btrim(${table.body})) BETWEEN 1 AND 5000`),
+  check('comments_body_length', sql`length(btrim(${table.body})) BETWEEN 1 AND 5000 OR (${table.deletedAt} IS NOT NULL AND ${table.body} = '' AND ${table.mentionedUserIds} = '[]'::jsonb)`),
+  check('comments_root_resolution', sql`${table.parentId} IS NULL OR (${table.resolvedAt} IS NULL AND ${table.resolvedBy} IS NULL)`),
+  index('comments_parent_idx').on(table.parentId),
   index('comments_ui_idx').on(table.uiTestId), index('comments_api_idx').on(table.apiTestId),
   index('comments_mobile_idx').on(table.mobileTestId), index('comments_result_idx').on(table.resultId),
 ]);

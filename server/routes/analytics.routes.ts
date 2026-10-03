@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { and, desc, eq, gte } from "drizzle-orm";
 import { reportTestCaseResults, testPlanExecutions } from "@shared/schema";
-import { getDashboardMetrics } from "../analytics";
+import { getDashboardMetrics, getDashboardSchedules } from "../analytics";
+import { dashboardWidgetSchema, widgetConfigSchema } from '@shared/dashboard-layout';
 import { summariseFlakiness } from "../flaky";
 import { openQuarantinesOf, refKey } from "../test-quarantine";
 import { withTenantTransaction } from "../middleware/tenancy";
@@ -24,18 +25,28 @@ const MAX_WINDOW_DAYS = 365;
  * every account — not because nothing had run, but because the page was not connected to
  * anything. An empty state is only honest when a full one is reachable.
  */
-router.get("/api/analytics/dashboard", async (req, res) => {
+router.get("/api/analytics/dashboard", requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {
-    const metrics = await getDashboardMetrics((req.user as { id: number }).id);
+    const parsed = widgetConfigSchema.safeParse(Object.fromEntries(Object.entries(req.query).map(([key, value]) => [key, ['projectId', 'days', 'limit'].includes(key) ? Number(value) : value])));
+    if (!parsed.success || parsed.data.environment) return res.status(400).json({ error: 'Invalid dashboard filters' });
+    const metrics = await getDashboardMetrics((req.user as { id: number }).id, parsed.data);
     res.json(metrics);
   } catch (e: any) {
     logger.error({ message: "Dashboard metrics failed", error: e.message });
     res.status(500).json({ error: "Failed to load dashboard metrics" });
   }
+});
+
+router.post('/api/analytics/dashboard/widget', requireRole('viewer'), async (req, res) => {
+  const parsed = dashboardWidgetSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid widget' });
+  try {
+    res.json(parsed.data.type === 'schedules' ? await getDashboardSchedules(parsed.data.config) : await getDashboardMetrics(req.user!.id, parsed.data.config));
+  } catch { res.status(500).json({ error: 'Failed to load widget' }); }
 });
 
 /**

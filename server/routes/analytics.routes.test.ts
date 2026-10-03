@@ -3,7 +3,7 @@ import express from 'express';
 import request from 'supertest';
 import { sql } from 'drizzle-orm';
 import { privilegedDb } from '../db';
-import { mobileTests, reportTestCaseResults, testPlanExecutions, testPlans, testQuarantines } from '@shared/schema';
+import { mobileTests, reportTestCaseResults, testPlanExecutions, testPlans, testQuarantines, projects, tests, testPlanSelectedTests, testPlanSchedules } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
 
 vi.mock('../logger', () => ({
@@ -35,8 +35,8 @@ let currentUser: { id: number; organizationId: number; role: string };
 
 beforeAll(async () => {
   organizationId = await createTestOrganization('Analytics Org');
-  userId = await createTestUser(organizationId, 'analytics-user');
-  otherUserId = await createTestUser(organizationId, 'analytics-other-user');
+  userId = await createTestUser(organizationId, `analytics-user-${organizationId}`);
+  otherUserId = await createTestUser(organizationId, `analytics-other-user-${organizationId}`);
 
   const { default: analyticsRoutes } = await import('./analytics.routes');
 
@@ -50,7 +50,7 @@ beforeAll(async () => {
     // The same binding tenancyMiddleware establishes in production. The dashboard route does
     // not need it; the flaky analysis queries org-scoped tables under RLS and does.
     if (!currentUser) return next();
-    runWithTenant(currentUser.organizationId, () => next());
+    runWithTenant(currentUser.organizationId, () => next(), { userId: currentUser.id, role: currentUser.role });
   });
   app.use(analyticsRoutes);
 });
@@ -62,7 +62,7 @@ beforeEach(async () => {
 });
 
 let idCounter = 0;
-const nextId = (prefix: string) => `${prefix}_${++idCounter}`;
+const nextId = (prefix: string) => `${prefix}_${organizationId}_${++idCounter}`;
 
 async function createPlan(ownerId: number, name: string): Promise<string> {
   const id = nextId('plan');
@@ -99,7 +99,7 @@ describe('GET /api/analytics/dashboard', () => {
     expect(res.status).toBe(401);
   });
 
-  it('counts only the executions of the caller’s own plans', async () => {
+  it('counts all accessible organization executions across authors', async () => {
     const mine = await createPlan(userId, 'Mine');
     const theirs = await createPlan(otherUserId, 'Theirs');
     await createExecution(mine, 'completed', 1000);
@@ -108,8 +108,8 @@ describe('GET /api/analytics/dashboard', () => {
 
     const res = await request(app).get('/api/analytics/dashboard');
 
-    expect(res.body.kpis.totalRuns).toBe(2);
-    expect(res.body.kpis.successRate).toBe(50);
+    expect(res.body.kpis.totalRuns).toBe(3);
+    expect(res.body.kpis.successRate).toBe(67);
   });
 
   it('reports zero runs without inventing a success rate', async () => {
@@ -309,5 +309,76 @@ describe('GET /api/analytics/flaky', () => {
 
     expect(res.body.items).toEqual([]);
     expect(res.body.window.resultsExamined).toBe(0);
+  });
+});
+
+describe('dashboard widget filters and project isolation', () => {
+  async function projectFixture(restricted: boolean) {
+    const [project] = await privilegedDb.insert(projects).values({ name: restricted ? 'Confidential app' : 'Open app', userId, organizationId, restricted }).returning();
+    const [test] = await privilegedDb.insert(tests).values({ name: 'Project test', userId, organizationId, projectId: project.id, url: 'https://example.com', sequence: [], elements: [] }).returning();
+    return { project, test };
+  }
+  const widget = (config = {}, type = 'kpis') => ({ id: 'instance', type, visible: true, width: 'full', config });
+  it('filters all metrics and trend by period and bounds query inputs', async () => {
+    const plan = await createPlan(otherUserId, 'Period'); await createExecution(plan, 'completed', 1000);
+    await privilegedDb.insert(testPlanExecutions).values({ id: nextId('old'), organizationId, testPlanId: plan, status: 'failed', startedAt: new Date(Date.now() - 10 * 86400000), queuedAt: new Date(Date.now() - 10 * 86400000) });
+    const oneDay = await request(app).post('/api/analytics/dashboard/widget').send(widget({ days: 1 }));
+    expect(oneDay.status).toBe(200); expect(oneDay.body.kpis.totalRuns).toBe(1); expect(oneDay.body.trend).toHaveLength(1);
+    const month = await request(app).get('/api/analytics/dashboard?days=30'); expect(month.body.kpis.totalRuns).toBe(2);
+    for (const filters of ['days=366', 'days=0', 'limit=51', 'projectId=-1', 'unknown=value']) expect((await request(app).get(`/api/analytics/dashboard?${filters}`)).status).toBe(400);
+  });
+  it('returns unavailable without project names or counts for a restricted project', async () => {
+    const { project } = await projectFixture(true); currentUser.role = 'viewer';
+    const response = await request(app).post('/api/analytics/dashboard/widget').send(widget({ projectId: project.id }));
+    expect(response.status).toBe(200); expect(response.body).toEqual({ unavailable: true });
+  });
+  it('excludes hidden and mixed-project executions and schedules across all widget requests', async () => {
+    const open = await projectFixture(false), hidden = await projectFixture(true);
+    const visible = await createPlan(otherUserId, 'Visible plan'), secret = await createPlan(otherUserId, 'Confidential plan'), mixed = await createPlan(otherUserId, 'Mixed plan');
+    await privilegedDb.insert(testPlanSelectedTests).values([
+      { organizationId, testPlanId: visible, testId: open.test.id, testType: 'ui' },
+      { organizationId, testPlanId: secret, testId: hidden.test.id, testType: 'ui' },
+      { organizationId, testPlanId: mixed, testId: open.test.id, testType: 'ui' },
+      { organizationId, testPlanId: mixed, testId: hidden.test.id, testType: 'ui' },
+    ]);
+    for (const plan of [visible, secret, mixed]) { await createExecution(plan, 'completed', 1000); await privilegedDb.insert(testPlanSchedules).values({ id: nextId('schedule'), organizationId, testPlanId: plan, scheduleName: plan, frequency: 'daily', nextRunAt: new Date(), environment: 'prod' }); }
+    currentUser.role = 'viewer';
+    const metrics = await request(app).post('/api/analytics/dashboard/widget').send(widget());
+    expect(metrics.body.kpis.totalRuns).toBe(1); expect(metrics.body.recent.map((r: any) => r.planName)).toEqual(['Visible plan']);
+    const schedules = await request(app).post('/api/analytics/dashboard/widget').send(widget({ projectId: open.project.id, environment: 'prod', limit: 50 }, 'schedules'));
+    expect(schedules.body.schedules.map((r: any) => r.testPlanName)).toEqual(['Visible plan']);
+    const staging = await request(app).post('/api/analytics/dashboard/widget').send(widget({ environment: 'staging' }, 'schedules')); expect(staging.body.schedules).toEqual([]);
+  });
+  it('checks historical result references even when a plan no longer selects the restricted test', async () => {
+    const hidden = await projectFixture(true); const plan = await createPlan(otherUserId, 'Past confidential result'); await createExecution(plan, 'completed', 1000);
+    const [execution] = await privilegedDb.select().from(testPlanExecutions);
+    await privilegedDb.insert(reportTestCaseResults).values({ id: nextId('result'), organizationId, testPlanExecutionId: execution.id, uiTestId: hidden.test.id, testType: 'ui', testName: hidden.test.name, status: 'passed', startedAt: new Date() });
+    currentUser.role = 'viewer'; const response = await request(app).get('/api/analytics/dashboard'); expect(response.body.kpis.totalRuns).toBe(0); expect(response.body.recent).toEqual([]);
+  });
+  it('checks frozen queued-run references after the current plan changes its selected tests', async () => {
+    const hidden = await projectFixture(true), open = await projectFixture(false);
+    const plan = await createPlan(otherUserId, 'Changed plan');
+    await privilegedDb.insert(testPlanExecutions).values([
+      { id: nextId('frozen-hidden'), organizationId, testPlanId: plan, configurationSnapshot: { selectedTests: [{ testId: hidden.test.id, apiTestId: null, testType: 'ui' }] } },
+      { id: nextId('frozen-open'), organizationId, testPlanId: plan, configurationSnapshot: { selectedTests: [{ testId: open.test.id, apiTestId: null, testType: 'ui' }] } },
+    ]);
+    currentUser.role = 'viewer';
+    const response = await request(app).get(`/api/analytics/dashboard?projectId=${open.project.id}`);
+    expect(response.status).toBe(200); expect(response.body.kpis.totalRuns).toBe(1);
+    const all = await request(app).get('/api/analytics/dashboard'); expect(all.body.kpis.totalRuns).toBe(1);
+  });
+  it('uses a queued run’s frozen project instead of the current plan’s replacement project', async () => {
+    const original = await projectFixture(false), replacement = await projectFixture(false);
+    const plan = await createPlan(otherUserId, 'Reassigned plan');
+    await privilegedDb.insert(testPlanExecutions).values({
+      id: nextId('frozen-original'), organizationId, testPlanId: plan,
+      configurationSnapshot: { selectedTests: [{ testId: original.test.id, apiTestId: null, testType: 'ui' }] },
+    });
+    await privilegedDb.insert(testPlanSelectedTests).values({ organizationId, testPlanId: plan, testId: replacement.test.id, testType: 'ui' });
+    currentUser.role = 'viewer';
+    const replacementMetrics = await request(app).get(`/api/analytics/dashboard?projectId=${replacement.project.id}`);
+    expect(replacementMetrics.status).toBe(200); expect(replacementMetrics.body.kpis.totalRuns).toBe(0);
+    const originalMetrics = await request(app).get(`/api/analytics/dashboard?projectId=${original.project.id}`);
+    expect(originalMetrics.status).toBe(200); expect(originalMetrics.body.kpis.totalRuns).toBe(1);
   });
 });

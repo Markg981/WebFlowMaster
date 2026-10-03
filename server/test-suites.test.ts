@@ -243,7 +243,8 @@ describe('rows that point across organizations', () => {
     // Comments have five tenant-consistent references; personal layouts have one (0071–0072).
     // SAML sessions belong to their user's tenant (0073); mail events belong to their delivery's tenant (0074).
     // API/mobile version, publication and review targets add six guards (0075).
-    expect(rows.length).toBe(86);
+    // Conversations add parent/resolver guards; dashboards and preferences add four (0076).
+    expect(rows.length).toBe(92);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });
 

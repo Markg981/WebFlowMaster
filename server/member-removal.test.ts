@@ -27,11 +27,14 @@ const PERSONAL = [
   'user_mfa.user_id',
   'user_settings.user_id',
   'user_dashboard_layouts.user_id',
+  'user_dashboard_preferences.user_id',
+  'dashboards.creator_id',
 ];
 
 /** References that only record who did something; they become null. */
 const PROVENANCE = [
   'comments.author_id',
+  'comments.resolved_by',
   'agents.created_by',
   'audit_log.actor_user_id',
   'invitations.invited_by_user_id',

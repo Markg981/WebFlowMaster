@@ -15,6 +15,40 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
 });
 describe('CommentsPanel', () => {
+  it('composes a reply with member mentions and resolves roots', async () => {
+    fetchMock.mockImplementation(async (url: string) => ({ ok: true, json: async () => url.endsWith('/members') ? [{ id: 2, username: 'Bob' }] : [row] }));
+    mount();
+    fireEvent.click(await screen.findByRole('button', { name: 'Reply' }));
+    fireEvent.change(screen.getByLabelText('Reply message'), { target: { value: 'Can you review?' } });
+    fireEvent.click(screen.getAllByLabelText('Mention Bob')[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Add reply' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/comments/ui/7', expect.objectContaining({ method: 'POST', body: JSON.stringify({ body: 'Can you review?', parentId: 9, mentionedUserIds: [2] }) })));
+    fireEvent.click(screen.getByRole('button', { name: 'Resolve conversation' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/comments/9/resolution', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ resolved: true }) })));
+  });
+  it('groups replies, shows tombstones, filters and hides replies on resolved roots', async () => {
+    fetchMock.mockImplementation(async (url: string) => ({ ok: true, json: async () => url.endsWith('/members') ? [] : [
+      { ...row, deletedAt: '2026-10-04T00:00:00Z', body: '', resolvedAt: '2026-10-04T00:00:00Z' },
+      { ...row, id: 10, authorId: 2, authorName: 'Bob', parentId: 9, body: 'Preserved reply' },
+    ] }));
+    mount();
+    expect(await screen.findByText('This comment was deleted.')).toBeInTheDocument();
+    expect(screen.getByText('Preserved reply')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reply' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Conversation filter'), { target: { value: 'mentions' } });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/comments/ui/7?filter=mentions', expect.anything()));
+  });
+  it('lets authors remove mention recipients during edits and reopen resolved roots', async () => {
+    fetchMock.mockImplementation(async (url: string) => ({ ok: true, json: async () => url.endsWith('/members') ? [{ id: 2, username: 'Bob' }] : [{ ...row, mentionedUserIds: [2], resolvedAt: '2026-10-04T00:00:00Z' }] }));
+    mount();
+    expect(await screen.findByText('@Bob', { selector: 'p' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit comment' }));
+    fireEvent.click(screen.getAllByLabelText('Mention Bob')[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Save comment' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/comments/9', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ body: row.body, mentionedUserIds: [] }) })));
+    fireEvent.click(screen.getByRole('button', { name: 'Reopen conversation' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/comments/9/resolution', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ resolved: false }) })));
+  });
   it('renders plain text and lets viewers submit nonempty discussion', async () => {
     mount();
     expect(await screen.findByText(row.body)).toBeInTheDocument();
@@ -56,24 +90,24 @@ describe('CommentsPanel', () => {
     const view = () => <QueryClientProvider client={client}><CommentsPanel kind="ui" targetId={7} /></QueryClientProvider>;
     const rendered = render(view());
     await screen.findByText(row.body);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     state.user = null;
     rendered.rerender(view());
     expect(screen.queryByText(row.body)).not.toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     // Another member of the same tenant cannot see this restricted project.
     state.user = { id: 2, organizationId: 10, role: 'viewer' };
     fetchMock.mockResolvedValueOnce({ ok: false, json: async () => ({}) });
     rendered.rerender(view());
     expect(screen.queryByText(row.body)).not.toBeInTheDocument();
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load comments');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     // The tenant also scopes a user's cache, even when their user id is unchanged.
     state.user = { id: 1, organizationId: 20, role: 'viewer' };
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => [] });
     rendered.rerender(view());
     expect(screen.queryByText(row.body)).not.toBeInTheDocument();
     await screen.findByText('No comments yet.');
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(6);
   });
 });

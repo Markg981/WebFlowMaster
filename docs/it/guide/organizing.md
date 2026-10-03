@@ -20,22 +20,17 @@ rifiutati indicando la riga. Vedi [Dettagli dei file Gherkin](../../gherkin-file
 
 ## Commenti
 
-Aprite **Commenti** su un test salvato o sul risultato di un test nel report per discuterne con
-l'organizzazione. Possono partecipare anche i viewer. Gli autori possono modificare o eliminare
-i propri commenti, e gli owner possono moderarli. I commenti sono testo semplice, fino a 5.000
-caratteri, e rispettano l'accesso al progetto del test: una discussione non concede accesso
-a un test privato.
-Eliminando un test salvato vengono eliminate anche le discussioni sui suoi risultati storici,
-mentre i report restano disponibili. Così una discussione privata non diventa visibile a tutti
-quando il test viene rimosso.
+Aprite **Commenti** su un test web, API o mobile salvato, oppure sul risultato di un test nel report.
+Rispondete, menzionate i membri che possono leggere il test e risolvete le conversazioni. Vedi
+[Conversazioni e dashboard](./collaboration#discutere-un-test-o-un-risultato) per permessi,
+filtri e comportamento dell'eliminazione.
 
-## Dashboard personale
+## Dashboard
 
-Nella **Dashboard**, scegliete **Personalizza dashboard** per mostrare o nascondere indicatori,
-stato, andamento, pianificazioni e report recenti. Spostate i widget su o giù e scegliete
-**Salva disposizione**. La preferenza resta salvata per il vostro account tra le sessioni;
-gli altri membri mantengono la propria. **Ripristina disposizione** ripristina ordine e
-visibilità originali.
+Conservate più dashboard private o condividetele con l'organizzazione. Scegliete la predefinita
+personale e personalizzate istanze dei widget, filtri, titoli e larghezze. Le disposizioni personali
+esistenti vengono conservate. Vedi
+[Conversazioni e dashboard](./collaboration#scegliere-e-condividere-dashboard).
 
 ## Scrivere un test manuale
 

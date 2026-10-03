@@ -65,6 +65,7 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
         { text: t.apiTests, link: p('guide/api-tests') },
         { text: t.mobileApps, link: p('guide/mobile-apps') },
         { text: t.organizing, link: p('guide/organizing') },
+        { text: lang === 'en' ? 'Conversations and dashboards' : 'Conversazioni e dashboard', link: p('guide/collaboration') },
         { text: t.running, link: p('guide/running') },
         { text: t.results, link: p('guide/results') },
       ],

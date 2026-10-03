@@ -59,6 +59,7 @@ import impactRulesRoutes from "./routes/impact-rules.routes";
 import smsInboxRoutes from "./routes/sms-inbox.routes";
 import commentsRoutes from "./routes/comments.routes";
 import dashboardLayoutRoutes from "./routes/dashboard-layout.routes";
+import dashboardsRoutes from "./routes/dashboards.routes";
 import mailDeliveryRoutes, { mailDeliveryWebhookRouter } from "./routes/mail-delivery.routes";
 import testManagementRoutes from "./routes/test-management.routes";
 import mobileTestsRoutes from "./routes/mobile-tests.routes";
@@ -223,6 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(smsInboxRoutes);
   app.use(commentsRoutes);
   app.use(dashboardLayoutRoutes);
+  app.use(dashboardsRoutes);
   app.use(mailDeliveryRoutes);
   app.use(testManagementRoutes);
   app.use(mobileTestsRoutes);

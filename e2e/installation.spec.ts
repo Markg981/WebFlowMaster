@@ -65,6 +65,81 @@ test('an API test saved through the editor survives a reload and sends a real re
   await expect(page.getByText('200', { exact: true })).toBeVisible();
 });
 
+test('a test conversation persists replies, member mentions and resolution through the interface', async ({ page }) => {
+  const username = await register(page);
+  await saveApiTest(page, `CI discussion ${randomUUID()}`);
+  await page.getByRole('tab', { name: 'Saved Tests', exact: true }).click();
+  await page.getByRole('button', { name: 'Comments', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('New comment', { exact: true }).fill('Investigate the failing assertion');
+  await dialog.locator('summary').filter({ hasText: /^Mention members$/ }).click();
+  await dialog.getByRole('checkbox', { name: `Mention ${username}`, exact: true }).check();
+  await dialog.getByRole('button', { name: 'Add comment', exact: true }).click();
+  await expect(dialog.getByText('Investigate the failing assertion', { exact: true })).toBeVisible();
+  await expect(dialog.getByText(`@${username}`, { exact: true }).first()).toBeVisible();
+  await dialog.getByRole('button', { name: 'Reply', exact: true }).click();
+  await dialog.getByLabel('Reply message', { exact: true }).fill('Confirmed against the production endpoint');
+  await dialog.getByRole('button', { name: 'Add reply', exact: true }).click();
+  await expect(dialog.getByText('Confirmed against the production endpoint', { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Resolve conversation', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Reopen conversation', exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole('tab', { name: 'Saved Tests', exact: true }).click();
+  await page.getByRole('button', { name: 'Comments', exact: true }).click();
+  await dialog.getByLabel('Conversation filter', { exact: true }).selectOption('resolved');
+  await expect(dialog.getByText('Confirmed against the production endpoint', { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Reopen conversation', exact: true }).click();
+  await dialog.getByLabel('Conversation filter', { exact: true }).selectOption('mentions');
+  await expect(dialog.getByRole('button', { name: 'Reply', exact: true })).toBeVisible();
+});
+
+test('multiple configured dashboards persist and are shared read-only with another organization member', async ({ page, browser }) => {
+  await register(page);
+  const name = `CI shared dashboard ${randomUUID()}`;
+  await page.getByRole('button', { name: 'Create dashboard', exact: true }).click();
+  await page.getByLabel('Dashboard name', { exact: true }).fill(name);
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+  await expect(page.getByLabel('Dashboard', { exact: true }).locator('option:checked')).toContainText(name);
+  await page.getByRole('button', { name: 'Customize dashboard', exact: true }).click();
+  await page.getByLabel('Widget type', { exact: true }).selectOption('reports');
+  await page.getByRole('button', { name: 'Add widget', exact: true }).click();
+  await page.getByLabel('Widget title 6', { exact: true }).fill('Team report window');
+  await page.getByLabel('Period in days 6', { exact: true }).fill('7');
+  await page.getByLabel('Result limit 6', { exact: true }).fill('10');
+  await page.getByRole('button', { name: 'Save layout', exact: true }).click();
+  await expect(page.getByText('Team report window', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Share with organization', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Make private', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Make default', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Make default', exact: true })).toBeDisabled();
+  await page.reload();
+  await expect(page.getByLabel('Dashboard', { exact: true }).locator('option:checked')).toContainText(name);
+  await expect(page.getByText('Team report window', { exact: true })).toBeVisible();
+  const username = `viewer_${randomUUID().replaceAll('-', '')}`;
+  const invitation = await page.request.post('/api/organization/invitations', { data: { username, role: 'viewer' } });
+  expect(invitation.status()).toBe(201);
+  const { token } = await invitation.json();
+  const readerContext = await browser.newContext();
+  try {
+    const reader = await readerContext.newPage();
+    await reader.goto(`http://127.0.0.1:5080/auth?invitation=${token}&username=${username}`);
+    await reader.getByRole('tab', { name: 'Register', exact: true }).click();
+    await reader.locator('#register-password').fill(password);
+    await reader.locator('#confirm-password').fill(password);
+    await reader.getByRole('button', { name: 'Create Account', exact: true }).click();
+    await expect(reader).toHaveURL(/\/dashboard$/);
+    const shared = (await (await reader.request.get('/api/dashboards')).json()).dashboards.find((dashboard: { id: string; name: string }) => dashboard.name === name);
+    expect(shared).toBeTruthy();
+    await reader.getByLabel('Dashboard', { exact: true }).selectOption(shared.id);
+    await expect(reader.getByText('Team report window', { exact: true })).toBeVisible();
+    await expect(reader.getByRole('button', { name: 'Customize dashboard', exact: true })).toHaveCount(0);
+    await reader.getByRole('button', { name: 'Duplicate', exact: true }).click();
+    await reader.getByLabel('Dashboard name', { exact: true }).fill('My private team copy');
+    await reader.getByRole('button', { name: 'Confirm', exact: true }).click();
+    await expect(reader.getByRole('button', { name: 'Customize dashboard', exact: true })).toBeVisible();
+  } finally { await readerContext.close(); }
+});
+
 test('a plan started in the interface runs on the worker and renders its persisted report', async ({ page }) => {
   await register(page);
   const name = `CI worker API ${randomUUID()}`;

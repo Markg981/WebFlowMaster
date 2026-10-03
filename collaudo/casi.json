@@ -1,5 +1,5 @@
 {
-  "version": 19,
+  "version": 20,
   "areas": [
     {
       "id": "ACC",
@@ -100,6 +100,11 @@
       "id": "UX",
       "intro": "Lingue, tema, browser e stati vuoti.",
       "title": "Interfaccia"
+    },
+    {
+      "id": "COL",
+      "title": "Collaborazione e dashboard",
+      "intro": "Conversazioni con risposte, menzioni e risoluzione; dashboard private o condivise, widget configurabili e isolamento."
     }
   ],
   "cases": [
@@ -6458,6 +6463,118 @@
         "Tentare ripristino, pubblicazione, rollback, richiesta review e decisione tramite richieste autenticate."
       ],
       "expected": "La cronologia accessibile è leggibile; tutte le operazioni di modifica riservate agli editor sono rifiutate, senza cambi a versione, review o pubblicazione."
+    },
+    {
+      "area": "COL",
+      "priority": "P1",
+      "actor": "owner.a, viewer.a, editor.a",
+      "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+      "id": "COL-01",
+      "title": "Conversazione con risposta e menzione",
+      "steps": [
+        "Nel pannello Commenti di un test API creare un messaggio menzionando viewer.a.",
+        "Come viewer.a filtrare Menzioni a me e rispondere al messaggio.",
+        "Ricaricare il pannello."
+      ],
+      "expected": "Menzione e risposta persistono nello stesso thread; il filtro mostra l’intera conversazione, senza cambiare autore o test."
+    },
+    {
+      "area": "COL",
+      "priority": "P1",
+      "actor": "owner.a, viewer.a, editor.a",
+      "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+      "id": "COL-02",
+      "title": "Risoluzione e riapertura di una conversazione",
+      "steps": [
+        "Come autore risolvere una conversazione aperta con una risposta.",
+        "Come viewer.a filtrare Risolte e tentare una nuova risposta.",
+        "Come autore riaprire la conversazione."
+      ],
+      "expected": "La conversazione risolta conserva le risposte e rifiuta nuove risposte; dopo la riapertura torna aperta e rispondibile. Un altro viewer non può risolverla."
+    },
+    {
+      "area": "COL",
+      "priority": "P1",
+      "actor": "owner.a, viewer.a, editor.a",
+      "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+      "id": "COL-03",
+      "title": "Eliminazione del messaggio iniziale conserva le risposte",
+      "steps": [
+        "Creare un messaggio e una risposta di un altro membro.",
+        "Come autore eliminare il messaggio iniziale.",
+        "Ricaricare il pannello."
+      ],
+      "expected": "Rimane il segnaposto di messaggio eliminato; testo e menzioni cancellati non sono esposti; la risposta altrui rimane visibile."
+    },
+    {
+      "area": "COL",
+      "priority": "P1",
+      "actor": "owner.a, viewer.a, editor.a",
+      "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+      "id": "COL-04",
+      "title": "Discussioni e menzioni rispettano progetti e organizzazioni",
+      "steps": [
+        "Aprire una discussione in un progetto riservato con owner.a.",
+        "Verificare i destinatari selezionabili e tentare menzioni di un membro escluso o di B tramite API.",
+        "Come membro escluso e membro B richiedere lettura, risposta e risoluzione tramite link diretto."
+      ],
+      "expected": "Nessun contenuto o destinatario non autorizzato esposto; menzioni invalide rifiutate senza modifiche; parent di altro test, thread o organizzazione rifiutato."
+    },
+    {
+      "area": "COL",
+      "priority": "P1",
+      "actor": "owner.a, viewer.a, editor.a",
+      "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+      "id": "COL-05",
+      "title": "Dashboard multiple, configurazione e predefinita",
+      "steps": [
+        "Creare una dashboard privata e aggiungere una seconda istanza Report recenti.",
+        "Configurare titolo, larghezza, periodo di 7 giorni e limite 10; salvare.",
+        "Impostarla come predefinita e ricaricare."
+      ],
+      "expected": "La nuova dashboard si apre al nuovo accesso; le istanze e i parametri persistono. Il layout precedente resta disponibile."
+    },
+    {
+      "area": "COL",
+      "priority": "P1",
+      "actor": "owner.a, viewer.a, editor.a",
+      "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+      "id": "COL-06",
+      "title": "Dashboard condivisa leggibile e duplicabile da un viewer",
+      "steps": [
+        "Come autore condividere una dashboard con tutta A.",
+        "Come viewer.a selezionarla e tentare modifica tramite API.",
+        "Duplicarla come dashboard privata e personalizzare la copia."
+      ],
+      "expected": "Il viewer legge la condivisa, non può modificarla e può modificare la propria copia privata. La condivisa rimane invariata."
+    },
+    {
+      "area": "COL",
+      "priority": "P1",
+      "actor": "owner.a, viewer.a, editor.a",
+      "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+      "id": "COL-07",
+      "title": "Widget condiviso non espone un progetto riservato",
+      "steps": [
+        "Come owner.a condividere una dashboard con un widget filtrato su un progetto riservato.",
+        "Come viewer.a escluso dal progetto aprire la dashboard.",
+        "Come membro B richiedere la dashboard per ID."
+      ],
+      "expected": "Il widget del viewer è esplicitamente non disponibile senza nomi o conteggi; B non vede la dashboard. Le dashboard private altrui rimangono nascoste anche agli owner."
+    },
+    {
+      "area": "COL",
+      "priority": "P1",
+      "actor": "owner.a, viewer.a, editor.a",
+      "preconditions": "Migrazione 0076 applicata; nuovo ciclo catalogo versione 20. Due membri nella stessa organizzazione A e un membro in B; test API visibile in A e un progetto riservato.",
+      "id": "COL-08",
+      "title": "Concorrenza e conferma eliminazione della dashboard",
+      "steps": [
+        "Aprire la stessa dashboard condivisa in due sessioni autorizzate.",
+        "Salvare un titolo nella prima e poi salvare una modifica nella seconda.",
+        "Aprire la conferma eliminazione e verificare che non possa essere applicata a un’altra dashboard."
+      ],
+      "expected": "La seconda modifica obsoleta riceve 409 e conserva la bozza; nessuna sovrascrittura. La conferma elimina soltanto la dashboard per cui è stata aperta."
     }
   ],
   "presentation": {
