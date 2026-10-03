@@ -26,6 +26,7 @@
     "collaudo:carico": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/prova-carico.mjs",
     "collaudo:scim": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/prova-scim.mjs",
     "collaudo:protocolli": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/prova-protocolli.mjs",
+    "collaudo:protocolli:piani": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/prova-piani-protocolli.mjs",
     "collaudo:sicurezza-mobile": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/prova-sicurezza-mobile.mjs",
     "collaudo:mobile": "node collaudo/mobile/avvia.mjs",
     "collaudo:jenkins": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/jenkins/avvia.mjs",

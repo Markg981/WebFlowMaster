@@ -362,6 +362,18 @@ OAuth privato e riuso dello slot dopo un deadline gRPC. Non crea piani o report 
 segna automaticamente i casi del protocollo manuale: la verifica UI/report e AGT-08 con
 un agente legacy restano procedure distinte. Non cancella volumi, cicli o risultati storici.
 
+Per verificare anche le esecuzioni complete, avviare prima le fixture e poi eseguire
+`npm run collaudo:protocolli:piani`. Il comando crea test API pubblicati e piani nominati
+«AGT acceptance …», che conserva per ispezionarne i report. Verifica cinque test sul pool
+`interno` (gRPC, WebSocket, estrazione riusata da OAuth, deadline di 30 secondi e recupero)
+e un piano sui runner del server che deve fallire perché gli endpoint sono privati.
+Salva gli ID e i link ai report in `collaudo/.sessions/protocol-plan-all-evidence.json`.
+Ogni esecuzione crea nuovi test e piani; non modifica quelli esistenti.
+Se un agente originale 1.0.0 è collegato in un pool dedicato, impostare
+`WFM_LEGACY_POOL` per verificare anche HTTP funzionante e rifiuto esplicito di WebSocket.
+`WFM_PROTOCOL_SCOPE=server` oppure `legacy` limita la prova al controllo selezionato e
+salva le evidenze in un file separato, utile quando si riprende una verifica interrotta.
+
 **Agente con un'altra versione di Playwright (AGT-05).** Creare un secondo agente in un pool
 proprio (per esempio `diverso`) e avviarlo con il suo token: l'immagine installa Playwright
 1.60.0 invece della versione del server.
