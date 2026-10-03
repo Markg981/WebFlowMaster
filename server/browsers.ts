@@ -1,4 +1,5 @@
 import playwright, { type Browser } from 'playwright';
+import { browserEgressOptions } from './egress-proxy';
 import { BROWSER_GRID_LABELS, type BrowserGridProvider } from '@shared/browser-grids';
 import { canEmulateDevice, isMobileDevice } from '@shared/devices';
 
@@ -347,6 +348,7 @@ export async function launchBrowser(
   }
   try {
     return await engine.launch({
+      ...browserEgressOptions(),
       headless: choice.headless,
       ...(choice.channel ? { channel: choice.channel } : {}),
     });

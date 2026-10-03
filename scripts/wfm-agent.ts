@@ -10,7 +10,8 @@
  * one here and lends it over a second outbound connection. The run drives it from the server as it
  * would its own, so the pages it opens are opened from this machine and see what this machine sees.
  *
- * Needs Node 20+, the npm packages `playwright` (the same major.minor as the server's) and `ws`,
+ * Needs Node 20.18.1+, Playwright matching the server, ws, grpc-js/proto-loader,
+ * undici and https-proxy-agent (see the generated installation command),
  * and the browsers themselves (`npx playwright install chromium`). The Docker image built from
  * Dockerfile.agent has all of it.
  *

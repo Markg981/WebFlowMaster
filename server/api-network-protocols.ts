@@ -2,6 +2,8 @@ import os from 'os';
 import path from 'path';
 import fs from 'node:fs/promises';
 import WebSocket from 'ws';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { egressProxy, grpcEgressTarget } from './egress-proxy';
 import type { ProtocolResponse } from '@shared/agent-protocol';
 
 /** What a WebSocket test sends, and how long it listens: lines, or {"send": [...], "waitMs": …, "until": n}. */
@@ -44,7 +46,10 @@ export async function runWebSocket(input: { url: string; headers: Record<string,
   return new Promise<ProtocolResponse>((resolve, reject) => {
     let settled = false;
     let closeInfo = { code: 0, reason: '' };
-    const socket = new WebSocket(input.url, { headers: input.headers, handshakeTimeout: input.timeoutMs });
+    const proxy = egressProxy();
+    const agent = proxy ? new HttpsProxyAgent(proxy) : undefined;
+    const socket = new WebSocket(input.url, { headers: input.headers, handshakeTimeout: input.timeoutMs, ...(agent ? { agent } : {}) });
+    socket.once('close', () => agent?.destroy());
     const onAbort = () => socket.terminate();
     input.signal?.addEventListener('abort', onAbort, { once: true });
     socket.once('close', () => input.signal?.removeEventListener('abort', onAbort));
@@ -88,12 +93,15 @@ export async function runWebSocket(input: { url: string; headers: Record<string,
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      socket.terminate();
+      agent?.destroy();
       reject(new Error(`The server refused the WebSocket connection: HTTP ${res.statusCode}.`));
     });
     socket.on('error', (error) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      agent?.destroy();
       reject(new Error(`WebSocket error: ${error.message}`));
     });
   });
@@ -148,7 +156,8 @@ export async function runGrpc(input: { url: URL; proto: string; headers: Record<
       }
     }
     const Client = grpc.makeGenericClientConstructor({ [target.method]: method as never }, target.service);
-    const client = new Client(target.address, target.tls ? grpc.credentials.createSsl() : grpc.credentials.createInsecure());
+    const connection = grpcEgressTarget(target.address, input.url.hostname);
+    const client = new Client(connection.address, target.tls ? grpc.credentials.createSsl() : grpc.credentials.createInsecure(), connection.options);
     const metadata = new grpc.Metadata();
     for (const [key, value] of Object.entries(input.headers)) metadata.set(key.toLowerCase(), value);
     try {

@@ -1,0 +1,248 @@
+# Standalone deployment: do not combine with docker-compose.yml.
+# Fixed private subnets permit destination+port rules without mutable DNS IPs.
+# If they conflict with the host, change both this file and guard.sh together.
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: postgres://wfm_runtime:${WFM_DATABASE_PASSWORD:?Generate a random 32-byte hex secret}@postgres:5432/webflowmaster
+  REDIS_URL: redis://:${REDIS_PASSWORD:?Generate a random 32-byte hex secret}@redis:6379
+  SESSION_SECRET: ${SESSION_SECRET:?Generate a random 32-byte hex secret}
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Generate a random 32-byte hex secret}
+  AGENT_RELAY_SECRET: ${AGENT_RELAY_SECRET:?Generate a random 32-byte hex secret}
+  WEBFLOW_PUBLIC_URL: ${WEBFLOW_PUBLIC_URL:?Set the public HTTPS URL}
+  SESSION_COOKIE_SECURE: "true"
+  WFM_EGRESS_PROXY: http://egress:3128
+  AGENT_RELAY_URL: http://api:5000
+  ARTIFACT_STORE: local
+
+x-guard: &guard
+  build:
+    context: .
+    dockerfile: guard.Dockerfile
+  cap_drop: [ALL]
+  cap_add: [NET_ADMIN]
+  security_opt: [no-new-privileges:true]
+  read_only: true
+  tmpfs: [/run]
+  restart: unless-stopped
+  healthcheck:
+    test: [CMD, test, -f, /run/ready]
+    interval: 2s
+    timeout: 2s
+    retries: 10
+  depends_on:
+    validate:
+      condition: service_completed_successfully
+
+services:
+  validate:
+    build:
+      context: .
+      dockerfile: egress.Dockerfile
+    entrypoint: [node, /opt/policy.mjs, --validate-production]
+    network_mode: none
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    environment:
+      POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Generate a random 32-byte hex secret}
+      WFM_DATABASE_PASSWORD: ${WFM_DATABASE_PASSWORD:?Generate a random 32-byte hex secret}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Generate a random 32-byte hex secret}
+      SESSION_SECRET: ${SESSION_SECRET:?Generate a random 32-byte hex secret}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Generate a random 32-byte hex secret}
+      AGENT_RELAY_SECRET: ${AGENT_RELAY_SECRET:?Generate a random 32-byte hex secret}
+      WEBFLOW_PUBLIC_URL: ${WEBFLOW_PUBLIC_URL:?Set the public HTTPS URL}
+      WFM_SAAS_ALLOWLIST: ${WFM_SAAS_ALLOWLIST:-[]}
+
+  api-guard:
+    <<: *guard
+    environment:
+      GUARD_MODE: api
+    ports: ["127.0.0.1:${WFM_SAAS_PORT:-5090}:5000"]
+    networks:
+      backend:
+        ipv4_address: 172.29.240.20
+        aliases: [api]
+      proxy:
+        ipv4_address: 172.29.241.20
+      # Docker does not publish ports from an internal-only namespace. This
+      # bridge provides ingress only: OUTPUT DROP still blocks new outbound
+      # connections, while ESTABLISHED replies to loopback ingress are allowed.
+      ingress:
+        gw_priority: 1
+
+  worker-guard:
+    <<: *guard
+    environment:
+      GUARD_MODE: worker
+    networks:
+      backend:
+        ipv4_address: 172.29.240.21
+      proxy:
+        ipv4_address: 172.29.241.21
+
+  egress-guard:
+    <<: *guard
+    environment:
+      GUARD_MODE: egress
+    networks:
+      proxy:
+        ipv4_address: 172.29.241.10
+        aliases: [egress]
+      uplink:
+        # Modern Compose makes the uplink the default route, not the internal net.
+        gw_priority: 1
+
+  egress:
+    build:
+      context: .
+      dockerfile: egress.Dockerfile
+    network_mode: service:egress-guard
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    tmpfs: [/tmp, /var/log/squid, /var/spool/squid, /run]
+    environment:
+      WFM_SAAS_ALLOWLIST: ${WFM_SAAS_ALLOWLIST:-[]}
+    restart: unless-stopped
+    depends_on:
+      egress-guard:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:15.14-alpine3.22
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Generate a random 32-byte hex secret}
+      POSTGRES_DB: webflowmaster
+      WFM_DATABASE_PASSWORD: ${WFM_DATABASE_PASSWORD:?Generate a random 32-byte hex secret}
+    networks:
+      backend:
+        ipv4_address: 172.29.240.10
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/10-runtime-role.sh:ro
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U postgres -d webflowmaster"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      validate:
+        condition: service_completed_successfully
+
+  redis:
+    image: valkey/valkey:8.1.3-alpine
+    command: [sh, -c, 'exec valkey-server --appendonly yes --requirepass "$$REDIS_PASSWORD"']
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Generate a random 32-byte hex secret}
+      VALKEYCLI_AUTH: ${REDIS_PASSWORD:?Generate a random 32-byte hex secret}
+    networks:
+      backend:
+        ipv4_address: 172.29.240.11
+    volumes: [redis:/data]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, valkey-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      validate:
+        condition: service_completed_successfully
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    network_mode: service:api-guard
+    # The existing migrator prints DATABASE_URL. Suppress its output rather
+    # than sending production credentials/SQL parameters to container logs.
+    command: [sh, -c, "node dist/apply-migrations.js >/dev/null 2>&1 || { echo 'Schema migration failed; run the migrator in a restricted operator terminal for diagnosis' >&2; exit 1; }"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://postgres:${POSTGRES_ADMIN_PASSWORD:?Generate a random 32-byte hex secret}@postgres:5432/webflowmaster
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Generate a random 32-byte hex secret}
+    depends_on:
+      api-guard:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  grant-runtime:
+    image: postgres:15.14-alpine3.22
+    network_mode: service:api-guard
+    entrypoint: [psql, -h, postgres, -U, postgres, -d, webflowmaster, -f, /opt/grant-runtime.sql]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      PGPASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Generate a random 32-byte hex secret}
+    volumes: ["./grant-runtime.sql:/opt/grant-runtime.sql:ro"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    network_mode: service:api-guard
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment: *app-env
+    volumes: [results:/app/results, visual-baselines:/app/data/visual-baselines]
+    restart: unless-stopped
+    depends_on:
+      api-guard:
+        condition: service_healthy
+      grant-runtime:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      egress:
+        condition: service_started
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.worker
+    network_mode: service:worker-guard
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment: *app-env
+    volumes: [results:/app/results, visual-baselines:/app/data/visual-baselines]
+    restart: unless-stopped
+    depends_on:
+      worker-guard:
+        condition: service_healthy
+      grant-runtime:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+networks:
+  backend:
+    internal: true
+    enable_ipv6: false
+    ipam:
+      config: [{subnet: 172.29.240.0/24}]
+  proxy:
+    internal: true
+    enable_ipv6: false
+    ipam:
+      config: [{subnet: 172.29.241.0/24}]
+  uplink: {}
+  ingress:
+    internal: false
+
+volumes:
+  postgres: {}
+  redis: {}
+  results: {}
+  visual-baselines: {}

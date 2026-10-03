@@ -24,6 +24,12 @@ persone. Ogni punto indica l'impostazione o la pagina che lo spiega. La
 
 ## Rete {#rete}
 
+Per un SaaS condiviso usare il [profilo di isolamento di rete](../admin/saas-network) fornito.
+Impone un'allowlist di domini e porte esatti gestita dall'operatore, un proxy obbligatorio
+e namespace protetti per API e worker. Con allowlist vuota nessun target è raggiungibile.
+I controlli seguenti valgono anche per deployment con protezioni equivalenti predisposte
+dall'operatore.
+
 - PostgreSQL e Redis non sono raggiungibili da internet; si collegano solo il processo web e i
   worker. Redis richiede una password (`redis://:password@host:6379`).
 - Il processo web è l'unico punto di ingresso pubblico. I worker non hanno bisogno di

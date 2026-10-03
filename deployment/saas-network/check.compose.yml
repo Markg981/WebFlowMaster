@@ -1,0 +1,143 @@
+# Disposable boundary harness, never an overlay on a running deployment.
+x-guard: &guard
+  build: {context: ., dockerfile: guard.Dockerfile}
+  cap_drop: [ALL]
+  cap_add: [NET_ADMIN]
+  security_opt: [no-new-privileges:true]
+  read_only: true
+  tmpfs: [/run]
+  healthcheck:
+    test: [CMD, test, -f, /run/ready]
+    interval: 1s
+    retries: 20
+
+services:
+  api-guard:
+    <<: *guard
+    environment: {GUARD_MODE: api}
+    ports: ["127.0.0.1::5000"]
+    networks:
+      backend: {ipv4_address: 172.29.240.20, aliases: [api]}
+      proxy: {ipv4_address: 172.29.241.20}
+      ingress: {gw_priority: 1}
+  worker-guard:
+    <<: *guard
+    environment: {GUARD_MODE: worker}
+    networks:
+      backend: {ipv4_address: 172.29.240.21}
+      proxy: {ipv4_address: 172.29.241.21}
+  egress-guard:
+    <<: *guard
+    environment: {GUARD_MODE: egress}
+    # Shared namespace containers inherit these hosts/resolver files.
+    extra_hosts:
+      - public.wfm.example:11.254.254.10
+      - denied.wfm.example:11.254.254.10
+      - private.wfm.example:172.29.240.10
+      - loopback.wfm.example:127.0.0.1
+      - metadata.wfm.example:169.254.169.254
+      - transition.wfm.example:2002:0bfe:fe0a::1
+    networks:
+      proxy: {ipv4_address: 172.29.241.10, aliases: [egress]}
+      uplink: {gw_priority: 1}
+  egress:
+    build: {context: ., dockerfile: egress.Dockerfile}
+    network_mode: service:egress-guard
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    tmpfs: [/tmp, /run, /var/spool/squid, /var/log/squid]
+    environment:
+      WFM_SAAS_ALLOWLIST: ${WFM_SAAS_ALLOWLIST:-[]}
+    depends_on:
+      egress-guard: {condition: service_healthy}
+  public:
+    image: node:22.21.0-alpine3.22
+    command: [node, /check/fixture.mjs]
+    environment: {FIXTURE_PORTS: "80,443,8443"}
+    volumes: ["./fixture.mjs:/check/fixture.mjs:ro"]
+    networks:
+      uplink: {ipv4_address: 11.254.254.10}
+  postgres:
+    image: node:22.21.0-alpine3.22
+    command: [node, /check/fixture.mjs]
+    environment: {FIXTURE_PORTS: "5432,8080"}
+    volumes: ["./fixture.mjs:/check/fixture.mjs:ro"]
+    networks:
+      backend: {ipv4_address: 172.29.240.10}
+  redis:
+    image: node:22.21.0-alpine3.22
+    command: [node, /check/fixture.mjs]
+    environment: {FIXTURE_PORTS: "6379"}
+    volumes: ["./fixture.mjs:/check/fixture.mjs:ro"]
+    networks:
+      backend: {ipv4_address: 172.29.240.11}
+  api:
+    image: node:22.21.0-alpine3.22
+    network_mode: service:api-guard
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    command: [node, /check/fixture.mjs]
+    environment: {FIXTURE_PORTS: "5000"}
+    volumes:
+      - ./fixture.mjs:/check/fixture.mjs:ro
+      - ./boundary-check.mjs:/check/boundary-check.mjs:ro
+    depends_on:
+      api-guard: {condition: service_healthy}
+  worker:
+    image: node:22.21.0-alpine3.22
+    network_mode: service:worker-guard
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    command: [node, -e, "setInterval(()=>{},60000)"]
+    volumes: ["./boundary-check.mjs:/check/boundary-check.mjs:ro"]
+    depends_on:
+      worker-guard: {condition: service_healthy}
+
+  transport-fixture:
+    profiles: [transports]
+    image: mcr.microsoft.com/playwright:v1.61.1-jammy
+    network_mode: service:public
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    command: [node, /check/transports.mjs, --fixture]
+    environment:
+      NODE_ENV: test
+    volumes:
+      - ${WFM_SAAS_TRANSPORT_BUNDLE:-./fixture.mjs}:/check/transports.mjs:ro
+      - ${WFM_SAAS_NODE_MODULES:-../../node_modules}:/check/node_modules:ro
+    depends_on:
+      public: {condition: service_started}
+
+  transport:
+    profiles: [transports]
+    image: mcr.microsoft.com/playwright:v1.61.1-jammy
+    network_mode: service:worker-guard
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    command: [node, /check/transports.mjs]
+    environment:
+      NODE_ENV: test
+      WFM_EGRESS_PROXY: http://egress:3128
+    volumes:
+      - ${WFM_SAAS_TRANSPORT_BUNDLE:-./fixture.mjs}:/check/transports.mjs:ro
+      - ${WFM_SAAS_NODE_MODULES:-../../node_modules}:/check/node_modules:ro
+    depends_on:
+      worker-guard: {condition: service_healthy}
+      transport-fixture: {condition: service_started}
+
+networks:
+  backend:
+    internal: true
+    enable_ipv6: false
+    ipam: {config: [{subnet: 172.29.240.0/24}]}
+  proxy:
+    internal: true
+    enable_ipv6: false
+    ipam: {config: [{subnet: 172.29.241.0/24}]}
+  uplink:
+    # A synthetic public address routed only inside this disposable network.
+    # No traffic goes to the actual owner of this public prefix.
+    ipam: {config: [{subnet: 11.254.254.0/24}]}
+  ingress:
+    internal: false

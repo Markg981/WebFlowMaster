@@ -1,4 +1,5 @@
 import playwright, { Browser, Page, BrowserContext, Frame } from 'playwright';
+import { browserEgressOptions } from './egress-proxy';
 import { v4 as uuidv4 } from 'uuid'; // For generating session IDs
 import loggerPromise from './logger';
 import type { Logger as WinstonLogger } from 'winston';
@@ -685,7 +686,7 @@ export class PlaywrightService {
 
       const browserEngine = (playwright as any)[browserType];
       if (!browserEngine) throw new Error(`Invalid browser type: ${browserType}`);
-      browser = await browserEngine.launch({ headless: headlessMode });
+      browser = await browserEngine.launch({ ...browserEgressOptions(), headless: headlessMode });
       if (!browser) throw new Error("Failed to launch browser instance.");
       const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; // Standardized UA
       const context = await browser.newContext({ userAgent, ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl) });
@@ -967,6 +968,7 @@ export class PlaywrightService {
       // uses. `--start-maximized` only has an effect with `viewport: null`, which tells
       // Playwright to stop pinning the page to a fixed size and let it fill the window.
       browser = await browserEngine.launch({
+        ...browserEgressOptions(),
         headless: effectiveHeadlessMode,
         args: effectiveHeadlessMode ? undefined : ['--start-maximized'],
       });
@@ -1375,7 +1377,7 @@ export class PlaywrightService {
     selectors: string[],
   ): Promise<Array<{ selector: string; count: number }>> {
     const targetUrl = substituteVariables(url);
-    const browser = await playwright.chromium.launch({ headless: true });
+    const browser = await playwright.chromium.launch({ ...browserEgressOptions(), headless: true });
     try {
       const context = await browser.newContext({
         ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl),
@@ -1525,7 +1527,7 @@ export class PlaywrightService {
       const pageTimeout = userSettings?.playwrightDefaultTimeout || DEFAULT_TIMEOUT;
       resolvedLogger.debug({ message: "PS:executeAdhocSequence - Effective settings", testName, browserType, headlessMode, pageTimeout });
 
-      const browserLaunchOptions = { headless: headlessMode };
+      const browserLaunchOptions = { ...browserEgressOptions(), headless: headlessMode };
       resolvedLogger.debug({ message: "PS:executeAdhocSequence - Attempting to launch browser", testName, browserType, options: browserLaunchOptions });
       const browserEngine = (playwright as any)[browserType];
       if (!browserEngine) throw new Error(`Invalid browser type: ${browserType}`);
@@ -1807,7 +1809,7 @@ export class PlaywrightService {
       resolvedLogger.debug({ message: "PS:detectElements - Attempting to launch browser", browserType, headlessMode });
       const browserEngine = (playwright as any)[browserType];
       if (!browserEngine) throw new Error(`Invalid browser type: ${browserType}`);
-      browser = await browserEngine.launch({ headless: headlessMode });
+      browser = await browserEngine.launch({ ...browserEgressOptions(), headless: headlessMode });
       if (!browser) throw new Error("Failed to launch browser instance for detectElements.");
 
       const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
