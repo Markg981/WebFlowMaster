@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TestHistoryDialog from './TestHistoryDialog';
 
 // The history dialog asks who is looking, to offer publishing actions to editors only.
-vi.mock('@/hooks/use-auth', () => ({ useAuth: () => ({ user: { id: 1, role: 'editor' } }) }));
+let role = 'editor';
+vi.mock('@/hooks/use-auth', () => ({ useAuth: () => ({ user: { id: 1, role } }) }));
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) => {
@@ -80,6 +81,7 @@ function renderDialog(onRestore = vi.fn().mockResolvedValue(undefined)) {
 }
 
 beforeEach(() => {
+  role = 'editor';
   fetchMock.mockReset();
   fetchMock.mockResolvedValue({ ok: true, json: async () => history });
   vi.stubGlobal('fetch', fetchMock);
@@ -188,4 +190,46 @@ describe('TestHistoryDialog', () => {
 
     expect(await screen.findByText('Could not restore that version')).toBeInTheDocument();
   });
+});
+
+describe('typed version history', () => {
+  it.each(['api', 'mobile'] as const)('compares full %s snapshots through the correct route', async (testType) => {
+    fetchMock.mockImplementation(async (url: string) => ({
+      ok: true, json: async () => url.endsWith('/publishing') ? {} : url.endsWith('/versions') ? history : {
+        version: Number(url.split('/').pop()),
+        snapshot: { protocol: 'graphql', authConfig: { token: '{{TOKEN}}' }, assertions: [{ expected: url.endsWith('/2') ? 'old-verdict' : 'new-verdict' }], teardown: { url: '/cleanup' }, deviceName: 'Pixel', steps: [{ action: 'tap', locator: 'login' }] },
+      },
+    }));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><TestHistoryDialog isOpen onClose={vi.fn()} test={{ id: 7, name: 'Checkout' }} testType={testType} onRestore={vi.fn()} /></QueryClientProvider>);
+    await screen.findByTestId('test-history-list');
+    expect(fetchMock.mock.calls.some(([url]) => url === `/api/${testType}-tests/7/versions`)).toBe(true);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Compare with current' })[0]);
+    expect(await screen.findByText(/old-verdict/)).toBeInTheDocument();
+    expect(screen.getByText(/new-verdict/)).toBeInTheDocument();
+    expect(screen.getAllByText(/cleanup/)).toHaveLength(2);
+    expect(screen.getAllByText(/TOKEN/)).toHaveLength(2);
+    expect(screen.getAllByText(/Pixel/)).toHaveLength(2);
+  });
+  it('offers a viewer history without restore actions', async () => {
+    role = 'viewer';
+    renderDialog();
+    await screen.findByTestId('test-history-list');
+    expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
+  });
+});
+
+it('keeps a project viewer read-only even when their organization role is editor', async () => {
+  fetchMock.mockImplementation(async (url: string) => ({
+    ok: true, json: async () => url.endsWith('/publishing') ? {
+      testId: 7, canEdit: false, publishedVersion: 2, latestVersion: 3, runs: 'published',
+      hasUnpublishedChanges: true, reviewRequired: false, pendingReview: null, rollbackTargets: [2],
+    } : history,
+  }));
+  renderDialog();
+  await screen.findByTestId('test-history-list');
+  await screen.findByText('Plans run version 2.');
+  expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Publish version/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Roll back to this' })).toBeNull();
 });

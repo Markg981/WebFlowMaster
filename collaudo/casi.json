@@ -1,5 +1,5 @@
 {
-  "version": 17,
+  "version": 18,
   "areas": [
     {
       "id": "ACC",
@@ -5964,6 +5964,429 @@
         "Ricaricare il ciclo già presente e verificare esiti e note."
       ],
       "expected": "L'importazione segnala un'impronta non valida. Nessun ciclo, esito, nota o definizione del catalogo locale viene modificato."
+    },
+    {
+      "id": "API-29",
+      "area": "API",
+      "title": "Cronologia API: salvataggi e confronto",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API salvato in A. Configurazioni alternative valide per i campi eseguibili.",
+      "steps": [
+        "Aprire la cronologia e annotare la revisione corrente; modificare a turno protocollo, URL, query, header, body, autorizzazione, asserzioni, catture, performance e pulizia, salvando ogni modifica.",
+        "Confrontare la prima e l’ultima revisione e ricaricare."
+      ],
+      "expected": "Ogni configurazione cambiata crea una revisione progressiva con autore e data; il confronto mostra tutti i campi modificati e la cronologia resta persistente."
+    },
+    {
+      "id": "API-30",
+      "area": "API",
+      "title": "Salvataggio API invariato",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API salvato in A. Annotare numero e conteggio revisioni.",
+      "steps": [
+        "Salvare senza modificare la configurazione.",
+        "Ricaricare e ripetere il salvataggio."
+      ],
+      "expected": "Numero e conteggio revisioni restano invariati; nessun duplicato nella cronologia."
+    },
+    {
+      "id": "API-31",
+      "area": "API",
+      "title": "Ripristino API senza pubblicazione",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API salvato in A. Versione 1 pubblicata; copia di lavoro versione 3 diversa dalla 2.",
+      "steps": [
+        "Ripristinare la versione 2 dalla cronologia.",
+        "Confrontare la nuova revisione con la 2 e riaprire il pannello di pubblicazione."
+      ],
+      "expected": "Nasce la versione 4 con configurazione della 2; revisioni 1–3 conservate; pubblicata resta la 1."
+    },
+    {
+      "id": "API-32",
+      "area": "API",
+      "title": "Pubblicazione diretta API",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API salvato in A. Revisione 2 diversa dalla 1; revisioni non obbligatorie.",
+      "steps": [
+        "Pubblicare la revisione 2.",
+        "Ricaricare e avviare un piano contenente solo questo test."
+      ],
+      "expected": "Il pannello indica revisione 2 pubblicata; piano e risultato usano la configurazione della 2 e riportano il numero 2."
+    },
+    {
+      "id": "API-33",
+      "area": "API",
+      "title": "Piano API conserva la versione pubblicata",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API salvato in A. Revisione 1 pubblicata; piano dedicato. La revisione 2 produce un risultato distinguibile dalla 1.",
+      "steps": [
+        "Salvare la configurazione 2 senza pubblicarla.",
+        "Avviare il piano e verificare configurazione eseguita e numero versione nel risultato."
+      ],
+      "expected": "Il piano usa ancora la revisione 1; la copia di lavoro resta alla 2. Il risultato registra versione 1."
+    },
+    {
+      "id": "API-34",
+      "area": "API",
+      "title": "Prova API usa la copia di lavoro",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API salvato in A. Versione 1 pubblicata; versione 2 salvata con URL/asserzione distinguibile.",
+      "steps": [
+        "Dal tester eseguire il test salvato con il comando di prova.",
+        "Controllare richiesta e asserzione, poi il pannello di pubblicazione."
+      ],
+      "expected": "La prova usa la configurazione 2; la pubblicazione resta alla 1."
+    },
+    {
+      "id": "API-35",
+      "area": "API",
+      "title": "Backfill API: prima revisione",
+      "priority": "P1",
+      "actor": "owner.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Copia isolata di database precedente alla 0075 con un test API salvato e un risultato storico senza versione; annotare configurazione e risultato prima dell’aggiornamento.",
+      "steps": [
+        "Applicare la 0075 e aprire cronologia e risultato storico.",
+        "Riapplicare il processo standard di migrazione e ricaricare."
+      ],
+      "expected": "Una sola revisione 1 riproduce la configurazione salvata prima della migrazione; nessuna storia inventata. Il risultato storico rimane senza versione."
+    },
+    {
+      "id": "API-36",
+      "area": "API",
+      "title": "Piano API mai pubblicato senza obbligo di review",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API salvato in A. Mai pubblicato, revisione 2 salvata; review non obbligatoria; piano dedicato.",
+      "steps": [
+        "Avviare il piano e aprire il risultato."
+      ],
+      "expected": "Il piano esegue l’ultima copia salvata e il risultato identifica revisione 2."
+    },
+    {
+      "id": "MOB-25",
+      "area": "MOB",
+      "title": "Cronologia mobile: salvataggi e confronto",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile salvato in A. Configurazioni alternative valide per i campi eseguibili.",
+      "steps": [
+        "Aprire la cronologia e annotare la revisione corrente; modificare a turno app, piattaforma, dispositivo, sistema operativo, grid e step, salvando ogni modifica.",
+        "Confrontare la prima e l’ultima revisione e ricaricare."
+      ],
+      "expected": "Ogni configurazione cambiata crea una revisione progressiva con autore e data; il confronto mostra tutti i campi modificati e la cronologia resta persistente."
+    },
+    {
+      "id": "MOB-26",
+      "area": "MOB",
+      "title": "Salvataggio mobile invariato",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile salvato in A. Annotare numero e conteggio revisioni.",
+      "steps": [
+        "Salvare senza modificare la configurazione.",
+        "Ricaricare e ripetere il salvataggio."
+      ],
+      "expected": "Numero e conteggio revisioni restano invariati; nessun duplicato nella cronologia."
+    },
+    {
+      "id": "MOB-27",
+      "area": "MOB",
+      "title": "Ripristino mobile senza pubblicazione",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile salvato in A. Versione 1 pubblicata; copia di lavoro versione 3 diversa dalla 2.",
+      "steps": [
+        "Ripristinare la versione 2 dalla cronologia.",
+        "Confrontare la nuova revisione con la 2 e riaprire il pannello di pubblicazione."
+      ],
+      "expected": "Nasce la versione 4 con configurazione della 2; revisioni 1–3 conservate; pubblicata resta la 1."
+    },
+    {
+      "id": "MOB-28",
+      "area": "MOB",
+      "title": "Pubblicazione diretta mobile",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile salvato in A. Revisione 2 diversa dalla 1; revisioni non obbligatorie.",
+      "steps": [
+        "Pubblicare la revisione 2.",
+        "Ricaricare e avviare un piano contenente solo questo test."
+      ],
+      "expected": "Il pannello indica revisione 2 pubblicata; piano e risultato usano la configurazione della 2 e riportano il numero 2."
+    },
+    {
+      "id": "MOB-29",
+      "area": "MOB",
+      "title": "Piano mobile conserva la versione pubblicata",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile salvato in A. Revisione 1 pubblicata; piano dedicato. La revisione 2 produce un risultato distinguibile dalla 1.",
+      "steps": [
+        "Salvare la configurazione 2 senza pubblicarla.",
+        "Avviare il piano e verificare configurazione eseguita e numero versione nel risultato."
+      ],
+      "expected": "Il piano usa ancora la revisione 1; la copia di lavoro resta alla 2. Il risultato registra versione 1."
+    },
+    {
+      "id": "MOB-30",
+      "area": "MOB",
+      "title": "Debug mobile congela la copia di lavoro",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile salvato in A. Versione 1 pubblicata; versione 2 salvata. Appium disponibile; configurare una breve attesa prima degli step osservabili.",
+      "steps": [
+        "Richiedere un debug sulla versione 2.",
+        "Salvare subito una versione 3 con step distinguibili prima che il debug li esegua.",
+        "Aprire il risultato del debug."
+      ],
+      "expected": "Il debug richiesto esegue la configurazione 2 congelata alla richiesta e registra versione 2; non incorpora gli step della 3. Pubblicazione resta alla 1."
+    },
+    {
+      "id": "MOB-31",
+      "area": "MOB",
+      "title": "Backfill mobile: prima revisione",
+      "priority": "P1",
+      "actor": "owner.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Copia isolata di database precedente alla 0075 con un test mobile salvato e un risultato storico senza versione; annotare configurazione e risultato prima dell’aggiornamento.",
+      "steps": [
+        "Applicare la 0075 e aprire cronologia e risultato storico.",
+        "Riapplicare il processo standard di migrazione e ricaricare."
+      ],
+      "expected": "Una sola revisione 1 riproduce la configurazione salvata prima della migrazione; nessuna storia inventata. Il risultato storico rimane senza versione."
+    },
+    {
+      "id": "MOB-32",
+      "area": "MOB",
+      "title": "Piano mobile mai pubblicato senza obbligo di review",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile salvato in A. Mai pubblicato, revisione 2 salvata; review non obbligatoria; piano dedicato.",
+      "steps": [
+        "Avviare il piano e aprire il risultato."
+      ],
+      "expected": "Il piano esegue l’ultima copia salvata e il risultato identifica revisione 2."
+    },
+    {
+      "id": "LIB-27",
+      "area": "LIB",
+      "title": "Approvazione API nella pagina condivisa",
+      "priority": "P1",
+      "actor": "editor.a, owner.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API in A; revisioni obbligatorie; autore editor.a e revisore owner.a; entrambi autorizzati al progetto. Revisioni 1 e 2 distinguibili.",
+      "steps": [
+        "Come editor.a richiedere review della versione 1 con nota; poi salvare la versione 2.",
+        "Come owner.a aprire Revisioni, identificare tipo API, autore e versione richiesta; leggere il confronto e approvare/pubblicare.",
+        "Avviare un piano dedicato."
+      ],
+      "expected": "La review pubblica la versione 1 richiesta, senza incorporare la 2; stato e autore della decisione persistono; piano e risultato indicano versione 1."
+    },
+    {
+      "id": "LIB-28",
+      "area": "LIB",
+      "title": "Rifiuto API conserva la pubblicazione",
+      "priority": "P1",
+      "actor": "owner.a, editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API in A; revisioni obbligatorie; autore editor.a e revisore owner.a; entrambi autorizzati al progetto. Versione 1 pubblicata, richiesta della 2 pendente.",
+      "steps": [
+        "Come owner.a rifiutare la richiesta della 2 con motivazione.",
+        "Come editor.a rileggere la review e avviare il piano."
+      ],
+      "expected": "Review rifiutata con motivazione e decisore; nessuna pubblicazione della 2. Il piano continua a eseguire la 1."
+    },
+    {
+      "id": "LIB-29",
+      "area": "LIB",
+      "title": "Rollback API solo a revisione già pubblicata",
+      "priority": "P1",
+      "actor": "owner.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API in A; revisioni obbligatorie; autore editor.a e revisore owner.a; entrambi autorizzati al progetto. Revisioni 1 e 3 pubblicate in precedenza, 3 attualmente pubblicata, 2 mai pubblicata.",
+      "steps": [
+        "Tornare alla revisione 1 dalla cronologia.",
+        "Tentare rollback alla 2 attraverso la richiesta autenticata osservata in Network.",
+        "Avviare il piano."
+      ],
+      "expected": "Rollback alla 1 consentito senza nuova review; rollback alla 2 rifiutato. Copia di lavoro e cronologia conservate; piano indica versione 1."
+    },
+    {
+      "id": "LIB-30",
+      "area": "LIB",
+      "title": "Review obbligatoria blocca piano API non pubblicato",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API in A; revisioni obbligatorie; autore editor.a e revisore owner.a; entrambi autorizzati al progetto. Test mai pubblicato, review pendente e piano dedicato.",
+      "steps": [
+        "Avviare il piano prima della decisione.",
+        "Aprire report e stato della review."
+      ],
+      "expected": "Il test viene saltato come non pubblicato; non esegue la copia di lavoro. La review rimane pendente."
+    },
+    {
+      "id": "LIB-31",
+      "area": "LIB",
+      "title": "Approvazione mobile nella pagina condivisa",
+      "priority": "P1",
+      "actor": "editor.a, owner.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile in A; revisioni obbligatorie; autore editor.a e revisore owner.a; entrambi autorizzati al progetto. Revisioni 1 e 2 distinguibili.",
+      "steps": [
+        "Come editor.a richiedere review della versione 1 con nota; poi salvare la versione 2.",
+        "Come owner.a aprire Revisioni, identificare tipo mobile, autore e versione richiesta; leggere il confronto e approvare/pubblicare.",
+        "Avviare un piano dedicato."
+      ],
+      "expected": "La review pubblica la versione 1 richiesta, senza incorporare la 2; stato e autore della decisione persistono; piano e risultato indicano versione 1."
+    },
+    {
+      "id": "LIB-32",
+      "area": "LIB",
+      "title": "Rifiuto mobile conserva la pubblicazione",
+      "priority": "P1",
+      "actor": "owner.a, editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile in A; revisioni obbligatorie; autore editor.a e revisore owner.a; entrambi autorizzati al progetto. Versione 1 pubblicata, richiesta della 2 pendente.",
+      "steps": [
+        "Come owner.a rifiutare la richiesta della 2 con motivazione.",
+        "Come editor.a rileggere la review e avviare il piano."
+      ],
+      "expected": "Review rifiutata con motivazione e decisore; nessuna pubblicazione della 2. Il piano continua a eseguire la 1."
+    },
+    {
+      "id": "LIB-33",
+      "area": "LIB",
+      "title": "Rollback mobile solo a revisione già pubblicata",
+      "priority": "P1",
+      "actor": "owner.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile in A; revisioni obbligatorie; autore editor.a e revisore owner.a; entrambi autorizzati al progetto. Revisioni 1 e 3 pubblicate in precedenza, 3 attualmente pubblicata, 2 mai pubblicata.",
+      "steps": [
+        "Tornare alla revisione 1 dalla cronologia.",
+        "Tentare rollback alla 2 attraverso la richiesta autenticata osservata in Network.",
+        "Avviare il piano."
+      ],
+      "expected": "Rollback alla 1 consentito senza nuova review; rollback alla 2 rifiutato. Copia di lavoro e cronologia conservate; piano indica versione 1."
+    },
+    {
+      "id": "LIB-34",
+      "area": "LIB",
+      "title": "Review obbligatoria blocca piano mobile non pubblicato",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile in A; revisioni obbligatorie; autore editor.a e revisore owner.a; entrambi autorizzati al progetto. Test mai pubblicato, review pendente e piano dedicato.",
+      "steps": [
+        "Avviare il piano prima della decisione.",
+        "Aprire report e stato della review."
+      ],
+      "expected": "Il test viene saltato come non pubblicato; non esegue la copia di lavoro. La review rimane pendente."
+    },
+    {
+      "id": "SEC-37",
+      "area": "SEC",
+      "title": "API: nessuna autoapprovazione",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API in A con review pendente richiesta da editor.a. Editor autorizzato al progetto.",
+      "steps": [
+        "Come editor.a tentare approvazione dalla pagina Revisioni.",
+        "Ripetere con richiesta autenticata di decisione usando gli strumenti Network."
+      ],
+      "expected": "Nessuna autoapprovazione consentita anche via API; review pendente e pubblicazione invariata."
+    },
+    {
+      "id": "SEC-38",
+      "area": "SEC",
+      "title": "API: isolamento cronologia tra tenant",
+      "priority": "P1",
+      "actor": "owner.b",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API in A con review pendente richiesta da editor.a. Owner.b dispone degli ID test, revisioni e review di A.",
+      "steps": [
+        "Come owner.b richiedere /api/api-tests/ID/versions e dettaglio della versione.",
+        "Tentare ripristino, pubblicazione, rollback e decisione sulla review di A usando richieste autenticate.",
+        "Riaprire la pagina Revisioni in B."
+      ],
+      "expected": "Nessuna configurazione o review di A viene esposta; nessuna operazione muta dati di A; gli elenchi di B non includono i test di A."
+    },
+    {
+      "id": "SEC-39",
+      "area": "SEC",
+      "title": "API: progetto riservato protegge le versioni",
+      "priority": "P1",
+      "actor": "editor.a, owner.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API in A con review pendente richiesta da editor.a. Test in progetto riservato; editor.a escluso dal progetto dopo la richiesta.",
+      "steps": [
+        "Come editor.a aprire cronologia e dettaglio versione con link o richiesta diretta.",
+        "Tentare ripristino, pubblicazione e decisione della review tramite richiesta autenticata.",
+        "Come owner.a verificare configurazione e review."
+      ],
+      "expected": "Accesso e modifiche rifiutati al membro escluso; nessuna configurazione esposta; cronologia, pubblicazione e review conservate."
+    },
+    {
+      "id": "SEC-40",
+      "area": "SEC",
+      "title": "API: viewer non modifica le pubblicazioni",
+      "priority": "P1",
+      "actor": "viewer.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test API in A con review pendente richiesta da editor.a. Viewer.a può leggere il progetto.",
+      "steps": [
+        "Come viewer.a leggere la cronologia.",
+        "Tentare ripristino, pubblicazione, rollback, richiesta review e decisione tramite richieste autenticate."
+      ],
+      "expected": "La cronologia accessibile è leggibile; tutte le operazioni di modifica riservate agli editor sono rifiutate, senza cambi a versione, review o pubblicazione."
+    },
+    {
+      "id": "SEC-41",
+      "area": "SEC",
+      "title": "mobile: nessuna autoapprovazione",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile in A con review pendente richiesta da editor.a. Editor autorizzato al progetto.",
+      "steps": [
+        "Come editor.a tentare approvazione dalla pagina Revisioni.",
+        "Ripetere con richiesta autenticata di decisione usando gli strumenti Network."
+      ],
+      "expected": "Nessuna autoapprovazione consentita anche via API; review pendente e pubblicazione invariata."
+    },
+    {
+      "id": "SEC-42",
+      "area": "SEC",
+      "title": "mobile: isolamento cronologia tra tenant",
+      "priority": "P1",
+      "actor": "owner.b",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile in A con review pendente richiesta da editor.a. Owner.b dispone degli ID test, revisioni e review di A.",
+      "steps": [
+        "Come owner.b richiedere /api/mobile-tests/ID/versions e dettaglio della versione.",
+        "Tentare ripristino, pubblicazione, rollback e decisione sulla review di A usando richieste autenticate.",
+        "Riaprire la pagina Revisioni in B."
+      ],
+      "expected": "Nessuna configurazione o review di A viene esposta; nessuna operazione muta dati di A; gli elenchi di B non includono i test di A."
+    },
+    {
+      "id": "SEC-43",
+      "area": "SEC",
+      "title": "mobile: progetto riservato protegge le versioni",
+      "priority": "P1",
+      "actor": "editor.a, owner.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile in A con review pendente richiesta da editor.a. Test in progetto riservato; editor.a escluso dal progetto dopo la richiesta.",
+      "steps": [
+        "Come editor.a aprire cronologia e dettaglio versione con link o richiesta diretta.",
+        "Tentare ripristino, pubblicazione e decisione della review tramite richiesta autenticata.",
+        "Come owner.a verificare configurazione e review."
+      ],
+      "expected": "Accesso e modifiche rifiutati al membro escluso; nessuna configurazione esposta; cronologia, pubblicazione e review conservate."
+    },
+    {
+      "id": "SEC-44",
+      "area": "SEC",
+      "title": "mobile: viewer non modifica le pubblicazioni",
+      "priority": "P1",
+      "actor": "viewer.a",
+      "preconditions": "Migrazione 0075 applicata; nuovo ciclo versione 18. Test mobile in A con review pendente richiesta da editor.a. Viewer.a può leggere il progetto.",
+      "steps": [
+        "Come viewer.a leggere la cronologia.",
+        "Tentare ripristino, pubblicazione, rollback, richiesta review e decisione tramite richieste autenticate."
+      ],
+      "expected": "La cronologia accessibile è leggibile; tutte le operazioni di modifica riservate agli editor sono rifiutate, senza cambi a versione, review o pubblicazione."
     }
   ],
   "presentation": {

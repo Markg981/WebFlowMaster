@@ -84,3 +84,13 @@ describe('PublishingPanel', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 });
+
+describe('typed publishing routes', () => {
+  it.each(['api', 'mobile'] as const)('publishes %s versions', async (testType) => {
+    const onChanged = vi.fn();
+    render(<PublishingPanel state={base} testType={testType} currentUserId={1} canEdit onChanged={onChanged} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Publish version 5' }));
+    await waitFor(() => expect(onChanged).toHaveBeenCalled());
+    expect(fetchMock.mock.calls[0][0]).toBe(`/api/${testType}-tests/9/publish`);
+  });
+});

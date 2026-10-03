@@ -53,12 +53,18 @@ del piano.
 
 ## Cronologia e versioni {#cronologia-e-versioni}
 
-Ogni salvataggio di un test è una **versione**, numerata da 1. La **Cronologia** le mostra dalla
-più recente, con chi ha salvato ciascuna, quanti step aveva e come sono andati i run che l'hanno
-usata.
+I test web, API e mobile hanno **versioni** proprie, numerate da 1. Salvare una configurazione
+eseguibile modificata crea una revisione; salvare una configurazione invariata non ne crea una.
+La **Cronologia** mostra le revisioni dalla più recente, con autore e data, e permette il confronto.
+Il confronto API include protocollo, richiesta, autorizzazione, asserzioni, catture, performance e
+pulizia; quello mobile include piattaforma, app, dispositivo, sistema operativo, grid e step.
 
-**Ripristina** rimette una versione precedente salvandola di nuovo come versione più recente:
-nulla in mezzo viene rimosso, così anche il lavoro di oggi resta recuperabile.
+**Ripristina** salva la configurazione precedente come nuova revisione della copia di lavoro e
+conserva tutte le revisioni intermedie. Non la pubblica e non cambia la versione eseguita dai piani.
+
+I test API e mobile esistenti partono dalla versione 1 con la configurazione salvata al momento
+della migrazione. Le modifiche precedenti non sono ricostruibili; i risultati storici privi di
+versione restano senza versione.
 
 ## Test come file {#test-come-file}
 
@@ -89,7 +95,7 @@ dicono quanti sono.
 
 ## Pubblicazione e revisioni {#pubblicazione-e-revisioni}
 
-Un test salvato è una **copia di lavoro**. I piani eseguono la versione **pubblicata** quando ce
+Queste regole valgono per i test **web, API e mobile**. Un test salvato è una **copia di lavoro**. I piani eseguono la versione **pubblicata** quando ce
 n'è una; se un test non è mai stato pubblicato, i piani eseguono l'ultimo salvataggio — a meno che
 l'organizzazione non richieda le revisioni.
 
@@ -101,13 +107,20 @@ modifiche più recenti:
   precedenza.
 
 Quando un owner attiva **Richiedi una revisione per pubblicare** (in **Revisioni**), pubblicare una
-versione richiede l'approvazione di un altro membro:
+versione richiede l'approvazione di un altro membro autorizzato. La pagina **Revisioni** comprende
+tutti e tre i tipi di test:
 
 1. L'autore usa **Chiedi la revisione della versione N**, con una nota per chi revisiona.
 2. Un altro membro apre **Revisioni**, legge la modifica e sceglie **Approva e pubblica**, oppure
    **Rifiuta** con un commento che dice cosa cambiare. Nessuno approva le proprie modifiche.
 3. Finché nulla è pubblicato, i piani saltano il test. Tornare a una versione già stata in
    produzione resta possibile senza revisione.
+
+Cronologia, pubblicazione e revisione rispettano organizzazione e accesso ai progetti riservati.
+Modificare un test già pubblicato lascia i piani sulla revisione pubblicata. Una prova diretta API
+o un debug mobile usa la copia di lavoro salvata; il run mobile congela quella configurazione alla
+richiesta, così una modifica successiva non cambia un run già richiesto. I risultati dei piani
+registrano la revisione eseguita.
 
 ## Suite {#suite}
 

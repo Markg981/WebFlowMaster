@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { Pencil, Play, Plus, ShieldAlert, Shuffle, Trash2 } from 'lucide-react';
+import { History, Pencil, Play, Plus, ShieldAlert, Shuffle, Trash2 } from 'lucide-react';
 import { MOBILE_GRID_PROVIDERS, MOBILE_PLATFORM_LABELS, type MobileRunStatus } from '@shared/mobile';
 import MobileTestDialog, { type GridOption, type MobileTestRow } from '@/components/mobile/MobileTestDialog';
 import MobileRunDialog from '@/components/mobile/MobileRunDialog';
@@ -20,6 +20,7 @@ import TagPicker, { type TagRef } from '@/components/tags/TagPicker';
 import QuarantineDialog from '@/components/reports/QuarantineDialog';
 import type { QuarantineRow } from '@/components/reports/QuarantinedTestsCard';
 import type { FlakySummary } from '@/components/reports/FlakyTestsCard';
+import TestHistoryDialog from '@/components/tests/TestHistoryDialog';
 import CommentsPanel from '@/components/tests/CommentsPanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -44,6 +45,7 @@ const MobileTestsPage: React.FC = () => {
   const [deleting, setDeleting] = useState<MobileTestRow | null>(null);
   const [taggingId, setTaggingId] = useState<number | null>(null);
   const [quarantining, setQuarantining] = useState<MobileTestRow | null>(null);
+  const [historyFor, setHistoryFor] = useState<MobileTestRow | null>(null);
   const [commentsFor, setCommentsFor] = useState<MobileTestRow | null>(null);
 
   const { data: tests = [], isLoading } = useQuery<ListedTest[]>({
@@ -238,6 +240,7 @@ const MobileTestsPage: React.FC = () => {
                       {test.lastRun ? `${statusLabel(test.lastRun.status)} · ${new Date(test.lastRun.createdAt).toLocaleString()}` : '—'}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap space-x-1">
+                      <Button variant="ghost" size="sm" onClick={() => setHistoryFor(test)} aria-label={t('testHistory.openFor', 'History of {{name}}', { name: test.name })}><History className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="sm" onClick={() => setCommentsFor(test)}>{t('comments.title', 'Comments')}</Button>
                       {canEdit && (
                         <>
@@ -271,6 +274,13 @@ const MobileTestsPage: React.FC = () => {
         </CardContent>
       </Card>
 
+      {historyFor && <TestHistoryDialog key={historyFor?.id ?? 'closed'} isOpen={historyFor !== null} onClose={() => setHistoryFor(null)} test={historyFor} testType="mobile"
+        onRestore={async version => {
+          const response = await fetch(`/api/mobile-tests/${historyFor!.id}/versions/${version}/restore`, { method: 'POST', credentials: 'include' });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.error ?? t('testHistory.restoreError', 'Could not restore that version.'));
+          await refresh();
+        }} />}
       <MobileTestDialog
         isOpen={editing !== null}
         test={editing && editing !== 'new' ? editing : null}

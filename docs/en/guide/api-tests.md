@@ -162,3 +162,9 @@ each import.
 **Save Test** asks for a name and, optionally, a project; **Save Changes** updates the test you
 opened from **Saved Tests**. A saved API test can be added to test plans, and used as a
 [precondition](./web-tests#preconditions) of a web test.
+
+## Versions and publication
+
+Saved tests have [history, comparison and restore](./organizing#history-and-versions).
+[Publication and reviews](./organizing#publishing-and-reviews) choose the revision plans execute;
+saving or restoring a working copy leaves an existing publication in place. **Test** runs the saved API working copy.

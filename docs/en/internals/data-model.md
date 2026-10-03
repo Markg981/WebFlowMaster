@@ -17,7 +17,9 @@ erDiagram
   projects ||--o{ tests : contains
   projects ||--o{ api_tests : contains
   projects ||--o{ project_elements : keeps
-  tests ||--o{ test_versions : "history of"
+  tests |o--o{ test_versions : "history of"
+  api_tests |o--o{ test_versions : "history of"
+  mobile_tests |o--o{ test_versions : "history of"
   test_plans ||--o{ test_plan_selected_tests : selects
   test_plan_selected_tests }o--|| tests : "UI test"
   test_plan_selected_tests }o--|| api_tests : "API test"
@@ -74,10 +76,10 @@ The complete column-level diagrams of all tables are in [Database schema](./data
 | `detected_elements` | Elements found on a page for one test (the builder's palette). |
 | `project_elements` | The element repository: one definition per element per project, which steps may reference; healing updates it once for every test. |
 | `step_groups` | Named, reusable step sequences called from tests; expanded at run time. |
-| `api_tests` | API tests: method, URL, headers, body, authentication, assertions, extractions, and the optional performance check (repetitions and response-time thresholds). |
+| `api_tests` | API tests: method, URL, headers, body, authentication, assertions, extractions, and the optional performance check (repetitions and response-time thresholds), plus the published-version pointer. |
 | `api_test_history` | Requests sent from the API tester, for the history panel. |
 | `tags` / `test_tags` | An organization's own vocabulary, attached to tests; drives dynamic suites. |
-| `test_versions` | Every saved state of a test. `app_user` cannot delete from it: the history cannot be rewritten. |
+| `test_versions` | Immutable executable revisions of web, API and mobile tests; typed references identify the test and `snapshot` holds the API/mobile configuration. `app_user` cannot delete from it: the history cannot be rewritten. |
 | `test_publications` | Which version was published or rolled back, when and by whom (select and insert only). |
 | `test_reviews` | Review requests and decisions, when the organization requires review. |
 | `test_quarantines` | Tests set aside as unreliable, with reason, evidence and release. |
@@ -85,8 +87,13 @@ The complete column-level diagrams of all tables are in [Database schema](./data
 | `test_data_sets` | Shared test data: a name, columns and rows. Each column of the first row is `{{data.<name>.<column>}}` in every test; a UI test runs over the rows when its `dataset` holds the marker `[{"$sharedSet": "<id>"}]`, expanded just before it runs (`server/test-data.ts`). |
 | `excel_sequences_map` | Test Manager: rows of an imported spreadsheet mapped to saved sequences. |
 | `test_runs` | Results of single test runs started from the builder (not plan runs). |
-| `mobile_tests` / `mobile_test_runs` | Tests of native Android and iOS apps — platform, app on the grid (`bs://`, `lt://`), device, steps with native locators — and their runs on a grid's device, step by step, with the final screenshot and the session's page (`shared/mobile.ts`, `server/mobile-runner.ts`). |
+| `mobile_tests` / `mobile_test_runs` | Tests of native Android and iOS apps — platform, app on the grid (`bs://`, `lt://`), device, steps with native locators — and their runs on a grid's device. Tests have a published-version pointer; debug runs retain `test_version` and `test_snapshot` from request creation, with step results, the final screenshot and the session's page (`shared/mobile.ts`, `server/mobile-runner.ts`). |
 | `requirements` / `requirement_tests` | Epics, user stories and requirements (typed in or imported from an issue tracker, with their parent) and the tests that cover them. Coverage is never stored: it is worked out from the tests' latest results (`shared/requirements.ts`). |
+
+
+API/mobile plan results use `report_test_case_results.test_version` for the selected revision.
+Direct mobile debug requests retain their saved working copy in `mobile_test_runs.test_snapshot`
+and its revision in `test_version`, before background execution starts.
 
 ## Planning and running
 

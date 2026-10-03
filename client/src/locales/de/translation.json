@@ -2910,7 +2910,12 @@
     "approve": "Genehmigen und veröffentlichen",
     "reject": "Ablehnen",
     "reasonRequired": "Geben Sie an, was sich ändern muss, bevor Sie ablehnen.",
-    "notYours": "Über diese Änderung muss jemand anderes als ihr Autor entscheiden."
+    "notYours": "Über diese Änderung muss jemand anderes als ihr Autor entscheiden.",
+    "kinds": {
+      "ui": "UI",
+      "api": "API",
+      "mobile": "Mobile"
+    }
   },
   "testHistory": {
     "published": "Veröffentlicht",
@@ -2936,7 +2941,13 @@
     "noVerdict_other": "{{count}} kamen nie zu einem Ergebnis",
     "restore": "Wiederherstellen",
     "unversioned_one": "{{count}} frühere Ausführung dieses Tests hat nicht festgehalten, welche Version sie verwendet hat.",
-    "unversioned_other": "{{count}} frühere Ausführungen dieses Tests haben nicht festgehalten, welche Version sie verwendet haben."
+    "unversioned_other": "{{count}} frühere Ausführungen dieses Tests haben nicht festgehalten, welche Version sie verwendet haben.",
+    "compare": "Compare with current",
+    "comparison": "Version comparison",
+    "compareError": "Could not load the versions.",
+    "open": "History",
+    "openFor": "History of {{name}}",
+    "restoreError": "Could not restore that version."
   },
   "runners": {
     "loading": "Wird geladen…",

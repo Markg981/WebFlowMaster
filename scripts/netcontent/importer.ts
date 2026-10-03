@@ -1,8 +1,24 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 import type { privilegedDb as DbType } from '../../server/db';
-import { users, projects, apiTests, type InsertApiTest } from '@shared/schema';
+import { users, projects, apiTests, testVersions, type InsertApiTest } from '@shared/schema';
+import { typedSnapshotOf, describeTypedChange } from '@shared/test-versioning';
 
 type Database = typeof DbType;
+type ImportTransaction = Parameters<Parameters<Database['transaction']>[0]>[0];
+
+// The CLI runs without HTTP tenancy middleware, but saves the definition and its history
+// in the same transaction, using the same snapshot fields as interactive saves.
+async function recordImportedVersion(tx: ImportTransaction, row: typeof apiTests.$inferSelect, userId: number) {
+  await tx.select({ id: apiTests.id }).from(apiTests).where(eq(apiTests.id, row.id)).for('update');
+  const [latest] = await tx.select().from(testVersions).where(eq(testVersions.apiTestId, row.id))
+    .orderBy(desc(testVersions.version)).limit(1);
+  const snapshot = typedSnapshotOf('api', row);
+  const summary = describeTypedChange(latest?.snapshot ?? null, snapshot);
+  if (!summary) return;
+  await tx.insert(testVersions).values({ organizationId: row.organizationId, apiTestId: row.id,
+    version: (latest?.version ?? 0) + 1, name: row.name, url: row.url,
+    sequence: [], elements: [], snapshot, summary, createdBy: userId });
+}
 
 export interface ImportSummary {
   created: number;
@@ -78,21 +94,27 @@ export async function importApiTests(
     const key = keyOf(rec.method as string, rec.url as string);
     const prev = existingByKey.get(key);
     if (!prev) {
-      await database.insert(apiTests).values(rec);
+      await database.transaction(async (tx) => {
+        const [row] = await tx.insert(apiTests).values(rec).returning();
+        await recordImportedVersion(tx, row, rec.userId);
+      });
       summary.created++;
     } else {
       // Preserve user-owned fields (assertions, filled param values, auth); refresh
       // structural ones; add newly-appeared params.
       const mergedParams = mergeQueryParams(prev.queryParams, rec.queryParams);
-      await database
-        .update(apiTests)
-        .set({
-          module: rec.module,
-          featureArea: rec.featureArea,
-          queryParams: mergedParams,
-          updatedAt: new Date(),
-        })
-        .where(eq(apiTests.id, prev.id));
+      await database.transaction(async (tx) => {
+        const [row] = await tx
+          .update(apiTests)
+          .set({
+            module: rec.module,
+            featureArea: rec.featureArea,
+            queryParams: mergedParams,
+            updatedAt: new Date(),
+          })
+          .where(eq(apiTests.id, prev.id)).returning();
+        await recordImportedVersion(tx, row, rec.userId);
+      });
       summary.updated++;
     }
   }

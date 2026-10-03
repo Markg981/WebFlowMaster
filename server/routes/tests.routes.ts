@@ -7,7 +7,7 @@ import loggerPromise from "../logger";
 import { BrowserTaskError, browserTasks } from "../browser-tasks";
 import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
-import { recordTestVersion } from "../test-version-store";
+import { recordTestVersion, recordTypedTestVersion } from "../test-version-store";
 import { tagsOfTests } from "../test-tags";
 import { manualSequenceProblem } from "@shared/manual-tests";
 import { ImportError, MAX_IMPORTED_TESTS, importApiDescription } from "../api-import";
@@ -386,6 +386,10 @@ router.post("/api/api-tests/import", requireRole('editor'), async (req, res) => 
                 .insert(apiTests)
                 .values(rows.map((row) => ({ ...row, userId: req.user!.id, organizationId: req.user!.organizationId })))
                 .returning();
+            for (const row of inserted) await recordTypedTestVersion(tx, {
+                testType: 'api', testId: row.id, organizationId: req.user!.organizationId,
+                userId: req.user!.id, test: row,
+            });
             await recordAudit(tx, {
                 action: AUDIT_ACTIONS.API_TESTS_IMPORTED,
                 actor: auditActor(req),
@@ -488,6 +492,10 @@ router.post("/api/api-tests", requireRole('editor'), async (req, res) => {
             .insert(apiTests)
             .values({ ...parseResult.data, userId: req.user!.id, organizationId: req.user!.organizationId })
             .returning();
+          await recordTypedTestVersion(tx, {
+            testType: 'api', testId: rows[0].id, organizationId: req.user!.organizationId,
+            userId: req.user!.id, test: rows[0],
+          });
           await recordAudit(tx, {
             action: AUDIT_ACTIONS.API_TEST_CREATED,
             actor: auditActor(req),
@@ -524,6 +532,10 @@ router.put("/api/api-tests/:id", requireRole('editor'), async (req, res) => {
             .where(eq(apiTests.id, id))
             .returning();
           if (rows.length > 0) {
+            await recordTypedTestVersion(tx, {
+              testType: 'api', testId: rows[0].id, organizationId: req.user!.organizationId,
+              userId: req.user!.id, test: rows[0],
+            });
             await recordAudit(tx, {
               action: AUDIT_ACTIONS.API_TEST_UPDATED,
               actor: auditActor(req),
@@ -727,8 +739,13 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
         }
         if (!parsed.data.dryRun) {
           const { projectId: _projectId, ...fields } = candidate.data;
-          if (existing) await tx.update(apiTests).set({ ...fields, updatedAt: new Date() }).where(eq(apiTests.id, existing.id));
-          else await tx.insert(apiTests).values({ ...candidate.data, userId: req.user!.id, organizationId: req.user!.organizationId });
+          const [row] = existing
+            ? await tx.update(apiTests).set({ ...fields, updatedAt: new Date() }).where(eq(apiTests.id, existing.id)).returning()
+            : await tx.insert(apiTests).values({ ...candidate.data, userId: req.user!.id, organizationId: req.user!.organizationId }).returning();
+          if (row) await recordTypedTestVersion(tx, {
+            testType: 'api', testId: row.id, organizationId: req.user!.organizationId,
+            userId: req.user!.id, test: row,
+          });
         }
         results.push({ kind: 'api_test', name, outcome: existing ? 'updated' : 'created' });
       }

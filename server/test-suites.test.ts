@@ -242,7 +242,8 @@ describe('rows that point across organizations', () => {
     // person (0042), a plan's browser grid (0049), the five of requirements and their tests (0050), the six of test management (0051), the four of mobile tests and their runs (0052), the three of mobile tests in plans (0053), the three of mobile tests in suites, requirements and case links (0054), the one of mobile tests' tags (0056), the one of their quarantines (0058), the account of a SCIM provisioning row (0066), and the run of a shared run's work item (0067), and the tag of an impact rule (0068).
     // Comments have five tenant-consistent references; personal layouts have one (0071–0072).
     // SAML sessions belong to their user's tenant (0073); mail events belong to their delivery's tenant (0074).
-    expect(rows.length).toBe(80);
+    // API/mobile version, publication and review targets add six guards (0075).
+    expect(rows.length).toBe(86);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });
 

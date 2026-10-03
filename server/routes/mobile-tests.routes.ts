@@ -14,6 +14,8 @@ import { toGridConfig } from "../browser-grids";
 import { executeMobileRun, uploadApp, type RunDeps } from "../mobile-runner";
 import { InspectorError, closeInspector, inspectorAct, inspectorSnapshot, openInspector } from "../mobile-inspector";
 import { tagsOfTests } from "../test-tags";
+import { currentContentOf, recordTypedTestVersion } from "../test-version-store";
+import { typedSnapshotOf } from "@shared/test-versioning";
 import loggerPromise from "../logger";
 
 /**
@@ -69,6 +71,7 @@ const runColumns = {
   startedAt: mobileTestRuns.startedAt,
   finishedAt: mobileTestRuns.finishedAt,
   createdAt: mobileTestRuns.createdAt,
+  testVersion: mobileTestRuns.testVersion,
 };
 
 router.get("/api/mobile-tests", requireRole("viewer"), async (_req, res) => {
@@ -140,6 +143,9 @@ router.post("/api/mobile-tests", requireRole("editor"), async (req, res) => {
         .insert(mobileTests)
         .values({ ...parsed.data, osVersion: parsed.data.osVersion || null, gridId: parsed.data.gridId || null, projectId: parsed.data.projectId ?? null, organizationId: getTenantOrgId()!, createdBy: req.user!.id })
         .returning();
+      await recordTypedTestVersion(tx, {
+        testType: 'mobile', testId: row.id, organizationId: getTenantOrgId()!, userId: req.user!.id, test: row,
+      });
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.MOBILE_TEST_CREATED,
         actor: auditActor(req),
@@ -169,6 +175,9 @@ router.put("/api/mobile-tests/:id", requireRole("editor"), async (req, res) => {
         .where(eq(mobileTests.id, id))
         .returning();
       if (!row) throw new MobileError(404, "Mobile test not found.");
+      await recordTypedTestVersion(tx, {
+        testType: 'mobile', testId: row.id, organizationId: getTenantOrgId()!, userId: req.user!.id, test: row,
+      });
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.MOBILE_TEST_UPDATED,
         actor: auditActor(req),
@@ -219,7 +228,9 @@ router.post("/api/mobile-tests/:id/runs", requireRole("editor"), async (req, res
     const organizationId = getTenantOrgId()!;
     const run = await withTenantTransaction(async (tx) => {
       const test = await editableTest(tx, id);
-      if (test.steps.length === 0) throw new MobileError(400, "The test has no steps to run.");
+      const saved = (await currentContentOf(tx, [id], 'mobile')).get(id);
+      const definition = { ...test, ...saved?.snapshot };
+      if (definition.steps.length === 0) throw new MobileError(400, "The test has no steps to run.");
       const grid = await mobileGrid(tx, parsed.data.gridId);
       if (parsed.data.environmentId) {
         const [environment] = await tx.select({ id: environments.id }).from(environments).where(eq(environments.id, parsed.data.environmentId)).limit(1);
@@ -234,8 +245,10 @@ router.post("/api/mobile-tests/:id/runs", requireRole("editor"), async (req, res
           gridId: grid.id,
           environmentId: parsed.data.environmentId ?? null,
           status: "queued",
-          device: [test.deviceName, test.osVersion].filter(Boolean).join(" · "),
+          device: [definition.deviceName, definition.osVersion].filter(Boolean).join(" · "),
           requestedBy: req.user!.id,
+          testVersion: saved?.version ?? null,
+          testSnapshot: saved?.snapshot ?? typedSnapshotOf('mobile', test),
         })
         .returning();
       await recordAudit(tx, {

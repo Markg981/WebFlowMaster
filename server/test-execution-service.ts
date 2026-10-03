@@ -55,7 +55,7 @@ import {
 } from './notifications';
 import { fileFailure, loadTracker, markResolved } from './issue-store';
 import { publishExecution } from './test-management';
-import { currentVersionsOf } from './test-version-store';
+import { currentContentOf, currentVersionsOf } from './test-version-store';
 import { publishedContentOf, reviewRequired } from './test-publishing';
 import { failuresOf, openQuarantinesOf, refKey } from './test-quarantine';
 import { describeNetworkFailures, type NetworkSummary } from '@shared/network';
@@ -949,7 +949,7 @@ async function runTestPlanJobInTenant(
   // published version, laid over the working copy loaded above, and its results name that
   // version. Where the organization requires review, a test never published does not run at all:
   // running an unreviewed working copy is what the policy exists to prevent.
-  const unpublishedUnderPolicy = new Map<number, string>();
+  const unpublishedUnderPolicy = new Map<string, string>();
   if (uiTestIds.length > 0) {
     const { published, required } = await withTenantTransaction(async (tx) => ({
       published: await publishedContentOf(tx, uiTestIds),
@@ -973,7 +973,7 @@ async function runTestPlanJobInTenant(
     if (required) {
       for (const testId of uiTestIds) {
         if (!published.has(testId)) {
-          unpublishedUnderPolicy.set(testId, 'Not published: this organization runs reviewed, published versions only.');
+          unpublishedUnderPolicy.set(`ui:${testId}`, 'Not published: this organization runs reviewed, published versions only.');
         }
       }
     }
@@ -1018,6 +1018,39 @@ async function runTestPlanJobInTenant(
     );
     rows.forEach((row) => mobileTestsMap.set(row.test.id, { test: row.test as MobileTest, grid: (row.grid as BrowserGrid | null) ?? null }));
   }
+
+  // Each protocol has its own id space; API 4 and mobile 4 are different tests.
+  const apiVersionsInRun = new Map<number, number>();
+  const mobileVersionsInRun = new Map<number, number>();
+  await withTenantTransaction(async (tx) => {
+    const required = await reviewRequired(tx, executionRecord[0].organizationId);
+    for (const [kind, ids, versions] of [
+      ['api', apiTestIds, apiVersionsInRun],
+      ['mobile', mobileTestIds, mobileVersionsInRun],
+    ] as const) {
+      if (!ids.length) continue;
+      const current = await currentContentOf(tx, ids, kind);
+      const published = await publishedContentOf(tx, ids, kind);
+      // Pin a saved working definition and its version together, then prefer the publication.
+      for (const [id, content] of [...current, ...published]) {
+        if (kind === 'api') {
+          const working = apiTestsMap.get(id);
+          if (working) apiTestsMap.set(id, { ...working, ...content.snapshot } as ApiTest);
+        } else {
+          const working = mobileTestsMap.get(id);
+          if (working) {
+            const test = { ...working.test, ...content.snapshot } as MobileTest;
+            // The published version can name a different grid from the working copy.
+            const [grid] = test.gridId ? await tx.select().from(browserGrids).where(eq(browserGrids.id, test.gridId)).limit(1) : [];
+            mobileTestsMap.set(id, { test, grid: grid ?? null });
+          }
+        }
+        versions.set(id, content.version);
+      }
+      if (required) for (const id of ids) if (!published.has(id))
+        unpublishedUnderPolicy.set(`${kind}:${id}`, 'Not published: this organization runs reviewed, published versions only.');
+    }
+  });
 
   // Tests in quarantine run like the rest; their failures are recorded and do not count against
   // the run (server/test-quarantine.ts). Read as the run starts, like the published versions above.
@@ -1182,7 +1215,8 @@ async function runTestPlanJobInTenant(
       (browserChoice ? ` on ${describeBrowser(browserChoice)}` : '') + (locale ? ` in ${locale}` : '');
     // A plan policy, a cancellation or the time limit: either way this test does not start. Nor
     // does a test with no published version where the organization requires review.
-    const notPublished = link.testType === 'ui' && link.testId ? unpublishedUnderPolicy.get(link.testId) : undefined;
+    const referencedId = link.testType === 'ui' ? link.testId : link.testType === 'api' ? link.apiTestId : link.mobileTestId;
+    const notPublished = referencedId ? unpublishedUnderPolicy.get(`${link.testType}:${referencedId}`) : undefined;
     const inQuarantine =
       link.testType === 'ui'
         ? !!link.testId && quarantined.has(refKey({ type: 'ui', id: link.testId }))
@@ -1468,10 +1502,8 @@ async function runTestPlanJobInTenant(
       // With a language, the language too: "chromium · it-IT" (shared/locales.ts).
       // A mobile test names the device it ran on instead.
       browser: mobile ? mobileDeviceLabel(mobile.test) : passLabel(browserChoice?.label, locale),
-      // Null for an API test, which has no version history, and for a UI test saved before
-      // versions were recorded. Either way the row says it does not know rather than
-      // claiming version 1.
-      testVersion: link.testType === 'ui' && link.testId ? testVersionsInRun.get(link.testId) ?? null : null,
+      // The version actually executed, including published API/mobile content.
+      testVersion: referencedId ? (link.testType === 'ui' ? testVersionsInRun : link.testType === 'api' ? apiVersionsInRun : mobileVersionsInRun).get(referencedId) ?? null : null,
       status: reportStatus,
       attempts,
       quarantined: inQuarantine,

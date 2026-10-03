@@ -33,7 +33,7 @@ export default defineConfig({
       // Overridden per file by the setup file above (to memory://) unless it names a real
       // Postgres, which the RLS-under-a-non-superuser CI job does. Kept as the default so a
       // bare `npx vitest run` still has something valid.
-      DATABASE_URL: 'memory://',
+      DATABASE_URL: process.env.DATABASE_URL ?? 'memory://',
       // setupAuth requires these; provide test values so route-registering suites
       // don't throw. Sessions use an in-memory store under NODE_ENV=test.
       SESSION_SECRET: 'test-session-secret',

@@ -297,6 +297,24 @@ describe('a mobile test', () => {
 });
 
 describe('running on a device', () => {
+  it('pins a delayed debug run to its saved working copy and version', async () => {
+    const { mobileRunner } = await import('./mobile-tests.routes');
+    const start = mobileRunner.start;
+    mobileRunner.start = async () => {};
+    try {
+      const id = (await request(app).post('/api/mobile-tests').send(SHOP).expect(201)).body.id;
+      const queued = (await request(app).post(`/api/mobile-tests/${id}/runs`).send({gridId:browserstack,environmentId:staging}).expect(202)).body;
+      expect(queued.testVersion).toBe(1);
+      await request(app).put(`/api/mobile-tests/${id}`).send({...SHOP,deviceName:'Samsung Galaxy S24',steps:[]}).expect(200);
+      await start(queued.id, organizationId, editor.id);
+      const run = await finished(queued.id);
+      expect(run).toMatchObject({status:'passed',testVersion:1,device:'Google Pixel 8 · 14.0'});
+      const session = hub.requests.find(r => r.method === 'POST' && r.path === '/bs-hub/session')!;
+      expect(session.body.capabilities.alwaysMatch['bstack:options'].deviceName).toBe('Google Pixel 8');
+    } finally {
+      mobileRunner.start = start;
+    }
+  });
   it('signs in on BrowserStack with the environment\'s values, step by step', async () => {
     const id = (await request(app).post('/api/mobile-tests').send(SHOP)).body.id;
     const started = await request(app).post(`/api/mobile-tests/${id}/runs`).send({ gridId: browserstack, environmentId: staging });

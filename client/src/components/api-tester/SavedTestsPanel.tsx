@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiTest } from '@shared/schema';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Edit2, Trash2, PlusCircle, Download, ChevronRight, FileUp } from 'lucide-react';
+import { History, Edit2, Trash2, PlusCircle, Download, ChevronRight, FileUp } from 'lucide-react';
 import { ImportApiTestsDialog } from './ImportApiTestsDialog';
+import TestHistoryDialog from '@/components/tests/TestHistoryDialog';
 import CommentsPanel from '@/components/tests/CommentsPanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MessageSquare } from 'lucide-react';
@@ -43,6 +44,8 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
   isDeletingTestId,
 }) => {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [historyFor, setHistoryFor] = useState<ApiTest | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [commentsFor, setCommentsFor] = useState<ApiTest | null>(null);
 
@@ -113,6 +116,11 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
         </div>
         {/* Icons sit inside the clickable card, so each stops the click from also loading it. */}
         <div className="flex items-center shrink-0">
+          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={t('testHistory.openFor', 'History of {{name}}', { name: test.name })}
+            onKeyDown={event => event.stopPropagation()}
+            onClick={event => { event.stopPropagation(); setHistoryFor(test); }}>
+            <History className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={t('comments.title', 'Comments')}
             onKeyDown={event => event.stopPropagation()}
             onClick={event => { event.stopPropagation(); setCommentsFor(test); }}>
@@ -140,6 +148,17 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
 
   return (
     <Card className="h-full flex flex-col">
+      {historyFor && <TestHistoryDialog key={historyFor?.id ?? 'closed'} isOpen={historyFor !== null} onClose={() => setHistoryFor(null)} test={historyFor} testType="api"
+        onRestore={async version => {
+          const response = await fetch(`/api/api-tests/${historyFor!.id}/versions/${version}/restore`, { method: 'POST', credentials: 'include' });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.error ?? t('testHistory.restoreError', 'Could not restore that version.'));
+          await queryClient.invalidateQueries({ queryKey: ['apiTests'] });
+          if (body.test?.id) {
+            setHistoryFor(body.test);
+            onLoadTest(body.test);
+          }
+        }} />}
       <CardHeader className="flex flex-row items-center justify-between py-3 px-4 border-b">
         <Dialog open={commentsFor !== null} onOpenChange={open => { if (!open) setCommentsFor(null); }}>
           <DialogContent className="max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>

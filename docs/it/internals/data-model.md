@@ -17,7 +17,9 @@ erDiagram
   projects ||--o{ tests : contiene
   projects ||--o{ api_tests : contiene
   projects ||--o{ project_elements : conserva
-  tests ||--o{ test_versions : "storia di"
+  tests |o--o{ test_versions : "storia di"
+  api_tests |o--o{ test_versions : "storia di"
+  mobile_tests |o--o{ test_versions : "storia di"
   test_plans ||--o{ test_plan_selected_tests : seleziona
   test_plan_selected_tests }o--|| tests : "test UI"
   test_plan_selected_tests }o--|| api_tests : "test API"
@@ -74,10 +76,10 @@ I diagrammi completi, a livello di colonna, di tutte le tabelle sono in [Schema 
 | `detected_elements` | Elementi trovati su una pagina per un test (la palette del builder). |
 | `project_elements` | Il repository degli elementi: una definizione per elemento per progetto, che gli step possono richiamare; la correzione automatica la aggiorna una volta per tutti i test. |
 | `step_groups` | Sequenze di step riutilizzabili con un nome, richiamate dai test; espanse al momento dell'esecuzione. |
-| `api_tests` | Test API: metodo, URL, header, body, autenticazione, asserzioni, estrazioni e il controllo prestazioni facoltativo (ripetizioni e soglie sui tempi di risposta). |
+| `api_tests` | Test API: metodo, URL, header, body, autenticazione, asserzioni, estrazioni e il controllo prestazioni facoltativo (ripetizioni e soglie sui tempi di risposta), oltre al riferimento alla versione pubblicata. |
 | `api_test_history` | Richieste inviate dall'API tester, per il pannello della cronologia. |
 | `tags` / `test_tags` | Il vocabolario proprio di un'organizzazione, applicato ai test; guida le suite dinamiche. |
-| `test_versions` | Ogni stato salvato di un test. `app_user` non può cancellare: la storia non si può riscrivere. |
+| `test_versions` | Revisioni eseguibili immutabili dei test web, API e mobile; i riferimenti tipizzati identificano il test e `snapshot` contiene la configurazione API/mobile. `app_user` non può cancellare: la storia non si può riscrivere. |
 | `test_publications` | Quale versione è stata pubblicata o ripristinata, quando e da chi (solo lettura e inserimento). |
 | `test_reviews` | Richieste di revisione e decisioni, quando l'organizzazione richiede la revisione. |
 | `test_quarantines` | Test messi da parte perché instabili, con motivo, evidenze e rilascio. |
@@ -87,6 +89,10 @@ I diagrammi completi, a livello di colonna, di tutte le tabelle sono in [Schema 
 | `test_runs` | Risultati di singoli test avviati dal builder (non run di piani). |
 | `mobile_tests` / `mobile_test_runs` | Test di app native Android e iOS — piattaforma, app sulla griglia (`bs://`, `lt://`), dispositivo, passi con locator nativi — e le loro esecuzioni su un dispositivo della griglia, passo per passo, con lo screenshot finale e la pagina della sessione (`shared/mobile.ts`, `server/mobile-runner.ts`). |
 | `requirements` / `requirement_tests` | Epic, user story e requisiti (scritti a mano o importati da un issue tracker, con il loro padre) e i test che li coprono. La copertura non è mai salvata: si calcola dagli ultimi risultati dei test (`shared/requirements.ts`). |
+
+I risultati API/mobile dei piani usano `report_test_case_results.test_version` per la revisione
+selezionata. Il debug mobile conserva la copia di lavoro salvata in `mobile_test_runs.test_snapshot`
+e la revisione in `test_version`, prima dell’avvio dell’esecuzione in background.
 
 ## Pianificare ed eseguire
 

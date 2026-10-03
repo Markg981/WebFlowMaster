@@ -1,3 +1,5 @@
+import TestHistoryDialog from '@/components/tests/TestHistoryDialog';
+import type { VersionedTestType } from '@/components/tests/test-kind';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,6 +23,7 @@ import { useAuth } from '@/hooks/use-auth';
 interface ReviewRow {
   id: number;
   testId: number;
+  testType?: VersionedTestType;
   testName: string;
   version: number;
   publishedVersion: number | null;
@@ -45,6 +48,7 @@ async function post(url: string, body?: unknown) {
 
 function ReviewItem({ review, onDecided }: { review: ReviewRow; onDecided: () => void }) {
   const { t } = useTranslation();
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -68,7 +72,10 @@ function ReviewItem({ review, onDecided }: { review: ReviewRow; onDecided: () =>
 
   return (
     <li className="border rounded-md p-3 space-y-2" data-testid={`review-${review.id}`}>
+      <TestHistoryDialog isOpen={historyOpen} onClose={() => setHistoryOpen(false)} test={{ id: review.testId, name: review.testName }} testType={review.testType ?? 'ui'} onRestore={async () => {}} readOnly />
       <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="secondary">{t(`reviews.kinds.${review.testType ?? 'ui'}`, review.testType === 'api' ? 'API' : review.testType === 'mobile' ? 'Mobile' : 'UI')}</Badge>
+        <Button variant="ghost" size="sm" onClick={() => setHistoryOpen(true)}>{t('testHistory.open', 'History')}</Button>
         <span className="font-medium">{review.testName}</span>
         <Badge variant="outline">{t('reviews.version', 'version {{n}}', { n: review.version })}</Badge>
         {review.publishedVersion !== null && (

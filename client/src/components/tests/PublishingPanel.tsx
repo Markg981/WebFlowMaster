@@ -1,3 +1,4 @@
+import { testRoute, type VersionedTestType } from './test-kind';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,8 @@ import { Loader2, Send, Upload } from 'lucide-react';
 
 export interface PublishingState {
   testId: number;
+  testType?: VersionedTestType;
+  canEdit?: boolean;
   publishedVersion: number | null;
   latestVersion: number | null;
   runs: 'published' | 'working_copy' | 'nothing';
@@ -42,8 +45,10 @@ export default function PublishingPanel({
   currentUserId,
   canEdit,
   onChanged,
+  testType = state.testType ?? 'ui',
 }: {
   state: PublishingState;
+  testType?: VersionedTestType;
   currentUserId: number | null;
   canEdit: boolean;
   onChanged: () => void;
@@ -106,13 +111,13 @@ export default function PublishingPanel({
               placeholder={t('publishing.notePlaceholder', 'What changed, for the reviewer (optional)')}
               aria-label={t('publishing.noteLabel', 'Note for the reviewer')}
             />
-            <Button size="sm" disabled={busy} onClick={() => act(() => send(`/api/tests/${state.testId}/reviews`, { note }))}>
+            <Button size="sm" disabled={busy} onClick={() => act(() => send(`${testRoute(testType, state.testId)}/reviews`, { note }))}>
               {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
               {t('publishing.askReview', 'Ask for review of version {{n}}', { n: state.latestVersion })}
             </Button>
           </div>
         ) : (
-          <Button size="sm" disabled={busy} onClick={() => act(() => send(`/api/tests/${state.testId}/publish`))}>
+          <Button size="sm" disabled={busy} onClick={() => act(() => send(`${testRoute(testType, state.testId)}/publish`))}>
             {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
             {t('publishing.publish', 'Publish version {{n}}', { n: state.latestVersion })}
           </Button>

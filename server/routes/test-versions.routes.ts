@@ -1,10 +1,12 @@
 import { Router } from "express";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { AUDIT_ACTIONS, reportTestCaseResults, tests, testVersions, users } from "@shared/schema";
+import { AUDIT_ACTIONS, reportTestCaseResults, mobileTestRuns, tests, testVersions, users } from "@shared/schema";
 import { auditActor, recordAudit } from "../audit";
 import { withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { requireRole } from "../middleware/require-role";
-import { recordTestVersion } from "../test-version-store";
+import { recordTestVersion, recordTypedTestVersion } from "../test-version-store";
+import { targetColumn, targetTable, auditTargetType } from '../test-version-target';
+import { typedSnapshotOf, type VersionedTestType } from '@shared/test-versioning';
 import loggerPromise from "../logger";
 
 /**
@@ -37,7 +39,7 @@ const stepCount = sql<number>`CASE WHEN jsonb_typeof(${testVersions.sequence}) =
  * One grouped query for the whole history: a test with thirty versions would otherwise be
  * thirty queries to open a dialog.
  */
-async function runsByVersion(tx: TenantTx, testId: number) {
+async function runsByVersion(tx: TenantTx, testId: number, testType: VersionedTestType) {
   const rows = await tx
     .select({
       version: reportTestCaseResults.testVersion,
@@ -47,7 +49,7 @@ async function runsByVersion(tx: TenantTx, testId: number) {
       lastRunAt: sql<string | null>`max(${reportTestCaseResults.startedAt})`,
     })
     .from(reportTestCaseResults)
-    .where(eq(reportTestCaseResults.uiTestId, testId))
+    .where(eq(testType === 'api' ? reportTestCaseResults.apiTestId : testType === 'mobile' ? reportTestCaseResults.mobileTestId : reportTestCaseResults.uiTestId, testId))
     .groupBy(reportTestCaseResults.testVersion);
 
   const byVersion = new Map<number, { runs: number; passed: number; failed: number; lastRunAt: string | null }>();
@@ -69,13 +71,26 @@ async function runsByVersion(tx: TenantTx, testId: number) {
     });
   }
 
+  if (testType === 'mobile') {
+    const runs = await tx.select().from(mobileTestRuns).where(eq(mobileTestRuns.mobileTestId,testId));
+    for (const run of runs) {
+      if (run.testVersion === null) {unversionedRuns++; continue;}
+      const prior = byVersion.get(run.testVersion) ?? {runs:0,passed:0,failed:0,lastRunAt:null};
+      prior.runs++; prior.passed += run.status === 'passed' ? 1 : 0; prior.failed += run.status === 'failed' ? 1 : 0;
+      const at = run.startedAt?.toISOString(); if (at && (!prior.lastRunAt || at > prior.lastRunAt)) prior.lastRunAt=at;
+      byVersion.set(run.testVersion,prior);
+    }
+  }
   return { byVersion, unversionedRuns };
 }
 
 // GET /api/tests/:id/versions — the history, newest first, without the snapshots.
-router.get("/api/tests/:id/versions", requireRole('viewer'), async (req, res) => {
+router.get(["/api/tests/:id/versions", "/api/api-tests/:id/versions", "/api/mobile-tests/:id/versions"], requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
 
+  const testType: VersionedTestType = req.path.startsWith('/api/api-tests/') ? 'api' : req.path.startsWith('/api/mobile-tests/') ? 'mobile' : 'ui';
+  const table = targetTable(testType);
+  const column = targetColumn(testVersions,testType);
   const testId = Number(req.params.id);
   if (!Number.isInteger(testId)) return res.status(400).json({ error: "Invalid test id" });
 
@@ -83,10 +98,10 @@ router.get("/api/tests/:id/versions", requireRole('viewer'), async (req, res) =>
     const outcome = await withTenantTransaction(async (tx) => {
       // RLS decides which test this is. Another organization's id has no versions here rather
       // than somebody else's.
-      const [test] = await tx.select({ id: tests.id }).from(tests).where(eq(tests.id, testId)).limit(1);
+      const [test] = await tx.select({ id: table.id }).from(table).where(eq(table.id, testId)).limit(1);
       if (!test) return null;
 
-      const outcomes = await runsByVersion(tx, testId);
+      const outcomes = await runsByVersion(tx, testId, testType);
       const versions = await tx
         .select({
           version: testVersions.version,
@@ -98,11 +113,11 @@ router.get("/api/tests/:id/versions", requireRole('viewer'), async (req, res) =>
           // Null when the member who saved it has since been removed: their work stays in the
           // history with an author nobody can name any more, rather than vanishing with them.
           authorName: users.username,
-          stepCount,
+          stepCount: testType === 'mobile' ? sql<number>`CASE WHEN jsonb_typeof(${testVersions.snapshot}->'steps') = 'array' THEN jsonb_array_length(${testVersions.snapshot}->'steps') ELSE 0 END` : testType === 'api' ? sql<number>`0` : stepCount,
         })
         .from(testVersions)
         .leftJoin(users, eq(testVersions.createdBy, users.id))
-        .where(eq(testVersions.testId, testId))
+        .where(eq(column, testId))
         .orderBy(desc(testVersions.version));
 
       return { versions, ...outcomes };
@@ -126,9 +141,11 @@ router.get("/api/tests/:id/versions", requireRole('viewer'), async (req, res) =>
 });
 
 // GET /api/tests/:id/versions/:version — one snapshot in full, for reading before restoring.
-router.get("/api/tests/:id/versions/:version", requireRole('viewer'), async (req, res) => {
+router.get(["/api/tests/:id/versions/:version", "/api/api-tests/:id/versions/:version", "/api/mobile-tests/:id/versions/:version"], requireRole('viewer'), async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: "Unauthorized" });
 
+  const testType: VersionedTestType = req.path.startsWith('/api/api-tests/') ? 'api' : req.path.startsWith('/api/mobile-tests/') ? 'mobile' : 'ui';
+  const column = targetColumn(testVersions,testType);
   const testId = Number(req.params.id);
   const version = Number(req.params.version);
   if (!Number.isInteger(testId) || !Number.isInteger(version)) {
@@ -140,7 +157,7 @@ router.get("/api/tests/:id/versions/:version", requireRole('viewer'), async (req
       tx
         .select()
         .from(testVersions)
-        .where(and(eq(testVersions.testId, testId), eq(testVersions.version, version)))
+        .where(and(eq(column, testId), eq(testVersions.version, version)))
         .limit(1),
     );
 
@@ -159,9 +176,12 @@ router.get("/api/tests/:id/versions/:version", requireRole('viewer'), async (req
  * from. Restoring is an edit like any other and the history says so; the versions in between
  * stay exactly where they are, and can be restored in turn.
  */
-router.post("/api/tests/:id/versions/:version/restore", requireRole('editor'), async (req, res) => {
+router.post(["/api/tests/:id/versions/:version/restore", "/api/api-tests/:id/versions/:version/restore", "/api/mobile-tests/:id/versions/:version/restore"], requireRole('editor'), async (req, res) => {
   if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: "Unauthorized" });
 
+  const testType: VersionedTestType = req.path.startsWith('/api/api-tests/') ? 'api' : req.path.startsWith('/api/mobile-tests/') ? 'mobile' : 'ui';
+  const table = targetTable(testType);
+  const column = targetColumn(testVersions,testType);
   const testId = Number(req.params.id);
   const version = Number(req.params.version);
   if (!Number.isInteger(testId) || !Number.isInteger(version)) {
@@ -173,13 +193,15 @@ router.post("/api/tests/:id/versions/:version/restore", requireRole('editor'), a
       const [snapshot] = await tx
         .select()
         .from(testVersions)
-        .where(and(eq(testVersions.testId, testId), eq(testVersions.version, version)))
+        .where(and(eq(column, testId), eq(testVersions.version, version)))
         .limit(1);
       if (!snapshot) return { missing: 'version' as const };
+      const [permission] = await tx.select({editable:sql<boolean>`app_project_editable(${table.projectId})`}).from(table).where(eq(table.id,testId)).limit(1);
+      if (!permission?.editable) return {missing: 'readonly' as const};
 
       const restored = await tx
-        .update(tests)
-        .set({
+        .update(table)
+        .set(testType !== 'ui' ? {...typedSnapshotOf(testType,snapshot.snapshot ?? {}),updatedAt:new Date()} : {
           // Only what a version holds. The project, the author, the reporting fields and the
           // status are facts about the test rather than about this sequence of steps, and a
           // restore that silently moved them would be doing more than it said.
@@ -191,24 +213,24 @@ router.post("/api/tests/:id/versions/:version/restore", requireRole('editor'), a
           cleanups: snapshot.cleanups,
           dataset: snapshot.dataset,
           updatedAt: new Date(),
-        })
-        .where(eq(tests.id, testId))
+        } as never)
+        .where(eq(table.id, testId))
         .returning();
 
-      if (restored.length === 0) return { missing: 'test' as const };
+      if (restored.length === 0) return { missing: 'readonly' as const };
 
-      const recorded = await recordTestVersion(tx, {
+      const recorded = testType === 'ui' ? await recordTestVersion(tx, {
         testId,
         organizationId: req.user!.organizationId,
         userId: req.user!.id,
-        test: restored[0],
+        test: restored[0] as typeof tests.$inferSelect,
         restoredFromVersion: version,
-      });
+      }) : await recordTypedTestVersion(tx,{testType,testId,organizationId:req.user!.organizationId,userId:req.user!.id,test:restored[0],restoredFromVersion:version});
 
       await recordAudit(tx, {
         action: AUDIT_ACTIONS.TEST_VERSION_RESTORED,
         actor: auditActor(req),
-        targetType: 'test',
+        targetType: auditTargetType(testType),
         targetId: testId,
         metadata: { name: restored[0].name, restoredFromVersion: version },
       });
@@ -217,7 +239,7 @@ router.post("/api/tests/:id/versions/:version/restore", requireRole('editor'), a
     });
 
     if (outcome.missing === 'version') return res.status(404).json({ error: "Version not found" });
-    if (outcome.missing === 'test') return res.status(404).json({ error: "Test not found" });
+    if (outcome.missing === 'readonly') return res.status(403).json({error: 'This project is read-only.'});
 
     res.json({
       test: outcome.test,
