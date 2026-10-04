@@ -72,6 +72,8 @@ import AuditLogCard from "@/components/settings/AuditLogCard";
 import ExportEraseCard from "@/components/settings/ExportEraseCard";
 import SecurityCard from "@/components/settings/SecurityCard";
 import SsoCard from "@/components/settings/SsoCard";
+import EmailProviderCard from "@/components/settings/EmailProviderCard";
+import EmailTemplatesCard from "@/components/settings/EmailTemplatesCard";
 import EmailDeliveryCard from "@/components/settings/EmailDeliveryCard";
 import RunnersCard from "@/components/settings/RunnersCard";
 import ElementRepositoryCard from "@/components/settings/ElementRepositoryCard";
@@ -738,7 +740,7 @@ export default function SettingsPage() {
         <div className="space-y-6">
           <SecurityCard isOwner={user?.role === 'owner'} />
           {user?.role === 'owner' && <SsoCard />}
-          {user?.role === 'owner' && <EmailDeliveryCard />}
+          {user?.role === 'owner' && <><EmailProviderCard /><EmailTemplatesCard /><EmailDeliveryCard /></>}
         </div>
       ),
     },

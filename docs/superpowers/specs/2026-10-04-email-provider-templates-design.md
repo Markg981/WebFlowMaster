@@ -1,6 +1,6 @@
 # Organization-configurable email providers and templates
 
-Branch: `codex/email-provider-templates`, based on merged main `3e319ab` (PR #291). Design prepared for review on 2026-10-04.
+Branch: `codex/email-provider-templates`, based on merged main `3e319ab` (PR #291). Design approved on 2026-10-04, including implementation, validation and PR without further intermediate approvals.
 
 ## Outcome and scope
 

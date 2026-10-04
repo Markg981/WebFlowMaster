@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireRole } from '../middleware/require-role';
-import { mailConfigured } from '../mailer';
+import { organizationMailConfigured } from '../mailer';
+import { getTenantOrgId } from '../middleware/tenancy';
+import { getOrganizationTrackingStatus } from '../mail-settings';
 import { deliveryEventSchema, listMailDeliveries, receiveDeliveryEvent, trackingConfigured, verifyDeliverySignature } from '../mail-delivery';
 
 /** The public router is mounted before session authorization. Its credential is the HMAC,
@@ -33,7 +35,7 @@ router.get('/api/mail-deliveries', requireRole('owner'), async (req, res) => {
     const rows = await listMailDeliveries(limit.data, before);
     const deliveries = rows.slice(0, limit.data);
     const last = deliveries.at(-1);
-    res.json({ configured: mailConfigured(), trackingConfigured: trackingConfigured(), deliveries,
+    res.json({ configured: await organizationMailConfigured(getTenantOrgId()), trackingConfigured: await getOrganizationTrackingStatus(getTenantOrgId()!), deliveries,
       nextBefore: rows.length > limit.data && last ? `${last.createdAt.toISOString()}|${last.id}` : null });
   } catch { res.status(500).json({ error: 'Could not load mail deliveries' }); }
 });

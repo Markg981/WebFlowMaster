@@ -8,7 +8,7 @@ import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import { sharedStore } from "./middleware/rate-limit-store";
 import { passwordProblem, policyFrom, PASSWORD_MAX_LENGTH } from "@shared/password-policy";
-import { isEmailAddress, mailConfigured, sendMail } from "./mailer";
+import { isEmailAddress, mailAvailableOnInstallation, organizationMailConfigured, sendMail } from "./mailer";
 import { passwordResetMail } from "./mail-messages";
 import { RedisStore } from "connect-redis";
 import { storage } from "./storage";
@@ -538,8 +538,8 @@ export function setupAuth(app: Express) {
   });
 
   /** Whether the sign-in page offers "Forgot your password?": only where a link can be mailed. */
-  app.get("/api/password-reset/available", (_req, res) => {
-    res.json({ available: mailConfigured() });
+  app.get("/api/password-reset/available", async (_req, res, next) => {
+    try { res.json({ available: await mailAvailableOnInstallation() }); } catch (error) { next(error); }
   });
 
   /**
@@ -550,11 +550,11 @@ export function setupAuth(app: Express) {
   app.post("/api/password-reset/request", authLimiter, async (req, res, next) => {
     const parsed = z.object({ username: z.string().trim().min(1).max(254) }).safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Give the address you sign in with." });
-    if (!mailConfigured()) return res.status(404).json({ message: "Password reset by e-mail is not available here. Ask an owner of your organization for a link." });
     const answer = { message: "If an account with that address exists, a link to choose a new password is on its way." };
     try {
+      if (!await mailAvailableOnInstallation()) return res.status(404).json({ message: "Password reset by e-mail is not available here. Ask an owner of your organization for a link." });
       const user = await storage.getUserByUsername(parsed.data.username);
-      if (user && user.kind === "person" && isEmailAddress(user.username) && user.organizationId) {
+      if (user && user.kind === "person" && isEmailAddress(user.username) && user.organizationId && await organizationMailConfigured(user.organizationId)) {
         const { runWithTenant, withTenantTransaction } = await import("./middleware/tenancy");
         const { issuePasswordReset } = await import("./password-reset");
         const issued = await runWithTenant(user.organizationId, () =>

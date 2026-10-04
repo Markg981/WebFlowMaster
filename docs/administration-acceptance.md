@@ -1,17 +1,17 @@
 # Administration acceptance / Collaudo amministrazione
 
-Scope: advanced SAML and HTML email with delivery/bounce tracking. Billing and consumption plans
+Scope: advanced SAML, organization SMTP/provider settings and editable HTML email with delivery/bounce tracking. Billing and consumption plans
 are deferred by the user's decision on 2026-10-02. No billing provider, prices or billable unit
 have been selected. Existing organization execution quotas continue to apply.
 
 Run automated regressions from the repository root:
 
 ```sh
-npm test -- server/sso-saml.test.ts server/sso.test.ts server/websocket.test.ts server/email-delivery.test.ts server/mail-messages.test.ts server/routes/mail-delivery.routes.test.ts server/middleware/csrf.test.ts server/middleware/saml-session.test.ts server/member-removal.test.ts server/organization-lifecycle.test.ts
-npm test --workspace=client -- --run src/components/settings/SsoCard.test.tsx src/components/settings/EmailDeliveryCard.test.tsx
+npm test -- server/sso-saml.test.ts server/sso.test.ts server/websocket.test.ts server/email-delivery.test.ts server/mail-messages.test.ts server/routes/mail-delivery.routes.test.ts server/mail-settings.test.ts server/routes/mail-settings.routes.test.ts server/mail-providers.test.ts server/routes/mail-provider.routes.test.ts server/mail-templates.test.ts server/routes/mail-templates.routes.test.ts server/middleware/csrf.test.ts server/middleware/saml-session.test.ts server/member-removal.test.ts server/organization-lifecycle.test.ts
+npm test --prefix client -- --run src/components/settings/SsoCard.test.tsx src/components/settings/EmailDeliveryCard.test.tsx src/components/settings/EmailProviderCard.test.tsx src/components/settings/EmailTemplatesCard.test.tsx
 ```
 
-Apply migrations 0073 and 0074 in a disposable test installation before exercising the UI. Use
+Apply migrations through 0077 (including 0073 and 0074) in a disposable test installation before exercising the UI. Use
 separate organizations and owner/editor accounts. Never use production identity certificates or mail recipients.
 
 | Case | Action | Expected result |

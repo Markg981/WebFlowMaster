@@ -455,45 +455,39 @@ they expire.
 
 ## E-mail {#e-mail}
 
-With `SMTP_URL` and `SMTP_FROM` set (see [Configuration](./configuration)), the installation sends:
+Owners configure **Settings → Security → Organization email** independently for each organization. Choose installation defaults (`SMTP_URL` and `SMTP_FROM`), custom SMTP, or disabled sending. Custom SMTP requires a host, port and sender; credentials remain write-only. Blank password/secret fields retain stored values; explicit clear controls remove them. Secrets are encrypted using `ENCRYPTION_KEY`. Editors and viewers cannot read or change this configuration. Concurrent edits return a conflict: reload explicitly to discard the preserved draft.
 
-- **Invitations and password reset links** an owner issues, to usernames that are addresses. The
-  link is still shown once, for when the mail does not arrive.
-- **"Forgot your password?"** on the sign-in page: a reset link mailed to the address the person
-  signs in with. The answer is the same whether or not the account exists, so it cannot be used to
-  find out who has one. The request is recorded in the audit log.
-- **Run notifications**: to the addresses in a plan's notifications, when its switches say so for
-  the outcome, and to the person who started a run, from **Settings → Notifications**: e-mail on or
-  off (off by default), then every finished run or failed runs only. A refused message is said on
-  the run's console; it never changes the run.
+Custom SMTP always uses STARTTLS or implicit TLS with certificate verification. With `WFM_EGRESS_PROXY` configured, SMTP uses its mandatory HTTP CONNECT route. The operator must allowlist the SMTP destination and port (typically 587 or 465) in the proxy policy; changing organization settings does not grant network access. A tenant send failure does not fall back to another sender. See [Configuration](./configuration).
 
-Without SMTP everything works as before: owners hand the links over, and plans notify through
-their webhook only.
+Sending covers invitations and owner-issued password reset links, forgotten-password requests, and plan/user run notifications. Owners can still hand over the once-visible invitation/reset link when email is disabled or fails. Forgotten-password responses do not reveal whether an account exists. A mail failure never changes a run result.
 
-Messages include built-in **HTML templates and a plain-text alternative** for invitations,
-password resets and run notifications. Dynamic text is escaped; links are restricted to HTTP(S).
-There is no template editor.
+### Delivery providers
 
-Owners can inspect the latest 100 messages for their organization in **Settings → Security →
-Email delivery**. **Accepted by SMTP** means the relay accepted the recipient; it does not prove
-delivery. Confirmed delivery, temporary bounces and hard bounces come from authenticated events.
-A hard bounce suppresses later sends to that address within the same organization. The history
-stores recipient, purpose, state and timestamps, never message bodies or reset/invitation tokens.
+Select a provider, fill its required fields and save before copying the organization's callback URL, `https://your-public-host/api/mail-deliveries/providers/<callbackId>`. Use your public HTTPS deployment origin. The opaque URL selects the organization; the provider signature authenticates each request. Rotate it only deliberately: the old URL immediately becomes invalid, including outstanding events, so update the provider configuration afterwards.
 
-To record events, configure `MAIL_DELIVERY_WEBHOOK_SECRET` (at least 32 characters) and an adapter
-for your mail provider or relay. Each outgoing message carries an `X-Wfm-Delivery-Id` UUID and a
-Message-ID containing that UUID. The adapter posts JSON to `/api/mail-deliveries/events`:
+| Provider | Configuration and correlation |
+| --- | --- |
+| Amazon SES / SNS | Set the exact SNS topic ARN. Configure SES delivery and bounce notifications to that topic, **enable original headers**, and subscribe the callback as an HTTPS endpoint. Signed subscription confirmation is supported. Notifications must preserve `X-Wfm-Delivery-Id` in the original headers. |
+| SendGrid | Enable signed Event Webhooks for delivered, deferred and bounce events, point them to the callback and paste the public verification key into settings. WebFlowMaster adds `wfm_delivery_id` through SMTP `X-SMTPAPI` unique arguments. |
+| Mailgun | Configure delivered and failed webhooks to the callback. Save the webhook signing key, rather than the API key (at least 32 characters). WebFlowMaster supplies `wfm_delivery_id` through `X-Mailgun-Variables`. |
+| Generic signed events | Save a secret of at least 32 characters and have an adapter normalize your provider's events to the contract below. |
+| No confirmed tracking | SMTP acceptance/rejection is recorded; no delivery confirmation is inferred. |
+
+SES, SendGrid and Mailgun accept native events without an external adapter. Generic events require normalized JSON:
 
 ```json
 {"eventId":"provider-event-123","messageId":"e3dab9f5-d6c4-4a74-af2e-a665498b18cd","status":"hard_bounce"}
 ```
 
-`status` is `delivered`, `soft_bounce` or `hard_bounce`. Set `X-Wfm-Mail-Timestamp` to the current
-Unix time in seconds and `X-Wfm-Mail-Signature` to the hex HMAC-SHA256, using the configured secret,
-of `timestamp.eventId.messageId.status`. The timestamp must be within five minutes. Duplicate
-events are idempotent; delayed events cannot undo a hard bounce. Native provider webhook payloads
-need an adapter; SMTP alone supplies no delivery/bounce confirmations. See the reproducible
-acceptance cases in [Administration acceptance](../../administration-acceptance.md).
+`status` is `delivered`, `soft_bounce` or `hard_bounce`. Set `X-Wfm-Mail-Timestamp` to Unix seconds and `X-Wfm-Mail-Signature` to hex HMAC-SHA256 of `timestamp.eventId.messageId.status` using the organization secret. Timestamps must be within five minutes. The existing installation endpoint `/api/mail-deliveries/events` and `MAIL_DELIVERY_WEBHOOK_SECRET` remain compatible for installation integrations.
+
+Owners inspect the latest 100 messages in **Email delivery**. **Accepted by SMTP** is distinct from **Delivered**. Authenticated events record temporary/permanent bounces; hard bounces suppress later sends to the same address within that organization. Duplicate events are idempotent and delayed events cannot undo a hard bounce. History stores recipient, purpose, state and timestamps, never bodies or reset/invitation tokens. A valid event for a foreign organization cannot update its history. Provider fixture tests do not establish delivery through a real provider account.
+
+### Template editor
+
+In **Email templates**, choose invitation, password reset or run notification and edit the subject, complete HTML source and plain-text alternative. The editor lists each purpose's supported `{{variable}}` names. Unknown variables and invalid subjects are rejected; invitation/reset templates must retain their action URL in both HTML and text. Dynamic values are escaped and HTML is sanitized with an explicit allowlist.
+
+**Preview** uses synthetic data and links in a sandboxed iframe with scripts and external resource loading disabled; it sends no message. Save to persist an organization override, or reset to the built-in template. Stale revisions preserve the draft and require an explicit reload. Switching message purpose or organization clears drafts and previews. Overrides apply consistently to account emails and worker notifications; other messages retain their built-in behavior. See [Administration acceptance](../../administration-acceptance.md).
 
 ## Password policy {#password-policy}
 
@@ -514,7 +508,6 @@ reset link); existing passwords are not checked.
   accepted and ignored).
 - SAML single logout requires a configured SP RSA key pair and signed protocol messages; provider
   compatibility must be verified before enabling it. IdP-initiated sign-in lacks request/browser binding.
-- E-mail has built-in HTML templates without an editor. Delivery/bounce tracking requires a mail-provider
-  adapter posting signed events; SMTP acceptance alone cannot confirm delivery.
+- SMTP acceptance alone cannot confirm delivery. Enable authenticated provider callbacks for delivery/bounce tracking.
 - SaaS billing and consumption plans are deferred by decision on 2026-10-02. Provider, pricing,
   currency and the billable unit remain to be defined; organization execution quotas remain available.

@@ -16,6 +16,8 @@ import type { TestManagementProvider } from './test-management';
 export * from './comments';
 export * from './dashboard-layout';
 export * from './mail-delivery';
+export * from './mail-settings';
+export * from './mail-templates';
 
 // Table Definitions
 export const organizations = pgTable("organizations", {
@@ -1721,6 +1723,8 @@ export type InsertApiKey = typeof apiKeys.$inferInsert;
  * near-duplicates ('member.removed' and 'member.remove') that nobody can query reliably.
  */
 export const AUDIT_ACTIONS = {
+  MAIL_SETTINGS_CHANGED: 'mail_settings.changed',
+  MAIL_TEMPLATE_CHANGED: 'mail_template.changed',
   MEMBER_ROLE_CHANGED: 'member.role_changed',
   MEMBER_REMOVED: 'member.removed',
   INVITATION_CREATED: 'invitation.created',
@@ -3004,4 +3008,6 @@ export const ORG_SCOPED_TABLES = [
   'user_dashboard_layouts',
   'dashboards', 'user_dashboard_preferences',
   'mail_deliveries', 'mail_delivery_events',
+  'organization_mail_settings', 'organization_mail_templates',
+  'mail_provider_requests',
 ] as const;

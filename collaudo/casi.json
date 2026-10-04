@@ -1,5 +1,5 @@
 {
-  "version": 20,
+  "version": 21,
   "areas": [
     {
       "id": "ACC",
@@ -6575,6 +6575,118 @@
         "Aprire la conferma eliminazione e verificare che non possa essere applicata a un’altra dashboard."
       ],
       "expected": "La seconda modifica obsoleta riceve 409 e conserva la bozza; nessuna sovrascrittura. La conferma elimina soltanto la dashboard per cui è stata aperta."
+    },
+    {
+      "area": "ADM",
+      "priority": "P1",
+      "actor": "owner.a, owner.b, editor.a, viewer.a",
+      "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+      "id": "ADM-21",
+      "title": "SMTP e credenziali per organizzazione",
+      "steps": [
+        "Come owner.a scegliere SMTP personalizzato TLS su un relay di prova autorizzato, mittente e credenziali; salvare e ricaricare.",
+        "Verificare in Network che GET non contenga password/segreti; salvare con password vuota e poi sostituirla esplicitamente.",
+        "Inviare un invito di prova in A e confrontare mittente e credenziali nel relay; in B mantenere i predefiniti."
+      ],
+      "expected": "A conserva i propri valori e il segreto non è leggibile; il campo vuoto conserva la credenziale, la sostituzione la aggiorna. B usa la propria configurazione. Un errore SMTP di A non ripiega sul mittente dell’installazione."
+    },
+    {
+      "area": "ADM",
+      "priority": "P1",
+      "actor": "owner.a, owner.b, editor.a, viewer.a",
+      "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+      "id": "ADM-22",
+      "title": "Disabilitazione invio e accesso owner",
+      "steps": [
+        "Come owner.a disabilitare l’invio e creare un invito; copiare il link mostrato.",
+        "Come editor.a e viewer.a aprire Sicurezza e richiedere GET/PUT mail-settings e mail-templates.",
+        "Come owner.b leggere la propria configurazione."
+      ],
+      "expected": "Nessuna email spedita da A; il link manuale resta utilizzabile. Editor/viewer non vedono le schede e le API rispondono 403. B non legge né modifica dati A."
+    },
+    {
+      "area": "ADM",
+      "priority": "P1",
+      "actor": "owner.a, owner.b, editor.a, viewer.a",
+      "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+      "id": "ADM-23",
+      "title": "Callback nativo SendGrid",
+      "steps": [
+        "Configurare SMTP SendGrid di prova, provider SendGrid e chiave pubblica di verifica.",
+        "Configurare Event Webhook firmato HTTPS per delivered, deferred e bounce; inviare un invito al destinatario di prova.",
+        "Confrontare unique argument wfm_delivery_id con la cronologia; inviare firma invalida e un evento valido con ID appartenente a B."
+      ],
+      "expected": "La firma nativa autentica gli eventi e la consegna aggiorna solo A. Firma invalida rifiutata; ID/recipient estranei non alterano B. Annotare separatamente fixture firmata o account provider realmente utilizzato."
+    },
+    {
+      "area": "ADM",
+      "priority": "P1",
+      "actor": "owner.a, owner.b, editor.a, viewer.a",
+      "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+      "id": "ADM-24",
+      "title": "Callback nativo Mailgun",
+      "steps": [
+        "Configurare SMTP Mailgun di prova e la chiave di firma webhook dell’organizzazione.",
+        "Configurare webhook delivered e failed all’URL HTTPS e inviare email di prova.",
+        "Verificare X-Mailgun-Variables wfm_delivery_id, bounce temporaneo/permanente e replay duplicato."
+      ],
+      "expected": "Eventi nativi autenticati correlati al destinatario della stessa organizzazione; duplicati idempotenti e hard bounce non annullato da eventi tardivi. Nessun payload grezzo o token salvato nella cronologia."
+    },
+    {
+      "area": "ADM",
+      "priority": "P1",
+      "actor": "owner.a, owner.b, editor.a, viewer.a",
+      "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+      "id": "ADM-25",
+      "title": "Callback SES/SNS e header originali",
+      "steps": [
+        "Configurare SMTP SES e ARN esatto SNS; attivare header originali nelle notifiche SES di delivery e bounce.",
+        "Sottoscrivere il callback HTTPS e verificare la conferma firmata; inviare un invito di prova.",
+        "Verificare correlazione tramite X-Wfm-Delivery-Id; ripetere con topic errato e certificato/firma non ammessi."
+      ],
+      "expected": "Conferma e notifiche valide funzionano senza adattatore esterno. Topic, firma e URL certificato non ammessi rifiutati; nessuna chiamata verso host arbitrari. Header originali mancanti non danno falsa conferma di consegna."
+    },
+    {
+      "area": "ADM",
+      "priority": "P1",
+      "actor": "owner.a, owner.b, editor.a, viewer.a",
+      "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+      "id": "ADM-26",
+      "title": "Callback generico, rotazione e conflitto",
+      "steps": [
+        "Configurare provider generico e segreto di almeno 32 caratteri; inviare un evento HMAC normalizzato e verificarne lo stato.",
+        "Aprire le impostazioni in due sessioni owner; salvare dalla prima e tentare un salvataggio dalla seconda.",
+        "Conservare la bozza dopo 409, ricaricare esplicitamente e ruotare il callback; provare URL precedente e nuovo."
+      ],
+      "expected": "Contratto HMAC valido accettato; firma invalida rifiutata. Il conflitto conserva la bozza senza sovrascrivere dati recenti. La rotazione invalida il precedente endpoint; solo il nuovo riceve eventi autentici."
+    },
+    {
+      "area": "ADM",
+      "priority": "P1",
+      "actor": "owner.a, owner.b, editor.a, viewer.a",
+      "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+      "id": "ADM-27",
+      "title": "Editor HTML, variabili e anteprima isolata",
+      "steps": [
+        "Per invito modificare oggetto, HTML completo e alternativa testo mantenendo la variabile actionUrl; richiedere anteprima.",
+        "Tentare variabile sconosciuta, oggetto con CR/LF, rimozione del link richiesto, script, handler evento e URL javascript.",
+        "Ispezionare iframe sandbox e Network durante anteprima; salvare la versione valida e inviare un invito controllato."
+      ],
+      "expected": "Variabili sconosciute, header invalidi e link obbligatorio mancante rifiutati. HTML pericoloso sanitizzato; anteprima con dati sintetici senza script, risorse esterne o invio. Email effettiva usa lo stesso render sicuro e link reale utilizzabile."
+    },
+    {
+      "area": "ADM",
+      "priority": "P1",
+      "actor": "owner.a, owner.b, editor.a, viewer.a",
+      "preconditions": "Migrazione 0077 applicata; catalogo versione 21. Organizzazioni A/B distinte, relay TLS di prova autorizzato dal proxy, HTTPS pubblico per callback nativi, account provider di prova oppure fixture firmate dichiarate. Nessun destinatario o segreto di produzione.",
+      "id": "ADM-28",
+      "title": "Modelli: reset, revisioni e isolamento",
+      "steps": [
+        "Personalizzare separatamente invito, reset password e notifica run in A; salvare, ricaricare e verificare invii account/worker controllati.",
+        "In due sessioni modificare lo stesso modello: dopo il primo salvataggio, il secondo deve produrre conflitto con bozza conservata.",
+        "Cambiare scopo/organizzazione, verificare pulizia bozze/anteprima; ripristinare il modello integrato e verificare B."
+      ],
+      "expected": "Override persistenti applicati ai percorsi account/worker di A; reset ripristina il built-in e B resta separata. Conflitti non perdono la bozza; cambio identità/scopo non mostra contenuti del contesto precedente."
     }
   ],
   "presentation": {
