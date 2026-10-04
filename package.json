@@ -32,7 +32,7 @@
     "collaudo:jenkins": "cross-env NODE_EXTRA_CA_CERTS=collaudo/collaudo-root.crt node collaudo/jenkins/avvia.mjs",
     "collaudo:reset": "docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml down -v",
     "test:migrate": "tsx server/tests/setup.ts",
-    "test": "vitest run",
+    "test": "vitest run && vitest run --config scripts/bdd-runtime.vitest.config.ts",
     "test:rls": "npm run test:rls:base && npm run test:rls:collaboration && npm run test:rls:email && npm run test:rls:bdd",
     "test:rls:bdd": "cross-env WFM_TEST_REQUIRE_POSTGRES=1 vitest run --no-file-parallelism server/tests/bdd-isolation.test.ts server/routes/bdd.routes.test.ts server/routes/bdd-tests.test.ts server/bdd-execution.test.ts",
     "test:rls:email": "cross-env WFM_TEST_REQUIRE_POSTGRES=1 vitest run --no-file-parallelism server/tests/organization-mail-isolation.test.ts server/routes/mail-settings.routes.test.ts server/routes/mail-templates.routes.test.ts server/routes/mail-provider.routes.test.ts",

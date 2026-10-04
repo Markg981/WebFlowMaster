@@ -35,7 +35,7 @@ export async function runDedicatedBddTest(test:Test,variables:Record<string,stri
       if (options?.signal?.aborted) throw new DOMException('BDD execution was aborted.','AbortError');
       try {
         const pre=await runPreconditions(test.preconditions as Precondition[]|null,vars,transport);
-        steps.push(...sanitize(pre.steps,vars).map(step=>({name:step.name,type:'precondition',status:step.status === 'failed' ? 'failed' as const : 'passed' as const,details:step.detail})));
+        steps.push(...sanitize(pre.steps,vars).map(step=>({name:step.name,type:'precondition',status:step.status === 'failed' ? 'failed' as const : 'passed' as const,details:step.detail ?? step.status})));
         if (!pre.ok && options?.onPreconditionFailure !== 'continue') {
           result.blockedByPrecondition=true;
           result.status=options?.onPreconditionFailure === 'skip' ? 'skipped' : 'error';

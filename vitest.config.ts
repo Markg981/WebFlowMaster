@@ -6,6 +6,8 @@ export default defineConfig({
     globals: true, // To use describe, it, expect, etc. globally
     environment: 'node', // Crucial for backend testing
     include: ['server/**/*.test.ts', 'scripts/**/*.test.ts'], // Pattern to find test files
+    // Real child-process acceptance runs separately with its own deadline and no database setup.
+    exclude: ['scripts/bdd-runtime.test.ts'],
     // Each test file gets its own in-memory PGlite database — see server/tests/setup.ts, which
     // assigns DATABASE_URL before server/db.ts is ever imported. That is what makes parallelism
     // safe: PGlite is a single-writer WASM instance, so sharing one database across workers

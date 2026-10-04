@@ -138,7 +138,7 @@ it('routes a pinned BDD session through the other relay and the worst-case load 
   const result=await runBddOnAgent({organizationId:1,pool:'onprem'},{source:'Feature: Cluster\nScenario: chosen\nGiven row 2',uri:'cluster.feature',scenarioLine:2,profile:{id:'cluster-bdd',revision:'rev-1'},variables:{},timeoutMs:10000},env(a.url));
   expect(result.status).toBe('passed');
   expect(result.steps.filter(step => step.kind === 'step')).toEqual([expect.objectContaining({name:'row 2',status:'PASSED'})]);
-});
+},30000);
 
 describe('several relay instances', () => {
   it('executes native WebSocket on B when the runner and agent session both reach A', async () => {

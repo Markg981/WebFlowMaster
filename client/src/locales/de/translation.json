@@ -811,6 +811,10 @@
       "label": "Aktualisiert am"
     },
     "actions": {
+      "bdd_profile_created": "BDD-Profil erstellt",
+      "bdd_profile_updated": "BDD-Profil aktualisiert",
+      "bdd_profile_deleted": "BDD-Profil gelöscht",
+
       "label": "Aktionen"
     },
     "loadingTestPlans": {
@@ -2730,6 +2734,7 @@
       "details": "Details"
     },
     "categories": {
+      "bdd_profile": "BDD-Profile",
       "mail_settings": "E-Mail-Einstellungen",
       "mail_template": "E-Mail-Vorlagen",
       "all": "Alles",
