@@ -689,8 +689,15 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
       if (!await canEditProject(projectId)) throw new BundleProjectAccessError();
       for (const raw of bundle.tests) {
         const name = String(raw.name ?? '');
+        let importedBdd = raw.bdd;
+        if (raw.bdd && parsed.data.bdd) {
+          const { binding: _sourceBinding, ...sourceDefinition } = raw.bdd as import('@shared/bdd').BddTest;
+          importedBdd = parsed.data.bdd.mode === 'manual'
+            ? { ...sourceDefinition, mode: 'manual' }
+            : { ...(raw.bdd as object), ...parsed.data.bdd };
+        }
         // The detected elements are the builder's palette, not part of the test: the file leaves them out.
-        const candidate = insertTestSchema.safeParse({ elements: [], ...(raw.bdd ? {priority:'Medium',severity:'Major',status:'draft'} : {}), ...raw, ...(parsed.data.bdd && raw.bdd ? {bdd:{...(raw.bdd as object),...parsed.data.bdd}} : {}), projectId });
+        const candidate = insertTestSchema.safeParse({ elements: [], ...(raw.bdd ? {priority:'Medium',severity:'Major',status:'draft'} : {}), ...raw, ...(raw.bdd ? {bdd:importedBdd} : {}), projectId });
         if (!candidate.success) {
           results.push({ kind: 'test', name, outcome: 'invalid', reason: Object.entries(candidate.error.flatten().fieldErrors).map(([k, v]) => `${k}: ${v?.join(', ')}`).join('; ') || 'invalid' });
           continue;
@@ -711,8 +718,12 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
           results.push({ kind: 'test', name, outcome: 'invalid', reason: 'You can view this test\'s project but not change it.' });
           continue;
         }
+        if (candidate.data.bdd?.mode === 'cucumber' && !parsed.data.bdd?.binding) {
+          results.push({ kind: 'test', name, outcome: 'invalid', reason: 'Portable Cucumber imports require an explicit destination profile binding.' });
+          continue;
+        }
         try {
-          Object.assign(candidate.data,await prepareBddForSave(tx,{...candidate.data,projectId:existing ? existing.projectId : projectId}));
+          Object.assign(candidate.data,await prepareBddForSave(tx,{...candidate.data,projectId:existing ? existing.projectId : projectId},existing));
         } catch(error) {
           results.push({kind:'test',name,outcome:'invalid',reason:(error as Error).message});
           continue;

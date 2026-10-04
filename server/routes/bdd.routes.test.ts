@@ -4,8 +4,12 @@ import request from 'supertest';
 import { privilegedDb } from '../db';
 import { agents, bddExecutionProfiles } from '@shared/schema';
 import { createTestOrganization, createTestUser } from '../tests/factories';
-import { runWithTenant } from '../middleware/tenancy';
+import { runWithTenant, withTenantTransaction } from '../middleware/tenancy';
 import { randomUUID } from 'crypto';
+import { eq } from 'drizzle-orm';
+import { resolveBddBinding } from '../bdd-profiles';
+import { publish, publishedContentOf } from '../test-publishing';
+import type { BddTest } from '@shared/bdd';
 
 vi.mock('../logger', () => ({ default: Promise.resolve({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() }) }));
 let app: express.Express;
@@ -17,7 +21,7 @@ const advertised = { id: 'shop-js', label: 'Shop definitions', provider: 'cucumb
 beforeAll(async () => {
   org = await createTestOrganization('BDD source');
   otherOrg = await createTestOrganization('BDD other');
-  ownerId = await createTestUser(org, 'bdd-owner');
+  ownerId = await createTestUser(org, `bdd-owner-${randomUUID()}`);
   const { default: routes } = await import('./bdd.routes');
   app = express();
   app.use(express.json());
@@ -27,6 +31,8 @@ beforeAll(async () => {
     runWithTenant(user.organizationId, next, { userId: user.id, role: user.role });
   });
   app.use(routes);
+  const { default: testRoutes } = await import('./tests.routes');
+  app.use(testRoutes);
 });
 beforeEach(async () => {
   await privilegedDb.delete(bddExecutionProfiles);
@@ -57,5 +63,41 @@ describe('organization-owned BDD execution profiles', () => {
     await request(app).post('/api/bdd/profiles').send({ name: 'Wrong project', pool: 'bdd', operatorProfileId: 'shop-js', revision: 'commit-abc', projectId: 999999 }).expect(400);
     await privilegedDb.delete(agents);
     await request(app).post('/api/bdd/profiles').send({ name: 'Revoked', pool: 'bdd', operatorProfileId: 'shop-js', revision: 'commit-abc' }).expect(400);
+  });
+  it.each([
+    { pool: 'other', operatorProfileId: 'shop-js' },
+    { pool: 'bdd', operatorProfileId: 'other-js' },
+  ])('refuses target changes under an existing UUID: $pool/$operatorProfileId', async target => {
+    const fields = { name: 'Pinned', pool: 'bdd', operatorProfileId: 'shop-js', revision: 'commit-abc' };
+    const created = await request(app).post('/api/bdd/profiles').send(fields).expect(201);
+    const bdd: BddTest = { source: 'Feature: Pinned\n  Scenario: Original\n    Given the original support', uri: 'pinned.feature', language: 'en', scenarioLine: 2, mode: 'cucumber', binding: { id: created.body.id, revision: fields.revision } };
+    const saved = await request(app).post('/api/tests').send({ name: `Pinned ${target.pool}/${target.operatorProfileId}`, url: '', elements: [], sequence: [], bdd }).expect(201);
+    await runWithTenant(org, () => withTenantTransaction(tx => publish(tx, saved.body.id, org, { id: ownerId, username: 'bdd-owner' })), { userId: ownerId, role: 'owner' });
+    await privilegedDb.insert(agents).values({ id: randomUUID(), organizationId: org, name: 'Other support', pool: target.pool, tokenPrefix: 'wfa_', tokenHash: randomUUID(), bddProfiles: [{ ...advertised, id: target.operatorProfileId }] });
+
+    const refused = await request(app).put(`/api/bdd/profiles/${created.body.id}`).send({ ...fields, ...target }).expect(400);
+    expect(refused.body.error).toMatch(/new profile/i);
+    await runWithTenant(org, () => withTenantTransaction(async tx => {
+      const pinned = (await publishedContentOf(tx, [saved.body.id])).get(saved.body.id)!;
+      expect(pinned.bdd).toEqual(bdd);
+      expect(await resolveBddBinding(tx, pinned.bdd as BddTest, null)).toMatchObject({ pool: 'bdd', operatorProfileId: 'shop-js', revision: 'commit-abc' });
+    }), { userId: ownerId, role: 'owner' });
+    const replacement = await request(app).post('/api/bdd/profiles').send({ ...fields, ...target }).expect(201);
+    expect(replacement.body.id).not.toBe(created.body.id);
+  });
+  it('invalidates a published old revision instead of redirecting its binding', async () => {
+    const fields = { name: 'Revision', pool: 'bdd', operatorProfileId: 'shop-js', revision: 'commit-abc' };
+    const created = await request(app).post('/api/bdd/profiles').send(fields).expect(201);
+    const bdd: BddTest = { source: 'Feature: Revision\n  Scenario: Original\n    Given the original revision', uri: 'revision.feature', language: 'en', scenarioLine: 2, mode: 'cucumber', binding: { id: created.body.id, revision: 'commit-abc' } };
+    const saved = await request(app).post('/api/tests').send({ name: 'Pinned revision', url: '', elements: [], sequence: [], bdd }).expect(201);
+    await runWithTenant(org, () => withTenantTransaction(tx => publish(tx, saved.body.id, org, { id: ownerId, username: 'bdd-owner' })), { userId: ownerId, role: 'owner' });
+    await privilegedDb.update(agents).set({ bddProfiles: [{ ...advertised, revision: 'commit-next' }] }).where(eq(agents.organizationId, org));
+    await request(app).put(`/api/bdd/profiles/${created.body.id}`).send({ ...fields, revision: 'commit-next' }).expect(200);
+    await runWithTenant(org, () => withTenantTransaction(async tx => {
+      const pinned = (await publishedContentOf(tx, [saved.body.id])).get(saved.body.id)!;
+      expect(pinned.bdd).toEqual(bdd);
+      await expect(resolveBddBinding(tx, pinned.bdd as BddTest, null)).rejects.toThrow(/revision/i);
+      expect(await resolveBddBinding(tx, { ...bdd, binding: { id: created.body.id, revision: 'commit-next' } }, null)).toMatchObject({ pool: 'bdd', operatorProfileId: 'shop-js', revision: 'commit-next' });
+    }), { userId: ownerId, role: 'owner' });
   });
 });

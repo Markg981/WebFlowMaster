@@ -133,14 +133,20 @@ export class BundleError extends Error {}
 export function parseBundle(content: string, format?: 'gherkin', bdd?:GherkinImportOptions): Bundle {
   let doc: unknown;
   const text = content.trim();
-  if (format === 'gherkin' || autodetectGherkin(text)) {
-    return { kind: BUNDLE_KIND, version: BUNDLE_VERSION, ...parseGherkin(content,bdd) };
+  const gherkinBundle = (): Bundle => ({ kind: BUNDLE_KIND, version: BUNDLE_VERSION, ...parseGherkin(content,bdd) });
+  if (format === 'gherkin') {
+    return gherkinBundle();
   }
   try {
     doc = text.startsWith('{') ? JSON.parse(text) : parseYaml(text, { maxAliasCount: 100 });
   } catch (error) {
+    if (autodetectGherkin(text)) return gherkinBundle();
     throw new BundleError(`Not JSON or YAML: ${error instanceof Error ? error.message.split('\n')[0] : String(error)}`);
   }
+  // A YAML bundle can contain indented Feature/language lines inside bdd.source.
+  // Its envelope takes precedence over detecting those embedded lines as a feature file.
+  const hasBundleKind = doc !== null && typeof doc === 'object' && !Array.isArray(doc) && (doc as Record<string,unknown>).kind === BUNDLE_KIND;
+  if (!hasBundleKind && autodetectGherkin(text)) return gherkinBundle();
   const parsed = bundleSchema.safeParse(doc);
   if (!parsed.success) {
     throw new BundleError(`Not a WebFlowMaster test file (kind: ${BUNDLE_KIND}): ${parsed.error.issues[0]?.path.join('.') || 'top'} ${parsed.error.issues[0]?.message ?? ''}`.trim());

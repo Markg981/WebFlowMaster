@@ -29,6 +29,13 @@ for (const method of ['post','put'] as const) {
     if (!parsed.success) return res.status(400).json({ error:'Invalid BDD profile',details:parsed.error.flatten() });
     try {
       const row = await withTenantTransaction(async tx => {
+        if (method === 'put') {
+          const [existing] = await tx.select().from(bddExecutionProfiles).where(eq(bddExecutionProfiles.id,req.params.id)).limit(1);
+          if (!existing) return undefined;
+          if (existing.pool !== parsed.data.pool || existing.operatorProfileId !== parsed.data.operatorProfileId) {
+            return { invalid: 'The execution target is immutable. Create a new profile to select a different pool or operator profile.' };
+          }
+        }
         try { await validateBddProfileDefinition(tx, parsed.data); } catch(error) { return { invalid: (error as Error).message }; }
         const fields = { ...parsed.data, projectId: parsed.data.projectId ?? null };
         const [saved] = method === 'post'
