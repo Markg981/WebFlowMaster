@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { AGENT_POOL_PATTERN, AGENT_TOKEN_PREFIX, type AgentEngine } from '@shared/agents';
+import { BddAgentProfileSchema } from '@shared/bdd-agent';
 
 /**
  * The two credentials of the agent relay.
@@ -24,6 +25,7 @@ export function hashAgentToken(token: string): string {
 }
 
 export interface BrowserTicket {
+  bddProfile?: { id: string; revision: string };
   /** Absent for browser sessions; present for a native API protocol session. */
   apiProtocol?: import('@shared/agent-protocol').AgentApiProtocol;
   apiFeatures?: Array<import('@shared/agent-protocol').AgentApiFeature>;
@@ -73,6 +75,7 @@ export function verifyTicket(value: string, secret: string, now = Date.now()): B
   if (!Number.isInteger(ticket.organizationId) || !AGENT_POOL_PATTERN.test(ticket.pool)) return { error: 'malformed ticket' };
   if (!['chromium', 'firefox', 'webkit'].includes(ticket.engine)) return { error: 'malformed ticket' };
   if (ticket.apiProtocol !== undefined && !['grpc', 'websocket'].includes(ticket.apiProtocol)) return { error: 'malformed ticket' };
+  if (ticket.bddProfile !== undefined && (ticket.apiProtocol || ticket.apiFeatures || !BddAgentProfileSchema.pick({id:true,revision:true}).safeParse(ticket.bddProfile).success)) return { error: 'malformed ticket' };
   if (ticket.apiFeatures !== undefined && (!ticket.apiProtocol || !Array.isArray(ticket.apiFeatures) || ticket.apiFeatures.length > 1 || ticket.apiFeatures.some(feature => feature !== 'native-protocol-v2'))) return { error: 'malformed ticket' };
   return ticket;
 }

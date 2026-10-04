@@ -4,6 +4,7 @@ import net from 'net';
 import type { AddressInfo } from 'net';
 import WebSocket, { WebSocketServer } from 'ws';
 import { runProtocolOnAgent } from './agent-protocol';
+import {runBddOnAgent} from './agent-bdd';
 
 /**
  * The relay with several web servers, end to end: two relay instances sharing a directory, a load
@@ -108,7 +109,8 @@ beforeAll(async () => {
   });
   intranetUrl = `${await listen(intranet)}/`;
 
-  const agent = runAgent({ url: balancerUrl, token: 'wfa_onprem', maxSessions: 2, browsers: ['chromium'], log: () => {} });
+  const agent = runAgent({ url: balancerUrl, token: 'wfa_onprem', maxSessions: 2, browsers: ['chromium'],
+    bddProfiles:[{id:'cluster-bdd',label:'Cluster BDD',provider:'cucumber-js',revision:'rev-1',maxDurationMs:10000,projectDirectory:process.cwd(),requirePaths:['scripts/fixtures/bdd/support.cjs'],importPaths:[],maxConcurrency:1,environment:[]}],log: () => {} });
   running.push(agent);
   await agent.ready;
   // A learns of B's agent from the directory, not from the agent.
@@ -129,6 +131,13 @@ afterAll(async () => {
   }
   await new Promise((resolve) => balancer.close(resolve));
   await new Promise((resolve) => intranet.close(resolve));
+});
+it('routes a pinned BDD session through the other relay and the worst-case load balancer',async () => {
+  const ticket=signTicket({organizationId:1,pool:'onprem',engine:'chromium',headless:true,playwrightVersion:'incompatible-but-not-used',bddProfile:{id:'cluster-bdd',revision:'rev-1'}},SECRET);
+  expect(a.relay.availability(ticket)).toMatchObject({available:true});
+  const result=await runBddOnAgent({organizationId:1,pool:'onprem'},{source:'Feature: Cluster\nScenario: chosen\nGiven row 2',uri:'cluster.feature',scenarioLine:2,profile:{id:'cluster-bdd',revision:'rev-1'},variables:{},timeoutMs:10000},env(a.url));
+  expect(result.status).toBe('passed');
+  expect(result.steps.filter(step => step.kind === 'step')).toEqual([expect.objectContaining({name:'row 2',status:'PASSED'})]);
 });
 
 describe('several relay instances', () => {

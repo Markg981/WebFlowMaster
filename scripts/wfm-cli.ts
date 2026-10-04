@@ -110,6 +110,9 @@ Options:
   --format <format>      tests export: yaml, json or gherkin (default: yaml)
   --out <file>           tests export: where to write it (default: server filename, or tests.wfm.yaml / tests.feature)
   --dry-run              tests import: say what would change, change nothing
+  --bdd-mode             tests import: manual or cucumber
+  --bdd-profile          cucumber import: authorized destination profile UUID
+  --bdd-revision         cucumber import: pinned destination support revision
 
 wfm tests keeps a project's tests in a repository: export them in a pipeline and commit the file,
 or import the file a pull request changed. It needs a full-access API key (one without scopes).

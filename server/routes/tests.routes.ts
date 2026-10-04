@@ -16,6 +16,7 @@ import { toPlaywright } from "../playwright-export";
 import { expandSequenceForRun } from "../step-groups";
 import { resolveSequenceForRun } from "../step-elements";
 import { GherkinError } from "../gherkin";
+import { compileGherkinSource, contextOfPickle, exampleLineOfPickle } from '../gherkin-source';
 import { GherkinImportOptionsSchema } from '@shared/bdd';
 import { BddDefinitionError, prepareBddForSave } from '../bdd-definition';
 
@@ -791,7 +792,18 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
       }
       return results;
     });
-    res.status(parsed.data.dryRun ? 200 : 201).json({ dryRun: parsed.data.dryRun, results: outcomes });
+    const previewSources=new Map<string,ReturnType<typeof compileGherkinSource>>();
+    const results=parsed.data.dryRun ? outcomes.map(outcome=>{
+      if(outcome.kind !== 'test' || outcome.outcome === 'invalid') return outcome;
+      const bdd=bundle.tests.find(raw=>raw.name === outcome.name)?.bdd as import('@shared/bdd').BddTest|undefined;
+      if(!bdd) return outcome;
+      let compiled=previewSources.get(bdd.source);
+      if(!compiled) {compiled=compileGherkinSource(bdd.source,bdd.uri);previewSources.set(bdd.source,compiled);}
+      const pickle=compiled.pickles.find(item=>{const context=contextOfPickle(compiled!,item);return context.scenario.location.line === bdd.scenarioLine && exampleLineOfPickle(context,item) === bdd.exampleLine;})!;
+      const context=contextOfPickle(compiled,pickle);
+      return {...outcome,gherkin:{language:bdd.language,scenario:pickle.name,...(context.rule ? {rule:context.rule.name} : {}),tags:pickle.tags.map(tag=>tag.name),arguments:[...new Set(pickle.steps.flatMap(step=>step.argument?.docString ? ['docString'] : step.argument?.dataTable ? ['dataTable'] : []))],mode:parsed.data.bdd?.mode ?? bdd.mode}};
+    }) : outcomes;
+    res.status(parsed.data.dryRun ? 200 : 201).json({ dryRun: parsed.data.dryRun, results });
   } catch (error: any) {
     if (error instanceof BundleProjectAccessError) return res.status(400).json({ error: "Invalid project ID or project does not allow edits." });
     if (isForeignKeyError(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });

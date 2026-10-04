@@ -22,6 +22,7 @@ export interface PublishedAgent {
   draining: boolean;
   apiProtocols?: Array<import('@shared/agent-protocol').AgentApiProtocol>;
   apiProtocolFeatures?: Array<import('@shared/agent-protocol').AgentApiFeature>;
+  bddProfiles?: Array<import('@shared/bdd-agent').BddAgentProfile>;
 }
 
 export interface RelayInstance {

@@ -35,6 +35,7 @@ function view(row: typeof agents.$inferSelect) {
     agentVersion: row.agentVersion,
     playwrightVersion: row.playwrightVersion,
     browsers: row.browsers ?? [],
+    bddProfiles: row.bddProfiles ?? [],
     revokedAt: row.revokedAt,
     connected: !row.revokedAt && (relay?.isConnected(row.id) ?? false),
     activeSessions: relay?.sessionsOf(row.id) ?? 0,

@@ -49,13 +49,14 @@ export interface AgentHello {
   /** Optional for v1 agents installed before native API protocol execution. */
   apiProtocols?: Array<import('./agent-protocol').AgentApiProtocol>;
   apiProtocolFeatures?: Array<import('./agent-protocol').AgentApiFeature>;
+  bddProfiles?: Array<import('./bdd-agent').BddAgentProfile>;
 }
 
 /** Server → agent. */
 export type ServerToAgent =
   | { type: 'welcome'; agentId: string; name: string; pool: string }
   | { type: 'refused'; reason: string }
-  | { type: 'open'; sessionId: string; engine: AgentEngine; channel?: string; headless: boolean; apiProtocol?: import('./agent-protocol').AgentApiProtocol; apiFeatures?: Array<import('./agent-protocol').AgentApiFeature> };
+  | { type: 'open'; sessionId: string; engine: AgentEngine; channel?: string; headless: boolean; apiProtocol?: import('./agent-protocol').AgentApiProtocol; apiFeatures?: Array<import('./agent-protocol').AgentApiFeature>; bddProfile?: { id: string; revision: string } };
 
 /** Agent → server, after hello. */
 export type AgentToServer =

@@ -29,10 +29,14 @@ export const BddStepResultSchema = z.object({
   kind: z.enum(['step','hook']),
 }).strict();
 export type BddStepResult = z.infer<typeof BddStepResultSchema>;
+export const BddAttachmentSchema=z.object({mediaType:z.literal('text/plain'),text:z.string().max(1024*1024)}).strict();
 export const BddAgentResultSchema = z.object({
   status: z.enum(['passed','failed','cancelled']), durationMs: z.number().nonnegative().finite(),
   steps: z.array(BddStepResultSchema).max(100_000), error: z.string().max(256 * 1024).optional(),
+  attachments:z.array(BddAttachmentSchema).max(100).optional(),
 }).strict().superRefine((value,ctx) => {
+  if ((value.attachments ?? []).reduce((size,item) => size+new TextEncoder().encode(item.text).byteLength,0) > 1024*1024) ctx.addIssue({code:z.ZodIssueCode.custom,message:'BDD attachments exceed the byte budget'});
+  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > BDD_MAX_OUTPUT_BYTES) ctx.addIssue({code:z.ZodIssueCode.custom,message:'BDD result exceeds the output budget'});
   if (value.status === 'passed' && (!value.steps.some(step => step.kind === 'step') || value.steps.some(step => step.status !== 'PASSED'))) ctx.addIssue({code:z.ZodIssueCode.custom,message:'A passed BDD run requires all executed steps and hooks to pass'});
 });
 export type BddAgentResult = z.infer<typeof BddAgentResultSchema>;

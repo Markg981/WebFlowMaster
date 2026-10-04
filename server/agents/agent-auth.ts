@@ -24,13 +24,13 @@ export async function authenticateAgentToken(token: string | undefined | null): 
 }
 
 /** Stamped when it connects, and every so often while it stays connected. */
-export async function recordAgentSeen(agentId: string, hello?: Pick<AgentHello, 'hostname' | 'agentVersion' | 'playwrightVersion' | 'browsers'>): Promise<void> {
+export async function recordAgentSeen(agentId: string, hello?: Pick<AgentHello, 'hostname' | 'agentVersion' | 'playwrightVersion' | 'browsers' | 'bddProfiles'>): Promise<void> {
   await privilegedDb
     .update(agents)
     .set({
       lastSeenAt: new Date(),
       ...(hello
-        ? { hostname: hello.hostname, agentVersion: hello.agentVersion, playwrightVersion: hello.playwrightVersion, browsers: hello.browsers }
+        ? { hostname: hello.hostname, agentVersion: hello.agentVersion, playwrightVersion: hello.playwrightVersion, browsers: hello.browsers, bddProfiles: hello.bddProfiles ?? [] }
         : {}),
     })
     .where(eq(agents.id, agentId));

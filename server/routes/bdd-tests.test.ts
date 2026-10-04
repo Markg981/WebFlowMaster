@@ -17,6 +17,10 @@ const destinationId=randomUUID();
 let otherTenantProfileId:string;
 let otherProjectProfileId:string;
 const content='Feature: BDD\n  Scenario: Hello\n    Given a greeting';
+it('previews localized Rule, inherited tags and structured step arguments without saving',async()=>{
+  const preview=await request(app).post('/api/tests/import-bundle').send({dryRun:true,format:'gherkin',bdd:{mode:'manual'},content:'# language: it\n@feature\nFunzionalità: Anteprima\n  Regola: Conversazione\n    @scenario\n    Scenario: Argomenti\n      Dato un messaggio\n        """text/plain\n        ciao\n        """\n      Quando una tabella\n        | valore |\n        | uno |'}).expect(200);
+  expect(preview.body.results[0].gherkin).toEqual({language:'it',scenario:'Argomenti',rule:'Conversazione',tags:['@feature','@scenario'],arguments:['docString','dataTable'],mode:'manual'});
+});
 beforeAll(async () => {
   org=await createTestOrganization('BDD imports');user=await createTestUser(org,`bdd-import-owner-${randomUUID()}`);
   await privilegedDb.insert(agents).values({id:randomUUID(),organizationId:org,name:'BDD',pool:'bdd',tokenPrefix:'wfa_',tokenHash:randomUUID(),bddProfiles:[{id:'shop',label:'Shop',provider:'cucumber-js',revision:'rev-1',maxDurationMs:60000}]});

@@ -28,6 +28,7 @@ const logger = await loggerPromise;
 const PROGRAMS = {
   "wfm.mjs": { source: "wfm-cli.ts", built: "wfm.js", build: "build:cli" },
   "wfm-agent.mjs": { source: "wfm-agent.ts", built: "wfm-agent.js", build: "build:agent" },
+  "wfm-bdd-child.mjs": { source: "bdd-child.ts", built: "wfm-bdd-child.mjs", build: "build:agent" },
 } as const;
 
 const cached = new Map<string, string>();
