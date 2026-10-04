@@ -179,4 +179,32 @@ Feature: Login
     const tests = parseGherkin(source).tests;
     expect(parseGherkin(exportGherkin({project:'F',tests}).content).tests).toEqual(tests);
   });
+  it('preserves Examples-generated DataTable edge spaces with only the selected row', () => {
+    const source = 'Feature: F\nScenario Outline: S\n Given table\n  | <x> a | a <x> |\n Examples:\n | x |\n | |\n | other |';
+    const test = parseGherkin(source).tests[0];
+    const exported = exportGherkin({ project: 'F', tests: [test] }).content;
+    expect(parseGherkin(exported).tests).toEqual([test]);
+    const portable = parseGherkin(exported.replace(/^.*# wfm-test:.*$/m, '')).tests;
+    expect(portable).toHaveLength(1);
+    expect((portable[0].sequence as any[])[0].gherkin.dataTable.rows[0].cells.map((cell: any) => cell.value)).toEqual([' a', 'a ']);
+  });
+  it('preserves an unnamed Rule in metadata and independently runnable export', () => {
+    const test = parseGherkin('Feature: F\n Rule:\n  Scenario: S\n   Given a').tests[0];
+    const exported = exportGherkin({ project: 'F', tests: [test] }).content;
+    expect(exported).toContain('Rule: ');
+    expect(parseGherkin(exported).tests).toEqual([test]);
+    const portable = parseGherkin(exported.replace(/^.*# wfm-test:.*$/m, '')).tests;
+    expect((portable[0].sequence as any[])[0].gherkin.rule).toBe('');
+  });
+  it('preserves earlier literal placeholders in names after sequential Examples substitution', () => {
+    const source = 'Feature: F\nScenario Outline: S <y>\n Given value <y>\n Examples:\n | x | y |\n | a | <x>\\nb |\n | other | another |';
+    const test = parseGherkin(source).tests[0];
+    expect(test.name).toBe('F / S <x>\nb [1]');
+    const exported = exportGherkin({ project: 'F', tests: [test] }).content;
+    expect(parseGherkin(exported).tests).toEqual([test]);
+    const portable = parseGherkin(exported.replace(/^.*# wfm-test:.*$/m, '')).tests;
+    expect(portable).toHaveLength(1);
+    expect((portable[0].sequence as any[])[0].value).toBe('Given value <x>\nb');
+    expect(portable[0].scenario).toContain('<x>');
+  });
 });

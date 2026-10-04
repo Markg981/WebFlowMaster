@@ -99,8 +99,12 @@ function renderStep(step: ReadableStep, indent: string): string[] {
     if (!delimiter) throw new GherkinError('Doc string cannot be exported with an unambiguous delimiter.');
     lines.push(`${indent}  ${delimiter}${step.docString.mediaType ?? ''}`, ...contentLines.map(line => `${indent}  ${line.replace(delimiter, escaped(delimiter))}`), `${indent}  ${delimiter}`);
   }
-  if (step.dataTable) for (const row of step.dataTable.rows) lines.push(`${indent}  | ${row.cells.map(cell => cell.value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/\|/g, '\\|')).join(' | ')} |`);
+  if (step.dataTable) for (const row of step.dataTable.rows) lines.push(`${indent}  | ${row.cells.map(cell => escapedTableCell(cell.value)).join(' | ')} |`);
   return lines;
+}
+
+function escapedTableCell(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/\|/g, '\\|');
 }
 
 function sourceReadable(compiled: CompiledGherkin, pickle: Pickle): ReadableStep[] {
@@ -119,7 +123,7 @@ function selectedBdd(value: unknown, cache: Map<string, CompiledGherkin>) {
 }
 
 /** A single-row Outline retains newline substitutions which concrete step syntax cannot express. */
-function selectedOutline(selection: ReturnType<typeof selectedBdd>) {
+function selectedOutline(selection: ReturnType<typeof selectedBdd>, scenarioName: string) {
   const context = contextOfPickle(selection.compiled, selection.pickle);
   const examples = context.scenario.examples.find(item => item.tableBody.some(row => row.location.line === selection.bdd.exampleLine))!;
   const row = examples.tableBody.find(item => item.location.line === selection.bdd.exampleLine)!;
@@ -137,7 +141,10 @@ function selectedOutline(selection: ReturnType<typeof selectedBdd>) {
       ...(step.dataTable ? { dataTable: { rows: step.dataTable.rows.map(item => ({ cells: item.cells.map(cell => ({ value: remap(cell.value) })) })) } } : {}),
     })),
   ];
-  const literals = [...new Set(steps.slice(0, backgroundCount).flatMap(step => [step.line, step.docString?.content ?? '', step.docString?.mediaType ?? '', ...(step.dataTable?.rows.flatMap(item => item.cells.map(cell => cell.value)) ?? [])]).flatMap(value => [...value.matchAll(/<([^>]+)>/g)].map(match => match[1])))];
+  // Generated scenario names are already concrete: placeholder-looking text left by
+  // sequential substitution must remain literal, just like inherited Background text.
+  const literalValues = [scenarioName, ...steps.slice(0, backgroundCount).flatMap(step => [step.line, step.docString?.content ?? '', step.docString?.mediaType ?? '', ...(step.dataTable?.rows.flatMap(item => item.cells.map(cell => cell.value)) ?? [])])];
+  const literals = [...new Set(literalValues.flatMap(value => [...value.matchAll(/<([^>]+)>/g)].map(match => match[1])))];
   return { steps, table: { rows: [{ cells: [...names, ...literals].map(value => ({value})) }, { cells: [...row.cells.map((cell, index) => ({ value: remap(cell.value, index) })), ...literals.map(key => ({value:`<${key}>`}))] }] } };
 }
 
@@ -164,18 +171,20 @@ export function exportGherkin(input: { project: string | null; tests: Record<str
       const actual = sourceReadable(compiled, selected);
       if (JSON.stringify(actual) !== JSON.stringify(readableSteps(test))) throw new GherkinError('BDD steps differ from the selected source scenario.');
     }
-    if (rule) lines.push(`  ${keyword(dialect.rule)}: ${clean(rule)}`);
-    const indent = rule ? '    ' : '  ';
+    const hasRule = rule !== undefined;
+    if (hasRule) lines.push(`  ${keyword(dialect.rule)}: ${clean(rule)}`);
+    const indent = hasRule ? '    ' : '  ';
     if (tags.length) lines.push(`${indent}${tags.join(' ')}`);
     const readable = readableSteps(test);
     let outline: ReturnType<typeof selectedOutline> | undefined;
     let rendered: string[];
     try {
       if (readable.some(step => /[\r\n]/.test(step.line) || /[\r\n]/.test(step.docString?.mediaType ?? ''))) throw new GherkinError('Multiline Examples require a single-row Outline.');
+      if (readable.some(step => step.dataTable?.rows.some(row => row.cells.some(cell => { const escaped = escapedTableCell(cell.value); return escaped.trim() !== escaped; })))) throw new GherkinError('DataTable edge whitespace requires a single-row Outline.');
       rendered = readable.flatMap(step => renderStep(step, `${indent}  `));
     } catch (error) {
       if (!selection?.bdd.exampleLine) throw error;
-      outline = selectedOutline(selection);
+      outline = selectedOutline(selection, clean(test.name));
       rendered = outline.steps.flatMap(step => renderStep(step, `${indent}  `));
       rendered.push(`${indent}  ${keyword(dialect.examples)}:`, ...renderStep({ line: '', dataTable: outline.table }, `${indent}  `).slice(1));
     }
