@@ -68,6 +68,9 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1138.0",
+    "@cucumber/cucumber": "12.9.0",
+    "@cucumber/gherkin": "38.0.0",
+    "@cucumber/messages": "32.3.1",
     "@electric-sql/pglite": "^0.4.5",
     "@google/generative-ai": "^0.24.1",
     "@grpc/grpc-js": "^1.14.5",
