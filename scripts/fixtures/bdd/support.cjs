@@ -78,3 +78,12 @@ Given('descendant hang', function () {
   require('node:fs').writeFileSync(this.parameters.pidFile, String(child.pid));
   return new Promise(() => {});
 });
+Given('descendant inherited output', function () {
+  const child = require('node:child_process').spawn(
+    process.execPath,
+    ['-e', 'setInterval(() => {}, 1000)'],
+    { stdio: 'inherit' },
+  );
+  child.unref();
+  require('node:fs').writeFileSync(this.parameters.pidFile, String(child.pid));
+});

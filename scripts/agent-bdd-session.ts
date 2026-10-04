@@ -227,12 +227,19 @@ export async function runBddOnDedicatedHost(
         settled = false,
         reason: string | undefined,
         cancelled = false;
+      let exitCode: number | null | undefined;
+      let cleanup: Promise<void> | undefined;
+      let drainTimer: ReturnType<typeof setTimeout> | undefined;
+      const cleanupTree = () => {
+        cleanup ??= child.pid ? terminateTree(child.pid) : Promise.resolve();
+        return cleanup;
+      };
       const decoder = new StringDecoder('utf8');
       const stop = (error: string, isCancelled = false) => {
         if (reason) return;
         reason = error;
         cancelled = isCancelled;
-        if (child.pid) void terminateTree(child.pid);
+        void cleanupTree();
       };
       const abort = () => stop('BDD execution cancelled', true);
       const timer = setTimeout(
@@ -257,13 +264,14 @@ export async function runBddOnDedicatedHost(
         if (settled) return;
         settled = true;
         clearTimeout(timer);
+        if (drainTimer) clearTimeout(drainTimer);
         signal?.removeEventListener('abort', abort);
         diagnostic += decoder.end();
-        if (child.pid) await terminateTree(child.pid);
+        await cleanupTree();
         if (reason) return resolve(fail(reason, cancelled));
         try {
           const reply = childReply.parse(JSON.parse(diagnostic));
-          if (code !== 0 || !reply.complete)
+          if (exitCode !== 0 || code !== 0 || !reply.complete)
             return resolve(
               redacted(
                 reply.result.status === 'failed'
@@ -279,6 +287,20 @@ export async function runBddOnDedicatedHost(
       child.once('error', () => {
         reason = 'Unable to start dedicated Cucumber child';
         void finish(null);
+      });
+      child.once('exit', (code) => {
+        exitCode = code;
+        clearTimeout(timer);
+        // A descendant can inherit the root's output pipes and delay `close`.
+        // Terminate it as soon as the root exits, then drain every descriptor
+        // before validating the terminal result and successful exit below.
+        void cleanupTree();
+        drainTimer = setTimeout(() => {
+          stop('BDD child output did not close after exit');
+          child.stdout!.destroy();
+          child.stderr!.destroy();
+          (resultStream as import('node:stream').Readable).destroy();
+        }, 5000);
       });
       child.once('close', (code) => {
         void finish(code);

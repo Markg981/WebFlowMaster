@@ -82,7 +82,7 @@ describe('dedicated real Cucumber runtime', () => {
     ]);
     expect(JSON.stringify(result)).not.toContain('<script>');
   });
-  it.each(['descendant', 'descendant hang'])(
+  it.each(['descendant', 'descendant hang', 'descendant inherited output'])(
     'terminates owned %s processes on completion or abort',
     async (step) => {
       const dir = await mkdtemp(path.join(os.tmpdir(), 'wfm-bdd-tree-test-'));
