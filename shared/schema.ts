@@ -11,6 +11,7 @@ import type { NetworkSummary } from './network';
 import type { FailureAnalysis } from './failure-analysis';
 import type { CiContext } from './ci';
 import { ApiPerformanceSchema, type ApiPerformance } from './api-performance';
+import { ProtocolConfigSchema, type ProtocolConfig } from './api-protocol-config';
 import type { RequirementKind } from './requirements';
 import type { TestManagementProvider } from './test-management';
 export * from './comments';
@@ -269,6 +270,7 @@ export const apiTests = pgTable("api_tests", {
   bodyGraphqlVariables: text("body_graphql_variables"),
   /** A gRPC test's .proto (server/api-protocols.ts, migration 0069). */
   protoDefinition: text("proto_definition"),
+  protocolConfig: jsonb('protocol_config').$type<ProtocolConfig>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 
@@ -2778,6 +2780,7 @@ export const insertApiTestSchema = createInsertSchema(apiTests, {
   // time otherwise, in a worker, halfway through a scheduled plan.
   extractions: z.array(ExtractionSchema).optional().nullable(),
   performance: ApiPerformanceSchema.optional().nullable(),
+  protocolConfig: ProtocolConfigSchema.optional().nullable(),
 })
   .omit({
     id: true,

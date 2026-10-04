@@ -101,6 +101,7 @@ import { apiKeyAuth } from "./middleware/api-key-auth";
 import { apiRateLimit } from "./middleware/rate-limits";
 import { requireInstallationAdmin } from "./installation-admin";
 import { runApiRequest } from "./api-test-runner";
+import { ProtocolConfigSchema } from '@shared/api-protocol-config';
 import { defaultVariables, resolveVariables } from "./variables";
 import { redactHistoryEntry } from "./history-redaction";
 import { requireRole } from "./middleware/require-role";
@@ -153,6 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     environmentId: z.number().int().positive().optional().nullable(),
     // A gRPC test's service definition.
     protoDefinition: z.string().max(500_000).optional().nullable(),
+    protocolConfig: ProtocolConfigSchema.optional().nullable(),
   });
 
   const userSettingsBodySchema = createInsertSchema(userSettings).omit({ userId: true, updatedAt: true });
@@ -302,7 +304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: "Invalid request payload", details: parseResult.error.flatten() });
     }
 
-    const { method, url, queryParams, headers, body, multipart, binary, assertions, extractions, auth, environmentId, protoDefinition } = parseResult.data;
+    const { method, url, queryParams, headers, body, multipart, binary, assertions, extractions, auth, environmentId, protoDefinition, protocolConfig } = parseResult.data;
 
     // The environment supplies the variables here exactly as it does for a scheduled run,
     // so a request that works in the tester works in a plan. Its id is the caller's; the
@@ -317,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // what let the two drift until test-execution-service gave up and shipped
     // `Math.random() > 0.2` in place of executing anything at all.
     const result = await runApiRequest(
-      { method, url, queryParams, headers, body, multipart, binary, assertions, extractions, auth, protoDefinition },
+      { method, url, queryParams, headers, body, multipart, binary, assertions, extractions, auth, protoDefinition, protocolConfig },
       vars,
     );
 

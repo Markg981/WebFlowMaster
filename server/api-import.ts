@@ -59,6 +59,14 @@ export interface ImportResult {
   /** What an environment needs for the tests to run. */
   variables: ImportVariable[];
   warnings: string[];
+  endpoints?: Array<{ id: string; label: string; address: string }>;
+  selectedEndpoint?: string;
+}
+
+export interface ImportOptions {
+  rootLocation?: string;
+  documents?: Array<{ location: string; content: string }>;
+  endpoint?: string;
 }
 
 export class ImportError extends Error {}
@@ -70,14 +78,14 @@ const METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'];
 type Json = Record<string, any>;
 
 /** Reads the file: JSON or YAML, then which of the three it is. */
-export function importApiDescription(content: string): ImportResult {
+export function importApiDescription(content: string, options: ImportOptions = {}): ImportResult {
   let doc: unknown;
   const text = content.trim();
   if (!text) throw new ImportError('The file is empty.');
   // A SOAP service's WSDL (server/wsdl-import.ts).
   if (text.startsWith('<')) {
-    if (looksLikeWsdl(text)) return fromWsdl(text);
-    throw new ImportError('An XML file, but not a WSDL 1.1 document.');
+    if (looksLikeWsdl(text)) return fromWsdl(text, options);
+    throw new ImportError('An XML file, but not a WSDL 1.1 or 2.0 document.');
   }
   try {
     doc = text.startsWith('{') || text.startsWith('[') ? JSON.parse(text) : parseYaml(text, { maxAliasCount: 100 });

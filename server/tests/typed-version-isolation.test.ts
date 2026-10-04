@@ -15,6 +15,15 @@ import { createTestOrganization, createTestUser } from './factories';
 
 const fixtureOrgIds: number[] = [];
 
+it.skipIf(process.env.DATABASE_URL?.startsWith('memory://'))('isolates protocol references in API rows under real PostgreSQL RLS', async () => {
+  const f = await fixture('api');
+  const visible = await runWithTenant(f.organizationId, () => withTenantTransaction(tx => tx.select().from(apiTests)));
+  expect(visible.find(row => row.id === f.own.id)?.protocolConfig).toEqual({ timeoutMs: 1500, tls: { clientCertificate: '{{secret_cert}}', clientKey: '{{secret_key}}' } });
+  expect(visible.some(row => row.id === f.foreign.id)).toBe(false);
+  const changed = await runWithTenant(f.organizationId, () => withTenantTransaction(tx => tx.update(apiTests).set({ protocolConfig: { timeoutMs: 2000 } }).where(eq(apiTests.id, f.foreign.id)).returning()));
+  expect(changed).toEqual([]);
+});
+
 afterEach(async () => {
   if (fixtureOrgIds.length === 0) return;
   // Real-Postgres suites share a database. Remove only this test's fixtures, in FK order;
@@ -44,6 +53,7 @@ async function fixture(kind: 'api' | 'mobile') {
               name: 'Request',
               method: 'GET',
               url: 'https://example.test',
+              protocolConfig: { timeoutMs: 1500, tls: { clientCertificate: '{{secret_cert}}', clientKey: '{{secret_key}}' } },
             })
             .returning()
         )[0]

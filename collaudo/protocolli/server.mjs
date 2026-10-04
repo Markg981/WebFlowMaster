@@ -15,6 +15,15 @@ rpc.addService(definition['collaudo.Echo'], {
     callback(null, call.request);
   },
   Wait() {}, // Deliberately waits for the client's deadline.
+  Server(call) { call.write({ text: 'first' }); call.write({ text: 'complete' }); call.end(); },
+  Client(call, callback) {
+    const messages = []; call.on('data', message => messages.push(message.text));
+    call.on('end', () => callback(null, { text: messages.join(',') }));
+  },
+  Bidi(call) {
+    call.write({ text: 'challenge' }); call.on('data', message => call.write(message));
+    call.on('end', () => call.end());
+  },
 });
 await new Promise((resolve, reject) => rpc.bindAsync('0.0.0.0:50051', grpc.ServerCredentials.createInsecure(), error => error ? reject(error) : resolve()));
 const httpServer = http.createServer((req, res) => {
@@ -26,13 +35,16 @@ const httpServer = http.createServer((req, res) => {
 });
 const ws = new WebSocketServer({ noServer: true });
 httpServer.on('upgrade', (req, socket, head) => {
-  if (req.url !== '/echo' || req.headers.authorization !== 'Bearer private-fixture-token') {
+  if (!['/echo','/conversation'].includes(req.url) || req.headers.authorization !== 'Bearer private-fixture-token') {
     socket.end('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
     return;
   }
-  ws.handleUpgrade(req, socket, head, client => ws.emit('connection', client));
+  ws.handleUpgrade(req, socket, head, client => ws.emit('connection', client, req));
 });
-ws.on('connection', socket => socket.on('message', data => socket.send(data)));
+ws.on('connection', (socket, req) => {
+  if (req.url === '/conversation') socket.send(JSON.stringify({ token: 'private-challenge' }));
+  socket.on('message', data => socket.send(req.url === '/conversation' ? JSON.stringify({ accepted: data.toString() === 'private-challenge' }) : data));
+});
 httpServer.listen(8080, '0.0.0.0', () => console.log('Private gRPC, WebSocket and OAuth fixtures ready'));
 process.on('SIGTERM', () => {
   rpc.forceShutdown();

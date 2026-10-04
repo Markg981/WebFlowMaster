@@ -18,6 +18,7 @@ export const API_SNAPSHOT_FIELDS = [
   'bodyGraphqlQuery',
   'bodyGraphqlVariables',
   'protoDefinition',
+  'protocolConfig',
   'module',
   'featureArea',
   'scenario',

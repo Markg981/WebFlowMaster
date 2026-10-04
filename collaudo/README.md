@@ -353,6 +353,17 @@ Il pool usa un solo slot; l'agente mobile nel pool `lab` continua a funzionare. 
 `protocolli` appartiene soltanto alla rete privata e non pubblica porte: gRPC su
 `grpc://protocolli:50051/collaudo.Echo/Say`, WebSocket su `ws://protocolli:8080/echo`, OAuth
 su `http://protocolli:8080/token`; la definizione è `collaudo/protocolli/echo.proto`.
+
+Il catalogo versione 22 aggiunge API-37–48 per streaming, mTLS, conversazioni e bundle SOAP.
+L’agente aggiornato è 1.2.0: ricostruirlo dopo l’aggiornamento. `Echo/Server` emette `first`,
+`complete`; `Echo/Client` concatena i testi con virgole; `Echo/Bidi` invia `challenge` e poi
+restituisce i messaggi ricevuti. `/conversation` invia subito `{"token":"private-challenge"}`
+e attende quel token, rispondendo con `accepted=true`; usa il medesimo Bearer token di `/echo`.
+Il timeout locale ora fallisce l’esecuzione, senza accettare risposte parziali. La definizione
+storica AGT-10 e i suoi esiti rimangono conservati; nel nuovo ciclo verificare API-40.
+API-44/45 richiedono un servizio mTLS di prova con hostname/certificati validi e segreti
+appartenenti all’ambiente selezionato. API-47/48 richiedono i bundle WSDL/XSD indicati nelle
+precondizioni; esempi riproducibili sono in `server/tests/soap-bundle-fixtures.ts`.
 Le credenziali OAuth di fixture sono `collaudo` / `fixture-secret`, il bearer di fixture
 è `private-fixture-token`. `Wait` non risponde, per verificare il deadline.
 

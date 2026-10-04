@@ -42,13 +42,12 @@ try {
   } }, { name: 'agent' }, transport.fetch);
   assert(oauth.passed, JSON.stringify(oauth));
   console.log('PASS AGT-09 private OAuth and WebSocket through one agent slot');
-  const deadline = await runProtocolOnAgent(agent, {
+  await assert.rejects(runProtocolOnAgent(agent, {
     protocol: 'grpc', url: 'grpc://protocolli:50051/collaudo.Echo/Wait', proto, body: '{}', headers: {}, timeoutMs: 500,
-  });
-  assert.equal(deadline.status, 4);
+  }), /deadline|timeout/i);
   const after = await runApiRequest(spec, { name: 'agent' }, transport.fetch);
   assert(after.passed, JSON.stringify(after));
-  console.log('PASS AGT-10 gRPC deadline 4 releases slot for subsequent WebSocket');
+  console.log('PASS AGT-10 local gRPC deadline fails execution and releases slot for subsequent WebSocket');
 } finally {
   await transport.close();
 }

@@ -3,5 +3,8 @@ package collaudo;
 service Echo {
   rpc Say (Message) returns (Message);
   rpc Wait (Message) returns (Message);
+  rpc Server (Message) returns (stream Message);
+  rpc Client (stream Message) returns (Message);
+  rpc Bidi (stream Message) returns (stream Message);
 }
 message Message { string text = 1; }

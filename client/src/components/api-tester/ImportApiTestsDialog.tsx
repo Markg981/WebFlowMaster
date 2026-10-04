@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileUp, Loader2 } from 'lucide-react';
 
@@ -31,6 +32,8 @@ interface Preview {
   tests: PreviewTest[];
   variables: Array<{ name: string; value: string | null; why: string }>;
   warnings: string[];
+  endpoints?: Array<{ id: string; label: string; address: string }>;
+  selectedEndpoint?: string;
 }
 
 interface Outcome {
@@ -65,50 +68,79 @@ export function ImportApiTestsDialog({ open, onOpenChange }: { open: boolean; on
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [documents, setDocuments] = useState<Array<{ location: string; content: string }>>([]);
+  const [rootIndex, setRootIndex] = useState(0);
+  const [endpoint, setEndpoint] = useState<string | undefined>();
+  const generation = useRef(0);
+  const operation = useRef(0);
+  const copy = (key: string, fallback: string) => t(`apiTester.import.${key}`, fallback);
+  useEffect(() => { if (!open) { generation.current++; operation.current++; setBusy(false); } }, [open]);
+  useEffect(() => () => { generation.current++; operation.current++; }, []);
+  const invalidate = () => { generation.current++; setPreview(null); setOutcome(null); setSelected(new Set()); setEndpoint(undefined); setError(''); };
 
   const reset = () => {
+    generation.current++; operation.current++; setBusy(false);
     setContent('');
+    setDocuments([]); setRootIndex(0); setEndpoint(undefined);
     setPreview(null);
     setSelected(new Set());
     setOutcome(null);
     setError('');
   };
 
-  const run = async (work: () => Promise<void>) => {
+  const run = async (work: (epoch: number) => Promise<void>) => {
+    const epoch = ++generation.current;
+    const currentOperation = ++operation.current;
     setBusy(true);
     setError('');
     try {
-      await work();
+      await work(epoch);
     } catch (e) {
-      setError((e as Error).message);
+      if (generation.current === epoch) setError((e as Error).message);
     } finally {
-      setBusy(false);
+      if (operation.current === currentOperation) setBusy(false);
     }
   };
 
-  const readFile = (file: File | undefined) => {
-    if (!file) return;
-    file.text().then((text) => {
-      setContent(text);
-      setPreview(null);
-      setOutcome(null);
+  const readFiles = (files: FileList | null) => {
+    if (!files?.length) return;
+    invalidate();
+    const list = Array.from(files);
+    if (list.length > 32) { setError(copy('documentLimit', 'A bundle may contain at most 32 documents.')); return; }
+    if (list.reduce((sum, file) => sum + file.size, 0) > 10 * 1024 * 1024) { setError(copy('byteLimit', 'A bundle may contain at most 10 MiB.')); return; }
+    void run(async epoch => {
+      const loaded = await Promise.all(list.map(async file => ({ location: file.webkitRelativePath || file.name, content: await file.text() })));
+      if (generation.current !== epoch) return;
+      const root = Math.max(0, loaded.findIndex(document => /\.wsdl$/i.test(document.location)));
+      setDocuments(loaded); setRootIndex(root); setContent(loaded[root].content);
     });
   };
 
-  const showPreview = () =>
-    run(async () => {
-      const result: Preview = await post({ content, dryRun: true });
+  const source = (selectedEndpoint = endpoint) => {
+    const locations = documents.map(document => document.location.trim());
+    if (locations.some(location => !location) || new Set(locations).size !== locations.length) throw new Error(copy('locationError', 'Each document needs a unique logical location.'));
+    const totalBytes = new Blob([content, ...documents.filter((_, index) => index !== rootIndex).map(document => document.content)]).size;
+    if (totalBytes > 10 * 1024 * 1024) throw new Error(copy('byteLimit', 'A bundle may contain at most 10 MiB.'));
+    return { content, ...(documents.length ? { rootLocation: locations[rootIndex], documents: documents.filter((_, index) => index !== rootIndex).map(document => ({ ...document, location: document.location.trim() })) } : {}), ...(selectedEndpoint ? { endpoint: selectedEndpoint } : {}) };
+  };
+
+  const showPreview = (selectedEndpoint = endpoint) =>
+    run(async epoch => {
+      const result: Preview = await post({ ...source(selectedEndpoint), dryRun: true });
+      if (generation.current !== epoch) return;
       setPreview(result);
+      setEndpoint(result.selectedEndpoint ?? selectedEndpoint);
       setSelected(new Set(result.tests.filter((test) => !test.exists).map((test) => test.index)));
     });
 
   const importSelected = () =>
-    run(async () => {
+    run(async epoch => {
       const result: Outcome = await post({
-        content,
+        ...source(),
         select: [...selected],
         projectId: projectId === NO_PROJECT ? null : Number(projectId),
       });
+      if (generation.current !== epoch) return;
       setOutcome(result);
       queryClient.invalidateQueries({ queryKey: ['apiTests'] });
     });
@@ -156,18 +188,26 @@ export function ImportApiTestsDialog({ open, onOpenChange }: { open: boolean; on
             <Label htmlFor="import-file" className="inline-flex cursor-pointer items-center gap-2 text-sm">
               <FileUp className="h-4 w-4" /> {t('apiTester.import.openFile', 'Open a file…')}
             </Label>
-            <input id="import-file" type="file" accept=".json,.yaml,.yml,.wsdl,.xml" className="sr-only" onChange={(e) => readFile(e.target.files?.[0])} />
+            <input id="import-file" type="file" multiple accept=".json,.yaml,.yml,.wsdl,.xml,.xsd" className="sr-only" disabled={busy} onChange={(e) => { readFiles(e.target.files); e.target.value = ''; }} />
+            <Label htmlFor="import-directory" className="ml-4 inline-flex cursor-pointer items-center gap-2 text-sm"><FileUp className="h-4 w-4" />{copy('openDirectory', 'Open a directory…')}</Label>
+            <input id="import-directory" type="file" multiple {...{ webkitdirectory: '', directory: '' }} className="sr-only" disabled={busy} onChange={(e) => { readFiles(e.target.files); e.target.value = ''; }} />
+            {documents.length > 0 && <div className="space-y-2 rounded-md border p-3">
+              <p className="text-xs text-muted-foreground">{copy('bundleHelp', 'Upload the root WSDL and its WSDL/XSD dependencies. Logical locations match imports; directory paths are preserved. Maximum 32 documents, 10 MiB.')}</p>
+              <label className="grid gap-1 text-sm">{copy('rootDocument', 'Root document')}<select className="rounded-md border bg-background p-2" value={rootIndex} disabled={busy} onChange={event => { invalidate(); const index = Number(event.target.value); setDocuments(current => current.map((document, i) => i === rootIndex ? { ...document, content } : document)); setRootIndex(index); setContent(documents[index].content); }}>{documents.map((document, index) => <option key={index} value={index}>{document.location}</option>)}</select></label>
+              {documents.map((document, index) => <label key={index} className="grid gap-1 text-sm">{t('apiTester.import.logicalLocation', 'Document {{index}} logical location', { index: index + 1 })}<Input disabled={busy} value={document.location} onChange={event => { invalidate(); setDocuments(current => current.map((item, i) => i === index ? { ...item, location: event.target.value } : item)); }} /></label>)}
+            </div>}
             <Textarea
               rows={10}
               className="font-mono text-xs"
               placeholder={t('apiTester.import.paste', 'Or paste the description or the collection here')}
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => { invalidate(); setContent(e.target.value); }}
               data-testid="import-content"
             />
           </div>
         ) : (
           <div className="space-y-3" data-testid="import-preview">
+            {preview.endpoints && preview.endpoints.length > 0 && <label className="grid gap-1 text-sm">{copy('endpoint', 'SOAP endpoint')}<select className="rounded-md border bg-background p-2" value={endpoint ?? preview.selectedEndpoint ?? ''} disabled={busy} onChange={event => { const selectedEndpoint = event.target.value; setEndpoint(selectedEndpoint); setPreview(null); setSelected(new Set()); void showPreview(selectedEndpoint); }}>{preview.endpoints.map(item => <option key={item.id} value={item.id}>{item.label} — {item.address}</option>)}</select></label>}
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <Badge variant="secondary">{FORMAT_LABEL[preview.format]}</Badge>
               <span className="font-medium">{preview.title}</span>
@@ -233,7 +273,7 @@ export function ImportApiTestsDialog({ open, onOpenChange }: { open: boolean; on
           {outcome ? (
             <Button onClick={() => { reset(); onOpenChange(false); }}>{t('apiTester.import.close', 'Close')}</Button>
           ) : !preview ? (
-            <Button onClick={showPreview} disabled={busy || !content.trim()} data-testid="import-preview-button">
+            <Button onClick={() => void showPreview()} disabled={busy || !content.trim()} data-testid="import-preview-button">
               {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t('apiTester.import.preview', 'Show what it makes')}
             </Button>

@@ -1,8 +1,84 @@
 import { test, expect, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { distributedWsdl, requestXsd, baseXsd } from '../server/tests/soap-bundle-fixtures';
 
 const password = 'E2e-Installation!2026';
 const target = 'http://127.0.0.1:5081/echo';
+
+test('gRPC stream settings persist and a real service completes through the interface', async ({ page }) => {
+  await register(page); await page.goto('/dashboard/api-tester');
+  await page.getByLabel('Method', { exact: true }).click(); await page.getByRole('option', { name: 'GRPC', exact: true }).click();
+  await page.getByLabel('Base URL', { exact: true }).fill('grpc://127.0.0.1:5082/installation.Test/Stream');
+  await page.getByLabel('Service definition (.proto)', { exact: true }).fill(readFileSync('e2e/protocol.proto', 'utf8'));
+  await page.getByLabel('gRPC mode', { exact: true }).selectOption('server_stream');
+  await page.getByLabel('Maximum received messages', { exact: true }).fill('5');
+  const name = `CI gRPC stream ${randomUUID()}`;
+  await page.getByRole('button', { name: 'Save Test', exact: true }).click();
+  const dialog = page.getByRole('dialog'); await dialog.getByLabel('Test Name', { exact: true }).fill(name);
+  await dialog.getByRole('button', { name: 'Save Test', exact: true }).click(); await expect(dialog).not.toBeVisible();
+  await page.reload(); await page.getByRole('tab', { name: 'Saved Tests', exact: true }).click(); await page.getByText(name, { exact: true }).click();
+  await expect(page.getByLabel('gRPC mode', { exact: true })).toHaveValue('server_stream');
+  await expect(page.getByLabel('Maximum received messages', { exact: true })).toHaveValue('5');
+  const sent = page.waitForResponse(res => res.url().endsWith('/api/proxy-api-request'));
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  expect(await (await sent).json()).toMatchObject({ status: 0, body: { count: 2, last: { value: 'complete' } } });
+  await expect(page.getByTestId('protocol-transcript')).toContainText('complete');
+  const saved = (await (await page.request.get('/api/api-tests')).json()).find((item: { name: string }) => item.name === name);
+  expect((await page.request.post(`/api/api-tests/${saved.id}/publish`, { data: {} })).ok()).toBeTruthy();
+  // The worker must execute the published five-message limit, not this newer one-message draft.
+  expect((await page.request.put(`/api/api-tests/${saved.id}`, { data: { protocolConfig: { grpcMode: 'server_stream', maxMessages: 1 } } })).ok()).toBeTruthy();
+  const created = await page.request.post('/api/test-plans', { data: {
+    name: `CI published stream ${randomUUID()}`, selectedTests: [{ id: saved.id, type: 'api' }],
+    testMachinesConfig: [{ browserName: 'chromium', headless: true }], maxParallelTests: 1,
+  } });
+  expect(created.status()).toBe(201); const plan = await created.json();
+  await page.goto(`/test-plan/${plan.id}/run`);
+  await expect(page.getByTestId('plan-contents')).toContainText(name);
+  const started = page.waitForResponse(res => res.url().endsWith(`/api/run-test-plan/${plan.id}`) && res.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Start Execution', exact: true }).click();
+  const start = await started; expect(start.ok()).toBeTruthy(); const runId = (await start.json()).data.id;
+  await page.getByRole('link', { name: 'View detailed report', exact: true }).click();
+  await expect.poll(async () => (await (await page.request.get(`/api/test-plan-executions/${runId}`)).json()).status, { timeout: 60000 }).toBe('completed');
+  const run = await (await page.request.get(`/api/test-plan-executions/${runId}`)).json();
+  expect(run.results[0]).toMatchObject({ success: true, protocol: { status: 0, body: { count: 2 } } });
+  await expect(page.getByText('100.00% Pass Rate', { exact: true })).toBeVisible();
+});
+
+test('WebSocket conversation captures an immediate challenge and sends the dependent message', async ({ page }) => {
+  await register(page); await page.goto('/dashboard/api-tester');
+  await page.getByLabel('Method', { exact: true }).click(); await page.getByRole('option', { name: 'WEBSOCKET', exact: true }).click();
+  await page.getByLabel('Base URL', { exact: true }).fill('ws://127.0.0.1:5081');
+  await page.getByRole('tab', { name: 'Body', exact: true }).first().click();
+  await page.getByRole('radio', { name: 'Raw (JSON, XML, Text, etc.)', exact: true }).click();
+  await page.getByRole('button', { name: 'Edit conversation JSON', exact: true }).click();
+  await page.getByLabel('Conversation JSON', { exact: true }).fill(JSON.stringify({ steps: [{ type: 'receive' }, { type: 'capture', name: 'token', property: 'token' }, { type: 'send', message: '{{capture.token}}' }, { type: 'receive', property: 'accepted', equals: true }, { type: 'end' }] }));
+  const sent = page.waitForResponse(res => res.url().endsWith('/api/proxy-api-request'));
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  expect(await (await sent).json()).toMatchObject({ status: 101, body: { count: 2, last: { accepted: true }, captures: { token: 'installation-challenge' } } });
+  await expect(page.getByTestId('protocol-transcript')).toContainText('installation-challenge');
+});
+
+test('SOAP bundle files and logical locations produce saved tests through the import interface', async ({ page }) => {
+  await register(page); await page.goto('/dashboard/api-tester');
+  await page.getByRole('tab', { name: 'Saved Tests', exact: true }).click();
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.locator('#import-file').setInputFiles([
+    { name: 'service.wsdl', mimeType: 'text/xml', buffer: Buffer.from(distributedWsdl) },
+    { name: 'request.xsd', mimeType: 'text/xml', buffer: Buffer.from(requestXsd) },
+    { name: 'base.xsd', mimeType: 'text/xml', buffer: Buffer.from(baseXsd) },
+  ]);
+  await dialog.getByLabel('Document 2 logical location', { exact: true }).fill('types/request.xsd');
+  await dialog.getByLabel('Document 3 logical location', { exact: true }).fill('types/base.xsd');
+  await dialog.getByRole('button', { name: 'Show what it makes', exact: true }).click();
+  await expect(dialog.getByTestId('import-preview')).toBeVisible();
+  const imported = page.waitForResponse(res => res.url().endsWith('/api/api-tests/import') && res.request().method() === 'POST');
+  await dialog.getByTestId('import-confirm').click();
+  expect((await imported).status()).toBe(201);
+  const saved = await (await page.request.get('/api/api-tests')).json();
+  expect(saved).toEqual(expect.arrayContaining([expect.objectContaining({ method: 'POST', requestBody: expect.stringContaining('OrderId') })]));
+});
 
 test('organization email settings and edited templates persist and stay isolated from another organization', async ({ page, browser }) => {
   await register(page);

@@ -195,6 +195,21 @@ describe('the test file', () => {
     expect((await privilegedDb.select().from(auditLog).where(eq(auditLog.action, 'test.imported'))).length).toBe(2);
   });
 
+  it('round-trips streaming mode, conversation and TLS references across organizations', async () => {
+    const source = await organization('ProtocolSource');
+    const protocolConfig = { grpcMode: 'bidi' as const, timeoutMs: 1500, tls: { clientCertificate: '{{secret_cert}}', clientKey: '{{secret_key}}' } };
+    const requestBody = JSON.stringify({ steps: [{ type: 'receive' }, { type: 'capture', name: 'token', property: 'token' }, { type: 'send', message: '{{capture.token}}' }] });
+    await privilegedDb.insert(apiTests).values({ name: 'Streaming', method: 'GRPC', url: 'grpcs://service.test/chat.Service/Talk', userId: user.id, organizationId: source, projectId, protoDefinition: 'syntax="proto3";', protocolConfig, requestBody });
+    const exported = await request(app).get('/api/tests/export').query({ projectId }).expect(200);
+    expect(parseYaml(exported.text).apiTests[0]).toMatchObject({ protocolConfig, requestBody });
+    const target = await organization('ProtocolTarget');
+    await request(app).post('/api/tests/import-bundle').send({ content: exported.text, projectId }).expect(201);
+    const [imported] = await privilegedDb.select().from(apiTests).where(eq(apiTests.organizationId, target));
+    expect(imported).toMatchObject({ protocolConfig, requestBody });
+    const [version] = await privilegedDb.select().from(testVersions).where(eq(testVersions.apiTestId, imported.id));
+    expect(version.snapshot).toMatchObject({ protocolConfig, requestBody });
+  });
+
   it('reports a test it cannot take, and refuses what is not a test file', async () => {
     await organization('Strict');
     const content = 'kind: webflowmaster/tests\nversion: 1\ntests:\n  - name: Broken\n    url: https://x.example\n    sequence: "not steps"\n';

@@ -64,6 +64,7 @@ for (const kind of ['api', 'mobile'] as const)
                 method: 'GET',
                 authParams: { token: 'initial' },
                 protoDefinition: 'syntax = "proto3";',
+                protocolConfig: { timeoutMs: 1500, maxMessages: 20 },
               })
               .returning()
           : await privilegedDb
@@ -107,7 +108,7 @@ for (const kind of ['api', 'mobile'] as const)
         ...test,
         name: 'Edited',
         ...(kind === 'api'
-          ? { url: 'https://second.test', authParams: { token: 'new' } }
+          ? { url: 'https://second.test', authParams: { token: 'new' }, protocolConfig: { timeoutMs: 2500, maxMessages: 30 } }
           : { app: 'bs://new' }),
       };
       await tenant((tx) =>
@@ -123,9 +124,11 @@ for (const kind of ['api', 'mobile'] as const)
       await request(app).post(`/api/${route}/${test.id}/publish`).send({ version: 1 }).expect(200);
       const content = await tenant((tx) => publishedContentOf(tx, [test.id], kind));
       expect(content.get(test.id)?.snapshot?.name).toBe(test.name);
+      if (kind === 'api') expect(content.get(test.id)?.snapshot?.protocolConfig).toEqual({ timeoutMs: 1500, maxMessages: 20 });
       const latest = await tenant((tx) => currentContentOf(tx, [test.id], kind));
       expect(latest.get(test.id)?.version).toBe(2);
       expect(latest.get(test.id)?.snapshot.name).toBe('Edited');
+      if (kind === 'api') expect(latest.get(test.id)?.snapshot.protocolConfig).toEqual({ timeoutMs: 2500, maxMessages: 30 });
       const restored = await request(app)
         .post(`/api/${route}/${test.id}/versions/1/restore`)
         .expect(200);
@@ -134,6 +137,7 @@ for (const kind of ['api', 'mobile'] as const)
       const version = await request(app).get(`/api/${route}/${test.id}/versions/3`).expect(200);
       expect(version.body.snapshot).not.toHaveProperty('organizationId');
       expect(version.body.snapshot).not.toHaveProperty('publishedVersion');
+      if (kind === 'api') expect(restored.body.test.protocolConfig).toEqual({ timeoutMs: 1500, maxMessages: 20 });
       expect((await tenant((tx) => currentVersionsOf(tx, [test.id], kind))).get(test.id)).toBe(3);
     });
     it('lists typed reviews with canonical IDs and rejects approval by the snapshot author', async () => {

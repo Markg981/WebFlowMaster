@@ -37,16 +37,21 @@ and no firewall change beyond outbound access to the server.
 
 ## gRPC and WebSocket inside the private network
 
-Plans assigned to a local pool execute unary gRPC calls and WebSocket exchanges on the agent,
+Plans assigned to a local pool execute unary and streaming gRPC calls and WebSocket exchanges on the agent,
 including TLS addresses (`grpcs://`, `wss://`). Assertions and captures still run on the server.
 Native sessions need no installed browser; HTTP and OAuth token requests still need Chromium.
 Sessions share `WFM_AGENT_MAX_SESSIONS`; the run returns an idle HTTP browser before opening a
 native session, including after OAuth token acquisition. Closing the run transport cancels its active API call.
 
-Use agent **1.1.0 or later**: download the script again and install the packages in the setup
+Use agent **1.2.0 or later**: download the script again and install the packages in the setup
 command below, or rebuild and restart the Docker agent. Existing v1 agents still serve browsers
 and HTTP; a pool without native protocol support fails explicitly and asks you to update it.
 The runner never falls back to making these calls from the server's network.
+
+Streaming, mutual TLS and ordered conversations require `native-protocol-v2`. Older native
+agents can still serve legacy unary/WebSocket calls, but cannot receive an advanced ticket.
+TLS identities come from the test's organization environment; resolved fields travel only
+inside the authenticated native session, while tickets and directory records contain feature names.
 
 ## Set up
 
@@ -72,7 +77,7 @@ With Node 20.18.1 or later:
 
 ```bash
 curl -fsSL https://webflowmaster.example.com/cli/wfm-agent.mjs -o wfm-agent.mjs
-npm install playwright@<server version> ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7
+npm install playwright@<server version> ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7 zod@^3
 npx playwright install chromium        # and firefox / webkit / msedge if plans use them
 WFM_URL=https://webflowmaster.example.com WFM_AGENT_TOKEN=wfa_... node wfm-agent.mjs
 ```

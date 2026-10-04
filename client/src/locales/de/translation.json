@@ -665,11 +665,11 @@
       }
     },
     "websocket": {
-      "hint": "Eine ws://- oder wss://-Adresse. Der Raw-Body enthält die zu sendenden Nachrichten, eine pro Zeile, oder {\"send\": [...], \"waitMs\": 2000, \"until\": 1}. Assertions lesen den JSON-Body { messages, last, count }: last.type, messages[0].id, count."
+      "hint": "Verwenden Sie ws:// oder wss:// mit bestehenden Rohnachrichten oder einer Konversation aus Empfangen/Erfassen/Senden. Assertions lesen messages, last, count und captures."
     },
     "grpc": {
       "proto": "Dienstdefinition (.proto)",
-      "hint": "Adresse grpc://host:port/paket.Dienst/Methode (grpcs:// für TLS). Der Raw-Body ist die Anfrage als JSON; Header werden als Metadaten gesendet. Der Status ist der gRPC-Code, 0 für OK."
+      "hint": "Unary sowie Server-, Client- und bidirektionales Streaming gemäß .proto. Für Anfragestreams verwenden Sie {\"messages\":[...]} oder eine geordnete Konversation. TLS/mTLS verwendet grpcs:// und Umgebungsgeheimnisse."
     }
   },
   "dashboardOverviewPage": {
@@ -1880,7 +1880,66 @@
       "confirm": "{{count}} Tests importieren",
       "created": "{{count}} Tests importiert.",
       "skipped": "{{count}} ausgelassen: schon vorhanden.",
-      "close": "Schließen"
+      "close": "Schließen",
+      "openDirectory": "Verzeichnis öffnen…",
+      "documentLimit": "Ein Paket darf höchstens 32 Dokumente enthalten.",
+      "byteLimit": "Ein Paket darf höchstens 10 MiB enthalten.",
+      "locationError": "Jedes Dokument benötigt einen eindeutigen logischen Pfad.",
+      "bundleHelp": "Laden Sie das Haupt-WSDL und seine WSDL/XSD-Abhängigkeiten hoch. Logische Pfade entsprechen den Imports; Verzeichnispfade bleiben erhalten. Höchstens 32 Dokumente, 10 MiB.",
+      "rootDocument": "Hauptdokument",
+      "logicalLocation": "Logischer Pfad des Dokuments {{index}}",
+      "endpoint": "SOAP-Endpunkt"
+    },
+    "protocol": {
+      "title": "Protokollkonfiguration",
+      "timeout": "Gesamtzeitlimit (ms)",
+      "maxMessages": "Maximale empfangene Nachrichten",
+      "maxBytes": "Maximale empfangene Bytes",
+      "mode": "gRPC-Modus",
+      "auto": "Aus der Dienstdefinition",
+      "unary": "Unary",
+      "serverStream": "Serverstream",
+      "clientStream": "Clientstream",
+      "bidi": "Bidirektionaler Stream",
+      "tlsHelp": "TLS erfordert grpcs://. Verwenden Sie genaue Verweise auf Umgebungsgeheimnisse; Clientzertifikat und Schlüssel müssen gemeinsam angegeben werden. Zertifikate werden immer geprüft.",
+      "rootCa": "Geheimnisverweis der Stamm-CA",
+      "clientCertificate": "Geheimnisverweis des Clientzertifikats",
+      "clientKey": "Geheimnisverweis des Clientschlüssels",
+      "keyPassphrase": "Geheimnisverweis der Schlüsselpassphrase",
+      "invalid": "Prüfen Sie Grenzen und genaue Geheimnisverweise. Clientzertifikat und Schlüssel müssen gemeinsam angegeben werden.",
+      "defaults": "Protokollstandardwerte verwenden",
+      "invalidTitle": "Ungültige Protokollkonfiguration",
+      "invalidSend": "Prüfen Sie Grenzen, Zertifikat/Schlüssel und die Adresse grpcs:// vor dem Speichern oder Ausführen.",
+      "transcript": "Streamprotokoll und Erfassungen"
+    },
+    "conversation": {
+      "title": "Konversation",
+      "help": "Empfangen Sie eine Antwort, erfassen Sie einen Wert und verwenden Sie ihn später mit {{capture.name}}. Bestehende Rohdaten bleiben unverändert, bis Sie eine Konversation erstellen.",
+      "create": "Konversation erstellen",
+      "builder": "Editor für geordnete Schritte",
+      "json": "Konversations-JSON bearbeiten",
+      "jsonLabel": "Konversations-JSON",
+      "stepField": "Schritt {{index}}: {{field}}",
+      "type": "Typ",
+      "send": "Senden",
+      "receive": "Empfangen",
+      "capture": "Erfassen",
+      "end": "Beenden",
+      "moveUp": "Schritt {{index}} nach oben",
+      "moveDown": "Schritt {{index}} nach unten",
+      "remove": "Schritt {{index}} entfernen",
+      "message": "Nachricht (Text oder JSON)",
+      "messageField": "Nachricht",
+      "timeout": "Schrittzeitlimit (ms)",
+      "timeoutField": "Zeitlimit",
+      "property": "JSON-Pfad (optional)",
+      "propertyField": "Eigenschaft",
+      "equals": "Erwarteter Wert (optional)",
+      "equalsField": "erwarteter Wert",
+      "name": "Erfassungsname",
+      "nameField": "Erfassungsname",
+      "add": "Schritt hinzufügen",
+      "invalid": "Ungültige Konversation. Prüfen Sie Reihenfolge, Erfassungsnamen, Zeitlimits und die Grenze von 100 Schritten. Bearbeiten Sie JSON, um nicht unterstützte Schritte zu korrigieren."
     }
   },
   "authForms": {

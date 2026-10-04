@@ -659,11 +659,11 @@
       }
     },
     "websocket": {
-      "hint": "A ws:// or wss:// address. The raw body holds the messages to send, one per line, or {\"send\": [...], \"waitMs\": 2000, \"until\": 1}. Assertions read the JSON body { messages, last, count }: last.type, messages[0].id, count."
+      "hint": "Use ws:// or wss:// with legacy raw messages or an ordered receive/capture/send conversation. Assertions read messages, last, count and captures."
     },
     "grpc": {
       "proto": "Service definition (.proto)",
-      "hint": "Address grpc://host:port/package.Service/Method (grpcs:// for TLS). The raw body is the request message as JSON; headers are sent as metadata. The status is the gRPC code, 0 for OK."
+      "hint": "Unary, server/client and bidirectional streaming from the .proto definition. For request streams use {\"messages\":[...]} or an ordered conversation. TLS/mTLS uses grpcs:// and environment secret references."
     }
   },
   "dashboardOverviewPage": {
@@ -1874,7 +1874,66 @@
       "confirm": "Import {{count}} tests",
       "created": "{{count}} tests imported.",
       "skipped": "{{count}} left out: they already exist.",
-      "close": "Close"
+      "close": "Close",
+      "openDirectory": "Open a directory…",
+      "documentLimit": "A bundle may contain at most 32 documents.",
+      "byteLimit": "A bundle may contain at most 10 MiB.",
+      "locationError": "Each document needs a unique logical location.",
+      "bundleHelp": "Upload the root WSDL and its WSDL/XSD dependencies. Logical locations match imports; directory paths are preserved. Maximum 32 documents, 10 MiB.",
+      "rootDocument": "Root document",
+      "logicalLocation": "Document {{index}} logical location",
+      "endpoint": "SOAP endpoint"
+    },
+    "protocol": {
+      "title": "Protocol configuration",
+      "timeout": "Overall timeout (ms)",
+      "maxMessages": "Maximum received messages",
+      "maxBytes": "Maximum received bytes",
+      "mode": "gRPC mode",
+      "auto": "From service definition",
+      "unary": "Unary",
+      "serverStream": "Server stream",
+      "clientStream": "Client stream",
+      "bidi": "Bidirectional stream",
+      "tlsHelp": "TLS requires grpcs://. Use exact environment secret references; supply the client certificate and key together. Certificates are always verified.",
+      "rootCa": "Root CA secret reference",
+      "clientCertificate": "Client certificate secret reference",
+      "clientKey": "Client key secret reference",
+      "keyPassphrase": "Key passphrase secret reference",
+      "invalid": "Check the protocol limits and exact secret references. Client certificate and key must be supplied together.",
+      "defaults": "Use protocol defaults",
+      "invalidTitle": "Invalid protocol configuration",
+      "invalidSend": "Check limits, paired TLS secret references and the grpcs:// address before saving or running.",
+      "transcript": "Stream transcript and captures"
+    },
+    "conversation": {
+      "title": "Conversation",
+      "help": "Receive a response, capture a value, then reuse it in a later send with {{capture.name}}. Legacy raw bodies stay unchanged until you create a conversation.",
+      "create": "Create conversation",
+      "builder": "Ordered step editor",
+      "json": "Edit conversation JSON",
+      "jsonLabel": "Conversation JSON",
+      "stepField": "Step {{index}} {{field}}",
+      "type": "type",
+      "send": "Send",
+      "receive": "Receive",
+      "capture": "Capture",
+      "end": "End",
+      "moveUp": "Move step {{index}} up",
+      "moveDown": "Move step {{index}} down",
+      "remove": "Remove step {{index}}",
+      "message": "Message (text or JSON)",
+      "messageField": "message",
+      "timeout": "Step timeout (ms)",
+      "timeoutField": "timeout",
+      "property": "JSON path (optional)",
+      "propertyField": "property",
+      "equals": "Expected value (optional)",
+      "equalsField": "expected value",
+      "name": "Capture name",
+      "nameField": "capture name",
+      "add": "Add step",
+      "invalid": "Invalid conversation. Check step order, capture names, timeouts and the 100-step limit. Use JSON editing to repair unsupported steps."
     }
   },
   "authForms": {

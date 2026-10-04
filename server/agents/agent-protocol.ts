@@ -2,8 +2,10 @@ import WebSocket from 'ws';
 import { setTimeout as delay } from 'node:timers/promises';
 import { AGENT_PATHS } from '@shared/agents';
 import type { AgentProtocolRequest, AgentProtocolReply, ProtocolResponse } from '@shared/agent-protocol';
+import { AGENT_API_MAX_PAYLOAD } from '@shared/agent-protocol';
 import { relayBaseUrl, RUNNER_PLAYWRIGHT_VERSION, type AgentTarget } from './agent-browser';
 import { relaySecret, signTicket } from './agent-credentials';
+import { requiredApiFeatures } from './api-protocol-features';
 
 /** Native API request, executed by the agent over its existing outbound session relay. */
 export async function runProtocolOnAgent(
@@ -16,6 +18,7 @@ export async function runProtocolOnAgent(
   const ticket = signTicket({
     ...agent, engine: 'chromium', headless: true, playwrightVersion: RUNNER_PLAYWRIGHT_VERSION,
     apiProtocol: request.protocol,
+    apiFeatures: await requiredApiFeatures(request),
   }, relaySecret(env));
   const base = relayBaseUrl(env);
   const deadline = Date.now() + waitForSlotMs;
@@ -32,7 +35,7 @@ export async function runProtocolOnAgent(
 
   return new Promise<ProtocolResponse>((resolve, reject) => {
     const socket = new WebSocket(`${base.replace(/^http/i, 'ws')}${AGENT_PATHS.browser}?ticket=${encodeURIComponent(ticket)}`, {
-      handshakeTimeout: 10_000, maxPayload: 16 * 1024 * 1024,
+      handshakeTimeout: 10_000, maxPayload: AGENT_API_MAX_PAYLOAD,
     });
     let settled = false;
     const finish = (error?: Error, response?: ProtocolResponse) => {
