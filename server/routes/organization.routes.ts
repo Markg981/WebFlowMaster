@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from "express";
-import { isEmailAddress, mailConfigured, sendMail, type MailResult } from "../mailer";
+import { isEmailAddress, organizationMailConfigured, sendMail, type MailResult } from "../mailer";
 import { invitationMail, passwordResetMail } from "../mail-messages";
 import { publicBase } from "./sso.routes";
 import { randomBytes } from "node:crypto";
@@ -240,7 +240,7 @@ async function mailIfPossible(
   username: string,
   build: () => Promise<Parameters<typeof sendMail>[0]>,
 ): Promise<{ emailed?: boolean; emailError?: string }> {
-  if (!mailConfigured() || !isEmailAddress(username)) return {};
+  if (!isEmailAddress(username) || !await organizationMailConfigured(getTenantOrgId())) return {};
   const result: MailResult = await sendMail(await build());
   return result.sent ? { emailed: true } : { emailed: false, emailError: result.error };
 }

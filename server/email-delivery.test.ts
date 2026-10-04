@@ -8,6 +8,9 @@ import { passwordProblem } from '@shared/password-policy';
 import { mailerDeps, sendMail } from './mailer';
 import { mailRunFinished, personWantsMail } from './run-mail';
 import type { RunSummary } from './notifications';
+import { mailSettings } from '@shared/mail-settings';
+import { issuePasswordReset } from './password-reset';
+import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 
 vi.mock('./logger', () => ({
   default: Promise.resolve({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), http: vi.fn(), debug: vi.fn() }),
@@ -97,6 +100,16 @@ describe('sendMail', () => {
 });
 
 describe('Forgot your password?', () => {
+  it('keeps an owner handoff link usable when the target organization disables sending', async () => {
+    await request(app).post('/api/register').send({ username: 'handoff@shop.test', password: 'first-password' }).expect(201);
+    const [user] = await privilegedDb.select().from(users).where(eq(users.username, 'handoff@shop.test'));
+    await privilegedDb.insert(mailSettings).values({ organizationId: user.organizationId!, smtpMode: 'disabled' });
+    const issued = await runWithTenant(user.organizationId!, () => withTenantTransaction(tx => issuePasswordReset(tx, { organizationId: user.organizationId!, userId: user.id, createdBy: user.id })));
+    const known = await request(app).post('/api/password-reset/request').send({ username: user.username }).expect(202);
+    const unknown = await request(app).post('/api/password-reset/request').send({ username: 'unknown-handoff@shop.test' }).expect(202);
+    expect(known.body).toEqual(unknown.body); expect(sent).toHaveLength(0);
+    await request(app).post('/api/password-reset').send({ token: issued.token, newPassword: 'second-password' }).expect(200);
+  });
   it('is offered only with mail, mails a working link to an account, and answers the same for anyone', async () => {
     mailerDeps.transport = null;
     expect((await request(app).get('/api/password-reset/available').expect(200)).body).toEqual({ available: false });

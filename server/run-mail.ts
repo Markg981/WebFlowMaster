@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { privilegedDb } from './db';
 import { userSettings, users, testPlanExecutions, testPlans } from '@shared/schema';
 import { getTenantOrgId } from './middleware/tenancy';
-import { isEmailAddress, mailConfigured, sendMail } from './mailer';
+import { isEmailAddress, organizationMailConfigured, sendMail } from './mailer';
 import { runFinishedMail } from './mail-messages';
 import { shouldNotify, type NotificationSettings, type RunSummary } from './notifications';
 
@@ -39,13 +39,9 @@ export async function mailRunFinished(
   requestedByUserId: number | null | undefined,
   summary: RunSummary,
 ): Promise<RunMailOutcome[]> {
-  if (!mailConfigured()) return [];
-  let organizationId = getTenantOrgId() ?? null;
-  if (organizationId === null) {
-    const [execution] = await privilegedDb.select({ organizationId: testPlanExecutions.organizationId }).from(testPlanExecutions).where(eq(testPlanExecutions.id, summary.executionId)).limit(1);
-    const [plan] = execution ? [] : await privilegedDb.select({ organizationId: testPlans.organizationId }).from(testPlans).where(eq(testPlans.id, summary.planId)).limit(1);
-    organizationId = execution?.organizationId ?? plan?.organizationId ?? null;
-  }
+  const [execution] = await privilegedDb.select({ organizationId: testPlanExecutions.organizationId }).from(testPlanExecutions).where(eq(testPlanExecutions.id, summary.executionId)).limit(1);
+  const [plan] = execution ? [] : await privilegedDb.select({ organizationId: testPlans.organizationId }).from(testPlans).where(eq(testPlans.id, summary.planId)).limit(1);
+  let organizationId = execution?.organizationId ?? plan?.organizationId ?? getTenantOrgId() ?? null;
   const recipients = new Set<string>();
   if (shouldNotify(settings, summary.status)) {
     for (const address of settings.emails ?? []) if (isEmailAddress(address?.trim())) recipients.add(address.trim().toLowerCase());
@@ -66,6 +62,7 @@ export async function mailRunFinished(
     }
   }
   const outcomes: RunMailOutcome[] = [];
+  if (!await organizationMailConfigured(organizationId)) return outcomes;
   for (const to of Array.from(recipients)) {
     const result = await sendMail(runFinishedMail(to, summary, organizationId));
     outcomes.push({ to, ...result });

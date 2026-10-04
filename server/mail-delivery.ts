@@ -41,10 +41,12 @@ export function verifyDeliverySignature(timestamp: string | undefined, signature
   if (!signature || !/^[0-9a-f]{64}$/i.test(signature)) return false;
   return timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(deliverySignature(timestamp, event, env.MAIL_DELIVERY_WEBHOOK_SECRET!), 'hex'));
 }
-export async function receiveDeliveryEvent(event: DeliveryEvent) {
+export async function receiveDeliveryEvent(event: DeliveryEvent, expectedOrganizationId?: number, recipient?: string) {
   return privilegedDb.transaction(async tx => {
     const [delivery] = await tx.select().from(mailDeliveries).where(eq(mailDeliveries.id, event.messageId)).for('update').limit(1);
     if (!delivery) return null;
+    if (expectedOrganizationId !== undefined && delivery.organizationId !== expectedOrganizationId) return null;
+    if (recipient !== undefined && delivery.recipient !== recipient.trim().toLowerCase()) return null;
     const eventKey = createHash('sha256').update(`${event.messageId}:${event.eventId}`).digest('hex');
     const inserted = await tx.insert(mailDeliveryEvents).values({ id: eventKey, deliveryId: delivery.id, organizationId: delivery.organizationId, state: event.status })
       .onConflictDoNothing().returning();

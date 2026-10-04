@@ -35,6 +35,7 @@ export function invitationMail(input: { base: string; username: string; token: s
   return {
     organizationId: input.organizationId,
     purpose: 'invitation',
+    templateVariables: { username: input.username, organizationName: input.organizationName, invitedBy: input.invitedBy, role: input.role, expiresAt: when(input.expiresAt), actionUrl: link },
     to: input.username,
     subject: `You are invited to ${input.organizationName.replace(/[\r\n]/g, ' ')} on WebFlowMaster`,
     html: htmlMail('You are invited', [introduction, expiry], { label: 'Create your account', url: link }),
@@ -54,6 +55,7 @@ export function passwordResetMail(input: { base: string; username: string; token
   return {
     organizationId: input.organizationId,
     purpose: 'password_reset',
+    templateVariables: { username: input.username, expiresAt: when(input.expiresAt), actionUrl: link },
     to: input.username,
     subject: 'Choose a new WebFlowMaster password',
     html: htmlMail('Choose a new password', [
@@ -81,6 +83,7 @@ export function runFinishedMail(to: string, summary: RunSummary, organizationId?
   return {
     organizationId,
     purpose: 'run_finished',
+    templateVariables: { planName: summary.planName, status: summary.status === 'completed' ? 'passed' : summary.status, summary: summaryLine(summary), actionUrl: link ?? '' },
     to,
     subject: `[WebFlowMaster] ${summary.planName.replace(/[\r\n]/g, ' ')}: ${summary.status === 'completed' ? 'passed' : summary.status}`,
     html: htmlMail('Your run has finished', [summaryLine(summary), "You receive this because of your notification settings, or the plan's."], link ? { label: 'View report', url: link } : undefined),

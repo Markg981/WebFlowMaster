@@ -45,7 +45,7 @@ export default function EmailDeliveryCard() {
     <CardContent className="space-y-4">
       {isLoading ? <p>{t('emailDelivery.loading', 'Loading…')}</p> : isError || !data ?
         <p role="alert" className="text-sm text-destructive">{t('emailDelivery.error', 'Email delivery history could not be loaded.')}</p> : <>
-          {!data.configured && <p className="text-sm text-muted-foreground">{t('emailDelivery.notConfigured', 'Email sending is not configured on this installation.')}</p>}
+          {!data.configured && <p className="text-sm text-muted-foreground">{t('emailDelivery.notConfigured', 'Email sending is not configured for this organization.')}</p>}
           {!data.trackingConfigured && <p className="text-sm text-muted-foreground">{t('emailDelivery.noTracking', 'Delivery and bounce tracking is not configured.')}</p>}
           <Button type="button" size="sm" variant="outline" disabled={isFetching} onClick={() => void refetch()}>{t('emailDelivery.refresh', 'Refresh')}</Button>
           {data.deliveries.length === 0 ? <p className="text-sm text-muted-foreground">{t('emailDelivery.empty', 'No messages recorded yet.')}</p> : <div className="overflow-x-auto">

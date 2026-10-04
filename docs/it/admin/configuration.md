@@ -32,8 +32,8 @@ processo non legge non fa danni.
 | `PASSWORD_POLICY` | web | `basic` | Come deve essere una nuova password: `basic` (8 caratteri, diversa dallo username) o `strong` (12 caratteri, tre tipi di carattere, niente username, niente password comuni). Vedere [Amministrazione](./administration#password-policy). |
 | `SMTP_URL` | web, worker | nessuno | Il server di posta, come `smtp://utente:password@host:587` (STARTTLS se offerto) o `smtps://…:465`. Con `SMTP_FROM` attiva le e-mail: inviti, link di reset, "Password dimenticata?" e notifiche dei run. |
 | `SMTP_FROM` | web, worker | nessuno | Il mittente, per esempio `WebFlowMaster <qa@example.com>`. |
-| `MAIL_DELIVERY_WEBHOOK_SECRET` | web | nessuno | Almeno 32 caratteri. Autentica gli eventi normalizzati di consegna/rimbalzo da un adattatore del provider; vedere [E-mail](./administration#e-mail). Senza questo segreto si registra solo l'accettazione/rifiuto SMTP. |
-| `SMTP_TLS_REJECT_UNAUTHORIZED` | web, worker | `true` | `false` accetta un relay con certificato self-signed dentro la vostra rete. |
+| `MAIL_DELIVERY_WEBHOOK_SECRET` | web | nessuno | Segreto di compatibilità dell’installazione, almeno 32 caratteri. Autentica gli eventi normalizzati a `/api/mail-deliveries/events`; i callback per organizzazione usano le proprie impostazioni. Vedere [E-mail](./administration#e-mail). Senza questo segreto si registra solo l'accettazione/rifiuto SMTP. |
+| `SMTP_TLS_REJECT_UNAUTHORIZED` | web, worker | `true` | Solo predefiniti dell’installazione: `false` accetta un relay con certificato self-signed nella vostra rete. SMTP personalizzato dell’organizzazione verifica sempre i certificati. |
 | `WEBHOOK_RATE_LIMIT` | web | `120` | Richieste al minuto per ogni indirizzo su `/api/webhooks`. `0` lo disattiva. |
 | `INSTALLATION_ADMINS` | web | nessuno | Nomi utente, separati da virgola, che possono cambiare le impostazioni dell'installazione (livello e conservazione dei log, svuotamento dei runner). Se non impostata: gli owner, finché l'installazione ha una sola organizzazione. Vedi [Amministratori dell'installazione](./administration#amministratori-dell-installazione). |
 | `CSRF_TRUSTED_ORIGINS` | web | nessuno | Origini separate da virgola accettate per le richieste che modificano dati, oltre all'`Host` della richiesta. Serve quando un proxy presenta un'origine pubblica diversa, per esempio `https://app.example.com`. |
@@ -163,3 +163,11 @@ Si impostano sulla macchina dell'agente. Vedi [Agenti locali](../LOCAL_AGENT).
 | Variabile | Descrizione |
 |---|---|
 | `VITE_API_PORT` | Dove il server di sviluppo del client inoltra le chiamate API, quando `PORT` non è 5000. |
+
+## Impostazioni email per organizzazione
+
+Gli owner configurano modalità SMTP, credenziali, mittente e provider di tracciamento in **Impostazioni → Sicurezza → Email dell’organizzazione**. Le variabili SMTP dell’installazione restano i predefiniti per l’invio ereditato e i messaggi di sistema senza organizzazione. SMTP personalizzato e modalità disabilitata sono specifici dell’organizzazione affidabile, inclusi reset password prima dell’autenticazione e notifiche worker. Conservare la stessa `ENCRYPTION_KEY` persistente su istanze API e worker per leggere le credenziali cifrate; non inserire segreti provider in variabili client pubbliche.
+
+Per SMTP personalizzato, autorizzare host del provider e porta SMTP nella policy del proxy HTTP CONNECT hardened del deployment. `WFM_EGRESS_PROXY` è obbligatorio quando configurato; non esiste fallback diretto. Consentire STARTTLS (di norma 587) o TLS implicito (di norma 465), mantenere la verifica dei certificati e il divieto delle destinazioni private/metadata. Le impostazioni dell’organizzazione non cambiano questa policy infrastrutturale.
+
+Pubblicare un’origine HTTPS stabile raggiungibile dal provider e instradare `/api/mail-deliveries/providers/<callbackId>` verso l’applicazione conservando body e header di firma. SES/SNS usa l’ARN esatto del topic configurato e gli header originali; SendGrid richiede la chiave pubblica di verifica webhook; Mailgun richiede la chiave di firma webhook. Questi tre provider non richiedono adattatori esterni per i callback nativi. Gli altri usano eventi HMAC generici normalizzati. Vedere [E-mail](./administration#e-mail) per configurazione ed editor dei modelli.

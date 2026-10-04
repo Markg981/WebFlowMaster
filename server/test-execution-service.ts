@@ -6,7 +6,7 @@ import { cleanupReportStep, runCleanups } from './cleanup-runner';
 import type { StepResult } from './playwright-service'; // Import StepResult type
 import loggerPromise from './logger';
 import { privilegedDb } from './db';
-import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import { getTenantOrgId, runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import {
   tests as testsTable,
   apiTests as apiTestsTable,
@@ -31,7 +31,7 @@ import { defaultVariables } from './variables';
 import { runApiRequest, type ApiRequestSpec, type Extraction } from './api-test-runner';
 import { runPerformance } from './api-performance';
 import { mailRunFinished } from './run-mail';
-import { mailConfigured } from './mailer';
+import { organizationMailConfigured } from './mailer';
 import { SharedDataError, expandSharedDataset, loadDataVariables } from './test-data';
 import type { ApiPerformance, PerformanceSummary } from '@shared/api-performance';
 import { AgentHttp } from './agents/agent-fetch';
@@ -2183,18 +2183,17 @@ async function notifyRunFinished(input: {
           timestamp: new Date().toISOString(),
         });
       }
+      for (const note of describeUnsupported(settings, await organizationMailConfigured(getTenantOrgId()))) {
+        resolvedLogger.warn({ message: note, executionId: input.summary.executionId });
+        wsEmitter.emitExecutionLog(input.summary.executionId, {
+          level: 'warn',
+          source: 'system',
+          message: note,
+          timestamp: new Date().toISOString(),
+        });
+      }
     } catch (error: any) {
       resolvedLogger.warn({ message: `Run notification e-mail could not be attempted: ${error?.message ?? error}`, executionId: input.summary.executionId });
-    }
-
-    for (const note of describeUnsupported(settings, mailConfigured())) {
-      resolvedLogger.warn({ message: note, executionId: input.summary.executionId });
-      wsEmitter.emitExecutionLog(input.summary.executionId, {
-        level: 'warn',
-        source: 'system',
-        message: note,
-        timestamp: new Date().toISOString(),
-      });
     }
 
     const result = await sendRunNotification(settings, input.summary);

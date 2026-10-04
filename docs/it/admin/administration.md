@@ -478,40 +478,39 @@ chi gestisce l'installazione. I backup del database conservano l'organizzazione 
 
 ## E-mail {#e-mail}
 
-Con `SMTP_URL` e `SMTP_FROM` impostate (vedere [Configurazione](./configuration)), l'installazione invia:
+Gli owner configurano **Impostazioni → Sicurezza → Email dell’organizzazione** separatamente per ciascuna organizzazione. Scegliere i predefiniti dell’installazione (`SMTP_URL` e `SMTP_FROM`), SMTP personalizzato oppure invio disabilitato. SMTP personalizzato richiede host, porta e mittente; le credenziali sono di sola scrittura. Password/segreto vuoti mantengono il valore salvato; i controlli espliciti di cancellazione lo rimuovono. I segreti sono cifrati con `ENCRYPTION_KEY`. Editor e viewer non possono leggere o modificare questa configurazione. Le modifiche concorrenti producono un conflitto: ricaricare esplicitamente per scartare la bozza conservata.
 
-- **Inviti e link di reset della password** emessi da un owner, agli username che sono indirizzi.
-  Il link resta mostrato una volta, per quando la mail non arriva.
-- **"Password dimenticata?"** nella pagina di accesso: un link di reset spedito all'indirizzo con
-  cui la persona accede. La risposta è la stessa che l'account esista o no, così non serve a
-  scoprire chi ne ha uno. La richiesta è registrata nel log di audit.
-- **Notifiche dei run**: agli indirizzi nelle notifiche di un piano, quando i suoi interruttori lo
-  prevedono per quell'esito, e alla persona che ha avviato il run, da **Impostazioni → Notifiche**:
-  e-mail sì o no (no di default), poi ogni run concluso o solo i run falliti. Un messaggio rifiutato
-  viene segnalato nella console del run; non cambia mai il run.
+SMTP personalizzato usa sempre STARTTLS o TLS implicito con verifica del certificato. Con `WFM_EGRESS_PROXY` configurato, SMTP usa obbligatoriamente il percorso HTTP CONNECT. L’operatore deve autorizzare destinazione e porta SMTP (tipicamente 587 o 465) nella policy del proxy; modificare le impostazioni dell’organizzazione non concede accesso di rete. Un errore di invio del tenant non ripiega su un altro mittente. Vedere [Configurazione](./configuration).
 
-Senza SMTP tutto funziona come prima: gli owner consegnano i link, e i piani notificano solo tramite
-il loro webhook.
+L’invio copre inviti e reset password emessi dall’owner, richieste di password dimenticata e notifiche dei run di piani/utenti. Gli owner possono ancora consegnare il link di invito/reset visibile una sola volta se l’email è disabilitata o fallisce. Le risposte di password dimenticata non rivelano l’esistenza dell’account. Un errore email non cambia mai l’esito del run.
 
-I messaggi includono **modelli HTML e un'alternativa in testo semplice** per inviti, reset della
-password e notifiche dei run. Il testo dinamico viene escapato e i link accettano solo HTTP(S).
-Non è presente un editor dei modelli.
+### Provider di consegna
 
-Gli owner vedono gli ultimi 100 messaggi della propria organizzazione in **Impostazioni → Sicurezza →
-Consegna email**. **Accettato da SMTP** indica che il relay ha accettato il destinatario, senza
-confermare la consegna. Consegna, rimbalzo temporaneo e rimbalzo permanente arrivano da eventi
-autenticati. Un rimbalzo permanente blocca ulteriori invii allo stesso indirizzo nella stessa
-organizzazione. La cronologia conserva destinatario, scopo, stato e date, mai contenuti o token.
+Selezionare il provider, compilare i campi obbligatori e salvare prima di copiare l’URL callback dell’organizzazione, `https://host-pubblico/api/mail-deliveries/providers/<callbackId>`. Usare l’origine HTTPS pubblica del deployment. L’URL opaco seleziona l’organizzazione; la firma del provider autentica ogni richiesta. Ruotarlo solo deliberatamente: il vecchio URL diventa subito invalido, inclusi gli eventi in attesa; aggiornare quindi la configurazione del provider.
 
-Configurare `MAIL_DELIVERY_WEBHOOK_SECRET` (almeno 32 caratteri) e un adattatore per il provider di
-posta. Ogni email contiene `X-Wfm-Delivery-Id` e un Message-ID con il relativo UUID. L'adattatore
-invia a `/api/mail-deliveries/events` un JSON con `eventId`, `messageId` (UUID) e `status`
-(`delivered`, `soft_bounce` o `hard_bounce`). `X-Wfm-Mail-Timestamp` contiene il tempo Unix in
-secondi; `X-Wfm-Mail-Signature` contiene l'HMAC-SHA256 esadecimale di
-`timestamp.eventId.messageId.status`, calcolato con il segreto configurato. La firma deve essere
-recente (cinque minuti). Gli eventi duplicati sono idempotenti; quelli ritardati non annullano
-un rimbalzo permanente. I webhook nativi richiedono l'adattatore: SMTP da solo non conferma la
-consegna. Vedere i casi riproducibili di [collaudo amministrazione](../../administration-acceptance.md).
+| Provider | Configurazione e correlazione |
+| --- | --- |
+| Amazon SES / SNS | Impostare l’ARN esatto del topic SNS. Configurare le notifiche SES di consegna e bounce su quel topic, **abilitare gli header originali** e sottoscrivere il callback come endpoint HTTPS. La conferma di sottoscrizione firmata è supportata. Le notifiche devono conservare `X-Wfm-Delivery-Id` negli header originali. |
+| SendGrid | Abilitare gli Event Webhook firmati per delivered, deferred e bounce, indicare il callback e incollare la chiave pubblica di verifica nelle impostazioni. WebFlowMaster aggiunge `wfm_delivery_id` attraverso gli unique arguments SMTP `X-SMTPAPI`. |
+| Mailgun | Configurare i webhook delivered e failed sul callback. Salvare la chiave di firma webhook anziché la chiave API (almeno 32 caratteri). WebFlowMaster fornisce `wfm_delivery_id` con `X-Mailgun-Variables`. |
+| Eventi generici firmati | Salvare un segreto di almeno 32 caratteri e usare un adattatore che normalizzi gli eventi del provider secondo il contratto sotto. |
+| Nessuna conferma di consegna | Si registrano accettazione/rifiuto SMTP; non si deduce la consegna. |
+
+SES, SendGrid e Mailgun accettano eventi nativi senza un adattatore esterno. Gli eventi generici richiedono JSON normalizzato:
+
+```json
+{"eventId":"provider-event-123","messageId":"e3dab9f5-d6c4-4a74-af2e-a665498b18cd","status":"hard_bounce"}
+```
+
+`status` è `delivered`, `soft_bounce` o `hard_bounce`. Impostare `X-Wfm-Mail-Timestamp` al tempo Unix in secondi e `X-Wfm-Mail-Signature` all’HMAC-SHA256 esadecimale di `timestamp.eventId.messageId.status` con il segreto dell’organizzazione. Il timestamp deve essere entro cinque minuti. L’endpoint di installazione esistente `/api/mail-deliveries/events` e `MAIL_DELIVERY_WEBHOOK_SECRET` restano compatibili per le integrazioni dell’installazione.
+
+Gli owner consultano gli ultimi 100 messaggi in **Consegna email**. **Accettato da SMTP** è distinto da **Consegnato**. Gli eventi autenticati registrano bounce temporanei/permanenti; quelli permanenti sopprimono invii successivi allo stesso indirizzo nella stessa organizzazione. I duplicati sono idempotenti e gli eventi ritardati non annullano un hard bounce. La cronologia conserva destinatario, scopo, stato e timestamp, mai corpi o token di invito/reset. Un evento valido di un’altra organizzazione non può modificarne la cronologia. I test con fixture firmate non dimostrano consegna attraverso un account provider reale.
+
+### Editor dei modelli
+
+In **Modelli email**, scegliere invito, reset password o notifica run e modificare oggetto, sorgente HTML completo e alternativa in testo. L’editor elenca i nomi `{{variable}}` supportati per lo scopo. Variabili sconosciute e oggetti invalidi sono rifiutati; invito/reset devono conservare l’URL di azione sia nell’HTML sia nel testo. I valori dinamici sono escapati e l’HTML è sanitizzato con una allowlist esplicita.
+
+**Anteprima** usa dati e link sintetici in un iframe sandbox, senza script o caricamento di risorse esterne; non invia messaggi. Salvare per persistere l’override dell’organizzazione, oppure ripristinare il modello integrato. Le revisioni obsolete conservano la bozza e richiedono una ricarica esplicita. Cambiare scopo o organizzazione cancella bozze e anteprime. Gli override si applicano alle email account e alle notifiche worker; gli altri messaggi mantengono il comportamento integrato. Vedere [Collaudo amministrazione](../../administration-acceptance.md).
 
 ## Politica delle password {#password-policy}
 
@@ -532,7 +531,6 @@ cambio, link di reset); le password già esistenti non vengono controllate.
   esterno (nomi e altri attributi sono accettati e ignorati).
 - Il single logout SAML richiede una coppia RSA del service provider e messaggi firmati; verificare
   la compatibilità del provider prima di abilitarlo. L'accesso avviato dall'IdP manca del binding al browser.
-- Le email hanno modelli HTML integrati senza editor. Consegna e rimbalzi richiedono un adattatore
-  che invii eventi firmati; l'accettazione SMTP da sola non conferma la consegna.
+- L’accettazione SMTP da sola non conferma la consegna. Abilitare callback autenticati del provider per consegna e rimbalzi.
 - Fatturazione SaaS e piani a consumo sospesi per decisione del 2026-10-02: provider, listino,
   valuta e unità fatturabile restano da definire. Le quote dei run per organizzazione sono disponibili.

@@ -33,8 +33,8 @@ harm.
 | `PASSWORD_POLICY` | web | `basic` | What a new password must be: `basic` (8 characters, not the username) or `strong` (12 characters, three kinds of character, no username, no common passwords). See [Administration](./administration#password-policy). |
 | `SMTP_URL` | web, worker | none | The mail server, as `smtp://user:password@host:587` (STARTTLS when offered) or `smtps://…:465`. With `SMTP_FROM`, turns on e-mail: invitations, reset links, "Forgot your password?" and run notifications. |
 | `SMTP_FROM` | web, worker | none | The sender, e.g. `WebFlowMaster <qa@example.com>`. |
-| `MAIL_DELIVERY_WEBHOOK_SECRET` | web | none | At least 32 characters. Authenticates normalized delivery/bounce events from a mail-provider adapter; see [E-mail](./administration#e-mail). Without it only SMTP acceptance/rejection is recorded. |
-| `SMTP_TLS_REJECT_UNAUTHORIZED` | web, worker | `true` | `false` accepts a relay with a self-signed certificate inside your network. |
+| `MAIL_DELIVERY_WEBHOOK_SECRET` | web | none | Installation compatibility secret, at least 32 characters. Authenticates normalized delivery/bounce events at `/api/mail-deliveries/events`; organization callbacks use their own settings. See [E-mail](./administration#e-mail). Without it only SMTP acceptance/rejection is recorded. |
+| `SMTP_TLS_REJECT_UNAUTHORIZED` | web, worker | `true` | Installation defaults only: `false` accepts a relay with a self-signed certificate inside your network. Organization custom SMTP always verifies certificates. |
 | `WEBHOOK_RATE_LIMIT` | web | `120` | Requests a minute for each client address on `/api/webhooks`. `0` turns it off. |
 | `INSTALLATION_ADMINS` | web | none | Comma-separated usernames who may change the installation-wide settings (log level and retention, draining runners). Unset: the owners, while the installation has a single organization. See [Installation administrators](./administration#installation-administrators). |
 | `REGISTRATION` | web | `invitation` | `invitation`: accounts are created from an invitation, except the installation's first. `open`: anyone who reaches the server may register and gets an organization of their own. Any other value stops the startup. See [First sign-in](./installation#first-sign-in). |
@@ -163,3 +163,11 @@ Set on the agent's machine. See [Local agents](../LOCAL_AGENT).
 | Variable | Description |
 |---|---|
 | `VITE_API_PORT` | Where the client dev server forwards API calls, when `PORT` is not 5000. |
+
+## Organization email settings
+
+Owners configure SMTP mode, credentials, sender and tracking provider in **Settings → Security → Organization email**. Installation SMTP variables remain defaults for inherited sending and system messages without an organization. Custom SMTP and disabled mode are specific to the trusted organization, including pre-authentication password resets and worker notifications. Keep the same persistent `ENCRYPTION_KEY` on API and worker instances so encrypted organization credentials remain readable; never place provider secrets in a public client variable.
+
+For custom SMTP, allowlist the provider host and SMTP port in the deployment's hardened HTTP CONNECT proxy policy. `WFM_EGRESS_PROXY` is mandatory when configured; there is no direct fallback. Permit STARTTLS (usually 587) or implicit TLS (usually 465), retain certificate verification, and keep private/metadata destinations denied. The organization's settings do not change this infrastructure policy.
+
+Publish a stable HTTPS application origin accessible to the provider and route `/api/mail-deliveries/providers/<callbackId>` to the application with request bodies and signature headers intact. SES/SNS uses the exact configured topic ARN and original message headers; SendGrid requires its public webhook verification key; Mailgun requires its webhook signing key. Native callbacks need no external adapter for those three providers. Other providers use generic normalized HMAC events. See [E-mail](./administration#e-mail) for setup and template editing.

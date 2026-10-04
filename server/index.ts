@@ -1,4 +1,5 @@
 import express from "express";
+import { mailProviderBodyParser } from './routes/mail-provider.routes';
 import { configureEgressProxy } from './egress-proxy';
 import { registerRoutes } from "./routes";
 import schedulerService from "./scheduler-service"; // Import the scheduler service
@@ -21,6 +22,7 @@ import { redactWebhookPath } from './webhook-tokens';
 
 configureEgressProxy();
 const app = express();
+app.use(mailProviderBodyParser);
 // The API tester sends form-data files and binary bodies inside its JSON, as base64, so its
 // proxy gets a larger allowance than the 100KB default everything else keeps. Mounted first:
 // the general parser below skips a body that has already been read.

@@ -4,6 +4,49 @@ import { randomUUID } from 'node:crypto';
 const password = 'E2e-Installation!2026';
 const target = 'http://127.0.0.1:5081/echo';
 
+test('organization email settings and edited templates persist and stay isolated from another organization', async ({ page, browser }) => {
+  await register(page);
+  await page.goto('/settings#security');
+  await page.getByRole('button', { name: 'Security', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Email sending', exact: true }).selectOption('disabled');
+  await page.getByRole('combobox', { name: 'Tracking provider', exact: true }).selectOption('generic');
+  const secret = 'e2e-disposable-signing-secret-at-least-32-characters';
+  await page.getByLabel('Webhook signing secret', { exact: true }).fill(secret);
+  await page.getByRole('button', { name: 'Save email settings', exact: true }).click();
+  await expect(page.getByText('Email settings saved.', { exact: true })).toBeVisible();
+  const callback = await page.getByLabel('Provider callback URL', { exact: true }).inputValue();
+  expect(callback).toMatch(/\/api\/mail-deliveries\/providers\/[0-9a-f-]{36}$/);
+  await page.getByLabel('Message type', { exact: true }).selectOption('password_reset');
+  await page.getByLabel('Subject', { exact: true }).fill('Organization-specific reset');
+  await page.getByLabel('HTML source', { exact: true }).fill('<h1>Organization email</h1><p>{{username}}</p><a href="{{actionUrl}}">Reset password</a>');
+  await page.getByLabel('Plain-text alternative', { exact: true }).fill('Organization email: {{actionUrl}}');
+  await page.getByRole('button', { name: 'Preview', exact: true }).click();
+  const preview = page.frameLocator('iframe[title="Email preview"]');
+  await expect(preview.getByRole('heading', { name: 'Organization email' })).toBeVisible();
+  await expect(preview.locator('a')).not.toHaveAttribute('href');
+  await page.getByRole('button', { name: 'Save template', exact: true }).click();
+  await expect(page.getByText('Template saved.', { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Security', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: 'Email sending', exact: true })).toHaveValue('disabled');
+  await expect(page.getByRole('combobox', { name: 'Tracking provider', exact: true })).toHaveValue('generic');
+  await expect(page.getByLabel('Webhook signing secret', { exact: true })).toHaveValue('');
+  await expect(page.getByLabel('Provider callback URL', { exact: true })).toHaveValue(callback);
+  await page.getByLabel('Message type', { exact: true }).selectOption('password_reset');
+  await expect(page.getByLabel('Subject', { exact: true })).toHaveValue('Organization-specific reset');
+  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:5080' });
+  try {
+    const other = await context.newPage(); await register(other);
+    await other.goto('/settings#security'); await other.getByRole('button', { name: 'Security', exact: true }).click();
+    await expect(other.getByRole('combobox', { name: 'Email sending', exact: true })).toHaveValue('inherit');
+    await expect(other.getByRole('combobox', { name: 'Tracking provider', exact: true })).toHaveValue('none');
+    await other.getByLabel('Message type', { exact: true }).selectOption('password_reset');
+    await expect(other.getByLabel('Subject', { exact: true })).toHaveValue('Choose a new WebFlowMaster password');
+    const foreign = await context.request.get('/api/mail-settings');
+    expect(foreign.ok()).toBeTruthy(); expect(JSON.stringify(await foreign.json())).not.toContain(secret);
+  } finally { await context.close(); }
+});
+
 async function register(page: Page) {
   const username = `ci_${randomUUID().replaceAll('-', '')}`;
   await page.goto('/auth');
