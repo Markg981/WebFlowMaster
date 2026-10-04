@@ -665,11 +665,11 @@
       }
     },
     "websocket": {
-      "hint": "Une adresse ws:// ou wss://. Le corps brut contient les messages à envoyer, un par ligne, ou {\"send\": [...], \"waitMs\": 2000, \"until\": 1}. Les assertions lisent le corps JSON { messages, last, count } : last.type, messages[0].id, count."
+      "hint": "Utilisez ws:// ou wss:// avec les messages bruts existants ou une conversation recevoir/capturer/envoyer. Les assertions lisent messages, last, count et captures."
     },
     "grpc": {
       "proto": "Définition du service (.proto)",
-      "hint": "Adresse grpc://hôte:port/paquet.Service/Méthode (grpcs:// pour TLS). Le corps brut est le message de requête en JSON ; les en-têtes sont envoyés comme métadonnées. Le statut est le code gRPC, 0 pour OK."
+      "hint": "Unary et flux serveur, client et bidirectionnel selon le .proto. Pour les flux de requêtes, utilisez {\"messages\":[...]} ou une conversation ordonnée. TLS/mTLS utilise grpcs:// et les secrets de l’environnement."
     }
   },
   "dashboardOverviewPage": {
@@ -1880,7 +1880,66 @@
       "confirm": "Importer {{count}} tests",
       "created": "{{count}} tests importés.",
       "skipped": "{{count}} écartés : ils existent déjà.",
-      "close": "Fermer"
+      "close": "Fermer",
+      "openDirectory": "Ouvrir un dossier…",
+      "documentLimit": "Un ensemble peut contenir au maximum 32 documents.",
+      "byteLimit": "Un ensemble peut contenir au maximum 10 MiB.",
+      "locationError": "Chaque document nécessite un emplacement logique unique.",
+      "bundleHelp": "Chargez le WSDL principal et ses dépendances WSDL/XSD. Les emplacements logiques correspondent aux imports ; les chemins du dossier sont conservés. Maximum 32 documents, 10 MiB.",
+      "rootDocument": "Document principal",
+      "logicalLocation": "Emplacement logique du document {{index}}",
+      "endpoint": "Endpoint SOAP"
+    },
+    "protocol": {
+      "title": "Configuration du protocole",
+      "timeout": "Délai global (ms)",
+      "maxMessages": "Nombre maximal de messages reçus",
+      "maxBytes": "Octets reçus maximaux",
+      "mode": "Mode gRPC",
+      "auto": "Depuis la définition du service",
+      "unary": "Unary",
+      "serverStream": "Flux serveur",
+      "clientStream": "Flux client",
+      "bidi": "Flux bidirectionnel",
+      "tlsHelp": "TLS nécessite grpcs://. Utilisez les références exactes aux secrets de l’environnement ; fournissez ensemble le certificat client et sa clé. Les certificats sont toujours vérifiés.",
+      "rootCa": "Référence au secret de la CA racine",
+      "clientCertificate": "Référence au secret du certificat client",
+      "clientKey": "Référence au secret de la clé client",
+      "keyPassphrase": "Référence au secret de la phrase secrète",
+      "invalid": "Vérifiez les limites et les références exactes aux secrets. Le certificat client et sa clé doivent être fournis ensemble.",
+      "defaults": "Utiliser les valeurs par défaut",
+      "invalidTitle": "Configuration du protocole invalide",
+      "invalidSend": "Vérifiez les limites, la paire certificat/clé et l’adresse grpcs:// avant de sauvegarder ou d’exécuter.",
+      "transcript": "Transcription du flux et captures"
+    },
+    "conversation": {
+      "title": "Conversation",
+      "help": "Recevez une réponse, capturez une valeur, puis réutilisez-la dans un message suivant avec {{capture.name}}. Le corps brut existant reste inchangé jusqu’à la création d’une conversation.",
+      "create": "Créer une conversation",
+      "builder": "Éditeur des étapes ordonnées",
+      "json": "Modifier le JSON de la conversation",
+      "jsonLabel": "JSON de la conversation",
+      "stepField": "Étape {{index}} : {{field}}",
+      "type": "type",
+      "send": "Envoyer",
+      "receive": "Recevoir",
+      "capture": "Capturer",
+      "end": "Terminer",
+      "moveUp": "Monter l’étape {{index}}",
+      "moveDown": "Descendre l’étape {{index}}",
+      "remove": "Supprimer l’étape {{index}}",
+      "message": "Message (texte ou JSON)",
+      "messageField": "message",
+      "timeout": "Délai de l’étape (ms)",
+      "timeoutField": "délai",
+      "property": "Chemin JSON (facultatif)",
+      "propertyField": "propriété",
+      "equals": "Valeur attendue (facultative)",
+      "equalsField": "valeur attendue",
+      "name": "Nom de la capture",
+      "nameField": "nom de capture",
+      "add": "Ajouter une étape",
+      "invalid": "Conversation invalide. Vérifiez l’ordre, les noms des captures, les délais et la limite de 100 étapes. Modifiez le JSON pour corriger les étapes non prises en charge."
     }
   },
   "authForms": {

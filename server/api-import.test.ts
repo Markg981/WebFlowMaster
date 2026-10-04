@@ -7,6 +7,7 @@ import { apiTests, auditLog, users, type User } from '@shared/schema';
 import { createTestOrganization } from './tests/factories';
 import { tenancyMiddleware } from './middleware/tenancy';
 import { exampleOf, importApiDescription, ImportError } from './api-import';
+import { bundle, distributedWsdl } from './tests/soap-bundle-fixtures';
 
 vi.mock('./logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), http: vi.fn() },
@@ -238,6 +239,26 @@ describe('POST /api/api-tests/import', () => {
   it('answers 400 for a file it cannot read', async () => {
     const res = await request(app).post('/api/api-tests/import').send({ content: 'just text' }).expect(400);
     expect(res.body.error).toMatch(/Neither OpenAPI|Not an API description/);
+  });
+
+  it('previews and persists the same selected offline SOAP endpoint', async () => {
+    const content = distributedWsdl;
+    const preview = await request(app).post('/api/api-tests/import').send({content,documents:bundle,rootLocation:'service.wsdl',dryRun:true}).expect(200);
+    const endpoint = preview.body.endpoints[1].id;
+    const selected = await request(app).post('/api/api-tests/import').send({content,documents:bundle,endpoint,dryRun:true}).expect(200);
+    expect(selected.body.selectedEndpoint).toBe(endpoint);
+    expect(selected.body.variables[0].value).toBe('https://backup.example');
+    expect(selected.body.tests[0].requestBody).toContain('OrderId');
+    await request(app).post('/api/api-tests/import').send({content,documents:bundle,endpoint}).expect(201);
+    const [saved] = await privilegedDb.select().from(apiTests).where(eq(apiTests.organizationId,user.organizationId));
+    expect(saved.requestBody).toBe(selected.body.tests[0].requestBody);
+    expect(saved.requestHeaders).toEqual(selected.body.tests[0].requestHeaders);
+  });
+
+  it('rejects an unknown endpoint and missing SOAP documents before saving', async () => {
+    await request(app).post('/api/api-tests/import').send({content:distributedWsdl,documents:bundle,endpoint:'unknown'}).expect(400);
+    await request(app).post('/api/api-tests/import').send({content:distributedWsdl}).expect(400);
+    expect(await privilegedDb.select().from(apiTests)).toEqual([]);
   });
 
   it('lets a test with a variable address be saved and edited like any other', async () => {

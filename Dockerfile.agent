@@ -34,13 +34,15 @@ COPY --from=build /src/node_modules/@grpc/grpc-js/package.json /tmp/grpc-package
 COPY --from=build /src/node_modules/@grpc/proto-loader/package.json /tmp/proto-package.json
 COPY --from=build /src/node_modules/undici/package.json /tmp/undici-package.json
 COPY --from=build /src/node_modules/https-proxy-agent/package.json /tmp/proxy-package.json
+COPY --from=build /src/node_modules/zod/package.json /tmp/zod-package.json
 RUN npm init -y >/dev/null \
   && npm install --omit=dev "playwright@${PLAYWRIGHT_VERSION:-$(node -p "require('/tmp/playwright-package.json').version")}" "ws@^8.18.0" \
      "@grpc/grpc-js@$(node -p "require('/tmp/grpc-package.json').version")" \
      "@grpc/proto-loader@$(node -p "require('/tmp/proto-package.json').version")" \
      "undici@$(node -p "require('/tmp/undici-package.json').version")" \
      "https-proxy-agent@$(node -p "require('/tmp/proxy-package.json').version")" \
-  && rm /tmp/playwright-package.json /tmp/grpc-package.json /tmp/proto-package.json /tmp/undici-package.json /tmp/proxy-package.json
+     "zod@$(node -p "require('/tmp/zod-package.json').version")" \
+  && rm /tmp/playwright-package.json /tmp/grpc-package.json /tmp/proto-package.json /tmp/undici-package.json /tmp/proxy-package.json /tmp/zod-package.json
 COPY --from=build /src/dist/wfm-agent.js ./wfm-agent.mjs
 
 # Lets the running sessions finish on `docker stop`.

@@ -1,5 +1,5 @@
 {
-  "version": 21,
+  "version": 22,
   "areas": [
     {
       "id": "ACC",
@@ -6687,6 +6687,162 @@
         "Cambiare scopo/organizzazione, verificare pulizia bozze/anteprima; ripristinare il modello integrato e verificare B."
       ],
       "expected": "Override persistenti applicati ai percorsi account/worker di A; reset ripristina il built-in e B resta separata. Conflitti non perdono la bozza; cambio identità/scopo non mostra contenuti del contesto precedente."
+    },
+    {
+      "id": "API-37",
+      "area": "API",
+      "title": "Streaming server gRPC",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report.",
+      "steps": [
+        "Salvare GRPC grpc://protocolli:50051/collaudo.Echo/Server con corpo {}, maxMessages 5 e asserzioni count=2, last.text=complete.",
+        "Pubblicare e avviare il piano."
+      ],
+      "expected": "La revisione pubblicata completa lo stream: due messaggi ordinati e risultato riuscito."
+    },
+    {
+      "id": "API-38",
+      "area": "API",
+      "title": "Streaming client gRPC",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report.",
+      "steps": [
+        "Salvare metodo Client con corpo {\"messages\":[{\"text\":\"first\"},{\"text\":\"second\"}]} e asserzione text=first,second.",
+        "Pubblicare e avviare il piano."
+      ],
+      "expected": "Una sola risposta JSON first,second dopo la chiusura dello stream di richieste; esito riuscito."
+    },
+    {
+      "id": "API-39",
+      "area": "API",
+      "title": "Conversazione bidirezionale gRPC",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report.",
+      "steps": [
+        "Salvare metodo Bidi con receive, capture name=challenge property=text, send message={\"text\":\"{{capture.challenge}}\"}, receive, end. Asserire count=2 e last.text=challenge.",
+        "Pubblicare e avviare il piano."
+      ],
+      "expected": "La challenge immediata viene catturata e riutilizzata; lo stream termina e il risultato è riuscito."
+    },
+    {
+      "id": "API-40",
+      "area": "API",
+      "title": "Deadline locale senza asserzioni",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report.",
+      "steps": [
+        "Salvare metodo Wait con corpo {}, timeoutMs=50 e nessuna asserzione.",
+        "Avviare il piano e poi rieseguire Server."
+      ],
+      "expected": "Wait fallisce per timeout, senza promuovere un risultato parziale; Server successivo funziona e la capacità agente viene liberata."
+    },
+    {
+      "id": "API-41",
+      "area": "API",
+      "title": "Limite dei messaggi ricevuti",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report.",
+      "steps": [
+        "Salvare metodo Server con maxMessages=1.",
+        "Eseguire il piano."
+      ],
+      "expected": "Il secondo messaggio fa fallire il test per limite superato; nessun successo con stream troncato."
+    },
+    {
+      "id": "API-42",
+      "area": "API",
+      "title": "Conversazione WebSocket con cattura",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report. Token Bearer private-fixture-token.",
+      "steps": [
+        "Salvare WEBSOCKET ws://protocolli:8080/conversation con receive, capture token property=token, send {{capture.token}}, receive property=accepted equals=true, end.",
+        "Pubblicare e avviare il piano."
+      ],
+      "expected": "La challenge immediata arriva alla ricezione, il secondo messaggio usa la cattura e accepted=true; esito riuscito."
+    },
+    {
+      "id": "API-43",
+      "area": "API",
+      "title": "Cattura mancante e chiusura anticipata",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report. WebSocket privato disponibile.",
+      "steps": [
+        "Salvare conversazione con send {{capture.missing}} prima di qualsiasi cattura.",
+        "Eseguire e correggere la conversazione con ricezione di una risposta che il servizio non invia, timeout del passo 50 ms."
+      ],
+      "expected": "Entrambe le esecuzioni falliscono con passo/cattura o timeout identificabile; nessun risultato riuscito."
+    },
+    {
+      "id": "API-44",
+      "area": "API",
+      "title": "mTLS con segreti dell’ambiente",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0078; servizio gRPC mTLS di prova con certificato valido per il proprio hostname; CA, certificato/chiave client e passphrase cifrata in segreti dell’ambiente A; agent 1.2.0.",
+      "steps": [
+        "Salvare indirizzo grpcs:// e riferimenti esatti {{secret_grpc_ca}}, {{secret_grpc_cert}}, {{secret_grpc_key}}, eventuale {{secret_grpc_passphrase}}.",
+        "Salvare, pubblicare, eseguire da worker e agente; esportare bundle e aprire cronologia."
+      ],
+      "expected": "mTLS verificato riesce sui due trasporti; test, versioni, bundle e cronologia non contengono PEM o chiavi risolte."
+    },
+    {
+      "id": "API-45",
+      "area": "API",
+      "title": "mTLS negativo e isolamento organizzazione",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Stessi prerequisiti API-44; seconda organizzazione senza quei segreti.",
+      "steps": [
+        "Provare CA errata, certificato/chiave non corrispondenti e hostname errato.",
+        "Importare i soli riferimenti nell’organizzazione B ed eseguire senza definirne i segreti."
+      ],
+      "expected": "Ogni prova fallisce, senza fallback TLS insicuro né segreti nelle spiegazioni; B non risolve i valori di A."
+    },
+    {
+      "id": "API-46",
+      "area": "API",
+      "title": "Compatibilità agenti precedenti",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0078; ciclo nuovo; .proto aggiornato collaudo/protocolli/echo.proto; servizio privato protocolli e agente 1.2.0 nel pool interno, secondo collaudo/README.md. Creare un piano API nel pool interno e aprire il report. Pool distinto con agente nativo 1.1.0.",
+      "steps": [
+        "Eseguire unary Say e WebSocket echo legacy nel pool precedente.",
+        "Eseguire Server o una conversazione/TLS configurata sul medesimo pool."
+      ],
+      "expected": "Le chiamate legacy funzionano; quelle avanzate richiedono esplicitamente aggiornamento senza passare alla rete del server."
+    },
+    {
+      "id": "API-47",
+      "area": "API",
+      "title": "Bundle SOAP WSDL 1.1/2.0 e XSD",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Migrazione 0078; bundle offline con WSDL principale, WSDL importato e XSD import/include; due endpoint SOAP e fixture WSDL 2 request-response/one-way.",
+      "steps": [
+        "Aprire più file/cartella in Importa; correggere percorsi logici e documento principale.",
+        "Selezionare endpoint, verificare anteprima e avvisi, importare; aprire i test salvati."
+      ],
+      "expected": "Richieste con endpoint selezionato, namespace corretti, SOAPAction/Content-Type appropriati; one-way attende stato 2xx. Nessuna dipendenza scaricata automaticamente."
+    },
+    {
+      "id": "API-48",
+      "area": "API",
+      "title": "Import SOAP rifiuta dipendenze e XML insicuri",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Stessi prerequisiti API-47.",
+      "steps": [
+        "Togliere una dipendenza, aggiungere un duplicato ambiguo, un path con traversal e un DOCTYPE/entità.",
+        "Provare più di 32 documenti o oltre 10 MiB; cambiare file dopo un’anteprima valida."
+      ],
+      "expected": "Import rifiutato con spiegazione; nessuna lettura remota/filesystem. L’anteprima obsoleta non permette il salvataggio."
     }
   ],
   "presentation": {

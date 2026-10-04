@@ -1,6 +1,6 @@
 # Streaming gRPC, mutual TLS, interactive WebSocket and distributed SOAP descriptions
 
-Date: 2026-10-04. Branch: `codex/api-protocol-streaming-mtls`. Base: merged main `4814a60` (PR #292). Status: prepared for review; implementation has not started.
+Date: 2026-10-04. Branch: `codex/api-protocol-streaming-mtls`. Base: merged main `4814a60` (PR #292). Status: approved by the user; implementation complete, final verification and PR delivery underway.
 
 ## Intent and acceptance
 

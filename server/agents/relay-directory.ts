@@ -21,6 +21,7 @@ export interface PublishedAgent {
   activeSessions: number;
   draining: boolean;
   apiProtocols?: Array<import('@shared/agent-protocol').AgentApiProtocol>;
+  apiProtocolFeatures?: Array<import('@shared/agent-protocol').AgentApiFeature>;
 }
 
 export interface RelayInstance {

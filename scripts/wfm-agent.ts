@@ -20,6 +20,7 @@
  */
 
 import os from 'node:os';
+import { AGENT_API_MAX_PAYLOAD } from '@shared/agent-protocol';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import WebSocket from 'ws';
@@ -27,7 +28,7 @@ import type { BrowserServer } from 'playwright';
 import { serveApiSession } from './agent-api-session';
 import type { AgentApiProtocol } from '../shared/agent-protocol';
 
-export const AGENT_VERSION = '1.1.0';
+export const AGENT_VERSION = '1.2.0';
 /** Kept in step with shared/agents.ts, written out because this script is shipped on its own. */
 const PROTOCOL = 1;
 const PATHS = { connect: '/api/agent/v1/connect', session: '/api/agent/v1/session/' };
@@ -132,10 +133,10 @@ export function runAgent(options: AgentOptions): RunningAgent {
     log(`Lent ${engine}${headless ? '' : ' (headed)'} to a run (${sessions.size} lent).`);
   }
 
-  function lendApi(sessionId: string, protocol: AgentApiProtocol) {
-    const remote = new WebSocket(`${base}${PATHS.session}${sessionId}`, { headers, maxPayload: 16 * 1024 * 1024 });
+  function lendApi(sessionId: string, protocol: AgentApiProtocol, apiFeatures: import('../shared/agent-protocol').AgentApiFeature[] = []) {
+    const remote = new WebSocket(`${base}${PATHS.session}${sessionId}`, { headers, maxPayload: AGENT_API_MAX_PAYLOAD });
     sessions.set(sessionId, { sockets: [remote] });
-    serveApiSession(remote, protocol, () => sessions.delete(sessionId));
+    serveApiSession(remote, protocol, () => sessions.delete(sessionId), apiFeatures);
   }
 
   function connect() {
@@ -160,6 +161,7 @@ export function runAgent(options: AgentOptions): RunningAgent {
           browsers: options.browsers ?? (await installedBrowsers()),
           maxSessions: options.maxSessions,
           apiProtocols: ['grpc', 'websocket'],
+          apiProtocolFeatures: ['native-protocol-v2'],
         }),
       );
     });
@@ -180,7 +182,7 @@ export function runAgent(options: AgentOptions): RunningAgent {
           ws.send(JSON.stringify({ type: 'open_failed', sessionId: message.sessionId, error: 'The agent is stopping.' }));
           return;
         }
-        if (message.apiProtocol === 'grpc' || message.apiProtocol === 'websocket') lendApi(message.sessionId, message.apiProtocol);
+        if (message.apiProtocol === 'grpc' || message.apiProtocol === 'websocket') lendApi(message.sessionId, message.apiProtocol, message.apiFeatures);
         else void lend(message.sessionId, message.engine, message.channel, message.headless !== false);
       }
     });

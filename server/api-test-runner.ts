@@ -2,6 +2,7 @@ import { AuthParamsSchema, type Assertion, type AuthParams } from '@shared/schem
 import { runGrpc, runWebSocket, xpathValue, type ProtocolResponse } from './api-protocols';
 import { fetchTarget, substituteInValues, substituteVariables } from './outbound-http';
 import { findUnresolvedVariables } from './variables';
+import { ProtocolConfigSchema, type ProtocolConfig, type ResolvedProtocolConfig } from '@shared/api-protocol-config';
 import { accessTokenFor } from './oauth2';
 import {
   akamaiEdgeGrid,
@@ -82,6 +83,7 @@ export interface ApiRequestSpec {
   binary?: { contentType?: string | null; base64: string } | null;
   /** A gRPC test's service definition (server/api-protocols.ts). */
   protoDefinition?: string | null;
+  protocolConfig?: ProtocolConfig | null;
 }
 
 export type MultipartPart =
@@ -607,16 +609,51 @@ async function runOtherProtocol(
   const auth = await applyAuth(spec.auth, { method: 'GET', url: targetUrl, headers, body: undefined }, vars, fetchImpl);
   if (typeof auth === 'string') return fail(auth);
   if (auth) return fail(`${auth.scheme === 'ntlm' ? 'NTLM' : 'Digest'} authentication is not available for ${kind}.`);
-  const body = typeof spec.body === 'string' ? substituteVariables(spec.body, vars) : spec.body == null ? '' : substituteVariables(JSON.stringify(spec.body), vars);
+  const rawBody = typeof spec.body === 'string' ? spec.body : spec.body == null ? '' : JSON.stringify(spec.body);
+  const bodyVariables = Object.fromEntries(Object.entries(vars).filter(([name]) => !name.startsWith('capture.')));
+  // Substitute string values after parsing JSON: PEM/newline/quote characters must not
+  // corrupt the plan. Future capture.* references remain for the conversation executor.
+  const substituteBody = (value: unknown): unknown => {
+    if (typeof value === 'string') return substituteVariables(value, bodyVariables);
+    if (Array.isArray(value)) return value.map(substituteBody);
+    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, substituteBody(item)]));
+    return value;
+  };
+  let body: string;
+  try { body = JSON.stringify(substituteBody(JSON.parse(rawBody))); }
+  catch { body = substituteVariables(rawBody, bodyVariables); }
+  let config: ResolvedProtocolConfig | undefined;
+  if (spec.protocolConfig != null) {
+    const checked = ProtocolConfigSchema.safeParse(spec.protocolConfig);
+    if (!checked.success) return fail('Invalid protocol configuration: check limits and TLS secret references.');
+    config = { ...checked.data };
+    if (checked.data.tls && Object.keys(checked.data.tls).length) {
+      if (!grpc || targetUrl.protocol !== 'grpcs:') return fail('TLS certificate configuration requires a grpcs:// address.');
+      config.tls = {};
+      for (const [key, reference] of Object.entries(checked.data.tls)) {
+        if (!reference) continue;
+        const name = reference.slice(2, -2);
+        if (!Object.prototype.hasOwnProperty.call(vars, name) || !vars[name]) return fail(`Missing TLS secret ${name}. Define it in the selected environment.`);
+        config.tls[key as keyof NonNullable<ResolvedProtocolConfig['tls']>] = vars[name];
+      }
+    }
+  }
+  const maskError = (value: string): string => {
+    let masked = value;
+    const values = [...Object.values(config?.tls ?? {}), ...Object.values(vars).filter(v => v.length >= 4)].filter(Boolean).sort((a, b) => b.length - a.length);
+    for (const secret of values) masked = masked.split(secret).join('[REDACTED]');
+    return masked.replace(/-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/g, '[REDACTED]');
+  };
+  const timeoutMs = config?.timeoutMs ?? REQUEST_TIMEOUT_MS;
   let answer: ProtocolResponse;
   try {
     answer = fetchImpl.runProtocol
-      ? await fetchImpl.runProtocol({ protocol: grpc ? 'grpc' : 'websocket', url: targetUrl.toString(), proto: spec.protoDefinition ?? undefined, headers, body, timeoutMs: REQUEST_TIMEOUT_MS })
+      ? await fetchImpl.runProtocol({ protocol: grpc ? 'grpc' : 'websocket', url: targetUrl.toString(), proto: spec.protoDefinition ?? undefined, headers, body, timeoutMs, ...(config ? { config } : {}) })
       : grpc
-      ? await runGrpc({ url: targetUrl, proto: spec.protoDefinition ?? '', headers, body, timeoutMs: REQUEST_TIMEOUT_MS })
-      : await runWebSocket({ url: targetUrl.toString(), headers, body, timeoutMs: REQUEST_TIMEOUT_MS });
+      ? await runGrpc({ url: targetUrl, proto: spec.protoDefinition ?? '', headers, body, timeoutMs, config })
+      : await runWebSocket({ url: targetUrl.toString(), headers, body, timeoutMs, config });
   } catch (error) {
-    return fail((error as Error).message);
+    return fail(maskError((error as Error).message));
   }
   const durationMs = Date.now() - startTime;
   const snapshot = { status: answer.status, headers: answer.headers, body: answer.body, text: answer.text, durationMs };

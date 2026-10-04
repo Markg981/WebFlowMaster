@@ -1,9 +1,11 @@
 import WebSocket from 'ws';
-import type { AgentApiProtocol, AgentProtocolRequest, AgentProtocolReply } from '../shared/agent-protocol';
+import type { AgentApiProtocol, AgentApiFeature, AgentProtocolRequest, AgentProtocolReply } from '../shared/agent-protocol';
+import { ResolvedProtocolConfigSchema } from '../shared/api-protocol-config';
+import { requiredApiFeatures } from '../server/agents/api-protocol-features';
 import { runGrpc, runWebSocket } from '../server/api-network-protocols';
 
 /** One native request on a session the authenticated relay assigned to this agent. */
-export function serveApiSession(socket: WebSocket, protocol: AgentApiProtocol, done: () => void): void {
+export function serveApiSession(socket: WebSocket, protocol: AgentApiProtocol, done: () => void, authorizedFeatures: AgentApiFeature[] = []): void {
   const abort = new AbortController();
   // A 60s handshake/deadline plus up to 60s of WebSocket collection, and a small margin.
   const timer = setTimeout(() => socket.terminate(), 125_000);
@@ -27,7 +29,10 @@ export function serveApiSession(socket: WebSocket, protocol: AgentApiProtocol, d
           !Number.isFinite(request.timeoutMs) || request.timeoutMs <= 0 || request.timeoutMs > 60_000) {
           throw new Error('Invalid agent API request.');
         }
-        const input = { headers: request.headers, body: request.body, timeoutMs: request.timeoutMs, signal: abort.signal };
+        const config = request.config == null ? undefined : ResolvedProtocolConfigSchema.parse(request.config);
+        const required = await requiredApiFeatures(request);
+        if (!required.every(feature => authorizedFeatures.includes(feature))) throw new Error('The API request needs features not authorized by the relay ticket.');
+        const input = { headers: request.headers, body: request.body, timeoutMs: request.timeoutMs, signal: abort.signal, config };
         const response = protocol === 'grpc'
           ? await runGrpc({ ...input, url, proto: request.proto ?? '' })
           : await runWebSocket({ ...input, url: url.toString() });

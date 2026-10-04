@@ -14,9 +14,10 @@ import { runApiRequest } from '../api-test-runner';
 import { signTicket } from './agent-credentials';
 import { AGENT_PROTOCOL_VERSION } from '@shared/agents';
 import { runProtocolOnAgent } from './agent-protocol';
+import { requiredApiFeatures } from './api-protocol-features';
 
 const secret = 'protocol-relay-test';
-const proto = 'syntax = "proto3"; package lab; service Echo { rpc Say (Message) returns (Message); } message Message { string text = 1; }';
+const proto = 'syntax = "proto3"; package lab; service Echo { rpc Say (Message) returns (Message); rpc Watch (Message) returns (stream Message); } message Message { string text = 1; }';
 let server: http.Server;
 let relay: AgentRelay;
 let agent: ReturnType<typeof runAgent>;
@@ -25,6 +26,8 @@ let rpc: grpc.Server;
 let base: string;
 let wsUrl: string;
 let rpcUrl: string;
+let tlsRpcUrl: string;
+let tlsValues: Record<string, string>;
 let temp: string;
 const borrow = vi.fn();
 let transport: AgentHttp;
@@ -58,6 +61,7 @@ beforeAll(async () => {
   const definition = loader.loadSync(file);
   rpc = new grpc.Server();
   rpc.addService(definition['lab.Echo'] as grpc.ServiceDefinition, {
+    Watch: (call: grpc.ServerWritableStream<{ text: string }, { text: string }>) => { call.write({ text: call.request.text }); call.write({ text: 'complete' }); call.end(); },
     Say: (call: grpc.ServerUnaryCall<{ text: string }, { text: string }>, callback: grpc.sendUnaryData<{ text: string }>) => {
       if (call.request.text === 'hang') return;
       if (call.request.text === 'missing') return callback({ code: grpc.status.NOT_FOUND, details: 'No such item' });
@@ -69,6 +73,11 @@ beforeAll(async () => {
   });
   const port = await new Promise<number>((resolve, reject) => rpc.bindAsync('127.0.0.1:0', grpc.ServerCredentials.createInsecure(), (error, port) => error ? reject(error) : resolve(port)));
   rpcUrl = `grpc://127.0.0.1:${port}/lab.Echo/Say`;
+  const fixture = path.resolve('server/tests/fixtures/grpc-tls');
+  const [ca, cert, key, serverCert, serverKey] = await Promise.all(['ca.crt', 'client.crt', 'client.key', 'server.crt', 'server.key'].map(name => fs.readFile(path.join(fixture, name), 'utf8')));
+  tlsValues = { secret_ca: ca, secret_cert: cert, secret_key: key };
+  const tlsPort = await new Promise<number>((resolve, reject) => rpc.bindAsync('127.0.0.1:0', grpc.ServerCredentials.createSsl(Buffer.from(ca), [{ private_key: Buffer.from(serverKey), cert_chain: Buffer.from(serverCert) }], true), (error, port) => error ? reject(error) : resolve(port)));
+  tlsRpcUrl = `grpcs://localhost:${tlsPort}/lab.Echo/Watch`;
 });
 
 afterAll(async () => {
@@ -108,11 +117,10 @@ it('runs a unary gRPC call on the agent with the supplied proto and authorizatio
   expect(result.headers?.['x-agent-service']).toBe('lab');
 });
 
-it('returns a gRPC deadline as a response that assertions can inspect', async () => {
-  const response = await runProtocolOnAgent({ organizationId: 1, pool: 'lab' }, {
+it('rejects a local gRPC deadline instead of accepting a partial execution', async () => {
+  await expect(runProtocolOnAgent({ organizationId: 1, pool: 'lab' }, {
     protocol: 'grpc', url: rpcUrl, proto, body: '{"text":"hang"}', headers: {}, timeoutMs: 50,
-  });
-  expect(response.status).toBe(grpc.status.DEADLINE_EXCEEDED);
+  })).rejects.toThrow(/deadline|timeout/i);
 });
 
 it('keeps gRPC error statuses available to assertions instead of reporting a transport error', async () => {
@@ -121,6 +129,47 @@ it('keeps gRPC error statuses available to assertions instead of reporting a tra
   }, {}, transport.fetch);
   expect(result.error).toBeUndefined();
   expect(result.passed).toBe(true);
+});
+
+it('enforces advanced response bounds on the agent instead of ignoring the supplied configuration', async () => {
+  const result = await runApiRequest({ method: 'WS', url: wsUrl, body: { send: ['oversized'], until: 1 }, protocolConfig: { maxBytes: 1 } }, {}, transport.fetch);
+  expect(result.passed).toBe(false);
+  expect(result.error).toMatch(/byte|limit/i);
+});
+
+it('does not require conversation capabilities for an ordinary unary steps field', async () => {
+  expect(await requiredApiFeatures({ protocol: 'grpc', url: rpcUrl, proto, headers: {}, body: '{"steps":[]}', timeoutMs: 1000 })).toEqual([]);
+});
+
+it('resolves secret references and executes verified mutual TLS streaming on an agent', async () => {
+  const result = await runApiRequest({ method: 'GRPC', url: tlsRpcUrl, protoDefinition: proto, body: { text: 'mtls-agent' }, protocolConfig: { tls: { rootCa: '{{secret_ca}}', clientCertificate: '{{secret_cert}}', clientKey: '{{secret_key}}' } } }, tlsValues, transport.fetch);
+  expect(result.error).toBeUndefined();
+  expect(result.passed).toBe(true);
+  expect(result.body).toMatchObject({ count: 2, last: { text: 'complete' } });
+});
+
+it('relays a bounded transcript whose JSON representation exceeds 16 MiB', async () => {
+  const message = '"'.repeat(3 * 1024 * 1024);
+  const result = await runApiRequest({ method: 'WEBSOCKET', url: wsUrl,
+    body: { steps: [{ type: 'send', message }, { type: 'receive' }, { type: 'end' }] },
+    protocolConfig: { maxBytes: 8 * 1024 * 1024 },
+  }, {}, transport.fetch);
+  expect(result.error).toBeUndefined();
+  expect(result.passed).toBe(true);
+  expect((result.body as any).last.text).toBe(message);
+});
+
+it('runs a streamed gRPC method on the agent with ordered responses', async () => {
+  const result = await runApiRequest({ method: 'GRPC', url: rpcUrl.replace('/Say', '/Watch'), protoDefinition: proto, body: { text: 'first' }, assertions: [{ id: 'count', enabled: true, source: 'body_json_path', property: 'count', comparison: 'equals', targetValue: '2' }] }, {}, transport.fetch);
+  expect(result.error).toBeUndefined();
+  expect(result.passed).toBe(true);
+  expect(result.body).toMatchObject({ count: 2, last: { text: 'complete' } });
+});
+
+it('executes receive/capture/dependent send through the agent', async () => {
+  const result = await runApiRequest({ method: 'WS', url: wsUrl, body: { steps: [{ type: 'send', message: 'hello' }, { type: 'receive' }, { type: 'capture', name: 'echo', property: 'text' }, { type: 'send', message: '{{capture.echo}}:done' }, { type: 'receive' }] }, protocolConfig: { timeoutMs: 1500 } }, {}, transport.fetch);
+  expect(result.error).toBeUndefined();
+  expect(result.body).toMatchObject({ last: { text: 'hello:done' }, count: 2, captures: { echo: 'hello' } });
 });
 
 it('cancels an active WebSocket request when its run transport closes and frees agent capacity', async () => {
@@ -169,4 +218,18 @@ it('keeps old agents connected but asks for an upgrade when they lack protocol s
   } finally {
     old.close();
   }
+});
+
+it('does not assign advanced protocol tickets to native v1 agents, while retaining legacy availability', async () => {
+  const old = new WebSocket(`${base}/api/agent/v1/connect`, { headers: { Authorization: 'Bearer wfa_old' } });
+  await new Promise<void>((resolve) => {
+    old.on('open', () => old.send(JSON.stringify({ type: 'hello', protocol: AGENT_PROTOCOL_VERSION, agentVersion: '1.0.0', playwrightVersion: '1.0.0', hostname: 'native-v1', browsers: [], apiProtocols: ['grpc', 'websocket'], maxSessions: 1 })));
+    old.once('message', () => resolve());
+  });
+  try {
+    const common = { organizationId: 1, pool: 'old', engine: 'chromium' as const, headless: true, playwrightVersion: '0.0.0', apiProtocol: 'grpc' as const };
+    expect(relay.availability(signTicket(common, secret))).toEqual({ available: true });
+    const advanced = signTicket({ ...common, apiFeatures: ['native-protocol-v2'] } as any, secret);
+    expect(relay.availability(advanced)).toMatchObject({ available: false, reason: expect.stringMatching(/update|agent/i) });
+  } finally { old.close(); }
 });

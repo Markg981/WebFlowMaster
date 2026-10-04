@@ -125,8 +125,10 @@ describe('WSDL import', () => {
       requestHeaders: { 'Content-Type': 'text/xml; charset=utf-8', SOAPAction: '"http://shop.example/GetOrder"' },
     });
     expect(getOrder.requestBody).toContain('xmlns:ns="http://shop.example/orders"');
-    expect(getOrder.requestBody).toMatch(/<ns:GetOrder>\s*<ns:id>\?<\/ns:id>\s*<ns:customer>\s*<ns:email>\?<\/ns:email>\s*<\/ns:customer>\s*<\/ns:GetOrder>/);
-    expect(getOrder.assertions.map((a) => `${a.source} ${a.comparison}`)).toEqual(['status_code equals', 'body_xpath not_exists']);
+    // XSD local elements are unqualified unless elementFormDefault/form says otherwise.
+    expect(getOrder.requestBody).toMatch(/<ns:GetOrder>\s*<id>\?<\/id>\s*<customer>\s*<email>\?<\/email>\s*<\/customer>\s*<\/ns:GetOrder>/);
+    // This fixture has input-only operations: accept a successful one-way HTTP response.
+    expect(getOrder.assertions.map((a) => `${a.source} ${a.comparison}`)).toEqual(['status_code greater_than_or_equals', 'status_code less_than']);
     expect(() => importApiDescription('<html><body/></html>')).toThrow(/not a WSDL/);
   });
 });

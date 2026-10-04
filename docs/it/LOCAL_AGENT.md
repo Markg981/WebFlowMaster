@@ -37,16 +37,21 @@ ingresso, VPN o modifiche al firewall oltre all'accesso in uscita verso il serve
 
 ## gRPC e WebSocket nella rete privata
 
-I piani assegnati a un pool locale eseguono chiamate gRPC unarie e scambi WebSocket sull'agente,
+I piani assegnati a un pool locale eseguono chiamate gRPC unarie e streaming e scambi WebSocket sull'agente,
 anche con indirizzi TLS (`grpcs://`, `wss://`). Asserzioni ed estrazioni restano sul server.
 Le sessioni native non richiedono browser installati; HTTP e richieste OAuth richiedono Chromium.
 Le sessioni condividono `WFM_AGENT_MAX_SESSIONS`: il run restituisce il browser HTTP inattivo prima
 di aprire una sessione nativa, anche dopo il recupero del token OAuth. La chiusura del trasporto del run annulla la chiamata attiva.
 
-Usate l'agente **1.1.0 o successivo**: scaricate nuovamente lo script e installate i pacchetti del
+Usate l'agente **1.2.0 o successivo**: scaricate nuovamente lo script e installate i pacchetti del
 comando seguente, oppure ricostruite e riavviate l'immagine Docker. Gli agenti v1 precedenti continuano
 a servire browser e HTTP; se il pool non supporta i protocolli nativi, l'esecuzione fallisce con
 un invito esplicito ad aggiornarli. Le chiamate non vengono ripetute dalla rete del server.
+
+Streaming, mutual TLS e conversazioni ordinate richiedono `native-protocol-v2`. Gli agenti
+nativi precedenti mantengono unary/WebSocket legacy, ma non ricevono ticket avanzati.
+Le identità TLS provengono dall’ambiente dell’organizzazione del test; i campi risolti viaggiano
+solo nella sessione nativa autenticata, mentre ticket e registro contengono nomi di capability.
 
 ## Configurazione
 
@@ -72,7 +77,7 @@ Con Node 20.18.1 o successivo:
 
 ```bash
 curl -fsSL https://webflowmaster.example.com/cli/wfm-agent.mjs -o wfm-agent.mjs
-npm install playwright@<versione del server> ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7
+npm install playwright@<versione del server> ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7 zod@^3
 npx playwright install chromium        # e firefox / webkit / msedge se i piani li usano
 WFM_URL=https://webflowmaster.example.com WFM_AGENT_TOKEN=wfa_... node wfm-agent.mjs
 ```

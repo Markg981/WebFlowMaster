@@ -101,37 +101,48 @@ diventato più lento?" a ogni run, non è un test di carico.
 
 ## SOAP, WebSocket e gRPC {#protocolli}
 
-**SOAP** è HTTP: un `POST` con l'envelope XML come body raw (`text/xml`, o `application/soap+xml`
-per SOAP 1.2) e, per SOAP 1.1, un header `SOAPAction`. La risposta si legge con asserzioni e catture
-**body xpath**: `//status` equals `Shipped`, `//Fault` not exists, `count(//item)` greater than `2`,
-`//order/@id` catturato come `orderId`. Un'espressione senza prefisso ignora i namespace, quindi
-`//status` trova `<ns2:status>`; una con prefisso usa quelli del documento (`//ns2:status`). Il WSDL
-di un servizio si può [importare](#import).
+**SOAP** usa POST HTTP con envelope XML raw: `text/xml` e `SOAPAction` per SOAP 1.1, `application/soap+xml` per SOAP 1.2. Asserzioni e catture XPath gestiscono i namespace (`//status` ignora i prefissi; `//ns:status` usa quello del documento). L’[import](#import) genera richieste modificabili dal WSDL.
 
-**WebSocket**: scegliete il metodo **WEBSOCKET** e un indirizzo `ws://` o `wss://`. Il body raw
-contiene i messaggi da inviare, uno per riga, oppure un piano —
-<code v-pre>{"send": ["subscribe", {"op": "ping"}], "waitMs": 3000, "until": 2}</code> — che dice anche
-quanto ascoltare (2 secondi di default, al massimo 60) e dopo quanti messaggi fermarsi. Header e
-autorizzazioni basate su header vanno nell'handshake. La risposta è un body JSON
-`{ messages, last, count }`: asserite `count` equals `2`, `last.type` equals `pong`, o
-`messages[0].id` exists; i messaggi JSON sono letti come JSON, gli altri restano testo.
+**gRPC** supporta unary, streaming server, streaming client e streaming bidirezionale. Scegliete **GRPC**, indicate `grpc://host:porta/pacchetto.Servizio/Metodo` (`grpcs://` per TLS verificato) e incollate il **.proto**. Gli header sono metadata. La modalità predefinita segue la definizione del metodo; quella esplicita deve corrispondervi. Unary e streaming server ricevono un messaggio JSON. Streaming client e bidirezionale accettano:
 
-**gRPC**: scegliete il metodo **GRPC**, un indirizzo `grpc://host:porta/pacchetto.Servizio/Metodo`
-(`grpcs://` per TLS), e incollate il `.proto` del servizio nel campo che compare. Il body raw è il
-messaggio di richiesta in JSON, gli header sono inviati come metadata, e il body della risposta è
-il messaggio di risposta in JSON. Lo stato è il codice gRPC — `0` per OK, `5` per NOT_FOUND… — quindi
-un errore atteso si verifica con **status code** come gli altri. Solo chiamate unarie.
+```json
+{"messages":[{"value":"primo"},{"value":"secondo"}]}
+```
 
-I piani assegnati agli agenti locali inviano WebSocket e chiamate gRPC unarie dalla rete dell'agente.
-Aggiornate all'agente 1.1.0 o successivo e installate le dipendenze gRPC (vedere [Agenti locali](../LOCAL_AGENT)).
-Gli agenti privi di queste capacità restituiscono un messaggio di aggiornamento. Asserzioni,
-estrazioni e report funzionano come sui runner del server. L'anteprima **Invia** nell'editor
-continua a eseguire dal server.
+Gli stream bidirezionali accettano anche la conversazione ordinata sotto. La risposta unary/client-stream rimane un singolo messaggio JSON. Gli stream di risposta restituiscono `{messages,last,count,captures}`: asserite `count`, `last.value` o `messages[0].value`. Stato terminale e trailer sono disponibili alle asserzioni (0 significa OK). Gli errori remoti restano verificabili; timeout locale, annullamento, conversazione non valida e superamento dei limiti fanno fallire l’esecuzione, anche senza asserzioni.
+
+**WebSocket** accetta `ws://` e `wss://`. Restano supportati messaggi raw separati da righe e `{"send":["ping"],"waitMs":2000,"until":1}`. Per alternare risposte, catture e invii dipendenti, selezionate il corpo raw e usate **Conversazione**, nell’editor ordinato o JSON:
+
+```json
+{"steps":[
+  {"type":"receive"},
+  {"type":"capture","name":"token","property":"token"},
+  {"type":"send","message":"{{capture.token}}"},
+  {"type":"receive","timeoutMs":2000,"property":"accepted","equals":true},
+  {"type":"end"}
+]}
+```
+
+La ricezione consuma risposte accodate, anche una challenge immediata. Una proprietà facoltativa come `items[0].id` e `equals` selezionano la risposta attesa. La cattura legge l’ultimo messaggio ricevuto; il nome inizia con una lettera e contiene lettere, cifre o underscore. Usate <code v-pre>{{capture.token}}</code> dopo averlo catturato: questi nomi sono riservati nella conversazione. Catture mancanti e chiusura anticipata falliscono indicando il passo. **Termina** chiude WebSocket o il flusso di richieste gRPC. Le conversazioni client-stream gRPC non possono ricevere prima dell’unica risposta finale.
+
+La **Configurazione protocollo** imposta timeout complessivo, numero di messaggi e byte UTF-8 ricevuti. Valori predefiniti: **30 secondi / 100 messaggi / 1 MiB**; massimi: **60 secondi / 1.000 messaggi / 8 MiB**. Le catture hanno un limite aggregato separato con lo stesso massimo; gli invii della conversazione sono limitati complessivamente a 8 MiB dopo la sostituzione. Una conversazione ammette **100 passi**. Il transcript mostra messaggi e catture della conversazione. Test salvati, versioni eseguibili, pubblicazione approvata e bundle YAML/JSON conservano la configurazione. I report dei piani conservano il transcript oscurato e mantengono le estrazioni vive per le richieste successive.
+
+### TLS verificato e certificati client
+
+Nell’ambiente dell’organizzazione selezionata create segreti cifrati con CA radice, certificato client e chiave privata in PEM. Inserite i riferimenti esatti nella **Configurazione protocollo**, per esempio:
+
+```json
+{"tls":{"rootCa":"{{secret_grpc_ca}}","clientCertificate":"{{secret_grpc_cert}}","clientKey":"{{secret_grpc_key}}","keyPassphrase":"{{secret_grpc_passphrase}}"}}
+```
+
+Usate i nomi effettivi delle variabili segrete. La CA è facoltativa se basta la fiducia di sistema; certificato e chiave client vanno indicati insieme, la passphrase serve per una chiave cifrata. Ogni campo PEM risolto è limitato a 256 KiB. Certificati/chiavi in chiaro nella configurazione salvata vengono rifiutati. L’indirizzo risolto deve usare `grpcs://`, anche quando arriva da una variabile dell’ambiente. Si verificano corrispondenza chiave/certificato, fiducia e hostname della destinazione, senza fallback insicuro. Per ruotare le credenziali aggiornate i segreti dell’ambiente e rieseguite il test: le versioni conservano riferimenti, non PEM. Sul relay autenticato viaggiano solo i campi TLS necessari; i ticket contengono nomi di capability. Valori dell’ambiente e PEM sono oscurati negli errori del trasporto e nella cronologia.
+
+I piani sugli agenti locali eseguono tutti questi protocolli dalla rete dell’agente. Aggiornate ad **agent 1.2.0** scaricando script/dipendenze nuovi o ricostruendo e riavviando l’agente Docker ([Agenti locali](../LOCAL_AGENT)). Gli agenti precedenti mantengono unary/WebSocket legacy, mentre i ticket avanzati richiedono `native-protocol-v2`: un pool non compatibile fallisce esplicitamente. **Invia** nell’editor esegue dal server. Restano applicati proxy obbligatorio e restrizioni sulle destinazioni.
 
 ## Importare da OpenAPI, Postman o WSDL {#import}
 
 **Test salvati → Importa** crea test da ciò che un team ha già: una descrizione **OpenAPI 3** o
-**Swagger 2**, in JSON o YAML, una **collection Postman** (v2.0 o v2.1), o il **WSDL** (1.1) di un
+**Swagger 2**, in JSON o YAML, una **collection Postman** (v2.0 o v2.1), o il **WSDL** (1.1/2.0) di un
 servizio SOAP. Aprite il file o
 incollatelo, premete **Mostra cosa crea**, tenete i test che volete — quelli con metodo e indirizzo
 già presenti restano non selezionati — scegliete un progetto e importate.
@@ -149,9 +160,7 @@ già presenti restano non selezionati — scegliete un progetto e importate.
   una collection Postman non viene importato.
 - Lo stato atteso è un'asserzione: la prima risposta 2xx di OpenAPI, o il
   `pm.response.to.have.status(…)` di Postman.
-- Da un WSDL: un `POST` per operazione del binding SOAP (1.1 se c'è, altrimenti 1.2), con l'envelope,
-  la `SOAPAction` e l'elemento della richiesta scritto dallo schema, con i campi a `?` da compilare.
-  Ogni test si aspetta `200` e nessun `//Fault`.
+- Da un WSDL: un `POST` per operazione del binding SOAP selezionato, con envelope e campi dello schema a `?` da compilare. SOAP 1.1 usa `SOAPAction`; SOAP 1.2 l’action nel content-type. Richiesta-risposta attende `200` e nessun `//Fault`; one-way attende stato 2xx.
 
 L'anteprima elenca le variabili di cui i test hanno bisogno, con l'indirizzo del server come
 suggerimento per <code v-pre>{{baseUrl}}</code>: impostatele in un
@@ -159,6 +168,12 @@ suggerimento per <code v-pre>{{baseUrl}}</code>: impostatele in un
 indicato per ogni test: corpi multipart, script Postman oltre al controllo dello stato, script di
 pre-request, flussi OAuth (il test invia allora <code v-pre>{{token}}</code>). Al massimo 500 test
 per importazione, 12 MB per file; il registro di audit registra ogni importazione.
+
+### Bundle WSDL/XSD offline
+
+Aprite più file o una cartella, scegliete il WSDL principale e modificate i percorsi logici perché gli import si risolvano rispetto al documento che li contiene (per esempio `service.wsdl`, `types/request.xsd`, `types/base.xsd`). I percorsi della cartella vengono conservati. Scegliete l’endpoint SOAP nell’anteprima; cambiando file, percorsi o endpoint l’anteprima precedente viene invalidata.
+
+Sono supportati import WSDL 1.1, import/include WSDL 2.0 e operazioni SOAP HTTP richiesta-risposta/one-way, con import/include XSD, nomi qualificati, riferimenti a elementi ed estensioni di tipi complessi. Limiti: 32 documenti, 10 MiB totali, profondità import 10. Le dipendenze sono risolte solo tra documenti caricati: nessuna lettura di rete o filesystem. DTD/entità, dipendenze mancanti o ambigue e percorsi insicuri vengono rifiutati. Binding RPC/encoded, gruppi/restrizioni complesse non supportati e scheletri ricorsivi falliscono esplicitamente. Policy, riferimenti alle policy, moduli SOAP, header, choice e attributi da configurare manualmente generano avvisi nell’anteprima. Verificate gli envelope generati prima dell’esecuzione.
 
 ## Salvare
 

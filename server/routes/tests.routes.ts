@@ -332,6 +332,9 @@ const createApiTestSchema = insertApiTestSchema.extend({ projectId: projectIdFie
 const importSchema = z.object({
   /** The file as text: OpenAPI 3 or Swagger 2 (JSON or YAML), or a Postman collection. */
   content: z.string().min(1).max(10 * 1024 * 1024),
+  rootLocation: z.string().min(1).max(2048).optional(),
+  documents: z.array(z.object({ location: z.string().min(1).max(2048), content: z.string().min(1).max(10 * 1024 * 1024) })).max(31).optional(),
+  endpoint: z.string().min(1).max(2048).optional(),
   /** Read the file and say what it would make, without saving anything. */
   dryRun: z.boolean().optional().default(false),
   projectId: projectIdField,
@@ -348,7 +351,7 @@ router.post("/api/api-tests/import", requireRole('editor'), async (req, res) => 
     if (!parsed.success) return res.status(400).json({ error: "Invalid import", details: parsed.error.flatten() });
     let result;
     try {
-        result = importApiDescription(parsed.data.content);
+        result = importApiDescription(parsed.data.content, {rootLocation:parsed.data.rootLocation,documents:parsed.data.documents,endpoint:parsed.data.endpoint});
     } catch (error) {
         if (error instanceof ImportError) return res.status(400).json({ error: error.message });
         throw error;

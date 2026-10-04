@@ -1,0 +1,4 @@
+syntax = "proto3";
+package installation;
+message Message { string value = 1; }
+service Test { rpc Stream(Message) returns (stream Message); }

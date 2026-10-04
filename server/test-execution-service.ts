@@ -28,6 +28,7 @@ import { getWsEmitter, type ExecutionLogEntry } from './websocket';
 import { secrets as secretsTable } from '@shared/schema';
 import { decryptSecret } from './crypto';
 import { defaultVariables } from './variables';
+import { protocolReport } from './api-protocol-report';
 import { runApiRequest, type ApiRequestSpec, type Extraction } from './api-test-runner';
 import { runPerformance } from './api-performance';
 import { mailRunFinished } from './run-mail';
@@ -151,6 +152,8 @@ export interface IndividualTestRunResult {
   extractionErrors?: Array<{ name: string; reason: string }>;
   /** An API test's performance check, when it has one (shared/api-performance.ts). */
   performance?: PerformanceSummary;
+  /** Bounded native transcript redacted for persisted reports. Live extractions stay separate. */
+  protocol?: ReturnType<typeof protocolReport>;
   screenshotPath?: string; // General screenshot for API tests if applicable, or last step for UI
   /** Kept only when the plan asked for them — see server/run-evidence.ts. */
   videoPath?: string;
@@ -401,8 +404,10 @@ export async function runTest(
       // scheduled run sent the request anonymous and failed for the wrong reason.
       auth: apiTest.authParams as AuthParams | null,
       protoDefinition: apiTest.protoDefinition,
+      protocolConfig: apiTest.protocolConfig,
     };
     const result = await runApiRequest(spec, vars, options?.http);
+    const nativeProtocol = ['GRPC', 'WEBSOCKET', 'WS'].includes(spec.method) || !!apiTest.protocolConfig || /^(grpcs?|wss?):/.test(spec.url);
 
     // The performance check runs only when the request could be made at all: timing an
     // endpoint that cannot be reached would measure nothing but the timeout.
@@ -415,6 +420,12 @@ export async function runTest(
     const durationMs = Date.now() - startTime;
     const failedAssertions = result.assertions.filter((a) => !a.pass);
     const success = result.passed && !result.error && !(performance && performance.breaches.length > 0);
+    const failure = result.error ?? ([
+      ...failedAssertions.map(a => `${a.assertion.source}${a.assertion.property ? ` "${a.assertion.property}"` : ''} ` +
+        `${a.assertion.comparison} "${a.assertion.targetValue ?? ''}" — actual: ${JSON.stringify(a.actualValue)}` + (a.error ? ` (${a.error})` : '')),
+      ...(performance?.breaches.length ? [`Performance over ${performance.iterations} requests: ${performance.breaches.join(', ')}`] : []),
+    ].join('; ') || undefined);
+    const protocol = nativeProtocol ? protocolReport({ ...result, error: failure }, vars) : undefined;
 
     resolvedLogger.info({
       message: `API Test completed`,
@@ -432,21 +443,12 @@ export async function runTest(
       // A request that could not be made at all is an error, not a failed assertion: the
       // test did not get far enough to say anything about the system under test.
       status: result.error ? 'error' : success ? 'passed' : 'failed',
-      error:
-        result.error ??
-        ([
-          ...failedAssertions.map(
-            (a) =>
-              `${a.assertion.source}${a.assertion.property ? ` "${a.assertion.property}"` : ''} ` +
-              `${a.assertion.comparison} "${a.assertion.targetValue ?? ''}" — actual: ${JSON.stringify(a.actualValue)}` +
-              (a.error ? ` (${a.error})` : ''),
-          ),
-          ...(performance?.breaches.length ? [`Performance over ${performance.iterations} requests: ${performance.breaches.join(', ')}`] : []),
-        ].join('; ') || undefined),
+      error: protocol ? protocol.error : failure,
       durationMs,
       extracted: result.extracted,
       extractionErrors: result.extractionErrors,
       ...(performance ? { performance } : {}),
+      ...(protocol ? { protocol } : {}),
     };
   } else {
     const durationMs = Date.now() - startTime;
@@ -1378,7 +1380,9 @@ async function runTestPlanJobInTenant(
         });
         resultFromRunTest = await attemptOnce();
       }
-      sink.push(resultFromRunTest); // Keep populating the old JSON blob for now
+      sink.push(resultFromRunTest.protocol
+        ? { ...resultFromRunTest, extracted: resultFromRunTest.protocol.extracted }
+        : resultFromRunTest); // Live captures below remain available to subsequent requests.
 
       // Once its last attempt is over, the test's evidence goes where the report is served
       // from. Per test rather than at the end, so a report opened while the run goes on shows
@@ -1435,8 +1439,8 @@ async function runTestPlanJobInTenant(
       networkSummary = resultFromRunTest.network;
       stepsOrLogData = resultFromRunTest.steps
         ? JSON.stringify(resultFromRunTest.steps) // For UI tests
-        : resultFromRunTest.performance
-          ? JSON.stringify({ api: true, performance: resultFromRunTest.performance }) // shared/api-performance.ts
+        : resultFromRunTest.performance || resultFromRunTest.protocol
+          ? JSON.stringify({ api: true, ...(resultFromRunTest.performance ? { performance: resultFromRunTest.performance } : {}), ...(resultFromRunTest.protocol ? { protocol: resultFromRunTest.protocol } : {}) })
           : undefined;
 
       const singleTestDurationMs = Date.now() - singleTestStartTime;

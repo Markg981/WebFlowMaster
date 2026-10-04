@@ -30,6 +30,9 @@ import { SaveApiTestModal } from '@/components/api-tester/SaveApiTestModal';
 import { AssertionEditor } from '@/components/api-tester/AssertionEditor';
 import { ExtractionEditor } from '@/components/api-tester/ExtractionEditor';
 import { PerformanceEditor } from '@/components/api-tester/PerformanceEditor';
+import { ProtocolConfigEditor } from '@/components/api-tester/ProtocolConfigEditor';
+import { ConversationEditor } from '@/components/api-tester/ConversationEditor';
+import { ProtocolConfigSchema, type ProtocolConfig } from '@shared/api-protocol-config';
 import type { ApiPerformance } from '@shared/api-performance';
 import { EnvironmentSelect } from '@/components/EnvironmentSelect';
 import { NO_ENVIRONMENT, environmentIdFor } from '@/hooks/use-environments';
@@ -101,7 +104,7 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 
-const ApiTesterPage: React.FC = () => {
+const ApiTesterForm: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const canEdit = user?.role !== 'viewer';
@@ -118,6 +121,8 @@ const ApiTesterPage: React.FC = () => {
   const [extractions, setExtractions] = useState<Extraction[]>([]);
   // Repetitions and response-time thresholds for plan runs (shared/api-performance.ts).
   const [performance, setPerformance] = useState<ApiPerformance | null>(null);
+  const [protocolConfig, setProtocolConfig] = useState<ProtocolConfig | null>(null);
+  const isProtocol = method === 'GRPC' || method === 'WEBSOCKET';
   // Which environment resolves {{variables}} here. Saved tests legitimately hold
   // {{baseUrl}}/… and {{secret_…}}, and without a choice they could only ever resolve
   // against the process defaults — so a request that worked here could fail in a plan.
@@ -281,7 +286,7 @@ const ApiTesterPage: React.FC = () => {
   const apiProxyMutation = useMutation<
     ProxyResponse,
     Error,
-    { method: string; url: string; queryParams?: Record<string, string | string[]>; headers?: Record<string, string>; body?: any; multipart?: MultipartPart[]; binary?: { contentType: string; base64: string; fileName: string }; assertions?: Assertion[]; extractions?: Extraction[]; environmentId?: number; auth?: AuthParams }
+    { method: string; url: string; queryParams?: Record<string, string | string[]>; headers?: Record<string, string>; body?: any; multipart?: MultipartPart[]; binary?: { contentType: string; base64: string; fileName: string }; assertions?: Assertion[]; extractions?: Extraction[]; environmentId?: number; auth?: AuthParams; protocolConfig?: ProtocolConfig; protoDefinition?: string }
   >({
     mutationFn: async (variables) => {
       setResponseStatus(null); setResponseHeaders(null); setResponseBody(null); setDuration(null); setAssertionResults(null);
@@ -355,6 +360,7 @@ const ApiTesterPage: React.FC = () => {
   });
 
   const handleSendRequest = async () => {
+    if (!validProtocolConfiguration()) return;
     if (!url.trim()) {
       toast({ title: "URL Required", description: "Please enter a base URL to send the request.", variant: "destructive" });
       return;
@@ -502,6 +508,7 @@ const ApiTesterPage: React.FC = () => {
       extractions: extractions.filter(e => e.name.trim() !== ''),
       environmentId: environmentIdFor(selectedEnvironment),
       auth: authParams,
+      ...(isProtocol && protocolConfig ? { protocolConfig } : {}),
       ...(method === 'GRPC' ? { protoDefinition } : {}),
     });
   };
@@ -512,13 +519,13 @@ const ApiTesterPage: React.FC = () => {
   const [currentTestToEdit, setCurrentTestToEdit] = useState<ApiTest | null>(null);
 
   const { data: historyData, isLoading: isLoadingHistory } = useQuery({ // V5 Syntax
-    queryKey: ['apiTestHistory'],
+    queryKey: ['apiTestHistory', user?.organizationId, user?.id],
     queryFn: async () => (await apiRequest('GET', '/api/api-test-history?limit=50')).json(),
     staleTime: 1 * 60 * 1000
   });
 
   const { data: savedTestsData, isLoading: isLoadingSavedTests } = useQuery({ // V5 Syntax
-    queryKey: ['apiTests'],
+    queryKey: ['apiTests', user?.organizationId, user?.id],
     queryFn: async () => (await apiRequest('GET', '/api/api-tests')).json(),
     staleTime: 5 * 60 * 1000
   });
@@ -632,6 +639,8 @@ const ApiTesterPage: React.FC = () => {
     setAssertions([]);
     setAssertionResults(null);
     setPerformance(null);
+    setProtocolConfig(null);
+    setProtoDefinition('');
 
     // Reset new auth and body states for history items
     setAuthType('none');
@@ -650,6 +659,7 @@ const ApiTesterPage: React.FC = () => {
   // Memoized so the "load test from ?testId=" effect below doesn't re-run (and re-fetch)
   // on every render. Body only calls stable setters plus toast.
   const loadTestState = useCallback((test: ApiTest) => {
+    setProtocolConfig((test as ApiTest & { protocolConfig?: ProtocolConfig | null }).protocolConfig ?? null);
     setMethod(test.method);
     setUrl(test.url);
     if (test.bodyType) setSelectedBodyType(test.bodyType as BodyType);
@@ -792,7 +802,17 @@ const ApiTesterPage: React.FC = () => {
     setIsSaveModalOpen(true);
   };
 
+  const validProtocolConfiguration = () => {
+    if (!isProtocol) return true;
+    if (!ProtocolConfigSchema.safeParse(protocolConfig ?? {}).success || (protocolConfig?.tls && Object.values(protocolConfig.tls).some(Boolean) && (method !== 'GRPC' || (!/^grpcs:\/\//i.test(url) && !/^\{\{[^{}]+\}\}/.test(url))))) {
+      toast({ title: t('apiTester.protocol.invalidTitle', 'Invalid protocol configuration'), description: t('apiTester.protocol.invalidSend', 'Check limits, paired TLS secret references and the grpcs:// address before saving or running.'), variant: 'destructive' });
+      return false;
+    }
+    return true;
+  };
+
   const handleSaveTestConfirm = (name: string, projectId?: number | null) => {
+    if (!validProtocolConfiguration()) return;
     const currentParams = queryParams.filter(p => p.enabled && p.key.trim()).reduce((acc, p) => {
       if (acc[p.key]) {
         if (Array.isArray(acc[p.key])) { (acc[p.key] as string[]).push(p.value); }
@@ -827,6 +847,7 @@ const ApiTesterPage: React.FC = () => {
       assertions: assertions,
       extractions: extractions.filter(e => e.name.trim() !== ''),
       performance,
+      protocolConfig: isProtocol ? protocolConfig : null,
       // New fields
       authType: authType,
       authParams: authParams,
@@ -874,6 +895,8 @@ const ApiTesterPage: React.FC = () => {
       queryParams: parseJsonField(exportData.queryParams),
       requestHeaders: parseJsonField(exportData.requestHeaders),
       requestBody: exportData.requestBody,
+      protoDefinition: exportData.protoDefinition,
+      protocolConfig: exportData.protocolConfig,
       assertions: parseJsonField(exportData.assertions),
     };
 
@@ -1002,7 +1025,7 @@ const ApiTesterPage: React.FC = () => {
               <div className="flex items-end space-x-2">
                 <div className="w-40">
                   <Label htmlFor="httpMethod">{t('apiTesterPage.method.label')}</Label>
-                  <Select value={method} onValueChange={setMethod} disabled={apiProxyMutation.isPending}>
+                  <Select value={method} onValueChange={value => { setMethod(value); if (value !== 'GRPC') setProtocolConfig(current => current ? { timeoutMs: current.timeoutMs, maxMessages: current.maxMessages, maxBytes: current.maxBytes } : null); }} disabled={apiProxyMutation.isPending}>
                     <SelectTrigger id="httpMethod"><SelectValue placeholder={t('apiTesterPage.method.label')} /></SelectTrigger>
                     <SelectContent>{httpMethods.map((m) => (<SelectItem key={m} value={m}>{m}</SelectItem>))}</SelectContent>
                   </Select>
@@ -1029,6 +1052,8 @@ const ApiTesterPage: React.FC = () => {
                   </p>
                 </div>
               )}
+              {isProtocol && <ProtocolConfigEditor method={method} value={protocolConfig} onChange={setProtocolConfig} disabled={apiProxyMutation.isPending} />}
+              {isProtocol && selectedBodyType === 'raw' && <ConversationEditor key={`${currentTestToEdit?.id ?? 'new'}:${method}`} value={requestBodyValue} onChange={value => { setRequestBodyValue(value); setRawContentType('application/json'); }} disabled={apiProxyMutation.isPending} />}
               <div className="pt-2 max-w-xs">
                 {/* Beside the URL, because {{baseUrl}} in the URL is the most common reason
                     to need one. */}
@@ -1351,6 +1376,10 @@ const ApiTesterPage: React.FC = () => {
 
             <div>
               <h2 className="text-xl font-semibold mb-2">{t('apiTesterPage.response.label')}</h2>
+              {isProtocol && responseBody && typeof responseBody === 'object' && Array.isArray(responseBody.messages) && <section className="space-y-2 rounded-md border p-3" data-testid="protocol-transcript">
+                <h3 className="text-sm font-medium">{t('apiTester.protocol.transcript', 'Stream transcript and captures')}</h3>
+                <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all text-xs">{JSON.stringify({ messages: responseBody.messages, captures: responseBody.captures ?? {} }, null, 2)}</pre>
+              </section>}
               <div className={`p-4 border rounded-md bg-muted min-h-[200px] ${apiProxyMutation.isPending ? 'opacity-50 animate-pulse' : ''}`}>
                 <div className="flex justify-between items-center mb-2">
                   <div><span className="font-semibold">{t('apiTesterPage.status.label')}</span>{' '}{responseStatus !== null ? (<span className={responseStatus >= 200 && responseStatus < 300 ? 'text-success font-bold' : 'text-destructive font-bold'}>{responseStatus}</span>) : (t('apiTesterPage.text1'))}</div>
@@ -1416,4 +1445,8 @@ const ApiTesterPage: React.FC = () => {
   );
 };
 
+const ApiTesterPage: React.FC = () => {
+  const { user } = useAuth();
+  return <ApiTesterForm key={`${user?.organizationId}:${user?.id}`} />;
+};
 export default ApiTesterPage;

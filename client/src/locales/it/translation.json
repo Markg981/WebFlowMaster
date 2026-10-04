@@ -700,11 +700,11 @@
       }
     },
     "websocket": {
-      "hint": "Un indirizzo ws:// o wss://. Il body raw contiene i messaggi da inviare, uno per riga, oppure {\"send\": [...], \"waitMs\": 2000, \"until\": 1}. Le asserzioni leggono il body JSON { messages, last, count }: last.type, messages[0].id, count."
+      "hint": "Usate ws:// o wss:// con messaggi raw esistenti o una conversazione ricevi/cattura/invia. Le asserzioni leggono messages, last, count e captures."
     },
     "grpc": {
       "proto": "Definizione del servizio (.proto)",
-      "hint": "Indirizzo grpc://host:porta/pacchetto.Servizio/Metodo (grpcs:// per TLS). Il body raw è il messaggio di richiesta in JSON; gli header sono inviati come metadata. Lo stato è il codice gRPC, 0 per OK."
+      "hint": "Unary e streaming server, client e bidirezionale dalla definizione .proto. Per stream di richieste usate {\"messages\":[...]} o una conversazione ordinata. TLS/mTLS usa grpcs:// e riferimenti ai segreti dell’ambiente."
     }
   },
   "dashboardOverviewPage": {
@@ -1999,7 +1999,66 @@
       "confirm": "Importa {{count}} test",
       "created": "{{count}} test importati.",
       "skipped": "{{count}} esclusi: esistono già.",
-      "close": "Chiudi"
+      "close": "Chiudi",
+      "openDirectory": "Apri una cartella…",
+      "documentLimit": "Un bundle può contenere al massimo 32 documenti.",
+      "byteLimit": "Un bundle può contenere al massimo 10 MiB.",
+      "locationError": "Ogni documento richiede un percorso logico univoco.",
+      "bundleHelp": "Caricate il WSDL principale e le dipendenze WSDL/XSD. I percorsi logici corrispondono agli import; i percorsi della cartella sono conservati. Massimo 32 documenti, 10 MiB.",
+      "rootDocument": "Documento principale",
+      "logicalLocation": "Percorso logico del documento {{index}}",
+      "endpoint": "Endpoint SOAP"
+    },
+    "protocol": {
+      "title": "Configurazione protocollo",
+      "timeout": "Timeout complessivo (ms)",
+      "maxMessages": "Numero massimo di messaggi ricevuti",
+      "maxBytes": "Byte ricevuti massimi",
+      "mode": "Modalità gRPC",
+      "auto": "Dalla definizione del servizio",
+      "unary": "Unary",
+      "serverStream": "Streaming server",
+      "clientStream": "Streaming client",
+      "bidi": "Streaming bidirezionale",
+      "tlsHelp": "TLS richiede grpcs://. Usate riferimenti esatti ai segreti dell’ambiente; certificato client e chiave vanno indicati insieme. I certificati sono sempre verificati.",
+      "rootCa": "Riferimento al segreto della CA radice",
+      "clientCertificate": "Riferimento al segreto del certificato client",
+      "clientKey": "Riferimento al segreto della chiave client",
+      "keyPassphrase": "Riferimento al segreto della passphrase",
+      "invalid": "Controllate limiti e riferimenti esatti ai segreti. Certificato client e chiave vanno indicati insieme.",
+      "defaults": "Usa valori predefiniti del protocollo",
+      "invalidTitle": "Configurazione protocollo non valida",
+      "invalidSend": "Controllate limiti, coppia certificato/chiave e indirizzo grpcs:// prima di salvare o eseguire.",
+      "transcript": "Transcript dello stream e catture"
+    },
+    "conversation": {
+      "title": "Conversazione",
+      "help": "Ricevete una risposta, catturate un valore e riusatelo in un messaggio successivo con {{capture.name}}. Il corpo raw esistente resta invariato finché non create una conversazione.",
+      "create": "Crea conversazione",
+      "builder": "Editor dei passi ordinati",
+      "json": "Modifica JSON della conversazione",
+      "jsonLabel": "JSON della conversazione",
+      "stepField": "Passo {{index}}: {{field}}",
+      "type": "tipo",
+      "send": "Invia",
+      "receive": "Ricevi",
+      "capture": "Cattura",
+      "end": "Termina",
+      "moveUp": "Sposta il passo {{index}} in alto",
+      "moveDown": "Sposta il passo {{index}} in basso",
+      "remove": "Rimuovi il passo {{index}}",
+      "message": "Messaggio (testo o JSON)",
+      "messageField": "messaggio",
+      "timeout": "Timeout del passo (ms)",
+      "timeoutField": "timeout",
+      "property": "Percorso JSON (facoltativo)",
+      "propertyField": "proprietà",
+      "equals": "Valore atteso (facoltativo)",
+      "equalsField": "valore atteso",
+      "name": "Nome della cattura",
+      "nameField": "nome cattura",
+      "add": "Aggiungi passo",
+      "invalid": "Conversazione non valida. Controllate ordine dei passi, nomi delle catture, timeout e limite di 100 passi. Modificate il JSON per correggere passi non supportati."
     }
   },
   "createTestPlanWizard": {

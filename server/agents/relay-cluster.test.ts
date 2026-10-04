@@ -149,6 +149,11 @@ describe('several relay instances', () => {
       } as const;
       const answer = await runProtocolOnAgent({ organizationId: 1, pool: 'native-single' }, request, env(a.url));
       expect(answer.body).toMatchObject({ last: 'from-private-network', count: 1 });
+      const conversation = await runProtocolOnAgent({ organizationId: 1, pool: 'native-single' }, {
+        ...request, config: { timeoutMs: 1000 },
+        body: JSON.stringify({ steps: [{ type: 'send', message: 'remote-capture' }, { type: 'receive' }, { type: 'capture', name: 'value' }, { type: 'send', message: '{{capture.value}}:done' }, { type: 'receive' }, { type: 'end' }] }),
+      }, env(a.url));
+      expect(conversation.body).toMatchObject({ count: 2, last: 'remote-capture:done', captures: { value: 'remote-capture' } });
       // Publish the stale occupied slot, as a non-owner relay can observe before close propagates.
       await directory.publish({ id: 'instance-b', url: b.url, agents: [{ id: 'native-single', organizationId: 1, pool: 'native-single', playwrightVersion: '0.0.0', browsers: [], apiProtocols: ['websocket'], maxSessions: 1, activeSessions: 1, draining: false }] }, 60_000);
       await a.relay.sync();

@@ -3,6 +3,9 @@
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import { mkdirSync, createWriteStream } from 'node:fs';
+import { WebSocketServer } from 'ws';
+import * as grpc from '@grpc/grpc-js';
+import * as loader from '@grpc/proto-loader';
 
 const database = new URL(process.env.DATABASE_URL || 'invalid:');
 if (!['postgres:', 'postgresql:'].includes(database.protocol) || database.pathname !== '/wfm_ci_e2e') {
@@ -20,6 +23,8 @@ const env = {
   NODE_ENV: 'production',
   PORT: '5080',
   REGISTRATION: 'open',
+  // The entire isolated suite shares one loopback address and creates several tenants.
+  AUTH_RATE_LIMIT: '100',
   SESSION_COOKIE_SECURE: 'false',
   WEBFLOW_PUBLIC_URL: 'http://127.0.0.1:5080',
   APP_BASE_URL: 'http://127.0.0.1:5081',
@@ -30,6 +35,9 @@ function stop(code = 0) {
   if (stopping) return;
   stopping = true;
   fixture.close();
+  websocket.clients.forEach(socket => socket.terminate());
+  websocket.close();
+  rpc.forceShutdown();
   for (const child of children) child.kill('SIGTERM');
   const deadline = setTimeout(() => {
     for (const child of children) child.kill('SIGKILL');
@@ -57,6 +65,16 @@ const fixture = createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ source: 'ci-real-http', method: req.method }));
 });
+const websocket = new WebSocketServer({ server: fixture });
+websocket.on('connection', socket => {
+  socket.send(JSON.stringify({ token: 'installation-challenge' }));
+  socket.on('message', message => socket.send(JSON.stringify({ accepted: message.toString() === 'installation-challenge' })));
+});
+const rpc = new grpc.Server();
+rpc.addService(loader.loadSync('e2e/protocol.proto')['installation.Test'], {
+  Stream: call => { call.write({ value: 'first' }); call.write({ value: 'complete' }); call.end(); },
+});
+await new Promise((resolve, reject) => rpc.bindAsync('127.0.0.1:5082', grpc.ServerCredentials.createInsecure(), error => error ? reject(error) : resolve()));
 fixture.on('error', error => { console.error(error); stop(1); });
 fixture.listen(5081, '127.0.0.1', () => {
   start('worker', 'dist/worker.js');
