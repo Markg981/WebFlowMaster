@@ -24,6 +24,7 @@ export interface VersionableTest {
   preconditions?: unknown;
   cleanups?: unknown;
   dataset?: unknown;
+  bdd?: unknown;
 }
 
 export interface RecordedVersion {
@@ -108,6 +109,7 @@ export async function recordTestVersion(
     preconditions: snapshot.preconditions ?? null,
     cleanups: snapshot.cleanups ?? null,
     dataset: snapshot.dataset ?? null,
+    bdd: snapshot.bdd as import('@shared/bdd').BddTest | null ?? null,
     summary,
     restoredFromVersion: input.restoredFromVersion ?? null,
     createdBy: input.userId,

@@ -72,6 +72,7 @@ import { requireSso } from "./middleware/require-sso";
 import apiV1Routes from "./routes/api-v1.routes";
 import cliRoutes from "./routes/cli.routes";
 import agentsRoutes from "./routes/agents.routes";
+import bddRoutes from './routes/bdd.routes';
 import sourceHostsRoutes from "./routes/source-hosts.routes";
 import webhookManagementRoutes from "./routes/webhooks.routes";
 import stepGroupsRoutes from "./routes/step-groups.routes";
@@ -207,6 +208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // First: /api/v1 answers everything under it in its own words, including unknown paths.
     app.use(cliRoutes);
     app.use(agentsRoutes);
+    app.use(bddRoutes);
     app.use(sourceHostsRoutes);
     app.use(apiV1Routes);
     app.use(authRoutes);

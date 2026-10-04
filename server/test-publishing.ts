@@ -266,6 +266,7 @@ export interface RunnableContent {
   preconditions: unknown;
   cleanups: unknown;
   dataset: unknown;
+  bdd?: unknown;
   snapshot?: Record<string,unknown>;
 }
 
@@ -295,6 +296,7 @@ export async function publishedContentOf(tx: TenantTx, testIds: number[], testTy
       preconditions: version.preconditions,
       cleanups: version.cleanups,
       dataset: version.dataset,
+      bdd: version.bdd,
     });
   }
   return content;

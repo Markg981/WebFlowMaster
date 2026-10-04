@@ -1,4 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
+it('requires an explicit Cucumber import binding and preserves the pinned revision',() => {
+  expect(parseArgs(['tests','import','shop.feature','--bdd-mode','cucumber'],{})).toHaveProperty('error');
+  expect(parseArgs(['tests','import','shop.feature','--bdd-mode','cucumber','--bdd-profile','a50f9025-d495-4724-9849-cedb38ec0bb9','--bdd-revision','rev-1'],{})).toMatchObject({bddMode:'cucumber',bddProfile:'a50f9025-d495-4724-9849-cedb38ec0bb9',bddRevision:'rev-1'});
+});
 import {
   EXIT_PASSED,
   EXIT_RUN_FAILED,

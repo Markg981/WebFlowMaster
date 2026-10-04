@@ -25,6 +25,7 @@ export interface TestSnapshot {
   preconditions?: unknown;
   cleanups?: unknown;
   dataset?: unknown;
+  bdd?: unknown;
 }
 
 /**
@@ -91,6 +92,7 @@ export function describeChange(previous: TestSnapshot | null, next: TestSnapshot
   for (const [signature, count] of before) removed += Math.max(0, count - (after.get(signature) ?? 0));
 
   const parts: string[] = [];
+  if (JSON.stringify(previous.bdd ?? null) !== JSON.stringify(next.bdd ?? null)) parts.push('BDD definition changed');
   if (added > 0) parts.push(`${added} step${added === 1 ? '' : 's'} added`);
   if (removed > 0) parts.push(`${removed} step${removed === 1 ? '' : 's'} removed`);
   if (added === 0 && removed === 0 && !sameOrder(previousSteps, nextSteps)) {
@@ -135,6 +137,7 @@ export function snapshotOf(test: {
   preconditions?: unknown;
   cleanups?: unknown;
   dataset?: unknown;
+  bdd?: unknown;
 }): TestSnapshot {
   return {
     name: test.name,
@@ -144,6 +147,7 @@ export function snapshotOf(test: {
     preconditions: test.preconditions ?? null,
     cleanups: test.cleanups ?? null,
     dataset: test.dataset ?? null,
+    bdd: test.bdd ?? null,
   };
 }
 

@@ -1,11 +1,13 @@
 import { parse as parseYaml, stringify as toYaml } from 'yaml';
 import { z } from 'zod';
+import { isDeepStrictEqual } from 'node:util';
 import type { ApiTest, Test } from '@shared/schema';
 import { referencedGroupIds } from './step-groups';
 import { referencedCustomActionIds } from './custom-actions';
 import { referencedElementIds } from './step-elements';
 import { asSteps } from './step-groups';
-import { exportGherkin, parseGherkin } from './gherkin';
+import { exportGherkin, parseGherkin, autodetectGherkin } from './gherkin';
+import type { GherkinImportOptions } from '@shared/bdd';
 
 /**
  * An organization's tests as a file to keep under version control: the web and API tests of a
@@ -27,7 +29,7 @@ export const BUNDLE_VERSION = 1;
 
 const TEST_FIELDS = [
   'name', 'url', 'module', 'featureArea', 'scenario', 'component', 'priority', 'severity', 'status',
-  'sequence', 'preconditions', 'cleanups', 'dataset',
+  'sequence', 'preconditions', 'cleanups', 'dataset', 'bdd',
 ] as const;
 
 const API_TEST_FIELDS = [
@@ -128,12 +130,11 @@ export type Bundle = z.infer<typeof bundleSchema>;
 export class BundleError extends Error {}
 
 /** Reads a bundle; the tests in it are checked one by one by the caller, against the same schemas as a save. */
-export function parseBundle(content: string, format?: 'gherkin'): Bundle {
+export function parseBundle(content: string, format?: 'gherkin', bdd?:GherkinImportOptions): Bundle {
   let doc: unknown;
   const text = content.trim();
-  const firstContentLine = text.split(/\r?\n/).find(line => line.trim() && !/^[ \t]*[#@]/.test(line));
-  if (format === 'gherkin' || /^[ \t]*Feature:/.test(firstContentLine ?? '')) {
-    return { kind: BUNDLE_KIND, version: BUNDLE_VERSION, ...parseGherkin(content) };
+  if (format === 'gherkin' || autodetectGherkin(text)) {
+    return { kind: BUNDLE_KIND, version: BUNDLE_VERSION, ...parseGherkin(content,bdd) };
   }
   try {
     doc = text.startsWith('{') ? JSON.parse(text) : parseYaml(text, { maxAliasCount: 100 });
@@ -153,7 +154,7 @@ export function parseBundle(content: string, format?: 'gherkin'): Bundle {
 /** Whether a stored row already says what the file says, field by field: an unchanged test is not saved again. */
 export function sameAs(row: Record<string, unknown>, incoming: Record<string, unknown>, fields: readonly string[]): boolean {
   const norm = (v: unknown) => (v === undefined || v === null || (Array.isArray(v) && v.length === 0) ? null : v);
-  return fields.every((field) => field === 'name' || JSON.stringify(norm(row[field])) === JSON.stringify(norm(incoming[field] === undefined ? null : incoming[field])));
+  return fields.every((field) => field === 'name' || isDeepStrictEqual(norm(row[field]), norm(incoming[field])));
 }
 
 export { TEST_FIELDS, API_TEST_FIELDS };
