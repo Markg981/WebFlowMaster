@@ -207,4 +207,17 @@ Feature: Login
     expect((portable[0].sequence as any[])[0].value).toBe('Given value <x>\nb');
     expect(portable[0].scenario).toContain('<x>');
   });
+  it.each([
+    ['<x> a', 'Given  a'],
+    ['a <x>', 'Given a '],
+  ])('preserves Examples-generated step text boundary spaces: %s', (template, expected) => {
+    const source = `Feature: F\nScenario Outline: S\n Given ${template}\n Examples:\n | x |\n | |\n | other |`;
+    const test = parseGherkin(source).tests[0];
+    expect((test.sequence as any[])[0].value).toBe(expected);
+    const exported = exportGherkin({ project: 'F', tests: [test] }).content;
+    expect(parseGherkin(exported).tests).toEqual([test]);
+    const portable = parseGherkin(exported.replace(/^.*# wfm-test:.*$/m, '')).tests;
+    expect(portable).toHaveLength(1);
+    expect((portable[0].sequence as any[])[0].value).toBe(expected);
+  });
 });

@@ -180,6 +180,7 @@ export function exportGherkin(input: { project: string | null; tests: Record<str
     let rendered: string[];
     try {
       if (readable.some(step => /[\r\n]/.test(step.line) || /[\r\n]/.test(step.docString?.mediaType ?? ''))) throw new GherkinError('Multiline Examples require a single-row Outline.');
+      if (selection?.pickle.steps.some(step => step.text.trim() !== step.text)) throw new GherkinError('Step text edge whitespace requires a single-row Outline.');
       if (readable.some(step => step.dataTable?.rows.some(row => row.cells.some(cell => { const escaped = escapedTableCell(cell.value); return escaped.trim() !== escaped; })))) throw new GherkinError('DataTable edge whitespace requires a single-row Outline.');
       rendered = readable.flatMap(step => renderStep(step, `${indent}  `));
     } catch (error) {
