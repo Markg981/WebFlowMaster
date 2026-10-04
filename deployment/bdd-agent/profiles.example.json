@@ -1,0 +1,29 @@
+{
+  "profiles": [
+    {
+      "id": "sample-js",
+      "label": "Sample JavaScript",
+      "provider": "cucumber-js",
+      "revision": "sample-v1",
+      "maxDurationMs": 60000,
+      "projectDirectory": "/support",
+      "requirePaths": ["js/steps.cjs"],
+      "importPaths": [],
+      "maxConcurrency": 1,
+      "environment": []
+    },
+    {
+      "id": "sample-ts",
+      "label": "Sample TypeScript",
+      "provider": "cucumber-js",
+      "revision": "sample-v1",
+      "maxDurationMs": 60000,
+      "projectDirectory": "/support",
+      "requirePaths": [],
+      "importPaths": ["ts/steps.ts"],
+      "loader": "tsx",
+      "maxConcurrency": 1,
+      "environment": []
+    }
+  ]
+}
