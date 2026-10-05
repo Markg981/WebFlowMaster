@@ -1,5 +1,5 @@
 import type { Test, Precondition, Cleanup } from '@shared/schema';
-import { BddAgentResultSchema, type BddAgentResult } from '@shared/bdd-agent';
+import { BDD_MAX_OUTPUT_BYTES, BddAgentResultSchema, type BddAgentResult } from '@shared/bdd-agent';
 import { validateBddTest } from './gherkin';
 import { resolveBddBinding } from './bdd-profiles';
 import { getTenantOrgId, withTenantTransaction } from './middleware/tenancy';
@@ -18,7 +18,16 @@ export async function runDedicatedBddTest(test:Test,variables:Record<string,stri
   let agentHttp:AgentHttp|undefined;
   let redactionValues={...variables};
   const result:IndividualTestRunResult = {testId:test.id,testType:'ui',name:test.name,success:false,status:'error',durationMs:0,steps};
-  const sanitize = <T>(value:T,vars:Record<string,string>):T => JSON.parse(redactHistoryEntry({responseBody:JSON.stringify(value)},vars).responseBody!,(_key,item:unknown) => typeof item === 'string' ? redactString(item) : item);
+  // Only evidence contains user text. World values must never replace verdicts or kinds.
+  const sanitize = (value:string,vars:Record<string,string>):string => redactString(redactHistoryEntry({responseBody:value},vars).responseBody!);
+  const budgetError='Combined BDD results exceed the output budget; evidence was discarded.';
+  const enforceOutputBudget = () => {
+    if (Buffer.byteLength(JSON.stringify({...result,bdd:{runs}})) > BDD_MAX_OUTPUT_BYTES) {
+      steps.length=0;
+      runs.length=0;
+      throw new Error(budgetError);
+    }
+  };
   try {
     const bdd = validateBddTest(test.bdd);
     const profile = await withTenantTransaction(tx => resolveBddBinding(tx,bdd,test.projectId));
@@ -26,16 +35,21 @@ export async function runDedicatedBddTest(test:Test,variables:Record<string,stri
     const organizationId=getTenantOrgId();
     if (!organizationId) throw new Error('BDD execution requires an organization context.');
     const target={organizationId,pool:profile.pool};
-    agentHttp=new AgentHttp(target);
-    const transport = agentHttp.fetch as typeof fetch;
     const rows=Array.isArray(test.dataset) && test.dataset.length ? test.dataset : [{}];
     for (const [index,row] of rows.entries()) {
       const vars={...variables,...Object.fromEntries(Object.entries(row as Record<string,unknown>).map(([name,value]) => [name,value == null ? '' : String(value)]))};
       redactionValues=vars;
       if (options?.signal?.aborted) throw new DOMException('BDD execution was aborted.','AbortError');
+      const preconditionHttp=new AgentHttp(target);
+      agentHttp=preconditionHttp;
       try {
-        const pre=await runPreconditions(test.preconditions as Precondition[]|null,vars,transport);
-        steps.push(...sanitize(pre.steps,vars).map(step=>({name:step.name,type:'precondition',status:step.status === 'failed' ? 'failed' as const : 'passed' as const,details:step.detail ?? step.status})));
+        const pre=await runPreconditions(test.preconditions as Precondition[]|null,vars,preconditionHttp.fetch as typeof fetch);
+        // AgentHttp borrows a browser slot on its first request. Return it before BDD
+        // selection so an agent configured with one slot can execute the scenario.
+        await preconditionHttp.close();
+        agentHttp=undefined;
+        steps.push(...pre.steps.map(step=>({name:sanitize(step.name,vars),type:'precondition',status:step.status === 'failed' ? 'failed' as const : 'passed' as const,details:sanitize(step.detail ?? step.status,vars)})));
+        enforceOutputBudget();
         if (!pre.ok && options?.onPreconditionFailure !== 'continue') {
           result.blockedByPrecondition=true;
           result.status=options?.onPreconditionFailure === 'skip' ? 'skipped' : 'error';
@@ -46,14 +60,30 @@ export async function runDedicatedBddTest(test:Test,variables:Record<string,stri
           source:bdd.source,uri:bdd.uri,scenarioLine:bdd.scenarioLine,exampleLine:bdd.exampleLine,
           profile:{id:profile.operatorProfileId,revision:profile.revision},variables:vars,timeoutMs:profile.timeoutMs,
         },process.env,options?.signal));
-        const safe=sanitize(run,vars);
+        const safe=BddAgentResultSchema.parse({...run,
+          ...(run.error !== undefined && {error:sanitize(run.error,vars)}),
+          steps:run.steps.map(step=>({...step,name:sanitize(step.name,vars),
+            ...(step.keyword !== undefined && {keyword:sanitize(step.keyword,vars)}),
+            ...(step.error !== undefined && {error:sanitize(step.error,vars)}),
+          })),
+          ...(run.attachments && {attachments:run.attachments.map(attachment=>({...attachment,text:sanitize(attachment.text,vars)}))}),
+        });
         runs.push(safe);
         steps.push(...safe.steps.map(step => ({name:`${rows.length > 1 ? `Row ${index+1} — ` : ''}${step.keyword ? `${step.keyword} ` : ''}${step.name}`,type:step.kind === 'hook' ? 'cucumberHook' : 'cucumber',status:step.status === 'PASSED' ? 'passed' as const : 'failed' as const,details:`${step.status} (${step.durationMs}ms)`,error:step.error})));
-        if (Buffer.byteLength(JSON.stringify({steps,runs})) > 8*1024*1024) throw new Error('Combined BDD results exceed the output budget.');
+        enforceOutputBudget();
         if (safe.status !== 'passed') {result.error=safe.error || 'Cucumber scenario did not pass.';result.status='failed';break;}
       } finally {
-        const cleanup=await runCleanups(test.cleanups as Cleanup[]|null,[vars],transport);
-        steps.push(...sanitize(cleanup.steps,vars).map(step => ({name:step.name,type:'cleanup',status:step.status === 'done' || step.status === 'gone' ? 'passed' as const : 'failed' as const,details:step.detail})));
+        await agentHttp?.close();
+        const cleanupHttp=new AgentHttp(target);
+        agentHttp=cleanupHttp;
+        try {
+          const cleanup=await runCleanups(test.cleanups as Cleanup[]|null,[vars],cleanupHttp.fetch as typeof fetch);
+          steps.push(...cleanup.steps.map(step => ({name:sanitize(step.name,vars),type:'cleanup',status:step.status === 'done' || step.status === 'gone' ? 'passed' as const : 'failed' as const,details:sanitize(step.detail,vars)})));
+          enforceOutputBudget();
+        } finally {
+          await cleanupHttp.close();
+          agentHttp=undefined;
+        }
       }
     }
     if (!result.error && runs.length && runs.every(run => run.status === 'passed')) {result.success=true;result.status='passed';}
@@ -64,5 +94,12 @@ export async function runDedicatedBddTest(test:Test,variables:Record<string,stri
     await agentHttp?.close();
   }
   result.durationMs=Date.now()-start;
-  return {...sanitize(result,redactionValues),bdd:{runs}};
+  const safeResult={...result,name:sanitize(result.name,redactionValues),
+    ...(result.error !== undefined && {error:sanitize(result.error,redactionValues)}),bdd:{runs}};
+  // Errors and redaction can grow after phase checks. The final persisted object,
+  // including both normalized representations and cleanup, must fit the same cap.
+  if (Buffer.byteLength(JSON.stringify(safeResult)) > BDD_MAX_OUTPUT_BYTES) {
+    return {...safeResult,name:safeResult.name.slice(0,1024),success:false,status:'error',error:budgetError,steps:[],bdd:{runs:[]}};
+  }
+  return safeResult;
 }
