@@ -1,3 +1,5 @@
+import { SpanKind } from '@opentelemetry/api';
+import { withSpan } from '../../shared/telemetry';
 import { createRequire } from 'module';
 import playwright, { type Browser } from 'playwright';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -23,7 +25,7 @@ export function relayBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
   return (env.AGENT_RELAY_URL || `http://127.0.0.1:${env.PORT || 5000}`).replace(/\/+$/, '');
 }
 
-export async function connectToAgentBrowser(
+async function connectToAgentBrowserImpl(
   choice: { engine: 'chromium' | 'firefox' | 'webkit'; channel?: string; headless: boolean; agent: AgentTarget; availabilityWaitMs?: number },
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<Browser> {
@@ -58,4 +60,8 @@ export async function connectToAgentBrowser(
 
   const endpoint = `${base.replace(/^http/i, 'ws')}${AGENT_PATHS.browser}?ticket=${encodeURIComponent(ticket)}`;
   return playwright[choice.engine].connect(endpoint, { timeout: 60_000 });
+}
+
+export function connectToAgentBrowser(...args: Parameters<typeof connectToAgentBrowserImpl>): ReturnType<typeof connectToAgentBrowserImpl> {
+  return withSpan('agent.connectToAgentBrowser', SpanKind.CLIENT, undefined, () => connectToAgentBrowserImpl(...args));
 }

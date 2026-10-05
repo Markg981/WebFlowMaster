@@ -1,0 +1,25 @@
+# Optional overlay: metrics stay on the Compose network; no host ports are published.
+# Supply WFM_METRICS_TOKEN when enabling metrics and point OTLP at your collector.
+services:
+  api:
+    environment:
+      WFM_METRICS_ENABLED: ${WFM_METRICS_ENABLED:-false}
+      WFM_METRICS_TOKEN: ${WFM_METRICS_TOKEN:-}
+      WFM_METRICS_HOST: 0.0.0.0
+      WFM_METRICS_PORT: 9464
+      WFM_TRACING_ENABLED: ${WFM_TRACING_ENABLED:-false}
+      WFM_TRACE_SAMPLE_RATIO: ${WFM_TRACE_SAMPLE_RATIO:-0.1}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-http://otel-collector:4318/v1/traces}
+      OTEL_EXPORTER_OTLP_TRACES_HEADERS: ${OTEL_EXPORTER_OTLP_TRACES_HEADERS:-}
+    expose: ["9464"]
+  worker:
+    environment:
+      WFM_METRICS_ENABLED: ${WFM_METRICS_ENABLED:-false}
+      WFM_METRICS_TOKEN: ${WFM_METRICS_TOKEN:-}
+      WFM_METRICS_HOST: 0.0.0.0
+      WFM_METRICS_PORT: 9465
+      WFM_TRACING_ENABLED: ${WFM_TRACING_ENABLED:-false}
+      WFM_TRACE_SAMPLE_RATIO: ${WFM_TRACE_SAMPLE_RATIO:-0.1}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-http://otel-collector:4318/v1/traces}
+      OTEL_EXPORTER_OTLP_TRACES_HEADERS: ${OTEL_EXPORTER_OTLP_TRACES_HEADERS:-}
+    expose: ["9465"]

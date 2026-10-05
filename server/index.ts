@@ -20,8 +20,13 @@ import { assertStartupConfig } from './startup-config';
 import { inspectSchemaState, describeSchemaState } from './schema-state';
 import { redactWebhookPath } from './webhook-tokens';
 
+import { startTracing } from '../shared/telemetry';
+import { applicationMetrics, startMetricsServer } from './observability/metrics';
+
+const stopTracing = startTracing('api');
 configureEgressProxy();
 const app = express();
+app.use(applicationMetrics.middleware);
 app.use(mailProviderBodyParser);
 // The API tester sends form-data files and binary bodies inside its JSON, as base64, so its
 // proxy gets a larger allowance than the 100KB default everything else keeps. Mounted first:
@@ -67,6 +72,7 @@ app.use(express.urlencoded({ extended: false }));
   // Generates a unique trace ID for each request and propagates it
   // through AsyncLocalStorage to all downstream async operations.
   app.use(correlationMiddleware);
+  const metricsListener = await startMetricsServer('api', applicationMetrics, []);
 
   // ─── CSRF (Origin/Referer) check for state-changing requests ────────────
   // Layered on top of the SameSite=Lax session cookie. Rejects cross-origin
@@ -249,6 +255,8 @@ app.use(express.urlencoded({ extended: false }));
         await redisConnection.quit();
         if (sessionRedis.isOpen) await sessionRedis.quit();
         await closeDb();
+        await metricsListener?.close();
+        await stopTracing();
         logger.info('Graceful shutdown complete.');
         await flushLogs();
         process.exit(0);

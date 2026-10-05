@@ -248,3 +248,7 @@ organization ended after 9 s, where waiting for the next look took 33 s.
 | Each schedule starts twice | Several web processes with `SCHEDULER_BACKEND=cron` | `SCHEDULER_BACKEND=bullmq` on all of them. |
 | Runs on a local agent fail with "relay could not be reached" | Workers do not know where the relay is | `AGENT_RELAY_URL` on the workers; the same `AGENT_RELAY_SECRET` everywhere. |
 | AI features are missing | No AI key | Set `GEMINI_API_KEY`; everything else works without it. |
+
+## Prometheus and OpenTelemetry
+
+See [Metrics and distributed tracing](./telemetry.md) for queue wait, worker/agent utilization, authenticated scrapes and OTLP trace setup.

@@ -6,6 +6,7 @@ import { authenticateAgentToken, recordAgentSeen } from './agent-auth';
 import { relaySecret } from './agent-credentials';
 import { AgentRelay, setAgentRelay, type RelayCluster } from './relay';
 import { RedisRelayDirectory } from './relay-directory';
+import { applicationMetrics } from '../observability/metrics';
 
 /**
  * Whether this web server is one of several relay instances, and how the others reach it.
@@ -51,5 +52,6 @@ export async function setupAgentRelay(server: Server): Promise<AgentRelay> {
   if (cluster) logger.info({ message: 'Agent relay runs as one of several instances', instanceId: cluster.instanceId, advertisedAt: cluster.url });
   relay.attach(server);
   setAgentRelay(relay);
+  applicationMetrics.setAgentSnapshot(() => relay.telemetrySnapshot());
   return relay;
 }

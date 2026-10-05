@@ -253,3 +253,7 @@ organizzazione sono finiti dopo 9 s, dove aspettare il controllo successivo ne r
 | Ogni schedulazione parte due volte | Più processi web con `SCHEDULER_BACKEND=cron` | `SCHEDULER_BACKEND=bullmq` su tutti. |
 | I run su un agente locale falliscono con "relay could not be reached" | I worker non sanno dove sia il relay | `AGENT_RELAY_URL` sui worker; lo stesso `AGENT_RELAY_SECRET` ovunque. |
 | Le funzioni AI non compaiono | Nessuna chiave AI | Impostate `GEMINI_API_KEY`; tutto il resto funziona anche senza. |
+
+## Prometheus e OpenTelemetry
+
+Vedere [Metriche e tracing distribuito](./telemetry.md) per attese in coda, utilizzo worker/agenti, scrape autenticati e configurazione OTLP.

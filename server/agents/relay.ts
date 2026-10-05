@@ -143,6 +143,16 @@ export class AgentRelay {
   /** The other instances, as of the last sync. */
   private others: RelayInstance[] = [];
 
+  /** Local-only aggregates: safe metric dimensions and additive across relay replicas. */
+  telemetrySnapshot() {
+    let capacity = 0, active = 0;
+    for (const agent of this.connected.values()) {
+      if (!agent.draining) capacity += agent.hello.maxSessions;
+      active += agent.sessions.size;
+    }
+    return { connected: this.connected.size, capacity, active };
+  }
+
   constructor(private readonly options: AgentRelayOptions) {
     this.heartbeat = setInterval(() => void this.beat(), options.heartbeatMs ?? 20_000);
     this.heartbeat.unref?.();
@@ -441,7 +451,7 @@ export class AgentRelay {
         if (this.pending.delete(id)) clearTimeout(session.timer);
         agent.sessions.delete(id);
       });
-      this.send(agent.ws, { type: 'open', sessionId: id, engine: verified.engine, channel: verified.channel, headless: verified.headless, ...(verified.bddProfile ? { bddProfile: verified.bddProfile } : {}), ...(verified.apiProtocol ? { apiProtocol: verified.apiProtocol, apiFeatures: verified.apiFeatures } : {}) });
+      this.send(agent.ws, { type: 'open', traceContext: verified.traceContext, sessionId: id, engine: verified.engine, channel: verified.channel, headless: verified.headless, ...(verified.bddProfile ? { bddProfile: verified.bddProfile } : {}), ...(verified.apiProtocol ? { apiProtocol: verified.apiProtocol, apiFeatures: verified.apiFeatures } : {}) });
     });
   }
 

@@ -19,6 +19,11 @@ import { registerRunPromotion } from './run-promotion';
 import { installWorkerLogEmitter } from './websocket';
 import { publicBaseUrl } from './report-links';
 import 'dotenv/config';
+import { startTracing } from '../shared/telemetry';
+import { applicationMetrics, instrumentJob, startMetricsServer } from './observability/metrics';
+import { Queue } from 'bullmq';
+
+const stopTracing = startTracing('worker');
 configureEgressProxy();
 
 (async () => {
@@ -59,6 +64,12 @@ configureEgressProxy();
   // names it.
   const planConcurrency = Math.max(1, Number(process.env.WORKER_CONCURRENCY) || 1);
   const browserTaskConcurrency = Math.max(1, Number(process.env.BROWSER_TASK_CONCURRENCY) || 2);
+  applicationMetrics.capacity.set({ queue: TEST_EXECUTION_QUEUE_NAME }, planConcurrency);
+  applicationMetrics.capacity.set({ queue: BROWSER_TASK_QUEUE_NAME }, browserTaskConcurrency);
+  const browserMetricsQueue = process.env.WFM_METRICS_ENABLED === 'true' ? new Queue(BROWSER_TASK_QUEUE_NAME, { connection }) : undefined;
+  const metricsListener = await startMetricsServer('worker', applicationMetrics, [testExecutionQueue, ...(browserMetricsQueue ? [browserMetricsQueue] : [])]);
+  applicationMetrics.active.set({ queue: TEST_EXECUTION_QUEUE_NAME }, 0);
+  applicationMetrics.active.set({ queue: BROWSER_TASK_QUEUE_NAME }, 0);
   // The queues it pauses when drained, filled in as the workers are created below.
   const drainable: PausableQueue[] = [];
   const runner = new RunnerAgent({
@@ -71,7 +82,7 @@ configureEgressProxy();
 
   const worker = new Worker(
     TEST_EXECUTION_QUEUE_NAME,
-    withJobIncidents(counted(async (job: Job, token?: string) => {
+    withJobIncidents(counted((job: Job, token?: string) => instrumentJob(TEST_EXECUTION_QUEUE_NAME, job, async () => {
       logger.info(`Worker processing job ${job.id} of type ${job.name}`);
 
       if (job.name === 'execute-plan') {
@@ -128,7 +139,7 @@ configureEgressProxy();
           await executeScheduledPlan(schedule, plan, scheduledOccurrence(job));
         });
       }
-    })),
+    }))),
     // How many plan runs this worker executes at once — each is a browser, so a statement about
     // the machine. One by default, as before; the per-organization limits share out whatever it is.
     { connection, concurrency: planConcurrency }
@@ -141,11 +152,11 @@ configureEgressProxy();
    */
   const browserTaskWorker = new Worker(
     BROWSER_TASK_QUEUE_NAME,
-    withJobIncidents(counted(async (job: Job) => {
+    withJobIncidents(counted((job: Job) => instrumentJob(BROWSER_TASK_QUEUE_NAME, job, async () => {
       const envelope = job.data as BrowserTaskEnvelope;
       const cid = envelope.correlationId || `task-${String(job.id).slice(0, 8)}`;
       return correlationStore.run({ correlationId: cid }, () => performBrowserTask(envelope));
-    })),
+    }))),
     { connection, concurrency: browserTaskConcurrency },
   );
   browserTaskWorker.on('failed', (job: Job | undefined, err: Error) => {
@@ -169,6 +180,7 @@ configureEgressProxy();
   drainable.push(worker, browserTaskWorker);
   runner.start();
 
+
   // ─── Graceful shutdown ──────────────────────────────────────────────────────
   // worker.close() waits for the in-flight job to finish before resolving, so a
   // redeploy doesn't kill a running test execution mid-flight.
@@ -184,6 +196,9 @@ configureEgressProxy();
       await browserTaskWorker.close();
       // Offline at once, rather than after three missed heartbeats.
       await runner.stop();
+      await metricsListener?.close();
+      await browserMetricsQueue?.close();
+      await stopTracing();
       await connection.quit();
       await closeDb();
       logger.info('Worker graceful shutdown complete.');

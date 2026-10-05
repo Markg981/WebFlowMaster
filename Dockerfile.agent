@@ -39,6 +39,12 @@ COPY --from=build /src/node_modules/@cucumber/cucumber/package.json /tmp/cucumbe
 COPY --from=build /src/node_modules/@cucumber/gherkin/package.json /tmp/gherkin-package.json
 COPY --from=build /src/node_modules/@cucumber/messages/package.json /tmp/messages-package.json
 COPY --from=build /src/node_modules/tsx/package.json /tmp/tsx-package.json
+COPY --from=build /src/node_modules/@opentelemetry/api/package.json /tmp/otel-0.json
+COPY --from=build /src/node_modules/@opentelemetry/core/package.json /tmp/otel-1.json
+COPY --from=build /src/node_modules/@opentelemetry/exporter-trace-otlp-http/package.json /tmp/otel-2.json
+COPY --from=build /src/node_modules/@opentelemetry/resources/package.json /tmp/otel-3.json
+COPY --from=build /src/node_modules/@opentelemetry/sdk-trace-base/package.json /tmp/otel-4.json
+COPY --from=build /src/node_modules/@opentelemetry/sdk-trace-node/package.json /tmp/otel-5.json
 RUN npm init -y >/dev/null \
   && npm install --omit=dev "playwright@${PLAYWRIGHT_VERSION:-$(node -p "require('/tmp/playwright-package.json').version")}" "ws@^8.18.0" \
      "@grpc/grpc-js@$(node -p "require('/tmp/grpc-package.json').version")" \
@@ -50,6 +56,12 @@ RUN npm init -y >/dev/null \
      "@cucumber/gherkin@$(node -p "require('/tmp/gherkin-package.json').version")" \
      "@cucumber/messages@$(node -p "require('/tmp/messages-package.json').version")" \
      "tsx@$(node -p "require('/tmp/tsx-package.json').version")" \
+     "@opentelemetry/api@$(node -p "require('/tmp/otel-0.json').version")" \
+     "@opentelemetry/core@$(node -p "require('/tmp/otel-1.json').version")" \
+     "@opentelemetry/exporter-trace-otlp-http@$(node -p "require('/tmp/otel-2.json').version")" \
+     "@opentelemetry/resources@$(node -p "require('/tmp/otel-3.json').version")" \
+     "@opentelemetry/sdk-trace-base@$(node -p "require('/tmp/otel-4.json').version")" \
+     "@opentelemetry/sdk-trace-node@$(node -p "require('/tmp/otel-5.json').version")" \
   && rm /tmp/playwright-package.json /tmp/grpc-package.json /tmp/proto-package.json /tmp/undici-package.json /tmp/proxy-package.json /tmp/zod-package.json
 COPY --from=build /src/dist/wfm-agent.js ./wfm-agent.mjs
 COPY --from=build /src/dist/wfm-bdd-child.mjs ./wfm-bdd-child.mjs

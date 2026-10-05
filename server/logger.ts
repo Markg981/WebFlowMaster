@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { privilegedDb } from './db';
 import { systemSettings } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { traceLogFields } from '../shared/telemetry';
 import { getCorrelationId } from './middleware/correlation';
 import { redactSensitiveData, scrubControlCharsFromMessage } from './utils/log-redactor';
 
@@ -27,6 +28,7 @@ const structuredFormat = winston.format.combine(
   winston.format((info) => {
     // Inject service name
     info.service = SERVICE_NAME;
+    Object.assign(info, traceLogFields());
     // Inject correlation ID from AsyncLocalStorage (if available)
     const correlationId = getCorrelationId();
     if (correlationId) {
