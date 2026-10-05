@@ -1,5 +1,5 @@
 {
-  "version": 24,
+  "version": 25,
   "areas": [
     {
       "id": "ACC",
@@ -110,6 +110,16 @@
       "id": "BDD",
       "intro": "Gherkin multilingua e definizioni Cucumber su agenti dedicati; predisporre un profilo operatore e un progetto riservato.",
       "title": "BDD e Cucumber"
+    },
+    {
+      "id": "QUO",
+      "title": "Quote e consumi",
+      "intro": "Limiti per organizzazione, inventario degli artifact e minuti di esecuzione; amministratore umano dell’installazione, migrazione 0081 e organizzazioni di prova."
+    },
+    {
+      "id": "TEL",
+      "title": "Metriche e tracing",
+      "intro": "Prometheus e OpenTelemetry su API, worker e agenti; collector OTLP/HTTP JSON e token metriche di prova. Le integrazioni sono opzionali e disabilitate per impostazione predefinita."
     }
   ],
   "cases": [
@@ -7087,10 +7097,354 @@
         "Eseguire anteprima e import."
       ],
       "expected": "Esiti invalid espliciti; nessun test salvato contro una dipendenza non valida. I bundle v1 sono ancora leggibili."
+    },
+    {
+      "id": "QUO-01",
+      "area": "QUO",
+      "title": "Installazione libera con quote disattivate",
+      "priority": "P1",
+      "actor": "amministratore installazione, owner.a, editor.a",
+      "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+      "steps": [
+        "Impostare TENANT_QUOTA_MODE=off su API e worker e riavviarli.",
+        "Salvare limiti finiti per A e creare test e nuove esecuzioni oltre quei limiti."
+      ],
+      "expected": "Nessun rifiuto dovuto alle quote e nessun pagamento richiesto; restano applicati i limiti indipendenti di sicurezza dei worker."
+    },
+    {
+      "id": "QUO-02",
+      "area": "QUO",
+      "title": "Monitoraggio e applicazione dei limiti",
+      "priority": "P1",
+      "actor": "amministratore installazione, owner.a, editor.a",
+      "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+      "steps": [
+        "Impostare A in monitor e superare il limite di test configurato.",
+        "Passare A a enforce e tentare una nuova creazione; aprire e modificare un test esistente."
+      ],
+      "expected": "Monitor mostra il consumo senza bloccare; enforce rifiuta la crescita oltre il limite, conservando contenuti esistenti ed esecuzioni già in corso."
+    },
+    {
+      "id": "QUO-03",
+      "area": "QUO",
+      "title": "Capacità condivisa tra test web, BDD, API e mobile",
+      "priority": "P1",
+      "actor": "amministratore installazione, owner.a, editor.a",
+      "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+      "steps": [
+        "Impostare maxTests=3 su A in enforce e salvare una definizione web/BDD, una API e una mobile.",
+        "Tentare una quarta creazione, una clonazione e un import multiplo; modificare una definizione esistente.",
+        "Eliminare una definizione e creare quella sostitutiva."
+      ],
+      "expected": "Il totale è tre per tutta A; la crescita oltre limite riceve 429 e l’import multiplo è atomico. La modifica funziona; l’eliminazione libera capacità."
+    },
+    {
+      "id": "QUO-04",
+      "area": "QUO",
+      "title": "Conteggio dei test nei progetti riservati",
+      "priority": "P1",
+      "actor": "amministratore installazione, owner.a, editor.a",
+      "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+      "steps": [
+        "Riempire il limite di A con test in un progetto non accessibile a editor.a.",
+        "Come editor.a creare un test in un progetto accessibile."
+      ],
+      "expected": "Il limite conta tutta l’organizzazione; la creazione è rifiutata senza rivelare nomi o dettagli dei test nei progetti riservati."
+    },
+    {
+      "id": "QUO-05",
+      "area": "QUO",
+      "title": "Inventario prima del limite sugli artifact",
+      "priority": "P1",
+      "actor": "amministratore installazione, owner.a, editor.a",
+      "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+      "steps": [
+        "Predisporre file preesistenti nel prefisso locale o S3 di A, non ancora riconciliato.",
+        "Tentare di salvare un limite finito maxArtifactBytes in enforce.",
+        "Eseguire Riconcilia artifact e salvare di nuovo il limite."
+      ],
+      "expected": "Prima dell’inventario il consumo è non misurato e il salvataggio riceve 409; dopo la riconciliazione i file sono conteggiati e il limite finito può essere salvato."
+    },
+    {
+      "id": "QUO-06",
+      "area": "QUO",
+      "title": "Crescita degli artifact e conservazione delle evidenze",
+      "priority": "P1",
+      "actor": "amministratore installazione, owner.a, editor.a",
+      "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+      "steps": [
+        "Riconciliare A e impostare il limite sugli artifact alla capacità utilizzata.",
+        "Tentare una baseline più grande, nuove evidenze e uno screenshot mobile inline oltre il limite.",
+        "Aprire la baseline precedente e il report dell’esecuzione."
+      ],
+      "expected": "Solo la crescita richiede nuova capacità; la sostituzione rifiutata conserva la baseline precedente. Il rifiuto di un’evidenza non cambia il verdetto funzionale del test."
+    },
+    {
+      "id": "QUO-07",
+      "area": "QUO",
+      "title": "Prenotazioni conservative e recupero storage",
+      "priority": "P1",
+      "actor": "amministratore installazione, owner.a, editor.a",
+      "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+      "steps": [
+        "In uno storage sacrificabile provocare un timeout dopo la persistenza di un artifact.",
+        "Provocare anche una riconciliazione non riuscita e osservare il consumo.",
+        "Ripristinare lo storage ed eseguire una riconciliazione riuscita."
+      ],
+      "expected": "La prenotazione resta conservativa; l’inventario fallito conserva l’ultimo consumo valido. La riconciliazione riuscita risolve il consumo effettivo senza liberare spazio non confermato."
+    },
+    {
+      "id": "QUO-08",
+      "area": "QUO",
+      "title": "Retention e cancellazioni parziali",
+      "priority": "P1",
+      "actor": "amministratore installazione, owner.a, editor.a",
+      "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+      "steps": [
+        "Creare evidenze misurate di A e provocare un fallimento parziale di cancellazione S3 durante eliminazione o retention.",
+        "Controllare il ledger, ripristinare lo storage e completare la cancellazione."
+      ],
+      "expected": "I byte si liberano soltanto dopo la rimozione fisica confermata. I file non eliminati restano contabilizzati; il completamento libera i byte effettivamente rimossi."
+    },
+    {
+      "id": "QUO-09",
+      "area": "QUO",
+      "title": "Budget mensile e ammissione delle esecuzioni",
+      "priority": "P1",
+      "actor": "amministratore installazione, owner.a, editor.a",
+      "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+      "steps": [
+        "Con un run attivo e lavoro già in coda, esaurire il budget mensile di A in enforce.",
+        "Tentare nuove esecuzioni di piano, browser diretto, API e mobile.",
+        "Eliminare un report e osservare budget, coda e run attivo."
+      ],
+      "expected": "Le nuove ammissioni ricevono 429; il lavoro già in coda attende e quello attivo termina. Eliminare report non azzera il consumo mensile."
+    },
+    {
+      "id": "QUO-10",
+      "area": "QUO",
+      "title": "Occupazione worker a cavallo del mese UTC",
+      "priority": "P2",
+      "actor": "amministratore installazione, owner.a, editor.a",
+      "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+      "steps": [
+        "In un ambiente con tempo controllabile eseguire un piano con shard attraverso il cambio mese UTC.",
+        "Rilevare ammissione, attesa in coda e intervalli di occupazione dei worker per i due mesi."
+      ],
+      "expected": "Gli intervalli si ripartiscono sui mesi UTC; il tempo in coda è escluso e l’occupazione aggiuntiva dei worker shard è inclusa. Annotare gli intervalli osservati."
+    },
+    {
+      "id": "QUO-11",
+      "area": "QUO",
+      "title": "Override, eredità e concorrenza amministrativa",
+      "priority": "P1",
+      "actor": "amministratore installazione, owner.a, editor.a",
+      "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+      "steps": [
+        "Aprire le quote di A in due sessioni dell’amministratore e salvare un override nella prima.",
+        "Tentare il salvataggio obsoleto nella seconda; ricaricare e rimuovere l’override.",
+        "Selezionare off e monitor e leggere il registro di audit di A."
+      ],
+      "expected": "Valori effettivi, default ed eredità sono visibili; la revisione obsoleta riceve 409. Audit con attore, valori prima/dopo e revisione; nessuna sovrascrittura silenziosa."
+    },
+    {
+      "id": "QUO-12",
+      "area": "QUO",
+      "title": "Accesso riservato all’amministratore dell’installazione",
+      "priority": "P1",
+      "actor": "amministratore installazione, owner.a, editor.a",
+      "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+      "steps": [
+        "Come owner.a ordinario e come account di servizio richiedere le API di amministrazione quote e tentare modifiche di B.",
+        "Ripetere con l’amministratore umano dell’installazione."
+      ],
+      "expected": "Gli account ordinari e di servizio ricevono 403. Soltanto l’amministratore umano autenticato può elencare e modificare quote delle organizzazioni."
+    },
+    {
+      "id": "QUO-13",
+      "area": "QUO",
+      "title": "Riconciliazione durante la pubblicazione delle evidenze",
+      "priority": "P1",
+      "actor": "amministratore installazione, owner.a, editor.a",
+      "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+      "steps": [
+        "Riconciliare gli artifact mentre un piano di A sta generando file nello staging.",
+        "Completare la pubblicazione oppure provocare un rifiuto per quota; controllare inventario e download."
+      ],
+      "expected": "Lo staging attivo o incompleto non diventa evidenza conservata o scaricabile. Le evidenze pubblicate restano misurate, senza doppio conteggio o liberazione anticipata."
+    },
+    {
+      "id": "QUO-14",
+      "area": "QUO",
+      "title": "Debug rifiutato senza sessione fantasma",
+      "priority": "P1",
+      "actor": "amministratore installazione, owner.a, editor.a",
+      "preconditions": "Migrazione 0081 applicata; organizzazioni di prova A/B, owner.a, editor.a e amministratore umano configurato in INSTALLATION_ADMINS. Stessi default TENANT_QUOTA_MODE e ORG_MAX_* su API e worker; installazione isolata e contenuti sacrificabili. Per ogni scenario annotare limiti, modalità, consumi iniziali, commit e ambiente; ripristinare i limiti al termine.",
+      "steps": [
+        "Esaurire il budget di esecuzione di A in enforce e avviare una sessione di debug.",
+        "Controllare risposta, stato del debug e sessioni attive."
+      ],
+      "expected": "La richiesta riceve 429; lo stato inizializzato del debug termina e non rimane una sessione attiva fantasma."
+    },
+    {
+      "id": "TEL-01",
+      "area": "TEL",
+      "title": "Telemetria disabilitata per impostazione predefinita",
+      "priority": "P1",
+      "actor": "operatore installazione",
+      "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+      "steps": [
+        "Avviare API e worker senza WFM_METRICS_ENABLED=true e WFM_TRACING_ENABLED=true.",
+        "Eseguire una richiesta applicativa e un piano; verificare listener dedicati ed export al collector."
+      ],
+      "expected": "Applicazione e piano funzionano; nessun listener metriche dedicato e nessun export OpenTelemetry. I correlation ID applicativi restano disponibili."
+    },
+    {
+      "id": "TEL-02",
+      "area": "TEL",
+      "title": "Token obbligatorio per abilitare le metriche",
+      "priority": "P1",
+      "actor": "operatore installazione",
+      "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+      "steps": [
+        "In un processo di prova avviare API e poi worker con WFM_METRICS_ENABLED=true e senza WFM_METRICS_TOKEN."
+      ],
+      "expected": "Ogni processo rifiuta l’avvio con errore di configurazione; nessun endpoint metriche privo di autenticazione viene aperto."
+    },
+    {
+      "id": "TEL-03",
+      "area": "TEL",
+      "title": "Autenticazione e superficie del listener metriche",
+      "priority": "P1",
+      "actor": "operatore installazione",
+      "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+      "steps": [
+        "Abilitare le metriche con token di prova; chiamare GET /metrics senza token e con token errato.",
+        "Chiamare GET /metrics con Authorization: Bearer corretto e ripetere con POST o percorso diverso."
+      ],
+      "expected": "Senza token o con token errato: 401. GET autenticato: 200 in formato Prometheus, Cache-Control no-store, senza sessione applicativa. Altri metodi o percorsi: 404."
+    },
+    {
+      "id": "TEL-04",
+      "area": "TEL",
+      "title": "Listener separati e isolamento della rete Compose",
+      "priority": "P1",
+      "actor": "operatore installazione",
+      "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+      "steps": [
+        "In esecuzione diretta verificare i default API 127.0.0.1:9464 e worker 127.0.0.1:9465.",
+        "Applicare docker-compose.telemetry.yml a uno stack di prova e raggiungere api:9464 e worker:9465 dalla rete Compose.",
+        "Controllare le pubblicazioni delle porte sullo host."
+      ],
+      "expected": "I listener sono separati e configurabili per processo; l’overlay non pubblica le porte metriche sullo host e non installa un backend Prometheus o OTLP."
+    },
+    {
+      "id": "TEL-05",
+      "area": "TEL",
+      "title": "Metriche HTTP senza dati sensibili nelle label",
+      "priority": "P1",
+      "actor": "operatore installazione",
+      "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+      "steps": [
+        "Chiamare una route parametrica con ID, query e payload di prova riconoscibili; chiamare anche più percorsi sconosciuti.",
+        "Leggere wfm_http_duration_seconds sul listener API."
+      ],
+      "expected": "Metodo, template della route e stato sono misurati; le route sconosciute usano una label fissa. ID reali, query, payload, token e dati dell’organizzazione non diventano label."
+    },
+    {
+      "id": "TEL-06",
+      "area": "TEL",
+      "title": "Tentativi worker, rinvii e ritorno degli slot a zero",
+      "priority": "P1",
+      "actor": "operatore installazione",
+      "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+      "steps": [
+        "Avviare un piano e una preview; osservare le code dei piani e dei browser durante e dopo il lavoro.",
+        "Provocare separatamente un errore infrastrutturale, un rinvio per quota e un’asserzione funzionale fallita."
+      ],
+      "expected": "Istogrammi attesa/durata e gauge capacità/attivi sono aggiornati per coda. wfm_jobs_total distingue success, error e deferred; il rinvio non è un run completato. Un’asserzione fallita elaborata normalmente conta come job success; gli attivi tornano a zero."
+    },
+    {
+      "id": "TEL-07",
+      "area": "TEL",
+      "title": "Scrape worker quando Redis è indisponibile",
+      "priority": "P1",
+      "actor": "operatore installazione",
+      "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+      "steps": [
+        "Con token corretto ottenere uno scrape riuscito del worker.",
+        "Interrompere Redis in uno stack sacrificabile e ripetere lo scrape, poi ripristinare Redis."
+      ],
+      "expected": "Durante il guasto il listener risponde 503 senza presentare valori obsoleti come scrape riuscito; dopo il recupero gli scrape tornano 200 con conteggi correnti."
+    },
+    {
+      "id": "TEL-08",
+      "area": "TEL",
+      "title": "Repliche worker e aggregazione delle code",
+      "priority": "P2",
+      "actor": "operatore installazione",
+      "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+      "steps": [
+        "Avviare due repliche worker, raccogliere separatamente /metrics e accodare lavoro.",
+        "Confrontare max by (queue, state) (wfm_queue_jobs) con i conteggi Redis; calcolare utilizzo da somma attivi/somma capacità."
+      ],
+      "expected": "Ogni replica è osservabile. La profondità globale duplicata si aggrega con max e non con somma; attivi e capacità locali si sommano per calcolare l’utilizzo."
+    },
+    {
+      "id": "TEL-09",
+      "area": "TEL",
+      "title": "Capacità degli agenti e drain",
+      "priority": "P1",
+      "actor": "operatore installazione",
+      "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+      "steps": [
+        "Connettere un agente con slot noti, aprire una sessione e leggere i gauge wfm_agent_* sul relay API.",
+        "Mettere l’agente in drain, rilasciare la sessione e disconnetterlo."
+      ],
+      "expected": "Connessioni, capacità e sessioni sono aggregati locali del relay. Gli slot in drain non contribuiscono alla capacità; rilascio e disconnessione aggiornano i gauge senza sessioni fantasma."
+    },
+    {
+      "id": "TEL-10",
+      "area": "TEL",
+      "title": "Trace distribuito e correlazione con i log",
+      "priority": "P1",
+      "actor": "operatore installazione",
+      "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+      "steps": [
+        "Abilitare tracing su API, worker e agente aggiornato; impostare WFM_TRACE_SAMPLE_RATIO=1 e collector OTLP/HTTP JSON raggiungibile.",
+        "Avviare un piano con shard e un’operazione tramite agente; cercare gli span nel backend e il trace ID nei log strutturati."
+      ],
+      "expected": "HTTP, producer, tentativo worker, shard e sessione agente mantengono il trace ID lungo la rispettiva catena. I log emessi nello span contengono traceId/spanId. Lo span agente termina al rilascio; BDD non richiede strumentazione degli step nel processo figlio."
+    },
+    {
+      "id": "TEL-11",
+      "area": "TEL",
+      "title": "Sampling W3C e assenza di baggage o segreti",
+      "priority": "P1",
+      "actor": "operatore installazione",
+      "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+      "steps": [
+        "Inviare richieste con traceparent/tracestate validi, una campionata e una non campionata; includere baggage e valori sensibili riconoscibili.",
+        "Esaminare export OTLP e contesto nei job e nei ticket del relay in un ambiente di prova."
+      ],
+      "expected": "Il sampling segue il parent. Attraversano i confini soltanto traceparent/tracestate; baggage, payload, URL dei sistemi testati, messaggi di eccezione, label utente/tenant e credenziali non entrano nella telemetria applicativa."
+    },
+    {
+      "id": "TEL-12",
+      "area": "TEL",
+      "title": "Agent precedente senza export locale",
+      "priority": "P2",
+      "actor": "operatore installazione",
+      "preconditions": "Installazione sacrificabile del commit corrente; accesso operatore alla configurazione di API/worker e collector OTLP/HTTP JSON. Usare token di prova e non registrarli nelle note. Per tracing completo ricostruire anche l’agente con le dipendenze OpenTelemetry. Consultare docs/it/admin/telemetry.md; annotare repliche, configurazione, intervallo di osservazione e trace ID, ripristinando la configurazione dopo il caso.",
+      "steps": [
+        "Abilitare tracing su API e worker e collegare un agente precedente compatibile con il protocollo browser/HTTP.",
+        "Eseguire una richiesta tramite quell’agente e osservare il risultato e gli span."
+      ],
+      "expected": "Il campo trace opzionale non rompe l’operazione dell’agente precedente. API/worker esportano i propri span; l’assenza degli span locali dell’agente è un limite della versione e non un errore del test."
     }
   ],
   "presentation": {
     "css": "\n  :root {\n    --paper: #f7f8f6;\n    --sheet: #ffffff;\n    --ink: #1c2436;\n    --ink-soft: #4a5468;\n    --ink-faint: #7b8497;\n    --rule: #dde1e6;\n    --rule-strong: #c5cbd3;\n    --accent: #2c5aa0;\n    --accent-soft: #e6edf8;\n    --pass: #22754a;\n    --pass-soft: #e3f2e9;\n    --fail: #b3261e;\n    --fail-soft: #fbe6e4;\n    --block: #a15c00;\n    --block-soft: #fbefdc;\n    --na: #6b7280;\n    --na-soft: #eceef1;\n    --todo: #cfd5dc;\n    --p1: #b3261e;\n    --p2: #a15c00;\n    --p3: #6b7280;\n    --shadow: 0 1px 2px rgba(20, 30, 50, .06), 0 2px 8px rgba(20, 30, 50, .05);\n    --display: \"Archivo Narrow\", \"Arial Narrow\", \"Helvetica Neue\", Arial, sans-serif;\n    --body: \"IBM Plex Sans\", \"Segoe UI\", system-ui, -apple-system, sans-serif;\n    --mono: \"IBM Plex Mono\", ui-monospace, \"SFMono-Regular\", Consolas, monospace;\n  }\n  @media (prefers-color-scheme: dark) {\n    :root:not([data-theme=\"light\"]) {\n      color-scheme: dark;\n      --paper: #12161f; --sheet: #1a202c; --ink: #e7eaf0; --ink-soft: #b3bbc9; --ink-faint: #8791a3;\n      --rule: #2b3342; --rule-strong: #3a4456; --accent: #8fb3ec; --accent-soft: #21304a;\n      --pass: #6fcf97; --pass-soft: #173226; --fail: #f28b82; --fail-soft: #3a1c1b; --block: #f0b45c; --block-soft: #3a2a12;\n      --na: #a3abb8; --na-soft: #262c37; --todo: #3a4456; --p1: #f28b82; --p2: #f0b45c; --p3: #a3abb8;\n      --shadow: 0 1px 2px rgba(0,0,0,.4);\n    }\n  }\n  :root[data-theme=\"dark\"] {\n    color-scheme: dark;\n    --paper: #12161f; --sheet: #1a202c; --ink: #e7eaf0; --ink-soft: #b3bbc9; --ink-faint: #8791a3;\n    --rule: #2b3342; --rule-strong: #3a4456; --accent: #8fb3ec; --accent-soft: #21304a;\n    --pass: #6fcf97; --pass-soft: #173226; --fail: #f28b82; --fail-soft: #3a1c1b; --block: #f0b45c; --block-soft: #3a2a12;\n    --na: #a3abb8; --na-soft: #262c37; --todo: #3a4456; --p1: #f28b82; --p2: #f0b45c; --p3: #a3abb8;\n    --shadow: 0 1px 2px rgba(0,0,0,.4);\n  }\n\n  * { box-sizing: border-box; }\n  body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 14.5px; line-height: 1.55; }\n  .wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 0 64px; }\n  h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: .005em; }\n  code { font-family: var(--mono); font-size: .88em; background: var(--accent-soft); color: var(--ink); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }\n  button, input, select, textarea { font: inherit; color: inherit; }\n  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }\n\n  /* Masthead */\n  .mast { display: grid; gap: 6px; padding-block: 28px 18px; border-bottom: 2px solid var(--ink); }\n  .mast .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }\n  .mast h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 700; line-height: 1.05; }\n  .mast p { margin: 0; color: var(--ink-soft); max-width: 72ch; }\n\n  /* Sticky control bar */\n  .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--paper); border-bottom: 1px solid var(--rule); padding-block: 12px; display: grid; gap: 10px; }\n  .bar-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }\n  .cycle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }\n  .label { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }\n  select, input[type=\"search\"], input[type=\"text\"], textarea {\n    background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 6px; padding: 6px 9px; min-width: 0;\n  }\n  select { padding-right: 26px; max-width: 100%; }\n  /* Grid children may shrink below their content, so long option labels and tables do not widen the page on a phone. */\n  .bar > *, .prep-body > *, .layout > *, .filters > * { min-width: 0; }\n  .btn { background: var(--sheet); border: 1px solid var(--rule-strong); border-radius: 6px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }\n  .btn:hover { border-color: var(--ink-faint); }\n  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }\n  :root[data-theme=\"dark\"] .btn.primary { color: #0d1523; }\n  @media (prefers-color-scheme: dark) { :root:not([data-theme=\"light\"]) .btn.primary { color: #0d1523; } }\n  .btn[disabled] { opacity: .45; cursor: not-allowed; }\n  .spacer { flex: 1; }\n\n  .progress { display: grid; gap: 6px; }\n  .meter { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--todo); }\n  .meter span { display: block; height: 100%; transition: width .3s ease; }\n  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }\n  .legend b { font-weight: 600; color: var(--ink); }\n  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }\n\n  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }\n  .filters input[type=\"search\"] { flex: 1 1 220px; }\n\n  .notice { border: 1px solid var(--rule-strong); background: var(--sheet); border-radius: 8px; padding: 10px 14px; color: var(--ink-soft); font-size: 13.5px; }\n  .notice.warn { border-color: var(--block); background: var(--block-soft); color: var(--ink); }\n\n  /* Layout */\n  .layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 28px; margin-top: 22px; align-items: start; }\n  @media (max-width: 880px) { .layout { grid-template-columns: minmax(0, 1fr); } .index { position: static !important; } }\n  .index { position: sticky; top: 150px; display: grid; gap: 2px; font-size: 13.5px; }\n  .index a { display: grid; grid-template-columns: 40px 1fr auto; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 6px; color: var(--ink); text-decoration: none; }\n  .index a:hover { background: var(--accent-soft); }\n  .index .code { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); }\n  .index .count { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }\n  .index .mini { grid-column: 2 / 4; height: 3px; border-radius: 2px; background: var(--todo); display: flex; overflow: hidden; }\n  .index .mini span { height: 100%; }\n\n  /* Preparation */\n  details.prep { background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow); margin-bottom: 28px; }\n  details.prep > summary { cursor: pointer; padding: 14px 18px; font-family: var(--display); font-weight: 600; font-size: 20px; list-style: none; display: flex; justify-content: space-between; gap: 12px; }\n  details.prep > summary::-webkit-details-marker { display: none; }\n  details.prep > summary::after { content: \"Mostra\"; font-family: var(--mono); font-size: 12px; color: var(--ink-faint); align-self: center; }\n  details.prep[open] > summary::after { content: \"Nascondi\"; }\n  .prep-body { padding: 0 18px 18px; display: grid; gap: 16px; }\n  .prep-body h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }\n  .prep-body ul, .prep-body ol { margin: 0; padding-left: 20px; display: grid; gap: 3px; color: var(--ink-soft); }\n  .prep-body li b { color: var(--ink); font-weight: 600; }\n  .table-wrap { overflow-x: auto; }\n  table.users { border-collapse: collapse; font-size: 13.5px; min-width: 480px; }\n  table.users th, table.users td { text-align: left; padding: 5px 12px 5px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }\n  table.users th { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }\n\n  /* Areas and cases */\n  .area { margin-bottom: 36px; scroll-margin-top: 160px; }\n  .area-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; border-bottom: 1px solid var(--ink); padding-bottom: 6px; margin-bottom: 4px; }\n  .area-head .code { font-family: var(--mono); font-size: 13px; color: var(--accent); }\n  .area-head h2 { font-size: 24px; font-weight: 600; }\n  .area-head .tally { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }\n  .area-intro { margin: 6px 0 10px; color: var(--ink-soft); font-size: 13.5px; max-width: 80ch; }\n\n  .case { border-bottom: 1px solid var(--rule); scroll-margin-top: 160px; }\n  .case-row { display: grid; grid-template-columns: 6px 74px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 0; }\n  .stripe { align-self: stretch; border-radius: 3px; background: var(--todo); }\n  .case[data-status=\"pass\"] .stripe { background: var(--pass); }\n  .case[data-status=\"fail\"] .stripe { background: var(--fail); }\n  .case[data-status=\"block\"] .stripe { background: var(--block); }\n  .case[data-status=\"na\"] .stripe { background: var(--na); }\n  .cid { font-family: var(--mono); font-size: 12.5px; color: var(--ink-soft); }\n  .ctitle { border: 0; background: none; padding: 0; text-align: left; cursor: pointer; display: grid; gap: 2px; }\n  .ctitle .t { font-weight: 500; }\n  .ctitle .meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--ink-faint); }\n  .chip { font-family: var(--mono); font-size: 11px; padding: 0 6px; border-radius: 4px; border: 1px solid var(--rule-strong); line-height: 18px; }\n  .chip.p1 { color: var(--p1); border-color: currentColor; }\n  .chip.p2 { color: var(--p2); border-color: currentColor; }\n  .chip.p3 { color: var(--p3); }\n  .stamps { display: flex; gap: 4px; }\n  .stamp { border: 1px solid var(--rule-strong); background: var(--sheet); border-radius: 6px; padding: 3px 9px; font-size: 12.5px; cursor: pointer; color: var(--ink-soft); }\n  .stamp:hover:not([disabled]) { border-color: var(--ink-faint); color: var(--ink); }\n  .stamp[aria-pressed=\"true\"].pass { background: var(--pass-soft); border-color: var(--pass); color: var(--pass); font-weight: 600; }\n  .stamp[aria-pressed=\"true\"].fail { background: var(--fail-soft); border-color: var(--fail); color: var(--fail); font-weight: 600; }\n  .stamp[aria-pressed=\"true\"].block { background: var(--block-soft); border-color: var(--block); color: var(--block); font-weight: 600; }\n  .stamp[aria-pressed=\"true\"].na { background: var(--na-soft); border-color: var(--na); color: var(--na); font-weight: 600; }\n  .stamp[disabled] { cursor: not-allowed; opacity: .6; }\n  @media (max-width: 640px) {\n    .case-row { grid-template-columns: 6px 64px minmax(0, 1fr); }\n    .stamps { grid-column: 2 / 4; flex-wrap: wrap; }\n  }\n\n  .detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); gap: 20px; padding: 4px 0 16px 92px; }\n  @media (max-width: 880px) { .detail { grid-template-columns: minmax(0, 1fr); padding-left: 18px; } }\n  .detail h4 { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 4px; font-weight: 500; }\n  .detail ol { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 4px; }\n  .detail p { margin: 0 0 12px; }\n  .expected { border-left: 3px solid var(--pass); padding: 4px 0 4px 12px; background: var(--pass-soft); border-radius: 0 6px 6px 0; }\n  .record { display: grid; gap: 6px; align-content: start; }\n  .record textarea { width: 100%; min-height: 84px; resize: vertical; }\n  .record .who { font-size: 12.5px; color: var(--ink-faint); min-height: 1.2em; }\n  .record .saving { font-size: 12px; color: var(--ink-faint); }\n  .empty { padding: 28px 0; color: var(--ink-faint); text-align: center; }\n\n  dialog { border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--sheet); color: var(--ink); padding: 20px; width: min(440px, calc(100vw - 32px)); }\n  dialog::backdrop { background: rgba(10, 15, 25, .45); }\n  dialog form { display: grid; gap: 12px; }\n  dialog label { display: grid; gap: 4px; font-size: 13.5px; }\n  .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }\n  @media (prefers-reduced-motion: reduce) { .meter span { transition: none; } }\n",
-    "preparationHtml": "<div><h3>L'ambiente di collaudo</h3><ul><li>Lo stack pronto è nel repository, in <code>collaudo/</code>: la procedura completa è in <code>collaudo/README.md</code>. Avvio: <code>docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml up -d --build</code>.</li><li>Contiene il prodotto in modalità produzione dietro HTTPS (<b>https://wfm.collaudo.test</b>), Keycloak già configurato (<b>https://keycloak.collaudo.test</b>), un'applicazione «Intranet Acme» raggiungibile solo dall'agente locale, un ricevitore per i webhook delle notifiche e l'agente stesso.</li><li>Una volta per macchina: aggiungere <code>127.0.0.1 wfm.collaudo.test keycloak.collaudo.test</code> al file hosts e far fidare il browser del certificato di collaudo (README, passi 2 e 4).</li><li>Un ciclo completo parte da vuoto (<code>down -v</code>, poi <code>up -d</code>): i casi ACC creano gli utenti. Un ciclo che salta l'area Accesso usa lo script <code>collaudo/seed.mjs</code>, che crea le due organizzazioni e le persone della tabella sotto, con password <code>Collaudo.2026!</code>.</li><li>Annotare nel ciclo la versione (tag o commit) e l'indirizzo dell'ambiente.</li></ul></div><div><h3>Applicazioni da testare</h3><ul><li>Interfaccia: <b>the-internet.herokuapp.com</b> (login <code>tomsmith</code> / <code>SuperSecretPassword!</code>, /checkboxes, /dropdown, /hovers, /dynamic_loading/1, /add_remove_elements/, /nested_frames, /dynamic_content, /key_presses, /context_menu, /drag_and_drop, /upload, /javascript_alerts, /windows, /tables). Se l'uscita verso internet è chiusa, sostituirla con un'applicazione interna equivalente.</li><li>API: <b>httpbin.org</b> (/get, /post, /status/500, /basic-auth/user/passwd, /bearer, /headers, /anything) e <b>jsonplaceholder.typicode.com</b> (/posts).</li><li>Un'applicazione raggiungibile solo dalla rete dell'agente locale (anche una pagina statica), per l'area AGT.</li></ul></div><div><h3>Servizi esterni</h3><ul><li><b>Keycloak</b> è già nello stack: issuer <code>https://keycloak.collaudo.test/realms/acme</code>, client <code>webflowmaster</code> / <code>collaudo-sso-secret</code>, utenti anna, marco, nonverificata, fuori e luca con password <code>Collaudo.2026!</code>; client OAuth <code>api-client</code> / <code>collaudo-api-secret</code>. Console: admin / admin. Il README dice quale utente serve a quale caso.</li><li><b>Notifiche</b> (PLN-13): URL <code>http://ricevitore:8080/notifiche</code>; le chiamate si leggono con <code>docker compose … logs -f ricevitore</code>.</li><li>Un progetto <b>Jira</b> di prova (e-mail + API token) oppure <b>Azure DevOps</b> (PAT).</li><li>Un URL che riceve POST per le notifiche: un canale Slack/Teams di prova o webhook.site.</li><li>Un <b>repository GitHub</b> di prova con Actions abilitate, e un token per lo stato dei commit.</li><li>Un file <b>Excel</b> con intestazione e colonne nell'ordine: ID, Priorità, Obiettivo funzionale, Risultato atteso, DevOpsID, SME.</li></ul></div><div><h3>Persone e dati di partenza</h3><div class=\"table-wrap\"><table class=\"users\"><thead><tr><th>Utente</th><th>Organizzazione</th><th>Ruolo</th><th>Come nasce</th></tr></thead><tbody><tr><td><code>owner.a</code></td><td>A — Acme</td><td>owner</td><td>primo account dell'installazione (ACC-01)</td></tr><tr><td><code>editor.a</code></td><td>A — Acme</td><td>editor</td><td>invito (ACC-03)</td></tr><tr><td><code>viewer.a</code></td><td>A — Acme</td><td>viewer</td><td>invito</td></tr><tr><td><code>owner.b</code></td><td>B — Beta</td><td>owner</td><td>con <code>REGISTRATION=open</code> per il solo tempo della registrazione, poi di nuovo <code>invitation</code></td></tr><tr><td><code>ci-bot</code></td><td>A — Acme</td><td>editor (account di servizio)</td><td>INT-01</td></tr><tr><td><code>utenti SSO</code></td><td>A — Acme</td><td>predefinito SSO</td><td>Keycloak, area SSO</td></tr></tbody></table></div></div><div><h3>Strumenti di chi collauda</h3><ul><li>Due browser o profili (uno normale, uno anonimo) per avere due sessioni contemporanee; un'app di autenticazione sul telefono; <code>curl</code>; Node.js 18+ per la CLI; opzionale la CLI di Allure.</li><li>Gli strumenti per sviluppatori del browser (Console e Network), per i casi di sicurezza.</li></ul></div><div><h3>Come registrare gli esiti</h3><ul><li><b>Superato</b>: il risultato ottenuto coincide con quello atteso, in ogni suo punto.</li><li><b>Fallito</b>: anche un solo punto non coincide. Nella nota: cosa si è fatto, atteso contro ottenuto, il correlation id mostrato nell'errore, e il link alla issue aperta.</li><li><b>Bloccato</b>: il caso non si può eseguire per un prerequisito mancante o per un altro difetto (citarlo).</li><li><b>N/A</b>: la funzione non è in uso in questa installazione (per esempio GitLab o Azure Pipelines).</li><li>Eseguire le aree nell'ordine proposto: le prime creano i dati che servono alle successive.</li></ul></div><div><h3>Criteri di uscita</h3><ul><li>Tutti i casi <b>P1</b> superati.</li><li>Nessun caso <b>P2</b> fallito senza una decisione scritta (correggere prima del rilascio, o accettarlo).</li><li>Almeno il 95% dei casi P2 eseguiti; i P3 secondo il tempo disponibile.</li><li>Esportare il CSV del ciclo e archiviarlo con la versione collaudata.</li></ul></div>"
+    "preparationHtml": "<div><h3>L'ambiente di collaudo</h3><ul><li>Lo stack pronto è nel repository, in <code>collaudo/</code>: la procedura completa è in <code>collaudo/README.md</code>. Avvio: <code>docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml up -d --build</code>.</li><li>Contiene il prodotto in modalità produzione dietro HTTPS (<b>https://wfm.collaudo.test</b>), Keycloak già configurato (<b>https://keycloak.collaudo.test</b>), un'applicazione «Intranet Acme» raggiungibile solo dall'agente locale, un ricevitore per i webhook delle notifiche e l'agente stesso.</li><li>Una volta per macchina: aggiungere <code>127.0.0.1 wfm.collaudo.test keycloak.collaudo.test</code> al file hosts e far fidare il browser del certificato di collaudo (README, passi 2 e 4).</li><li>Un ciclo completo usa uno stack nuovo e sacrificabile: i casi ACC creano gli utenti. Conservare volumi e backup dell’ambiente esistente; non azzerarli per aggiornare il catalogo. Un ciclo che salta l'area Accesso usa lo script <code>collaudo/seed.mjs</code>, che crea le due organizzazioni e le persone della tabella sotto, con password <code>Collaudo.2026!</code>.</li><li>Annotare nel ciclo la versione (tag o commit) e l'indirizzo dell'ambiente.</li></ul></div><div><h3>Applicazioni da testare</h3><ul><li>Interfaccia: <b>the-internet.herokuapp.com</b> (login <code>tomsmith</code> / <code>SuperSecretPassword!</code>, /checkboxes, /dropdown, /hovers, /dynamic_loading/1, /add_remove_elements/, /nested_frames, /dynamic_content, /key_presses, /context_menu, /drag_and_drop, /upload, /javascript_alerts, /windows, /tables). Se l'uscita verso internet è chiusa, sostituirla con un'applicazione interna equivalente.</li><li>API: <b>httpbin.org</b> (/get, /post, /status/500, /basic-auth/user/passwd, /bearer, /headers, /anything) e <b>jsonplaceholder.typicode.com</b> (/posts).</li><li>Un'applicazione raggiungibile solo dalla rete dell'agente locale (anche una pagina statica), per l'area AGT.</li></ul></div><div><h3>Servizi esterni</h3><ul><li><b>Keycloak</b> è già nello stack: issuer <code>https://keycloak.collaudo.test/realms/acme</code>, client <code>webflowmaster</code> / <code>collaudo-sso-secret</code>, utenti anna, marco, nonverificata, fuori e luca con password <code>Collaudo.2026!</code>; client OAuth <code>api-client</code> / <code>collaudo-api-secret</code>. Console: admin / admin. Il README dice quale utente serve a quale caso.</li><li><b>Notifiche</b> (PLN-13): URL <code>http://ricevitore:8080/notifiche</code>; le chiamate si leggono con <code>docker compose … logs -f ricevitore</code>.</li><li>Un progetto <b>Jira</b> di prova (e-mail + API token) oppure <b>Azure DevOps</b> (PAT).</li><li>Un URL che riceve POST per le notifiche: un canale Slack/Teams di prova o webhook.site.</li><li>Un <b>repository GitHub</b> di prova con Actions abilitate, e un token per lo stato dei commit.</li><li>Un file <b>Excel</b> con intestazione e colonne nell'ordine: ID, Priorità, Obiettivo funzionale, Risultato atteso, DevOpsID, SME.</li></ul></div><div><h3>Persone e dati di partenza</h3><div class=\"table-wrap\"><table class=\"users\"><thead><tr><th>Utente</th><th>Organizzazione</th><th>Ruolo</th><th>Come nasce</th></tr></thead><tbody><tr><td><code>owner.a</code></td><td>A — Acme</td><td>owner</td><td>primo account dell'installazione (ACC-01)</td></tr><tr><td><code>editor.a</code></td><td>A — Acme</td><td>editor</td><td>invito (ACC-03)</td></tr><tr><td><code>viewer.a</code></td><td>A — Acme</td><td>viewer</td><td>invito</td></tr><tr><td><code>owner.b</code></td><td>B — Beta</td><td>owner</td><td>con <code>REGISTRATION=open</code> per il solo tempo della registrazione, poi di nuovo <code>invitation</code></td></tr><tr><td><code>ci-bot</code></td><td>A — Acme</td><td>editor (account di servizio)</td><td>INT-01</td></tr><tr><td><code>utenti SSO</code></td><td>A — Acme</td><td>predefinito SSO</td><td>Keycloak, area SSO</td></tr></tbody></table></div></div><div><h3>Strumenti di chi collauda</h3><ul><li>Due browser o profili (uno normale, uno anonimo) per avere due sessioni contemporanee; un'app di autenticazione sul telefono; <code>curl</code>; Node.js 22+ per agente e runtime Cucumber; verificare i requisiti della CLI e dell’installazione corrente; opzionale la CLI di Allure.</li><li>Gli strumenti per sviluppatori del browser (Console e Network), per i casi di sicurezza.</li></ul></div><div><h3>Come registrare gli esiti</h3><ul><li><b>Superato</b>: il risultato ottenuto coincide con quello atteso, in ogni suo punto.</li><li><b>Fallito</b>: anche un solo punto non coincide. Nella nota: cosa si è fatto, atteso contro ottenuto, il correlation id mostrato nell'errore, e il link alla issue aperta.</li><li><b>Bloccato</b>: il caso non si può eseguire per un prerequisito mancante o per un altro difetto (citarlo).</li><li><b>N/A</b>: la funzione non è in uso in questa installazione (per esempio GitLab o Azure Pipelines).</li><li>Eseguire le aree nell'ordine proposto: le prime creano i dati che servono alle successive.</li></ul></div><div><h3>Criteri di uscita</h3><ul><li>Tutti i casi <b>P1</b> superati.</li><li>Nessun caso <b>P2</b> fallito senza una decisione scritta (correggere prima del rilascio, o accettarlo).</li><li>Almeno il 95% dei casi P2 eseguiti; i P3 secondo il tempo disponibile.</li><li>Esportare il CSV del ciclo e archiviarlo con la versione collaudata.</li></ul></div><div><h3>Funzionalità correnti e prerequisiti aggiuntivi</h3><ul>\n<li>Protocollo 25: 517 casi in 24 aree, comprese Quote e Telemetria. Applicare le migrazioni dell’applicazione fino a <code>0082</code> tramite il migrator; annotare il commit realmente installato su API, worker e agenti.</li>\n<li>Per <b>BDD-01…BDD-11</b>: agente dedicato con capability BDD (1.3.0 o successivo), Cucumber.js 12.9.0 e profilo operatore con revisione fissata; pool dedicato e rete protetta secondo <code>deployment/bdd-agent/README.md</code>.</li>\n<li>Per <b>MOB-33…MOB-40</b>: grid Appium e dispositivi nativi realmente disponibili; gruppi, matrici e bundle mobile. I test con hub simulato non equivalgono al collaudo su dispositivo.</li>\n<li>Per <b>API-37…API-48</b>: simulatori gRPC streaming/WebSocket, CA e certificati mTLS di prova; agente aggiornato. Per <b>ADM-21…ADM-28</b>: relay/provider email di prova, template e callback HTTPS firmate; accettazione SMTP distinta da consegna.</li>\n<li>Per <b>QUO-01…QUO-14</b>: amministratore umano in <code>INSTALLATION_ADMINS</code>, default quote uguali su API/worker, organizzazioni A/B sacrificabili e storage di prova riconciliabile. Quote e consumi non introducono fatturazione o pagamenti.</li>\n<li>Per <b>TEL-01…TEL-12</b>: listener metriche API/worker con token di prova, collector OTLP/HTTP JSON e agente ricostruito per gli span locali. Sampling 1 nel collaudo; ripristinare la configurazione operativa al termine. L’overlay telemetria non installa il backend.</li>\n<li>Se un prerequisito manca, segnare <b>Bloccato</b> e indicarlo. Non trasferire automaticamente i risultati dei test unitari o delle fixture ai casi manuali; documentare separatamente evidenza reale e simulata.</li>\n<li>Il selettore <b>Catalogo attuale</b> mostra tutti i casi aggiornati senza registrare esiti. <b>Nuovo ciclo</b> congela questo protocollo e parte da Da eseguire; i cicli precedenti conservano casi, preparazione, note ed esiti originari.</li>\n</ul></div>"
   }
 }

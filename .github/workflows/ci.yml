@@ -104,6 +104,9 @@ jobs:
       - name: Collaudo application tests
         run: npm run test:collaudo
 
+      - name: Verify acceptance catalog in Chromium
+        run: npm run test:collaudo:browser
+
       - name: Build all application deliverables
         run: npm run build
 

@@ -36,6 +36,9 @@ live provider interoperability must be exercised separately from mocked transpor
 
 ## Configurable tenant quotas (migration 0081)
 
+QUO-01–QUO-14 are also included in the local Collaudo catalog (protocol 25).
+Select **Catalogo attuale** to consult them, then create a new cycle to record manual results.
+
 Use disposable organizations A/B and a human installation administrator. Keep web and worker
 defaults identical. These are repeatable acceptance procedures, not claims of live completion.
 
