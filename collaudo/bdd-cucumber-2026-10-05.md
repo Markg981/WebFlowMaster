@@ -18,7 +18,9 @@ Le prove automatiche non segnano come eseguiti tutti i casi manuali del catalogo
 
 ## Verifiche di consegna
 
+- Suite server completa: 237 file / 2.227 test passati e 4 skip; runtime Cucumber separato: 21 test passati. Totale 2.248 passati, 4 skip.
+- Revisione indipendente finale approvata: nessun Critical/Important; rilievi di parser, profili, runtime, integrazione e UI chiusi con regressioni e rilettura.
 - Suite completa PostgreSQL: 17 file / 145 test passati su un database nuovo con ruolo applicativo non superuser e `SET LOCAL ROLE app_user`.
 - Installazione reale: 10 percorsi E2E passati. BDD include precondizioni e cleanup HTTP nello stesso pool dedicato a un solo slot, due righe dataset e pubblicazione immutabile.
 - Typecheck, build completa di applicazione/CLI/agente/migrator, build documentazione e 13 test dell’app Collaudo passati. Lint del codice del progetto: zero errori, 12 warning; esclusa la directory locale non versionata `tmp`.
-- PR [#294](https://github.com/Markg981/WebFlowMaster/pull/294): l’esito definitivo della regressione server e dei quattro job CI è riportato nei controlli della PR e nella descrizione di consegna.
+- PR [#294](https://github.com/Markg981/WebFlowMaster/pull/294): lo stato aggiornato dei quattro job CI e la disponibilità per review sono riportati nei controlli della PR. La bozza diventa pronta soltanto con CI verde sul commit corrente; nessun merge automatico.

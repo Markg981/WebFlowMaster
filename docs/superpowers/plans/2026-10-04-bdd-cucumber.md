@@ -115,9 +115,11 @@ expect(JSON.parse(fetchMock.mock.calls[0][1].body).bdd).toMatchObject({mode:'cuc
 
 - [x] EN/IT guides and agent/operator runbook; EN/IT/FR/DE UI keys. Append Collaudo cases and evidence while preserving historical IDs/results.
 - [x] Add production E2E import/profile/publish/plan/report journey using a genuine Cucumber agent and dedicated PostgreSQL. Verify published source/support revision despite edited draft.
-- [ ] Full typecheck/lint/server/client, RLS, application/docs/agent builds, Collaudo and guarded production network. Rerun concurrency-only failures in isolation before diagnosing product behavior.
-- [ ] Independent review of parser round-trips, selector isolation, signed profile boundary, process cleanup and persistence redaction; fix proven findings with regressions.
-- [ ] Explicit staging, commit/push, create/attach draft PR, verify all actual-head CI checks, mark ready. Preserve primary checkout; no automatic merge.
+- [x] Full local typecheck/lint/server/client, RLS, application/docs/agent builds and Collaudo. Verify Linux process cleanup and blocked outbound destinations; distinguish this from operator policy acceptance.
+- [x] Independent review of parser round-trips, selector isolation, signed profile boundary, process cleanup and persistence redaction; fix proven findings with regressions.
+- [x] Explicit staging, commit/push, create/attach draft PR #294. Preserve primary checkout; no automatic merge.
+
+Final delivery gate: verify all four CI checks on the actual PR head, including the guarded production network job, before marking ready. The current state is tracked by [PR #294](https://github.com/Markg981/WebFlowMaster/pull/294), rather than a dated copy of check results.
 
 ## Execution ledger
 
