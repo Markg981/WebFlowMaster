@@ -916,7 +916,6 @@
       "label": "Aggiornato il"
     },
     "actions": {
-
       "label": "Azioni"
     },
     "loadingTestPlans": {
@@ -2927,7 +2926,8 @@
       "test_data_set": "Dati di test",
       "scim": "Provisioning (SCIM)",
       "impact_rule": "Mappa dell'impatto",
-      "sms_inbox": "Casella SMS"
+      "sms_inbox": "Casella SMS",
+      "organization": "Organizzazione"
     },
     "actions": {
       "bdd_profile_created": "Profilo BDD creato",
@@ -3040,7 +3040,9 @@
       "impact_rule_created": "Regola d'impatto aggiunta",
       "impact_rule_deleted": "Regola d'impatto rimossa",
       "sms_inbox_token_issued": "Indirizzo SMS emesso",
-      "sms_inbox_token_revoked": "Indirizzo SMS revocato"
+      "sms_inbox_token_revoked": "Indirizzo SMS revocato",
+      "organization_quotas_updated": "Quote organizzazione modificate",
+      "organization_artifacts_reconciled": "Inventario artefatti organizzazione riconciliato"
     }
   },
   "security": {
@@ -4475,5 +4477,42 @@
     "stale": "Modello modificato altrove. La bozza è conservata; ricarica per ottenere la versione aggiornata.",
     "reload": "Ricarica modelli",
     "requiredLink": "I modelli di invito e reset password devono conservare l’URL di azione in HTML e nel testo."
+  },
+  "quota": {
+    "unlimited": "Illimitato",
+    "off": "Quote disattivate",
+    "monitor": "Solo misurazione",
+    "enforce": "Limiti applicati",
+    "tests": "Test salvati",
+    "testsHint": "Comprende i test UI, BDD, API e mobile salvati.",
+    "artifacts": "Spazio artefatti conservati",
+    "artifactsHint": "Comprende evidenze delle esecuzioni, baseline visive e spazio prenotato.",
+    "notMeasured": "Non ancora misurato",
+    "resources": "Minuti di esecuzione mensili",
+    "resourcesHint": "Mese di calendario UTC. Il tempo in coda è escluso; le esecuzioni già avviate possono terminare oltre il limite.",
+    "independent": "Le quote sono indipendenti dai pagamenti. La configurazione consente l’uso locale illimitato.",
+    "conflict": "Le quote sono cambiate oppure lo spazio richiede una riconciliazione. Aggiorna l’organizzazione e controlla l’inventario prima di salvare nuovamente.",
+    "saveError": "Impossibile salvare le quote. Controlla i permessi e i valori inseriti.",
+    "reconcileError": "Riconciliazione dello spazio non riuscita. Consumi e prenotazioni esistenti sono stati conservati.",
+    "concurrent": "Esecuzioni contemporanee",
+    "queued": "Esecuzioni in coda",
+    "bytes": "Spazio artefatti (byte)",
+    "administration": "Amministrazione quote",
+    "search": "Cerca un’organizzazione",
+    "loading": "Caricamento quote…",
+    "loadError": "Impossibile caricare le quote.",
+    "previous": "Precedente",
+    "next": "Successiva",
+    "refresh": "Aggiorna",
+    "inherit": "Eredita",
+    "mode": "Modalità quote",
+    "effectiveMode": "Modalità effettiva",
+    "valuesHelp": "Eredita usa il valore predefinito dell’installazione. Zero significa illimitato per test, spazio e minuti mensili; i limiti delle esecuzioni contemporanee e in coda devono essere positivi.",
+    "save": "Salva quote",
+    "reconcile": "Riconcilia spazio artefatti",
+    "evidenceQuota": "Alcune evidenze non sono state conservate perché la quota dello spazio è stata raggiunta. I risultati dei test sono conservati.",
+    "evidenceError": "Impossibile conservare alcune evidenze delle esecuzioni. I risultati dei test sono conservati.",
+    "executionDeferred": "Budget mensile di esecuzione esaurito: il run attende capacità o il prossimo mese UTC.",
+    "evidenceUnavailable": "Evidenza non disponibile: non conservata nello storage degli artefatti."
   }
 }

@@ -9,6 +9,7 @@ import {
   type MobileStepResult,
 } from '@shared/mobile';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
+import { withExecutionUsage } from './execution-usage';
 import { toGridConfig, type GridConfig } from './browser-grids';
 import { resolveVariables, findUnresolvedVariables } from './variables';
 import { substituteVariables } from './outbound-http';
@@ -358,10 +359,10 @@ export async function executeMobileRun(runId: string, organizationId: number, us
     try {
       await update({ status: 'running', startedAt: new Date() });
       const vars = await resolveVariables({ userId, organizationId, environmentId: run.environmentId });
-      const outcome = await performMobileTest(test, grid, vars, `WebFlowMaster · ${test.name}`, {
+      const outcome = await withExecutionUsage('mobile', () => performMobileTest(test, grid, vars, `WebFlowMaster · ${test.name}`, {
         ...deps,
         onStep: (steps) => update({ steps }),
-      });
+      }), runId);
       await update({
         status: outcome.status,
         steps: outcome.steps,

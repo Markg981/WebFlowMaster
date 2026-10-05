@@ -849,7 +849,6 @@
       "label": "Updated At"
     },
     "actions": {
-
       "label": "Actions"
     },
     "loadingTestPlans": {
@@ -2802,7 +2801,8 @@
       "test_data_set": "Test data",
       "scim": "Provisioning (SCIM)",
       "impact_rule": "Impact map",
-      "sms_inbox": "SMS inbox"
+      "sms_inbox": "SMS inbox",
+      "organization": "Organization"
     },
     "actions": {
       "bdd_profile_created": "BDD profile created",
@@ -2915,7 +2915,9 @@
       "impact_rule_created": "Impact rule added",
       "impact_rule_deleted": "Impact rule removed",
       "sms_inbox_token_issued": "SMS inbound address issued",
-      "sms_inbox_token_revoked": "SMS inbound address revoked"
+      "sms_inbox_token_revoked": "SMS inbound address revoked",
+      "organization_quotas_updated": "Organization quotas changed",
+      "organization_artifacts_reconciled": "Organization artifact inventory reconciled"
     }
   },
   "security": {
@@ -4350,5 +4352,42 @@
     "stale": "Template changed elsewhere. Your draft is preserved; reload to load the latest version.",
     "reload": "Reload templates",
     "requiredLink": "Invitation and password-reset templates must retain the action URL in HTML and plain text."
+  },
+  "quota": {
+    "unlimited": "Unlimited",
+    "off": "Quotas disabled",
+    "monitor": "Monitoring only",
+    "enforce": "Limits enforced",
+    "tests": "Saved tests",
+    "testsHint": "Includes saved UI, BDD, API and mobile tests.",
+    "artifacts": "Retained artifact storage",
+    "artifactsHint": "Includes execution evidence, visual baselines and reserved storage.",
+    "notMeasured": "Not measured yet",
+    "resources": "Monthly execution minutes",
+    "resourcesHint": "UTC calendar month. Queued time is excluded; running executions may finish beyond the allowance.",
+    "independent": "Quotas work independently of payments. Unlimited local use is available through configuration.",
+    "conflict": "Quotas changed or storage needs reconciliation. Refresh the organization and check its inventory before saving again.",
+    "saveError": "Quota changes could not be saved. Check your permissions and the entered values.",
+    "reconcileError": "Storage reconciliation failed. Existing usage and reservations were preserved.",
+    "concurrent": "Concurrent runs",
+    "queued": "Queued runs",
+    "bytes": "Artifact storage (bytes)",
+    "administration": "Quota administration",
+    "search": "Find an organization",
+    "loading": "Loading quotas…",
+    "loadError": "Quotas could not be loaded.",
+    "previous": "Previous",
+    "next": "Next",
+    "refresh": "Refresh",
+    "inherit": "Inherit",
+    "mode": "Quota mode",
+    "effectiveMode": "Effective mode",
+    "valuesHelp": "Inherit uses the installation default. Zero means unlimited for tests, storage and monthly minutes; running and queued limits must be positive.",
+    "save": "Save quotas",
+    "reconcile": "Reconcile artifact storage",
+    "evidenceQuota": "Some execution evidence could not be retained because the storage quota was reached. Test results are preserved.",
+    "evidenceError": "Some execution evidence could not be stored. Test results are preserved.",
+    "executionDeferred": "Monthly execution allowance exhausted; this run is waiting for capacity or the next UTC month.",
+    "evidenceUnavailable": "Evidence unavailable: not retained by the artifact store."
   }
 }

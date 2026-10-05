@@ -20,6 +20,7 @@ import { announceExecution, transitionExecution } from './execution-state';
 import { buildExecutionSnapshot, readExecutionSnapshot, type SnapshotTestReference } from './execution-snapshot';
 import { testExecutionQueue } from './queue';
 import { fairPriority, liveRunCounts, lockOrganizationRuns, quotasFor } from './tenant-quotas';
+import { checkExecutionBudget } from './execution-usage';
 
 /**
  * The one place a run comes into existence.
@@ -214,7 +215,8 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
           // through, and the count also gives the run its fair place in the queue.
           await lockOrganizationRuns(tx, organizationId);
           const [quotas, counts] = await Promise.all([quotasFor(tx, organizationId), liveRunCounts(tx, organizationId)]);
-          if (counts.queued >= quotas.maxQueuedRuns) {
+          await checkExecutionBudget(tx, organizationId);
+          if (quotas.mode === 'enforce' && counts.queued >= quotas.maxQueuedRuns) {
             throw new ExecutionEnqueueError(
               'queue_quota_exceeded',
               `This organization already has ${counts.queued} runs waiting, its limit. Try again when some have started.`,

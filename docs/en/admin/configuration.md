@@ -51,6 +51,10 @@ harm.
 | `RUN_MAX_PARALLEL` | worker | `16` | The most browser sessions one run opens at once, whatever the plan asks for. |
 | `ORG_MAX_CONCURRENT_RUNS` | both | `2` | Runs of one organization in progress at once. Further runs wait. |
 | `ORG_MAX_QUEUED_RUNS` | web | `100` | Runs of one organization waiting at once. Past it, a new run is refused with `429`. |
+| `TENANT_QUOTA_MODE` | both | `enforce` | `off`: free unlimited quota policy, no execution metering; `monitor`: measure only; `enforce`: apply limits. Per-organization override available. Payment is independent. |
+| `ORG_MAX_TESTS` | both | `0` | Saved UI/BDD + API + mobile definitions. Zero is unlimited. |
+| `ORG_MAX_ARTIFACT_BYTES` | both | `0` | Retained evidence and baselines in bytes. Zero is unlimited. Reconcile inventory before finite enforcement. |
+| `ORG_MAX_MONTHLY_EXECUTION_MINUTES` | both | `0` | Occupancy admission budget for the UTC month. Zero is unlimited; admitted work may finish beyond it. |
 | `RUN_DEFERRAL_MS` | worker | `10000` | How long a run held back by its organization's limit waits before it is looked at again, when no run of the organization ending has started it first. |
 | `RUN_HEARTBEAT_INTERVAL_MS` | both | `15000` | How often a worker confirms that a run is still going. |
 | `WORK_ITEM_HEARTBEAT_MS` | worker | `15000` | In a run shared by several workers, how often a worker confirms the tests it holds. |

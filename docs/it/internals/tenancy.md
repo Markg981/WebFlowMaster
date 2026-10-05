@@ -184,7 +184,12 @@ insieme. Gli owner le leggono in Settings.
 esecuzione contemporanea (un worker rimette in coda il run oltre il limite — aspetta, non fallisce), un
 massimo di run in attesa (una richiesta oltre il limite riceve `429`) e un posto equo in coda per
 l'organizzazione con meno run in corso. I limiti li imposta l'operatore sulla riga di `organizations`;
-l'applicazione non ha i permessi per cambiarli.
+il ruolo applicativo non ha i permessi per cambiarli. Gli amministratori umani dell'installazione
+usano `server/tenant-quota-admin.ts`, servizio privilegiato con revisione e audit. Le modalità
+off/monitor/enforce rendono le quote indipendenti dai pagamenti. Aggregati dell'intera organizzazione
+usano funzioni SQL security-definer con controllo del tenant: i filtri dei progetti non riducono il
+consumo. I test sono limitati all'inserimento, gli artefatti tramite prenotazioni/riconciliazione e
+i minuti tramite budget di ammissione. Vedere [semantica delle quote](../admin/administration#quotas).
 
 ## Esportazione e cancellazione
 

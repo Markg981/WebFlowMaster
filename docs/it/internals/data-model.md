@@ -49,6 +49,12 @@ erDiagram
 | `projects` / `project_members` | Progetti e, per quelli riservati, chi può vederli e con quale ruolo di progetto. |
 | `api_keys` | Credenziali delle pipeline: hash, prefisso, scope, scadenza, ultimo uso, utente o service account titolare. |
 | `audit_log` | Registro in sola aggiunta di chi ha fatto cosa; `app_user` può solo leggere e inserire. |
+| `quota_execution_sessions` | Sessioni di occupazione per tenant indipendenti dalla retention dei report; intervalli misurati nel mese UTC. |
+| `quota_artifacts` | Byte conservati e prenotati per tenant, incluse baseline e screenshot mobile nel database. |
+| `quota_installation_defaults` | Default privati di modalità/test/spazio per i trigger; non accessibili ad `app_user`. |
+
+Gli override dell'organizzazione includono modalità, test salvati, byte e minuti mensili,
+con revisione e data dell'inventario. Vedere [amministrazione quote](../admin/administration#quotas).
 | `password_resets` | Link di reimpostazione della password monouso e con scadenza, creati da un owner o dallo script `password-reset-link`; del token si salva solo l'hash. |
 | `organization_sso` | Un identity provider per organizzazione, OpenID Connect o SAML 2.0 (`protocol`): l'issuer (entity ID per SAML), poi client id e client secret (cifrato) per OpenID Connect o URL di accesso e certificato di firma per SAML, più ruolo predefinito, se è attivo e se è obbligatorio, e i ruoli presi dai gruppi del provider (`group_attribute`, `role_mappings` come `[{group, role}]`, `require_group`) e il token SCIM (hash e prefisso, quando è stato emesso e usato l'ultima volta). Senza RLS e senza permessi per `app_user`: il provider si trova prima che qualcuno abbia effettuato l'accesso. |
 | `sso_saml_requests` | Le AuthnRequest SAML in attesa di risposta: id e organizzazione, conservate dieci minuti. La risposta deve corrispondere a una di esse, che viene cancellata mentre la si usa, così una risposta non si può riusare. Stanno nel database e non nella sessione perché il provider risponde con un POST cross-site. Senza RLS e senza permessi per `app_user`. |

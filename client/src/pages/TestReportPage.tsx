@@ -73,6 +73,9 @@ export interface TestPlanExecutionReport {
     ci?: CiContext | null;
     /** When retention removed this run's screenshots, videos and traces. */
     artifactsPurgedAt?: string | null;
+    artifactStorageStatus?: 'quota_exceeded' | 'error' | null;
+    quotaDeferReason?: 'execution_quota_exceeded' | 'concurrent_run_quota' | null;
+    quotaDeferUntil?: string | null;
   };
   keyMetrics: {
     totalTests: number; passedTests: number; failedTests: number; skippedTests: number;
@@ -368,6 +371,15 @@ const TestReportPage: React.FC = () => {
                 })}
               </p>
             )}
+            {header.status === 'queued' && header.quotaDeferReason === 'execution_quota_exceeded' && <p data-testid="quota-deferred" className="text-sm mt-2 text-amber-700 dark:text-amber-400">
+              {t('quota.executionDeferred', 'Monthly execution allowance exhausted; this run is waiting for capacity or the next UTC month.')}
+              {header.quotaDeferUntil && ` ${new Date(header.quotaDeferUntil).toLocaleString()}`}
+            </p>}
+            {header.artifactStorageStatus && <p data-testid="artifact-storage-status" className="text-sm mt-2 text-amber-700 dark:text-amber-400">
+              {header.artifactStorageStatus === 'quota_exceeded'
+                ? t('quota.evidenceQuota', 'Some execution evidence could not be retained because the storage quota was reached. Test results are preserved.')
+                : t('quota.evidenceError', 'Some execution evidence could not be stored. Test results are preserved.')}
+            </p>}
             {(header.warnings?.length ?? 0) > 0 && (
               <div data-testid="run-warnings" className="text-sm mt-2 text-amber-700 dark:text-amber-400">
                 <strong>{t('testReportPage.warnings', 'Not applied as configured')}:</strong>

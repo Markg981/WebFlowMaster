@@ -33,3 +33,29 @@ separate organizations and owner/editor accounts. Never use production identity 
 Mail provider integration requires an adapter to the signed event contract documented in Administration.
 The SMTP relay itself does not report delivery or bounces. These cases describe acceptance criteria;
 live provider interoperability must be exercised separately from mocked transports and signed XML fixtures.
+
+## Configurable tenant quotas (migration 0081)
+
+Use disposable organizations A/B and a human installation administrator. Keep web and worker
+defaults identical. These are repeatable acceptance procedures, not claims of live completion.
+
+| Case | Procedure | Expected result |
+| --- | --- | --- |
+| QUO-01 Free local | Set installation mode `off`; set finite tenant caps, then create tests/run work beyond them. | No quota refusal, no payment prerequisite; independent worker safety limits still apply. |
+| QUO-02 Modes | Set tenant mode `monitor`, exceed a cap; switch to `enforce`. | Monitor reports usage without blocking; enforce refuses new growth, preserves content and active runs. |
+| QUO-03 Mixed tests | Cap A at three; save UI/BDD, API and mobile definitions, then create/clone/import another. | Total three; fourth returns 429; bulk import rolls back; edit works; deletion releases capacity. |
+| QUO-04 Hidden projects | Restrict an A project from an editor; fill A's cap with its tests; create from the editor's visible project. | Full organization total applies; hidden test details stay inaccessible. |
+| QUO-05 Inventory | Put legacy files in A's local/S3 prefixes; attempt finite enforcing cap before inventory, then reconcile. | Initially unmeasured; save returns 409; successful inventory counts files, then finite cap can be saved. |
+| QUO-06 Artifact growth | Replace a baseline with a larger one at capacity; test new evidence and inline mobile screenshot beyond cap. | Only growth consumes capacity; rejected replacement preserves previous evidence; verdict remains independent. |
+| QUO-07 Recovery | Inject storage timeout after persistence and an unsuccessful inventory. Restore connection and reconcile. | Reservation remains conservative; failed scan retains last inventory; successful scan resolves actual bytes. |
+| QUO-08 Retention | Delete/expire A evidence, including a simulated S3 partial-delete failure. | Bytes release after confirmed physical removal; failed deletion retains ledger conservatively. |
+| QUO-09 Minutes | Exhaust A's monthly minutes; submit plan/direct browser/API/mobile operations. | New admissions return 429; already queued work waits; running work finishes; deleting reports does not erase usage. |
+| QUO-10 Month boundary | Run across UTC month boundary; inspect each month's interval; include a shard. | Interval split across months; queued time excluded; additional worker occupancy included. |
+| QUO-11 Administration | Edit A, clear override, select off/monitor; submit stale revision; inspect audit. | Inheritance/default visible; stale save 409; actor/old/new/revision recorded in A's audit. |
+| QUO-12 Isolation | As A's ordinary owner/service account call installation quota APIs; attempt B changes. | 403; only authenticated human installation admin enumerates/changes tenant quotas. |
+| QUO-13 Active staging | Reconcile while a plan is generating files; finish publication or force quota rejection. | Untracked active/incomplete staging is not retained evidence or downloadable; committed evidence remains measured. |
+| QUO-14 Debug rejection | Exhaust execution budget and start a debug session. | 429; initialized debug state ends and no phantom active session remains. |
+
+Automated coverage includes database triggers, aggregate/RLS boundaries, API revisions/audit,
+ambiguous storage reservations, occupancy month boundaries and UI inheritance/conflicts.
+Real bucket interoperability, authenticated UI acceptance and production migration remain separate checks.

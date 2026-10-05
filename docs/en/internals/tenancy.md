@@ -181,7 +181,12 @@ together. Owners read it in Settings.
 executing at once (a worker puts a run past it back for later — it waits, it does not fail), a
 maximum of runs waiting (a request past it gets `429`), and a fair place in the queue for an
 organization with fewer runs in flight. The limits are set by the operator on the `organizations`
-row; the application has no grant to change them.
+row; the application role has no grant to change them. Human installation administrators use
+`server/tenant-quota-admin.ts`, which writes through a privileged service with revision and audit.
+Modes off/monitor/enforce make all quota policy independent of billing. Organization-wide test,
+artifact and execution aggregates use tenant-checked security-definer SQL functions so project RLS
+cannot undercount usage. Tests are capped at insertion; artifacts use reservations/reconciliation;
+monthly minutes are an admission budget. See [quota semantics](../admin/administration#quotas).
 
 ## Export and erasure
 

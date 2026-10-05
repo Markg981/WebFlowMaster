@@ -68,6 +68,7 @@ import ChangePasswordCard from "@/components/settings/ChangePasswordCard";
 import AgentsCard from "@/components/settings/AgentsCard";
 import SourceHostsCard from "@/components/settings/SourceHostsCard";
 import RunUsageCard from "@/components/settings/RunUsageCard";
+import QuotaAdministrationCard from '@/components/settings/QuotaAdministrationCard';
 import AuditLogCard from "@/components/settings/AuditLogCard";
 import ExportEraseCard from "@/components/settings/ExportEraseCard";
 import SecurityCard from "@/components/settings/SecurityCard";
@@ -753,7 +754,7 @@ export default function SettingsPage() {
         'How many runs this organization has going and waiting, against its limits.',
       ),
       icon: Gauge,
-      content: <RunUsageCard />,
+      content: <div className="space-y-6"><RunUsageCard />{user?.installationAdmin === true && <QuotaAdministrationCard />}</div>,
     },
     // Owners only, like system settings: a runner serves the whole installation.
     ...(user?.role === 'owner'

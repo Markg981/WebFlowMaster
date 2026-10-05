@@ -1,3 +1,4 @@
+import { quotaErrorBody } from '../tenant-quotas';
 import { Router, type Response } from "express";
 import { z } from "zod";
 import { and, eq, inArray } from "drizzle-orm";
@@ -33,6 +34,8 @@ class RequirementError extends Error {
 }
 
 function fail(res: Response, error: unknown, what: string) {
+  const quota = quotaErrorBody(error);
+  if (quota) return res.status(429).json(quota);
   if (error instanceof RequirementError) return res.status(error.status).json({ error: error.message });
   const message = (error as Error)?.message ?? "";
   if (/unique|duplicate/i.test(message)) return res.status(409).json({ error: "A requirement with that key already exists." });

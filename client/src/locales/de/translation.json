@@ -855,7 +855,6 @@
       "label": "Aktualisiert am"
     },
     "actions": {
-
       "label": "Aktionen"
     },
     "loadingTestPlans": {
@@ -2808,7 +2807,8 @@
       "test_data_set": "Testdaten",
       "scim": "Bereitstellung (SCIM)",
       "impact_rule": "Auswirkungskarte",
-      "sms_inbox": "SMS-Postfach"
+      "sms_inbox": "SMS-Postfach",
+      "organization": "Organisation"
     },
     "actions": {
       "bdd_profile_created": "BDD-Profil erstellt",
@@ -2921,7 +2921,9 @@
       "impact_rule_created": "Auswirkungsregel hinzugefügt",
       "impact_rule_deleted": "Auswirkungsregel entfernt",
       "sms_inbox_token_issued": "SMS-Empfangsadresse ausgestellt",
-      "sms_inbox_token_revoked": "SMS-Empfangsadresse widerrufen"
+      "sms_inbox_token_revoked": "SMS-Empfangsadresse widerrufen",
+      "organization_quotas_updated": "Organisationskontingente geändert",
+      "organization_artifacts_reconciled": "Artefaktbestand der Organisation abgeglichen"
     }
   },
   "security": {
@@ -4356,5 +4358,42 @@
     "stale": "Vorlage wurde anderweitig geändert. Ihr Entwurf bleibt erhalten; laden Sie neu, um die aktuelle Version zu erhalten.",
     "reload": "Vorlagen neu laden",
     "requiredLink": "Einladungs- und Passwortvorlagen müssen die Aktions-URL in HTML und Text behalten."
+  },
+  "quota": {
+    "unlimited": "Unbegrenzt",
+    "off": "Kontingente deaktiviert",
+    "monitor": "Nur Verbrauchsmessung",
+    "enforce": "Grenzen werden angewendet",
+    "tests": "Gespeicherte Tests",
+    "testsHint": "Umfasst gespeicherte UI-, BDD-, API- und Mobiltests.",
+    "artifacts": "Speicher für aufbewahrte Artefakte",
+    "artifactsHint": "Umfasst Ausführungsnachweise, visuelle Referenzen und reservierten Speicher.",
+    "notMeasured": "Noch nicht gemessen",
+    "resources": "Monatliche Ausführungsminuten",
+    "resourcesHint": "UTC-Kalendermonat. Wartezeit zählt nicht; laufende Ausführungen dürfen die Grenze überschreiten.",
+    "independent": "Kontingente sind unabhängig von Zahlungen. Die Konfiguration ermöglicht unbegrenzte lokale Nutzung.",
+    "conflict": "Kontingente wurden geändert oder der Speicher muss abgeglichen werden. Aktualisieren Sie die Organisation und prüfen Sie ihr Inventar.",
+    "saveError": "Kontingente konnten nicht gespeichert werden. Prüfen Sie Berechtigungen und Eingabewerte.",
+    "reconcileError": "Speicherabgleich fehlgeschlagen. Bestehender Verbrauch und Reservierungen bleiben erhalten.",
+    "concurrent": "Gleichzeitige Ausführungen",
+    "queued": "Ausführungen in der Warteschlange",
+    "bytes": "Artefaktspeicher (Bytes)",
+    "administration": "Kontingentverwaltung",
+    "search": "Organisation suchen",
+    "loading": "Kontingente werden geladen…",
+    "loadError": "Kontingente konnten nicht geladen werden.",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "refresh": "Aktualisieren",
+    "inherit": "Übernehmen",
+    "mode": "Kontingentmodus",
+    "effectiveMode": "Wirksamer Modus",
+    "valuesHelp": "Übernehmen nutzt den Installationsstandard. Null bedeutet unbegrenzt für Tests, Speicher und monatliche Minuten; Grenzen für gleichzeitige und wartende Ausführungen müssen positiv sein.",
+    "save": "Kontingente speichern",
+    "reconcile": "Artefaktspeicher abgleichen",
+    "evidenceQuota": "Einige Nachweise wurden wegen der Speichergrenze nicht aufbewahrt. Testergebnisse bleiben erhalten.",
+    "evidenceError": "Einige Ausführungsnachweise konnten nicht gespeichert werden. Testergebnisse bleiben erhalten.",
+    "executionDeferred": "Monatliches Ausführungskontingent erschöpft: Dieser Lauf wartet auf Kapazität oder den nächsten UTC-Monat.",
+    "evidenceUnavailable": "Nachweis nicht verfügbar: nicht im Artefaktspeicher aufbewahrt."
   }
 }

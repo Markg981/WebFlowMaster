@@ -499,6 +499,52 @@ reset link); existing passwords are not checked.
   not containing the username (or the part of an address before the @); not one of the passwords
   every guessing list starts with.
 
+## Quotas and consumption {#quotas}
+
+**Settings → Run usage** shows running/queued plans, saved tests, retained artifact bytes and
+execution minutes in the UTC calendar month. Quotas work without payment or subscriptions.
+For free unlimited local use set `TENANT_QUOTA_MODE=off`. `monitor` measures without refusing
+operations; `enforce` applies limits. The default is `enforce`, preserving existing concurrency
+and queue behavior, with all new limits unlimited. Administrators can override mode per tenant.
+
+| Limit | Environment default | Meaning |
+| --- | --- | --- |
+| Concurrent plans | `ORG_MAX_CONCURRENT_RUNS=2` | Further plans wait; positive integer |
+| Queued plans | `ORG_MAX_QUEUED_RUNS=100` | Excess submissions receive HTTP 429; positive integer |
+| Saved tests | `ORG_MAX_TESTS=0` | UI/BDD, API and mobile definitions, including archived tests |
+| Retained artifacts | `ORG_MAX_ARTIFACT_BYTES=0` | Evidence, baselines and inline mobile screenshots, in bytes |
+| Monthly execution | `ORG_MAX_MONTHLY_EXECUTION_MINUTES=0` | Occupancy time, including direct browser/API/mobile work and additional shard workers |
+
+Zero means unlimited for the three new limits. **Inherit** clears an override and uses the
+installation default. In `off`, enforcement and execution metering are disabled; test counts and
+artifact bookkeeping remain available. Worker capacity, timeouts, rate limits and access controls
+retain their own configuration. Set identical defaults on web/workers and restart after changes.
+
+Installation administrators use **Quota administration** to search organizations and edit quotas.
+Ordinary tenant owners and service accounts cannot administer installation quotas; the existing
+single-organization owner fallback remains. Updates record actor, old/new values and revision in
+the target tenant's audit. Concurrent edits return HTTP 409: refresh explicitly before saving.
+
+Run **Reconcile artifacts** before saving a finite enforcing storage cap. Until successful initial
+inventory, storage is unmeasured, rather than zero. Ambiguous storage failures retain reserved bytes:
+repair connectivity and reconcile. Failed scans preserve the previous inventory. Retention/deletion
+releases capacity after physical removal. Local/S3 share accounting rules; active/incomplete staging
+is excluded and remains an operational disk concern. Mobile screenshots count stored base64 bytes.
+
+Lowering limits preserves data and running work. New tests/imports are refused at the cap; editing
+and deletion remain possible. Minutes are an admission budget, not CPU/RAM or a shutdown threshold:
+admitted work can finish beyond the cap; queued plans wait for capacity or the next UTC month.
+Lost heartbeats bound orphan metering to two minutes after the last heartbeat. Removing history does
+not erase consumption. Omitted evidence is reported separately from the verdict, preserving previous
+evidence. These quota controls can support commercial policies but never charge anyone: actual
+payment activation requires a separately configured billing integration.
+
+API: `GET /api/admin/organization-quotas`, `PATCH /api/admin/organization-quotas/:id` with
+`{ "revision": 1, "overrides": { "mode": "off", "maxTests": null } }`, and
+`POST /api/admin/organization-quotas/:id/reconcile-artifacts`. Tenant usage:
+`GET /api/organization/usage`. Quota refusals return HTTP 429 with `test_quota_exceeded` or
+`execution_quota_exceeded`. See [acceptance procedures](../../administration-acceptance.md).
+
 ## Known limitations
 
 - Without SCIM, single sign-on reads roles from groups only at sign-in: a change at the provider

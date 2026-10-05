@@ -38,6 +38,18 @@ beforeEach(() => {
 });
 
 describe('RunUsageCard', () => {
+  it('shows unlimited quotas, monitoring mode and unmeasured storage honestly', async () => {
+    answer({ running: 0, queued: 0, maxConcurrentRuns: 2, maxQueuedRuns: 100, mode: 'monitor',
+      tests: 4, maxTests: 0, artifactBytes: 0, maxArtifactBytes: 0, reservedArtifactBytes: 0,
+      executionMs: 90_000, maxMonthlyExecutionMinutes: 10, artifactsReconciledAt: null,
+      periodStart: '2026-10-01T00:00:00Z', periodEnd: '2026-11-01T00:00:00Z' });
+    renderCard();
+    expect(await screen.findByTestId('usage-tests')).toHaveTextContent('4');
+    expect(screen.getByTestId('usage-tests')).toHaveTextContent('Unlimited');
+    expect(screen.getByTestId('usage-artifacts')).toHaveTextContent('Not measured yet');
+    expect(screen.getByTestId('usage-resources')).toHaveTextContent('1.5 / 10');
+    expect(screen.getByTestId('quota-mode')).toHaveTextContent('Monitoring only');
+  });
   it('shows runs in progress and waiting against their limits', async () => {
     answer({ running: 1, queued: 7, maxConcurrentRuns: 2, maxQueuedRuns: 100 });
     renderCard();

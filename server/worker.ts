@@ -23,6 +23,8 @@ configureEgressProxy();
 
 (async () => {
   const logger = await loggerPromise;
+  const { initializeQuotaDefaults } = await import('./tenant-quotas');
+  await initializeQuotaDefaults();
   // A misconfigured artifact store fails here, not on the first screenshot of the first run.
   logger.info(`Artifact store: ${artifactStore().kind}`);
   // A run this worker moves reports on the commit it tested, when a pipeline started it.

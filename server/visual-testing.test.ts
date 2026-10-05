@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import path from 'path';
 import os from 'os';
 import fs from 'fs-extra';
 import { PNG } from 'pngjs';
 import { baselinePathFor, compareStepScreenshot, isVisualFailure, stableScreenshot, type VisualContext } from './visual-testing';
+import { createTestOrganization } from './tests/factories';
 
 /**
  * `visual_testing_enabled` was a column and a switch in the wizard with nothing behind it.
@@ -13,6 +14,8 @@ import { baselinePathFor, compareStepScreenshot, isVisualFailure, stableScreensh
 const workDir = path.join(os.tmpdir(), `visual-testing-test-${process.pid}`);
 const baselineDir = path.join(workDir, 'baselines');
 const artifactDir = path.join(workDir, 'run');
+let organizationId: number;
+beforeAll(async () => { organizationId = await createTestOrganization('Visual comparison'); });
 
 process.env.VISUAL_BASELINE_DIR = baselineDir;
 
@@ -33,7 +36,7 @@ function png(width: number, height: number, colour: [number, number, number], ma
 
 const ctx = (overrides: Partial<VisualContext> = {}): VisualContext => ({
   testId: 7,
-  organizationId: 1,
+  organizationId,
   browser: 'chromium',
   artifactDir,
   ...overrides,

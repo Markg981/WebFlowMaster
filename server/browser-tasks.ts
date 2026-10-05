@@ -6,6 +6,9 @@ import { resolveVariables } from './variables';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { getCorrelationId } from './middleware/correlation';
 import { connection } from './redis';
+import { randomUUID } from 'node:crypto';
+import { checkExecutionBudget, withExecutionUsage } from './execution-usage';
+import { QuotaError } from './tenant-quotas';
 
 /**
  * The browser work a person waits for — a preview of a sequence, a single test run, a page
@@ -45,6 +48,7 @@ export interface BrowserTaskEnvelope {
   userId: number;
   organizationId: number;
   correlationId?: string;
+  usageId?: string;
 }
 
 export type BrowserTaskFailureCode = 'no_worker' | 'timed_out' | 'queue_unavailable';
@@ -64,7 +68,8 @@ export class BrowserTaskError extends Error {
 /** Runs a task here, in this process. What the worker calls, and what inline mode calls. */
 export async function performBrowserTask(envelope: BrowserTaskEnvelope): Promise<unknown> {
   const { task, userId, organizationId } = envelope;
-  return runWithTenant(organizationId, async () => {
+  try {
+  return await runWithTenant(organizationId, () => withExecutionUsage('browser', async () => {
     switch (task.kind) {
       case 'adhoc-sequence':
         return playwrightService.executeAdhocSequence({ ...task.payload, organizationId }, userId);
@@ -96,7 +101,19 @@ export async function performBrowserTask(envelope: BrowserTaskEnvelope): Promise
         throw new Error(`Unknown browser task ${(unknown as { kind?: string }).kind}`);
       }
     }
-  });
+  }, envelope.usageId));
+  } catch (error) {
+    // Queued debug starts have already returned to the UI; admission can still fail at take.
+    if (task.kind === 'debug-sequence' && error instanceof QuotaError) {
+      const { debugChannel } = await import('./debug-session');
+      const channel = await debugChannel();
+      const state = await channel.read(task.sessionId);
+      if (state) await channel.publish(task.sessionId, { ...state, status: 'error', paused: null,
+        outcome: { success: false, error: error.message, skipped: 0 }, updatedAt: new Date().toISOString() });
+      if (await channel.activeFor(userId) === task.sessionId) await channel.setActive(userId, null);
+    }
+    throw error;
+  }
 }
 
 /**
@@ -190,7 +207,8 @@ export function createBrowserTaskRunner(deps: BrowserTaskRunnerDeps) {
   }
 
   async function run<T = unknown>(envelope: BrowserTaskEnvelope): Promise<T> {
-    const withCorrelation = { ...envelope, correlationId: envelope.correlationId ?? getCorrelationId() ?? undefined };
+    await runWithTenant(envelope.organizationId, () => withTenantTransaction(tx => checkExecutionBudget(tx, envelope.organizationId)));
+    const withCorrelation = { ...envelope, usageId: envelope.usageId ?? randomUUID(), correlationId: envelope.correlationId ?? getCorrelationId() ?? undefined };
     if (deps.mode === 'inline') return (await perform(withCorrelation)) as T;
 
     const queue = deps.queue!();
@@ -218,7 +236,8 @@ export function createBrowserTaskRunner(deps: BrowserTaskRunnerDeps) {
    * debugging, and reports through its own channel rather than through a response.
    */
   async function start(envelope: BrowserTaskEnvelope): Promise<void> {
-    const withCorrelation = { ...envelope, correlationId: envelope.correlationId ?? getCorrelationId() ?? undefined };
+    await runWithTenant(envelope.organizationId, () => withTenantTransaction(tx => checkExecutionBudget(tx, envelope.organizationId)));
+    const withCorrelation = { ...envelope, usageId: envelope.usageId ?? randomUUID(), correlationId: envelope.correlationId ?? getCorrelationId() ?? undefined };
     if (deps.mode === 'inline') {
       void perform(withCorrelation).catch(() => {
         // The task reports its own failure through its channel.

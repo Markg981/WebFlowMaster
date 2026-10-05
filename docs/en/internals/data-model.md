@@ -49,6 +49,12 @@ erDiagram
 | `projects` / `project_members` | Projects and, for restricted ones, who may see them and with which project role. |
 | `api_keys` | Pipeline credentials: hash, prefix, scopes, expiry, last use, owning user or service account. |
 | `audit_log` | Append-only trail of who did what; `app_user` may only select and insert. |
+| `quota_execution_sessions` | Tenant-scoped occupancy sessions independent of report retention; overlaps measured per UTC month. |
+| `quota_artifacts` | Tenant-scoped committed and reserved retained bytes, including baseline objects and inline mobile screenshots. |
+| `quota_installation_defaults` | Private installation mode/test/storage defaults used by quota triggers; unavailable to `app_user`. |
+
+Organization quota overrides include mode, saved tests, artifact bytes and monthly execution minutes,
+with optimistic revision and artifact inventory timestamp. See [quota administration](../admin/administration#quotas).
 | `password_resets` | Single-use, expiring password-reset links created by an owner or by the `password-reset-link` script; only the hash of the token is stored. |
 | `organization_sso` | One identity provider per organization, OpenID Connect or SAML 2.0 (`protocol`): the issuer (entity ID for SAML), then client id and client secret (encrypted) for OpenID Connect or sign-on URL and signing certificate for SAML, plus default role, whether it is enabled and whether it is required, and the roles taken from the provider's groups (`group_attribute`, `role_mappings` as `[{group, role}]`, `require_group`) and the SCIM token (its hash and prefix, when it was issued and last used). No RLS and no grant to `app_user`: the provider is found before anyone is signed in. |
 | `sso_saml_requests` | SAML AuthnRequests waiting for their answer: id and organization, kept ten minutes. The answer must match one, which is deleted as it is used, so a response cannot be replayed. Kept in the database, not the session, because the provider posts back cross-site. No RLS and no grant to `app_user`. |

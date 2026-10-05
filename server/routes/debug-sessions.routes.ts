@@ -10,6 +10,7 @@ import { sharedSetIdOf } from "@shared/test-data";
 import { browserTasks, BrowserTaskError } from "../browser-tasks";
 import { debugChannel } from "../debug-session";
 import loggerPromise from "../logger";
+import { quotaErrorBody } from '../tenant-quotas';
 
 /**
  * Debug sessions from the builder (shared/debug-session.ts).
@@ -97,7 +98,15 @@ router.post("/api/debug-sessions", requireRole("editor"), async (req, res) => {
     });
     res.status(201).json({ id, state: await ch.read(id) });
   } catch (error: any) {
+    // Admission can fail after channel initialization; do not leave a phantom active debug.
+    const ch = await channel();
+    if (await ch.meta(id)) {
+      await ch.publish(id, { ...initialState(id, breakpoints), status: 'finished', outcome: { success: false, error: error?.message ?? String(error), skipped: 0 } });
+      if (await ch.activeFor(user.id) === id) await ch.setActive(user.id, null);
+    }
     if (error instanceof BrowserTaskError) return res.status(error.status).json({ error: error.message, code: error.code });
+    const quota = quotaErrorBody(error);
+    if (quota) return res.status(429).json(quota);
     logger.error({ message: "Failed to start a debug session", error: error?.message ?? String(error) });
     res.status(500).json({ error: "Failed to start the debug session." });
   }
