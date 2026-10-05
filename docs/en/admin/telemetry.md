@@ -64,6 +64,10 @@ Only trace fields cross boundaries: no baggage, payloads, target URLs, exception
 
 ## Verify
 
+The local Collaudo catalog includes TEL-01–TEL-12 (protocol 25) for metrics,
+tracing, privacy, replica aggregation and failure recovery. Select **Catalogo attuale**
+to consult the procedures and create a new cycle to record manual results.
+
 1. Enable metrics and tracing with ratio `1`, rebuild API, worker and the agent, and configure a reachable collector.
 2. Check unauthorized scrapes return 401, authorized scrapes return 200, and the worker exposes both queue names and concurrency gauges.
 3. Queue a plan and a browser preview, including one using a local agent. Observe queue depth, active slots, wait and processing histograms; provoke an infrastructure failure and check the error counter.

@@ -17,11 +17,19 @@ Per una porta diversa impostare `COLLAUDO_PORT` prima del comando.
   e i 46 nuovi casi delle funzionalità 6–13, più OPS-17…OPS-19 per storico e backup locali:
   più 32 casi di versioni e approvazioni API/mobile (API-29…API-36, MOB-25…MOB-32,
   LIB-27…LIB-34, SEC-37…SEC-44), più AGT-06…AGT-10 per gRPC/WebSocket sugli agenti:
-  Il catalogo attuale contiene 491 casi, 22 aree, protocollo versione 24.
+  Il catalogo attuale contiene 517 casi, 24 aree, protocollo versione 25.
   MOB-33…MOB-40 coprono flussi nativi, gruppi, matrici dispositivi e catalogo mobile.
   La procedura e i limiti delle evidenze sono in `docs/mobile-flow-matrix-acceptance.md`.
+  QUO-01…QUO-14 coprono quote per organizzazione, inventario artifact e minuti di esecuzione;
+  TEL-01…TEL-12 coprono metriche Prometheus, tracing OpenTelemetry e operatività delle repliche.
+  Prerequisiti, copertura e verifiche sono in `collaudo/allineamento-2026-10-05.md`.
   I nuovi casi sono da eseguire in un nuovo ciclo; i cicli storici restano congelati.
   Gli ID esistenti non si rinominano. Dopo una modifica riavviare il comando e ricaricare la pagina.
+- **Catalogo attuale:** nel selettore Ciclo, questa voce mostra il protocollo aggiornato anche
+  quando esistono cicli storici. È una consultazione senza scritture: note, esiti e CSV sono
+  disabilitati finché non si sceglie o crea un ciclo. Un avviso indica quando il ciclo selezionato
+  conserva un catalogo diverso da quello attuale. **Nuovo ciclo** usa sempre il catalogo corrente;
+  indicare commit e ambiente effettivamente installati, dopo averli verificati.
 - **Cicli, esiti e note:** `collaudo/.local/state.json`, escluso da Git.
   Le note si salvano automaticamente; il nome del collaudatore si imposta in fondo alla pagina.
   Nuovo ciclo parte sempre da esiti da eseguire e congela il catalogo corrente, comprese
@@ -43,6 +51,9 @@ Per una porta diversa impostare `COLLAUDO_PORT` prima del comando.
   `.local`, rinominare `state.json`, riavviare e importare il backup scelto.
   Copiare periodicamente i backup su un altro disco per proteggersi da guasti della macchina.
 - **Verifica tecnica:** `npm run test:collaudo` controlla persistenza, import e conflitti.
+  `npm run test:collaudo:browser` verifica in Chromium storico, note, consultazione del catalogo,
+  nuovo ciclo e filtro Telemetria su viewport mobile, usando uno storage temporaneo.
+  Installare il browser con `npx playwright install chromium` se non è già disponibile.
 
 Su questa macchina è stato trasferito il ciclo visibile nell'artifact del 27/09/2026
 (299 esiti: 290 superati, 8 bloccati, 1 N/A), comprese note e attribuzioni visibili.

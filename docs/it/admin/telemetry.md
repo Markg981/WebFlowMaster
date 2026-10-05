@@ -64,6 +64,10 @@ Attraversano i confini solo i campi del trace: niente baggage, payload, URL del 
 
 ## Verifica operativa
 
+Il catalogo Collaudo locale include TEL-01…TEL-12 (protocollo 25) per metriche,
+tracing, riservatezza, aggregazione delle repliche e recupero dai guasti. Selezionare
+**Catalogo attuale** per consultare le procedure e creare un nuovo ciclo per registrare gli esiti manuali.
+
 1. Attivare metriche e tracing con sampling `1`, ricostruire API, worker e agente e configurare un collector raggiungibile.
 2. Verificare HTTP 401 senza token e 200 con token; il worker deve esporre entrambe le code e i gauge di concorrenza.
 3. Avviare un piano e una preview, anche tramite agente locale. Controllare profondità coda, slot attivi e istogrammi; provocare un errore infrastrutturale e verificare il contatore.

@@ -176,19 +176,29 @@ function renderCases() {
   progress();
 }
 async function load() {
-  state = await api('/api/state');
-  if (!state.cycles.some((c) => c.id === cycleId)) cycleId = state.cycles.at(-1)?.id || '';
-  catalog = await api('/api/catalog' + (cycleId ? '?cycle=' + encodeURIComponent(cycleId) : ''));
+  let currentCatalog;
+  [state, currentCatalog] = await Promise.all([api('/api/state'), api('/api/catalog')]);
+  if (cycleId !== '' && !state.cycles.some((c) => c.id === cycleId))
+    cycleId = state.cycles.at(-1)?.id || '';
+  catalog = cycleId
+    ? await api('/api/catalog?cycle=' + encodeURIComponent(cycleId))
+    : currentCatalog;
   $('version').textContent = `Protocollo di collaudo manuale · versione ${catalog.version}`;
-  $('cycleSelect').innerHTML = state.cycles.length
-    ? state.cycles
-        .map(
-          (c) =>
-            `<option value="${c.id}">${escape(c.name + (c.version ? ' — ' + c.version : '') + (c.environment ? ' · ' + c.environment : ''))}</option>`,
-        )
-        .join('')
-    : '<option value="">Creare o importare un ciclo</option>';
+  $('cycleSelect').innerHTML =
+    `<option value="">Catalogo attuale · versione ${currentCatalog.version} · ${currentCatalog.cases.length} casi</option>` +
+    state.cycles
+      .map(
+        (c) =>
+          `<option value="${c.id}">${escape(c.name + (c.version ? ' — ' + c.version : '') + (c.environment ? ' · ' + c.environment : ''))}</option>`,
+      )
+      .join('');
   $('cycleSelect').value = cycleId;
+  const historical = cycleId && JSON.stringify(catalog) !== JSON.stringify(currentCatalog);
+  $('catalogNotice').hidden = !!cycleId && !historical;
+  $('catalogNotice').textContent = historical
+    ? `Questo ciclo conserva il protocollo versione ${catalog.version} (${catalog.cases.length} casi). Il catalogo attuale è alla versione ${currentCatalog.version} (${currentCatalog.cases.length} casi). Seleziona Catalogo attuale per consultarlo o Nuovo ciclo per eseguirlo. Gli esiti storici restano legati al loro protocollo.`
+    : `Stai consultando il catalogo attuale: versione ${currentCatalog.version}, ${currentCatalog.cases.length} casi. Crea un nuovo ciclo per registrare gli esiti, indicando il commit e l'ambiente effettivamente installati.`;
+  $('exportBtn').disabled = !cycleId;
   $('fArea').innerHTML =
     '<option value="">Tutte le aree</option>' +
     catalog.areas
