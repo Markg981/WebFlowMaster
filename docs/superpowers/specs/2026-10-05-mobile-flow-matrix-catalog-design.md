@@ -3,7 +3,7 @@
 Date: 2026-10-05
 Branch: `codex/mobile-flow-matrix-catalog`
 Base: `212e192` (updated `origin/main`)
-Status: Scope approved in chat; written specification awaiting review.
+Status: Written specification approved in chat on 2026-10-05.
 
 ## Outcome
 
