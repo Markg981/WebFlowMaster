@@ -50,71 +50,71 @@ Profiles persisted as `bdd_execution_profiles`: UUID id, organization/project sc
 
 **Own:** `shared/bdd.ts`, `server/gherkin.ts`, new parser helper modules, `server/gherkin.test.ts`, parser-only fixtures; root package/lock dependency changes for Gherkin/messages/Cucumber 12.9.0. Do not touch schema/routes/UI/runtime.
 
-- [ ] Write failing fixtures for Italian Rule, backgrounds and doc strings, escaped DataTables, tagged multiple Examples and location selectors.
+- [x] Write failing fixtures for Italian Rule, backgrounds and doc strings, escaped DataTables, tagged multiple Examples and location selectors.
 ```ts
 const imported = parseGherkin(source);
 expect(imported.tests[0].bdd).toMatchObject({ language:'it', mode:'manual' });
 expect(imported.tests[0].sequence[0].gherkin.docString.content).toBe('payload');
 ```
-- [ ] Run `npx vitest run server/gherkin.test.ts`; inspect expected old-parser rejections.
-- [ ] Install compatible official dependencies; implement AST/pickle compilation, keyword semantics and argument preservation. Validate bounded output and source selectors through shared schema plus parser helper.
-- [ ] Preserve existing metadata round-trip, reject changed readable semantics/arguments, support BDD selected export without running/reintroducing other rows. Detect dialect errors precisely.
-- [ ] Add malformed syntax, duplicate Rule names, escaped cells, source expansion caps and EN/IT/FR/DE tests; run focused parser tests/check. Report RED/GREEN and files; root commits integrated work.
+- [x] Run `npx vitest run server/gherkin.test.ts`; inspect expected old-parser rejections.
+- [x] Install compatible official dependencies; implement AST/pickle compilation, keyword semantics and argument preservation. Validate bounded output and source selectors through shared schema plus parser helper.
+- [x] Preserve existing metadata round-trip, reject changed readable semantics/arguments, support BDD selected export without running/reintroducing other rows. Detect dialect errors precisely.
+- [x] Add malformed syntax, duplicate Rule names, escaped cells, source expansion caps and EN/IT/FR/DE tests; run focused parser tests/check. Report RED/GREEN and files; root commits integrated work.
 
 ## Task 2: Configurable profiles, persistence and authorization (root)
 
 **Own:** shared schema, next migration/journal, shared versioning, test bundle, routes BDD profiles/import/save, profile service and tests, agent contracts.
-- [ ] Add failing save/version/export and scoped profile-route tests; API payload carries `bdd` and import options, rejects invalid selector or unauthorized profile even in dry run.
+- [x] Add failing save/version/export and scoped profile-route tests; API payload carries `bdd` and import options, rejects invalid selector or unauthorized profile even in dry run.
 ```ts
 await request(otherTenant).post('/api/tests/import-bundle').send({content,format:'gherkin',bdd:{mode:'cucumber',binding}}).expect(400);
 expect(snapshotOf(test).bdd).toEqual(test.bdd);
 ```
-- [ ] Create migration with `tests.bdd` and profile table, RLS policy/grants using existing migration conventions; register table in tenant schema checks. Add API CRUD/list advertised public profiles and audit actions.
-- [ ] Validate profile project scope and revision on save/import/run, preserving original agent pool restrictions. Portable import requires explicit profile mapping.
-- [ ] Include BDD in snapshots/bundles, route update transaction, localized auto-detection and result validation. Run profile/bundle/publishing tests and real PostgreSQL isolation.
+- [x] Create migration with `tests.bdd` and profile table, RLS policy/grants using existing migration conventions; register table in tenant schema checks. Add API CRUD/list advertised public profiles and audit actions.
+- [x] Validate profile project scope and revision on save/import/run, preserving original agent pool restrictions. Portable import requires explicit profile mapping.
+- [x] Include BDD in snapshots/bundles, route update transaction, localized auto-detection and result validation. Run profile/bundle/publishing tests and real PostgreSQL isolation.
 
 ## Task 3: Dedicated Cucumber runtime (runtime implementer)
 
 **Own:** `scripts/bdd-profiles.ts`, `scripts/bdd-child.ts`, `scripts/agent-bdd-session.ts`, runtime tests/fixtures and dedicated deployment example/sample support projects. No relay/shared schema/UI/agent entrypoint changes.
-- [ ] Write failing real-run tests for selected Outline row, doc string/DataTable/World/hooks, undefined and ambiguous steps, deadline/abort and incomplete results.
+- [x] Write failing real-run tests for selected Outline row, doc string/DataTable/World/hooks, undefined and ambiguous steps, deadline/abort and incomplete results.
 ```ts
 const result = await runBddOnDedicatedHost(request, profiles);
 expect(result.status).toBe('passed');
 expect(result.steps.filter(s => s.kind==='step')).toHaveLength(3);
 ```
-- [ ] Validate operator manifest, safe profile paths/globs/loaders and sanitized public projection. Spawn fresh Node child with argument array and no shell; pass bounded request through stdin, do not inherit agent tokens or shared worker environment.
-- [ ] Use actual Cucumber.js API/messages, strict exactly-one selector, bounded step/hook evidence and no publishing. Validate complete terminal events and exit. Prevent project configs overriding controlled source/filter/output.
-- [ ] Enforce 300s maximum duration, 8 MiB total child output, 1 MiB attachment budget, bounded step count and profile concurrency. Abort/timeout/disconnect kill owned process tree and remove run directories.
-- [ ] Real JS CJS/ESM and TS fixture execution; negative profiles/revisions/zero-scenario/oversize/credentials tests. Provide non-root isolated container, operator manifest and sample JS/TS support projects; network policy deployment procedure. Report exact tests and required entrypoint integration.
+- [x] Validate operator manifest, safe profile paths/globs/loaders and sanitized public projection. Spawn fresh Node child with argument array and no shell; pass bounded request through stdin, do not inherit agent tokens or shared worker environment.
+- [x] Use actual Cucumber.js API/messages, strict exactly-one selector, bounded step/hook evidence and no publishing. Validate complete terminal events and exit. Prevent project configs overriding controlled source/filter/output.
+- [x] Enforce 300s maximum duration, 8 MiB total child output, 1 MiB attachment budget, bounded step count and profile concurrency. Abort/timeout/disconnect kill owned process tree and remove run directories.
+- [x] Real JS CJS/ESM and TS fixture execution; negative profiles/revisions/zero-scenario/oversize/credentials tests. Provide non-root isolated container, operator manifest and sample JS/TS support projects; network policy deployment procedure. Report exact tests and required entrypoint integration.
 
 ## Task 4: Relay, plan dispatch and normalized reporting (root)
 
 **Own:** shared agents/tickets, relay/directory, server agent BDD client, scripts/wfm-agent entrypoint/version/build/Docker dependencies, execution service/report rendering integration and tests.
-- [ ] Add failing signed profile capability, old agent rejection and clustered selection tests before relay changes.
+- [x] Add failing signed profile capability, old agent rejection and clustered selection tests before relay changes.
 ```ts
 expect(verifyTicket(ticket, secret).bddProfile).toEqual({id:operatorId,revision});
 expect(await availableOnOldAgent(ticket)).toMatchObject({available:false});
 ```
-- [ ] Publish public BDD profiles in hello/directory; signed tickets and open messages bind exact profile revision and organization. Register profile sessions in same concurrency/drain/revoke semantics as existing agents.
-- [ ] Agent loads manifest only at startup, advertises validated public profiles and dispatches BDD sessions. Upgrade distribution with Cucumber/TS loader dependencies; make unsupported profiles fail before module loading.
-- [ ] Dispatch BDD before manual/browser branch, once per saved scenario/dataset row (not browser matrix); use approved snapshot binding and normalized strict verdict. Include setup/cleanup/retry semantics and abort signals.
-- [ ] Normalize results into existing step/report/evidence model, redact variables/credential fields, avoid raw paths/stdout. Verify persisted results and published revision through real agent and cluster tests.
+- [x] Publish public BDD profiles in hello/directory; signed tickets and open messages bind exact profile revision and organization. Register profile sessions in same concurrency/drain/revoke semantics as existing agents.
+- [x] Agent loads manifest only at startup, advertises validated public profiles and dispatches BDD sessions. Upgrade distribution with Cucumber/TS loader dependencies; make unsupported profiles fail before module loading.
+- [x] Dispatch BDD before manual/browser branch, once per saved scenario/dataset row (not browser matrix); use approved snapshot binding and normalized strict verdict. Include setup/cleanup/retry semantics and abort signals.
+- [x] Normalize results into existing step/report/evidence model, redact variables/credential fields, avoid raw paths/stdout. Verify persisted results and published revision through real agent and cluster tests.
 
 ## Task 5: UI import/edit/profiles/results (UI implementer)
 
 **Own:** TestFilesDialog and tests, new BDD editor/profile configuration components and tests, test editor wiring, report BDD evidence component. Root owns locales/docs/E2E.
-- [ ] Add failing explicit manual/Cucumber import choice, authorized profile selection and localized preview tests.
+- [x] Add failing explicit manual/Cucumber import choice, authorized profile selection and localized preview tests.
 ```ts
 expect(JSON.parse(fetchMock.mock.calls[0][1].body).bdd).toMatchObject({mode:'cucumber',binding:{id:profileId,revision}});
 ```
-- [ ] Implement profile CRUD interface with only advertised choices; source editor/revalidation and mode conversion. Preserve source-selector consistency and immutable metadata when selecting other test identities.
-- [ ] Display manual doc strings/tables and normalized Cucumber steps/hooks/failures with escaped text; bounded safe attachment handling. Disable browser step editing when Cucumber-bound.
-- [ ] Run client focused tests/typecheck; provide locale key list and required root wiring.
+- [x] Implement profile CRUD interface with only advertised choices; source editor/revalidation and mode conversion. Preserve source-selector consistency and immutable metadata when selecting other test identities.
+- [x] Display manual doc strings/tables and normalized Cucumber steps/hooks/failures with escaped text; bounded safe attachment handling. Disable browser step editing when Cucumber-bound.
+- [x] Run client focused tests/typecheck; provide locale key list and required root wiring.
 
 ## Task 6: Acceptance, final review and delivery (root)
 
-- [ ] EN/IT guides and agent/operator runbook; EN/IT/FR/DE UI keys. Append Collaudo cases and evidence while preserving historical IDs/results.
-- [ ] Add production E2E import/profile/publish/plan/report journey using a genuine Cucumber agent and dedicated PostgreSQL. Verify published source/support revision despite edited draft.
+- [x] EN/IT guides and agent/operator runbook; EN/IT/FR/DE UI keys. Append Collaudo cases and evidence while preserving historical IDs/results.
+- [x] Add production E2E import/profile/publish/plan/report journey using a genuine Cucumber agent and dedicated PostgreSQL. Verify published source/support revision despite edited draft.
 - [ ] Full typecheck/lint/server/client, RLS, application/docs/agent builds, Collaudo and guarded production network. Rerun concurrency-only failures in isolation before diagnosing product behavior.
 - [ ] Independent review of parser round-trips, selector isolation, signed profile boundary, process cleanup and persistence redaction; fix proven findings with regressions.
 - [ ] Explicit staging, commit/push, create/attach draft PR, verify all actual-head CI checks, mark ready. Preserve primary checkout; no automatic merge.

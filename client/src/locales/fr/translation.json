@@ -1,4 +1,48 @@
 {
+  "bdd": {
+    "saveBeforeConvert": "Enregistrez vos modifications avant de convertir en test manuel modifiable.",
+    "cucumber": "Cucumber",
+    "edit": "Modifier Gherkin",
+    "results": "Résultats Cucumber",
+    "attempt": "Tentative",
+    "hook": "Hook",
+    "step": "Étape",
+    "undefinedHelp": "Demandez à l’opérateur du projet de support d’implémenter une définition correspondant à cette étape.",
+    "attachment": "Pièce jointe texte",
+    "profilesTitle": "Profils d’exécution Cucumber",
+    "profilesDescription": "Associez les tests aux projets de support annoncés par vos agents autorisés. Une nouvelle révision nécessite de réassocier et publier les tests.",
+    "editProfile": "Modifier le profil",
+    "deleteProfile": "Supprimer le profil",
+    "profileName": "Nom du profil",
+    "supportTarget": "Profil de support annoncé",
+    "selectSupport": "Sélectionner un projet de support annoncé",
+    "connected": "Connecté",
+    "offline": "Hors ligne",
+    "immutableTarget": "Le pool et le projet de support sont fixes pour cette association. Créez un nouveau profil pour changer la cible.",
+    "noAdvertised": "Aucun agent autorisé n’annonce de profil Cucumber. Configurez d’abord un projet de support sur l’agent.",
+    "project": "Projet",
+    "organizationWide": "Tous les projets de l’organisation",
+    "timeout": "Durée maximale (ms)",
+    "saveProfile": "Enregistrer le profil",
+    "cancelEdit": "Annuler la modification",
+    "sourceDescription": "Modifiez ensemble la source et la sélection du scénario. L’enregistrement valide Gherkin et régénère les étapes.",
+    "source": "Source Gherkin",
+    "language": "Dialecte",
+    "uri": "Nom logique du fichier feature",
+    "scenarioLine": "Ligne du scénario",
+    "exampleLine": "Ligne Examples (facultative)",
+    "mode": "Mode d’exécution",
+    "manual": "Manuel",
+    "profile": "Profil d’exécution",
+    "selectProfile": "Sélectionner un profil autorisé",
+    "staleBinding": "Ce profil ou cette révision n’est plus disponible. Sélectionnez un profil actuel et publiez le test modifié.",
+    "convertManual": "Convertir en test manuel modifiable",
+    "saveValidate": "Enregistrer et valider",
+    "docString": "Doc string",
+    "dataTable": "Table de l’étape",
+    "editSourceRequired": "Utilisez l’éditeur Gherkin pour modifier un test BDD dérivé de la source.",
+    "noProfiles": "Aucun profil d’exécution n’est disponible pour ce projet. Demandez à un propriétaire de l’organisation d’en configurer un."
+  },
   "recording": {
     "opensOnServerMachine": "Le recorder ouvre une vraie fenêtre de navigateur sur la machine qui exécute WebFlowMaster, pas dans cet onglet. Ne l'utilisez que si le serveur tourne sur votre ordinateur.",
     "unavailableOnServer": "Ce serveur n'a pas d'affichage et ne peut donc pas ouvrir de fenêtre d'enregistrement. Exécutez WebFlowMaster en local pour enregistrer un test.",
@@ -811,9 +855,6 @@
       "label": "Mis à jour le"
     },
     "actions": {
-      "bdd_profile_created": "Profil BDD créé",
-      "bdd_profile_updated": "Profil BDD modifié",
-      "bdd_profile_deleted": "Profil BDD supprimé",
 
       "label": "Actions"
     },
@@ -2770,6 +2811,9 @@
       "sms_inbox": "Boîte SMS"
     },
     "actions": {
+      "bdd_profile_created": "Profil BDD créé",
+      "bdd_profile_updated": "Profil BDD modifié",
+      "bdd_profile_deleted": "Profil BDD supprimé",
       "mail_settings_changed": "Configuration email modifiée",
       "mail_template_changed": "Modèle email modifié",
       "member_role_changed": "Rôle du membre modifié",
@@ -4114,7 +4158,7 @@
       "invalid": "non importé"
     },
     "gherkinExport": "Exporte uniquement les tests web. Les métadonnées WebFlowMaster conservent les actions originales ; l’exécution Cucumber nécessite vos définitions d’étapes.",
-    "gherkinImport": "Feature, Background, Scenario, Scenario Outline, Examples et les tags en anglais sont pris en charge. Le texte est importé en étapes manuelles. Descriptions, Rule, doc strings, tables d’étapes et tags Examples sont refusés. Les métadonnées WFM restaurent les actions web exportées."
+    "gherkinImport": "Les dialectes Gherkin standard, Rule, Background, Scenario Outline, tags, doc strings et tables sont pris en charge. Choisissez le mode manuel ou un profil Cucumber autorisé. Les métadonnées WFM restaurent les actions web exportées."
   },
   "impactMap": {
     "title": "Carte d'impact",

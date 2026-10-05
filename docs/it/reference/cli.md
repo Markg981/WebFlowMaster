@@ -68,7 +68,10 @@ Per Gherkin, usare `wfm tests export --project 12 --format gherkin --out tests/s
 L'importazione rileva il formato dal contenuto: verificare l'anteprima con `wfm tests import
 tests/shop.feature --project 12 --dry-run`, poi togliere `--dry-run` per salvare. Il testo Gherkin
 produce passi manuali; i metadati dell'esportazione WebFlowMaster ripristinano le azioni web originali.
-Cucumber richiede definizioni dei passi scritte nel proprio progetto.
+Per eseguire Cucumber aggiungere `--bdd-mode cucumber --bdd-profile UUID_DESTINAZIONE --bdd-revision REVISIONE`.
+Il proprietario configura il profilo autorizzato sull'agente dedicato e l'operatore installa
+le definizioni JavaScript/TypeScript. Gli import portabili eseguibili richiedono questo binding
+esplicito. Vedi [Dettagli Gherkin/Cucumber](../../gherkin-files).
 
 ## Cosa legge dal sistema di CI
 

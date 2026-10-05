@@ -1,4 +1,48 @@
 {
+  "bdd": {
+    "saveBeforeConvert": "Save your changes before converting to an editable manual test.",
+    "cucumber": "Cucumber",
+    "edit": "Edit Gherkin",
+    "results": "Cucumber evidence",
+    "attempt": "Attempt",
+    "hook": "Hook",
+    "step": "Step",
+    "undefinedHelp": "Ask the support project operator to implement a matching step definition.",
+    "attachment": "Text attachment",
+    "profilesTitle": "Cucumber execution profiles",
+    "profilesDescription": "Bind tests to support projects advertised by your authorized agents. Updating a revision requires tests to be rebound and published.",
+    "editProfile": "Edit profile",
+    "deleteProfile": "Delete profile",
+    "profileName": "Profile name",
+    "supportTarget": "Advertised support profile",
+    "selectSupport": "Select an advertised support project",
+    "connected": "Connected",
+    "offline": "Offline",
+    "immutableTarget": "Pool and support project are fixed for this binding. Create a new profile to change the execution target.",
+    "noAdvertised": "No authorized agent advertises a Cucumber support profile. Provision an agent support project first.",
+    "project": "Project",
+    "organizationWide": "All organization projects",
+    "timeout": "Maximum duration (ms)",
+    "saveProfile": "Save profile",
+    "cancelEdit": "Cancel edit",
+    "sourceDescription": "Edit source and scenario selection together. Saving validates Gherkin and regenerates steps.",
+    "source": "Gherkin source",
+    "language": "Dialect",
+    "uri": "Logical feature filename",
+    "scenarioLine": "Scenario line",
+    "exampleLine": "Examples row line (optional)",
+    "mode": "Execution mode",
+    "manual": "Manual",
+    "profile": "Execution profile",
+    "selectProfile": "Select an authorized profile",
+    "staleBinding": "This profile or revision is unavailable. Select a current profile and publish the updated test.",
+    "convertManual": "Convert to editable manual test",
+    "saveValidate": "Save and validate",
+    "docString": "Doc string",
+    "dataTable": "Step data table",
+    "editSourceRequired": "Use the Gherkin source editor to change a source-derived BDD test.",
+    "noProfiles": "No execution profiles are available for this project. Ask an organization owner to configure one."
+  },
   "recording": {
     "opensOnServerMachine": "The recorder opens a real browser window on the machine running WebFlowMaster, not in this tab. Use it only when the server runs on your own computer.",
     "unavailableOnServer": "This server has no display, so it cannot open a recording window. Run WebFlowMaster locally to record a test.",
@@ -805,9 +849,6 @@
       "label": "Updated At"
     },
     "actions": {
-      "bdd_profile_created": "BDD profile created",
-      "bdd_profile_updated": "BDD profile updated",
-      "bdd_profile_deleted": "BDD profile deleted",
 
       "label": "Actions"
     },
@@ -2764,6 +2805,9 @@
       "sms_inbox": "SMS inbox"
     },
     "actions": {
+      "bdd_profile_created": "BDD profile created",
+      "bdd_profile_updated": "BDD profile updated",
+      "bdd_profile_deleted": "BDD profile deleted",
       "mail_settings_changed": "Email settings changed",
       "mail_template_changed": "Email template changed",
       "member_role_changed": "Member role changed",
@@ -4108,7 +4152,7 @@
       "invalid": "not imported"
     },
     "gherkinExport": "Exports web tests only. WebFlowMaster metadata preserves original actions; Cucumber execution requires your own step definitions.",
-    "gherkinImport": "English Feature, Background, Scenario, Scenario Outline, Examples and tags are supported. Prose imports as manual steps. Descriptions, Rule, doc strings, step data tables and Examples tags are rejected. WFM metadata restores exported web actions."
+    "gherkinImport": "Standard Gherkin dialects, Rule, Background, Scenario Outline, tags, doc strings and data tables are supported. Choose manual execution or an authorized Cucumber support profile. WFM metadata restores exported web actions."
   },
   "impactMap": {
     "title": "Impact map",

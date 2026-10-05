@@ -12,11 +12,12 @@ aggiungono dalla riga del test. Sono ciò con cui le [suite dinamiche](#suite) s
 ## Test manuali {#test-manuali}
 
 **File Gherkin/Cucumber.** In **File**, scegliete **Gherkin (.feature)** per esportare i test web,
-oppure aprite un `.feature` e visualizzate l'anteprima di importazione. Sono supportati Feature,
-Background, Scenario e Scenario Outline/Examples in inglese. La prosa diventa step manuali;
-i metadati negli export WebFlowMaster ripristinano le azioni browser originali. Per eseguire
-con Cucumber servono le vostre definizioni degli step. I costrutti non supportati vengono
-rifiutati indicando la riga. Vedi [Dettagli dei file Gherkin](../../gherkin-files).
+oppure aprite un `.feature` e visualizzate l'anteprima. Il Gherkin standard multilingua comprende
+Rule, Background, doc string, tabelle nei passi ed Examples con tag. Scegliete esecuzione manuale
+o un profilo Cucumber autorizzato sull'agente dedicato dell'organizzazione. Gli import portabili
+eseguibili richiedono un binding di destinazione esplicito; l'operatore installa le definizioni
+JavaScript/TypeScript. I metadati ripristinano azioni browser o definizioni BDD versionate.
+Vedi [Dettagli dei file Gherkin](../../gherkin-files).
 
 ## Commenti
 

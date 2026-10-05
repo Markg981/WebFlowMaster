@@ -67,7 +67,11 @@ tests/shop.wfm.yaml` and commits the file when it changed, and a job on the main
 For Gherkin, use `wfm tests export --project 12 --format gherkin --out tests/shop.feature`.
 Import detects the format from the content: preview with `wfm tests import tests/shop.feature
 --project 12 --dry-run`, then remove `--dry-run` to save. Plain Gherkin imports as manual steps;
-WebFlowMaster export metadata restores original web actions. Cucumber needs your own step definitions.
+WebFlowMaster metadata restores original actions or BDD source. For real Cucumber execution add
+`--bdd-mode cucumber --bdd-profile DESTINATION_UUID --bdd-revision SUPPORT_REVISION`.
+The organization owner configures the authorized destination profile on a dedicated agent;
+the operator installs JavaScript/TypeScript definitions. Portable executable imports require this
+explicit binding. See [Gherkin/Cucumber details](../../gherkin-files).
 
 ## What it reads from the CI system
 

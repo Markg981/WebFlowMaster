@@ -1,5 +1,5 @@
 {
-  "version": 22,
+  "version": 23,
   "areas": [
     {
       "id": "ACC",
@@ -105,6 +105,11 @@
       "id": "COL",
       "title": "Collaborazione e dashboard",
       "intro": "Conversazioni con risposte, menzioni e risoluzione; dashboard private o condivise, widget configurabili e isolamento."
+    },
+    {
+      "id": "BDD",
+      "intro": "Gherkin multilingua e definizioni Cucumber su agenti dedicati; predisporre un profilo operatore e un progetto riservato.",
+      "title": "BDD e Cucumber"
     }
   ],
   "cases": [
@@ -6843,6 +6848,138 @@
         "Provare più di 32 documenti o oltre 10 MiB; cambiare file dopo un’anteprima valida."
       ],
       "expected": "Import rifiutato con spiegazione; nessuna lettura remota/filesystem. L’anteprima obsoleta non permette il salvataggio."
+    },
+    {
+      "id": "BDD-01",
+      "area": "BDD",
+      "title": "Gherkin multilingua e argomenti",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+      "steps": [
+        "Importare Feature e Rule in italiano, francese e tedesco con Background, doc string, tabelle con escape ed Examples con tag."
+      ],
+      "expected": "Ogni riga genera un test con passi, tag, argomenti e selettori originali; errori sintattici indicano la riga."
+    },
+    {
+      "id": "BDD-02",
+      "area": "BDD",
+      "title": "Evidenza dei passi manuali",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+      "steps": [
+        "Importare manualmente uno scenario con doc string e tabella; avviare un piano e aprire il verdetto manuale."
+      ],
+      "expected": "Il report mostra argomenti e testo con escape; resta Pending fino al verdetto del tester."
+    },
+    {
+      "id": "BDD-03",
+      "area": "BDD",
+      "title": "Definizioni reali JavaScript e TypeScript",
+      "priority": "P1",
+      "actor": "owner.a",
+      "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+      "steps": [
+        "Configurare profili CJS, ESM e TS; importare Cucumber e avviare un piano con World, hook e argomenti."
+      ],
+      "expected": "Le definizioni reali vengono eseguite sul pool dedicato, con variabili nel World e risultati di passi/hook."
+    },
+    {
+      "id": "BDD-04",
+      "area": "BDD",
+      "title": "Selezione isolata di una riga Examples",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+      "steps": [
+        "Importare un Outline con due righe, pubblicare solo la prima e avviare il piano; esportare quel test."
+      ],
+      "expected": "Si esegue e si esporta una sola riga; la seconda non viene caricata nel percorso di esecuzione scelto."
+    },
+    {
+      "id": "BDD-05",
+      "area": "BDD",
+      "title": "Profili, ruoli e progetti riservati",
+      "priority": "P1",
+      "actor": "owner.a",
+      "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+      "steps": [
+        "Creare un binding con owner.a; provare modifica con editor.a, lettura senza membership e accesso da organizzazione B; cambiare pool mantenendo identità/revisione."
+      ],
+      "expected": "RLS e ruoli impediscono accessi estranei; il binding pubblicato non può essere rediretto mantenendo UUID/revisione."
+    },
+    {
+      "id": "BDD-06",
+      "area": "BDD",
+      "title": "Versione pubblicata e dataset distribuito",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+      "steps": [
+        "Pubblicare BDD; modificare il draft; avviare il piano con due righe dataset, due browser, due lingue e due shard."
+      ],
+      "expected": "Si esegue il sorgente pubblicato con revisione fissata; esattamente due risultati distinti senza moltiplicazione per matrice o shard."
+    },
+    {
+      "id": "BDD-07",
+      "area": "BDD",
+      "title": "Verdetti Cucumber non superati",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+      "steps": [
+        "Eseguire separatamente passi indefiniti, ambigui, pending, skipped e hook falliti."
+      ],
+      "expected": "Nessuno dei casi viene classificato Passed; il report spiega il risultato normalizzato."
+    },
+    {
+      "id": "BDD-08",
+      "area": "BDD",
+      "title": "Timeout, annullamento e limiti",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+      "steps": [
+        "Eseguire scenari che superano deadline, output o allegati; annullare e scollegare l’agente durante un child con discendenti."
+      ],
+      "expected": "Esito non superato, processi posseduti terminati, directory temporanea rimossa; limiti di 8 MiB e 1 MiB rispettati."
+    },
+    {
+      "id": "BDD-09",
+      "area": "BDD",
+      "title": "Import portabile con mapping esplicito",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+      "steps": [
+        "Esportare BDD in JSON e Gherkin; importare senza mapping, poi scegliere esplicitamente il profilo di destinazione; provare un binding estraneo."
+      ],
+      "expected": "Senza mapping o con profilo non autorizzato l’import è invalid anche in anteprima; quello autorizzato preserva sorgente e selettori."
+    },
+    {
+      "id": "BDD-10",
+      "area": "BDD",
+      "title": "Agenti precedenti e revisioni mancanti",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+      "steps": [
+        "Avviare BDD con agente privo di capability, revisione diversa, profilo revocato o progetto eliminato."
+      ],
+      "expected": "Errore prima del caricamento del supporto; nessun fallback su worker condiviso o browser locale."
+    },
+    {
+      "id": "BDD-11",
+      "area": "BDD",
+      "title": "Editor e report sicuri",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Account delle due organizzazioni e agente dedicato 1.3.0 con profilo Cucumber.js 12.9.0 configurato dall’operatore; pool BDD distinto.",
+      "steps": [
+        "Modificare sorgente e modalità, salvare e riaprire; cambiare test selezionato; produrre allegato text/plain, HTML e una credenziale nel diagnostico."
+      ],
+      "expected": "Sorgente e selettori restano coerenti; il report applica escape e redazione, conserva testo semplice e omette HTML/binari."
     }
   ],
   "presentation": {
