@@ -228,3 +228,59 @@ test mobili non hanno versioni, quindi conta ogni cambio di esito, come per i te
 I test salvati hanno [cronologia, confronto e ripristino](./organizing#cronologia-e-versioni).
 [Pubblicazione e revisioni](./organizing#pubblicazione-e-revisioni) scelgono la revisione eseguita
 dai piani; salvare o ripristinare la copia di lavoro conserva la pubblicazione esistente. Il debug usa la copia di lavoro mobile salvata, congelata alla richiesta del run.
+
+## Condizioni, cicli e gruppi riutilizzabili
+
+L'editor nativo supporta `if` / `else` / `endIf`, `repeat` /
+`repeatWhile` / `endLoop` e `assertCondition`. I blocchi devono chiudersi prima
+del salvataggio. Con un elemento, la condizione legge subito `visible`, `hidden`,
+`contains:testo` o `text:testo`. Usare prima `waitFor` se la schermata deve ancora
+caricarsi. Senza elemento, usare confronti come `{{status}} == Paid`,
+`{{total}} > 0`, `contains` o `not contains`.
+
+`repeat` accetta 1–200 iterazioni, anche da una variabile d'ambiente.
+`{{loopIndex}}` parte da 1 e al termine di un ciclo annidato torna all'indice
+esterno. Un `repeatWhile` infinito fallisce dopo 200 iterazioni. Il runner limita
+anche i passi espansi a 2.000 e le esecuzioni dei passi a 10.000 per dispositivo.
+Il report identifica gruppo e iterazione dei passi ripetuti.
+
+**Gruppi mobile riutilizzabili** nella pagina App mobili contiene sequenze native
+per una piattaforma. Creare un gruppo e selezionare **Richiama gruppo mobile**
+nel test. Un gruppo può contenere blocchi completi, ma non richiamare altri gruppi.
+Il progetto determina chi può vederlo o modificarlo. Un gruppo referenziato non
+può essere cancellato o spostato su un'altra piattaforma. Dipendenze mancanti o
+inaccessibili producono un errore esplicito. Le modifiche valgono per le esecuzioni
+successive: run accodati e retry mantengono il contenuto congelato nello snapshot.
+
+## Matrice dispositivi/OS
+
+Inserire fino a 20 coppie distinte nell'editor. Una matrice vuota usa dispositivo
+e OS predefiniti. Una matrice valorizzata è l'elenco completo: il dispositivo
+predefinito non viene aggiunto. App, piattaforma e grid sono comuni ai target.
+Usare test Android e iOS separati per binari o locator differenti.
+
+**Esegui** usa il dispositivo predefinito; **Esegui matrice dispositivi** accoda
+tutti i target e mostra risultati distinti. I target standalone sono eseguiti in
+sequenza; un fallimento non impedisce quelli successivi. Un budget già esaurito
+rifiuta l'ammissione senza accodare target. L'esaurimento durante l'esecuzione
+è riportato come errore del run.
+
+Nei piani la matrice è automatica. Ogni coppia ha risultato, retry, screenshot e
+link di sessione separati, indipendenti dai browser e dalle lingue web. Rimangono
+valide le policy di parallelismo, quarantena e arresto del piano.
+
+## Catalogo mobile
+
+**Test come file** esporta web, API e mobile nei bundle YAML/JSON versione 2.
+L'esportazione include matrice e gruppi nativi richiamati. I riferimenti usano
+chiavi piattaforma/nome e sono rimappati agli ID della destinazione. L'anteprima
+valida le dipendenze senza scrivere test, gruppi, versioni o audit. Un test
+modificato genera una nuova versione; un import invariato no. I bundle versione 1
+restano leggibili. Gherkin esporta i test web.
+
+I nuovi import vanno nel progetto selezionato e modificabile; test e gruppi
+esistenti mantengono il progetto e i test conservano la grid. Configurare una
+grid dopo l'import di nuovi test nativi. I riferimenti dell'app restano quelli
+originali: upload cloud e percorsi locali possono richiedere un nuovo upload o
+una configurazione nella destinazione. Il catalogo contiene definizioni, non
+binari delle applicazioni o evidenze delle esecuzioni.

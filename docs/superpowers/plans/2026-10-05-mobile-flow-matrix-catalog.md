@@ -1,6 +1,6 @@
 # Mobile Flow, Matrix and Catalog Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Author native conditions, loops and reusable groups, execute a mobile definition across device/OS pairs, and round-trip native definitions through the catalog.
 
@@ -56,7 +56,7 @@ The new helpers isolate native behavior; do not reorganize unrelated routes or w
 
 **Interfaces:** Export `MobileDeviceTarget`, `mobileDeviceTargetSchema`, `mobileDeviceTargets(test): MobileDeviceTarget[]`, `mobileFlowSteps(steps): Array<{ action: { id: string } }>`, and `mobileGroupSchema`/`MobileGroupInput`. Extend `MobileStepResult` with optional `stepId`, `sourceIndex`, `groupId`, `groupName`, `iterationKey`, `skipReason`. Add `MobileExecutionStep extends MobileStep` carrying optional group provenance. Define `MobileGroupDefinition = MobileGroupInput & { id: string }`.
 
-- [ ] Add failing schema tests with these fixtures; assert duplicate targets and unbalanced blocks fail, an empty matrix produces the legacy target, and platform-incompatible locators fail.
+- [x] Add failing schema tests with these fixtures; assert duplicate targets and unbalanced blocks fail, an empty matrix produces the legacy target, and platform-incompatible locators fail.
 
 ```ts
 const definition = { name: 'Login', platform: 'android', app: 'bs://app',
@@ -70,8 +70,8 @@ expect(mobileTestSchema.safeParse({ ...definition,
 }).success).toBe(false);
 ```
 
-- [ ] Run `npx vitest run server/mobile-definition.test.ts server/tests/mobile-groups-migration.test.ts --maxWorkers=2`; confirm the added expectations fail before implementation.
-- [ ] Implement schemas with `superRefine`, the existing flow analyzer and per-action target/value rules. Conditional targets are optional; group calls require IDs; group bodies reject calls. Counts containing variable tokens validate syntax at save and range at run. Normalize OS absence to `null` and whitespace before deduplication.
+- [x] Run `npx vitest run server/mobile-definition.test.ts server/tests/mobile-groups-migration.test.ts --maxWorkers=2`; confirm the added expectations fail before implementation.
+- [x] Implement schemas with `superRefine`, the existing flow analyzer and per-action target/value rules. Conditional targets are optional; group calls require IDs; group bodies reject calls. Counts containing variable tokens validate syntax at save and range at run. Normalize OS absence to `null` and whitespace before deduplication.
 
 ```ts
 export function mobileFlowSteps(steps: readonly MobileStep[]) {
@@ -86,8 +86,8 @@ export function mobileDeviceTargets(test: {
 }
 ```
 
-- [ ] Create the matrix JSONB column defaulting to `[]`. Create `mobile_step_groups` with tenant/platform/name uniqueness, platform and array checks, same-organization project FK, organization RLS and restrictive project read/write policies following migrations 0031/0057. Register schema and journal; inspect `server/db.ts`, schema doctor and organization lifecycle for explicit table lists and update those lists if needed.
-- [ ] Add `deviceMatrix` to mobile version fields and test snapshot/restore compatibility with older snapshots lacking it. Run the above suites plus `server/typed-test-versioning.test.ts` and `server/test-version-store.test.ts`; commit only Task 1 files as `feat: add mobile flow group and matrix contracts`.
+- [x] Create the matrix JSONB column defaulting to `[]`. Create `mobile_step_groups` with tenant/platform/name uniqueness, platform and array checks, same-organization project FK, organization RLS and restrictive project read/write policies following migrations 0031/0057. Register schema and journal; inspect `server/db.ts`, schema doctor and organization lifecycle for explicit table lists and update those lists if needed.
+- [x] Add `deviceMatrix` to mobile version fields and test snapshot/restore compatibility with older snapshots lacking it. Run the above suites plus `server/typed-test-versioning.test.ts` and `server/test-version-store.test.ts`; commit only Task 1 files as `feat: add mobile flow group and matrix contracts`.
 
 ### Task 2: Native Conditions and Flow Traversal
 
@@ -95,7 +95,7 @@ export function mobileDeviceTargets(test: {
 
 **Interfaces:** `compareValues(expression: string): { value: boolean } | { error: string }`; preserve its re-export from `step-executor.ts`. `executeMobileFlow({ steps, platform, vars, session, elementTimeoutMs, onStep }): Promise<{ results: MobileStepResult[]; failure: string | null }>` consumes `MobileExecutionStep[]`, existing Appium session methods and `FlowCursor`. `performMobileTest` retains its current public arguments and outcome shape.
 
-- [ ] Add failing comparator equivalence and traversal tests. Extend the existing stand-in Appium hub to return visibility/text and controlled protocol errors. Exercise true/false branches and nested repeats with these definitions:
+- [x] Add failing comparator equivalence and traversal tests. Extend the existing stand-in Appium hub to return visibility/text and controlled protocol errors. Exercise true/false branches and nested repeats with these definitions:
 
 ```ts
 const branch: MobileStep[] = [
@@ -112,9 +112,9 @@ expect(compareValues('2 >= 1')).toEqual({ value: true });
 expect(compareValues('Paid contains aid')).toEqual({ value: true });
 ```
 
-- [ ] Run `npx vitest run server/mobile-flow.test.ts server/routes/mobile-tests.routes.test.ts --maxWorkers=2`; verify red expectations for branch routing and iteration results.
-- [ ] Move the comparator unchanged with its numeric helper; retain web imports/tests. Implement immediate native probes with WebDriver error-code classification. A `no such element` is absence; an invalid selector, broken session or transport failure throws. Expand variables with the existing native variable resolver. Parse `repeat` as an integer within 1–200 after substitution.
-- [ ] Traverse via `FlowCursor`; validate before session startup, bound step visits, emit separate iteration rows and skipped branch/failure metadata, preserve run secret redaction. Call the existing primitive executor only for native primitive actions. Keep screenshot capture and session/transport closure in the runner's existing cleanup path.
+- [x] Run `npx vitest run server/mobile-flow.test.ts server/routes/mobile-tests.routes.test.ts --maxWorkers=2`; verify red expectations for branch routing and iteration results.
+- [x] Move the comparator unchanged with its numeric helper; retain web imports/tests. Implement immediate native probes with WebDriver error-code classification. A `no such element` is absence; an invalid selector, broken session or transport failure throws. Expand variables with the existing native variable resolver. Parse `repeat` as an integer within 1–200 after substitution.
+- [x] Traverse via `FlowCursor`; validate before session startup, bound step visits, emit separate iteration rows and skipped branch/failure metadata, preserve run secret redaction. Call the existing primitive executor only for native primitive actions. Keep screenshot capture and session/transport closure in the runner's existing cleanup path.
 
 ```ts
 const analysis = analyseFlow(mobileFlowSteps(steps));
@@ -125,7 +125,7 @@ const firstResultIdentity = { stepId: firstStep.id, sourceIndex: cursor.pc,
   iterationKey: cursor.iterationKey() };
 ```
 
-- [ ] Pin the transport-error Review Focus case, malformed block rejection before `/session`, nested `loopIndex` restoration, 200-iteration and 10,000-visit failures, assertion false, undefined variables and cleanup on failure. Run flow/route/recorder/inspector and existing web comparator/cursor tests; commit `feat: execute native mobile conditions and loops`.
+- [x] Pin the transport-error Review Focus case, malformed block rejection before `/session`, nested `loopIndex` restoration, 200-iteration and 10,000-visit failures, assertion false, undefined variables and cleanup on failure. Run flow/route/recorder/inspector and existing web comparator/cursor tests; commit `feat: execute native mobile conditions and loops`.
 
 ### Task 3: Native Group CRUD and Expansion
 
@@ -133,7 +133,7 @@ const firstResultIdentity = { stepId: firstStep.id, sourceIndex: cursor.pc,
 
 **Interfaces:** `referencedMobileGroupIds(steps): string[]`; `expandMobileGroups(steps, groups, platform): MobileExecutionStep[]`; `loadMobileGroups(tx: TenantTx, steps): Promise<MobileGroupDefinition[]>`; `prepareMobileSteps(tx, definition): Promise<MobileExecutionStep[]>`. Errors reject, rather than returning a partially expanded list.
 
-- [ ] Write failing pure expansion tests using a UUID group and a `callGroup` step; pin origin metadata, missing/platform-invalid groups, group calls within groups and expanded-size limits.
+- [x] Write failing pure expansion tests using a UUID group and a `callGroup` step; pin origin metadata, missing/platform-invalid groups, group calls within groups and expanded-size limits.
 
 ```ts
 const groupId = '00000000-0000-4000-8000-000000000001';
@@ -146,10 +146,10 @@ expect(() => expandMobileGroups([{ id: 'call', action: 'callGroup', value: group
   [], 'android')).toThrow();
 ```
 
-- [ ] Run `npx vitest run server/mobile-step-groups.test.ts server/routes/mobile-step-groups.routes.test.ts --maxWorkers=2` and confirm missing functionality.
-- [ ] Implement platform-filtered CRUD under tenant transactions with viewer/editor roles. Reuse project-editability behavior from native test routes. Translate duplicate names to conflict; validate references on test save. Expand one level, preserve source IDs/indexes and revalidate flow blocks after expansion.
-- [ ] Implement reference-safe deletion with an organization-bounded privileged existence check only when required to see inaccessible dependents; it returns a boolean, never names. Serialize dependency admission and group deletion under the same organization lock to prevent a new call racing deletion. Reject stale published references at preparation.
-- [ ] Add route tests for unauthorized/viewer/editable/restricted-project access and same-name groups in different platforms. Test the inaccessible-dependent Review Focus case on PostgreSQL with an actual non-superuser role; test cross-tenant group IDs as unavailable. Run targeted suites and commit `feat: add reusable native mobile step groups`.
+- [x] Run `npx vitest run server/mobile-step-groups.test.ts server/routes/mobile-step-groups.routes.test.ts --maxWorkers=2` and confirm missing functionality.
+- [x] Implement platform-filtered CRUD under tenant transactions with viewer/editor roles. Reuse project-editability behavior from native test routes. Translate duplicate names to conflict; validate references on test save. Expand one level, preserve source IDs/indexes and revalidate flow blocks after expansion.
+- [x] Implement reference-safe deletion with an organization-bounded privileged existence check only when required to see inaccessible dependents; it returns a boolean, never names. Serialize dependency admission and group deletion under the same organization lock to prevent a new call racing deletion. Reject stale published references at preparation.
+- [x] Add route tests for unauthorized/viewer/editable/restricted-project access and same-name groups in different platforms. Test the inaccessible-dependent Review Focus case on PostgreSQL with an actual non-superuser role; test cross-tenant group IDs as unavailable. Run targeted suites and commit `feat: add reusable native mobile step groups`.
 
 ### Task 4: Frozen Single Runs and Standalone Matrix Runs
 
@@ -157,7 +157,7 @@ expect(() => expandMobileGroups([{ id: 'call', action: 'callGroup', value: group
 
 **Interfaces:** `prepareMobileRunDefinition(tx, test, target): Promise<Record<string, unknown>>` returns authored snapshot fields plus `executionSteps` and resolved target. `admitMobileRuns(tx, { test, grid, environmentId, targets, user }): Promise<MobileTestRun[]>` checks access/budget once and inserts all rows atomically. `dispatchMobileRuns(runs, organizationId, userId, start): Promise<void>` starts rows sequentially and records dispatch errors.
 
-- [ ] Extend route fixtures with two targets and a group. Add failing assertions for `{ runs: [...] }`, row snapshots containing distinct targets, and legacy `/runs` returning one ordinary row.
+- [x] Extend route fixtures with two targets and a group. Add failing assertions for `{ runs: [...] }`, row snapshots containing distinct targets, and legacy `/runs` returning one ordinary row.
 
 ```ts
 const targets = [{ deviceName: 'Pixel 8', osVersion: '14' },
@@ -175,10 +175,10 @@ expect(response.body.runs.map((run: { device: string }) => run.device))
   .toEqual(['Pixel 8 · 14', 'Pixel 9 · 15']);
 ```
 
-- [ ] Run `npx vitest run server/mobile-matrix-runs.test.ts server/routes/mobile-tests.routes.test.ts --maxWorkers=2` to demonstrate red behavior.
-- [ ] Resolve the selected published/working definition before matrix expansion. Acquire the existing organization lock and call `checkExecutionBudget` inside the admission transaction; validate every target/grid/environment/group before any insert. Existing quota meters elapsed minutes, not estimated future target cost: reject already exhausted budgets atomically, and preserve runtime exhaustion as explicit errors.
-- [ ] Persist `executionSteps` separately from authored `steps` and use resolved steps only at execution. Existing old snapshots lacking expanded content resolve once at start. Admit new runs only with frozen groups/targets; preserve published-version semantics and redact exposed rows as before.
-- [ ] Dispatch after transaction completion; await each run's existing start promise before the next target. A startup rejection marks that queued row `error` and continues. Pin post-admission test/group edits, target independence, depleted quota/no rows, invalid later target/no partial rows and transport closure before the next session. Run targeted/versioning/quota tests and commit `feat: run native tests across a frozen device matrix`.
+- [x] Run `npx vitest run server/mobile-matrix-runs.test.ts server/routes/mobile-tests.routes.test.ts --maxWorkers=2` to demonstrate red behavior.
+- [x] Resolve the selected published/working definition before matrix expansion. Acquire the existing organization lock and call `checkExecutionBudget` inside the admission transaction; validate every target/grid/environment/group before any insert. Existing quota meters elapsed minutes, not estimated future target cost: reject already exhausted budgets atomically, and preserve runtime exhaustion as explicit errors.
+- [x] Persist `executionSteps` separately from authored `steps` and use resolved steps only at execution. Existing old snapshots lacking expanded content resolve once at start. Admit new runs only with frozen groups/targets; preserve published-version semantics and redact exposed rows as before.
+- [x] Dispatch after transaction completion; await each run's existing start promise before the next target. A startup rejection marks that queued row `error` and continues. Pin post-admission test/group edits, target independence, depleted quota/no rows, invalid later target/no partial rows and transport closure before the next session. Run targeted/versioning/quota tests and commit `feat: run native tests across a frozen device matrix`.
 
 ### Task 5: Plan Matrix Units and Reports
 
@@ -186,7 +186,7 @@ expect(response.body.runs.map((run: { device: string }) => run.device))
 
 **Interfaces:** `MobilePlanTarget = MobileDeviceTarget & { key: string }`; `mobilePlanTargets(test): MobilePlanTarget[]` uses normalized position keys (`device-0`, `device-1`). Extend local `RunUnit` and serialized unit with optional `mobileTarget: MobilePlanTarget`. Frozen plan definitions carry `executionSteps` and `deviceMatrix`; restored helper units consume those snapshots.
 
-- [ ] Extend existing `seedPlan` tests to demonstrate one report per device despite browser/locale multiplication, and unique screenshot paths.
+- [x] Extend existing `seedPlan` tests to demonstrate one report per device despite browser/locale multiplication, and unique screenshot paths.
 
 ```ts
 await seedPlan({ locales: ['it-IT', 'en-US'] }, { deviceMatrix: [
@@ -200,10 +200,10 @@ expect(rows.filter(row => row.uiTestId === uiTestId)).toHaveLength(4);
 expect(execution).toMatchObject({ status: 'completed', totalTests: 6, passedTests: 6 });
 ```
 
-- [ ] Run `npx vitest run server/mobile-plan-units.test.ts server/mobile-in-plans.test.ts --maxWorkers=2`; confirm two-target cases fail first.
-- [ ] Prepare native groups and targets once in the execution snapshot. Expand mobile links only on the first browser/locale lane. Pass an immutable target-specific definition to `performMobileTest` for all retries; use a fresh variable map per target. Serialize `mobileTarget` in shard work and restore it unchanged.
-- [ ] Store result device labels, group/iteration logs and artifact directories containing the target key. Add matrix cardinality to total progress/report aggregation. Preserve retries, quarantine and stop semantics; unfinished or failed targets must appear explicitly and affect aggregate status according to policy.
-- [ ] Test sharded helpers after group/definition edits, retry isolation, stop policy with remaining targets, quarantined failures, missing grids, published definitions, screenshot collisions and per-device analytics. Run targeted plan/shard/snapshot/analytics tests; commit `feat: expand mobile plan execution into device targets`.
+- [x] Run `npx vitest run server/mobile-plan-units.test.ts server/mobile-in-plans.test.ts --maxWorkers=2`; confirm two-target cases fail first.
+- [x] Prepare native groups and targets once in the execution snapshot. Expand mobile links only on the first browser/locale lane. Pass an immutable target-specific definition to `performMobileTest` for all retries; use a fresh variable map per target. Serialize `mobileTarget` in shard work and restore it unchanged.
+- [x] Store result device labels, group/iteration logs and artifact directories containing the target key. Add matrix cardinality to total progress/report aggregation. Preserve retries, quarantine and stop semantics; unfinished or failed targets must appear explicitly and affect aggregate status according to policy.
+- [x] Test sharded helpers after group/definition edits, retry isolation, stop policy with remaining targets, quarantined failures, missing grids, published definitions, screenshot collisions and per-device analytics. Run targeted plan/shard/snapshot/analytics tests; commit `feat: expand mobile plan execution into device targets`.
 
 ### Task 6: Portable Mobile Catalog and Versioned Imports
 
@@ -211,7 +211,7 @@ expect(execution).toMatchObject({ status: 'completed', totalTests: 6, passedTest
 
 **Interfaces:** `mobileGroupKey(platform, name): string` uses an unambiguous JSON tuple string. `exportMobileCatalog(tests, groups): { mobileTests: Record<string, unknown>[]; mobileStepGroups: Record<string, unknown>[] }`; `importMobileCatalog(tx, { bundle, projectId, dryRun, user }): Promise<MobileImportOutcome[]>`. Outcomes use `kind: 'mobile_test' | 'mobile_step_group'` and the existing created/updated/unchanged/invalid states. Extend `Bundle` with defaulted native arrays.
 
-- [ ] Add failing v2 YAML/JSON fixtures with native groups, matrices and calls; assert calls contain portable keys and secrets/installation IDs are excluded.
+- [x] Add failing v2 YAML/JSON fixtures with native groups, matrices and calls; assert calls contain portable keys and secrets/installation IDs are excluded.
 
 ```ts
 const emptyV1 = parseBundle(JSON.stringify({ kind: BUNDLE_KIND, version: 1 }));
@@ -221,11 +221,11 @@ expect(mobileGroupKey('android', 'Login')).toBe('["android","Login"]');
 expect(() => parseBundle(JSON.stringify({ kind: BUNDLE_KIND, version: 3 }))).toThrow();
 ```
 
-- [ ] Run `npx vitest run server/mobile-bundle.test.ts server/test-export.test.ts --maxWorkers=2` and confirm added assertions fail.
-- [ ] Write v2 envelopes, retain valid v1 reads and existing Gherkin behavior. Export native definitions filtered like web/API, resolve visible group dependencies and reject unresolved calls. Strip project/grid IDs and write stable sorted fields. Keep `app` unchanged and expose portability guidance in docs/UI.
-- [ ] Import groups first into an in-memory resolution map. Map portable keys to real destination IDs for saves, or temporary nonpersisted UUIDs for dry-run schema validation. Duplicate/ambiguous keys are invalid; an invalid group invalidates calling tests. Use savepoints or prevalidation so one invalid item does not abort unrelated item outcomes.
-- [ ] Match native tests by existing organization-unique name and reject platform conflicts. Match groups by platform/name; preserve IDs, existing projects and grids. Enforce editable projects before changing anything; use the native version store and audit on changed test saves. Compare normalized matrices/steps to suppress unchanged writes and versions.
-- [ ] Pin both import Review Focus cases, references to inaccessible groups, missing dependencies, new-group dry-run with zero persisted rows/versions/audits, renamed destinations, v1 compatibility and deterministic round-trip. Run catalog/import/versioning tests and commit `feat: include portable native tests in catalog bundles`.
+- [x] Run `npx vitest run server/mobile-bundle.test.ts server/test-export.test.ts --maxWorkers=2` and confirm added assertions fail.
+- [x] Write v2 envelopes, retain valid v1 reads and existing Gherkin behavior. Export native definitions filtered like web/API, resolve visible group dependencies and reject unresolved calls. Strip project/grid IDs and write stable sorted fields. Keep `app` unchanged and expose portability guidance in docs/UI.
+- [x] Import groups first into an in-memory resolution map. Map portable keys to real destination IDs for saves, or temporary nonpersisted UUIDs for dry-run schema validation. Duplicate/ambiguous keys are invalid; an invalid group invalidates calling tests. Use savepoints or prevalidation so one invalid item does not abort unrelated item outcomes.
+- [x] Match native tests by existing organization-unique name and reject platform conflicts. Match groups by platform/name; preserve IDs, existing projects and grids. Enforce editable projects before changing anything; use the native version store and audit on changed test saves. Compare normalized matrices/steps to suppress unchanged writes and versions.
+- [x] Pin both import Review Focus cases, references to inaccessible groups, missing dependencies, new-group dry-run with zero persisted rows/versions/audits, renamed destinations, v1 compatibility and deterministic round-trip. Run catalog/import/versioning tests and commit `feat: include portable native tests in catalog bundles`.
 
 ### Task 7: Native Authoring, Group Management and Matrix Progress
 
@@ -233,7 +233,7 @@ expect(() => parseBundle(JSON.stringify({ kind: BUNDLE_KIND, version: 3 }))).toT
 
 **Interfaces:** `MobileStepsEditor` props `{ steps: MobileStep[]; platform: MobilePlatform; groups: MobileGroupDefinition[]; allowGroups: boolean; onChange(steps: MobileStep[]): void }`. `MobileGroupDialog` wraps the editor with `allowGroups={false}`. Matrix run progress consumes `{ runs: Run[] }` and polls individual run IDs with distinct TanStack Query keys.
 
-- [ ] Write failing UI tests for optional conditional target/value controls, block indentation, platform-filtered groups, malformed-block errors, matrix row normalization and two independent progress rows.
+- [x] Write failing UI tests for optional conditional target/value controls, block indentation, platform-filtered groups, malformed-block errors, matrix row normalization and two independent progress rows.
 
 ```tsx
 const onChange = vi.fn();
@@ -246,16 +246,16 @@ render(<MobileStepsEditor steps={[{ id: 'i', action: 'if', value: 'true' }]}
 expect(screen.getByText(/has no.*endIf/i)).toBeInTheDocument();
 ```
 
-- [ ] Run `npm --prefix client test -- --run src/components/mobile/MobileStepsEditor.test.tsx src/components/mobile/MobileGroupDialog.test.tsx src/components/mobile/MobileDialogs.test.tsx` and confirm the added features are absent.
-- [ ] Extract the existing step row controls into the shared editor without changing recorder behavior. Add flow labels/help, group options, inline block errors and provenance hints. Preserve additional step fields when serializing: replace the existing primitive-only save mapper with the validated complete native definition.
-- [ ] Add dedicated group CRUD management to the mobile page and matrix add/remove controls to the definition dialog. Make platform changes visibly invalidate incompatible entries. Keep single-device run behavior; add matrix admission and independently followed results. Invalidate native test/group queries after mutations and use URL-based fetch assertions.
-- [ ] Locate catalog UI callers via `rg -n 'import-bundle|/api/tests/export' client/src`; update the exact calling component to label native outcomes and explain Gherkin's web scope. Render report group/iteration metadata with old-log fallbacks. Add EN/IT and existing locale keys following current patterns; run client targeted tests and typecheck, then commit `feat: author mobile flows groups and device matrices`.
+- [x] Run `npm --prefix client test -- --run src/components/mobile/MobileStepsEditor.test.tsx src/components/mobile/MobileGroupDialog.test.tsx src/components/mobile/MobileDialogs.test.tsx` and confirm the added features are absent.
+- [x] Extract the existing step row controls into the shared editor without changing recorder behavior. Add flow labels/help, group options, inline block errors and provenance hints. Preserve additional step fields when serializing: replace the existing primitive-only save mapper with the validated complete native definition.
+- [x] Add dedicated group CRUD management to the mobile page and matrix add/remove controls to the definition dialog. Make platform changes visibly invalidate incompatible entries. Keep single-device run behavior; add matrix admission and independently followed results. Invalidate native test/group queries after mutations and use URL-based fetch assertions.
+- [x] Locate catalog UI callers via `rg -n 'import-bundle|/api/tests/export' client/src`; update the exact calling component to label native outcomes and explain Gherkin's web scope. Render report group/iteration metadata with old-log fallbacks. Add EN/IT and existing locale keys following current patterns; run client targeted tests and typecheck, then commit `feat: author mobile flows groups and device matrices`.
 
 ### Task 8: Documentation, Acceptance and Delivery
 
 **Files:** Modify `docs/en/guide/mobile-apps.md`, `docs/it/guide/mobile-apps.md`, `docs/en/internals/mobile.md`, `docs/it/internals/mobile.md` and catalog guide sections found with `rg -n 'YAML|catalog|catalogo|import-bundle' docs/en docs/it`; create `docs/mobile-flow-matrix-acceptance.md`; update linked Collaudo cases where available.
 
-- [ ] Document the same runnable Android example in both languages:
+- [x] Document the same runnable Android example in both languages:
 
 ```yaml
 steps:
@@ -270,10 +270,10 @@ deviceMatrix:
   - { deviceName: Google Pixel 9, osVersion: '15' }
 ```
 
-- [ ] Add acceptance cases for true/false native branches, bounded loops, shared-group edits, frozen queued groups, two-target standalone and plan execution, native bundle preview/reimport and restricted-project access. Preserve existing MOB identifiers: append IDs after the current last case. Record expected/observed behavior, environment and evidence; do not mark cases passed from unit tests.
-- [ ] Run `npm run check`, `npm --prefix client exec -- tsc --noEmit -p .`, `npm test`, and `npm --prefix client test -- --run`. Verify affected PostgreSQL isolation with `WFM_TEST_REQUIRE_POSTGRES=1` using the configured non-superuser test database. If unavailable, record that limitation explicitly rather than substituting PGlite evidence.
-- [ ] Run a configured Appium smoke using the Collaudo setup if available; rebuild the existing named Docker stack only when validating its deployment. Keep volumes and avoid unrelated environment mutation. Document real device coverage or its concrete missing prerequisite.
-- [ ] Inspect the complete diff against the spec, check placeholder/error markers, `git diff --check`, intended file list and migration head. Record test counts and any justified skips. Commit docs and final adjustments as `docs: document mobile flow matrix and catalog acceptance`.
+- [x] Add acceptance cases for true/false native branches, bounded loops, shared-group edits, frozen queued groups, two-target standalone and plan execution, native bundle preview/reimport and restricted-project access. Preserve existing MOB identifiers: append IDs after the current last case. Record expected/observed behavior, environment and evidence; do not mark cases passed from unit tests.
+- [x] Run `npm run check`, `npm --prefix client exec -- tsc --noEmit -p .`, `npm test`, and `npm --prefix client test -- --run`. Verify affected PostgreSQL isolation with `WFM_TEST_REQUIRE_POSTGRES=1` using the configured non-superuser test database. If unavailable, record that limitation explicitly rather than substituting PGlite evidence.
+- [x] Run a configured Appium smoke using the Collaudo setup if available; rebuild the existing named Docker stack only when validating its deployment. Keep volumes and avoid unrelated environment mutation. Document real device coverage or its concrete missing prerequisite.
+- [x] Inspect the complete diff against the spec, check placeholder/error markers, `git diff --check`, intended file list and migration head. Record test counts and any justified skips. Commit docs and final adjustments as `docs: document mobile flow matrix and catalog acceptance`.
 - [ ] Push explicitly with `git push --set-upstream origin HEAD:refs/heads/codex/mobile-flow-matrix-catalog`. Create the PR against `main` using a body file describing before/after behavior and verified test evidence. Attach the created PR with the Codex artifact tool. Report the actual commit/PR state and live-validation limits.
 
 ## Execution Handoff
@@ -283,3 +283,13 @@ snapshot and target interfaces, so keeping implementation context together avoid
 repeated exploration. A final independent review follows the selected execution
 workflow. Implementation starts after review of this plan and selection of the
 execution method; no product implementation is included in this document commit.
+
+## Execution record
+
+Implemented on `codex/mobile-flow-matrix-catalog` from `212e192`. The native implementation keeps the existing primary checkout and preserves unrelated local files. Tasks 1–2 were committed together; tasks 3–7 share snapshot/catalog interfaces and are delivered together, with documentation separately.
+
+Final independent review found matrix polling reset, frozen-publication eligibility, browser-dependent native lanes and whitespace dependency checks. All four are corrected and covered by regressions. Group provenance and same-organization project constraints are included in the existing schema drift checks.
+
+Verified: TypeScript project checks; product and docs builds; 514 frontend tests plus two group-dialog tests; 21 BDD runtime tests; 78 targeted tests on disposable PostgreSQL using a non-superuser login and `app_user` tenant role. Full server regressions are recorded in the PR. Real Appium validation is unavailable because the existing Collaudo stack has agents/display but no device session; MOB-33–MOB-40 remain unexecuted acceptance cases.
+
+Matrix admission uses the existing elapsed execution-minute quota; it does not estimate future device runtime. Existing test/grid/project behavior and bundle version 1 import remain compatible.

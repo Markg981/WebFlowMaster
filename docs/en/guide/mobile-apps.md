@@ -222,3 +222,58 @@ versions, so every change of verdict counts, as for API tests.
 Saved tests have [history, comparison and restore](./organizing#history-and-versions).
 [Publication and reviews](./organizing#publishing-and-reviews) choose the revision plans execute;
 saving or restoring a working copy leaves an existing publication in place. A debug run uses the saved mobile working copy captured when the run is requested.
+
+## Conditions, loops and reusable groups
+
+The native step editor supports `if` / `else` / `endIf`, `repeat` /
+`repeatWhile` / `endLoop`, and `assertCondition`. Each block must close before
+the test can be saved. With an element, a condition reads `visible`, `hidden`,
+`contains:text` or `text:text` immediately. Put `waitFor` first when the screen
+is still loading. Without an element, use a value comparison such as
+`{{status}} == Paid`, `{{total}} > 0`, `contains` or `not contains`.
+
+`repeat` takes 1–200 iterations, including a count from an environment variable.
+`{{loopIndex}}` starts at 1; nested loops restore the outer index when they finish.
+An endless `repeatWhile` fails after 200 iterations. The runner also limits
+expanded steps to 2,000 and total executed step visits to 10,000 per device.
+Reports identify the group and iteration when a step repeats.
+
+**Reusable mobile groups** on the Mobile apps page holds named native sequences
+for one platform. Create a group, then select **Call mobile group** in a test.
+Groups can contain complete flow blocks, but cannot call other groups. The
+project determines who can see/edit a group. A referenced group cannot be deleted
+or switched to another platform. Missing or inaccessible dependencies cause an
+explicit error. Edits apply to subsequent runs; already queued runs and retries
+retain the resolved group content captured in their snapshot.
+
+## Device/OS matrix
+
+Add up to 20 distinct pairs under **Device/OS matrix** in the test editor. An
+empty matrix uses the existing default device/OS. A nonempty matrix is the entire
+target list; the default is not appended. The app, platform and grid are shared.
+Use separate Android and iOS tests for different app binaries or native locators.
+
+**Run** uses the default device; **Run device matrix** queues all configured
+targets and follows each result separately. Standalone targets execute sequentially;
+a failed target does not prevent the following ones from running. A depleted
+execution budget rejects admission before any target is queued. Runtime budget
+exhaustion is reported as an execution error.
+
+Test plans use the matrix automatically. Each target has its own result, retries,
+screenshot and session link, independently of web browser/language combinations.
+Existing plan parallelism, quarantine and stop policies still apply.
+
+## Mobile catalog files
+
+**Tests as files** exports web, API and native tests in YAML/JSON bundle version 2.
+Mobile exports contain the device matrix and referenced native groups. Group calls
+use platform/name keys and are remapped to destination IDs during import. Preview
+validates dependencies without creating tests, groups, versions or audit entries.
+Changed native definitions create a new test version; unchanged imports do not.
+Version 1 bundles remain readable. Gherkin exports web tests only.
+
+New imports go to the selected editable project; existing tests/groups keep their
+projects, and existing tests retain their grid. Configure a grid for new native
+tests after import. App references are preserved as written: cloud upload handles
+and local paths may require uploading or configuring the app at the destination.
+The catalog contains definitions, not application binaries or execution artifacts.

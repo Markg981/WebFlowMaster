@@ -17,7 +17,9 @@ Per una porta diversa impostare `COLLAUDO_PORT` prima del comando.
   e i 46 nuovi casi delle funzionalità 6–13, più OPS-17…OPS-19 per storico e backup locali:
   più 32 casi di versioni e approvazioni API/mobile (API-29…API-36, MOB-25…MOB-32,
   LIB-27…LIB-34, SEC-37…SEC-44), più AGT-06…AGT-10 per gRPC/WebSocket sugli agenti:
-  444 casi, 20 aree, protocollo versione 19.
+  Il catalogo attuale contiene 491 casi, 22 aree, protocollo versione 24.
+  MOB-33…MOB-40 coprono flussi nativi, gruppi, matrici dispositivi e catalogo mobile.
+  La procedura e i limiti delle evidenze sono in `docs/mobile-flow-matrix-acceptance.md`.
   I nuovi casi sono da eseguire in un nuovo ciclo; i cicli storici restano congelati.
   Gli ID esistenti non si rinominano. Dopo una modifica riavviare il comando e ricaricare la pagina.
 - **Cicli, esiti e note:** `collaudo/.local/state.json`, escluso da Git.

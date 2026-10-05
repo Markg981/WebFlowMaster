@@ -103,3 +103,29 @@ agente vostro (c'è uno script di accettazione per questo, SEC-25…30, nell'[am
 - iOS richiede una griglia con dispositivi iOS o un Mac per l'Appium locale; l'ambiente di collaudo esegue solo Android.
 - L'inspector mostra ciò che dà il page source di Appium, niente di più.
 - Una quota della griglia o una griglia irraggiungibile fa fallire il run con la frase della griglia stessa.
+
+## Flussi nativi, gruppi, matrici e definizioni portabili
+
+I passi mobile restano piatti; gli ID delle azioni sono adattati all'analisi dei
+blocchi e a FlowCursor. Il comparatore dei valori è condiviso con il runner web;
+le condizioni native interrogano subito Appium e propagano gli errori di protocollo
+e trasporto.
+
+La migrazione 0082 aggiunge mobile_tests.device_matrix e mobile_step_groups con RLS
+per tenant, policy restrittive di progetto e vincoli di stessa organizzazione.
+L'espansione dei gruppi ha un livello e massimo 2.000 passi; i cicli hanno massimo
+200 iterazioni e 10.000 esecuzioni dei passi. Le versioni conservano i richiami;
+gli snapshot dei run conservano anche executionSteps risolti all'ammissione. Gli
+snapshot dei piani congelano le definizioni native; le unità distribuite portano
+il target dispositivo/OS selezionato.
+
+L'ammissione standalone scrive tutti i target in una transazione e li esegue in
+sequenza dopo il commit. I piani creano un'unità per target fuori dalle lane
+browser/lingua, con storico e screenshot distinti. Gli snapshot precedenti sono
+risolti una sola volta all'avvio e persistiti.
+
+Il catalogo v2 rimappa i gruppi con chiavi piattaforma/nome, omette gli ID grid e
+include le dipendenze. L'import valida prima i gruppi, usa savepoint per elemento,
+conserva progetti/grid esistenti e registra le versioni modificate. L'anteprima
+usa ID temporanei solo in memoria. I bundle v1 restano leggibili; riferimenti app
+e Gherkin mantengono rispettivamente vincoli di ambiente e ambito web.
