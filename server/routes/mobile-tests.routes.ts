@@ -6,14 +6,15 @@ import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { desc, eq, sql } from "drizzle-orm";
 import { AUDIT_ACTIONS, browserGrids, environments, mobileTestRuns, mobileTests } from "@shared/schema";
-import { MOBILE_GRID_PROVIDERS, mobileStepSchema, mobileTestSchema } from "@shared/mobile";
+import { MOBILE_GRID_PROVIDERS, mobileStepSchema, mobileTestSchema, mobileDeviceTargets } from "@shared/mobile";
 import { requireRole } from "../middleware/require-role";
 import { getTenantOrgId, withTenantTransaction, type TenantTx } from "../middleware/tenancy";
 import { auditActor, recordAudit } from "../audit";
 import { toGridConfig } from "../browser-grids";
 import { executeMobileRun, uploadApp, type RunDeps } from "../mobile-runner";
 import { checkExecutionBudget } from '../execution-usage';
-import { quotaErrorBody } from '../tenant-quotas';
+import { quotaErrorBody, lockOrganizationRuns } from '../tenant-quotas';
+import { prepareMobileSteps, MobileDefinitionError } from '../mobile-step-groups';
 import { InspectorError, closeInspector, inspectorAct, inspectorSnapshot, openInspector } from "../mobile-inspector";
 import { tagsOfTests } from "../test-tags";
 import { currentContentOf, recordTypedTestVersion } from "../test-version-store";
@@ -47,6 +48,7 @@ function fail(res: Response, error: unknown, what: string) {
   const quota = quotaErrorBody(error);
   if (quota) return res.status(429).json(quota);
   if (error instanceof MobileError) return res.status(error.status).json({ error: error.message });
+  if (error instanceof MobileDefinitionError) return res.status(400).json({error:error.message});
   const message = (error as Error)?.message ?? "";
   if (/unique|duplicate/i.test(message)) return res.status(409).json({ error: "A mobile test with this name already exists." });
   // A project that does not exist or cannot be edited (migrations 0031, 0057): one answer for both.
@@ -142,6 +144,8 @@ router.post("/api/mobile-tests", requireRole("editor"), async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid mobile test", details: parsed.error.flatten() });
   try {
     const created = await withTenantTransaction(async (tx) => {
+      await lockOrganizationRuns(tx, getTenantOrgId()!);
+      await prepareMobileSteps(tx, parsed.data);
       if (parsed.data.gridId) await mobileGrid(tx, parsed.data.gridId);
       const [row] = await tx
         .insert(mobileTests)
@@ -172,6 +176,8 @@ router.put("/api/mobile-tests/:id", requireRole("editor"), async (req, res) => {
     const id = idOf(req.params.id);
     const updated = await withTenantTransaction(async (tx) => {
       await editableTest(tx, id);
+      await lockOrganizationRuns(tx, getTenantOrgId()!);
+      await prepareMobileSteps(tx, parsed.data);
       if (parsed.data.gridId) await mobileGrid(tx, parsed.data.gridId);
       const [row] = await tx
         .update(mobileTests)
@@ -224,51 +230,62 @@ const runSchema = z.object({
 });
 
 /** POST /api/mobile-tests/:id/runs — { gridId, environmentId? }: starts a run; the page follows it. */
-router.post("/api/mobile-tests/:id/runs", requireRole("editor"), async (req, res) => {
+router.post(["/api/mobile-tests/:id/runs", "/api/mobile-tests/:id/matrix-runs"], requireRole("editor"), async (req, res) => {
   const parsed = runSchema.safeParse(req.body ?? {});
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid run" });
   try {
     const id = idOf(req.params.id);
     const organizationId = getTenantOrgId()!;
+    const matrix = req.path.endsWith('/matrix-runs');
     const run = await withTenantTransaction(async (tx) => {
+      await lockOrganizationRuns(tx, organizationId);
       await checkExecutionBudget(tx, organizationId);
       const test = await editableTest(tx, id);
       const saved = (await currentContentOf(tx, [id], 'mobile')).get(id);
       const definition = { ...test, ...saved?.snapshot };
+      const executionSteps = await prepareMobileSteps(tx, definition);
       if (definition.steps.length === 0) throw new MobileError(400, "The test has no steps to run.");
       const grid = await mobileGrid(tx, parsed.data.gridId);
       if (parsed.data.environmentId) {
         const [environment] = await tx.select({ id: environments.id }).from(environments).where(eq(environments.id, parsed.data.environmentId)).limit(1);
         if (!environment) throw new MobileError(404, "Environment not found.");
       }
-      const [row] = await tx
+      const targets = mobileDeviceTargets(matrix ? definition : {deviceName:definition.deviceName,osVersion:definition.osVersion});
+      const rows = await tx
         .insert(mobileTestRuns)
-        .values({
+        .values(targets.map(target => ({
           id: uuidv4(),
           organizationId,
           mobileTestId: id,
           gridId: grid.id,
           environmentId: parsed.data.environmentId ?? null,
-          status: "queued",
-          device: [definition.deviceName, definition.osVersion].filter(Boolean).join(" · "),
+          status: "queued" as const,
+          device: [target.deviceName, target.osVersion].filter(Boolean).join(" · "),
           requestedBy: req.user!.id,
           testVersion: saved?.version ?? null,
-          testSnapshot: saved?.snapshot ?? typedSnapshotOf('mobile', test),
-        })
+          testSnapshot: { ...(saved?.snapshot ?? typedSnapshotOf('mobile', test)), ...target, executionSteps },
+        })))
         .returning();
-      await recordAudit(tx, {
+      for (const row of rows) await recordAudit(tx, {
         action: AUDIT_ACTIONS.MOBILE_TEST_RUN,
         actor: auditActor(req),
         targetType: "mobile_test",
         targetId: id,
         metadata: { name: test.name, grid: grid.name, device: row.device, runId: row.id },
       });
-      const { screenshot: _screenshot, organizationId: _org, requestedBy: _by, ...shown } = row;
-      return shown;
+      return rows.map(({ screenshot: _screenshot, organizationId: _org, requestedBy: _by, testSnapshot: _snapshot, ...shown }) => shown);
     });
     // Not awaited: the page follows the run. Whatever goes wrong is written on the run itself.
-    void mobileRunner.start(run.id, organizationId, req.user!.id).catch((error) => logger.error({ message: "Mobile run crashed", runId: run.id, error: String(error?.message ?? error) }));
-    res.status(202).json(run);
+    void (async () => {
+      for (const row of run) {
+        try { await mobileRunner.start(row.id, organizationId, req.user!.id); }
+        catch (error) {
+          logger.error({message:'Mobile run crashed',runId:row.id,error:String(error)});
+          await withTenantTransaction(async tx=>{await tx.update(mobileTestRuns).set({status:'error',error:'The mobile runner could not start.',finishedAt:new Date()}).where(eq(mobileTestRuns.id,row.id));});
+        }
+      }
+    })();
+    res.status(202).json(matrix ? {runs:run} : run[0]);
   } catch (error) {
     fail(res, error, "start the run");
   }

@@ -101,3 +101,27 @@ of yours (there is an acceptance script for this, SEC-25…30, in the [test lab]
 - iOS needs a grid with iOS devices or a Mac for local Appium; the test lab runs Android only.
 - The inspector shows what Appium's page source gives, nothing more.
 - A grid quota or an unreachable grid fails the run with the grid's own sentence.
+
+## Native flows, groups, matrices and portable definitions
+
+Mobile keeps flat steps and adapts string action IDs to shared flow analysis and
+FlowCursor. The pure value comparator is shared with web execution; native element
+conditions use immediate Appium queries and propagate protocol/transport errors.
+
+Migration 0082 adds mobile_tests.device_matrix and mobile_step_groups with tenant
+RLS, restrictive project policies and same-organization project constraints. Group
+expansion is one level, capped at 2,000 steps; loops cap at 200 iterations and
+10,000 step visits. Test versions store authored calls; run snapshots additionally
+store executionSteps resolved at admission. Plan snapshots freeze native definitions
+and group content; serialized shard units carry the chosen device target.
+
+Standalone matrix admission creates all rows in one transaction and dispatches
+them sequentially after commit. Plans execute one unit per target outside web
+browser/locale lanes, with separate device history and screenshot paths. Old
+snapshots resolve once and are persisted when first executed.
+
+Catalog v2 uses portable platform/name keys for native group calls, omits grid
+IDs and includes referenced groups. Import validates dependencies before tests,
+uses per-item savepoints, preserves existing bindings/projects and records changed
+native test versions. Dry-run resolves temporary IDs only in memory; v1 remains
+readable. App references remain deployment-specific; Gherkin remains web-only.

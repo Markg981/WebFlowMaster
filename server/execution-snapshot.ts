@@ -32,6 +32,7 @@ export interface SnapshotTestReference {
 }
 
 export interface ExecutionSnapshot {
+  mobileDefinitions?: import('./mobile-plan-units').FrozenMobileDefinition[];
   version: typeof EXECUTION_SNAPSHOT_VERSION;
   capturedAt: string;
   plan: { id: string; name: string; updatedAt: string | null };

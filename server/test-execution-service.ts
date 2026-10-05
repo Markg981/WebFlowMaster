@@ -19,6 +19,7 @@ import {
   type BrowserGrid,
 } from '@shared/schema';
 import { mobileDeviceLabel, performMobileTest, type MobileOutcome } from './mobile-runner';
+import { freezeMobilePlanDefinitions, mobilePlanTargets, type MobilePlanTarget } from './mobile-plan-units';
 import { toGridConfig } from './browser-grids';
 import { and, asc, eq, inArray } from 'drizzle-orm'; // Added sql
 import { v4 as uuidv4 } from 'uuid';
@@ -1067,6 +1068,25 @@ async function runTestPlanJobInTenant(
   });
 
   // Tests in quarantine run like the rest; their failures are recorded and do not count against
+  const frozenMobile = snapshot.mobileDefinitions ?? await withTenantTransaction(tx=>freezeMobilePlanDefinitions(tx,mobileTestIds));
+  await withTenantTransaction(async tx=>{
+    const required = await reviewRequired(tx, executionRecord[0].organizationId);
+    for(const frozen of frozenMobile){
+      const key = `mobile:${frozen.id}`;
+      if (required && (!frozen.version || frozen.definition.publishedVersion !== frozen.version)) {
+        unpublishedUnderPolicy.set(key, 'Not published: this organization runs reviewed, published versions only.');
+      } else {
+        unpublishedUnderPolicy.delete(key);
+      }
+      const [grid]=frozen.definition.gridId?await tx.select().from(browserGrids).where(eq(browserGrids.id,frozen.definition.gridId)):[];
+      mobileTestsMap.set(frozen.id,{test:frozen.definition,grid:grid??null});
+      if(frozen.version)mobileVersionsInRun.set(frozen.id,frozen.version);
+    }
+  });
+  if (!snapshot.mobileDefinitions) {
+    snapshot.mobileDefinitions=frozenMobile;
+    await withTenantTransaction(async tx=>{await tx.update(testPlanExecutionsTable).set({configurationSnapshot:snapshot}).where(eq(testPlanExecutionsTable.id,testPlanRunId));});
+  }
   // the run (server/test-quarantine.ts). Read as the run starts, like the published versions above.
   const quarantined = await withTenantTransaction((tx) =>
     openQuarantinesOf(tx, [
@@ -1189,7 +1209,7 @@ async function runTestPlanJobInTenant(
    * requests captured belong to the pass that captured them, not to the browser that ran
    * first.
    */
-  type RunUnit = { browserChoice?: BrowserChoice; locale?: string; link: (typeof selectedTestsLinks)[number]; bddRowIndex?: number };
+  type RunUnit = { browserChoice?: BrowserChoice; locale?: string; link: (typeof selectedTestsLinks)[number]; bddRowIndex?: number; mobileTarget?:MobilePlanTarget };
 
   /**
    * One test, on one browser.
@@ -1200,14 +1220,15 @@ async function runTestPlanJobInTenant(
    * other captured is how a parallel run quietly tests the wrong thing.
    */
   const runUnit = async (
-    { browserChoice, locale, link, bddRowIndex }: RunUnit,
+    { browserChoice, locale, link, bddRowIndex, mobileTarget }: RunUnit,
     captured: Record<string, string>,
     // Where its entry of the legacy results list goes: a shared run keeps them with each work item.
     sink: IndividualTestRunResult[] = legacyIndividualTestResultsForJsonBlob,
   ): Promise<void> => {
     let testObjectDefinition: Test | ApiTest | undefined;
     const testTypeForRun: 'ui' | 'api' | 'mobile' | undefined = link.testType as ('ui' | 'api' | 'mobile');
-    const mobile = link.testType === 'mobile' && link.mobileTestId ? mobileTestsMap.get(link.mobileTestId) : undefined;
+    const mobileBase = link.testType === 'mobile' && link.mobileTestId ? mobileTestsMap.get(link.mobileTestId) : undefined;
+    const mobile = mobileBase ? {...mobileBase,test:{...mobileBase.test,...mobileTarget}} : undefined;
 
     if (link.testId && link.testType === 'ui') {
       testObjectDefinition = uiTestsMap.get(link.testId);
@@ -1280,6 +1301,8 @@ async function runTestPlanJobInTenant(
       if (!mobile) {
         reportStatus = 'Error';
         failureReason = 'Mobile test not found: it was deleted after the run was planned.';
+      } else if ('preparationError' in mobile.test && mobile.test.preparationError) {
+        reportStatus='Error';failureReason=String(mobile.test.preparationError);
       } else if (!mobile.grid) {
         reportStatus = 'Error';
         failureReason = `${mobile.test.name} names no grid to run on. Choose a BrowserStack or LambdaTest grid in the test's settings.`;
@@ -1310,7 +1333,7 @@ async function runTestPlanJobInTenant(
         };
         stepsOrLogData = JSON.stringify(log);
         if (outcome.screenshot) {
-          const dir = path.join('./results', planId, testPlanRunId, `mobile_${mobile.test.id}`);
+          const dir = path.join('./results', planId, testPlanRunId, `mobile_${mobile.test.id}`, mobile.test.deviceMatrix?.length ? mobileTarget?.key ?? 'device-0' : '');
           try {
             await fs.ensureDir(dir);
             const file = path.join(dir, 'final.png');
@@ -1577,15 +1600,20 @@ async function runTestPlanJobInTenant(
     link.testType === 'mobile' ||
     (link.testType === 'ui' && !!link.testId && (uiTestsMap.get(link.testId)?.bdd?.mode === 'cucumber' || isManualSequence(uiTestsMap.get(link.testId)?.sequence)));
   const bddLinks=selectedTestsLinks.filter(link => link.testType === 'ui' && !!link.testId && uiTestsMap.get(link.testId)?.bdd?.mode === 'cucumber');
-  const lanePasses=usablePasses.length ? usablePasses : bddLinks.length ? [undefined] : [];
+  const independentLinks = selectedTestsLinks.filter(link => link.testType === 'mobile' || bddLinks.includes(link));
+  const lanePasses=usablePasses.length ? usablePasses : independentLinks.length ? [undefined] : [];
   const lanes = lanePasses.flatMap((browserChoice, browserIndex) =>
     runLocales.map((locale, localeIndex) => {
       const first = browserIndex === 0 && localeIndex === 0;
       return {
         browserChoice,
-        units: (usablePasses.length ? selectedTestsLinks : bddLinks)
+        units: (usablePasses.length ? selectedTestsLinks : independentLinks)
           .filter((link) => first || !isManualLink(link))
           .flatMap((link):RunUnit[] => {
+            if(link.testType==='mobile'&&link.mobileTestId){
+              const definition=mobileTestsMap.get(link.mobileTestId)?.test;
+              return definition?mobilePlanTargets(definition).map(mobileTarget=>({link,mobileTarget})):[{link}];
+            }
             const test=link.testType === 'ui' && link.testId ? uiTestsMap.get(link.testId) : undefined;
             if (test?.bdd?.mode === 'cucumber' && Array.isArray(test.dataset) && test.dataset.length) {
               return test.dataset.map((_row,bddRowIndex) => ({link,bddRowIndex}));
@@ -1657,7 +1685,7 @@ async function runTestPlanJobInTenant(
   const runShared = async () => {
     const worker = workerName();
     if (!helper) {
-      const spec = (unit: RunUnit) => ({ link: selectedTestsLinks.indexOf(unit.link), browserChoice: unit.browserChoice, locale: unit.locale,bddRowIndex:unit.bddRowIndex });
+      const spec = (unit: RunUnit) => ({ link: selectedTestsLinks.indexOf(unit.link), browserChoice: unit.browserChoice, locale: unit.locale,bddRowIndex:unit.bddRowIndex,mobileTarget:unit.mobileTarget });
       const items: Array<{ key: string; unit: WorkUnit }> = laneIsChained
         ? lanes.map((lane, i) => ({ key: `lane-${i}`, unit: { units: lane.units.map(spec), captured: lane.captured } }))
         : lanes.flatMap((lane, i) => lane.units.map((unit, j) => ({ key: `${i}-${j}`, unit: { units: [spec(unit)], captured: lane.captured } })));
@@ -1702,7 +1730,7 @@ async function runTestPlanJobInTenant(
             const link = selectedTestsLinks[spec.link];
             if (!link) continue;
             try {
-              await runUnit({ browserChoice: spec.browserChoice, locale: spec.locale, link,bddRowIndex:spec.bddRowIndex }, captured, legacy);
+              await runUnit({ browserChoice: spec.browserChoice, locale: spec.locale, link,bddRowIndex:spec.bddRowIndex,mobileTarget:spec.mobileTarget }, captured, legacy);
             } catch (error: any) {
               recordSettled([{ status: 'rejected', reason: error }], failures);
             }

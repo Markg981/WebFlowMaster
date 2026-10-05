@@ -36,7 +36,7 @@ export const WORK_POLL_MS = process.env.NODE_ENV === 'test' ? 20 : 1_000;
 
 /** What one item runs: tests in order, with the variables they start from. */
 export interface WorkUnit {
-  units: Array<{ link: number; browserChoice?: BrowserChoice; locale?: string; bddRowIndex?: number }>;
+  units: Array<{ link: number; browserChoice?: BrowserChoice; locale?: string; bddRowIndex?: number; mobileTarget?:import('./mobile-plan-units').MobilePlanTarget }>;
   captured: Record<string, string>;
 }
 

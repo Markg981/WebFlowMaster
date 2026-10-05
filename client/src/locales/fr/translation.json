@@ -3960,7 +3960,15 @@
       "swipe": "Balayer",
       "back": "Retour",
       "hideKeyboard": "Masquer le clavier",
-      "wait": "Attendre (secondes)"
+      "wait": "Attendre (secondes)",
+      "if": "Si",
+      "else": "Sinon",
+      "endIf": "Fin de condition",
+      "repeat": "Répéter",
+      "repeatWhile": "Répéter tant que",
+      "endLoop": "Fin de boucle",
+      "assertCondition": "Vérifier la condition",
+      "callGroup": "Appeler un groupe mobile"
     },
     "uploadFailed": "L'application n'a pas été envoyée.",
     "fixSteps": "Corrigez d'abord les étapes marquées en rouge.",
@@ -4003,7 +4011,8 @@
       "skipped": "Ignoré",
       "screenshot": "L'appareil à la fin de l'exécution",
       "again": "Exécuter à nouveau",
-      "start": "Exécuter"
+      "start": "Exécuter",
+      "loadFailed": "Impossible de charger les groupes mobiles."
     },
     "close": "Fermer",
     "loadFailed": "Impossible de charger les tests mobiles.",
@@ -4041,7 +4050,29 @@
     "quarantined": "En quarantaine",
     "quarantineFor": "Mettre {{name}} en quarantaine",
     "unstable": "Instable",
-    "unstableOn": "{{device}} : verdict changé {{flips}}× en {{runs}} exécutions"
+    "unstableOn": "{{device}} : verdict changé {{flips}}× en {{runs}} exécutions",
+    "flow": {
+      "groupEditor": "Groupe d’étapes mobiles",
+      "description": "Description",
+      "loadFailed": "Impossible de charger les groupes mobiles.",
+      "groups": "Groupes mobiles réutilisables",
+      "newGroup": "Nouveau groupe",
+      "groupHint": "Réutilisez les étapes natives sur la même plateforme. Les exécutions en attente conservent le contenu original des groupes.",
+      "deleteGroup": "Supprimer le groupe ?",
+      "runMatrix": "Exécuter la matrice d’appareils",
+      "optionalElement": "Élément facultatif",
+      "groupOf": "Groupe de l’étape {{number}}",
+      "chooseGroup": "Choisir un groupe",
+      "unavailableGroup": "Groupe indisponible sur cette plateforme",
+      "matrix": "Matrice d’appareils",
+      "matrixHint": "Une matrice vide utilise l’appareil par défaut. Sinon chaque combinaison appareil/OS est exécutée une fois (20 maximum).",
+      "deviceOf": "Appareil {{number}}",
+      "osOf": "Version OS {{number}}",
+      "removeDevice": "Retirer l’appareil",
+      "addDevice": "Ajouter un appareil",
+      "targetCount": "{{count}} combinaisons appareil/OS"
+    },
+    "edit": "Modifier"
   },
   "mobileInspector": {
     "title": "Inspecteur",
@@ -4139,7 +4170,7 @@
   "testFiles": {
     "button": "Fichiers",
     "title": "Tests en fichiers",
-    "description": "Les tests web et API d'un projet dans un seul fichier YAML ou JSON, à garder dans un dépôt à côté de l'application. Le réimporter met à jour les tests du même nom — chacun reçoit une nouvelle version — et crée les autres. Les secrets des tests API sont écrits comme variables.",
+    "description": "Exportez les tests web, API et mobiles en YAML ou JSON. L’import met à jour les définitions de même nom et crée les autres. Les tests modifiés reçoivent une nouvelle version. Les secrets API sont écrits sous forme de variables.",
     "export": "Exporter",
     "project": "Projet",
     "allTests": "Tous les tests",
@@ -4160,7 +4191,8 @@
       "invalid": "non importé"
     },
     "gherkinExport": "Exporte uniquement les tests web. Les métadonnées WebFlowMaster conservent les actions originales ; l’exécution Cucumber nécessite vos définitions d’étapes.",
-    "gherkinImport": "Les dialectes Gherkin standard, Rule, Background, Scenario Outline, tags, doc strings et tables sont pris en charge. Choisissez le mode manuel ou un profil Cucumber autorisé. Les métadonnées WFM restaurent les actions web exportées."
+    "gherkinImport": "Les dialectes Gherkin standard, Rule, Background, Scenario Outline, tags, doc strings et tables sont pris en charge. Choisissez le mode manuel ou un profil Cucumber autorisé. Les métadonnées WFM restaurent les actions web exportées.",
+    "nativeHint": "YAML/JSON inclut les tests mobiles, groupes et matrices d’appareils. Gherkin exporte les tests web. Un nouvel envoi de l’app peut être nécessaire ; configurez une grille après l’import."
   },
   "impactMap": {
     "title": "Carte d'impact",

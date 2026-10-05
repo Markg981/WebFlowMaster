@@ -1,3 +1,5 @@
+import { compareValues } from './value-comparison';
+export { compareValues } from './value-comparison';
 import type { Locator, Page } from 'playwright';
 import { clearMocks, installBlock, installMock, parseMockSpec } from './network-mocks';
 import type { PlaywrightReporter } from './playwright-reporter';
@@ -442,33 +444,6 @@ export const CONDITION_STATES = ['visible', 'hidden', 'exists', 'missing', 'chec
  * Compares two values: "{{status}} == Paid", "{{count}} > 3", "{{title}} contains Order".
  * Also takes a bare "true" or "false", which is what a variable holding a flag resolves to.
  */
-export function compareValues(expression: string): { value: boolean } | { error: string } {
-  const text = expression.trim();
-  if (/^true$/i.test(text)) return { value: true };
-  if (/^false$/i.test(text)) return { value: false };
-
-  const words = /^(.*?)\s+(not contains|contains)\s+(.*)$/is.exec(text);
-  if (words) {
-    const found = words[1].trim().includes(words[3].trim());
-    return { value: words[2].toLowerCase() === 'contains' ? found : !found };
-  }
-
-  const symbols = /^(.*?)\s*(==|!=|>=|<=|>|<)\s*(.*)$/s.exec(text);
-  if (!symbols) {
-    return { error: `"${expression}" is not a comparison. Write it as left == right, !=, >, <, >=, <=, contains or not contains.` };
-  }
-  const [, rawLeft, operator, rawRight] = symbols;
-  const left = rawLeft.trim();
-  const right = rawRight.trim();
-  if (operator === '==') return { value: left === right };
-  if (operator === '!=') return { value: left !== right };
-  const a = Number(left);
-  const b = Number(right);
-  if (left === '' || right === '' || Number.isNaN(a) || Number.isNaN(b)) {
-    return { error: `"${left}" ${operator} "${right}" compares values that are not both numbers.` };
-  }
-  return { value: compareCount(operator, a, b) ?? false };
-}
 
 /**
  * The condition of an `if` or a `repeatWhile`.

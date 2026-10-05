@@ -34,7 +34,7 @@ const request = { gridId: 'g1', platform: 'android' as const, app: 'bs://app', d
 
 const fetchMock = vi.fn();
 // The dialog reads the projects as it opens; the calls under test are the others.
-const calls = () => fetchMock.mock.calls.filter(([url]) => url !== '/api/projects');
+const calls = () => fetchMock.mock.calls.filter(([url]) => url !== '/api/projects' && url !== '/api/mobile-step-groups');
 const reply = (body: unknown, status = 200) => Promise.resolve({ ok: status < 400, status, json: async () => body });
 
 beforeEach(() => {

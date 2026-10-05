@@ -1,4 +1,6 @@
 import { quotaErrorBody } from '../tenant-quotas';
+import { mobileTests, mobileStepGroups } from '@shared/schema';
+import { importMobileCatalog, type MobileImportOutcome } from '../mobile-bundle';
 import { Router, type Response } from "express";
 import { tests, insertTestSchema, apiTests, insertApiTestSchema, updateApiTestSchema, users, projects, projectMembers, AUDIT_ACTIONS } from "@shared/schema";
 import { auditActor, changedFields, recordAudit } from "../audit";
@@ -645,7 +647,7 @@ router.get("/api/tests/export", requireRole('viewer'), async (req, res) => {
   const format = req.query.format === 'json' ? 'json' : req.query.format === 'gherkin' ? 'gherkin' : 'yaml';
   const { projectId } = filter;
   const data = await withTenantTransaction(async (tx) => {
-    const where = <T extends typeof tests | typeof apiTests>(table: T) =>
+    const where = <T extends typeof tests | typeof apiTests | typeof mobileTests>(table: T) =>
       projectId === undefined ? undefined : projectId === null ? isNull(table.projectId) : eq(table.projectId, projectId);
     const [project] = projectId ? await tx.select({ name: projects.name }).from(projects).where(eq(projects.id, projectId)) : [];
     return {
@@ -653,13 +655,15 @@ router.get("/api/tests/export", requireRole('viewer'), async (req, res) => {
       projectMissing: Boolean(projectId) && !project,
       tests: await tx.select().from(tests).where(where(tests)),
       apiTests: await tx.select().from(apiTests).where(where(apiTests)),
+      mobileTests: format==='gherkin'?[]:await tx.select().from(mobileTests).where(where(mobileTests)),
+      mobileStepGroups: format==='gherkin'?[]:await tx.select().from(mobileStepGroups),
     };
   });
   if (data.projectMissing) return res.status(404).json({ error: "Project not found" });
   let bundle;
   try { bundle = exportBundle(data, format); }
   catch (error) {
-    if (error instanceof GherkinError) return res.status(400).json({ error: error.message });
+    if (error instanceof GherkinError || error instanceof BundleError) return res.status(400).json({ error: error.message });
     throw error;
   }
   res.setHeader("Content-Disposition", `attachment; filename="${bundle.fileName}"`);
@@ -697,7 +701,7 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
   type Outcome = { kind: 'test' | 'api_test'; name: string; outcome: 'created' | 'updated' | 'unchanged' | 'invalid'; reason?: string };
   try {
     const outcomes = await withTenantTransaction(async (tx) => {
-      const results: Outcome[] = [];
+      const results: Array<Outcome|MobileImportOutcome> = [];
       const projectAccess = new Map<number, boolean>();
       const canEditProject = async (id: number | null): Promise<boolean> => {
         if (id === null) return true;
@@ -805,6 +809,7 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
         }
         results.push({ kind: 'api_test', name, outcome: existing ? 'updated' : 'created' });
       }
+      results.push(...await importMobileCatalog(tx,{bundle,projectId,dryRun:parsed.data.dryRun,userId:req.user!.id,actor:auditActor(req),canEditProject}));
       const count = (o: Outcome['outcome']) => results.filter((r) => r.outcome === o).length;
       if (!parsed.data.dryRun && (count('created') > 0 || count('updated') > 0)) {
         await recordAudit(tx, {

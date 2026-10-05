@@ -46,6 +46,7 @@ const PROVENANCE = [
   'test_case_links.created_by',
   'test_management_publications.requested_by',
   'mobile_tests.created_by',
+  'mobile_step_groups.created_by',
   'mobile_test_runs.requested_by',
   'password_resets.created_by',
   'source_hosts.created_by',

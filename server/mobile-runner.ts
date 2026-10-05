@@ -7,6 +7,7 @@ import {
   parseMobileLocator,
   type MobileStep,
   type MobileStepResult,
+  type MobileExecutionStep,
 } from '@shared/mobile';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { withExecutionUsage } from './execution-usage';
@@ -16,6 +17,8 @@ import { substituteVariables } from './outbound-http';
 import { AppiumSession, WebDriverError, type Fetch } from './appium-client';
 import { AgentHttp } from './agents/agent-fetch';
 import { LOCAL_APPIUM_DEFAULT_URL } from '@shared/browser-grids';
+import { executeMobileFlow, validateMobileExecution } from './mobile-flow';
+import { prepareMobileSteps } from './mobile-step-groups';
 
 /**
  * Running a mobile test (shared/mobile.ts) on a cloud grid's real device.
@@ -230,6 +233,8 @@ export async function runMobileStep(ctx: StepContext, step: MobileStep): Promise
     case 'wait':
       await sleep(Math.min(Number(resolve(step.value)) || 0, 60) * 1000);
       return;
+    default:
+      throw new Error(`The mobile action ${step.action} requires a test flow, not an inspector interaction.`);
   }
 }
 
@@ -281,7 +286,7 @@ export interface MobileOutcome {
  * that would not open, or a grid that runs no apps, is an 'error' outcome with the reason.
  */
 export async function performMobileTest(
-  test: Pick<MobileTest, 'platform' | 'app' | 'deviceName' | 'osVersion' | 'name' | 'steps'>,
+  test: Pick<MobileTest, 'platform' | 'app' | 'deviceName' | 'osVersion' | 'name' | 'steps'> & { executionSteps?: MobileExecutionStep[] },
   grid: GridConfig,
   vars: Record<string, string>,
   build: string,
@@ -291,27 +296,18 @@ export async function performMobileTest(
   let session: AppiumSession | null = null;
   let transport: ReturnType<typeof appiumTransport> | null = null;
   try {
+    const steps = test.executionSteps ?? test.steps;
+    validateMobileExecution(steps, test.platform);
     const request = mobileSessionRequest(grid, test, build);
     transport = appiumTransport(grid, deps.fetch);
     const doFetch = transport.fetch;
     session = await AppiumSession.open({ ...request, fetch: doFetch });
 
-    let failure: string | null = null;
-    for (const [index, step] of test.steps.entries()) {
-      if (failure) {
-        results.push({ index, action: step.action, target: step.target, status: 'skipped', durationMs: 0 });
-        continue;
-      }
-      const started = Date.now();
-      try {
-        const detail = await runMobileStep({ session, platform: test.platform, vars, elementTimeoutMs: deps.elementTimeoutMs }, step);
-        results.push({ index, action: step.action, target: step.target, status: 'passed', durationMs: Date.now() - started, ...(detail ? { detail } : {}) });
-      } catch (error: any) {
-        failure = redactGridSecret(String(error?.message ?? error), grid);
-        results.push({ index, action: step.action, target: step.target, status: 'failed', error: failure, durationMs: Date.now() - started });
-      }
-      await deps.onStep?.(results);
-    }
+    const flow = await executeMobileFlow({ steps, session, platform: test.platform, vars,
+      primitive: step => runMobileStep({ session: session!, platform: test.platform, vars, elementTimeoutMs: deps.elementTimeoutMs }, step),
+      onStep: deps.onStep ? rows => deps.onStep!(rows.map(row => ({ ...row, error: row.error ? redactGridSecret(row.error, grid) : undefined }))) : undefined });
+    results.push(...flow.results.map(row => ({ ...row, error: row.error ? redactGridSecret(row.error, grid) : undefined })));
+    const failure = flow.failure ? redactGridSecret(flow.failure, grid) : null;
 
     const screenshot = await session.screenshot();
     await markSession(session, grid, !failure, failure ?? 'All steps passed');
@@ -347,7 +343,8 @@ export async function executeMobileRun(runId: string, organizationId: number, us
       const [test] = await tx.select().from(mobileTests).where(eq(mobileTests.id, run.mobileTestId)).limit(1);
       const [grid] = run.gridId ? await tx.select().from(browserGrids).where(eq(browserGrids.id, run.gridId)).limit(1) : [];
       // A delayed debug run must use the working copy it was started with.
-      return { run, test: test && run.testSnapshot ? { ...test, ...run.testSnapshot } as MobileTest : test, grid };
+      const definition = test && run.testSnapshot ? { ...test, ...run.testSnapshot } as MobileTest & {executionSteps?:MobileExecutionStep[]} : test;
+      return { run, test: definition, grid };
     });
     if (!loaded) return;
     const { run, test, grid: gridRow } = loaded;
@@ -357,6 +354,11 @@ export async function executeMobileRun(runId: string, organizationId: number, us
     }
     const grid = toGridConfig(gridRow);
     try {
+      if (!('executionSteps' in test)) {
+        const executionSteps=await withTenantTransaction(tx=>prepareMobileSteps(tx,test));
+        Object.assign(test,{executionSteps});
+        await update({testSnapshot:{...run.testSnapshot,...test,executionSteps}});
+      }
       await update({ status: 'running', startedAt: new Date() });
       const vars = await resolveVariables({ userId, organizationId, environmentId: run.environmentId });
       const outcome = await withExecutionUsage('mobile', () => performMobileTest(test, grid, vars, `WebFlowMaster · ${test.name}`, {

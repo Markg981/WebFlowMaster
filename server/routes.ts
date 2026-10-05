@@ -77,6 +77,7 @@ import bddRoutes from './routes/bdd.routes';
 import sourceHostsRoutes from "./routes/source-hosts.routes";
 import webhookManagementRoutes from "./routes/webhooks.routes";
 import stepGroupsRoutes from "./routes/step-groups.routes";
+import mobileStepGroupsRoutes from './routes/mobile-step-groups.routes';
 import customActionsRoutes from "./routes/custom-actions.routes";
 import manualResultsRoutes from "./routes/manual-results.routes";
 import failureAnalysisRoutes from "./routes/failure-analysis.routes";
@@ -243,6 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(mailTemplateRoutes);
   app.use(testManagementRoutes);
   app.use(mobileTestsRoutes);
+  app.use(mobileStepGroupsRoutes);
     app.use(quarantineRoutes);
     app.use(webhookManagementRoutes);
     app.use(stepGroupsRoutes);

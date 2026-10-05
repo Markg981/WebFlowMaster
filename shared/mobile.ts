@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { analyseFlow, MAX_LOOP_ITERATIONS } from './flow';
 
 /**
  * Tests of native mobile apps: an Android or iOS app on a real device of a cloud grid, driven
@@ -34,6 +35,14 @@ export const MOBILE_ACTIONS = {
   hideKeyboard: { target: false, value: false },
   /** Seconds. */
   wait: { target: false, value: true },
+  if: { target: false, value: true },
+  else: { target: false, value: false },
+  endIf: { target: false, value: false },
+  repeat: { target: false, value: true },
+  repeatWhile: { target: false, value: true },
+  endLoop: { target: false, value: false },
+  assertCondition: { target: false, value: true },
+  callGroup: { target: false, value: true },
 } as const;
 export type MobileActionId = keyof typeof MOBILE_ACTIONS;
 export const MOBILE_ACTION_IDS = Object.keys(MOBILE_ACTIONS) as MobileActionId[];
@@ -45,6 +54,21 @@ export interface MobileStep {
   action: MobileActionId;
   target?: string;
   value?: string;
+}
+
+export interface MobileExecutionStep extends MobileStep {
+  sourceIndex?: number;
+  groupId?: string;
+  groupName?: string;
+}
+export const mobileFlowSteps = (steps: readonly MobileStep[]) => steps.map(step => ({ action: { id: step.action } }));
+export const mobileDeviceTargetSchema = z.object({
+  deviceName: z.string().trim().min(1).max(120),
+  osVersion: z.string().trim().max(20).nullable().optional().transform(value => value || null),
+});
+export type MobileDeviceTarget = z.infer<typeof mobileDeviceTargetSchema>;
+export function mobileDeviceTargets(test: { deviceName: string; osVersion?: string | null; deviceMatrix?: Array<{ deviceName: string; osVersion?: string | null }> }): MobileDeviceTarget[] {
+  return (test.deviceMatrix?.length ? test.deviceMatrix : [test]).map(target => ({ deviceName: target.deviceName.trim(), osVersion: target.osVersion?.trim() || null }));
 }
 
 /** A locator as WebDriver takes it: a strategy and a value. */
@@ -102,7 +126,7 @@ export function parseMobileLocator(raw: string, platform: MobilePlatform): Mobil
 export function mobileStepProblem(step: MobileStep, platform: MobilePlatform): string | null {
   const spec = MOBILE_ACTIONS[step.action];
   if (!spec) return `"${step.action}" is not a mobile action.`;
-  if (spec.target) {
+  if (spec.target || ((step.action === 'if' || step.action === 'repeatWhile') && step.target?.trim())) {
     if (!step.target?.trim()) return `${step.action} needs an element.`;
     if (!parseMobileLocator(step.target, platform)) {
       return `"${step.target}" is not a locator for ${MOBILE_PLATFORM_LABELS[platform]}: write ~accessibilityId, id=…, text=…, an XPath, or ${platform === "android" ? "android=…" : "ios=… or chain=…"}.`;
@@ -116,7 +140,22 @@ export function mobileStepProblem(step: MobileStep, platform: MobilePlatform): s
     const seconds = Number(step.value);
     if (!Number.isFinite(seconds) || seconds <= 0 || seconds > 60) return "wait takes a number of seconds, up to 60.";
   }
+  if ((step.action === 'if' || step.action === 'repeatWhile') && step.target?.trim() && !/^(visible|hidden|contains:.+|text:.*)$/s.test(step.value ?? '')) return 'Native conditions take visible, hidden, contains:text or text:text.';
+  if (step.action === 'repeat' && !/\{\{[^{}]+\}\}/.test(step.value ?? '')) {
+    const count = Number(step.value);
+    if (!Number.isInteger(count) || count < 1 || count > MAX_LOOP_ITERATIONS) return `repeat takes an integer from 1 to ${MAX_LOOP_ITERATIONS}.`;
+  }
   return null;
+}
+
+export function mobileStepsProblems(steps: readonly MobileStep[], platform: MobilePlatform): string[] {
+  const problems = steps.flatMap((step, index) => {
+    const problem = mobileStepProblem(step, platform);
+    return problem ? [`Step ${index + 1}: ${problem}`] : [];
+  });
+  const flow = analyseFlow(mobileFlowSteps(steps));
+  if (!flow.ok) problems.push(...flow.errors);
+  return problems;
 }
 
 export const mobileStepSchema = z.object({
@@ -124,7 +163,7 @@ export const mobileStepSchema = z.object({
   action: z.enum(MOBILE_ACTION_IDS as [MobileActionId, ...MobileActionId[]]),
   target: z.string().max(2000).optional(),
   value: z.string().max(5000).optional(),
-});
+}).transform(step => step.action === 'callGroup' && step.value ? {...step, value: step.value.trim()} : step);
 
 /** A file on the agent's machine, for a local Appium: /home/qa/shop.apk, C:\\apps\\shop.apk, ~/shop.ipa. */
 export function isLocalAppPath(app: string): boolean {
@@ -146,6 +185,7 @@ export const mobileTestSchema = z
       ),
     deviceName: z.string().trim().min(1, "Which device, as the grid names it: Google Pixel 8, iPhone 15.").max(120),
     osVersion: z.string().trim().max(20).optional().nullable(),
+    deviceMatrix: z.array(mobileDeviceTargetSchema).max(20).default([]),
     /** The project it belongs to; in a restricted one, only its members see it (migration 0057). */
     projectId: z.number().int().positive().optional().nullable(),
     /** The grid it runs on in a plan: a BrowserStack or LambdaTest one of the organization. */
@@ -153,10 +193,9 @@ export const mobileTestSchema = z
     steps: z.array(mobileStepSchema).max(200),
   })
   .superRefine((test, ctx) => {
-    test.steps.forEach((step, index) => {
-      const problem = mobileStepProblem(step, test.platform);
-      if (problem) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["steps", index], message: `Step ${index + 1}: ${problem}` });
-    });
+    for (const message of mobileStepsProblems(test.steps, test.platform)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['steps'], message });
+    const keys = test.deviceMatrix.map(target => JSON.stringify([target.deviceName, target.osVersion]));
+    if (new Set(keys).size !== keys.length) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['deviceMatrix'], message: 'Device/OS pairs must be unique.' });
   });
 
 export type MobileTestInput = z.infer<typeof mobileTestSchema>;
@@ -171,6 +210,12 @@ export interface MobileStepResult {
   error?: string;
   detail?: string;
   durationMs: number;
+  stepId?: string;
+  sourceIndex?: number;
+  groupId?: string;
+  groupName?: string;
+  iterationKey?: string | null;
+  skipReason?: 'branch' | 'failure';
 }
 
 /**
@@ -198,7 +243,7 @@ export function mobileLogSteps(log: MobileResultLog) {
   return log.steps
     .filter((step) => step.status !== "skipped")
     .map((step) => ({
-      name: `${step.index + 1}. ${step.action}${step.target ? ` ${step.target}` : ""}`,
+      name: `${step.index + 1}. ${step.groupName ? `${step.groupName} › ` : ''}${step.action}${step.target ? ` ${step.target}` : ""}${step.iterationKey ? ` (${step.iterationKey})` : ''}`,
       type: step.action,
       selector: step.target ?? null,
       status: step.status,

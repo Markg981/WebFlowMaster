@@ -1,5 +1,5 @@
 {
-  "version": 23,
+  "version": 24,
   "areas": [
     {
       "id": "ACC",
@@ -6980,6 +6980,113 @@
         "Modificare sorgente e modalità, salvare e riaprire; cambiare test selezionato; produrre allegato text/plain, HTML e una credenziale nel diagnostico."
       ],
       "expected": "Sorgente e selettori restano coerenti; il report applica escape e redazione, conserva testo semplice e omette HTML/binari."
+    },
+    {
+      "id": "MOB-33",
+      "area": "MOB",
+      "title": "Condizioni native if/else",
+      "priority": "P1",
+      "actor": "editor.a, owner.a",
+      "preconditions": "Migrazione 0082 applicata. Test Android con banner presente e assente, grid Appium configurata.",
+      "steps": [
+        "Creare if ~banner visible, tap nel ramo vero, else/back ed endIf.",
+        "Eseguire con banner presente e assente.",
+        "Interrompere il collegamento Appium durante la condizione."
+      ],
+      "expected": "Esegue solo il ramo selezionato; l’altro è skipped. Un errore di trasporto fallisce il run."
+    },
+    {
+      "id": "MOB-34",
+      "area": "MOB",
+      "title": "Cicli nativi e limiti",
+      "priority": "P1",
+      "actor": "editor.a, owner.a",
+      "preconditions": "Migrazione 0082 applicata. Test Android con azioni back, ambiente con variabile count=2.",
+      "steps": [
+        "Creare repeat {{count}}, type con {{loopIndex}} ed endLoop; aggiungere un ciclo annidato.",
+        "Eseguire repeatWhile true e un ciclo annidato oltre 10.000 visite."
+      ],
+      "expected": "Iterazioni distinte; indice esterno ripristinato. I limiti di 200 iterazioni e 10.000 visite falliscono esplicitamente."
+    },
+    {
+      "id": "MOB-35",
+      "area": "MOB",
+      "title": "Gruppi nativi riutilizzabili e snapshot",
+      "priority": "P1",
+      "actor": "editor.a, owner.a",
+      "preconditions": "Migrazione 0082 applicata. Gruppo Login Android richiamato da due test; run temporaneamente accodato.",
+      "steps": [
+        "Accodare un run che richiama Login.",
+        "Modificare Login aggiungendo un passo.",
+        "Eseguire il run accodato e un nuovo run."
+      ],
+      "expected": "Il run accodato conserva il contenuto precedente; il nuovo usa il gruppo aggiornato. Gruppi annidati rifiutati."
+    },
+    {
+      "id": "MOB-36",
+      "area": "MOB",
+      "title": "Permessi gruppi mobile e dipendenze riservate",
+      "priority": "P1",
+      "actor": "editor.a, owner.a",
+      "preconditions": "Migrazione 0082 applicata. Progetto riservato con editor membro, viewer e outsider; gruppo aperto richiamato da un test riservato.",
+      "steps": [
+        "Leggere e modificare il gruppo riservato come viewer e outsider.",
+        "Cancellare il gruppo aperto come outsider del progetto del test."
+      ],
+      "expected": "Viewer: lettura consentita e scrittura 403. Outsider: gruppo nascosto. Cancellazione 409 senza nomi di test inaccessibili."
+    },
+    {
+      "id": "MOB-37",
+      "area": "MOB",
+      "title": "Matrice mobile standalone",
+      "priority": "P1",
+      "actor": "editor.a, owner.a",
+      "preconditions": "Migrazione 0082 applicata. Test Android con due coppie dispositivo/OS e app disponibile sui dispositivi.",
+      "steps": [
+        "Configurare due target e avviare Esegui matrice dispositivi.",
+        "Far fallire il primo target; seguire i due risultati."
+      ],
+      "expected": "Due run con snapshot target distinti, sessioni e risultati separati. Il secondo target esegue anche se il primo fallisce."
+    },
+    {
+      "id": "MOB-38",
+      "area": "MOB",
+      "title": "Matrice mobile nei piani",
+      "priority": "P1",
+      "actor": "editor.a, owner.a",
+      "preconditions": "Migrazione 0082 applicata. Piano con due browser, due lingue, un test web e un mobile con due target.",
+      "steps": [
+        "Eseguire il piano con retry e controllare report e screenshot.",
+        "Ripetere con shard e quarantena del test mobile."
+      ],
+      "expected": "Quattro risultati web e due mobile; screenshot separati e retry per dispositivo. Gli shard conservano il target; quarantena e policy di arresto rispettate."
+    },
+    {
+      "id": "MOB-39",
+      "area": "MOB",
+      "title": "Catalogo mobile portabile e anteprima",
+      "priority": "P1",
+      "actor": "editor.a, owner.a",
+      "preconditions": "Migrazione 0082 applicata. Organizzazioni A e B; test mobile di A con gruppo e matrice; progetto modificabile in B.",
+      "steps": [
+        "Esportare YAML e JSON da A.",
+        "In B eseguire anteprima e verificare assenza di scritture.",
+        "Importare, configurare grid/app e ripetere l’import."
+      ],
+      "expected": "Riferimenti gruppi rimappati; matrice conservata; anteprima senza versioni/audit/scritture. Nuovo test senza grid. Secondo import unchanged, nessuna nuova versione."
+    },
+    {
+      "id": "MOB-40",
+      "area": "MOB",
+      "title": "Catalogo mobile con dipendenze non valide",
+      "priority": "P1",
+      "actor": "editor.a, owner.a",
+      "preconditions": "Migrazione 0082 applicata. Bundle v2 modificabile con gruppi e test mobile.",
+      "steps": [
+        "Duplicare una chiave gruppo; aggiungere richiamo mancante o gruppo di piattaforma diversa.",
+        "Eseguire anteprima e import."
+      ],
+      "expected": "Esiti invalid espliciti; nessun test salvato contro una dipendenza non valida. I bundle v1 sono ancora leggibili."
     }
   ],
   "presentation": {

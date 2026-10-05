@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { privilegedDb } from './db';
 import {
   browserGrids,
+  organizations,
   mobileTests,
   reportTestCaseResults,
   testPlanExecutions,
@@ -55,7 +56,8 @@ const { stepsWithArtifactUrls } = await import('./routes/artifacts.routes');
 const { evidenceSteps } = await import('./failure-analysis');
 
 // A 1×1 PNG.
-const PIXEL = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+const PIXEL =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 const passed: MobileOutcome = {
   status: 'passed',
   steps: [{ index: 0, action: 'tap', target: '~Login', status: 'passed', durationMs: 40 }],
@@ -65,7 +67,16 @@ const passed: MobileOutcome = {
 };
 const failed: MobileOutcome = {
   status: 'failed',
-  steps: [{ index: 0, action: 'tap', target: '~Login', status: 'failed', error: 'No visible element ~Login within 15s.', durationMs: 15000 }],
+  steps: [
+    {
+      index: 0,
+      action: 'tap',
+      target: '~Login',
+      status: 'failed',
+      error: 'No visible element ~Login within 15s.',
+      durationMs: 15000,
+    },
+  ],
   error: 'No visible element ~Login within 15s.',
   screenshot: null,
   sessionUrl: null,
@@ -78,19 +89,41 @@ let uiTestId: number;
 let mobileTestId: number;
 let gridId: string;
 
-async function seedPlan(planColumns: Record<string, unknown> = {}, mobileColumns: Record<string, unknown> = {}) {
+async function seedPlan(
+  planColumns: Record<string, unknown> = {},
+  mobileColumns: Record<string, unknown> = {},
+) {
   planId = uuidv4();
-  await privilegedDb.insert(testPlans).values({ id: planId, name: 'Release', userId, organizationId, ...planColumns } as any);
+  await privilegedDb
+    .insert(testPlans)
+    .values({ id: planId, name: 'Release', userId, organizationId, ...planColumns } as any);
 
   const [uiTest] = await privilegedDb
     .insert(testsTable)
-    .values({ userId, organizationId, name: 'Login works', url: 'https://example.test/login', sequence: [], elements: [] })
+    .values({
+      userId,
+      organizationId,
+      name: 'Login works',
+      url: 'https://example.test/login',
+      sequence: [],
+      elements: [],
+    })
     .returning();
   uiTestId = uiTest.id;
-  await privilegedDb.insert(testPlanSelectedTests).values({ testPlanId: planId, testType: 'ui', testId: uiTestId, organizationId } as any);
+  await privilegedDb
+    .insert(testPlanSelectedTests)
+    .values({ testPlanId: planId, testType: 'ui', testId: uiTestId, organizationId } as any);
 
   gridId = uuidv4();
-  await privilegedDb.insert(browserGrids).values({ id: gridId, organizationId, name: 'BrowserStack', provider: 'browserstack', username: 'qa' });
+  await privilegedDb
+    .insert(browserGrids)
+    .values({
+      id: gridId,
+      organizationId,
+      name: 'BrowserStack',
+      provider: 'browserstack',
+      username: 'qa',
+    });
   const [mobile] = await privilegedDb
     .insert(mobileTests)
     .values({
@@ -106,17 +139,32 @@ async function seedPlan(planColumns: Record<string, unknown> = {}, mobileColumns
     } as any)
     .returning();
   mobileTestId = mobile.id;
-  await privilegedDb.insert(testPlanSelectedTests).values({ testPlanId: planId, testType: 'mobile', mobileTestId, organizationId } as any);
+  await privilegedDb
+    .insert(testPlanSelectedTests)
+    .values({ testPlanId: planId, testType: 'mobile', mobileTestId, organizationId } as any);
 }
 
 async function runPlan(executionColumns: Record<string, unknown> = {}) {
   const executionId = uuidv4();
   await privilegedDb
     .insert(testPlanExecutions)
-    .values({ id: executionId, organizationId, testPlanId: planId, status: 'queued', triggeredBy: 'manual', ...executionColumns } as any);
+    .values({
+      id: executionId,
+      organizationId,
+      testPlanId: planId,
+      status: 'queued',
+      triggeredBy: 'manual',
+      ...executionColumns,
+    } as any);
   await processTestPlanJob(planId, executionId, userId);
-  const [execution] = await privilegedDb.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId));
-  const rows = await privilegedDb.select().from(reportTestCaseResults).where(eq(reportTestCaseResults.testPlanExecutionId, executionId));
+  const [execution] = await privilegedDb
+    .select()
+    .from(testPlanExecutions)
+    .where(eq(testPlanExecutions.id, executionId));
+  const rows = await privilegedDb
+    .select()
+    .from(reportTestCaseResults)
+    .where(eq(reportTestCaseResults.testPlanExecutionId, executionId));
   return { execution, rows, mobileRows: rows.filter((row) => row.testType === 'mobile') };
 }
 
@@ -124,12 +172,17 @@ beforeEach(async () => {
   organizationId = await createTestOrganization('Mobile Plans Org');
   const [user] = await privilegedDb
     .insert(users)
-    .values({ username: `mobile-plans-${uuidv4().slice(0, 8)}`, password: 'hashed', organizationId })
+    .values({
+      username: `mobile-plans-${uuidv4().slice(0, 8)}`,
+      password: 'hashed',
+      organizationId,
+    })
     .returning();
   userId = user.id;
   executeTestSequence.mockReset();
   executeTestSequence.mockResolvedValue({ success: true, steps: [], duration: 5 });
-  launchBrowser.mockClear();
+  launchBrowser.mockReset();
+  launchBrowser.mockResolvedValue({ close: async () => {} });
   performMobileTest.mockReset();
   performMobileTest.mockResolvedValue(passed);
 });
@@ -139,6 +192,78 @@ afterEach(async () => {
 });
 
 describe('a mobile test in a plan', () => {
+  it('runs native targets when all web browser probes fail', async () => {
+    await seedPlan(
+      {},
+      {
+        deviceMatrix: [
+          { deviceName: 'Pixel 8', osVersion: '14' },
+          { deviceName: 'Pixel 9', osVersion: '15' },
+        ],
+      },
+    );
+    launchBrowser.mockRejectedValueOnce(new Error('No browser binary'));
+    launchBrowser.mockRejectedValueOnce(new Error('No browser binary'));
+    const { mobileRows } = await runPlan({ browsers: ['chromium'] });
+    expect(performMobileTest).toHaveBeenCalledTimes(2);
+    expect(mobileRows).toHaveLength(2);
+  });
+  it('does not execute frozen unpublished content after a later publication', async () => {
+    await seedPlan({}, { publishedVersion: 2 });
+    const [plan] = await privilegedDb.select().from(testPlans).where(eq(testPlans.id, planId));
+    const [mobile] = await privilegedDb
+      .select()
+      .from(mobileTests)
+      .where(eq(mobileTests.id, mobileTestId));
+    const snapshot = buildExecutionSnapshot(plan, [
+      { testType: 'mobile', testId: null, apiTestId: null, mobileTestId },
+    ]);
+    snapshot.mobileDefinitions = [
+      {
+        id: mobileTestId,
+        version: 1,
+        definition: { ...mobile, publishedVersion: null, executionSteps: mobile.steps },
+      },
+    ];
+    await privilegedDb
+      .update(organizations)
+      .set({ testReviewRequired: true })
+      .where(eq(organizations.id, organizationId));
+    // Mimic a live publication via the same lookup the worker consumes.
+    const { recordTypedTestVersion } = await import('./test-version-store');
+    await recordTypedTestVersion(privilegedDb as any, {
+      testType: 'mobile',
+      testId: mobileTestId,
+      organizationId,
+      userId,
+      test: mobile,
+    });
+    await privilegedDb
+      .update(mobileTests)
+      .set({ publishedVersion: 1 })
+      .where(eq(mobileTests.id, mobileTestId));
+    const { mobileRows } = await runPlan({ configurationSnapshot: snapshot });
+    expect(performMobileTest).not.toHaveBeenCalled();
+    expect(mobileRows[0].status).toBe('Skipped');
+    expect(mobileRows[0].reasonForFailure).toContain('Not published');
+  });
+  it('runs matrix devices once each outside browser and locale lanes', async () => {
+    await seedPlan(
+      { locales: ['it-IT', 'en-US'] },
+      {
+        deviceMatrix: [
+          { deviceName: 'Pixel 8', osVersion: '14' },
+          { deviceName: 'Pixel 9', osVersion: '15' },
+        ],
+      },
+    );
+    const { execution, rows, mobileRows } = await runPlan({ browsers: ['chromium', 'firefox'] });
+    expect(performMobileTest).toHaveBeenCalledTimes(2);
+    expect(mobileRows.map((row) => row.browser).sort()).toEqual(['Pixel 8 · 14', 'Pixel 9 · 15']);
+    expect(new Set(mobileRows.map((row) => row.screenshotUrl)).size).toBe(2);
+    expect(rows.filter((row) => row.uiTestId === uiTestId)).toHaveLength(4);
+    expect(execution).toMatchObject({ status: 'completed', totalTests: 6, passedTests: 6 });
+  });
   it('runs once on its device, whatever the browsers and languages, and is a row of the report', async () => {
     await seedPlan({ locales: ['it-IT', 'en-US'] });
 
@@ -163,16 +288,26 @@ describe('a mobile test in a plan', () => {
     });
     const log = JSON.parse(row.detailedLog!) as MobileResultLog;
     expect(isMobileResultLog(log)).toBe(true);
-    expect(log).toMatchObject({ device: 'Google Pixel 8 · 14.0', platform: 'android', sessionUrl: passed.sessionUrl });
+    expect(log).toMatchObject({
+      device: 'Google Pixel 8 · 14.0',
+      platform: 'android',
+      sessionUrl: passed.sessionUrl,
+    });
     expect(log.steps).toEqual(passed.steps);
     // The report, the failure analysis and the exports read it as the step list they know.
     expect(stepsWithArtifactUrls(row.testPlanExecutionId, row.detailedLog)).toMatchObject([
       { name: '1. tap ~Login', type: 'tap', selector: '~Login', status: 'passed' },
     ]);
-    expect(evidenceSteps(row.detailedLog)).toMatchObject([{ name: '1. tap ~Login', status: 'passed' }]);
+    expect(evidenceSteps(row.detailedLog)).toMatchObject([
+      { name: '1. tap ~Login', status: 'passed' },
+    ]);
     // The device's last screen is the result's screenshot, served like a web test's.
-    expect(row.screenshotUrl).toMatch(new RegExp(`^/results/${planId}/[^/]+/mobile_${mobileTestId}/final\\.png$`));
-    expect(await fs.pathExists(path.resolve(process.cwd(), row.screenshotUrl!.slice(1)))).toBe(true);
+    expect(row.screenshotUrl).toMatch(
+      new RegExp(`^/results/${planId}/[^/]+/mobile_${mobileTestId}/final\\.png$`),
+    );
+    expect(await fs.pathExists(path.resolve(process.cwd(), row.screenshotUrl!.slice(1)))).toBe(
+      true,
+    );
     expect(execution).toMatchObject({ status: 'completed', totalTests: 5, passedTests: 5 });
   });
 
@@ -191,13 +326,24 @@ describe('a mobile test in a plan', () => {
 
     const { execution, mobileRows } = await runPlan();
 
-    expect(mobileRows[0]).toMatchObject({ status: 'Failed', reasonForFailure: failed.error, screenshotUrl: null });
+    expect(mobileRows[0]).toMatchObject({
+      status: 'Failed',
+      reasonForFailure: failed.error,
+      screenshotUrl: null,
+    });
     expect(execution.status).toBe('failed');
   });
 
   it('in quarantine, still runs and records its failure, and does not fail the run', async () => {
     await seedPlan();
-    await privilegedDb.insert(testQuarantines).values({ organizationId, testType: 'mobile', mobileTestId, reason: 'Device farm drops the session' });
+    await privilegedDb
+      .insert(testQuarantines)
+      .values({
+        organizationId,
+        testType: 'mobile',
+        mobileTestId,
+        reason: 'Device farm drops the session',
+      });
     performMobileTest.mockResolvedValue(failed);
 
     const { execution, mobileRows } = await runPlan();
@@ -245,10 +391,22 @@ describe('a mobile test in a plan', () => {
 
   it('is accepted in a plan only from the same organization', async () => {
     await seedPlan();
-    await expect(assertSelectedTestsBelongTo(privilegedDb, organizationId, [{ id: mobileTestId, type: 'mobile' }])).resolves.toBeUndefined();
+    await expect(
+      assertSelectedTestsBelongTo(privilegedDb, organizationId, [
+        { id: mobileTestId, type: 'mobile' },
+      ]),
+    ).resolves.toBeUndefined();
     const otherOrganizationId = await createTestOrganization('Other Mobile Plans Org');
-    await expect(assertSelectedTestsBelongTo(privilegedDb, otherOrganizationId, [{ id: mobileTestId, type: 'mobile' }])).rejects.toThrow(/do not exist/);
+    await expect(
+      assertSelectedTestsBelongTo(privilegedDb, otherOrganizationId, [
+        { id: mobileTestId, type: 'mobile' },
+      ]),
+    ).rejects.toThrow(/do not exist/);
     // Nor an id that names no mobile test at all.
-    await expect(assertSelectedTestsBelongTo(privilegedDb, organizationId, [{ id: mobileTestId + 100000, type: 'mobile' }])).rejects.toThrow(/do not exist/);
+    await expect(
+      assertSelectedTestsBelongTo(privilegedDb, organizationId, [
+        { id: mobileTestId + 100000, type: 'mobile' },
+      ]),
+    ).rejects.toThrow(/do not exist/);
   });
 });

@@ -6,7 +6,7 @@ import { ACTION_REQUIREMENTS, ADHOC_ACTION_IDS, STEP_GROUP_ACTION_ID } from './r
 import { CUSTOM_ACTION_STEP_ID_PATTERN, type CustomActionParameter } from './custom-actions';
 import { MAX_LOCALES, canonicalLocale, normalizeLocales } from './locales';
 import { canEmulateDevice, isMobileDevice } from './devices';
-import type { MobilePlatform, MobileRunStatus, MobileStep, MobileStepResult } from './mobile';
+import type { MobilePlatform, MobileRunStatus, MobileStep, MobileStepResult, MobileDeviceTarget } from './mobile';
 import type { NetworkSummary } from './network';
 import type { FailureAnalysis } from './failure-analysis';
 import type { CiContext } from './ci';
@@ -1628,6 +1628,7 @@ export const mobileTests = pgTable("mobile_tests", {
   app: text("app").notNull(),
   deviceName: text("device_name").notNull(),
   osVersion: text("os_version"),
+  deviceMatrix: jsonb('device_matrix').$type<MobileDeviceTarget[]>().notNull().default([]),
   /** The grid it runs on in a plan (migration 0053). */
   gridId: text("grid_id").references(() => browserGrids.id, { onDelete: 'set null' }),
   steps: jsonb("steps").$type<MobileStep[]>().notNull().default([]),
@@ -1639,6 +1640,22 @@ export const mobileTests = pgTable("mobile_tests", {
 ]);
 
 export type MobileTest = typeof mobileTests.$inferSelect;
+
+export const mobileStepGroups = pgTable('mobile_step_groups', {
+  id: text('id').primaryKey(),
+  organizationId: integer('organization_id').notNull().references(() => organizations.id),
+  projectId: integer('project_id').references(() => projects.id, { onDelete: 'set null' }),
+  name: text('name').notNull(),
+  description: text('description'),
+  platform: text('platform').$type<MobilePlatform>().notNull(),
+  steps: jsonb('steps').$type<MobileStep[]>().notNull(),
+  createdBy: integer('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, table => [index('mobile_step_groups_org_idx').on(table.organizationId),
+  uniqueIndex('mobile_step_groups_name_unique').on(table.organizationId, table.platform, sql`lower(${table.name})`),
+  foreignKey({name: 'mobile_step_groups_project_id_same_org_fk', columns: [table.projectId, table.organizationId], foreignColumns: [projects.id, projects.organizationId]}),
+]);
 
 /** One run of a mobile test on a grid's device. */
 export const mobileTestRuns = pgTable("mobile_test_runs", {
@@ -3046,7 +3063,7 @@ export const ORG_SCOPED_TABLES = [
   // TestRail, Xray and Zephyr Scale connections, test-to-case links and publications (migration 0051).
   'test_management_connections', 'test_case_links', 'test_management_publications',
   // Tests of native mobile apps and their runs (migration 0052).
-  'mobile_tests', 'mobile_test_runs',
+  'mobile_tests', 'mobile_test_runs', 'mobile_step_groups',
   'test_quarantines',
   'agents',
   'bdd_execution_profiles',

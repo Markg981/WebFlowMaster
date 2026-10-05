@@ -6,7 +6,7 @@ import type { AddressInfo } from 'net';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
 import { privilegedDb } from '../db';
-import { auditLog, browserGrids, environments, mobileTestRuns, mobileTests, secrets } from '@shared/schema';
+import { auditLog, browserGrids, environments, mobileTestRuns, mobileTests, mobileStepGroups, secrets } from '@shared/schema';
 import { mobileStepProblem, parseMobileLocator } from '@shared/mobile';
 import { encryptSecret } from '../crypto';
 import { createTestOrganization, createTestUser } from '../tests/factories';
@@ -162,10 +162,10 @@ const SHOP = {
 
 beforeAll(async () => {
   organizationId = await createTestOrganization('Mobile Org');
-  editor = { id: await createTestUser(organizationId, 'mobile-editor'), username: 'mobile-editor', organizationId, role: 'editor' };
-  viewer = { id: await createTestUser(organizationId, 'mobile-viewer'), username: 'mobile-viewer', organizationId, role: 'viewer' };
+  editor = { id: await createTestUser(organizationId, 'mobile-editor-'+uuidv4()), username: 'mobile-editor', organizationId, role: 'editor' };
+  viewer = { id: await createTestUser(organizationId, 'mobile-viewer-'+uuidv4()), username: 'mobile-viewer', organizationId, role: 'viewer' };
   const otherOrganizationId = await createTestOrganization('Other Mobile Org');
-  otherOrg = { id: await createTestUser(otherOrganizationId, 'mobile-other'), username: 'mobile-other', organizationId: otherOrganizationId, role: 'owner' };
+  otherOrg = { id: await createTestUser(otherOrganizationId, 'mobile-other-'+uuidv4()), username: 'mobile-other', organizationId: otherOrganizationId, role: 'owner' };
 
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -193,6 +193,7 @@ beforeAll(async () => {
     runWithTenant(currentUser.organizationId, () => next(), { userId: currentUser.id, role: currentUser.role });
   });
   app.use(routes);
+  app.use((await import('./mobile-step-groups.routes')).default);
 });
 
 afterAll(async () => {
@@ -202,6 +203,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await privilegedDb.delete(mobileTestRuns).where(eq(mobileTestRuns.organizationId, organizationId));
   await privilegedDb.delete(mobileTests).where(eq(mobileTests.organizationId, organizationId));
+  await privilegedDb.delete(mobileStepGroups).where(eq(mobileStepGroups.organizationId, organizationId));
   currentUser = editor;
   hub.requests = [];
   hub.refuseSession = null;
@@ -250,6 +252,45 @@ describe('locators and steps', () => {
 });
 
 describe('a mobile test', () => {
+  it('validates reusable group dependencies, permissions and deletion',async()=>{
+    const payload={name:'Back group',platform:'android',steps:[{id:'back',action:'back'}]};
+    currentUser=viewer;
+    await request(app).post('/api/mobile-step-groups').send(payload).expect(403);
+    currentUser=editor;
+    const group=await request(app).post('/api/mobile-step-groups').send(payload).expect(201);
+    const call={id:'call',action:'callGroup',value:group.body.id};
+    const test=await request(app).post('/api/mobile-tests').send({...SHOP,name:'Group test',steps:[call]}).expect(201);
+    await request(app).delete(`/api/mobile-step-groups/${group.body.id}`).expect(409);
+    await request(app).post('/api/mobile-step-groups').send({...payload,name:'Nested',steps:[call]}).expect(400);
+    await request(app).put(`/api/mobile-step-groups/${group.body.id}`).send({...payload,platform:'ios'}).expect(409);
+    currentUser=otherOrg;
+    await request(app).post('/api/mobile-tests').send({...SHOP,name:'Other group test',steps:[call]}).expect(400);
+    currentUser=editor;
+    await request(app).delete(`/api/mobile-tests/${test.body.id}`).expect(204);
+    await request(app).delete(`/api/mobile-step-groups/${group.body.id}`).expect(204);
+  });
+  it('executes frozen group content after a queued group edit',async()=>{
+    const group=await request(app).post('/api/mobile-step-groups').send({name:'Frozen group',platform:'android',steps:[{id:'back',action:'back'}]}).expect(201);
+    const test=await request(app).post('/api/mobile-tests').send({...SHOP,name:'Frozen test',steps:[{id:'call',action:'callGroup',value:group.body.id}]}).expect(201);
+    const {mobileRunner}=await import('./mobile-tests.routes');const start=mobileRunner.start;
+    const spy=vi.spyOn(mobileRunner,'start').mockResolvedValue();
+    try{
+      const queued=await request(app).post(`/api/mobile-tests/${test.body.id}/runs`).send({gridId:browserstack}).expect(202);
+      await request(app).put(`/api/mobile-step-groups/${group.body.id}`).send({name:'Frozen group',platform:'android',steps:[{id:'new',action:'tap',target:'~missing'}]}).expect(200);
+      await start(queued.body.id,organizationId,editor.id);
+      const result=await finished(queued.body.id);
+      expect(result.status).toBe('passed');expect(result.steps[0]).toMatchObject({action:'back',groupName:'Frozen group'});
+    }finally{spy.mockRestore();}
+  });
+  it('admits two frozen matrix runs with separate device results', async () => {
+    const created = await request(app).post('/api/mobile-tests').send({...SHOP,name:'Matrix shop',deviceMatrix:[{deviceName:'Pixel 8',osVersion:'14'},{deviceName:'Pixel 9',osVersion:'15'}]});
+    expect(created.status).toBe(201);
+    const started=await request(app).post(`/api/mobile-tests/${created.body.id}/matrix-runs`).send({gridId:browserstack,environmentId:staging});
+    expect(started.status).toBe(202);
+    expect(started.body.runs.map((run:{device:string})=>run.device)).toEqual(['Pixel 8 · 14','Pixel 9 · 15']);
+    const results=await Promise.all(started.body.runs.map((run:{id:string})=>finished(run.id)));
+    expect(results.map(run=>run.status)).toEqual(['passed','passed']);
+  });
   it('is written, read, changed and deleted by editors, and read by viewers', async () => {
     const created = await request(app).post('/api/mobile-tests').send(SHOP);
     expect(created.status).toBe(201);
