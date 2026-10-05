@@ -7,6 +7,7 @@ import {
   parseMobileLocator,
   type MobileStep,
   type MobileStepResult,
+  type MobileExecutionStep,
 } from '@shared/mobile';
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { withExecutionUsage } from './execution-usage';
@@ -16,6 +17,7 @@ import { substituteVariables } from './outbound-http';
 import { AppiumSession, WebDriverError, type Fetch } from './appium-client';
 import { AgentHttp } from './agents/agent-fetch';
 import { LOCAL_APPIUM_DEFAULT_URL } from '@shared/browser-grids';
+import { executeMobileFlow, validateMobileExecution } from './mobile-flow';
 
 /**
  * Running a mobile test (shared/mobile.ts) on a cloud grid's real device.
@@ -281,7 +283,7 @@ export interface MobileOutcome {
  * that would not open, or a grid that runs no apps, is an 'error' outcome with the reason.
  */
 export async function performMobileTest(
-  test: Pick<MobileTest, 'platform' | 'app' | 'deviceName' | 'osVersion' | 'name' | 'steps'>,
+  test: Pick<MobileTest, 'platform' | 'app' | 'deviceName' | 'osVersion' | 'name' | 'steps'> & { executionSteps?: MobileExecutionStep[] },
   grid: GridConfig,
   vars: Record<string, string>,
   build: string,
@@ -291,27 +293,18 @@ export async function performMobileTest(
   let session: AppiumSession | null = null;
   let transport: ReturnType<typeof appiumTransport> | null = null;
   try {
+    const steps = test.executionSteps ?? test.steps;
+    validateMobileExecution(steps, test.platform);
     const request = mobileSessionRequest(grid, test, build);
     transport = appiumTransport(grid, deps.fetch);
     const doFetch = transport.fetch;
     session = await AppiumSession.open({ ...request, fetch: doFetch });
 
-    let failure: string | null = null;
-    for (const [index, step] of test.steps.entries()) {
-      if (failure) {
-        results.push({ index, action: step.action, target: step.target, status: 'skipped', durationMs: 0 });
-        continue;
-      }
-      const started = Date.now();
-      try {
-        const detail = await runMobileStep({ session, platform: test.platform, vars, elementTimeoutMs: deps.elementTimeoutMs }, step);
-        results.push({ index, action: step.action, target: step.target, status: 'passed', durationMs: Date.now() - started, ...(detail ? { detail } : {}) });
-      } catch (error: any) {
-        failure = redactGridSecret(String(error?.message ?? error), grid);
-        results.push({ index, action: step.action, target: step.target, status: 'failed', error: failure, durationMs: Date.now() - started });
-      }
-      await deps.onStep?.(results);
-    }
+    const flow = await executeMobileFlow({ steps, session, platform: test.platform, vars,
+      primitive: step => runMobileStep({ session: session!, platform: test.platform, vars, elementTimeoutMs: deps.elementTimeoutMs }, step),
+      onStep: deps.onStep ? rows => deps.onStep!(rows.map(row => ({ ...row, error: row.error ? redactGridSecret(row.error, grid) : undefined }))) : undefined });
+    results.push(...flow.results.map(row => ({ ...row, error: row.error ? redactGridSecret(row.error, grid) : undefined })));
+    const failure = flow.failure ? redactGridSecret(flow.failure, grid) : null;
 
     const screenshot = await session.screenshot();
     await markSession(session, grid, !failure, failure ?? 'All steps passed');

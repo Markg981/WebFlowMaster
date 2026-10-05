@@ -32,6 +32,7 @@ export const MOBILE_SNAPSHOT_FIELDS = [
   'app',
   'deviceName',
   'osVersion',
+  'deviceMatrix',
   'gridId',
   'steps',
 ] as const;
