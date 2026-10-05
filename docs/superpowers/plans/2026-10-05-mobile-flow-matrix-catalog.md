@@ -274,7 +274,7 @@ deviceMatrix:
 - [x] Run `npm run check`, `npm --prefix client exec -- tsc --noEmit -p .`, `npm test`, and `npm --prefix client test -- --run`. Verify affected PostgreSQL isolation with `WFM_TEST_REQUIRE_POSTGRES=1` using the configured non-superuser test database. If unavailable, record that limitation explicitly rather than substituting PGlite evidence.
 - [x] Run a configured Appium smoke using the Collaudo setup if available; rebuild the existing named Docker stack only when validating its deployment. Keep volumes and avoid unrelated environment mutation. Document real device coverage or its concrete missing prerequisite.
 - [x] Inspect the complete diff against the spec, check placeholder/error markers, `git diff --check`, intended file list and migration head. Record test counts and any justified skips. Commit docs and final adjustments as `docs: document mobile flow matrix and catalog acceptance`.
-- [ ] Push explicitly with `git push --set-upstream origin HEAD:refs/heads/codex/mobile-flow-matrix-catalog`. Create the PR against `main` using a body file describing before/after behavior and verified test evidence. Attach the created PR with the Codex artifact tool. Report the actual commit/PR state and live-validation limits.
+- [x] Push explicitly with `git push --set-upstream origin HEAD:refs/heads/codex/mobile-flow-matrix-catalog`. Create the PR against `main` using a body file describing before/after behavior and verified test evidence. Attach the created PR with the Codex artifact tool. Report the actual commit/PR state and live-validation limits.
 
 ## Execution Handoff
 
@@ -293,3 +293,5 @@ Final independent review found matrix polling reset, frozen-publication eligibil
 Verified: TypeScript project checks; product and docs builds; 514 frontend tests plus two group-dialog tests; 21 BDD runtime tests; 78 targeted tests on disposable PostgreSQL using a non-superuser login and `app_user` tenant role. Full server regressions are recorded in the PR. Real Appium validation is unavailable because the existing Collaudo stack has agents/display but no device session; MOB-33–MOB-40 remain unexecuted acceptance cases.
 
 Matrix admission uses the existing elapsed execution-minute quota; it does not estimate future device runtime. Existing test/grid/project behavior and bundle version 1 import remain compatible.
+
+Delivery: [PR #296](https://github.com/Markg981/WebFlowMaster/pull/296), based on main. Real-device acceptance remains pending as recorded above.
