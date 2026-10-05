@@ -17,6 +17,7 @@ export interface AuditEntry {
   /** Who did it. Null for something the system did on nobody's behalf. */
   actor?: AuditActor | null;
   targetType?:
+    | 'bdd_profile'
     | 'user'
     | 'invitation'
     | 'organization'

@@ -35,6 +35,10 @@ COPY --from=build /src/node_modules/@grpc/proto-loader/package.json /tmp/proto-p
 COPY --from=build /src/node_modules/undici/package.json /tmp/undici-package.json
 COPY --from=build /src/node_modules/https-proxy-agent/package.json /tmp/proxy-package.json
 COPY --from=build /src/node_modules/zod/package.json /tmp/zod-package.json
+COPY --from=build /src/node_modules/@cucumber/cucumber/package.json /tmp/cucumber-package.json
+COPY --from=build /src/node_modules/@cucumber/gherkin/package.json /tmp/gherkin-package.json
+COPY --from=build /src/node_modules/@cucumber/messages/package.json /tmp/messages-package.json
+COPY --from=build /src/node_modules/tsx/package.json /tmp/tsx-package.json
 RUN npm init -y >/dev/null \
   && npm install --omit=dev "playwright@${PLAYWRIGHT_VERSION:-$(node -p "require('/tmp/playwright-package.json').version")}" "ws@^8.18.0" \
      "@grpc/grpc-js@$(node -p "require('/tmp/grpc-package.json').version")" \
@@ -42,8 +46,13 @@ RUN npm init -y >/dev/null \
      "undici@$(node -p "require('/tmp/undici-package.json').version")" \
      "https-proxy-agent@$(node -p "require('/tmp/proxy-package.json').version")" \
      "zod@$(node -p "require('/tmp/zod-package.json').version")" \
+     "@cucumber/cucumber@$(node -p "require('/tmp/cucumber-package.json').version")" \
+     "@cucumber/gherkin@$(node -p "require('/tmp/gherkin-package.json').version")" \
+     "@cucumber/messages@$(node -p "require('/tmp/messages-package.json').version")" \
+     "tsx@$(node -p "require('/tmp/tsx-package.json').version")" \
   && rm /tmp/playwright-package.json /tmp/grpc-package.json /tmp/proto-package.json /tmp/undici-package.json /tmp/proxy-package.json /tmp/zod-package.json
 COPY --from=build /src/dist/wfm-agent.js ./wfm-agent.mjs
+COPY --from=build /src/dist/wfm-bdd-child.mjs ./wfm-bdd-child.mjs
 
 # Lets the running sessions finish on `docker stop`.
 STOPSIGNAL SIGTERM

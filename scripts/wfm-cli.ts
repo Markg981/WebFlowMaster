@@ -50,6 +50,9 @@ export interface CliOptions {
   format?: 'yaml' | 'json' | 'gherkin';
   outPath?: string;
   dryRun?: boolean;
+  bddMode?: 'manual' | 'cucumber';
+  bddProfile?: string;
+  bddRevision?: string;
   /** run: only the tests the files changed since this git ref affect (server/test-impact.ts). */
   changedSince?: string;
   /** run: the same, from a file listing the changed files one per line. */
@@ -107,6 +110,9 @@ Options:
   --format <format>      tests export: yaml, json or gherkin (default: yaml)
   --out <file>           tests export: where to write it (default: server filename, or tests.wfm.yaml / tests.feature)
   --dry-run              tests import: say what would change, change nothing
+  --bdd-mode             tests import: manual or cucumber
+  --bdd-profile          cucumber import: authorized destination profile UUID
+  --bdd-revision         cucumber import: pinned destination support revision
 
 wfm tests keeps a project's tests in a repository: export them in a pipeline and commit the file,
 or import the file a pull request changed. It needs a full-access API key (one without scopes).
@@ -165,6 +171,9 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
       case '--format': options.format = value() as CliOptions['format']; break;
       case '--out': options.outPath = value(); break;
       case '--dry-run': options.dryRun = true; break;
+      case '--bdd-mode': options.bddMode = value() as CliOptions['bddMode']; break;
+      case '--bdd-profile': options.bddProfile = value(); break;
+      case '--bdd-revision': options.bddRevision = value(); break;
       case '--changed-since': options.changedSince = value(); break;
       case '--changed-files': options.changedFilesPath = value(); break;
       default:
@@ -177,6 +186,11 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
     const [action, file] = positional;
     if (action !== 'export' && action !== 'import') return { error: 'tests needs export or import. See --help.' };
     if (action === 'import' && !file) return { error: 'tests import needs the file. See --help.' };
+    if (options.bddMode || options.bddProfile || options.bddRevision) {
+      if (action !== 'import' || (options.bddMode !== 'manual' && options.bddMode !== 'cucumber')) return {error:'BDD options require tests import and --bdd-mode manual or cucumber.'};
+      if (options.bddMode === 'cucumber' && (!options.bddProfile || !options.bddRevision)) return {error:'Cucumber import requires --bdd-profile and --bdd-revision.'};
+      if (options.bddMode === 'manual' && (options.bddProfile || options.bddRevision)) return {error:'Manual import does not use a Cucumber profile.'};
+    }
     if (options.format && options.format !== 'yaml' && options.format !== 'json' && options.format !== 'gherkin') return { error: '--format is yaml, json or gherkin.' };
     if (options.project !== undefined && options.project !== 'none' && !/^\d+$/.test(options.project)) {
       return { error: '--project is a project id, or none.' };
@@ -630,7 +644,7 @@ async function testsFile(options: CliOptions, io: CliIo, call: Call): Promise<nu
   const content = await io.readFile(options.target!);
   const response = await call('/api/tests/import-bundle', {
     method: 'POST',
-    body: JSON.stringify({ content, dryRun: options.dryRun === true, ...(options.project ? { projectId: Number(options.project) } : {}) }),
+    body: JSON.stringify({ content, dryRun: options.dryRun === true, ...(options.project ? { projectId: Number(options.project) } : {}), ...(options.bddMode ? {bdd:{mode:options.bddMode,...(options.bddMode === 'cucumber' ? {binding:{id:options.bddProfile,revision:options.bddRevision}} : {})}} : {}) }),
   });
   if (response.status === 401) { io.error(FULL_ACCESS_NEEDED); return EXIT_TOOL_ERROR; }
   if (!response.ok) { io.error(`Could not import: ${response.status} ${await errorText(response)}`); return EXIT_TOOL_ERROR; }

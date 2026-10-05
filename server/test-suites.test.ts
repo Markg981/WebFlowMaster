@@ -244,7 +244,8 @@ describe('rows that point across organizations', () => {
     // SAML sessions belong to their user's tenant (0073); mail events belong to their delivery's tenant (0074).
     // API/mobile version, publication and review targets add six guards (0075).
     // Conversations add parent/resolver guards; dashboards and preferences add four (0076).
-    expect(rows.length).toBe(92);
+    // Dedicated BDD profiles belong to a same-organization project (0080).
+    expect(rows.length).toBe(93);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });
 

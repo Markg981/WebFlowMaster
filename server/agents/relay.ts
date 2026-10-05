@@ -12,6 +12,7 @@ import {
 } from '@shared/agents';
 import { verifyTicket, type BrowserTicket } from './agent-credentials';
 import type { PublishedAgent, RelayDirectory, RelayInstance } from './relay-directory';
+import { BddAgentProfileSchema } from '@shared/bdd-agent';
 
 /**
  * The relay between runners and the browsers local agents lend them.
@@ -249,6 +250,7 @@ export class AgentRelay {
       draining: c.draining,
       apiProtocols: c.hello.apiProtocols,
       apiProtocolFeatures: c.hello.apiProtocolFeatures,
+      bddProfiles: c.hello.bddProfiles,
     }));
   }
 
@@ -301,19 +303,23 @@ export class AgentRelay {
         // One connection per agent: a reconnect replaces a connection the network already lost.
         const previous = this.connected.get(agent.id);
         if (previous) previous.ws.terminate();
+        const bddProfiles = Array.isArray(hello.bddProfiles) ? hello.bddProfiles.slice(0,100).flatMap(profile => {
+          const parsed = BddAgentProfileSchema.safeParse(profile);
+          return parsed.success ? [parsed.data] : [];
+        }) : [];
 
         const connected: ConnectedAgent = {
           agent,
           token,
           ws,
-          hello: { ...hello, apiProtocolFeatures: Array.isArray(hello.apiProtocolFeatures) ? hello.apiProtocolFeatures.filter(feature => feature === 'native-protocol-v2') : [], maxSessions: Math.max(1, Math.min(Number(hello.maxSessions) || 1, 16)) },
+          hello: { ...hello, bddProfiles, apiProtocolFeatures: Array.isArray(hello.apiProtocolFeatures) ? hello.apiProtocolFeatures.filter(feature => feature === 'native-protocol-v2') : [], maxSessions: Math.max(1, Math.min(Number(hello.maxSessions) || 1, 16)) },
           sessions: new Set(),
           draining: false,
           alive: true,
         };
         this.connected.set(agent.id, connected);
         this.send(ws, { type: 'welcome', agentId: agent.id, name: agent.name, pool: agent.pool });
-        void this.options.onSeen?.(agent.id, hello);
+        void this.options.onSeen?.(agent.id, connected.hello);
         this.syncSoon();
         this.log('info', 'Local agent connected', { agentId: agent.id, pool: agent.pool, hostname: hello.hostname, playwright: hello.playwrightVersion });
 
@@ -365,6 +371,7 @@ export class AgentRelay {
       local: c,
       apiProtocols: c.hello.apiProtocols,
       apiProtocolFeatures: c.hello.apiProtocolFeatures,
+      bddProfiles: c.hello.bddProfiles,
     }));
     const remote: Candidate[] = localOnly
       ? []
@@ -374,7 +381,7 @@ export class AgentRelay {
 
     const inPool = [...local, ...remote].filter((c) => c.organizationId === ticket.organizationId && c.pool === ticket.pool);
     if (inPool.length === 0) return { reason: `No agent of pool "${ticket.pool}" is connected. Start one, or run the plan on the server's runners.` };
-    const compatible = ticket.apiProtocol ? inPool : inPool.filter((c) => playwrightCompatible(c.playwrightVersion, ticket.playwrightVersion));
+    const compatible = ticket.apiProtocol || ticket.bddProfile ? inPool : inPool.filter((c) => playwrightCompatible(c.playwrightVersion, ticket.playwrightVersion));
     if (compatible.length === 0) {
       return {
         reason:
@@ -382,10 +389,14 @@ export class AgentRelay {
           `and this server ${ticket.playwrightVersion}: they must match. Update the agents.`,
       };
     }
-    const withBrowser = ticket.apiProtocol
+    const withBrowser = ticket.bddProfile
+      ? compatible.filter(c => c.bddProfiles?.some(profile => profile.id === ticket.bddProfile!.id && profile.revision === ticket.bddProfile!.revision))
+      : ticket.apiProtocol
       ? compatible.filter((c) => c.apiProtocols?.includes(ticket.apiProtocol!) && (ticket.apiFeatures ?? []).every(feature => c.apiProtocolFeatures?.includes(feature)))
       : compatible.filter((c) => c.browsers.includes(ticket.engine));
-    if (withBrowser.length === 0) return { reason: ticket.apiProtocol
+    if (withBrowser.length === 0) return { reason: ticket.bddProfile
+      ? `No agent of pool "${ticket.pool}" supports BDD profile "${ticket.bddProfile.id}" at revision "${ticket.bddProfile.revision}". Configure or update the dedicated agents.`
+      : ticket.apiProtocol
       ? `No agent of pool "${ticket.pool}" supports ${ticket.apiProtocol}${ticket.apiFeatures?.length ? ' with streaming, mTLS or conversation features' : ''}. Update the agents by downloading /cli/wfm-agent.mjs again or rebuilding their Docker image.`
       : `No agent of pool "${ticket.pool}" has ${ticket.engine} installed.` };
     const free = withBrowser.filter((c) => !c.draining && c.activeSessions < c.maxSessions);
@@ -430,7 +441,7 @@ export class AgentRelay {
         if (this.pending.delete(id)) clearTimeout(session.timer);
         agent.sessions.delete(id);
       });
-      this.send(agent.ws, { type: 'open', sessionId: id, engine: verified.engine, channel: verified.channel, headless: verified.headless, ...(verified.apiProtocol ? { apiProtocol: verified.apiProtocol, apiFeatures: verified.apiFeatures } : {}) });
+      this.send(agent.ws, { type: 'open', sessionId: id, engine: verified.engine, channel: verified.channel, headless: verified.headless, ...(verified.bddProfile ? { bddProfile: verified.bddProfile } : {}), ...(verified.apiProtocol ? { apiProtocol: verified.apiProtocol, apiFeatures: verified.apiFeatures } : {}) });
     });
   }
 

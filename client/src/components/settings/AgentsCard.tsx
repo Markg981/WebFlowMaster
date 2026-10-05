@@ -105,7 +105,8 @@ const AgentsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
   const setup = issued
     ? [
         `curl -fsSL ${origin}/cli/wfm-agent.mjs -o wfm-agent.mjs`,
-        `npm install playwright@${playwrightVersion} ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7 zod@^3 && npx playwright install chromium`,
+        `curl -fsSL ${origin}/cli/wfm-bdd-child.mjs -o wfm-bdd-child.mjs`,
+        `npm install playwright@${playwrightVersion} ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7 zod@^3 @cucumber/cucumber@12.9.0 @cucumber/gherkin@38.0.0 @cucumber/messages@32.3.1 tsx@^4 && npx playwright install chromium`,
         `WFM_URL=${origin} WFM_AGENT_TOKEN=${issued.token} node wfm-agent.mjs`,
       ].join('\n')
     : '';

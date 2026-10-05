@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ClipboardCheck, Loader2 } from 'lucide-react';
+import GherkinArguments from '../tests/GherkinArguments';
 import {
   readManualLog,
   type ManualResultLog,
@@ -98,6 +99,7 @@ function ManualResultEditor({
                 </Button>
               ))}
             </div>
+            <GherkinArguments argument={step.gherkin}/>
           </li>
         ))}
       </ol>

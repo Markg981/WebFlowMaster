@@ -1,0 +1,5 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": { "composite": false },
+  "files": ["bdd-profiles.ts", "bdd-child.ts", "agent-bdd-session.ts"]
+}

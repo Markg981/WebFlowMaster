@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, FileUp, Loader2 } from 'lucide-react';
+import { bddRequest, type BddProfile } from '@/lib/api/bdd';
 
 /**
  * The organization's tests as a file (server/test-bundle.ts): export a project's web and API tests to
@@ -15,7 +16,7 @@ import { Download, FileUp, Loader2 } from 'lucide-react';
  * version each, the others created.
  */
 
-type Outcome = { kind: 'test' | 'api_test'; name: string; outcome: 'created' | 'updated' | 'unchanged' | 'invalid'; reason?: string };
+type Outcome = { kind: 'test' | 'api_test'; name: string; outcome: 'created' | 'updated' | 'unchanged' | 'invalid'; reason?: string; gherkin?: {language:string;scenario:string;rule?:string;tags:string[];arguments:('docString'|'dataTable')[];mode:'manual'|'cucumber'} };
 
 const ALL = 'all';
 const NONE = 'none';
@@ -47,21 +48,34 @@ export function TestFilesDialog({ open, onOpenChange, canEdit, onImported }: { o
   const [importFormat, setImportFormat] = useState<'bundle' | 'gherkin'>('bundle');
   const [content, setContent] = useState('');
   const [importProject, setImportProject] = useState(NONE);
-  const [results, setResults] = useState<{ dryRun: boolean; results: Outcome[] } | null>(null);
+  const [results, setResults] = useState<{ dryRun: boolean; results: Outcome[]; identity: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [mode, setMode] = useState<'manual'|'cucumber'>('manual');
+  const [binding, setBinding] = useState<{id:string;revision:string}|null>(null);
+  const {data: profileData, error: profilesError} = useQuery<{profiles:BddProfile[]}>({queryKey:['/api/bdd/profiles'],enabled:open&&canEdit,queryFn:()=>bddRequest('/api/bdd/profiles')});
+  const profiles=(profileData?.profiles??[]).filter(p=>p.projectId==null||String(p.projectId)===importProject);
+  const profile=profiles.find(p=>p.id===binding?.id&&p.revision===binding?.revision);
+  const missingProfile=mode==='cucumber'&&!profile;
+  const importIdentity=JSON.stringify([open,content,importProject,importFormat,mode,profile?.id,profile?.revision]);
+  const currentImportIdentity=useRef(importIdentity);
+  currentImportIdentity.current=importIdentity;
+  useEffect(()=>{setResults(null);},[importIdentity]);
 
   const exportHref = `/api/tests/export?format=${format}${exportProject === ALL ? '' : `&projectId=${exportProject}`}`;
 
   const send = (dryRun: boolean) => async () => {
+    if(missingProfile||(!dryRun&&(results?.dryRun!==true||results.identity!==currentImportIdentity.current)))return;
+    const requestIdentity=currentImportIdentity.current;
     setBusy(true);
     setError('');
     try {
-      const outcome = await importBundle({ content, dryRun, projectId: importProject === NONE ? null : Number(importProject), ...(importFormat === 'gherkin' ? { format: 'gherkin' } : {}) });
-      setResults(outcome);
+      if(missingProfile) return;
+      const outcome = await importBundle({ content, dryRun, projectId: importProject === NONE ? null : Number(importProject), ...(importFormat === 'gherkin' ? { format: 'gherkin' } : {}), bdd:{mode,...(mode==='cucumber'&&profile?{binding:{id:profile.id,revision:profile.revision}}:{})} });
+      if(currentImportIdentity.current===requestIdentity)setResults({...outcome,identity:requestIdentity});
       if (!dryRun) onImported();
     } catch (e) {
-      setError((e as Error).message);
+      if(currentImportIdentity.current===requestIdentity)setError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -72,6 +86,8 @@ export function TestFilesDialog({ open, onOpenChange, canEdit, onImported }: { o
       setContent('');
       setResults(null);
       setError('');
+      setMode('manual');
+      setBinding(null);
     }
     onOpenChange(next);
   };
@@ -133,7 +149,15 @@ export function TestFilesDialog({ open, onOpenChange, canEdit, onImported }: { o
                 <option value="gherkin">Gherkin (.feature)</option>
               </select>
             </div>
-            {importFormat === 'gherkin' && <p className="text-sm text-muted-foreground">{t('testFiles.gherkinImport', 'English Feature, Background, Scenario, Scenario Outline, Examples and tags are supported. Prose imports as manual steps. Descriptions, Rule, doc strings, step data tables and Examples tags are rejected. WFM metadata restores exported web actions.')}</p>}
+            {importFormat === 'gherkin' && <p className="text-sm text-muted-foreground">{t('testFiles.gherkinImport', 'Standard Gherkin dialects, Rule, Background, Scenario Outline, tags, doc strings and data tables are supported. Choose manual execution or an authorized Cucumber support profile. WFM metadata restores exported web actions.')}</p>}
+            <div className="space-y-1">
+              <Label htmlFor="test-files-mode">{t('bdd.mode','Execution mode')}</Label>
+              <select id="test-files-mode" data-testid="test-files-mode" className="border rounded p-2 bg-background text-sm" value={mode} onChange={e=>{setMode(e.target.value as 'manual'|'cucumber');setResults(null);}}>
+                <option value="manual">{t('bdd.manual','Manual')}</option><option value="cucumber">{t('bdd.cucumber','Cucumber')}</option>
+              </select>
+            </div>
+            {mode==='cucumber'&&<div className="space-y-1"><Label htmlFor="test-files-profile">{t('bdd.profile','Execution profile')}</Label><select id="test-files-profile" data-testid="test-files-profile" className="border rounded p-2 bg-background text-sm" value={profile?.id??''} onChange={e=>{const selected=profiles.find(p=>p.id===e.target.value);setBinding(selected?{id:selected.id,revision:selected.revision}:null);setResults(null);}}><option value="">{t('bdd.selectProfile','Select an authorized profile')}</option>{profiles.map(p=><option key={p.id} value={p.id}>{p.name} · {p.revision}</option>)}</select>{!profiles.length&&<p className="text-sm text-muted-foreground">{t('bdd.noProfiles','No execution profiles are available for this project. Ask an organization owner to configure one.')}</p>}</div>}
+            {profilesError&&<p role="alert" className="text-destructive">{profilesError.message}</p>}
             <Label htmlFor="test-files-file" className="inline-flex cursor-pointer items-center gap-2 text-sm">
               <FileUp className="h-4 w-4" /> {t('testFiles.openFile', 'Open a file…')}
             </Label>
@@ -163,6 +187,7 @@ export function TestFilesDialog({ open, onOpenChange, canEdit, onImported }: { o
                     <span>{r.name}</span>
                     {r.kind === 'api_test' && <span className="text-xs text-muted-foreground">API</span>}
                     {r.reason && <span className="text-xs text-destructive">{r.reason}</span>}
+                    {r.gherkin&&<div className="w-full text-xs text-muted-foreground" data-testid="test-files-gherkin-preview"><span>{t('bdd.language','Dialect')}: {r.gherkin.language} · {r.gherkin.scenario}{r.gherkin.rule&&` · ${r.gherkin.rule}`} · {t(`bdd.${r.gherkin.mode}`,r.gherkin.mode)}</span><span> {r.gherkin.tags.join(' ')} {r.gherkin.arguments.map(arg=>t(`bdd.${arg}`,arg==='docString'?'Doc string':'Step data table')).join(', ')}</span></div>}
                   </li>
                 ))}
               </ul>
@@ -176,10 +201,10 @@ export function TestFilesDialog({ open, onOpenChange, canEdit, onImported }: { o
         <DialogFooter>
           {canEdit && (
             <>
-              <Button variant="outline" onClick={send(true)} disabled={busy || !content.trim()} data-testid="test-files-preview">
+              <Button variant="outline" onClick={send(true)} disabled={busy || !content.trim() || missingProfile} data-testid="test-files-preview">
                 {t('testFiles.preview', 'Show what changes')}
               </Button>
-              <Button onClick={send(false)} disabled={busy || !content.trim() || results?.dryRun !== true} data-testid="test-files-import">
+              <Button onClick={send(false)} disabled={busy || !content.trim() || missingProfile || results?.dryRun !== true || results.identity !== importIdentity} data-testid="test-files-import">
                 {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {t('testFiles.importButton', 'Import')}
               </Button>

@@ -16,6 +16,9 @@ import { toPlaywright } from "../playwright-export";
 import { expandSequenceForRun } from "../step-groups";
 import { resolveSequenceForRun } from "../step-elements";
 import { GherkinError } from "../gherkin";
+import { compileGherkinSource, contextOfPickle, exampleLineOfPickle } from '../gherkin-source';
+import { GherkinImportOptionsSchema } from '@shared/bdd';
+import { BddDefinitionError, prepareBddForSave } from '../bdd-definition';
 
 const router = Router();
 const logger = await loggerPromise;
@@ -70,6 +73,7 @@ router.post("/api/tests", requireRole('editor'), async (req, res) => {
 
   try {
     const created = await withTenantTransaction(async (tx) => {
+      const definition = await prepareBddForSave(tx,parseResult.data);
       // Saving the same test again must not silently make a second one. Recording is
       // iterative — you walk the path, replay it, find a step wrong, walk it again — and
       // every pass through that loop used to leave another row behind, all with the same
@@ -90,7 +94,7 @@ router.post("/api/tests", requireRole('editor'), async (req, res) => {
         .insert(tests)
         // Both derived from the session, never from the body — the same treatment the API
         // test route beside this one already gave them.
-        .values({ ...parseResult.data, userId: req.user!.id, organizationId: req.user!.organizationId })
+        .values({ ...definition, userId: req.user!.id, organizationId: req.user!.organizationId })
         .returning();
 
       // Version 1, in the same transaction as the insert: a history that can begin at version
@@ -123,6 +127,7 @@ router.post("/api/tests", requireRole('editor'), async (req, res) => {
 
     res.status(201).json(created.test);
   } catch (error: any) {
+    if (error instanceof BddDefinitionError) return res.status(400).json({error:error.message});
     if (isForeignKeyError(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
     logger.error({ message: "Error creating test", error: error.message });
     res.status(500).json({ error: "Failed to create test" });
@@ -149,12 +154,15 @@ router.put("/api/tests/:id", requireRole('editor'), async (req, res) => {
 
   try {
     const updated = await withTenantTransaction(async (tx) => {
+      const [existing] = await tx.select().from(tests).where(eq(tests.id,id)).limit(1);
+      if (!existing) return [];
+      const definition = await prepareBddForSave(tx,parseResult.data,existing);
       const rows = await tx
         .update(tests)
         // userId is not touched: the test keeps its author. organizationId is not in the
         // payload at all, and RLS decides which rows this statement can see — so another
         // organization's test simply is not found, which is the 404 below.
-        .set({ ...parseResult.data, updatedAt: new Date() })
+        .set({ ...definition, updatedAt: new Date() })
         .where(eq(tests.id, id))
         .returning();
 
@@ -186,6 +194,7 @@ router.put("/api/tests/:id", requireRole('editor'), async (req, res) => {
     res.json(updated[0]);
   } catch (error: any) {
     if (isForeignKeyError(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
+    if (error instanceof BddDefinitionError) return res.status(400).json({error:error.message});
     logger.error({ message: "Error updating test", error: error.message, testId: id });
     res.status(500).json({ error: "Failed to update test" });
   }
@@ -208,6 +217,7 @@ router.put("/api/tests/:id/steps/:stepId/selector", requireRole('editor'), async
     const outcome = await withTenantTransaction(async (tx) => {
       const [test] = await tx.select().from(tests).where(eq(tests.id, id)).limit(1);
       if (!test) return { status: 404, error: "Test not found" } as const;
+      if (test.bdd) return { status: 409, error: "Edit the Gherkin source before changing BDD steps." } as const;
       const raw = typeof test.sequence === 'string' ? JSON.parse(test.sequence) : test.sequence;
       const sequence = Array.isArray(raw) ? (raw as Array<Record<string, any>>) : [];
       const index = sequence.findIndex((step) => step?.id === req.params.stepId);
@@ -640,6 +650,7 @@ const importBundleSchema = z.object({
   projectId: projectIdField,
   dryRun: z.boolean().optional().default(false),
   format: z.literal('gherkin').optional(),
+  bdd: GherkinImportOptionsSchema.optional(),
 });
 class BundleProjectAccessError extends Error {}
 
@@ -651,7 +662,7 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
   if (!parsed.success) return res.status(400).json({ error: "Invalid import", details: parsed.error.flatten() });
   let bundle;
   try {
-    bundle = parseBundle(parsed.data.content, parsed.data.format);
+    bundle = parseBundle(parsed.data.content, parsed.data.format, parsed.data.bdd);
   } catch (error) {
     if (error instanceof BundleError || error instanceof GherkinError) return res.status(400).json({ error: error.message });
     throw error;
@@ -679,8 +690,15 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
       if (!await canEditProject(projectId)) throw new BundleProjectAccessError();
       for (const raw of bundle.tests) {
         const name = String(raw.name ?? '');
+        let importedBdd = raw.bdd;
+        if (raw.bdd && parsed.data.bdd) {
+          const { binding: _sourceBinding, ...sourceDefinition } = raw.bdd as import('@shared/bdd').BddTest;
+          importedBdd = parsed.data.bdd.mode === 'manual'
+            ? { ...sourceDefinition, mode: 'manual' }
+            : { ...(raw.bdd as object), ...parsed.data.bdd };
+        }
         // The detected elements are the builder's palette, not part of the test: the file leaves them out.
-        const candidate = insertTestSchema.safeParse({ elements: [], ...raw, projectId });
+        const candidate = insertTestSchema.safeParse({ elements: [], ...(raw.bdd ? {priority:'Medium',severity:'Major',status:'draft'} : {}), ...raw, ...(raw.bdd ? {bdd:importedBdd} : {}), projectId });
         if (!candidate.success) {
           results.push({ kind: 'test', name, outcome: 'invalid', reason: Object.entries(candidate.error.flatten().fieldErrors).map(([k, v]) => `${k}: ${v?.join(', ')}`).join('; ') || 'invalid' });
           continue;
@@ -701,7 +719,17 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
           results.push({ kind: 'test', name, outcome: 'invalid', reason: 'You can view this test\'s project but not change it.' });
           continue;
         }
-        if (existing && sameAs(existing as unknown as Record<string, unknown>, raw, TEST_FIELDS)) {
+        if (candidate.data.bdd?.mode === 'cucumber' && !parsed.data.bdd?.binding) {
+          results.push({ kind: 'test', name, outcome: 'invalid', reason: 'Portable Cucumber imports require an explicit destination profile binding.' });
+          continue;
+        }
+        try {
+          Object.assign(candidate.data,await prepareBddForSave(tx,{...candidate.data,projectId:existing ? existing.projectId : projectId},existing));
+        } catch(error) {
+          results.push({kind:'test',name,outcome:'invalid',reason:(error as Error).message});
+          continue;
+        }
+        if (existing && sameAs(existing as unknown as Record<string, unknown>, candidate.data, TEST_FIELDS)) {
           results.push({ kind: 'test', name, outcome: 'unchanged' });
           continue;
         }
@@ -764,7 +792,18 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
       }
       return results;
     });
-    res.status(parsed.data.dryRun ? 200 : 201).json({ dryRun: parsed.data.dryRun, results: outcomes });
+    const previewSources=new Map<string,ReturnType<typeof compileGherkinSource>>();
+    const results=parsed.data.dryRun ? outcomes.map(outcome=>{
+      if(outcome.kind !== 'test' || outcome.outcome === 'invalid') return outcome;
+      const bdd=bundle.tests.find(raw=>raw.name === outcome.name)?.bdd as import('@shared/bdd').BddTest|undefined;
+      if(!bdd) return outcome;
+      let compiled=previewSources.get(bdd.source);
+      if(!compiled) {compiled=compileGherkinSource(bdd.source,bdd.uri);previewSources.set(bdd.source,compiled);}
+      const pickle=compiled.pickles.find(item=>{const context=contextOfPickle(compiled!,item);return context.scenario.location.line === bdd.scenarioLine && exampleLineOfPickle(context,item) === bdd.exampleLine;})!;
+      const context=contextOfPickle(compiled,pickle);
+      return {...outcome,gherkin:{language:bdd.language,scenario:pickle.name,...(context.rule ? {rule:context.rule.name} : {}),tags:pickle.tags.map(tag=>tag.name),arguments:[...new Set(pickle.steps.flatMap(step=>step.argument?.docString ? ['docString'] : step.argument?.dataTable ? ['dataTable'] : []))],mode:parsed.data.bdd?.mode ?? bdd.mode}};
+    }) : outcomes;
+    res.status(parsed.data.dryRun ? 200 : 201).json({ dryRun: parsed.data.dryRun, results });
   } catch (error: any) {
     if (error instanceof BundleProjectAccessError) return res.status(400).json({ error: "Invalid project ID or project does not allow edits." });
     if (isForeignKeyError(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });

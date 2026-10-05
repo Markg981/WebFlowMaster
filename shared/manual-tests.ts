@@ -18,6 +18,10 @@ export interface ManualStep {
   action: string;
   /** What should happen: "The order shows Refunded and the amount is zero". */
   expected: string;
+  gherkin?: {
+    docString?: {content:string;mediaType?:string};
+    dataTable?: {rows:Array<{cells:Array<{value:string}>}>};
+  };
 }
 
 /** A step as the sequence stores it. */
@@ -59,7 +63,12 @@ export function isManualSequence(sequence: unknown): boolean {
 export function manualStepsOf(sequence: unknown): ManualStep[] {
   return asArray(sequence)
     .filter((step) => (step as any)?.action?.id === MANUAL_STEP_ACTION_ID)
-    .map((step: any) => ({ action: String(step.value ?? ""), expected: String(step.expected ?? "") }));
+    .map((step: any) => ({ action: String(step.value ?? ""), expected: String(step.expected ?? ""),
+      ...(step.gherkin && typeof step.gherkin === 'object' ? {gherkin:{
+        ...(typeof step.gherkin.docString?.content === 'string' ? {docString:step.gherkin.docString} : {}),
+        ...(Array.isArray(step.gherkin.dataTable?.rows) ? {dataTable:step.gherkin.dataTable} : {}),
+      }} : {}),
+    }));
 }
 
 /**

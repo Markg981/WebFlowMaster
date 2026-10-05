@@ -12,6 +12,8 @@ import type { FailureAnalysis } from './failure-analysis';
 import type { CiContext } from './ci';
 import { ApiPerformanceSchema, type ApiPerformance } from './api-performance';
 import { ProtocolConfigSchema, type ProtocolConfig } from './api-protocol-config';
+import { BddTestSchema, type BddTest } from './bdd';
+import type { BddAgentProfile } from './bdd-agent';
 import type { RequirementKind } from './requirements';
 import type { TestManagementProvider } from './test-management';
 export * from './comments';
@@ -145,6 +147,7 @@ export const tests = pgTable("tests", {
   name: text("name").notNull(),
   url: text("url").notNull(),
   sequence: jsonb("sequence").notNull(),
+  bdd: jsonb('bdd').$type<BddTest>(),
   elements: jsonb("elements").notNull(),
   // Ordered API setup calls that must succeed before the UI sequence runs, so the
   // system under test is in the required state (e.g. a static scale check before a
@@ -1183,6 +1186,7 @@ export type TaggableType = (typeof TAGGABLE_TYPES)[number];
  * (see the migration): a history the application can rewrite is not evidence of anything.
  */
 export const testVersions = pgTable("test_versions", {
+  bdd: jsonb('bdd').$type<BddTest>(),
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   testId: integer("test_id").references(() => tests.id, { onDelete: 'cascade' }),
@@ -1370,12 +1374,23 @@ export const agents = pgTable("agents", {
   agentVersion: text("agent_version"),
   playwrightVersion: text("playwright_version"),
   browsers: jsonb("browsers").$type<string[]>(),
+  bddProfiles: jsonb('bdd_profiles').$type<BddAgentProfile[]>(),
   revokedAt: timestamp("revoked_at"),
 }, (table) => [
   index("agents_organization_id_idx").on(table.organizationId),
 ]);
 
 export type Agent = typeof agents.$inferSelect;
+
+export const bddExecutionProfiles = pgTable('bdd_execution_profiles', {
+  id: text('id').primaryKey(),
+  organizationId: integer('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(), pool: text('pool').notNull(),
+  operatorProfileId: text('operator_profile_id').notNull(), revision: text('revision').notNull(),
+  timeoutMs: integer('timeout_ms').notNull().default(60000),
+  createdAt: timestamp('created_at').defaultNow().notNull(), updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, table => [index('bdd_execution_profiles_organization_idx').on(table.organizationId)]);
 
 /** Where an organization's code lives, for the commit statuses a run reports (server/commit-status.ts). */
 export const SOURCE_HOST_PROVIDERS = ['github', 'gitlab'] as const;
@@ -1725,6 +1740,9 @@ export type InsertApiKey = typeof apiKeys.$inferInsert;
  * near-duplicates ('member.removed' and 'member.remove') that nobody can query reliably.
  */
 export const AUDIT_ACTIONS = {
+  BDD_PROFILE_CREATED: 'bdd_profile.created',
+  BDD_PROFILE_UPDATED: 'bdd_profile.updated',
+  BDD_PROFILE_DELETED: 'bdd_profile.deleted',
   MAIL_SETTINGS_CHANGED: 'mail_settings.changed',
   MAIL_TEMPLATE_CHANGED: 'mail_template.changed',
   MEMBER_ROLE_CHANGED: 'member.role_changed',
@@ -2109,6 +2127,7 @@ export const CleanupSchema = PreconditionSchema.omit({ check: true });
 export type Cleanup = z.infer<typeof CleanupSchema>;
 
 export const insertTestSchema = createInsertSchema(tests, {
+  bdd: BddTestSchema.nullable().optional(),
   module: z.string().optional().nullable(), // Zod handles .nullable() correctly for optional fields
   featureArea: z.string().optional().nullable(),
   scenario: z.string().optional().nullable(),
@@ -2993,6 +3012,7 @@ export const ORG_SCOPED_TABLES = [
   'mobile_tests', 'mobile_test_runs',
   'test_quarantines',
   'agents',
+  'bdd_execution_profiles',
   'source_hosts',
   // One-time links to choose a new password (migration 0042). Redeeming one is the privileged
   // bootstrap in server/storage.ts; issuing and listing them happen inside the organization.

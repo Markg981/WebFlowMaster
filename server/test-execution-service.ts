@@ -29,6 +29,7 @@ import { secrets as secretsTable } from '@shared/schema';
 import { decryptSecret } from './crypto';
 import { defaultVariables } from './variables';
 import { protocolReport } from './api-protocol-report';
+import { runDedicatedBddTest } from './bdd-execution';
 import { runApiRequest, type ApiRequestSpec, type Extraction } from './api-test-runner';
 import { runPerformance } from './api-performance';
 import { mailRunFinished } from './run-mail';
@@ -154,6 +155,7 @@ export interface IndividualTestRunResult {
   performance?: PerformanceSummary;
   /** Bounded native transcript redacted for persisted reports. Live extractions stay separate. */
   protocol?: ReturnType<typeof protocolReport>;
+  bdd?: { runs: import('@shared/bdd-agent').BddAgentResult[] };
   screenshotPath?: string; // General screenshot for API tests if applicable, or last step for UI
   /** Kept only when the plan asked for them — see server/run-evidence.ts. */
   videoPath?: string;
@@ -209,6 +211,7 @@ export async function runTest(
   const testName = test.name;
 
   resolvedLogger.info({ message: `Starting ${testType} test execution`, testId, testName, planId, runId, userId });
+  if (testType === 'ui' && (test as Test).bdd?.mode === 'cucumber') return runDedicatedBddTest(test as Test,vars,options);
 
   if (testType === 'ui' && isManualSequence((test as Test).sequence)) {
     // Nothing for a browser to do: a person performs it and records the result in a plan run.
@@ -969,6 +972,7 @@ async function runTestPlanJobInTenant(
         preconditions: content.preconditions,
         cleanups: content.cleanups,
         dataset: content.dataset,
+        bdd: content.bdd as import('@shared/bdd').BddTest | null,
       } as Test);
       testVersionsInRun.set(testId, content.version);
     }
@@ -1086,8 +1090,10 @@ async function runTestPlanJobInTenant(
    */
   const browserStartupFailures: string[] = [];
   const usablePasses: Array<BrowserChoice | undefined> = [];
+  const onlyBdd = selectedTestsLinks.length > 0 && selectedTestsLinks.every(link => link.testType === 'ui' && !!link.testId && uiTestsMap.get(link.testId)?.bdd?.mode === 'cucumber');
+  if (onlyBdd) usablePasses.push(undefined);
   // A helper runs the browsers the coordinator resolved, as its work items say.
-  for (const pass of helper ? [] : runPasses) {
+  for (const pass of helper || onlyBdd ? [] : runPasses) {
     if (!pass) {
       usablePasses.push(pass);
       continue;
@@ -1175,7 +1181,7 @@ async function runTestPlanJobInTenant(
    * requests captured belong to the pass that captured them, not to the browser that ran
    * first.
    */
-  type RunUnit = { browserChoice?: BrowserChoice; locale?: string; link: (typeof selectedTestsLinks)[number] };
+  type RunUnit = { browserChoice?: BrowserChoice; locale?: string; link: (typeof selectedTestsLinks)[number]; bddRowIndex?: number };
 
   /**
    * One test, on one browser.
@@ -1186,7 +1192,7 @@ async function runTestPlanJobInTenant(
    * other captured is how a parallel run quietly tests the wrong thing.
    */
   const runUnit = async (
-    { browserChoice, locale, link }: RunUnit,
+    { browserChoice, locale, link, bddRowIndex }: RunUnit,
     captured: Record<string, string>,
     // Where its entry of the legacy results list goes: a shared run keeps them with each work item.
     sink: IndividualTestRunResult[] = legacyIndividualTestResultsForJsonBlob,
@@ -1197,6 +1203,11 @@ async function runTestPlanJobInTenant(
 
     if (link.testId && link.testType === 'ui') {
       testObjectDefinition = uiTestsMap.get(link.testId);
+      if (testObjectDefinition && bddRowIndex !== undefined) {
+        const dataset=testObjectDefinition.dataset;
+        if (testObjectDefinition.bdd?.mode !== 'cucumber' || !Array.isArray(dataset) || !Number.isInteger(bddRowIndex) || bddRowIndex < 0 || bddRowIndex >= dataset.length) throw new Error('The selected BDD dataset row is unavailable.');
+        testObjectDefinition={...testObjectDefinition,dataset:[dataset[bddRowIndex]],name:`${testObjectDefinition.name} — Row ${bddRowIndex+1}`};
+      }
     } else if (link.apiTestId && link.testType === 'api') {
       testObjectDefinition = apiTestsMap.get(link.apiTestId);
     }
@@ -1243,7 +1254,7 @@ async function runTestPlanJobInTenant(
 
     if (reportStatus === 'Skipped' || reportStatus === 'Error') {
       // Stopped before it started; recorded below with the reason.
-    } else if (testTypeForRun === 'ui' && testObjectDefinition && isManualSequence((testObjectDefinition as Test).sequence)) {
+    } else if (testTypeForRun === 'ui' && testObjectDefinition && (testObjectDefinition as Test).bdd?.mode !== 'cucumber' && isManualSequence((testObjectDefinition as Test).sequence)) {
       // A manual test: no browser. It waits in the report for somebody's verdict, with the
       // steps of the version that ran, so a later edit does not change what was asked.
       reportStatus = 'Pending';
@@ -1437,7 +1448,9 @@ async function runTestPlanJobInTenant(
       traceFinalPath = resultFromRunTest.tracePath;
       harFinalPath = resultFromRunTest.harPath;
       networkSummary = resultFromRunTest.network;
-      stepsOrLogData = resultFromRunTest.steps
+      stepsOrLogData = resultFromRunTest.bdd
+        ? JSON.stringify({bdd:resultFromRunTest.bdd,steps:resultFromRunTest.steps ?? []})
+        : resultFromRunTest.steps
         ? JSON.stringify(resultFromRunTest.steps) // For UI tests
         : resultFromRunTest.performance || resultFromRunTest.protocol
           ? JSON.stringify({ api: true, ...(resultFromRunTest.performance ? { performance: resultFromRunTest.performance } : {}), ...(resultFromRunTest.protocol ? { protocol: resultFromRunTest.protocol } : {}) })
@@ -1554,15 +1567,23 @@ async function runTestPlanJobInTenant(
   // So is a mobile app test: it runs on its own device, not in the plan's browsers.
   const isManualLink = (link: (typeof selectedTestsLinks)[number]) =>
     link.testType === 'mobile' ||
-    (link.testType === 'ui' && !!link.testId && isManualSequence(uiTestsMap.get(link.testId)?.sequence));
-  const lanes = usablePasses.flatMap((browserChoice, browserIndex) =>
+    (link.testType === 'ui' && !!link.testId && (uiTestsMap.get(link.testId)?.bdd?.mode === 'cucumber' || isManualSequence(uiTestsMap.get(link.testId)?.sequence)));
+  const bddLinks=selectedTestsLinks.filter(link => link.testType === 'ui' && !!link.testId && uiTestsMap.get(link.testId)?.bdd?.mode === 'cucumber');
+  const lanePasses=usablePasses.length ? usablePasses : bddLinks.length ? [undefined] : [];
+  const lanes = lanePasses.flatMap((browserChoice, browserIndex) =>
     runLocales.map((locale, localeIndex) => {
       const first = browserIndex === 0 && localeIndex === 0;
       return {
         browserChoice,
-        units: selectedTestsLinks
+        units: (usablePasses.length ? selectedTestsLinks : bddLinks)
           .filter((link) => first || !isManualLink(link))
-          .map((link) => (isManualLink(link) ? { link } : { browserChoice, locale, link }) as RunUnit),
+          .flatMap((link):RunUnit[] => {
+            const test=link.testType === 'ui' && link.testId ? uiTestsMap.get(link.testId) : undefined;
+            if (test?.bdd?.mode === 'cucumber' && Array.isArray(test.dataset) && test.dataset.length) {
+              return test.dataset.map((_row,bddRowIndex) => ({link,bddRowIndex}));
+            }
+            return [isManualLink(link) ? {link} : {browserChoice,locale,link}];
+          }),
         captured: (locale ? { [LOCALE_VARIABLE]: locale } : {}) as Record<string, string>,
       };
     }),
@@ -1628,7 +1649,7 @@ async function runTestPlanJobInTenant(
   const runShared = async () => {
     const worker = workerName();
     if (!helper) {
-      const spec = (unit: RunUnit) => ({ link: selectedTestsLinks.indexOf(unit.link), browserChoice: unit.browserChoice, locale: unit.locale });
+      const spec = (unit: RunUnit) => ({ link: selectedTestsLinks.indexOf(unit.link), browserChoice: unit.browserChoice, locale: unit.locale,bddRowIndex:unit.bddRowIndex });
       const items: Array<{ key: string; unit: WorkUnit }> = laneIsChained
         ? lanes.map((lane, i) => ({ key: `lane-${i}`, unit: { units: lane.units.map(spec), captured: lane.captured } }))
         : lanes.flatMap((lane, i) => lane.units.map((unit, j) => ({ key: `${i}-${j}`, unit: { units: [spec(unit)], captured: lane.captured } })));
@@ -1673,7 +1694,7 @@ async function runTestPlanJobInTenant(
             const link = selectedTestsLinks[spec.link];
             if (!link) continue;
             try {
-              await runUnit({ browserChoice: spec.browserChoice, locale: spec.locale, link }, captured, legacy);
+              await runUnit({ browserChoice: spec.browserChoice, locale: spec.locale, link,bddRowIndex:spec.bddRowIndex }, captured, legacy);
             } catch (error: any) {
               recordSettled([{ status: 'rejected', reason: error }], failures);
             }

@@ -24,6 +24,7 @@ import { describeCi, type CiContext } from '@shared/ci';
 import { mobileSessionUrl } from '@shared/mobile';
 import CancelRunButton from '@/components/reports/CancelRunButton';
 import ManualResultsCard from '@/components/reports/ManualResultsCard';
+import BddResultsCard from '@/components/reports/BddResultsCard';
 import PerformanceResultsCard from '@/components/reports/PerformanceResultsCard';
 import PagePerformanceCard from '@/components/reports/PagePerformanceCard';
 import PublicationsCard from '@/components/reports/PublicationsCard';
@@ -435,6 +436,7 @@ const TestReportPage: React.FC = () => {
           rows={Object.values(testGroupings ?? {}).flatMap((group) => Object.values(group.components ?? {}).flatMap((component) => component.tests ?? []))}
           onRecorded={() => refetch()}
         />
+        <BddResultsCard rows={Object.values(testGroupings ?? {}).flatMap((group) => Object.values(group.components ?? {}).flatMap((component) => component.tests ?? []))} />
         <PerformanceResultsCard rows={Object.values(testGroupings ?? {}).flatMap((group) => Object.values(group.components ?? {}).flatMap((component) => component.tests ?? []))} />
         <PagePerformanceCard rows={Object.values(testGroupings ?? {}).flatMap((group) => Object.values(group.components ?? {}).flatMap((component) => component.tests ?? []))} />
         <PublicationsCard executionId={header.executionId} runStatus={header.status} />

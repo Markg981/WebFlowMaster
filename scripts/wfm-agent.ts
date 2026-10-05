@@ -26,9 +26,11 @@ import { createRequire } from 'node:module';
 import WebSocket from 'ws';
 import type { BrowserServer } from 'playwright';
 import { serveApiSession } from './agent-api-session';
+import {loadBddProfiles,publicBddProfiles,type OperatorBddProfile} from './bdd-profiles';
+import {serveBddSession} from './agent-bdd-session';
 import type { AgentApiProtocol } from '../shared/agent-protocol';
 
-export const AGENT_VERSION = '1.2.0';
+export const AGENT_VERSION = '1.3.0';
 /** Kept in step with shared/agents.ts, written out because this script is shipped on its own. */
 const PROTOCOL = 1;
 const PATHS = { connect: '/api/agent/v1/connect', session: '/api/agent/v1/session/' };
@@ -40,6 +42,7 @@ export interface AgentOptions {
   maxSessions: number;
   /** Replaces the browsers found installed; for tests and for machines that should lend fewer. */
   browsers?: Engine[];
+  bddProfiles?: OperatorBddProfile[];
   log?: (line: string) => void;
   /** Called when the server refuses the token or the version; the process exits on it. */
   onFatal?: (reason: string) => void;
@@ -74,7 +77,7 @@ export function runAgent(options: AgentOptions): RunningAgent {
   const log = options.log ?? ((line: string) => console.log(`[wfm-agent] ${line}`));
   const base = toWs(options.url);
   const headers = { Authorization: `Bearer ${options.token}` };
-  const sessions = new Map<string, { server?: BrowserServer; sockets: WebSocket[] }>();
+  const sessions = new Map<string, { server?: BrowserServer; sockets: WebSocket[]; bdd?:boolean }>();
   let control: WebSocket | null = null;
   let stopping = false;
   let attempt = 0;
@@ -162,6 +165,7 @@ export function runAgent(options: AgentOptions): RunningAgent {
           maxSessions: options.maxSessions,
           apiProtocols: ['grpc', 'websocket'],
           apiProtocolFeatures: ['native-protocol-v2'],
+          bddProfiles: publicBddProfiles(options.bddProfiles ?? []),
         }),
       );
     });
@@ -182,7 +186,17 @@ export function runAgent(options: AgentOptions): RunningAgent {
           ws.send(JSON.stringify({ type: 'open_failed', sessionId: message.sessionId, error: 'The agent is stopping.' }));
           return;
         }
-        if (message.apiProtocol === 'grpc' || message.apiProtocol === 'websocket') lendApi(message.sessionId, message.apiProtocol, message.apiFeatures);
+        if (message.bddProfile) {
+          const profiles=options.bddProfiles ?? [];
+          if (!profiles.some(profile => profile.id === message.bddProfile.id && profile.revision === message.bddProfile.revision) || sessions.size >= options.maxSessions) {
+            ws.send(JSON.stringify({type:'open_failed',sessionId:message.sessionId,error:'The BDD profile is unavailable or the agent is at capacity.'}));
+            return;
+          }
+          const remote=new WebSocket(`${base}${PATHS.session}${message.sessionId}`,{headers,maxPayload:64*1024*1024});
+          sessions.set(message.sessionId,{sockets:[remote],bdd:true});
+          serveBddSession(remote,message.bddProfile,profiles,() => sessions.delete(message.sessionId));
+        }
+        else if (message.apiProtocol === 'grpc' || message.apiProtocol === 'websocket') lendApi(message.sessionId, message.apiProtocol, message.apiFeatures);
         else void lend(message.sessionId, message.engine, message.channel, message.headless !== false);
       }
     });
@@ -190,6 +204,7 @@ export function runAgent(options: AgentOptions): RunningAgent {
       /* 'close' follows and reconnects. */
     });
     ws.on('close', () => {
+      for (const entry of sessions.values()) if (entry.bdd) for (const socket of entry.sockets) socket.terminate();
       if (stopping) return;
       // Backs off to half a minute: a server being deployed comes back, and a thousand agents
       // retrying every second would be what stops it.
@@ -215,7 +230,7 @@ export function runAgent(options: AgentOptions): RunningAgent {
 }
 
 /* c8 ignore start — the process wrapper. */
-export function main(env: NodeJS.ProcessEnv = process.env): void {
+export async function main(env: NodeJS.ProcessEnv = process.env): Promise<void> {
   const url = env.WFM_URL;
   const token = env.WFM_AGENT_TOKEN;
   if (!url || !token) {
@@ -223,7 +238,8 @@ export function main(env: NodeJS.ProcessEnv = process.env): void {
     process.exit(2);
   }
   const maxSessions = Math.max(1, Math.min(Number(env.WFM_AGENT_MAX_SESSIONS) || 2, 16));
-  const agent = runAgent({ url, token, maxSessions, onFatal: () => process.exit(2) });
+  const bddProfiles=env.WFM_BDD_PROFILES ? await loadBddProfiles(env.WFM_BDD_PROFILES) : [];
+  const agent = runAgent({ url, token, maxSessions, bddProfiles, onFatal: () => process.exit(2) });
   let stopping = false;
   const stop = () => {
     if (stopping) return process.exit(1);
@@ -235,5 +251,5 @@ export function main(env: NodeJS.ProcessEnv = process.env): void {
   process.on('SIGTERM', stop);
 }
 
-if (process.argv[1] && /wfm-agent(\.m?[tj]s)?$/.test(process.argv[1])) main();
+if (process.argv[1] && /wfm-agent(\.m?[tj]s)?$/.test(process.argv[1])) void main().catch(error => {console.error(`[wfm-agent] ${error.message}`);process.exit(2);});
 /* c8 ignore stop */

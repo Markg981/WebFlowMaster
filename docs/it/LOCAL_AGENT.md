@@ -77,7 +77,8 @@ Con Node 20.18.1 o successivo:
 
 ```bash
 curl -fsSL https://webflowmaster.example.com/cli/wfm-agent.mjs -o wfm-agent.mjs
-npm install playwright@<versione del server> ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7 zod@^3
+curl -fsSL https://webflowmaster.example.com/cli/wfm-bdd-child.mjs -o wfm-bdd-child.mjs
+npm install playwright@<versione del server> ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7 zod@^3 @cucumber/cucumber@12.9.0 @cucumber/gherkin@38.0.0 @cucumber/messages@32.3.1 tsx@^4
 npx playwright install chromium        # e firefox / webkit / msedge se i piani li usano
 WFM_URL=https://webflowmaster.example.com WFM_AGENT_TOKEN=wfa_... node wfm-agent.mjs
 ```
@@ -132,11 +133,37 @@ frattempo un runner indirizzato lì riceve un rifiuto che lo nomina.
 - Se nessun agente del pool è connesso, il passaggio su quel browser fallisce con un motivo chiaro
   (`No agent of pool "onprem" is connected`) invece di girare altrove.
 
+## Supporto Cucumber dedicato
+
+L'agente **1.3.0** accetta sessioni BDD firmate per i profili annunciati dall'operatore. Usare un
+pool dedicato dell'organizzazione: i worker SaaS condivisi non importano il supporto. Conservare
+`wfm-bdd-child.mjs` accanto a `wfm-agent.mjs`, installare le dipendenze del progetto e impostare
+`WFM_BDD_PROFILES` sul manifest dell'operatore. Esempi JS/TS con lockfile e container isolato si
+trovano in `deployment/bdd-agent/`.
+
+Il proprietario sceglie pool/profilo/revisione nei profili di esecuzione BDD, per tutta
+l'organizzazione o un progetto. Per cambiare pool o profilo operatore serve un nuovo binding.
+Cambiare revisione rende non eseguibili i test ancora fissati a quella precedente. Sorgente,
+selettori Scenario/Examples e binding fanno parte della pubblicazione e della cronologia.
+Vedi [File Gherkin/Cucumber](../gherkin-files).
+
+I glob del supporto restano nel progetto autorizzato. Il profilo può abilitare `tsx` e nomi di
+variabili d'ambiente dell'operatore; token agente/relay, credenziali DB/Redis e variabili di
+controllo del runtime non vengono ereditati. Le variabili del test sono parametri del World.
+Applicare restrizioni di rete sull'host/container, supporto di sola lettura, utente non root
+e `/tmp` scrivibile con limite.
+
+Precondizioni HTTP e cleanup usano l'API request di Chromium nello stesso pool dedicato.
+Installa Chromium sugli agenti che eseguono queste richieste; uno scenario Cucumber puro
+non richiede un browser. La sessione HTTP viene rilasciata prima di Cucumber, quindi è
+supportato anche un agente con un solo slot.
+
 ## Sicurezza
 
 - Il token è salvato solo come hash SHA-256; revocarlo (Settings) disconnette subito l'agente.
-- Un agente serve solo la propria organizzazione, e solo run di piani impostati sul suo pool.
-- I ticket sono firmati HMAC, legati a organizzazione, pool e browser, e scadono dopo 60 secondi.
+- Un agente serve solo la propria organizzazione, tramite il pool del piano o un binding BDD autorizzato.
+- I ticket sono firmati HMAC, legati a organizzazione/pool e browser o profilo/revisione BDD esatti,
+  e scadono dopo 60 secondi.
 - Creare e revocare agenti è riservato agli owner ed è registrato nell'audit log.
 - L'agente esegue dentro la tua rete ciò che fanno gli step del piano: assegna il pool a piani che
   lasceresti girare da quella macchina.

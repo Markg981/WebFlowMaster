@@ -1,0 +1,21 @@
+services:
+  bdd-agent:
+    image: webflowmaster-bdd-agent:1.3.0
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ['/tmp:rw,noexec,nosuid,size=134217728,mode=1777']
+    pids_limit: 128
+    mem_limit: 768m
+    cpus: 1.0
+    stop_grace_period: 15s
+    environment:
+      WFM_URL: ${WFM_URL:?Set the approved WFM URL}
+      WFM_AGENT_TOKEN: ${WFM_AGENT_TOKEN:?Set a dedicated organization/pool agent token}
+      WFM_AGENT_MAX_SESSIONS: '2'
+    networks: [bdd-guarded]
+networks:
+  bdd-guarded:
+    external: true
+    name: ${BDD_GUARDED_NETWORK:?Attach the operator-provisioned network with egress enforcement}

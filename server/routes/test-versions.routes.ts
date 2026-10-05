@@ -211,6 +211,7 @@ router.post(["/api/tests/:id/versions/:version/restore", "/api/api-tests/:id/ver
           elements: snapshot.elements,
           preconditions: snapshot.preconditions,
           cleanups: snapshot.cleanups,
+          bdd: snapshot.bdd as import('@shared/bdd').BddTest | null,
           dataset: snapshot.dataset,
           updatedAt: new Date(),
         } as never)
