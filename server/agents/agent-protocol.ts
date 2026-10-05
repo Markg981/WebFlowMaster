@@ -1,3 +1,5 @@
+import { SpanKind } from '@opentelemetry/api';
+import { withSpan } from '../../shared/telemetry';
 import WebSocket from 'ws';
 import { setTimeout as delay } from 'node:timers/promises';
 import { AGENT_PATHS } from '@shared/agents';
@@ -8,7 +10,7 @@ import { relaySecret, signTicket } from './agent-credentials';
 import { requiredApiFeatures } from './api-protocol-features';
 
 /** Native API request, executed by the agent over its existing outbound session relay. */
-export async function runProtocolOnAgent(
+async function runProtocolOnAgentImpl(
   agent: AgentTarget,
   request: AgentProtocolRequest,
   env: NodeJS.ProcessEnv = process.env,
@@ -70,4 +72,8 @@ export async function runProtocolOnAgent(
     });
     if (signal?.aborted) onAbort();
   });
+}
+
+export function runProtocolOnAgent(...args: Parameters<typeof runProtocolOnAgentImpl>): ReturnType<typeof runProtocolOnAgentImpl> {
+  return withSpan('agent.runProtocolOnAgent', SpanKind.CLIENT, undefined, () => runProtocolOnAgentImpl(...args));
 }

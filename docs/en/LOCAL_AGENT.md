@@ -78,7 +78,7 @@ With Node 20.18.1 or later:
 ```bash
 curl -fsSL https://webflowmaster.example.com/cli/wfm-agent.mjs -o wfm-agent.mjs
 curl -fsSL https://webflowmaster.example.com/cli/wfm-bdd-child.mjs -o wfm-bdd-child.mjs
-npm install playwright@<server version> ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7 zod@^3 @cucumber/cucumber@12.9.0 @cucumber/gherkin@38.0.0 @cucumber/messages@32.3.1 tsx@^4
+npm install playwright@<server version> ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7 zod@^3 @cucumber/cucumber@12.9.0 @cucumber/gherkin@38.0.0 @cucumber/messages@32.3.1 tsx@^4 @opentelemetry/api@^1.9.1 @opentelemetry/core@^2.11.0 @opentelemetry/exporter-trace-otlp-http@^0.222.0 @opentelemetry/resources@^2.11.0 @opentelemetry/sdk-trace-base@^2.11.0 @opentelemetry/sdk-trace-node@^2.11.0
 npx playwright install chromium        # and firefox / webkit / msedge if plans use them
 WFM_URL=https://webflowmaster.example.com WFM_AGENT_TOKEN=wfa_... node wfm-agent.mjs
 ```

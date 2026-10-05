@@ -1,3 +1,4 @@
+import { captureTrace } from '../../shared/telemetry';
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { AGENT_POOL_PATTERN, AGENT_TOKEN_PREFIX, type AgentEngine } from '@shared/agents';
 import { BddAgentProfileSchema } from '@shared/bdd-agent';
@@ -25,6 +26,7 @@ export function hashAgentToken(token: string): string {
 }
 
 export interface BrowserTicket {
+  traceContext?: import('../../shared/telemetry').TraceCarrier;
   bddProfile?: { id: string; revision: string };
   /** Absent for browser sessions; present for a native API protocol session. */
   apiProtocol?: import('@shared/agent-protocol').AgentApiProtocol;
@@ -54,7 +56,7 @@ function sign(payload: string, secret: string): string {
 }
 
 export function signTicket(ticket: Omit<BrowserTicket, 'expiresAt'>, secret: string, now = Date.now()): string {
-  const payload = Buffer.from(JSON.stringify({ ...ticket, expiresAt: now + TICKET_LIFETIME_MS })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({ ...ticket, traceContext: captureTrace(), expiresAt: now + TICKET_LIFETIME_MS })).toString('base64url');
   return `${payload}.${sign(payload, secret)}`;
 }
 

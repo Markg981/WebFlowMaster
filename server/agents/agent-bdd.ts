@@ -1,3 +1,5 @@
+import { SpanKind } from '@opentelemetry/api';
+import { withSpan } from '../../shared/telemetry';
 import WebSocket from 'ws';
 import { setTimeout as delay } from 'timers/promises';
 import { AGENT_PATHS } from '@shared/agents';
@@ -5,7 +7,7 @@ import { BddAgentRequestSchema, BddAgentResultSchema, type BddAgentRequest, type
 import { signTicket, relaySecret } from './agent-credentials';
 import { relayBaseUrl, RUNNER_PLAYWRIGHT_VERSION } from './agent-browser';
 
-export async function runBddOnAgent(agent: {organizationId:number;pool:string}, input: BddAgentRequest, env:NodeJS.ProcessEnv = process.env, signal?:AbortSignal):Promise<BddAgentResult> {
+async function runBddOnAgentImpl(agent: {organizationId:number;pool:string}, input: BddAgentRequest, env:NodeJS.ProcessEnv = process.env, signal?:AbortSignal):Promise<BddAgentResult> {
   const request = BddAgentRequestSchema.parse(input);
   const payload = JSON.stringify(request);
   if (Buffer.byteLength(payload) > 64 * 1024 * 1024) throw new Error('Serialized BDD request exceeds the relay limit.');
@@ -48,4 +50,8 @@ export async function runBddOnAgent(agent: {organizationId:number;pool:string}, 
     socket.once('unexpected-response',(_req,response) => { response.resume();finish(new Error(`The relay refused the BDD session: HTTP ${response.statusCode}`)); });
     if (signal?.aborted) abort();
   });
+}
+
+export function runBddOnAgent(...args: Parameters<typeof runBddOnAgentImpl>): ReturnType<typeof runBddOnAgentImpl> {
+  return withSpan('agent.runBddOnAgent', SpanKind.CLIENT, undefined, () => runBddOnAgentImpl(...args));
 }

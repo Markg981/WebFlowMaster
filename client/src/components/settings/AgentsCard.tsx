@@ -106,7 +106,7 @@ const AgentsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
     ? [
         `curl -fsSL ${origin}/cli/wfm-agent.mjs -o wfm-agent.mjs`,
         `curl -fsSL ${origin}/cli/wfm-bdd-child.mjs -o wfm-bdd-child.mjs`,
-        `npm install playwright@${playwrightVersion} ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7 zod@^3 @cucumber/cucumber@12.9.0 @cucumber/gherkin@38.0.0 @cucumber/messages@32.3.1 tsx@^4 && npx playwright install chromium`,
+        `npm install playwright@${playwrightVersion} ws @grpc/grpc-js @grpc/proto-loader undici@^7 https-proxy-agent@^7 zod@^3 @cucumber/cucumber@12.9.0 @cucumber/gherkin@38.0.0 @cucumber/messages@32.3.1 tsx@^4 @opentelemetry/api@^1.9.1 @opentelemetry/core@^2.11.0 @opentelemetry/exporter-trace-otlp-http@^0.222.0 @opentelemetry/resources@^2.11.0 @opentelemetry/sdk-trace-base@^2.11.0 @opentelemetry/sdk-trace-node@^2.11.0 && npx playwright install chromium`,
         `WFM_URL=${origin} WFM_AGENT_TOKEN=${issued.token} node wfm-agent.mjs`,
       ].join('\n')
     : '';

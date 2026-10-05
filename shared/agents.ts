@@ -56,7 +56,7 @@ export interface AgentHello {
 export type ServerToAgent =
   | { type: 'welcome'; agentId: string; name: string; pool: string }
   | { type: 'refused'; reason: string }
-  | { type: 'open'; sessionId: string; engine: AgentEngine; channel?: string; headless: boolean; apiProtocol?: import('./agent-protocol').AgentApiProtocol; apiFeatures?: Array<import('./agent-protocol').AgentApiFeature>; bddProfile?: { id: string; revision: string } };
+  | { type: 'open'; traceContext?: import('./telemetry').TraceCarrier; sessionId: string; engine: AgentEngine; channel?: string; headless: boolean; apiProtocol?: import('./agent-protocol').AgentApiProtocol; apiFeatures?: Array<import('./agent-protocol').AgentApiFeature>; bddProfile?: { id: string; revision: string } };
 
 /** Agent → server, after hello. */
 export type AgentToServer =

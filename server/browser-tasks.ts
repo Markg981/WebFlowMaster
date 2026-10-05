@@ -1,4 +1,5 @@
 import { Queue, QueueEvents } from 'bullmq';
+import { TracedQueue } from './observability/queue';
 import { eq } from 'drizzle-orm';
 import { tests } from '@shared/schema';
 import { playwrightService, type AdhocSequencePayload } from './playwright-service';
@@ -259,7 +260,7 @@ let events: QueueEvents | undefined;
 export const browserTasks = createBrowserTaskRunner({
   mode: browserTaskMode(),
   queue: () => {
-    queue ??= new Queue(BROWSER_TASK_QUEUE_NAME, { connection });
+    queue ??= new TracedQueue(BROWSER_TASK_QUEUE_NAME, { connection });
     return queue as unknown as BrowserTaskQueuePort;
   },
   events: () => {
