@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TestFilesDialog } from './TestFilesDialog';
@@ -31,6 +31,33 @@ function renderDialog(canEdit = true, onImported = vi.fn()) {
 }
 
 describe('TestFilesDialog', () => {
+  it('requires profile reselection and a fresh preview after a completed preview revision changes', async () => {
+    const profile = { id: '00000000-0000-4000-8000-000000000001', name: 'QA support', revision: 'r1', projectId: null };
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity, queryFn: async () => [] } } });
+    client.setQueryData(['/api/bdd/profiles'], { profiles: [profile] });
+    fetchMock.mockImplementation(async (_url, options) => ({ ok: true, json: async () => ({ dryRun: JSON.parse(options.body).dryRun, results: [{ kind: 'test', name: 'Scenario', outcome: 'created' }] }) }));
+    render(<QueryClientProvider client={client}><TestFilesDialog open onOpenChange={() => {}} canEdit onImported={vi.fn()} /></QueryClientProvider>);
+    fireEvent.change(screen.getByLabelText('Execution mode'), { target: { value: 'cucumber' } });
+    fireEvent.change(screen.getByLabelText('Execution profile'), { target: { value: profile.id } });
+    fireEvent.change(screen.getByTestId('test-files-content'), { target: { value: 'Feature: F' } });
+    fireEvent.click(screen.getByTestId('test-files-preview'));
+    await waitFor(() => expect(screen.getByTestId('test-files-import')).toBeEnabled());
+
+    await act(async () => { client.setQueryData(['/api/bdd/profiles'], { profiles: [{ ...profile, revision: 'r2' }] }); });
+    await screen.findByRole('option', { name: 'QA support · r2' });
+    expect(screen.getByTestId('test-files-import')).toBeDisabled();
+    expect(screen.getByLabelText('Execution profile')).toHaveValue('');
+    expect(screen.getByTestId('test-files-preview')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('test-files-import'));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    fireEvent.change(screen.getByLabelText('Execution profile'), { target: { value: profile.id } });
+    expect(screen.getByTestId('test-files-import')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('test-files-preview'));
+    await waitFor(() => expect(screen.getByTestId('test-files-import')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('test-files-import'));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body).bdd.binding).toEqual({ id: profile.id, revision: 'r2' });
+  });
  it('discards an old preview when content changes while the request is pending',async()=>{
  let resolve:any;fetchMock.mockReturnValue(new Promise(r=>{resolve=r}));renderDialog();fireEvent.change(screen.getByTestId('test-files-content'),{target:{value:'old'}});fireEvent.click(screen.getByTestId('test-files-preview'));fireEvent.change(screen.getByTestId('test-files-content'),{target:{value:'new'}});resolve({ok:true,json:async()=>({dryRun:true,results:[{kind:'test',name:'Old test',outcome:'created'}]})});await waitFor(()=>expect(screen.getByTestId('test-files-preview')).toBeEnabled());expect(screen.getByTestId('test-files-import')).toBeDisabled();expect(screen.queryByText('Old test')).toBeNull();
  });

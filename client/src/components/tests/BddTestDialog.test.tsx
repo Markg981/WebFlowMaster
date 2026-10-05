@@ -23,6 +23,44 @@ function wrap(child: React.ReactNode) {
   return <QueryClientProvider client={client}>{child}</QueryClientProvider>;
 }
 describe('BddTestDialog', () => {
+  it.each([
+    ['Gherkin source', 'unsaved source'],
+    ['Dialect', 'en'],
+    ['Logical feature filename', 'changed.feature'],
+    ['Scenario line', '5'],
+    ['Examples row line (optional)', '7'],
+    ['Execution mode', 'cucumber'],
+  ])('requires saving changes to %s before converting stored steps', (label, value) => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    render(wrap(<BddTestDialog test={{ id: 1, name: 'A', bdd }} onClose={vi.fn()} onSaved={vi.fn()} />));
+    fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    expect(screen.getByTestId('bdd-convert-manual')).toBeDisabled();
+    expect(screen.getByText('Save your changes before converting to an editable manual test.')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('bdd-convert-manual'));
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it.each(['bdd-save', 'bdd-convert-manual'])('freezes all editor controls while %s is pending', async (button) => {
+    const binding = { id: '00000000-0000-4000-8000-000000000001', revision: 'r1' };
+    const definition = { ...bdd, mode: 'cucumber' as const, binding };
+    const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
+    client.setQueryData(['/api/bdd/profiles'], { profiles: [{ ...binding, name: 'QA support', projectId: null }] });
+    let resolve!: (value: unknown) => void;
+    const fetchMock = vi.fn().mockReturnValue(new Promise(r => { resolve = r; }));
+    vi.stubGlobal('fetch', fetchMock);
+    const onSaved = vi.fn(), onClose = vi.fn();
+    render(<QueryClientProvider client={client}><BddTestDialog test={{ id: 1, name: 'A', bdd: definition }} onClose={onClose} onSaved={onSaved} /></QueryClientProvider>);
+    fireEvent.click(screen.getByTestId(button));
+    for (const label of ['Gherkin source', 'Dialect', 'Logical feature filename', 'Scenario line', 'Examples row line (optional)', 'Execution mode', 'Execution profile']) {
+      expect(screen.getByLabelText(label)).toBeDisabled();
+    }
+    expect(screen.getByTestId('bdd-save')).toBeDisabled();
+    expect(screen.getByTestId('bdd-convert-manual')).toBeDisabled();
+    resolve({ ok: true, json: async () => ({}) });
+    await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(screen.getByLabelText('Gherkin source')).toBeEnabled();
+  });
   it('ignores a previous test save completion after switching identities', async () => {
     let resolve: any;
     const pending = new Promise((r) => {

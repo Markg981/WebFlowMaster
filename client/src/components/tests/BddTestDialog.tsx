@@ -54,11 +54,18 @@ export default function BddTestDialog({
   const selected = profiles.find(
     (p) => p.id === draft.binding?.id && p.revision === draft.binding?.revision,
   );
+  const draftIdentity = (value: BddTest) => JSON.stringify([
+    value.source, value.language, value.uri, value.scenarioLine, value.exampleLine,
+    value.mode, value.binding?.id, value.binding?.revision,
+  ]);
+  const dirty = draftIdentity(draft) !== draftIdentity(test.bdd);
   const patch = (next: Partial<BddTest>) => {
+    if (busy) return;
     setDraft((current) => ({ ...current, ...next }));
     setError('');
   };
   const save = async (convert = false) => {
+    if (busy || (convert && dirty)) return;
     const requestGeneration = generation.current;
     setBusy(true);
     setError('');
@@ -100,6 +107,7 @@ export default function BddTestDialog({
         <Label htmlFor="bdd-source">{t('bdd.source', 'Gherkin source')}</Label>
         <Textarea
           id="bdd-source"
+          disabled={busy}
           rows={14}
           className="font-mono text-xs"
           value={draft.source}
@@ -111,6 +119,7 @@ export default function BddTestDialog({
             <Label htmlFor="bdd-language">{t('bdd.language', 'Dialect')}</Label>
             <Input
               id="bdd-language"
+              disabled={busy}
               value={draft.language}
               onChange={(e) => patch({ language: e.target.value })}
             />
@@ -119,6 +128,7 @@ export default function BddTestDialog({
             <Label htmlFor="bdd-uri">{t('bdd.uri', 'Logical feature filename')}</Label>
             <Input
               id="bdd-uri"
+              disabled={busy}
               value={draft.uri}
               onChange={(e) => patch({ uri: e.target.value })}
             />
@@ -127,6 +137,7 @@ export default function BddTestDialog({
             <Label htmlFor="bdd-scenario-line">{t('bdd.scenarioLine', 'Scenario line')}</Label>
             <Input
               id="bdd-scenario-line"
+              disabled={busy}
               type="number"
               min={1}
               value={draft.scenarioLine}
@@ -139,6 +150,7 @@ export default function BddTestDialog({
             </Label>
             <Input
               id="bdd-example-line"
+              disabled={busy}
               type="number"
               min={1}
               value={draft.exampleLine ?? ''}
@@ -151,6 +163,7 @@ export default function BddTestDialog({
         <Label htmlFor="bdd-mode">{t('bdd.mode', 'Execution mode')}</Label>
         <select
           id="bdd-mode"
+          disabled={busy}
           className="border rounded p-2 bg-background"
           value={draft.mode}
           onChange={(e) => patch({ mode: e.target.value as BddTest['mode'], binding: undefined })}
@@ -163,6 +176,7 @@ export default function BddTestDialog({
             <Label htmlFor="bdd-profile">{t('bdd.profile', 'Execution profile')}</Label>
             <select
               id="bdd-profile"
+              disabled={busy}
               data-testid="bdd-profile"
               className="border rounded p-2 bg-background"
               value={selected?.id ?? ''}
@@ -189,6 +203,9 @@ export default function BddTestDialog({
           </>
         )}
         {profilesError && <p role="alert">{profilesError.message}</p>}
+        {dirty && <p className="text-sm text-muted-foreground">
+          {t('bdd.saveBeforeConvert', 'Save your changes before converting to an editable manual test.')}
+        </p>}
         {error && (
           <p role="alert" className="text-destructive" data-testid="bdd-editor-error">
             {error}
@@ -197,7 +214,7 @@ export default function BddTestDialog({
         <DialogFooter className="flex-wrap gap-2">
           <Button
             variant="outline"
-            disabled={busy}
+            disabled={busy || dirty}
             onClick={() => save(true)}
             data-testid="bdd-convert-manual"
           >
