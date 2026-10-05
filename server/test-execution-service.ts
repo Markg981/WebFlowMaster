@@ -63,6 +63,8 @@ import { failuresOf, openQuarantinesOf, refKey } from './test-quarantine';
 import { describeNetworkFailures, type NetworkSummary } from '@shared/network';
 import { takeExecution, transitionExecution } from './execution-state';
 import { artifactStore } from './artifact-store';
+import { QuotaError, quotaErrorBody } from './tenant-quotas';
+import { withExecutionUsage } from './execution-usage';
 import { watchRun } from './run-watch';
 import {
   claimWorkItem,
@@ -510,6 +512,8 @@ export async function runTestPlan(
       resolvedLogger.warn({ message: 'Test plan execution not enqueued', planId, code: error.code, error: error.message });
       return { error: error.message, status: error.status, testPlanRunId: error.executionId };
     }
+    const quota = quotaErrorBody(error);
+    if (quota) return { error: String(quota.error), status: 429 };
     resolvedLogger.error({ message: 'Failed to enqueue test plan run', planId, error: error.message, stack: error.stack });
     return { error: `Failed to initialize test plan run: ${error.message}`, status: 500 };
   }
@@ -573,7 +577,7 @@ export async function processShardJob(
   const execution = await organizationOfExecution(executionId);
   if (!execution) return { skipped: true, reason: 'Execution not found.', testPlanRunId: executionId };
   return runWithTenant(execution.organizationId, () =>
-    runTestPlanJobInTenant(planId, executionId, userId, jobOptions, { shard }),
+    withExecutionUsage('shard', () => runTestPlanJobInTenant(planId, executionId, userId, jobOptions, { shard }), `${executionId}-shard-${shard}`),
   );
 }
 
@@ -624,12 +628,16 @@ async function runTestPlanJobInTenant(
   const take = await takeExecution(testPlanRunId);
   if (take.outcome === 'over_quota') {
     resolvedLogger.info({
-      message: 'Test plan execution deferred: its organization is at its limit of runs at once',
+      message: take.reason === 'execution_quota_exceeded'
+        ? 'Test plan execution deferred: monthly execution allowance exhausted'
+        : 'Test plan execution deferred: its organization is at its limit of runs at once',
       testPlanRunId,
       running: take.running,
       maxConcurrentRuns: take.maxConcurrentRuns,
+      reason: take.reason ?? 'concurrent_run_quota',
+      periodEnd: take.periodEnd,
     });
-    return { deferred: true, retryInMs: RUN_DEFERRAL_MS, testPlanRunId };
+    return { deferred: true, retryInMs: RUN_DEFERRAL_MS, testPlanRunId, reason: take.reason ?? 'concurrent_run_quota', periodEnd: take.periodEnd };
   }
   if (take.outcome !== 'taken') {
     resolvedLogger.warn({
@@ -1969,6 +1977,9 @@ async function publishArtifacts(localDir: string, executionId: string): Promise<
     await artifactStore().publishDirectory(localDir);
   } catch (error: any) {
     const resolvedLogger = await loggerPromise;
+    await withTenantTransaction(tx => tx.update(testPlanExecutionsTable)
+      .set({ artifactStorageStatus: error instanceof QuotaError ? 'quota_exceeded' : 'error' })
+      .where(eq(testPlanExecutionsTable.id, executionId)).returning()).catch(() => undefined);
     const entry: ExecutionLogEntry = {
       level: 'warn',
       source: 'system',

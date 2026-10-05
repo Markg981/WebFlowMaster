@@ -522,6 +522,54 @@ cambio, link di reset); le password già esistenti non vengono controllate.
   lo username (o la parte di un indirizzo prima della @); non è fra le password da cui parte ogni
   lista di tentativi.
 
+## Quote e consumi {#quotas}
+
+**Impostazioni → Utilizzo run** mostra piani in corso/in coda, test salvati, byte degli artefatti
+e minuti di esecuzione nel mese solare UTC. Le quote funzionano senza pagamenti o abbonamenti.
+Per l'uso locale gratuito senza limiti impostare `TENANT_QUOTA_MODE=off`. `monitor` misura senza
+rifiutare operazioni; `enforce` applica i limiti. Il default `enforce` conserva i precedenti limiti
+di concorrenza/coda, con le nuove dimensioni illimitate. La modalità è configurabile per tenant.
+
+| Limite | Default dell'ambiente | Significato |
+| --- | --- | --- |
+| Piani contemporanei | `ORG_MAX_CONCURRENT_RUNS=2` | I successivi aspettano; intero positivo |
+| Piani in coda | `ORG_MAX_QUEUED_RUNS=100` | Invii oltre il limite: HTTP 429; intero positivo |
+| Test salvati | `ORG_MAX_TESTS=0` | Definizioni UI/BDD, API e mobile, inclusi i test archiviati |
+| Artefatti conservati | `ORG_MAX_ARTIFACT_BYTES=0` | Evidenze, baseline e screenshot mobile nel database, in byte |
+| Esecuzione mensile | `ORG_MAX_MONTHLY_EXECUTION_MINUTES=0` | Occupazione, inclusi browser/API/mobile diretti e worker aggiuntivi degli shard |
+
+Zero significa illimitato per i tre nuovi limiti. **Eredita** elimina l'override e usa il default.
+In `off` controllo e misurazione dei minuti sono disabilitati; conteggi dei test e contabilità degli
+artefatti restano disponibili. Capacità dei worker, timeout, rate limit e permessi mantengono la
+propria configurazione. Usare default identici su web/worker e riavviare dopo le modifiche.
+
+L'amministratore dell'installazione usa **Amministrazione quote** per cercare organizzazioni e
+modificarne i limiti. Owner ordinari e account di servizio non amministrano le quote dell'installazione;
+resta il fallback owner quando esiste una sola organizzazione. L'audit del tenant registra autore,
+valori precedenti/nuovi e revisione. Con modifiche concorrenti si riceve HTTP 409: aggiornare prima
+di salvare nuovamente.
+
+Eseguire **Riconcilia artefatti** prima di salvare un limite finito di spazio in `enforce`. Prima
+del primo inventario riuscito lo spazio è non misurato, non zero. Errori ambigui dello storage
+mantengono byte prenotati: ripristinare la connessione e riconciliare. Scansioni fallite conservano
+l'inventario precedente. Retention/eliminazione libera capacità dopo la rimozione fisica. Locale/S3
+seguono le stesse regole; staging attivo/incompleto è escluso e riguarda il disco operativo.
+Gli screenshot mobile contano i byte del testo base64 memorizzato.
+
+Abbassare i limiti conserva dati e lavoro in corso. Nuovi test/import sono rifiutati al limite;
+modifica ed eliminazione restano disponibili. I minuti sono un budget di ammissione, non CPU/RAM
+né una soglia di arresto: il lavoro ammesso può terminare oltre il limite; i piani in coda aspettano
+capacità o il prossimo mese UTC. In assenza di heartbeat il consumo orfano si ferma a due minuti
+dall'ultimo segnale. Eliminare lo storico non cancella il consumo. Evidenze omesse sono segnalate
+separatamente dal verdetto, preservando quelle precedenti. Queste quote possono supportare politiche
+commerciali ma non addebitano nulla: i pagamenti richiedono un'integrazione configurata separatamente.
+
+API: `GET /api/admin/organization-quotas`, `PATCH /api/admin/organization-quotas/:id` con
+`{ "revision": 1, "overrides": { "mode": "off", "maxTests": null } }`,
+`POST /api/admin/organization-quotas/:id/reconcile-artifacts`. Consumi del tenant:
+`GET /api/organization/usage`. Rifiuti: HTTP 429 con `test_quota_exceeded` oppure
+`execution_quota_exceeded`. Vedere le [procedure di accettazione](../../administration-acceptance.md).
+
 ## Limiti noti
 
 - Senza SCIM, il single sign-on legge i ruoli dai gruppi solo all'accesso: una modifica presso il

@@ -30,6 +30,7 @@ import {
   AUDIT_ACTIONS,
 } from "@shared/schema";
 import { auditActor, changedFields, recordAudit } from "./audit";
+import { executionArtifactAvailability } from './artifact-metering';
 import { z } from "zod";
 // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
@@ -95,6 +96,7 @@ import observabilityRoutes from "./routes/observability.routes";
 import environmentRoutes from "./routes/environments.routes";
 import analyticsRoutes from "./routes/analytics.routes";
 import organizationRoutes from "./routes/organization.routes";
+import tenantQuotaAdminRoutes from './routes/tenant-quota-admin.routes';
 import { tenancyMiddleware, withTenantTransaction } from "./middleware/tenancy";
 import { SharedDataError, expandSharedDataset } from "./test-data";
 import { sharedSetIdOf } from "@shared/test-data";
@@ -102,6 +104,8 @@ import { apiKeyAuth } from "./middleware/api-key-auth";
 import { apiRateLimit } from "./middleware/rate-limits";
 import { requireInstallationAdmin } from "./installation-admin";
 import { runApiRequest } from "./api-test-runner";
+import { withExecutionUsage } from './execution-usage';
+import { quotaErrorBody } from './tenant-quotas';
 import { ProtocolConfigSchema } from '@shared/api-protocol-config';
 import { defaultVariables, resolveVariables } from "./variables";
 import { redactHistoryEntry } from "./history-redaction";
@@ -213,6 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(apiV1Routes);
     app.use(authRoutes);
     app.use(organizationRoutes);
+    app.use(tenantQuotaAdminRoutes);
     app.use(projectsRoutes);
     app.use(testsRoutes);
     app.use(testPlansRoutes);
@@ -286,6 +291,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ success: false, error: result.error || 'Failed to load website using Playwright service.' });
       }
     } catch (error: any) {
+      const quota = quotaErrorBody(error);
+      if (quota) return res.status(429).json(quota);
       if (error instanceof BrowserTaskError) {
         return res.status(error.status).json({ success: false, error: error.message, code: error.code });
       }
@@ -320,10 +327,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // One implementation, shared with the scheduled runner. Keeping a second copy here is
     // what let the two drift until test-execution-service gave up and shipped
     // `Math.random() > 0.2` in place of executing anything at all.
-    const result = await runApiRequest(
-      { method, url, queryParams, headers, body, multipart, binary, assertions, extractions, auth, protoDefinition, protocolConfig },
-      vars,
-    );
+    let result: Awaited<ReturnType<typeof runApiRequest>>;
+    try {
+      result = await withExecutionUsage('api', () => runApiRequest(
+        { method, url, queryParams, headers, body, multipart, binary, assertions, extractions, auth, protoDefinition, protocolConfig }, vars,
+      ));
+    } catch (error) {
+      const quota = quotaErrorBody(error);
+      if (quota) return res.status(429).json(quota);
+      resolvedLogger.error({ message: 'Direct API execution failed', error: (error as Error).message });
+      return res.status(500).json({ error: 'The API request could not be executed.' });
+    }
 
     if (result.error) {
       resolvedLogger.error("Error in /api/proxy-api-request:", { error: result.error, url, method });
@@ -389,6 +403,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         summary: detection.summary,
       });
     } catch (error: any) {
+      const quota = quotaErrorBody(error);
+      if (quota) return res.status(429).json(quota);
       if (error instanceof BrowserTaskError) {
         return res.status(error.status).json({ success: false, error: error.message, code: error.code });
       }
@@ -573,6 +589,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     } catch (error: any) {
+      const quota = quotaErrorBody(error);
+      if (quota) return res.status(429).json(quota);
       if (error instanceof BrowserTaskError && !res.headersSent) {
         res.status(error.status).json({ success: false, error: error.message, code: error.code, steps: [], duration: 0 });
         return;
@@ -1435,9 +1453,10 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
     // A run whose evidence retention has removed links to nothing: its images would all be
     // broken, and the header says why they are not there instead.
     const purged = !!execution.artifactsPurgedAt;
-    const openable = (storedPath: string | null | undefined) => (purged ? null : artifactUrl(executionId, storedPath));
+    const retained = await executionArtifactAvailability(execution.organizationId, execution.testPlanId, executionId);
+    const openable = (storedPath: string | null | undefined) => (purged ? null : artifactUrl(executionId, storedPath, retained));
     const stepsOf = (detailedLog: string | null | undefined) => {
-      const steps = stepsWithArtifactUrls(executionId, detailedLog);
+      const steps = stepsWithArtifactUrls(executionId, detailedLog, retained);
       if (!purged) return steps;
       return steps.map((step) => ({
         ...step,
@@ -1621,6 +1640,9 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
         failureMessage: execution.failureMessage,
         // When retention removed this run's screenshots, videos and traces.
         artifactsPurgedAt: execution.artifactsPurgedAt ? execution.artifactsPurgedAt.toISOString() : null,
+        artifactStorageStatus: execution.artifactStorageStatus,
+        quotaDeferReason: execution.quotaDeferReason,
+        quotaDeferUntil: execution.quotaDeferUntil,
         // Tests that passed only after being run again: a pass, and a finding of its own.
         flakyTests: testCaseResults.filter((r) => r.status === 'Passed' && (r.attempts ?? 1) > 1).length,
         // Failures of tests in quarantine: counted in the failed figure, not in the verdict.

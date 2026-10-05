@@ -1,3 +1,4 @@
+import { quotaErrorBody } from '../tenant-quotas';
 import { Router, type Response } from "express";
 import { tests, insertTestSchema, apiTests, insertApiTestSchema, updateApiTestSchema, users, projects, projectMembers, AUDIT_ACTIONS } from "@shared/schema";
 import { auditActor, changedFields, recordAudit } from "../audit";
@@ -55,6 +56,8 @@ router.get("/api/tests", requireRole('viewer'), async (req, res) => {
     });
     res.json(allTests);
   } catch (error: any) {
+    const quota = quotaErrorBody(error);
+    if (quota) return res.status(429).json(quota);
     logger.error({ message: "Error fetching tests", error: error.message });
     res.status(500).json({ error: "Failed to fetch tests" });
   }
@@ -127,6 +130,8 @@ router.post("/api/tests", requireRole('editor'), async (req, res) => {
 
     res.status(201).json(created.test);
   } catch (error: any) {
+    const quota = quotaErrorBody(error);
+    if (quota) return res.status(429).json(quota);
     if (error instanceof BddDefinitionError) return res.status(400).json({error:error.message});
     if (isForeignKeyError(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
     logger.error({ message: "Error creating test", error: error.message });
@@ -193,6 +198,8 @@ router.put("/api/tests/:id", requireRole('editor'), async (req, res) => {
     if (updated.length === 0) return notChanged(res, id, "Test not found");
     res.json(updated[0]);
   } catch (error: any) {
+    const quota = quotaErrorBody(error);
+    if (quota) return res.status(429).json(quota);
     if (isForeignKeyError(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
     if (error instanceof BddDefinitionError) return res.status(400).json({error:error.message});
     logger.error({ message: "Error updating test", error: error.message, testId: id });
@@ -246,6 +253,8 @@ router.put("/api/tests/:id/steps/:stepId/selector", requireRole('editor'), async
     if ('error' in outcome) return res.status(outcome.status).json({ error: outcome.error });
     res.json({ id: outcome.test.id, version: (outcome.version as { version?: number } | undefined)?.version ?? null });
   } catch (error: any) {
+    const quota = quotaErrorBody(error);
+    if (quota) return res.status(429).json(quota);
     logger.error({ message: "Error updating a step's selector", error: error.message, testId: id });
     res.status(500).json({ error: "Failed to update the step." });
   }
@@ -283,6 +292,8 @@ router.delete("/api/tests/:id", requireRole('editor'), async (req, res) => {
     if (deleted.length === 0) return notChanged(res, id, "Test not found");
     res.status(204).end();
   } catch (error: any) {
+    const quota = quotaErrorBody(error);
+    if (quota) return res.status(429).json(quota);
     logger.error({ message: "Error deleting test", error: error.message, testId: id });
     res.status(500).json({ error: "Failed to delete test" });
   }
@@ -316,6 +327,8 @@ router.post("/api/tests/:id/run", requireRole('editor'), async (req, res) => {
         });
         res.json(result);
     } catch (e: any) {
+        const quota = quotaErrorBody(e);
+        if (quota) return res.status(429).json(quota);
         if (e instanceof BrowserTaskError) {
           return res.status(e.status).json({ error: e.message, code: e.code });
         }
@@ -414,6 +427,8 @@ router.post("/api/api-tests/import", requireRole('editor'), async (req, res) => 
         });
         res.status(201).json({ created: created.map((t) => ({ id: t.id, name: t.name })), skipped, invalid, variables: result.variables });
     } catch (e: any) {
+        const quota = quotaErrorBody(e);
+        if (quota) return res.status(429).json(quota);
         if (isForeignKeyError(e)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
         throw e;
     }
@@ -465,6 +480,8 @@ router.get("/api/api-tests", requireRole('viewer'), async (req, res) => {
         );
         res.json(result);
     } catch (e: any) {
+        const quota = quotaErrorBody(e);
+        if (quota) return res.status(429).json(quota);
         logger.error({ message: "Error fetching API tests", error: e.message, userId: req.user?.id });
         res.status(500).json({ error: "Failed to fetch API tests" });
     }
@@ -485,6 +502,8 @@ router.get("/api/api-tests/:id", requireRole('viewer'), async (req, res) => {
         if (result.length === 0) return res.status(404).json({ error: "API Test not found or not authorized" });
         res.json(result[0]);
     } catch (e: any) {
+        const quota = quotaErrorBody(e);
+        if (quota) return res.status(429).json(quota);
         logger.error({ message: `Error fetching API test ${id}`, error: e.message, userId: req.user?.id });
         res.status(500).json({ error: "Failed to fetch API test" });
     }
@@ -520,6 +539,8 @@ router.post("/api/api-tests", requireRole('editor'), async (req, res) => {
         });
         res.status(201).json(newTest[0]);
     } catch (e: any) {
+        const quota = quotaErrorBody(e);
+        if (quota) return res.status(429).json(quota);
         logger.error({ message: "Error creating API test", error: e.message, userId: req.user?.id });
         if (isForeignKeyError(e)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
         res.status(500).json({ error: "Failed to create API test" });
@@ -563,6 +584,8 @@ router.put("/api/api-tests/:id", requireRole('editor'), async (req, res) => {
         if (updated.length === 0) return notChanged(res, id, "Test not found", apiTests);
         res.json(updated[0]);
     } catch (e: any) {
+        const quota = quotaErrorBody(e);
+        if (quota) return res.status(429).json(quota);
         logger.error({ message: `Error updating API test ${id}`, error: e.message, userId: req.user?.id });
         if (isForeignKeyError(e)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
         res.status(500).json({ error: "Failed to update API test" });
@@ -596,6 +619,8 @@ router.delete("/api/api-tests/:id", requireRole('editor'), async (req, res) => {
         if (deleted.length === 0) return notChanged(res, id, "API Test not found", apiTests);
         res.status(204).send();
     } catch (e: any) {
+        const quota = quotaErrorBody(e);
+        if (quota) return res.status(429).json(quota);
         logger.error({ message: `Error deleting API test ${id}`, error: e.message, userId: req.user?.id });
         res.status(500).json({ error: "Failed to delete API test" });
     }
@@ -805,6 +830,8 @@ router.post("/api/tests/import-bundle", requireRole('editor'), async (req, res) 
     }) : outcomes;
     res.status(parsed.data.dryRun ? 200 : 201).json({ dryRun: parsed.data.dryRun, results });
   } catch (error: any) {
+    const quota = quotaErrorBody(error);
+    if (quota) return res.status(429).json(quota);
     if (error instanceof BundleProjectAccessError) return res.status(400).json({ error: "Invalid project ID or project does not allow edits." });
     if (isForeignKeyError(error)) return res.status(400).json({ error: "Invalid project ID or project does not exist." });
     throw error;

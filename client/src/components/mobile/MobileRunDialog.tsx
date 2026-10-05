@@ -22,6 +22,7 @@ interface Run {
   steps: MobileStepResult[];
   error: string | null;
   screenshot: string | null;
+  artifactStorageStatus?: 'quota_exceeded' | 'error' | null;
   sessionUrl: string | null;
 }
 
@@ -196,6 +197,7 @@ export default function MobileRunDialog({ test, grids, onClose, onFinished }: Pr
                 {run.error}
               </p>
             )}
+            {run?.artifactStorageStatus && <p className="text-sm text-amber-700 dark:text-amber-400">{t(run.artifactStorageStatus === 'quota_exceeded' ? 'quota.evidenceQuota' : 'quota.evidenceError')}</p>}
             {run?.screenshot && (
               <img src={`data:image/png;base64,${run.screenshot}`} alt={t('mobileTests.run.screenshot', 'The device at the end of the run')} className="max-h-96 rounded border" />
             )}

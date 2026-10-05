@@ -187,9 +187,12 @@ Tre numeri decidono quanto gira contemporaneamente; ciascuno è descritto nel
   Oltre il secondo, un nuovo run viene rifiutato con `429`. Tra i run in attesa passa prima
   l'organizzazione che ne ha meno in corso.
 
-I limiti di una singola organizzazione si impostano sulla sua riga nel database. L'applicazione
-non ha il permesso di modificare queste colonne, quindi un'organizzazione non può alzarsi i
-limiti da sola:
+Gli amministratori dell'installazione configurano modalità e override in
+[Impostazioni → Amministrazione quote](./administration#quotas). `TENANT_QUOTA_MODE=off` consente
+uso locale gratuito senza controllo delle quote; `monitor` misura soltanto. Limiti dei test,
+spazio e minuti mensili UTC restano indipendenti dai pagamenti. Il ruolo database applicativo
+non modifica le quote; il servizio amministrativo le salva con revisione e audit. È disponibile
+anche la configurazione SQL per gli operatori:
 
 ```sql
 -- come proprietario del database; NULL torna al default dell'installazione

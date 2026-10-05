@@ -99,6 +99,13 @@ describe('exportOrganization', () => {
 });
 
 describe('eraseOrganization', () => {
+  it('removes ledger-owned evidence even after its plan history was deleted', async () => {
+    await privilegedDb.execute(sql`INSERT INTO quota_artifacts(organization_id,key,bytes) VALUES (${orgA},'results/deleted-plan/deleted-run/evidence.png',10)`);
+    const asked: string[] = [];
+    const store = { kind: 'local', deletePrefix: async (prefix: string) => { asked.push(prefix); return 1; } } as unknown as ArtifactStore;
+    await eraseOrganization(orgA, { store });
+    expect(asked).toContain('results/deleted-plan/deleted-run/');
+  });
   const countIn = async (table: string, organizationId: number) => {
     const rows = await privilegedDb.execute(
       sql`SELECT count(*)::int AS n FROM ${sql.identifier(table)} WHERE organization_id = ${organizationId}`,

@@ -111,6 +111,7 @@ export const openApiDocument = {
           attempt: { type: 'integer' },
           maxAttempts: { type: 'integer' },
           queuedAt: { type: 'string', format: 'date-time' },
+          quotaDeferral: { type: ['object', 'null'], properties: { reason: { type: 'string', enum: ['execution_quota_exceeded', 'concurrent_run_quota'] }, until: { type: ['string', 'null'], format: 'date-time' } } },
           startedAt: { type: ['string', 'null'], format: 'date-time' },
           completedAt: { type: ['string', 'null'], format: 'date-time' },
           durationMs: { type: ['integer', 'null'] },

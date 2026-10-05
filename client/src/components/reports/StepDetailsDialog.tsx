@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +41,7 @@ export interface ReportStep {
   healed?: boolean;
   rca?: string;
   screenshot?: string | null;
+  evidenceUnavailable?: boolean;
   visual?: ReportStepVisual;
   accessibility?: AccessibilityFinding;
   performance?: PerformanceFinding;
@@ -180,6 +182,7 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
   network,
   sessionUrl,
 }) => {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
@@ -262,6 +265,9 @@ const StepDetailsDialog: React.FC<StepDetailsDialogProps> = ({
                     </div>
                   </div>
 
+                  {step.evidenceUnavailable && <p className="text-xs mt-2 text-amber-700 dark:text-amber-400">
+                    {t('quota.evidenceUnavailable', 'Evidence unavailable: not retained by the artifact store.')}
+                  </p>}
                   {step.visual && <VisualPanel visual={step.visual} />}
                   {step.accessibility && <AccessibilityPanel finding={step.accessibility} />}
                   {step.performance && <SpeedPanel finding={step.performance} />}

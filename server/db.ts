@@ -21,6 +21,41 @@ export type DbType = NodePgDatabase<typeof schema> | PgliteDatabase<typeof schem
 let db: DbType;
 
 let closeDbImpl: () => Promise<void> = async () => {};
+let artifactLockPool: Pool | undefined;
+const localArtifactLocks = new Map<number, Promise<void>>();
+
+/** Session locks serialize storage I/O without a database transaction or occupying the query pool. */
+export async function withArtifactLock<T>(organizationId: number, work: () => Promise<T>): Promise<T> {
+  if (!Number.isSafeInteger(organizationId) || organizationId <= 0) throw new Error('Invalid artifact organization');
+  if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
+    artifactLockPool ??= new Pool({ connectionString: dbUrl, max: 2 });
+    const client = await artifactLockPool.connect();
+    let locked = false;
+    try {
+      await client.query('SELECT pg_advisory_lock(7303,$1)', [organizationId]);
+      locked = true;
+      return await work();
+    } finally {
+      let destroy = false;
+      if (locked) {
+        try { await client.query('SELECT pg_advisory_unlock(7303,$1)', [organizationId]); }
+        catch { destroy = true; }
+      }
+      client.release(destroy);
+    }
+  }
+  const previous = localArtifactLocks.get(organizationId) ?? Promise.resolve();
+  let release!: () => void;
+  const next = new Promise<void>(resolve => { release = resolve; });
+  const queued = previous.then(() => next);
+  localArtifactLocks.set(organizationId, queued);
+  await previous;
+  try { return await work(); }
+  finally {
+    release();
+    if (localArtifactLocks.get(organizationId) === queued) localArtifactLocks.delete(organizationId);
+  }
+}
 
 /**
  * Every session speaks UTC.
@@ -77,6 +112,7 @@ if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
 
 /** Close the underlying DB connection(s). Used during graceful shutdown. */
 export async function closeDb(): Promise<void> {
+  await artifactLockPool?.end();
   await closeDbImpl();
 }
 

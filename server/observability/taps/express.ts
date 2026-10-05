@@ -2,6 +2,7 @@ import type { ErrorRequestHandler, Request } from 'express';
 import { getCorrelationId } from '../../middleware/correlation';
 import { recordIncident, type IncidentLogger } from '../incident';
 import { redactWebhookPath } from '../../webhook-tokens';
+import { quotaErrorBody } from '../../tenant-quotas';
 
 /**
  * Headers worth keeping. Everything else is either noise or a credential.
@@ -38,6 +39,8 @@ export function buildServerApiTrigger(req: Request): Record<string, unknown> {
  */
 export function incidentErrorHandler(logger: IncidentLogger): ErrorRequestHandler {
   return (err, req, res, _next) => {
+    const quota = quotaErrorBody(err);
+    if (quota && !res.headersSent) { res.status(429).json(quota); return; }
     const status = err?.status || err?.statusCode || 500;
     const message = err?.message || 'Internal Server Error';
     const trigger = buildServerApiTrigger(req);

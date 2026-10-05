@@ -51,6 +51,10 @@ processo non legge non fa danni.
 | `RUN_MAX_PARALLEL` | worker | `16` | Il massimo di sessioni browser che un run apre insieme, qualunque cosa chieda il piano. |
 | `ORG_MAX_CONCURRENT_RUNS` | entrambi | `2` | Run di un'organizzazione in corso contemporaneamente. Gli altri aspettano. |
 | `ORG_MAX_QUEUED_RUNS` | web | `100` | Run di un'organizzazione in attesa contemporaneamente. Oltre, un nuovo run viene rifiutato con `429`. |
+| `TENANT_QUOTA_MODE` | entrambi | `enforce` | `off`: uso gratuito senza quote né misurazione dei minuti; `monitor`: sola misurazione; `enforce`: applica limiti. Override per organizzazione; pagamenti indipendenti. |
+| `ORG_MAX_TESTS` | entrambi | `0` | Definizioni UI/BDD + API + mobile salvate. Zero è illimitato. |
+| `ORG_MAX_ARTIFACT_BYTES` | entrambi | `0` | Byte di evidenze e baseline conservate. Zero è illimitato. Riconciliare l'inventario prima di applicare un limite finito. |
+| `ORG_MAX_MONTHLY_EXECUTION_MINUTES` | entrambi | `0` | Budget di ammissione per occupazione nel mese UTC. Zero è illimitato; il lavoro ammesso può terminare oltre il limite. |
 | `RUN_DEFERRAL_MS` | worker | `10000` | Quanto aspetta un run trattenuto dal limite della sua organizzazione prima di essere riconsiderato, se nel frattempo la fine di un altro run dell'organizzazione non l'ha già fatto partire. |
 | `RUN_HEARTBEAT_INTERVAL_MS` | entrambi | `15000` | Ogni quanto un worker conferma che un run sta ancora andando. |
 | `WORK_ITEM_HEARTBEAT_MS` | worker | `15000` | In un run diviso fra più worker, ogni quanto un worker conferma i test che tiene. |

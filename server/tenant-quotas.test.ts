@@ -61,10 +61,10 @@ beforeEach(async () => {
 
 describe('the limits', () => {
   it('default from the environment, and an organization can have its own', async () => {
-    expect(defaultQuotas({} as NodeJS.ProcessEnv)).toEqual({ maxConcurrentRuns: 2, maxQueuedRuns: 100 });
-    expect(defaultQuotas({ ORG_MAX_CONCURRENT_RUNS: '5', ORG_MAX_QUEUED_RUNS: 'lots' } as NodeJS.ProcessEnv)).toEqual({ maxConcurrentRuns: 5, maxQueuedRuns: 100 });
+    expect(defaultQuotas({} as NodeJS.ProcessEnv)).toMatchObject({ maxConcurrentRuns: 2, maxQueuedRuns: 100 });
+    expect(defaultQuotas({ ORG_MAX_CONCURRENT_RUNS: '5', ORG_MAX_QUEUED_RUNS: 'lots' } as NodeJS.ProcessEnv)).toMatchObject({ maxConcurrentRuns: 5, maxQueuedRuns: 100 });
 
-    expect(await asOrg(orgA, () => withTenantTransaction((tx) => quotasFor(tx, orgA)))).toEqual({ maxConcurrentRuns: 1, maxQueuedRuns: 3 });
+    expect(await asOrg(orgA, () => withTenantTransaction((tx) => quotasFor(tx, orgA)))).toMatchObject({ maxConcurrentRuns: 1, maxQueuedRuns: 3 });
     expect(await asOrg(orgB, () => withTenantTransaction((tx) => quotasFor(tx, orgB)))).toEqual(defaultQuotas());
   });
 

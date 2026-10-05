@@ -63,6 +63,7 @@ export interface ReportModel {
   durationMs: number | null;
   failureMessage: string | null;
   evidencePurged: boolean;
+  evidenceStorageStatus?: 'quota_exceeded' | 'error' | null;
   /** The build that asked for the run, when a pipeline did. */
   ci: CiContext | null;
   counts: { total: number; passed: number; failed: number; errors: number; skipped: number; quarantinedFailures: number; flaky: number };
@@ -141,6 +142,7 @@ export async function loadReportModel(executionId: string): Promise<ReportModel 
     durationMs: execution.executionDurationMs,
     failureMessage: execution.failureMessage,
     evidencePurged: !!execution.artifactsPurgedAt,
+    evidenceStorageStatus: execution.artifactStorageStatus,
     ci: execution.ciContext ?? null,
     counts: {
       total: results.length,

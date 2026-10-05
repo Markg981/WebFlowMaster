@@ -183,8 +183,12 @@ Three numbers decide how much runs at once; see the
   waiting. Past the second, a new run is refused with `429`. Among waiting runs, an
   organization with fewer in progress goes first.
 
-Limits for one organization are set on its row in the database. The application has no
-permission to change these columns, so an organization cannot raise its own limits:
+Installation administrators configure per-organization quota modes and overrides in
+[Settings → Quota administration](./administration#quotas). `TENANT_QUOTA_MODE=off` permits
+free local use without quota enforcement; `monitor` measures only. Finite test, storage and
+UTC monthly execution limits remain independent of billing. The restricted application database
+role cannot change organization quotas; the administrator service writes them with revision/audit.
+Operator SQL remains available:
 
 ```sql
 -- as the database owner; NULL goes back to the installation default

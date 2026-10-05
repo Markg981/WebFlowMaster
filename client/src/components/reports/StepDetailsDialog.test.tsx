@@ -37,6 +37,11 @@ const steps: ReportStep[] = [
 ];
 
 describe('StepDetailsDialog', () => {
+  it('marks omitted evidence without rendering a broken image', () => {
+    render(<StepDetailsDialog open onOpenChange={() => {}} testName="Storage cap" steps={[{ name: 'Saved verdict', type: 'check', status: 'passed', details: 'Passed', evidenceUnavailable: true, screenshot: null }]} />);
+    expect(screen.getByText('Evidence unavailable: not retained by the artifact store.')).toBeInTheDocument();
+    expect(screen.queryByAltText('Screenshot')).toBeNull();
+  });
   it('lists the steps in order, with the failing one carrying its error', () => {
     render(<StepDetailsDialog open onOpenChange={() => {}} testName="Login works" browser="firefox" steps={steps} />);
 

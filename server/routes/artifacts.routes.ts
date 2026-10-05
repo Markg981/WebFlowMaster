@@ -37,7 +37,7 @@ const logger = await loggerPromise;
  * separators included — and rows written before this route existed hold `/results/…` URLs
  * from the same directory. Both reduce to the part below the run's own directory.
  */
-export function artifactUrl(executionId: string, storedPath: string | null | undefined): string | null {
+export function artifactUrl(executionId: string, storedPath: string | null | undefined, available: (relative: string) => boolean = () => true): string | null {
   if (!storedPath || typeof storedPath !== 'string') return null;
   if (storedPath.startsWith('data:image')) return storedPath;
 
@@ -48,6 +48,7 @@ export function artifactUrl(executionId: string, storedPath: string | null | und
 
   const relative = normalized.slice(index + marker.length);
   if (!relative || relative.includes('..')) return null;
+  if (!available(relative)) return null;
   return `/api/test-plan-executions/${executionId}/artifacts/${relative
     .split('/')
     .map(encodeURIComponent)
@@ -68,6 +69,7 @@ export interface ReportStep {
   healed?: boolean;
   rca?: string;
   screenshot?: string | null;
+  evidenceUnavailable?: boolean;
   visual?: {
     outcome: string;
     detail: string;
@@ -89,7 +91,7 @@ export interface ReportStep {
  * displayed nowhere: the report's per-test button has always been a placeholder, so the only
  * way to see which step failed was the reason string on the row.
  */
-export function stepsWithArtifactUrls(executionId: string, detailedLog: string | null | undefined): ReportStep[] {
+export function stepsWithArtifactUrls(executionId: string, detailedLog: string | null | undefined, available: (relative: string) => boolean = () => true): ReportStep[] {
   if (!detailedLog) return [];
   let parsed: unknown;
   try {
@@ -112,15 +114,17 @@ export function stepsWithArtifactUrls(executionId: string, detailedLog: string |
       error: step.error ? String(step.error) : undefined,
       healed: step.healed === true,
       rca: step.rca ? String(step.rca) : undefined,
-      screenshot: artifactUrl(executionId, step.screenshot),
+      screenshot: artifactUrl(executionId, step.screenshot, available),
+      evidenceUnavailable: [step.screenshot, step.visual?.baselineImage, step.visual?.actualImage, step.visual?.diffImage, step.lighthouse?.reportUrl, step.download?.fileUrl]
+        .some(value => !!artifactUrl(executionId, value) && !artifactUrl(executionId, value, available)),
       visual: step.visual
         ? {
             outcome: String(step.visual.outcome ?? 'skipped'),
             detail: String(step.visual.detail ?? ''),
             diffRatio: typeof step.visual.diffRatio === 'number' ? step.visual.diffRatio : undefined,
-            baselineImage: artifactUrl(executionId, step.visual.baselineImage),
-            actualImage: artifactUrl(executionId, step.visual.actualImage),
-            diffImage: artifactUrl(executionId, step.visual.diffImage),
+            baselineImage: artifactUrl(executionId, step.visual.baselineImage, available),
+            actualImage: artifactUrl(executionId, step.visual.actualImage, available),
+            diffImage: artifactUrl(executionId, step.visual.diffImage, available),
           }
         : undefined,
       // Selectors and rule names, no images: passed through as the runner wrote it.
@@ -128,10 +132,10 @@ export function stepsWithArtifactUrls(executionId: string, detailedLog: string |
       // Numbers, and the Lighthouse report as a link like any other file of the run.
       performance: step.performance && step.performance.metrics ? (step.performance as PerformanceFinding) : undefined,
       lighthouse: step.lighthouse && step.lighthouse.scores
-        ? { ...(step.lighthouse as LighthouseFinding), reportUrl: artifactUrl(executionId, step.lighthouse.reportUrl) ?? undefined }
+        ? { ...(step.lighthouse as LighthouseFinding), reportUrl: artifactUrl(executionId, step.lighthouse.reportUrl, available) ?? undefined }
         : undefined,
       download: step.download && typeof step.download.name === 'string'
-        ? { ...(step.download as DownloadFinding), fileUrl: artifactUrl(executionId, step.download.fileUrl) ?? undefined }
+        ? { ...(step.download as DownloadFinding), fileUrl: artifactUrl(executionId, step.download.fileUrl, available) ?? undefined }
         : undefined,
     }));
 }

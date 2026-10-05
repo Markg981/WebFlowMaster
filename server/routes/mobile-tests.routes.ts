@@ -12,6 +12,8 @@ import { getTenantOrgId, withTenantTransaction, type TenantTx } from "../middlew
 import { auditActor, recordAudit } from "../audit";
 import { toGridConfig } from "../browser-grids";
 import { executeMobileRun, uploadApp, type RunDeps } from "../mobile-runner";
+import { checkExecutionBudget } from '../execution-usage';
+import { quotaErrorBody } from '../tenant-quotas';
 import { InspectorError, closeInspector, inspectorAct, inspectorSnapshot, openInspector } from "../mobile-inspector";
 import { tagsOfTests } from "../test-tags";
 import { currentContentOf, recordTypedTestVersion } from "../test-version-store";
@@ -42,6 +44,8 @@ class MobileError extends Error {
 }
 
 function fail(res: Response, error: unknown, what: string) {
+  const quota = quotaErrorBody(error);
+  if (quota) return res.status(429).json(quota);
   if (error instanceof MobileError) return res.status(error.status).json({ error: error.message });
   const message = (error as Error)?.message ?? "";
   if (/unique|duplicate/i.test(message)) return res.status(409).json({ error: "A mobile test with this name already exists." });
@@ -227,6 +231,7 @@ router.post("/api/mobile-tests/:id/runs", requireRole("editor"), async (req, res
     const id = idOf(req.params.id);
     const organizationId = getTenantOrgId()!;
     const run = await withTenantTransaction(async (tx) => {
+      await checkExecutionBudget(tx, organizationId);
       const test = await editableTest(tx, id);
       const saved = (await currentContentOf(tx, [id], 'mobile')).get(id);
       const definition = { ...test, ...saved?.snapshot };

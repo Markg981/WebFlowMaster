@@ -9,6 +9,7 @@ import { EXECUTION_STATUSES } from "@shared/execution-status";
 import { withTenantTransaction } from "../middleware/tenancy";
 import { apiError, requireScope } from "../middleware/require-scope";
 import { executionOrchestrator, ExecutionEnqueueError } from "../execution-orchestrator";
+import { quotaErrorBody } from '../tenant-quotas';
 import { requestCancellation } from "../execution-state";
 import { junitReportFor } from "../junit-report";
 import { exportRun, isReportExportFormat, REPORT_EXPORT_FORMATS, ReportExportError, sendExport } from "../report-export";
@@ -38,6 +39,7 @@ function toRun(row: TestPlanExecution & { testPlanName?: string | null }) {
     planId: row.testPlanId,
     planName: row.testPlanName ?? null,
     status: row.status,
+    quotaDeferral: row.status === 'queued' && row.quotaDeferReason ? { reason: row.quotaDeferReason, until: row.quotaDeferUntil } : null,
     trigger: row.triggeredBy,
     attempt: row.attempt,
     maxAttempts: row.maxAttempts,
@@ -139,6 +141,8 @@ router.post("/api/v1/plans/:planId/runs", requireScope('runs:write'), async (req
     if (error instanceof ExecutionEnqueueError) {
       return apiError(res, error.status, error.code, error.message, error.executionId ? { runId: error.executionId } : {});
     }
+    const quota = quotaErrorBody(error);
+    if (quota) return apiError(res, 429, String(quota.code), String(quota.error), quota);
     logger.error({ message: 'Failed to start a run through /api/v1', planId: plan.id, error: error?.message ?? String(error) });
     return apiError(res, 500, 'internal_error', 'The run could not be started.');
   }

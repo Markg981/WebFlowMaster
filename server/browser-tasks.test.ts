@@ -46,6 +46,24 @@ function fakeQueue(workers: number, answer: () => Promise<unknown> = async () =>
 }
 
 describe('browserTaskMode', () => {
+  it('ends an accepted debug session if its budget is exhausted before the worker takes it', async () => {
+    const { sql } = await import('drizzle-orm');
+    const { debugChannel } = await import('./debug-session');
+    const org = await createTestOrganization('Queued debug budget');
+    const id = uuidv4();
+    const channel = await debugChannel();
+    await channel.open(id, { userId: 777, organizationId: org, createdAt: new Date().toISOString() });
+    await channel.publish(id, { id, status: 'starting', paused: null, steps: [], variables: [], breakpoints: [], outcome: null, updatedAt: new Date().toISOString() });
+    await channel.setActive(777, id);
+    await privilegedDb.execute(sql`UPDATE organizations SET max_monthly_execution_minutes=1 WHERE id=${org}`);
+    const start = new Date(); start.setUTCDate(1); start.setUTCHours(0, 0, 0, 0);
+    const end = new Date(start.getTime() + 60_000);
+    await privilegedDb.execute(sql`INSERT INTO quota_execution_sessions VALUES (${org},'api','previous',${start.toISOString()}::timestamp,${end.toISOString()}::timestamp,${end.toISOString()}::timestamp)`);
+    await expect(performBrowserTask({ organizationId: org, userId: 777, task: { kind: 'debug-sequence', sessionId: id, breakpoints: [], payload: { name: 'Budget', url: 'https://example.test', sequence: [], elements: [] } } })).rejects.toMatchObject({ code: 'execution_quota_exceeded' });
+    await privilegedDb.execute(sql`UPDATE organizations SET max_monthly_execution_minutes=NULL WHERE id=${org}`);
+    expect(await channel.activeFor(777)).toBeNull();
+    expect(await channel.read(id)).toMatchObject({ status: 'error', outcome: { success: false } });
+  });
   it('sends tasks to the worker unless told otherwise, and keeps them here under test', () => {
     expect(browserTaskMode({ NODE_ENV: 'production' } as NodeJS.ProcessEnv)).toBe('worker');
     expect(browserTaskMode({ NODE_ENV: 'development' } as NodeJS.ProcessEnv)).toBe('worker');

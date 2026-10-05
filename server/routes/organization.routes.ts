@@ -14,7 +14,7 @@ import { exportOrganization, eraseOrganization } from "../organization-lifecycle
 import { transferMemberContent } from "../member-removal";
 import { issuePasswordReset } from "../password-reset";
 import loggerPromise from "../logger";
-import { liveRunCounts, quotasFor } from "../tenant-quotas";
+import { liveRunCounts, quotaUsage, quotasFor } from "../tenant-quotas";
 import { availableRunnerCount } from "../runner-registry";
 
 const router = Router();
@@ -31,8 +31,8 @@ const RoleSchema = z.enum(["viewer", "editor", "owner"]);
 router.get("/api/organization/usage", requireRole("viewer"), async (_req: Request, res: Response) => {
   const organizationId = getTenantOrgId()!;
   const usage = await withTenantTransaction(async (tx) => {
-    const [quotas, counts] = await Promise.all([quotasFor(tx, organizationId), liveRunCounts(tx, organizationId)]);
-    return { ...counts, ...quotas };
+    const [quotas, counts, consumption] = await Promise.all([quotasFor(tx, organizationId), liveRunCounts(tx, organizationId), quotaUsage(tx, organizationId)]);
+    return { ...counts, ...quotas, ...consumption };
   });
   // Zero means every run will wait however much room the organization has: say so, since that
   // is the question a run sitting in "queued" raises first.

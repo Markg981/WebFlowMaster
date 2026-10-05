@@ -1,6 +1,8 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { Readable } from 'stream';
+import { randomUUID } from 'node:crypto';
+import { meterArtifactStore } from './artifact-metering';
 import {
   DeleteObjectsCommand,
   GetObjectCommand,
@@ -53,6 +55,8 @@ export interface ArtifactStore {
    * like a key and must end with '/', so it names a directory and never a sibling of one.
    */
   deletePrefix(prefix: string): Promise<number>;
+  /** Metadata only, used to reconcile retained bytes. Older test doubles may omit it. */
+  list?(prefix: string): Promise<Array<{ key: string; size: number }>>;
 }
 
 function assertSafePrefix(prefix: string): string {
@@ -143,7 +147,9 @@ export function createLocalArtifactStore(cwd: string = process.cwd()): ArtifactS
     async write(key, body) {
       const file = pathFor(key);
       await fs.ensureDir(path.dirname(file));
-      await fs.writeFile(file, body);
+      const staging = `${file}.wfm-${randomUUID()}.tmp`;
+      try { await fs.writeFile(staging, body); await fs.rename(staging, file); }
+      finally { await fs.remove(staging); }
     },
     async open(key) {
       const file = pathFor(key);
@@ -164,6 +170,12 @@ export function createLocalArtifactStore(cwd: string = process.cwd()): ArtifactS
       const count = (await filesUnder(dir)).length;
       await fs.remove(dir);
       return count;
+    },
+    async list(prefix) {
+      const safe = assertSafePrefix(prefix);
+      const root = pathFor(safe.slice(0, -1));
+      const files = (await filesUnder(root)).filter(file => !/\.wfm-[0-9a-f-]{36}\.tmp$/.test(file));
+      return Promise.all(files.map(async file => ({ key: `${safe}${path.relative(root, file).replace(/\\/g, '/')}`, size: (await fs.stat(file)).size })));
     },
   };
 }
@@ -262,11 +274,27 @@ export function createS3ArtifactStore(options: S3StoreOptions): ArtifactStore {
       // At most 1000 keys per request.
       for (let start = 0; start < keys.length; start += 1000) {
         const batch = keys.slice(start, start + 1000);
-        await client.send(
+        const result = await client.send(
           new DeleteObjectsCommand({ Bucket: bucket, Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true } }),
         );
+        if (result.Errors?.length) throw new Error('Some artifacts could not be deleted; retained usage was not released.');
       }
       return keys.length;
+    },
+    async list(prefix) {
+      const safe = assertSafePrefix(prefix);
+      const items: Array<{ key: string; size: number }> = [];
+      let continuationToken: string | undefined;
+      do {
+        const page = await client.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: objectKey(safe.slice(0, -1)) + '/', ContinuationToken: continuationToken }));
+        for (const object of page.Contents ?? []) {
+          if (object.Key && Number.isSafeInteger(object.Size) && object.Size >= 0) items.push({ key: String(object.Key).slice(options.prefix ? options.prefix.replace(/\/+$/, '').length + 1 : 0), size: object.Size });
+          else throw new Error('Artifact inventory returned invalid metadata');
+        }
+        continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+        if (page.IsTruncated && !continuationToken) throw new Error('Artifact inventory pagination is incomplete');
+      } while (continuationToken);
+      return items;
     },
   };
   return store;
@@ -299,7 +327,7 @@ let configured: ArtifactStore | undefined;
 
 /** The store every caller uses, built on first use so a bad configuration fails where it is used. */
 export function artifactStore(): ArtifactStore {
-  configured ??= artifactStoreFromEnv();
+  configured ??= meterArtifactStore(artifactStoreFromEnv());
   return configured;
 }
 

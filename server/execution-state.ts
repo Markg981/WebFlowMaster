@@ -8,6 +8,8 @@ import {
 import { withTenantTransaction, type TenantTx } from './middleware/tenancy';
 import { liveRunCounts, lockOrganizationRuns, quotasFor } from './tenant-quotas';
 import { currentRunnerId } from './runner-registry';
+import { beginExecutionUsage, checkExecutionBudget, finishExecutionUsage, heartbeatUsage } from './execution-usage';
+import { QuotaError } from './tenant-quotas';
 
 /**
  * Which way a run may move, and the only code allowed to move it.
@@ -115,13 +117,20 @@ export async function transitionExecution(
     ...(TERMINAL.includes(to) ? { completedAt: now } : {}),
   };
 
-  const [moved] = await withTenantTransaction((tx) =>
-    tx
+  const moved = await withTenantTransaction(async (tx) => {
+    const [current] = await tx.select({ organizationId: testPlanExecutions.organizationId }).from(testPlanExecutions)
+      .where(eq(testPlanExecutions.id, executionId)).limit(1);
+    if (!current) return undefined;
+    await lockOrganizationRuns(tx, current.organizationId);
+    const [row] = await tx
       .update(testPlanExecutions)
       .set({ ...patch, ...lifecycleTimestamps, status: to })
       .where(and(eq(testPlanExecutions.id, executionId), inArray(testPlanExecutions.status, [...sources])))
-      .returning(),
-  );
+      .returning();
+    if (row && TERMINAL.includes(to)) await finishExecutionUsage(tx, row.organizationId, 'plan', row.id, now);
+    if (row && to === 'running') await beginExecutionUsage(tx, row.organizationId, 'plan', row.id, now);
+    return row;
+  });
 
   if (moved) announceExecution(moved);
   return moved ?? null;
@@ -129,7 +138,7 @@ export async function transitionExecution(
 
 export type TakeOutcome =
   | { outcome: 'taken'; execution: TestPlanExecution }
-  | { outcome: 'over_quota'; running: number; maxConcurrentRuns: number }
+  | { outcome: 'over_quota'; running: number; maxConcurrentRuns: number; reason?: string; periodEnd?: string }
   | { outcome: 'not_queued'; status: string | null };
 
 /**
@@ -152,17 +161,27 @@ export async function takeExecution(executionId: string): Promise<TakeOutcome> {
 
     await lockOrganizationRuns(tx, row.organizationId);
     const [quotas, counts] = await Promise.all([quotasFor(tx, row.organizationId), liveRunCounts(tx, row.organizationId)]);
-    if (counts.running >= quotas.maxConcurrentRuns) {
+    if (quotas.mode === 'enforce' && counts.running >= quotas.maxConcurrentRuns) {
+      await tx.update(testPlanExecutions).set({ quotaDeferReason: 'concurrent_run_quota', quotaDeferUntil: null })
+        .where(and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.status, 'queued')));
       return { outcome: 'over_quota', running: counts.running, maxConcurrentRuns: quotas.maxConcurrentRuns } as const;
+    }
+    try { await checkExecutionBudget(tx, row.organizationId); }
+    catch (error) {
+      if (!(error instanceof QuotaError)) throw error;
+      await tx.update(testPlanExecutions).set({ quotaDeferReason: 'execution_quota_exceeded', quotaDeferUntil: error.periodEnd ? new Date(error.periodEnd) : null })
+        .where(and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.status, 'queued')));
+      return { outcome: 'over_quota', running: counts.running, maxConcurrentRuns: quotas.maxConcurrentRuns, reason: error.code, periodEnd: error.periodEnd } as const;
     }
 
     const now = new Date();
     const [taken] = await tx
       .update(testPlanExecutions)
       // Which runner took it: the answer to "where did this run?" when a machine misbehaves.
-      .set({ status: 'running', startedAt: now, heartbeatAt: now, runnerId: currentRunnerId() })
+      .set({ status: 'running', startedAt: now, heartbeatAt: now, runnerId: currentRunnerId(), quotaDeferReason: null, quotaDeferUntil: null })
       .where(and(eq(testPlanExecutions.id, executionId), eq(testPlanExecutions.status, 'queued')))
       .returning();
+    if (taken) await beginExecutionUsage(tx, taken.organizationId, 'plan', taken.id, now);
     return taken ? ({ outcome: 'taken', execution: taken } as const) : ({ outcome: 'not_queued', status: 'unknown' } as const);
   });
   // Once committed: a listener reading the run must find it running.
@@ -235,12 +254,14 @@ export const LIVE_EXECUTION_STATUSES = ['running', 'cancelling'] as const;
  * and whatever this worker does next is not recorded.
  */
 export async function recordHeartbeat(executionId: string): Promise<'running' | 'cancelling' | null> {
-  const [row] = await withTenantTransaction((tx) =>
-    tx
+  const row = await withTenantTransaction(async (tx) => {
+    const [updated] = await tx
       .update(testPlanExecutions)
       .set({ heartbeatAt: new Date() })
       .where(and(eq(testPlanExecutions.id, executionId), inArray(testPlanExecutions.status, [...LIVE_EXECUTION_STATUSES])))
-      .returning(),
-  );
+      .returning();
+    if (updated) await heartbeatUsage(tx, updated.organizationId, 'plan', updated.id);
+    return updated;
+  });
   return row ? (row.status as 'running' | 'cancelling') : null;
 }

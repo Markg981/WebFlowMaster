@@ -33,6 +33,12 @@ export const organizations = pgTable("organizations", {
    */
   maxConcurrentRuns: integer("max_concurrent_runs"),
   maxQueuedRuns: integer("max_queued_runs"),
+  quotaMode: text('quota_mode').$type<import('./tenant-quotas').QuotaMode>(),
+  maxTests: bigint('max_tests', { mode: 'number' }),
+  maxArtifactBytes: bigint('max_artifact_bytes', { mode: 'number' }),
+  maxMonthlyExecutionMinutes: bigint('max_monthly_execution_minutes', { mode: 'number' }),
+  quotaRevision: integer('quota_revision').notNull().default(1),
+  artifactsReconciledAt: timestamp('artifacts_reconciled_at'),
   /** Every member signing in with a password must use a second factor. Keys are not affected. */
   mfaRequired: boolean("mfa_required").notNull().default(false),
   /** Publishing a test needs another member's approval, and plans run published tests only. */
@@ -41,6 +47,31 @@ export const organizations = pgTable("organizations", {
   smsInboundTokenHash: text("sms_inbound_token_hash"),
   smsInboundTokenPrefix: text("sms_inbound_token_prefix"),
   smsInboundTokenCreatedAt: timestamp("sms_inbound_token_created_at"),
+});
+
+export const quotaExecutionSessions = pgTable('quota_execution_sessions', {
+  organizationId: integer('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  kind: text('kind').notNull(),
+  executionId: text('execution_id').notNull(),
+  startedAt: timestamp('started_at').notNull(),
+  heartbeatAt: timestamp('heartbeat_at').notNull(),
+  endedAt: timestamp('ended_at'),
+}, table => [primaryKey({ columns: [table.organizationId, table.kind, table.executionId] }), index('quota_execution_period_idx').on(table.organizationId, table.startedAt)]);
+
+export const quotaArtifacts = pgTable('quota_artifacts', {
+  organizationId: integer('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  key: text('key').notNull(),
+  bytes: bigint('bytes', { mode: 'number' }).notNull().default(0),
+  reservedBytes: bigint('reserved_bytes', { mode: 'number' }).notNull().default(0),
+  reservationId: text('reservation_id'),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, table => [primaryKey({ columns: [table.organizationId, table.key] })]);
+
+export const quotaInstallationDefaults = pgTable('quota_installation_defaults', {
+  id: integer('id').primaryKey(),
+  mode: text('mode').notNull(),
+  maxTests: bigint('max_tests', { mode: 'number' }).notNull(),
+  maxArtifactBytes: bigint('max_artifact_bytes', { mode: 'number' }).notNull().default(0),
 });
 
 export const users = pgTable("users", {
@@ -475,6 +506,9 @@ export const testPlanExecutions = pgTable("test_plan_executions", {
   retryOfExecutionId: text('retry_of_execution_id'),
   /** When retention removed this run's screenshots, videos and traces; the results stay. */
   artifactsPurgedAt: timestamp('artifacts_purged_at'),
+  artifactStorageStatus: text('artifact_storage_status').$type<'quota_exceeded' | 'error'>(),
+  quotaDeferReason: text('quota_defer_reason').$type<'execution_quota_exceeded' | 'concurrent_run_quota'>(),
+  quotaDeferUntil: timestamp('quota_defer_until'),
   /** The runner that took the run (runners.id, host:pid:suffix). Readable after the runner is gone. */
   runnerId: text('runner_id'),
   /** The build, commit and branch that asked for the run, when a pipeline did — see shared/ci.ts. */
@@ -1620,6 +1654,7 @@ export const mobileTestRuns = pgTable("mobile_test_runs", {
   steps: jsonb("steps").$type<MobileStepResult[]>().notNull().default([]),
   error: text("error"),
   screenshot: text("screenshot"),
+  artifactStorageStatus: text('artifact_storage_status').$type<'quota_exceeded' | 'error'>(),
   sessionUrl: text("session_url"),
   requestedBy: integer("requested_by").references(() => users.id, { onDelete: 'set null' }),
   startedAt: timestamp("started_at"),
@@ -1740,6 +1775,8 @@ export type InsertApiKey = typeof apiKeys.$inferInsert;
  * near-duplicates ('member.removed' and 'member.remove') that nobody can query reliably.
  */
 export const AUDIT_ACTIONS = {
+  ORGANIZATION_QUOTAS_UPDATED: 'organization.quotas_updated',
+  ORGANIZATION_ARTIFACTS_RECONCILED: 'organization.artifacts_reconciled',
   BDD_PROFILE_CREATED: 'bdd_profile.created',
   BDD_PROFILE_UPDATED: 'bdd_profile.updated',
   BDD_PROFILE_DELETED: 'bdd_profile.deleted',
@@ -3013,6 +3050,7 @@ export const ORG_SCOPED_TABLES = [
   'test_quarantines',
   'agents',
   'bdd_execution_profiles',
+  'quota_execution_sessions', 'quota_artifacts',
   'source_hosts',
   // One-time links to choose a new password (migration 0042). Redeeming one is the privileged
   // bootstrap in server/storage.ts; issuing and listing them happen inside the organization.

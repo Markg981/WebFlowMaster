@@ -58,6 +58,8 @@ app.use(express.urlencoded({ extended: false }));
   }
 
   // A misconfigured artifact store fails here, not on the first screenshot of the first run.
+  const { initializeQuotaDefaults } = await import('./tenant-quotas');
+  await initializeQuotaDefaults();
   const { artifactStore } = await import('./artifact-store');
   logger.info(`Artifact store: ${artifactStore().kind}`);
 

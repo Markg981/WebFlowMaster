@@ -70,6 +70,11 @@ const renderPage = () =>
   );
 
 describe('TestReportPage', () => {
+  it('explains when queued work waits for the monthly execution budget', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ ...report, header: { ...report.header, status: 'queued', quotaDeferReason: 'execution_quota_exceeded', quotaDeferUntil: '2026-11-01T00:00:00.000Z' } }) })));
+    renderPage();
+    expect(await screen.findByTestId('quota-deferred')).toHaveTextContent('Monthly execution allowance exhausted');
+  });
   it('draws the charts from the run instead of placeholders', async () => {
     renderPage();
     expect(await screen.findByText('Passed, failed and skipped')).toBeTruthy();

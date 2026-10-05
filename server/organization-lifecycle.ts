@@ -134,10 +134,12 @@ export async function eraseOrganization(
   const runs = await privilegedDb.execute(
     sql`SELECT test_plan_id, id FROM test_plan_executions WHERE organization_id = ${organizationId}`,
   );
-  const prefixes = [
+  const retained = await privilegedDb.execute(sql`SELECT key FROM quota_artifacts WHERE organization_id=${organizationId}`);
+  const prefixes = new Set([
     ...(runs.rows as Array<{ test_plan_id: string; id: string }>).map((run) => `${RESULTS_PREFIX}${run.test_plan_id}/${run.id}/`),
+    ...(retained.rows as Array<{ key: string }>).flatMap(row => /^results\/[^/]+\/[^/]+\//.exec(row.key)?.[0] ?? []),
     `${BASELINES_PREFIX}org_${organizationId}/`,
-  ];
+  ]);
 
   // The two drivers name this differently: node-postgres reports rowCount, PGlite affectedRows.
   const rowsAffected = (result: unknown) => {

@@ -568,6 +568,13 @@
       "when": 1792400000003,
       "tag": "0080_bdd_profile_project_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1792400000004,
+      "tag": "0081_tenant_quota_metering",
+      "breakpoints": true
     }
   ]
 }

@@ -59,6 +59,16 @@ async function setState(id: string, patch: Partial<DebugState>) {
 }
 
 describe('debug sessions', () => {
+  it('ends an initialized session when execution admission is refused', async () => {
+    const { QuotaError } = await import('../tenant-quotas');
+    tasks.start.mockRejectedValue(new QuotaError('execution_quota_exceeded', 'execution_minutes', 1, 1));
+    const res = await request(app).post('/api/debug-sessions').send(body);
+    expect(res.status).toBe(429);
+    const channel = await debugChannel();
+    expect(await channel.activeFor(currentUser.id)).toBeNull();
+    const id = tasks.start.mock.calls[0][0].task.sessionId;
+    expect(await channel.read(id)).toMatchObject({ status: 'finished', outcome: { success: false } });
+  });
   it('start the run in the background with its breakpoints, and answer at once', async () => {
     const res = await request(app).post('/api/debug-sessions').send(body);
 

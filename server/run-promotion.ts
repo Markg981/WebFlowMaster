@@ -4,6 +4,8 @@ import { isTerminalExecutionStatus, onExecutionTransition } from './execution-st
 import { runWithTenant, withTenantTransaction } from './middleware/tenancy';
 import { liveRunCounts, quotasFor } from './tenant-quotas';
 import { testExecutionQueue } from './queue';
+import { checkExecutionBudget } from './execution-usage';
+import { QuotaError } from './tenant-quotas';
 
 /**
  * Waiting runs start when a slot frees, not at the next look.
@@ -31,7 +33,9 @@ export async function promoteWaitingRuns(organizationId: number, queue: Promotab
   const waiting = await runWithTenant(organizationId, () =>
     withTenantTransaction(async (tx) => {
       const [quotas, counts] = [await quotasFor(tx, organizationId), await liveRunCounts(tx, organizationId)];
-      const free = quotas.maxConcurrentRuns - counts.running;
+      try { await checkExecutionBudget(tx, organizationId); }
+      catch (error) { if (error instanceof QuotaError) return []; throw error; }
+      const free = quotas.mode === 'enforce' ? quotas.maxConcurrentRuns - counts.running : counts.queued;
       if (free <= 0 || counts.queued === 0) return [];
       return tx
         .select({ id: testPlanExecutions.id })
