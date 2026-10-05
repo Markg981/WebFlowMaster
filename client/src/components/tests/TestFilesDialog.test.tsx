@@ -111,5 +111,3 @@ describe('TestFilesDialog', () => {
     expect(screen.queryByTestId('test-files-content')).toBeNull();
   });
 });
-
-

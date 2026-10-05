@@ -3,7 +3,7 @@
 Date: 2026-10-04
 Branch: `codex/bdd-cucumber-execution`
 Base: `096e596b9fae9af8e7bb665e873f83ec47588c44` (merged PR #293).
-Status: proposed; implementation requires user review of this written design.
+Status: approved by the user on 2026-10-04, including implementation, validation and PR delivery.
 
 ## Intent and success criteria
 

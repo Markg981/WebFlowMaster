@@ -73,4 +73,3 @@ describe('ManualTestDialog', () => {
     expect(fetchMock.mock.calls[0][1].method).toBe('PUT');
   });
 });
-

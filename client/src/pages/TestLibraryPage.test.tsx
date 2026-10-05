@@ -186,5 +186,3 @@ describe('TestLibraryPage', () => {
     expect(await screen.findByText('Could not load the tests')).toBeInTheDocument();
   });
 });
-
-
