@@ -12,6 +12,8 @@ import { useAuth } from '@/hooks/use-auth';
 import TagPicker, { type TagRef } from '@/components/tags/TagPicker';
 import TestHistoryDialog from '@/components/tests/TestHistoryDialog';
 import ManualTestDialog from '@/components/tests/ManualTestDialog';
+import BddTestDialog, {type BddDraftSource} from '@/components/tests/BddTestDialog';
+import type {BddTest} from '@shared/bdd';
 import { isManualSequence } from '@shared/manual-tests';
 import { TestFilesDialog } from '@/components/tests/TestFilesDialog';
 import CommentsPanel from '@/components/tests/CommentsPanel';
@@ -38,6 +40,8 @@ interface LibraryTest {
   updatedAt: string;
   tags: TagRef[];
   sequence?: unknown;
+  bdd?: BddTest|null;
+  projectId?: number|null;
 }
 
 interface TagSummary extends TagRef {
@@ -57,6 +61,7 @@ const TestLibraryPage: React.FC = () => {
   const [busyId, setBusyId] = useState<number | null>(null);
   /** The manual test being written or edited: null closed, 'new' for a new one. */
   const [manualEditing, setManualEditing] = useState<LibraryTest | 'new' | null>(null);
+  const [bddEditing,setBddEditing]=useState<BddDraftSource|null>(null);
   /** Export and import of the tests as a file (server/test-bundle.ts). */
   const [filesOpen, setFilesOpen] = useState(false);
   const [commentsFor, setCommentsFor] = useState<LibraryTest | null>(null);
@@ -259,7 +264,8 @@ const TestLibraryPage: React.FC = () => {
                   <TableRow key={test.id}>
                     <TableCell className="font-medium">
                       {test.name}
-                      {isManualSequence(test.sequence) && (
+                      {test.bdd?.mode==='cucumber'&&<Badge variant="secondary" className="ml-2 font-normal">{t('bdd.cucumber','Cucumber')}</Badge>}
+                      {test.bdd?.mode!=='cucumber'&&isManualSequence(test.sequence) && (
                         <Badge variant="secondary" className="ml-2 font-normal">{t('testLibrary.manualBadge', 'Manual')}</Badge>
                       )}
                     </TableCell>
@@ -281,12 +287,13 @@ const TestLibraryPage: React.FC = () => {
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="sm" onClick={() => setCommentsFor(test)}>{t('comments.title', 'Comments')}</Button>
-                      {canEdit && isManualSequence(test.sequence) && (
+                      {canEdit && test.bdd && <Button variant="ghost" size="sm" aria-label={t('bdd.edit','Edit Gherkin')} data-testid={`bdd-edit-${test.id}`} onClick={()=>setBddEditing({...test,bdd:test.bdd!})}><Pencil className="h-4 w-4" /></Button>}
+                      {canEdit && !test.bdd && isManualSequence(test.sequence) && (
                         <Button variant="ghost" size="sm" onClick={() => setManualEditing(test)} title={t('testLibrary.editManual', 'Edit steps')}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                       )}
-                      {!isManualSequence(test.sequence) && (
+                      {!test.bdd && !isManualSequence(test.sequence) && (
                         <Button asChild variant="ghost" size="sm" title={t('testLibrary.playwright', 'Download as a Playwright test')}>
                           <a href={`/api/tests/${test.id}/playwright`} download aria-label={t('testLibrary.playwright', 'Download as a Playwright test')}>
                             <FileCode className="h-4 w-4" />
@@ -329,6 +336,7 @@ const TestLibraryPage: React.FC = () => {
       />
 
       <TestFilesDialog open={filesOpen} onOpenChange={setFilesOpen} canEdit={canEdit} onImported={() => void refresh()} />
+      {bddEditing&&<BddTestDialog key={bddEditing.id} test={bddEditing} onClose={()=>setBddEditing(null)} onSaved={()=>void refresh()}/>}
       <Dialog open={commentsFor !== null} onOpenChange={open => { if (!open) setCommentsFor(null); }}>
         <DialogContent className="max-h-[85vh] overflow-y-auto" aria-describedby={undefined}>
           <DialogHeader><DialogTitle>{commentsFor?.name}</DialogTitle></DialogHeader>

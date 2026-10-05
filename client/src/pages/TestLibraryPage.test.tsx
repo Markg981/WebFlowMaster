@@ -83,6 +83,11 @@ beforeEach(() => {
 });
 
 describe('TestLibraryPage', () => {
+ it('opens the source editor for BDD and offers no browser export or independent step editor',async()=>{
+ const bddTest={...tests[0],bdd:{language:'en',source:'Feature: F\nScenario: S\nGiven a',uri:'f.feature',scenarioLine:2,mode:'cucumber',binding:{id:'00000000-0000-4000-8000-000000000001',revision:'r1'}},sequence:[{action:{id:'manualStep'},value:'Given a'}]};
+ fetchMock.mockImplementation((url:string)=>Promise.resolve(url==='/api/tests'?{ok:true,json:async()=>[bddTest]}:url==='/api/bdd/profiles'?{ok:true,json:async()=>({profiles:[]})}:respond(url)));
+ renderPage();await screen.findByText('Checkout');expect(screen.getByText('Cucumber')).toBeInTheDocument();expect(screen.queryByText('Manual')).toBeNull();expect(screen.queryByTitle('Edit steps')).toBeNull();expect(screen.queryByTitle('Download as a Playwright test')).toBeNull();fireEvent.click(screen.getByRole('button',{name:'Edit Gherkin'}));expect(await screen.findByLabelText('Gherkin source')).toHaveValue(bddTest.bdd.source);
+ });
   it('lists the saved tests with what each one is for', async () => {
     renderPage();
 
@@ -181,3 +186,5 @@ describe('TestLibraryPage', () => {
     expect(await screen.findByText('Could not load the tests')).toBeInTheDocument();
   });
 });
+
+

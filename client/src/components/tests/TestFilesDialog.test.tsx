@@ -20,7 +20,8 @@ beforeEach(() => {
 });
 
 function renderDialog(canEdit = true, onImported = vi.fn()) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false, queryFn: async () => [] } } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity, queryFn: async () => [] } } });
+  client.setQueryData(['/api/bdd/profiles'], { profiles: [{ id: '00000000-0000-4000-8000-000000000001', name: 'QA support', revision: 'r1', projectId: null }] });
   render(
     <QueryClientProvider client={client}>
       <TestFilesDialog open onOpenChange={() => {}} canEdit={canEdit} onImported={onImported} />
@@ -30,11 +31,29 @@ function renderDialog(canEdit = true, onImported = vi.fn()) {
 }
 
 describe('TestFilesDialog', () => {
+ it('discards an old preview when content changes while the request is pending',async()=>{
+ let resolve:any;fetchMock.mockReturnValue(new Promise(r=>{resolve=r}));renderDialog();fireEvent.change(screen.getByTestId('test-files-content'),{target:{value:'old'}});fireEvent.click(screen.getByTestId('test-files-preview'));fireEvent.change(screen.getByTestId('test-files-content'),{target:{value:'new'}});resolve({ok:true,json:async()=>({dryRun:true,results:[{kind:'test',name:'Old test',outcome:'created'}]})});await waitFor(()=>expect(screen.getByTestId('test-files-preview')).toBeEnabled());expect(screen.getByTestId('test-files-import')).toBeDisabled();expect(screen.queryByText('Old test')).toBeNull();
+ });
+  it.each(['gherkin', 'bundle'])('explicitly maps Cucumber imports to the destination profile for %s', async (format) => {
+    fetchMock.mockResolvedValue({ok:true,json:async()=>({dryRun:true,results:[{kind:'test',name:'Italian scenario',outcome:'created',gherkin:{language:'it',scenario:'Scenario',rule:'Rule name',tags:['@regression'],arguments:['docString','dataTable'],mode:'cucumber'}}]})});
+    renderDialog();
+    fireEvent.change(screen.getByLabelText('Format'), { target: { value: format } });
+    fireEvent.change(screen.getByLabelText('Execution mode'), { target: { value: 'cucumber' } });
+    expect(screen.getByTestId('test-files-preview')).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Execution profile'), { target: { value: '00000000-0000-4000-8000-000000000001' } });
+    fireEvent.change(screen.getByTestId('test-files-content'), { target: { value: 'Feature: F' } });
+    fireEvent.click(screen.getByTestId('test-files-preview'));
+    await screen.findByText('Italian scenario');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).bdd).toEqual({mode:'cucumber',binding:{id:'00000000-0000-4000-8000-000000000001',revision:'r1'}});
+    expect(screen.getByTestId('test-files-results')).toHaveTextContent('it');
+    expect(screen.getByTestId('test-files-results')).toHaveTextContent('Rule name');
+    expect(screen.getByTestId('test-files-results')).toHaveTextContent('@regression');
+  });
   it('previews Gherkin with explicit format and explains manual execution', async () => {
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ dryRun: true, results: [] }) });
     renderDialog();
     fireEvent.change(screen.getByLabelText('Format'), { target: { value: 'gherkin' } });
-    expect(screen.getByText(/Prose imports as manual steps/)).toBeInTheDocument();
+    expect(screen.getByText(/Standard Gherkin dialects/)).toBeInTheDocument();
     fireEvent.change(screen.getByTestId('test-files-content'), { target: { value: 'Feature: F\nScenario: S\nGiven a' } });
     fireEvent.click(screen.getByTestId('test-files-preview'));
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
@@ -65,3 +84,5 @@ describe('TestFilesDialog', () => {
     expect(screen.queryByTestId('test-files-content')).toBeNull();
   });
 });
+
+

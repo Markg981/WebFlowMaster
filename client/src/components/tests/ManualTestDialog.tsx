@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from 'lucide-react';
 import { manualStepsOf, toSequence, type ManualStep } from '@shared/manual-tests';
+import GherkinArguments from './GherkinArguments';
 
 /**
  * Writing a manual test: a name and the steps a person performs, each with what should happen.
@@ -19,6 +20,7 @@ export interface ManualTestDraftSource {
   id: number;
   name: string;
   sequence?: unknown;
+  bdd?: unknown;
 }
 
 interface Props {
@@ -57,7 +59,8 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
     });
 
   const save = async () => {
-    const written = steps.map((step) => ({ action: step.action.trim(), expected: step.expected.trim() })).filter((step) => step.action !== '');
+    if(test?.bdd)return;
+    const written = steps.map((step) => ({ ...step, action: step.action.trim(), expected: step.expected.trim() })).filter((step) => step.action !== '');
     if (name.trim() === '') return setError(t('manualTests.errors.name', 'Give the test a name.'));
     if (written.length === 0) return setError(t('manualTests.errors.steps', 'Write at least one step.'));
     setSaving(true);
@@ -67,7 +70,7 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
         method: test ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         // No address and no elements: nothing is opened in a browser.
-        body: JSON.stringify({ name: name.trim(), url: '', sequence: toSequence(written), elements: [] }),
+        body: JSON.stringify({ name: name.trim(), url: '', sequence: toSequence(written).map((step,i)=>({...step,...(written[i].gherkin?{gherkin:written[i].gherkin}:{})})), elements: [] }),
       });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
@@ -85,6 +88,8 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
       setSaving(false);
     }
   };
+
+  if(test?.bdd)return <Dialog open={isOpen} onOpenChange={open=>{if(!open)onClose();}}><DialogContent><DialogHeader><DialogTitle>{test.name}</DialogTitle></DialogHeader><p role="alert">{t('bdd.editSourceRequired','Use the Gherkin source editor to change a source-derived BDD test.')}</p></DialogContent></Dialog>;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -128,6 +133,7 @@ export const ManualTestDialog: React.FC<Props> = ({ isOpen, onClose, test, onSav
                   <Textarea id={`manual-expected-${index}`} value={step.expected} onChange={(e) => update(index, { expected: e.target.value })} />
                 </div>
               </div>
+              <GherkinArguments argument={step.gherkin}/>
             </li>
           ))}
         </ol>

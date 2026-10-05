@@ -83,6 +83,7 @@ import SmsInboxCard from "@/components/settings/SmsInboxCard";
 import IssueTrackersCard from "@/components/settings/IssueTrackersCard";
 import BrowserGridsCard from "@/components/settings/BrowserGridsCard";
 import TestManagementCard from "@/components/settings/TestManagementCard";
+import BddProfilesCard from '@/components/settings/BddProfilesCard';
 
 interface Project {
   id: number;
@@ -724,7 +725,7 @@ export default function SettingsPage() {
               'Machines inside your network that lend their browsers, for applications this server cannot reach.',
             ),
             icon: Laptop,
-            content: <AgentsCard isOwner />,
+            content: <><AgentsCard isOwner /><BddProfilesCard /></>,
           },
         ]
       : []),
