@@ -4079,7 +4079,15 @@
       "swipe": "Scorri",
       "back": "Indietro",
       "hideKeyboard": "Nascondi tastiera",
-      "wait": "Attendi (secondi)"
+      "wait": "Attendi (secondi)",
+      "if": "Se",
+      "else": "Altrimenti",
+      "endIf": "Fine condizione",
+      "repeat": "Ripeti",
+      "repeatWhile": "Ripeti finché",
+      "endLoop": "Fine ciclo",
+      "assertCondition": "Verifica condizione",
+      "callGroup": "Richiama gruppo mobile"
     },
     "uploadFailed": "L'app non è stata caricata.",
     "fixSteps": "Correggete prima i passi segnati in rosso.",
@@ -4122,7 +4130,8 @@
       "skipped": "Saltato",
       "screenshot": "Il dispositivo alla fine dell'esecuzione",
       "again": "Esegui di nuovo",
-      "start": "Esegui"
+      "start": "Esegui",
+      "loadFailed": "Impossibile caricare i gruppi mobile."
     },
     "close": "Chiudi",
     "loadFailed": "Impossibile caricare i test mobili.",
@@ -4160,7 +4169,29 @@
     "quarantined": "In quarantena",
     "quarantineFor": "Metti in quarantena {{name}}",
     "unstable": "Instabile",
-    "unstableOn": "{{device}}: esito cambiato {{flips}} volte in {{runs}} esecuzioni"
+    "unstableOn": "{{device}}: esito cambiato {{flips}} volte in {{runs}} esecuzioni",
+    "flow": {
+      "groupEditor": "Gruppo di passi mobile",
+      "description": "Descrizione",
+      "loadFailed": "Impossibile caricare i gruppi mobile.",
+      "groups": "Gruppi mobile riutilizzabili",
+      "newGroup": "Nuovo gruppo",
+      "groupHint": "Riutilizza passi nativi sulla stessa piattaforma. Le esecuzioni in coda conservano il contenuto originale dei gruppi.",
+      "deleteGroup": "Eliminare il gruppo?",
+      "runMatrix": "Esegui matrice dispositivi",
+      "optionalElement": "Elemento facoltativo",
+      "groupOf": "Gruppo per il passo {{number}}",
+      "chooseGroup": "Scegli un gruppo",
+      "unavailableGroup": "Gruppo non disponibile su questa piattaforma",
+      "matrix": "Matrice dispositivi",
+      "matrixHint": "Una matrice vuota usa il dispositivo predefinito. Altrimenti ogni coppia dispositivo/OS elencata viene eseguita una volta (massimo 20).",
+      "deviceOf": "Dispositivo {{number}}",
+      "osOf": "Versione OS {{number}}",
+      "removeDevice": "Rimuovi dispositivo",
+      "addDevice": "Aggiungi dispositivo",
+      "targetCount": "{{count}} coppie dispositivo/OS"
+    },
+    "edit": "Modifica"
   },
   "mobileInspector": {
     "title": "Inspector",
@@ -4258,7 +4289,7 @@
   "testFiles": {
     "button": "File",
     "title": "Test come file",
-    "description": "I test web e API di un progetto in un unico file YAML o JSON, da tenere in un repository accanto all'applicazione. Reimportarlo aggiorna i test con lo stesso nome — ciascuno riceve una nuova versione — e crea gli altri. I segreti dei test API sono scritti come variabili.",
+    "description": "Esporta test web, API e mobile in YAML o JSON. L’import aggiorna le definizioni con lo stesso nome e crea le altre. I test modificati ricevono una nuova versione. I segreti nei test API sono scritti come variabili.",
     "export": "Esporta",
     "project": "Progetto",
     "allTests": "Tutti i test",
@@ -4279,7 +4310,8 @@
       "invalid": "non importato"
     },
     "gherkinExport": "Esporta solo i test web. I metadati WebFlowMaster conservano le azioni originali; per eseguire con Cucumber servono le tue definizioni degli step.",
-    "gherkinImport": "Sono supportati i dialetti Gherkin standard, Rule, Background, Scenario Outline, tag, doc string e tabelle. Scegli l’esecuzione manuale o un profilo Cucumber autorizzato. I metadati WFM ripristinano le azioni web esportate."
+    "gherkinImport": "Sono supportati i dialetti Gherkin standard, Rule, Background, Scenario Outline, tag, doc string e tabelle. Scegli l’esecuzione manuale o un profilo Cucumber autorizzato. I metadati WFM ripristinano le azioni web esportate.",
+    "nativeHint": "YAML/JSON include test mobile, gruppi e matrici dispositivi. Gherkin esporta i test web. Potrebbe servire un nuovo upload dell’app; configura una grid dopo l’import."
   },
   "impactMap": {
     "title": "Mappa dell'impatto",

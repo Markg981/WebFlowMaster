@@ -4,7 +4,7 @@ import express, { type Application } from 'express';
 import { eq } from 'drizzle-orm';
 import { parse as parseYaml } from 'yaml';
 import { privilegedDb } from './db';
-import { apiTests, auditLog, projects, projectMembers, testVersions, tests, users, type User } from '@shared/schema';
+import { apiTests, auditLog, projects, projectMembers, testVersions, tests, users, mobileTests, mobileStepGroups, type User } from '@shared/schema';
 import { createTestOrganization } from './tests/factories';
 import { tenancyMiddleware } from './middleware/tenancy';
 import { envName, toPlaywright } from './playwright-export';
@@ -96,6 +96,36 @@ describe('the test file', () => {
     return organizationId;
   }
 
+  it('previews and imports mobile groups without IDs and versions leaking into dry-run',async()=>{
+    const source=await organization('MobileSource');
+    const groupId=crypto.randomUUID();
+    await privilegedDb.insert(mobileStepGroups).values({id:groupId,name:'Login group',platform:'android',steps:[{id:'back',action:'back'}],organizationId:source,projectId});
+    await privilegedDb.insert(mobileTests).values({name:'Native login',platform:'android',app:'bs://app',deviceName:'Pixel 8',deviceMatrix:[{deviceName:'Pixel 9',osVersion:'15'}],steps:[{id:'call',action:'callGroup',value:groupId}],organizationId:source,projectId});
+    const exported=await request(app).get('/api/tests/export').query({projectId}).expect(200);
+    expect(exported.text).not.toContain(groupId);
+    const target=await organization('MobileTarget');
+    const preview=await request(app).post('/api/tests/import-bundle').send({content:exported.text,projectId,dryRun:true}).expect(200);
+    expect(preview.body.results.map((r:any)=>r.outcome)).toEqual(['created','created']);
+    expect(await privilegedDb.select().from(mobileTests).where(eq(mobileTests.organizationId,target))).toHaveLength(0);
+    expect(await privilegedDb.select().from(mobileStepGroups).where(eq(mobileStepGroups.organizationId,target))).toHaveLength(0);
+    await request(app).post('/api/tests/import-bundle').send({content:exported.text,projectId}).expect(201).expect(res=>expect(res.body.results.every((r:any)=>r.outcome==='created')).toBe(true));
+    const [test]=await privilegedDb.select().from(mobileTests).where(eq(mobileTests.organizationId,target));
+    const [group]=await privilegedDb.select().from(mobileStepGroups).where(eq(mobileStepGroups.organizationId,target));
+    expect(test.steps[0].value).toBe(group.id);expect(test.gridId).toBeNull();
+    await request(app).post('/api/tests/import-bundle').send({content:exported.text,projectId}).expect(201).expect(res=>expect(res.body.results.every((r:any)=>r.outcome==='unchanged')).toBe(true));
+    expect(await privilegedDb.select().from(testVersions).where(eq(testVersions.mobileTestId,test.id))).toHaveLength(1);
+  });
+  it('rejects duplicate native keys and missing dependencies without partial tests',async()=>{
+    const target=await organization('MobileDuplicates');
+    const group={key:'["android","Login"]',name:'Login',platform:'android',steps:[{id:'back',action:'back'}]};
+    const native={name:'Native',platform:'android',app:'bs://app',deviceName:'Pixel',steps:[{id:'c',action:'callGroup',value:group.key}]};
+    const content=JSON.stringify({kind:'webflowmaster/tests',version:2,mobileStepGroups:[group,group],mobileTests:[native]});
+    const imported=await request(app).post('/api/tests/import-bundle').send({content}).expect(201);
+    expect(imported.body.results).toHaveLength(3);expect(imported.body.results.every((r:any)=>r.outcome==='invalid')).toBe(true);
+    expect(await privilegedDb.select().from(mobileTests).where(eq(mobileTests.organizationId,target))).toHaveLength(0);
+    expect(await privilegedDb.select().from(mobileStepGroups).where(eq(mobileStepGroups.organizationId,target))).toHaveLength(0);
+  });
+
   beforeEach(async () => {
     await privilegedDb.delete(auditLog);
     await privilegedDb.delete(testVersions);
@@ -121,7 +151,8 @@ describe('the test file', () => {
     const target = await organization('GherkinTarget');
     await request(app).get('/api/tests/export').query({ format: 'gherkin', projectId: imported[0].projectId }).expect(404);
     await request(app).post('/api/tests/import-bundle').send({ content: exported.text, projectId }).expect(201);
-    expect((await privilegedDb.select().from(tests).where(eq(tests.organizationId, target)))[0].sequence).toEqual(imported[0].sequence);
+    const destination = await privilegedDb.select().from(tests).where(eq(tests.organizationId, target));
+    expect(destination.map(row => ({name:row.name,sequence:row.sequence})).sort((a,b)=>a.name.localeCompare(b.name))).toEqual(imported.map(row => ({name:row.name,sequence:row.sequence})).sort((a,b)=>a.name.localeCompare(b.name)));
     await request(app).post('/api/tests/import-bundle').send({ content: exported.text }).expect(201).expect(res => expect(res.body.results.every((r: any) => r.outcome === 'unchanged')).toBe(true));
   });
 
@@ -172,7 +203,7 @@ describe('the test file', () => {
     expect(yamlText).not.toContain('literal-token-123');
     expect(yamlText).not.toMatch(/organizationId|userId|createdAt|elements/);
     const doc = parseYaml(yamlText);
-    expect(doc).toMatchObject({ kind: 'webflowmaster/tests', version: 1, project: 'Shop', tests: [{ name: 'Login' }], apiTests: [{ name: 'Health', authParams: { params: { token: '{{bearer_token}}' } } }] });
+    expect(doc).toMatchObject({ kind: 'webflowmaster/tests', version: 2, project: 'Shop', tests: [{ name: 'Login' }], apiTests: [{ name: 'Health', authParams: { params: { token: '{{bearer_token}}' } } }] });
 
     const target = await organization('Target');
     const preview = await request(app).post('/api/tests/import-bundle').send({ content: yamlText, dryRun: true }).expect(200);

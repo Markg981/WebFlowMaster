@@ -18,6 +18,7 @@ import { AppiumSession, WebDriverError, type Fetch } from './appium-client';
 import { AgentHttp } from './agents/agent-fetch';
 import { LOCAL_APPIUM_DEFAULT_URL } from '@shared/browser-grids';
 import { executeMobileFlow, validateMobileExecution } from './mobile-flow';
+import { prepareMobileSteps } from './mobile-step-groups';
 
 /**
  * Running a mobile test (shared/mobile.ts) on a cloud grid's real device.
@@ -232,6 +233,8 @@ export async function runMobileStep(ctx: StepContext, step: MobileStep): Promise
     case 'wait':
       await sleep(Math.min(Number(resolve(step.value)) || 0, 60) * 1000);
       return;
+    default:
+      throw new Error(`The mobile action ${step.action} requires a test flow, not an inspector interaction.`);
   }
 }
 
@@ -340,7 +343,8 @@ export async function executeMobileRun(runId: string, organizationId: number, us
       const [test] = await tx.select().from(mobileTests).where(eq(mobileTests.id, run.mobileTestId)).limit(1);
       const [grid] = run.gridId ? await tx.select().from(browserGrids).where(eq(browserGrids.id, run.gridId)).limit(1) : [];
       // A delayed debug run must use the working copy it was started with.
-      return { run, test: test && run.testSnapshot ? { ...test, ...run.testSnapshot } as MobileTest : test, grid };
+      const definition = test && run.testSnapshot ? { ...test, ...run.testSnapshot } as MobileTest & {executionSteps?:MobileExecutionStep[]} : test;
+      return { run, test: definition, grid };
     });
     if (!loaded) return;
     const { run, test, grid: gridRow } = loaded;
@@ -350,6 +354,11 @@ export async function executeMobileRun(runId: string, organizationId: number, us
     }
     const grid = toGridConfig(gridRow);
     try {
+      if (!('executionSteps' in test)) {
+        const executionSteps=await withTenantTransaction(tx=>prepareMobileSteps(tx,test));
+        Object.assign(test,{executionSteps});
+        await update({testSnapshot:{...run.testSnapshot,...test,executionSteps}});
+      }
       await update({ status: 'running', startedAt: new Date() });
       const vars = await resolveVariables({ userId, organizationId, environmentId: run.environmentId });
       const outcome = await withExecutionUsage('mobile', () => performMobileTest(test, grid, vars, `WebFlowMaster · ${test.name}`, {

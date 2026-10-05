@@ -163,7 +163,7 @@ export const mobileStepSchema = z.object({
   action: z.enum(MOBILE_ACTION_IDS as [MobileActionId, ...MobileActionId[]]),
   target: z.string().max(2000).optional(),
   value: z.string().max(5000).optional(),
-});
+}).transform(step => step.action === 'callGroup' && step.value ? {...step, value: step.value.trim()} : step);
 
 /** A file on the agent's machine, for a local Appium: /home/qa/shop.apk, C:\\apps\\shop.apk, ~/shop.ipa. */
 export function isLocalAppPath(app: string): boolean {

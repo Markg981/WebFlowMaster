@@ -1,7 +1,9 @@
 import { parse as parseYaml, stringify as toYaml } from 'yaml';
 import { z } from 'zod';
 import { isDeepStrictEqual } from 'node:util';
-import type { ApiTest, Test } from '@shared/schema';
+import type { ApiTest, Test, MobileTest } from '@shared/schema';
+import type { MobileGroupDefinition } from '@shared/mobile-groups';
+import { exportMobileCatalog } from './mobile-bundle';
 import { referencedGroupIds } from './step-groups';
 import { referencedCustomActionIds } from './custom-actions';
 import { referencedElementIds } from './step-elements';
@@ -25,7 +27,7 @@ import type { GherkinImportOptions } from '@shared/bdd';
  */
 
 export const BUNDLE_KIND = 'webflowmaster/tests';
-export const BUNDLE_VERSION = 1;
+export const BUNDLE_VERSION = 2;
 
 const TEST_FIELDS = [
   'name', 'url', 'module', 'featureArea', 'scenario', 'component', 'priority', 'severity', 'status',
@@ -93,7 +95,7 @@ function withoutSecrets(test: Record<string, unknown>, replaced: string[]): Reco
 }
 
 export function exportBundle(
-  input: { project: string | null; tests: Test[]; apiTests: ApiTest[] },
+  input: { project: string | null; tests: Test[]; apiTests: ApiTest[];mobileTests?:MobileTest[];mobileStepGroups?:MobileGroupDefinition[] },
   format: 'yaml' | 'json' | 'gherkin' = 'yaml',
 ): BundleExport {
   const secretsReplaced: string[] = [];
@@ -109,10 +111,12 @@ export function exportBundle(
   const apiTests = [...input.apiTests]
     .sort(byName)
     .map((test) => withoutSecrets(pick(test as unknown as Record<string, unknown>, API_TEST_FIELDS), secretsReplaced));
-  const bundle = { kind: BUNDLE_KIND, version: BUNDLE_VERSION, project: input.project, tests, apiTests };
   if (format === 'gherkin') {
     return { ...exportGherkin({ project: input.project, tests }), secretsReplaced: [], withReferences };
   }
+  let native;
+  try {native=exportMobileCatalog(input.mobileTests??[],input.mobileStepGroups??[]);}catch(error){throw new BundleError((error as Error).message);}
+  const bundle = { kind: BUNDLE_KIND, version: BUNDLE_VERSION, project: input.project, tests, apiTests,...native };
   const content = format === 'json' ? `${JSON.stringify(bundle, null, 2)}\n` : toYaml(bundle, { lineWidth: 0 });
   const slug = (input.project ?? 'tests').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'tests';
   return { content, fileName: `${slug}.wfm.${format === 'json' ? 'json' : 'yaml'}`, secretsReplaced, withReferences };
@@ -120,10 +124,12 @@ export function exportBundle(
 
 const bundleSchema = z.object({
   kind: z.literal(BUNDLE_KIND),
-  version: z.number().int(),
+  version: z.number().int().min(1),
   project: z.string().nullable().optional(),
   tests: z.array(z.record(z.unknown())).max(2000).default([]),
   apiTests: z.array(z.record(z.unknown())).max(2000).default([]),
+  mobileTests: z.array(z.record(z.unknown())).max(2000).default([]),
+  mobileStepGroups: z.array(z.record(z.unknown())).max(2000).default([]),
 });
 export type Bundle = z.infer<typeof bundleSchema>;
 
@@ -133,7 +139,7 @@ export class BundleError extends Error {}
 export function parseBundle(content: string, format?: 'gherkin', bdd?:GherkinImportOptions): Bundle {
   let doc: unknown;
   const text = content.trim();
-  const gherkinBundle = (): Bundle => ({ kind: BUNDLE_KIND, version: BUNDLE_VERSION, ...parseGherkin(content,bdd) });
+  const gherkinBundle = (): Bundle => ({ kind: BUNDLE_KIND, version: BUNDLE_VERSION, ...parseGherkin(content,bdd),mobileTests:[],mobileStepGroups:[] });
   if (format === 'gherkin') {
     return gherkinBundle();
   }

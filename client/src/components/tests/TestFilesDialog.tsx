@@ -16,7 +16,7 @@ import { bddRequest, type BddProfile } from '@/lib/api/bdd';
  * version each, the others created.
  */
 
-type Outcome = { kind: 'test' | 'api_test'; name: string; outcome: 'created' | 'updated' | 'unchanged' | 'invalid'; reason?: string; gherkin?: {language:string;scenario:string;rule?:string;tags:string[];arguments:('docString'|'dataTable')[];mode:'manual'|'cucumber'} };
+type Outcome = { kind: 'test' | 'api_test' | 'mobile_test' | 'mobile_step_group'; name: string; outcome: 'created' | 'updated' | 'unchanged' | 'invalid'; reason?: string; gherkin?: {language:string;scenario:string;rule?:string;tags:string[];arguments:('docString'|'dataTable')[];mode:'manual'|'cucumber'} };
 
 const ALL = 'all';
 const NONE = 'none';
@@ -100,12 +100,13 @@ export function TestFilesDialog({ open, onOpenChange, canEdit, onImported }: { o
           <DialogDescription>
             {t(
               'testFiles.description',
-              'A project\'s web and API tests as one YAML or JSON file, to keep in a repository beside the application. Importing it back updates the tests of the same name — each gets a new version — and creates the others. Secrets in API tests are written as variables.',
+              'A project\'s web, API and mobile tests as one YAML or JSON file, to keep in a repository beside the application. Importing it back updates the tests of the same name — each gets a new version — and creates the others. Secrets in API tests are written as variables.',
             )}
           </DialogDescription>
         </DialogHeader>
 
-        <section className="space-y-2 rounded-md border p-3">
+        <p className="text-xs text-muted-foreground">{t('testFiles.nativeHint','YAML/JSON includes mobile tests, groups and device matrices. Gherkin exports web tests. App references may need re-uploading; configure a destination grid after import.')}</p>
+          <section className="space-y-2 rounded-md border p-3">
           <p className="text-sm font-medium">{t('testFiles.export', 'Export')}</p>
           <div className="flex flex-wrap items-end gap-2">
             <div className="space-y-1">
@@ -186,6 +187,7 @@ export function TestFilesDialog({ open, onOpenChange, canEdit, onImported }: { o
                     <Badge variant={OUTCOME_VARIANT[r.outcome]}>{t(`testFiles.outcomes.${r.outcome}`, r.outcome)}</Badge>
                     <span>{r.name}</span>
                     {r.kind === 'api_test' && <span className="text-xs text-muted-foreground">API</span>}
+                    {(r.kind === 'mobile_test'||r.kind === 'mobile_step_group')&&<span className="text-xs text-muted-foreground">{t(r.kind==='mobile_test'?'mobileTests.title':'mobileTests.flow.groupEditor',r.kind==='mobile_test'?'Mobile':'Mobile step group')}</span>}
                     {r.reason && <span className="text-xs text-destructive">{r.reason}</span>}
                     {r.gherkin&&<div className="w-full text-xs text-muted-foreground" data-testid="test-files-gherkin-preview"><span>{t('bdd.language','Dialect')}: {r.gherkin.language} · {r.gherkin.scenario}{r.gherkin.rule&&` · ${r.gherkin.rule}`} · {t(`bdd.${r.gherkin.mode}`,r.gherkin.mode)}</span><span> {r.gherkin.tags.join(' ')} {r.gherkin.arguments.map(arg=>t(`bdd.${arg}`,arg==='docString'?'Doc string':'Step data table')).join(', ')}</span></div>}
                   </li>

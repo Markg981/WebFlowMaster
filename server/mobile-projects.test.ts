@@ -33,7 +33,7 @@ const SHOP = { platform: 'android', app: 'bs://a', deviceName: 'Google Pixel 8',
 
 beforeAll(async () => {
   organizationId = await createTestOrganization('Mobile Projects Org');
-  const user = async (name: string, role: string): Promise<User> => ({ id: await createTestUser(organizationId, name), username: name, organizationId, role });
+  const user = async (name: string, role: string): Promise<User> => ({ id: await createTestUser(organizationId, `${name}-${uuidv4()}`), username: name, organizationId, role });
   owner = await user('mproj-owner', 'owner');
   member = await user('mproj-member', 'editor');
   reader = await user('mproj-reader', 'editor');
@@ -56,6 +56,7 @@ beforeAll(async () => {
     runWithTenant(currentUser.organizationId, () => next(), { userId: currentUser.id, role: currentUser.role });
   });
   app.use(routes);
+  app.use((await import('./routes/mobile-step-groups.routes')).default);
 });
 
 beforeEach(() => {
@@ -63,6 +64,21 @@ beforeEach(() => {
 });
 
 describe('a mobile test in a restricted project', () => {
+  it('restricts native group access and blocks deleting an open group used by a hidden test',async()=>{
+    const group=await request(app).post('/api/mobile-step-groups').send({name:`Secret group ${uuidv4()}`,platform:'android',projectId:secretProject,steps:[{id:'back',action:'back'}]}).expect(201);
+    currentUser=outsider;
+    const listed=await request(app).get('/api/mobile-step-groups').expect(200);
+    expect(listed.body.some((row:any)=>row.id===group.body.id)).toBe(false);
+    await request(app).put(`/api/mobile-step-groups/${group.body.id}`).send({...group.body}).expect(404);
+    currentUser=reader;
+    await request(app).put(`/api/mobile-step-groups/${group.body.id}`).send({...group.body}).expect(403);
+    currentUser=member;
+    const open=await request(app).post('/api/mobile-step-groups').send({name:`Open group ${uuidv4()}`,platform:'android',projectId:openProject,steps:[{id:'back',action:'back'}]}).expect(201);
+    await request(app).post('/api/mobile-tests').send({...SHOP,name:`Hidden caller ${uuidv4()}`,projectId:secretProject,steps:[{id:'call',action:'callGroup',value:` ${open.body.id} `}]}).expect(201);
+    currentUser=outsider;
+    const blocked=await request(app).delete(`/api/mobile-step-groups/${open.body.id}`).expect(409);
+    expect(blocked.body.error).toBe('The group is referenced by a mobile test.');
+  });
   it('is written by a member, and seen, changed and run only by those who may', async () => {
     const created = await request(app).post('/api/mobile-tests').send({ ...SHOP, name: `Secret checkout ${uuidv4().slice(0, 6)}`, projectId: secretProject });
     expect(created.status).toBe(201);

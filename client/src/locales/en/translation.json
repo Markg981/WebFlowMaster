@@ -3954,7 +3954,15 @@
       "swipe": "Swipe",
       "back": "Back",
       "hideKeyboard": "Hide keyboard",
-      "wait": "Wait (seconds)"
+      "wait": "Wait (seconds)",
+      "if": "If",
+      "else": "Else",
+      "endIf": "End if",
+      "repeat": "Repeat",
+      "repeatWhile": "Repeat while",
+      "endLoop": "End loop",
+      "assertCondition": "Assert condition",
+      "callGroup": "Call mobile group"
     },
     "uploadFailed": "The app was not uploaded.",
     "fixSteps": "Correct the steps marked in red first.",
@@ -3997,7 +4005,8 @@
       "skipped": "Skipped",
       "screenshot": "The device at the end of the run",
       "again": "Run again",
-      "start": "Run"
+      "start": "Run",
+      "loadFailed": "Could not load mobile groups."
     },
     "close": "Close",
     "loadFailed": "Could not load the mobile tests.",
@@ -4035,7 +4044,29 @@
     "quarantined": "In quarantine",
     "quarantineFor": "Quarantine {{name}}",
     "unstable": "Unstable",
-    "unstableOn": "{{device}}: changed verdict {{flips}}× in {{runs}} runs"
+    "unstableOn": "{{device}}: changed verdict {{flips}}× in {{runs}} runs",
+    "flow": {
+      "groupEditor": "Mobile step group",
+      "description": "Description",
+      "loadFailed": "Could not load mobile groups.",
+      "groups": "Reusable mobile groups",
+      "newGroup": "New group",
+      "groupHint": "Reuse native steps on the same platform. Queued runs retain their original group content.",
+      "deleteGroup": "Delete group?",
+      "runMatrix": "Run device matrix",
+      "optionalElement": "Optional element",
+      "groupOf": "Group for step {{number}}",
+      "chooseGroup": "Choose a group",
+      "unavailableGroup": "Group unavailable on this platform",
+      "matrix": "Device matrix",
+      "matrixHint": "An empty matrix uses the default device. Otherwise every listed device/OS target runs once (maximum 20).",
+      "deviceOf": "Device {{number}}",
+      "osOf": "OS version {{number}}",
+      "removeDevice": "Remove device",
+      "addDevice": "Add device",
+      "targetCount": "{{count}} device/OS targets"
+    },
+    "edit": "Edit"
   },
   "mobileInspector": {
     "title": "Inspector",
@@ -4133,7 +4164,7 @@
   "testFiles": {
     "button": "Files",
     "title": "Tests as files",
-    "description": "A project's web and API tests as one YAML or JSON file, to keep in a repository beside the application. Importing it back updates the tests of the same name — each gets a new version — and creates the others. Secrets in API tests are written as variables.",
+    "description": "Export web, API and mobile tests as YAML or JSON. Importing updates definitions with the same name and creates the others. Changed tests receive a new version. Secrets in API tests are written as variables.",
     "export": "Export",
     "project": "Project",
     "allTests": "All tests",
@@ -4154,7 +4185,8 @@
       "invalid": "not imported"
     },
     "gherkinExport": "Exports web tests only. WebFlowMaster metadata preserves original actions; Cucumber execution requires your own step definitions.",
-    "gherkinImport": "Standard Gherkin dialects, Rule, Background, Scenario Outline, tags, doc strings and data tables are supported. Choose manual execution or an authorized Cucumber support profile. WFM metadata restores exported web actions."
+    "gherkinImport": "Standard Gherkin dialects, Rule, Background, Scenario Outline, tags, doc strings and data tables are supported. Choose manual execution or an authorized Cucumber support profile. WFM metadata restores exported web actions.",
+    "nativeHint": "YAML/JSON includes mobile tests, groups and device matrices. Gherkin exports web tests. App references may need re-uploading; configure a destination grid after import."
   },
   "impactMap": {
     "title": "Impact map",

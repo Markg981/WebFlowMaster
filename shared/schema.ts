@@ -1653,7 +1653,9 @@ export const mobileStepGroups = pgTable('mobile_step_groups', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, table => [index('mobile_step_groups_org_idx').on(table.organizationId),
-  uniqueIndex('mobile_step_groups_name_unique').on(table.organizationId, table.platform, sql`lower(${table.name})`)]);
+  uniqueIndex('mobile_step_groups_name_unique').on(table.organizationId, table.platform, sql`lower(${table.name})`),
+  foreignKey({name: 'mobile_step_groups_project_id_same_org_fk', columns: [table.projectId, table.organizationId], foreignColumns: [projects.id, projects.organizationId]}),
+]);
 
 /** One run of a mobile test on a grid's device. */
 export const mobileTestRuns = pgTable("mobile_test_runs", {

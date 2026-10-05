@@ -9,7 +9,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: any, options?: any) => {
       let text = typeof fallback === 'string' ? fallback : _key;
-      for (const [name, value] of Object.entries(options ?? {})) text = text.split(`{{${name}}}`).join(String(value));
+      for (const [name, value] of Object.entries(options ?? {}))
+        text = text.split(`{{${name}}}`).join(String(value));
       return text;
     },
   }),
@@ -19,7 +20,10 @@ vi.mock('react-i18next', () => ({
 
 const fetchMock = vi.fn();
 // The dialog reads the projects as it opens; the calls under test are the others.
-const calls = () => fetchMock.mock.calls.filter(([url]) => url !== '/api/projects');
+const calls = () =>
+  fetchMock.mock.calls.filter(
+    ([url]) => url !== '/api/projects' && url !== '/api/mobile-step-groups',
+  );
 const grids = [{ id: 'g1', name: 'BrowserStack', provider: 'browserstack' }];
 const test = {
   id: 7,
@@ -40,7 +44,9 @@ describe('MobileTestDialog', () => {
   it('marks a locator the platform cannot read, and saves only a valid test', async () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ id: 7 }) });
     const onSaved = vi.fn();
-    render(<MobileTestDialog isOpen test={test} grids={grids} onClose={() => {}} onSaved={onSaved} />);
+    render(
+      <MobileTestDialog isOpen test={test} grids={grids} onClose={() => {}} onSaved={onSaved} />,
+    );
 
     fireEvent.change(screen.getByLabelText('Element of step 1'), { target: { value: '#login' } });
     expect(screen.getByText(/"#login" is not a locator for Android/)).toBeTruthy();
@@ -48,7 +54,9 @@ describe('MobileTestDialog', () => {
     expect(screen.getByRole('alert').textContent).toBe('Correct the steps marked in red first.');
     expect(calls()).toHaveLength(0);
 
-    fireEvent.change(screen.getByLabelText('Element of step 1'), { target: { value: 'text=Sign in' } });
+    fireEvent.change(screen.getByLabelText('Element of step 1'), {
+      target: { value: 'text=Sign in' },
+    });
     fireEvent.click(screen.getByText('Add step'));
     fireEvent.change(screen.getByLabelText('Element of step 2'), { target: { value: '~welcome' } });
     fireEvent.click(screen.getByText('Save'));
@@ -58,20 +66,44 @@ describe('MobileTestDialog', () => {
     expect(init.method).toBe('PUT');
     const body = JSON.parse(init.body);
     // A test saved before it named a grid keeps naming none until somebody chooses one.
-    expect(body).toMatchObject({ name: 'Sign in', platform: 'android', app: 'bs://old', deviceName: 'Google Pixel 8', osVersion: '14.0', gridId: null });
-    expect(body.steps.map((s: any) => [s.action, s.target])).toEqual([['tap', 'text=Sign in'], ['tap', '~welcome']]);
+    expect(body).toMatchObject({
+      name: 'Sign in',
+      platform: 'android',
+      app: 'bs://old',
+      deviceName: 'Google Pixel 8',
+      osVersion: '14.0',
+      gridId: null,
+    });
+    expect(body.steps.map((s: any) => [s.action, s.target])).toEqual([
+      ['tap', 'text=Sign in'],
+      ['tap', '~welcome'],
+    ]);
   });
 
   it('names the grid it runs on in plans: the first one for a new test, the chosen one after', async () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ id: 8 }) });
     const onSaved = vi.fn();
     const twoGrids = [...grids, { id: 'g2', name: 'LambdaTest', provider: 'lambdatest' }];
-    const { unmount } = render(<MobileTestDialog isOpen test={null} grids={twoGrids} onClose={() => {}} onSaved={onSaved} />);
-    expect(screen.getByRole('combobox', { name: 'Runs in test plans on' })).toHaveTextContent('BrowserStack');
+    const { unmount } = render(
+      <MobileTestDialog isOpen test={null} grids={twoGrids} onClose={() => {}} onSaved={onSaved} />,
+    );
+    expect(screen.getByRole('combobox', { name: 'Runs in test plans on' })).toHaveTextContent(
+      'BrowserStack',
+    );
     unmount();
 
-    render(<MobileTestDialog isOpen test={{ ...test, gridId: 'g2' }} grids={twoGrids} onClose={() => {}} onSaved={onSaved} />);
-    expect(screen.getByRole('combobox', { name: 'Runs in test plans on' })).toHaveTextContent('LambdaTest');
+    render(
+      <MobileTestDialog
+        isOpen
+        test={{ ...test, gridId: 'g2' }}
+        grids={twoGrids}
+        onClose={() => {}}
+        onSaved={onSaved}
+      />,
+    );
+    expect(screen.getByRole('combobox', { name: 'Runs in test plans on' })).toHaveTextContent(
+      'LambdaTest',
+    );
     fireEvent.click(screen.getByText('Save'));
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
     expect(JSON.parse(calls()[0][1].body).gridId).toBe('g2');
@@ -83,16 +115,30 @@ describe('MobileTestDialog', () => {
         ok: true,
         json: async () =>
           url === '/api/projects'
-            ? [{ id: 4, name: 'Shop app', access: 'editor' }, { id: 5, name: 'Payments', access: 'viewer' }]
+            ? [
+                { id: 4, name: 'Shop app', access: 'editor' },
+                { id: 5, name: 'Payments', access: 'viewer' },
+              ]
             : { id: 7 },
       }),
     );
     const onSaved = vi.fn();
-    render(<MobileTestDialog isOpen test={{ ...test, projectId: null }} grids={grids} onClose={() => {}} onSaved={onSaved} />);
+    render(
+      <MobileTestDialog
+        isOpen
+        test={{ ...test, projectId: null }}
+        grids={grids}
+        onClose={() => {}}
+        onSaved={onSaved}
+      />,
+    );
     const project = screen.getByRole('combobox', { name: 'Project' });
     expect(project).toHaveTextContent('No project');
     fireEvent.keyDown(project, { key: 'Enter', code: 'Enter' });
-    expect(await screen.findByRole('option', { name: 'Payments' })).toHaveAttribute('aria-disabled', 'true');
+    expect(await screen.findByRole('option', { name: 'Payments' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
     fireEvent.click(screen.getByRole('option', { name: 'Shop app' }));
     fireEvent.click(screen.getByText('Save'));
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
@@ -101,7 +147,9 @@ describe('MobileTestDialog', () => {
 
   it('uploads the app to the grid and takes its address and platform', async () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ app: 'bs://new-app' }) });
-    render(<MobileTestDialog isOpen test={null} grids={grids} onClose={() => {}} onSaved={() => {}} />);
+    render(
+      <MobileTestDialog isOpen test={null} grids={grids} onClose={() => {}} onSaved={() => {}} />,
+    );
     const file = new File(['ipa'], 'Shop.ipa');
     fireEvent.change(screen.getByLabelText('App file'), { target: { files: [file] } });
     await waitFor(() => expect(screen.getByLabelText('App')).toHaveValue('bs://new-app'));
@@ -112,11 +160,100 @@ describe('MobileTestDialog', () => {
 });
 
 describe('MobileRunDialog', () => {
+  it('keeps a partially completed matrix across parent rerenders', async () => {
+    fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+      Promise.resolve({
+        ok: true,
+        json: async () =>
+          url === '/api/environments'
+            ? []
+            : init?.method === 'POST'
+              ? { runs: [{ id: 'first' }, { id: 'second' }] }
+              : {
+                  id: url.endsWith('first') ? 'first' : 'second',
+                  device: url.endsWith('first') ? 'Pixel 8 · 14' : 'Pixel 9 · 15',
+                  status: url.endsWith('first') ? 'passed' : 'running',
+                  steps: [],
+                },
+      }),
+    );
+    const onFinished = vi.fn();
+    const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const matrixTest = {
+      ...test,
+      deviceMatrix: [
+        { deviceName: 'Pixel 8', osVersion: '14' },
+        { deviceName: 'Pixel 9', osVersion: '15' },
+      ],
+    };
+    const view = (currentGrids: typeof grids) => (
+      <QueryClientProvider client={cache}>
+        <MobileRunDialog
+          test={matrixTest}
+          grids={currentGrids}
+          onClose={() => {}}
+          onFinished={onFinished}
+        />
+      </QueryClientProvider>
+    );
+    const { rerender } = render(view(grids));
+    fireEvent.click(screen.getByText('Run device matrix'));
+    expect(await screen.findByText('Pixel 9 · 15')).toBeInTheDocument();
+    expect(onFinished).not.toHaveBeenCalled();
+    rerender(view([...grids]));
+    expect(screen.getByTestId('mobile-matrix-results')).toBeInTheDocument();
+    expect(screen.getByText('Pixel 9 · 15')).toBeInTheDocument();
+  });
+  it('starts and follows each target of a device matrix', async () => {
+    fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+      Promise.resolve({
+        ok: true,
+        json: async () =>
+          url === '/api/environments'
+            ? []
+            : init?.method === 'POST'
+              ? { runs: [{ id: 'first' }, { id: 'second' }] }
+              : {
+                  id: url.endsWith('first') ? 'first' : 'second',
+                  device: url.endsWith('first') ? 'Pixel 8 · 14' : 'Pixel 9 · 15',
+                  status: 'passed',
+                  steps: [],
+                },
+      }),
+    );
+    const onFinished = vi.fn();
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <MobileRunDialog
+          test={{
+            ...test,
+            deviceMatrix: [
+              { deviceName: 'Pixel 8', osVersion: '14' },
+              { deviceName: 'Pixel 9', osVersion: '15' },
+            ],
+          }}
+          grids={grids}
+          onClose={() => {}}
+          onFinished={onFinished}
+        />
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByText('Run device matrix'));
+    expect(await screen.findByText('Pixel 9 · 15')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')?.[0]).toBe(
+      '/api/mobile-tests/7/matrix-runs',
+    );
+    await waitFor(() => expect(onFinished).toHaveBeenCalled());
+  });
   it('starts a run on the grid chosen and shows each step as it comes', async () => {
     let polls = 0;
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-      if (url === '/api/environments') return Promise.resolve({ ok: true, json: async () => [{ id: 3, name: 'Staging' }] });
-      if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => ({ id: 'run-1', status: 'queued' }) });
+      if (url === '/api/environments')
+        return Promise.resolve({ ok: true, json: async () => [{ id: 3, name: 'Staging' }] });
+      if (init?.method === 'POST')
+        return Promise.resolve({ ok: true, json: async () => ({ id: 'run-1', status: 'queued' }) });
       polls += 1;
       return Promise.resolve({
         ok: true,
@@ -125,7 +262,14 @@ describe('MobileRunDialog', () => {
           status: 'failed',
           device: 'Google Pixel 8 · 14.0',
           steps: [
-            { index: 0, action: 'tap', target: '~login', status: 'failed', error: 'No visible element ~login within 15s.', durationMs: 15000 },
+            {
+              index: 0,
+              action: 'tap',
+              target: '~login',
+              status: 'failed',
+              error: 'No visible element ~login within 15s.',
+              durationMs: 15000,
+            },
           ],
           error: 'No visible element ~login within 15s.',
           screenshot: 'iVBORw0KGgo=',
@@ -135,7 +279,9 @@ describe('MobileRunDialog', () => {
     });
     const onFinished = vi.fn();
     render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
         <MobileRunDialog test={test} grids={grids} onClose={() => {}} onFinished={onFinished} />
       </QueryClientProvider>,
     );
@@ -144,7 +290,10 @@ describe('MobileRunDialog', () => {
     const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!;
     expect(post[0]).toBe('/api/mobile-tests/7/runs');
     expect(JSON.parse(post[1].body)).toEqual({ gridId: 'g1', environmentId: null });
-    expect(screen.getByText('Video and logs on the grid').closest('a')).toHaveAttribute('href', 'https://app-automate.browserstack.com/s/abc');
+    expect(screen.getByText('Video and logs on the grid').closest('a')).toHaveAttribute(
+      'href',
+      'https://app-automate.browserstack.com/s/abc',
+    );
     expect(screen.getByAltText('The device at the end of the run')).toBeTruthy();
     await waitFor(() => expect(onFinished).toHaveBeenCalled());
     expect(polls).toBeGreaterThan(0);

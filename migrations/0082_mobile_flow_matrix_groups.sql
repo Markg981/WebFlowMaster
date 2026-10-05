@@ -13,7 +13,7 @@ CREATE TABLE mobile_step_groups (
   created_by integer REFERENCES users(id) ON DELETE SET NULL,
   created_at timestamp NOT NULL DEFAULT now(),
   updated_at timestamp NOT NULL DEFAULT now(),
-  FOREIGN KEY (project_id, organization_id) REFERENCES projects(id, organization_id)
+  CONSTRAINT mobile_step_groups_project_id_same_org_fk FOREIGN KEY (project_id, organization_id) REFERENCES projects(id, organization_id)
 );
 --> statement-breakpoint
 CREATE INDEX mobile_step_groups_org_idx ON mobile_step_groups(organization_id);
@@ -42,7 +42,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON mobile_step_groups TO app_user;
 CREATE FUNCTION app_mobile_group_used(group_id text) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT EXISTS (SELECT 1 FROM mobile_tests t, jsonb_array_elements(t.steps) s
     WHERE t.organization_id = NULLIF(current_setting('app.current_org', true), '')::int
-      AND s->>'action' = 'callGroup' AND s->>'value' = group_id)
+      AND s->>'action' = 'callGroup' AND btrim(s->>'value') = group_id)
 $$;
 --> statement-breakpoint
 REVOKE ALL ON FUNCTION app_mobile_group_used(text) FROM PUBLIC;

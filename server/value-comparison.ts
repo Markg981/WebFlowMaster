@@ -37,4 +37,3 @@ export function compareValues(expression: string): { value: boolean } | { error:
   }
   return { value: compareCount(operator, a, b) ?? false };
 }
-

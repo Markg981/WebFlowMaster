@@ -16,6 +16,7 @@ import { History, Pencil, Play, Plus, ShieldAlert, Shuffle, Trash2 } from 'lucid
 import { MOBILE_GRID_PROVIDERS, MOBILE_PLATFORM_LABELS, type MobileRunStatus } from '@shared/mobile';
 import MobileTestDialog, { type GridOption, type MobileTestRow } from '@/components/mobile/MobileTestDialog';
 import MobileRunDialog from '@/components/mobile/MobileRunDialog';
+import MobileGroupsPanel from '@/components/mobile/MobileGroupsPanel';
 import TagPicker, { type TagRef } from '@/components/tags/TagPicker';
 import QuarantineDialog from '@/components/reports/QuarantineDialog';
 import type { QuarantineRow } from '@/components/reports/QuarantinedTestsCard';
@@ -234,7 +235,7 @@ const MobileTestsPage: React.FC = () => {
                         ))
                       )}
                     </TableCell>
-                    <TableCell className="text-sm">{[test.deviceName, test.osVersion].filter(Boolean).join(' ')}</TableCell>
+                    <TableCell className="text-sm">{test.deviceMatrix?.length ? t('mobileTests.flow.targetCount', '{{count}} device/OS targets', { count: test.deviceMatrix.length }) : [test.deviceName, test.osVersion].filter(Boolean).join(' ')}</TableCell>
                     <TableCell className="text-sm">{test.steps.length}</TableCell>
                     <TableCell className="text-sm">
                       {test.lastRun ? `${statusLabel(test.lastRun.status)} · ${new Date(test.lastRun.createdAt).toLocaleString()}` : '—'}
@@ -281,6 +282,7 @@ const MobileTestsPage: React.FC = () => {
           if (!response.ok) throw new Error(body.error ?? t('testHistory.restoreError', 'Could not restore that version.'));
           await refresh();
         }} />}
+      <MobileGroupsPanel canEdit={canEdit}/>
       <MobileTestDialog
         isOpen={editing !== null}
         test={editing && editing !== 'new' ? editing : null}

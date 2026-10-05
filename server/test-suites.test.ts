@@ -245,7 +245,8 @@ describe('rows that point across organizations', () => {
     // API/mobile version, publication and review targets add six guards (0075).
     // Conversations add parent/resolver guards; dashboards and preferences add four (0076).
     // Dedicated BDD profiles belong to a same-organization project (0080).
-    expect(rows.length).toBe(93);
+    // Native groups also belong to a same-organization project (0082).
+    expect(rows.length).toBe(94);
     expect(rows.filter((r) => !r.convalidated)).toEqual([]);
   });
 
@@ -274,7 +275,7 @@ describe('rows that point across organizations', () => {
       'source_hosts.created_by', 'password_resets.created_by', 'custom_actions.user_id', 'browser_grids.created_by',
       'requirements.created_by', 'requirement_tests.created_by',
       'test_management_connections.created_by', 'test_case_links.created_by', 'test_management_publications.requested_by',
-      'mobile_tests.created_by', 'mobile_test_runs.requested_by',
+      'mobile_tests.created_by', 'mobile_step_groups.created_by', 'mobile_test_runs.requested_by',
     ]);
     const unguarded = (result.rows as Array<{ child: string; col: string; parent: string }>)
       .map((r) => `${r.child}.${r.col}`)
