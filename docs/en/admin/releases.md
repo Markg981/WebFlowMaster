@@ -41,17 +41,18 @@ publication only when all of these checks pass:
 - The tagged commit belongs to `origin/main`.
 - The latest GitHub Actions runs named `build-and-test`, `network-on-guarded-installation`,
   `ui-on-real-installation` and `rls-on-real-postgres` succeeded on that exact commit.
-- Source-lockfile and all three image vulnerability scans have no HIGH or CRITICAL finding,
-  including findings without a fix. Missing/malformed reports fail closed.
+- All three image scans have no HIGH or CRITICAL finding, including findings without a fix.
+  Source-lockfile findings must be resolved or meet the exact approved source exception below.
+  Missing/malformed reports, missing source coverage or scanner failures fail closed.
 - Runtime checks and both independent builds pass for every role.
 
 Trivy generates one CycloneDX JSON SBOM and a complete JSON vulnerability report per image.
 The scanner version and database metadata are saved alongside them. Reports retain lower-severity
-findings for assessment. There are no default exception files or `ignore-unfixed` flags. If the
-gate blocks a release, identify the affected package/base, update a compatible locked version,
-review the change and rerun. A temporary exception would require a separately reviewed policy
-with owner, expiry and vulnerability IDs; none is implemented here. Scanner DB downloads and
-scanner errors also stop publication. A changing advisory database can change eligibility even
+findings for assessment. No blanket ignore or `ignore-unfixed` flag is used. The only approved
+exception is the temporary source-only entry in `deployment/releases/source-exceptions.json`,
+described below; image findings cannot use it. Other blocking findings require a compatible
+locked update, review and fresh scans. Scanner DB downloads and scanner errors also stop
+publication. A changing advisory database can change eligibility even
 when the image itself is unchanged.
 
 The workflow promotes the **scanned archive**, checks its SHA-256 and loaded configuration, and
@@ -131,7 +132,7 @@ See [Trivy filtering](https://trivy.dev/docs/latest/configuration/filtering/) fo
 
 ## Baseline on 6 October 2026
 
-The diagnostic lockfile scan found 36 HIGH/CRITICAL occurrences: 10 in the root lock, 3 in Lighthouse, 22 in the separate client lock and 1 in video tooling. `deployment/releases/baseline-2026-10-06.json` records IDs, versions, input hashes and scanner metadata. The separate client lock does not govern workspace `npm ci`, but remains part of the inventory of committed lockfiles. Source scanning includes development and tooling dependencies: publication stays blocked until findings in scope are resolved or a different policy is explicitly reviewed. No exception was added. This report does not certify images or replace fresh scans on a release tag.
+The diagnostic lockfile scan found 36 HIGH/CRITICAL occurrences: 10 in the root lock, 3 in Lighthouse, 22 in the separate client lock and 1 in video tooling. `deployment/releases/baseline-2026-10-06.json` records IDs, versions, input hashes and scanner metadata. The separate client lock does not govern workspace `npm ci`, but remains part of the inventory of committed lockfiles. Source scanning includes development and tooling dependencies: publication stays blocked until findings in scope are resolved or a different policy is explicitly reviewed. No exception was present at that baseline; the subsequently approved source-only exception below is conditional. This report does not certify images or replace fresh scans on a release tag.
 
 ### Runner capacity
 
@@ -173,8 +174,30 @@ postinstall hooks. Unexpected upstream changes stop installation for patch revie
 Run `npm run test:security` after `npm ci`: it checks ordinary globs, nesting
 rejection, and actual email composition. `--ignore-scripts` does not apply the
 mitigation. Release inputs fingerprint the patch and client manifests.
-**The gate remains blocked while the scanner reports HIGH/CRITICAL**, including
-braces: no exception, automatic VEX or package rename hides the finding.
+### Approved temporary source exception
+
+The user explicitly approved a source-only exception for **CVE-2026-93687**, package
+**braces 3.0.3**, in exactly `package-lock.json` and `client/package-lock.json`, expiring
+**6 November 2026**. Its reviewable configuration is
+`deployment/releases/source-exceptions.json`. It acknowledges the scanner finding rather
+than claiming an upstream fix or changing the package identity.
+
+Acceptance requires fresh root and standalone-client installations and successful integrity
+and depth-limit validation of **every installed braces copy in both trees**. Validate actual
+installed parsers against the expected patch/hash and prove ordinary glob behavior and
+rejection beyond depth 100. Missing copies, unrecognized parser content, failed validation,
+expired policy, unexpected finding versions/paths or incomplete scans block source acceptance.
+`--ignore-scripts` cannot satisfy the condition by itself.
+
+The complete original Trivy source report remains an artifact, including the two findings;
+accepted-exception evidence is retained separately and identifies the policy, validation and
+matched findings. No image finding is accepted, no blanket ignore or `ignore-unfixed` is added,
+and every other HIGH/CRITICAL remains blocking. Renewing or broadening the exception requires
+explicit review and approval; prefer a verified upstream fix before expiry.
+
+Approval does not prove the current CI/tag satisfies these conditions. Release eligibility
+still depends on successful validation, complete fresh scans and every other release gate.
+
 Remove the patch only after an official update provides equivalent protection
 and passes fresh tests. See Collaudo protocol 28 for validation evidence.
 
@@ -201,4 +224,5 @@ metadata, image configuration IDs, SBOM component counts and limits. Raw local
 reports are under `outputs/security-remediation-2026-10-06/`, excluded from Git.
 This evidence uses a frozen candidate snapshot and epoch 1700000000, with local
 Buildx 0.37.1 rather than CI 0.37.2. It does not certify the final tag or hosted
-workflow, and does not unblock the two remaining source findings.
+workflow. The two remaining source findings require the separate approved exception and its
+validation evidence; clean image scans alone do not satisfy those conditions.

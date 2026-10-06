@@ -46,11 +46,16 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
-      - run: npm run test:release
       - id: prepare
         run: node scripts/release/prepare.mjs
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      - name: Install and verify the approved source mitigation
+        run: |
+          npm ci --include=dev --no-audit --no-fund
+          npm ci --prefix client --workspaces=false --include=dev --no-audit --no-fund
+          npm run test:security
+      - run: npm run test:release
       - name: Scan locked source dependencies
         env:
           TRIVY: ${{ steps.prepare.outputs.trivy }}
@@ -237,6 +242,11 @@ jobs:
         with:
           pattern: release-evidence-*
           path: release-artifacts/evidence
+      - name: Reinstall and reverify the approved source mitigation
+        run: |
+          npm ci --include=dev --no-audit --no-fund
+          npm ci --prefix client --workspaces=false --include=dev --no-audit --no-fund
+          npm run test:security
       - name: Assemble verified references and evidence
         run: |
           for role in api worker agent; do
@@ -257,6 +267,9 @@ jobs:
             gh release create "v$VERSION" --draft --verify-tag --title "WebFlowMaster $VERSION" --notes-file release-artifacts/notes.md
           fi
           gh release upload "v$VERSION" --clobber release-artifacts/release-manifest.json release-artifacts/release.env release-artifacts/source-scan.json release-artifacts/source-scanner.json
+          if test -f release-artifacts/source-exceptions.json; then
+            gh release upload "v$VERSION" --clobber release-artifacts/source-exceptions.json
+          fi
           for role in api worker agent; do
             for file in sbom.cdx.json scan.json scanner.json; do
               cp "release-artifacts/$role/$file" "release-artifacts/$role-$file"
