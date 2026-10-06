@@ -407,7 +407,7 @@ WFM_AGENT_TOKEN_DIVERSO=wfa_... wfmc --profile agente-diverso up -d --build agen
 ```
 
 La scheda dell'agente mostra la versione diversa; un piano che esegue sul pool `diverso` fallisce
-con «The agents of pool "diverso" run Playwright 1.60.0, and this server 1.61.1: they must
+con «The agents of pool "diverso" run Playwright 1.60.0, and this server 1.63.0: they must
 match». Un'altra versione si sceglie con `AGENT_PLAYWRIGHT_VERSION` (deve cambiare il minore).
 
 **Emulatore Android (area MOB, Appium locale).** Un emulatore vero, con Appium, nel container

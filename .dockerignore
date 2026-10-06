@@ -55,3 +55,7 @@ scratch_cookies.txt
 *.log
 
 backups
+release-artifacts
+docs/.vitepress/dist
+docs/.vitepress/cache
+**/*.tsbuildinfo

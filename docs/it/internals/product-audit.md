@@ -107,3 +107,7 @@ provider o device. Evitare promesse commerciali non accompagnate da risultati mi
 Il backlog sopra deve diventare piccoli interventi con criteri verificabili. La
 [guida di implementazione](./contributing-guide) spiega come introdurli rispettando le invarianti
 della suite.
+
+## Avanzamento: release riproducibili
+
+Il percorso di [release](../admin/releases) introduce basi per digest, lock Lighthouse, doppia build, SBOM CycloneDX e blocco HIGH/CRITICAL. Il manifest collega immagini, commit e impronte delle migrazioni. La verifica CI sul tag e il collaudo dell’upgrade restano evidenze distinte da registrare prima della distribuzione.

@@ -36,7 +36,7 @@ server (see [Tenancy](../internals/tenancy)).
 
 - **Node.js 20 or later** and npm 10, for installations from source.
 - **Docker** with Compose v2, for the container layouts. The images are based on
-  `mcr.microsoft.com/playwright:v1.61.1-jammy`, which already contains the browsers.
+  `mcr.microsoft.com/playwright:v1.63.0-resolute`, which already contains the browsers.
 - **PostgreSQL 15 or later** for anything beyond evaluation.
 - **Redis 6.2 or later, or Valkey**, reachable from the web process and every worker.
 - Outbound network access from the workers to the applications under test, or a
@@ -266,3 +266,5 @@ reachable by others.
 | Links work | A notification or commit status links to the run at the public address. |
 
 Next: [Operations](./operations) covers upgrades, backups, logs and troubleshooting.
+
+To deploy versioned images with SBOMs, scans and immutable digests, follow [Reproducible releases](./releases).

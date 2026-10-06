@@ -74,6 +74,9 @@ jobs:
       - name: Install the browser the tests drive
         run: npx playwright install --with-deps chromium
 
+      - name: Release packaging and publication guards
+        run: npm run test:release && npm run test:security
+
       - name: Type check
         run: npm run check
 

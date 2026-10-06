@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "postinstall": "node ../scripts/security/apply-braces-patch.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

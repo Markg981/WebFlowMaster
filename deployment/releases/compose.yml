@@ -1,0 +1,49 @@
+# Application-only deployment. Databases, TLS and secrets are supplied by the operator.
+services:
+  migrate:
+    image: ${WFM_API_IMAGE:?Load release.env from a verified release}
+    command: [node, dist/apply-migrations.js]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${MIGRATION_DATABASE_URL:?Set the migration-owner connection}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Set the installation encryption key}
+    restart: "no"
+  api:
+    image: ${WFM_API_IMAGE:?Load release.env from a verified release}
+    ports: ["127.0.0.1:5000:5000"]
+    environment: &runtime
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?Set the non-superuser application connection}
+      REDIS_URL: ${REDIS_URL:?Set the queue connection}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Set the installation encryption key}
+      SESSION_SECRET: ${SESSION_SECRET:?Set a random session secret}
+      AGENT_RELAY_SECRET: ${AGENT_RELAY_SECRET:?Set a random relay secret}
+      WEBFLOW_PUBLIC_URL: ${WEBFLOW_PUBLIC_URL:?Set the public HTTPS URL}
+      APP_BASE_URL: ${APP_BASE_URL:-}
+    volumes:
+      - results:/app/results
+      - baselines:/app/data/visual-baselines
+      - uploads:/app/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+  worker:
+    image: ${WFM_WORKER_IMAGE:?Load release.env from a verified release}
+    environment:
+      <<: *runtime
+      AGENT_RELAY_URL: http://api:5000
+    volumes:
+      - results:/app/results
+      - baselines:/app/data/visual-baselines
+      - uploads:/app/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  results:
+  baselines:
+  uploads:
