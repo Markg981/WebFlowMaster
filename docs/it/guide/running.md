@@ -3,6 +3,28 @@
 I test girano nei **piani di test**. Un piano dice quali test, in quali browser, quanti insieme,
 cosa conservare di ogni run e chi avvisare.
 
+## Dati fissati all'accodamento
+
+Per i nuovi run di piano, lo snapshot conserva i dataset inline o le righe dei set condivisi
+dei test web/BDD selezionati e i valori della prima riga `{{data.<set>.<colonna>}}` usati dai
+test web, API e mobile. Modificare, rinominare o eliminare un set mentre il run attende non
+cambia questi input. Anche dataset nulli e vuoti sono fissati: aggiungere righe dopo
+l'accodamento non trasforma quel run in un'esecuzione su più righe.
+
+Il dataset della versione web/BDD pubblicata prevale sulla copia in modifica. Se un set
+referenziato non è disponibile all'accodamento, lo snapshot registra un errore per quel test;
+correggere il riferimento richiede un nuovo run. Richieste con la stessa chiave di idempotenza
+e retry automatici riutilizzano lo snapshot originale. Un nuovo run acquisisce i dati correnti.
+
+I run storici senza snapshot dei dataset continuano a risolvere i dati all'avvio del worker.
+Questa funzione congela gli input dei dataset, non tutte le definizioni o i sistemi esterni:
+segreti d'ambiente, variabili catturate dalle risposte, valori generati, dispositivi e stato
+dell'applicazione possono ancora cambiare. Le credenziali d'ambiente non vengono copiate.
+I valori dei dataset sono salvati come normali dati del run in `configuration_snapshot.datasets`:
+usare i segreti d'ambiente per le credenziali e applicare le politiche di accesso e conservazione
+dei run ai dati sensibili. Tutti i worker devono essere aggiornati prima di fare affidamento
+su questo comportamento durante un rilascio graduale.
+
 ## Creare un piano
 
 **Piani di test → + Piano di test** apre una procedura in tre passi:

@@ -6,6 +6,12 @@ opportunity map for planning future work; proposals are not delivered features. 
 
 ## Scope and confidence
 
+Implementation update: queued runs now freeze web/BDD datasets and shared first-row variables
+in `configuration_snapshot.datasets`; see [data fixed when queued](../guide/running#data-fixed-when-queued).
+The priority table below preserves the original baseline findings. A dedicated dataset hash or
+report UI and explicit historical replay remain separate enhancements; automatic retries reuse
+the captured data. This does not freeze every test definition or external system state.
+
 The repository inventory contained 1,264 tracked files before this revision: 494 under `server/`,
 331 under `client/`, 44 under `shared/`, 40 under `scripts/`, 87 under `migrations/`, 41 under
 `collaudo/`, 29 under `deployment/`, 8 under `e2e/` and 7 under `integrations/`. It includes 347

@@ -3,6 +3,27 @@
 Tests run in **test plans**. A plan says which tests, in which browsers, how many at once, what to
 keep of each run, and whom to tell.
 
+## Data fixed when queued
+
+For newly queued plan runs, the execution snapshot stores the selected web/BDD tests' inline
+datasets or expanded shared-set rows, plus the organization's first-row `{{data.<set>.<column>}}`
+values used by web, API and mobile tests. Editing, renaming or deleting a shared set while a run
+waits does not change these inputs. Null and empty datasets are also fixed: adding rows later
+does not turn that queued run into a multi-row run.
+
+The dataset of a published web/BDD version takes precedence over its working copy. A referenced
+set unavailable at enqueue is recorded as that test's error; repairing the reference afterwards
+requires a new run. Requests with the same idempotency key and automatic retries reuse the
+original snapshot. A fresh run captures the current data.
+
+Historical runs without a dataset snapshot keep resolving data when the worker starts. This
+feature freezes data inputs, not every test definition or external system: environment secrets,
+captured response variables, generated values, devices and application state can still change.
+Environment credentials are not copied. Dataset values are persisted as ordinary run data in
+`configuration_snapshot.datasets`; use environment secrets for credentials, and apply your run
+retention/access policy to sensitive test data. Every worker must run the updated version before
+relying on this behavior during a rolling deployment.
+
 ## Creating a plan
 
 **Test plans → + Test Plan** opens a wizard in three steps:
