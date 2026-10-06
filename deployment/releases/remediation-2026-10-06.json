@@ -1,0 +1,172 @@
+{
+  "date": "2026-10-06",
+  "kind": "local-security-remediation-candidate",
+  "platform": "linux/amd64",
+  "epoch": 1700000000,
+  "toolchain": {
+    "buildxLocal": "0.37.1",
+    "buildxCI": "0.37.2",
+    "buildkit": "moby/buildkit:v0.33.1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea"
+  },
+  "scanner": {
+    "Version": "0.75.0",
+    "VulnerabilityDB": {
+      "Version": 2,
+      "NextUpdate": "2026-10-07T07:04:23.108323332Z",
+      "UpdatedAt": "2026-10-06T07:04:23.108323632Z",
+      "DownloadedAt": "2026-10-06T10:26:21.722927811Z"
+    },
+    "JavaDB": {
+      "Version": 1,
+      "NextUpdate": "2026-10-09T01:08:12.735023748Z",
+      "UpdatedAt": "2026-10-06T01:08:12.735023878Z",
+      "DownloadedAt": "2026-10-06T10:41:42.554224711Z"
+    }
+  },
+  "baseImage": "mcr.microsoft.com/playwright:v1.63.0-resolute@sha256:b022639ae9197f864040f92eef7b57c6d4b47db2190f77c909d8a5d902dd4b7e",
+  "opensslPackages": "3.5.5-1ubuntu3.7",
+  "removedBaseExecutables": [
+    "/usr/bin/pebble",
+    "/usr/bin/npm",
+    "/usr/bin/npx"
+  ],
+  "source": {
+    "baselineBlockedOccurrences": 36,
+    "blockedOccurrences": 2,
+    "gate": "blocked",
+    "reportSha256": "1295ffd6301fe81a82583120ce9ce0fbaab8bedb33ae75d0c0ffb2956d4cc3fa",
+    "locks": [
+      {
+        "target": "client/package-lock.json",
+        "sha256": "b0191281399992f39010f60fff9e516d84c0a8c73a8b56b82e0fa0b4db604cf4",
+        "blockedFindings": [
+          {
+            "id": "CVE-2026-93687",
+            "package": "braces",
+            "installed": "3.0.3",
+            "fixed": null,
+            "severity": "HIGH"
+          }
+        ]
+      },
+      {
+        "target": "deployment/bdd-agent/sample/package-lock.json",
+        "sha256": "a539beafa18a68bfa6e5222f374a49fff9c2052ab69c5a9a004e22dc1ba988a3",
+        "blockedFindings": []
+      },
+      {
+        "target": "deployment/lighthouse/package-lock.json",
+        "sha256": "a0352cef2c7271267d8163c8f4b1634ce8a5680bbfe56d4fc95d1014c6fab77e",
+        "blockedFindings": []
+      },
+      {
+        "target": "marketing/promo-video/video/package-lock.json",
+        "sha256": "af358fc412c21b6ef2ce60d584df8a7713fc9fe2558170a3b4025fd707a149f3",
+        "blockedFindings": []
+      },
+      {
+        "target": "package-lock.json",
+        "sha256": "3b59d38b4efdbccd120579c0dcba3fe54f3a1c4dafa6627c6737af745267513a",
+        "blockedFindings": [
+          {
+            "id": "CVE-2026-93687",
+            "package": "braces",
+            "installed": "3.0.3",
+            "fixed": null,
+            "severity": "HIGH"
+          }
+        ]
+      }
+    ]
+  },
+  "images": [
+    {
+      "role": "api",
+      "baselineBlockedOccurrences": 31,
+      "blockedOccurrences": 0,
+      "configDigest": "sha256:ddfb81a5fd9a466f4af12e7a678e49341e5165446e6ddb05a5153ffb8a581299",
+      "reproducibility": "configuration-and-uncompressed-layers-equal",
+      "uncompressedLayerCount": 21,
+      "sbomComponents": 1375,
+      "scanSha256": "25ea459d19c8e1d322da475944921a13e0d1e94a1950b3cc2d827ccd1fae1ee2",
+      "sbomSha256": "c895ec09520725b386061802b41c37967ba46cb40a52712ac5af5d903dea13df",
+      "runtime": {
+        "uid": 1000,
+        "gid": 1000,
+        "node": "v24.20.0",
+        "playwright": "1.63.0",
+        "browsers": [
+          "chromium",
+          "firefox",
+          "webkit"
+        ]
+      }
+    },
+    {
+      "role": "worker",
+      "baselineBlockedOccurrences": 31,
+      "blockedOccurrences": 0,
+      "configDigest": "sha256:1747a423af777b674e94d27ba4d0f251066bfdf462a74e603f9bc128e12a33dd",
+      "reproducibility": "configuration-and-uncompressed-layers-equal",
+      "uncompressedLayerCount": 21,
+      "sbomComponents": 1375,
+      "scanSha256": "91fa32ed09a8c26bbd4a6119a8b83db9f42653c82f382073ddcc98d3e8abe253",
+      "sbomSha256": "cd1933b8d6cd1dbf018bc9efecf679fa86e8c7be03d8a75df35e25ec3e0005b7",
+      "runtime": {
+        "uid": 1000,
+        "gid": 1000,
+        "node": "v24.20.0",
+        "playwright": "1.63.0",
+        "browsers": [
+          "chromium",
+          "firefox",
+          "webkit"
+        ]
+      }
+    },
+    {
+      "role": "agent",
+      "baselineBlockedOccurrences": 28,
+      "blockedOccurrences": 0,
+      "configDigest": "sha256:4c8ae404751abd8ddea353402d61fce0835626842a7f1ecf5dfbe681efa8f3ba",
+      "reproducibility": "configuration-and-uncompressed-layers-equal",
+      "uncompressedLayerCount": 19,
+      "sbomComponents": 1257,
+      "scanSha256": "5f24804c0dcf2a48c67acba209f67ed686fe18d2ef4b4bec0e6d74ba34d72998",
+      "sbomSha256": "2b32a69be1f04c7b70bab177f7f9ad2d8e90aba17a2a3028629df043e1523ad2",
+      "runtime": {
+        "uid": 1000,
+        "gid": 1000,
+        "node": "v24.20.0",
+        "playwright": "1.63.0",
+        "browsers": [
+          "chromium",
+          "firefox",
+          "webkit"
+        ]
+      }
+    }
+  ],
+  "additionalRuntimeChecks": {
+    "anonymousVolumesUID1000": "passed",
+    "lighthouse": {
+      "version": "13.5.0",
+      "localHttpAudit": "passed",
+      "reportFormats": [
+        "json",
+        "html"
+      ]
+    },
+    "agentMismatchFixture": {
+      "playwright": "1.60.0",
+      "uid": 1000,
+      "result": "passed",
+      "includedInRelease": false
+    }
+  },
+  "limits": [
+    "Local immutable source snapshot with development/unknown labels; not a final Git tag or hosted CI certification.",
+    "Source gate remains blocked by braces CVE-2026-93687 despite the tested local depth mitigation; no scanner exception.",
+    "No external SMTP, complete upgrade, physical-device verification or publication."
+  ]
+}

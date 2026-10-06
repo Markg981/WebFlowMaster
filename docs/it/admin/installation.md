@@ -38,7 +38,7 @@ server PostgreSQL (vedi [Tenancy](../internals/tenancy)).
 
 - **Node.js 20 o successivo** e npm 10, per le installazioni dai sorgenti.
 - **Docker** con Compose v2, per le configurazioni a container. Le immagini partono da
-  `mcr.microsoft.com/playwright:v1.61.1-jammy`, che contiene già i browser.
+  `mcr.microsoft.com/playwright:v1.63.0-resolute`, che contiene già i browser.
 - **PostgreSQL 15 o successivo** per tutto ciò che va oltre la valutazione.
 - **Redis 6.2 o successivo, oppure Valkey**, raggiungibile dal processo web e da ogni worker.
 - Accesso di rete in uscita dai worker verso le applicazioni da testare, oppure un

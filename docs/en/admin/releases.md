@@ -138,3 +138,67 @@ The diagnostic lockfile scan found 36 HIGH/CRITICAL occurrences: 10 in the root 
 Each role has a separate job. The initial check requires at least 20 GiB free for dual builds, imported images, archives and Trivy databases. Local Docker archives measured about 1.2 GB for API/worker and 952 MB for agent; Trivy cache used 2.8 GB. Sizes vary with dependencies. Increase runner capacity if the check fails; retain scans and comparisons. Actual GitHub runner capacity must be confirmed by the first workflow run.
 
 The required variable template is `deployment/releases/installation.env.example`. Declare additional application settings under `environment` in a Compose override: `--env-file` supplies substitution values; it does not automatically inject every variable into containers.
+
+## Dependency remediation on 6 October 2026
+
+The next candidate uses digest-pinned Playwright 1.63.0 on Ubuntu 26.04 (Resolute),
+Nodemailer 10.0.15 with bundled types, and Lighthouse 13.5.0. proxy-addr,
+source-map-js, undici and Vite are updated too. The separate client lock described
+an older manifest and is regenerated from the current manifest. Video tooling
+also uses corrected source-map-js. The initial baseline remains available for
+comparison; it does not describe this candidate's current state.
+
+Production installation uses `npm ci --omit=dev --workspaces=false`: the client is
+already compiled during the build and its build tools are unnecessary at runtime.
+Final images remove global npm; API, worker, agent and BDD child startup use Node
+directly. Install dependencies for external BDD projects in their dedicated
+support image, following the BDD runbook, before execution.
+The workspace lock can retain orphan transitive dependencies even with workspaces
+disabled. `scripts/release/runtime-tools.mjs` removes only fast-glob, micromatch
+and braces after proving they are unreachable from production dependencies,
+including installed peers and optional dependencies. Missing required packages,
+symlinks or external paths fail the build. Image smoke tests cover Chromium,
+Firefox and WebKit; required multimedia libraries are preserved rather than
+removed to hide operating-system findings.
+
+After the updates, scanning the five lockfiles reports two HIGH occurrences of
+**CVE-2026-93687**, both for braces 3.0.3 (root and client locks). No corrected
+upstream release is published; see the
+[upstream issue](https://github.com/micromatch/braces/issues/73).
+`scripts/security/apply-braces-patch.cjs` applies a temporary parser depth limit
+of 100 while retaining the original package identity and version. It verifies
+the parser version/hash, is idempotent, and runs through root and client
+postinstall hooks. Unexpected upstream changes stop installation for patch review.
+
+Run `npm run test:security` after `npm ci`: it checks ordinary globs, nesting
+rejection, and actual email composition. `--ignore-scripts` does not apply the
+mitigation. Release inputs fingerprint the patch and client manifests.
+**The gate remains blocked while the scanner reports HIGH/CRITICAL**, including
+braces: no exception, automatic VEX or package rename hides the finding.
+Remove the patch only after an official update provides equivalent protection
+and passes fresh tests. See Collaudo protocol 28 for validation evidence.
+
+### Base hardening and image evidence
+
+Every build/runtime stage applies `deployment/releases/harden-base.sh`. It installs
+the exact Ubuntu security versions `3.5.5-1ubuntu3.7` for libssl3t64, openssl and
+openssl-provider-legacy, removes the unused `/usr/bin/pebble` service manager,
+and preserves `pwuser` UID/GID 1000 for existing volumes. Global npm is removed
+only from final stages. The script removes APT indexes, caches and variable logs
+before layer export. If a pinned package disappears from the signed Ubuntu
+repositories, the build fails: review a newer fixed version, update the pin and
+repeat scans, browser checks and dual builds. Do not silently install latest.
+
+Local scans of API, worker and agent images each report **zero HIGH/CRITICAL**,
+down from 31, 31 and 28 respectively. Each role produced equal configuration and
+uncompressed layer IDs in two builds without cache; all three browsers ran as
+UID/GID 1000. API also passed temporary anonymous-volume writes and a real
+Lighthouse 13.5.0 HTTP audit producing JSON and HTML. The AGT-05 mismatch fixture
+still builds with Playwright 1.60.0; it is excluded from release images.
+
+`deployment/releases/remediation-2026-10-06.json` records hashes, scanner/database
+metadata, image configuration IDs, SBOM component counts and limits. Raw local
+reports are under `outputs/security-remediation-2026-10-06/`, excluded from Git.
+This evidence uses a frozen candidate snapshot and epoch 1700000000, with local
+Buildx 0.37.1 rather than CI 0.37.2. It does not certify the final tag or hosted
+workflow, and does not unblock the two remaining source findings.

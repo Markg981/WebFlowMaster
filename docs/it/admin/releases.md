@@ -137,3 +137,71 @@ La scansione diagnostica dei lockfile ha rilevato 36 occorrenze HIGH/CRITICAL: 1
 Ogni ruolo usa un job separato. Il controllo iniziale richiede almeno 20 GiB liberi per build doppie, immagine caricata, archivi e database Trivy. Nella prova locale gli archivi Docker sono circa 1,2 GB per API/worker e 952 MB per agente; la cache Trivy occupa 2,8 GB. Le dimensioni cambiano con le dipendenze. Se il controllo fallisce, aumentare lo spazio del runner; non ridurre scansioni o confronti per far entrare il job. La capacità effettiva del runner GitHub va confermata dal primo workflow.
 
 Il modello delle variabili necessarie è `deployment/releases/installation.env.example`. Gli ulteriori parametri applicativi vanno dichiarati nella sezione `environment` di un override Compose: `--env-file` fornisce valori per le sostituzioni del template e non inserisce automaticamente tutte le variabili nei container.
+
+## Correzioni delle dipendenze del 6 ottobre 2026
+
+Il candidato successivo usa Playwright 1.63.0 su Ubuntu 26.04 (Resolute), con digest fissato,
+Nodemailer 10.0.15 con i tipi inclusi nel pacchetto e Lighthouse 13.5.0. Sono
+aggiornati anche proxy-addr, source-map-js, undici e Vite. Il lock client separato,
+che descriveva un manifest precedente, è rigenerato dal manifest attuale; il lock
+degli strumenti video usa source-map-js corretto. La baseline iniziale resta
+conservata per il confronto, non rappresenta lo stato di questo candidato.
+
+L'installazione di produzione usa `npm ci --omit=dev --workspaces=false`: il client
+viene già compilato durante la build e i suoi strumenti non servono al runtime.
+Le immagini finali rimuovono npm globale; l'avvio API, worker, agente e child BDD
+usa direttamente Node. Installare le dipendenze di progetti BDD esterni nella
+relativa immagine di supporto, secondo la procedura BDD, prima dell'esecuzione.
+Il lock workspace può conservare dipendenze transitive orfane anche escludendo le
+workspace. `scripts/release/runtime-tools.mjs` rimuove soltanto fast-glob,
+micromatch e braces dopo aver verificato che nessuno sia raggiungibile dalle
+dipendenze di produzione, inclusi peer e optional installati. Dipendenze richieste
+mancanti, symlink o percorsi esterni interrompono la build. Lo smoke delle immagini
+verifica Chromium, Firefox e WebKit: non rimuoviamo librerie multimediali necessarie
+a WebKit per nascondere i rilievi del sistema operativo.
+
+La scansione dei cinque lockfile dopo gli aggiornamenti contiene due occorrenze
+HIGH di **CVE-2026-93687**, entrambe per braces 3.0.3 (lock principale e client).
+Non esiste una versione correttiva pubblicata: vedere
+[la segnalazione upstream](https://github.com/micromatch/braces/issues/73).
+`scripts/security/apply-braces-patch.cjs` applica una mitigazione temporanea alla
+profondità di parsing, con limite 100, mantenendo identità e versione originali.
+Lo script verifica versione e hash del parser, è idempotente ed è eseguito dai
+postinstall principale e client. Cambiamenti upstream inattesi interrompono
+l'installazione per richiedere una revisione della patch.
+
+Eseguire `npm run test:security` dopo `npm ci`: verifica glob normali, rifiuto
+dell'annidamento e composizione email reale. `--ignore-scripts` non applica la
+mitigazione. Il controllo di release include l'impronta della patch e dei manifest
+client. **Il gate resta bloccato finché lo scanner rileva HIGH/CRITICAL**, compreso
+braces: nessuna eccezione, VEX automatico o rinomina nasconde il rilievo.
+Rimuovere la patch soltanto dopo un aggiornamento ufficiale con protezione
+equivalente e nuove prove. Consultare il protocollo Collaudo 28 per le evidenze.
+
+### Correzioni della base ed evidenze delle immagini
+
+Ogni stage di build/runtime applica `deployment/releases/harden-base.sh`. Installa
+le versioni Ubuntu esatte `3.5.5-1ubuntu3.7` di libssl3t64, openssl e
+openssl-provider-legacy, elimina `/usr/bin/pebble`, gestore di servizi inutilizzato,
+e mantiene UID/GID 1000 di `pwuser` per i volumi esistenti. npm globale è eliminato
+soltanto dagli stage finali. Indici, cache e log variabili APT sono rimossi prima
+dell'esportazione dei layer. Se una versione fissata scompare dai repository
+Ubuntu firmati, la build fallisce: valutare una versione corretta successiva,
+aggiornare il pin e ripetere scansioni, prove browser e doppie build. Non
+installare automaticamente la versione latest.
+
+Le scansioni locali di API, worker e agent riportano ciascuna **zero HIGH/CRITICAL**,
+contro 31, 31 e 28 della baseline. Le due build senza cache di ogni ruolo producono
+configurazioni e ID dei layer decompressi identici; i tre browser funzionano con
+UID/GID 1000. API supera anche scritture su volumi anonimi temporanei e un audit
+HTTP reale di Lighthouse 13.5.0 con rapporti JSON e HTML. Il fixture AGT-05 con
+mismatch intenzionale continua a compilare con Playwright 1.60.0 ed è escluso
+dalle immagini di release.
+
+`deployment/releases/remediation-2026-10-06.json` registra hash, versione scanner
+e database, ID delle configurazioni, numero di componenti SBOM e limiti delle
+prove. I rapporti locali completi sono in
+`outputs/security-remediation-2026-10-06/`, esclusa da Git. Le prove usano uno
+snapshot congelato del candidato, epoch 1700000000 e Buildx locale 0.37.1,
+mentre CI usa 0.37.2. Non certificano il tag finale né il workflow ospitato e non
+sbloccano i due rilievi residui sui sorgenti.

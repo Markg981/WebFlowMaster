@@ -16,7 +16,7 @@ for (const file of ['Dockerfile', 'Dockerfile.worker', 'Dockerfile.agent']) {
 
 test('Lighthouse runtime dependencies come from a committed lockfile', () => {
   const tool = JSON.parse(readFileSync('deployment/lighthouse/package-lock.json', 'utf8'));
-  assert.equal(tool.packages[''].dependencies.lighthouse, '12.8.2');
+  assert.equal(tool.packages[''].dependencies.lighthouse, '13.5.0');
   for (const file of ['Dockerfile', 'Dockerfile.worker']) {
     const source = readFileSync(file, 'utf8');
     assert.doesNotMatch(source, /npm install -g/);

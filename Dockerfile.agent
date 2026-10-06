@@ -8,16 +8,21 @@
 # The tag must equal the version the lockfile resolves for playwright, like the other images:
 # the server refuses an agent whose Playwright major.minor differs from its own, because the
 # protocol between the two changes between minors.
-FROM mcr.microsoft.com/playwright:v1.61.1-jammy@sha256:7b86926fff94374389e8e1f4fdc5c76d050d4a06a7886bb537bf412b20e2b71e AS build
+FROM mcr.microsoft.com/playwright:v1.63.0-resolute@sha256:b022639ae9197f864040f92eef7b57c6d4b47db2190f77c909d8a5d902dd4b7e AS build
+COPY deployment/releases/harden-base.sh /tmp/wfm-harden-base.sh
+RUN sh /tmp/wfm-harden-base.sh && rm /tmp/wfm-harden-base.sh
 ARG SOURCE_DATE_EPOCH=0
 WORKDIR /src
 COPY package*.json ./
+COPY scripts/security/apply-braces-patch.cjs ./scripts/security/
 COPY client/package*.json ./client/
 RUN npm ci --include=dev --no-audit --no-fund
 COPY . .
-RUN npm run build:agent && npm ci --omit=dev --no-audit --no-fund
+RUN npm run build:agent && npm ci --omit=dev --workspaces=false --no-audit --no-fund && node scripts/release/runtime-tools.mjs
 
-FROM mcr.microsoft.com/playwright:v1.61.1-jammy@sha256:7b86926fff94374389e8e1f4fdc5c76d050d4a06a7886bb537bf412b20e2b71e
+FROM mcr.microsoft.com/playwright:v1.63.0-resolute@sha256:b022639ae9197f864040f92eef7b57c6d4b47db2190f77c909d8a5d902dd4b7e
+COPY deployment/releases/harden-base.sh /tmp/wfm-harden-base.sh
+RUN sh /tmp/wfm-harden-base.sh && rm /tmp/wfm-harden-base.sh
 WORKDIR /agent
 ARG SOURCE_DATE_EPOCH=0
 ARG APP_VERSION=development
@@ -27,13 +32,15 @@ ENV NODE_ENV=production
 
 # Copy the production dependency tree from npm ci; no second resolution of transitives.
 COPY --from=build /src/package*.json ./
+COPY --from=build /src/scripts/security/apply-braces-patch.cjs ./scripts/security/
 COPY --from=build /src/client/package*.json ./client/
 COPY --from=build /src/node_modules ./node_modules
 # Intentional mismatch fixture for Collaudo AGT-05 only. Release builds leave this empty.
 ARG PLAYWRIGHT_VERSION=
-RUN if [ -n "$PLAYWRIGHT_VERSION" ]; then npm install --omit=dev --no-audit --no-fund "playwright@$PLAYWRIGHT_VERSION"; fi
+RUN if [ -n "$PLAYWRIGHT_VERSION" ]; then npm install --omit=dev --workspaces=false --no-audit --no-fund "playwright@$PLAYWRIGHT_VERSION"; fi
 COPY --from=build /src/dist/wfm-agent.js ./wfm-agent.mjs
 COPY --from=build /src/dist/wfm-bdd-child.mjs ./wfm-bdd-child.mjs
 STOPSIGNAL SIGTERM
+RUN rm -rf /usr/lib/node_modules/npm && rm -f /usr/bin/npm /usr/bin/npx
 USER pwuser
 CMD ["node", "wfm-agent.mjs"]

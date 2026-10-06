@@ -1,5 +1,5 @@
 {
-  "version": 27,
+  "version": 28,
   "areas": [
     {
       "id": "ACC",
@@ -7547,15 +7547,15 @@
       "area": "OPS",
       "actor": "operatore release",
       "id": "OPS-24",
-      "title": "Runtime non-root e Chromium nelle immagini",
+      "title": "Runtime non-root e browser nelle immagini",
       "priority": "P1",
       "preconditions": "Tre immagini candidate e Docker Linux amd64. Nuovi volumi sacrificabili; bind mount preparati con UID corretto.",
       "steps": [
         "Eseguire runtime-smoke.cjs nelle immagini API, worker e agente.",
-        "Controllare UID, avvio Chromium e CLI Lighthouse dove prevista.",
+        "Controllare UID, avvio Chromium/Firefox/WebKit e CLI Lighthouse dove prevista.",
         "Montare volumi di prova per risultati, baseline e upload e verificare scrittura come pwuser."
       ],
-      "expected": "UID diverso da zero; Chromium funziona; Lighthouse 12.8.2 su API/worker. Directory operative e volumi di prova sono scrivibili senza eseguire il prodotto come root."
+      "expected": "UID diverso da zero; Chromium, Firefox e WebKit funzionano; Lighthouse 13.5.0 su API/worker. Directory operative e volumi di prova sono scrivibili senza eseguire il prodotto come root."
     },
     {
       "area": "OPS",
@@ -7572,6 +7572,20 @@
         " provare il ripristino previsto su ambiente sacrificabile."
       ],
       "expected": "Servizi installati coincidono con manifest; migrazioni dalla stessa immagine API. Ripristino rispetta compatibilità schema o ripristina database e artefatti; nessuna perdita di evidenze."
+    },
+    {
+      "area": "OPS",
+      "actor": "operatore sicurezza",
+      "id": "OPS-26",
+      "title": "Verifica correzioni dipendenze e mitigazione braces",
+      "priority": "P1",
+      "preconditions": "Checkout completo con dipendenze installate, Docker Linux e rapporti Trivy del candidato. Conservare la baseline precedente.",
+      "steps": [
+        "Eseguire npm ci e npm run test:security; verificare la mitigazione di profondità e la composizione email reale.",
+        "Ricostruire le tre immagini, produrre SBOM e scansionare sorgenti e immagini con il gate senza ignore.",
+        "Confrontare ID/versioni con baseline e rapporto di remediation; verificare che eventuali HIGH/CRITICAL residui impediscano la pubblicazione."
+      ],
+      "expected": "Nodemailer e Lighthouse funzionano; pattern braces ordinari sono preservati e profondità oltre 100 è rifiutata prima della ricorsione. Gli aggiornamenti eliminano i relativi CVE. La mitigazione locale non rinomina braces né sopprime il rilievo upstream: qualunque residuo mantiene la release bloccata."
     }
   ],
   "presentation": {

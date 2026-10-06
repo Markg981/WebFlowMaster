@@ -67,7 +67,7 @@ export function assertSourceScanPassed(report) {
 }
 
 export function readReleaseInputs(root) {
-  const files = ['package.json', 'package-lock.json', 'Dockerfile', 'Dockerfile.worker', 'Dockerfile.agent', '.dockerignore', 'deployment/lighthouse/package.json', 'deployment/lighthouse/package-lock.json', 'deployment/releases/toolchain.json', 'migrations/meta/_journal.json'];
+  const files = ['package.json', 'package-lock.json', 'client/package.json', 'client/package-lock.json', 'Dockerfile', 'Dockerfile.worker', 'Dockerfile.agent', '.dockerignore', 'deployment/lighthouse/package.json', 'deployment/lighthouse/package-lock.json', 'deployment/releases/toolchain.json', 'deployment/releases/harden-base.sh', 'scripts/security/apply-braces-patch.cjs', 'scripts/release/runtime-tools.mjs', 'migrations/meta/_journal.json'];
   const hashes = Object.fromEntries(files.map(file => [file, sha256(readFileSync(join(root, file)))]));
   const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
   const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'));
@@ -77,7 +77,7 @@ export function readReleaseInputs(root) {
   for (const [role, file] of [['api', 'Dockerfile'], ['worker', 'Dockerfile.worker'], ['agent', 'Dockerfile.agent']]) {
     const source = readFileSync(join(root, file), 'utf8');
     const refs = [...source.matchAll(/^FROM (\S+)/gm)].map(match => match[1]);
-    if (!refs.length || refs.some(ref => !ref.startsWith(`mcr.microsoft.com/playwright:v${playwright}-jammy@`) || !DIGEST.test(ref.split('@')[1]))) throw new Error(`Unpinned or mismatched base in ${file}`);
+    if (!refs.length || refs.some(ref => !ref.startsWith(`mcr.microsoft.com/playwright:v${playwright}-resolute@`) || !DIGEST.test(ref.split('@')[1]))) throw new Error(`Unpinned or mismatched base in ${file}`);
     if (source.match(/^USER .+$/gm)?.at(-1) !== 'USER pwuser') throw new Error(`Non-root runtime required in ${file}`);
     bases[role] = refs;
   }
