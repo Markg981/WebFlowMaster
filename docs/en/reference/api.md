@@ -315,3 +315,26 @@ works as above. The answer is `202` with `{ "success": true, "testPlanRunId": "â
 
 Reading the run's result needs an API key: prefer the API, or the CLI, whenever the caller can
 keep one.
+
+## Web client catalogs
+
+The authenticated web client uses these summary endpoints, separately from `/api/v1`:
+
+| GET endpoint | Additional filters | Full definition |
+|---|---|---|
+| `/api/catalog/tests` | `tagIds`, `projectId`, `status` | `/api/tests/:id` |
+| `/api/catalog/api-tests` | `tagIds`, `projectId` | `/api/api-tests/:id` |
+| `/api/catalog/mobile-tests` | `tagIds`, `projectId` | `/api/mobile-tests/:id` |
+| `/api/catalog/test-data` | None | `/api/test-data/:id` |
+
+All four accept `page`, `pageSize` and `search`, returning `{items, total, page, pageSize}`.
+Pages start at 1; the default page size is 25 and the maximum is 100. Page parameters must be
+positive integers; invalid filter shapes return `400`. `total` counts all accessible matches,
+before pagination. Name search is literal and case-insensitive. `tagIds` is a comma-separated
+list of tag IDs; all selected tags must match.
+Organization isolation and project visibility apply to results and totals.
+
+Catalogs omit full executable steps, request bodies and dataset values. Load the corresponding
+detail endpoint when editing or using a definition. The existing collection endpoints remain
+available for compatibility with pickers and integrations. These web client routes do not
+change the public API's versioned contract or its API-key scopes.

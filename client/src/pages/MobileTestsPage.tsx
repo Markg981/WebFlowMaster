@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import CatalogPagination from '@/components/catalog/CatalogPagination';
+import { useCatalogControls } from '@/hooks/use-catalog-controls';
+import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,7 +33,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
  * or LambdaTest grid (shared/mobile.ts).
  */
 
-interface ListedTest extends MobileTestRow {
+interface ListedTest extends Omit<MobileTestRow, 'steps' | 'deviceMatrix'> {
+  stepCount: number;
+  deviceCount: number;
   tags?: TagRef[];
   lastRun: { status: MobileRunStatus; createdAt: string } | null;
 }
@@ -43,20 +48,41 @@ const MobileTestsPage: React.FC = () => {
   const canEdit = user?.role !== 'viewer';
   const [editing, setEditing] = useState<MobileTestRow | 'new' | null>(null);
   const [running, setRunning] = useState<MobileTestRow | null>(null);
-  const [deleting, setDeleting] = useState<MobileTestRow | null>(null);
+  const [deleting, setDeleting] = useState<ListedTest | null>(null);
   const [taggingId, setTaggingId] = useState<number | null>(null);
-  const [quarantining, setQuarantining] = useState<MobileTestRow | null>(null);
-  const [historyFor, setHistoryFor] = useState<MobileTestRow | null>(null);
-  const [commentsFor, setCommentsFor] = useState<MobileTestRow | null>(null);
+  const [quarantining, setQuarantining] = useState<ListedTest | null>(null);
+  const [historyFor, setHistoryFor] = useState<ListedTest | null>(null);
+  const [commentsFor, setCommentsFor] = useState<ListedTest | null>(null);
 
-  const { data: tests = [], isLoading } = useQuery<ListedTest[]>({
-    queryKey: ['mobileTests'],
-    queryFn: async () => {
-      const response = await fetch('/api/mobile-tests');
+  const { search, setSearch, debouncedSearch, page, setPage, pageSize, setPageSize } = useCatalogControls();
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const detailRequest = useRef(0);
+  useEffect(() => () => { detailRequest.current++; }, []);
+  const openDefinition = async (id: number, action: 'edit' | 'run') => {
+    const request = ++detailRequest.current;
+    setLoadingDetail(true);
+    try {
+      const response = await fetch('/api/mobile-tests/' + id, { credentials: 'include' });
+      if (!response.ok) throw new Error(t('catalog.detailFailed', 'Could not load the test definition.'));
+      const definition = await response.json() as MobileTestRow;
+      if (request !== detailRequest.current) return;
+      if (definition.id !== id || !Array.isArray(definition.steps)) throw new Error(t('catalog.detailFailed', 'Could not load the test definition.'));
+      if (action === 'edit') setEditing(definition); else setRunning(definition);
+    } catch (error) {
+      if (request === detailRequest.current) toast({ variant: 'destructive', title: (error as Error).message });
+    } finally { if (request === detailRequest.current) setLoadingDetail(false); }
+  };
+  const { data: catalog, isLoading, isFetching, error: catalogError } = useQuery<{ items: ListedTest[]; total: number; page: number; pageSize: number }>({
+    queryKey: ['mobileTests', 'catalog', user?.organizationId, user?.id, page, pageSize, debouncedSearch],
+    queryFn: async ({ signal }) => {
+      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), search: debouncedSearch });
+      const response = await fetch('/api/catalog/mobile-tests?' + params, { signal, credentials: 'include' });
       if (!response.ok) throw new Error(t('mobileTests.loadFailed', 'Could not load the mobile tests.'));
       return response.json();
     },
   });
+  const tests = catalog?.items ?? [];
+  useEffect(() => { if (catalog) setPage(current => Math.min(current, Math.max(1, Math.ceil(catalog.total / pageSize)))); }, [catalog, pageSize, setPage]);
   const { data: grids = [] } = useQuery<GridOption[]>({
     queryKey: ['browserGrids'],
     queryFn: async () => {
@@ -128,7 +154,7 @@ const MobileTestsPage: React.FC = () => {
   };
 
   const remove = useMutation({
-    mutationFn: async (test: MobileTestRow) => {
+    mutationFn: async (test: ListedTest) => {
       const response = await fetch(`/api/mobile-tests/${test.id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || t('mobileTests.deleteFailed', 'The test was not deleted.'));
     },
@@ -164,6 +190,8 @@ const MobileTestsPage: React.FC = () => {
       />
       <Card>
         <CardContent className="pt-6">
+          <Input aria-label={t('catalog.searchTests', 'Search tests')} placeholder={t('catalog.searchTests', 'Search tests')} value={search} onChange={event => setSearch(event.target.value)} className="mb-4" />
+          {catalogError && <p role="alert">{catalogError.message}</p>}
           {isLoading ? (
             <p className="text-sm text-muted-foreground">{t('mobileTests.loading', 'Loading…')}</p>
           ) : tests.length === 0 ? (
@@ -235,8 +263,8 @@ const MobileTestsPage: React.FC = () => {
                         ))
                       )}
                     </TableCell>
-                    <TableCell className="text-sm">{test.deviceMatrix?.length ? t('mobileTests.flow.targetCount', '{{count}} device/OS targets', { count: test.deviceMatrix.length }) : [test.deviceName, test.osVersion].filter(Boolean).join(' ')}</TableCell>
-                    <TableCell className="text-sm">{test.steps.length}</TableCell>
+                    <TableCell className="text-sm">{test.deviceCount > 0 ? t('mobileTests.flow.targetCount', '{{count}} device/OS targets', { count: test.deviceCount }) : [test.deviceName, test.osVersion].filter(Boolean).join(' ')}</TableCell>
+                    <TableCell className="text-sm">{test.stepCount}</TableCell>
                     <TableCell className="text-sm">
                       {test.lastRun ? `${statusLabel(test.lastRun.status)} · ${new Date(test.lastRun.createdAt).toLocaleString()}` : '—'}
                     </TableCell>
@@ -245,7 +273,7 @@ const MobileTestsPage: React.FC = () => {
                       <Button variant="ghost" size="sm" onClick={() => setCommentsFor(test)}>{t('comments.title', 'Comments')}</Button>
                       {canEdit && (
                         <>
-                          <Button variant="outline" size="sm" onClick={() => setRunning(test)} aria-label={t('mobileTests.runFor', 'Run {{name}}', { name: test.name })}>
+                          <Button variant="outline" size="sm" disabled={loadingDetail} onClick={() => void openDefinition(test.id, 'run')} aria-label={t('mobileTests.runFor', 'Run {{name}}', { name: test.name })}>
                             <Play className="h-4 w-4" />
                           </Button>
                           {!quarantined.has(test.id) && (
@@ -258,7 +286,7 @@ const MobileTestsPage: React.FC = () => {
                               <ShieldAlert className="h-4 w-4" />
                             </Button>
                           )}
-                          <Button variant="outline" size="sm" onClick={() => setEditing(test)} aria-label={t('mobileTests.editFor', 'Edit {{name}}', { name: test.name })}>
+                          <Button variant="outline" size="sm" disabled={loadingDetail} onClick={() => void openDefinition(test.id, 'edit')} aria-label={t('mobileTests.editFor', 'Edit {{name}}', { name: test.name })}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button variant="outline" size="sm" onClick={() => setDeleting(test)} aria-label={t('mobileTests.deleteFor', 'Delete {{name}}', { name: test.name })}>
@@ -272,6 +300,7 @@ const MobileTestsPage: React.FC = () => {
               </TableBody>
             </Table>
           )}
+          <CatalogPagination page={page} pageSize={pageSize} total={catalog?.total ?? 0} busy={isFetching} onPageChange={setPage} onPageSizeChange={setPageSize} />
         </CardContent>
       </Card>
 

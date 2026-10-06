@@ -2,6 +2,11 @@
 
 ## Pagina di collaudo locale
 
+Catalogo corrente: protocollo **30**, **539 casi** in **24 aree**. LIB-35…LIB-41 coprono
+paginazione, filtri lato server, isolamento e dettaglio su richiesta nei gestori UI/API/mobile
+e dati condivisi; preparazione in [catalog-pagination-2026-10-06.md](./catalog-pagination-2026-10-06.md).
+I nuovi casi sono **Da eseguire** in un nuovo ciclo; i cicli storici restano congelati.
+
 Dalla radice del repository:
 
 ```bash

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -14,7 +14,9 @@ import TestHistoryDialog from '@/components/tests/TestHistoryDialog';
 import ManualTestDialog from '@/components/tests/ManualTestDialog';
 import BddTestDialog, {type BddDraftSource} from '@/components/tests/BddTestDialog';
 import type {BddTest} from '@shared/bdd';
-import { isManualSequence } from '@shared/manual-tests';
+import CatalogPagination from '@/components/catalog/CatalogPagination';
+import { useCatalogControls } from '@/hooks/use-catalog-controls';
+import type { CatalogPage } from '@shared/catalog';
 import { TestFilesDialog } from '@/components/tests/TestFilesDialog';
 import CommentsPanel from '@/components/tests/CommentsPanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -34,6 +36,7 @@ import { ClipboardCheck, FileCode, FileStack, History, Loader2, Pencil, Search, 
 
 interface LibraryTest {
   id: number;
+  kind: 'browser' | 'manual' | 'bdd' | 'cucumber';
   name: string;
   url: string;
   status: string;
@@ -55,7 +58,8 @@ const TestLibraryPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const canEdit = user?.role !== 'viewer';
-  const [search, setSearch] = useState('');
+  const { search, setSearch, debouncedSearch, page, setPage, pageSize, setPageSize } = useCatalogControls();
+  const [detailBusyId, setDetailBusyId] = useState<number | null>(null);
   const [activeTagIds, setActiveTagIds] = useState<string[]>([]);
   const [historyFor, setHistoryFor] = useState<{ id: number; name: string } | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -66,11 +70,12 @@ const TestLibraryPage: React.FC = () => {
   const [filesOpen, setFilesOpen] = useState(false);
   const [commentsFor, setCommentsFor] = useState<LibraryTest | null>(null);
 
-  const { data: testsData, isLoading, error } = useQuery<LibraryTest[], Error>({
-    queryKey: ['/api/tests'],
-    queryFn: async () => {
-      const response = await fetch('/api/tests');
-      if (!response.ok) throw new Error('Could not load the tests');
+  const { data: testsData, isLoading, isFetching, error } = useQuery<CatalogPage<LibraryTest>, Error>({
+    queryKey: ['/api/tests', 'catalog', page, pageSize, debouncedSearch, activeTagIds],
+    queryFn: async ({ signal }) => {
+      const params = new URLSearchParams({page: String(page), pageSize: String(pageSize), search: debouncedSearch, tagIds: activeTagIds.join(',')});
+      const response = await fetch(`/api/catalog/tests?${params}`, { signal });
+      if (!response.ok) throw new Error(t('catalog.loadFailed', 'Could not load the catalog.'));
       return response.json();
     },
   });
@@ -84,20 +89,31 @@ const TestLibraryPage: React.FC = () => {
     },
   });
 
-  // Memoised because the filter below depends on it: a fresh [] on every render would rerun
-  // the filter on every keystroke for no reason.
-  const tests = useMemo(() => (Array.isArray(testsData) ? testsData : []), [testsData]);
+  const visible = testsData?.items ?? [];
   const allTags = Array.isArray(tagsData) ? tagsData : [];
+  useEffect(() => {
+    if (testsData) setPage(current => Math.min(current, Math.max(1, Math.ceil(testsData.total / pageSize))));
+  }, [testsData, pageSize, setPage]);
 
-  const visible = useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    return tests.filter((test) => {
-      if (needle !== '' && !test.name.toLowerCase().includes(needle)) return false;
-      // Every selected tag, not any of them: narrowing by two tags means the tests that are
-      // both, which is what somebody adding a second filter is asking for.
-      return activeTagIds.every((tagId) => (test.tags ?? []).some((tag) => tag.id === tagId));
-    });
-  }, [tests, search, activeTagIds]);
+  const edit = async (test: LibraryTest) => {
+    setDetailBusyId(test.id);
+    try {
+      const response = await fetch(`/api/tests/${test.id}`);
+      if (!response.ok) throw new Error(t('catalog.detailFailed', 'Could not load details'));
+      const detail = await response.json();
+      if (detail.id !== test.id) throw new Error(t('catalog.detailFailed', 'Could not load details'));
+      if (test.kind === 'bdd' || test.kind === 'cucumber') {
+        if (!detail.bdd) throw new Error(t('catalog.detailFailed', 'Could not load details'));
+        setBddEditing(detail);
+      } else {
+        if (typeof detail.sequence === 'string') detail.sequence = JSON.parse(detail.sequence);
+        if (!Array.isArray(detail.sequence)) throw new Error(t('catalog.detailFailed', 'Could not load details'));
+        setManualEditing(detail);
+      }
+    } catch (error: any) {
+      toast({variant:'destructive', title:t('catalog.detailFailed', 'Could not load details'), description:error.message});
+    } finally { setDetailBusyId(null); }
+  };
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['/api/tests'] });
@@ -176,6 +192,7 @@ const TestLibraryPage: React.FC = () => {
   };
 
   const toggleTagFilter = (tagId: string) => {
+    setPage(1);
     setActiveTagIds((current) =>
       current.includes(tagId) ? current.filter((id) => id !== tagId) : [...current, tagId],
     );
@@ -209,6 +226,9 @@ const TestLibraryPage: React.FC = () => {
               variant={activeTagIds.includes(tag.id) ? 'default' : 'outline'}
               className="cursor-pointer"
               role="button"
+              tabIndex={0}
+              aria-pressed={activeTagIds.includes(tag.id)}
+              onKeyDown={event => {if (event.key === "Enter" || event.key === " ") {event.preventDefault(); toggleTagFilter(tag.id);}}}
               onClick={() => toggleTagFilter(tag.id)}
             >
               {tag.name}
@@ -216,7 +236,7 @@ const TestLibraryPage: React.FC = () => {
             </Badge>
           ))}
           {activeTagIds.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => setActiveTagIds([])}>
+            <Button variant="ghost" size="sm" onClick={() => {setActiveTagIds([]); setPage(1);}}>
               {t('testLibrary.clearFilters', 'Clear')}
             </Button>
           )}
@@ -226,12 +246,14 @@ const TestLibraryPage: React.FC = () => {
           {t('testFiles.button', 'Files')}
         </Button>
         {canEdit && (
-          <Button variant="outline" onClick={() => setManualEditing('new')}>
+          <Button variant="outline" disabled={detailBusyId !== null} onClick={() => setManualEditing('new')}>
             <ClipboardCheck className="mr-2 h-4 w-4" />
             {t('testLibrary.newManual', 'New manual test')}
           </Button>
         )}
       </div>
+
+      {detailBusyId !== null && <p role="status" className="mt-4 text-sm text-muted-foreground">{t('catalog.loadingDetails', 'Loading details…')}</p>}
 
       <Card className="mt-4 overflow-hidden">
         <CardContent className="p-0">
@@ -241,10 +263,10 @@ const TestLibraryPage: React.FC = () => {
               {t('testLibrary.loading', 'Loading tests…')}
             </p>
           ) : error ? (
-            <p className="p-6 text-sm text-destructive">{error.message}</p>
+            <p className="p-6 text-sm text-destructive" role="alert">{error.message}</p>
           ) : visible.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
-              {tests.length === 0
+              {!debouncedSearch && activeTagIds.length === 0
                 ? t('testLibrary.empty', 'No tests yet. Record or describe one in the builder and save it.')
                 : t('testLibrary.noMatches', 'No test matches this filter.')}
             </p>
@@ -264,8 +286,8 @@ const TestLibraryPage: React.FC = () => {
                   <TableRow key={test.id}>
                     <TableCell className="font-medium">
                       {test.name}
-                      {test.bdd?.mode==='cucumber'&&<Badge variant="secondary" className="ml-2 font-normal">{t('bdd.cucumber','Cucumber')}</Badge>}
-                      {test.bdd?.mode!=='cucumber'&&isManualSequence(test.sequence) && (
+                      {test.kind === 'cucumber'&&<Badge variant="secondary" className="ml-2 font-normal">{t('bdd.cucumber','Cucumber')}</Badge>}
+                      {test.kind === 'manual' && (
                         <Badge variant="secondary" className="ml-2 font-normal">{t('testLibrary.manualBadge', 'Manual')}</Badge>
                       )}
                     </TableCell>
@@ -287,13 +309,13 @@ const TestLibraryPage: React.FC = () => {
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="sm" onClick={() => setCommentsFor(test)}>{t('comments.title', 'Comments')}</Button>
-                      {canEdit && test.bdd && <Button variant="ghost" size="sm" aria-label={t('bdd.edit','Edit Gherkin')} data-testid={`bdd-edit-${test.id}`} onClick={()=>setBddEditing({...test,bdd:test.bdd!})}><Pencil className="h-4 w-4" /></Button>}
-                      {canEdit && !test.bdd && isManualSequence(test.sequence) && (
-                        <Button variant="ghost" size="sm" onClick={() => setManualEditing(test)} title={t('testLibrary.editManual', 'Edit steps')}>
+                      {canEdit && (test.kind === 'bdd' || test.kind === 'cucumber') && <Button variant="ghost" size="sm" aria-label={t('bdd.edit','Edit Gherkin')} data-testid={`bdd-edit-${test.id}`} disabled={detailBusyId !== null} onClick={()=>void edit(test)}><Pencil className="h-4 w-4" /></Button>}
+                      {canEdit && test.kind === 'manual' && (
+                        <Button variant="ghost" size="sm" disabled={detailBusyId !== null} onClick={() => void edit(test)} title={t('testLibrary.editManual', 'Edit steps')}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                       )}
-                      {!test.bdd && !isManualSequence(test.sequence) && (
+                      {test.kind === 'browser' && (
                         <Button asChild variant="ghost" size="sm" title={t('testLibrary.playwright', 'Download as a Playwright test')}>
                           <a href={`/api/tests/${test.id}/playwright`} download aria-label={t('testLibrary.playwright', 'Download as a Playwright test')}>
                             <FileCode className="h-4 w-4" />
@@ -327,6 +349,8 @@ const TestLibraryPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <CatalogPagination page={page} pageSize={pageSize} total={testsData?.total ?? 0} busy={isFetching || !!error} onPageChange={setPage} onPageSizeChange={setPageSize} />
 
       <TestHistoryDialog
         isOpen={historyFor !== null}

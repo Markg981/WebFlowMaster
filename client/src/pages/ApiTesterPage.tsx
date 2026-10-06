@@ -1,5 +1,5 @@
 // client/src/pages/ApiTesterPage.tsx
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,9 @@ import '@/lib/monaco-setup';
 import { Checkbox } from "@/components/ui/checkbox";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { HistoryPanel } from '@/components/api-tester/HistoryPanel';
-import { SavedTestsPanel } from '@/components/api-tester/SavedTestsPanel';
+import CatalogPagination from '@/components/catalog/CatalogPagination';
+import { useCatalogControls } from '@/hooks/use-catalog-controls';
+import { SavedTestsPanel, type ApiTestSummary } from '@/components/api-tester/SavedTestsPanel';
 import { SaveApiTestModal } from '@/components/api-tester/SaveApiTestModal';
 import { AssertionEditor } from '@/components/api-tester/AssertionEditor';
 import { ExtractionEditor } from '@/components/api-tester/ExtractionEditor';
@@ -524,11 +526,35 @@ const ApiTesterForm: React.FC = () => {
     staleTime: 1 * 60 * 1000
   });
 
-  const { data: savedTestsData, isLoading: isLoadingSavedTests } = useQuery({ // V5 Syntax
-    queryKey: ['apiTests', user?.organizationId, user?.id],
-    queryFn: async () => (await apiRequest('GET', '/api/api-tests')).json(),
-    staleTime: 5 * 60 * 1000
+  const { search, setSearch, debouncedSearch, page, setPage, pageSize, setPageSize } = useCatalogControls();
+  const { data: savedCatalog, isLoading: isLoadingSavedTests, isFetching: fetchingCatalog, error: catalogError } = useQuery<{ items: ApiTestSummary[]; total: number; page: number; pageSize: number }>({
+    queryKey: ['apiTests', user?.organizationId, user?.id, 'catalog', page, pageSize, debouncedSearch],
+    queryFn: async ({ signal }) => {
+      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), search: debouncedSearch });
+      const response = await fetch('/api/catalog/api-tests?' + params, { signal, credentials: 'include' });
+      if (!response.ok) throw new Error(t('catalog.loadFailed', 'Could not load the catalog.'));
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000,
   });
+  useEffect(() => { if (savedCatalog) setPage(current => Math.min(current, Math.max(1, Math.ceil(savedCatalog.total / pageSize)))); }, [savedCatalog, pageSize, setPage]);
+  const detailRequest = useRef(0);
+  const [loadingDefinition, setLoadingDefinition] = useState(false);
+  useEffect(() => () => { detailRequest.current++; }, []);
+  const withDefinition = async (summary: ApiTestSummary, action: (test: ApiTest) => void) => {
+    const request = ++detailRequest.current;
+    setLoadingDefinition(true);
+    try {
+      const response = await apiRequest('GET', '/api/api-tests/' + summary.id);
+      if (!response.ok) throw new Error(t('catalog.detailFailed', 'Could not load the test definition.'));
+      const definition = await response.json() as ApiTest;
+      if (request !== detailRequest.current) return;
+      if (definition.id !== summary.id || typeof definition.method !== 'string' || typeof definition.url !== 'string') throw new Error(t('catalog.detailFailed', 'Could not load the test definition.'));
+      action(definition);
+    } catch (error) {
+      if (request === detailRequest.current) toast({ variant: 'destructive', title: t('catalog.detailFailed', 'Could not load the test definition.'), description: (error as Error).message });
+    } finally { if (request === detailRequest.current) setLoadingDefinition(false); }
+  };
 
   const saveApiTestMutation = useMutation<ApiTest, Error, { name: string, projectId?: number | null } & Omit<InsertApiTest, 'userId' | 'projectId' | 'name' | 'createdAt' | 'updatedAt' | 'organizationId'>>({
     mutationFn: async (testData) => {
@@ -1006,13 +1032,16 @@ const ApiTesterForm: React.FC = () => {
             </TabsContent>
             <TabsContent value="saved" className="flex-1 overflow-y-auto">
               <SavedTestsPanel
-                savedTests={savedTestsData || []}
-                onLoadTest={handleLoadSavedTest}
-                onEditTest={(test) => handleOpenSaveModal(test)}
+                savedTests={savedCatalog?.items ?? []}
+                onLoadTest={test => void withDefinition(test, handleLoadSavedTest)}
+                onEditTest={test => void withDefinition(test, handleOpenSaveModal)}
                 onDeleteTest={handleDeleteSavedTest}
-                onExportTest={handleExportTest}
+                onExportTest={test => void withDefinition(test, handleExportTest)}
                 onOpenSaveModal={() => handleOpenSaveModal()}
-                isLoading={isLoadingSavedTests}
+                isLoading={isLoadingSavedTests || loadingDefinition}
+                error={catalogError?.message}
+                catalogControls={<Input className="m-3 w-auto" aria-label={t('catalog.searchTests', 'Search tests')} placeholder={t('catalog.searchTests', 'Search tests')} value={search} onChange={event => setSearch(event.target.value)} />}
+                catalogPagination={<CatalogPagination page={page} pageSize={pageSize} total={savedCatalog?.total ?? 0} busy={fetchingCatalog} onPageChange={setPage} onPageSizeChange={setPageSize} />}
                 isDeletingTestId={deleteApiTestMutation.variables}
               />
             </TabsContent>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -12,6 +12,9 @@ import { Database, Pencil, PlusCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { DatasetPanel, type DatasetRow } from '@/components/DatasetPanel';
+import CatalogPagination from '@/components/catalog/CatalogPagination';
+import { useCatalogControls } from '@/hooks/use-catalog-controls';
+import type { CatalogPage } from '@shared/catalog';
 import { DATA_PREFIX } from '@shared/test-data';
 
 /**
@@ -29,9 +32,12 @@ interface DataSet {
   updatedAt: string;
 }
 
-async function call(method: string, url: string, body?: unknown) {
+type DataSetSummary = Omit<DataSet, 'rows'> & { rowCount: number };
+
+async function call(method: string, url: string, body?: unknown, signal?: AbortSignal) {
   const res = await fetch(url, {
     method,
+    signal,
     credentials: 'include',
     ...(body !== undefined ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}),
   });
@@ -127,10 +133,29 @@ export default function TestDataPage() {
   const queryClient = useQueryClient();
   const canEdit = user?.role !== 'viewer';
   const [open, setOpen] = useState<DataSet | 'new' | null>(null);
-  const { data: sets = [], isLoading } = useQuery<DataSet[]>({ queryKey: ['testData'], queryFn: () => call('GET', '/api/test-data') });
+  const {search,setSearch,debouncedSearch,page,setPage,pageSize,setPageSize} = useCatalogControls();
+  const [detailBusyId,setDetailBusyId] = useState<number|null>(null);
+  const [detailError,setDetailError] = useState<string|null>(null);
+  const { data, isLoading, isFetching, error } = useQuery<CatalogPage<DataSetSummary>>({
+    queryKey:['testData','catalog',page,pageSize,debouncedSearch],
+    queryFn:({signal}) => call('GET',`/api/catalog/test-data?${new URLSearchParams({page:String(page),pageSize:String(pageSize),search:debouncedSearch})}`,undefined,signal),
+  });
+  const sets = data?.items ?? [];
+  useEffect(() => {
+    if (data) setPage(current => Math.min(current,Math.max(1,Math.ceil(data.total/pageSize))));
+  },[data,pageSize,setPage]);
+  const edit = async (set: DataSetSummary) => {
+    setDetailBusyId(set.id); setDetailError(null);
+    try {
+      const detail = await call('GET',`/api/test-data/${set.id}`);
+      if (detail.id !== set.id || !Array.isArray(detail.rows)) throw new Error(t('catalog.detailFailed','Could not load details'));
+      setOpen(detail);
+    } catch (error: any) { setDetailError(error.message); }
+    finally { setDetailBusyId(null); }
+  };
 
   const remove = useMutation({
-    mutationFn: (set: DataSet) => call('DELETE', `/api/test-data/${set.id}`),
+    mutationFn: (set: DataSetSummary) => call('DELETE', `/api/test-data/${set.id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['testData'] }),
     onError: (e: Error) => toast({ variant: 'destructive', title: t('testData.deleteFailed', 'Not deleted'), description: e.message }),
   });
@@ -143,17 +168,20 @@ export default function TestDataPage() {
         description={t('testData.pageDescription', 'Data kept once and reused by every test: values as {{data.<set>.<column>}}, or the rows a UI test runs over.')}
         actions={
           canEdit && (
-            <Button onClick={() => setOpen('new')}>
+            <Button disabled={detailBusyId !== null} onClick={() => setOpen('new')}>
               <PlusCircle className="mr-2 h-4 w-4" /> {t('testData.new', 'New data set')}
             </Button>
           )
         }
       />
-      {isLoading ? null : sets.length === 0 ? (
+      <Input className="mb-4 max-w-sm" aria-label={t('catalog.search','Search by name')} placeholder={t('catalog.search','Search by name')} value={search} onChange={event=>setSearch(event.target.value)} />
+      {detailBusyId !== null && <p role="status" className="mb-4 text-sm text-muted-foreground">{t('catalog.loadingDetails', 'Loading details…')}</p>}
+      {detailError && <p role="alert" className="mb-4 text-sm text-destructive">{detailError}</p>}
+      {isLoading ? <p role="status">{t('catalog.loading','Loading…')}</p> : error ? <p role="alert" className="text-destructive">{error.message}</p> : sets.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-sm text-muted-foreground">
             <Database className="h-8 w-8" />
-            {t('testData.empty', 'No shared data yet. Create a set for the customers, products or cards your tests keep copying.')}
+            {debouncedSearch ? t('catalog.noMatches','No items match this filter.') : t('testData.empty', 'No shared data yet. Create a set for the customers, products or cards your tests keep copying.')}
           </CardContent>
         </Card>
       ) : (
@@ -168,13 +196,14 @@ export default function TestDataPage() {
                   </div>
                   {canEdit && (
                     <div className="flex shrink-0">
-                      <Button variant="ghost" size="icon" onClick={() => setOpen(set)} aria-label={t('testData.editNamed', 'Edit {{name}}', { name: set.name })}>
+                      <Button variant="ghost" size="icon" disabled={detailBusyId !== null} onClick={() => void edit(set)} aria-label={t('testData.editNamed', 'Edit {{name}}', { name: set.name })}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => window.confirm(t('testData.confirmDelete', 'Delete {{name}}?', { name: set.name })) && remove.mutate(set)}
+                        disabled={remove.isPending || detailBusyId === set.id}
                         aria-label={t('testData.deleteNamed', 'Delete {{name}}', { name: set.name })}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
@@ -183,7 +212,7 @@ export default function TestDataPage() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {t('testData.size', '{{rows}} row(s) · {{columns}} column(s)', { rows: set.rows.length, columns: set.columns.length })}
+                  {t('testData.size', '{{rows}} row(s) · {{columns}} column(s)', { rows: set.rowCount, columns: set.columns.length })}
                 </p>
                 <p className="truncate text-xs">
                   {set.columns.map((column, i) => (
@@ -198,6 +227,7 @@ export default function TestDataPage() {
           ))}
         </div>
       )}
+      <CatalogPagination page={page} pageSize={pageSize} total={data?.total ?? 0} busy={isFetching || !!error} onPageChange={setPage} onPageSizeChange={setPageSize} />
       {open && <DataSetDialog key={open === 'new' ? 'new' : open.id} set={open} onClose={() => setOpen(null)} />}
     </div>
   );

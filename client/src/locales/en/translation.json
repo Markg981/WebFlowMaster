@@ -4422,5 +4422,19 @@
     "evidenceError": "Some execution evidence could not be stored. Test results are preserved.",
     "executionDeferred": "Monthly execution allowance exhausted; this run is waiting for capacity or the next UTC month.",
     "evidenceUnavailable": "Evidence unavailable: not retained by the artifact store."
-  }
+  },
+  "catalog": {
+    "pagination": "Catalog pagination",
+    "count": "{{total}} items · Page {{page}} of {{pages}}",
+    "pageSize": "Items per page",
+    "previous": "Previous",
+    "next": "Next",
+    "search": "Search by name",
+    "loading": "Loading…",
+    "noMatches": "No items match this filter.",
+    "detailFailed": "Could not load details",
+    "loadingDetails": "Loading details…",
+    "searchTests": "Search tests",
+    "loadFailed": "Could not load the catalog."
+}
 }

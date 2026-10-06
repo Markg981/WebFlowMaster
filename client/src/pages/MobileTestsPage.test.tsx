@@ -31,8 +31,8 @@ beforeEach(() => {
   fetchMock.mockReset();
   fetchMock.mockImplementation((url: string, init?: RequestInit) => {
     const reply = (body: unknown) => Promise.resolve({ ok: true, json: async () => body });
-    if (url === '/api/mobile-tests') {
-      return reply([{ id: 7, name: 'Checkout on Android', platform: 'android', app: 'bs://a', deviceName: 'Google Pixel 8', osVersion: null, steps: [], tags: [smoke], lastRun: null }]);
+    if (url.startsWith('/api/catalog/mobile-tests?')) {
+      return reply({ items: [{ id: 7, name: 'Checkout on Android', platform: 'android', app: 'bs://a', deviceName: 'Google Pixel 8', osVersion: null, stepCount: 3, deviceCount: 2, tags: [smoke], lastRun: null }], total: 30, page: 1, pageSize: 25 });
     }
     if (url === '/api/tags') return reply([smoke, android]);
     if (url === '/api/mobile-tests/7/tags' && init?.method === 'PUT') return reply({ tags: [android, smoke] });
@@ -127,4 +127,47 @@ it('keeps mobile history available to viewers and uses the mobile version route'
   fireEvent.click(await screen.findByRole('button', { name: 'History of Checkout on Android' }));
   await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => url === '/api/mobile-tests/7/versions')).toBe(true));
   expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
+});
+
+describe('Mobile catalog pagination and definitions', () => {
+  it('requests another server page and sends literal search with page reset', async () => {
+    renderPage(); await screen.findByText('Checkout on Android');
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => url.includes('/api/catalog/mobile-tests?') && new URL(url, 'https://test').searchParams.get('page') === '2')).toBe(true));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search tests' }), { target: { value: 'Checkout %_' } });
+    await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => url.includes('/api/catalog/mobile-tests?') && new URL(url, 'https://test').searchParams.get('search') === 'Checkout %_' && new URL(url, 'https://test').searchParams.get('page') === '1')).toBe(true));
+  });
+  it('loads the full definition before opening the editor', async () => {
+    const base = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => url === '/api/mobile-tests/7'
+      ? Promise.resolve({ ok: true, json: async () => ({ id: 7, name: 'Full definition', platform: 'android', app: 'bs://a', deviceName: 'Pixel', osVersion: null, steps: [] }) }) : base(url, init));
+    renderPage(); fireEvent.click(await screen.findByRole('button', { name: 'Edit Checkout on Android' }));
+    expect(await screen.findByDisplayValue('Full definition')).toBeTruthy();
+  });
+  it('does not open a blank editor when detail loading fails', async () => {
+    const base = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((url: string, init?: RequestInit) => url === '/api/mobile-tests/7'
+      ? Promise.resolve({ ok: false, json: async () => ({ error: 'Denied' }) }) : base(url, init));
+    renderPage(); fireEvent.click(await screen.findByRole('button', { name: 'Edit Checkout on Android' }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => url === '/api/mobile-tests/7')).toBe(true));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+
+
+it('shows counts from summaries without downloading definitions', async () => {
+  renderPage();
+  const row = await screen.findByTestId('mobile-test-7');
+  expect(within(row).getByText('3')).toBeTruthy();
+  expect(within(row).getByText('2 device/OS targets')).toBeTruthy();
+  expect(fetchMock.mock.calls.some(([url]) => url === '/api/mobile-tests/7')).toBe(false);
+});
+
+it('loads matrix targets from the full definition before running', async () => {
+  const base = fetchMock.getMockImplementation()!;
+  fetchMock.mockImplementation((url: string, init?: RequestInit) => url === '/api/mobile-tests/7'
+    ? Promise.resolve({ ok: true, json: async () => ({ id: 7, name: 'Full run definition', platform: 'android', app: 'bs://a', deviceName: 'Pixel', osVersion: null, deviceMatrix: [{ deviceName: 'Pixel', osVersion: '14' }, { deviceName: 'Galaxy', osVersion: '13' }], steps: [] }) }) : base(url, init));
+  renderPage(); fireEvent.click(await screen.findByRole('button', { name: 'Run Checkout on Android' }));
+  expect(await screen.findByRole('dialog')).toHaveTextContent('Full run definition');
+  expect(fetchMock.mock.calls.some(([url]) => url === '/api/mobile-tests/7')).toBe(true);
 });
