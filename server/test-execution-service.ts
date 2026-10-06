@@ -861,7 +861,9 @@ async function runTestPlanJobInTenant(
 
   const secretsMap: Record<string, string> = {};
   // The organization's shared test data, as {{data.<set>.<column>}} (shared/test-data.ts).
-  const dataVariables: Record<string, string> = await withTenantTransaction((tx) => loadDataVariables(tx));
+  const dataVariables: Record<string, string> = snapshot.datasets
+    ? snapshot.datasets.variables
+    : await withTenantTransaction((tx) => loadDataVariables(tx));
   // The defaults underneath, the environment's secrets on top — so an environment can
   // override `baseUrl` like any other name, and a run against site B does not depend on
   // what a process env var happened to hold.
@@ -994,11 +996,19 @@ async function runTestPlanJobInTenant(
     }
   }
 
-  // A test that runs over a shared data set gets that set's rows now, once for the whole run,
-  // so every browser and every re-run of it sees the same rows (shared/test-data.ts). A set
-  // deleted since is that test's error, not the run's.
+  // New runs carry data from enqueue, including null/empty datasets and unavailable-set errors.
+  // Historical runs without this field retain their original worker-time resolution.
   const datasetErrors = new Map<number, string>();
-  if (uiTestsMap.size > 0) {
+  if (snapshot.datasets) {
+    const frozen = new Map(snapshot.datasets.tests.map(entry => [entry.testId, entry]));
+    for (const [testId, test] of uiTestsMap) {
+      const entry = frozen.get(testId);
+      // Overlay even errored entries: BDD lane/row counts must not use repaired live data.
+      uiTestsMap.set(testId, { ...test, dataset: entry ? structuredClone(entry.dataset) : null } as Test);
+      if (!entry) datasetErrors.set(testId, 'The queued run has no dataset snapshot for this test.');
+      else if (entry.error) datasetErrors.set(testId, entry.error);
+    }
+  } else if (uiTestsMap.size > 0) {
     await withTenantTransaction(async (tx) => {
       for (const [testId, test] of Array.from(uiTestsMap)) {
         try {

@@ -6,6 +6,13 @@ Per capire la suite prima di discuterne l'evoluzione, leggere il [manuale comple
 
 ## Perimetro e attendibilità
 
+Aggiornamento implementazione: i run accodati congelano dataset web/BDD e valori condivisi della
+prima riga in `configuration_snapshot.datasets`; vedere [dati fissati all'accodamento](../guide/running#dati-fissati-all-accodamento).
+La tabella delle priorità sotto conserva le evidenze della baseline originale. Hash dedicato,
+interfaccia nel report e replay storico esplicito restano miglioramenti separati; i retry
+automatici riutilizzano i dati acquisiti. Non vengono congelate tutte le definizioni o lo stato
+dei sistemi esterni.
+
 È stato inventariato il repository: 1.264 file tracciati prima di questa revisione, tra cui 494
 in `server/`, 331 in `client/`, 44 in `shared/`, 40 in `scripts/`, 87 in `migrations/`, 41
 in `collaudo/`, 29 in `deployment/`, 8 in `e2e/` e 7 in `integrations/`. Sono presenti 347

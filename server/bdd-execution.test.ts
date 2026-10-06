@@ -1,7 +1,7 @@
 import { beforeAll, expect, it, vi } from 'vitest';
 import { randomUUID } from 'crypto';
 import { privilegedDb } from './db';
-import { agents,bddExecutionProfiles,tests,testPlans,testPlanSelectedTests,testPlanExecutions,reportTestCaseResults } from '@shared/schema';
+import { agents,bddExecutionProfiles,tests,testPlans,testPlanSelectedTests,testPlanExecutions,reportTestCaseResults,testDataSets } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { createTestOrganization, createTestUser } from './tests/factories';
 import { runWithTenant } from './middleware/tenancy';
@@ -21,6 +21,21 @@ beforeAll(async () => {
   await privilegedDb.insert(bddExecutionProfiles).values({id,organizationId:org,name:'Shop',pool:'bdd',operatorProfileId:'shop',revision:'rev-1'});
 });
 const source='Feature: F\nScenario: S\nGiven a';
+it.each([1, 2])('keeps a missing dataset as one frozen BDD error (%s shards)', async shards => {
+  const { createExecutionOrchestrator } = await import('./execution-orchestrator');
+  run.mockClear();
+  const [test] = await privilegedDb.insert(tests).values({ organizationId: org, userId: user, name: 'Missing BDD data', url: '', elements: [], sequence: [], dataset: [{ $sharedSet: '2147483647' }], bdd: { language: 'en', source, uri: 'test.feature', scenarioLine: 2, mode: 'cucumber', binding: { id, revision: 'rev-1' } } }).returning();
+  const planId = randomUUID();
+  await privilegedDb.insert(testPlans).values({ id: planId, organizationId: org, userId: user, name: 'Missing data plan', shards });
+  await privilegedDb.insert(testPlanSelectedTests).values({ organizationId: org, testPlanId: planId, testType: 'ui', testId: test.id });
+  const execution = await createExecutionOrchestrator({ add: async () => {} }).enqueue({ planId, requestedByUserId: user, trigger: 'manual' });
+  await privilegedDb.update(tests).set({ dataset: [{ row: 'added' }, { row: 'later' }] }).where(eq(tests.id, test.id));
+  await processTestPlanJob(planId, execution.id, user);
+  const results = await privilegedDb.select().from(reportTestCaseResults).where(eq(reportTestCaseResults.testPlanExecutionId, execution.id));
+  expect(results).toHaveLength(1);
+  expect(results[0]).toMatchObject({ status: 'Error', reasonForFailure: expect.stringContaining('unavailable when this run was queued') });
+  expect(run).not.toHaveBeenCalled();
+});
 const dedicatedTest = (extra:Record<string,unknown>={}) => ({id:1,name:'BDD',projectId:null,bdd:{language:'en',source,uri:'test.feature',scenarioLine:2,mode:'cucumber',binding:{id,revision:'rev-1'}},...extra});
 const apiCall = (name:string,url='http://fixture.test/data') => ({id:name,name,method:'POST',url,queryParams:null,requestHeaders:null,requestBody:null,sourceApiTestId:null});
 it.each([false,true])('releases the only agent slot before Cucumber and reacquires it for cleanup (failure=%s)',async failure => {
@@ -127,6 +142,31 @@ it.each([1,2])('records independent dataset results without multiplying browser 
   expect(results.every(result => result.status === 'Passed' && !result.browser)).toBe(true);
   expect(run).toHaveBeenCalledTimes(2);
   expect(run.mock.calls.map(call => (call[1] as any).variables.row)).toEqual(['first','second']);
+});
+it.each([1, 2])('uses queued BDD rows and shared variables after deletion (%s shards)', async shards => {
+  const { createExecutionOrchestrator } = await import('./execution-orchestrator');
+  const { registerShardDispatcher } = await import('./run-shards');
+  const { processShardJob } = await import('./test-execution-service');
+  const helpers: Promise<unknown>[] = [];
+  registerShardDispatcher(async job => { helpers.push(processShardJob(job.planId, job.executionId, job.userId, job.shard)); });
+  try {
+    run.mockClear();
+    const [set] = await privilegedDb.insert(testDataSets).values({ organizationId: org, name: `bdd_${shards}`, columns: ['row'], rows: [{ row: 'first' }, { row: 'second' }] }).returning();
+    const [test] = await privilegedDb.insert(tests).values({ organizationId: org, userId: user, name: 'Frozen BDD data', url: '', elements: [], sequence: [], dataset: [{ $sharedSet: String(set.id) }], bdd: { language: 'en', source, uri: 'test.feature', scenarioLine: 2, mode: 'cucumber', binding: { id, revision: 'rev-1' } } }).returning();
+    const planId = randomUUID();
+    await privilegedDb.insert(testPlans).values({ id: planId, organizationId: org, userId: user, name: 'Frozen BDD plan', shards });
+    await privilegedDb.insert(testPlanSelectedTests).values({ organizationId: org, testPlanId: planId, testType: 'ui', testId: test.id });
+    const execution = await createExecutionOrchestrator({ add: async () => {} }).enqueue({ planId, requestedByUserId: user, trigger: 'manual' });
+    await privilegedDb.delete(testDataSets).where(eq(testDataSets.id, set.id));
+    await processTestPlanJob(planId, execution.id, user);
+    await Promise.all(helpers);
+    const results = await privilegedDb.select().from(reportTestCaseResults).where(eq(reportTestCaseResults.testPlanExecutionId, execution.id));
+    expect(results).toHaveLength(2);
+    expect(results.every(result => result.status === 'Passed')).toBe(true);
+    expect(run.mock.calls.map(call => (call[1] as any).variables.row).sort()).toEqual(['first', 'second']);
+    expect(run.mock.calls.every(call => (call[1] as any).variables[`data.bdd_${shards}.row`] === 'first')).toBe(true);
+    expect(helpers).toHaveLength(shards - 1);
+  } finally { registerShardDispatcher(null); }
 });
 it('redacts credential-shaped free-text diagnostics even when the credential was created by a step',async () => {
   run.mockRejectedValueOnce(new Error('Authorization: Bearer newly-generated-secret'));

@@ -12,6 +12,7 @@ import {
   testPlanExecutions,
   testPlanSelectedTests,
   testPlans,
+  testDataSets,
   testQuarantines,
   tests as testsTable,
   users,
@@ -192,6 +193,15 @@ afterEach(async () => {
 });
 
 describe('a mobile test in a plan', () => {
+  it('uses shared variables frozen at enqueue after the set is deleted', async () => {
+    await seedPlan();
+    const { createExecutionOrchestrator } = await import('./execution-orchestrator');
+    const [set] = await privilegedDb.insert(testDataSets).values({ organizationId, name: 'mobile_input', columns: ['value'], rows: [{ value: 'queued' }] }).returning();
+    const execution = await createExecutionOrchestrator({ add: async () => {} }).enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+    await privilegedDb.delete(testDataSets).where(eq(testDataSets.id, set.id));
+    await processTestPlanJob(planId, execution.id, userId);
+    expect(performMobileTest.mock.calls[0][2]).toMatchObject({ 'data.mobile_input.value': 'queued' });
+  });
   it('runs native targets when all web browser probes fail', async () => {
     await seedPlan(
       {},

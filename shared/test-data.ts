@@ -11,7 +11,8 @@ import { z } from "zod";
  *   value in the set's first row — a known customer, a product code.
  * - **Rows.** A UI test can take a shared set as its dataset and run once per row. The test keeps a
  *   marker, `[{ "$sharedSet": "<id>" }]`, in its own dataset field, so versions and publishing carry
- *   the link unchanged; the marker is expanded into the set's rows just before the test runs.
+ *   the link unchanged; queued plans freeze the rows at enqueue, while previews and historical
+ *   runs without a dataset snapshot resolve the marker just before the test runs.
  */
 
 export const TEST_DATA_LIMITS = { rows: 1000, columns: 50, value: 10_000 } as const;

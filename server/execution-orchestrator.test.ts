@@ -11,6 +11,8 @@ import {
   testPlanSchedules,
   testPlanSelectedTests,
   testPlans,
+  testDataSets,
+  apiTests,
   tests as testsTable,
   users,
 } from '@shared/schema';
@@ -103,6 +105,7 @@ beforeEach(async () => {
   await privilegedDb.delete(testPlanSelectedTests);
   await privilegedDb.delete(testPlanExecutions);
   await privilegedDb.delete(testPlans);
+  await privilegedDb.delete(apiTests);
   await privilegedDb.delete(testsTable);
   await privilegedDb.delete(environments);
   await privilegedDb.delete(users);
@@ -149,6 +152,80 @@ afterEach(async () => {
 });
 
 describe('enqueue', () => {
+  it('passes shared values frozen at enqueue to API requests', async () => {
+    const runner = await import('./api-test-runner');
+    const request = vi.spyOn(runner, 'runApiRequest').mockResolvedValue({ passed: true, assertions: [], extracted: {}, status: 200, headers: {}, body: '{}', duration: 1 } as any);
+    try {
+      const [api] = await privilegedDb.insert(apiTests).values({ organizationId, userId, name: 'API data', method: 'GET', url: 'https://example.test/{{data.api_input.value}}' }).returning();
+      await privilegedDb.delete(testPlanSelectedTests).where(eq(testPlanSelectedTests.testPlanId, planId));
+      await privilegedDb.insert(testPlanSelectedTests).values({ organizationId, testPlanId: planId, testType: 'api', apiTestId: api.id });
+      const [set] = await privilegedDb.insert(testDataSets).values({ organizationId, name: 'api_input', columns: ['value'], rows: [{ value: 'queued' }] }).returning();
+      const execution = await createExecutionOrchestrator(capturingQueue()).enqueue({ planId, requestedByUserId: userId, trigger: 'api' });
+      await privilegedDb.delete(testDataSets).where(eq(testDataSets.id, set.id));
+      await processTestPlanJob(planId, execution.id, userId);
+      expect(request.mock.calls[0][1]).toMatchObject({ 'data.api_input.value': 'queued' });
+    } finally { request.mockRestore(); }
+  });
+  it('keeps shared rows and values after the set is deleted while queued', async () => {
+    const [set] = await privilegedDb.insert(testDataSets).values({ organizationId, name: 'customers', columns: ['email'], rows: [{ email: 'original@test' }, { email: 'second@test' }] }).returning();
+    await privilegedDb.update(testsTable).set({ dataset: [{ $sharedSet: String(set.id) }] }).where(eq(testsTable.id, firstTestId));
+    const execution = await createExecutionOrchestrator(capturingQueue()).enqueue({ planId, requestedByUserId: userId, trigger: 'api' });
+    await privilegedDb.delete(testDataSets).where(eq(testDataSets.id, set.id));
+    await processTestPlanJob(planId, execution.id, userId);
+    expect(executeTestSequence).toHaveBeenCalledTimes(1);
+    expect(executeTestSequence.mock.calls[0][0].dataset).toEqual([{ email: 'original@test' }, { email: 'second@test' }]);
+    expect(executeTestSequence.mock.calls[0]).toContainEqual(expect.objectContaining({ 'data.customers.email': 'original@test' }));
+  });
+
+  it('keeps inline rows after the test dataset changes while queued', async () => {
+    await privilegedDb.update(testsTable).set({ dataset: [{ sku: 'original' }] }).where(eq(testsTable.id, firstTestId));
+    const execution = await createExecutionOrchestrator(capturingQueue()).enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+    await privilegedDb.update(testsTable).set({ dataset: [{ sku: 'changed' }] }).where(eq(testsTable.id, firstTestId));
+    await processTestPlanJob(planId, execution.id, userId);
+    expect(executeTestSequence.mock.calls[0][0].dataset).toEqual([{ sku: 'original' }]);
+  });
+
+  it('keeps an absent dataset when rows are added later', async () => {
+    const execution = await createExecutionOrchestrator(capturingQueue()).enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+    await privilegedDb.update(testsTable).set({ dataset: [{ sku: 'added' }] }).where(eq(testsTable.id, firstTestId));
+    await processTestPlanJob(planId, execution.id, userId);
+    expect(executeTestSequence.mock.calls[0][0].dataset).toBeNull();
+  });
+
+  it('keeps unavailable-set errors even if the reference is repaired after enqueue', async () => {
+    await privilegedDb.update(testsTable).set({ dataset: [{ $sharedSet: '2147483647' }] }).where(eq(testsTable.id, firstTestId));
+    const execution = await createExecutionOrchestrator(capturingQueue()).enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+    await privilegedDb.update(testsTable).set({ dataset: [{ sku: 'repaired' }] }).where(eq(testsTable.id, firstTestId));
+    await processTestPlanJob(planId, execution.id, userId);
+    expect(executeTestSequence).not.toHaveBeenCalled();
+    const [result] = await privilegedDb.select().from(reportTestCaseResults).where(eq(reportTestCaseResults.testPlanExecutionId, execution.id));
+    expect(result.reasonForFailure).toContain('unavailable when this run was queued');
+  });
+
+  it('keeps the same dataset across idempotent enqueue and automatic retries', async () => {
+    await privilegedDb.update(testsTable).set({ dataset: [{ sku: 'original' }] }).where(eq(testsTable.id, firstTestId));
+    const orchestrator = createExecutionOrchestrator(capturingQueue());
+    const request = { planId, requestedByUserId: userId, trigger: 'scheduled' as const, maxAttempts: 2, idempotencyKey: uuidv4() };
+    const first = await orchestrator.enqueue(request);
+    await privilegedDb.update(testsTable).set({ dataset: [{ sku: 'changed' }] }).where(eq(testsTable.id, firstTestId));
+    expect((await orchestrator.enqueue(request)).configurationSnapshot).toEqual(first.configurationSnapshot);
+    const [failed] = await privilegedDb.update(testPlanExecutions).set({ status: 'failed' }).where(eq(testPlanExecutions.id, first.id)).returning();
+    const retry = await runWithTenant(organizationId, () => orchestrator.retryFailedRun(failed, 0));
+    await processTestPlanJob(planId, retry!.id, userId);
+    expect(retry!.configurationSnapshot).toEqual(first.configurationSnapshot);
+    expect(executeTestSequence.mock.calls[0][0].dataset).toEqual([{ sku: 'original' }]);
+  });
+
+  it('preserves worker-time dataset resolution for historical version-one snapshots', async () => {
+    const execution = await createExecutionOrchestrator(capturingQueue()).enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+    const legacy = { ...(execution.configurationSnapshot as Record<string, unknown>) };
+    delete legacy.datasets;
+    await privilegedDb.update(testPlanExecutions).set({ configurationSnapshot: legacy }).where(eq(testPlanExecutions.id, execution.id));
+    await privilegedDb.update(testsTable).set({ dataset: [{ sku: 'live' }] }).where(eq(testsTable.id, firstTestId));
+    await processTestPlanJob(planId, execution.id, userId);
+    expect(executeTestSequence.mock.calls[0][0].dataset).toEqual([{ sku: 'live' }]);
+  });
+
   it('creates one queued run, with its configuration, and one job named after it', async () => {
     const queue = capturingQueue();
     const orchestrator = createExecutionOrchestrator(queue);

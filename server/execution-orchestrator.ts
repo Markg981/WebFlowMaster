@@ -22,6 +22,7 @@ import { testExecutionQueue } from './queue';
 import { fairPriority, liveRunCounts, lockOrganizationRuns, quotasFor } from './tenant-quotas';
 import { checkExecutionBudget } from './execution-usage';
 import { freezeMobilePlanDefinitions } from './mobile-plan-units';
+import { freezeExecutionDatasets } from './execution-datasets';
 
 /**
  * The one place a run comes into existence.
@@ -263,6 +264,7 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
             updateBaselines: input.updateBaselines,
           });
           if (narrowed) snapshot.selection = narrowed.selection;
+          snapshot.datasets = await freezeExecutionDatasets(tx, organizationId, snapshot.selectedTests.flatMap(ref => ref.testType === 'ui' && ref.testId ? [ref.testId] : []));
           snapshot.mobileDefinitions=await freezeMobilePlanDefinitions(tx,snapshot.selectedTests.flatMap(ref=>ref.testType==='mobile'&&ref.mobileTestId?[ref.mobileTestId]:[]));
 
           const [inserted] = await tx
