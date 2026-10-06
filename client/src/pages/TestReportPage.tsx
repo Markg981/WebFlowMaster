@@ -23,6 +23,8 @@ import type { NetworkSummary } from '@shared/network';
 import { describeCi, type CiContext } from '@shared/ci';
 import { mobileSessionUrl } from '@shared/mobile';
 import CancelRunButton from '@/components/reports/CancelRunButton';
+import ReproducibilityCard from '@/components/reports/ReproducibilityCard';
+import type { ReproducibilitySummary } from '@shared/execution-provenance';
 import ManualResultsCard from '@/components/reports/ManualResultsCard';
 import BddResultsCard from '@/components/reports/BddResultsCard';
 import PerformanceResultsCard from '@/components/reports/PerformanceResultsCard';
@@ -52,6 +54,7 @@ function countsOf(tests: Array<{ status: string }>) {
 
 export interface TestPlanExecutionReport {
   header: {
+    reproducibility?: ReproducibilitySummary;
     testSuiteName: string; environment: string; browsers: string[]; dateTime: string;
     completedAt: string | null; status: string;
     triggeredBy: 'scheduled' | 'manual' | 'api'; executionId: string; testPlanId: string;
@@ -396,6 +399,8 @@ const TestReportPage: React.FC = () => {
             )}
           </CardHeader>
         </Card>
+
+        <ReproducibilityCard key={header.executionId} executionId={header.executionId} planId={header.testPlanId} summary={header.reproducibility} />
 
         {/* Key Metrics Overview */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

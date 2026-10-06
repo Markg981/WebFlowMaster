@@ -31,6 +31,8 @@ import {
 } from "@shared/schema";
 import { auditActor, changedFields, recordAudit } from "./audit";
 import { executionArtifactAvailability } from './artifact-metering';
+import { reproducibilitySummary, publicExecution } from './execution-provenance';
+import { readExecutionSnapshot } from './execution-snapshot';
 import { z } from "zod";
 // For generating IDs
 import { createInsertSchema } from 'drizzle-zod';
@@ -1171,7 +1173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       resolvedLogger.info({ message: `Test plan ${testPlanId} executed successfully. Run ID: ${executionResult.id}` });
       // executionResult should be the full TestPlanRun object
-      res.status(200).json({ success: true, data: executionResult });
+      res.status(200).json({ success: true, data: publicExecution(executionResult) });
 
     } catch (error: any) {
       resolvedLogger.error({
@@ -1605,7 +1607,8 @@ app.get("/api/test-plan-executions/:executionId/report", requireRole('viewer'), 
 
     const reportData = {
       header: {
-        testSuiteName: plan?.name || 'N/A',
+        testSuiteName: readExecutionSnapshot(execution.configurationSnapshot)?.plan.name || plan?.name || 'N/A',
+        reproducibility: reproducibilitySummary(execution.configurationSnapshot),
         environment: execution.environment || 'N/A',
         // What the schedule asked for, else the browsers the results actually came from: a plan
         // run by hand records its browsers on each result, and the header said none.

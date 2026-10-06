@@ -6,6 +6,28 @@ mechanisms that keep it correct when processes crash, requests repeat and worker
 
 ## Who asks for a run
 
+New runs freeze UI/API definitions and their exact versions at enqueue alongside mobile, datasets
+and plan settings. Publication is resolved there. Changing a published version during the wait
+does not change the queued run. Current mandatory review can skip a frozen working copy.
+
+Snapshots are private runner data: execution list/detail, run-start and cancellation JSON APIs
+omit them and expose safe provenance. SHA-256 covers canonical JSON (sorted keys, ordered arrays)
+for settings, definitions and datasets. Replay lineage is excluded from the input fingerprint.
+Workers reject incomplete or mismatching new snapshots. Deleted tests can still produce results:
+their original IDs stay in provenance while missing relational foreign keys are null.
+
+`POST /api/test-plan-executions/:executionId/replay` accepts only `{ "mode": "historical" }`.
+It verifies source visibility/integrity, copies the configuration without expanding today's plan,
+checks current quotas and queues a new manual run. `replayOf` identifies the source; schedule and
+CI status are not inherited. `Idempotency-Key` is scoped to the source. Incomplete/legacy inputs:
+`409`; inaccessible source or missing plan: `404`. The plan must still exist. No migration/backfill
+claims completeness for legacy runs, which keep their prior worker-time resolution.
+
+Environment variables/secrets, saved sessions, grids, agents, browser binaries, BDD profiles,
+quarantine, current review policy, integrations and the application under test remain live.
+Replay reproduces retained configuration, not external state or outcomes. HTML/PDF, Allure
+attachments and JUnit suite properties include safe metadata/fingerprints without retained values.
+
 | Trigger | Path | `triggered_by` |
 |---|---|---|
 | Run button in the application | `POST /api/test-plans/:id/run` | `manual` |

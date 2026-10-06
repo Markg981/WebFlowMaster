@@ -554,6 +554,10 @@ cioè il pool vale dentro l'organizzazione.
 
 ## 8. Cosa non copre
 
+**Replay storico (REP-26…REP-32).** Protocollo 31: sette nuovi casi Da eseguire, procedura in
+[historical-replay-2026-10-06.md](./historical-replay-2026-10-06.md). Aggiornare API, worker e client;
+conservare i cicli precedenti. Gli input sono fissati, servizi e dispositivi esterni restano correnti.
+
 - **Jira o Azure DevOps, GitHub e i sistemi di CI** sono servizi esterni: servono un progetto,
   un repository e i token di prova.
 - Il repository GitHub del caso INT-06 deve raggiungere l'installazione: da una macchina di

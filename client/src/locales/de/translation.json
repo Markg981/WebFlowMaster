@@ -4442,5 +4442,26 @@
     "detailFailed": "Details konnten nicht geladen werden",
     "searchTests": "Tests suchen",
     "loadFailed": "Katalog konnte nicht geladen werden."
-}
+  },
+  "reproducibility": {
+    "title": "Eingereihte Eingaben und historische Wiederholung",
+    "captured": "Beim Einreihen gespeicherte Eingaben",
+    "inputs": "Fingerabdruck der Eingaben (SHA-256)",
+    "datasets": "Fingerabdruck der Datensätze (SHA-256)",
+    "unversioned": "Ohne Version",
+    "published": "Veröffentlicht",
+    "working": "Arbeitskopie",
+    "legacy": "Dieser Lauf enthält keine vollständig geprüften Eingaben. Die historische Wiederholung ist nicht verfügbar.",
+    "source": "Historische Wiederholung von",
+    "live": "Variablen und Geheimnisse, Grids, Agenten, Browser, BDD-Profile, Quarantäne, Prüfregeln, Integrationen und die getestete Anwendung werden zur Laufzeit aufgelöst.",
+    "replay": "Historische Konfiguration wiederholen",
+    "confirmTitle": "Diese historischen Eingaben wiederholen?",
+    "confirmBody": "Ein neuer manueller Lauf verwendet die gespeicherten Definitionen, Datensätze und Planeinstellungen. Aktuelle Zugriffe, Prüfregeln und Kontingente gelten; externe Abhängigkeiten verwenden ihren aktuellen Zustand.",
+    "confirm": "Historische Wiederholung einreihen",
+    "queued": "Eingereihte Wiederholung öffnen",
+    "failed": "Die historische Wiederholung konnte nicht eingereiht werden.",
+    "dataSource": "Datensatzquelle",
+    "inline": "Eingebettet oder nicht vorhanden",
+    "rows": "Zeilen"
+  }
 }

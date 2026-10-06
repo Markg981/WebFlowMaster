@@ -1,5 +1,21 @@
 # Risultati
 
+## Input storici e replay
+
+Il report mostra versioni conservate, provenienza pubblicata/copia di lavoro, SHA-256 per
+definizione e impronte di dataset e configurazione. Anche gli export HTML/PDF, Allure e JUnit
+riportano la provenienza senza valori o credenziali dello snapshot.
+
+Editor e owner possono scegliere **Riesegui configurazione storica** e confermare un run manuale.
+Usa test, dataset, browser e impostazioni conservati anche dopo modifiche al catalogo o al piano.
+Il nuovo report collega il sorgente e conserva le stesse impronte. I test cancellati producono
+risultati dalla definizione salvata; il piano sorgente deve ancora esistere. I report senza input
+accodati verificati non offrono il replay storico.
+
+Si applicano accessi, review e quote attuali. Segreti, sessioni salvate, dispositivi, browser,
+profili BDD, integrazioni e applicazione sotto test usano lo stato corrente. Cambiamenti esterni
+possono cambiare l’esito. Il replay non aggiorna lo stato della build CI originale.
+
 ## Dashboard
 
 La **Dashboard** mostra com'è andato l'ultimo periodo, i passati e i falliti degli ultimi 30

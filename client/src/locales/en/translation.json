@@ -4436,5 +4436,26 @@
     "loadingDetails": "Loading details…",
     "searchTests": "Search tests",
     "loadFailed": "Could not load the catalog."
-}
+  },
+  "reproducibility": {
+    "title": "Queued inputs and historical replay",
+    "captured": "Inputs captured at enqueue",
+    "inputs": "Input fingerprint (SHA-256)",
+    "datasets": "Dataset fingerprint (SHA-256)",
+    "unversioned": "Unversioned",
+    "published": "Published",
+    "working": "Working copy",
+    "legacy": "This run does not retain verified queued inputs. Historical replay is unavailable.",
+    "source": "Historical replay of",
+    "live": "Environment variables and secrets, grids, agents, browser binaries, BDD profiles, quarantine, review policies, integrations and the application under test are resolved live.",
+    "replay": "Replay historical configuration",
+    "confirmTitle": "Replay these historical inputs?",
+    "confirmBody": "A new manual run uses the retained test definitions, datasets and plan settings. Current access, review and quota policies apply; external dependencies use their current state.",
+    "confirm": "Queue historical replay",
+    "queued": "Open queued replay",
+    "failed": "Could not queue historical replay.",
+    "dataSource": "Dataset source",
+    "inline": "Inline or absent",
+    "rows": "rows"
+  }
 }

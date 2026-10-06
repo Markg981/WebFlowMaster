@@ -7,6 +7,28 @@ entrano in competizione.
 
 ## Chi chiede un run
 
+I nuovi run fissano definizioni UI/API e versioni all’accodamento insieme a mobile, dataset e
+impostazioni del piano. La pubblicazione viene risolta in quel momento: cambiarla durante l’attesa
+non cambia il run. La review obbligatoria attuale può saltare una copia di lavoro congelata.
+
+Lo snapshot è privato del runner: lista/dettaglio run e risposte di avvio/annullamento lo omettono
+e riportano provenienza sicura. SHA-256 copre JSON canonico (chiavi ordinate, array nell’ordine
+originale) di impostazioni, definizioni e dataset. La relazione di replay è esclusa dall’impronta.
+Il worker rifiuta nuovi snapshot incompleti o non corrispondenti. I test cancellati producono
+risultati con ID originali nella provenienza e chiavi esterne nulle per i collegamenti mancanti.
+
+`POST /api/test-plan-executions/:executionId/replay` accetta solo `{ "mode": "historical" }`.
+Verifica visibilità/integrità del sorgente, copia la configurazione senza espandere il piano attuale,
+controlla quote attuali e accoda un run manuale. `replayOf` identifica il sorgente; schedule e CI
+non vengono ereditati. `Idempotency-Key` è circoscritta al sorgente. Input incompleti/vecchi: `409`;
+sorgente non accessibile o piano assente: `404`. Il piano deve ancora esistere. Nessuna ricostruzione
+dichiara completi i run precedenti, che conservano la risoluzione all’avvio.
+
+Variabili/segreti, sessioni salvate, griglie, agenti, browser, profili BDD, quarantena, review,
+integrazioni e applicazione sotto test restano correnti. Il replay riproduce la configurazione
+conservata, non lo stato esterno né l’esito. HTML/PDF, allegati Allure e proprietà JUnit riportano
+metadati e impronte sicuri, senza valori conservati.
+
 | Origine | Percorso | `triggered_by` |
 |---|---|---|
 | Pulsante Run nell'applicazione | `POST /api/test-plans/:id/run` | `manual` |

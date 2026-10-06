@@ -1,5 +1,15 @@
 # REST API
 
+## Historical replay (authenticated web API)
+
+`POST /api/test-plan-executions/:executionId/replay` requires editor/owner, a visible source run
+and `{ "mode": "historical" }`. Optional `Idempotency-Key` (1–200 characters) deduplicates requests
+for that source. `202` returns `{id,testPlanId,status}` without the runner snapshot. Input injection
+or invalid parameters: `400`; session/role failures: `401`/`403`; unavailable source/plan: `404`;
+unverified/legacy inputs: `409`; enforce quotas: `429`. The new run is manual and retains queued
+definitions, dataset values and settings; live dependencies and current review policies still apply.
+This endpoint uses web authentication and does not add a public `/api/v1` API-key scope.
+
 `/api/v1` is the API for pipelines and scripts: provision projects, tests, datasets and plans, start runs, wait for them, and collect
 their results. It is versioned and kept stable; the rest of the server's endpoints serve the web
 client and may change without notice.

@@ -23,6 +23,8 @@ import { fairPriority, liveRunCounts, lockOrganizationRuns, quotasFor } from './
 import { checkExecutionBudget } from './execution-usage';
 import { freezeMobilePlanDefinitions } from './mobile-plan-units';
 import { freezeExecutionDatasets } from './execution-datasets';
+import { freezeTestDefinitions } from './execution-definitions';
+import { buildExecutionProvenance, reproducibilitySummary } from './execution-provenance';
 
 /**
  * The one place a run comes into existence.
@@ -83,6 +85,8 @@ export type EnqueueFailureCode =
   | 'requester_not_in_organization'
   | 'environment_not_found'
   | 'queue_quota_exceeded'
+  | 'execution_not_found'
+  | 'replay_unavailable'
   | 'queue_submission_failed';
 
 /** Why a run could not be created, with the HTTP status that says so. */
@@ -264,8 +268,14 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
             updateBaselines: input.updateBaselines,
           });
           if (narrowed) snapshot.selection = narrowed.selection;
-          snapshot.datasets = await freezeExecutionDatasets(tx, organizationId, snapshot.selectedTests.flatMap(ref => ref.testType === 'ui' && ref.testId ? [ref.testId] : []));
+          snapshot.definitions = await freezeTestDefinitions(tx,
+            snapshot.selectedTests.flatMap(ref => ref.testType === 'ui' && ref.testId ? [ref.testId] : []),
+            snapshot.selectedTests.flatMap(ref => ref.testType === 'api' && ref.apiTestId ? [ref.apiTestId] : []));
+          snapshot.datasets = await freezeExecutionDatasets(tx, organizationId, snapshot.selectedTests.flatMap(ref => ref.testType === 'ui' && ref.testId ? [ref.testId] : []), snapshot.definitions.ui.map(row => row.definition));
           snapshot.mobileDefinitions=await freezeMobilePlanDefinitions(tx,snapshot.selectedTests.flatMap(ref=>ref.testType==='mobile'&&ref.mobileTestId?[ref.mobileTestId]:[]));
+          snapshot.provenance = buildExecutionProvenance(snapshot);
+          const retained = reproducibilitySummary(snapshot);
+          if (!retained.available) throw new ExecutionEnqueueError('replay_unavailable', retained.reason!, 409);
 
           const [inserted] = await tx
             .insert(testPlanExecutions)
@@ -391,7 +401,65 @@ export function createExecutionOrchestrator(queue: ExecutionQueuePort) {
     return submit(retry, delayMs, fairPriority(counts));
   }
 
-  return { enqueue, retryFailedRun };
+  /** Explicit replay reads the source under the caller's RLS; it never expands today's plan. */
+  async function replay(executionId: string, requestedByUserId: number, idempotencyKey?: string): Promise<TestPlanExecution> {
+    const source = await withTenantTransaction(async tx => {
+      const [row] = await tx.select().from(testPlanExecutions).where(eq(testPlanExecutions.id, executionId)).limit(1);
+      if (!row) throw new ExecutionEnqueueError('execution_not_found', 'Execution not found', 404);
+      const [requester] = await tx.select({ id: users.id }).from(users)
+        .where(and(eq(users.id, requestedByUserId), eq(users.organizationId, row.organizationId))).limit(1);
+      if (!requester) throw new ExecutionEnqueueError('requester_not_in_organization', 'The requester is not a member of this organization', 403);
+      // Also require visibility of the plan: a retained report is not authorization to run it.
+      const [plan] = await tx.select({ id: testPlans.id }).from(testPlans).where(eq(testPlans.id, row.testPlanId)).limit(1);
+      if (!plan) throw new ExecutionEnqueueError('plan_not_found', 'Test plan not found', 404);
+      return row;
+    });
+    const summary = reproducibilitySummary(source.configurationSnapshot);
+    if (!summary.available) throw new ExecutionEnqueueError('replay_unavailable', summary.reason!, 409);
+    // Scope the caller's key to the source, so replaying a different run cannot return this one.
+    const key = idempotencyKey ? `replay-${executionId}-${idempotencyKey}` : `replay-${executionId}-${uuidv4()}`;
+    return runAsOrganization(source.organizationId, async () => {
+      const findExisting = async () => (await withTenantTransaction(tx => tx.select().from(testPlanExecutions).where(eq(testPlanExecutions.idempotencyKey, key)).limit(1)))[0];
+      let outcome: { execution: TestPlanExecution; created: boolean; priority: number };
+      try {
+        outcome = await withTenantTransaction(async tx => {
+          await lockOrganizationRuns(tx, source.organizationId);
+          const [existing] = await tx.select().from(testPlanExecutions).where(eq(testPlanExecutions.idempotencyKey, key)).limit(1);
+          if (existing) return { execution: existing, created: false, priority: 1 };
+          const quotas = await quotasFor(tx, source.organizationId);
+          const counts = await liveRunCounts(tx, source.organizationId);
+          await checkExecutionBudget(tx, source.organizationId);
+          if (quotas.mode === 'enforce' && counts.queued >= quotas.maxQueuedRuns)
+            throw new ExecutionEnqueueError('queue_quota_exceeded', 'The organization queue is full.', 429);
+          const snapshot = structuredClone(readExecutionSnapshot(source.configurationSnapshot)!);
+          snapshot.replayOf = { executionId: source.id, requestedAt: new Date().toISOString() };
+          const [execution] = await tx.insert(testPlanExecutions).values({
+            id: uuidv4(), organizationId: source.organizationId, testPlanId: source.testPlanId,
+            requestedByUserId, status: 'queued', triggeredBy: 'manual', environment: source.environment,
+            browsers: source.browsers, configurationSnapshot: snapshot, idempotencyKey: key,
+            attempt: 1, maxAttempts: 1,
+            // A historical replay is a new manual run, not another answer to the original CI build.
+            ciContext: null, scheduleId: null,
+          }).returning();
+          return { execution, created: true, priority: fairPriority(counts) };
+        });
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          const existing = await findExisting();
+          if (existing) return existing;
+        }
+        throw error;
+      }
+      if (outcome.created) { announceExecution(outcome.execution); return submit(outcome.execution, 0, outcome.priority); }
+      if (outcome.execution.status === 'error' && outcome.execution.failureCode === QUEUE_SUBMISSION_FAILED) {
+        const reclaimed = await reclaimUnsubmittedRun(outcome.execution.id);
+        if (reclaimed) return submit(reclaimed, 0, outcome.priority);
+      }
+      return outcome.execution;
+    });
+  }
+
+  return { enqueue, retryFailedRun, replay };
 }
 
 /** The orchestrator every caller uses; tests build their own over a queue they can inspect. */

@@ -12,6 +12,7 @@ import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from "./selecte
 import { requestCancellation } from "../execution-state";
 import { AUDIT_ACTIONS } from "@shared/schema";
 import { auditActor, changedFields, recordAudit } from "../audit";
+import { publicExecution } from '../execution-provenance';
 
 const router = Router();
 const logger = await loggerPromise;
@@ -458,7 +459,7 @@ router.get("/api/test-plan-executions", requireRole('viewer'), async (req, res) 
         .offset(pageOffset);
     });
     const parsed = results.map(e => ({
-        ...e,
+        ...publicExecution(e),
         results: typeof e.results === 'string' ? JSON.parse(e.results) : e.results,
         browsers: typeof e.browsers === 'string' ? JSON.parse(e.browsers) : e.browsers,
     }));
@@ -489,7 +490,7 @@ router.get("/api/test-plan-executions/:id", requireRole('viewer'), async (req, r
 
     const execution = rows[0];
     res.json({
-      ...execution,
+      ...publicExecution(execution),
       results: typeof execution.results === 'string' ? JSON.parse(execution.results) : execution.results,
       browsers: typeof execution.browsers === 'string' ? JSON.parse(execution.browsers) : execution.browsers,
     });
@@ -525,10 +526,10 @@ router.post("/api/test-plan-executions/:id/cancel", requireRole('editor'), async
         return res.status(409).json({ error: `The run has already ended (${result.status}).`, status: result.status });
       case 'cancelled':
         logger.info({ message: 'Queued run cancelled', executionId: req.params.id, by: req.user.id });
-        return res.status(200).json({ status: 'cancelled', execution: result.execution });
+        return res.status(200).json({ status: 'cancelled', execution: publicExecution(result.execution) });
       case 'cancelling':
         logger.info({ message: 'Running run asked to stop', executionId: req.params.id, by: req.user.id });
-        return res.status(202).json({ status: 'cancelling', execution: result.execution });
+        return res.status(202).json({ status: 'cancelling', execution: publicExecution(result.execution) });
     }
 });
 
