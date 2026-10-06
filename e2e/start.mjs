@@ -6,6 +6,8 @@ import { mkdirSync, createWriteStream } from 'node:fs';
 import { WebSocketServer } from 'ws';
 import * as grpc from '@grpc/grpc-js';
 import * as loader from '@grpc/proto-loader';
+import { fileURLToPath } from 'node:url';
+import { startOidcProvider } from './oidc-provider.mjs';
 
 const database = new URL(process.env.DATABASE_URL || 'invalid:');
 if (!['postgres:', 'postgresql:'].includes(database.protocol) || database.pathname !== '/wfm_ci_e2e') {
@@ -28,13 +30,21 @@ const env = {
   SESSION_COOKIE_SECURE: 'false',
   WEBFLOW_PUBLIC_URL: 'http://127.0.0.1:5080',
   APP_BASE_URL: 'http://127.0.0.1:5081',
+  INSTALLATION_ADMINS: 'e2e_operator',
+  NODE_EXTRA_CA_CERTS: fileURLToPath(new URL('./fixtures/oidc-test.crt', import.meta.url)),
+  // DNS verification is a separate acceptance scenario, not a dependency on public DNS here.
+  SSO_REQUIRE_DOMAIN_VERIFICATION: 'false',
 };
+const identityProvider = await startOidcProvider();
 const children = [];
+const slowRequests = new Map();
 let stopping = false;
 function stop(code = 0) {
   if (stopping) return;
   stopping = true;
   fixture.close();
+  identityProvider.close();
+  for (const request of slowRequests.values()) request.release();
   websocket.clients.forEach(socket => socket.terminate());
   websocket.close();
   rpc.forceShutdown();
@@ -61,6 +71,32 @@ function start(name, entry) {
 }
 // A real HTTP target under our control; it does not replace any product endpoint.
 const fixture = createServer((req, res) => {
+  const url = new URL(req.url, 'http://127.0.0.1:5081');
+  const key = url.searchParams.get('run');
+  // Observe an actual worker request; release it only after the UI has requested cancellation.
+  if (url.pathname === '/slow' && key) {
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      clearTimeout(timer);
+      if (!res.destroyed) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ source: 'ci-slow-http' })); }
+    };
+    const timer = setTimeout(release, 60_000);
+    slowRequests.set(key, { release });
+    res.once('close', () => clearTimeout(timer));
+    return;
+  }
+  if (url.pathname === '/slow-state' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ started: slowRequests.has(key) }));
+    return;
+  }
+  if (url.pathname === '/slow-release' && req.method === 'POST') {
+    slowRequests.get(key)?.release();
+    res.writeHead(204).end();
+    return;
+  }
   if (req.url !== '/echo') { res.writeHead(404).end(); return; }
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ source: 'ci-real-http', method: req.method }));

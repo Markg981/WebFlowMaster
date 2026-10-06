@@ -420,7 +420,7 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
           {deviceMatrix.map((target, index) => (
             <div className="flex gap-2" key={index}>
               <Input
-                aria-label={t('mobileTests.flow.deviceOf', `Device ${index + 1}`, { n: index + 1 })}
+                aria-label={t('mobileTests.flow.deviceOf', `Device ${index + 1}`, { number: index + 1 })}
                 value={target.deviceName}
                 onChange={(e) =>
                   setDeviceMatrix((rows) =>
@@ -431,7 +431,7 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
                 }
               />
               <Input
-                aria-label={t('mobileTests.flow.osOf', `OS version ${index + 1}`, { n: index + 1 })}
+                aria-label={t('mobileTests.flow.osOf', `OS version ${index + 1}`, { number: index + 1 })}
                 value={target.osVersion ?? ''}
                 onChange={(e) =>
                   setDeviceMatrix((rows) =>
@@ -444,7 +444,7 @@ export default function MobileTestDialog({ isOpen, test, grids, onClose, onSaved
               <Button
                 variant="ghost"
                 aria-label={t('mobileTests.flow.removeDevice', `Remove device ${index + 1}`, {
-                  n: index + 1,
+                  number: index + 1,
                 })}
                 onClick={() => setDeviceMatrix((rows) => rows.filter((_, i) => i !== index))}
               >

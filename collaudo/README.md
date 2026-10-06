@@ -2,7 +2,10 @@
 
 ## Pagina di collaudo locale
 
-Catalogo corrente: protocollo **30**, **539 casi** in **24 aree**. LIB-35…LIB-41 coprono
+Catalogo corrente: protocollo **32**, **555 casi** in **25 aree**. AUT-01…AUT-09 coprono
+MFA, OIDC, review/pubblicazione, authoring ed eliminazione mobile, quote e annullamento,
+con verifiche dei permessi dalla UI; procedura in [critical-ui-e2e.md](./critical-ui-e2e.md).
+REP-26…REP-32 coprono il replay storico; LIB-35…LIB-41 coprono
 paginazione, filtri lato server, isolamento e dettaglio su richiesta nei gestori UI/API/mobile
 e dati condivisi; preparazione in [catalog-pagination-2026-10-06.md](./catalog-pagination-2026-10-06.md).
 I nuovi casi sono **Da eseguire** in un nuovo ciclo; i cicli storici restano congelati.
@@ -22,7 +25,7 @@ Per una porta diversa impostare `COLLAUDO_PORT` prima del comando.
   e i 46 nuovi casi delle funzionalità 6–13, più OPS-17…OPS-19 per storico e backup locali:
   più 32 casi di versioni e approvazioni API/mobile (API-29…API-36, MOB-25…MOB-32,
   LIB-27…LIB-34, SEC-37…SEC-44), più AGT-06…AGT-10 per gRPC/WebSocket sugli agenti:
-  Il catalogo attuale contiene 517 casi, 24 aree, protocollo versione 25.
+  Il catalogo attuale contiene 555 casi, 25 aree, protocollo versione 32.
   MOB-33…MOB-40 coprono flussi nativi, gruppi, matrici dispositivi e catalogo mobile.
   La procedura e i limiti delle evidenze sono in `docs/mobile-flow-matrix-acceptance.md`.
   QUO-01…QUO-14 coprono quote per organizzazione, inventario artifact e minuti di esecuzione;
@@ -562,3 +565,9 @@ conservare i cicli precedenti. Gli input sono fissati, servizi e dispositivi est
   un repository e i token di prova.
 - Il repository GitHub del caso INT-06 deve raggiungere l'installazione: da una macchina di
   sviluppo serve un runner self-hosted sulla stessa macchina, oppure un tunnel.
+
+## Copertura automatica dei percorsi UI critici
+
+La suite d'installazione comprende 19 scenari Chromium. La [mappa dei percorsi UI critici](critical-ui-e2e.md)
+collega le nuove prove SSO/MFA, review/pubblicazione, mobile, quote e cancellazione al catalogo
+manuale, indicando il perimetro effettivo e le prove che restano da eseguire.
