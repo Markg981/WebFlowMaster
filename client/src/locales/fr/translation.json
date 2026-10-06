@@ -4428,5 +4428,19 @@
     "evidenceError": "Certaines preuves n’ont pas pu être stockées. Les résultats sont conservés.",
     "executionDeferred": "Budget mensuel d'exécution épuisé : cette exécution attend de la capacité ou le prochain mois UTC.",
     "evidenceUnavailable": "Preuve indisponible : non conservée dans le stockage des artefacts."
-  }
+  },
+  "catalog": {
+    "pagination": "Pagination du catalogue",
+    "count": "{{total}} éléments · Page {{page}} sur {{pages}}",
+    "pageSize": "Éléments par page",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "search": "Rechercher par nom",
+    "loading": "Chargement…",
+    "loadingDetails": "Chargement des détails…",
+    "noMatches": "Aucun élément ne correspond au filtre.",
+    "detailFailed": "Impossible de charger les détails",
+    "searchTests": "Rechercher des tests",
+    "loadFailed": "Impossible de charger le catalogue."
+}
 }

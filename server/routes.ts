@@ -43,6 +43,7 @@ import loggerPromise, { updateLogLevel } from "./logger";
 
 import projectsRoutes from "./routes/projects.routes";
 import testsRoutes from "./routes/tests.routes";
+import catalogRoutes from "./routes/catalog.routes";
 import testPlansRoutes from "./routes/test-plans.routes";
 import uploadsRoutes from "./routes/uploads.routes";
 import reportsRoutes from "./routes/reports.routes";
@@ -221,6 +222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(tenantQuotaAdminRoutes);
     app.use(projectsRoutes);
     app.use(testsRoutes);
+    app.use(catalogRoutes);
     app.use(testPlansRoutes);
     app.use(uploadsRoutes);
     app.use(reportsRoutes);

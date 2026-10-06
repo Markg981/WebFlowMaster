@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ApiTest } from '@shared/schema';
+import type { ApiTest } from '@shared/schema';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,15 +14,20 @@ import CommentsPanel from '@/components/tests/CommentsPanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MessageSquare } from 'lucide-react';
 
+export type ApiTestSummary = Pick<ApiTest, 'id' | 'name' | 'method' | 'url' | 'projectId' | 'module' | 'updatedAt' | 'publishedVersion'>;
+
 interface SavedTestsPanelProps {
-  savedTests: ApiTest[];
-  onLoadTest: (test: ApiTest) => void;
-  onEditTest: (test: ApiTest) => void;
+  savedTests: ApiTestSummary[];
+  onLoadTest: (test: ApiTestSummary) => void;
+  onEditTest: (test: ApiTestSummary) => void;
   onDeleteTest: (testId: number) => void;
-  onExportTest: (test: ApiTest) => void;
+  onExportTest: (test: ApiTestSummary) => void;
   onOpenSaveModal: () => void;
   isLoading?: boolean;
   isDeletingTestId?: number | null;
+  catalogControls?: React.ReactNode;
+  catalogPagination?: React.ReactNode;
+  error?: string;
 }
 
 interface Project {
@@ -42,19 +47,22 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
   onOpenSaveModal,
   isLoading,
   isDeletingTestId,
+  catalogControls,
+  catalogPagination,
+  error,
 }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [historyFor, setHistoryFor] = useState<ApiTest | null>(null);
+  const [historyFor, setHistoryFor] = useState<ApiTestSummary | null>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [commentsFor, setCommentsFor] = useState<ApiTest | null>(null);
+  const [commentsFor, setCommentsFor] = useState<ApiTestSummary | null>(null);
 
   // Fetch project names so tests can be grouped under a readable project header.
   const { data: projects = [] } = useQuery<Project[]>({ queryKey: ['/api/projects'] });
   const projectNameById = new Map(projects.map((p) => [p.id, p.name]));
 
   // Group: project -> module -> tests.
-  const byProject = new Map<number, Map<string, ApiTest[]>>();
+  const byProject = new Map<number, Map<string, ApiTestSummary[]>>();
   for (const test of savedTests) {
     const pid = test.projectId ?? NO_PROJECT;
     const mod = test.module || OTHER_MODULE;
@@ -82,7 +90,7 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
 
   // The row itself loads the test: clicking a card is the obvious gesture, and in a narrow
   // sidebar the action icons are the first thing to be squeezed out of sight.
-  const renderRow = (test: ApiTest) => (
+  const renderRow = (test: ApiTestSummary) => (
     <div
       key={test.id}
       role="button"
@@ -177,6 +185,8 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
         </div>
         <ImportApiTestsDialog open={importOpen} onOpenChange={setImportOpen} />
       </CardHeader>
+      {catalogControls}
+      {error && <p role="alert" className="px-4 text-sm text-destructive">{error}</p>}
       <CardContent className="p-0 flex-1">
         <ScrollArea className="h-full p-3">
           {isLoading && <p className="text-sm text-muted-foreground">{t('apiTester.savedTestsPanel.loadingSavedTests.text')}</p>}
@@ -224,6 +234,7 @@ export const SavedTestsPanel: React.FC<SavedTestsPanelProps> = ({
           </div>
         </ScrollArea>
       </CardContent>
+      {catalogPagination}
     </Card>
   );
 };

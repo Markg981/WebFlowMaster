@@ -4547,5 +4547,19 @@
     "evidenceError": "Impossibile conservare alcune evidenze delle esecuzioni. I risultati dei test sono conservati.",
     "executionDeferred": "Budget mensile di esecuzione esaurito: il run attende capacità o il prossimo mese UTC.",
     "evidenceUnavailable": "Evidenza non disponibile: non conservata nello storage degli artefatti."
-  }
+  },
+  "catalog": {
+    "pagination": "Paginazione catalogo",
+    "count": "{{total}} elementi · Pagina {{page}} di {{pages}}",
+    "pageSize": "Elementi per pagina",
+    "previous": "Precedente",
+    "next": "Successiva",
+    "search": "Cerca per nome",
+    "loading": "Caricamento…",
+    "noMatches": "Nessun elemento corrisponde al filtro.",
+    "detailFailed": "Impossibile caricare i dettagli",
+    "loadingDetails": "Caricamento dettagli…",
+    "searchTests": "Cerca test",
+    "loadFailed": "Impossibile caricare il catalogo."
+}
 }

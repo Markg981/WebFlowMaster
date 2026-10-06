@@ -30,10 +30,36 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('TestDataPage', () => {
+  it('loads dataset rows only when editing and does not open on failure',async()=>{
+ fetchMock.mockImplementation((url:string)=>url.startsWith('/api/catalog/test-data')?reply({items:[{...customers,rows:undefined,rowCount:2}],total:1,page:1,pageSize:25}):reply({error:'Cannot load'},500));
+ render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><TestDataPage /></QueryClientProvider>);
+ await screen.findByTestId('data-set');expect(fetchMock.mock.calls.some(([url])=>url==='/api/test-data/3')).toBe(false);
+ fireEvent.click(screen.getByRole('button',{name:'Edit customers'}));await screen.findByRole('alert');expect(screen.queryByRole('dialog')).toBeNull();
+ fetchMock.mockImplementation(()=>reply(customers));fireEvent.click(screen.getByRole('button',{name:'Edit customers'}));expect(await screen.findByLabelText('Row 1 email')).toHaveValue('ann@shop.test');
+ });
+  it('requests dataset pages and sizes and resets search to page one',async()=>{
+ const second={...customers,id:4,name:'products'};
+ fetchMock.mockImplementation((url:string)=>{
+ const params=new URL(url,'http://localhost').searchParams;const page=Number(params.get('page'));
+ return reply({items:[{...(page===2?second:customers),rows:undefined,rowCount:2}],total:26,page,pageSize:Number(params.get('pageSize'))});
+ });
+ render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><TestDataPage /></QueryClientProvider>);
+ await screen.findByText('customers');fireEvent.click(screen.getByRole('button',{name:'Next'}));await screen.findByText('products');
+ fireEvent.change(screen.getByLabelText('Search by name'),{target:{value:'custom'}});
+ await waitFor(()=>expect(fetchMock.mock.calls.some(([url])=>url.includes('page=1')&&url.includes('search=custom'))).toBe(true));
+ await screen.findByText('customers');fireEvent.change(screen.getByLabelText('Items per page'),{target:{value:'50'}});
+ await waitFor(()=>expect(fetchMock.mock.calls.some(([url])=>url.includes('page=1')&&url.includes('pageSize=50'))).toBe(true));
+ });
+  it('shows catalog failures instead of an empty-data message', async () => {
+    fetchMock.mockImplementation(() => reply({error:'Catalog unavailable'},500));
+    render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><TestDataPage /></QueryClientProvider>);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Catalog unavailable');
+    expect(screen.queryByText(/No shared data yet/)).toBeNull();
+  });
   it('lists the sets with the placeholders that read them, and creates one from a table', async () => {
     fetchMock.mockImplementation((url: string, init?: RequestInit) => {
       if (init?.method === 'POST') return reply({ ...JSON.parse(String(init.body)), id: 4 }, 201);
-      return reply([customers]);
+      return reply({items:[{...customers,rows:undefined,rowCount:2}],total:1,page:1,pageSize:25});
     });
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>

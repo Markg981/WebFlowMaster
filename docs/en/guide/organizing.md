@@ -6,6 +6,15 @@
 Search by name, or filter by clicking a tag. From each row you can open its **History**, change its
 tags, or **Delete** it (with its history).
 
+The library loads 25 summaries per page and shows the total matching your filters. Use
+**Previous** and **Next** to browse. Name search ignores letter case and matches literal text
+(including `%` and `_`); multiple selected tags require every tag. Project and status filters
+apply before pagination, and changing a filter returns to the first page. API tests, mobile
+tests and shared test data also use paginated lists. Each list loads full definitions only
+when needed: editing a manual or BDD test fetches its steps, editing a data set fetches its
+table, and loading or running an API/mobile test fetches its executable configuration.
+List responses contain metadata and counts, rather than all steps or dataset values.
+
 **Tags** are your organization's own labels — `smoke`, `checkout`, `nightly` — added from the test's
 row. They are what [dynamic suites](#suites) select by.
 
@@ -202,6 +211,11 @@ each case are shown next to it.
 The same customers, products or cards used to be copied into test after test, and drifted apart.
 **Test data** keeps them once for the whole organization: a set has a name (`customers`), a
 description and a table. Viewers can read the sets; editors create and change them.
+
+The manager lists names, descriptions and row/column counts in pages of 25, with the matching
+total and **Previous/Next** controls. Search by literal name, ignoring letter case. Open
+**Edit** to load the selected set's columns and rows; browsing the list does not download
+every table. Creating, changing or deleting a set refreshes the list.
 
 A set is used two ways:
 

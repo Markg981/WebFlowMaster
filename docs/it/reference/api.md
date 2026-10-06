@@ -323,3 +323,27 @@ sono limitati a `WEBHOOK_RATE_LIMIT` chiamate al minuto per indirizzo (120 di de
 
 Leggere l'esito del run richiede una chiave API: preferite l'API, o la CLI, ogni volta che chi
 chiama può conservarne una.
+
+## Cataloghi del client web
+
+Il client web autenticato usa questi endpoint di riepilogo, separati da `/api/v1`:
+
+| Endpoint GET | Filtri aggiuntivi | Definizione completa |
+|---|---|---|
+| `/api/catalog/tests` | `tagIds`, `projectId`, `status` | `/api/tests/:id` |
+| `/api/catalog/api-tests` | `tagIds`, `projectId` | `/api/api-tests/:id` |
+| `/api/catalog/mobile-tests` | `tagIds`, `projectId` | `/api/mobile-tests/:id` |
+| `/api/catalog/test-data` | Nessuno | `/api/test-data/:id` |
+
+Tutti accettano `page`, `pageSize` e `search` e restituiscono `{items, total, page, pageSize}`.
+Le pagine partono da 1; la dimensione predefinita è 25, il massimo 100. I parametri di pagina
+richiedono interi positivi; filtri con formato non valido restituiscono `400`. `total` conta
+tutti i risultati accessibili prima della paginazione. La ricerca per nome è letterale e
+ignora maiuscole/minuscole. `tagIds` contiene ID dei tag separati
+da virgole: tutti i tag selezionati devono corrispondere. Isolamento dell'organizzazione e
+visibilità del progetto si applicano sia ai risultati sia al totale.
+
+I cataloghi omettono passi eseguibili completi, corpi delle richieste e valori dei dataset.
+Caricare il dettaglio corrispondente quando si modifica o usa una definizione. Gli endpoint
+di elenco preesistenti restano disponibili per selettori e integrazioni. Queste route del
+client web non cambiano il contratto versionato dell'API pubblica o gli scope delle chiavi.

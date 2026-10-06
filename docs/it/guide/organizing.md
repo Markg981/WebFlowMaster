@@ -6,6 +6,16 @@
 salvato l'ultima volta. Cercate per nome, o filtrate cliccando un tag. Da ogni riga si apre la
 **Cronologia**, si cambiano i tag o si **Elimina** il test (con la sua cronologia).
 
+La libreria carica 25 riepiloghi per pagina e mostra il totale che corrisponde ai filtri.
+Usate **Precedente** e **Successiva** per sfogliare. La ricerca per nome ignora maiuscole e
+minuscole e cerca testo letterale (anche `%` e `_`); più tag selezionati richiedono tutti i
+tag. I filtri per progetto e stato si applicano prima della paginazione; cambiare filtro
+riporta alla prima pagina. Anche test API, test mobile e dati di test condivisi usano elenchi
+paginati. Le definizioni complete vengono caricate quando servono: modificare un test manuale
+o BDD carica i passi, modificare un set carica la tabella, caricare o eseguire un test API/mobile
+carica la configurazione eseguibile. Gli elenchi contengono metadati e conteggi, senza tutti
+i passi o i valori dei dataset.
+
 I **tag** sono le etichette della vostra organizzazione — `smoke`, `checkout`, `nightly` — e si
 aggiungono dalla riga del test. Sono ciò con cui le [suite dinamiche](#suite) selezionano i test.
 
@@ -209,6 +219,12 @@ salvato (**Scegli una sequenza**), selezionate i casi ed **Esegui i selezionati*
 caso compaiono lo stato e l'ultimo report.
 
 ## Dati di test condivisi {#test-data}
+
+Il gestore elenca nomi, descrizioni e conteggi di righe/colonne in pagine di 25, con totale
+dei risultati e controlli **Precedente/Successiva**. Cercate per nome letterale, senza
+distinguere maiuscole e minuscole. **Modifica** carica colonne e righe del solo set scelto;
+sfogliare l'elenco non scarica tutte le tabelle. Creare, modificare o eliminare un set
+aggiorna l'elenco.
 
 Gli stessi clienti, prodotti o carte venivano copiati da un test all'altro, e finivano per
 divergere. **Dati di test** li tiene una volta per tutta l'organizzazione: un set ha un nome

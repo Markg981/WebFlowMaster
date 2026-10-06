@@ -4428,5 +4428,19 @@
     "evidenceError": "Einige Ausführungsnachweise konnten nicht gespeichert werden. Testergebnisse bleiben erhalten.",
     "executionDeferred": "Monatliches Ausführungskontingent erschöpft: Dieser Lauf wartet auf Kapazität oder den nächsten UTC-Monat.",
     "evidenceUnavailable": "Nachweis nicht verfügbar: nicht im Artefaktspeicher aufbewahrt."
-  }
+  },
+  "catalog": {
+    "pagination": "Katalogseiten",
+    "count": "{{total}} Einträge · Seite {{page}} von {{pages}}",
+    "pageSize": "Einträge pro Seite",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "search": "Nach Namen suchen",
+    "loading": "Wird geladen…",
+    "loadingDetails": "Details werden geladen…",
+    "noMatches": "Keine Einträge entsprechen dem Filter.",
+    "detailFailed": "Details konnten nicht geladen werden",
+    "searchTests": "Tests suchen",
+    "loadFailed": "Katalog konnte nicht geladen werden."
+}
 }
