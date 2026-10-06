@@ -32,6 +32,14 @@ test('scan gate blocks HIGH/CRITICAL including unfixed findings and malformed re
   for (const Severity of ['HIGH', 'CRITICAL']) assert.throws(() => assertScanPassed({ SchemaVersion: 2, Results: [{ Vulnerabilities: [{ Severity }] }] }));
   for (const report of [{}, { SchemaVersion: 2 }, { SchemaVersion: 2, Results: [null] }, { SchemaVersion: 2, Results: [{ Vulnerabilities: [{}] }] }, { SchemaVersion: 2, Results: [{ Vulnerabilities: {} }] }]) assert.throws(() => assertScanPassed(report));
 });
+
+test('blocked scan diagnostics identify each affected lockfile, package and advisory', () => {
+  const report = { SchemaVersion: 2, Results: ['package-lock.json', 'client/package-lock.json'].map(Target => ({ Target, Vulnerabilities: [{ Severity: 'HIGH', PkgName: 'braces', InstalledVersion: '3.0.3', VulnerabilityID: 'CVE-2026-93687' }] })) };
+  assert.throws(() => assertSourceScanPassed(report), error =>
+    /blocked by 2 HIGH\/CRITICAL/.test(error.message) &&
+    /package-lock\.json: braces@3\.0\.3 \[CVE-2026-93687, HIGH\]/.test(error.message) &&
+    /client\/package-lock\.json: braces@3\.0\.3 \[CVE-2026-93687, HIGH\]/.test(error.message));
+});
 test('repository inputs capture ordered journal, all SQL hashes and locked bases', () => {
   const inputs = readReleaseInputs(process.cwd());
   assert.ok(inputs.migrations.length > 80);

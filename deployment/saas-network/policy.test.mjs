@@ -98,3 +98,22 @@ test('compose has standalone guarded namespaces, private stores and mandatory se
   assert.match(guard, /--dport 3128/);
   assert.match(guard, /--dport 5000/);
 });
+
+test('transport browser fixtures use the locked and digest-pinned production Playwright base', () => {
+  const harness = parse(readFileSync(new URL('./check.compose.yml', import.meta.url), 'utf8'), { merge: true });
+  const lock = JSON.parse(readFileSync(new URL('../../package-lock.json', import.meta.url), 'utf8'));
+  const expectedVersion = lock.packages['node_modules/playwright'].version;
+  const dockerfiles = ['../../Dockerfile', '../../Dockerfile.worker'].map(path => {
+    const dockerfile = readFileSync(new URL(path, import.meta.url), 'utf8');
+    return dockerfile.match(/^FROM\s+(mcr\.microsoft\.com\/playwright:\S+)/m)?.[1];
+  });
+  for (const name of ['transport', 'transport-fixture']) {
+    const image = harness.services[name].image;
+    assert.match(image, new RegExp(`^mcr\\.microsoft\\.com/playwright:v${expectedVersion.replaceAll('.', '\\.')}-[a-z]+@sha256:[a-f0-9]{64}$`), `${name} must provide the browsers requested by the locked Playwright runtime`);
+    for (const base of dockerfiles) assert.equal(image, base, `${name} must reuse the verified production base`);
+    assert.deepEqual(harness.services[name].cap_drop, ['ALL']);
+    assert.deepEqual(harness.services[name].security_opt, ['no-new-privileges:true']);
+  }
+  assert.equal(harness.services.transport.network_mode, 'service:worker-guard');
+  assert.equal(harness.services['transport-fixture'].network_mode, 'service:public');
+});

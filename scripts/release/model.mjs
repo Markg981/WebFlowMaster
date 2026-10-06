@@ -54,8 +54,10 @@ export function assertScanPassed(report) {
       if (!['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(vulnerability?.Severity)) throw new Error('Malformed vulnerability severity');
     }
   }
-  const blocked = report.Results.flatMap(result => result.Vulnerabilities ?? []).filter(v => ['HIGH', 'CRITICAL'].includes(v.Severity));
-  if (blocked.length) throw new Error(`Release blocked by ${blocked.length} HIGH/CRITICAL vulnerabilities`);
+  const blocked = report.Results.flatMap(result => (result.Vulnerabilities ?? [])
+    .filter(v => ['HIGH', 'CRITICAL'].includes(v.Severity))
+    .map(v => `${result.Target ?? 'unknown target'}: ${v.PkgName ?? 'unknown package'}@${v.InstalledVersion ?? 'unknown version'} [${v.VulnerabilityID ?? 'unknown advisory'}, ${v.Severity}]`));
+  if (blocked.length) throw new Error(`Release blocked by ${blocked.length} HIGH/CRITICAL vulnerabilities:\n${blocked.slice(0, 20).join('\n')}${blocked.length > 20 ? '\nSee the complete scan report for remaining findings.' : ''}`);
 }
 
 export function assertSourceScanPassed(report) {
