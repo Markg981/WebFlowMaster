@@ -1,12 +1,33 @@
 import { Router } from "express";
-import { reportingService } from "../reporting-service";
 import { junitReportFor } from "../junit-report";
 import loggerPromise from "../logger";
 import { requireRole } from "../middleware/require-role";
 import { exportRun, isReportExportFormat, REPORT_EXPORT_FORMATS, ReportExportError, sendExport } from "../report-export";
+import { z } from 'zod';
+import { executionOrchestrator, ExecutionEnqueueError } from '../execution-orchestrator';
+import { QuotaError, quotaErrorBody } from '../tenant-quotas';
 
 const router = Router();
 const logger = await loggerPromise;
+
+router.post('/api/test-plan-executions/:executionId/replay', requireRole('editor'), async (req, res) => {
+    if (!req.isAuthenticated() || !req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const id = z.string().uuid().safeParse(req.params.executionId);
+    const body = z.object({ mode: z.literal('historical') }).strict().safeParse(req.body);
+    const key = req.get('Idempotency-Key');
+    if (!id.success || !body.success || (key !== undefined && (!key.trim() || key.length > 200)))
+        return res.status(400).json({ error: 'Replay requires a valid execution id and mode historical.' });
+    try {
+        const execution = await executionOrchestrator.replay(id.data, req.user.id, key?.trim());
+        // Returning the snapshot would expose retained auth parameters and dataset values.
+        res.status(202).json({ id: execution.id, testPlanId: execution.testPlanId, status: execution.status });
+    } catch (error) {
+        if (error instanceof ExecutionEnqueueError) return res.status(error.status).json({ error: error.message, code: error.code });
+        if (error instanceof QuotaError) return res.status(error.status).json(quotaErrorBody(error));
+        logger.error({ message: 'Could not replay execution', executionId: id.data, error: (error as Error).message });
+        res.status(500).json({ error: 'Could not replay execution' });
+    }
+});
 
 /**
  * GET /api/test-plan-executions/:executionId/junit — the run as JUnit XML.

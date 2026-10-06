@@ -51,6 +51,8 @@ export interface AllureExportOptions {
 export function buildAllureResults(model: ReportModel, options: AllureExportOptions = {}): ZipEntry[] {
   const uuid = options.uuid ?? randomUUID;
   const files: ZipEntry[] = [];
+  const provenanceFile = 'execution-provenance.json';
+  files.push({ name: provenanceFile, data: Buffer.from(JSON.stringify(model.reproducibility ?? { available: false })) });
   const runStart = time(model.startedAt, time(model.queuedAt, Date.now()));
 
   for (const result of model.results) {
@@ -82,6 +84,7 @@ export function buildAllureResults(model: ReportModel, options: AllureExportOpti
       attachments.push({ name: 'Screenshot', source, type: image.contentType });
     }
 
+    attachments.push({ name: 'Queued input provenance', source: provenanceFile, type: 'application/json' });
     const failedStepIndex = result.steps.findIndex((step) => step.status === 'failed');
     const body = {
       uuid: id,

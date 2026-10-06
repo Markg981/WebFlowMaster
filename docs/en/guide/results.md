@@ -1,5 +1,21 @@
 # Results
 
+## Historical inputs and replay
+
+Reports show captured test versions, published/working source, SHA-256 per definition and
+fingerprints of datasets and retained configuration. HTML/PDF, Allure and JUnit exports include
+provenance without snapshot values or credentials.
+
+Editors and owners can choose **Replay historical configuration** and confirm a new manual run.
+It uses retained tests, dataset values, browser choices and settings even after catalog or plan
+changes. The new report links to its source and retains identical input fingerprints. Deleted
+tests can produce results from saved definitions; the source plan must still exist. Reports
+without verified queued inputs offer no historical replay.
+
+Current access, review and quotas apply. Environment secrets, saved sessions, devices, browser
+binaries, BDD profiles, integrations and the application under test use current state. External
+changes can change the outcome. Replay does not update the original CI build status.
+
 ## Dashboard
 
 The **Dashboard** shows how the latest runs went, the pass and fail counts of the last 30 days,

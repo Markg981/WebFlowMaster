@@ -4442,5 +4442,26 @@
     "detailFailed": "Impossible de charger les détails",
     "searchTests": "Rechercher des tests",
     "loadFailed": "Impossible de charger le catalogue."
-}
+  },
+  "reproducibility": {
+    "title": "Entrées mises en file et réexécution historique",
+    "captured": "Entrées figées à la mise en file",
+    "inputs": "Empreinte des entrées (SHA-256)",
+    "datasets": "Empreinte des jeux de données (SHA-256)",
+    "unversioned": "Sans version",
+    "published": "Publié",
+    "working": "Copie de travail",
+    "legacy": "Cette exécution ne conserve pas toutes les entrées vérifiées. La réexécution historique est indisponible.",
+    "source": "Réexécution historique de",
+    "live": "Variables et secrets, grilles, agents, navigateurs, profils BDD, quarantaine, règles de validation, intégrations et application testée sont résolus au moment de l’exécution.",
+    "replay": "Réexécuter la configuration historique",
+    "confirmTitle": "Réexécuter ces entrées historiques ?",
+    "confirmBody": "Une nouvelle exécution manuelle utilise les définitions, jeux de données et paramètres conservés. Les accès, validations et quotas actuels s’appliquent ; les dépendances externes utilisent leur état actuel.",
+    "confirm": "Mettre la réexécution en file",
+    "queued": "Ouvrir la réexécution en file",
+    "failed": "Impossible de mettre la réexécution historique en file.",
+    "dataSource": "Source du jeu de données",
+    "inline": "Intégré ou absent",
+    "rows": "lignes"
+  }
 }

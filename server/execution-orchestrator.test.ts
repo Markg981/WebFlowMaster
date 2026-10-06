@@ -13,6 +13,7 @@ import {
   testPlans,
   testDataSets,
   apiTests,
+  organizations,
   tests as testsTable,
   users,
 } from '@shared/schema';
@@ -152,6 +153,123 @@ afterEach(async () => {
 });
 
 describe('enqueue', () => {
+  it('applies the current queue quota to historical replay without creating another execution', async () => {
+    const orchestrator = createExecutionOrchestrator(capturingQueue());
+    const first = await orchestrator.enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+    await privilegedDb.update(organizations).set({ quotaMode: 'enforce', maxQueuedRuns: 1 }).where(eq(organizations.id, organizationId));
+    await expect(runWithTenant(organizationId, () => orchestrator.replay(first.id, userId))).rejects.toMatchObject({ status: 429, code: 'queue_quota_exceeded' });
+    expect(await privilegedDb.select().from(testPlanExecutions)).toHaveLength(1);
+  });
+
+  it('pins API publication content and records the captured version', async () => {
+    const runner = await import('./api-test-runner');
+    const run = vi.spyOn(runner, 'runApiRequest').mockResolvedValue({ passed: true, assertions: [], extracted: {}, status: 200, headers: {}, body: '{}', duration: 1 } as any);
+    try {
+      const { recordTypedTestVersion } = await import('./test-version-store');
+      const { publish } = await import('./test-publishing');
+      const { withTenantTransaction } = await import('./middleware/tenancy');
+      const [api] = await privilegedDb.insert(apiTests).values({ organizationId, userId, name: 'Published API', method: 'GET', url: 'https://published.test' }).returning();
+      await runWithTenant(organizationId, () => withTenantTransaction(async tx => {
+        await recordTypedTestVersion(tx, { testType: 'api', testId: api.id, organizationId, userId, test: api });
+        await publish(tx, api.id, organizationId, { id: userId, username: 'qa' }, undefined, 'api');
+      }));
+      await privilegedDb.delete(testPlanSelectedTests).where(eq(testPlanSelectedTests.testPlanId, planId));
+      await privilegedDb.insert(testPlanSelectedTests).values({ organizationId, testPlanId: planId, testType: 'api', apiTestId: api.id });
+      const execution = await createExecutionOrchestrator(capturingQueue()).enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+      const [changed] = await privilegedDb.update(apiTests).set({ url: 'https://next.test' }).where(eq(apiTests.id, api.id)).returning();
+      await runWithTenant(organizationId, () => withTenantTransaction(async tx => {
+        await recordTypedTestVersion(tx, { testType: 'api', testId: api.id, organizationId, userId, test: changed });
+        await publish(tx, api.id, organizationId, { id: userId, username: 'qa' }, undefined, 'api');
+      }));
+      await processTestPlanJob(planId, execution.id, userId);
+      expect(run.mock.calls[0][0].url).toBe('https://published.test');
+      const [result] = await privilegedDb.select().from(reportTestCaseResults).where(eq(reportTestCaseResults.testPlanExecutionId, execution.id));
+      expect(result.testVersion).toBe(1);
+    } finally { run.mockRestore(); }
+  });
+  it('pins the published version and content even when another publication is selected before worker start', async () => {
+    const { recordTestVersion } = await import('./test-version-store');
+    const { publish } = await import('./test-publishing');
+    const { withTenantTransaction } = await import('./middleware/tenancy');
+    const [test] = await privilegedDb.select().from(testsTable).where(eq(testsTable.id, firstTestId));
+    await runWithTenant(organizationId, () => withTenantTransaction(tx => recordTestVersion(tx, { testId: test.id, organizationId, userId, test })));
+    await runWithTenant(organizationId, () => withTenantTransaction(tx => publish(tx, test.id, organizationId, { id: userId, username: 'qa' })));
+    const execution = await createExecutionOrchestrator(capturingQueue()).enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+    const [changed] = await privilegedDb.update(testsTable).set({ url: 'https://next.test' }).where(eq(testsTable.id, firstTestId)).returning();
+    await runWithTenant(organizationId, () => withTenantTransaction(tx => recordTestVersion(tx, { testId: test.id, organizationId, userId, test: changed })));
+    await runWithTenant(organizationId, () => withTenantTransaction(tx => publish(tx, test.id, organizationId, { id: userId, username: 'qa' })));
+    await processTestPlanJob(planId, execution.id, userId);
+    expect(executeTestSequence.mock.calls[0][0].url).toBe(test.url);
+    const [result] = await privilegedDb.select().from(reportTestCaseResults).where(eq(reportTestCaseResults.testPlanExecutionId, execution.id));
+    expect(result.testVersion).toBe(1);
+    expect((execution.configurationSnapshot as any).provenance.definitions[0]).toMatchObject({ version: 1, source: 'published' });
+  });
+
+  it('honors current mandatory review without substituting a newly published working definition', async () => {
+    const execution = await createExecutionOrchestrator(capturingQueue()).enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+    await privilegedDb.update(organizations).set({ testReviewRequired: true }).where(eq(organizations.id, organizationId));
+    await processTestPlanJob(planId, execution.id, userId);
+    expect(executeTestSequence).not.toHaveBeenCalled();
+    const [result] = await privilegedDb.select().from(reportTestCaseResults).where(eq(reportTestCaseResults.testPlanExecutionId, execution.id));
+    expect(result).toMatchObject({ status: 'Skipped', reasonForFailure: expect.stringContaining('Not published') });
+  });
+  it('keeps a frozen UI result after the source definition is deleted', async () => {
+    const execution = await createExecutionOrchestrator(capturingQueue()).enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+    await privilegedDb.delete(testsTable).where(eq(testsTable.id, firstTestId));
+    await processTestPlanJob(planId, execution.id, userId);
+    const [result] = await privilegedDb.select().from(reportTestCaseResults).where(eq(reportTestCaseResults.testPlanExecutionId, execution.id));
+    expect(result).toMatchObject({ testName: 'first', uiTestId: null, status: 'Passed' });
+  });
+  it('executes the UI definition captured at enqueue after the working copy changes', async () => {
+    await privilegedDb.update(testsTable).set({ sequence: [{ action: { id: 'navigate' }, value: 'queued' }] }).where(eq(testsTable.id, firstTestId));
+    const execution = await createExecutionOrchestrator(capturingQueue()).enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+    await privilegedDb.update(testsTable).set({ name: 'Changed', url: 'https://changed.test', sequence: [] }).where(eq(testsTable.id, firstTestId));
+    await processTestPlanJob(planId, execution.id, userId);
+    expect(executeTestSequence.mock.calls[0][0]).toMatchObject({ name: 'first', url: 'https://example.test/first', sequence: [{ value: 'queued' }] });
+  });
+
+  it.each(['edit', 'delete'] as const)('executes the API definition captured at enqueue after %s of its working copy', async (change) => {
+    const runner = await import('./api-test-runner');
+    const request = vi.spyOn(runner, 'runApiRequest').mockResolvedValue({ passed: true, assertions: [], extracted: {}, status: 200, headers: {}, body: '{}', duration: 1 } as any);
+    try {
+      const [api] = await privilegedDb.insert(apiTests).values({ organizationId, userId, name: 'Frozen API', method: 'GET', url: 'https://queued.test', requestBody: 'queued' }).returning();
+      await privilegedDb.delete(testPlanSelectedTests).where(eq(testPlanSelectedTests.testPlanId, planId));
+      await privilegedDb.insert(testPlanSelectedTests).values({ organizationId, testPlanId: planId, testType: 'api', apiTestId: api.id });
+      const execution = await createExecutionOrchestrator(capturingQueue()).enqueue({ planId, requestedByUserId: userId, trigger: 'api' });
+      if (change === 'delete') await privilegedDb.delete(apiTests).where(eq(apiTests.id, api.id));
+      else await privilegedDb.update(apiTests).set({ url: 'https://changed.test', requestBody: 'changed' }).where(eq(apiTests.id, api.id));
+      await processTestPlanJob(planId, execution.id, userId);
+      expect(request.mock.calls[0][0]).toMatchObject({ url: 'https://queued.test', body: 'queued' });
+      const [result] = await privilegedDb.select().from(reportTestCaseResults).where(eq(reportTestCaseResults.testPlanExecutionId, execution.id));
+      expect(result).toMatchObject({ testName: 'Frozen API', status: 'Passed', apiTestId: change === 'delete' ? null : api.id });
+    } finally { request.mockRestore(); }
+  });
+
+  it('replays the historical snapshot after plan edits, preserving fingerprints and source lineage', async () => {
+    const orchestrator = createExecutionOrchestrator(capturingQueue());
+    const first = await orchestrator.enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+    await privilegedDb.update(testPlans).set({ name: 'New plan', maxParallelTests: 7 }).where(eq(testPlans.id, planId));
+    await privilegedDb.update(testsTable).set({ url: 'https://changed.test' }).where(eq(testsTable.id, firstTestId));
+    const replay = await runWithTenant(organizationId, () => orchestrator.replay(first.id, userId, 'replay-key'));
+    expect(replay.id).not.toBe(first.id);
+    expect(replay.configurationSnapshot).toMatchObject({ plan: { name: 'Checkout' }, maxParallelTests: 2, replayOf: { executionId: first.id } });
+    expect((replay.configurationSnapshot as any).provenance.inputFingerprint).toBe((first.configurationSnapshot as any).provenance.inputFingerprint);
+    expect((await runWithTenant(organizationId, () => orchestrator.replay(first.id, userId, 'replay-key'))).id).toBe(replay.id);
+    await processTestPlanJob(planId, replay.id, userId);
+    expect(executeTestSequence.mock.calls[0][0].url).toBe('https://example.test/first');
+  });
+
+  it('refuses replay of legacy, tampered and foreign snapshots', async () => {
+    const orchestrator = createExecutionOrchestrator(capturingQueue());
+    const execution = await orchestrator.enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
+    await expect(runWithTenant(otherOrganizationId, () => orchestrator.replay(execution.id, outsiderId))).rejects.toMatchObject({ status: 404 });
+    const changed = structuredClone(execution.configurationSnapshot) as any;
+    changed.maxParallelTests = 99;
+    await privilegedDb.update(testPlanExecutions).set({ configurationSnapshot: changed }).where(eq(testPlanExecutions.id, execution.id));
+    await expect(runWithTenant(organizationId, () => orchestrator.replay(execution.id, userId))).rejects.toMatchObject({ status: 409 });
+    await privilegedDb.update(testPlanExecutions).set({ configurationSnapshot: {} }).where(eq(testPlanExecutions.id, execution.id));
+    await expect(runWithTenant(organizationId, () => orchestrator.replay(execution.id, userId))).rejects.toMatchObject({ status: 409 });
+  });
   it('passes shared values frozen at enqueue to API requests', async () => {
     const runner = await import('./api-test-runner');
     const request = vi.spyOn(runner, 'runApiRequest').mockResolvedValue({ passed: true, assertions: [], extracted: {}, status: 200, headers: {}, body: '{}', duration: 1 } as any);
@@ -220,6 +338,8 @@ describe('enqueue', () => {
     const execution = await createExecutionOrchestrator(capturingQueue()).enqueue({ planId, requestedByUserId: userId, trigger: 'manual' });
     const legacy = { ...(execution.configurationSnapshot as Record<string, unknown>) };
     delete legacy.datasets;
+    delete legacy.definitions;
+    delete legacy.provenance;
     await privilegedDb.update(testPlanExecutions).set({ configurationSnapshot: legacy }).where(eq(testPlanExecutions.id, execution.id));
     await privilegedDb.update(testsTable).set({ dataset: [{ sku: 'live' }] }).where(eq(testsTable.id, firstTestId));
     await processTestPlanJob(planId, execution.id, userId);

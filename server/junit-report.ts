@@ -2,6 +2,8 @@ import { asc, eq } from 'drizzle-orm';
 import { reportTestCaseResults, testPlanExecutions, testPlans } from '@shared/schema';
 import { buildJUnitXml } from './junit';
 import { withTenantTransaction } from './middleware/tenancy';
+import { reproducibilitySummary } from './execution-provenance';
+import { readExecutionSnapshot } from './execution-snapshot';
 
 /**
  * A run as JUnit XML, or null when there is no such run in the caller's organization.
@@ -18,6 +20,7 @@ export async function junitReportFor(executionId: string): Promise<string | null
         startedAt: testPlanExecutions.startedAt,
         planName: testPlans.name,
         testPlanId: testPlanExecutions.testPlanId,
+        configurationSnapshot: testPlanExecutions.configurationSnapshot,
       })
       .from(testPlanExecutions)
       .leftJoin(testPlans, eq(testPlanExecutions.testPlanId, testPlans.id))
@@ -34,8 +37,10 @@ export async function junitReportFor(executionId: string): Promise<string | null
   });
 
   if (!source) return null;
+  const reproducibility = reproducibilitySummary(source.execution.configurationSnapshot);
   return buildJUnitXml({
-    planName: source.execution.planName ?? source.execution.testPlanId,
+    planName: readExecutionSnapshot(source.execution.configurationSnapshot)?.plan.name ?? source.execution.planName ?? source.execution.testPlanId,
+    properties: { 'wfm.reproducibility': JSON.stringify(reproducibility) },
     executionId,
     startedAt: source.execution.startedAt,
     results: source.results,

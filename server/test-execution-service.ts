@@ -59,6 +59,7 @@ import {
 import { fileFailure, loadTracker, markResolved } from './issue-store';
 import { publishExecution } from './test-management';
 import { currentContentOf, currentVersionsOf } from './test-version-store';
+import { reproducibilitySummary } from './execution-provenance';
 import { publishedContentOf, reviewRequired } from './test-publishing';
 import { failuresOf, openQuarantinesOf, refKey } from './test-quarantine';
 import { describeNetworkFailures, type NetworkSummary } from '@shared/network';
@@ -704,6 +705,8 @@ async function runTestPlanJobInTenant(
   // What this run was asked to do, as it was asked. Everything below reads it and not the plan,
   // so a plan edited while the run waited does not change what the run does.
   const snapshot = await snapshotForRun(planId, executionRecord[0], jobOptions);
+  if (snapshot.definitions && !reproducibilitySummary(snapshot).available)
+    throw new Error('The queued execution inputs are incomplete or their fingerprints do not match.');
   const environmentId = snapshot.environmentId;
 
   const configuredBrowsers =
@@ -943,7 +946,9 @@ async function runTestPlanJobInTenant(
   const apiTestIds = selectedTestsLinks.filter(l => l.testType === 'api' && l.apiTestId).map(l => l.apiTestId as number);
 
   const uiTestsMap = new Map<number, Test>();
-  if (uiTestIds.length > 0) {
+  if (snapshot.definitions) {
+    snapshot.definitions.ui.forEach(row => uiTestsMap.set(row.id, structuredClone(row.definition)));
+  } else if (uiTestIds.length > 0) {
     // No organization predicate: RLS supplies it. These ids come from the join rows above, and
     // the create/update handlers validate them against the caller's organization, but this is
     // the query that used to make an unvalidated foreign id executable.
@@ -957,7 +962,9 @@ async function runTestPlanJobInTenant(
   // result. Without it the history of a test and the runs of it sit side by side and never
   // meet, so "did the application change, or did the test?" stays a question somebody has to
   // answer by reading dates.
-  const testVersionsInRun = uiTestIds.length > 0
+  const testVersionsInRun = snapshot.definitions
+    ? new Map(snapshot.definitions.ui.flatMap(row => row.version === null ? [] : [[row.id, row.version] as [number, number]]))
+    : uiTestIds.length > 0
     ? await withTenantTransaction((tx) => currentVersionsOf(tx, uiTestIds))
     : new Map<number, number>();
 
@@ -966,7 +973,12 @@ async function runTestPlanJobInTenant(
   // version. Where the organization requires review, a test never published does not run at all:
   // running an unreviewed working copy is what the policy exists to prevent.
   const unpublishedUnderPolicy = new Map<string, string>();
-  if (uiTestIds.length > 0) {
+  if (snapshot.definitions) {
+    const required = await withTenantTransaction(tx => reviewRequired(tx, executionRecord[0].organizationId));
+    if (required) for (const row of [...snapshot.definitions.ui.map(row => ({ ...row, kind: 'ui' })), ...snapshot.definitions.api.map(row => ({ ...row, kind: 'api' }))]) {
+      if (row.source !== 'published') unpublishedUnderPolicy.set(`${row.kind}:${row.id}`, 'Not published: this organization runs reviewed, published versions only.');
+    }
+  } else if (uiTestIds.length > 0) {
     const { published, required } = await withTenantTransaction(async (tx) => ({
       published: await publishedContentOf(tx, uiTestIds),
       required: await reviewRequired(tx, executionRecord[0].organizationId),
@@ -1022,7 +1034,9 @@ async function runTestPlanJobInTenant(
   }
 
   const apiTestsMap = new Map<number, ApiTest>();
-  if (apiTestIds.length > 0) {
+  if (snapshot.definitions) {
+    snapshot.definitions.api.forEach(row => apiTestsMap.set(row.id, structuredClone(row.definition)));
+  } else if (apiTestIds.length > 0) {
     const apiTests = await withTenantTransaction((tx) =>
       tx.select().from(apiTestsTable).where(inArray(apiTestsTable.id, apiTestIds)),
     );
@@ -1033,7 +1047,7 @@ async function runTestPlanJobInTenant(
   // "run on" do not apply to a device, so the test says where it runs.
   const mobileTestIds = selectedTestsLinks.filter(l => l.testType === 'mobile' && l.mobileTestId).map(l => l.mobileTestId as number);
   const mobileTestsMap = new Map<number, { test: MobileTest; grid: BrowserGrid | null }>();
-  if (mobileTestIds.length > 0) {
+  if (!snapshot.mobileDefinitions && mobileTestIds.length > 0) {
     const rows = await withTenantTransaction((tx) =>
       tx
         .select({ test: mobileTestsTable, grid: browserGrids })
@@ -1045,7 +1059,7 @@ async function runTestPlanJobInTenant(
   }
 
   // Each protocol has its own id space; API 4 and mobile 4 are different tests.
-  const apiVersionsInRun = new Map<number, number>();
+  const apiVersionsInRun = new Map<number, number>(snapshot.definitions?.api.flatMap(row => row.version === null ? [] : [[row.id, row.version] as [number, number]]) ?? []);
   const mobileVersionsInRun = new Map<number, number>();
   await withTenantTransaction(async (tx) => {
     const required = await reviewRequired(tx, executionRecord[0].organizationId);
@@ -1053,6 +1067,7 @@ async function runTestPlanJobInTenant(
       ['api', apiTestIds, apiVersionsInRun],
       ['mobile', mobileTestIds, mobileVersionsInRun],
     ] as const) {
+      if ((kind === 'api' && snapshot.definitions) || (kind === 'mobile' && snapshot.mobileDefinitions)) continue;
       if (!ids.length) continue;
       const current = await currentContentOf(tx, ids, kind);
       const published = await publishedContentOf(tx, ids, kind);
@@ -1584,7 +1599,23 @@ async function runTestPlanJobInTenant(
     };
 
     try {
-      await withTenantTransaction((tx) => tx.insert(reportTestCaseResultsTable).values(newReportEntry));
+      await withTenantTransaction(async tx => {
+        // A frozen test remains executable after deletion. Keep its identity in provenance,
+        // but only link the result to a live row. Locks protect this check from concurrent deletes.
+        if (snapshot.definitions && newReportEntry.uiTestId) {
+          const [live] = await tx.select({ id: testsTable.id }).from(testsTable).where(eq(testsTable.id, newReportEntry.uiTestId)).for('key share');
+          if (!live) newReportEntry.uiTestId = null;
+        }
+        if (snapshot.definitions && newReportEntry.apiTestId) {
+          const [live] = await tx.select({ id: apiTestsTable.id }).from(apiTestsTable).where(eq(apiTestsTable.id, newReportEntry.apiTestId)).for('key share');
+          if (!live) newReportEntry.apiTestId = null;
+        }
+        if (snapshot.mobileDefinitions && newReportEntry.mobileTestId) {
+          const [live] = await tx.select({ id: mobileTestsTable.id }).from(mobileTestsTable).where(eq(mobileTestsTable.id, newReportEntry.mobileTestId)).for('key share');
+          if (!live) newReportEntry.mobileTestId = null;
+        }
+        await tx.insert(reportTestCaseResultsTable).values(newReportEntry);
+      });
     } catch (dbInsertError: any) {
       resolvedLogger.error({ message: 'Failed to insert into reportTestCaseResultsTable', entry: newReportEntry, error: dbInsertError.message });
       // Continue execution, this test result might be missing from detailed report but plan will complete.

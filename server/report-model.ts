@@ -4,6 +4,9 @@ import { reportTestCaseResults, testPlanExecutions, testPlans } from '@shared/sc
 import type { AccessibilityFinding } from '@shared/accessibility';
 import type { NetworkSummary } from '@shared/network';
 import type { CiContext } from '@shared/ci';
+import type { ReproducibilitySummary } from '@shared/execution-provenance';
+import { reproducibilitySummary } from './execution-provenance';
+import { readExecutionSnapshot } from './execution-snapshot';
 import { withTenantTransaction } from './middleware/tenancy';
 import { artifactStore, assertSafeKey, contentTypeFor, RESULTS_PREFIX } from './artifact-store';
 
@@ -48,6 +51,7 @@ export interface ReportResultModel {
 }
 
 export interface ReportModel {
+  reproducibility?: ReproducibilitySummary;
   executionId: string;
   planId: string;
   planName: string;
@@ -129,7 +133,8 @@ export async function loadReportModel(executionId: string): Promise<ReportModel 
   return {
     executionId: execution.id,
     planId: execution.testPlanId,
-    planName: planName ?? execution.testPlanId,
+    planName: readExecutionSnapshot(execution.configurationSnapshot)?.plan.name ?? planName ?? execution.testPlanId,
+    reproducibility: reproducibilitySummary(execution.configurationSnapshot),
     status: execution.status,
     trigger: execution.triggeredBy,
     environment: execution.environment ?? null,

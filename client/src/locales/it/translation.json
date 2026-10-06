@@ -4561,5 +4561,26 @@
     "loadingDetails": "Caricamento dettagli…",
     "searchTests": "Cerca test",
     "loadFailed": "Impossibile caricare il catalogo."
-}
+  },
+  "reproducibility": {
+    "title": "Input accodati e replay storico",
+    "captured": "Input fissati all’accodamento",
+    "inputs": "Impronta degli input (SHA-256)",
+    "datasets": "Impronta dei dataset (SHA-256)",
+    "unversioned": "Senza versione",
+    "published": "Pubblicato",
+    "working": "Copia di lavoro",
+    "legacy": "Questo run non conserva input accodati verificati. Il replay storico non è disponibile.",
+    "source": "Replay storico di",
+    "live": "Variabili e segreti di ambiente, griglie, agenti, browser, profili BDD, quarantena, policy di review, integrazioni e applicazione sotto test vengono risolti al momento dell’esecuzione.",
+    "replay": "Riesegui configurazione storica",
+    "confirmTitle": "Rieseguire questi input storici?",
+    "confirmBody": "Un nuovo run manuale usa definizioni, dataset e impostazioni del piano conservati. Si applicano accessi, review e quote attuali; le dipendenze esterne usano lo stato corrente.",
+    "confirm": "Accoda replay storico",
+    "queued": "Apri replay accodato",
+    "failed": "Impossibile accodare il replay storico.",
+    "dataSource": "Origine del dataset",
+    "inline": "Inline o assente",
+    "rows": "righe"
+  }
 }

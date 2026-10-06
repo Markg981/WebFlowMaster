@@ -3,6 +3,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import TestReportPage from './TestReportPage';
+vi.mock('@/hooks/use-auth', () => ({ useAuth: () => ({ user: { role: 'viewer' } }) }));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({

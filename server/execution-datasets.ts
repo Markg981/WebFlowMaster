@@ -21,20 +21,21 @@ export async function freezeExecutionDatasets(
   tx: TenantTx,
   organizationId: number,
   testIds: number[],
+  frozenUi?: Array<{ id: number; name: string; dataset: unknown }>,
 ): Promise<FrozenExecutionDatasets> {
   const sets = await tx
     .select()
     .from(testDataSets)
     .where(eq(testDataSets.organizationId, organizationId));
   const ids = [...new Set(testIds)];
-  const rows = ids.length
+  const rows = frozenUi ?? (ids.length
     ? await tx
         .select()
         .from(tests)
         .where(and(inArray(tests.id, ids), eq(tests.organizationId, organizationId)))
-    : [];
+    : []);
   // Match the worker's dataset choice: publication wins over the working copy.
-  const published = await publishedContentOf(
+  const published = frozenUi ? new Map() : await publishedContentOf(
     tx,
     rows.map((row) => row.id),
   );

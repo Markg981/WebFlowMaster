@@ -26,6 +26,7 @@ export interface JUnitResultRow {
 }
 
 export interface JUnitInput {
+  properties?: Record<string, string>;
   planName: string;
   executionId: string;
   startedAt?: Date | string | null;
@@ -178,6 +179,7 @@ export function buildJUnitXml(input: JUnitInput): string {
       `  <testsuite name="${escapeXml(suiteName)}" tests="${rows.length}" failures="${counts.failures}" ` +
         `errors="${counts.errors}" skipped="${counts.skipped}" time="${seconds(counts.timeMs)}"` +
         `${suiteTimestamp ? ` timestamp="${escapeXml(suiteTimestamp)}"` : ''}>\n` +
+        (input.properties ? `    <properties>${Object.entries(input.properties).map(([name, value]) => `<property name="${escapeXml(name)}" value="${escapeXml(value)}"/>`).join('')}</properties>\n` : '') +
         `${cases.join('\n')}${cases.length > 0 ? '\n' : ''}` +
         `  </testsuite>`,
     );

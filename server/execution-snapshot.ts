@@ -32,6 +32,9 @@ export interface SnapshotTestReference {
 }
 
 export interface ExecutionSnapshot {
+  definitions?: import('./execution-definitions').FrozenTestDefinitions;
+  provenance?: import('@shared/execution-provenance').ExecutionProvenance;
+  replayOf?: { executionId: string; requestedAt: string };
   /** Absent on historical runs; present even when there are no shared values or rows. */
   datasets?: import('./execution-datasets').FrozenExecutionDatasets;
   mobileDefinitions?: import('./mobile-plan-units').FrozenMobileDefinition[];

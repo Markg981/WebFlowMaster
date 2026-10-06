@@ -137,6 +137,14 @@ export function renderReportHtml(model: ReportModel, options: HtmlRenderOptions 
   </div>
   ${model.evidencePurged ? '<p class="muted">Screenshots, videos and traces of this run were removed by the retention policy; its results are kept.</p>' : ''}
 
+  <h2>Queued inputs and historical replay</h2>
+  ${model.reproducibility?.provenance ? `<p>Captured at enqueue: ${escapeHtml(model.reproducibility.provenance.capturedAt)}</p>
+  <p class="mono">Input SHA-256: ${escapeHtml(model.reproducibility.provenance.inputFingerprint)}<br>Datasets SHA-256: ${escapeHtml(model.reproducibility.provenance.datasetsFingerprint)}</p>
+  <table><thead><tr><th>Test</th><th>Version / source</th><th>SHA-256</th></tr></thead><tbody>${model.reproducibility.provenance.definitions.map(row => `<tr><td>${escapeHtml(row.name)} (${escapeHtml(row.type)} #${row.id})</td><td>${row.version === null ? 'Unversioned' : `v${row.version}`} / ${escapeHtml(row.source)}</td><td class="mono" style="overflow-wrap:anywhere">${escapeHtml(row.fingerprint)}</td></tr>`).join('')}</tbody></table>` : '<p>This run does not retain verified queued inputs. Historical replay is unavailable.</p>'}
+  ${model.reproducibility?.replayOf ? `<p>Historical replay of <span class="mono">${escapeHtml(model.reproducibility.replayOf.executionId)}</span></p>` : ''}
+  <p class="muted">Environment variables and secrets, grids, agents, browser binaries, BDD profiles, quarantine, review policies, integrations and the application under test are resolved live.</p>
+  ${model.reproducibility?.provenance ? `<table><thead><tr><th>Dataset / UI test</th><th>Source revision</th><th>Rows / SHA-256</th></tr></thead><tbody>${model.reproducibility.provenance.datasets.map(row => `<tr><td>UI #${row.testId}</td><td>${row.source ? `${escapeHtml(row.source.name)} (#${row.source.id}, ${escapeHtml(row.source.updatedAt)})` : 'Inline or absent'}</td><td class="mono" style="overflow-wrap:anywhere">${row.rowCount} / ${escapeHtml(row.fingerprint)}</td></tr>`).join('')}</tbody></table>` : ''}
+
   ${failures.length ? `<h2>What failed (${failures.length})</h2>${failures.map((r) => failureSection(r, images.get(r.id))).join('')}` : ''}
 
   <h2>Every result</h2>
