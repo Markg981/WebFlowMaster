@@ -11,6 +11,10 @@ aggiungono dalla riga del test. Sono ciò con cui le [suite dinamiche](#suite) s
 
 ## Test manuali {#test-manuali}
 
+Usare **Libreria dei test → Nuovo test manuale** per salvare una procedura umana con i suoi passi.
+Il piano registra esiti senza trasformare le frasi in azioni browser. Revisione e pubblicazione
+seguono il flusso delle versioni. Vedere [Test BDD](./bdd-tests) per Gherkin e Cucumber.
+
 **File Gherkin/Cucumber.** In **File**, scegliete **Gherkin (.feature)** per esportare i test web,
 oppure aprite un `.feature` e visualizzate l'anteprima. Il Gherkin standard multilingua comprende
 Rule, Background, doc string, tabelle nei passi ed Examples con tag. Scegliete esecuzione manuale
@@ -156,12 +160,12 @@ mai scritto nulla. Si importano al massimo 500 elementi per volta.
 quelli di tutte le sue story, ciascuno una volta. La copertura si calcola dall'**ultimo risultato di
 ogni test**, tutti i browser di quel run insieme:
 
-| Copertura | Significa |
-|---|---|
-| **Passa** | Ogni test che lo copre è passato l'ultima volta che è stato eseguito. |
-| **Fallisce** | Almeno uno è fallito (su qualsiasi browser). |
+| Copertura        | Significa                                                                                                             |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Passa**        | Ogni test che lo copre è passato l'ultima volta che è stato eseguito.                                                 |
+| **Fallisce**     | Almeno uno è fallito (su qualsiasi browser).                                                                          |
 | **Non eseguito** | Nessuno è fallito, ma alcuni non sono mai stati eseguiti, sono stati saltati, o sono test manuali in attesa di esito. |
-| **Nessun test** | Nulla lo copre. |
+| **Nessun test**  | Nulla lo copre.                                                                                                       |
 
 **Risultati da** restringe quali run contano: l'ultimo run di ogni test ovunque, o l'ultimo run di
 un piano — per esempio quello di rilascio. **Requisiti coperti** nel report di un run apre la pagina
@@ -173,8 +177,8 @@ l'ultimo esito e il link al report di quel run.
 requisito e test che lo copre, con ultimo esito, run e piano, e una riga per ogni requisito che
 nessun test copre.
 
-Un test collegato in un progetto che non potete vedere viene contato (*+1 in progetti che non puoi
-vedere*) ma non nominato, resta fuori dallo stato e rimane collegato quando cambiate gli altri. I
+Un test collegato in un progetto che non potete vedere viene contato (_+1 in progetti che non puoi
+vedere_) ma non nominato, resta fuori dallo stato e rimane collegato quando cambiate gli altri. I
 viewer leggono; gli editor aggiungono, importano, collegano ed eliminano. Eliminare un requisito
 toglie i suoi collegamenti, mai i test; ciò che conteneva passa al primo livello.
 
@@ -182,8 +186,8 @@ toglie i suoi collegamenti, mai i test; ciò che conteneva passa al primo livell
 
 Il pulsante con le scintille sulla riga di un requisito propone casi di test, quando l'operatore ha
 configurato il modello AI. Legge la story com'è **adesso** nel tracker — descrizione e criteri di
-accettazione (Jira: i campi chiamati *Acceptance criteria* o *Criteri di accettazione*; Azure
-DevOps: *Acceptance Criteria*) — oppure, per un requisito scritto qui, la sua descrizione.
+accettazione (Jira: i campi chiamati _Acceptance criteria_ o _Criteri di accettazione_; Azure
+DevOps: _Acceptance Criteria_) — oppure, per un requisito scritto qui, la sua descrizione.
 **Proponi test** chiede fino al numero scelto (6 di base, al massimo 12), scritti nella lingua
 dell'interfaccia: il percorso principale, gli errori che un utente può fare e i limiti, ciascuno con
 il criterio che copre, le precondizioni e i passi (un'azione e il risultato atteso).

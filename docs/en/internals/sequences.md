@@ -92,7 +92,7 @@ sequenceDiagram
   W-->>B: 200 JSON
 ```
 
-The `WHERE organization_id = 42` is *not* in the query. The policy adds it, so a forgotten filter
+The `WHERE organization_id = 42` is _not_ in the query. The policy adds it, so a forgotten filter
 cannot leak another organization's rows.
 
 ## 4. A plan runs
@@ -255,3 +255,27 @@ sequenceDiagram
 
 Recording opens a window on the machine of the web process, which is why the test lab has a virtual
 display (see [Test lab](../admin/test-lab)); the other browser work is delegated to workers.
+
+## Dedicated Cucumber execution
+
+After preconditions, `bdd-execution.ts` resolves a tenant/project-authorized binding and uses
+`agents/agent-bdd.ts`. The agent executes the installed support revision in a child process;
+cleanup runs afterward. Browser/locale lanes are independent of these units. Profile absence,
+revision mismatch, cancellation and output budgets are explicit failure paths. See
+[BDD tests](../guide/bdd-tests) and [suite handbook](./suite-handbook).
+
+```mermaid
+sequenceDiagram
+  participant W as Worker
+  participant DB as Tenant DB
+  participant R as Relay
+  participant A as Local agent
+  participant C as Cucumber child
+  W->>DB: Resolve authorized exact profile/revision
+  W->>R: Request signed BDD session
+  R->>A: Organization/pool/profile/revision ticket
+  A->>C: Source selection and World variables
+  C-->>A: Bounded steps/hooks/status/attachments
+  A-->>W: Validated result
+  W->>DB: Redacted evidence and verdict
+```

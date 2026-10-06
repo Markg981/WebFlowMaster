@@ -35,11 +35,15 @@ const TYPES = {
 function serveSite() {
   const server = http.createServer((req, res) => {
     const url = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
-    const candidates = url.endsWith('/') ? [`${url}index.html`] : [url, `${url}.html`, `${url}/index.html`];
+    const candidates = url.endsWith('/')
+      ? [`${url}index.html`]
+      : [url, `${url}.html`, `${url}/index.html`];
     for (const candidate of candidates) {
       const file = path.join(siteDir, candidate);
       if (file.startsWith(siteDir) && fs.existsSync(file) && fs.statSync(file).isFile()) {
-        res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] ?? 'application/octet-stream' });
+        res.writeHead(200, {
+          'Content-Type': TYPES[path.extname(file)] ?? 'application/octet-stream',
+        });
         return fs.createReadStream(file).pipe(res);
       }
     }
@@ -62,30 +66,79 @@ const PRINT_CSS = `
   .wfm-cover h1 { font-size: 40px; border: none; }
   .wfm-cover p { color: #555; margin: 4px 0; }
   pre, table, .custom-block, svg { break-inside: avoid; }
+  table { display: table !important; table-layout: fixed; width: 100% !important; }
+  table { break-inside: auto; }
+  tr { break-inside: avoid; }
+  h1, h2, h3, h4 { break-after: avoid; }
+  th, td { overflow-wrap: anywhere; }
+  td code { white-space: normal; overflow-wrap: anywhere; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  svg { max-width: 100% !important; height: auto; }
 `;
 
 async function main() {
   if (!fs.existsSync(path.join(siteDir, 'index.html'))) {
-    throw new Error('The site is not built: run `npm run docs:build` first (npm run docs:pdf does).');
+    throw new Error(
+      'The site is not built: run `npm run docs:build` first (npm run docs:pdf does).',
+    );
   }
-  const { default: config } = await import(pathToFileURL(path.join(root, 'docs/.vitepress/config.mts')).href);
+  const { default: config } = await import(
+    pathToFileURL(path.join(root, 'docs/.vitepress/config.mts')).href
+  );
   const server = await serveSite();
   const base = `http://127.0.0.1:${server.address().port}`;
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 900, height: 1200 } });
 
   try {
-    for (const [lang, locale] of Object.entries(config.locales).filter(([lang]) => lang !== 'root')) {
+    for (const [lang, locale] of Object.entries(config.locales).filter(
+      ([lang]) => lang !== 'root',
+    )) {
       const sidebar = locale.themeConfig.sidebar[`/${lang}/`];
       fs.mkdirSync(path.join(outputDir, lang), { recursive: true });
-
-      for (const group of sidebar) {
+      const handbook = {
+        text:
+          lang === 'it'
+            ? 'Manuale della suite e implementazione'
+            : 'Suite handbook and implementation',
+        fileName: 'suite-handbook',
+        items: [
+          { link: `/${lang}/overview` },
+          { link: `/${lang}/internals/suite-handbook` },
+          { link: `/${lang}/internals/contributing-guide` },
+          { link: `/${lang}/internals/product-audit` },
+        ],
+      };
+      const selectedSections = process.argv
+        .find((arg) => arg.startsWith('--sections='))
+        ?.slice('--sections='.length)
+        .split(',');
+      const candidates = process.argv.includes('--handbook') ? [handbook] : [...sidebar, handbook];
+      const groups = selectedSections
+        ? candidates.filter((group) =>
+            selectedSections.includes(
+              group.fileName ?? sectionName((group.items ?? [group])[0].link),
+            ),
+          )
+        : candidates;
+      if (groups.length === 0)
+        throw new Error('No documentation sections matched the requested export.');
+      for (const group of groups) {
+        // The overview is a single page in the sidebar, rather than a section with items.
+        const items = group.items ?? [group];
         const pages = [];
-        for (const item of group.items) {
+        for (const item of items) {
           await page.goto(base + item.link, { waitUntil: 'networkidle' });
           // Diagrams are drawn after the page loads.
           if (await page.locator('.mermaid').count()) {
-            await page.waitForFunction(() => [...document.querySelectorAll('.mermaid')].every((d) => d.querySelector('svg')), null, { timeout: 15000 }).catch(() => {});
+            await page
+              .waitForFunction(
+                () =>
+                  [...document.querySelectorAll('.mermaid')].every((d) => d.querySelector('svg')),
+                null,
+                { timeout: 15000 },
+              )
+              .catch(() => {});
           }
           pages.push(await page.locator('.vp-doc').first().innerHTML());
         }
@@ -96,15 +149,25 @@ async function main() {
             <p>WebFlowMaster ${version}</p>
             <p>${new Date().toISOString().slice(0, 10)}</p>
           </div>`;
-        await page.goto(base + group.items[0].link, { waitUntil: 'networkidle' });
-        await page.evaluate(({ css, html }) => {
-          const style = document.createElement('style');
-          style.textContent = css;
-          document.head.append(style);
-          document.querySelector('.vp-doc').innerHTML = html;
-        }, { css: PRINT_CSS, html: cover + pages.map((body) => `<div class="wfm-page">${body}</div>`).join('') });
+        await page.goto(base + items[0].link, { waitUntil: 'networkidle' });
+        await page.evaluate(
+          ({ css, html }) => {
+            const style = document.createElement('style');
+            style.textContent = css;
+            document.head.append(style);
+            document.querySelector('.vp-doc').innerHTML = html;
+          },
+          {
+            css: PRINT_CSS,
+            html: cover + pages.map((body) => `<div class="wfm-page">${body}</div>`).join(''),
+          },
+        );
 
-        const file = path.join(outputDir, lang, `${sectionName(group.items[0].link)}.pdf`);
+        const file = path.join(
+          outputDir,
+          lang,
+          `${group.fileName ?? sectionName(items[0].link)}.pdf`,
+        );
         await page.pdf({
           path: file,
           format: 'A4',

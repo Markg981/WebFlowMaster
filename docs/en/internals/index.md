@@ -7,7 +7,7 @@ own guides.
 
 ## What the product does
 
-WebFlowMaster lets a team build automated tests for web applications and HTTP APIs, and run them
+WebFlowMaster lets a team build automated tests for web applications, HTTP/native API protocols, mobile apps and BDD scenarios, and run them
 reliably:
 
 - **Author** a UI test by recording a session, by assembling steps in a visual builder, or by
@@ -62,35 +62,35 @@ flowchart LR
 
 ### Processes
 
-| Process | Entry point | What it does |
-|---|---|---|
-| **Web** | `server/index.ts` → `dist/index.js` | Serves the React client and the HTTP API, authenticates users and API keys, streams live run logs over WebSocket, hosts the agent relay, owns the schedules (with the default cron backend it fires them itself; with `SCHEDULER_BACKEND=bullmq` it registers them in Redis and a worker fires them), and runs the housekeeping sweeps (run recovery, artifact retention). Creates runs; never executes them. |
-| **Worker** | `server/worker.ts` → `dist/worker.js` | Consumes the plan queue and the browser-task queue, runs plans with Playwright, writes results and evidence, and registers itself as a *runner* with a heartbeat. Scale it horizontally. |
-| **Migrator** | `scripts/apply-migrations.ts` → `dist/apply-migrations.js` | Applies the SQL migrations once, before the other processes start. |
-| **Local agent** | `scripts/wfm-agent.ts` → served at `/cli/wfm-agent.mjs` | Runs inside a customer network and lends Playwright browsers to runs through the relay. |
-| **CLI** | `scripts/wfm-cli.ts` → served at `/cli/wfm.mjs` | Starts a plan from a pipeline over `/api/v1`, waits, writes JUnit/HTML/PDF/Allure, and exits with a meaningful code. |
+| Process         | Entry point                                                | What it does                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Web**         | `server/index.ts` → `dist/index.js`                        | Serves the React client and the HTTP API, authenticates users and API keys, streams live run logs over WebSocket, hosts the agent relay, owns the schedules (with the default cron backend it fires them itself; with `SCHEDULER_BACKEND=bullmq` it registers them in Redis and a worker fires them), and runs the housekeeping sweeps (run recovery, artifact retention). Creates runs; never executes them. |
+| **Worker**      | `server/worker.ts` → `dist/worker.js`                      | Consumes the plan queue and the browser-task queue, runs plans with Playwright, writes results and evidence, and registers itself as a _runner_ with a heartbeat. Scale it horizontally.                                                                                                                                                                                                                      |
+| **Migrator**    | `scripts/apply-migrations.ts` → `dist/apply-migrations.js` | Applies the SQL migrations once, before the other processes start.                                                                                                                                                                                                                                                                                                                                            |
+| **Local agent** | `scripts/wfm-agent.ts` → served at `/cli/wfm-agent.mjs`    | Runs inside a customer network and lends Playwright browsers to runs through the relay.                                                                                                                                                                                                                                                                                                                       |
+| **CLI**         | `scripts/wfm-cli.ts` → served at `/cli/wfm.mjs`            | Starts a plan from a pipeline over `/api/v1`, waits, writes JUnit/HTML/PDF/Allure, and exits with a meaningful code.                                                                                                                                                                                                                                                                                          |
 
 ### Stores
 
-| Store | Used for |
-|---|---|
+| Store              | Used for                                                                                                                                                                                                                                                                                           |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **PostgreSQL 15+** | Everything durable: organizations, users, tests, plans, runs, results, audit log. Row-level security isolates organizations (see [Tenancy and access](./tenancy)). In development and tests, PGlite (Postgres compiled to WebAssembly) replaces it when `DATABASE_URL` is not a `postgres://` URL. |
-| **Redis / Valkey** | BullMQ queues (plan runs, browser tasks, BullMQ scheduler), the session store in production, and the directory the relay instances share. |
-| **Artifact store** | Screenshots, videos, traces, HAR files and visual baselines. Local disk by default, any S3-compatible bucket for more than one machine (`server/artifact-store.ts`). |
+| **Redis / Valkey** | BullMQ queues (plan runs, browser tasks, BullMQ scheduler), the session store in production, and the directory the relay instances share.                                                                                                                                                          |
+| **Artifact store** | Screenshots, videos, traces, HAR files and visual baselines. Local disk by default, any S3-compatible bucket for more than one machine (`server/artifact-store.ts`).                                                                                                                               |
 
 ## Technology
 
-| Layer | Choice |
-|---|---|
-| Language | TypeScript 5 everywhere (server, client, shared, scripts) |
-| Server | Node.js 20+, Express 4, `ws` for WebSocket, Passport (local strategy) with express-session |
-| Data | Drizzle ORM over `pg` (PostgreSQL) or PGlite; hand-written SQL migrations |
-| Jobs | BullMQ 5 on ioredis; node-cron or BullMQ job schedulers for schedules |
-| Browsers | Playwright (Chromium, Firefox, WebKit, branded Chrome and Edge channels), axe-core for accessibility |
-| Client | React 18, Vite 5, wouter (routing), TanStack Query, Radix/shadcn UI, Tailwind CSS, React Flow (visual builder), i18next (en, it, fr, de) |
-| AI (optional) | Google Gemini, for selector healing and for turning sentences into steps; the product works without it |
-| Tests | Vitest (server against PGlite, client with Testing Library), supertest, real browsers where it matters |
-| Build | esbuild bundles the server entry points, the migrator, the CLI and the agent; Vite builds the client |
+| Layer         | Choice                                                                                                                                   |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Language      | TypeScript 5 everywhere (server, client, shared, scripts)                                                                                |
+| Server        | Node.js 20+, Express 4, `ws` for WebSocket, Passport (local strategy) with express-session                                               |
+| Data          | Drizzle ORM over `pg` (PostgreSQL) or PGlite; hand-written SQL migrations                                                                |
+| Jobs          | BullMQ 5 on ioredis; node-cron or BullMQ job schedulers for schedules                                                                    |
+| Browsers      | Playwright (Chromium, Firefox, WebKit, branded Chrome and Edge channels), axe-core for accessibility                                     |
+| Client        | React 18, Vite 5, wouter (routing), TanStack Query, Radix/shadcn UI, Tailwind CSS, React Flow (visual builder), i18next (en, it, fr, de) |
+| AI (optional) | Google Gemini, for selector healing and for turning sentences into steps; the product works without it                                   |
+| Tests         | Vitest (server against PGlite, client with Testing Library), supertest, real browsers where it matters                                   |
+| Build         | esbuild bundles the server entry points, the migrator, the CLI and the agent; Vite builds the client                                     |
 
 ## How the code is organized
 
@@ -177,10 +177,13 @@ These run through the whole codebase; knowing them explains most of the code.
 - **Errors are sentences.** User-facing failures say what happened and what to do, in words: "No
   agent of pool onprem is connected", not "WebSocket error 503".
 - **Tests describe behaviour worth protecting**, against real infrastructure where it matters: PGlite
-  for SQL and RLS, real Chromium for the runner and the relay, HTTP fakes for GitHub or Jira.
+  for SQL behavior, real PostgreSQL as a non-superuser for RLS, real Chromium for the runner and the relay, HTTP fakes for GitHub or Jira.
 
 ## Where to go next
 
+- [Suite handbook](./suite-handbook) — all test types, journeys, execution boundaries and operational responsibilities.
+- [Contribution walkthrough](./contributing-guide) — a worked extension through schema, routes, UI, tests and acceptance.
+- [BDD tests](../guide/bdd-tests) — Gherkin authoring and dedicated Cucumber execution.
 - [System architecture](./system-architecture) — context, containers, components and deployment, drawn.
 - [Class diagrams](./class-diagrams) — the domain model and the classes with a lifetime.
 - [Database schema](./database-schema) — every table and column, as ER diagrams.

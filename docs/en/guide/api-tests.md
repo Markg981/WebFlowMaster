@@ -1,6 +1,6 @@
 # API tests
 
-An API test is one HTTP request with the checks its answer must pass. Several of them in a plan
+An API test defines an HTTP request or a native gRPC/WebSocket operation with response checks. HTTP tests in a plan
 make a flow: sign in, create an order, read it back, delete it — each passing values to the next.
 You build them in **API Tester**.
 
@@ -18,21 +18,21 @@ You build them in **API Tester**.
   variables.
 - **Authorization**:
 
-| Type | What is sent |
-|---|---|
-| No Auth | Nothing. |
-| Basic Auth | A username and password as a Basic header. |
-| Bearer Token | `Authorization: Bearer` and the token. |
-| API Key | A key in a header or a query parameter, under the name you choose. |
-| OAuth 2.0 | A token fetched first from the token URL, with the **client credentials** or **password** grant, then sent as a Bearer token. The client credentials go in a Basic header or in the body. |
-| JWT Bearer | A JWT signed for every request: **HS256/384/512** with a shared secret (optionally Base64), **RS\*** or **ES\*** with a PEM private key. The claims and extra header fields are JSON; `iat` is added when absent. Sent as `Authorization: <prefix> <token>` (prefix *Bearer* by default) or as a query parameter. |
-| Digest Auth | The request goes out, the server answers 401 with its terms, and the request is sent again with the answer (RFC 7616: MD5, SHA-256, their `-sess` variants, qop `auth` and `auth-int`). |
-| OAuth 1.0 | Each request signed (RFC 5849) with **HMAC-SHA1/256/512** or **PLAINTEXT**, over the method, the URL, the query and a form body. Leave the token empty for two-legged OAuth. In the Authorization header or in the query. |
-| Hawk Authentication | A MAC over method, path, host and port, with timestamp and nonce; optionally the body hash, for servers that verify payloads. |
-| AWS Signature | Signature Version 4: `Authorization` and `x-amz-date`, plus `x-amz-security-token` with temporary credentials and `x-amz-content-sha256` for S3. Leave the service empty to read it from an `*.amazonaws.com` host. |
-| NTLM Authentication | The NTLMv2 handshake (negotiate, challenge, authenticate) on one connection, which NTLM requires — from the server or from the agent when the plan runs on an agent pool. `DOMAIN\user` in the username works too. |
-| Akamai EdgeGrid | `EG1-HMAC-SHA256` with the client token, client secret and access token of your `.edgerc` section; the headers you list and the body of POST requests (up to the maximum) are signed. |
-| Atlassian ASAP | A short-lived JWT (**RS\*** or **ES\***) with issuer, audience, key ID and a fresh `jti`, sent as a Bearer token. |
+| Type                | What is sent                                                                                                                                                                                                                                                                                                      |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No Auth             | Nothing.                                                                                                                                                                                                                                                                                                          |
+| Basic Auth          | A username and password as a Basic header.                                                                                                                                                                                                                                                                        |
+| Bearer Token        | `Authorization: Bearer` and the token.                                                                                                                                                                                                                                                                            |
+| API Key             | A key in a header or a query parameter, under the name you choose.                                                                                                                                                                                                                                                |
+| OAuth 2.0           | A token fetched first from the token URL, with the **client credentials** or **password** grant, then sent as a Bearer token. The client credentials go in a Basic header or in the body.                                                                                                                         |
+| JWT Bearer          | A JWT signed for every request: **HS256/384/512** with a shared secret (optionally Base64), **RS\*** or **ES\*** with a PEM private key. The claims and extra header fields are JSON; `iat` is added when absent. Sent as `Authorization: <prefix> <token>` (prefix _Bearer_ by default) or as a query parameter. |
+| Digest Auth         | The request goes out, the server answers 401 with its terms, and the request is sent again with the answer (RFC 7616: MD5, SHA-256, their `-sess` variants, qop `auth` and `auth-int`).                                                                                                                           |
+| OAuth 1.0           | Each request signed (RFC 5849) with **HMAC-SHA1/256/512** or **PLAINTEXT**, over the method, the URL, the query and a form body. Leave the token empty for two-legged OAuth. In the Authorization header or in the query.                                                                                         |
+| Hawk Authentication | A MAC over method, path, host and port, with timestamp and nonce; optionally the body hash, for servers that verify payloads.                                                                                                                                                                                     |
+| AWS Signature       | Signature Version 4: `Authorization` and `x-amz-date`, plus `x-amz-security-token` with temporary credentials and `x-amz-content-sha256` for S3. Leave the service empty to read it from an `*.amazonaws.com` host.                                                                                               |
+| NTLM Authentication | The NTLMv2 handshake (negotiate, challenge, authenticate) on one connection, which NTLM requires — from the server or from the agent when the plan runs on an agent pool. `DOMAIN\user` in the username works too.                                                                                                |
+| Akamai EdgeGrid     | `EG1-HMAC-SHA256` with the client token, client secret and access token of your `.edgerc` section; the headers you list and the body of POST requests (up to the maximum) are signed.                                                                                                                             |
+| Atlassian ASAP      | A short-lived JWT (**RS\*** or **ES\***) with issuer, audience, key ID and a fresh `jti`, sent as a Bearer token.                                                                                                                                                                                                 |
 
 A header named `Authorization` written on the Headers tab wins over the type chosen here. If a
 required field is empty — a username, a key — the request is not sent, and the result says which
@@ -49,14 +49,14 @@ you can open it again.
 
 Each assertion reads one part of the answer and compares it:
 
-| Source | Property | Example |
-|---|---|---|
-| status code | — | equals `201` |
-| header | the header's name | `Content-Type` contains `json` |
-| body json path | a path in the JSON body | `items[0].id` exists |
-| body text | — | contains `"status":"ok"` |
-| response time | — | less than `500` (milliseconds) |
-| body xpath | an XPath in an XML body | `//status` equals `Shipped` — see [SOAP](#protocols) |
+| Source         | Property                | Example                                              |
+| -------------- | ----------------------- | ---------------------------------------------------- |
+| status code    | —                       | equals `201`                                         |
+| header         | the header's name       | `Content-Type` contains `json`                       |
+| body json path | a path in the JSON body | `items[0].id` exists                                 |
+| body text      | —                       | contains `"status":"ok"`                             |
+| response time  | —                       | less than `500` (milliseconds)                       |
+| body xpath     | an XPath in an XML body | `//status` equals `Shipped` — see [SOAP](#protocols) |
 
 Comparisons: equals, not equals, contains, not contains, exists, not exists, is empty, is not
 empty, greater than, less than (or equal), matches regex, not matches regex. An assertion can be
@@ -106,7 +106,7 @@ run, it is not a load test.
 **gRPC** supports unary, server streaming, client streaming and bidirectional streaming. Choose **GRPC**, provide `grpc://host:port/package.Service/Method` (`grpcs://` for verified TLS), and paste the service's **.proto**. Headers are metadata. **gRPC mode** defaults to the method definition; an explicit mode must agree with it. Unary/server-stream calls take one JSON request. Client/bidirectional streams accept:
 
 ```json
-{"messages":[{"value":"first"},{"value":"second"}]}
+{ "messages": [{ "value": "first" }, { "value": "second" }] }
 ```
 
 Bidirectional streams can instead use the ordered conversation below. Unary and client-stream responses remain single JSON messages. Response streams return `{messages,last,count,captures}`; assert `count`, `last.value` or `messages[0].value`. Terminal status and trailers are available to assertions (status 0 means OK). Remote error codes remain assertable; a local deadline, cancellation, malformed conversation or exceeded resource limit fails execution, even without assertions.
@@ -114,13 +114,15 @@ Bidirectional streams can instead use the ordered conversation below. Unary and 
 **WebSocket** accepts `ws://` or `wss://`. Existing line-separated raw messages and `{"send":["ping"],"waitMs":2000,"until":1}` remain supported. To alternate replies, captures and dependent sends, select raw body and use **Conversation** (ordered editor or JSON):
 
 ```json
-{"steps":[
-  {"type":"receive"},
-  {"type":"capture","name":"token","property":"token"},
-  {"type":"send","message":"{{capture.token}}"},
-  {"type":"receive","timeoutMs":2000,"property":"accepted","equals":true},
-  {"type":"end"}
-]}
+{
+  "steps": [
+    { "type": "receive" },
+    { "type": "capture", "name": "token", "property": "token" },
+    { "type": "send", "message": "{{capture.token}}" },
+    { "type": "receive", "timeoutMs": 2000, "property": "accepted", "equals": true },
+    { "type": "end" }
+  ]
+}
 ```
 
 Receives consume queued replies, including an immediate server challenge. An optional property such as `items[0].id` and `equals` select the expected reply. Capture reads the most recently received message; its name must begin with a letter and contain letters, digits or underscores. Use <code v-pre>{{capture.token}}</code> only after capturing it; these names are reserved within the conversation. Missing captures and early close fail with the step number. **End** closes WebSocket or half-closes the gRPC request stream. Client-streaming gRPC conversations cannot receive before their single final response.
@@ -132,7 +134,14 @@ Receives consume queued replies, including an immediate server challenge. An opt
 In the selected organization's environment, create encrypted secret values containing the PEM root CA, client certificate and private key. Enter their exact references in **Protocol configuration**, for example:
 
 ```json
-{"tls":{"rootCa":"{{secret_grpc_ca}}","clientCertificate":"{{secret_grpc_cert}}","clientKey":"{{secret_grpc_key}}","keyPassphrase":"{{secret_grpc_passphrase}}"}}
+{
+  "tls": {
+    "rootCa": "{{secret_grpc_ca}}",
+    "clientCertificate": "{{secret_grpc_cert}}",
+    "clientKey": "{{secret_grpc_key}}",
+    "keyPassphrase": "{{secret_grpc_passphrase}}"
+  }
+}
 ```
 
 Use the actual secret variable names. CA is optional when system trust is sufficient; client certificate and key must be supplied together, and passphrase is only for an encrypted key. Each resolved PEM field is bounded to 256 KiB. Plaintext certificates/keys in saved configuration are rejected. The resolved address must use `grpcs://`, including when supplied through an environment variable. Certificate/key matching, trust and destination hostname are verified; there is no insecure fallback. Rotate credentials by changing environment secret values, then rerun the test; versions keep references, not PEM material. Only necessary resolved TLS fields travel on the authenticated agent relay; tickets contain capability names. Environment values and PEM material are redacted from transport errors and request history.

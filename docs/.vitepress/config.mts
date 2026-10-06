@@ -63,9 +63,13 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
         { text: t.gettingStarted, link: p('guide/') },
         { text: t.webTests, link: p('guide/web-tests') },
         { text: t.apiTests, link: p('guide/api-tests') },
+        { text: 'BDD / Cucumber', link: p('guide/bdd-tests') },
         { text: t.mobileApps, link: p('guide/mobile-apps') },
         { text: t.organizing, link: p('guide/organizing') },
-        { text: lang === 'en' ? 'Conversations and dashboards' : 'Conversazioni e dashboard', link: p('guide/collaboration') },
+        {
+          text: lang === 'en' ? 'Conversations and dashboards' : 'Conversazioni e dashboard',
+          link: p('guide/collaboration'),
+        },
         { text: t.running, link: p('guide/running') },
         { text: t.results, link: p('guide/results') },
       ],
@@ -74,8 +78,16 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
       text: t.admin,
       items: [
         { text: t.installation, link: p('admin/installation') },
-        { text: lang === 'en' ? 'Shared SaaS network' : 'Rete SaaS condiviso', link: p('admin/saas-network') },
+        {
+          text: lang === 'en' ? 'Shared SaaS network' : 'Rete SaaS condiviso',
+          link: p('admin/saas-network'),
+        },
         { text: t.operations, link: p('admin/operations') },
+        {
+          text:
+            lang === 'en' ? 'Metrics and distributed tracing' : 'Metriche e tracing distribuito',
+          link: p('admin/telemetry'),
+        },
         { text: t.configuration, link: p('admin/configuration') },
         { text: t.administration, link: p('admin/administration') },
         { text: t.testLab, link: p('admin/test-lab') },
@@ -106,10 +118,18 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
     {
       text: t.internals,
       items: [
+        {
+          text: lang === 'en' ? 'Complete suite handbook' : 'Manuale dell’intera suite',
+          link: p('internals/suite-handbook'),
+        },
         { text: t.overview, link: p('internals/') },
         { text: t.systemArchitecture, link: p('internals/system-architecture') },
         { text: t.classDiagrams, link: p('internals/class-diagrams') },
         { text: t.databaseSchema, link: p('internals/database-schema') },
+        {
+          text: lang === 'en' ? 'All tables and columns' : 'Tutte le tabelle e colonne',
+          link: p('internals/schema-catalog'),
+        },
         { text: t.sequences, link: p('internals/sequences') },
         { text: t.mobileInternals, link: p('internals/mobile') },
         { text: t.tenancy, link: p('internals/tenancy') },
@@ -118,6 +138,17 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
         { text: t.agents, link: p('internals/agents') },
         { text: t.frontend, link: p('internals/frontend') },
         { text: t.developer, link: p('internals/developer-guide') },
+        {
+          text: lang === 'en' ? 'Implementing an improvement' : 'Implementare un miglioramento',
+          link: p('internals/contributing-guide'),
+        },
+        {
+          text:
+            lang === 'en'
+              ? 'Product and documentation audit'
+              : 'Audit del prodotto e della documentazione',
+          link: p('internals/product-audit'),
+        },
         { text: t.decisions, link: p('internals/decisions') },
         { text: t.glossary, link: p('internals/glossary') },
       ],
@@ -226,16 +257,13 @@ export default withMermaid(
       // VitePress would otherwise read it as a Vue interpolation and fail the build.
       config(md) {
         const render = md.renderer.rules.code_inline!;
-        md.renderer.rules.code_inline = (...args) => render(...args).replace('<code', '<code v-pre');
+        md.renderer.rules.code_inline = (...args) =>
+          render(...args).replace('<code', '<code v-pre');
       },
     },
     // Not documentation for readers: design notes, generated PDFs, and the record of dependency
     // reviews, which lives in the repository and is linked from the security pages.
-    srcExclude: [
-      'superpowers/**',
-      'pdf/**',
-      'SECURITY-AUDIT.md',
-    ],
+    srcExclude: ['superpowers/**', 'pdf/**', 'SECURITY-AUDIT.md'],
     themeConfig: {
       search: {
         provider: 'local',
@@ -249,7 +277,11 @@ export default withMermaid(
                   resetButtonTitle: 'Cancella la ricerca',
                   backButtonTitle: 'Chiudi la ricerca',
                   noResultsText: 'Nessun risultato per',
-                  footer: { selectText: 'per selezionare', navigateText: 'per spostarti', closeText: 'per chiudere' },
+                  footer: {
+                    selectText: 'per selezionare',
+                    navigateText: 'per spostarti',
+                    closeText: 'per chiudere',
+                  },
                 },
               },
             },

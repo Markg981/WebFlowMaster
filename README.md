@@ -7,7 +7,7 @@ pipeline. Results come back as reports with screenshots, videos, traces and netw
 
 It is built for teams: organizations are isolated from one another by the database itself, and
 people sign in with passwords and TOTP, or with their company's identity provider over OpenID
-Connect.
+Connect or SAML.
 
 ## What it does
 
@@ -18,6 +18,7 @@ Connect.
   authentication, run on their own or inside a plan.
 - **Mobile app tests**: Android and iOS apps through Appium on BrowserStack, LambdaTest or your own
   emulators and devices (via a local agent), with a live inspector to pick locators.
+- **BDD tests**: versioned Gherkin scenarios executed with Cucumber on dedicated local agents.
 - **Requirements and test management**: epics and stories with computed coverage; results published to
   TestRail, Xray and Zephyr Scale.
 - **Plans, suites and schedules**: choose the tests, the browsers and how many run at once; run
@@ -37,13 +38,25 @@ Connect.
 
 ## Tech stack
 
-| Layer | Technologies |
-| :--- | :--- |
-| Client | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query, i18next (English and Italian) |
-| Server | Node.js, Express, Passport, openid-client |
-| Data | PostgreSQL with row-level security (production), PGlite (local development), Drizzle ORM |
-| Execution | Playwright; BullMQ workers on Redis or Valkey |
-| Docs | VitePress |
+| Layer     | Technologies                                                                                                       |
+| :-------- | :----------------------------------------------------------------------------------------------------------------- |
+| Client    | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query, i18next (English, Italian, French and German) |
+| Server    | Node.js, Express, Passport, openid-client                                                                          |
+| Data      | PostgreSQL with row-level security (production), PGlite (local development), Drizzle ORM                           |
+| Execution | Playwright; BullMQ workers on Redis or Valkey                                                                      |
+| Docs      | VitePress                                                                                                          |
+
+## Understand the suite and contribute
+
+Start with the complete suite handbook ([English](./docs/en/internals/suite-handbook.md),
+[Italian](./docs/it/internals/suite-handbook.md)), then the practical implementation guide
+([English](./docs/en/internals/contributing-guide.md), [Italian](./docs/it/internals/contributing-guide.md)).
+The [product audit](./docs/en/internals/product-audit.md) distinguishes implemented capabilities,
+validation gaps and proposed additions. Build the documentation with `npm run docs:build` or export
+the bilingual sections with `npm run docs:pdf`.
+
+Customer materials: [brochure IT/EN](./marketing/brochure/README.md) and
+[60-second presentation video IT/EN](./marketing/promo-video/README.md).
 
 ## Quick start with Docker
 
@@ -97,13 +110,13 @@ npm run dev:worker   # runs plans and browser tasks; without it runs stay queued
 The variables are documented in [`.env.example`](./.env.example) and in the
 [configuration reference](./docs/en/admin/configuration.md). The ones you will need first:
 
-| Variable | Purpose |
-| :--- | :--- |
-| `DATABASE_URL` | A `postgres://` connection string, or a folder for PGlite (`./data/local-pg`) |
-| `REDIS_URL` | Queues, sessions and schedules |
-| `SESSION_SECRET` | Signs session cookies |
-| `ENCRYPTION_KEY` | 64 hex characters; encrypts stored secrets (AES-256-GCM) |
-| `GEMINI_API_KEY` | Optional; without it the AI features are off |
+| Variable         | Purpose                                                                       |
+| :--------------- | :---------------------------------------------------------------------------- |
+| `DATABASE_URL`   | A `postgres://` connection string, or a folder for PGlite (`./data/local-pg`) |
+| `REDIS_URL`      | Queues, sessions and schedules                                                |
+| `SESSION_SECRET` | Signs session cookies                                                         |
+| `ENCRYPTION_KEY` | 64 hex characters; encrypts stored secrets (AES-256-GCM)                      |
+| `GEMINI_API_KEY` | Optional; without it the AI features are off                                  |
 
 To generate the two secrets:
 

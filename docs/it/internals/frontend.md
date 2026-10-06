@@ -26,22 +26,22 @@ Le rotte sono dichiarate in `client/src/App.tsx` con **wouter**; le pagine si ca
 Tutte le rotte tranne `/auth` sono avvolte in `ProtectedRoute`, che manda un visitatore anonimo alla
 pagina di accesso.
 
-| Percorso | Pagina | Cos'è |
-|---|---|---|
-| `/` , `/dashboard` | `DashboardOverviewPage` | Panoramica dell'attività e dei risultati recenti. |
-| `/dashboard/create-test` | `dashboard-page-new` | Il builder dei test: caricamento della pagina, elementi rilevati, step con drag-and-drop, registrazione, descrizione a frasi, anteprima. |
-| `/dashboard/api-tester` | `ApiTesterPage` | Costruire e inviare richieste API, asserzioni, estrazioni, test API salvati. |
-| `/tests` | `TestLibraryPage` | Tutti i test salvati, tag, cronologia e versioni. |
-| `/reviews` | `ReviewsPage` | Revisioni dei test, quando l'organizzazione le richiede. |
-| `/test-suites` | `TestSuitesPage` | Piani di test: creare, configurare, eseguire. |
-| `/suites` | `SuitesPage` | Suite, statiche e dinamiche. |
-| `/scheduling` | `SchedulingPage` | Schedulazioni. |
-| `/test-manager` | `TestManager` | Import da Excel collegato a sequenze salvate. |
-| `/reports` | `GeneralReportsPage` | L'elenco dei run con filtri, test instabili e quarantena. |
-| `/test-plan/:planId/run` | `TestPlanExecutionPage` | Un run mentre accade, con la console in diretta. |
-| `/test-plans/:planId/executions/:executionId/report` | `TestReportPage` | Il report di un run. |
-| `/settings` | `settings-page` | Le impostazioni, divise in sezioni (account, ambienti, progetti, membri, chiavi API, sicurezza, runner, agenti, GitHub/GitLab, issue tracker, audit log…). |
-| `/auth` | `auth-page` | Accesso e registrazione su invito. |
+| Percorso                                             | Pagina                  | Cos'è                                                                                                                                                      |
+| ---------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/` , `/dashboard`                                   | `DashboardOverviewPage` | Panoramica dell'attività e dei risultati recenti.                                                                                                          |
+| `/dashboard/create-test`                             | `dashboard-page-new`    | Il builder dei test: caricamento della pagina, elementi rilevati, step con drag-and-drop, registrazione, descrizione a frasi, anteprima.                   |
+| `/dashboard/api-tester`                              | `ApiTesterPage`         | Costruire e inviare richieste API, asserzioni, estrazioni, test API salvati.                                                                               |
+| `/tests`                                             | `TestLibraryPage`       | Tutti i test salvati, tag, cronologia e versioni.                                                                                                          |
+| `/reviews`                                           | `ReviewsPage`           | Revisioni dei test, quando l'organizzazione le richiede.                                                                                                   |
+| `/test-suites`                                       | `TestSuitesPage`        | Piani di test: creare, configurare, eseguire.                                                                                                              |
+| `/suites`                                            | `SuitesPage`            | Suite, statiche e dinamiche.                                                                                                                               |
+| `/scheduling`                                        | `SchedulingPage`        | Schedulazioni.                                                                                                                                             |
+| `/test-manager`                                      | `TestManager`           | Import da Excel collegato a sequenze salvate.                                                                                                              |
+| `/reports`                                           | `GeneralReportsPage`    | L'elenco dei run con filtri, test instabili e quarantena.                                                                                                  |
+| `/test-plan/:planId/run`                             | `TestPlanExecutionPage` | Un run mentre accade, con la console in diretta.                                                                                                           |
+| `/test-plans/:planId/executions/:executionId/report` | `TestReportPage`        | Il report di un run.                                                                                                                                       |
+| `/settings`                                          | `settings-page`         | Le impostazioni, divise in sezioni (account, ambienti, progetti, membri, chiavi API, sicurezza, runner, agenti, GitHub/GitLab, issue tracker, audit log…). |
+| `/auth`                                              | `auth-page`             | Accesso e registrazione su invito.                                                                                                                         |
 
 ## Recupero dei dati
 
@@ -101,3 +101,12 @@ e `_other`.
 - I componenti che usano `useAuth` richiedono `vi.mock('@/hooks/use-auth')`.
 - In jsdom i dropdown e le select di Radix si aprono con
   `fireEvent.keyDown(trigger, { key: 'Enter', code: 'Enter' })`.
+
+## Editing BDD e profili di esecuzione
+
+`TestLibraryPage.tsx` apre `components/tests/BddTestDialog.tsx` per i test derivati dal sorgente.
+Il dialogo salva insieme selezione/modalità/binding tramite l’endpoint di aggiornamento del test,
+senza modificare singolarmente i passi generati. `components/settings/BddProfilesCard.tsx`,
+nel tab Agents, permette agli owner di collegare progetti annunciati dagli operatori; gli helper
+API sono in `lib/api/bdd.ts`. `components/reports/BddResultsCard.tsx` mostra i risultati Cucumber.
+I componenti hanno test adiacenti. Vedere [Test BDD](../guide/bdd-tests).

@@ -1,13 +1,15 @@
 # Primi passi
 
-WebFlowMaster testa applicazioni web e API HTTP. Un test si costruisce registrandolo,
+WebFlowMaster testa applicazioni web, protocolli API HTTP/nativi, app mobile e scenari BDD. Un test si costruisce registrandolo,
 trascinando gli step o descrivendolo a frasi; i test si raggruppano in **piani**; i piani girano
 su richiesta, con una pianificazione o da una pipeline di CI, in uno o più browser; e ogni run
 lascia un **report** con screenshot, tempi e, quando servono, un video, una trace di Playwright e
 il traffico di rete.
 
 Questa guida è per chi scrive ed esegue i test. L'installazione e la gestione di
-un'organizzazione sono in [Amministrazione](../admin/administration).
+un'organizzazione sono in [Amministrazione](../admin/administration). Per i dispositivi leggere
+[App mobile](./mobile-apps); per scenari manuali o Cucumber leggere [Test BDD](./bdd-tests).
+Mobile e Cucumber hanno target propri, distinti dalla matrice browser.
 
 ## Accesso
 
@@ -28,19 +30,19 @@ Password dimenticata? Chiedete un link di reset a un owner della vostra organizz
 
 La barra laterale contiene tutto:
 
-| Sezione | A cosa serve |
-|---|---|
-| **Dashboard** | Viste private e condivise di run, andamento e pianificazioni. Vedi [Conversazioni e dashboard](./collaboration). |
-| **Tester API** | Costruire e salvare test API. Vedi [Test API](./api-tests). |
-| **Crea Test** | Il costruttore dei test web. Vedi [Test web](./web-tests). |
-| **Libreria dei test** | Ogni test salvato, con tag e cronologia. Vedi [Organizzare i test](./organizing). |
-| **Test Manager** | Importare casi di test da Excel e associarli ai test salvati. |
-| **Suite** | Elenchi di test condivisi da più piani. |
-| **Piani di test** | Cosa eseguire, dove e come; il pulsante **Esegui**. Vedi [Eseguire i test](./running). |
-| **Revisioni** | Le modifiche in attesa di approvazione, se l'organizzazione revisiona i test prima che girino. |
-| **Schedulazione** | I piani che girano da soli. |
-| **Report** | Ogni run concluso, i test instabili e la quarantena. Vedi [Risultati](./results). |
-| **Impostazioni** | Preferenze e password e, a seconda del ruolo, ambienti, progetti, membri, chiavi e il resto. |
+| Sezione               | A cosa serve                                                                                                     |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**         | Viste private e condivise di run, andamento e pianificazioni. Vedi [Conversazioni e dashboard](./collaboration). |
+| **Tester API**        | Costruire e salvare test API. Vedi [Test API](./api-tests).                                                      |
+| **Crea Test**         | Il costruttore dei test web. Vedi [Test web](./web-tests).                                                       |
+| **Libreria dei test** | Ogni test salvato, con tag e cronologia. Vedi [Organizzare i test](./organizing).                                |
+| **Test Manager**      | Importare casi di test da Excel e associarli ai test salvati.                                                    |
+| **Suite**             | Elenchi di test condivisi da più piani.                                                                          |
+| **Piani di test**     | Cosa eseguire, dove e come; il pulsante **Esegui**. Vedi [Eseguire i test](./running).                           |
+| **Revisioni**         | Le modifiche in attesa di approvazione, se l'organizzazione revisiona i test prima che girino.                   |
+| **Schedulazione**     | I piani che girano da soli.                                                                                      |
+| **Report**            | Ogni run concluso, i test instabili e la quarantena. Vedi [Risultati](./results).                                |
+| **Impostazioni**      | Preferenze e password e, a seconda del ruolo, ambienti, progetti, membri, chiavi e il resto.                     |
 
 Cosa potete fare dipende dal **ruolo**: i viewer leggono test e risultati; gli editor li creano
 anche, li modificano e li eseguono; gli owner gestiscono anche l'organizzazione. I pulsanti che

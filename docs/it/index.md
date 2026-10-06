@@ -6,12 +6,17 @@ CI — anche dentro reti che il server non raggiunge — e ogni esecuzione produ
 
 **Prima volta qui?** Leggi [WebFlowMaster in breve](./overview): cos'è, com'è fatto e dove si trova ogni cosa.
 
+**Da condividere con i colleghi:** il [manuale dell'intera suite](./internals/suite-handbook)
+collega funzionalità, flussi e architettura. Il [percorso di contribuzione](./internals/contributing-guide)
+mostra come implementare un miglioramento; l'[audit](./internals/product-audit) spiega le priorità proposte.
+
 ## Guida utente
 
 Per chi scrive ed esegue i test:
 
 - [Primi passi](./guide/) — accesso, orientarsi, un primo test dall'inizio alla fine.
 - [Test web](./guide/web-tests) · [Test API](./guide/api-tests) · [App mobili](./guide/mobile-apps) ·
+  [BDD / Cucumber](./guide/bdd-tests) ·
   [Organizzare i test](./guide/organizing) · [Eseguire i test](./guide/running) ·
   [Risultati](./guide/results)
 
@@ -21,6 +26,7 @@ Per chi gestisce un'installazione e per gli owner di un'organizzazione:
 
 - [Installazione](./admin/installation) — configurazioni, Docker Compose, PostgreSQL, segreti, reverse proxy.
 - [Operatività](./admin/operations) — aggiornamenti, backup, log, monitoraggio, risoluzione dei problemi.
+- [Metriche e tracing](./admin/telemetry) — Prometheus e OpenTelemetry, configurazione e verifica.
 - [Riferimento della configurazione](./admin/configuration) — tutte le variabili d'ambiente.
 - [Amministrazione](./admin/administration) — ruoli, membri, chiavi, sicurezza, audit, dati.
 - [Ambiente di collaudo](./admin/test-lab) — l'ambiente di accettazione: HTTPS, identity provider, strumenti simulati, Jenkins, emulatore Android.
