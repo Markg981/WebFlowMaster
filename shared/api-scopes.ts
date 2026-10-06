@@ -7,8 +7,35 @@
  * viewer's key do what a viewer cannot, it only narrows what the key can do below that.
  */
 export const API_SCOPES = {
+  'projects:read': { minimumRole: 'viewer', description: 'Read accessible projects.' },
+  'projects:write': {
+    minimumRole: 'editor',
+    description: 'Create and rename accessible projects.',
+  },
+  'tests:read': { minimumRole: 'viewer', description: 'Read UI, manual and BDD tests.' },
+  'tests:write': {
+    minimumRole: 'editor',
+    description: 'Create and update UI, manual and BDD tests.',
+  },
+  'datasets:read': { minimumRole: 'viewer', description: 'Read shared test datasets.' },
+  'datasets:write': {
+    minimumRole: 'editor',
+    description: 'Create, update and delete shared test datasets.',
+  },
+  'plans:write': {
+    minimumRole: 'editor',
+    description: 'Create plans and replace their typed test membership.',
+  },
+  'suites:read': { minimumRole: 'viewer', description: 'Export portable test suites.' },
+  'suites:write': {
+    minimumRole: 'editor',
+    description: 'Import portable UI, manual and BDD suites.',
+  },
   'plans:read': { minimumRole: 'viewer', description: 'List test plans.' },
-  'runs:read': { minimumRole: 'viewer', description: 'Read runs, their status and their JUnit reports.' },
+  'runs:read': {
+    minimumRole: 'viewer',
+    description: 'Read runs, their status and their JUnit reports.',
+  },
   'runs:write': { minimumRole: 'editor', description: 'Start runs and cancel them.' },
 } as const;
 

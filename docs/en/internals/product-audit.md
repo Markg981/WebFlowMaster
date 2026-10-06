@@ -12,6 +12,15 @@ The priority table below preserves the original baseline findings. A dedicated d
 report UI and explicit historical replay remain separate enhancements; automatic retries reuse
 the captured data. This does not freeze every test definition or external system state.
 
+Implementation update: [public authoring](../reference/api#authoring-resources) now provisions
+projects, UI/manual/BDD tests, shared datasets and plans with dedicated scopes and version/audit
+records. Portable import/export covers UI/manual/BDD definitions; native API/mobile authoring
+remains outside this contract. The [platform load tool](../admin/load-testing) now supports
+`--soak-seconds` and `--interval-seconds` with per-cycle observations. These changes address parts
+of the two P2 baseline findings below. Multi-tenant endurance with real agents, scheduler,
+artifacts and controlled restarts remains pending in Collaudo API-49–API-51 and OPS-27–OPS-28;
+local automated checks do not certify production duration or capacity.
+
 The repository inventory contained 1,264 tracked files before this revision: 494 under `server/`,
 331 under `client/`, 44 under `shared/`, 40 under `scripts/`, 87 under `migrations/`, 41 under
 `collaudo/`, 29 under `deployment/`, 8 under `e2e/` and 7 under `integrations/`. It includes 347

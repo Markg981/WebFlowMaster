@@ -2963,6 +2963,7 @@
       "schedule_updated": "Pianificazione modificata",
       "schedule_deleted": "Pianificazione eliminata",
       "project_created": "Progetto creato",
+      "project_updated": "Progetto aggiornato",
       "project_deleted": "Progetto eliminato",
       "run_cancelled": "Run annullato",
       "environment_created": "Ambiente creato",

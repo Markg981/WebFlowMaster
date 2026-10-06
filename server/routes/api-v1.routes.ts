@@ -17,6 +17,7 @@ import { openApiDocument } from "../api-v1/openapi";
 import { ciContextSchema } from "@shared/ci";
 import { reportUrlFor } from "../report-links";
 import loggerPromise from "../logger";
+import { registerAuthoringRoutes } from '../api-v1/authoring';
 
 /**
  * /api/v1 — the API a pipeline is meant to use, described by /api/v1/openapi.json.
@@ -233,6 +234,8 @@ router.get("/api/v1/runs/:runId/export/:format", requireScope('runs:read'), asyn
     return apiError(res, 500, 'export_failed', 'The report could not be exported.');
   }
 });
+
+registerAuthoringRoutes(router);
 
 // Anything else under /api/v1 is an unknown endpoint, said in this API's own words rather
 // than falling through to the web application's.

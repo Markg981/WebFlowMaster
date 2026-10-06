@@ -2838,6 +2838,7 @@
       "schedule_updated": "Schedule changed",
       "schedule_deleted": "Schedule deleted",
       "project_created": "Project created",
+      "project_updated": "Project updated",
       "project_deleted": "Project deleted",
       "run_cancelled": "Run cancelled",
       "environment_created": "Environment created",

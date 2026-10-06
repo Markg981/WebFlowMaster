@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { EXIT_BREACHED, EXIT_OK, breaches, maxOverlap, parseArgs, percentile, runLoad, summariseReads, type LoadIo, type LoadOptions } from './wfm-load';
 
 /**
@@ -41,6 +41,11 @@ function installation({ limit = 2, queueCap = 100, readMs = 20, endAs = () => 'c
       }
       t += readMs;
       tick();
+      if (url.pathname.startsWith('/api/v1/runs/')) {
+        const run = runs.find(r => r.id === url.pathname.split('/').at(-1));
+        if (!run) return json(404, {});
+        return json(200, { ...run, queuedAt: iso(run.queuedAt), startedAt: iso(run.startedAt), completedAt: iso(run.completedAt), durationMs: run.completedAt ? run.completedAt - run.startedAt! : null, failure: null });
+      }
       if (url.pathname === '/api/v1/runs' && url.searchParams.get('planId')) {
         const items = runs.filter((r) => r.planId === url.searchParams.get('planId')).map((r) => ({ ...r, queuedAt: iso(r.queuedAt), startedAt: iso(r.startedAt), completedAt: iso(r.completedAt), durationMs: r.completedAt ? r.completedAt - r.startedAt! : null, failure: null }));
         return json(200, { items });
@@ -134,5 +139,114 @@ describe('a load test', () => {
   it('fails slow reads', () => {
     const reads = summariseReads(Array.from({ length: 20 }, (_, i) => ({ ms: i < 18 ? 100 : 2000, status: 200 })), 1);
     expect(breaches(reads, [], { maxP95Ms: 1000, maxErrorRate: 0, maxConcurrent: 2 })).toEqual(['reads: p95 2000 ms > 1000 ms']);
+  });
+});
+
+describe('endurance safeguards', () => {
+  it.each([['--readers', '1.5'], ['--runs', '1.5'], ['--poll', '0'], ['--interval-seconds', '0'], ['--target', 'k:']])('rejects invalid %s=%s', (flag, value) => {
+    expect(parseArgs(['--url', 'https://wfm.test', '--target', 'k:p', flag, value], {})).toHaveProperty('error');
+  });
+
+  it('cycles bursts with reads and fresh idempotency keys, polling IDs directly', async () => {
+    const sim = installation();
+    const keys: string[] = [];
+    const individual: string[] = [];
+    const original = sim.io.fetch;
+    sim.io.fetch = (async (input: string, init?: RequestInit) => {
+      if (init?.method === 'POST') keys.push(new Headers(init.headers).get('Idempotency-Key')!);
+      if (new URL(input).pathname.startsWith('/api/v1/runs/')) individual.push(input);
+      return original(input, init);
+    }) as typeof fetch;
+    const result = await runLoad(options({ soakSeconds: 20, intervalSeconds: 1, readers: 1, runs: 1, maxP95Ms: 10000 }), sim.io);
+    expect(result.code).toBe(EXIT_OK);
+    expect(result.cycles!.length).toBeGreaterThan(1);
+    expect(result.cycles!.every(c => c.reads.requests > 0)).toBe(true);
+    expect(individual.length).toBeGreaterThan(0);
+    const again = await runLoad(options({ readSeconds: 0, runs: 1 }), sim.io);
+    expect(again.code).toBe(EXIT_OK);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('reports duplicate IDs as a breach', async () => {
+    const sim = installation();
+    const original = sim.io.fetch;
+    sim.io.fetch = (async (input: string, init?: RequestInit) => {
+      const response = await original(input, init);
+      if (init?.method === 'POST') return new Response(JSON.stringify({ id: 'duplicate' }), { status: 202 });
+      return response;
+    }) as typeof fetch;
+    const result = await runLoad(options({ readSeconds: 0, runs: 2, runTimeoutSeconds: 1 }), sim.io);
+    expect(result.breaches.some(b => b.includes('duplicate'))).toBe(true);
+  });
+});
+
+
+describe('long-running request handling', () => {
+  it('bounds latency samples while counting every read', async () => {
+    const result = await runLoad(options({ readSeconds: 300, readers: 1, runs: 0 }), installation().io);
+    expect(result.reads.requests).toBeGreaterThan(10000);
+    expect(result.reads.latencySampleSize).toBe(10000);
+  });
+
+  it('detects accepted IDs missing from individual polling', async () => {
+    const sim = installation();
+    const original = sim.io.fetch;
+    sim.io.fetch = (async (input: string, init?: RequestInit) => {
+      if (new URL(input).pathname.startsWith('/api/v1/runs/')) return new Response('{}', { status: 404 });
+      return original(input, init);
+    }) as typeof fetch;
+    const result = await runLoad(options({ readSeconds: 0, runs: 1, runTimeoutSeconds: 1 }), sim.io);
+    expect(result.runs[0].missing).toBe(1);
+    expect(result.breaches.some(b => b.includes('never retrieved'))).toBe(true);
+  });
+
+  it('bounds a hung HTTP start request and aborts it', async () => {
+    vi.useFakeTimers();
+    try {
+      const sim = installation();
+      const signals: AbortSignal[] = [];
+      sim.io.fetch = (async (_input: string, init?: RequestInit) => {
+        signals.push(init!.signal!);
+        return new Promise<Response>(() => {});
+      }) as typeof fetch;
+      const pending = runLoad(options({ readSeconds: 0, runs: 1, requestTimeoutSeconds: 0.01 }), sim.io);
+      await vi.advanceTimersByTimeAsync(11);
+      const result = await pending;
+      expect(result.code).toBe(EXIT_BREACHED);
+      expect(signals.every(s => s.aborted)).toBe(true);
+      expect(result.runs[0].startErrors).toContain('HTTP request deadline exceeded');
+    } finally { vi.useRealTimers(); }
+  });
+});
+
+describe('read authorization failures', () => {
+  it('fails HTTP client errors and still counts 429 separately', () => {
+    const summary = summariseReads([{ ms: 1, status: 401 }, { ms: 1, status: 403 }, { ms: 1, status: 404 }, { ms: 1, status: 429 }], 1);
+    expect(summary).toMatchObject({ errors: 3, limited: 1, errorRate: 1 });
+    expect(breaches(summary, [], { maxP95Ms: 1000, maxErrorRate: 0, maxConcurrent: 2 })).toHaveLength(1);
+  });
+});
+
+describe('run-start limiting', () => {
+  it.each(['rate_limited', 'queue_quota_exceeded', 'unknown', undefined])('fails a positive workload with no accepted starts (%s)', async code => {
+    const sim = installation();
+    sim.io.fetch = (async () => new Response(JSON.stringify(code ? { error: { code } } : {}), { status: 429 })) as typeof fetch;
+    const result = await runLoad(options({ readSeconds: 0, runs: 1 }), sim.io);
+    expect(result.code).toBe(EXIT_BREACHED);
+    expect(result.breaches.some(b => b.includes('no runs accepted'))).toBe(true);
+    if (code !== 'queue_quota_exceeded') expect(result.runs[0].startErrors).toContain(`429 ${code ?? 'unknown_error'}`);
+  });
+
+  it('allows explicit production queue rejection when some starts are accepted', async () => {
+    const sim = installation({ queueCap: 1 });
+    const original = sim.io.fetch;
+    sim.io.fetch = (async (input: string, init?: RequestInit) => {
+      const response = await original(input, init);
+      if (response.status === 429) return new Response(JSON.stringify({ error: { code: 'queue_quota_exceeded' } }), { status: 429 });
+      return response;
+    }) as typeof fetch;
+    const result = await runLoad(options({ readSeconds: 0, runs: 3 }), sim.io);
+    expect(result.code).toBe(EXIT_OK);
+    expect(result.runs[0]).toMatchObject({ started: 1, refused: 2, startErrors: [] });
   });
 });
