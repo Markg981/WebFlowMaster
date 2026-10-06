@@ -63,11 +63,15 @@ Redis and a freshly migrated PostgreSQL database with a non-superuser applicatio
 ### Interface acceptance on a real installation
 
 `npm run test:e2e` uses `e2e/playwright.config.ts`, independently of the root configuration for
-exported tests. Chromium covers registration/logout/login and session persistence, saving and
-reloading an API test and sending a real HTTP request, and starting a plan in the interface and
-reloading its completed report. Publishing, response assertions and plan creation for the last
-journey are setup calls to the real API. Product requests are not intercepted; only the application
-under test is a local HTTP fixture. The queue worker must execute and pass its response assertion.
+exported tests. The suite has 19 Chromium journeys: nine installation journeys and one real
+BDD-agent journey, plus nine critical UI journeys. The additions cover MFA enrollment and a
+single-use recovery code, OIDC login through an HTTPS identity provider, unknown SSO domains,
+review approval by another member, direct publication, mobile editing and read-only history,
+confirmed deletion, enforced saved-test quotas, and cancellation from the execution report.
+Separate owner/editor/viewer sessions check permissions through the interface, including direct
+navigation to protected pages. Invitations and cancellation-plan preparation use the real API;
+the actions under test use the UI. Product requests are not intercepted. HTTP, gRPC, WebSocket
+and OIDC fixtures are external services; the application and queue worker remain real.
 
 Start dedicated local stores and create their database **once**, without touching Collaudo:
 
@@ -95,12 +99,18 @@ docker compose -p wfm-ci-e2e -f e2e/docker-compose.yml down -v
 ```
 
 The runner refuses a database other than `wfm_ci_e2e` and Redis other than the dedicated loopback
-port 6388. It starts production bundles on ports 5080/5081 and stops them after the suite. Open
+port 6388. It starts the production API on 5080, external fixtures on 5081/5082 and the HTTPS OIDC
+provider on localhost:5083, and stops them after the suite. API and worker trust the fixture
+certificate through `NODE_EXTRA_CA_CERTS`; its checked-in private key is public test material.
+`INSTALLATION_ADMINS=e2e_operator` is confined to this disposable installation, and SSO DNS domain
+verification is disabled here. Open
 registration and HTTP cookies apply only to this disposable installation. The HTML report,
 service logs and failure screenshots/videos/traces are written to ignored `e2e-artifacts/` and
 uploaded by CI even after failure, with seven-day retention.
 
-This smoke suite does not replace manual acceptance, mobile devices or browser/provider matrices.
+Mobile journeys exercise authoring, history and permissions; they do not run a device or Appium.
+This suite does not replace manual acceptance, SAML, DNS proof or browser/provider matrices.
+The mapping to manual cases is in `collaudo/critical-ui-e2e.md`.
 `test:collaudo` checks the Collaudo application's history and import/export behavior; it does not
 execute every case in the manual acceptance catalogue.
 

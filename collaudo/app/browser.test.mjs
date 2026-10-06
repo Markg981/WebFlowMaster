@@ -53,6 +53,11 @@ test('historical cycles stay frozen while the current catalog is available witho
   await page.waitForSelector('#QUO-01');
   assert.equal(await page.locator('#areas .case').count(), current.cases.length);
   assert.equal(await page.locator('#TEL-01').count(), 1);
+  assert.equal(current.cases.filter((item) => item.area === 'AUT').length, 9);
+  for (let index = 1; index <= 9; index++)
+    assert.equal(await page.locator(`#AUT-${String(index).padStart(2, '0')}`).count(), 1);
+  await page.locator('#AUT-01 [data-expand]').click();
+  assert.match(await page.locator('#AUT-01').innerText(), /recovery/i);
   assert.equal(await page.locator('[data-set]:enabled').count(), 0);
   assert.equal(await page.locator('[data-note]:enabled').count(), 0);
   assert.equal(await page.locator('#exportBtn').isDisabled(), true);
@@ -77,8 +82,15 @@ test('historical cycles stay frozen while the current catalog is available witho
   assert.equal(await page.locator('#exportBtn').isDisabled(), false);
   assert.equal(await page.locator('[data-set]:enabled').count(), current.cases.length * 4);
   assert.equal(await page.locator('.case[data-status=todo]').count(), current.cases.length);
+  const updatedState = await (await fetch(base + '/api/state')).json();
+  const currentCycleId = await page.locator('#cycleSelect').inputValue();
+  for (const item of current.cases.filter((item) => item.area === 'AUT')) {
+    assert.equal(updatedState.results[currentCycleId][item.id], undefined);
+    assert.equal(await page.locator(`#${item.id}`).getAttribute('data-status'), 'todo');
+  }
   await page.locator('#cycleSelect').selectOption(cycle.id);
   await page.waitForFunction(() => document.querySelectorAll('#areas .case').length === 1);
+  assert.equal(await page.locator('[id^="AUT-"]').count(), 0);
   assert.match(
     await page.locator('[data-note]').first().inputValue(),
     /Nota storica da conservare/,
@@ -91,10 +103,10 @@ test('historical cycles stay frozen while the current catalog is available witho
   await page.locator('#cycleSelect').selectOption('');
   await page.waitForSelector('#QUO-01');
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator('#fArea').selectOption('TEL');
+  await page.locator('#fArea').selectOption('AUT');
   assert.equal(
     await page.locator('#areas .case').count(),
-    current.cases.filter((c) => c.area === 'TEL').length,
+    current.cases.filter((c) => c.area === 'AUT').length,
   );
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 });

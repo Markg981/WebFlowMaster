@@ -63,12 +63,15 @@ Redis e un PostgreSQL appena migrato, con ruolo applicativo non superuser.
 ### Accettazione dell'interfaccia su un'installazione reale
 
 `npm run test:e2e` usa `e2e/playwright.config.ts`, indipendente dalla configurazione radice per i
-test esportati. Chromium verifica registrazione/logout/login e persistenza della sessione,
-salvataggio e ricaricamento di un test API con richiesta HTTP reale, avvio di un piano dalla UI
-e ricaricamento del report completato. Pubblicazione, asserzioni sulla risposta e creazione del
-piano nell'ultimo percorso sono preparate attraverso le API reali. Le richieste del prodotto non
-sono intercettate: solo il servizio da testare è una fixture HTTP locale. Il worker deve eseguire
-il test e superare l'asserzione sulla risposta.
+test esportati. La suite contiene 19 percorsi Chromium: nove scenari d'installazione e quello
+con agente BDD reale, più nove percorsi UI critici. I nuovi scenari verificano attivazione MFA e
+codice di recupero monouso, login OIDC con provider HTTPS, dominio SSO sconosciuto, approvazione
+da un altro membro, pubblicazione diretta, editor mobile e storico in sola lettura, eliminazione
+con conferma, limite sui test salvati e annullamento dal report dell'esecuzione.
+Sessioni separate owner/editor/viewer verificano i permessi dall'interfaccia e con navigazione
+diretta alle pagine protette. Inviti e preparazione del piano da annullare usano le API reali;
+le azioni sotto verifica passano dalla UI. Le richieste del prodotto non sono intercettate.
+HTTP, gRPC, WebSocket e OIDC sono servizi esterni di prova; applicazione e worker restano reali.
 
 Avvia gli store locali dedicati e crea il database **una sola volta**, senza modificare il Collaudo:
 
@@ -96,13 +99,19 @@ docker compose -p wfm-ci-e2e -f e2e/docker-compose.yml down -v
 ```
 
 Il runner rifiuta database diversi da `wfm_ci_e2e` e Redis diversi dalla porta loopback dedicata
-6388. Avvia i bundle produttivi sulle porte 5080/5081 e li arresta dopo la suite. Registrazione
+6388. Avvia l'API produttiva su 5080, i servizi di prova su 5081/5082 e il provider OIDC HTTPS
+su localhost:5083; li arresta dopo la suite. API e worker si fidano del certificato della fixture
+tramite `NODE_EXTRA_CA_CERTS`; la chiave privata versionata è materiale pubblico di test.
+`INSTALLATION_ADMINS=e2e_operator` vale solo in questa installazione sacrificabile e la verifica
+DNS dei domini SSO è disattivata qui. Registrazione
 aperta e cookie HTTP valgono solo per questa installazione temporanea. Report HTML, log dei
 servizi e screenshot/video/trace dei fallimenti sono salvati in `e2e-artifacts/`, esclusa da Git,
 e caricati dalla CI anche in caso di errore, con conservazione di sette giorni.
 
-Questi percorsi di base non sostituiscono accettazione manuale, dispositivi mobile o matrici di
-browser/provider. `test:collaudo` verifica storico e import/export dell'applicazione di Collaudo;
+I percorsi mobile verificano editor, storico e permessi: non eseguono un dispositivo o Appium.
+Questa suite non sostituisce accettazione manuale, SAML, prova DNS o matrici browser/provider.
+La corrispondenza con i casi manuali è in `collaudo/critical-ui-e2e.md`.
+`test:collaudo` verifica storico e import/export dell'applicazione di Collaudo;
 non esegue ogni caso del catalogo di accettazione manuale.
 
 ## Come funzionano i test
