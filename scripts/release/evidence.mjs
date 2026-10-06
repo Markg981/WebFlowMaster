@@ -2,10 +2,21 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROLES, sha256, assertScanPassed, assertSourceScanPassed, createManifest, assertScannerMetadata } from './model.mjs';
 import { fileHash } from './file-hash.mjs';
+import { evaluateSourceExceptions } from './source-exceptions.mjs';
 const [mode, role, configDigest] = process.argv.slice(2);
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const directory = 'release-artifacts';
 const metadata = read(join(directory, 'metadata.json'));
+function verifySource(path) {
+  const reportBytes = readFileSync(path), report = JSON.parse(reportBytes);
+  const blocked = report?.Results?.some(result => result?.Vulnerabilities?.some(finding => ['HIGH', 'CRITICAL'].includes(finding?.Severity)));
+  if (!blocked) { assertSourceScanPassed(report); return null; }
+  const verified = evaluateSourceExceptions(report, { reportBytes });
+  assertSourceScanPassed(verified.report);
+  const evidenceBytes = JSON.stringify(verified.evidence, null, 2) + '\n';
+  writeFileSync(join(directory, 'source-exceptions.json'), evidenceBytes);
+  return sha256(evidenceBytes);
+}
 if (mode === 'record') {
   if (!ROLES.includes(role)) throw new Error('Invalid image role');
   const base = join(directory, role);
@@ -18,7 +29,7 @@ if (mode === 'record') {
   createManifest({ ...metadata, images }); // Validate digest/version formats before accepting evidence.
   writeFileSync(join(base, 'evidence.json'), JSON.stringify(evidence, null, 2) + '\n');
 } else if (mode === 'manifest') {
-  assertSourceScanPassed(read(join(directory, 'source-scan.json')));
+  const sourceExceptionsSha256 = verifySource(join(directory, 'source-scan.json'));
   assertScannerMetadata(read(join(directory, 'source-scanner.json')), metadata.inputs.toolchain.trivy);
   const images = Object.fromEntries(ROLES.map(key => [key, read(join(directory, key, 'published.json'))]));
   for (const key of ROLES) {
@@ -32,11 +43,12 @@ if (mode === 'record') {
   const manifest = createManifest({ ...metadata, images });
   manifest.sourceScanSha256 = sha256(readFileSync(join(directory, 'source-scan.json')));
   manifest.sourceScannerMetadataSha256 = sha256(readFileSync(join(directory, 'source-scanner.json')));
+  if (sourceExceptionsSha256) manifest.sourceExceptionsSha256 = sourceExceptionsSha256;
   writeFileSync(join(directory, 'release-manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
   const env = ROLES.map(key => `WFM_${key.toUpperCase()}_IMAGE=${images[key].reference}`).join('\n');
   writeFileSync(join(directory, 'release.env'), env + '\n');
 } else if (mode === 'gate') {
   assertScanPassed(read(role));
 } else if (mode === 'source-gate') {
-  assertSourceScanPassed(read(role));
+  verifySource(role);
 } else throw new Error('Use record, manifest, gate or source-gate');

@@ -2844,6 +2844,7 @@
       "schedule_updated": "Zeitplan geändert",
       "schedule_deleted": "Zeitplan gelöscht",
       "project_created": "Projekt erstellt",
+      "project_updated": "Projekt aktualisiert",
       "project_deleted": "Projekt gelöscht",
       "run_cancelled": "Ausführung abgebrochen",
       "environment_created": "Umgebung erstellt",

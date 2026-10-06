@@ -31,6 +31,7 @@
     "import-netcontent-api.ts",
     "apply-migrations.ts",
     "schema-doctor.ts",
+    "wfm-load.ts",
     "netcontent/**/*.ts",
     "netcontent-ui/**/*.ts",
     "../test-db.ts",

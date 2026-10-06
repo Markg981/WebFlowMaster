@@ -42,23 +42,25 @@ router.post('/api/dashboards', requireRole('viewer'), async (req, res) => {
   const parsed = dashboardDocumentSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid dashboard', details: parsed.error.flatten() });
   try {
-    await withTenantTransaction(async tx => {
-      if (!await validateProjects(tx, parsed.data.widgets)) return res.status(400).json({ error: 'Project unavailable' });
+    const result = await withTenantTransaction(async tx => {
+      if (!await validateProjects(tx, parsed.data.widgets)) return { status: 400, body: { error: 'Project unavailable' } };
       const [row] = await tx.insert(dashboards).values({ ...parsed.data, organizationId: getTenantOrgId()!, creatorId: req.user!.id }).returning();
-      res.status(201).json({ ...row, canManage: true });
+      return { status: 201, body: { ...row, canManage: true } };
     });
+    res.status(result.status).json(result.body);
   } catch { res.status(500).json({ error: 'Failed to create dashboard' }); }
 });
 router.put('/api/dashboards/preferences', requireRole('viewer'), async (req, res) => {
   const parsed = z.object({ selectedDashboardId: idSchema.nullable().optional(), defaultDashboardId: idSchema.nullable().optional() }).strict().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid preferences' });
   try {
-    await withTenantTransaction(async tx => {
-      for (const id of Object.values(parsed.data)) if (id && !(await tx.select({ id: dashboards.id }).from(dashboards).where(eq(dashboards.id, id)))[0]) return res.status(404).json({ error: 'Dashboard not found' });
+    const result = await withTenantTransaction(async tx => {
+      for (const id of Object.values(parsed.data)) if (id && !(await tx.select({ id: dashboards.id }).from(dashboards).where(eq(dashboards.id, id)))[0]) return { status: 404, body: { error: 'Dashboard not found' } };
       await tx.insert(userDashboardPreferences).values({ organizationId: getTenantOrgId()!, userId: req.user!.id }).onConflictDoNothing();
       const [row] = await tx.update(userDashboardPreferences).set({ ...parsed.data, updatedAt: new Date() }).where(and(eq(userDashboardPreferences.organizationId, getTenantOrgId()!), eq(userDashboardPreferences.userId, req.user!.id))).returning();
-      res.json(row);
+      return { status: 200, body: row };
     });
+    res.status(result.status).json(result.body);
   } catch { res.status(500).json({ error: 'Failed to save preferences' }); }
 });
 router.use('/api/dashboards/:id', (req, res, next) => idSchema.safeParse(req.params.id).success ? next() : res.status(400).json({ error: 'Invalid dashboard ID' }));
@@ -73,40 +75,44 @@ router.put('/api/dashboards/:id', requireRole('viewer'), async (req, res) => {
   const parsed = dashboardUpdateSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid dashboard', details: parsed.error.flatten() });
   try {
-    await withTenantTransaction(async tx => {
+    const result = await withTenantTransaction(async tx => {
       const [old] = await tx.select().from(dashboards).where(eq(dashboards.id, req.params.id));
-      if (!old) return res.status(404).json({ error: 'Dashboard not found' });
-      if (!manage(old, req.user!) || parsed.data.visibility === 'private' && old.creatorId !== req.user!.id) return res.status(403).json({ error: 'Only the creator can make a dashboard private' });
-      if (old.version !== parsed.data.version) return res.status(409).json({ error: 'Dashboard changed. Reload before saving.' });
-      if (!await validateProjects(tx, parsed.data.widgets)) return res.status(400).json({ error: 'Project unavailable' });
+      if (!old) return { status: 404, body: { error: 'Dashboard not found' } };
+      if (!manage(old, req.user!) || parsed.data.visibility === 'private' && old.creatorId !== req.user!.id) return { status: 403, body: { error: 'Only the creator can make a dashboard private' } };
+      if (old.version !== parsed.data.version) return { status: 409, body: { error: 'Dashboard changed. Reload before saving.' } };
+      if (!await validateProjects(tx, parsed.data.widgets)) return { status: 400, body: { error: 'Project unavailable' } };
       const [row] = await tx.update(dashboards).set({ ...parsed.data, version: sql`${dashboards.version} + 1`, updatedAt: new Date() }).where(and(eq(dashboards.id, req.params.id), eq(dashboards.version, parsed.data.version))).returning();
-      if (!row) return res.status(409).json({ error: 'Dashboard changed. Reload before saving.' });
-      res.json({ ...row, canManage: true });
+      if (!row) return { status: 409, body: { error: 'Dashboard changed. Reload before saving.' } };
+      return { status: 200, body: { ...row, canManage: true } };
     });
+    res.status(result.status).json(result.body);
   } catch { res.status(500).json({ error: 'Failed to save dashboard' }); }
 });
 router.post('/api/dashboards/:id/duplicate', requireRole('viewer'), async (req, res) => {
   const parsed = z.object({ name: z.string().trim().min(1).max(100) }).strict().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid name' });
   try {
-    await withTenantTransaction(async tx => {
+    const result = await withTenantTransaction(async tx => {
       const [old] = await tx.select().from(dashboards).where(eq(dashboards.id, req.params.id));
-      if (!old) return res.status(404).json({ error: 'Dashboard not found' });
+      if (!old) return { status: 404, body: { error: 'Dashboard not found' } };
       // Preserve unavailable filters; copying never grants access to the underlying project.
       const [row] = await tx.insert(dashboards).values({ name: parsed.data.name, widgets: old.widgets, visibility: 'private', creatorId: req.user!.id, organizationId: getTenantOrgId()! }).returning();
-      res.status(201).json({ ...row, canManage: true });
+      return { status: 201, body: { ...row, canManage: true } };
     });
+    res.status(result.status).json(result.body);
   } catch { res.status(500).json({ error: 'Failed to duplicate dashboard' }); }
 });
 router.delete('/api/dashboards/:id', requireRole('viewer'), async (req, res) => {
   try {
-    await withTenantTransaction(async tx => {
+    const result = await withTenantTransaction(async tx => {
       const [row] = await tx.select().from(dashboards).where(eq(dashboards.id, req.params.id));
-      if (!row) return res.status(404).json({ error: 'Dashboard not found' });
-      if (!manage(row, req.user!)) return res.status(403).json({ error: 'Forbidden' });
+      if (!row) return { status: 404, body: { error: 'Dashboard not found' } };
+      if (!manage(row, req.user!)) return { status: 403, body: { error: 'Forbidden' } };
       await tx.delete(dashboards).where(eq(dashboards.id, row.id));
-      res.sendStatus(204);
+      return { status: 204, body: undefined };
     });
+    if (result.status === 204) res.sendStatus(204);
+    else res.status(result.status).json(result.body);
   } catch { res.status(500).json({ error: 'Failed to delete dashboard' }); }
 });
 export default router;

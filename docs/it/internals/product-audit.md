@@ -13,6 +13,15 @@ interfaccia nel report e replay storico esplicito restano miglioramenti separati
 automatici riutilizzano i dati acquisiti. Non vengono congelate tutte le definizioni o lo stato
 dei sistemi esterni.
 
+Aggiornamento implementazione: l'[authoring pubblico](../reference/api#risorse-di-authoring)
+crea progetti, test UI/manuali/BDD, dataset condivisi e piani con scope dedicati, versioni e audit.
+Import/export portabile comprende definizioni UI/manuali/BDD; l'authoring nativo API/mobile resta
+fuori dal contratto. Lo [strumento di carico](../admin/load-testing) supporta `--soak-seconds` e
+`--interval-seconds` con osservazioni per ciclo. Questi interventi coprono parte delle due voci
+P2 della baseline sotto. Resistenza multi-tenant con agenti reali, scheduler, artefatti e riavvii
+controllati resta Da eseguire nel Collaudo API-49–API-51 e OPS-27–OPS-28; i controlli automatici
+locali non certificano durata o capacità in produzione.
+
 È stato inventariato il repository: 1.264 file tracciati prima di questa revisione, tra cui 494
 in `server/`, 331 in `client/`, 44 in `shared/`, 40 in `scripts/`, 87 in `migrations/`, 41
 in `collaudo/`, 29 in `deployment/`, 8 in `e2e/` e 7 in `integrations/`. Sono presenti 347

@@ -32,11 +32,20 @@ test('scan gate blocks HIGH/CRITICAL including unfixed findings and malformed re
   for (const Severity of ['HIGH', 'CRITICAL']) assert.throws(() => assertScanPassed({ SchemaVersion: 2, Results: [{ Vulnerabilities: [{ Severity }] }] }));
   for (const report of [{}, { SchemaVersion: 2 }, { SchemaVersion: 2, Results: [null] }, { SchemaVersion: 2, Results: [{ Vulnerabilities: [{}] }] }, { SchemaVersion: 2, Results: [{ Vulnerabilities: {} }] }]) assert.throws(() => assertScanPassed(report));
 });
+
+test('blocked scan diagnostics identify each affected lockfile, package and advisory', () => {
+  const report = { SchemaVersion: 2, Results: ['package-lock.json', 'client/package-lock.json'].map(Target => ({ Target, Vulnerabilities: [{ Severity: 'HIGH', PkgName: 'braces', InstalledVersion: '3.0.3', VulnerabilityID: 'CVE-2026-93687' }] })) };
+  assert.throws(() => assertSourceScanPassed(report), error =>
+    /blocked by 2 HIGH\/CRITICAL/.test(error.message) &&
+    /package-lock\.json: braces@3\.0\.3 \[CVE-2026-93687, HIGH\]/.test(error.message) &&
+    /client\/package-lock\.json: braces@3\.0\.3 \[CVE-2026-93687, HIGH\]/.test(error.message));
+});
 test('repository inputs capture ordered journal, all SQL hashes and locked bases', () => {
   const inputs = readReleaseInputs(process.cwd());
   assert.ok(inputs.migrations.length > 80);
   assert.ok(inputs.sqlFiles['migrations/0000_initial_schema.sql'] || Object.keys(inputs.sqlFiles).length >= inputs.migrations.length);
   assert.match(inputs.hashes['package-lock.json'], /^[a-f0-9]{64}$/);
+  for (const file of ['deployment/releases/source-exceptions.json', 'scripts/release/source-exceptions.mjs', 'scripts/security/braces.test.mjs']) assert.match(inputs.hashes[file], /^[a-f0-9]{64}$/);
 });
 
 test('publication rejects candidates, wrong repositories, versions and commits', () => {
@@ -65,5 +74,6 @@ test('scanner evidence requires the pinned version and actual DB metadata', () =
 test('source gate refuses a clean report that omitted locked build dependencies', () => {
   assert.throws(() => assertSourceScanPassed({ SchemaVersion: 2, Results: [] }), /coverage/);
   assert.throws(() => assertSourceScanPassed({ SchemaVersion: 2, Results: [{ Target: 'package-lock.json' }] }), /lighthouse/);
-  assert.doesNotThrow(() => assertSourceScanPassed({ SchemaVersion: 2, Results: [{ Target: 'package-lock.json' }, { Target: 'deployment/lighthouse/package-lock.json' }] }));
+  assert.throws(() => assertSourceScanPassed({ SchemaVersion: 2, Results: [{ Target: 'package-lock.json' }, { Target: 'deployment/lighthouse/package-lock.json' }] }), /client/);
+  assert.doesNotThrow(() => assertSourceScanPassed({ SchemaVersion: 2, Results: [{ Target: 'package-lock.json' }, { Target: 'deployment/lighthouse/package-lock.json' }, { Target: 'client/package-lock.json' }] }));
 });

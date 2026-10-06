@@ -15,7 +15,7 @@ function fixture(t) {
   const base = join(root, 'release-artifacts');
   mkdirSync(base);
   writeFileSync(join(base, 'metadata.json'), JSON.stringify({ repository: 'Owner/Repo', commit: 'a'.repeat(40), epoch: 1700000000, version: '1.2.3', inputs: { version: '1.2.3', toolchain: { trivy: `aquasec/trivy:0.75.0@sha256:${'f'.repeat(64)}` } } }));
-  writeFileSync(join(base, 'source-scan.json'), JSON.stringify({ SchemaVersion: 2, Results: [{ Target: 'package-lock.json' }, { Target: 'deployment/lighthouse/package-lock.json' }] }));
+  writeFileSync(join(base, 'source-scan.json'), JSON.stringify({ SchemaVersion: 2, Results: [{ Target: 'package-lock.json' }, { Target: 'deployment/lighthouse/package-lock.json' }, { Target: 'client/package-lock.json' }] }));
   writeFileSync(join(base, 'source-scanner.json'), scanner);
   for (const role of ROLES) {
     mkdirSync(join(base, role));
@@ -60,4 +60,12 @@ test('streaming hash detects changed archive content', async t => {
   assert.equal(await fileHash(file), sha256('archive fixture'));
   writeFileSync(file, 'altered archive');
   assert.notEqual(await fileHash(file), sha256('archive fixture'));
+});
+test('image gate rejects the source-only braces exception and source gate needs actual mitigation', t => {
+  const { base, run } = fixture(t);
+  const path = join(base, 'source-scan.json');
+  writeFileSync(path, JSON.stringify({ SchemaVersion: 2, Results: [{ Target: 'package-lock.json', Vulnerabilities: [{ Severity: 'HIGH', VulnerabilityID: 'CVE-2026-93687', PkgName: 'braces', InstalledVersion: '3.0.3' }] }, { Target: 'deployment/lighthouse/package-lock.json' }] }));
+  assert.notEqual(run('gate', path).status, 0);
+  assert.notEqual(run('source-gate', path).status, 0);
+  assert.match(run('source-gate', path).stderr, /source-exceptions.json/);
 });

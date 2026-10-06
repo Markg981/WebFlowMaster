@@ -42,16 +42,17 @@ abilita la pubblicazione soltanto quando:
 - Il commit appartiene a `origin/main`.
 - Gli ultimi controlli GitHub Actions `build-and-test`, `network-on-guarded-installation`,
   `ui-on-real-installation` e `rls-on-real-postgres` sono riusciti sullo stesso commit.
-- Le scansioni dei lockfile e di tutte e tre le immagini non contengono vulnerabilità HIGH o
-  CRITICAL, comprese quelle senza correzione. Rapporti mancanti o malformati bloccano il rilascio.
+- Le scansioni delle tre immagini non contengono HIGH o CRITICAL, compresi quelli senza fix.
+  I rilievi dei lockfile devono essere risolti o soddisfare l’esatta eccezione sorgenti approvata sotto.
+  Rapporti mancanti/malformati, copertura sorgenti incompleta o errori scanner bloccano il rilascio.
 - Smoke test e due build indipendenti riescono per ogni ruolo.
 
 Trivy produce una SBOM CycloneDX JSON e un rapporto JSON completo per ogni immagine. Sono
 conservati anche versione dello scanner e metadati del database utilizzato. I rapporti mantengono
-i rilievi di gravità inferiore per la valutazione. Non esistono eccezioni predefinite o flag
-`ignore-unfixed`. Se una scansione blocca il rilascio, individuare pacchetto/base, aggiornare una
-versione compatibile bloccata, revisionare e ripetere i controlli. Un'eventuale eccezione temporanea
-richiederebbe una policy separata revisionata, con responsabile, scadenza e ID: qui non è implementata.
+i rilievi di gravità inferiore per la valutazione. Non si usano ignore generici o flag
+`ignore-unfixed`. L’unica eccezione approvata è quella temporanea per i sorgenti in
+`deployment/releases/source-exceptions.json`, descritta sotto; non vale per le immagini.
+Gli altri rilievi bloccanti richiedono aggiornamento compatibile fissato, revisione e nuove scansioni.
 Errori dello scanner o nel download del database fermano la pubblicazione. Nuovi advisory possono
 cambiare l'idoneità di un'immagine anche quando il suo contenuto non cambia.
 
@@ -130,7 +131,7 @@ Per le gravità vedere [Trivy](https://trivy.dev/docs/latest/configuration/filte
 
 ## Baseline del 6 ottobre 2026
 
-La scansione diagnostica dei lockfile ha rilevato 36 occorrenze HIGH/CRITICAL: 10 nel lock principale, 3 in Lighthouse, 22 nel lock client separato e 1 negli strumenti video. La baseline in `deployment/releases/baseline-2026-10-06.json` conserva ID, versioni, impronte degli input e metadati scanner. Il lock client separato non governa `npm ci` della workspace, ma è incluso nell’inventario dei lockfile presenti. La scansione include anche sviluppo e strumenti: il candidato resta bloccato finché tutti i rilievi nel perimetro sono risolti o una policy diversa viene revisionata esplicitamente. Nessuna eccezione è stata aggiunta. Questo rapporto non certifica le immagini né sostituisce nuove scansioni sul tag.
+La scansione diagnostica dei lockfile ha rilevato 36 occorrenze HIGH/CRITICAL: 10 nel lock principale, 3 in Lighthouse, 22 nel lock client separato e 1 negli strumenti video. La baseline in `deployment/releases/baseline-2026-10-06.json` conserva ID, versioni, impronte degli input e metadati scanner. Il lock client separato non governa `npm ci` della workspace, ma è incluso nell’inventario dei lockfile presenti. La scansione include anche sviluppo e strumenti: il candidato resta bloccato finché tutti i rilievi nel perimetro sono risolti o una policy diversa viene revisionata esplicitamente. Alla baseline non erano presenti eccezioni; quella sorgenti approvata successivamente e descritta sotto è condizionata. Questo rapporto non certifica le immagini né sostituisce nuove scansioni sul tag.
 
 ### Capacità del runner
 
@@ -173,8 +174,32 @@ l'installazione per richiedere una revisione della patch.
 Eseguire `npm run test:security` dopo `npm ci`: verifica glob normali, rifiuto
 dell'annidamento e composizione email reale. `--ignore-scripts` non applica la
 mitigazione. Il controllo di release include l'impronta della patch e dei manifest
-client. **Il gate resta bloccato finché lo scanner rileva HIGH/CRITICAL**, compreso
-braces: nessuna eccezione, VEX automatico o rinomina nasconde il rilievo.
+client.
+
+### Eccezione temporanea sorgenti approvata
+
+L’utente ha approvato esplicitamente un’eccezione limitata ai sorgenti per **CVE-2026-93687**,
+pacchetto **braces 3.0.3**, esclusivamente in `package-lock.json` e `client/package-lock.json`,
+con scadenza **6 novembre 2026**. La configurazione revisionabile è
+`deployment/releases/source-exceptions.json`. Il rilievo scanner resta riconosciuto: non si
+dichiara un fix upstream e non si cambia l’identità del pacchetto.
+
+L’accettazione richiede installazioni nuove principale e client separato e verifica riuscita
+di integrità e limite di profondità di **ogni copia braces installata nei due alberi**.
+Verificare i parser reali contro patch/hash attesi, comportamento dei glob ordinari e rifiuto
+oltre profondità 100. Copie mancanti, contenuto parser inatteso, validazione fallita, policy
+scaduta, versioni/percorsi non previsti o scansioni incomplete bloccano l’accettazione sorgenti.
+`--ignore-scripts` da solo non soddisfa la condizione.
+
+Il rapporto Trivy sorgenti originale e completo resta un artefatto, inclusi i due rilievi;
+le evidenze dell’eccezione accettata sono separate e identificano policy, validazione e rilievi
+corrispondenti. Nessun rilievo delle immagini è accettato, non si aggiungono ignore generici o
+`ignore-unfixed` e ogni altro HIGH/CRITICAL resta bloccante. Rinnovo o estensione richiedono
+revisione e approvazione esplicite; privilegiare un fix upstream verificato prima della scadenza.
+
+L’approvazione non prova che CI/tag attuale soddisfi le condizioni. L’idoneità della release
+richiede validazione riuscita, scansioni nuove complete e tutti gli altri gate.
+
 Rimuovere la patch soltanto dopo un aggiornamento ufficiale con protezione
 equivalente e nuove prove. Consultare il protocollo Collaudo 28 per le evidenze.
 
@@ -203,5 +228,6 @@ e database, ID delle configurazioni, numero di componenti SBOM e limiti delle
 prove. I rapporti locali completi sono in
 `outputs/security-remediation-2026-10-06/`, esclusa da Git. Le prove usano uno
 snapshot congelato del candidato, epoch 1700000000 e Buildx locale 0.37.1,
-mentre CI usa 0.37.2. Non certificano il tag finale né il workflow ospitato e non
-sbloccano i due rilievi residui sui sorgenti.
+mentre CI usa 0.37.2. Non certificano il tag finale né il workflow ospitato. I due rilievi
+sorgenti residui richiedono l’eccezione separata approvata e le relative prove di validazione;
+le sole scansioni immagini pulite non soddisfano queste condizioni.

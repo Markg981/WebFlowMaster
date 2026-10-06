@@ -1834,6 +1834,7 @@ export const AUDIT_ACTIONS = {
   SCHEDULE_UPDATED: 'schedule.updated',
   SCHEDULE_DELETED: 'schedule.deleted',
   PROJECT_CREATED: 'project.created',
+  PROJECT_UPDATED: 'project.updated',
   PROJECT_DELETED: 'project.deleted',
   // Restricting a project, or changing who is on it and as what.
   PROJECT_ACCESS_CHANGED: 'project.access_changed',

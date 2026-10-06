@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 /**
  * A load test of a WebFlowMaster installation: how fast it answers while busy, and whether its run
  * queue holds under a burst — each organization's limit on runs in progress kept, every run
@@ -43,6 +44,9 @@ export interface LoadOptions {
   pollSeconds: number;
   maxP95Ms: number;
   maxErrorRate: number;
+  soakSeconds?: number;
+  intervalSeconds?: number;
+  requestTimeoutSeconds?: number;
   jsonPath?: string;
 }
 
@@ -55,6 +59,9 @@ const DEFAULTS: Omit<LoadOptions, 'baseUrl' | 'targets'> = {
   pollSeconds: 2,
   maxP95Ms: 1000,
   maxErrorRate: 0,
+  soakSeconds: 0,
+  intervalSeconds: 30,
+  requestTimeoutSeconds: 30,
 };
 
 /** What a run is in /api/v1, as far as this needs it. */
@@ -73,6 +80,9 @@ const TERMINAL = new Set(['completed', 'failed', 'error', 'cancelled', 'timed_ou
 export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env): LoadOptions | { error: string } {
   const options: Partial<LoadOptions> & { targets: Target[] } = { ...DEFAULTS, targets: [] };
   const numbers: Record<string, keyof LoadOptions> = {
+    '--soak-seconds': 'soakSeconds',
+    '--interval-seconds': 'intervalSeconds',
+    '--request-timeout': 'requestTimeoutSeconds',
     '--readers': 'readers',
     '--read-seconds': 'readSeconds',
     '--runs': 'runs',
@@ -89,11 +99,11 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
     else if (flag === '--json') options.jsonPath = value;
     else if (flag === '--target') {
       const at = value?.lastIndexOf(':') ?? -1;
-      if (at <= 0) return { error: `--target is <api key>:<plan id>, not "${value ?? ''}".` };
+      if (at <= 0 || at === value.length - 1) return { error: `--target is <api key>:<plan id>, not "${value ?? ''}".` };
       options.targets.push({ key: value.slice(0, at), planId: value.slice(at + 1) });
     } else if (flag in numbers) {
       const n = Number(value);
-      if (!Number.isFinite(n) || n < 0) return { error: `${flag} takes a number, not "${value ?? ''}".` };
+      if (!value || value.trim() === '' || !Number.isFinite(n) || n < 0) return { error: `${flag} takes a number, not "${value ?? ''}".` };
       (options as Record<string, unknown>)[numbers[flag]] = n;
     } else return { error: `Unknown option ${flag}.` };
     i++;
@@ -101,7 +111,12 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
   options.baseUrl = (options.baseUrl ?? env.WFM_URL)?.replace(/\/+$/, '');
   if (!options.baseUrl) return { error: 'Name the installation: --url or WFM_URL.' };
   if (options.targets.length === 0) return { error: 'Name at least one --target <api key>:<plan id>.' };
-  if (options.runs > 100) return { error: '--runs is at most 100 per target.' };
+  for (const field of ['readers', 'runs', 'maxConcurrent'] as const) {
+    if (!Number.isSafeInteger(options[field])) return { error: `${field} must be an integer.` };
+  }
+  if (options.readers! < 1 || options.maxConcurrent! < 1 || options.pollSeconds! <= 0 || options.runTimeoutSeconds! <= 0 || options.intervalSeconds! <= 0 || options.requestTimeoutSeconds! <= 0) return { error: 'Readers, concurrency, poll, run timeout, interval and request timeout must be positive.' };
+  if (options.maxErrorRate! > 1) return { error: '--max-error-rate is a fraction from 0 to 1.' };
+  if (options.runs! > 100) return { error: '--runs is at most 100 per target.' };
   return options as LoadOptions;
 }
 
@@ -123,12 +138,14 @@ export interface Sample {
 
 export interface ReadSummary {
   requests: number;
+  /** Latency percentiles use a uniform reservoir of at most 10,000 requests. */
+  latencySampleSize?: number;
   perSecond: number;
   p50: number | null;
   p95: number | null;
   p99: number | null;
   slowest: number | null;
-  /** 5xx and requests that could not be made. */
+  /** HTTP errors (except 429) and requests that could not be made. */
   errors: number;
   errorRate: number;
   /** 429: the installation's rate limit. */
@@ -138,7 +155,7 @@ export interface ReadSummary {
 export function summariseReads(samples: Sample[], seconds: number): ReadSummary {
   const answered = samples.filter((s) => s.status !== 429);
   const times = answered.filter((s) => s.status > 0).map((s) => s.ms);
-  const errors = answered.filter((s) => s.status === 0 || s.status >= 500).length;
+  const errors = answered.filter((s) => s.status === 0 || s.status >= 400).length;
   return {
     requests: samples.length,
     perSecond: seconds > 0 ? Math.round((samples.length / seconds) * 10) / 10 : 0,
@@ -154,13 +171,17 @@ export function summariseReads(samples: Sample[], seconds: number): ReadSummary 
 
 export interface RunSummary {
   started: number;
-  /** 429 queue_full: the organization's queue was full. */
+  /** Requested run starts in this target/cycle. */
+  requested?: number;
+  /** Explicit 429 queue_quota_exceeded/queue_full: the organization's queue was full. */
   refused: number;
   /** Any other answer to starting a run. */
   startErrors: string[];
   statuses: Record<string, number>;
   /** Runs still not ended at --run-timeout. */
   unfinished: number;
+  /** Accepted IDs never retrieved successfully before the run deadline. */
+  missing?: number;
   waitP50: number | null;
   waitP95: number | null;
   durationP50: number | null;
@@ -231,6 +252,8 @@ export function breaches(reads: ReadSummary, runs: RunSummary[], options: Pick<L
   runs.forEach((run, index) => {
     const name = `target ${index + 1}`;
     if (run.maxRunning > options.maxConcurrent) found.push(`${name}: ${run.maxRunning} runs in progress at once > ${options.maxConcurrent}`);
+    if ((run.requested ?? 0) > 0 && run.started === 0) found.push(`${name}: no runs accepted for requested workload`);
+    if ((run.missing ?? 0) > 0) found.push(`${name}: ${run.missing} accepted runs never retrieved`);
     if (run.unfinished > 0) found.push(`${name}: ${run.unfinished} runs not ended in time`);
     const lost = Object.entries(run.statuses).filter(([status]) => status !== 'completed' && TERMINAL.has(status));
     for (const [status, count] of lost) found.push(`${name}: ${count} runs ended ${status}`);
@@ -255,13 +278,25 @@ const defaultIo: LoadIo = {
   log: (line) => console.log(line),
 };
 
-async function timed(io: LoadIo, url: string, init: RequestInit): Promise<Sample & { retryAfter?: number }> {
+async function request<T>(io: LoadIo, url: string, init: RequestInit, timeoutSeconds: number, consume: (res: Response) => Promise<T>): Promise<T> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => { controller.abort(); reject(new Error('HTTP request deadline exceeded')); }, timeoutSeconds * 1000);
+  });
+  try {
+    return await Promise.race([io.fetch(url, { ...init, signal: controller.signal }).then(consume), timeout]);
+  } finally { clearTimeout(timer!); }
+}
+
+async function timed(io: LoadIo, url: string, init: RequestInit, timeoutSeconds: number): Promise<Sample & { retryAfter?: number }> {
   const start = io.now();
   try {
-    const res = await io.fetch(url, init);
-    await res.text().catch(() => '');
-    const retryAfter = Number(res.headers?.get?.('retry-after'));
-    return { ms: io.now() - start, status: res.status, ...(Number.isFinite(retryAfter) && retryAfter > 0 ? { retryAfter } : {}) };
+    return await request(io, url, init, timeoutSeconds, async res => {
+      await res.text();
+      const retryAfter = Number(res.headers?.get?.('retry-after'));
+      return { ms: io.now() - start, status: res.status, ...(Number.isFinite(retryAfter) && retryAfter > 0 ? { retryAfter } : {}) };
+    });
   } catch {
     return { ms: io.now() - start, status: 0 };
   }
@@ -269,27 +304,51 @@ async function timed(io: LoadIo, url: string, init: RequestInit): Promise<Sample
 
 const auth = (key: string) => ({ Authorization: `Bearer ${key}`, Accept: 'application/json' });
 
-async function readPhase(options: LoadOptions, io: LoadIo): Promise<ReadSummary> {
-  const samples: Sample[] = [];
+class ReadAccumulator {
+  // Uniform reservoir: percentiles use at most 10,000 samples, counters cover every request.
+  private samples: Sample[] = [];
+  private requests = 0;
+  private errors = 0;
+  private limited = 0;
+  private slowest: number | null = null;
+  add(sample: Sample) {
+    this.requests++;
+    if (sample.status === 429) this.limited++;
+    else if (sample.status === 0 || sample.status >= 400) this.errors++;
+    if (sample.status > 0 && sample.status !== 429) this.slowest = Math.max(this.slowest ?? 0, sample.ms);
+    if (this.samples.length < 10000) this.samples.push(sample);
+    else { const slot = Math.floor(Math.random() * this.requests); if (slot < 10000) this.samples[slot] = sample; }
+  }
+  summary(seconds: number): ReadSummary {
+    return { ...summariseReads(this.samples, seconds), requests: this.requests, latencySampleSize: this.samples.length,
+      perSecond: seconds > 0 ? Math.round(this.requests / seconds * 10) / 10 : 0,
+      errors: this.errors, limited: this.limited, slowest: this.slowest,
+      errorRate: this.requests > this.limited ? this.errors / (this.requests - this.limited) : 0 };
+  }
+}
+
+async function readPhase(options: LoadOptions, io: LoadIo, stopped: () => boolean = () => false, aggregate?: ReadAccumulator): Promise<ReadSummary> {
+  const samples = new ReadAccumulator();
   const deadline = io.now() + options.readSeconds * 1000;
   const paths = ['/api/v1/plans?limit=20', '/api/v1/runs?limit=20'];
   let turn = 0;
   const reader = async () => {
-    while (io.now() < deadline) {
+    while (io.now() < deadline && !stopped()) {
       const target = options.targets[turn % options.targets.length];
       const path = paths[turn++ % paths.length];
-      const sample = await timed(io, `${options.baseUrl}${path}`, { headers: auth(target.key) });
-      samples.push({ ms: sample.ms, status: sample.status });
+      const sample = await timed(io, `${options.baseUrl}${path}`, { headers: auth(target.key) }, options.requestTimeoutSeconds ?? 30);
+      samples.add(sample);
+      aggregate?.add(sample);
       // A limited client waits as told, as a well-behaved pipeline does.
       if (sample.status === 429) await io.sleep(Math.min(sample.retryAfter ?? 1, 10) * 1000);
     }
   };
   const started = io.now();
   await Promise.all(Array.from({ length: Math.max(1, options.readers) }, reader));
-  return summariseReads(samples, (io.now() - started) / 1000);
+  return samples.summary((io.now() - started) / 1000);
 }
 
-async function runPhase(options: LoadOptions, io: LoadIo): Promise<RunSummary[]> {
+async function runPhase(options: LoadOptions, io: LoadIo, invocation: string, cycle = 0, seenIds = new Set<string>()): Promise<RunSummary[]> {
   const burstAt = io.now();
   const started = await Promise.all(
     options.targets.map(async (target, t) => {
@@ -299,15 +358,19 @@ async function runPhase(options: LoadOptions, io: LoadIo): Promise<RunSummary[]>
       await Promise.all(
         Array.from({ length: options.runs }, async (_, i) => {
           try {
-            const res = await io.fetch(`${options.baseUrl}/api/v1/plans/${encodeURIComponent(target.planId)}/runs`, {
+            const answer = await request(io, `${options.baseUrl}/api/v1/plans/${encodeURIComponent(target.planId)}/runs`, {
               method: 'POST',
-              headers: { ...auth(target.key), 'Content-Type': 'application/json', 'Idempotency-Key': `wfm-load-${burstAt}-${t}-${i}` },
+              headers: { ...auth(target.key), 'Content-Type': 'application/json', 'Idempotency-Key': `wfm-load-${invocation}-${cycle}-${t}-${i}` },
               body: '{}',
-            });
-            const body = (await res.json().catch(() => ({}))) as { id?: string; error?: { code?: string; message?: string } };
-            if (res.status === 202 && body.id) ids.push(body.id);
-            else if (res.status === 429) refused++;
-            else errors.push(`${res.status} ${body.error?.code ?? ''}`.trim());
+            }, options.requestTimeoutSeconds ?? 30, async res => ({ status: res.status, body: await res.json().catch(() => ({})) }));
+            const res = answer;
+            const body = answer.body as { id?: string; error?: { code?: string; message?: string } };
+            if (res.status === 202 && typeof body.id === 'string' && body.id) {
+              if (seenIds.has(body.id)) errors.push(`duplicate returned run ID ${body.id}`);
+              else { seenIds.add(body.id); ids.push(body.id); }
+            }
+            else if (res.status === 429 && ['queue_quota_exceeded', 'queue_full'].includes(body.error?.code ?? 'unknown_error')) refused++;
+            else errors.push(`${res.status} ${body.error?.code ?? 'unknown_error'}`.trim());
           } catch (error) {
             errors.push(error instanceof Error ? error.message : String(error));
           }
@@ -325,26 +388,26 @@ async function runPhase(options: LoadOptions, io: LoadIo): Promise<RunSummary[]>
     await Promise.all(
       options.targets.map(async (target, t) => {
         if (started[t].ids.size === 0) return;
-        try {
-          const res = await io.fetch(`${options.baseUrl}/api/v1/runs?planId=${encodeURIComponent(target.planId)}&limit=100`, { headers: auth(target.key) });
-          if (!res.ok) return;
-          const body = (await res.json()) as { items?: Run[] };
-          for (const run of body.items ?? []) if (started[t].ids.has(run.id)) latest[t].set(run.id, run);
-          const running = [...latest[t].values()].filter((r) => r.status === 'running' || r.status === 'cancelling').length;
-          maxRunning[t] = Math.max(maxRunning[t], running);
-        } catch {
-          /* the next poll asks again */
-        }
+        await Promise.all([...started[t].ids].map(async id => {
+          if (TERMINAL.has(latest[t].get(id)?.status ?? '')) return;
+          try {
+            const answer = await request(io, `${options.baseUrl}/api/v1/runs/${encodeURIComponent(id)}`, { headers: auth(target.key) }, options.requestTimeoutSeconds ?? 30,
+              async res => ({ ok: res.ok, body: await res.json() }));
+            if (answer.ok && answer.body?.id === id) latest[t].set(id, answer.body as Run);
+          } catch { /* Retry until the run deadline; missing runs remain unfinished. */ }
+        }));
+        const running = [...latest[t].values()].filter(r => r.status === 'running' || r.status === 'cancelling').length;
+        maxRunning[t] = Math.max(maxRunning[t], running);
       }),
     );
     const open = latest.reduce((sum, runs, t) => sum + started[t].ids.size - [...runs.values()].filter((r) => TERMINAL.has(r.status)).length, 0);
     if (open === 0 || io.now() >= deadline) break;
-    await io.sleep(options.pollSeconds * 1000);
+    await io.sleep(Math.min(options.pollSeconds * 1000, Math.max(0, deadline - io.now())));
   }
   return started.map((s, t) => {
-    // A run never seen in a listing is reported as still queued: it did not end where anyone could see.
+    // A run never retrieved individually is reported as still queued: it did not end where anyone could see.
     const runs = [...s.ids].map((id) => latest[t].get(id) ?? { id, status: 'queued', queuedAt: null, startedAt: null, completedAt: null, durationMs: null, failure: null });
-    return summariseRuns(runs, s.refused, s.errors, maxRunning[t], burstAt);
+    return { ...summariseRuns(runs, s.refused, s.errors, maxRunning[t], burstAt), missing: s.ids.size - latest[t].size, requested: options.runs };
   });
 }
 
@@ -369,11 +432,53 @@ export function report(reads: ReadSummary, runs: RunSummary[], found: string[]):
   return lines.join('\n');
 }
 
-export async function runLoad(options: LoadOptions, io: LoadIo = defaultIo): Promise<{ code: number; reads: ReadSummary; runs: RunSummary[]; breaches: string[] }> {
+export interface LoadCycle {
+  cycle: number;
+  startedAt: string;
+  elapsedSeconds: number;
+  reads: ReadSummary;
+  runs: RunSummary[];
+  breaches: string[];
+}
+
+export async function runLoad(options: LoadOptions, io: LoadIo = defaultIo): Promise<{ code: number; reads: ReadSummary; runs: RunSummary[]; breaches: string[]; cycles?: LoadCycle[] }> {
+  const invocation = randomUUID();
+  if ((options.soakSeconds ?? 0) > 0) {
+    const start = io.now();
+    const deadline = start + options.soakSeconds! * 1000;
+    const cycles: LoadCycle[] = [];
+    const allReads = new ReadAccumulator();
+    const seenIds = new Set<string>();
+    while (io.now() < deadline) {
+      const cycleStart = io.now();
+      let stopped = false;
+      const cycle = cycles.length + 1;
+      const runsPromise = (async () => {
+        try {
+          const runs = await runPhase(options, io, invocation, cycle, seenIds);
+          const pause = Math.min(deadline, cycleStart + (options.intervalSeconds ?? 30) * 1000) - io.now();
+          if (pause > 0) await io.sleep(pause);
+          return runs;
+        } finally { stopped = true; }
+      })();
+      const [runs, reads] = await Promise.all([runsPromise,
+        readPhase({ ...options, readSeconds: Math.max(0, (deadline - io.now()) / 1000) }, io, () => stopped, allReads)]);
+      const found = breaches(reads, runs, options);
+      const metrics = { cycle, startedAt: new Date(cycleStart).toISOString(), elapsedSeconds: (io.now() - cycleStart) / 1000, reads, runs, breaches: found };
+      cycles.push(metrics);
+      io.log(JSON.stringify(metrics));
+    }
+    const reads = allReads.summary((io.now() - start) / 1000);
+    const found = cycles.flatMap(c => c.breaches.map(b => `cycle ${c.cycle}: ${b}`));
+    // The complete per-cycle run metrics are in cycles; retain the final cycle for burst consumers.
+    const runs = cycles.at(-1)?.runs ?? [];
+    io.log(`Soak: ${cycles.length} cycles, ${(io.now() - start) / 1000} s, ${found.length} breaches`);
+    return { code: found.length ? EXIT_BREACHED : EXIT_OK, reads, runs, breaches: found, cycles };
+  }
   io.log(`Reads: ${options.readers} clients for ${options.readSeconds} s against ${options.baseUrl}`);
   const reads = await readPhase(options, io);
   io.log(`Runs: ${options.runs} at once for each of ${options.targets.length} target(s)`);
-  const runs = await runPhase(options, io);
+  const runs = await runPhase(options, io, invocation);
   const found = breaches(reads, runs, options);
   io.log(report(reads, runs, found));
   return { code: found.length === 0 ? EXIT_OK : EXIT_BREACHED, reads, runs, breaches: found };
@@ -382,14 +487,14 @@ export async function runLoad(options: LoadOptions, io: LoadIo = defaultIo): Pro
 export async function main(argv: string[]): Promise<number> {
   const options = parseArgs(argv);
   if ('error' in options) {
-    console.error(`${options.error}\nUsage: wfm-load --url <installation> --target <api key>:<plan id> [--target …] [--readers 10] [--read-seconds 30] [--runs 10] [--max-concurrent 2] [--run-timeout 600] [--max-p95-ms 1000] [--max-error-rate 0] [--json report.json]`);
+    console.error(`${options.error}\nUsage: wfm-load --url <installation> --target <api key>:<plan id> [--target …] [--readers 10] [--read-seconds 30] [--runs 10] [--max-concurrent 2] [--run-timeout 600] [--max-p95-ms 1000] [--max-error-rate 0] [--soak-seconds 3600] [--interval-seconds 30] [--request-timeout 30] [--json report.json]`);
     return EXIT_TOOL_ERROR;
   }
   try {
     const result = await runLoad(options);
     if (options.jsonPath) {
       const { writeFileSync } = await import('node:fs');
-      writeFileSync(options.jsonPath, JSON.stringify({ at: new Date().toISOString(), baseUrl: options.baseUrl, reads: result.reads, runs: result.runs, breaches: result.breaches }, null, 2));
+      writeFileSync(options.jsonPath, JSON.stringify({ at: new Date().toISOString(), baseUrl: options.baseUrl, reads: result.reads, runs: result.runs, breaches: result.breaches, cycles: result.cycles }, null, 2));
     }
     return result.code;
   } catch (error) {

@@ -54,20 +54,23 @@ export function assertScanPassed(report) {
       if (!['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(vulnerability?.Severity)) throw new Error('Malformed vulnerability severity');
     }
   }
-  const blocked = report.Results.flatMap(result => result.Vulnerabilities ?? []).filter(v => ['HIGH', 'CRITICAL'].includes(v.Severity));
-  if (blocked.length) throw new Error(`Release blocked by ${blocked.length} HIGH/CRITICAL vulnerabilities`);
+  const blocked = report.Results.flatMap(result => (result.Vulnerabilities ?? [])
+    .filter(v => ['HIGH', 'CRITICAL'].includes(v.Severity))
+    .map(v => `${result.Target ?? 'unknown target'}: ${v.PkgName ?? 'unknown package'}@${v.InstalledVersion ?? 'unknown version'} [${v.VulnerabilityID ?? 'unknown advisory'}, ${v.Severity}]`));
+  if (blocked.length) throw new Error(`Release blocked by ${blocked.length} HIGH/CRITICAL vulnerabilities:\n${blocked.slice(0, 20).join('\n')}${blocked.length > 20 ? '\nSee the complete scan report for remaining findings.' : ''}`);
 }
 
 export function assertSourceScanPassed(report) {
   assertScanPassed(report);
   const targets = new Set(report.Results.map(result => result.Target));
-  for (const target of ['package-lock.json', 'deployment/lighthouse/package-lock.json']) {
+  for (const target of ['package-lock.json', 'deployment/lighthouse/package-lock.json', 'client/package-lock.json']) {
     if (!targets.has(target)) throw new Error(`Missing source scan coverage: ${target}`);
   }
 }
 
 export function readReleaseInputs(root) {
   const files = ['package.json', 'package-lock.json', 'client/package.json', 'client/package-lock.json', 'Dockerfile', 'Dockerfile.worker', 'Dockerfile.agent', '.dockerignore', 'deployment/lighthouse/package.json', 'deployment/lighthouse/package-lock.json', 'deployment/releases/toolchain.json', 'deployment/releases/harden-base.sh', 'scripts/security/apply-braces-patch.cjs', 'scripts/release/runtime-tools.mjs', 'migrations/meta/_journal.json'];
+  files.push('deployment/releases/source-exceptions.json', 'scripts/release/source-exceptions.mjs', 'scripts/security/braces.test.mjs');
   const hashes = Object.fromEntries(files.map(file => [file, sha256(readFileSync(join(root, file)))]));
   const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
   const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'));
