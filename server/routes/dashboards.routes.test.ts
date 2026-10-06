@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { createTestOrganization, createTestUser } from '../tests/factories';
@@ -6,6 +6,24 @@ import { runWithTenant } from '../middleware/tenancy';
 import { DEFAULT_DASHBOARD_WIDGETS } from '@shared/dashboard-layout';
 import { userDashboardLayouts } from '@shared/dashboard-layout';
 import { privilegedDb } from '../db';
+const commitProbe = vi.hoisted(() => ({ enabled: false, committed: false, respondedBeforeCommit: false, response: undefined as express.Response | undefined, pending: undefined as Promise<unknown> | undefined }));
+vi.mock('../middleware/tenancy', async importOriginal => {
+  const actual = await importOriginal<typeof import('../middleware/tenancy')>();
+  return { ...actual, withTenantTransaction: async (fn: Parameters<typeof actual.withTenantTransaction>[0]) => {
+    const probing = commitProbe.enabled;
+    const pending = actual.withTenantTransaction(async tx => {
+      const result = await fn(tx);
+      // Capture the response at the transaction callback boundary, before COMMIT. This
+      // detects an early response regardless of how quickly the HTTP client is scheduled.
+      if (probing) commitProbe.respondedBeforeCommit = commitProbe.response!.headersSent;
+      return result;
+    });
+    if (probing) commitProbe.pending = pending;
+    const result = await pending;
+    if (probing) commitProbe.committed = true;
+    return result;
+  } };
+});
 let app: express.Express;
 let current: { id: number; organizationId: number; role: string };
 let creator: typeof current, reader: typeof current, admin: typeof current, outsider: typeof current;
@@ -17,11 +35,23 @@ beforeAll(async () => {
   const other = await createTestOrganization('Other');
   outsider = { id: await createTestUser(other), organizationId: other, role: 'owner' };
   app = express(); app.use(express.json());
-  app.use((req, _res, next) => { (req as any).user = current; (req as any).isAuthenticated = () => !!current; if (current) runWithTenant(current.organizationId, next, { userId: current.id, role: current.role }); else next(); });
+  app.use((req, res, next) => { if (commitProbe.enabled) commitProbe.response = res; (req as any).user = current; (req as any).isAuthenticated = () => !!current; if (current) runWithTenant(current.organizationId, next, { userId: current.id, role: current.role }); else next(); });
   app.use((await import('./dashboards.routes')).default);
 });
 const document = { name: 'Team metrics', visibility: 'private', widgets: DEFAULT_DASHBOARD_WIDGETS };
 describe('multiple dashboards', () => {
+  it('returns created dashboards only after their transaction commits', async () => {
+    const organizationId = await createTestOrganization('Dashboard commit probe');
+    current = { id: await createTestUser(organizationId), organizationId, role: 'viewer' };
+    commitProbe.enabled = true; commitProbe.committed = false; commitProbe.respondedBeforeCommit = false;
+    try {
+      const created = await request(app).post('/api/dashboards').send({ ...document, visibility: 'organization' }).expect(201);
+      expect(commitProbe.respondedBeforeCommit).toBe(false);
+      expect(commitProbe.committed).toBe(true);
+      current = { id: await createTestUser(organizationId), organizationId, role: 'viewer' };
+      await request(app).get(`/api/dashboards/${created.body.id}`).expect(200).expect(res => expect(res.body.canManage).toBe(false));
+    } finally { await commitProbe.pending; commitProbe.enabled = false; }
+  });
   it('initializes once and preserves selected/default preferences', async () => {
     current = creator;
     const first = (await request(app).get('/api/dashboards')).body;
@@ -48,9 +78,9 @@ describe('multiple dashboards', () => {
   });
   it('publishes, duplicates, enforces revision conflicts and clears preferences after deletion', async () => {
     current = creator;
-    const row = (await request(app).post('/api/dashboards').send({ ...document, visibility: 'organization' })).body;
+    const row = (await request(app).post('/api/dashboards').send({ ...document, visibility: 'organization' }).expect(201)).body;
     current = reader;
-    expect((await request(app).get(`/api/dashboards/${row.id}`)).body.canManage).toBe(false);
+    expect((await request(app).get(`/api/dashboards/${row.id}`).expect(200)).body.canManage).toBe(false);
     expect((await request(app).put(`/api/dashboards/${row.id}`).send({ ...document, visibility: 'organization', version: row.version })).status).toBe(403);
     const copy = await request(app).post(`/api/dashboards/${row.id}/duplicate`).send({ name: 'My copy' });
     expect(copy.status).toBe(201); expect(copy.body.visibility).toBe('private'); expect(copy.body.creatorId).toBe(reader.id);
