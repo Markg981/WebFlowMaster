@@ -1,0 +1,54 @@
+1
+00:00:00,000 --> 00:00:05,000
+Every release. Every browser.
+Every click, by hand?
+
+2
+00:00:05,000 --> 00:00:08,500
+WebFlowMaster.
+End-to-end testing your whole team can run.
+
+3
+00:00:08,500 --> 00:00:16,500
+Describe the steps. Validate them against the page.
+Or bring your Gherkin scenarios with BDD.
+
+4
+00:00:16,500 --> 00:00:20,500
+Run it. Watch it pass.
+No code, no recorder scripts to maintain.
+
+5
+00:00:20,500 --> 00:00:25,500
+Test APIs. Assert, capture, chain.
+Pass values from one request to the next.
+
+6
+00:00:25,500 --> 00:00:33,500
+Chromium, Firefox and WebKit. Native mobile with Appium.
+Dedicated runners for web, mobile and BDD.
+
+7
+00:00:33,500 --> 00:00:41,500
+Know exactly why it failed.
+Screenshot, video, Playwright trace and network log.
+
+8
+00:00:41,500 --> 00:00:47,500
+Quality, at a glance.
+Success rate, trends and schedules for the whole team.
+
+9
+00:00:47,500 --> 00:00:53,500
+CI/CD, GitHub, GitLab, Jira and Azure DevOps.
+Webhooks, private agents, SSO, MFA and audit log.
+
+10
+00:00:53,500 --> 00:00:56,500
+WebFlowMaster. Ship every release with confidence.
+Request a demo.
+
+11
+00:00:56,500 --> 00:01:00,000
+Marco Oliva · marco.oliva@aveva.com
+www.aveva.com · +39 3473495072

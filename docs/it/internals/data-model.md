@@ -39,19 +39,19 @@ erDiagram
 
 ## Organizzazioni, persone e accessi
 
-| Tabella | Scopo |
-|---|---|
-| `organizations` | Il tenant. Contiene anche le sue quote (`max_concurrent_runs`, `max_queued_runs`), la policy MFA e se i test richiedono revisione prima della pubblicazione. Non è filtrata per `organization_id` (è l'organizzazione stessa). |
-| `users` | Persone e service account. Contiene il riferimento all'organizzazione e il ruolo. Senza RLS: le query indicano l'organizzazione esplicitamente. |
-| `user_mfa` | Segreto TOTP e codici di recupero. Senza RLS e senza permessi per `app_user`: la legge solo il modulo MFA privilegiato. |
-| `user_settings` | Preferenze per utente: tema, lingua, URL di test predefinito, browser predefinito, headless, timeout. |
-| `invitations` | Inviti in sospeso con ruolo e scadenza; monouso. Letta prima che l'utente esista, quindi senza RLS. |
-| `projects` / `project_members` | Progetti e, per quelli riservati, chi può vederli e con quale ruolo di progetto. |
-| `api_keys` | Credenziali delle pipeline: hash, prefisso, scope, scadenza, ultimo uso, utente o service account titolare. |
-| `audit_log` | Registro in sola aggiunta di chi ha fatto cosa; `app_user` può solo leggere e inserire. |
-| `quota_execution_sessions` | Sessioni di occupazione per tenant indipendenti dalla retention dei report; intervalli misurati nel mese UTC. |
-| `quota_artifacts` | Byte conservati e prenotati per tenant, incluse baseline e screenshot mobile nel database. |
-| `quota_installation_defaults` | Default privati di modalità/test/spazio per i trigger; non accessibili ad `app_user`. |
+| Tabella                        | Scopo                                                                                                                                                                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `organizations`                | Il tenant. Contiene anche le sue quote (`max_concurrent_runs`, `max_queued_runs`), la policy MFA e se i test richiedono revisione prima della pubblicazione. Non è filtrata per `organization_id` (è l'organizzazione stessa). |
+| `users`                        | Persone e service account. Contiene il riferimento all'organizzazione e il ruolo. Senza RLS: le query indicano l'organizzazione esplicitamente.                                                                                |
+| `user_mfa`                     | Segreto TOTP e codici di recupero. Senza RLS e senza permessi per `app_user`: la legge solo il modulo MFA privilegiato.                                                                                                        |
+| `user_settings`                | Preferenze per utente: tema, lingua, URL di test predefinito, browser predefinito, headless, timeout.                                                                                                                          |
+| `invitations`                  | Inviti in sospeso con ruolo e scadenza; monouso. Letta prima che l'utente esista, quindi senza RLS.                                                                                                                            |
+| `projects` / `project_members` | Progetti e, per quelli riservati, chi può vederli e con quale ruolo di progetto.                                                                                                                                               |
+| `api_keys`                     | Credenziali delle pipeline: hash, prefisso, scope, scadenza, ultimo uso, utente o service account titolare.                                                                                                                    |
+| `audit_log`                    | Registro in sola aggiunta di chi ha fatto cosa; `app_user` può solo leggere e inserire.                                                                                                                                        |
+| `quota_execution_sessions`     | Sessioni di occupazione per tenant indipendenti dalla retention dei report; intervalli misurati nel mese UTC.                                                                                                                  |
+| `quota_artifacts`              | Byte conservati e prenotati per tenant, incluse baseline e screenshot mobile nel database.                                                                                                                                     |
+| `quota_installation_defaults`  | Default privati di modalità/test/spazio per i trigger; non accessibili ad `app_user`.                                                                                                                                          |
 
 Gli override dell'organizzazione includono modalità, test salvati, byte e minuti mensili,
 con revisione e data dell'inventario. Vedere [amministrazione quote](../admin/administration#quotas).
@@ -76,62 +76,70 @@ I diagrammi completi, a livello di colonna, di tutte le tabelle sono in [Schema 
 
 ## Scrivere i test
 
-| Tabella | Scopo |
-|---|---|
-| `tests` | Test UI: la sequenza di step, gli elementi rilevati, le precondizioni, le chiamate di pulizia (`cleanups`, eseguite dopo il test), il dataset, il riferimento alla versione pubblicata. |
-| `detected_elements` | Elementi trovati su una pagina per un test (la palette del builder). |
-| `project_elements` | Il repository degli elementi: una definizione per elemento per progetto, che gli step possono richiamare; la correzione automatica la aggiorna una volta per tutti i test. |
-| `step_groups` | Sequenze di step riutilizzabili con un nome, richiamate dai test; espanse al momento dell'esecuzione. |
-| `api_tests` | Test API: metodo, URL, header, body, autenticazione, asserzioni, estrazioni e il controllo prestazioni facoltativo (ripetizioni e soglie sui tempi di risposta), oltre al riferimento alla versione pubblicata. |
-| `api_test_history` | Richieste inviate dall'API tester, per il pannello della cronologia. |
-| `tags` / `test_tags` | Il vocabolario proprio di un'organizzazione, applicato ai test; guida le suite dinamiche. |
-| `test_versions` | Revisioni eseguibili immutabili dei test web, API e mobile; i riferimenti tipizzati identificano il test e `snapshot` contiene la configurazione API/mobile. `app_user` non può cancellare: la storia non si può riscrivere. |
-| `test_publications` | Quale versione è stata pubblicata o ripristinata, quando e da chi (solo lettura e inserimento). |
-| `test_reviews` | Richieste di revisione e decisioni, quando l'organizzazione richiede la revisione. |
-| `test_quarantines` | Test messi da parte perché instabili, con motivo, evidenze e rilascio. |
-| `custom_actions` | Gli step propri di un'organizzazione: un nome, parametri tipizzati e uno script che gira nella pagina del browser; un test la usa come qualsiasi azione predefinita. |
-| `test_data_sets` | Dati di test condivisi: un nome, colonne e righe. Ogni colonna della prima riga è `{{data.<nome>.<colonna>}}` in ogni test; un test UI gira sulle righe quando il suo `dataset` contiene il marcatore `[{"$sharedSet": "<id>"}]`, espanso subito prima del run (`server/test-data.ts`). |
-| `excel_sequences_map` | Test Manager: righe di un foglio importato collegate a sequenze salvate. |
-| `test_runs` | Risultati di singoli test avviati dal builder (non run di piani). |
-| `mobile_tests` / `mobile_test_runs` | Test di app native Android e iOS — piattaforma, app sulla griglia (`bs://`, `lt://`), dispositivo, passi con locator nativi — e le loro esecuzioni su un dispositivo della griglia, passo per passo, con lo screenshot finale e la pagina della sessione (`shared/mobile.ts`, `server/mobile-runner.ts`). |
-| `requirements` / `requirement_tests` | Epic, user story e requisiti (scritti a mano o importati da un issue tracker, con il loro padre) e i test che li coprono. La copertura non è mai salvata: si calcola dagli ultimi risultati dei test (`shared/requirements.ts`). |
+| Tabella                              | Scopo                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests`                              | Test UI: la sequenza di step, gli elementi rilevati, le precondizioni, le chiamate di pulizia (`cleanups`, eseguite dopo il test), il dataset, il riferimento alla versione pubblicata.                                                                                                                   |
+| `detected_elements`                  | Elementi trovati su una pagina per un test (la palette del builder).                                                                                                                                                                                                                                      |
+| `project_elements`                   | Il repository degli elementi: una definizione per elemento per progetto, che gli step possono richiamare; la correzione automatica la aggiorna una volta per tutti i test.                                                                                                                                |
+| `step_groups`                        | Sequenze di step riutilizzabili con un nome, richiamate dai test; espanse al momento dell'esecuzione.                                                                                                                                                                                                     |
+| `api_tests`                          | Test API: metodo, URL, header, body, autenticazione, asserzioni, estrazioni e il controllo prestazioni facoltativo (ripetizioni e soglie sui tempi di risposta), oltre al riferimento alla versione pubblicata.                                                                                           |
+| `api_test_history`                   | Richieste inviate dall'API tester, per il pannello della cronologia.                                                                                                                                                                                                                                      |
+| `tags` / `test_tags`                 | Il vocabolario proprio di un'organizzazione, applicato ai test; guida le suite dinamiche.                                                                                                                                                                                                                 |
+| `test_versions`                      | Revisioni eseguibili immutabili dei test web, API e mobile; i riferimenti tipizzati identificano il test e `snapshot` contiene la configurazione API/mobile. `app_user` non può cancellare: la storia non si può riscrivere.                                                                              |
+| `test_publications`                  | Quale versione è stata pubblicata o ripristinata, quando e da chi (solo lettura e inserimento).                                                                                                                                                                                                           |
+| `test_reviews`                       | Richieste di revisione e decisioni, quando l'organizzazione richiede la revisione.                                                                                                                                                                                                                        |
+| `test_quarantines`                   | Test messi da parte perché instabili, con motivo, evidenze e rilascio.                                                                                                                                                                                                                                    |
+| `custom_actions`                     | Gli step propri di un'organizzazione: un nome, parametri tipizzati e uno script che gira nella pagina del browser; un test la usa come qualsiasi azione predefinita.                                                                                                                                      |
+| `test_data_sets`                     | Dati di test condivisi: un nome, colonne e righe. Ogni colonna della prima riga è `{{data.<nome>.<colonna>}}` in ogni test; un test UI gira sulle righe quando il suo `dataset` contiene il marcatore `[{"$sharedSet": "<id>"}]`, espanso subito prima del run (`server/test-data.ts`).                   |
+| `excel_sequences_map`                | Test Manager: righe di un foglio importato collegate a sequenze salvate.                                                                                                                                                                                                                                  |
+| `test_runs`                          | Risultati di singoli test avviati dal builder (non run di piani).                                                                                                                                                                                                                                         |
+| `mobile_tests` / `mobile_test_runs`  | Test di app native Android e iOS — piattaforma, app sulla griglia (`bs://`, `lt://`), dispositivo, passi con locator nativi — e le loro esecuzioni su un dispositivo della griglia, passo per passo, con lo screenshot finale e la pagina della sessione (`shared/mobile.ts`, `server/mobile-runner.ts`). |
+| `requirements` / `requirement_tests` | Epic, user story e requisiti (scritti a mano o importati da un issue tracker, con il loro padre) e i test che li coprono. La copertura non è mai salvata: si calcola dagli ultimi risultati dei test (`shared/requirements.ts`).                                                                          |
 
 I risultati API/mobile dei piani usano `report_test_case_results.test_version` per la revisione
 selezionata. Il debug mobile conserva la copia di lavoro salvata in `mobile_test_runs.test_snapshot`
 e la revisione in `test_version`, prima dell’avvio dell’esecuzione in background.
 
+### Definizioni BDD e profili di esecuzione
+
+Test UI e versioni conservano sorgente Gherkin, dialetto, nome logico, selezione scenario/esempio,
+modalità e binding alla revisione esatta. `bdd_execution_profiles` contiene binding autorizzati
+dall’owner per organizzazione/progetto a pool agente, profilo operatore e revisione; è protetta
+da RLS. Il codice di supporto resta sull’agente. Vedere [Test BDD](../guide/bdd-tests) e
+[manuale della suite](./suite-handbook).
+
 ## Pianificare ed eseguire
 
-| Tabella | Scopo |
-|---|---|
-| `test_plans` | Un piano: macchine/browser, evidenze, test visivi, timeout, policy di fallimento, policy di riesecuzione, parallelismo, notifiche, issue tracker, connessione di test management, pool di agenti. |
-| `test_plan_selected_tests` | I test che un piano esegue direttamente, in ordine. |
-| `test_suites` / `test_suite_items` | Suite: statiche (test elencati) o dinamiche (test con determinati tag). |
-| `test_plan_suites` | Suite incluse da un piano; espanse in test quando si crea un run. |
-| `test_plan_schedules` | Quando gira un piano: frequenza o cron, fuso orario, browser, ambiente, policy di retry, sovrascrittura delle notifiche. |
-| `test_plan_webhooks` | Webhook CI che avviano un piano; token salvato come hash. |
-| `test_plan_executions` | Run: stato e timestamp del ciclo di vita, heartbeat, runner, snapshot, chiave di idempotenza, tentativi, contesto CI, aggregati, codice e messaggio di errore. |
-| `report_test_case_results` | Una riga per test per browser per run: stato, step (con screenshot, correzioni, risultati visivi e di accessibilità), percorsi delle evidenze, riepilogo di rete, versione del test, flag di quarantena, tentativi. |
-| `execution_logs` | Il log in diretta di un run, riproposto dalla pagina del report. |
+| Tabella                                                                            | Scopo                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `test_plans`                                                                       | Un piano: macchine/browser, evidenze, test visivi, timeout, policy di fallimento, policy di riesecuzione, parallelismo, notifiche, issue tracker, connessione di test management, pool di agenti.                                                                                          |
+| `test_plan_selected_tests`                                                         | I test che un piano esegue direttamente, in ordine.                                                                                                                                                                                                                                        |
+| `test_suites` / `test_suite_items`                                                 | Suite: statiche (test elencati) o dinamiche (test con determinati tag).                                                                                                                                                                                                                    |
+| `test_plan_suites`                                                                 | Suite incluse da un piano; espanse in test quando si crea un run.                                                                                                                                                                                                                          |
+| `test_plan_schedules`                                                              | Quando gira un piano: frequenza o cron, fuso orario, browser, ambiente, policy di retry, sovrascrittura delle notifiche.                                                                                                                                                                   |
+| `test_plan_webhooks`                                                               | Webhook CI che avviano un piano; token salvato come hash.                                                                                                                                                                                                                                  |
+| `test_plan_executions`                                                             | Run: stato e timestamp del ciclo di vita, heartbeat, runner, snapshot, chiave di idempotenza, tentativi, contesto CI, aggregati, codice e messaggio di errore.                                                                                                                             |
+| `report_test_case_results`                                                         | Una riga per test per browser per run: stato, step (con screenshot, correzioni, risultati visivi e di accessibilità), percorsi delle evidenze, riepilogo di rete, versione del test, flag di quarantena, tentativi.                                                                        |
+| `execution_logs`                                                                   | Il log in diretta di un run, riproposto dalla pagina del report.                                                                                                                                                                                                                           |
 | `test_management_connections` / `test_case_links` / `test_management_publications` | Connessioni TestRail, Xray o Zephyr Scale (token cifrato), il caso di ogni test in ciascuna (un test il cui nome contiene `[CHIAVE]` non ne ha bisogno), e ogni pubblicazione di un run: dove, con quale esito, la chiave e il link di ciò che ha creato là (`server/test-management.ts`). |
-| `issue_trackers` / `issue_links` | Collegamenti Jira o Azure DevOps (token cifrato), e quale fallimento è diventato quale issue (univoco per fallimento, così un fallimento viene segnalato una volta). |
-| `source_hosts` | Collegamenti GitHub o GitLab per lo stato dei commit (token cifrato), con l'esito dell'ultimo invio. |
+| `issue_trackers` / `issue_links`                                                   | Collegamenti Jira o Azure DevOps (token cifrato), e quale fallimento è diventato quale issue (univoco per fallimento, così un fallimento viene segnalato una volta).                                                                                                                       |
+| `source_hosts`                                                                     | Collegamenti GitHub o GitLab per lo stato dei commit (token cifrato), con l'esito dell'ultimo invio.                                                                                                                                                                                       |
 
 ## Ambienti e credenziali del sistema sotto test
 
-| Tabella | Scopo |
-|---|---|
+| Tabella        | Scopo                                                                                                                                                                            |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `environments` | Destinazioni con un nome (Staging, Produzione…), con uno stato di login salvato opzionale (cookie e storage del browser, cifrati) perché i test possano partire già autenticati. |
-| `secrets` | I valori dell'ambiente, cifrati, offerti ai test come variabili `{{nome}}`; uno chiamato `baseUrl` sovrascrive il default dell'installazione. |
+| `secrets`      | I valori dell'ambiente, cifrati, offerti ai test come variabili `{{nome}}`; uno chiamato `baseUrl` sovrascrive il default dell'installazione.                                    |
 
 ## Piano di esecuzione
 
-| Tabella | Scopo |
-|---|---|
-| `runners` | Processi worker registrati, con heartbeat, capacità, browser installati e stato desiderato (drenaggio). Dell'installazione, senza RLS. |
-| `agents` | Agenti locali: pool, hash del token, ciò che hanno dichiarato (host, versioni, browser), revoca. |
-| `browser_grids` | Da dove arrivano browser o dispositivi quando i runner non li hanno: BrowserStack, LambdaTest, un server Playwright proprio, oppure un **Appium locale** raggiunto tramite un pool di agenti. La chiave è cifrata. I piani puntano a una griglia per i browser; i test mobili per i dispositivi (`shared/browser-grids.ts`, `server/browser-grids.ts`). |
-| `system_settings` | Impostazioni dell'installazione (livelli di log e simili). Senza RLS. |
+| Tabella           | Scopo                                                                                                                                                                                                                                                                                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `runners`         | Processi worker registrati, con heartbeat, capacità, browser installati e stato desiderato (drenaggio). Dell'installazione, senza RLS.                                                                                                                                                                                                                  |
+| `agents`          | Agenti locali: pool, hash del token, ciò che hanno dichiarato (host, versioni, browser), revoca.                                                                                                                                                                                                                                                        |
+| `browser_grids`   | Da dove arrivano browser o dispositivi quando i runner non li hanno: BrowserStack, LambdaTest, un server Playwright proprio, oppure un **Appium locale** raggiunto tramite un pool di agenti. La chiave è cifrata. I piani puntano a una griglia per i browser; i test mobili per i dispositivi (`shared/browser-grids.ts`, `server/browser-grids.ts`). |
+| `system_settings` | Impostazioni dell'installazione (livelli di log e simili). Senza RLS.                                                                                                                                                                                                                                                                                   |
 
 ## Convenzioni
 

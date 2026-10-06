@@ -1,6 +1,16 @@
 import React from 'react';
-import { AbsoluteFill, Easing, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import {
+  AbsoluteFill,
+  Easing,
+  Img,
+  interpolate,
+  spring,
+  staticFile,
+  useCurrentFrame,
+  useVideoConfig,
+} from 'remotion';
 import { colors, fontFamily } from './theme';
+import { useCopy } from './copy';
 
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 const ease = Easing.bezier(0.22, 1, 0.36, 1);
@@ -35,9 +45,20 @@ export const LogoMark: React.FC<{ size: number; delay?: number }> = ({ size, del
   const { fps } = useVideoConfig();
   const pop = spring({ frame, fps, config: { damping: 14, mass: 0.8 } });
   const arc = interpolate(frame, [4, 26], [1, 0], { ...clamp, easing: ease });
-  const needle = interpolate(frame, [10, 34], [-70, 0], { ...clamp, easing: Easing.out(Easing.back(2)) });
+  const needle = interpolate(frame, [10, 34], [-70, 0], {
+    ...clamp,
+    easing: Easing.out(Easing.back(2)),
+  });
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" style={{ transform: `scale(${pop})`, filter: `drop-shadow(0 ${size / 12}px ${size / 5}px ${colors.blue}88)` }}>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      style={{
+        transform: `scale(${pop})`,
+        filter: `drop-shadow(0 ${size / 12}px ${size / 5}px ${colors.blue}88)`,
+      }}
+    >
       <defs>
         <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor={colors.blue} />
@@ -45,9 +66,25 @@ export const LogoMark: React.FC<{ size: number; delay?: number }> = ({ size, del
         </linearGradient>
       </defs>
       <rect width="32" height="32" rx="7" fill="url(#lg)" />
-      <path d="M7 21a9 9 0 0 1 18 0" fill="none" stroke="#fff" strokeOpacity={0.5} strokeWidth={2.1} strokeLinecap="round" pathLength={1} strokeDasharray={1} strokeDashoffset={arc} />
+      <path
+        d="M7 21a9 9 0 0 1 18 0"
+        fill="none"
+        stroke="#fff"
+        strokeOpacity={0.5}
+        strokeWidth={2.1}
+        strokeLinecap="round"
+        pathLength={1}
+        strokeDasharray={1}
+        strokeDashoffset={arc}
+      />
       <g transform={`rotate(${needle} 16 21)`}>
-        <path d="M16 21 21.5 12.8" fill="none" stroke="#fff" strokeWidth={2.6} strokeLinecap="round" />
+        <path
+          d="M16 21 21.5 12.8"
+          fill="none"
+          stroke="#fff"
+          strokeWidth={2.6}
+          strokeLinecap="round"
+        />
       </g>
       <circle cx="16" cy="21" r="2.4" fill="#fff" />
     </svg>
@@ -63,12 +100,35 @@ export const Headline: React.FC<{
   align?: 'left' | 'center';
   color?: string;
   weight?: number;
-}> = ({ text, accent = [], size = 84, delay = 0, align = 'left', color = colors.white, weight = 700 }) => {
+}> = ({
+  text,
+  accent = [],
+  size = 84,
+  delay = 0,
+  align = 'left',
+  color = colors.white,
+  weight = 700,
+}) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const words = text.split(' ');
+  const copy = useCopy();
+  const words = copy(text).split(' ');
   return (
-    <div style={{ fontFamily, fontSize: size, fontWeight: weight, lineHeight: 1.08, letterSpacing: '-0.035em', color, textAlign: align, display: 'flex', flexWrap: 'wrap', justifyContent: align === 'center' ? 'center' : 'flex-start', gap: `0 ${size * 0.26}px` }}>
+    <div
+      style={{
+        fontFamily,
+        fontSize: size,
+        fontWeight: weight,
+        lineHeight: 1.08,
+        letterSpacing: '-0.035em',
+        color,
+        textAlign: align,
+        display: 'flex',
+        flexWrap: 'wrap',
+        justifyContent: align === 'center' ? 'center' : 'flex-start',
+        gap: `0 ${size * 0.26}px`,
+      }}
+    >
       {words.map((word, i) => {
         const p = spring({ frame: frame - delay - i * 3, fps, config: { damping: 18, mass: 0.7 } });
         const clean = word.replace(/[.,!?]/g, '');
@@ -93,13 +153,27 @@ export const Headline: React.FC<{
 
 /** A small line above a headline: what the scene is about. */
 export const Eyebrow: React.FC<{ text: string; delay?: number }> = ({ text, delay = 0 }) => {
+  const copy = useCopy();
   const frame = useCurrentFrame();
   const o = interpolate(frame - delay, [0, 14], [0, 1], clamp);
   const w = interpolate(frame - delay, [0, 20], [0, 56], { ...clamp, easing: ease });
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, opacity: o, fontFamily, fontSize: 24, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: colors.sky }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        opacity: o,
+        fontFamily,
+        fontSize: 24,
+        fontWeight: 600,
+        letterSpacing: '0.18em',
+        textTransform: 'uppercase',
+        color: colors.sky,
+      }}
+    >
       <div style={{ width: w, height: 3, borderRadius: 2, background: colors.blue }} />
-      {text}
+      {copy(text)}
     </div>
   );
 };
@@ -136,7 +210,12 @@ export const Screen: React.FC<{
   const at = (key: 'zoom' | 'x' | 'y') =>
     cameras.length === 1
       ? cameras[0][key]
-      : interpolate(frame, cameras.map((c) => c.at), cameras.map((c) => c[key]), { ...clamp, easing: Easing.inOut(Easing.cubic) });
+      : interpolate(
+          frame,
+          cameras.map((c) => c.at),
+          cameras.map((c) => c[key]),
+          { ...clamp, easing: Easing.inOut(Easing.cubic) },
+        );
   const zoom = at('zoom');
   const cx = at('x');
   const cy = at('y');
@@ -157,11 +236,37 @@ export const Screen: React.FC<{
         ...style,
       }}
     >
-      <div style={{ height: 44, background: '#EEF1F7', display: 'flex', alignItems: 'center', gap: 10, padding: '0 18px', borderBottom: '1px solid #DDE3EE' }}>
+      <div
+        style={{
+          height: 44,
+          background: '#EEF1F7',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '0 18px',
+          borderBottom: '1px solid #DDE3EE',
+        }}
+      >
         {['#FF5F57', '#FEBC2E', '#28C840'].map((c) => (
           <div key={c} style={{ width: 13, height: 13, borderRadius: 7, background: c }} />
         ))}
-        <div style={{ marginLeft: 18, flex: 1, maxWidth: 620, height: 28, borderRadius: 8, background: colors.white, border: '1px solid #DDE3EE', display: 'flex', alignItems: 'center', padding: '0 14px', fontFamily, fontSize: 15, color: '#55607A' }}>
+        <div
+          style={{
+            marginLeft: 18,
+            flex: 1,
+            maxWidth: 620,
+            height: 28,
+            borderRadius: 8,
+            background: colors.white,
+            border: '1px solid #DDE3EE',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 14px',
+            fontFamily,
+            fontSize: 15,
+            color: '#55607A',
+          }}
+        >
           <span style={{ color: colors.green, marginRight: 8 }}>●</span>
           {url}
         </div>
@@ -169,7 +274,13 @@ export const Screen: React.FC<{
       <div style={{ position: 'relative', width, height, overflow: 'hidden' }}>
         <Img
           src={staticFile(`shots/${src}`)}
-          style={{ position: 'absolute', width, height, transform: `translate(${tx}px, ${ty}px) scale(${zoom})`, transformOrigin: '50% 50%' }}
+          style={{
+            position: 'absolute',
+            width,
+            height,
+            transform: `translate(${tx}px, ${ty}px) scale(${zoom})`,
+            transformOrigin: '50% 50%',
+          }}
         />
         {children}
       </div>
@@ -178,7 +289,12 @@ export const Screen: React.FC<{
 };
 
 /** A pill naming one capability, popping in after `delay`. */
-export const Chip: React.FC<{ label: string; icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>; delay: number }> = ({ label, icon: Icon, delay }) => {
+export const Chip: React.FC<{
+  label: string;
+  icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+  delay: number;
+}> = ({ label, icon: Icon, delay }) => {
+  const copy = useCopy();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const p = spring({ frame: frame - delay, fps, config: { damping: 15, mass: 0.7 } });
@@ -194,7 +310,7 @@ export const Chip: React.FC<{ label: string; icon: React.ComponentType<{ size?: 
         border: `1px solid ${colors.white}24`,
         boxShadow: `0 20px 60px ${colors.night}AA`,
         fontFamily,
-        fontSize: 29,
+        fontSize: 27,
         fontWeight: 600,
         whiteSpace: 'nowrap',
         color: colors.white,
@@ -202,18 +318,36 @@ export const Chip: React.FC<{ label: string; icon: React.ComponentType<{ size?: 
         transform: `translateY(${(1 - p) * 40}px) scale(${0.9 + p * 0.1})`,
       }}
     >
-      <div style={{ width: 56, height: 56, borderRadius: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${colors.blue}33`, border: `1px solid ${colors.blue}66` }}>
+      <div
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 14,
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: `${colors.blue}33`,
+          border: `1px solid ${colors.blue}66`,
+        }}
+      >
         <Icon size={30} color={colors.sky} strokeWidth={2} />
       </div>
-      {label}
+      {copy(label)}
     </div>
   );
 };
 
 /** Fades a whole scene in and out over its first and last frames. */
-export const SceneFade: React.FC<{ duration: number; children: React.ReactNode; fade?: number }> = ({ duration, children, fade = 12 }) => {
+export const SceneFade: React.FC<{
+  duration: number;
+  children: React.ReactNode;
+  fade?: number;
+}> = ({ duration, children, fade = 12 }) => {
   const frame = useCurrentFrame();
   const o = interpolate(frame, [0, fade, duration - fade, duration], [0, 1, 1, 0], clamp);
   const scale = interpolate(frame, [duration - fade, duration], [1, 1.03], clamp);
-  return <AbsoluteFill style={{ opacity: o, transform: `scale(${scale})` }}>{children}</AbsoluteFill>;
+  return (
+    <AbsoluteFill style={{ opacity: o, transform: `scale(${scale})` }}>{children}</AbsoluteFill>
+  );
 };

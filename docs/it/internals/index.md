@@ -7,7 +7,7 @@ hanno le loro guide.
 
 ## Cosa fa il prodotto
 
-WebFlowMaster permette a un team di costruire test automatici per applicazioni web e API HTTP, e di
+WebFlowMaster permette a un team di costruire test automatici per applicazioni web, protocolli API HTTP/nativi, app mobile e scenari BDD, e di
 eseguirli in modo affidabile:
 
 - **Scrivere** un test UI registrando una sessione, componendo gli step in un builder visuale o
@@ -62,35 +62,35 @@ flowchart LR
 
 ### Processi
 
-| Processo | Punto di ingresso | Cosa fa |
-|---|---|---|
-| **Web** | `server/index.ts` → `dist/index.js` | Serve il client React e l'API HTTP, autentica utenti e chiavi API, trasmette i log dei run in diretta via WebSocket, ospita il relay degli agenti, gestisce le schedulazioni (con il backend cron predefinito le avvia da sé; con `SCHEDULER_BACKEND=bullmq` le registra in Redis e le avvia un worker) ed esegue le pulizie periodiche (recupero dei run, conservazione degli artefatti). Crea i run; non li esegue mai. |
-| **Worker** | `server/worker.ts` → `dist/worker.js` | Consuma la coda dei piani e quella dei task browser, esegue i piani con Playwright, scrive risultati ed evidenze e si registra come *runner* con un heartbeat. Si scala orizzontalmente. |
-| **Migrator** | `scripts/apply-migrations.ts` → `dist/apply-migrations.js` | Applica le migrazioni SQL una volta, prima che partano gli altri processi. |
-| **Agente locale** | `scripts/wfm-agent.ts` → servito su `/cli/wfm-agent.mjs` | Gira dentro la rete di un cliente e presta browser Playwright ai run tramite il relay. |
-| **CLI** | `scripts/wfm-cli.ts` → servita su `/cli/wfm.mjs` | Avvia un piano da una pipeline tramite `/api/v1`, attende, scrive JUnit/HTML/PDF/Allure ed esce con un codice significativo. |
+| Processo          | Punto di ingresso                                          | Cosa fa                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ----------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Web**           | `server/index.ts` → `dist/index.js`                        | Serve il client React e l'API HTTP, autentica utenti e chiavi API, trasmette i log dei run in diretta via WebSocket, ospita il relay degli agenti, gestisce le schedulazioni (con il backend cron predefinito le avvia da sé; con `SCHEDULER_BACKEND=bullmq` le registra in Redis e le avvia un worker) ed esegue le pulizie periodiche (recupero dei run, conservazione degli artefatti). Crea i run; non li esegue mai. |
+| **Worker**        | `server/worker.ts` → `dist/worker.js`                      | Consuma la coda dei piani e quella dei task browser, esegue i piani con Playwright, scrive risultati ed evidenze e si registra come _runner_ con un heartbeat. Si scala orizzontalmente.                                                                                                                                                                                                                                  |
+| **Migrator**      | `scripts/apply-migrations.ts` → `dist/apply-migrations.js` | Applica le migrazioni SQL una volta, prima che partano gli altri processi.                                                                                                                                                                                                                                                                                                                                                |
+| **Agente locale** | `scripts/wfm-agent.ts` → servito su `/cli/wfm-agent.mjs`   | Gira dentro la rete di un cliente e presta browser Playwright ai run tramite il relay.                                                                                                                                                                                                                                                                                                                                    |
+| **CLI**           | `scripts/wfm-cli.ts` → servita su `/cli/wfm.mjs`           | Avvia un piano da una pipeline tramite `/api/v1`, attende, scrive JUnit/HTML/PDF/Allure ed esce con un codice significativo.                                                                                                                                                                                                                                                                                              |
 
 ### Archivi
 
-| Archivio | Usato per |
-|---|---|
-| **PostgreSQL 15+** | Tutto ciò che deve durare: organizzazioni, utenti, test, piani, run, risultati, audit log. La row-level security isola le organizzazioni (vedi [Tenancy e accessi](./tenancy)). In sviluppo e nei test lo sostituisce PGlite (Postgres compilato in WebAssembly) quando `DATABASE_URL` non è un URL `postgres://`. |
-| **Redis / Valkey** | Code BullMQ (run dei piani, task browser, scheduler BullMQ), lo store delle sessioni in produzione e la directory condivisa dalle istanze del relay. |
-| **Archivio artefatti** | Screenshot, video, trace, file HAR e baseline visive. Disco locale per default, qualsiasi bucket compatibile S3 con più di una macchina (`server/artifact-store.ts`). |
+| Archivio               | Usato per                                                                                                                                                                                                                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **PostgreSQL 15+**     | Tutto ciò che deve durare: organizzazioni, utenti, test, piani, run, risultati, audit log. La row-level security isola le organizzazioni (vedi [Tenancy e accessi](./tenancy)). In sviluppo e nei test lo sostituisce PGlite (Postgres compilato in WebAssembly) quando `DATABASE_URL` non è un URL `postgres://`. |
+| **Redis / Valkey**     | Code BullMQ (run dei piani, task browser, scheduler BullMQ), lo store delle sessioni in produzione e la directory condivisa dalle istanze del relay.                                                                                                                                                               |
+| **Archivio artefatti** | Screenshot, video, trace, file HAR e baseline visive. Disco locale per default, qualsiasi bucket compatibile S3 con più di una macchina (`server/artifact-store.ts`).                                                                                                                                              |
 
 ## Tecnologie
 
-| Livello | Scelta |
-|---|---|
-| Linguaggio | TypeScript 5 ovunque (server, client, codice condiviso, script) |
-| Server | Node.js 20+, Express 4, `ws` per WebSocket, Passport (strategia locale) con express-session |
-| Dati | Drizzle ORM su `pg` (PostgreSQL) o PGlite; migrazioni SQL scritte a mano |
-| Job | BullMQ 5 su ioredis; node-cron o job scheduler BullMQ per le schedulazioni |
-| Browser | Playwright (Chromium, Firefox, WebKit, canali Chrome ed Edge), axe-core per l'accessibilità |
-| Client | React 18, Vite 5, wouter (routing), TanStack Query, UI Radix/shadcn, Tailwind CSS, React Flow (builder visuale), i18next (en, it, fr, de) |
-| AI (opzionale) | Google Gemini, per la correzione dei selettori e per trasformare frasi in step; il prodotto funziona anche senza |
-| Test | Vitest (server su PGlite, client con Testing Library), supertest, browser reali dove serve |
-| Build | esbuild impacchetta i punti di ingresso del server, il migrator, la CLI e l'agente; Vite compila il client |
+| Livello        | Scelta                                                                                                                                    |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Linguaggio     | TypeScript 5 ovunque (server, client, codice condiviso, script)                                                                           |
+| Server         | Node.js 20+, Express 4, `ws` per WebSocket, Passport (strategia locale) con express-session                                               |
+| Dati           | Drizzle ORM su `pg` (PostgreSQL) o PGlite; migrazioni SQL scritte a mano                                                                  |
+| Job            | BullMQ 5 su ioredis; node-cron o job scheduler BullMQ per le schedulazioni                                                                |
+| Browser        | Playwright (Chromium, Firefox, WebKit, canali Chrome ed Edge), axe-core per l'accessibilità                                               |
+| Client         | React 18, Vite 5, wouter (routing), TanStack Query, UI Radix/shadcn, Tailwind CSS, React Flow (builder visuale), i18next (en, it, fr, de) |
+| AI (opzionale) | Google Gemini, per la correzione dei selettori e per trasformare frasi in step; il prodotto funziona anche senza                          |
+| Test           | Vitest (server su PGlite, client con Testing Library), supertest, browser reali dove serve                                                |
+| Build          | esbuild impacchetta i punti di ingresso del server, il migrator, la CLI e l'agente; Vite compila il client                                |
 
 ## Organizzazione del codice
 
@@ -181,11 +181,14 @@ Attraversano tutto il codice; conoscerli spiega la maggior parte delle scelte.
   ambienti, token di tracker e source host, stati di login salvati), e l'API non li restituisce mai.
 - **Gli errori sono frasi.** I fallimenti visibili all'utente dicono cosa è successo e cosa fare, a
   parole: "No agent of pool onprem is connected", non "WebSocket error 503".
-- **I test descrivono comportamenti da proteggere**, su infrastruttura reale dove conta: PGlite per SQL
-  e RLS, Chromium reale per il runner e il relay, finti server HTTP per GitHub o Jira.
+- **I test descrivono comportamenti da proteggere**, su infrastruttura reale dove conta: PGlite per il comportamento SQL, PostgreSQL reale con ruolo non superuser
+  per la RLS, Chromium reale per il runner e il relay, finti server HTTP per GitHub o Jira.
 
 ## Dove andare poi
 
+- [Manuale della suite](./suite-handbook) — tipi di test, percorsi, confini di esecuzione e responsabilità.
+- [Percorso di contribuzione](./contributing-guide) — esempio completo attraverso schema, route, UI, test e accettazione.
+- [Test BDD](../guide/bdd-tests) — sorgente Gherkin ed esecuzione Cucumber dedicata.
 - [Architettura di sistema](./system-architecture) — contesto, container, componenti e deployment, disegnati.
 - [Diagrammi delle classi](./class-diagrams) — il modello di dominio e le classi con un ciclo di vita.
 - [Schema del database](./database-schema) — ogni tabella e colonna, come diagrammi ER.

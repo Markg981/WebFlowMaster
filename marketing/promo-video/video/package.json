@@ -5,8 +5,15 @@
   "scripts": {
     "studio": "remotion studio",
     "render": "remotion render Promo out/webflowmaster-promo.mp4",
-    "render:music": "remotion render Promo out/webflowmaster-promo.mp4 --props=\"{\\\"music\\\":true}\"",
-    "still": "remotion still Promo out/still.png"
+    "render:music": "remotion render Promo out/webflowmaster-promo.mp4 --props=props-music.json",
+    "still": "remotion still Promo out/still.png",
+    "render:en": "remotion render PromoEN out/webflowmaster-promo-en-silent.mp4",
+    "render:it": "remotion render PromoIT out/webflowmaster-promo-it-silent.mp4",
+    "render:all": "npm run render:en && npm run render:it",
+    "audio:generate": "node ../audio/synthesize.mjs",
+    "render:en:music": "remotion render PromoEN out/webflowmaster-promo-en.mp4 --props=props-music.json && node ../audio/finalize.mjs en",
+    "render:it:music": "remotion render PromoIT out/webflowmaster-promo-it.mp4 --props=props-music.json && node ../audio/finalize.mjs it",
+    "render:all:music": "npm run audio:generate && npm run render:en:music && npm run render:it:music"
   },
   "dependencies": {
     "@remotion/cli": "4.0.530",

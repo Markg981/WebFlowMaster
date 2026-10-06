@@ -1,5 +1,12 @@
 # WebFlowMaster documentation
 
+**For colleagues:** the [complete suite handbook](./internals/suite-handbook) connects capabilities,
+workflows and architecture. The [implementation guide](./internals/contributing-guide) walks through
+an improvement; the [product audit](./internals/product-audit) explains proposed priorities.
+
+New detail pages: [BDD / Cucumber](./guide/bdd-tests) and
+[metrics and distributed tracing](./admin/telemetry).
+
 WebFlowMaster is a test automation platform for web applications, HTTP APIs and native mobile apps: record or describe
 tests, organize them into plans and suites, run them across browsers on a schedule or from CI —
 including inside networks the server cannot reach — and report every run in detail.

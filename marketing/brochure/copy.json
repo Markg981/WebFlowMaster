@@ -1,0 +1,244 @@
+{
+  "it": {
+    "edition": "PRESENTAZIONE DEL PRODOTTO / OTTOBRE 2026",
+    "cover_title": "La qualità,\nvisibile a ogni rilascio.",
+    "cover_intro": "Test web, API, app mobili e scenari BDD. Una piattaforma per costruire i controlli, eseguirli e condividere le evidenze con tutto il team.",
+    "cover_line": "Dall'idea di un test alla decisione di rilascio.",
+    "cover_tags": "WEB  /  API  /  MOBILE  /  BDD",
+    "demo_caption": "Interfaccia reale con dati dimostrativi. I valori mostrati non sono benchmark o risultati promessi.",
+    "p2_label": "01 / IL VALORE PER IL TEAM",
+    "p2_title": "Un processo condiviso.\nEvidenze concrete.",
+    "p2_intro": "Le verifiche diventano patrimonio del team: gli autori costruiscono i test, i revisori controllano le versioni e chi gestisce un rilascio legge lo stesso report.",
+    "value_cards": [
+      [
+        "Per QA e analisti",
+        "Registrazione nel browser, builder visuale, gruppi riutilizzabili e test manuali. L'assistenza AI può aiutare a trasformare descrizioni in step e proporre test da requisiti."
+      ],
+      [
+        "Per sviluppatori e DevOps",
+        "Piani richiamabili dalla CI, log in diretta e risultati esportabili. Screenshot, trace e catture di rete aiutano a ricostruire un fallimento."
+      ],
+      [
+        "Per responsabili di prodotto",
+        "Requisiti collegati ai test, copertura consultabile, andamenti e dashboard condivise. Le decisioni si basano su risultati tracciabili."
+      ],
+      [
+        "Per IT e amministratori",
+        "Organizzazioni separate, ruoli, SSO, MFA, audit e quote. Agenti locali per raggiungere applicazioni dentro reti private."
+      ]
+    ],
+    "workflow_title": "Il ciclo di lavoro",
+    "workflow": ["Definisci", "Organizza", "Esegui", "Analizza", "Condividi"],
+    "workflow_note": "Test e versioni -> suite e piani -> esecuzioni -> evidenze -> pipeline, issue e report.",
+    "p3_label": "02 / LA SUITE DI TEST",
+    "p3_title": "Più livelli di verifica.\nUn punto di controllo.",
+    "test_cards": [
+      [
+        "Web",
+        "Registra i percorsi reali o componi gli step. Variabili, condizioni, cicli, dataset, confronti visivi e verifiche di accessibilità ampliano la copertura."
+      ],
+      [
+        "API",
+        "Richieste, autenticazione, asserzioni ed estrazione di valori. Concatena i controlli; importa definizioni API e verifica i servizi dietro le interfacce."
+      ],
+      [
+        "Mobile",
+        "App Android e iOS tramite Appium, con inspector, registrazione e matrici di dispositivi/OS. Provider cloud o infrastruttura locale da configurare."
+      ],
+      [
+        "BDD / Cucumber",
+        "Scenari Gherkin versionati ed eseguiti tramite agenti dedicati. Collega il linguaggio del comportamento ai risultati delle verifiche."
+      ]
+    ],
+    "p3_note": "Le funzioni AI richiedono un provider configurato. Dispositivi, griglie e agenti richiedono le rispettive risorse e credenziali.",
+    "p4_label": "03 / DALL'ESECUZIONE ALLA DIAGNOSI",
+    "p4_title": "Capire il risultato.\nRipartire dall'evidenza.",
+    "p4_intro": "Esegui i piani a richiesta, a orario o dalla pipeline. Segui l'avanzamento e apri il dettaglio del run per capire cosa è successo.",
+    "result_cards": [
+      [
+        "Esecuzione organizzata",
+        "Matrice browser, parallelismo, worker e agenti locali. Chromium, Firefox e WebKit; policy per retry e gestione dei test instabili."
+      ],
+      [
+        "Diagnosi consultabile",
+        "Risultati per test e step, screenshot, video, trace e HAR secondo le opzioni del run. Baseline visive e risultati di accessibilità dove abilitati."
+      ],
+      [
+        "Risultati condivisibili",
+        "Esporta HTML, PDF, JUnit e Allure. Collega i fallimenti ai tracker e pubblica gli esiti negli strumenti del team."
+      ]
+    ],
+    "p4_note": "Il dettaglio delle evidenze dipende dal tipo di test, dal provider e dalla configurazione; non tutti i formati sono disponibili per ogni modalità.",
+    "p5_label": "04 / INTEGRAZIONE E CONTROLLO",
+    "p5_title": "Dentro il vostro\necosistema.",
+    "integrations": [
+      [
+        "Pipeline e sorgenti",
+        "GitHub Actions, GitLab CI, Jenkins, Azure Pipelines, Bitbucket e CircleCI. CLI e API pubblica per avviare run e raccogliere risultati."
+      ],
+      [
+        "Requisiti e issue",
+        "Jira e Azure DevOps; pubblicazione dei risultati su TestRail, Xray e Zephyr Scale."
+      ],
+      [
+        "Identità e collaborazione",
+        "OIDC e SAML, MFA, provisioning SCIM, ruoli e audit. Commenti, menzioni e dashboard condivise."
+      ],
+      [
+        "Esercizio della piattaforma",
+        "PostgreSQL, Redis/Valkey e artefatti su disco o S3. Backup, retention, log, metriche Prometheus e tracing OpenTelemetry."
+      ]
+    ],
+    "deployment_title": "Scegliere il perimetro",
+    "deployment_body": "Installazione nella vostra infrastruttura, con processi web e worker separati. Gli agenti locali aprono connessioni in uscita per testare sistemi in reti private. Dimensionamento, accessi, egress e conservazione si definiscono insieme al team IT.",
+    "p5_note": "Le integrazioni richiedono configurazione e, quando previsto, account o abbonamenti dei fornitori. La disponibilità tecnica non costituisce una certificazione di conformità.",
+    "p6_label": "05 / IL PROSSIMO PASSO",
+    "p6_title": "Partiamo da un flusso\nche conta per voi.",
+    "p6_intro": "Una demo sul vostro caso d'uso è il modo migliore per valutare il prodotto. Proponiamo un percorso concreto, con obiettivi e criteri di accettazione concordati.",
+    "pilot": [
+      [
+        "01",
+        "Scegliere",
+        "Un'applicazione e un percorso critico: accesso, ordine, approvazione o contratto API."
+      ],
+      [
+        "02",
+        "Collegare",
+        "Ambiente di prova, dati sintetici, accessi e una pipeline del vostro team."
+      ],
+      [
+        "03",
+        "Eseguire",
+        "Un piano ripetibile, con i browser o dispositivi rilevanti e le evidenze richieste."
+      ],
+      [
+        "04",
+        "Valutare",
+        "Copertura, leggibilità dei risultati, manutenzione dei test e requisiti operativi."
+      ]
+    ],
+    "cta": "Richiedete una demo dedicata",
+    "cta_note": "Portateci il vostro percorso critico. Costruiamo insieme una prova verificabile.",
+    "footer_note": "WebFlowMaster è un prodotto proprietario. Licenza, servizi e condizioni commerciali sono definiti con accordo dedicato.",
+    "capture_note": "Schermate dalla demo di prodotto: interfaccia in inglese, dati sintetici. La brochure descrive le capacità presenti nel repository al 6 ottobre 2026."
+  },
+  "en": {
+    "edition": "PRODUCT PRESENTATION / OCTOBER 2026",
+    "cover_title": "Quality you can see.\nEvery release.",
+    "cover_intro": "Web, API, mobile and BDD testing. One platform to build your checks, run them and share the evidence with your entire team.",
+    "cover_line": "From a test idea to a release decision.",
+    "cover_tags": "WEB  /  API  /  MOBILE  /  BDD",
+    "demo_caption": "Real product interface with demonstration data. Displayed values are not benchmarks or promised outcomes.",
+    "p2_label": "01 / VALUE FOR YOUR TEAM",
+    "p2_title": "A shared process.\nConcrete evidence.",
+    "p2_intro": "Checks become a team asset: authors build tests, reviewers check versions and release owners read the same execution report.",
+    "value_cards": [
+      [
+        "For QA and analysts",
+        "Browser recording, a visual builder, reusable groups and manual tests. Optional AI assistance turns descriptions into steps and proposes tests from requirements."
+      ],
+      [
+        "For developers and DevOps",
+        "Plans triggered from CI, live logs and exportable results. Screenshots, traces and network captures help reconstruct a failure."
+      ],
+      [
+        "For product owners",
+        "Requirements linked to tests, coverage views, trends and shared dashboards. Make decisions using traceable results."
+      ],
+      [
+        "For IT and administrators",
+        "Separate organizations, roles, SSO, MFA, audit and quotas. Local agents reach applications inside private networks."
+      ]
+    ],
+    "workflow_title": "The working cycle",
+    "workflow": ["Define", "Organize", "Run", "Analyze", "Share"],
+    "workflow_note": "Tests and versions -> suites and plans -> executions -> evidence -> pipelines, issues and reports.",
+    "p3_label": "02 / THE TESTING SUITE",
+    "p3_title": "More layers of testing.\nOne place to coordinate.",
+    "test_cards": [
+      [
+        "Web",
+        "Record real journeys or compose test steps. Variables, conditions, loops, datasets, visual comparisons and accessibility checks extend your coverage."
+      ],
+      [
+        "API",
+        "Requests, authentication, assertions and value extraction. Chain checks, import API definitions and test the services behind the interface."
+      ],
+      [
+        "Mobile",
+        "Android and iOS through Appium, with inspection, recording and device/OS matrices. Configure a cloud provider or your local infrastructure."
+      ],
+      [
+        "BDD / Cucumber",
+        "Versioned Gherkin scenarios executed through dedicated agents. Connect behavioral specifications with verification results."
+      ]
+    ],
+    "p3_note": "AI features require a configured provider. Devices, grids and agents require their own resources and credentials.",
+    "p4_label": "03 / FROM EXECUTION TO DIAGNOSIS",
+    "p4_title": "Understand the result.\nStart with the evidence.",
+    "p4_intro": "Run plans on demand, on a schedule or from your pipeline. Follow progress and open the run details to understand what happened.",
+    "result_cards": [
+      [
+        "Coordinated execution",
+        "Browser matrices, parallel execution, workers and local agents. Chromium, Firefox and WebKit; retry policies and flaky-test management."
+      ],
+      [
+        "Evidence you can inspect",
+        "Per-test and per-step results, screenshots, video, traces and HAR according to run settings. Visual baselines and accessibility results where enabled."
+      ],
+      [
+        "Results you can share",
+        "Export HTML, PDF, JUnit and Allure. Link failures to issue trackers and publish outcomes in the tools your team uses."
+      ]
+    ],
+    "p4_note": "Available evidence depends on the test type, provider and configuration; every format is not available in every execution mode.",
+    "p5_label": "04 / INTEGRATION AND CONTROL",
+    "p5_title": "Part of your\necosystem.",
+    "integrations": [
+      [
+        "Pipelines and source hosts",
+        "GitHub Actions, GitLab CI, Jenkins, Azure Pipelines, Bitbucket and CircleCI. CLI and public API to trigger runs and collect results."
+      ],
+      [
+        "Requirements and issues",
+        "Jira and Azure DevOps; publish results to TestRail, Xray and Zephyr Scale."
+      ],
+      [
+        "Identity and collaboration",
+        "OIDC and SAML, MFA, SCIM provisioning, roles and audit. Comments, mentions and shared dashboards."
+      ],
+      [
+        "Platform operations",
+        "PostgreSQL, Redis/Valkey and disk or S3 artifacts. Backups, retention, logs, Prometheus metrics and OpenTelemetry tracing."
+      ]
+    ],
+    "deployment_title": "Choose your deployment boundary",
+    "deployment_body": "Deploy in your infrastructure, with separate web and worker processes. Local agents connect outbound to test systems in private networks. Work with IT to define capacity, access, egress and retention.",
+    "p5_note": "Integrations require configuration and, where applicable, vendor accounts or subscriptions. Technical availability does not constitute compliance certification.",
+    "p6_label": "05 / YOUR NEXT STEP",
+    "p6_title": "Start with a journey\nthat matters to you.",
+    "p6_intro": "A demo using your own use case is the best way to evaluate the product. Build a practical pilot with agreed goals and acceptance criteria.",
+    "pilot": [
+      [
+        "01",
+        "Choose",
+        "An application and a critical journey: sign-in, checkout, approval or an API contract."
+      ],
+      [
+        "02",
+        "Connect",
+        "A test environment, synthetic data, access and one of your team's pipelines."
+      ],
+      [
+        "03",
+        "Run",
+        "A repeatable plan with the relevant browsers or devices and the evidence you need."
+      ],
+      ["04", "Evaluate", "Coverage, result clarity, test maintenance and operational requirements."]
+    ],
+    "cta": "Request a dedicated demo",
+    "cta_note": "Bring your critical journey. Build a verifiable pilot with us.",
+    "footer_note": "WebFlowMaster is proprietary software. Licensing, services and commercial terms are defined in a separate agreement.",
+    "capture_note": "Product demo screenshots: English interface, synthetic data. This brochure describes capabilities present in the repository on 6 October 2026."
+  }
+}

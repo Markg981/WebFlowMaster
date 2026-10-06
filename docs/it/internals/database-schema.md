@@ -1,14 +1,10 @@
 # Schema del database
 
-Questa pagina è il riferimento del database: ogni tabella, ogni colonna e ogni relazione, ricavate da
-`shared/schema.ts` (l'unica dichiarazione dello schema), con le aggiunte della migrazione 0075 per le
-versioni tipizzate riportate sotto. Lo scopo di ciascuna tabella, a parole, è in [Modello dati](./data-model); come le righe restano separate fra
-organizzazioni è in [Tenancy e accessi](./tenancy).
-
-**69 tabelle**, di cui 52 hanno un `organization_id` e sono protette dalla row-level security. Le altre 17 sono
-dell'intera installazione o si leggono prima che l'organizzazione sia nota: `organizations`, `users`, `user_mfa`,
-`user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sso_saml_requests`, `sso_saml_replay`, `sso_saml_sessions`, `scim_users`, `scim_groups`, `scim_group_members`, `sessions`, `runners`
-e `system_settings`.
+Questa pagina disegna le principali tabelle e relazioni di dominio. `shared/schema.ts`, migrazioni
+SQL e `ORG_SCOPED_TABLES` sono l’autorità per colonne, vincoli e copertura tenant correnti.
+I diagrammi sono mantenuti a mano; le aggiunte successive sono riepilogate in fondo e non
+costituiscono un dump generato esaustivo. Per lo scopo leggere [Modello dati](./data-model);
+per la visibilità delle righe leggere [Tenancy e accessi](./tenancy).
 
 La migrazione **0075** estende `test_versions`, `test_publications` e `test_reviews` con riferimenti
 API/mobile. È valorizzato esattamente uno tra `test_id`, `api_test_id` e `mobile_test_id`. Le revisioni
@@ -17,22 +13,24 @@ revisione dello stesso tipo. I test API/mobile esistenti diventano revisione 1; 
 restano senza versione. `mobile_test_runs.test_version` e `test_snapshot` congelano un debug
 sulla copia di lavoro salvata alla richiesta.
 
+Per l’elenco di tabelle e colonne generato dal sorgente, vedere il [Catalogo schema](./schema-catalog).
+
 ## Come leggere i diagrammi
 
 - **PK** chiave primaria, **FK** chiave esterna. I tipi sono quelli logici: `int` (serial o integer), `text`, `bool`,
   `timestamp` (UTC, senza fuso orario), `jsonb`, `bigint`.
 - Una linea continua è una vera chiave esterna. `||` dal lato del padre significa che la colonna è `NOT NULL`; `|o`
-  che può essere vuota. Una **linea tratteggiata** con *(logical)* è un legame che l'applicazione mantiene senza un
+  che può essere vuota. Una **linea tratteggiata** con _(logical)_ è un legame che l'applicazione mantiene senza un
   vincolo del database — per esempio un test UI, API o mobile nella stessa coppia di colonne (`test_type` dice quale).
 - Nei diagrammi di dominio il legame di ogni tabella con `organizations` è omesso: c'è su tutte e disegnato nasconderebbe
   il resto. Il primo diagramma, la panoramica, omette anche le colonne per lo stesso motivo.
-- Varie tabelle contengono riferimenti *polimorfi* ai test: `ui_test_id` / `test_id`, `api_test_id` e
+- Varie tabelle contengono riferimenti _polimorfi_ ai test: `ui_test_id` / `test_id`, `api_test_id` e
   `mobile_test_id`, con `test_type` (`ui`, `api` o `mobile`) che indica quello valorizzato. Solo i primi due sono
   chiavi esterne; i test mobili sono arrivati dopo e li controlla l'applicazione.
 
 ## Panoramica
 
-Tutte le tabelle e le relazioni fra loro, senza colonne e senza i legami con l'organizzazione e con la persona che ha creato una riga.
+Le principali relazioni di dominio, senza colonne e legami organizzazione/autore; le aggiunte successive sono descritte sotto e il catalogo generato elenca le dichiarazioni correnti.
 
 ```mermaid
 erDiagram
@@ -1182,14 +1180,14 @@ erDiagram
 
 Queste relazioni esistono nell'applicazione ma non hanno una chiave esterna. Sono il prezzo di un disegno polimorfo (tre tipi di test nello stesso insieme di colonne) o del conservare la storia quando la destinazione non c'è più.
 
-| Colonna | Punta a | Perché non c'è un vincolo |
-|---|---|---|
-| `mobile_test_id` in `report_test_case_results`, `test_plan_selected_tests`, `test_suite_items`, `test_tags`, `test_quarantines`, `test_case_links` | `mobile_tests.id` | Aggiunto dopo le colonne UI e API; fa eccezione `requirement_tests`, che lo referenzia davvero. |
-| `execution_logs.test_case_result_id` | `report_test_case_results.id` | Facoltativa: lega una riga di log a un test del run. |
-| `test_publications.review_id` | `test_reviews.id` | Una pubblicazione può non nascere da una revisione (pubblicazione diretta o ripristino). |
-| `excel_sequences_map.test_id` | `tests.id` | Test Manager: la sequenza salvata a cui corrisponde una riga del foglio. |
-| `test_plan_executions.runner_id` | `runners.id` | La riga di un runner può essere eliminata mentre il run conserva il proprio record. |
-| `test_plan_executions.retry_of_execution_id` | `test_plan_executions.id` | Il run che una riesecuzione ripete. |
+| Colonna                                                                                                                                            | Punta a                       | Perché non c'è un vincolo                                                                       |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| `mobile_test_id` in `report_test_case_results`, `test_plan_selected_tests`, `test_suite_items`, `test_tags`, `test_quarantines`, `test_case_links` | `mobile_tests.id`             | Aggiunto dopo le colonne UI e API; fa eccezione `requirement_tests`, che lo referenzia davvero. |
+| `execution_logs.test_case_result_id`                                                                                                               | `report_test_case_results.id` | Facoltativa: lega una riga di log a un test del run.                                            |
+| `test_publications.review_id`                                                                                                                      | `test_reviews.id`             | Una pubblicazione può non nascere da una revisione (pubblicazione diretta o ripristino).        |
+| `excel_sequences_map.test_id`                                                                                                                      | `tests.id`                    | Test Manager: la sequenza salvata a cui corrisponde una riga del foglio.                        |
+| `test_plan_executions.runner_id`                                                                                                                   | `runners.id`                  | La riga di un runner può essere eliminata mentre il run conserva il proprio record.             |
+| `test_plan_executions.retry_of_execution_id`                                                                                                       | `test_plan_executions.id`     | Il run che una riesecuzione ripete.                                                             |
 
 ## Vincoli da conoscere
 
@@ -1280,6 +1278,50 @@ erDiagram
     int organization_id PK,FK
     int user_id PK,FK
     jsonb widgets
+    timestamp updated_at
+  }
+```
+
+## Aggiunte BDD, quote e mobile successive
+
+La migrazione 0079 aggiunge JSON `bdd` nullable a `tests` e `test_versions` e la tabella
+`bdd_execution_profiles`; 0080 protegge il rapporto progetto/organizzazione. Il JSON BDD conserva
+sorgente e revisione esatta del profilo; il binding è validato dal dominio, non da una FK numerica
+del test. 0081 aggiunge metering quote tenant (`quota_execution_sessions`, `quota_artifacts`).
+0082 aggiunge `mobile_tests.device_matrix`, `mobile_step_groups` riusabili e relativo vincolo di
+progetto. Matrice/gruppi mobile sono congelati per il run; la forma eseguibile è in
+`shared/mobile.ts`, `server/mobile-plan-units.ts` e `server/execution-snapshot.ts`.
+
+Il diagramma copre le nuove tabelle BDD/gruppi. Colonne e vincoli di prenotazione/conferma quote
+restano definiti da `shared/schema.ts` e migrazione 0081; vedere [Modello dati](./data-model) e
+[Quote amministrative](../admin/administration).
+
+```mermaid
+erDiagram
+  projects |o--o{ bdd_execution_profiles : project_id
+  projects |o--o{ mobile_step_groups : project_id
+  bdd_execution_profiles {
+    text id PK
+    int organization_id FK
+    int project_id FK
+    text name
+    text pool
+    text operator_profile_id
+    text revision
+    int timeout_ms
+    timestamp created_at
+    timestamp updated_at
+  }
+  mobile_step_groups {
+    text id PK
+    int organization_id FK
+    int project_id FK
+    text name
+    text description
+    text platform
+    jsonb steps
+    int created_by FK
+    timestamp created_at
     timestamp updated_at
   }
 ```

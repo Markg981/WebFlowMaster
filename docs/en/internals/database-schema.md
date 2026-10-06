@@ -1,14 +1,10 @@
 # Database schema
 
-This page is the reference for the database: every table, every column and every relationship, drawn from
-`shared/schema.ts` (the single declaration of the schema), with the typed-version additions of migration
-0075 reflected below. For the purpose of each table, in words, read [Data model](./data-model); for how rows are kept apart between organizations,
-read [Tenancy and access](./tenancy).
-
-**69 tables**, of which 52 carry an `organization_id` and are protected by row-level security. The other 17 are
-installation-wide or are read before an organization is known: `organizations`, `users`, `user_mfa`,
-`user_settings`, `invitations`, `organization_sso`, `sso_domains`, `sso_identities`, `sso_saml_requests`, `sso_saml_replay`, `sso_saml_sessions`, `scim_users`, `scim_groups`, `scim_group_members`, `sessions`, `runners`
-and `system_settings`.
+This page draws the main domain tables and relationships. `shared/schema.ts`, the SQL migrations
+and `ORG_SCOPED_TABLES` are the authority for current columns, constraints and tenant coverage.
+The diagrams are manually maintained; later additions are summarized at the end and should not
+be treated as a generated exhaustive schema dump. For purpose read [Data model](./data-model);
+for row visibility read [Tenancy and access](./tenancy).
 
 Migration **0075** extends `test_versions`, `test_publications` and `test_reviews` with API/mobile
 references. Exactly one of `test_id`, `api_test_id` and `mobile_test_id` is set. API/mobile revisions
@@ -16,22 +12,24 @@ hold their executable definition in `snapshot`; publications point at a revision
 Existing API/mobile definitions become revision 1; earlier results remain unversioned.
 `mobile_test_runs.test_version` and `test_snapshot` pin a debug request to its saved working copy.
 
+For the mechanically generated table/column listing, use the [Schema catalogue](./schema-catalog).
+
 ## How to read the diagrams
 
 - **PK** primary key, **FK** foreign key. Types are the logical ones: `int` (serial or integer), `text`, `bool`,
   `timestamp` (UTC, without time zone), `jsonb`, `bigint`.
 - A solid line is a real foreign key. A line with `||` on the parent side means the column is `NOT NULL`; `|o` means it
-  may be empty. A **dotted line** marked *(logical)* is a link the application keeps without a database constraint — for
+  may be empty. A **dotted line** marked _(logical)_ is a link the application keeps without a database constraint — for
   example a UI test, an API test or a mobile test appearing in the same column pair (`test_type` tells which).
 - Inside a domain diagram the link of every table to `organizations` is left out: it is on every one of them, and drawn it
   would hide the rest. The first diagram, the overview, leaves out the columns for the same reason.
-- Several tables hold *polymorphic* test references: `ui_test_id` / `test_id`, `api_test_id` and `mobile_test_id`,
+- Several tables hold _polymorphic_ test references: `ui_test_id` / `test_id`, `api_test_id` and `mobile_test_id`,
   with `test_type` (`ui`, `api` or `mobile`) naming the one that is set. Only the first two are foreign keys; mobile
   tests were added later and are checked by the application.
 
 ## Overview
 
-All the tables and the relationships between them, without columns and without the links to the organization and to the person who created a row.
+The main domain relationships, without columns and without organization/author links; later additions are described below and the generated catalogue lists current declarations.
 
 ```mermaid
 erDiagram
@@ -1181,14 +1179,14 @@ erDiagram
 
 These relationships exist in the application but have no foreign key. Most come from a polymorphic design (three kinds of test in one column set).
 
-| Column | Points at | Note |
-|---|---|---|
-| `mobile_test_id` in `report_test_case_results`, `test_plan_selected_tests`, `test_suite_items`, `test_tags`, `test_quarantines`, `test_case_links` | `mobile_tests.id` | Added after the UI and API columns; `requirement_tests` is the exception and does reference it. |
-| `execution_logs.test_case_result_id` | `report_test_case_results.id` | Optional: ties a log line to one test of the run. |
-| `test_publications.review_id` | `test_reviews.id` | A publication may not come from a review (a direct publish or a rollback). |
-| `excel_sequences_map.test_id` | `tests.id` | Test Manager: the saved sequence a spreadsheet row maps to. |
-| `test_plan_executions.runner_id` | `runners.id` | A runner row may be pruned while the run keeps its record. |
-| `test_plan_executions.retry_of_execution_id` | `test_plan_executions.id` | The run a re-run repeats. |
+| Column                                                                                                                                             | Points at                     | Note                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| `mobile_test_id` in `report_test_case_results`, `test_plan_selected_tests`, `test_suite_items`, `test_tags`, `test_quarantines`, `test_case_links` | `mobile_tests.id`             | Added after the UI and API columns; `requirement_tests` is the exception and does reference it. |
+| `execution_logs.test_case_result_id`                                                                                                               | `report_test_case_results.id` | Optional: ties a log line to one test of the run.                                               |
+| `test_publications.review_id`                                                                                                                      | `test_reviews.id`             | A publication may not come from a review (a direct publish or a rollback).                      |
+| `excel_sequences_map.test_id`                                                                                                                      | `tests.id`                    | Test Manager: the saved sequence a spreadsheet row maps to.                                     |
+| `test_plan_executions.runner_id`                                                                                                                   | `runners.id`                  | A runner row may be pruned while the run keeps its record.                                      |
+| `test_plan_executions.retry_of_execution_id`                                                                                                       | `test_plan_executions.id`     | The run a re-run repeats.                                                                       |
 
 ## Constraints worth knowing
 
@@ -1277,6 +1275,50 @@ erDiagram
     int organization_id PK,FK
     int user_id PK,FK
     jsonb widgets
+    timestamp updated_at
+  }
+```
+
+## Later BDD, quotas and mobile additions
+
+Migration 0079 adds nullable `bdd` JSON to `tests` and `test_versions` plus
+`bdd_execution_profiles`; 0080 guards its project/organization relationship. BDD JSON preserves
+source and exact profile revision; its binding is validated by domain logic, not a numeric test FK.
+Migration 0081 adds tenant quota metering (`quota_execution_sessions`, `quota_artifacts`).
+Migration 0082 adds `mobile_tests.device_matrix`, reusable `mobile_step_groups` and their project
+guard. Mobile matrix/group definitions are frozen for a run; inspect `shared/mobile.ts`,
+`server/mobile-plan-units.ts` and `server/execution-snapshot.ts` for the executable shape.
+
+The diagram below covers the new BDD/group tables. Quota reservation/commit columns and constraints
+remain defined by `shared/schema.ts` and migration 0081; see [Data model](./data-model) and
+[Administration quotas](../admin/administration).
+
+```mermaid
+erDiagram
+  projects |o--o{ bdd_execution_profiles : project_id
+  projects |o--o{ mobile_step_groups : project_id
+  bdd_execution_profiles {
+    text id PK
+    int organization_id FK
+    int project_id FK
+    text name
+    text pool
+    text operator_profile_id
+    text revision
+    int timeout_ms
+    timestamp created_at
+    timestamp updated_at
+  }
+  mobile_step_groups {
+    text id PK
+    int organization_id FK
+    int project_id FK
+    text name
+    text description
+    text platform
+    jsonb steps
+    int created_by FK
+    timestamp created_at
     timestamp updated_at
   }
 ```

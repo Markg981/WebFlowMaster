@@ -11,6 +11,10 @@ row. They are what [dynamic suites](#suites) select by.
 
 ## Manual tests {#manual-tests}
 
+Use **Test Library → New manual test** to save a human procedure with its steps. A plan records
+manual outcomes rather than turning sentences into browser actions. Review and publish it
+through the same version workflow. Gherkin editing and execution are in [BDD tests](./bdd-tests).
+
 **Gherkin/Cucumber files.** In **Files**, select **Gherkin (.feature)** to export web tests,
 or open a `.feature` file and preview its import. Standard multilingual Gherkin includes Rule,
 backgrounds, doc strings, step tables and tagged Examples. Choose manual execution or an authorized
@@ -146,12 +150,12 @@ tracker. At most 500 items come in at once.
 and every one of its stories', each once. Its coverage is worked out from the **latest result of
 each test**, all browsers of that run together:
 
-| Coverage | Means |
-|---|---|
-| **Passing** | Every covering test passed the last time it ran. |
-| **Failing** | At least one failed (on any browser). |
-| **Not run** | None failed, but some never ran, were skipped, or are manual tests waiting for a verdict. |
-| **No tests** | Nothing covers it. |
+| Coverage     | Means                                                                                     |
+| ------------ | ----------------------------------------------------------------------------------------- |
+| **Passing**  | Every covering test passed the last time it ran.                                          |
+| **Failing**  | At least one failed (on any browser).                                                     |
+| **Not run**  | None failed, but some never ran, were skipped, or are manual tests waiting for a verdict. |
+| **No tests** | Nothing covers it.                                                                        |
 
 **Results from** narrows which runs count: the latest run of each test anywhere, or the latest run
 of one plan — the release plan, say. **Requirements covered** in a run's report opens the page with
@@ -163,7 +167,7 @@ outcome and a link to that run's report.
 requirement and covering test, with its last outcome, run and plan, and one line for each
 requirement no test covers.
 
-A linked test in a project you cannot see is counted (*+1 in projects you cannot see*) but not
+A linked test in a project you cannot see is counted (_+1 in projects you cannot see_) but not
 named, left out of the state, and stays linked when you change the others. Viewers read; editors
 add, import, link and delete. Deleting a requirement removes its links, never the tests; what it
 contained moves to the top level.
@@ -172,7 +176,7 @@ contained moves to the top level.
 
 The sparkle button on a requirement's row proposes test cases for it, when the operator has set up
 the AI model. It reads the story as the tracker has it **now** — its description and its acceptance
-criteria (Jira: the fields named *Acceptance criteria*; Azure DevOps: *Acceptance Criteria*) — or,
+criteria (Jira: the fields named _Acceptance criteria_; Azure DevOps: _Acceptance Criteria_) — or,
 for a requirement typed in here, its description. **Propose tests** asks for up to the number
 chosen (6 by default, at most 12), written in the language of the interface: the main path, the
 mistakes a user can make, and the limits, each with the criterion it covers, its preconditions and

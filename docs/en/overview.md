@@ -7,7 +7,7 @@ documentation is. Reading it takes about fifteen minutes.
 ## What it is
 
 WebFlowMaster is a **test automation platform** for teams that need to check web applications, HTTP APIs and
-native mobile apps, repeatedly and reliably, and to know the result without being in front of a screen.
+native mobile apps and Gherkin/Cucumber scenarios, repeatedly and reliably, and to know the result without being in front of a screen.
 
 A team uses it to:
 
@@ -32,21 +32,21 @@ behind a load balancer for more.
 
 ## Who uses it
 
-| Role | What they do | Start with |
-|---|---|---|
-| **Test author** (editor) | Records and builds tests, runs plans, reads reports | [User guide](./guide/) |
-| **Reviewer / viewer** | Reads results, approves tests for publishing | [Results](./guide/results) |
-| **Owner / administrator** | Members, roles, SSO and MFA, integrations, environments, keys | [Administration](./admin/administration) |
-| **Platform operator** | Installs, scales, backs up, monitors | [Installation](./admin/installation), [Operations](./admin/operations) |
-| **Pipeline engineer** | Starts plans from CI and reads the exit code | [CI integration](./CI_INTEGRATION), [CLI](./reference/cli), [REST API](./reference/api) |
-| **Security reviewer** | Checks isolation, secrets, hardening | [Security](./security/) |
-| **Developer of the product** | Changes it | [Architecture](./internals/), [Developer guide](./internals/developer-guide) |
+| Role                         | What they do                                                      | Start with                                                                                                                                                                             |
+| ---------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Test author** (editor)     | Records and builds tests, runs plans, reads reports               | [User guide](./guide/)                                                                                                                                                                 |
+| **Reviewer / viewer**        | Reads results; editors with review permission approve publication | [Results](./guide/results)                                                                                                                                                             |
+| **Owner / administrator**    | Members, roles, SSO and MFA, integrations, environments, keys     | [Administration](./admin/administration)                                                                                                                                               |
+| **Platform operator**        | Installs, scales, backs up, monitors                              | [Installation](./admin/installation), [Operations](./admin/operations)                                                                                                                 |
+| **Pipeline engineer**        | Starts plans from CI and reads the exit code                      | [CI integration](./CI_INTEGRATION), [CLI](./reference/cli), [REST API](./reference/api)                                                                                                |
+| **Security reviewer**        | Checks isolation, secrets, hardening                              | [Security](./security/)                                                                                                                                                                |
+| **Developer of the product** | Changes it                                                        | [Architecture](./internals/), [Developer guide](./internals/developer-guide), [Suite handbook](./internals/suite-handbook), [Contribution walkthrough](./internals/contributing-guide) |
 
 ## The concepts, in one picture
 
 ```mermaid
 flowchart LR
-  P["Project"] --> T["Tests<br/>UI, API, mobile"]
+  P["Project"] --> T["Tests<br/>UI, API, mobile, BDD"]
   T --> V["Versions<br/>review, publish"]
   T --> TG["Tags"]
   TG --> SU["Suites"]
@@ -57,7 +57,7 @@ flowchart LR
   SC --> RUN["Run<br/>frozen snapshot"]
   PL --> RUN
   ENV["Environment<br/>variables, secrets,<br/>saved login"] --> RUN
-  RUN --> RES["Results<br/>per test per browser"]
+  RUN --> RES["Results<br/>per execution unit"]
   RES --> EV["Evidence<br/>screenshots, video, trace, HAR"]
   RES --> OUT["Issues, commit status,<br/>notifications, test management"]
   RQ["Requirements"] -. "covered by" .-> T
@@ -81,12 +81,12 @@ flowchart LR
 ```
 
 - The **web process** serves the React client and the REST API, authenticates people and machines,
-  creates runs and never executes them.
+  queues plan runs for workers; browser recording and optional inline authoring tasks have separate execution paths.
 - **Workers** take runs from a queue, drive the browsers or devices, record evidence and results, then
   send notifications, issues and commit statuses. Add workers to run more in parallel.
 - **PostgreSQL** holds everything durable and enforces tenant isolation with row-level security.
   **Redis** holds queues and sessions. **The artifact store** holds screenshots, videos and traces.
-- A **local agent** lends browsers inside a customer's network; it only ever connects *out*.
+- A **local agent** supplies browsers, API transports and authorized Cucumber profiles inside a customer's network; it only ever connects _out_.
 
 The five rules that explain most of the code:
 
@@ -99,35 +99,35 @@ The five rules that explain most of the code:
 ## Technology
 
 TypeScript throughout. Node.js 20, Express, `ws`, Passport; Drizzle ORM on PostgreSQL 15+ with hand-written
-SQL migrations (59 so far); BullMQ on Redis/Valkey; Playwright for browsers and axe-core for accessibility;
+SQL migrations (83 journal entries through `0082` at this revision); BullMQ on Redis/Valkey; Playwright for browsers and axe-core for accessibility;
 Appium for mobile apps; React 18, Vite, TanStack Query, Radix/shadcn, Tailwind, React Flow; optional Google
 Gemini for AI features; Vitest, Testing Library and supertest for tests; Docker for packaging.
 
 ## The repository in a table
 
-| Folder | Contents |
-|---|---|
-| `client/` | The React application |
-| `server/` | The web process and the worker: routes, middleware, domain modules |
-| `shared/` | Schema and types used by both client and server |
-| `migrations/` | The SQL migrations (`0000` … `0058`) |
-| `scripts/` | CLI (`wfm`), local agent, migrator, schema doctor, importers |
-| `integrations/` | GitHub Action, GitLab template, Jenkins shared library, Azure Pipelines template, Bitbucket Pipelines step, CircleCI orb |
-| `collaudo/` | The acceptance test lab: HTTPS, Keycloak, simulators, Jenkins, Android emulator |
-| `docs/` | This documentation (VitePress, English and Italian) |
-| `observability/` | Loki and Grafana configuration |
+| Folder           | Contents                                                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `client/`        | The React application                                                                                                    |
+| `server/`        | The web process and the worker: routes, middleware, domain modules                                                       |
+| `shared/`        | Schema and types used by both client and server                                                                          |
+| `migrations/`    | The SQL migrations (`0000` … `0082`; see the migration journal)                                                          |
+| `scripts/`       | CLI (`wfm`), local agent, migrator, schema doctor, importers                                                             |
+| `integrations/`  | GitHub Action, GitLab template, Jenkins shared library, Azure Pipelines template, Bitbucket Pipelines step, CircleCI orb |
+| `collaudo/`      | The acceptance test lab: HTTPS, Keycloak, simulators, Jenkins, Android emulator                                          |
+| `docs/`          | This documentation (VitePress, English and Italian)                                                                      |
+| `observability/` | Loki and Grafana configuration                                                                                           |
 
 ## The documentation, by question
 
-| If you want to know… | Read |
-|---|---|
-| How to use it | [User guide](./guide/): [web tests](./guide/web-tests), [API tests](./guide/api-tests), [mobile apps](./guide/mobile-apps), [organizing](./guide/organizing), [running](./guide/running), [results](./guide/results) |
-| How to install and run it | [Installation](./admin/installation), [Operations](./admin/operations), [Configuration reference](./admin/configuration) |
-| How to administer an organization | [Administration](./admin/administration) |
-| How safe it is | [Security overview](./security/), [Data protection](./security/data-protection), [Hardening](./security/hardening) |
-| How to call it from a pipeline | [CI integration](./CI_INTEGRATION), [CLI](./reference/cli), [REST API](./reference/api) |
-| How agents work | [Local agents](./LOCAL_AGENT), [internals](./internals/agents) |
-| How it is built | [Architecture overview](./internals/), [System architecture](./internals/system-architecture), [Class diagrams](./internals/class-diagrams), [Database schema](./internals/database-schema), [Sequence diagrams](./internals/sequences), [Mobile subsystem](./internals/mobile), [Run lifecycle](./internals/execution), [Tenancy](./internals/tenancy), [Web client](./internals/frontend) |
-| Why it is built that way | [Decision records](./internals/decisions) |
-| How it was accepted | [Test lab](./admin/test-lab) |
-| What a word means | [Glossary](./internals/glossary) |
+| If you want to know…              | Read                                                                                                                                                                                                                                                                                                                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| How to use it                     | [User guide](./guide/): [web tests](./guide/web-tests), [API tests](./guide/api-tests), [mobile apps](./guide/mobile-apps), [BDD tests](./guide/bdd-tests), [organizing](./guide/organizing), [running](./guide/running), [results](./guide/results)                                                                                                                                        |
+| How to install and run it         | [Installation](./admin/installation), [Operations](./admin/operations), [Configuration reference](./admin/configuration)                                                                                                                                                                                                                                                                    |
+| How to administer an organization | [Administration](./admin/administration)                                                                                                                                                                                                                                                                                                                                                    |
+| How safe it is                    | [Security overview](./security/), [Data protection](./security/data-protection), [Hardening](./security/hardening)                                                                                                                                                                                                                                                                          |
+| How to call it from a pipeline    | [CI integration](./CI_INTEGRATION), [CLI](./reference/cli), [REST API](./reference/api)                                                                                                                                                                                                                                                                                                     |
+| How agents work                   | [Local agents](./LOCAL_AGENT), [internals](./internals/agents), [BDD tests](./guide/bdd-tests)                                                                                                                                                                                                                                                                                              |
+| How it is built                   | [Architecture overview](./internals/), [System architecture](./internals/system-architecture), [Class diagrams](./internals/class-diagrams), [Database schema](./internals/database-schema), [Sequence diagrams](./internals/sequences), [Mobile subsystem](./internals/mobile), [Run lifecycle](./internals/execution), [Tenancy](./internals/tenancy), [Web client](./internals/frontend) |
+| Why it is built that way          | [Decision records](./internals/decisions)                                                                                                                                                                                                                                                                                                                                                   |
+| How it was accepted               | [Test lab](./admin/test-lab)                                                                                                                                                                                                                                                                                                                                                                |
+| What a word means                 | [Glossary](./internals/glossary)                                                                                                                                                                                                                                                                                                                                                            |

@@ -1,0 +1,54 @@
+1
+00:00:00,000 --> 00:00:05,000
+Ogni rilascio. Ogni browser.
+Ogni clic, a mano?
+
+2
+00:00:05,000 --> 00:00:08,500
+WebFlowMaster.
+Test end-to-end per tutto il team.
+
+3
+00:00:08,500 --> 00:00:16,500
+Descrivi i passi e validali sulla pagina.
+Oppure usa scenari Gherkin con BDD.
+
+4
+00:00:16,500 --> 00:00:20,500
+Eseguilo. Guarda il risultato.
+Senza codice né script di registrazione da mantenere.
+
+5
+00:00:20,500 --> 00:00:25,500
+Testa le API. Verifica, cattura e collega.
+Passa i valori da una richiesta alla successiva.
+
+6
+00:00:25,500 --> 00:00:33,500
+Chromium, Firefox e WebKit. Mobile nativo con Appium.
+Runner dedicati per web, mobile e BDD.
+
+7
+00:00:33,500 --> 00:00:41,500
+Scopri perché è fallito.
+Screenshot, video, traccia Playwright e log di rete.
+
+8
+00:00:41,500 --> 00:00:47,500
+La qualità, a colpo d’occhio.
+Successi, trend e pianificazioni per tutto il team.
+
+9
+00:00:47,500 --> 00:00:53,500
+CI/CD, GitHub, GitLab, Jira e Azure DevOps.
+Webhook, agenti privati, SSO, MFA e audit log.
+
+10
+00:00:53,500 --> 00:00:56,500
+WebFlowMaster. Ogni rilascio, con fiducia.
+Richiedi una demo.
+
+11
+00:00:56,500 --> 00:01:00,000
+Marco Oliva · marco.oliva@aveva.com
+www.aveva.com · +39 3473495072

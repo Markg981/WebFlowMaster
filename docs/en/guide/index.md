@@ -1,12 +1,14 @@
 # Getting started
 
-WebFlowMaster tests web applications and HTTP APIs. You build a test by recording, by dragging
+WebFlowMaster tests web applications, HTTP/native API protocols, mobile apps and BDD scenarios. You build a test by recording, by dragging
 steps, or by describing it in sentences; you group tests into **plans**; plans run on demand, on a
 schedule or from a CI pipeline, in one or more browsers; and every run leaves a **report** with
 screenshots, timings and, when you want them, a video, a Playwright trace and the network traffic.
 
 This guide is for the people who write and run tests. Setting up an installation and managing an
-organization are in [Administration](../admin/administration).
+organization are in [Administration](../admin/administration). For device execution read
+[Mobile apps](./mobile-apps); for manual scenarios or dedicated Cucumber read [BDD tests](./bdd-tests).
+Mobile and Cucumber use their own execution targets rather than the browser matrix.
 
 ## Signing in
 
@@ -26,19 +28,20 @@ Forgot your password? Ask an owner of your organization for a reset link.
 
 The sidebar has everything:
 
-| Section | What it is for |
-|---|---|
-| **Dashboard** | Private and shared views of runs, trends and schedules. See [Conversations and dashboards](./collaboration). |
-| **API Tester** | Building and saving API tests. See [API tests](./api-tests). |
-| **Create Test** | The test builder for web tests. See [Web tests](./web-tests). |
-| **Test Library** | Every saved test, with tags and history. See [Organizing tests](./organizing). |
-| **Test Manager** | Importing test cases from Excel and mapping them to saved tests. |
-| **Suites** | Lists of tests shared by several plans. |
-| **Test plans** | What to run, where and how; the **Run** button. See [Running tests](./running). |
-| **Reviews** | Changes waiting for approval, when your organization reviews tests before they run. |
-| **Scheduling** | Plans that run by themselves. |
-| **Reports** | Every finished run, flaky tests and the quarantine. See [Results](./results). |
-| **Settings** | Your preferences and password, and, depending on your role, environments, projects, members, keys and the rest. |
+| Section          | What it is for                                                                                                  |
+| ---------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**    | Private and shared views of runs, trends and schedules. See [Conversations and dashboards](./collaboration).    |
+| **API Tester**   | Building and saving API tests. See [API tests](./api-tests).                                                    |
+| **Mobile Tests** | Native app definitions, inspector and device execution. See [Mobile apps](./mobile-apps).                       |
+| **Create Test**  | The test builder for web tests. See [Web tests](./web-tests).                                                   |
+| **Test Library** | Every saved test, with tags and history. See [Organizing tests](./organizing).                                  |
+| **Test Manager** | Importing test cases from Excel and mapping them to saved tests.                                                |
+| **Suites**       | Lists of tests shared by several plans.                                                                         |
+| **Test plans**   | What to run, where and how; the **Run** button. See [Running tests](./running).                                 |
+| **Reviews**      | Changes waiting for approval, when your organization reviews tests before they run.                             |
+| **Scheduling**   | Plans that run by themselves.                                                                                   |
+| **Reports**      | Every finished run, flaky tests and the quarantine. See [Results](./results).                                   |
+| **Settings**     | Your preferences and password, and, depending on your role, environments, projects, members, keys and the rest. |
 
 What you can do depends on your **role**: viewers read tests and results; editors also create,
 change and run them; owners also manage the organization. The buttons you cannot use are hidden or
