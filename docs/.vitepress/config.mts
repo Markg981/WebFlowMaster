@@ -83,6 +83,7 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
           link: p('admin/saas-network'),
         },
         { text: t.operations, link: p('admin/operations') },
+        { text: lang === 'it' ? 'Release riproducibili' : 'Reproducible releases', link: p('admin/releases') },
         {
           text:
             lang === 'en' ? 'Metrics and distributed tracing' : 'Metriche e tracing distribuito',

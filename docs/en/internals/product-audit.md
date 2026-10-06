@@ -105,3 +105,7 @@ claims without measured evidence.
 
 Turn the backlog into small changes with verifiable acceptance. The
 [implementation guide](./contributing-guide) explains how to preserve the suite's invariants.
+
+## Progress: reproducible releases
+
+The [release path](../admin/releases) adds base digests, a Lighthouse lock, dual builds, CycloneDX SBOMs and a HIGH/CRITICAL gate. The manifest links images, commit and migration checksums. Release-tag CI and installed upgrade acceptance remain separate evidence to record before distribution.

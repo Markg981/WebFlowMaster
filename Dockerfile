@@ -17,9 +17,14 @@
 # container failed with "Executable doesn't exist" and a message telling us to update the
 # image. An architecture test now compares the two, so a dependency bump fails a test
 # rather than production.
-FROM mcr.microsoft.com/playwright:v1.61.1-jammy
+FROM mcr.microsoft.com/playwright:v1.61.1-jammy@sha256:7b86926fff94374389e8e1f4fdc5c76d050d4a06a7886bb537bf412b20e2b71e
 
 WORKDIR /app
+
+ARG SOURCE_DATE_EPOCH=0
+ARG APP_VERSION=development
+ARG VCS_REF=unknown
+LABEL org.opencontainers.image.version=$APP_VERSION org.opencontainers.image.revision=$VCS_REF
 
 ENV NODE_ENV=production
 
@@ -27,20 +32,26 @@ ENV NODE_ENV=production
 # package-lock.json rarely, so this layer is the one worth caching.
 COPY package*.json ./
 COPY client/package*.json ./client/
-RUN npm ci --include=dev
+RUN npm ci --include=dev --no-audit --no-fund && rm -rf /root/.npm /tmp/node-compile-cache
 
 COPY . .
 
 # Builds the client bundle and both server entry points (see the root "build" script).
 # Dev dependencies are needed for this — esbuild, vite, the TypeScript compiler — which is
 # why they were installed above and are pruned below rather than skipped.
-RUN npm run build && npm prune --omit=dev
+RUN npm run build && npm ci --omit=dev --no-audit --no-fund && rm -rf /root/.npm /tmp/node-compile-cache
 
 # Lighthouse, for the auditLighthouse step (server/web-performance.ts). Installed as a program on
 # its own rather than as a dependency of the application: it brings a browser driver and a
 # telemetry SDK the application has no use for, and it runs as a separate process anyway. It uses
 # the image's Playwright Chromium. Version 12 runs on any Node the image has; 13 needs 22.19.
-RUN npm install -g --no-audit --no-fund lighthouse@12.8.2 && npm cache clean --force
+COPY deployment/lighthouse/package*.json /opt/lighthouse/
+RUN npm ci --prefix /opt/lighthouse --omit=dev --ignore-scripts --no-audit --no-fund && rm -rf /root/.npm /tmp/node-compile-cache
+ENV LIGHTHOUSE_BIN=/opt/lighthouse/node_modules/.bin/lighthouse
+
+RUN mkdir -p /app/logs /app/results /app/data/visual-baselines /app/uploads /app/allure-results \
+    && chown -R pwuser:pwuser /app/logs /app/results /app/data /app/uploads /app/allure-results
+USER pwuser
 
 # Matches the default in server/config.ts. The compose file publishes it; PORT overrides it.
 EXPOSE 5000

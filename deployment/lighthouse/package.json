@@ -1,0 +1,8 @@
+{
+  "name": "wfm-lighthouse-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "lighthouse": "12.8.2"
+  }
+}

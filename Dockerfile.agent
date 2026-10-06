@@ -8,65 +8,32 @@
 # The tag must equal the version the lockfile resolves for playwright, like the other images:
 # the server refuses an agent whose Playwright major.minor differs from its own, because the
 # protocol between the two changes between minors.
-FROM mcr.microsoft.com/playwright:v1.61.1-jammy AS build
-
+FROM mcr.microsoft.com/playwright:v1.61.1-jammy@sha256:7b86926fff94374389e8e1f4fdc5c76d050d4a06a7886bb537bf412b20e2b71e AS build
+ARG SOURCE_DATE_EPOCH=0
 WORKDIR /src
 COPY package*.json ./
 COPY client/package*.json ./client/
-RUN npm ci --include=dev
+RUN npm ci --include=dev --no-audit --no-fund
 COPY . .
-RUN npm run build:agent
+RUN npm run build:agent && npm ci --omit=dev --no-audit --no-fund
 
-FROM mcr.microsoft.com/playwright:v1.61.1-jammy
-
+FROM mcr.microsoft.com/playwright:v1.61.1-jammy@sha256:7b86926fff94374389e8e1f4fdc5c76d050d4a06a7886bb537bf412b20e2b71e
 WORKDIR /agent
+ARG SOURCE_DATE_EPOCH=0
+ARG APP_VERSION=development
+ARG VCS_REF=unknown
+LABEL org.opencontainers.image.version=$APP_VERSION org.opencontainers.image.revision=$VCS_REF
 ENV NODE_ENV=production
 
-# Only for testing the server's refusal of a mismatched agent (collaudo AGT-05): an agent on
-# another Playwright version, whose browsers the image does not have. Empty in every real build.
+# Copy the production dependency tree from npm ci; no second resolution of transitives.
+COPY --from=build /src/package*.json ./
+COPY --from=build /src/client/package*.json ./client/
+COPY --from=build /src/node_modules ./node_modules
+# Intentional mismatch fixture for Collaudo AGT-05 only. Release builds leave this empty.
 ARG PLAYWRIGHT_VERSION=
-
-# The agent is one bundled file; native API protocols also need the gRPC packages.
-# The playwright library is installed at exactly the resolved version, never a range: the
-# image's browsers are built for that version and no other.
-COPY --from=build /src/node_modules/playwright/package.json /tmp/playwright-package.json
-COPY --from=build /src/node_modules/@grpc/grpc-js/package.json /tmp/grpc-package.json
-COPY --from=build /src/node_modules/@grpc/proto-loader/package.json /tmp/proto-package.json
-COPY --from=build /src/node_modules/undici/package.json /tmp/undici-package.json
-COPY --from=build /src/node_modules/https-proxy-agent/package.json /tmp/proxy-package.json
-COPY --from=build /src/node_modules/zod/package.json /tmp/zod-package.json
-COPY --from=build /src/node_modules/@cucumber/cucumber/package.json /tmp/cucumber-package.json
-COPY --from=build /src/node_modules/@cucumber/gherkin/package.json /tmp/gherkin-package.json
-COPY --from=build /src/node_modules/@cucumber/messages/package.json /tmp/messages-package.json
-COPY --from=build /src/node_modules/tsx/package.json /tmp/tsx-package.json
-COPY --from=build /src/node_modules/@opentelemetry/api/package.json /tmp/otel-0.json
-COPY --from=build /src/node_modules/@opentelemetry/core/package.json /tmp/otel-1.json
-COPY --from=build /src/node_modules/@opentelemetry/exporter-trace-otlp-http/package.json /tmp/otel-2.json
-COPY --from=build /src/node_modules/@opentelemetry/resources/package.json /tmp/otel-3.json
-COPY --from=build /src/node_modules/@opentelemetry/sdk-trace-base/package.json /tmp/otel-4.json
-COPY --from=build /src/node_modules/@opentelemetry/sdk-trace-node/package.json /tmp/otel-5.json
-RUN npm init -y >/dev/null \
-  && npm install --omit=dev "playwright@${PLAYWRIGHT_VERSION:-$(node -p "require('/tmp/playwright-package.json').version")}" "ws@^8.18.0" \
-     "@grpc/grpc-js@$(node -p "require('/tmp/grpc-package.json').version")" \
-     "@grpc/proto-loader@$(node -p "require('/tmp/proto-package.json').version")" \
-     "undici@$(node -p "require('/tmp/undici-package.json').version")" \
-     "https-proxy-agent@$(node -p "require('/tmp/proxy-package.json').version")" \
-     "zod@$(node -p "require('/tmp/zod-package.json').version")" \
-     "@cucumber/cucumber@$(node -p "require('/tmp/cucumber-package.json').version")" \
-     "@cucumber/gherkin@$(node -p "require('/tmp/gherkin-package.json').version")" \
-     "@cucumber/messages@$(node -p "require('/tmp/messages-package.json').version")" \
-     "tsx@$(node -p "require('/tmp/tsx-package.json').version")" \
-     "@opentelemetry/api@$(node -p "require('/tmp/otel-0.json').version")" \
-     "@opentelemetry/core@$(node -p "require('/tmp/otel-1.json').version")" \
-     "@opentelemetry/exporter-trace-otlp-http@$(node -p "require('/tmp/otel-2.json').version")" \
-     "@opentelemetry/resources@$(node -p "require('/tmp/otel-3.json').version")" \
-     "@opentelemetry/sdk-trace-base@$(node -p "require('/tmp/otel-4.json').version")" \
-     "@opentelemetry/sdk-trace-node@$(node -p "require('/tmp/otel-5.json').version")" \
-  && rm /tmp/playwright-package.json /tmp/grpc-package.json /tmp/proto-package.json /tmp/undici-package.json /tmp/proxy-package.json /tmp/zod-package.json
+RUN if [ -n "$PLAYWRIGHT_VERSION" ]; then npm install --omit=dev --no-audit --no-fund "playwright@$PLAYWRIGHT_VERSION"; fi
 COPY --from=build /src/dist/wfm-agent.js ./wfm-agent.mjs
 COPY --from=build /src/dist/wfm-bdd-child.mjs ./wfm-bdd-child.mjs
-
-# Lets the running sessions finish on `docker stop`.
 STOPSIGNAL SIGTERM
 USER pwuser
 CMD ["node", "wfm-agent.mjs"]

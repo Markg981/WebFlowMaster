@@ -204,3 +204,7 @@ see comes with the documentation that describes it.
 WebFlowMaster is proprietary software, licensed commercially. The source being readable here
 grants no right to use, copy, modify or distribute it: that requires a separate written
 commercial license. See [LICENSE](./LICENSE).
+
+### Versioned releases / Release versionate
+
+API, worker and agent release images use immutable registry digests, CycloneDX SBOMs and vulnerability gates. See [English release runbook](docs/en/admin/releases.md) / [procedura italiana](docs/it/admin/releases.md). Run `npm run test:release` for the packaging guards; complete image rebuilds and scans run in `.github/workflows/release.yml`.

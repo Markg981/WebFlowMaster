@@ -266,3 +266,5 @@ reachable by others.
 | Links work | A notification or commit status links to the run at the public address. |
 
 Next: [Operations](./operations) covers upgrades, backups, logs and troubleshooting.
+
+To deploy versioned images with SBOMs, scans and immutable digests, follow [Reproducible releases](./releases).

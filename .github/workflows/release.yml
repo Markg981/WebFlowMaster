@@ -1,0 +1,265 @@
+name: Reproducible release
+
+on:
+  pull_request:
+    paths:
+      - 'Dockerfile*'
+      - '.dockerignore'
+      - 'package*.json'
+      - 'client/**'
+      - 'server/**'
+      - 'shared/**'
+      - 'scripts/**'
+      - 'migrations/**'
+      - 'deployment/lighthouse/**'
+      - 'deployment/releases/**'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  checks: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.prepare.outputs.version }}
+      commit: ${{ steps.prepare.outputs.commit }}
+      epoch: ${{ steps.prepare.outputs.epoch }}
+      platform: ${{ steps.prepare.outputs.platform }}
+      buildx: ${{ steps.prepare.outputs.buildx }}
+      buildkit: ${{ steps.prepare.outputs.buildkit }}
+      trivy: ${{ steps.prepare.outputs.trivy }}
+      db: ${{ steps.prepare.outputs.db }}
+      java-db: ${{ steps.prepare.outputs.java-db }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - run: npm run test:release
+      - id: prepare
+        run: node scripts/release/prepare.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Scan locked source dependencies
+        env:
+          TRIVY: ${{ steps.prepare.outputs.trivy }}
+          DB: ${{ steps.prepare.outputs.db }}
+        run: |
+          docker run --rm -v "$PWD:/src:ro" -v "$PWD/release-artifacts:/out" -v trivy-db:/root/.cache/trivy "$TRIVY" fs --db-repository "$DB" --scanners vuln --include-dev-deps --ignorefile /dev/null --format json --output /out/source-scan.json /src
+          docker run --rm -v trivy-db:/root/.cache/trivy "$TRIVY" --version --format json > release-artifacts/source-scanner.json
+          node scripts/release/evidence.mjs source-gate release-artifacts/source-scan.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: release-metadata
+          path: release-artifacts/*.json
+          if-no-files-found: error
+          retention-days: 30
+
+  build-and-scan:
+    needs: validate
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - role: api
+            file: Dockerfile
+          - role: worker
+            file: Dockerfile.worker
+          - role: agent
+            file: Dockerfile.agent
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-metadata
+          path: release-artifacts
+      - name: Check capacity before downloading build dependencies
+        run: node scripts/release/check-space.mjs
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        with:
+          version: ${{ needs.validate.outputs.buildx }}
+          driver-opts: image=${{ needs.validate.outputs.buildkit }}
+      - run: mkdir -p release-artifacts/${{ matrix.role }}
+      - name: First clean build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          platforms: ${{ needs.validate.outputs.platform }}
+          tags: wfm-release-${{ matrix.role }}:${{ needs.validate.outputs.commit }}
+          outputs: type=docker,dest=release-artifacts/${{ matrix.role }}/image.tar,rewrite-timestamp=true
+          no-cache: true
+          provenance: false
+          sbom: false
+          build-args: |
+            SOURCE_DATE_EPOCH=${{ needs.validate.outputs.epoch }}
+            APP_VERSION=${{ needs.validate.outputs.version }}
+            VCS_REF=${{ needs.validate.outputs.commit }}
+      - name: Exercise the non-root runtime and real Chromium
+        env:
+          IMAGE: wfm-release-${{ matrix.role }}:${{ needs.validate.outputs.commit }}
+          ROLE: ${{ matrix.role }}
+        run: |
+          mkdir -p "release-artifacts/$ROLE"
+          docker load --input "release-artifacts/$ROLE/image.tar"
+          docker run --rm -i --entrypoint node "$IMAGE" --input-type=commonjs < scripts/release/runtime-smoke.cjs
+          docker image inspect "$IMAGE" --format '{{.Id}}' > "release-artifacts/$ROLE/config-digest.txt"
+          gzip -n -1 "release-artifacts/$ROLE/image.tar"
+      - name: Image SBOM and full vulnerability report
+        env:
+          ROLE: ${{ matrix.role }}
+          TRIVY: ${{ needs.validate.outputs.trivy }}
+          DB: ${{ needs.validate.outputs.db }}
+          JAVA_DB: ${{ needs.validate.outputs.java-db }}
+        run: |
+          docker run --rm -v "$PWD/release-artifacts/$ROLE:/out" -v trivy-db:/root/.cache/trivy "$TRIVY" image --input /out/image.tar.gz --db-repository "$DB" --java-db-repository "$JAVA_DB" --format cyclonedx --output /out/sbom.cdx.json
+          docker run --rm -v "$PWD/release-artifacts/$ROLE:/out" -v trivy-db:/root/.cache/trivy "$TRIVY" image --input /out/image.tar.gz --db-repository "$DB" --java-db-repository "$JAVA_DB" --scanners vuln --ignorefile /dev/null --format json --output /out/scan.json
+          docker run --rm -v trivy-db:/root/.cache/trivy "$TRIVY" --version --format json > "release-artifacts/$ROLE/scanner.json"
+          node scripts/release/evidence.mjs gate "release-artifacts/$ROLE/scan.json"
+          docker image rm "wfm-release-$ROLE:${{ needs.validate.outputs.commit }}"
+      - name: Second clean build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          platforms: ${{ needs.validate.outputs.platform }}
+          tags: wfm-release-${{ matrix.role }}:${{ needs.validate.outputs.commit }}
+          outputs: type=docker,dest=release-artifacts/${{ matrix.role }}/rebuild.tar,rewrite-timestamp=true
+          no-cache: true
+          provenance: false
+          sbom: false
+          build-args: |
+            SOURCE_DATE_EPOCH=${{ needs.validate.outputs.epoch }}
+            APP_VERSION=${{ needs.validate.outputs.version }}
+            VCS_REF=${{ needs.validate.outputs.commit }}
+      - name: Compare configuration and layer content
+        env:
+          ROLE: ${{ matrix.role }}
+        run: |
+          docker load --input "release-artifacts/$ROLE/rebuild.tar"
+          rm "release-artifacts/$ROLE/rebuild.tar"
+          expected=$(cat "release-artifacts/$ROLE/config-digest.txt")
+          actual=$(docker image inspect "wfm-release-$ROLE:${{ needs.validate.outputs.commit }}" --format '{{.Id}}')
+          test "$expected" = "$actual"
+          node scripts/release/evidence.mjs record "$ROLE" "$actual"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-image-${{ matrix.role }}
+          path: release-artifacts/${{ matrix.role }}/
+          compression-level: 0
+          retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: release-evidence-${{ matrix.role }}
+          path: |
+            release-artifacts/${{ matrix.role }}/*.json
+            release-artifacts/${{ matrix.role }}/config-digest.txt
+          if-no-files-found: warn
+          retention-days: 30
+
+  promote:
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: [validate, build-and-scan]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+      checks: read
+    strategy:
+      fail-fast: false
+      matrix:
+        role: [api, worker, agent]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-metadata
+          path: release-artifacts
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-image-${{ matrix.role }}
+          path: release-artifacts/${{ matrix.role }}
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Promote the scanned archive without rebuilding
+        run: node scripts/release/publish.mjs "${{ matrix.role }}"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-published-${{ matrix.role }}
+          path: release-artifacts/${{ matrix.role }}/published.json
+
+  release-manifest:
+    needs: [validate, promote]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-metadata
+          path: release-artifacts
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: release-published-*
+          path: release-artifacts/published
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: release-evidence-*
+          path: release-artifacts/evidence
+      - name: Assemble verified references and evidence
+        run: |
+          for role in api worker agent; do
+            mkdir -p "release-artifacts/$role"
+            cp "release-artifacts/published/release-published-$role/published.json" "release-artifacts/$role/"
+            cp "release-artifacts/evidence/release-evidence-$role/"*.json "release-artifacts/$role/"
+          done
+          node scripts/release/evidence.mjs manifest
+      - name: Create a draft release with durable evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          printf 'API, worker and agent: use release.env digest references. See docs/en/admin/releases.md and docs/it/admin/releases.md. HIGH/CRITICAL findings and unequal rebuilds block publication.\n' > release-artifacts/notes.md
+          if gh release view "v$VERSION" --json isDraft > release-artifacts/existing.json 2>/dev/null; then
+            node -e "if (!require('./release-artifacts/existing.json').isDraft) throw Error('Refusing to alter a published release')"
+          else
+            gh release create "v$VERSION" --draft --verify-tag --title "WebFlowMaster $VERSION" --notes-file release-artifacts/notes.md
+          fi
+          gh release upload "v$VERSION" --clobber release-artifacts/release-manifest.json release-artifacts/release.env release-artifacts/source-scan.json release-artifacts/source-scanner.json
+          for role in api worker agent; do
+            for file in sbom.cdx.json scan.json scanner.json; do
+              cp "release-artifacts/$role/$file" "release-artifacts/$role-$file"
+              gh release upload "v$VERSION" --clobber "release-artifacts/$role-$file"
+            done
+          done

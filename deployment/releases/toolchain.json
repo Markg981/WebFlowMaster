@@ -1,0 +1,8 @@
+{
+  "buildx": "v0.37.2",
+  "buildkit": "moby/buildkit:v0.33.1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea",
+  "trivy": "aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa",
+  "platform": "linux/amd64",
+  "dbRepository": "ghcr.io/aquasecurity/trivy-db:2",
+  "javaDbRepository": "ghcr.io/aquasecurity/trivy-java-db:1"
+}

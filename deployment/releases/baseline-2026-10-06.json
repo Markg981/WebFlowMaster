@@ -1,0 +1,335 @@
+{
+  "date": "2026-10-06",
+  "kind": "diagnostic-source-lockfile-baseline",
+  "platform": "linux/amd64",
+  "scanner": {
+    "Version": "0.75.0",
+    "VulnerabilityDB": {
+      "Version": 2,
+      "NextUpdate": "2026-10-07T07:04:23.108323332Z",
+      "UpdatedAt": "2026-10-06T07:04:23.108323632Z",
+      "DownloadedAt": "2026-10-06T10:26:21.722927811Z"
+    }
+  },
+  "reportSha256": "edfedafa54c69911fbef904480cefed04739e1423256a35406f51664c1592a96",
+  "blockedOccurrences": 36,
+  "locks": [
+    {
+      "target": "client/package-lock.json",
+      "sha256": "78e9093f872d7aa3981d09a8a43854f960bdfc0ff14e247450ca19c6d2f7980a",
+      "blockedFindings": [
+        {
+          "id": "CVE-2026-93687",
+          "package": "braces",
+          "installed": "3.0.3",
+          "fixed": null,
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-93687"
+        },
+        {
+          "id": "CVE-2026-73088",
+          "package": "browserslist",
+          "installed": "4.25.0",
+          "fixed": "4.28.7",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-73088"
+        },
+        {
+          "id": "CVE-2026-73089",
+          "package": "browserslist",
+          "installed": "4.25.0",
+          "fixed": "4.28.7",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-73089"
+        },
+        {
+          "id": "CVE-2025-7783",
+          "package": "form-data",
+          "installed": "4.0.3",
+          "fixed": "2.5.4, 3.0.4, 4.0.4",
+          "severity": "CRITICAL",
+          "url": "https://avd.aquasec.com/nvd/cve-2025-7783"
+        },
+        {
+          "id": "CVE-2026-12143",
+          "package": "form-data",
+          "installed": "4.0.3",
+          "fixed": "2.5.6, 3.0.5, 4.0.6",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-12143"
+        },
+        {
+          "id": "CVE-2026-4800",
+          "package": "lodash",
+          "installed": "4.17.21",
+          "fixed": "4.18.0",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-4800"
+        },
+        {
+          "id": "CVE-2026-67213",
+          "package": "nanoid",
+          "installed": "3.3.11",
+          "fixed": "3.3.18, 5.1.6",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-67213"
+        },
+        {
+          "id": "CVE-2026-67214",
+          "package": "nanoid",
+          "installed": "3.3.11",
+          "fixed": "3.3.16, 5.1.16",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-67214"
+        },
+        {
+          "id": "CVE-2026-73086",
+          "package": "nanoid",
+          "installed": "3.3.11",
+          "fixed": "3.3.12, 5.1.11",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-73086"
+        },
+        {
+          "id": "CVE-2026-33671",
+          "package": "picomatch",
+          "installed": "2.3.1",
+          "fixed": "4.0.4, 3.0.2, 2.3.2",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-33671"
+        },
+        {
+          "id": "CVE-2026-33671",
+          "package": "picomatch",
+          "installed": "4.0.2",
+          "fixed": "4.0.4, 3.0.2, 2.3.2",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-33671"
+        },
+        {
+          "id": "CVE-2026-45623",
+          "package": "postcss",
+          "installed": "8.5.6",
+          "fixed": "8.5.12",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-45623"
+        },
+        {
+          "id": "CVE-2026-73646",
+          "package": "postcss",
+          "installed": "8.5.6",
+          "fixed": "8.5.18",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-73646"
+        },
+        {
+          "id": "CVE-2026-27606",
+          "package": "rollup",
+          "installed": "4.43.0",
+          "fixed": "2.80.0, 3.30.0, 4.59.0",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-27606"
+        },
+        {
+          "id": "CVE-2026-93749",
+          "package": "source-map-js",
+          "installed": "1.2.1",
+          "fixed": "1.2.2",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-93749"
+        },
+        {
+          "id": "CVE-2026-104848",
+          "package": "tinypool",
+          "installed": "0.8.4",
+          "fixed": "2.1.1",
+          "severity": "CRITICAL",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-104848"
+        },
+        {
+          "id": "CVE-2026-104849",
+          "package": "tinypool",
+          "installed": "0.8.4",
+          "fixed": "2.1.2",
+          "severity": "CRITICAL",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-104849"
+        },
+        {
+          "id": "CVE-2026-53571",
+          "package": "vite",
+          "installed": "5.4.19",
+          "fixed": "8.0.16, 7.3.5, 6.4.3",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-53571"
+        },
+        {
+          "id": "CVE-2026-39363",
+          "package": "vite",
+          "installed": "6.3.5",
+          "fixed": "8.0.5, 7.3.2, 6.4.2",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-39363"
+        },
+        {
+          "id": "CVE-2026-53571",
+          "package": "vite",
+          "installed": "6.3.5",
+          "fixed": "8.0.16, 7.3.5, 6.4.3",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-53571"
+        },
+        {
+          "id": "CVE-2026-47429",
+          "package": "vitest",
+          "installed": "1.6.1",
+          "fixed": "4.1.0, 3.2.6",
+          "severity": "CRITICAL",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-47429"
+        },
+        {
+          "id": "CVE-2026-48779",
+          "package": "ws",
+          "installed": "8.18.2",
+          "fixed": "5.2.5, 6.2.4, 7.5.11, 8.21.0",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-48779"
+        }
+      ]
+    },
+    {
+      "target": "deployment/bdd-agent/sample/package-lock.json",
+      "sha256": "a539beafa18a68bfa6e5222f374a49fff9c2052ab69c5a9a004e22dc1ba988a3",
+      "blockedFindings": []
+    },
+    {
+      "target": "deployment/lighthouse/package-lock.json",
+      "sha256": "1aa8cfc68f4415248fe237a97765e78999863c6a947f09ced20455b867cf386b",
+      "blockedFindings": [
+        {
+          "id": "CVE-2026-102990",
+          "package": "basic-ftp",
+          "installed": "5.3.1",
+          "fixed": "6.2.1",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-102990"
+        },
+        {
+          "id": "CVE-2026-19693",
+          "package": "extract-zip",
+          "installed": "2.0.1",
+          "fixed": null,
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-19693"
+        },
+        {
+          "id": "CVE-2026-56876",
+          "package": "extract-zip",
+          "installed": "2.0.1",
+          "fixed": null,
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-56876"
+        }
+      ]
+    },
+    {
+      "target": "marketing/promo-video/video/package-lock.json",
+      "sha256": "ee91241ecce89d8d37193fa99f9a70a870f7644de442bbeba558bdf1497c00f5",
+      "blockedFindings": [
+        {
+          "id": "CVE-2026-93749",
+          "package": "source-map-js",
+          "installed": "1.2.1",
+          "fixed": "1.2.2",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-93749"
+        }
+      ]
+    },
+    {
+      "target": "package-lock.json",
+      "sha256": "43d88293b0e6ece75f084801724cd2e14f02ec7ed0b8c57a5d481c9faf7b4f61",
+      "blockedFindings": [
+        {
+          "id": "CVE-2026-93687",
+          "package": "braces",
+          "installed": "3.0.3",
+          "fixed": null,
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-93687"
+        },
+        {
+          "id": "CVE-2025-14874",
+          "package": "nodemailer",
+          "installed": "6.10.1",
+          "fixed": "7.0.11",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2025-14874"
+        },
+        {
+          "id": "CVE-2026-82659",
+          "package": "nodemailer",
+          "installed": "6.10.1",
+          "fixed": "9.0.1",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-82659"
+        },
+        {
+          "id": "CVE-2026-82662",
+          "package": "nodemailer",
+          "installed": "6.10.1",
+          "fixed": "8.0.8",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-82662"
+        },
+        {
+          "id": "GHSA-2x7j-588g-ccc2",
+          "package": "nodemailer",
+          "installed": "6.10.1",
+          "fixed": "9.1.0",
+          "severity": "HIGH",
+          "url": "https://github.com/advisories/GHSA-2x7j-588g-ccc2"
+        },
+        {
+          "id": "GHSA-v53p-9fqp-m79j",
+          "package": "nodemailer",
+          "installed": "6.10.1",
+          "fixed": "10.0.6",
+          "severity": "HIGH",
+          "url": "https://github.com/advisories/GHSA-v53p-9fqp-m79j"
+        },
+        {
+          "id": "CVE-2026-90711",
+          "package": "proxy-addr",
+          "installed": "2.0.7",
+          "fixed": "2.0.8",
+          "severity": "CRITICAL",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-90711"
+        },
+        {
+          "id": "CVE-2026-93749",
+          "package": "source-map-js",
+          "installed": "1.2.1",
+          "fixed": "1.2.2",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-93749"
+        },
+        {
+          "id": "CVE-2026-19534",
+          "package": "undici",
+          "installed": "6.28.0",
+          "fixed": "6.28.1, 7.29.1, 8.10.2",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-19534"
+        },
+        {
+          "id": "CVE-2026-53571",
+          "package": "vite",
+          "installed": "5.4.21",
+          "fixed": "8.0.16, 7.3.5, 6.4.3",
+          "severity": "HIGH",
+          "url": "https://avd.aquasec.com/nvd/cve-2026-53571"
+        }
+      ]
+    }
+  ]
+}

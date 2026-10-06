@@ -277,3 +277,5 @@ possano raggiungerla.
 
 Prossimo passo: [Operatività](./operations) tratta aggiornamenti, backup, log e risoluzione dei
 problemi.
+
+Per distribuire immagini versionate con SBOM, scansioni e digest immutabili, seguire [Release riproducibili](./releases).

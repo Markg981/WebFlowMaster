@@ -257,3 +257,5 @@ organizzazione sono finiti dopo 9 s, dove aspettare il controllo successivo ne r
 ## Prometheus e OpenTelemetry
 
 Vedere [Metriche e tracing distribuito](./telemetry.md) per attese in coda, utilizzo worker/agenti, scrape autenticati e configurazione OTLP.
+
+Per distribuire immagini versionate con SBOM, scansioni e digest immutabili, seguire [Release riproducibili](./releases).

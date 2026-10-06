@@ -252,3 +252,5 @@ organization ended after 9 s, where waiting for the next look took 33 s.
 ## Prometheus and OpenTelemetry
 
 See [Metrics and distributed tracing](./telemetry.md) for queue wait, worker/agent utilization, authenticated scrapes and OTLP trace setup.
+
+To deploy versioned images with SBOMs, scans and immutable digests, follow [Reproducible releases](./releases).
