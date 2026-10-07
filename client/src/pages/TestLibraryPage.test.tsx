@@ -121,8 +121,10 @@ describe('TestLibraryPage', () => {
   return Promise.resolve(catalog(deleted&&page===2?[]:[tests[page===2?1:0]],deleted?25:26,page));
  });
  renderPage();await screen.findByText('Checkout');fireEvent.click(screen.getByRole('button',{name:'Next'}));await screen.findByText('Login');
- fireEvent.click(screen.getByTitle('Delete'));await screen.findByText('Checkout');
- expect(screen.getByText('25 items · Page 1 of 1')).toBeInTheDocument();
+ fireEvent.click(screen.getByTitle('Delete'));
+ // Page one comes back from the cache first (26 items, two pages); wait for its refetch.
+ expect(await screen.findByText('25 items · Page 1 of 1')).toBeInTheDocument();
+ expect(screen.getByText('Checkout')).toBeInTheDocument();
  });
  it('opens legacy manual steps stored as encoded JSON only after loading details',async()=>{
  fetchMock.mockImplementation((url:string)=>Promise.resolve(url.startsWith('/api/catalog/tests')?catalog([{...tests[0],kind:'manual'}]):url==='/api/tests/1'?{ok:true,json:async()=>({...tests[0],sequence:JSON.stringify([{action:{id:'manualStep'},value:'Legacy label'}])})}:respond(url)));
