@@ -5,7 +5,12 @@ export const password = 'E2e-Installation!2026';
 export const unique = (prefix: string) => `${prefix}_${randomUUID().replaceAll('-', '')}`;
 
 export async function register(page: Page, username = unique('critical'), invitation?: string) {
-  await page.goto(invitation ? `/auth?invitation=${invitation}&username=${username}` : '/auth');
+  // Registration is ready when its form is interactive; optional decoration must not
+  // hold the journey on the window load event (observed in the Firefox CI trace).
+  await page.goto(invitation ? `/auth?invitation=${invitation}&username=${username}` : '/auth', {
+    waitUntil: 'domcontentloaded',
+    timeout: 30_000,
+  });
   await page.getByRole('tab', { name: 'Register', exact: true }).click();
   if (!invitation) await page.locator('#register-username').fill(username);
   await page.locator('#register-password').fill(password);
