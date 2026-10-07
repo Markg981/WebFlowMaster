@@ -18,7 +18,9 @@ records. Portable import/export covers UI/manual/BDD definitions; native API/mob
 remains outside this contract. The [platform load tool](../admin/load-testing) now supports
 `--soak-seconds` and `--interval-seconds` with per-cycle observations. These changes address parts
 of the two P2 baseline findings below. Multi-tenant endurance with real agents, scheduler,
-artifacts and controlled restarts remains pending in Collaudo API-49–API-51 and OPS-27–OPS-28;
+artifacts and controlled restarts now has a dedicated `npm run load:resilience` command with
+disposable Docker infrastructure, reconciliation and retained evidence. Manual acceptance remains
+pending in Collaudo OPS-32–OPS-35;
 local automated checks do not certify production duration or capacity.
 
 Implementation update: [load tests](../guide/load-tests) now run saved API tests as composite

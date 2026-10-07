@@ -92,3 +92,4 @@ collaudo/mobile/.keepalive.pid
 backups/
 release-artifacts/
 restore-drill-artifacts/
+resilience-artifacts/

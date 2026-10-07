@@ -56,6 +56,7 @@ scratch_cookies.txt
 
 backups
 restore-drill-artifacts
+resilience-artifacts
 release-artifacts
 docs/.vitepress/dist
 docs/.vitepress/cache

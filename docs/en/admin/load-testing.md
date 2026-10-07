@@ -18,4 +18,19 @@ Every invocation/cycle uses distinct idempotency keys. Accepted IDs are polled i
 
 Readers and concurrency must be positive integers; runs must be an integer from 0 to 100 per target/cycle. Poll, interval, HTTP deadline and run timeout must be positive. The read error-rate threshold is a fraction between 0 and 1. HTTP deadlines cover response headers and bodies and abort hung requests.
 
-Exit codes: `0` within thresholds, `1` breaches, `2` tool/setup failure. Run `npx vitest run scripts/wfm-load.test.ts` for virtual-clock coverage. Simulations do not establish live platform endurance. Record a real run's report, environment/version, organization limits and runner/worker logs before making that claim. Agent, scheduler, artifact and controlled-restart acceptance require their own live scenarios; this runner exercises `/api/v1` reads and plan execution queues.
+Exit codes: `0` within thresholds, `1` breaches, `2` tool/setup failure. Run `npx vitest run scripts/wfm-load.test.ts` for virtual-clock coverage. Simulations do not establish live platform endurance. Record a real run's report, environment/version, organization limits and runner/worker logs before making that claim.
+
+## Automatic resilience scenarios
+
+```sh
+npm run test:resilience
+npm run load:resilience -- --cycles 3 --recovery-timeout 180 --observation-seconds 40
+```
+
+Requires Node.js 22.19+ and Docker Compose with resources to build the production API/worker images and run PostgreSQL, Redis and two real Chromium agents. The command builds a fresh, randomly named local stack and two organizations. It accepts no existing project, URL or credentials; only its own containers and volumes are removed. Reports remain in `resilience-artifacts/<id>/`. Generated credentials and artifacts are excluded from Git and Docker build contexts.
+
+The baseline reuses the endurance runner for public API reads and concurrent plan bursts. Every cycle then exercises one-off BullMQ schedules due while the worker is stopped, queued runs, a worker SIGKILL during an observed agent browser session, and a Redis stop/start with durable AOF queue storage. Agent processes are restarted between runs and must reconnect and complete fresh work. Redis restart tests retained data, not loss of Redis persistence. Agent termination during active work is outside this scenario.
+
+Accepted intents are replayed with the same idempotency key and must return the same run ID. Paginated inventory is reconciled against every accepted ID plus exactly one execution per schedule. Missing/extra IDs, duplicate executions, incomplete/failed runs, missing/duplicate/failed test results and inaccessible or empty screenshot artifacts fail the command. Final artifacts include byte counts and SHA-256 checksums. An observation window of at least 40 seconds follows recovery to catch stalled-job redelivery; this is bounded evidence, not a guarantee against duplicates after the window.
+
+`resilience.json` records revision, dirty checkout, image identities, settings, phase durations, accepted/scheduled/observed IDs, artifacts, violations and cleanup failures. `operations.log` and `containers.log` support diagnosis. Exit `0` means all scenarios and cleanup passed; any scenario, prerequisite, deadline or cleanup failure exits `1` and leaves a failed report. Default: one cycle, 180-second recovery deadline, 40-second observation. Up to 100 cycles are supported; total runtime also includes builds, per-scenario deadlines and observation windows. A successful synthetic local run does not establish production RTO, S3 resilience, device/grid resilience or manual acceptance. Procedure: `collaudo/automatic-resilience.md`.

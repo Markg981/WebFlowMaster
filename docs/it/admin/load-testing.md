@@ -18,4 +18,19 @@ Ogni esecuzione/ciclo usa chiavi di idempotenza distinte. Gli ID accettati sono 
 
 Reader e concorrenza devono essere interi positivi; i run devono essere un intero tra 0 e 100 per target/ciclo. Poll, intervallo, timeout HTTP e timeout dei run devono essere positivi. La soglia del tasso di errore delle letture è una frazione tra 0 e 1. La scadenza HTTP copre intestazioni e corpo della risposta e interrompe le richieste bloccate.
 
-Codici di uscita: `0` soglie rispettate, `1` violazioni, `2` errore di strumento/configurazione. `npx vitest run scripts/wfm-load.test.ts` verifica il comportamento con un orologio virtuale. Le simulazioni non dimostrano endurance reale della piattaforma. Prima di dichiararla verificata, conservare report di un'esecuzione reale, ambiente/versione, limiti delle organizzazioni e log di runner/worker. Accettazione di agenti, scheduler, artefatti e restart controllati richiede scenari live specifici; questo runner esercita letture `/api/v1` e code di esecuzione dei piani.
+Codici di uscita: `0` soglie rispettate, `1` violazioni, `2` errore di strumento/configurazione. `npx vitest run scripts/wfm-load.test.ts` verifica il comportamento con un orologio virtuale. Le simulazioni non dimostrano endurance reale della piattaforma. Prima di dichiararla verificata, conservare report di un'esecuzione reale, ambiente/versione, limiti delle organizzazioni e log di runner/worker.
+
+## Scenari automatici di resilienza
+
+```sh
+npm run test:resilience
+npm run load:resilience -- --cycles 3 --recovery-timeout 180 --observation-seconds 40
+```
+
+Servono Node.js 22.19+ e Docker Compose con risorse per costruire le immagini API/worker di produzione e avviare PostgreSQL, Redis e due agenti Chromium reali. Il comando crea uno stack locale con nome casuale e due organizzazioni. Non accetta progetti, URL o credenziali esistenti; rimuove soltanto i propri container e volumi. I report restano in `resilience-artifacts/<id>/`. Credenziali generate e artefatti sono esclusi da Git e dai contesti di build Docker.
+
+La baseline riusa il runner endurance per letture API pubbliche e burst concorrenti dei piani. Ogni ciclo verifica scheduler BullMQ con scadenze una tantum durante lo stop del worker, run accodati, SIGKILL del worker durante una sessione browser dell’agente osservata e stop/start di Redis con coda persistita tramite AOF. Gli agenti vengono riavviati tra i run e devono riconnettersi e completare nuovo lavoro. Il restart Redis conserva i dati: non simula perdita della persistenza. La terminazione dell’agente durante un run attivo resta fuori da questo scenario.
+
+Ogni richiesta accettata viene ripetuta con la stessa chiave di idempotenza e deve restituire lo stesso ID. L’inventario paginato viene riconciliato con tutti gli ID accettati e un solo run per schedule. ID mancanti o extra, duplicati, run incompleti o falliti, risultati dei test mancanti/duplicati/falliti ed evidenze screenshot vuote o non scaricabili fanno fallire la prova. Gli artefatti finali includono dimensioni e checksum SHA-256. Una finestra di almeno 40 secondi dopo il recupero intercetta le riconsegne dei job stalled; l’evidenza è limitata a questa finestra.
+
+`resilience.json` registra revisione, checkout modificato, immagini, parametri, durate delle fasi, ID accettati/schedulati/osservati, artefatti, violazioni ed errori di pulizia. `operations.log` e `containers.log` aiutano la diagnosi. Exit `0` indica scenari e pulizia riusciti; qualsiasi errore, prerequisito assente, timeout o errore di pulizia produce exit `1` e report fallito. Default: un ciclo, recupero entro 180 secondi, osservazione di 40 secondi. Massimo 100 cicli; la durata totale include build, timeout per scenario e osservazioni. Una prova sintetica locale riuscita non dimostra RTO produttivi, resilienza S3/dispositivi/grid o accettazione manuale. Procedura: `collaudo/automatic-resilience.md`.

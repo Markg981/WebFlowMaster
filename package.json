@@ -58,6 +58,8 @@
     "format:check": "prettier --check .",
     "cli": "tsx --require dotenv/config scripts/wfm-cli.ts",
     "load": "tsx scripts/wfm-load.ts",
+    "load:resilience": "node scripts/wfm-resilience.mjs",
+    "test:resilience": "node --test scripts/resilience-core.test.mjs",
     "build:cli": "esbuild scripts/wfm-cli.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/wfm.js",
     "build:agent": "esbuild scripts/wfm-agent.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/wfm-agent.js && esbuild scripts/bdd-child.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/wfm-bdd-child.mjs",
     "agent": "tsx --require dotenv/config scripts/wfm-agent.ts",
