@@ -206,7 +206,11 @@
       "scopes": {
         "plans_read": "Elencare i piani di test.",
         "runs_read": "Leggere i run, il loro stato e i report JUnit.",
-        "runs_write": "Avviare i run e annullarli."
+        "runs_write": "Avviare i run e annullarli.",
+        "api-tests_read": "Leggere i test API, con i segreti letterali sostituiti da variabili.",
+        "api-tests_write": "Creare e aggiornare i test API.",
+        "mobile-tests_read": "Leggere i test mobile nativi.",
+        "mobile-tests_write": "Creare e aggiornare i test mobile nativi."
       },
       "nameRequired": "Dai un nome alla chiave, così potrai riconoscerla in seguito.",
       "expiryInvalid": "La scadenza deve essere un numero intero di giorni.",

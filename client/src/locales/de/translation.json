@@ -206,7 +206,11 @@
       "scopes": {
         "plans_read": "Testpläne auflisten.",
         "runs_read": "Ausführungen, ihren Status und ihre JUnit-Berichte lesen.",
-        "runs_write": "Ausführungen starten und abbrechen."
+        "runs_write": "Ausführungen starten und abbrechen.",
+        "api-tests_read": "API-Tests lesen, wörtliche Geheimnisse durch Variablen ersetzt.",
+        "api-tests_write": "API-Tests erstellen und aktualisieren.",
+        "mobile-tests_read": "Native Mobile-Tests lesen.",
+        "mobile-tests_write": "Native Mobile-Tests erstellen und aktualisieren."
       },
       "nameRequired": "Geben Sie dem Schlüssel einen Namen, damit er später wiedererkannt werden kann.",
       "expiryInvalid": "Der Ablauf muss eine ganze Zahl von Tagen sein.",

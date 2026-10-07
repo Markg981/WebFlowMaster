@@ -206,7 +206,11 @@
       "scopes": {
         "plans_read": "List test plans.",
         "runs_read": "Read runs, their status and their JUnit reports.",
-        "runs_write": "Start runs and cancel them."
+        "runs_write": "Start runs and cancel them.",
+        "api-tests_read": "Read API tests, with literal secrets replaced by variables.",
+        "api-tests_write": "Create and update API tests.",
+        "mobile-tests_read": "Read native mobile tests.",
+        "mobile-tests_write": "Create and update native mobile tests."
       },
       "nameRequired": "Give the key a name, so it can be recognised later.",
       "expiryInvalid": "Expiry must be a whole number of days.",

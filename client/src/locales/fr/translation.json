@@ -206,7 +206,11 @@
       "scopes": {
         "plans_read": "Lister les plans de test.",
         "runs_read": "Lire les exécutions, leur statut et leurs rapports JUnit.",
-        "runs_write": "Lancer des exécutions et les annuler."
+        "runs_write": "Lancer des exécutions et les annuler.",
+        "api-tests_read": "Lire les tests API, les secrets littéraux remplacés par des variables.",
+        "api-tests_write": "Créer et mettre à jour les tests API.",
+        "mobile-tests_read": "Lire les tests mobiles natifs.",
+        "mobile-tests_write": "Créer et mettre à jour les tests mobiles natifs."
       },
       "nameRequired": "Donnez un nom à la clé pour pouvoir la reconnaître plus tard.",
       "expiryInvalid": "L'expiration doit être un nombre entier de jours.",

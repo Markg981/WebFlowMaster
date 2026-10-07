@@ -170,7 +170,8 @@ export function isLocalAppPath(app: string): boolean {
   return /^(\/|~\/|[A-Za-z]:[\\/])\S/.test(app) && /\.(apk|aab|ipa|app|zip)$/i.test(app);
 }
 
-export const mobileTestSchema = z
+/** A mobile test's fields, before the checks that read several of them together (refineMobileTest). */
+export const mobileTestFieldsSchema = z
   .object({
     name: z.string().trim().min(1, "A name is required.").max(200),
     platform: z.enum(MOBILE_PLATFORMS),
@@ -191,12 +192,15 @@ export const mobileTestSchema = z
     /** The grid it runs on in a plan: a BrowserStack or LambdaTest one of the organization. */
     gridId: z.string().trim().max(100).optional().nullable(),
     steps: z.array(mobileStepSchema).max(200),
-  })
-  .superRefine((test, ctx) => {
-    for (const message of mobileStepsProblems(test.steps, test.platform)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['steps'], message });
-    const keys = test.deviceMatrix.map(target => JSON.stringify([target.deviceName, target.osVersion]));
-    if (new Set(keys).size !== keys.length) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['deviceMatrix'], message: 'Device/OS pairs must be unique.' });
   });
+
+export function refineMobileTest(test: z.infer<typeof mobileTestFieldsSchema>, ctx: z.RefinementCtx) {
+  for (const message of mobileStepsProblems(test.steps, test.platform)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['steps'], message });
+  const keys = test.deviceMatrix.map(target => JSON.stringify([target.deviceName, target.osVersion]));
+  if (new Set(keys).size !== keys.length) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['deviceMatrix'], message: 'Device/OS pairs must be unique.' });
+}
+
+export const mobileTestSchema = mobileTestFieldsSchema.superRefine(refineMobileTest);
 
 export type MobileTestInput = z.infer<typeof mobileTestSchema>;
 

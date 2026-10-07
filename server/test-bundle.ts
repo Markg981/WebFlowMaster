@@ -78,7 +78,26 @@ function pick<T extends Record<string, unknown>>(row: T, fields: readonly string
   return out;
 }
 
-function withoutSecrets(test: Record<string, unknown>, replaced: string[]): Record<string, unknown> {
+type AuthParams = { type?: string; params?: Record<string, unknown> } | null | undefined;
+
+/**
+ * The reverse of withoutSecrets on a save: a secret parameter that still holds the variable an
+ * export or a read wrote in its place keeps the secret already stored, so a file or a definition
+ * read through the API round-trips without wiping the credential.
+ */
+export function keepRedactedSecrets(incoming: unknown, stored: unknown): unknown {
+  const next = incoming as AuthParams;
+  const previous = stored as AuthParams;
+  if (!next?.type || !next.params || !previous?.params || previous.type !== next.type) return incoming;
+  const params = { ...next.params };
+  for (const key of SECRET_PARAMS[next.type] ?? []) {
+    const kept = previous.params[key];
+    if (params[key] === `{{${next.type}_${key}}}` && typeof kept === 'string' && kept !== '') params[key] = kept;
+  }
+  return { ...next, params };
+}
+
+export function withoutSecrets(test: Record<string, unknown>, replaced: string[]): Record<string, unknown> {
   const auth = test.authParams as { type?: string; params?: Record<string, unknown> } | undefined;
   const keys = auth?.type ? SECRET_PARAMS[auth.type] ?? [] : [];
   if (!auth?.params || keys.length === 0) return test;
