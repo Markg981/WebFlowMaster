@@ -31,14 +31,13 @@ import { decryptSecret } from './crypto';
 import { defaultVariables } from './variables';
 import { protocolReport } from './api-protocol-report';
 import { runDedicatedBddTest } from './bdd-execution';
-import { runApiRequest, type ApiRequestSpec, type Extraction } from './api-test-runner';
+import { apiTestSpec, runApiRequest, type ApiRequestSpec } from './api-test-runner';
 import { runPerformance } from './api-performance';
 import { mailRunFinished } from './run-mail';
 import { organizationMailConfigured } from './mailer';
 import { SharedDataError, expandSharedDataset, loadDataVariables } from './test-data';
 import type { ApiPerformance, PerformanceSummary } from '@shared/api-performance';
 import { AgentHttp } from './agents/agent-fetch';
-import type { Assertion, AuthParams } from '@shared/schema';
 import { browsersForRun, describeBrowser, hasConfiguredBrowsers, launchBrowser, onAgents, onGrid, type BrowserChoice } from './browsers';
 import { browserGrids } from '@shared/schema';
 import { BROWSER_GRID_LABELS, type BrowserGridProvider } from '@shared/browser-grids';
@@ -399,20 +398,7 @@ export async function runTest(
 
     // This used to be `Math.random() > 0.2` under a TODO: no request was made, and every
     // API test in a plan reported a fabricated result that looked exactly like a real one.
-    const spec: ApiRequestSpec = {
-      method: apiTest.method,
-      url: apiTest.url,
-      queryParams: apiTest.queryParams as Record<string, string> | null,
-      headers: apiTest.requestHeaders as Record<string, string> | null,
-      body: apiTest.requestBody ?? undefined,
-      assertions: (apiTest.assertions as Assertion[] | null) ?? [],
-      extractions: (apiTest.extractions as Extraction[] | null) ?? [],
-      // The test's own auth settings, which only the API Tester page used to apply — so a
-      // scheduled run sent the request anonymous and failed for the wrong reason.
-      auth: apiTest.authParams as AuthParams | null,
-      protoDefinition: apiTest.protoDefinition,
-      protocolConfig: apiTest.protocolConfig,
-    };
+    const spec: ApiRequestSpec = apiTestSpec(apiTest);
     const result = await runApiRequest(spec, vars, options?.http);
     const nativeProtocol = ['GRPC', 'WEBSOCKET', 'WS'].includes(spec.method) || !!apiTest.protocolConfig || /^(grpcs?|wss?):/.test(spec.url);
 

@@ -97,7 +97,8 @@ richieste fallite ed esito.
 Le ripetizioni partono da dove gira il test — la rete di un agente locale quando il piano ne usa
 uno — e si fermano quando il run viene annullato. Una richiesta che non si riesce proprio a fare
 salta il controllo: non c'è nulla da misurare. I limiti sono voluti: risponde a "questo endpoint è
-diventato più lento?" a ogni run, non è un test di carico.
+diventato più lento?" a ogni run, non è un test di carico. Per un carico nel tempo — utenti virtuali,
+rampe, warm-up, una riga di dati per utente — vedere i [test di carico](./load-tests).
 
 ## SOAP, WebSocket e gRPC {#protocolli}
 

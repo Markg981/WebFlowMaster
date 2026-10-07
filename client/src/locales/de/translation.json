@@ -547,7 +547,8 @@
     "testManager": "Testmanager",
     "requirements": "Anforderungen",
     "mobileTests": "Mobile Apps",
-    "testData": "Testdaten"
+    "testData": "Testdaten",
+    "loadTests": "Lasttests"
   },
   "dashboardPage": {
     "user": {
@@ -2812,7 +2813,8 @@
       "scim": "Bereitstellung (SCIM)",
       "impact_rule": "Auswirkungskarte",
       "sms_inbox": "SMS-Postfach",
-      "organization": "Organisation"
+      "organization": "Organisation",
+      "load_test": "Lasttests"
     },
     "actions": {
       "bdd_profile_created": "BDD-Profil erstellt",
@@ -2928,7 +2930,12 @@
       "sms_inbox_token_issued": "SMS-Empfangsadresse ausgestellt",
       "sms_inbox_token_revoked": "SMS-Empfangsadresse widerrufen",
       "organization_quotas_updated": "Organisationskontingente geändert",
-      "organization_artifacts_reconciled": "Artefaktbestand der Organisation abgeglichen"
+      "organization_artifacts_reconciled": "Artefaktbestand der Organisation abgeglichen",
+      "load_test_created": "Lasttest erstellt",
+      "load_test_updated": "Lasttest geändert",
+      "load_test_deleted": "Lasttest gelöscht",
+      "load_test_run": "Lasttest-Lauf gestartet",
+      "load_test_cancelled": "Lasttest-Lauf gestoppt"
     }
   },
   "security": {
@@ -4467,5 +4474,104 @@
     "dataSource": "Datensatzquelle",
     "inline": "Eingebettet oder nicht vorhanden",
     "rows": "Zeilen"
+  },
+  "loadTests": {
+    "profileChart": "Lastprofil: bis zu {{peak}} virtuelle Benutzer über {{total}} s",
+    "status": {
+      "running": "Läuft",
+      "passed": "Bestanden",
+      "failed": "Fehlgeschlagen",
+      "cancelled": "Abgebrochen",
+      "error": "Konnte nicht laufen"
+    },
+    "runLoadFailed": "Der Lauf konnte nicht geladen werden.",
+    "loading": "Wird geladen…",
+    "overall": "Alle Anfragen",
+    "progress": "{{elapsed}} von {{total}} s · {{vus}} virtuelle Benutzer jetzt, {{peak}} in der Spitze",
+    "cancelling": "Wird gestoppt…",
+    "stop": "Lauf stoppen",
+    "progressLabel": "Fortschritt",
+    "warmUpShort": "Aufwärmphase",
+    "chart": {
+      "vus": "Virtuelle Benutzer",
+      "rps": "Anfragen/s",
+      "p95": "p95 (ms)"
+    },
+    "totals": "{{requests}} Anfragen bewertet bei {{rps}} req/s · {{completed}} Iterationen abgeschlossen, {{failed}} fehlgeschlagen · Aufwärmphase: {{warm}} Anfragen, nicht bewertet",
+    "columns": {
+      "step": "Schritt",
+      "requests": "Anfragen",
+      "errors": "Fehler",
+      "name": "Lasttest",
+      "scenario": "Szenario",
+      "profile": "Profil",
+      "lastRun": "Letzter Lauf",
+      "actions": "Aktionen"
+    },
+    "sampleErrors": "Erste Fehler",
+    "invalid": "Der Lasttest ist nicht gültig.",
+    "saveFailed": "Der Lasttest wurde nicht gespeichert.",
+    "thresholds": {
+      "p50": "Median (p50)",
+      "p95": "95. Perzentil (p95)",
+      "p99": "99. Perzentil (p99)",
+      "max": "Langsamste",
+      "errorRate": "Fehlgeschlagene Anfragen",
+      "minRps": "Mindestdurchsatz"
+    },
+    "editTitle": "Lasttest bearbeiten",
+    "createTitle": "Neuer Lasttest",
+    "name": "Name",
+    "description": "Beschreibung",
+    "scenario": "Szenario",
+    "scenarioHelp": "Jeder virtuelle Benutzer führt diese API-Tests der Reihe nach immer wieder aus. Was ein Test erfasst, senden die nächsten; ein fehlgeschlagener Test beendet die Iteration.",
+    "thinkTime": "Pause danach (ms)",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
+    "removeStep": "{{name}} entfernen",
+    "addStep": "API-Test hinzufügen",
+    "profile": "Lastprofil",
+    "profileHelp": "Jede Stufe bringt die Zahl der virtuellen Benutzer vom Ende der vorherigen (0 am Anfang) über ihre Dauer auf ihr Ziel. Gleiches Ziel: die Last wird gehalten.",
+    "stageDuration": "Dauer (s)",
+    "stageTarget": "Virtuelle Benutzer",
+    "removeStage": "Stufe {{n}} entfernen",
+    "addStage": "Stufe hinzufügen",
+    "warmUp": "Aufwärmphase (s), nicht bewertet",
+    "profileTotal": "{{total}} s insgesamt, {{peak}} virtuelle Benutzer in der Spitze",
+    "data": "Daten pro virtuellem Benutzer",
+    "dataSet": "Datensatz",
+    "noData": "Kein Datensatz: dieselben Werte für alle",
+    "dataSetOption": "{{name}} ({{rows}} Zeilen)",
+    "dataMode": "Verteilung der Zeilen",
+    "dataModeVu": "Eine eigene Zeile für jeden virtuellen Benutzer",
+    "dataModeIteration": "Die nächste Zeile bei jeder Iteration",
+    "dataHelp": "Die API-Tests lesen die Zeile als {{example}}; {{vu}} und {{iteration}} nummerieren den Benutzer und seine Iteration.",
+    "dataNone": "Jeder virtuelle Benutzer sendet dieselben Werte; {{vu}} und {{iteration}} unterscheiden sie trotzdem.",
+    "thresholdsTitle": "Schwellenwerte",
+    "thresholdsHelp": "Bewertet über die Anfragen nach der Aufwärmphase. Leer: nicht geprüft.",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "loadFailed": "Die Lasttests konnten nicht geladen werden.",
+    "startFailed": "Der Lauf wurde nicht gestartet.",
+    "runsTitle": "Läufe von {{name}}",
+    "environment": "Umgebung",
+    "noEnvironment": "Keine Umgebung",
+    "start": "Lauf starten",
+    "startHelp": "Der Lauf wird vom Server gesendet, getrennt von Plänen. Ein Lasttest gleichzeitig pro Organisation.",
+    "noRuns": "Noch kein Lauf.",
+    "deleteFailed": "Der Lasttest wurde nicht gelöscht.",
+    "title": "Lasttests",
+    "pageDescription": "API-Tests, von virtuellen Benutzern über eine Dauer ausgeführt, mit Aufwärmphase, steigender Last und einer Datenzeile pro Benutzer. Getrennt von Plänen ausgeführt.",
+    "create": "Neuer Lasttest",
+    "empty": "Noch kein Lasttest. Er wiederholt gespeicherte API-Tests: speichern Sie diese zuerst im API Tester.",
+    "stepCount": "{{count}} API-Tests",
+    "profileSummary": "{{peak}} Benutzer · {{total}} s · Aufwärmphase {{warmUp}} s",
+    "runsFor": "Läufe von {{name}}",
+    "editFor": "{{name}} bearbeiten",
+    "deleteFor": "{{name}} löschen",
+    "saved": "Lasttest gespeichert",
+    "deleteTitle": "{{name}} löschen?",
+    "deleteBody": "Seine Läufe werden mit gelöscht. Die API-Tests bleiben.",
+    "delete": "Löschen"
   }
 }

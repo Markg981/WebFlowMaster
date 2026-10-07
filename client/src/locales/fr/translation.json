@@ -547,7 +547,8 @@
     "testManager": "Gestionnaire de tests",
     "requirements": "Exigences",
     "mobileTests": "Applications mobiles",
-    "testData": "Données de test"
+    "testData": "Données de test",
+    "loadTests": "Tests de charge"
   },
   "dashboardPage": {
     "user": {
@@ -2812,7 +2813,8 @@
       "scim": "Provisionnement (SCIM)",
       "impact_rule": "Carte d'impact",
       "sms_inbox": "Boîte SMS",
-      "organization": "Organisation"
+      "organization": "Organisation",
+      "load_test": "Tests de charge"
     },
     "actions": {
       "bdd_profile_created": "Profil BDD créé",
@@ -2928,7 +2930,12 @@
       "sms_inbox_token_issued": "Adresse SMS émise",
       "sms_inbox_token_revoked": "Adresse SMS révoquée",
       "organization_quotas_updated": "Quotas de l'organisation modifiés",
-      "organization_artifacts_reconciled": "Inventaire des artefacts de l'organisation réconcilié"
+      "organization_artifacts_reconciled": "Inventaire des artefacts de l'organisation réconcilié",
+      "load_test_created": "Test de charge créé",
+      "load_test_updated": "Test de charge modifié",
+      "load_test_deleted": "Test de charge supprimé",
+      "load_test_run": "Exécution de charge lancée",
+      "load_test_cancelled": "Exécution de charge arrêtée"
     }
   },
   "security": {
@@ -4467,5 +4474,104 @@
     "dataSource": "Source du jeu de données",
     "inline": "Intégré ou absent",
     "rows": "lignes"
+  },
+  "loadTests": {
+    "profileChart": "Profil de charge : jusqu'à {{peak}} utilisateurs virtuels sur {{total}} s",
+    "status": {
+      "running": "En cours",
+      "passed": "Réussi",
+      "failed": "Échoué",
+      "cancelled": "Annulé",
+      "error": "N'a pas pu s'exécuter"
+    },
+    "runLoadFailed": "Impossible de charger l'exécution.",
+    "loading": "Chargement…",
+    "overall": "Toutes les requêtes",
+    "progress": "{{elapsed}} sur {{total}} s · {{vus}} utilisateurs virtuels maintenant, {{peak}} au pic",
+    "cancelling": "Arrêt…",
+    "stop": "Arrêter l'exécution",
+    "progressLabel": "Progression",
+    "warmUpShort": "Préchauffage",
+    "chart": {
+      "vus": "Utilisateurs virtuels",
+      "rps": "Requêtes/s",
+      "p95": "p95 (ms)"
+    },
+    "totals": "{{requests}} requêtes évaluées à {{rps}} req/s · {{completed}} itérations terminées, {{failed}} échouées · préchauffage : {{warm}} requêtes, non évaluées",
+    "columns": {
+      "step": "Étape",
+      "requests": "Requêtes",
+      "errors": "Erreurs",
+      "name": "Test de charge",
+      "scenario": "Scénario",
+      "profile": "Profil",
+      "lastRun": "Dernière exécution",
+      "actions": "Actions"
+    },
+    "sampleErrors": "Premières erreurs",
+    "invalid": "Le test de charge n'est pas valide.",
+    "saveFailed": "Le test de charge n'a pas été enregistré.",
+    "thresholds": {
+      "p50": "Médiane (p50)",
+      "p95": "95e centile (p95)",
+      "p99": "99e centile (p99)",
+      "max": "La plus lente",
+      "errorRate": "Requêtes échouées",
+      "minRps": "Débit minimal"
+    },
+    "editTitle": "Modifier le test de charge",
+    "createTitle": "Nouveau test de charge",
+    "name": "Nom",
+    "description": "Description",
+    "scenario": "Scénario",
+    "scenarioHelp": "Chaque utilisateur virtuel exécute ces tests d'API dans l'ordre, encore et encore. Ce qu'un test capture est envoyé par les suivants ; un test échoué termine l'itération.",
+    "thinkTime": "Pause après (ms)",
+    "moveUp": "Monter",
+    "moveDown": "Descendre",
+    "removeStep": "Retirer {{name}}",
+    "addStep": "Ajouter un test d'API",
+    "profile": "Profil de charge",
+    "profileHelp": "Chaque palier fait passer le nombre d'utilisateurs virtuels de la fin du précédent (0 au départ) à sa cible, sur sa durée. Même cible : la charge est maintenue.",
+    "stageDuration": "Durée (s)",
+    "stageTarget": "Utilisateurs virtuels",
+    "removeStage": "Retirer le palier {{n}}",
+    "addStage": "Ajouter un palier",
+    "warmUp": "Préchauffage (s), non évalué",
+    "profileTotal": "{{total}} s au total, {{peak}} utilisateurs virtuels au pic",
+    "data": "Données par utilisateur virtuel",
+    "dataSet": "Jeu de données",
+    "noData": "Aucun jeu de données : les mêmes valeurs pour tous",
+    "dataSetOption": "{{name}} ({{rows}} lignes)",
+    "dataMode": "Attribution des lignes",
+    "dataModeVu": "Une ligne propre à chaque utilisateur virtuel",
+    "dataModeIteration": "La ligne suivante à chaque itération",
+    "dataHelp": "Les tests d'API lisent la ligne comme {{example}} ; {{vu}} et {{iteration}} numérotent l'utilisateur et son itération.",
+    "dataNone": "Chaque utilisateur virtuel envoie les mêmes valeurs ; {{vu}} et {{iteration}} les distinguent quand même.",
+    "thresholdsTitle": "Seuils",
+    "thresholdsHelp": "Évalués sur les requêtes après le préchauffage. Vide : non vérifié.",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "loadFailed": "Impossible de charger les tests de charge.",
+    "startFailed": "L'exécution n'a pas démarré.",
+    "runsTitle": "Exécutions de {{name}}",
+    "environment": "Environnement",
+    "noEnvironment": "Aucun environnement",
+    "start": "Lancer une exécution",
+    "startHelp": "L'exécution part du serveur, à part des plans. Un test de charge à la fois par organisation.",
+    "noRuns": "Aucune exécution.",
+    "deleteFailed": "Le test de charge n'a pas été supprimé.",
+    "title": "Tests de charge",
+    "pageDescription": "Des tests d'API exécutés par des utilisateurs virtuels pendant une durée, avec préchauffage, charge progressive et une ligne de données par utilisateur. Exécutés à part des plans.",
+    "create": "Nouveau test de charge",
+    "empty": "Aucun test de charge. Il répète des tests d'API enregistrés : enregistrez-les d'abord dans l'API Tester.",
+    "stepCount": "{{count}} tests d'API",
+    "profileSummary": "{{peak}} utilisateurs · {{total}} s · préchauffage {{warmUp}} s",
+    "runsFor": "Exécutions de {{name}}",
+    "editFor": "Modifier {{name}}",
+    "deleteFor": "Supprimer {{name}}",
+    "saved": "Test de charge enregistré",
+    "deleteTitle": "Supprimer {{name}} ?",
+    "deleteBody": "Ses exécutions sont supprimées avec lui. Les tests d'API restent.",
+    "delete": "Supprimer"
   }
 }

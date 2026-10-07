@@ -22,6 +22,14 @@ P2 della baseline sotto. Resistenza multi-tenant con agenti reali, scheduler, ar
 controllati resta Da eseguire nel Collaudo API-49–API-51 e OPS-27–OPS-28; i controlli automatici
 locali non certificano durata o capacità in produzione.
 
+Aggiornamento implementazione: i [test di carico](../guide/load-tests) eseguono test API salvati
+come scenari composti da utenti virtuali, per una durata e lungo stage di salita/mantenimento (fino
+a 200 utenti e un'ora), con un warm-up escluso dall'esito, una riga di dati distinta per utente
+virtuale (o per iterazione), soglie p50–p99/errori/throughput ed esecuzioni persistite con timeline
+dal vivo. Girano sul server separati dai piani, uno per organizzazione alla volta. Questo copre la
+voce P2 "Profili performance ramp/soak" sotto; la generazione di carico distribuita dagli agenti
+resta fuori.
+
 È stato inventariato il repository: 1.264 file tracciati prima di questa revisione, tra cui 494
 in `server/`, 331 in `client/`, 44 in `shared/`, 40 in `scripts/`, 87 in `migrations/`, 41
 in `collaudo/`, 29 in `deployment/`, 8 in `e2e/` e 7 in `integrations/`. Sono presenti 347

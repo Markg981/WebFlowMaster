@@ -11,6 +11,7 @@ import type { NetworkSummary } from './network';
 import type { FailureAnalysis } from './failure-analysis';
 import type { CiContext } from './ci';
 import { ApiPerformanceSchema, type ApiPerformance } from './api-performance';
+import type { LoadDataMode, LoadRunStatus, LoadStage, LoadStep, LoadSummary, LoadThresholds } from './load-test';
 import { ProtocolConfigSchema, type ProtocolConfig } from './api-protocol-config';
 import { BddTestSchema, type BddTest } from './bdd';
 import type { BddAgentProfile } from './bdd-agent';
@@ -1683,6 +1684,55 @@ export const mobileTestRuns = pgTable("mobile_test_runs", {
 
 export type MobileTestRun = typeof mobileTestRuns.$inferSelect;
 
+/**
+ * A load test (shared/load-test.ts): API tests repeated by virtual users along a profile of
+ * stages. Run on its own, never inside a plan.
+ */
+export const loadTests = pgTable("load_tests", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
+  name: text("name").notNull(),
+  description: text("description"),
+  steps: jsonb("steps").$type<LoadStep[]>().notNull(),
+  stages: jsonb("stages").$type<LoadStage[]>().notNull(),
+  warmUpSec: integer("warm_up_sec").notNull().default(0),
+  dataSetId: integer("data_set_id").references(() => testDataSets.id, { onDelete: 'set null' }),
+  dataMode: text("data_mode").$type<LoadDataMode>().notNull().default('vu'),
+  thresholds: jsonb("thresholds").$type<LoadThresholds>().notNull().default({}),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("load_tests_org_idx").on(table.organizationId),
+]);
+
+export type LoadTest = typeof loadTests.$inferSelect;
+
+/** One run of a load test: its live summary while it runs, its verdict once it is over. */
+export const loadTestRuns = pgTable("load_test_runs", {
+  id: text("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  loadTestId: integer("load_test_id").notNull().references(() => loadTests.id, { onDelete: 'cascade' }),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: 'set null' }),
+  environmentId: integer("environment_id").references(() => environments.id, { onDelete: 'set null' }),
+  status: text("status").$type<LoadRunStatus>().notNull(),
+  /** The definition as it was when the run started: the test may change while it runs. */
+  definition: jsonb("definition").$type<Record<string, unknown>>().notNull(),
+  summary: jsonb("summary").$type<LoadSummary>(),
+  error: text("error"),
+  cancelRequested: boolean("cancel_requested").notNull().default(false),
+  /** Written with every progress: a running run whose heartbeat stopped was interrupted. */
+  heartbeatAt: timestamp("heartbeat_at"),
+  requestedBy: integer("requested_by").references(() => users.id, { onDelete: 'set null' }),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  finishedAt: timestamp("finished_at"),
+}, (table) => [
+  index("load_test_runs_test_idx").on(table.loadTestId, table.startedAt),
+]);
+
+export type LoadTestRun = typeof loadTestRuns.$inferSelect;
+
 /** Which tests cover which requirement. */
 export const requirementTests = pgTable("requirement_tests", {
   id: serial("id").primaryKey(),
@@ -1932,6 +1982,12 @@ export const AUDIT_ACTIONS = {
   MOBILE_TEST_RUN: 'mobile_test.run',
   MOBILE_APP_UPLOADED: 'mobile_test.app_uploaded',
   MOBILE_INSPECTOR_OPENED: 'mobile_test.inspector_opened',
+  // Load tests: API tests under virtual users, run on their own.
+  LOAD_TEST_CREATED: 'load_test.created',
+  LOAD_TEST_UPDATED: 'load_test.updated',
+  LOAD_TEST_DELETED: 'load_test.deleted',
+  LOAD_TEST_RUN: 'load_test.run',
+  LOAD_TEST_CANCELLED: 'load_test.cancelled',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

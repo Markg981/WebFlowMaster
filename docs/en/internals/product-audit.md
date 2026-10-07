@@ -21,6 +21,13 @@ of the two P2 baseline findings below. Multi-tenant endurance with real agents, 
 artifacts and controlled restarts remains pending in Collaudo API-49–API-51 and OPS-27–OPS-28;
 local automated checks do not certify production duration or capacity.
 
+Implementation update: [load tests](../guide/load-tests) now run saved API tests as composite
+scenarios under virtual users, for a duration and along ramp/hold stages (up to 200 users and one
+hour), with a warm-up left out of the verdict, a distinct data row per virtual user (or per
+iteration), p50–p99/error/throughput thresholds and persisted runs with a live timeline. They run
+on the server apart from plans, one per organization at a time. This addresses the "Ramp/soak
+performance profiles" P2 finding below; distributed load generation from agents remains outside it.
+
 The repository inventory contained 1,264 tracked files before this revision: 494 under `server/`,
 331 under `client/`, 44 under `shared/`, 40 under `scripts/`, 87 under `migrations/`, 41 under
 `collaudo/`, 29 under `deployment/`, 8 under `e2e/` and 7 under `integrations/`. It includes 347

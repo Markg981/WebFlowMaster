@@ -541,7 +541,8 @@
     "testManager": "Test Manager",
     "requirements": "Requirements",
     "mobileTests": "Mobile apps",
-    "testData": "Test data"
+    "testData": "Test data",
+    "loadTests": "Load tests"
   },
   "dashboardPage": {
     "user": {
@@ -2806,7 +2807,8 @@
       "scim": "Provisioning (SCIM)",
       "impact_rule": "Impact map",
       "sms_inbox": "SMS inbox",
-      "organization": "Organization"
+      "organization": "Organization",
+      "load_test": "Load tests"
     },
     "actions": {
       "bdd_profile_created": "BDD profile created",
@@ -2922,7 +2924,12 @@
       "sms_inbox_token_issued": "SMS inbound address issued",
       "sms_inbox_token_revoked": "SMS inbound address revoked",
       "organization_quotas_updated": "Organization quotas changed",
-      "organization_artifacts_reconciled": "Organization artifact inventory reconciled"
+      "organization_artifacts_reconciled": "Organization artifact inventory reconciled",
+      "load_test_created": "Load test created",
+      "load_test_updated": "Load test updated",
+      "load_test_deleted": "Load test deleted",
+      "load_test_run": "Load test run started",
+      "load_test_cancelled": "Load test run stopped"
     }
   },
   "security": {
@@ -4461,5 +4468,104 @@
     "dataSource": "Dataset source",
     "inline": "Inline or absent",
     "rows": "rows"
+  },
+  "loadTests": {
+    "profileChart": "Load profile: up to {{peak}} virtual users over {{total}} s",
+    "status": {
+      "running": "Running",
+      "passed": "Passed",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "error": "Could not run"
+    },
+    "runLoadFailed": "Could not load the run.",
+    "loading": "Loading…",
+    "overall": "All requests",
+    "progress": "{{elapsed}} of {{total}} s · {{vus}} virtual users now, {{peak}} at the peak",
+    "cancelling": "Stopping…",
+    "stop": "Stop the run",
+    "progressLabel": "Run progress",
+    "warmUpShort": "Warm-up",
+    "chart": {
+      "vus": "Virtual users",
+      "rps": "Requests/s",
+      "p95": "p95 (ms)"
+    },
+    "totals": "{{requests}} requests judged at {{rps}} req/s · {{completed}} iterations completed, {{failed}} failed · warm-up: {{warm}} requests, not judged",
+    "columns": {
+      "step": "Step",
+      "requests": "Requests",
+      "errors": "Errors",
+      "name": "Load test",
+      "scenario": "Scenario",
+      "profile": "Profile",
+      "lastRun": "Last run",
+      "actions": "Actions"
+    },
+    "sampleErrors": "First errors",
+    "invalid": "The load test is not valid.",
+    "saveFailed": "The load test was not saved.",
+    "thresholds": {
+      "p50": "Median (p50)",
+      "p95": "95th percentile (p95)",
+      "p99": "99th percentile (p99)",
+      "max": "Slowest",
+      "errorRate": "Failed requests",
+      "minRps": "Minimum throughput"
+    },
+    "editTitle": "Edit load test",
+    "createTitle": "New load test",
+    "name": "Name",
+    "description": "Description",
+    "scenario": "Scenario",
+    "scenarioHelp": "Each virtual user runs these API tests in order, again and again. What a test captures is sent by the next ones; a failed test ends the iteration.",
+    "thinkTime": "Pause after (ms)",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "removeStep": "Remove {{name}}",
+    "addStep": "Add an API test",
+    "profile": "Load profile",
+    "profileHelp": "Each stage moves the number of virtual users from where the previous one ended (0 at the start) to its target, over its duration. Same target: the load is held.",
+    "stageDuration": "Duration (s)",
+    "stageTarget": "Virtual users",
+    "removeStage": "Remove stage {{n}}",
+    "addStage": "Add a stage",
+    "warmUp": "Warm-up (s), not judged",
+    "profileTotal": "{{total}} s in all, {{peak}} virtual users at the peak",
+    "data": "Data per virtual user",
+    "dataSet": "Data set",
+    "noData": "No data set: the same values for everyone",
+    "dataSetOption": "{{name}} ({{rows}} rows)",
+    "dataMode": "How rows are handed out",
+    "dataModeVu": "A row of its own for each virtual user",
+    "dataModeIteration": "The next row on every iteration",
+    "dataHelp": "The API tests read the row as {{example}}; {{vu}} and {{iteration}} number the user and its iteration.",
+    "dataNone": "Every virtual user sends the same values; {{vu}} and {{iteration}} still tell them apart.",
+    "thresholdsTitle": "Thresholds",
+    "thresholdsHelp": "Judged on the requests after the warm-up. Empty: not checked.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "loadFailed": "Could not load the load tests.",
+    "startFailed": "The run did not start.",
+    "runsTitle": "Runs of {{name}}",
+    "environment": "Environment",
+    "noEnvironment": "No environment",
+    "start": "Start a run",
+    "startHelp": "The run is sent from the server, apart from plans. One load test at a time per organization.",
+    "noRuns": "No run yet.",
+    "deleteFailed": "The load test was not deleted.",
+    "title": "Load tests",
+    "pageDescription": "API tests run by virtual users for a duration, with a warm-up, a progressive load and a data row per user. Run apart from plans.",
+    "create": "New load test",
+    "empty": "No load test yet. One repeats saved API tests: save them in the API Tester first.",
+    "stepCount": "{{count}} API tests",
+    "profileSummary": "{{peak}} users · {{total}} s · warm-up {{warmUp}} s",
+    "runsFor": "Runs of {{name}}",
+    "editFor": "Edit {{name}}",
+    "deleteFor": "Delete {{name}}",
+    "saved": "Load test saved",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteBody": "Its runs go with it. The API tests stay.",
+    "delete": "Delete"
   }
 }

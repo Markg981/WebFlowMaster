@@ -1,4 +1,4 @@
-# Ripristino applicativo completo — protocollo 34
+# Ripristino applicativo completo — protocollo 35
 
 Nuovi casi OPS-29…OPS-31, inizialmente **Da eseguire**. Aprire Catalogo attuale o un nuovo ciclo;
 i cicli precedenti restano congelati. Il risultato automatico non assegna esiti manuali.
