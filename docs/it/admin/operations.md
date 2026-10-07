@@ -64,7 +64,7 @@ Un backup è una cartella:
 | `results.tar`, `visual-baselines.tar` | Le evidenze dei run e le baseline visive (solo con archivio locale). |
 | `manifest.json` | Quando e da quale versione è stato fatto; il numero di migrazioni applicate; quante tabelle hanno la row-level security; il numero esatto di righe delle tabelle principali; dimensione e SHA-256 di ogni file; un'**impronta** della chiave di cifratura (l'hash di un hash: identifica la chiave senza rivelarla). |
 
-**`verify` è la prova di ripristino.** Controlla ogni file con il suo checksum, ripristina il dump in un
+**`verify` è la verifica del ripristino database.** Controlla ogni file con il suo checksum, ripristina il dump in un
 database di prova accanto a quello vivo (`webflowmaster_restore_check`), confronta righe, migrazioni,
 row-level security e permessi di `app_user` con il manifest, dice se l'installazione in esecuzione ha la
 chiave del backup, ed elimina il database di prova. Non tocca nulla di ciò che l'installazione usa, quindi
@@ -102,6 +102,36 @@ Un backup notturno con la sua prova, conservando quattordici giorni, da cron sul
 
 Copiate la cartella fuori dall'host (object storage, un'altra sede): un backup sullo stesso disco del
 database non sopravvive al disco.
+
+### Prova completa di ripristino applicativo
+
+Eseguire `npm run backup:drill` dalla radice con Docker attivo, dipendenze installate e Chromium
+disponibile (`npx playwright install chromium`). Costruisce le immagini produttive e crea due progetti
+Compose con database, code e volumi propri. Pubblica solo API su una porta casuale di loopback;
+non accetta argomenti per progetti, database o bucket esistenti.
+
+La sorgente crea due tenant, un valore ambiente cifrato, un test browser pubblicato e un run con
+screenshot. Dopo il backup distrugge container e volumi sorgenti. La destinazione verifica checksum,
+DB e metadati RLS, ripristina DB ed entrambi gli archivi artefatti, avvia API/worker, esegue login da UI
+e apre il report storico. Confronta SHA-256 e dimensioni delle evidenze. Il secondo tenant non deve
+vedere i test e riceve 404 su report/artefatti. Un nuovo run avviato da UI deve decifrare il valore
+ripristinato, terminare con successo sul worker e produrre nuove evidenze. La connessione applicativa
+usa un ruolo non superuser e `app_user` per le query tenant.
+
+`restore-drill-artifacts/<id>/` contiene `recovery.json`, log operativi/servizi, screenshot dei report,
+dimensioni e hash. Ogni fase è misurata in millisecondi; `recoveryDurationMs` va dall'avvio della
+destinazione al nuovo report riuscito, `backupAgeAtRecoveryMs` registra l'età del backup.
+Build, preparazione fixture e backup hanno tempi separati. L'età non è un RPO produttivo e la fixture
+non dimostra uno SLA. La CI conserva evidenze per sette giorni, escludendo backup e Compose temporaneo
+con credenziali. Successo ed errori rimuovono gli stack e volumi. Dopo terminazione forzata eliminare
+solo i progetti del proprio ID `wfm-drill-source-<id>` e `wfm-drill-target-<id>`.
+
+La prova automatica copre lo **storage locale**. Per S3 recuperare con la procedura esterna di
+versioning/replica le versioni oggetto corrispondenti al checkpoint DB in un bucket distinto,
+configurare l'installazione isolata con quel bucket e chiave originale, ripetere login, report con
+confronto hash, rifiuto dell'altro tenant e nuovo run riuscito. Registrare ID restore/versioni,
+conteggi/hash, checkpoint replica/DB e tempi. Senza evidenze del recupero oggetti il collaudo S3 resta
+bloccato. Procedura nel repository: `collaudo/application-restore-drill.md`, OPS-29…OPS-31.
 
 ### Ripristino senza lo strumento
 

@@ -91,3 +91,4 @@ collaudo/mobile/.keepalive.pid
 # Backups made by scripts/wfm-backup.ts: customer data, never in the repository or an image.
 backups/
 release-artifacts/
+restore-drill-artifacts/
