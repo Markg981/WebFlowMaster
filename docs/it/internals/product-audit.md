@@ -19,7 +19,9 @@ Import/export portabile comprende definizioni UI/manuali/BDD; l'authoring nativo
 fuori dal contratto. Lo [strumento di carico](../admin/load-testing) supporta `--soak-seconds` e
 `--interval-seconds` con osservazioni per ciclo. Questi interventi coprono parte delle due voci
 P2 della baseline sotto. Resistenza multi-tenant con agenti reali, scheduler, artefatti e riavvii
-controllati resta Da eseguire nel Collaudo API-49–API-51 e OPS-27–OPS-28; i controlli automatici
+controllati dispone ora di `npm run load:resilience`, con stack Docker sacrificabile,
+riconciliazione ed evidenze conservate. L'accettazione manuale resta Da eseguire nel Collaudo
+OPS-32–OPS-35; i controlli automatici
 locali non certificano durata o capacità in produzione.
 
 Aggiornamento implementazione: i [test di carico](../guide/load-tests) eseguono test API salvati
