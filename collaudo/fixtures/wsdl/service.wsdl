@@ -1,0 +1,7 @@
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:s="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:t="urn:orders" xmlns:r="urn:request" xmlns:x="http://www.w3.org/2001/XMLSchema" name="Orders" targetNamespace="urn:orders">
+  <types><x:schema><x:import namespace="urn:request" schemaLocation="request.xsd"/></x:schema></types>
+  <message name="Request"><part name="body" element="r:Order"/></message>
+  <portType name="Port"><operation name="Create"><input message="t:Request"/><output message="t:Request"/></operation></portType>
+  <binding name="Binding" type="t:Port"><s:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/><operation name="Create"><s:operation soapAction="urn:create"/><input><s:body use="literal"/></input></operation></binding>
+  <service name="Service"><port name="Primary" binding="t:Binding"><s:address location="https://orders.example/soap"/></port></service>
+</definitions>

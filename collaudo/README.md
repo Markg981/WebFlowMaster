@@ -568,6 +568,10 @@ conservare i cicli precedenti. Gli input sono fissati, servizi e dispositivi est
 
 ## Copertura automatica dei percorsi UI critici
 
+**Import WSDL ampliato (API-61…API-64).** Protocollo 38: fixture sintetiche condivise,
+gruppi/compositori annidati, occorrenze e wildcard con avvisi. Procedura e limiti in
+[wsdl-expanded.md](wsdl-expanded.md). Nuovi casi Da eseguire; contratti cliente ancora da validare.
+
 La suite d'installazione comprende 19 scenari Chromium. La [mappa dei percorsi UI critici](critical-ui-e2e.md)
 collega le nuove prove SSO/MFA, review/pubblicazione, mobile, quote e cancellazione al catalogo
 manuale, indicando il perimetro effettivo e le prove che restano da eseguire.

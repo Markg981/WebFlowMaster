@@ -85,6 +85,7 @@ export class SoapDocumentBundle {
   readonly definitions: El[] = [];
   readonly elements = new Map<string, Component>();
   readonly types = new Map<string, Component>();
+  readonly groups = new Map<string, Component>();
   readonly root: El;
   private resources = new Map<string, Resource>();
   private visited = new Set<string>();
@@ -210,6 +211,7 @@ export class SoapDocumentBundle {
       ['element', this.elements],
       ['complexType', this.types],
       ['simpleType', this.types],
+      ['group', this.groups],
     ] as const) {
       for (const element of children(root, XSD, name)) {
         const key = keyOf(namespace, element.getAttribute('name') || '');
