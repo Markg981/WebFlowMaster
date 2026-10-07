@@ -118,7 +118,7 @@ describe('what a local Appium is', () => {
 describe('a run on a local Appium', () => {
   it('goes through the pool\'s agent from session to close, and gives the agent back', async () => {
     appiumAnswers = (url, init) => {
-      if (url.endsWith('/session') && init.method === 'POST') return { sessionId: 'local-1', capabilities: {} };
+      if (url.endsWith('/session') && init.method === 'POST') return { sessionId: 'local-1', capabilities: { platformName: 'Android', 'appium:deviceName': 'emulator-5554', 'appium:platformVersion': '14', accessKey: 'never-retain' } };
       if (url.endsWith('/element')) return { 'element-6066-11e4-a52e-4f735466cecf': 'e1' };
       if (url.endsWith('/displayed')) return true;
       if (url.endsWith('/screenshot')) return 'iVBORw0KGgo=';
@@ -132,6 +132,9 @@ describe('a run on a local Appium', () => {
       'B',
     );
     expect(outcome).toMatchObject({ status: 'passed', screenshot: 'iVBORw0KGgo=', sessionUrl: null });
+    expect(outcome.matrixEvidence).toMatchObject({ route: 'appium', provider: 'local_appium', sessionId: 'local-1', verdict: 'matched',
+      effective: { os: 'Android', device: 'emulator-5554', osVersion: '14' } });
+    expect(JSON.stringify(outcome.matrixEvidence)).not.toContain('never-retain');
     expect(agentRequests.every((r) => r.target.pool === 'lab' && r.target.organizationId === organizationId)).toBe(true);
     expect(agentRequests.map((r) => `${r.init.method} ${r.url}`)).toEqual(
       expect.arrayContaining(['POST http://127.0.0.1:4723/session', 'POST http://127.0.0.1:4723/session/local-1/element', 'DELETE http://127.0.0.1:4723/session/local-1']),

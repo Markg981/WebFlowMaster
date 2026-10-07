@@ -4692,5 +4692,17 @@
     "deleteTitle": "Eliminare {{name}}?",
     "deleteBody": "Le sue esecuzioni vengono eliminate con lui. Gli API test restano.",
     "delete": "Elimina"
+  },
+  "matrixEvidence": {
+    "title": "Matrice richiesta ed effettiva",
+    "description": "La corrispondenza della configurazione è distinta dall’esito del test. L’emulazione non certifica un dispositivo reale.",
+    "test": "Test",
+    "route": "Percorso",
+    "requested": "Richiesta",
+    "effective": "Effettiva",
+    "verdict": "Corrispondenza configurazione",
+    "matched": "Corrispondente",
+    "mismatch": "Non corrispondente",
+    "unverified": "Non verificata"
   }
 }

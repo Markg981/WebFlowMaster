@@ -4,6 +4,7 @@ import { buildJUnitXml } from './junit';
 import { withTenantTransaction } from './middleware/tenancy';
 import { reproducibilitySummary } from './execution-provenance';
 import { readExecutionSnapshot } from './execution-snapshot';
+import { readMatrixEvidence } from '@shared/matrix-evidence';
 
 /**
  * A run as JUnit XML, or null when there is no such run in the caller's organization.
@@ -40,7 +41,8 @@ export async function junitReportFor(executionId: string): Promise<string | null
   const reproducibility = reproducibilitySummary(source.execution.configurationSnapshot);
   return buildJUnitXml({
     planName: readExecutionSnapshot(source.execution.configurationSnapshot)?.plan.name ?? source.execution.planName ?? source.execution.testPlanId,
-    properties: { 'wfm.reproducibility': JSON.stringify(reproducibility) },
+    properties: { 'wfm.reproducibility': JSON.stringify(reproducibility),
+      'wfm.matrix': JSON.stringify(source.results.map(r => ({ test: r.testName, browser: r.browser, evidence: readMatrixEvidence(r.detailedLog) }))) },
     executionId,
     startedAt: source.execution.startedAt,
     results: source.results,

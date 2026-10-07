@@ -130,6 +130,26 @@ describe('exporting a run', () => {
     ] as any);
   });
 
+  it('preserves requested and observed configuration in HTML, Allure and JUnit', async () => {
+    const { matrixEvidence } = await import('@shared/matrix-evidence');
+    const { eq } = await import('drizzle-orm');
+    const matrix = matrixEvidence({ route: 'appium', provider: 'local_appium', source: 'capabilities',
+      requested: { os: 'Android', device: 'Pixel 8', osVersion: '14' },
+      effective: { os: 'Android', device: 'Pixel 9', osVersion: '15' } });
+    await privilegedDb.update(reportTestCaseResults).set({ detailedLog: JSON.stringify({ mobile: true, platform: 'android', device: 'Pixel 8', sessionUrl: null, steps: [], matrixEvidence: matrix }) }).where(eq(reportTestCaseResults.testPlanExecutionId, executionId));
+    const html = await request(app).get(`/api/test-plan-executions/${executionId}/export/html`).expect(200);
+    expect(html.text).toContain('Pixel 8'); expect(html.text).toContain('Pixel 9'); expect(html.text).toContain('mismatch');
+    const allure = await request(app).get(`/api/test-plan-executions/${executionId}/export/allure`).buffer(true).parse((res, callback) => {
+      const chunks: Buffer[] = []; res.on('data', chunk => chunks.push(chunk)); res.on('end', () => callback(null, Buffer.concat(chunks)));
+    }).expect(200);
+    const files = readZip(allure.body);
+    const matrices = [...files].filter(([name]) => name.endsWith('-matrix.json'));
+    expect(matrices).toHaveLength(3);
+    expect(JSON.parse(matrices[0][1].toString())).toEqual([matrix]);
+    const junit = await request(app).get(`/api/test-plan-executions/${executionId}/junit`).expect(200);
+    expect(junit.text).toContain('wfm.matrix'); expect(junit.text).toContain('Pixel 9');
+  });
+
   it('as HTML: self-contained, escaped, with what failed first and its screenshot embedded', async () => {
     const response = await request(app).get(`/api/test-plan-executions/${executionId}/export/html`).expect(200);
 

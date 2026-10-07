@@ -204,8 +204,9 @@ export function runAgent(options: AgentOptions): RunningAgent {
         scope.run(() => {
           if (message.bddProfile) {
             const profiles=options.bddProfiles ?? [];
-            if (!profiles.some(profile => profile.id === message.bddProfile.id && profile.revision === message.bddProfile.revision) || sessions.size >= options.maxSessions) {
-              ws.send(JSON.stringify({type:'open_failed',sessionId:message.sessionId,error:'The BDD profile is unavailable or the agent is at capacity.'}));
+            const hasProfile = profiles.some(profile => profile.id === message.bddProfile.id && profile.revision === message.bddProfile.revision);
+            if (!hasProfile || sessions.size >= options.maxSessions) {
+              ws.send(JSON.stringify({type:'open_failed',sessionId:message.sessionId,error:hasProfile ? 'The agent is at capacity.' : 'The BDD profile is unavailable.'}));
               finishTrace(message.sessionId, true);
               return;
             }

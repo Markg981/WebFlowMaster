@@ -1340,6 +1340,7 @@ async function runTestPlanJobInTenant(
           device: mobileDeviceLabel(mobile.test),
           platform: mobile.test.platform,
           sessionUrl: outcome.sessionUrl,
+          matrixEvidence: outcome.matrixEvidence,
           steps: outcome.steps,
         };
         stepsOrLogData = JSON.stringify(log);

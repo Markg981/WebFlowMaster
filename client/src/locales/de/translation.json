@@ -4573,5 +4573,17 @@
     "deleteTitle": "{{name}} löschen?",
     "deleteBody": "Seine Läufe werden mit gelöscht. Die API-Tests bleiben.",
     "delete": "Löschen"
+  },
+  "matrixEvidence": {
+    "title": "Angeforderte und tatsächliche Matrix",
+    "description": "Der Konfigurationsabgleich ist unabhängig vom Testergebnis. Emulation zertifiziert kein reales Gerät.",
+    "test": "Test",
+    "route": "Ausführungspfad",
+    "requested": "Angefordert",
+    "effective": "Tatsächlich",
+    "verdict": "Konfigurationsabgleich",
+    "matched": "Übereinstimmend",
+    "mismatch": "Abweichend",
+    "unverified": "Nicht verifiziert"
   }
 }

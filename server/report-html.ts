@@ -99,6 +99,7 @@ function failureSection(result: ReportResultModel, image: string | undefined): s
 export function renderReportHtml(model: ReportModel, options: HtmlRenderOptions = {}): string {
   const images = options.images ?? new Map<string, string>();
   const failures = model.results.filter((r) => r.status === 'Failed' || r.status === 'Error');
+  const matrices = model.results.flatMap(r => (r.matrixEvidence ?? []).map(e => `<tr><td>${escapeHtml(r.testName)}</td><td>${escapeHtml(e.route)}${e.provider ? ` / ${escapeHtml(e.provider)}` : ''}${e.sessionId ? `<br>${escapeHtml(e.sessionId)}` : ''}</td><td><pre>${escapeHtml(JSON.stringify(e.requested, null, 2))}</pre></td><td><pre>${escapeHtml(JSON.stringify(e.effective, null, 2))}</pre></td><td>${escapeHtml(e.verdict)}<br>${escapeHtml(e.differences.join('; '))}</td></tr>`));
   const verdictClass = ['completed', 'failed', 'timed_out', 'error'].includes(model.status) ? `v-${model.status}` : 'v-other';
   const c = model.counts;
 
@@ -147,6 +148,8 @@ export function renderReportHtml(model: ReportModel, options: HtmlRenderOptions 
 
   ${failures.length ? `<h2>What failed (${failures.length})</h2>${failures.map((r) => failureSection(r, images.get(r.id))).join('')}` : ''}
 
+  <h2>Requested and effective matrix</h2>
+  ${matrices.length ? `<table><thead><tr><th>Test</th><th>Route</th><th>Requested</th><th>Effective</th><th>Configuration match</th></tr></thead><tbody>${matrices.join('')}</tbody></table>` : '<p>No runtime matrix evidence retained. Configuration is unverified.</p>'}
   <h2>Every result</h2>
   <table>
     <thead><tr><th>Test</th><th>Browser</th><th>Status</th><th>Duration</th><th>Module</th></tr></thead>

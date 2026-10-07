@@ -286,3 +286,11 @@ idempotency key (`occurrenceKey`), so two scheduler replicas firing the same min
 The default backend is node-cron in the web process (one web server). `SCHEDULER_BACKEND=bullmq`
 uses Redis job schedulers instead, which survive restarts and do not duplicate across instances; a
 worker handles the trigger.
+
+## Real matrix evidence
+
+Saved UI tests retain requested and observed browser/OS/version values for every pass, including dataset rows. Mobile plans retain the device/OS returned by Appium's W3C capabilities. UI reports, HTML/PDF, Allure attachments and JUnit `wfm.matrix` expose this evidence. Only whitelisted platform fields are retained.
+
+Configuration match (`matched`, `mismatch`, `unverified`) is independent of the functional outcome. Local OS versions are host kernel releases; remote OS is not inferred from the worker or a user agent. Browser emulation and WebKit substitution do not certify real devices or Safari. Historical results without evidence remain uncertified.
+
+The installation UI suite runs on Chromium, Firefox and WebKit. `npm run test:matrix:certify` requires `WFM_MATRIX_CERTIFICATION_FILE` with real web-grid and native Appium targets and fails when infrastructure or matching evidence is absent. See the repository acceptance procedure `collaudo/real-matrix-certification.md`; cloud credentials, reachable fixtures, installed apps/drivers and connected devices are prerequisites. Local Appium is reached through an ephemeral tenant agent.

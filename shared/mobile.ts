@@ -228,6 +228,7 @@ export interface MobileStepResult {
  * step list and a manual test's log.
  */
 export interface MobileResultLog {
+  matrixEvidence?: import('./matrix-evidence').MatrixEvidence;
   mobile: true;
   device: string;
   platform: "android" | "ios";

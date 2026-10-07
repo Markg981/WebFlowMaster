@@ -17,6 +17,8 @@ import { substituteVariables } from './outbound-http';
 import { AppiumSession, WebDriverError, type Fetch } from './appium-client';
 import { AgentHttp } from './agents/agent-fetch';
 import { LOCAL_APPIUM_DEFAULT_URL } from '@shared/browser-grids';
+import { appiumMatrixEvidence } from './matrix-evidence';
+import { matrixEvidence, type MatrixEvidence } from '@shared/matrix-evidence';
 import { executeMobileFlow, validateMobileExecution } from './mobile-flow';
 import { prepareMobileSteps } from './mobile-step-groups';
 
@@ -273,6 +275,7 @@ async function sessionUrl(grid: GridConfig, sessionId: string, doFetch: Fetch): 
 
 /** How one run of a mobile test ended: on its own page or as a row of a plan's report. */
 export interface MobileOutcome {
+  matrixEvidence?: MatrixEvidence;
   status: 'passed' | 'failed' | 'error';
   steps: MobileStepResult[];
   error: string | null;
@@ -293,6 +296,8 @@ export async function performMobileTest(
   deps: RunDeps & { onStep?: (steps: MobileStepResult[]) => Promise<void> } = {},
 ): Promise<MobileOutcome> {
   const results: MobileStepResult[] = [];
+  const requested = { os: test.platform === 'ios' ? 'iOS' : 'Android', osVersion: test.osVersion, device: test.deviceName };
+  let matrix = matrixEvidence({ route: 'appium', provider: grid.provider, requested, effective: {}, source: 'unavailable' });
   let session: AppiumSession | null = null;
   let transport: ReturnType<typeof appiumTransport> | null = null;
   try {
@@ -302,6 +307,7 @@ export async function performMobileTest(
     transport = appiumTransport(grid, deps.fetch);
     const doFetch = transport.fetch;
     session = await AppiumSession.open({ ...request, fetch: doFetch });
+    matrix = appiumMatrixEvidence(requested, session.capabilities, grid.provider, session.id);
 
     const flow = await executeMobileFlow({ steps, session, platform: test.platform, vars,
       primitive: step => runMobileStep({ session: session!, platform: test.platform, vars, elementTimeoutMs: deps.elementTimeoutMs }, step),
@@ -312,10 +318,10 @@ export async function performMobileTest(
     const screenshot = await session.screenshot();
     await markSession(session, grid, !failure, failure ?? 'All steps passed');
     const url = await sessionUrl(grid, session.id, doFetch);
-    return { status: failure ? 'failed' : 'passed', steps: results, error: failure, screenshot, sessionUrl: url };
+    return { status: failure ? 'failed' : 'passed', steps: results, error: failure, screenshot, sessionUrl: url, matrixEvidence: matrix };
   } catch (error: any) {
     const message = error instanceof WebDriverError ? `${grid.name}: ${error.message}` : String(error?.message ?? error);
-    return { status: 'error', steps: results, error: redactGridSecret(message, grid), screenshot: null, sessionUrl: null };
+    return { status: 'error', steps: results, error: redactGridSecret(message, grid), screenshot: null, sessionUrl: null, matrixEvidence: matrix };
   } finally {
     await session?.close();
     await transport?.close();

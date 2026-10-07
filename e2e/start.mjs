@@ -23,10 +23,12 @@ mkdirSync('e2e-artifacts/services', { recursive: true });
 const env = {
   ...process.env,
   NODE_ENV: 'production',
+  // PostgreSQL timestamps and recovery comparisons must share a zone, including on Windows.
+  TZ: 'UTC',
   PORT: '5080',
   REGISTRATION: 'open',
   // The entire isolated suite shares one loopback address and creates several tenants.
-  AUTH_RATE_LIMIT: '100',
+  AUTH_RATE_LIMIT: '1000',
   SESSION_COOKIE_SECURE: 'false',
   WEBFLOW_PUBLIC_URL: 'http://127.0.0.1:5080',
   APP_BASE_URL: 'http://127.0.0.1:5081',
@@ -71,6 +73,7 @@ function start(name, entry) {
 }
 // A real HTTP target under our control; it does not replace any product endpoint.
 const fixture = createServer((req, res) => {
+  if (req.url === '/matrix') { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end('<!doctype html><h1 id="matrix-title">Matrix fixture</h1>'); return; }
   const url = new URL(req.url, 'http://127.0.0.1:5081');
   const key = url.searchParams.get('run');
   // Observe an actual worker request; release it only after the UI has requested cancellation.

@@ -30,6 +30,8 @@ import type { DownloadFinding } from '@shared/downloads';
 import { resolveVariables } from './variables';
 import { loadLoginState, saveLoginState, type EnvironmentScope, type LoginState } from './login-state';
 import { describeBrowser, deviceContextOptions, launchBrowser, resolveBrowser, type BrowserChoice } from './browsers';
+import { browserMatrixEvidence } from './matrix-evidence';
+import { matrixEvidence, type MatrixEvidence } from '@shared/matrix-evidence';
 import { compareStepScreenshot, isVisualFailure, stableScreenshot, type VisualContext } from './visual-testing';
 import { expandSequenceForRun, type SequenceStep } from './step-groups';
 import { elementIdOfStep, resolveSequenceForRun } from './step-elements';
@@ -139,6 +141,7 @@ interface TestStep {
 }
 
 export interface StepResult {
+  matrixEvidence?: MatrixEvidence;
   name: string;
   type: string;
   /** The test's own id for the step, when it has one. */
@@ -1971,6 +1974,7 @@ export class PlaywrightService {
     /** Whether this run is being traced, which decides how its context has to be closed. */
     let tracing = false;
     let evidence: CapturedEvidence = {};
+    let matrix: MatrixEvidence | undefined;
     // Worked out once: the scratch directory a recording goes into is named when the context
     // is created, and has to be the same one that is cleaned up afterwards.
     const videoOptions = await videoContextOptions(options?.evidence);
@@ -1986,6 +1990,10 @@ export class PlaywrightService {
      * closing a context twice.
      */
     const finishEvidence = async (passed: boolean) => {
+      if (matrix) {
+        if (!stepResults.length) stepResults.push({ name: 'Runtime configuration', type: 'configuration', status: 'passed', details: matrix.verdict });
+        stepResults[0].matrixEvidence = matrix;
+      }
       if (gridProvider && page) {
         await markGridSession(page, gridProvider, passed, stepResults.find((step) => step.status === 'failed')?.error ?? null);
       }
@@ -2015,6 +2023,10 @@ export class PlaywrightService {
         resolveBrowser(userSettings?.playwrightBrowser || DEFAULT_BROWSER, headlessMode) ??
         { label: DEFAULT_BROWSER, engine: DEFAULT_BROWSER, headless: headlessMode };
       resolvedLogger.debug({ message: `PS:executeTestSequence - Effective settings`, testName: test.name, browser: describeBrowser(browserChoice), pageTimeout });
+      matrix = matrixEvidence({ route: browserChoice.grid ? 'grid' : browserChoice.agent ? 'agent' : 'local',
+        ...(browserChoice.grid ? { provider: browserChoice.grid.provider } : {}),
+        requested: { browser: browserChoice.name ?? browserChoice.grid?.browserName ?? browserChoice.label, ...browserChoice.machine,
+          ...(browserChoice.device ? { device: browserChoice.device } : {}) }, effective: {}, source: 'unavailable' });
 
       browser = await launchBrowser(browserChoice, {
         name: test.name ?? 'test',
@@ -2022,7 +2034,6 @@ export class PlaywrightService {
       });
       if (!browser) throw new Error(`Failed to launch ${browserChoice.label}.`);
       gridProvider = browserChoice.grid?.provider ?? null;
-      const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
       // Start from the environment's saved session when there is one, so the test does not
       // spend its first thirty seconds logging in — and does not fail for a reason that has
       // nothing to do with what it checks.
@@ -2044,7 +2055,6 @@ export class PlaywrightService {
       // the desktop window below (shared/devices.ts).
       const emulated = deviceContextOptions(browserChoice);
       context = await browser.newContext({
-        userAgent,
         ignoreHTTPSErrors: allowsSelfSignedCertificate(targetUrl ?? ''),
         ...emulated,
         ...(savedLogin ? { storageState: storageState as any } : {}),
@@ -2058,6 +2068,7 @@ export class PlaywrightService {
       });
       tracing = await startTrace(context, options?.evidence);
       page = await context.newPage();
+      matrix = await browserMatrixEvidence(browserChoice, browser, page);
       page.setDefaultTimeout(pageTimeout);
       if (options?.runtime) page.setDefaultNavigationTimeout(options.runtime.pageLoadTimeoutMs);
       if (!emulated) await page.setViewportSize({ width: 1280, height: 720 });
