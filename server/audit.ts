@@ -42,6 +42,7 @@ export interface AuditEntry {
     | 'test_management'
     | 'test_plan_execution'
     | 'mobile_test'
+    | 'load_test'
     | 'browser_grid'
     | 'test_data_set'
     | 'impact_rule';

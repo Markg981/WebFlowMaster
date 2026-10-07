@@ -97,7 +97,8 @@ every test that checked its times: requests, p50, p95, slowest, failed requests 
 The repetitions leave from where the test runs — a local agent's network when the plan uses one —
 and stop when the run is cancelled. A request that cannot be made at all skips the check: there is
 nothing to time. The caps are deliberate: this answers "did this endpoint get slower?" on every
-run, it is not a load test.
+run, it is not a load test. For load over time — virtual users, ramps, a warm-up, a data row per
+user — see [load tests](./load-tests).
 
 ## SOAP, WebSocket and gRPC {#protocols}
 

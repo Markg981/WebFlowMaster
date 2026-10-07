@@ -1,4 +1,4 @@
-import { AuthParamsSchema, type Assertion, type AuthParams } from '@shared/schema';
+import { AuthParamsSchema, type ApiTest, type Assertion, type AuthParams } from '@shared/schema';
 import { runGrpc, runWebSocket, xpathValue, type ProtocolResponse } from './api-protocols';
 import { fetchTarget, substituteInValues, substituteVariables } from './outbound-http';
 import { findUnresolvedVariables } from './variables';
@@ -84,6 +84,24 @@ export interface ApiRequestSpec {
   /** A gRPC test's service definition (server/api-protocols.ts). */
   protoDefinition?: string | null;
   protocolConfig?: ProtocolConfig | null;
+}
+
+/** The request a saved API test sends, as a plan and a load test both run it. */
+export function apiTestSpec(apiTest: ApiTest): ApiRequestSpec {
+  return {
+    method: apiTest.method,
+    url: apiTest.url,
+    queryParams: apiTest.queryParams as Record<string, string> | null,
+    headers: apiTest.requestHeaders as Record<string, string> | null,
+    body: apiTest.requestBody ?? undefined,
+    assertions: (apiTest.assertions as Assertion[] | null) ?? [],
+    extractions: (apiTest.extractions as Extraction[] | null) ?? [],
+    // The test's own auth settings, which only the API Tester page used to apply — so a
+    // scheduled run sent the request anonymous and failed for the wrong reason.
+    auth: apiTest.authParams as AuthParams | null,
+    protoDefinition: apiTest.protoDefinition,
+    protocolConfig: apiTest.protocolConfig,
+  };
 }
 
 export type MultipartPart =
