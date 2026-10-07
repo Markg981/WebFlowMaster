@@ -10,17 +10,29 @@ import {
   reconcile,
   reconcileScenario,
   waitForRecovery,
+  retainedArtifactBreaches,
 } from './resilience-core.mjs';
 
 const args = process.argv.slice(2);
 if (args.includes('--help')) {
   console.log(
-    'Usage: npm run load:resilience -- [--cycles 1] [--recovery-timeout 180] [--observation-seconds 40]\nBuilds a disposable Docker stack; never accepts existing project, URL or credentials.',
+    'Usage: npm run load:resilience -- [--cycles 1] [--recovery-timeout 180] [--observation-seconds 40] [--worker-restart graceful|crash]\nBuilds a disposable Docker stack; never accepts existing project, URL or credentials. Crash mode verifies worker_lost without replaying interrupted work.',
   );
   process.exit(0);
 }
-const settings = { '--cycles': 1, '--recovery-timeout': 180, '--observation-seconds': 40 };
+const settings = {
+  '--cycles': 1,
+  '--recovery-timeout': 180,
+  '--observation-seconds': 40,
+  '--worker-restart': 'graceful',
+};
 for (let i = 0; i < args.length; i += 2) {
+  if (args[i] === '--worker-restart') {
+    if (!['graceful', 'crash'].includes(args[i + 1]))
+      throw new Error('--worker-restart accepts graceful or crash.');
+    settings[args[i]] = args[i + 1];
+    continue;
+  }
   const n = Number(args[i + 1]);
   if (!(args[i] in settings) || !Number.isSafeInteger(n) || n < 1 || n > 3600)
     throw new Error(
@@ -59,6 +71,11 @@ const evidence = {
   syntheticFixture: true,
   artifactStore: 'local',
   schedulerBackend: 'bullmq',
+  scenarioPurpose:
+    settings['--worker-restart'] === 'crash'
+      ? 'crash-detection-without-replay'
+      : 'controlled-restart-recovery',
+  expectedWorkerLostIds: [],
   startedAt: new Date().toISOString(),
   phases: [],
   cycles: [],
@@ -155,6 +172,8 @@ async function artifacts(tenant, runId) {
     ),
   ];
   ensure(links.length > 0, `Run ${runId} produced no artifact links`);
+  const missing = retainedArtifactBreaches(runId, links, retainedHashes.keys(), report);
+  ensure(missing.length === 0, missing.join('; '));
   const hashes = [];
   for (const link of links) {
     ensure(
@@ -175,11 +194,11 @@ async function artifacts(tenant, runId) {
   }
   return hashes;
 }
-async function connected(tenant) {
+async function connected(tenant, timeoutMs = timeout) {
   return waitForRecovery(async () => {
     const { agents } = await json(tenant.client, 'get', '/api/agents');
     return agents.find((agent) => agent.id === tenant.agentId && agent.connected);
-  }, timeout);
+  }, timeoutMs);
 }
 async function start(tenant, key) {
   const response = await tenant.client.post(`/api/v1/plans/${tenant.plan.id}/runs`, {
@@ -358,30 +377,38 @@ try {
           if (fault === 'redis') await command(['stop', '-t', '10', 'redis']);
           await sleep(6000);
           const recoveryStart = Date.now();
+          const recoveryDeadline = recoveryStart + timeout;
+          const remainingRecoveryMs = () => Math.max(0, recoveryDeadline - Date.now());
           if (fault === 'redis') await command(['up', '-d', '--wait', 'redis']);
           await command(['up', '-d', 'worker']);
           if (fault === 'worker') {
-            await waitForRecovery(async () => {
+            const interruptedId = await waitForRecovery(async () => {
               const rows = await inventory(tenants[0]);
-              const active = rows.some(
+              const active = rows.find(
                 (run) => record.accepted.includes(run.id) && run.status === 'running',
               );
               const { agents } = await json(tenants[0].client, 'get', '/api/agents');
-              return (
-                active &&
+              return active &&
                 agents.some((agent) => agent.id === tenants[0].agentId && agent.activeSessions > 0)
-              );
-            }, timeout);
-            await command(['kill', '-s', 'SIGKILL', 'worker']);
-            await command(['up', '-d', 'worker']);
+                ? active.id
+                : false;
+            }, remainingRecoveryMs());
+            if (settings['--worker-restart'] === 'crash') {
+              evidence.expectedWorkerLostIds.push(interruptedId);
+              record.expectedWorkerLostIds = [interruptedId];
+              await command(['kill', '-s', 'SIGKILL', 'worker']);
+              await command(['up', '-d', 'worker']);
+            } else {
+              await command(['restart', '-t', '30', 'worker']);
+            }
           }
-          for (const tenant of tenants) await connected(tenant);
+          for (const tenant of tenants) await connected(tenant, remainingRecoveryMs());
           for (const entry of record.schedules) {
             const tenant = tenants[entry.tenant];
             const rows = await waitForRecovery(async () => {
               const all = await inventory(tenant);
               return all.some((run) => run.scheduleId === entry.id) ? all : false;
-            }, timeout);
+            }, remainingRecoveryMs());
             const scheduled = rows.filter((run) => run.scheduleId === entry.id);
             ensure(scheduled.length === 1, `Schedule ${entry.id} created duplicate occurrences`);
             entry.runId = scheduled[0].id;
@@ -401,13 +428,21 @@ try {
                   ['completed', 'failed', 'error', 'cancelled', 'timed_out'].includes(run.status),
               ),
             );
-          }, timeout);
+          }, remainingRecoveryMs());
           record.settledDurationMs = Date.now() - recoveryStart;
+          ensure(record.settledDurationMs <= timeout, 'Recovery deadline exceeded');
           // Observe again after the stall interval: a late duplicate cannot pass on first completion.
           await sleep(settings['--observation-seconds'] * 1000);
           for (const [index, tenant] of tenants.entries()) {
             const rows = await inventory(tenant);
-            record.breaches.push(...reconcileScenario(previousIds[index], tenant.expected, rows));
+            record.breaches.push(
+              ...reconcileScenario(
+                previousIds[index],
+                tenant.expected,
+                rows,
+                evidence.expectedWorkerLostIds,
+              ),
+            );
             record.artifacts.push(
               ...(await Promise.all(
                 rows
@@ -421,11 +456,14 @@ try {
                 id: run.id,
                 scheduleId: run.scheduleId,
                 status: run.status,
+                failureCode: run.failureCode,
               })),
             ];
           }
           evidence.breaches.push(...record.breaches.map((b) => `cycle ${cycle} ${fault}: ${b}`));
-          record.recovered = record.breaches.length === 0;
+          record.recovered = record.breaches.length === 0 && !record.expectedWorkerLostIds?.length;
+          if (record.expectedWorkerLostIds?.length)
+            record.crashDetectionPassed = record.breaches.length === 0;
           record.recoveryDurationMs = record.recovered ? record.settledDurationMs : null;
           return record;
         });
@@ -460,7 +498,7 @@ try {
     const finalBreaches = [];
     for (const tenant of tenants) {
       const rows = await inventory(tenant);
-      const found = reconcile(tenant.expected, rows);
+      const found = reconcile(tenant.expected, rows, evidence.expectedWorkerLostIds);
       evidence.breaches.push(...found);
       finalBreaches.push(...found);
       evidence.final.push({
@@ -469,6 +507,7 @@ try {
           id: run.id,
           status: run.status,
           scheduleId: run.scheduleId,
+          failureCode: run.failureCode,
         })),
         artifacts: await Promise.all(
           rows
@@ -506,6 +545,7 @@ try {
   evidence.endedAt = new Date().toISOString();
   evidence.success =
     !evidence.error && evidence.breaches.length === 0 && evidence.cleanupErrors.length === 0;
+  evidence.successfulRecovery = evidence.success && evidence.expectedWorkerLostIds.length === 0;
   fs.writeFileSync(path.join(directory, 'resilience.json'), JSON.stringify(evidence, null, 2));
   fs.unlinkSync(composeFile);
   transcript.end();

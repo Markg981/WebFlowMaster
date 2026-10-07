@@ -25,17 +25,27 @@ export function resilienceCompose(root, key, session, id) {
 }
 
 /** Plans in this synthetic fixture contain exactly one browser test. */
-export function reconcile(expectedIds, observed) {
+export function reconcile(expectedIds, observed, expectedWorkerLostIds = []) {
   const breaches = [];
   const expected = new Set(expectedIds);
+  const expectedWorkerLost = new Set(expectedWorkerLostIds);
   if (expected.size !== expectedIds.length) breaches.push('duplicate expected run ID');
   const ids = new Set();
   for (const run of observed) {
     if (ids.has(run.id)) breaches.push(`duplicate run ${run.id}`);
     ids.add(run.id);
     if (!expected.has(run.id)) breaches.push(`unexpected run ${run.id}`);
-    if (run.status !== 'completed') breaches.push(`run ${run.id} not completed: ${run.status}`);
     const results = typeof run.results === 'string' ? JSON.parse(run.results) : run.results;
+    if (expectedWorkerLost.has(run.id)) {
+      if (run.status !== 'error' || run.failureCode !== 'worker_lost')
+        breaches.push(
+          `run ${run.id} did not report expected worker_lost: ${run.status}/${run.failureCode ?? 'none'}`,
+        );
+      if (results != null && (!Array.isArray(results) || results.length > 1))
+        breaches.push(`run ${run.id} has duplicate or invalid partial results`);
+      continue;
+    }
+    if (run.status !== 'completed') breaches.push(`run ${run.id} not completed: ${run.status}`);
     if (!Array.isArray(results) || results.length !== 1 || results[0].success !== true)
       breaches.push(`run ${run.id} has missing, duplicate or failed results`);
   }
@@ -43,12 +53,28 @@ export function reconcile(expectedIds, observed) {
   return breaches;
 }
 
+export function retainedArtifactBreaches(runId, links, retainedLinks, report) {
+  const found = [];
+  const current = new Set(links);
+  const prefix = `/api/test-plan-executions/${runId}/artifacts/`;
+  for (const link of retainedLinks)
+    if (link.startsWith(prefix) && !current.has(link))
+      found.push(`Retained artifact disappeared from report for ${runId}: ${link}`);
+  const unavailable = (value) =>
+    value &&
+    typeof value === 'object' &&
+    (value.evidenceUnavailable === true || Object.values(value).some(unavailable));
+  if (unavailable(report)) found.push(`Report contains unavailable evidence for ${runId}`);
+  return found;
+}
+
 /** Attribute new failures to this scenario; the final inventory still checks the whole history. */
-export function reconcileScenario(previousIds, expectedIds, observed) {
+export function reconcileScenario(previousIds, expectedIds, observed, expectedWorkerLostIds = []) {
   const previous = new Set(previousIds);
   return reconcile(
     expectedIds.filter((id) => !previous.has(id)),
     observed.filter((run) => !previous.has(run.id)),
+    expectedWorkerLostIds,
   );
 }
 
@@ -65,7 +91,7 @@ export async function waitForRecovery(
   while (io.now() < deadline) {
     try {
       const value = await probe();
-      if (value) return value;
+      if (value && io.now() <= deadline) return value;
     } catch (error) {
       lastError = error;
     }

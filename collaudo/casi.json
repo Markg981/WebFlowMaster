@@ -8202,8 +8202,8 @@
       "steps": [
         "Verificare la fase worker-recovery e il replay con stessa chiave; confrontare ID accettati e inventario dopo almeno 40 secondi."
       ],
-      "expected": "SIGKILL durante sessione agente osservata; ID invariato al replay; tutti i run completi, nessun ID mancante o extra né risultato duplicato.",
-      "detailHtml": "<h4>Precondizioni</h4><p>Node.js 22.19+, Docker Compose e risorse per stack sacrificabile. Procedura collaudo/automatic-resilience.md; prerequisiti mancanti: Bloccato.</p><h4>Passi</h4><ol><li>Verificare la fase worker-recovery e il replay con stessa chiave; confrontare ID accettati e inventario dopo almeno 40 secondi.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">SIGKILL durante sessione agente osservata; ID invariato al replay; tutti i run completi, nessun ID mancante o extra né risultato duplicato.</p>"
+      "expected": "SIGTERM durante sessione agente osservata; ID invariato al replay; tutti i run completi, nessun ID mancante o extra né risultato duplicato.",
+      "detailHtml": "<h4>Precondizioni</h4><p>Node.js 22.19+, Docker Compose e risorse per stack sacrificabile. Procedura collaudo/automatic-resilience.md; prerequisiti mancanti: Bloccato.</p><h4>Passi</h4><ol><li>Verificare la fase worker-recovery e il replay con stessa chiave; confrontare ID accettati e inventario dopo almeno 40 secondi.</li></ol><h4>Risultato atteso</h4><p class=\"expected\">SIGTERM durante sessione agente osservata; ID invariato al replay; tutti i run completi, nessun ID mancante o extra né risultato duplicato.</p>"
     },
     {
       "id": "OPS-34",

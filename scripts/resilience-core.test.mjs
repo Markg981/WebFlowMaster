@@ -6,6 +6,7 @@ import {
   reconcile,
   reconcileScenario,
   waitForRecovery,
+  retainedArtifactBreaches,
 } from './resilience-core.mjs';
 
 const run = (id, overrides = {}) => ({
@@ -38,6 +39,69 @@ test('reconciliation detects lost, extra, duplicated, failed and incomplete runs
     /results/,
   );
   assert.match(reconcile(['a', 'a'], [run('a')]).join(), /duplicate expected/);
+});
+
+test('crash diagnostic requires worker_lost on exactly the interrupted ID and preserves strict recovery', () => {
+  const interrupted = run('crashed', { status: 'error', failureCode: 'worker_lost', results: [] });
+  assert.deepEqual(reconcile(['crashed', 'ok'], [interrupted, run('ok')], ['crashed']), []);
+  assert.match(reconcile(['crashed'], [interrupted]).join(), /not completed/);
+  assert.match(reconcile(['crashed'], [run('crashed')], ['crashed']).join(), /worker_lost/);
+  assert.match(
+    reconcile(['crashed'], [{ ...interrupted, failureCode: 'run_timed_out' }], ['crashed']).join(),
+    /worker_lost/,
+  );
+  assert.match(
+    reconcile(
+      ['crashed', 'ok'],
+      [interrupted, run('ok', { status: 'error', results: [] })],
+      ['crashed'],
+    ).join(),
+    /ok not completed/,
+  );
+  assert.match(reconcile(['crashed'], [], ['crashed']).join(), /missing/);
+  assert.match(
+    reconcile(
+      ['crashed'],
+      [{ ...interrupted, results: [{ success: true }, { success: true }] }],
+      ['crashed'],
+    ).join(),
+    /partial results/,
+  );
+  assert.match(
+    reconcile(['crashed'], [{ ...interrupted, results: {} }], ['crashed']).join(),
+    /partial results/,
+  );
+});
+
+test('retained screenshots cannot disappear from a report or be marked unavailable', () => {
+  const prefix = '/api/test-plan-executions/r/artifacts/';
+  const retained = [prefix + 'first.png', prefix + 'second.png'];
+  assert.deepEqual(
+    retainedArtifactBreaches('r', retained, retained, { steps: [{ screenshot: retained[0] }] }),
+    [],
+  );
+  assert.match(retainedArtifactBreaches('r', [retained[1]], retained, {}).join(), /disappeared/);
+  assert.match(
+    retainedArtifactBreaches('r', retained, retained, {
+      nested: { evidenceUnavailable: true },
+    }).join(),
+    /unavailable/,
+  );
+});
+
+test('a probe which succeeds after its recovery deadline still fails', async () => {
+  let now = 0;
+  await assert.rejects(
+    waitForRecovery(
+      async () => {
+        now = 1001;
+        return true;
+      },
+      1000,
+      { now: () => now, sleep: async () => {} },
+    ),
+    /deadline/,
+  );
 });
 
 test('stack persists Redis and uses distributed scheduling on API and worker', () => {
@@ -88,12 +152,13 @@ test('live runner refuses existing-stack overrides and short observation before 
     ['--url', 'https://live.example'],
     ['--observation-seconds', '1'],
     ['--cycles', '101'],
+    ['--worker-restart', 'unsafe'],
   ]) {
     const result = spawnSync(process.execPath, ['scripts/wfm-resilience.mjs', ...args], {
       encoding: 'utf8',
     });
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /refused|observation/);
+    assert.match(result.stderr, /refused|observation|worker-restart/);
     assert.doesNotMatch(result.stdout, /build|infrastructure|Resilience evidence/);
   }
 });
