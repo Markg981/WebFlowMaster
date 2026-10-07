@@ -127,14 +127,23 @@ describe('TestLibraryPage', () => {
  expect(screen.getByText('Checkout')).toBeInTheDocument();
  });
  it('opens legacy manual steps stored as encoded JSON only after loading details',async()=>{
- fetchMock.mockImplementation((url:string)=>Promise.resolve(url.startsWith('/api/catalog/tests')?catalog([{...tests[0],kind:'manual'}]):url==='/api/tests/1'?{ok:true,json:async()=>({...tests[0],sequence:JSON.stringify([{action:{id:'manualStep'},value:'Legacy label'}])})}:respond(url)));
+ let resolveDetail!: (response: unknown) => void;
+ const pendingDetail = new Promise(resolve => { resolveDetail = resolve; });
+ fetchMock.mockImplementation((url:string)=>url==='/api/tests/1'?pendingDetail:Promise.resolve(url.startsWith('/api/catalog/tests')?catalog([{...tests[0],kind:'manual'}]):respond(url)));
  renderPage();await screen.findByText('Checkout');fireEvent.click(screen.getByTitle('Edit steps'));
- expect(await screen.findByRole('dialog')).toHaveTextContent('Legacy label');
+ await waitFor(()=>expect(fetchMock).toHaveBeenCalledWith('/api/tests/1'));
+ expect(screen.queryByRole('dialog')).toBeNull();
+ resolveDetail({ok:true,json:async()=>({...tests[0],sequence:JSON.stringify([{action:{id:'manualStep'},value:'Legacy label'}])})});
+ const dialog = await screen.findByRole('dialog');
+ // Dialog visibility precedes the effect which populates its controlled fields.
+ await waitFor(()=>expect(within(dialog).getByLabelText('Action')).toHaveValue('Legacy label'));
  });
  it('fetches manual steps on edit from a catalog without sequence',async()=>{
  fetchMock.mockImplementation((url:string)=>Promise.resolve(url.startsWith('/api/catalog/tests')?catalog([{...tests[0],kind:'manual'}]):url==='/api/tests/1'?{ok:true,json:async()=>({...tests[0],sequence:[{action:{id:'manualStep'},value:'Inspect label'}]})}:respond(url)));
  renderPage();await screen.findByText('Checkout');expect(fetchMock.mock.calls.some(([url])=>url==='/api/tests/1')).toBe(false);
- fireEvent.click(screen.getByTitle('Edit steps'));expect(await screen.findByRole('dialog')).toHaveTextContent('Inspect label');
+ fireEvent.click(screen.getByTitle('Edit steps'));
+ const dialog = await screen.findByRole('dialog');
+ await waitFor(()=>expect(within(dialog).getByLabelText('Action')).toHaveValue('Inspect label'));
  });
   it('cancels an outstanding catalog request when a tag filter changes', async () => {
     let firstSignal: AbortSignal | undefined;
