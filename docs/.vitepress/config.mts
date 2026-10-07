@@ -63,6 +63,7 @@ function sidebar(lang: 'en' | 'it', t: Labels): DefaultTheme.SidebarItem[] {
         { text: t.gettingStarted, link: p('guide/') },
         { text: t.webTests, link: p('guide/web-tests') },
         { text: t.apiTests, link: p('guide/api-tests') },
+        { text: lang === 'it' ? 'Test di carico' : 'Load tests', link: p('guide/load-tests') },
         { text: 'BDD / Cucumber', link: p('guide/bdd-tests') },
         { text: t.mobileApps, link: p('guide/mobile-apps') },
         { text: t.organizing, link: p('guide/organizing') },

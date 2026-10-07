@@ -544,7 +544,8 @@
     "testManager": "Test Manager",
     "requirements": "Requisiti",
     "mobileTests": "App mobili",
-    "testData": "Dati di test"
+    "testData": "Dati di test",
+    "loadTests": "Test di carico"
   },
   "dashboardPage": {
     "headerTitle": "Piattaforma WebTest",
@@ -2931,7 +2932,8 @@
       "scim": "Provisioning (SCIM)",
       "impact_rule": "Mappa dell'impatto",
       "sms_inbox": "Casella SMS",
-      "organization": "Organizzazione"
+      "organization": "Organizzazione",
+      "load_test": "Test di carico"
     },
     "actions": {
       "bdd_profile_created": "Profilo BDD creato",
@@ -3047,7 +3049,12 @@
       "sms_inbox_token_issued": "Indirizzo SMS emesso",
       "sms_inbox_token_revoked": "Indirizzo SMS revocato",
       "organization_quotas_updated": "Quote organizzazione modificate",
-      "organization_artifacts_reconciled": "Inventario artefatti organizzazione riconciliato"
+      "organization_artifacts_reconciled": "Inventario artefatti organizzazione riconciliato",
+      "load_test_created": "Test di carico creato",
+      "load_test_updated": "Test di carico modificato",
+      "load_test_deleted": "Test di carico eliminato",
+      "load_test_run": "Esecuzione di carico avviata",
+      "load_test_cancelled": "Esecuzione di carico fermata"
     }
   },
   "security": {
@@ -4586,5 +4593,104 @@
     "dataSource": "Origine del dataset",
     "inline": "Inline o assente",
     "rows": "righe"
+  },
+  "loadTests": {
+    "profileChart": "Profilo di carico: fino a {{peak}} utenti virtuali in {{total}} s",
+    "status": {
+      "running": "In corso",
+      "passed": "Superato",
+      "failed": "Fallito",
+      "cancelled": "Annullato",
+      "error": "Non eseguito"
+    },
+    "runLoadFailed": "Impossibile caricare l'esecuzione.",
+    "loading": "Caricamento…",
+    "overall": "Tutte le richieste",
+    "progress": "{{elapsed}} di {{total}} s · {{vus}} utenti virtuali ora, {{peak}} al picco",
+    "cancelling": "Arresto…",
+    "stop": "Ferma l'esecuzione",
+    "progressLabel": "Avanzamento",
+    "warmUpShort": "Warm-up",
+    "chart": {
+      "vus": "Utenti virtuali",
+      "rps": "Richieste/s",
+      "p95": "p95 (ms)"
+    },
+    "totals": "{{requests}} richieste valutate a {{rps}} req/s · {{completed}} iterazioni completate, {{failed}} fallite · warm-up: {{warm}} richieste, non valutate",
+    "columns": {
+      "step": "Passo",
+      "requests": "Richieste",
+      "errors": "Errori",
+      "name": "Test di carico",
+      "scenario": "Scenario",
+      "profile": "Profilo",
+      "lastRun": "Ultima esecuzione",
+      "actions": "Azioni"
+    },
+    "sampleErrors": "Primi errori",
+    "invalid": "Il test di carico non è valido.",
+    "saveFailed": "Il test di carico non è stato salvato.",
+    "thresholds": {
+      "p50": "Mediana (p50)",
+      "p95": "95° percentile (p95)",
+      "p99": "99° percentile (p99)",
+      "max": "Più lenta",
+      "errorRate": "Richieste fallite",
+      "minRps": "Throughput minimo"
+    },
+    "editTitle": "Modifica test di carico",
+    "createTitle": "Nuovo test di carico",
+    "name": "Nome",
+    "description": "Descrizione",
+    "scenario": "Scenario",
+    "scenarioHelp": "Ogni utente virtuale esegue questi API test in ordine, più volte. Ciò che un test cattura viene inviato dai successivi; un test fallito chiude l'iterazione.",
+    "thinkTime": "Pausa dopo (ms)",
+    "moveUp": "Sposta su",
+    "moveDown": "Sposta giù",
+    "removeStep": "Rimuovi {{name}}",
+    "addStep": "Aggiungi un API test",
+    "profile": "Profilo di carico",
+    "profileHelp": "Ogni stage porta il numero di utenti virtuali da dove era finito il precedente (0 all'inizio) al suo obiettivo, nella sua durata. Stesso obiettivo: il carico viene mantenuto.",
+    "stageDuration": "Durata (s)",
+    "stageTarget": "Utenti virtuali",
+    "removeStage": "Rimuovi lo stage {{n}}",
+    "addStage": "Aggiungi uno stage",
+    "warmUp": "Warm-up (s), non valutato",
+    "profileTotal": "{{total}} s in tutto, {{peak}} utenti virtuali al picco",
+    "data": "Dati per utente virtuale",
+    "dataSet": "Data set",
+    "noData": "Nessun data set: gli stessi valori per tutti",
+    "dataSetOption": "{{name}} ({{rows}} righe)",
+    "dataMode": "Come si assegnano le righe",
+    "dataModeVu": "Una riga propria per ogni utente virtuale",
+    "dataModeIteration": "La riga successiva a ogni iterazione",
+    "dataHelp": "Gli API test leggono la riga come {{example}}; {{vu}} e {{iteration}} numerano l'utente e la sua iterazione.",
+    "dataNone": "Ogni utente virtuale invia gli stessi valori; {{vu}} e {{iteration}} li distinguono comunque.",
+    "thresholdsTitle": "Soglie",
+    "thresholdsHelp": "Valutate sulle richieste dopo il warm-up. Vuota: non controllata.",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "loadFailed": "Impossibile caricare i test di carico.",
+    "startFailed": "L'esecuzione non è partita.",
+    "runsTitle": "Esecuzioni di {{name}}",
+    "environment": "Ambiente",
+    "noEnvironment": "Nessun ambiente",
+    "start": "Avvia un'esecuzione",
+    "startHelp": "L'esecuzione parte dal server, separata dai piani. Un test di carico alla volta per organizzazione.",
+    "noRuns": "Nessuna esecuzione.",
+    "deleteFailed": "Il test di carico non è stato eliminato.",
+    "title": "Test di carico",
+    "pageDescription": "API test eseguiti da utenti virtuali per una durata, con warm-up, carico progressivo e una riga di dati per utente. Eseguiti separatamente dai piani.",
+    "create": "Nuovo test di carico",
+    "empty": "Nessun test di carico. Ne ripete di API test salvati: salvali prima nell'API Tester.",
+    "stepCount": "{{count}} API test",
+    "profileSummary": "{{peak}} utenti · {{total}} s · warm-up {{warmUp}} s",
+    "runsFor": "Esecuzioni di {{name}}",
+    "editFor": "Modifica {{name}}",
+    "deleteFor": "Elimina {{name}}",
+    "saved": "Test di carico salvato",
+    "deleteTitle": "Eliminare {{name}}?",
+    "deleteBody": "Le sue esecuzioni vengono eliminate con lui. Gli API test restano.",
+    "delete": "Elimina"
   }
 }

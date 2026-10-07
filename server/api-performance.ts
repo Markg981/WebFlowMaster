@@ -10,7 +10,8 @@ import { runApiRequest, type ApiRequestSpec, type ApiRunResult, type OneConnecti
  * change what later tests in the plan receive.
  */
 
-function failureOf(result: ApiRunResult): string | null {
+/** Why one request failed — it could not be made, or an assertion did not hold — or null. */
+export function failureOf(result: ApiRunResult): string | null {
   if (result.error) return result.error;
   const failed = result.assertions.find((a) => !a.pass);
   if (!failed) return null;

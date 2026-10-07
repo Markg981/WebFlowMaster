@@ -1,5 +1,5 @@
 {
-  "version": 33,
+  "version": 34,
   "areas": [
     {
       "id": "ACC",
@@ -8026,6 +8026,74 @@
         "Importare un file con un test API nuovo e un test mobile non valido; ripetere un import con test API usando la chiave solo suites."
       ],
       "expected": "Senza include l'export è identico a prima (solo test UI/manuali/BDD); scope mancante 403 con requiredScope; gherkin con API/mobile 400; export completo con segreti sostituiti da variabili e gruppi di step inclusi. Il dryRun non salva e indica kind/outcome per riga; l'import reale aggiorna e il segreto resta valido. Un elemento non valido annulla tutto l'import (nessun test API creato); senza api-tests:write 403."
+    },
+    {
+      "id": "API-56",
+      "area": "API",
+      "title": "Test di carico: scenario composto, rampa, warm-up e superamento",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Ambiente con un endpoint di login che risponde con un token e un endpoint protetto che lo richiede; due test API salvati (login con cattura del token, lettura protetta con Bearer {{token}}); un data set con almeno 5 righe di credenziali. Nuovo ciclo: Da eseguire.",
+      "steps": [
+        "Test di carico → Nuovo: scenario login + lettura (pausa 500 ms dopo la lettura); stage 30 s → 5 utenti, 60 s → 5, 30 s → 0; warm-up 20 s; data set con 'Una riga propria per ogni utente virtuale'; soglie p95 2000 ms ed errori 1%.",
+        "Salvare, aprire le esecuzioni, scegliere l'ambiente e avviare; seguire il run fino alla fine.",
+        "Nei log dell'endpoint di login verificare le credenziali ricevute."
+      ],
+      "expected": "L'editor disegna il profilo con il warm-up ombreggiato e indica 120 s e 5 utenti al picco. Durante il run avanzamento, utenti virtuali attuali e timeline si aggiornano ogni 2 s; la curva degli utenti sale, resta piatta e scende. A fine run esito Superato, statistiche p50/p90/p95/p99/max per ciascun test API e in totale, iterazioni completate > 0 e fallite 0, richieste del warm-up conteggiate a parte. Il login riceve 5 credenziali distinte (una per utente) e ogni lettura usa il token del proprio login."
+    },
+    {
+      "id": "API-57",
+      "area": "API",
+      "title": "Test di carico: soglie superate ed errori",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Test di carico di API-56. Nuovo ciclo: Da eseguire.",
+      "steps": [
+        "Impostare Throughput minimo a 100000 req/s e avviare un run.",
+        "Rimettere le soglie, fare rispondere l'endpoint protetto 503 a una richiesta su due (o sostituire il token atteso) e avviare un altro run con soglia errori 1%."
+      ],
+      "expected": "Il primo run è Fallito con 'throughput … req/s < 100000 req/s'. Nel secondo l'esito è Fallito con 'errors …% > 1%', le iterazioni fallite sono > 0, i primi errori indicano il test API e l'asserzione ('Read …: status_code equals \"200\" — actual: 503'); un'iterazione con login fallito non invia la lettura."
+    },
+    {
+      "id": "API-58",
+      "area": "API",
+      "title": "Test di carico: dati per utente e per iterazione",
+      "priority": "P2",
+      "actor": "editor.a",
+      "preconditions": "Data set di 3 righe; test API che invia {{data.<set>.<colonna>}}, {{load.vu}} e {{load.iteration}} in un header. Nuovo ciclo: Da eseguire.",
+      "steps": [
+        "Creare un test di carico con 4 utenti al picco e 'Una riga propria per ogni utente virtuale'; salvare.",
+        "Passare a 'La riga successiva a ogni iterazione', salvare ed eseguire per 20 s con 4 utenti.",
+        "Riportare 3 utenti, modalità per utente; eliminare due righe dal data set e avviare un run."
+      ],
+      "expected": "Il primo salvataggio è rifiutato con '3 rows for 4 virtual users'. In modalità per iterazione il salvataggio riesce e l'endpoint riceve le righe a rotazione con load.vu 1–4 e load.iteration crescente per utente. L'avvio dopo la riduzione delle righe è rifiutato con '1 rows for 3 virtual users' e non crea esecuzioni."
+    },
+    {
+      "id": "API-59",
+      "area": "API",
+      "title": "Test di carico: esecuzione dedicata, un run per organizzazione, stop",
+      "priority": "P1",
+      "actor": "editor.a, viewer.a",
+      "preconditions": "Test di carico con uno stage di 600 s; un piano con test UI disponibile. Nuovo ciclo: Da eseguire.",
+      "steps": [
+        "Avviare il run di carico; avviare subito un secondo run (dello stesso o di un altro test di carico) e il piano.",
+        "Come viewer.a aprire le esecuzioni: verificare che il pulsante di stop non compaia; via API POST /api/load-test-runs/<id>/cancel.",
+        "Come editor.a premere 'Ferma l'esecuzione'; poi tentare di eliminare il test durante un run e dopo."
+      ],
+      "expected": "Il secondo run è rifiutato (409 'Another load test of the organization is running'); il piano parte e termina normalmente sui runner, e il run di carico non compare tra le esecuzioni dei piani. Il viewer vede il run ma riceve 403 sullo stop. Lo stop porta lo stato ad Annullato entro pochi secondi con il riepilogo parziale. L'eliminazione durante il run è rifiutata (409), dopo riesce e le esecuzioni spariscono con il test. Audit: load_test.created, .run, .cancelled, .deleted."
+    },
+    {
+      "id": "API-60",
+      "area": "API",
+      "title": "Test di carico: riavvio del server e isolamento",
+      "priority": "P2",
+      "actor": "admin, owner.b",
+      "preconditions": "Test di carico con uno stage di 600 s in un progetto riservato di org A. Nuovo ciclo: Da eseguire.",
+      "steps": [
+        "Avviare il run e riavviare il servizio applicativo dopo 30 s; attendere 1–2 minuti e ricaricare la pagina.",
+        "Come utente non membro del progetto riservato e come owner.b (org B) aprire Test di carico e GET /api/load-tests/<id>."
+      ],
+      "expected": "Dopo il riavvio il run risulta 'Non eseguito' con 'Interrupted: the server running it stopped.' e un nuovo run si può avviare. Il non membro e owner.b non vedono il test (elenco vuoto, 404 sul dettaglio)."
     }
   ],
   "presentation": {

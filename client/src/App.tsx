@@ -28,6 +28,7 @@ const SuitesPage = React.lazy(() => import("./pages/SuitesPage"));
 const RequirementsPage = React.lazy(() => import("./pages/RequirementsPage"));
 const TestDataPage = React.lazy(() => import("./pages/TestDataPage"));
 const MobileTestsPage = React.lazy(() => import("./pages/MobileTestsPage"));
+const LoadTestsPage = React.lazy(() => import("./pages/LoadTestsPage"));
 const TestPlanExecutionPage = React.lazy(() => import("./pages/TestPlanExecutionPage"));
 const SchedulingPage = React.lazy(() => import("./pages/SchedulingPage"));
 const TestReportPage = React.lazy(() => import("./pages/TestReportPage"));
@@ -122,6 +123,7 @@ function Router() {
       <ProtectedRoute path="/requirements" component={RequirementsPage} />
       <ProtectedRoute path="/test-data" component={TestDataPage} />
       <ProtectedRoute path="/mobile-tests" component={MobileTestsPage} />
+      <ProtectedRoute path="/load-tests" component={LoadTestsPage} />
       <ProtectedRoute path="/test-manager" component={TestManager} />
       <ProtectedRoute path="/tests" component={TestLibraryPage} />
       <ProtectedRoute path="/reviews" component={ReviewsPage} />
