@@ -6,6 +6,33 @@ on:
   pull_request:
 
 jobs:
+  application-restore-drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:restore-drill
+      - name: Prove isolated application recovery
+        run: npm run backup:drill
+      - name: Preserve recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-restore-evidence
+          path: |
+            restore-drill-artifacts/*/recovery.json
+            restore-drill-artifacts/*/operations.log
+            restore-drill-artifacts/*/*-report.png
+            restore-drill-artifacts/*/*-evidence.json
+          if-no-files-found: warn
+          retention-days: 7
+
   build-and-test:
     runs-on: ubuntu-latest
 

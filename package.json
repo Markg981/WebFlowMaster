@@ -17,6 +17,8 @@
     "backup:create": "tsx scripts/wfm-backup.ts create",
     "backup:verify": "tsx scripts/wfm-backup.ts verify",
     "backup:restore": "tsx scripts/wfm-backup.ts restore",
+    "backup:drill": "tsx scripts/restore-drill.mjs",
+    "test:restore-drill": "node --test scripts/restore-drill.test.mjs",
     "db:studio": "drizzle-kit studio",
     "db:migrate": "tsx --require dotenv/config scripts/apply-migrations.ts",
     "collaudo:up": "docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml up -d --build --wait",

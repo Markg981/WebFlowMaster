@@ -55,6 +55,7 @@ scratch_cookies.txt
 *.log
 
 backups
+restore-drill-artifacts
 release-artifacts
 docs/.vitepress/dist
 docs/.vitepress/cache

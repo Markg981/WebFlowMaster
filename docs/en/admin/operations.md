@@ -63,7 +63,7 @@ A backup is a folder:
 | `results.tar`, `visual-baselines.tar` | The run evidence and the visual baselines (local store only). |
 | `manifest.json` | When and from which version it was taken; the number of applied migrations; how many tables have row-level security; exact row counts of the main tables; the size and SHA-256 of every file; a **fingerprint** of the encryption key (a hash of a hash: it identifies the key without revealing it). |
 
-**`verify` is the restore drill.** It checks every file against its checksum, restores the dump into a
+**`verify` is the database restore check.** It checks every file against its checksum, restores the dump into a
 scratch database next to the live one (`webflowmaster_restore_check`), compares row counts, migrations,
 row-level security and the `app_user` grants with the manifest, says whether the running installation
 has the backup's key, and drops the scratch database. It touches nothing the installation uses, so it
@@ -100,6 +100,37 @@ A nightly backup with its drill, keeping fourteen days, from cron on the Docker 
 
 Copy the folder off the host (object storage, another site): a backup on the same disk as the database
 does not survive the disk.
+
+### Full application recovery drill
+
+Run `npm run backup:drill` from the repository root with Docker running, dependencies installed
+and Chromium available (`npx playwright install chromium`). The command builds production images
+and creates two generated Compose projects with private databases, queues and volumes. Only the API
+is published, on a random loopback port. No existing project, database or bucket arguments are accepted.
+
+The source creates two tenants, an encrypted environment value, a published browser test and a
+successful run with screenshots. After backup it destroys its containers and volumes. The target
+verifies checksums and DB/RLS metadata, restores DB and both artifact archives, starts API/worker,
+logs in through the UI and opens the historical report. Every artifact must match its original
+SHA-256. Another tenant must receive 404 for report/evidence and see no restored tests. A new run
+started through the UI must decrypt the restored value, pass on the worker and produce new evidence.
+The application connects as a non-superuser role, using `app_user` for tenant queries.
+
+`restore-drill-artifacts/<id>/` holds `recovery.json`, service/operation logs, report screenshots and
+artifact sizes/hashes. Each phase is measured in milliseconds; `recoveryDurationMs` covers target
+provisioning through the successful new report, and `backupAgeAtRecoveryMs` records backup age.
+Build, fixture setup and backup timings are separate. Backup age is not a measured production RPO;
+the synthetic dataset cannot establish a production SLA. CI retains evidence for seven days, excluding
+backups and temporary Compose credentials. Success and errors remove both projects and volumes.
+After forced process termination remove only this run's `wfm-drill-source-<id>` and
+`wfm-drill-target-<id>` projects. Backups/evidence remain local and ignored by Git and Docker builds.
+
+The automatic drill covers the **local artifact store**. S3 recovery remains the operator's external
+versioning/replication procedure: recover the exact object versions corresponding to the DB checkpoint
+into a separate bucket, configure an isolated installation with that bucket and original key, then
+repeat login, report/evidence hash comparison, tenant denial and a successful new run. Record provider
+restore/version IDs, object counts/hashes, DB/replica checkpoints and elapsed times. Missing object
+recovery evidence leaves S3 acceptance blocked. Procedure: `collaudo/application-restore-drill.md`, OPS-29…OPS-31.
 
 ### Restoring without the tool
 
