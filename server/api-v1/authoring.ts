@@ -1,35 +1,58 @@
 import type { Router, Request, Response, RequestHandler } from 'express';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import {
   projects,
   projectMembers,
   tests,
+  apiTests,
+  mobileTests,
+  mobileStepGroups,
+  browserGrids,
   testDataSets,
   testPlans,
   testPlanSelectedTests,
   insertTestSchema,
+  insertApiTestSchema,
   insertTestPlanSchema,
   AUDIT_ACTIONS,
   type Test,
+  type ApiTest,
+  type MobileTest,
   type Project,
   type TestDataSet,
   type TestPlan,
 } from '@shared/schema';
 import { testDataSetInputSchema, sharedSetIdOf } from '@shared/test-data';
 import { manualSequenceProblem } from '@shared/manual-tests';
+import { MOBILE_GRID_PROVIDERS, mobileTestFieldsSchema, refineMobileTest } from '@shared/mobile';
 import { type ApiScope } from '@shared/api-scopes';
-import { apiError, requireScope } from '../middleware/require-scope';
-import { withTenantTransaction, runAsOrganization, type TenantTx } from '../middleware/tenancy';
+import { apiError, holdsScope, requireScope } from '../middleware/require-scope';
+import {
+  withTenantTransaction,
+  runAsOrganization,
+  getTenantOrgId,
+  type TenantTx,
+} from '../middleware/tenancy';
 import { auditActor, recordAudit } from '../audit';
-import { recordTestVersion } from '../test-version-store';
+import { recordTestVersion, recordTypedTestVersion } from '../test-version-store';
 import { BddDefinitionError, prepareBddForSave } from '../bdd-definition';
 import { assertSelectedTestsBelongTo, SELECTED_TESTS_NOT_FOUND } from '../routes/selected-tests';
 import { testsUsingSet } from '../test-data';
-import { exportBundle, parseBundle, BundleError } from '../test-bundle';
+import {
+  exportBundle,
+  parseBundle,
+  sameAs,
+  withoutSecrets,
+  keepRedactedSecrets,
+  API_TEST_FIELDS,
+  BundleError,
+} from '../test-bundle';
+import { importMobileCatalog, MOBILE_BUNDLE_FIELDS } from '../mobile-bundle';
+import { prepareMobileSteps, MobileDefinitionError } from '../mobile-step-groups';
 import { GherkinError } from '../gherkin';
-import { quotaErrorBody } from '../tenant-quotas';
+import { lockOrganizationRuns, quotaErrorBody } from '../tenant-quotas';
 
 const numericId = z.coerce.number().int().positive();
 export const projectCreateSchema = z.object({ name: z.string().trim().min(1).max(200) }).strict();
@@ -67,6 +90,50 @@ export const testUpdateSchema = testCreateSchema
   .partial()
   .strict()
   .refine((body) => Object.keys(body).length > 0, 'Send at least one field.');
+const atLeastOneField = (body: object) => Object.keys(body).length > 0;
+export const apiTestCreateSchema = insertApiTestSchema
+  .pick({
+    name: true,
+    method: true,
+    url: true,
+    module: true,
+    featureArea: true,
+    scenario: true,
+    component: true,
+    priority: true,
+    severity: true,
+    queryParams: true,
+    requestHeaders: true,
+    requestBody: true,
+    assertions: true,
+    extractions: true,
+    performance: true,
+    authType: true,
+    authParams: true,
+    bodyType: true,
+    bodyRawContentType: true,
+    bodyFormData: true,
+    bodyUrlEncoded: true,
+    bodyGraphqlQuery: true,
+    bodyGraphqlVariables: true,
+    protoDefinition: true,
+    protocolConfig: true,
+  })
+  .extend({
+    name: z.string().trim().min(1).max(200),
+    method: z.string().trim().min(1).max(20),
+    projectId: z.number().int().positive().nullable().optional(),
+  })
+  .strict();
+export const apiTestUpdateSchema = apiTestCreateSchema
+  .partial()
+  .strict()
+  .refine(atLeastOneField, 'Send at least one field.');
+export const mobileTestCreateSchema = mobileTestFieldsSchema.strict().superRefine(refineMobileTest);
+export const mobileTestUpdateSchema = mobileTestFieldsSchema
+  .partial()
+  .strict()
+  .refine(atLeastOneField, 'Send at least one field.');
 export const datasetCreateSchema = testDataSetInputSchema;
 export const datasetUpdateSchema = testDataSetInputSchema;
 const membershipSchema = z
@@ -102,10 +169,13 @@ export const planUpdateSchema = planCreateSchema
   .partial()
   .strict()
   .refine((body) => Object.keys(body).length > 0, 'Send at least one field.');
+/** The kinds of test a suite can carry; an export holds the UI, manual and BDD tests unless asked. */
+export const SUITE_KINDS = ['tests', 'apiTests', 'mobileTests'] as const;
 export const suiteExportSchema = z
   .object({
     projectId: z.number().int().positive(),
     format: z.enum(['json', 'yaml', 'gherkin']).default('json'),
+    include: z.array(z.enum(SUITE_KINDS)).min(1).max(3).default(['tests']),
   })
   .strict();
 export const suiteImportSchema = z
@@ -121,6 +191,10 @@ export const authoringSchemas = {
   projectUpdateSchema,
   testCreateSchema,
   testUpdateSchema,
+  apiTestCreateSchema,
+  apiTestUpdateSchema,
+  mobileTestCreateSchema,
+  mobileTestUpdateSchema,
   datasetCreateSchema,
   datasetUpdateSchema,
   planCreateSchema,
@@ -152,6 +226,37 @@ export function publicTest(row: Test) {
     component: row.component,
     priority: row.priority,
     severity: row.severity,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+/** Literal secrets in the authorization read as the variables an export writes (test-bundle.ts). */
+export function publicApiTest(row: ApiTest) {
+  const fields = Object.fromEntries(
+    API_TEST_FIELDS.map((field) => [field, (row as Record<string, unknown>)[field] ?? null]),
+  );
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    ...withoutSecrets(fields, []),
+    publishedVersion: row.publishedVersion,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+export function publicMobileTest(row: MobileTest) {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    name: row.name,
+    platform: row.platform,
+    app: row.app,
+    deviceName: row.deviceName,
+    osVersion: row.osVersion,
+    deviceMatrix: row.deviceMatrix,
+    gridId: row.gridId,
+    steps: row.steps,
+    publishedVersion: row.publishedVersion,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -192,15 +297,26 @@ class AuthoringError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    readonly extra: Record<string, unknown> = {},
   ) {
     super(message);
   }
+}
+/** A second scope the request needs for part of its work, on top of the route's own. */
+function requireAlso(req: Request, scope: ApiScope) {
+  if (!holdsScope(req, scope))
+    throw new AuthoringError(
+      403,
+      'insufficient_scope',
+      `This API key does not have the "${scope}" scope.`,
+      { requiredScope: scope },
+    );
 }
 function notFound(kind: string): never {
   throw new AuthoringError(
     404,
     `${kind}_not_found`,
-    `There is no such ${kind} in this organization.`,
+    `There is no such ${kind.replace('api_', 'API ').replace('_', ' ')} in this organization.`,
   );
 }
 function idOf(req: Request, name: string) {
@@ -210,7 +326,10 @@ function idOf(req: Request, name: string) {
   return id.data;
 }
 function body<T extends z.ZodTypeAny>(schema: T, req: Request): z.infer<T> {
-  const result = schema.safeParse(req.body);
+  return valid(schema, req.body);
+}
+function valid<T extends z.ZodTypeAny>(schema: T, value: unknown): z.infer<T> {
+  const result = schema.safeParse(value);
   if (!result.success)
     throw new AuthoringError(
       400,
@@ -235,7 +354,7 @@ function handled(handler: (req: Request, res: Response) => Promise<unknown>): Re
       await handler(req, res);
     } catch (error) {
       if (error instanceof AuthoringError) {
-        apiError(res, error.status, error.code, error.message);
+        apiError(res, error.status, error.code, error.message, error.extra);
         return;
       }
       const quota = quotaErrorBody(error);
@@ -247,6 +366,7 @@ function handled(handler: (req: Request, res: Response) => Promise<unknown>): Re
         error instanceof z.ZodError ||
         error instanceof GherkinError ||
         error instanceof BddDefinitionError ||
+        error instanceof MobileDefinitionError ||
         error instanceof BundleError ||
         SELECTED_TESTS_NOT_FOUND.test((error as Error).message ?? '')
       ) {
@@ -345,6 +465,137 @@ async function validateDataset(tx: TenantTx, dataset: unknown) {
       'invalid_request',
       'The referenced dataset does not exist in this organization.',
     );
+}
+async function saveApiTest(
+  tx: TenantTx,
+  req: Request,
+  input: z.infer<typeof apiTestCreateSchema> | z.infer<typeof apiTestUpdateSchema>,
+  existing?: ApiTest,
+) {
+  await editableProject(tx, req, existing?.projectId);
+  await editableProject(tx, req, input.projectId);
+  const name = input.name ?? existing?.name;
+  const [duplicate] = await tx
+    .select({ id: apiTests.id })
+    .from(apiTests)
+    .where(
+      existing ? and(eq(apiTests.name, name!), ne(apiTests.id, existing.id)) : eq(apiTests.name, name!),
+    )
+    .limit(1);
+  if (duplicate)
+    throw new AuthoringError(409, 'name_conflict', 'An API test with this name already exists.');
+  const fields =
+    existing && input.authParams !== undefined
+      ? { ...input, authParams: keepRedactedSecrets(input.authParams, existing.authParams) }
+      : input;
+  const [row] = existing
+    ? await tx
+        .update(apiTests)
+        .set({ ...fields, updatedAt: new Date() })
+        .where(eq(apiTests.id, existing.id))
+        .returning()
+    : await tx
+        .insert(apiTests)
+        .values({
+          ...(fields as z.infer<typeof apiTestCreateSchema>),
+          userId: req.user!.id,
+          organizationId: req.user!.organizationId,
+        })
+        .returning();
+  if (!row)
+    throw new AuthoringError(403, 'project_read_only', 'The project does not allow this change.');
+  await recordTypedTestVersion(tx, {
+    testType: 'api',
+    testId: row.id,
+    organizationId: req.user!.organizationId,
+    userId: req.user!.id,
+    test: row,
+  });
+  await recordAudit(tx, {
+    action: existing ? AUDIT_ACTIONS.API_TEST_UPDATED : AUDIT_ACTIONS.API_TEST_CREATED,
+    actor: auditActor(req),
+    targetType: 'api_test',
+    targetId: row.id,
+    // Names only: an API test's headers and body are exactly where tokens live.
+    metadata: existing ? { name: row.name, fields: Object.keys(input) } : { name: row.name },
+  });
+  return row;
+}
+async function saveMobileTest(
+  tx: TenantTx,
+  req: Request,
+  input: z.infer<typeof mobileTestCreateSchema>,
+  existing?: MobileTest,
+) {
+  await editableProject(tx, req, existing?.projectId);
+  await editableProject(tx, req, input.projectId);
+  const [duplicate] = await tx
+    .select({ id: mobileTests.id })
+    .from(mobileTests)
+    .where(
+      existing
+        ? sql`lower(${mobileTests.name}) = lower(${input.name}) AND ${mobileTests.id} <> ${existing.id}`
+        : sql`lower(${mobileTests.name}) = lower(${input.name})`,
+    )
+    .limit(1);
+  if (duplicate)
+    throw new AuthoringError(409, 'name_conflict', 'A mobile test with this name already exists.');
+  if (input.gridId) {
+    const [grid] = await tx
+      .select({ provider: browserGrids.provider })
+      .from(browserGrids)
+      .where(eq(browserGrids.id, input.gridId))
+      .limit(1);
+    if (!grid || !(MOBILE_GRID_PROVIDERS as readonly string[]).includes(grid.provider))
+      throw new AuthoringError(
+        400,
+        'invalid_request',
+        'The grid must be a BrowserStack or LambdaTest grid of this organization.',
+      );
+  }
+  await lockOrganizationRuns(tx, getTenantOrgId()!);
+  await prepareMobileSteps(tx, input);
+  const fields = {
+    ...input,
+    osVersion: input.osVersion || null,
+    gridId: input.gridId || null,
+    projectId: input.projectId ?? null,
+  };
+  const [row] = existing
+    ? await tx
+        .update(mobileTests)
+        .set({ ...fields, updatedAt: new Date() })
+        .where(eq(mobileTests.id, existing.id))
+        .returning()
+    : await tx
+        .insert(mobileTests)
+        .values({ ...fields, organizationId: req.user!.organizationId, createdBy: req.user!.id })
+        .returning();
+  if (!row)
+    throw new AuthoringError(403, 'project_read_only', 'The project does not allow this change.');
+  await recordTypedTestVersion(tx, {
+    testType: 'mobile',
+    testId: row.id,
+    organizationId: req.user!.organizationId,
+    userId: req.user!.id,
+    test: row,
+  });
+  await recordAudit(tx, {
+    action: existing ? AUDIT_ACTIONS.MOBILE_TEST_UPDATED : AUDIT_ACTIONS.MOBILE_TEST_CREATED,
+    actor: auditActor(req),
+    targetType: 'mobile_test',
+    targetId: row.id,
+    metadata: { name: row.name, platform: row.platform },
+  });
+  return row;
+}
+/** A mobile test's stored definition as the create schema reads it, for a patch to land on. */
+function mobileDefinitionOf(row: MobileTest) {
+  return {
+    ...Object.fromEntries(MOBILE_BUNDLE_FIELDS.map((field) => [field, row[field]])),
+    projectId: row.projectId,
+    gridId: row.gridId,
+  };
 }
 async function members(tx: TenantTx, planId: string) {
   return (
@@ -560,6 +811,152 @@ export function registerAuthoringRoutes(router: Router) {
   );
   route(
     'get',
+    '/api/v1/api-tests',
+    'api-tests:read',
+    async (req, res) => {
+      const p = page(req);
+      const filter =
+        req.query.projectId === undefined
+          ? undefined
+          : eq(apiTests.projectId, valid(numericId, req.query.projectId));
+      const rows = await withTenantTransaction((tx) =>
+        tx
+          .select()
+          .from(apiTests)
+          .where(filter)
+          .orderBy(apiTests.id)
+          .limit(p.limit)
+          .offset(p.offset),
+      );
+      res.json({ items: rows.map(publicApiTest), ...p });
+    },
+    'ApiTestPage',
+  );
+  route(
+    'get',
+    '/api/v1/api-tests/:apiTestId',
+    'api-tests:read',
+    async (req, res) => {
+      const id = idOf(req, 'apiTestId');
+      const [row] = await withTenantTransaction((tx) =>
+        tx.select().from(apiTests).where(eq(apiTests.id, id)).limit(1),
+      );
+      if (!row) notFound('api_test');
+      res.json(publicApiTest(row));
+    },
+    'AuthoredApiTest',
+  );
+  route(
+    'post',
+    '/api/v1/api-tests',
+    'api-tests:write',
+    async (req, res) => {
+      const input = body(apiTestCreateSchema, req);
+      res
+        .status(201)
+        .json(publicApiTest(await withTenantTransaction((tx) => saveApiTest(tx, req, input))));
+    },
+    'AuthoredApiTest',
+    201,
+    'apiTestCreateSchema',
+  );
+  route(
+    'patch',
+    '/api/v1/api-tests/:apiTestId',
+    'api-tests:write',
+    async (req, res) => {
+      const id = idOf(req, 'apiTestId'),
+        input = body(apiTestUpdateSchema, req);
+      const row = await withTenantTransaction(async (tx) => {
+        const [existing] = await tx.select().from(apiTests).where(eq(apiTests.id, id)).limit(1);
+        if (!existing) notFound('api_test');
+        return saveApiTest(tx, req, input, existing);
+      });
+      res.json(publicApiTest(row));
+    },
+    'AuthoredApiTest',
+    200,
+    'apiTestUpdateSchema',
+  );
+  route(
+    'get',
+    '/api/v1/mobile-tests',
+    'mobile-tests:read',
+    async (req, res) => {
+      const p = page(req);
+      const filter =
+        req.query.projectId === undefined
+          ? undefined
+          : eq(mobileTests.projectId, valid(numericId, req.query.projectId));
+      const rows = await withTenantTransaction((tx) =>
+        tx
+          .select()
+          .from(mobileTests)
+          .where(filter)
+          .orderBy(mobileTests.id)
+          .limit(p.limit)
+          .offset(p.offset),
+      );
+      res.json({ items: rows.map(publicMobileTest), ...p });
+    },
+    'MobileTestPage',
+  );
+  route(
+    'get',
+    '/api/v1/mobile-tests/:mobileTestId',
+    'mobile-tests:read',
+    async (req, res) => {
+      const id = idOf(req, 'mobileTestId');
+      const [row] = await withTenantTransaction((tx) =>
+        tx.select().from(mobileTests).where(eq(mobileTests.id, id)).limit(1),
+      );
+      if (!row) notFound('mobile_test');
+      res.json(publicMobileTest(row));
+    },
+    'AuthoredMobileTest',
+  );
+  route(
+    'post',
+    '/api/v1/mobile-tests',
+    'mobile-tests:write',
+    async (req, res) => {
+      const input = body(mobileTestCreateSchema, req);
+      res
+        .status(201)
+        .json(
+          publicMobileTest(await withTenantTransaction((tx) => saveMobileTest(tx, req, input))),
+        );
+    },
+    'AuthoredMobileTest',
+    201,
+    'mobileTestCreateSchema',
+  );
+  route(
+    'patch',
+    '/api/v1/mobile-tests/:mobileTestId',
+    'mobile-tests:write',
+    async (req, res) => {
+      const id = idOf(req, 'mobileTestId'),
+        input = body(mobileTestUpdateSchema, req);
+      const row = await withTenantTransaction(async (tx) => {
+        const [existing] = await tx
+          .select()
+          .from(mobileTests)
+          .where(eq(mobileTests.id, id))
+          .limit(1);
+        if (!existing) notFound('mobile_test');
+        // A partial change is checked as the whole test it makes: steps against the platform.
+        const merged = valid(mobileTestCreateSchema, { ...mobileDefinitionOf(existing), ...input });
+        return saveMobileTest(tx, req, merged, existing);
+      });
+      res.json(publicMobileTest(row));
+    },
+    'AuthoredMobileTest',
+    200,
+    'mobileTestUpdateSchema',
+  );
+  route(
+    'get',
     '/api/v1/datasets',
     'datasets:read',
     async (req, res) => {
@@ -745,6 +1142,15 @@ export function registerAuthoringRoutes(router: Router) {
     'suites:read',
     async (req, res) => {
       const input = body(suiteExportSchema, req);
+      const include = new Set(input.include);
+      if (input.format === 'gherkin' && (include.has('apiTests') || include.has('mobileTests')))
+        throw new AuthoringError(
+          400,
+          'invalid_request',
+          'Gherkin carries UI, manual and BDD tests only; export API and mobile tests as JSON or YAML.',
+        );
+      if (include.has('apiTests')) requireAlso(req, 'api-tests:read');
+      if (include.has('mobileTests')) requireAlso(req, 'mobile-tests:read');
       const result = await withTenantTransaction(async (tx) => {
         const [project] = await tx
           .select()
@@ -752,19 +1158,39 @@ export function registerAuthoringRoutes(router: Router) {
           .where(eq(projects.id, input.projectId))
           .limit(1);
         if (!project) notFound('project');
-        const rows = await tx
-          .select()
-          .from(tests)
-          .where(eq(tests.projectId, input.projectId))
-          .limit(501);
-        if (rows.length > 500)
+        const rows = include.has('tests')
+          ? await tx.select().from(tests).where(eq(tests.projectId, input.projectId)).limit(501)
+          : [];
+        const apiRows = include.has('apiTests')
+          ? await tx
+              .select()
+              .from(apiTests)
+              .where(eq(apiTests.projectId, input.projectId))
+              .limit(501)
+          : [];
+        const mobileRows = include.has('mobileTests')
+          ? await tx
+              .select()
+              .from(mobileTests)
+              .where(eq(mobileTests.projectId, input.projectId))
+              .limit(501)
+          : [];
+        if (rows.length + apiRows.length + mobileRows.length > 500)
           throw new AuthoringError(
             400,
             'suite_too_large',
             'A suite may contain at most 500 tests.',
           );
+        // The export keeps only the groups its tests call, and names them by platform and name.
+        const groups = mobileRows.length ? await tx.select().from(mobileStepGroups) : [];
         const exported = exportBundle(
-          { project: project.name, tests: rows, apiTests: [] },
+          {
+            project: project.name,
+            tests: rows,
+            apiTests: apiRows,
+            mobileTests: mobileRows,
+            mobileStepGroups: groups,
+          },
           input.format,
         );
         if (Buffer.byteLength(exported.content, 'utf8') > 2_000_000)
@@ -789,19 +1215,25 @@ export function registerAuthoringRoutes(router: Router) {
       const input = body(suiteImportSchema, req);
       const bundle = parseBundle(input.content, input.format === 'gherkin' ? 'gherkin' : undefined);
       if (
-        bundle.tests.length > 500 ||
-        bundle.apiTests.length ||
-        bundle.mobileTests.length ||
-        bundle.mobileStepGroups.length
+        bundle.tests.length + bundle.apiTests.length + bundle.mobileTests.length > 500 ||
+        bundle.mobileStepGroups.length > 500
       )
         throw new AuthoringError(
           400,
           'invalid_request',
-          'Import accepts at most 500 UI, manual or BDD tests.',
+          'Import accepts at most 500 tests and 500 mobile step groups.',
         );
+      if (bundle.apiTests.length) requireAlso(req, 'api-tests:write');
+      if (bundle.mobileTests.length || bundle.mobileStepGroups.length)
+        requireAlso(req, 'mobile-tests:write');
       const results = await withTenantTransaction(async (tx) => {
         await editableProject(tx, req, input.projectId);
-        const results = [];
+        const results: Array<{
+          kind: 'test' | 'api_test' | 'mobile_test' | 'mobile_step_group';
+          name: string;
+          id?: number;
+          outcome: 'created' | 'updated' | 'unchanged';
+        }> = [];
         const seen = new Set<string>();
         for (const raw of bundle.tests) {
           const candidate = testCreateSchema.safeParse({
@@ -834,11 +1266,94 @@ export function registerAuthoringRoutes(router: Router) {
           await validateDataset(tx, candidate.data.dataset);
           await prepareBddForSave(tx, candidate.data, existing);
           if (input.dryRun) {
-            results.push({ name: candidate.data.name, outcome: existing ? 'updated' : 'created' });
+            results.push({
+              kind: 'test',
+              name: candidate.data.name,
+              outcome: existing ? 'updated' : 'created',
+            });
           } else {
             const row = await saveTest(tx, req, candidate.data, existing);
-            results.push({ name: row.name, id: row.id, outcome: existing ? 'updated' : 'created' });
+            results.push({
+              kind: 'test',
+              name: row.name,
+              id: row.id,
+              outcome: existing ? 'updated' : 'created',
+            });
           }
+        }
+        const seenApi = new Set<string>();
+        for (const raw of bundle.apiTests) {
+          const candidate = valid(apiTestCreateSchema, { ...raw, projectId: input.projectId });
+          if (seenApi.has(candidate.name))
+            throw new AuthoringError(400, 'invalid_request', 'An API test name is listed twice.');
+          seenApi.add(candidate.name);
+          const same = await tx
+            .select()
+            .from(apiTests)
+            .where(eq(apiTests.name, candidate.name))
+            .limit(2);
+          const existing = same[0];
+          if (same.length > 1 || (existing && existing.projectId !== input.projectId))
+            throw new AuthoringError(
+              409,
+              'name_conflict',
+              `The API test name "${candidate.name}" is already used elsewhere in the organization.`,
+            );
+          const incoming = existing
+            ? { ...candidate, authParams: keepRedactedSecrets(candidate.authParams, existing.authParams) }
+            : candidate;
+          if (existing && sameAs(existing as unknown as Record<string, unknown>, incoming, API_TEST_FIELDS)) {
+            results.push({ kind: 'api_test', name: existing.name, id: existing.id, outcome: 'unchanged' });
+          } else if (input.dryRun) {
+            results.push({ kind: 'api_test', name: candidate.name, outcome: existing ? 'updated' : 'created' });
+          } else {
+            const row = await saveApiTest(tx, req, candidate, existing);
+            results.push({
+              kind: 'api_test',
+              name: row.name,
+              id: row.id,
+              outcome: existing ? 'updated' : 'created',
+            });
+          }
+        }
+        // An existing mobile test keeps its project in the catalogue import; here it must be this one.
+        for (const raw of bundle.mobileTests) {
+          const [existing] = await tx
+            .select({ projectId: mobileTests.projectId })
+            .from(mobileTests)
+            .where(sql`lower(${mobileTests.name}) = lower(${String(raw.name ?? '')})`)
+            .limit(1);
+          if (existing && existing.projectId !== input.projectId)
+            throw new AuthoringError(
+              409,
+              'name_conflict',
+              `The mobile test name "${String(raw.name)}" belongs to another project.`,
+            );
+        }
+        const native = await importMobileCatalog(tx, {
+          bundle,
+          projectId: input.projectId,
+          dryRun: input.dryRun,
+          userId: req.user!.id,
+          actor: auditActor(req),
+          canEditProject: async (id) => {
+            try {
+              await editableProject(tx, req, id);
+              return true;
+            } catch {
+              return false;
+            }
+          },
+        });
+        for (const outcome of native) {
+          // The public import is all or nothing: one invalid item rolls the whole suite back.
+          if (outcome.outcome === 'invalid')
+            throw new AuthoringError(
+              400,
+              'invalid_request',
+              `${outcome.kind === 'mobile_test' ? 'Mobile test' : 'Mobile step group'} "${outcome.name}": ${outcome.reason}`,
+            );
+          results.push({ kind: outcome.kind, name: outcome.name, outcome: outcome.outcome });
         }
         if (!input.dryRun)
           await recordAudit(tx, {

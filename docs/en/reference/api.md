@@ -42,10 +42,12 @@ works only on `/api/v1`, and on each endpoint only if it holds the scope the end
 |---|---|---|
 | `plans:read` | viewer | Listing test plans. |
 | `projects:read` / `projects:write` | viewer / editor | Read / create and update accessible projects. |
-| `tests:read` / `tests:write` | viewer / editor | Read / create and update tests and their versions. |
+| `tests:read` / `tests:write` | viewer / editor | Read / create and update UI, manual and BDD tests. |
+| `api-tests:read` / `api-tests:write` | viewer / editor | Read (literal secrets replaced by variables) / create and update API tests. |
+| `mobile-tests:read` / `mobile-tests:write` | viewer / editor | Read / create and update native mobile tests. |
 | `datasets:read` / `datasets:write` | viewer / editor | Read / create, replace and delete datasets. |
 | `plans:write` | editor | Create and update test plans. |
-| `suites:read` / `suites:write` | viewer / editor | Export / import portable test suites. |
+| `suites:read` / `suites:write` | viewer / editor | Export / import portable test suites; API and mobile tests in a suite also need their own read / write scope. |
 | `runs:read` | viewer | Reading runs, their status, JUnit and exported reports. |
 | `runs:write` | editor | Starting runs and cancelling them. |
 
@@ -94,6 +96,10 @@ conventions above. Use the installed OpenAPI document for the complete request a
 | Projects | `POST /projects`, `PATCH /projects/{projectId}` | `projects:write` |
 | Tests | `GET /tests`, `GET /tests/{testId}` | `tests:read` |
 | Tests | `POST /tests`, `PATCH /tests/{testId}` | `tests:write` |
+| API tests | `GET /api-tests`, `GET /api-tests/{apiTestId}` | `api-tests:read` |
+| API tests | `POST /api-tests`, `PATCH /api-tests/{apiTestId}` | `api-tests:write` |
+| Mobile tests | `GET /mobile-tests`, `GET /mobile-tests/{mobileTestId}` | `mobile-tests:read` |
+| Mobile tests | `POST /mobile-tests`, `PATCH /mobile-tests/{mobileTestId}` | `mobile-tests:write` |
 | Datasets | `GET /datasets`, `GET /datasets/{datasetId}` | `datasets:read` |
 | Datasets | `POST /datasets`, `PUT /datasets/{datasetId}`, `DELETE /datasets/{datasetId}` | `datasets:write` |
 | Plans | `GET /plans`, `GET /plans/{planId}` | `plans:read` |
@@ -110,11 +116,25 @@ account must also meet the role requirement.
 
 Project creation/update accepts `{ "name": "…" }`. Test creation requires `name`, `url` and
 `sequence`; optional `elements`, `projectId`, `bdd`, `preconditions`, `cleanups`, `dataset` and
-classification fields follow the installed OpenAPI schemas. This contract authors UI, manual
-and BDD tests. It does not create native API/mobile test definitions. Plans may select existing
-UI/API/mobile tests with `selectedTests: [{ "id": 12, "type": "ui" }]`.
+classification fields follow the installed OpenAPI schemas. Plans may select UI, API and mobile
+tests with `selectedTests: [{ "id": 12, "type": "ui" }]` (`type` is `ui`, `api` or `mobile`).
 
-Each test create/update records a version and audit event in the same transaction. Updating a
+API test creation requires `name`, `method` and `url` (absolute, or starting with a variable such
+as `{{baseUrl}}`); the request, assertions, extractions, performance, authorization, body and
+protocol fields are the ones the API test builder saves. Reads replace each literal secret in
+`authParams` with a variable, as the suite export does: a bearer token reads as
+`{{bearer_token}}`. Sending that same variable back in a `PATCH` keeps the stored secret, so a
+definition can be read, changed and written back without losing its credential. API test names
+are unique in the organization.
+
+Mobile test creation requires `name`, `platform` (`android` or `ios`), `app` (`bs://…`, `lt://…`,
+an `http(s)://` address or a local Appium path), `deviceName` and `steps`; `osVersion`,
+`deviceMatrix`, `projectId` and `gridId` (a BrowserStack or LambdaTest grid) are optional. A
+`PATCH` sends only the fields that change, and the result is checked as a whole test: steps must
+suit the platform and step groups must exist. Mobile test names are unique in the organization,
+ignoring case.
+
+Each test create/update, of any kind, records a version and audit event in the same transaction. Updating a
 test does not publish it or change `publishedVersion`; publication and review policies still
 apply. Unknown properties, including `organizationId`, `userId` and `publishedVersion`, are
 rejected. Patching a plan's `selectedTests` replaces membership; omitting it retains membership.
@@ -167,27 +187,37 @@ has no idempotency header: persist returned IDs and use `PATCH` / `PUT` for subs
 
 ### Portable suite import/export
 
-Export body: `{ "projectId": 12, "format": "json" }`; format is `json` (default), `yaml` or
-`gherkin`. The `200` response contains `format`, `content`, `fileName`, `secretsReplaced` and `withReferences`.
-Export contains UI/manual/BDD definitions and inline datasets; it does not export native
-API/mobile definitions, named dataset resources or environment secrets. Provision shared
+Export body: `{ "projectId": 12, "format": "json", "include": ["tests", "apiTests", "mobileTests"] }`;
+format is `json` (default), `yaml` or `gherkin`. `include` chooses the kinds of test and defaults
+to `["tests"]` (UI, manual and BDD), so existing callers get the same file as before. `apiTests`
+also needs `api-tests:read` and `mobileTests` needs `mobile-tests:read`; Gherkin carries only
+`tests`. The `200` response contains `format`, `content`, `fileName`, `secretsReplaced` and
+`withReferences`. API tests are exported with literal secrets replaced by variables (listed in
+`secretsReplaced`); mobile tests carry the step groups they call, by platform and name. The export
+does not contain named dataset resources, environment secrets, grids or uploaded apps. Provision shared
 datasets separately and map any shared dataset IDs to the destination organization.
 
 Import body: `{ "projectId": 12, "content": "…", "format": "json", "dryRun": true }`.
 Format can be inferred when omitted. `dryRun` returns `200` with `{ "dryRun": true,
-"results": [{ "name": "…", "outcome": "created" }] }` without writes. A real import returns
-`201`; results include `id` and `outcome` (`created` or `updated`). Names matching tests in the
-destination project update them; names belonging to another accessible project conflict.
-The whole import is atomic, records versions/audit, and accepts at most 500 UI/manual/BDD
-tests and 2,000,000 content characters. Native API/mobile definitions are rejected.
+"results": [{ "kind": "test", "name": "…", "outcome": "created" }] }` without writes. A real
+import returns `201`. Each result has `kind` (`test`, `api_test`, `mobile_test` or
+`mobile_step_group`), `name`, `outcome` (`created`, `updated` or `unchanged`) and, for UI and API
+tests, `id`. Names matching tests in the destination project update them; names belonging to
+another project conflict. A suite with API tests also needs `api-tests:write`, one with mobile
+tests or step groups `mobile-tests:write`. An API test whose secret still holds the exported
+variable keeps the stored secret. The whole import is atomic: one invalid test of any kind rolls
+all of it back. It records versions and audit events and accepts at most 500 tests (all kinds
+together), 500 mobile step groups and 2,000,000 content characters. Imported mobile tests have no
+grid; set `gridId` afterwards with `PATCH /mobile-tests/{mobileTestId}`.
 
 | Authoring error | Status | Meaning |
 |---|---|---|
-| `project_not_found`, `test_not_found`, `dataset_not_found`, `plan_not_found` | 404 | Resource absent or inaccessible. |
+| `project_not_found`, `test_not_found`, `api_test_not_found`, `mobile_test_not_found`, `dataset_not_found`, `plan_not_found` | 404 | Resource absent or inaccessible. |
 | `project_read_only` | 403 | Restricted-project access does not allow editing. |
 | `manual_step_empty` | 400 | An empty manual step is invalid. |
 | `name_conflict` | 409 | A name is already used. |
 | `dataset_in_use` | 409 | Tests still reference the dataset. |
+| `insufficient_scope` | 403 | A suite includes API or mobile tests and the key lacks their scope; `requiredScope` names it. |
 | `suite_too_large` | 400 | Export exceeds 500 tests. |
 | `invalid_request` | 400 | Invalid body, references, bundle or import size. |
 

@@ -42,6 +42,60 @@ const testFields = {
   severity: nullableText,
   status: { ...text, enum: ['draft', 'ready', 'archived'] },
 };
+const anyObject = { type: 'object', additionalProperties: true } as const;
+const nullableObject = { type: ['object', 'null'], additionalProperties: true } as const;
+const nullableArray = { type: ['array', 'null'], items: anyObject } as const;
+const apiTestFields = {
+  name: { ...text, minLength: 1, maxLength: 200 },
+  method: { ...text, minLength: 1, maxLength: 20 },
+  url: {
+    ...text,
+    description: 'An absolute URL, or one starting with a variable such as {{baseUrl}}.',
+  },
+  projectId: { type: ['integer', 'null'], minimum: 1 },
+  module: nullableText,
+  featureArea: nullableText,
+  scenario: nullableText,
+  component: nullableText,
+  priority: { type: ['string', 'null'], enum: ['Critical', 'High', 'Medium', 'Low', null] },
+  severity: { type: ['string', 'null'], enum: ['Blocker', 'Critical', 'Major', 'Minor', null] },
+  queryParams: nullableObject,
+  requestHeaders: { type: ['object', 'null'], additionalProperties: text },
+  requestBody: {},
+  assertions: nullableArray,
+  extractions: nullableArray,
+  performance: nullableObject,
+  authType: nullableText,
+  authParams: {
+    ...nullableObject,
+    description:
+      'Reads replace literal secrets with {{<type>_<parameter>}}; sending that variable back keeps the stored secret.',
+  },
+  bodyType: nullableText,
+  bodyRawContentType: nullableText,
+  bodyFormData: nullableArray,
+  bodyUrlEncoded: nullableArray,
+  bodyGraphqlQuery: nullableText,
+  bodyGraphqlVariables: nullableText,
+  protoDefinition: nullableText,
+  protocolConfig: nullableObject,
+};
+const mobileTestFields = {
+  name: { ...text, minLength: 1, maxLength: 200 },
+  platform: { ...text, enum: ['android', 'ios'] },
+  app: {
+    ...text,
+    minLength: 1,
+    maxLength: 1000,
+    description: 'bs://…, lt://…, an http(s):// address, or a local Appium path.',
+  },
+  deviceName: { ...text, minLength: 1, maxLength: 120 },
+  osVersion: { ...nullableText, maxLength: 20 },
+  deviceMatrix: { type: 'array', maxItems: 20, default: [], items: anyObject },
+  projectId: { type: ['integer', 'null'], minimum: 1 },
+  gridId: { ...nullableText, maxLength: 100 },
+  steps: { type: 'array', maxItems: 200, items: anyObject },
+};
 const datasetFields = {
   name: { ...text, pattern: '^[a-z][a-z0-9_]{0,49}$' },
   description: { ...nullableText, maxLength: 500 },
@@ -101,13 +155,43 @@ export const authoringSchemas = {
     updatedAt: date,
     publishedVersion: { type: ['integer', 'null'] },
   }),
+  ApiTestInput: object(apiTestFields, ['name', 'method', 'url']),
+  ApiTestPatch: object(apiTestFields),
+  AuthoredApiTest: object({
+    id: integer,
+    ...apiTestFields,
+    createdAt: date,
+    updatedAt: date,
+    publishedVersion: { type: ['integer', 'null'] },
+  }),
+  MobileTestInput: object(mobileTestFields, ['name', 'platform', 'app', 'deviceName', 'steps']),
+  MobileTestPatch: object(mobileTestFields),
+  AuthoredMobileTest: object({
+    id: integer,
+    ...mobileTestFields,
+    createdAt: date,
+    updatedAt: date,
+    publishedVersion: { type: ['integer', 'null'] },
+  }),
   DatasetInput: object(datasetFields, ['name', 'columns', 'rows']),
   Dataset: object({ id: integer, ...datasetFields, createdAt: date, updatedAt: date }),
   PlanInput: object(planFields, ['name']),
   PlanPatch: object(planFields),
   AuthoredPlan: object({ id: text, ...planFields, createdAt: date, updatedAt: date }),
   SuiteExportInput: object(
-    { projectId: integer, format: { ...text, enum: ['json', 'yaml', 'gherkin'], default: 'json' } },
+    {
+      projectId: integer,
+      format: { ...text, enum: ['json', 'yaml', 'gherkin'], default: 'json' },
+      include: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 3,
+        default: ['tests'],
+        items: { ...text, enum: ['tests', 'apiTests', 'mobileTests'] },
+        description:
+          'apiTests also needs api-tests:read, mobileTests mobile-tests:read; Gherkin carries tests only.',
+      },
+    },
     ['projectId'],
   ),
   SuiteExport: object({
@@ -132,8 +216,13 @@ export const authoringSchemas = {
       results: {
         type: 'array',
         items: object(
-          { name: text, id: integer, outcome: { ...text, enum: ['created', 'updated'] } },
-          ['name', 'outcome'],
+          {
+            kind: { ...text, enum: ['test', 'api_test', 'mobile_test', 'mobile_step_group'] },
+            name: text,
+            id: integer,
+            outcome: { ...text, enum: ['created', 'updated', 'unchanged'] },
+          },
+          ['kind', 'name', 'outcome'],
         ),
       },
     },
@@ -284,6 +373,76 @@ export const authoringPaths = {
       response: 'AuthoredTest',
       parameters: idParameter('testId'),
       summary: 'Update the working copy and record a version.',
+    }),
+  },
+  '/api/v1/api-tests': {
+    get: operation({
+      id: 'listApiTests',
+      scope: 'api-tests:read',
+      response: 'AuthoredApiTest',
+      list: true,
+      parameters: [...pagination, { name: 'projectId', in: 'query', schema: integer }],
+      summary: 'List visible API tests, literal secrets replaced by variables.',
+    }),
+    post: operation({
+      id: 'createApiTest',
+      scope: 'api-tests:write',
+      input: 'ApiTestInput',
+      response: 'AuthoredApiTest',
+      status: 201,
+      summary: 'Create an API test and its first version.',
+    }),
+  },
+  '/api/v1/api-tests/{apiTestId}': {
+    get: operation({
+      id: 'getApiTest',
+      scope: 'api-tests:read',
+      response: 'AuthoredApiTest',
+      parameters: idParameter('apiTestId'),
+      summary: 'Read a visible API test definition.',
+    }),
+    patch: operation({
+      id: 'updateApiTest',
+      scope: 'api-tests:write',
+      input: 'ApiTestPatch',
+      response: 'AuthoredApiTest',
+      parameters: idParameter('apiTestId'),
+      summary: 'Update an API test and record a version.',
+    }),
+  },
+  '/api/v1/mobile-tests': {
+    get: operation({
+      id: 'listMobileTests',
+      scope: 'mobile-tests:read',
+      response: 'AuthoredMobileTest',
+      list: true,
+      parameters: [...pagination, { name: 'projectId', in: 'query', schema: integer }],
+      summary: 'List visible native mobile tests.',
+    }),
+    post: operation({
+      id: 'createMobileTest',
+      scope: 'mobile-tests:write',
+      input: 'MobileTestInput',
+      response: 'AuthoredMobileTest',
+      status: 201,
+      summary: 'Create a mobile test and its first version.',
+    }),
+  },
+  '/api/v1/mobile-tests/{mobileTestId}': {
+    get: operation({
+      id: 'getMobileTest',
+      scope: 'mobile-tests:read',
+      response: 'AuthoredMobileTest',
+      parameters: idParameter('mobileTestId'),
+      summary: 'Read a visible mobile test definition.',
+    }),
+    patch: operation({
+      id: 'updateMobileTest',
+      scope: 'mobile-tests:write',
+      input: 'MobileTestPatch',
+      response: 'AuthoredMobileTest',
+      parameters: idParameter('mobileTestId'),
+      summary: 'Update a mobile test, checked as a whole, and record a version.',
     }),
   },
   '/api/v1/datasets': {

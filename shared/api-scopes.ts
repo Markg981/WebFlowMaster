@@ -26,10 +26,23 @@ export const API_SCOPES = {
     minimumRole: 'editor',
     description: 'Create plans and replace their typed test membership.',
   },
-  'suites:read': { minimumRole: 'viewer', description: 'Export portable test suites.' },
+  'api-tests:read': {
+    minimumRole: 'viewer',
+    description: 'Read API tests, with literal secrets replaced by variables.',
+  },
+  'api-tests:write': { minimumRole: 'editor', description: 'Create and update API tests.' },
+  'mobile-tests:read': { minimumRole: 'viewer', description: 'Read native mobile tests.' },
+  'mobile-tests:write': {
+    minimumRole: 'editor',
+    description: 'Create and update native mobile tests.',
+  },
+  'suites:read': {
+    minimumRole: 'viewer',
+    description: 'Export portable suites; API and mobile tests also need their read scope.',
+  },
   'suites:write': {
     minimumRole: 'editor',
-    description: 'Import portable UI, manual and BDD suites.',
+    description: 'Import portable suites; API and mobile tests also need their write scope.',
   },
   'plans:read': { minimumRole: 'viewer', description: 'List test plans.' },
   'runs:read': {

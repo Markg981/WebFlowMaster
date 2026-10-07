@@ -16,8 +16,17 @@ vi.mock('../logger', () => ({
   updateLogLevel: vi.fn(),
 }));
 const { privilegedDb } = await import('../db');
-const { apiKeys, users, projects, projectMembers, tests, testVersions, auditLog } =
-  await import('@shared/schema');
+const {
+  apiKeys,
+  users,
+  projects,
+  projectMembers,
+  tests,
+  apiTests,
+  mobileTests,
+  testVersions,
+  auditLog,
+} = await import('@shared/schema');
 const { createTestOrganization, createTestUser } = await import('../tests/factories');
 const { generateApiKey } = await import('../api-keys');
 const { apiKeyAuth } = await import('../middleware/api-key-auth');
@@ -446,5 +455,192 @@ describe('public authoring through API keys and tenant transactions', () => {
       .expect(409);
     expect(result.body.error.code).toBe('dataset_in_use');
     expect(JSON.stringify(result.body)).not.toContain('Hidden dependency');
+  });
+});
+
+const apiDefinition = (name: string, projectId?: number) => ({
+  name,
+  method: 'GET',
+  url: '{{baseUrl}}/health',
+  authType: 'bearer',
+  authParams: { type: 'bearer', params: { token: 'literal-token-123' } },
+  ...(projectId ? { projectId } : {}),
+});
+const mobileDefinition = (name: string, projectId?: number) => ({
+  name,
+  platform: 'android',
+  app: 'bs://shop-app',
+  deviceName: 'Google Pixel 8',
+  steps: [],
+  ...(projectId ? { projectId } : {}),
+});
+
+describe('public authoring of API and mobile tests', () => {
+  it('needs the API and mobile scopes, not the UI test ones', async () => {
+    const uiKey = await makeKey(user, org, ['tests:read', 'tests:write']);
+    for (const path of ['/api/v1/api-tests', '/api/v1/mobile-tests']) {
+      const denied = await request(app).get(path).set(auth(uiKey)).expect(403);
+      expect(denied.body.error.code).toBe('insufficient_scope');
+    }
+    await request(app)
+      .post('/api/v1/api-tests')
+      .set(auth(viewerKey))
+      .send(apiDefinition(`Viewer-${randomUUID()}`))
+      .expect(403);
+  });
+  it('redacts stored secrets on read and keeps them when the variable comes back', async () => {
+    const created = await request(app)
+      .post('/api/v1/api-tests')
+      .set(auth())
+      .send(apiDefinition(`Health-${randomUUID()}`))
+      .expect(201);
+    expect(created.body.authParams.params.token).toBe('{{bearer_token}}');
+    expect(created.body).not.toHaveProperty('userId');
+    expect(created.body).not.toHaveProperty('organizationId');
+    const path = `/api/v1/api-tests/${created.body.id}`;
+    await request(app).get(path).set(auth(otherKey)).expect(404);
+    const read = await request(app).get(path).set(auth()).expect(200);
+    await request(app)
+      .patch(path)
+      .set(auth())
+      .send({ url: '{{baseUrl}}/ready', authParams: read.body.authParams })
+      .expect(200);
+    const [stored] = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, created.body.id));
+    expect(stored.url).toBe('{{baseUrl}}/ready');
+    expect(stored.authParams).toEqual({ type: 'bearer', params: { token: 'literal-token-123' } });
+    await request(app).patch(path).set(auth()).send({ userId: user }).expect(400);
+    await request(app)
+      .post('/api/v1/api-tests')
+      .set(auth())
+      .send(apiDefinition(created.body.name))
+      .expect(409);
+    const audits = await privilegedDb
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.targetId, String(created.body.id)));
+    expect(audits.map((row) => row.action)).toEqual(
+      expect.arrayContaining(['api_test.created', 'api_test.updated']),
+    );
+    expect(JSON.stringify(audits.map((row) => row.metadata))).not.toContain('literal-token-123');
+  });
+  it('creates mobile tests and checks a partial update as the whole test', async () => {
+    const created = await request(app)
+      .post('/api/v1/mobile-tests')
+      .set(auth())
+      .send(mobileDefinition(`Checkout-${randomUUID()}`))
+      .expect(201);
+    expect(created.body).toMatchObject({ platform: 'android', deviceMatrix: [], gridId: null });
+    const path = `/api/v1/mobile-tests/${created.body.id}`;
+    await request(app).get(path).set(auth(otherKey)).expect(404);
+    const changed = await request(app)
+      .patch(path)
+      .set(auth())
+      .send({ deviceName: 'Samsung Galaxy S24', osVersion: '14.0' })
+      .expect(200);
+    expect(changed.body).toMatchObject({
+      name: created.body.name,
+      app: 'bs://shop-app',
+      deviceName: 'Samsung Galaxy S24',
+      osVersion: '14.0',
+    });
+    await request(app).patch(path).set(auth()).send({ app: 'not an app' }).expect(400);
+    await request(app).patch(path).set(auth()).send({ createdBy: user }).expect(400);
+    await request(app)
+      .post('/api/v1/mobile-tests')
+      .set(auth())
+      .send(mobileDefinition(created.body.name.toUpperCase()))
+      .expect(409);
+  });
+  it('exports and re-imports a whole suite, each kind behind its own scope', async () => {
+    const project = await request(app)
+      .post('/api/v1/projects')
+      .set(auth())
+      .send({ name: `Whole suite ${randomUUID()}` })
+      .expect(201);
+    const projectId = project.body.id;
+    const suffix = randomUUID();
+    await request(app).post('/api/v1/tests').set(auth()).send(definition(`Web-${suffix}`, projectId)).expect(201);
+    const api = await request(app)
+      .post('/api/v1/api-tests')
+      .set(auth())
+      .send(apiDefinition(`Api-${suffix}`, projectId))
+      .expect(201);
+    await request(app)
+      .post('/api/v1/mobile-tests')
+      .set(auth())
+      .send(mobileDefinition(`Mobile-${suffix}`, projectId))
+      .expect(201);
+
+    const legacy = await request(app).post('/api/v1/suites/export').set(auth()).send({ projectId }).expect(200);
+    const legacyBundle = JSON.parse(legacy.body.content);
+    expect(legacyBundle.tests).toHaveLength(1);
+    expect(legacyBundle.apiTests).toEqual([]);
+    expect(legacyBundle.mobileTests).toEqual([]);
+
+    const suiteKey = await makeKey(user, org, ['suites:read', 'suites:write']);
+    const include = ['tests', 'apiTests', 'mobileTests'];
+    const denied = await request(app)
+      .post('/api/v1/suites/export')
+      .set(auth(suiteKey))
+      .send({ projectId, include })
+      .expect(403);
+    expect(denied.body.error).toMatchObject({ code: 'insufficient_scope', requiredScope: 'api-tests:read' });
+    await request(app)
+      .post('/api/v1/suites/export')
+      .set(auth())
+      .send({ projectId, include, format: 'gherkin' })
+      .expect(400);
+
+    const exported = await request(app)
+      .post('/api/v1/suites/export')
+      .set(auth())
+      .send({ projectId, include })
+      .expect(200);
+    const bundle = JSON.parse(exported.body.content);
+    expect(bundle.apiTests).toEqual([
+      expect.objectContaining({ name: `Api-${suffix}`, authParams: { type: 'bearer', params: { token: '{{bearer_token}}' } } }),
+    ]);
+    expect(bundle.mobileTests).toEqual([expect.objectContaining({ name: `Mobile-${suffix}` })]);
+    expect(exported.body.secretsReplaced).toHaveLength(1);
+
+    bundle.apiTests[0].url = '{{baseUrl}}/v2/health';
+    const changed = JSON.stringify(bundle);
+    const suiteDenied = await request(app)
+      .post('/api/v1/suites/import')
+      .set(auth(suiteKey))
+      .send({ projectId, content: changed })
+      .expect(403);
+    expect(suiteDenied.body.error.requiredScope).toBe('api-tests:write');
+
+    const preview = await request(app)
+      .post('/api/v1/suites/import')
+      .set(auth())
+      .send({ projectId, content: changed, dryRun: true })
+      .expect(200);
+    expect(preview.body.results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'test', outcome: 'updated' }),
+        expect.objectContaining({ kind: 'api_test', name: `Api-${suffix}`, outcome: 'updated' }),
+        expect.objectContaining({ kind: 'mobile_test', name: `Mobile-${suffix}`, outcome: 'unchanged' }),
+      ]),
+    );
+    await request(app).post('/api/v1/suites/import').set(auth()).send({ projectId, content: changed }).expect(201);
+    const [stored] = await privilegedDb.select().from(apiTests).where(eq(apiTests.id, api.body.id));
+    expect(stored.url).toBe('{{baseUrl}}/v2/health');
+    expect(stored.authParams).toEqual({ type: 'bearer', params: { token: 'literal-token-123' } });
+
+    // One invalid mobile test rolls back the API test created alongside it.
+    const created = `Rolled back-${randomUUID()}`;
+    const invalid = JSON.stringify({
+      ...bundle,
+      tests: [],
+      apiTests: [apiDefinition(created)],
+      mobileTests: [{ ...mobileDefinition(`Broken-${suffix}`), app: 'not an app' }],
+    });
+    await request(app).post('/api/v1/suites/import').set(auth()).send({ projectId, content: invalid }).expect(400);
+    expect((await privilegedDb.select().from(apiTests).where(eq(apiTests.name, created))).length).toBe(0);
+    expect(
+      (await privilegedDb.select().from(mobileTests).where(eq(mobileTests.name, `Broken-${suffix}`))).length,
+    ).toBe(0);
   });
 });

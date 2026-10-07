@@ -41,3 +41,13 @@ export function requireScope(scope: ApiScope): ScopeGuard {
   guard.scope = scope;
   return guard;
 }
+
+/**
+ * Whether the caller may also use `scope`, for an endpoint whose work spans several resources —
+ * a suite that carries API or mobile tests. The same two checks as the guard, without answering.
+ */
+export function holdsScope(req: Request, scope: ApiScope): boolean {
+  if (!req.user || !roleAllows(req.user.role, API_SCOPES[scope].minimumRole)) return false;
+  const scopes = (req as KeyAuthenticatedRequest).apiKeyScopes;
+  return !scopes || scopes.includes(scope);
+}

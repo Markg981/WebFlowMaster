@@ -1,5 +1,5 @@
 {
-  "version": 32,
+  "version": 33,
   "areas": [
     {
       "id": "ACC",
@@ -7971,6 +7971,61 @@
         "Attendere il log worker di presa in carico della cancellazione prima di sbloccare la richiesta; ricaricare il report."
       ],
       "expected": "Rifiutare la conferma mantiene il run attivo; confermare persiste cancelled. Il primo test ha un risultato e il successivo è Skipped con motivo cancelled nel report."
+    },
+    {
+      "id": "API-52",
+      "area": "API",
+      "title": "Scope dedicati ai test API e mobile",
+      "priority": "P1",
+      "actor": "owner.a / editor.a",
+      "preconditions": "Ambiente sacrificabile aggiornato; possibilità di creare chiavi API. Nuovo ciclo: Da eseguire.",
+      "steps": [
+        "In Impostazioni → Chiavi API verificare che compaiano api-tests:read/write e mobile-tests:read/write con la descrizione nella lingua dell'interfaccia.",
+        "Con una chiave che ha solo tests:read/write chiamare GET /api/v1/api-tests e GET /api/v1/mobile-tests; ripetere con una chiave che ha i quattro nuovi scope e con una chiave viewer che ha gli scope di scrittura (POST)."
+      ],
+      "expected": "Gli scope dei test UI non aprono test API e mobile (403 insufficient_scope); con gli scope dedicati le liste rispondono 200 paginate; il viewer riceve 403 insufficient_role. openapi.json elenca le nuove operazioni con x-required-scope."
+    },
+    {
+      "id": "API-53",
+      "area": "API",
+      "title": "Test API via /api/v1 senza esporre né perdere segreti",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Chiave con api-tests:read/write; progetto sacrificabile; endpoint httpbin.org/bearer raggiungibile. Nuovo ciclo: Da eseguire.",
+      "steps": [
+        "POST /api/v1/api-tests con auth bearer e token letterale; leggere la risposta e GET del test.",
+        "Rimandare la definizione letta in un PATCH cambiando solo l'URL; eseguire il test dal Tester API e aprirne la cronologia.",
+        "Ripetere il POST con lo stesso nome; PATCH con userId; controllare il registro di audit."
+      ],
+      "expected": "Le letture mostrano {{bearer_token}} al posto del token e nessun userId/organizationId; dopo il PATCH il test continua ad autenticarsi (segreto conservato) con versione 2; nome duplicato 409 name_conflict, campo sconosciuto 400; audit api_test.created/updated senza il token."
+    },
+    {
+      "id": "API-54",
+      "area": "API",
+      "title": "Test mobile via /api/v1 e PATCH parziale validato",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Chiave con mobile-tests:read/write; griglia BrowserStack o LambdaTest e un server Playwright configurati; app caricata (bs://…). Nuovo ciclo: Da eseguire.",
+      "steps": [
+        "POST /api/v1/mobile-tests con piattaforma android, app, dispositivo e un passo tap; poi PATCH con solo osVersion e gridId della griglia mobile.",
+        "PATCH con app non valida, con gridId del server Playwright e con un locator non valido per Android; ripetere il POST con il nome in maiuscolo.",
+        "Aprire il test in App mobili ed eseguirlo."
+      ],
+      "expected": "Creazione 201; il PATCH parziale lascia invariati gli altri campi; i PATCH non validi rispondono 400 senza modificare il test; nome duplicato (senza distinzione di maiuscole) 409; il test è visibile, versionato e si esegue come uno creato dalla UI."
+    },
+    {
+      "id": "API-55",
+      "area": "API",
+      "title": "Suite completa pubblica: export/import con test API e mobile",
+      "priority": "P1",
+      "actor": "editor.a",
+      "preconditions": "Progetto sacrificabile con un test UI, un test API con segreto e un test mobile che chiama un gruppo di step; una chiave con soli suites read/write e una con anche gli scope API e mobile. Nuovo ciclo: Da eseguire.",
+      "steps": [
+        "Export senza include; poi con include tests/apiTests/mobileTests con la chiave solo suites, con formato gherkin e infine con la chiave completa.",
+        "Modificare l'URL del test API nel contenuto; import in dryRun e poi reale; eseguire il test API.",
+        "Importare un file con un test API nuovo e un test mobile non valido; ripetere un import con test API usando la chiave solo suites."
+      ],
+      "expected": "Senza include l'export è identico a prima (solo test UI/manuali/BDD); scope mancante 403 con requiredScope; gherkin con API/mobile 400; export completo con segreti sostituiti da variabili e gruppi di step inclusi. Il dryRun non salva e indica kind/outcome per riga; l'import reale aggiorna e il segreto resta valido. Un elemento non valido annulla tutto l'import (nessun test API creato); senza api-tests:write 403."
     }
   ],
   "presentation": {
