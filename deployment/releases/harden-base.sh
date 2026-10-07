@@ -3,8 +3,12 @@ set -eu
 
 # Fixed Ubuntu 26.04 security packages; never use an unversioned dist-upgrade.
 openssl_version=3.5.5-1ubuntu3.7
-apt-get update
-apt-get install -y --no-install-recommends \
+# Ubuntu mirrors can drop connections during parallel CI image builds.
+# Retry downloads, bound each connection attempt, and reject incomplete indexes.
+apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 \
+  -o Acquire::https::Timeout=30 -o APT::Update::Error-Mode=any update
+apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 \
+  -o Acquire::https::Timeout=30 install -y --no-install-recommends \
   "libssl3t64=$openssl_version" "openssl=$openssl_version" \
   "openssl-provider-legacy=$openssl_version"
 # WFM images start Node directly; Pebble is not an entrypoint or runtime service.
