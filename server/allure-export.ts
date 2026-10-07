@@ -85,6 +85,11 @@ export function buildAllureResults(model: ReportModel, options: AllureExportOpti
     }
 
     attachments.push({ name: 'Queued input provenance', source: provenanceFile, type: 'application/json' });
+    if (result.matrixEvidence?.length) {
+      const source = `${id}-matrix.json`;
+      files.push({ name: source, data: Buffer.from(JSON.stringify(result.matrixEvidence)) });
+      attachments.push({ name: 'Requested and effective matrix', source, type: 'application/json' });
+    }
     const failedStepIndex = result.steps.findIndex((step) => step.status === 'failed');
     const body = {
       uuid: id,

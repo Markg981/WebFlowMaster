@@ -4567,5 +4567,17 @@
     "deleteTitle": "Delete {{name}}?",
     "deleteBody": "Its runs go with it. The API tests stay.",
     "delete": "Delete"
+  },
+  "matrixEvidence": {
+    "title": "Requested and effective matrix",
+    "description": "Configuration matching is separate from the test outcome. Emulation does not certify a real device.",
+    "test": "Test",
+    "route": "Route",
+    "requested": "Requested",
+    "effective": "Effective",
+    "verdict": "Configuration match",
+    "matched": "Matched",
+    "mismatch": "Mismatch",
+    "unverified": "Unverified"
   }
 }

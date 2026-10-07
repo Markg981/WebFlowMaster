@@ -72,7 +72,8 @@
     "build:network-probe": "esbuild scripts/check-saas-transports.ts --platform=node --packages=external --bundle --format=esm --outfile=tmp/saas-transports.mjs",
     "test:release": "node --test scripts/release/*.test.mjs",
     "postinstall": "node scripts/security/apply-braces-patch.cjs",
-    "test:security": "node --test scripts/security/*.test.mjs"
+    "test:security": "node --test scripts/security/*.test.mjs",
+    "test:matrix:certify": "playwright test --config=e2e/matrix-certification.config.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1138.0",

@@ -1,4 +1,5 @@
 import { stepListOf } from '@shared/mobile';
+import { readMatrixEvidence, type MatrixEvidence } from '@shared/matrix-evidence';
 import { asc, eq } from 'drizzle-orm';
 import { reportTestCaseResults, testPlanExecutions, testPlans } from '@shared/schema';
 import type { AccessibilityFinding } from '@shared/accessibility';
@@ -28,6 +29,7 @@ export interface ReportStepModel {
 }
 
 export interface ReportResultModel {
+  matrixEvidence?: MatrixEvidence[];
   id: string;
   testName: string;
   testType: string;
@@ -176,6 +178,7 @@ export async function loadReportModel(executionId: string): Promise<ReportModel 
       completedAt: r.completedAt,
       durationMs: r.durationMs,
       steps: stepsOf(r.detailedLog),
+      matrixEvidence: readMatrixEvidence(r.detailedLog),
       network: (r.networkSummary as NetworkSummary | null) ?? null,
       // The result's own screenshot, else the one its failed step kept: either way the picture of
       // where it broke, for the export that embeds it.

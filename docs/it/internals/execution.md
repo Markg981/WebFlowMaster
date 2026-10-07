@@ -293,3 +293,11 @@ occorrenza ha una chiave di idempotenza stabile (`occurrenceKey`), quindi due re
 che scattano nello stesso minuto producono un solo run. Il backend predefinito è node-cron nel processo
 web (un solo server web). `SCHEDULER_BACKEND=bullmq` usa invece i job scheduler di Redis, che
 sopravvivono ai riavvii e non si duplicano fra istanze; il trigger lo gestisce un worker.
+
+## Evidenza delle matrici reali
+
+I test UI salvati conservano browser/OS/versioni richiesti e osservati per ogni passaggio, incluse le righe dataset. I piani mobile conservano dispositivo/OS restituiti dalle capabilities W3C di Appium. Report UI, HTML/PDF, allegati Allure e proprietà JUnit `wfm.matrix` espongono questi dati. Sono conservati soltanto i campi di piattaforma previsti.
+
+La corrispondenza (`matched`, `mismatch`, `unverified`) è indipendente dall'esito funzionale. Le versioni OS locali sono release del kernel; l'OS remoto non viene dedotto dal worker o dal user-agent. Emulazione browser e sostituzione WebKit non certificano dispositivi reali o Safari. Gli esiti storici senza evidenza rimangono non certificati.
+
+La suite UI dell'installazione esegue Chromium, Firefox e WebKit. `npm run test:matrix:certify` richiede `WFM_MATRIX_CERTIFICATION_FILE` con target griglia web e Appium reali e fallisce quando manca infrastruttura o evidenza corrispondente. Procedura nel repository: `collaudo/real-matrix-certification.md`; servono credenziali cloud, fixture raggiungibili, app/driver installati e dispositivi connessi. Appium locale è raggiunto tramite un agente effimero del tenant.
