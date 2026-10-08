@@ -1,5 +1,11 @@
 # Test di carico ed endurance della piattaforma
 
+Per il Collaudo locale, `npm run collaudo:carico` prepara due tenant e rimuove i propri dati di prova.
+Il runner usa il Node corrente con il loader `tsx`, anche su Windows, senza invocare una shell
+con le chiavi API. Conservare il JSON prima di una nuova esecuzione. Per misurare la capacità
+senza il limite API, disabilitarlo solo nello stack di prova e ripristinare il valore originale
+al termine; annotare questa configurazione insieme a durata, concorrenza e risorse.
+
 Servono chiavi API con scope `plans:read`, `runs:read` e `runs:write`, e un piano esistente economico per organizzazione. I run rimangono nello storico del piano e utilizzano i runner dell'installazione.
 
 ```sh

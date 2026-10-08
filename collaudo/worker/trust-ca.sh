@@ -8,7 +8,8 @@ CA=/collaudo-ca/root.crt
 DB="sql:${HOME:-/root}/.pki/nssdb"
 
 if ! command -v certutil >/dev/null 2>&1; then
-  apt-get update -qq && apt-get install -y -qq --no-install-recommends libnss3-tools >/dev/null
+  echo "Missing certutil: rebuild the collaudo worker with INSTALL_COLLAUDO_CA_TOOLS=1" >&2
+  exit 127
 fi
 mkdir -p "${HOME:-/root}/.pki/nssdb"
 [ -f "${HOME:-/root}/.pki/nssdb/cert9.db" ] || certutil -d "$DB" -N --empty-password

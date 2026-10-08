@@ -2,7 +2,7 @@
 
 ## Pagina di collaudo locale
 
-Catalogo corrente: protocollo **32**, **555 casi** in **25 aree**. AUT-01…AUT-09 coprono
+Catalogo corrente: protocollo **39**, **579 casi** in **25 aree**. AUT-01…AUT-09 coprono
 MFA, OIDC, review/pubblicazione, authoring ed eliminazione mobile, quote e annullamento,
 con verifiche dei permessi dalla UI; procedura in [critical-ui-e2e.md](./critical-ui-e2e.md).
 REP-26…REP-32 coprono il replay storico; LIB-35…LIB-41 coprono
@@ -25,7 +25,7 @@ Per una porta diversa impostare `COLLAUDO_PORT` prima del comando.
   e i 46 nuovi casi delle funzionalità 6–13, più OPS-17…OPS-19 per storico e backup locali:
   più 32 casi di versioni e approvazioni API/mobile (API-29…API-36, MOB-25…MOB-32,
   LIB-27…LIB-34, SEC-37…SEC-44), più AGT-06…AGT-10 per gRPC/WebSocket sugli agenti:
-  Il catalogo attuale contiene 555 casi, 25 aree, protocollo versione 32.
+  Il catalogo attuale contiene 579 casi, 25 aree, protocollo versione 39.
   MOB-33…MOB-40 coprono flussi nativi, gruppi, matrici dispositivi e catalogo mobile.
   La procedura e i limiti delle evidenze sono in `docs/mobile-flow-matrix-acceptance.md`.
   QUO-01…QUO-14 coprono quote per organizzazione, inventario artifact e minuti di esecuzione;
@@ -70,6 +70,13 @@ Questi dati locali non sono distribuiti con il repository: su una nuova macchina
 importare il backup oppure creare un ciclo. Non sono stati recuperati altri cicli.
 I 46 nuovi casi erano **Da eseguire** al momento della migrazione; i cicli già congelati
 mantengono il proprio elenco di casi. La fatturazione SaaS resta sospesa.
+
+## Chiusura della v1
+
+Il registro [v1-closure-2026-10-08.md](./v1-closure-2026-10-08.md) distingue verifiche automatiche,
+accettazione manuale, aggiornamento locale e prerequisiti esterni. Il nuovo ciclo usa il catalogo
+corrente e parte da **Da eseguire**. Le evidenze automatiche restano separate dagli esiti manuali.
+Restore S3, griglie e Appium richiedono ambienti reali; una configurazione di esempio non li verifica.
 
 ## Installazione del prodotto da collaudare
 

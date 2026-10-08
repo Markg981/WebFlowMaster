@@ -80,10 +80,11 @@ try {
   console.log(`Dati pronti in A e B (bersaglio ${TARGET}).`);
   const extra = (process.env.CARICO_ARGOMENTI ?? '').split(/\s+/).filter(Boolean);
   const result = spawnSync(
-    'npx',
-    ['tsx', 'scripts/wfm-load.ts', '--url', BASE, ...orgs.flatMap((o) => ['--target', `${o.key}:${o.planId}`]), '--max-concurrent', process.env.CARICO_MAX_IN_CORSO ?? '2', '--json', 'collaudo/carico-esito.json', ...extra],
+    process.execPath,
+    ['--import', 'tsx', 'scripts/wfm-load.ts', '--url', BASE, ...orgs.flatMap((o) => ['--target', `${o.key}:${o.planId}`]), '--max-concurrent', process.env.CARICO_MAX_IN_CORSO ?? '2', '--json', 'collaudo/carico-esito.json', ...extra],
     { cwd: ROOT, stdio: 'inherit', env: process.env },
   );
+  if (result.error) throw result.error;
   code = result.status ?? 2;
   console.log(code === 0 ? '\nOPS-15…17: entro le soglie (esito in collaudo/carico-esito.json).' : `\nOPS-15…17: ${code === 1 ? 'soglie superate' : 'prova non eseguita'} (esito in collaudo/carico-esito.json).`);
 } catch (error) {

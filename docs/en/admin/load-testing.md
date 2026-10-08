@@ -1,5 +1,11 @@
 # Platform load and endurance testing
 
+For local acceptance, `npm run collaudo:carico` prepares two tenants and removes its trial data.
+The runner uses the current Node executable with the `tsx` loader, including on Windows,
+without putting API keys through a shell. Retain the JSON before another run. To measure capacity
+without the API rate limit, disable it only on the trial stack and restore its original value
+afterwards; record this setting along with duration, concurrency and machine resources.
+
 Use API keys with `plans:read`, `runs:read` and `runs:write`, and one inexpensive existing plan per organization. Runs remain in plan history and consume the installation's runners.
 
 ```sh

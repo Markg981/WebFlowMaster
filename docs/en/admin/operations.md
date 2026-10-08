@@ -5,6 +5,12 @@ up so it can be brought back, reading its logs, and what to look at when somethi
 
 ## Upgrading
 
+For local acceptance, use the `wfm-collaudo` project and its overlay, preserving volumes.
+The worker imports Chromium's private CA as `pwuser`; the overlay enables
+`INSTALL_COLLAUDO_CA_TOOLS=1` to install `certutil` at build time. If the startup script reports
+missing `certutil`, rebuild the worker with the overlay. Startup does not install packages or
+require root privileges. Dedicated acceptance case OPS-36 is in `collaudo/casi.json`.
+
 A release can change the database schema, so the order matters.
 
 1. **Drain the runners.** In **Settings → Runners**, drain each runner. A draining runner
@@ -21,6 +27,25 @@ A release can change the database schema, so the order matters.
 
 With Compose, `docker compose up -d --build` does steps 2, 4 and 5 in order, because `api` and
 `worker` wait for `migrate` to finish.
+
+### Volumes from previous installations
+
+Current API and worker images use `pwuser` (UID 1000). A volume created by an older root image
+can retain owner `0:0`; a rebuild does not change existing volume ownership. The worker can start
+but a run fails with `EACCES` when creating its evidence directory.
+
+After draining and verifying the backup, check ownership of `/app/results` and
+`/app/data/visual-baselines`. Only when needed, repair these volumes using a temporary container.
+For local acceptance:
+
+```sh
+docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml run --rm --no-deps --user root api chown -R pwuser:pwuser /app/results /app/data/visual-baselines
+```
+
+The command changes ownership while retaining contents; it neither deletes nor recreates volumes.
+For other installations, use their verified project and Compose files, keeping the trial separate
+from production. Then verify worker UID 1000, a historical report and a new run with downloadable
+evidence. A verified backup or successful login alone does not establish this path.
 
 **Local agents.** An agent's Playwright must have the same major and minor version as the
 runners'. When a release changes the Playwright version, update the agents too (a new image,

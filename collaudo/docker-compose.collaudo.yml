@@ -82,6 +82,9 @@ services:
 
   worker:
     # The browsers of a run trust the collaudo CA too (WEB-48 signs in on Keycloak): collaudo/worker.
+    build:
+      args:
+        INSTALL_COLLAUDO_CA_TOOLS: "1"
     entrypoint: ["sh", "/collaudo-worker/trust-ca.sh"]
     command: ["node", "dist/worker.js"]
     environment:
