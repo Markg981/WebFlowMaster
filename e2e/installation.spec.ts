@@ -2,6 +2,8 @@ import { test, expect, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { distributedWsdl, requestXsd, baseXsd } from '../server/tests/soap-bundle-fixtures';
+import { expandedDocuments, expandedWsdl } from '../server/tests/soap-expanded-fixtures';
+import { register } from './helpers';
 
 const password = 'E2e-Installation!2026';
 const target = 'http://127.0.0.1:5081/echo';
@@ -80,6 +82,30 @@ test('SOAP bundle files and logical locations produce saved tests through the im
   expect(saved).toEqual(expect.arrayContaining([expect.objectContaining({ method: 'POST', requestBody: expect.stringContaining('OrderId') })]));
 });
 
+test('nested XSD groups, choices and wildcards preview and save through the import interface', async ({ page }) => {
+  await register(page);
+  await page.goto('/dashboard/api-tester');
+  await page.getByRole('tab', { name: 'Saved Tests', exact: true }).click();
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.locator('#import-file').setInputFiles([
+    { name: 'service.wsdl', mimeType: 'text/xml', buffer: Buffer.from(expandedWsdl) },
+    ...expandedDocuments.map(d => ({name: d.location, mimeType: 'text/xml', buffer: Buffer.from(d.content)})),
+  ]);
+  await dialog.getByRole('button', { name: 'Show what it makes', exact: true }).click();
+  const preview = dialog.getByTestId('import-preview');
+  await expect(preview).toContainText('first alternative');
+  await expect(preview).toContainText('wildcard');
+  const imported = page.waitForResponse(res => res.url().endsWith('/api/api-tests/import') && res.request().method() === 'POST');
+  await dialog.getByTestId('import-confirm').click();
+  expect((await imported).status()).toBe(201);
+  const [saved] = await (await page.request.get('/api/api-tests')).json();
+  expect(saved.requestBody).toContain('<ns2:OrderId>');
+  expect(saved.requestBody.match(/<ns:Line>/g)).toHaveLength(2);
+  expect(saved.requestBody).not.toContain('ServiceCode');
+  expect(saved.requestBody).toContain('<!-- XSD any');
+});
+
 test('organization email settings and edited templates persist and stay isolated from another organization', async ({ page, browser }) => {
   await register(page);
   await page.goto('/settings#security');
@@ -122,18 +148,6 @@ test('organization email settings and edited templates persist and stay isolated
     expect(foreign.ok()).toBeTruthy(); expect(JSON.stringify(await foreign.json())).not.toContain(secret);
   } finally { await context.close(); }
 });
-
-async function register(page: Page) {
-  const username = `ci_${randomUUID().replaceAll('-', '')}`;
-  await page.goto('/auth');
-  await page.getByRole('tab', { name: 'Register', exact: true }).click();
-  await page.locator('#register-username').fill(username);
-  await page.locator('#register-password').fill(password);
-  await page.locator('#confirm-password').fill(password);
-  await page.getByRole('button', { name: 'Create Account', exact: true }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
-  return username;
-}
 
 async function saveApiTest(page: Page, name: string) {
   await page.goto('/dashboard/api-tester');

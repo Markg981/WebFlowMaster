@@ -8,6 +8,7 @@ import { createTestOrganization } from './tests/factories';
 import { tenancyMiddleware } from './middleware/tenancy';
 import { exampleOf, importApiDescription, ImportError } from './api-import';
 import { bundle, distributedWsdl } from './tests/soap-bundle-fixtures';
+import { expandedDocuments, expandedWsdl } from './tests/soap-expanded-fixtures';
 
 vi.mock('./logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), http: vi.fn() },
@@ -259,6 +260,16 @@ describe('POST /api/api-tests/import', () => {
     await request(app).post('/api/api-tests/import').send({content:distributedWsdl,documents:bundle,endpoint:'unknown'}).expect(400);
     await request(app).post('/api/api-tests/import').send({content:distributedWsdl}).expect(400);
     expect(await privilegedDb.select().from(apiTests)).toEqual([]);
+  });
+
+  it('previews warnings and persists the expanded SOAP skeleton without changing it', async () => {
+    const input = {content: expandedWsdl, documents: expandedDocuments};
+    const preview = await request(app).post('/api/api-tests/import').send({...input,dryRun:true}).expect(200);
+    expect(preview.body.tests[0].warnings.join(' ')).toMatch(/choice.*wildcard/i);
+    await request(app).post('/api/api-tests/import').send(input).expect(201);
+    const [saved] = await privilegedDb.select().from(apiTests).where(eq(apiTests.organizationId,user.organizationId));
+    expect(saved.requestBody).toBe(preview.body.tests[0].requestBody);
+    expect(saved.requestBody).not.toContain('ServiceCode');
   });
 
   it('lets a test with a variable address be saved and edited like any other', async () => {

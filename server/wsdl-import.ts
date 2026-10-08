@@ -41,6 +41,8 @@ function skeleton(
   const target = required(bundle.elements.get(elementKey), `schema element ${elementKey}`);
   const prefixes = new Map<string, string>([[target.schema.namespace, 'ns']]);
   let count = 0;
+  let particleCount = 0;
+  const particleLists = new WeakMap<El, El[]>();
   const nameFor = (name: string, ns: string) => {
     if (!/^[A-Za-z_][\w.-]*$/.test(name))
       throw new ImportError('Invalid XML element name in schema.');
@@ -93,28 +95,104 @@ function skeleton(
       child(container, XSD, 'anyAttribute')
     )
       warnings.push('XSD attributes require manual completion.');
-    const compositor =
-      child(container, XSD, 'sequence') ??
-      child(container, XSD, 'all') ??
-      child(container, XSD, 'choice');
-    if (compositor?.localName === 'choice')
+    for (const el of particles(container))
+      output.push(...expand({ element: el, schema }, depth + 1, next, 0));
+    return output;
+  };
+  const particles = (el: El): El[] => {
+    const cached = particleLists.get(el);
+    if (cached) return cached;
+    const result = Array.from(el.childNodes as unknown as ArrayLike<Node>).filter(
+      (node): node is El =>
+        node.nodeType === 1 &&
+        (node as El).namespaceURI === XSD &&
+        ['element', 'sequence', 'all', 'choice', 'group', 'any'].includes((node as El).localName),
+    );
+    particleLists.set(el, result);
+    return result;
+  };
+  const occurrences = (el: El, warn = true): number => {
+    const minText = el.hasAttribute('minOccurs') ? el.getAttribute('minOccurs')! : '1';
+    const maxText = el.hasAttribute('maxOccurs') ? el.getAttribute('maxOccurs')! : '1';
+    if (!/^\d+$/.test(minText) || (maxText !== 'unbounded' && !/^\d+$/.test(maxText)))
+      throw new ImportError('Invalid XSD occurrence bounds.');
+    const min = Number(minText);
+    const max = maxText === 'unbounded' ? Infinity : Number(maxText);
+    if (min > max)
+      throw new ImportError('Invalid XSD occurrence bounds: minOccurs exceeds maxOccurs.');
+    if (max === 0) return 0;
+    if (min > 5000) throw new ImportError('Schema expansion exceeds 5000 elements/particles.');
+    if (warn && max > 1)
       warnings.push(
-        'XSD choice: choose the appropriate alternative; the skeleton lists alternatives.',
+        'XSD repeated particle: minimum occurrences (or one optional sample) generated; review repetitions.',
       );
-    if (
-      child(container, XSD, 'group') ||
-      child(compositor, XSD, 'group') ||
-      child(compositor, XSD, 'any')
-    )
-      throw new ImportError('XSD groups/wildcards are unsupported for request skeletons.');
-    if (children(compositor, XSD, 'sequence').length || children(compositor, XSD, 'choice').length)
-      throw new ImportError('Nested XSD compositors are unsupported for request skeletons.');
-    for (const el of children(compositor, XSD, 'element'))
-      output.push(render({ element: el, schema }, depth + 1, false, next));
+    return Math.max(1, min);
+  };
+  const expand = (
+    component: Component,
+    depth: number,
+    stack: Set<El>,
+    nesting: number,
+  ): string[] => {
+    const { element, schema } = component;
+    if (nesting > 32) throw new ImportError('XSD particle depth exceeds 32.');
+    // Disabled particles still cost traversal work, especially inside repeated sequences.
+    if (++particleCount > 5000)
+      throw new ImportError('Schema expansion exceeds 5000 elements/particles.');
+    if (stack.has(element))
+      throw new ImportError('Recursive XSD group cannot produce a finite request skeleton.');
+    const repeat = occurrences(element);
+    const output: string[] = [];
+    for (let i = 0; i < repeat; i++) {
+      if (++particleCount > 5000)
+        throw new ImportError('Schema expansion exceeds 5000 elements/particles.');
+      if (element.localName === 'element') {
+        output.push(render(component, depth, false, stack));
+        continue;
+      }
+      const next = new Set(stack).add(element);
+      if (element.localName === 'any') {
+        warnings.push(
+          `XSD wildcard requires manual completion: namespace=${element.getAttribute('namespace') || '##any'}, processContents=${element.getAttribute('processContents') || 'strict'}, minOccurs=${element.getAttribute('minOccurs') || '1'}.`,
+        );
+        output.push(`${'  '.repeat(depth + 3)}<!-- XSD any: insert matching elements manually -->`);
+      } else if (element.localName === 'group') {
+        const ref = required(element.getAttribute('ref') || null, 'XSD group reference');
+        const group = required(
+          bundle.groups.get(schemaQName(element, ref, schema)),
+          `schema group ${ref}`,
+        );
+        if (next.has(group.element))
+          throw new ImportError('Recursive XSD group cannot produce a finite request skeleton.');
+        const groupStack = new Set(next).add(group.element);
+        for (const nested of particles(group.element))
+          output.push(
+            ...expand({ element: nested, schema: group.schema }, depth, groupStack, nesting + 1),
+          );
+      } else {
+        let nested = particles(element);
+        if (element.localName === 'choice') {
+          warnings.push(
+            'XSD choice: the first alternative is generated; review the appropriate alternative manually.',
+          );
+          // Stop at the first enabled alternative and charge even skipped particles.
+          // Scanning every branch per repetition can otherwise allocate unbounded warnings.
+          const selected = nested.find((el) => {
+            if (++particleCount > 5000)
+              throw new ImportError('Schema expansion exceeds 5000 elements/particles.');
+            return occurrences(el, false) !== 0;
+          });
+          nested = selected ? [selected] : [];
+        }
+        for (const el of nested)
+          output.push(...expand({ element: el, schema }, depth, next, nesting + 1));
+      }
+    }
     return output;
   };
   const render = (component: Component, depth: number, global: boolean, stack: Set<El>): string => {
     if (++count > 5000) throw new ImportError('Schema expansion exceeds 5000 elements.');
+    if (depth > 10) throw new ImportError('Schema element depth exceeds 10.');
     const { element, schema } = component;
     if (stack.has(element))
       throw new ImportError(

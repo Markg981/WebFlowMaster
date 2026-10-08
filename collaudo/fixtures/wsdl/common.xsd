@@ -1,0 +1,4 @@
+<x:schema xmlns:x="http://www.w3.org/2001/XMLSchema" xmlns:c="urn:common" targetNamespace="urn:common" elementFormDefault="qualified">
+  <x:group name="Identity"><x:sequence><x:element name="OrderId" type="x:string"/><x:group ref="c:Address"/></x:sequence></x:group>
+  <x:group name="Address"><x:choice><x:element name="AddressId" type="x:string"/><x:element name="AddressText" type="x:string"/></x:choice></x:group>
+</x:schema>

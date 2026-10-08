@@ -5,7 +5,12 @@ export const password = 'E2e-Installation!2026';
 export const unique = (prefix: string) => `${prefix}_${randomUUID().replaceAll('-', '')}`;
 
 export async function register(page: Page, username = unique('critical'), invitation?: string) {
-  await page.goto(invitation ? `/auth?invitation=${invitation}&username=${username}` : '/auth');
+  // Firefox CI can leave lifecycle events pending after the auth form is rendered.
+  // Wait for the document commit, then let the form locators establish readiness.
+  await page.goto(invitation ? `/auth?invitation=${invitation}&username=${username}` : '/auth', {
+    waitUntil: 'commit',
+    timeout: 30_000,
+  });
   await page.getByRole('tab', { name: 'Register', exact: true }).click();
   if (!invitation) await page.locator('#register-username').fill(username);
   await page.locator('#register-password').fill(password);
@@ -22,7 +27,7 @@ export async function logout(page: Page) {
 }
 
 export async function login(page: Page, username: string) {
-  await page.goto('/auth');
+  await page.goto('/auth', { waitUntil: 'commit', timeout: 30_000 });
   await page.locator('#login-username').fill(username);
   await page.locator('#login-password').fill(password);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();

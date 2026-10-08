@@ -1,0 +1,9 @@
+<x:schema xmlns:x="http://www.w3.org/2001/XMLSchema" xmlns:c="urn:common" targetNamespace="urn:request" elementFormDefault="qualified">
+  <x:import namespace="urn:common" schemaLocation="common.xsd"/>
+  <x:element name="Order"><x:complexType><x:sequence>
+    <x:group ref="c:Identity"/>
+    <x:choice><x:sequence><x:element name="Sku" type="x:string"/><x:element name="Quantity" type="x:integer"/></x:sequence><x:element name="ServiceCode" type="x:string"/></x:choice>
+    <x:sequence minOccurs="2" maxOccurs="unbounded"><x:element name="Line" type="x:string"/></x:sequence>
+    <x:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+  </x:sequence><x:anyAttribute processContents="lax"/></x:complexType></x:element>
+</x:schema>

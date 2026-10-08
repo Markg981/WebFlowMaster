@@ -188,7 +188,9 @@ jobs:
   ui-on-real-installation:
     needs: build-and-test
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Installing all three engines took 14 minutes in run 37676375604;
+    # reserve enough time for the complete UI matrix and evidence upload.
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:16-alpine
