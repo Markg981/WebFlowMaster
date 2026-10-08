@@ -10,6 +10,28 @@ import { pathToFileURL } from 'node:url';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import WebSocket, { WebSocketServer } from 'ws';
+import { spawn } from 'node:child_process';
+
+async function isProcessRunning(pid: number): Promise<boolean> {
+  try {
+    process.kill(pid, 0);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ESRCH') return false;
+    throw error;
+  }
+  if (process.platform === 'linux') {
+    try {
+      // kill(pid, 0) also succeeds for terminated children awaiting reaping by init.
+      const status = await readFile(`/proc/${pid}/status`, 'utf8');
+      return !/^State:\s+Z\b/m.test(status);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+      throw error;
+    }
+  }
+  return true;
+}
+
 const profile: OperatorBddProfile = {
   id: 'sample',
   label: 'Sample',
@@ -31,6 +53,23 @@ const request = (step: string): BddAgentRequest => ({
   timeoutMs: 10000,
 });
 describe('dedicated real Cucumber runtime', () => {
+  it('distinguishes an active process from a terminated process', async () => {
+    const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], {
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+    const closed = new Promise<void>((resolve, reject) => {
+      child.once('close', () => resolve());
+      child.once('error', reject);
+    });
+    try {
+      expect(await isProcessRunning(child.pid!)).toBe(true);
+    } finally {
+      child.kill('SIGKILL');
+      await closed;
+    }
+    expect(await isProcessRunning(child.pid!)).toBe(false);
+  });
   it('runs exactly one Examples row with World, hooks, doc strings and DataTables', async () => {
     const result = await runBddOnDedicatedHost(
       {
@@ -107,7 +146,8 @@ describe('dedicated real Cucumber runtime', () => {
         if (step.includes('hang')) abort.abort();
         const result = await execution;
         expect(result.status).toBe(step.includes('hang') ? 'cancelled' : 'passed');
-        expect(() => process.kill(pid, 0)).toThrow();
+        // SIGKILL delivery and orphan reaping are asynchronous on Linux.
+        await expect.poll(() => isProcessRunning(pid), { timeout: 2000 }).toBe(false);
       } finally {
         abort.abort();
         await rm(dir, { recursive: true, force: true });
@@ -243,7 +283,7 @@ describe('dedicated real Cucumber runtime', () => {
       expect(pid).toBeGreaterThan(0);
       client.terminate();
       await done;
-      expect(() => process.kill(pid, 0)).toThrow();
+      await expect.poll(() => isProcessRunning(pid), { timeout: 2000 }).toBe(false);
     } finally {
       client.terminate();
       for (const socket of sockets.clients) socket.terminate();
