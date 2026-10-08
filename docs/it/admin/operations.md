@@ -5,6 +5,12 @@ il backup per poterla ripristinare, leggerne i log, e dove guardare quando qualc
 
 ## Aggiornamento
 
+Nel Collaudo locale usare sempre il progetto `wfm-collaudo` e il suo overlay, mantenendo i volumi.
+Il worker importa la CA privata di Chromium come `pwuser`; l'overlay abilita
+`INSTALL_COLLAUDO_CA_TOOLS=1` per installare `certutil` durante la build. Se lo script segnala
+che `certutil` manca, ricostruire il worker con l'overlay: l'avvio non installa pacchetti e non
+richiede privilegi root. Verifica dedicata OPS-36 in `collaudo/casi.json`.
+
 Una release può cambiare lo schema del database, quindi l'ordine conta.
 
 1. **Svuotate i runner.** In **Impostazioni → Runner** svuotate ogni runner. Un runner in
@@ -21,6 +27,25 @@ Una release può cambiare lo schema del database, quindi l'ordine conta.
 
 Con Compose, `docker compose up -d --build` esegue i passi 2, 4 e 5 in ordine, perché `api` e
 `worker` aspettano che `migrate` finisca.
+
+### Volumi di installazioni precedenti
+
+API e worker attuali usano `pwuser` (UID 1000). Un volume creato da una vecchia immagine root
+può mantenere proprietario `0:0`: una nuova build non cambia i permessi del volume. Il worker
+può avviarsi, ma il run fallisce con `EACCES` quando crea la directory delle evidenze.
+
+Dopo drain e backup verificato, controllare il proprietario di `/app/results` e
+`/app/data/visual-baselines`. Solo se necessario, adeguare i due volumi con un container temporaneo.
+Per il Collaudo locale:
+
+```sh
+docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml run --rm --no-deps --user root api chown -R pwuser:pwuser /app/results /app/data/visual-baselines
+```
+
+Il comando modifica la proprietà conservando i contenuti; non elimina né ricrea i volumi.
+Per altre installazioni usare il loro progetto e Compose verificati, mantenendo la prova separata
+dalla produzione. Verificare poi worker UID 1000, report storico e nuovo run con evidenze scaricabili.
+Un backup verificato o il solo login non provano questo percorso.
 
 **Agenti locali.** Il Playwright di un agente deve avere la stessa versione major e minor di
 quello dei runner. Quando una release cambia la versione di Playwright, aggiornate anche gli

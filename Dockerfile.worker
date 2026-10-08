@@ -46,6 +46,15 @@ COPY deployment/lighthouse/package*.json /opt/lighthouse/
 RUN npm ci --prefix /opt/lighthouse --omit=dev --ignore-scripts --no-audit --no-fund && rm -rf /root/.npm /tmp/node-compile-cache
 ENV LIGHTHOUSE_BIN=/opt/lighthouse/node_modules/.bin/lighthouse
 
+# Only the local acceptance overlay imports its private CA into Chromium's NSS database.
+# Install its tooling at build time; the worker starts as pwuser without package-manager access.
+ARG INSTALL_COLLAUDO_CA_TOOLS=0
+RUN if [ "$INSTALL_COLLAUDO_CA_TOOLS" = "1" ]; then \
+      apt-get update -o APT::Update::Error-Mode=any \
+      && apt-get install -y --no-install-recommends libnss3-tools \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
+
 RUN mkdir -p /app/logs /app/results /app/data/visual-baselines /app/uploads /app/allure-results \
     && chown -R pwuser:pwuser /app/logs /app/results /app/data /app/uploads /app/allure-results
 RUN rm -rf /usr/lib/node_modules/npm && rm -f /usr/bin/npm /usr/bin/npx

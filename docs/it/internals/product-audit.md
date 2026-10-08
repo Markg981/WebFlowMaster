@@ -1,47 +1,44 @@
-# Audit del prodotto e della documentazione
+# Audit del prodotto e chiusura della v1
 
-Analisi del 6 ottobre 2026, basata su `main` al commit `1604f95`. È una mappa di capacità e
-opportunità per decidere i prossimi interventi. Le proposte non sono funzionalità già consegnate.
-Per capire la suite prima di discuterne l'evoluzione, leggere il [manuale completo](./suite-handbook).
+Aggiornato l'8 ottobre 2026 sul codice di main al commit `c24cbea` (PR #311 integrata).
+Il prodotto copre il perimetro funzionale della suite. La chiusura della v1 richiede ancora
+accettazione corrente, una release installata e prove sugli ambienti dichiarati ai clienti.
+Leggere il [manuale completo](./suite-handbook) per ruoli e flussi.
 
 ## Perimetro e attendibilità
 
-Aggiornamento implementazione: i run accodati congelano dataset web/BDD e valori condivisi della
-prima riga in `configuration_snapshot.datasets`; vedere [dati fissati all'accodamento](../guide/running#dati-fissati-all-accodamento).
-La tabella delle priorità sotto conserva le evidenze della baseline originale. Hash dedicato,
-interfaccia nel report e replay storico esplicito restano miglioramenti separati; i retry
-automatici riutilizzano i dati acquisiti. Non vengono congelate tutte le definizioni o lo stato
-dei sistemi esterni.
+L'audit confronta codice, documentazione, catalogo Collaudo ed evidenze CI; non è un penetration
+test né una certificazione dell'intero catalogo manuale. La CI di main su `c24cbea` è riuscita,
+inclusi isolamento su PostgreSQL reale, restore applicativo, rete ed E2E UI sui tre motori.
+La CI non equivale a una release pubblicata o installata.
 
-Aggiornamento implementazione: l'[authoring pubblico](../reference/api#risorse-di-authoring)
-crea progetti, test UI/manuali/BDD, dataset condivisi e piani con scope dedicati, versioni e audit.
-Import/export portabile comprende definizioni UI/manuali/BDD; l'authoring nativo API/mobile resta
-fuori dal contratto. Lo [strumento di carico](../admin/load-testing) supporta `--soak-seconds` e
-`--interval-seconds` con osservazioni per ciclo. Questi interventi coprono parte delle due voci
-P2 della baseline sotto. Resistenza multi-tenant con agenti reali, scheduler, artefatti e riavvii
-controllati dispone ora di `npm run load:resilience`, con stack Docker sacrificabile,
-riconciliazione ed evidenze conservate. L'accettazione manuale resta Da eseguire nel Collaudo
-OPS-32–OPS-35; i controlli automatici
-locali non certificano durata o capacità in produzione.
+La baseline del 6 ottobre è superata per paginazione, snapshot/replay, authoring API/mobile,
+profili di carico, E2E critici, restore locale e import WSDL ampliato. Queste capacità sono
+implementate e non devono essere riproposte come sviluppo mancante.
 
-Aggiornamento implementazione: i [test di carico](../guide/load-tests) eseguono test API salvati
-come scenari composti da utenti virtuali, per una durata e lungo stage di salita/mantenimento (fino
-a 200 utenti e un'ora), con un warm-up escluso dall'esito, una riga di dati distinta per utente
-virtuale (o per iterazione), soglie p50–p99/errori/throughput ed esecuzioni persistite con timeline
-dal vivo. Girano sul server separati dai piani, uno per organizzazione alla volta. Questo copre la
-voce P2 "Profili performance ramp/soak" sotto; la generazione di carico distribuita dagli agenti
-resta fuori.
+- Cataloghi paginati, filtri server-side e dettagli su richiesta: `server/catalog.ts` e
+  `server/routes/catalog.routes.ts`.
+- Definizioni UI/API/mobile e dataset fissati all'accodamento, hash/provenienza e replay storico:
+  `server/execution-definitions.ts`, `server/execution-provenance.ts` e
+  [esecuzione](../guide/running). Il replay usa sistemi esterni, dispositivi e segreti correnti.
+- Authoring pubblico e import/export UI/manuale/BDD/API/mobile con scope, versioni e audit:
+  [API pubblica](../reference/api).
+- [Test di carico](../guide/load-tests): warm-up, ramp/hold, dati per utente/iterazione,
+  percentili ed esiti persistiti. Limiti attuali: 200 utenti, un'ora, un run per organizzazione;
+  generazione dal server.
+- E2E critici su Chromium, Firefox e WebKit: `e2e/playwright.config.ts` e
+  `e2e/critical-workflows.spec.ts`. Griglie e Appium hanno un comando di certificazione separato.
+- Restore locale e resilienza su stack sacrificabili: `npm run backup:drill` e
+  `npm run load:resilience`. Le fixture sintetiche non dimostrano RPO/RTO o capacità produttivi.
+- [WSDL/XSD](../guide/api-tests): compositori e gruppi annidati, occorrenze e avvisi wildcard;
+  compatibilità con contratti cliente da provare.
+- [Release](../admin/releases): basi per digest, runtime non-root, build riproducibili,
+  SBOM e gate di sicurezza già implementati. Pubblicazione e upgrade restano prove distinte.
 
-È stato inventariato il repository: 1.264 file tracciati prima di questa revisione, tra cui 494
-in `server/`, 331 in `client/`, 44 in `shared/`, 40 in `scripts/`, 87 in `migrations/`, 41
-in `collaudo/`, 29 in `deployment/`, 8 in `e2e/` e 7 in `integrations/`. Sono presenti 347
-file `.test.*` o `.spec.*`: il conteggio indica file, non scenari superati o percentuale di copertura.
-
-L'analisi collega inventario, grafo delle dipendenze, flussi principali, configurazioni, test e
-documentazione. Non è una revisione riga per riga di ogni file né un penetration test. Il grafo è
-stato usato per orientarsi; le evidenze riportate sotto sono state controllate sul codice corrente.
-Non sono stati rieseguiti l'intero Collaudo, i provider cloud, i dispositivi e tutte le integrazioni.
-La presenza di un job CI non dimostra che l'ultima esecuzione sia passata.
+Il catalogo corrente è `collaudo/casi.json`: protocollo 39, 579 casi. Lo storico locale del
+27 settembre contiene 299 esiti (290 pass, 8 bloccati, 1 N/A) e conserva il proprio catalogo.
+L'allineamento locale applica il catalogo corrente e crea un nuovo ciclo Da eseguire;
+non assegna esiti manuali dai risultati automatici.
 
 ## Cosa esiste già
 
@@ -59,37 +56,32 @@ La presenza di un job CI non dimostra che l'ultima esecuzione sia passata.
 Non serve proporre come nuove funzionalità mobile, BDD, backup, SCIM, quote o telemetria: sono già
 implementate. Il lavoro utile è migliorarne riproducibilità, prova operativa e fruibilità.
 
-## Priorità consigliate
+## Condizioni per chiudere la v1
 
-P1 indica interventi da valutare prima di estendere molto il perimetro commerciale; P2 un'evoluzione
-di prodotto o di accettazione; P3 una manutenzione mirata. L'impegno è qualitativo, non una stima
-contrattuale. Nessuno dei rilievi statici qui elencati è presentato come un incidente in produzione.
+| Priorità | Lavoro residuo | Evidenza richiesta |
+| --- | --- | --- |
+| Alta | Accettazione corrente e regressione | Nuovo ciclo sul commit realmente installato; tutti i P1 superati o N/A motivati, nessun P2 fallito senza decisione e almeno il 95% dei P2 eseguiti. Storico congelato. |
+| Alta | Release installabile e upgrade | Candidato verificato, manifest/SBOM/digest coerenti, staging dalla baseline precedente, backup verificato, login/report/nuovo run e rollback provato secondo compatibilità schema. OPS-20…OPS-25. |
+| Alta se S3 è nel perimetro | Recupero S3 reale | Bucket sacrificabile, inventario key/version/checksum al checkpoint, versioning/replica recuperabile e verifica report/baseline/tenant. OPS-31. |
+| Alta | Capacità e recupero rappresentativi | Carico/dataset/risorse dichiarati, durata e soglie concordate, nessun run perso/duplicato, evidenze e tempi per fase. OPS-27…OPS-30, OPS-32…OPS-35. |
+| Secondo il supporto dichiarato | Griglie e Appium reali | Sessioni/capabilities effettive corrispondenti ai target, risultato funzionale, report ed export. AUT-11…AUT-12. |
+| Entro il 6 novembre 2026 | Dipendenza braces | Verifica upstream, mitigazione effettiva e scansioni nuove; rimuovere l'eccezione solo dopo un fix equivalente verificato. La scadenza non viene estesa automaticamente. OPS-26. |
 
-| Priorità | Opportunità e categoria                                        | Evidenza nel codice                                                                                                                                                                                | Risultato da accettare                                                                                                                           | Impegno    |
-| -------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
-| P1       | **Congelare i dataset condivisi dei run**. Riproducibilità     | `server/test-data.ts:17` e `:26` leggono valori/righe correnti; `server/test-execution-service.ts:864` e `:1005` li risolve in esecuzione; `server/execution-snapshot.ts:35` non cattura i dataset | Un dataset modificato mentre un run è in coda non ne cambia input ed esito; report con versione/hash e possibilità di rieseguire gli stessi dati | Medio      |
-| P1       | **Allargare l'accettazione UI critica**. Validazione           | Nove scenari in `e2e/installation.spec.ts:9`, uno in `e2e/bdd.spec.ts:8`; non coprono via UI tutto SSO/MFA/SCIM, registrazione dei test, mobile, review, quote e cancellazione                     | Percorsi reali accesso federato/MFA, authoring->review->run, quote e cancellazione; screenshot/trace in CI                                       | Medio      |
-| P1 | **Restore drill applicativo e oggetti S3**. Operazioni | `scripts/restore-drill.mjs` prova ripristino isolato DB/artefatti locali, login/report UI, hash evidenze, baseline recuperata, rifiuto tenant e nuovo run con segreto decifrato; la CI conserva i tempi per fase. Il recupero oggetti S3 resta esterno. | Eseguire OPS-31 su versioning/replica reali verso un bucket distinto e verificare obiettivi con dati rappresentativi; età del backup sintetico distinta da RPO produttivo. | Medio-alto |
-| P1       | **Release versionate e riproducibili**. Delivery               | Nel repository c'è `.github/workflows/ci.yml`, su main/PR; bundle CI conservati sette giorni (`:116`); `package.json:3` riporta `1.0.0`                                                            | Tag versione, immagini API/worker/agent per digest, manifest migrazioni, changelog e upgrade provato dalla versione precedente                   | Medio      |
-| P1       | **Gate per dipendenze e immagini**. Supply chain               | Workflow CI con check/test/build/docs, senza job SBOM o scansione immagini; basi a tag in `Dockerfile:20` e `Dockerfile.worker:9`, senza `USER` esplicito                                          | Inventario componenti, scansioni, gestione eccezioni e prova del runtime con utente esplicito compatibile con browser e file                     | Medio      |
-| P2       | **Profili performance ramp/soak**. Nuova capacità              | `shared/api-performance.ts:13`: massimo 200 iterazioni e 10 concorrenti; `server/api-performance.ts:26`: stessa richiesta e stessi valori                                                          | Workload a durata/progressivo, dataset per utente virtuale, warm-up, percentili ed esiti persistiti; esecuzione isolata dai test funzionali      | Alto       |
-| P2       | **Endurance della piattaforma**. Validazione                   | `scripts/wfm-load.ts:16` include letture e burst; `:104` limita a 100 run per target                                                                                                               | Prova multi-tenant prolungata con agenti, scheduler, artefatti e restart controllati; nessun run perso o duplicato                               | Medio-alto |
-| P2       | **API pubblica per definire la suite**. Nuova capacità         | `server/routes/api-v1.routes.ts:22` delimita il contratto pubblico a piani/run/report; l'authoring resta nelle API interne                                                                         | API stabile per progetti/test/dataset/import-export, scope e versionamento; provisioning da pipeline senza usare endpoint privati                | Alto       |
-| P2       | **Certificare le matrici reali**. Compatibilità                | UI E2E su Desktop Chrome (`e2e/playwright.config.ts:16`); `server/browsers.ts:220` segnala che OS/versioni richiesti non vengono applicati dal runner locale                                       | Percorsi completi sui tre engine, una griglia e un dispositivo Appium; report con configurazione richiesta ed effettiva                          | Medio-alto |
-| P2 | **Ampliare import WSDL**. Interoperabilità | Implementati compositori/gruppi di modello annidati, occorrenze e avvisi wildcard; bundle sintetico in `collaudo/fixtures/wsdl` | Validare contratti cliente reali; restriction complesse e RPC/encoded richiedono esigenza dedicata | Condizionata ai clienti |
-| P3       | **Separare responsabilità dei grandi servizi**. Manutenibilità | `server/playwright-service.ts`: 2.377 righe; `server/routes.ts`: 1.814 righe                                                                                                                       | Estrazione incrementale di recorder/detection/ad hoc e rotte residue, mantenendo contratti e test; nessuna riscrittura generale                  | Medio      |
+La prova locale di restore verifica DB e artefatti locali. Il recupero degli oggetti S3 è esterno.
+Il restart SIGTERM è verificato come recupero controllato; dopo SIGKILL, il run identificato
+termina `worker_lost` senza replay automatico, per evitare doppie operazioni sul sistema sotto test.
+Un esito positivo della diagnosi crash non certifica la prosecuzione del run interrotto.
 
-### Tre interventi da cui partire
+Il registro operativo della chiusura è `collaudo/v1-closure-2026-10-08.md`; indica prove eseguite,
+prerequisiti mancanti e riferimenti alle evidenze locali. La fatturazione SaaS resta sospesa.
+Se entra nel perimetro commerciale richiede requisiti e un progetto separato.
 
-1. **Riproducibilità dei dati**: definire quali input devono essere congelati, incluso il trattamento dei
-   segreti; implementare una prova di modifica del dataset mentre il run aspetta in coda.
-2. **Accettazione dei percorsi sensibili**: aggiungere pochi scenari completi che coprano accessi,
-   pubblicazione ed esecuzione, poi estendere browser e device in modo misurato.
-3. **Release e ripristino**: rendere identificabile ciò che il cliente installa e provarne upgrade e
-   restore prima di promettere tempi di recupero o capacità.
+## Evoluzioni condizionate ai requisiti
 
-Il tool di performance API, il load tool, il backup e i job RLS esistono già. Non vanno sostituiti
-per principio: ogni proposta ne estende un limite osservabile.
+Carico distribuito, limiti superiori agli attuali, SOAP RPC/encoded/restriction complesse e
+recupero automatico dopo crash richiedono una richiesta concreta e criteri verificabili.
+Il refactoring incrementale dei servizi più grandi è manutenzione; non è una condizione generale
+per chiudere la v1. Evitare riscritture e ampliamenti del perimetro durante l'accettazione.
 
 ## Audit della documentazione
 
