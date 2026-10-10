@@ -204,7 +204,8 @@ describe('SsoCard', () => {
     renderCard(stored);
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load single sign-on settings.');
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    expect(await screen.findByLabelText('Issuer')).toHaveValue(stored.issuer);
+    // The field can render before the reloaded settings fill it: wait for the value, not the field.
+    await waitFor(() => expect(screen.getByLabelText('Issuer')).toHaveValue(stored.issuer));
   });
   it('sends advanced SAML settings and clears the typed private key after saving', async () => {
     const client = renderCard({ ...stored, protocol: 'saml', samlSsoUrl: 'https://idp.example.com/sso', samlCertificate: CERT });
