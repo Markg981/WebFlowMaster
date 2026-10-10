@@ -1,16 +1,30 @@
-import { expect, type Browser, type Page } from '@playwright/test';
+import { errors, expect, type Browser, type Page } from '@playwright/test';
 import { createHmac, randomUUID } from 'node:crypto';
 
 export const password = 'E2e-Installation!2026';
 export const unique = (prefix: string) => `${prefix}_${randomUUID().replaceAll('-', '')}`;
 
+/**
+ * Opens the sign-in page, also on a page that was just created.
+ *
+ * Firefox in CI sometimes never reports the first navigation of a new page to Playwright, not
+ * even its commit, although the page loads: in the traces /auth answered 200 in a few
+ * milliseconds, the app rendered and called its APIs, and page.goto still timed out after 30
+ * seconds. When the navigation does not report in time, the form decides: visible means loaded.
+ * The fallback runs only after the timeout, so it never sees a previous document's form.
+ */
+export async function openAuth(page: Page, url = '/auth') {
+  try {
+    await page.goto(url, { waitUntil: 'commit', timeout: 15_000 });
+  } catch (error) {
+    if (!(error instanceof errors.TimeoutError)) throw error;
+    await expect(page.getByRole('tab', { name: 'Register', exact: true })).toBeVisible({ timeout: 15_000 });
+    expect(new URL(page.url()).pathname).toBe('/auth');
+  }
+}
+
 export async function register(page: Page, username = unique('critical'), invitation?: string) {
-  // Firefox CI can leave lifecycle events pending after the auth form is rendered.
-  // Wait for the document commit, then let the form locators establish readiness.
-  await page.goto(invitation ? `/auth?invitation=${invitation}&username=${username}` : '/auth', {
-    waitUntil: 'commit',
-    timeout: 30_000,
-  });
+  await openAuth(page, invitation ? `/auth?invitation=${invitation}&username=${username}` : '/auth');
   await page.getByRole('tab', { name: 'Register', exact: true }).click();
   if (!invitation) await page.locator('#register-username').fill(username);
   await page.locator('#register-password').fill(password);
@@ -27,7 +41,7 @@ export async function logout(page: Page) {
 }
 
 export async function login(page: Page, username: string) {
-  await page.goto('/auth', { waitUntil: 'commit', timeout: 30_000 });
+  await openAuth(page);
   await page.locator('#login-username').fill(username);
   await page.locator('#login-password').fill(password);
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
