@@ -201,7 +201,7 @@ model (see [AI features](../security/#ai-features)), and nothing is written to t
 
 ## Test Manager
 
-**Test Manager** is for teams whose test cases live in Excel. **Upload Excel** (.xlsx or .xls)
+**Test Manager** is for teams whose test cases live in Excel. **Upload Excel** (.xlsx, up to 10 MB)
 imports one case per row, with its id, priority and objective. Map each case to a saved test
 (**Choose a sequence**), select the cases, and **Run selected**; the status and the latest report of
 each case are shown next to it.

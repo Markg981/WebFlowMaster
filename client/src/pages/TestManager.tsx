@@ -70,7 +70,7 @@ const TestManager: React.FC = () => {
             up here would put the same control on screen twice. */}
         {hasRows && (
           <div className="flex gap-2">
-            <FilePicker accept=".xlsx,.xls" file={file} onChange={handleFileChange} className="w-72" />
+            <FilePicker accept=".xlsx" file={file} onChange={handleFileChange} className="w-72" />
             <Button onClick={handleUpload} disabled={isUploading || !file}>
               <Upload className="mr-2 h-4 w-4" />
               {isUploading ? t('testManager.uploading') : t('testManager.uploadExcel')}
@@ -171,7 +171,7 @@ const TestManager: React.FC = () => {
             </div>
             <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
               <FilePicker
-                accept=".xlsx,.xls"
+                accept=".xlsx"
                 file={file}
                 onChange={handleFileChange}
                 className="w-80"

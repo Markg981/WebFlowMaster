@@ -1,5 +1,5 @@
 {
-  "version": 39,
+  "version": 40,
   "areas": [
     {
       "id": "ACC",
@@ -7747,6 +7747,22 @@
         "Creare e modificare una risorsa; controllare conteggio, riepilogo e navigazione."
       ],
       "expected": "Dopo eliminazione il gestore torna a una pagina valida e mostra 25 risorse con totale aggiornato. Creazione/modifica aggiornano elenco e conteggi senza definizioni obsolete."
+    },
+    {
+      "id": "LIB-42",
+      "area": "LIB",
+      "priority": "P1",
+      "actor": "editor.a",
+      "title": "Limiti dell'upload Excel del Test Manager",
+      "preconditions": "Utente editor in un progetto. Un file .xlsx valido di casi di test, un file .csv, un file rinominato in .xlsx che non è una cartella di lavoro e un .xlsx oltre 10 MB.",
+      "steps": [
+        "Test Manager > Carica l'Excel: caricare il .xlsx valido.",
+        "Caricare il .csv (selezionando Tutti i file nella finestra di scelta).",
+        "Caricare il file rinominato in .xlsx.",
+        "Caricare il .xlsx oltre 10 MB.",
+        "Dopo i quattro caricamenti controllare la cartella uploads/ del processo web (docker compose exec api ls uploads)."
+      ],
+      "expected": "Passo 1: casi importati. Passo 2: rifiutato con 415 (Only .xlsx files can be uploaded). Passo 3: errore di lettura (500), nessun caso importato. Passo 4: rifiutato con 413 (The file is larger than 10 MB). Passo 5: uploads/ vuota: nessun file resta su disco, nemmeno quelli rifiutati o illeggibili."
     },
     {
       "id": "REP-26",

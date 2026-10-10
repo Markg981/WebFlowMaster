@@ -213,8 +213,8 @@ scritto nulla.
 
 ## Test Manager
 
-**Test Manager** è per i team i cui casi di test stanno in Excel. **Carica l'Excel** (.xlsx o
-.xls) importa un caso per riga, con id, priorità e obiettivo. Associate ogni caso a un test
+**Test Manager** è per i team i cui casi di test stanno in Excel. **Carica l'Excel** (.xlsx, fino
+a 10 MB) importa un caso per riga, con id, priorità e obiettivo. Associate ogni caso a un test
 salvato (**Scegli una sequenza**), selezionate i casi ed **Esegui i selezionati**; accanto a ogni
 caso compaiono lo stato e l'ultimo report.
 
