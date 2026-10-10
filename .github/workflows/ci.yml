@@ -68,7 +68,7 @@ jobs:
       REDIS_URL: redis://localhost:6379
       SESSION_SECRET: ci-test-session-secret
       # 32-byte hex key required by crypto.ts
-      ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000
+      ENCRYPTION_KEY: c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1
       LOG_LEVEL: error
 
     steps:
@@ -216,7 +216,7 @@ jobs:
       DATABASE_URL: postgresql://wfm_e2e:wfm_e2e@127.0.0.1:5432/wfm_ci_e2e
       REDIS_URL: redis://127.0.0.1:6388
       SESSION_SECRET: ci-e2e-disposable-session-secret
-      ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
+      ENCRYPTION_KEY: 'c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1'
       LOG_LEVEL: warn
     steps:
       - uses: actions/checkout@v4
@@ -283,7 +283,7 @@ jobs:
       # itself be a finding.
       DATABASE_URL: postgresql://wfm_app:wfm_app@localhost:5432/webflowmaster
       SESSION_SECRET: ci-test-session-secret
-      ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000
+      ENCRYPTION_KEY: c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1
       LOG_LEVEL: error
 
     steps:

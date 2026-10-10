@@ -120,7 +120,7 @@ export function keyFingerprint(keyString: string | null | undefined): string | n
   return createHash('sha256').update(bytes).digest('hex').slice(0, 16);
 }
 
-/** The key docker-compose.yml ships so the stack starts; never fit for an installation others reach. */
+/** The all-zero key docker-compose.yml shipped before it required one; production now refuses it. */
 export const EXAMPLE_KEY_FINGERPRINT = keyFingerprint('0'.repeat(64));
 
 /** `organizations|3` lines from psql into counts. */

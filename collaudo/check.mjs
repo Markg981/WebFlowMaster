@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 const BASE = process.env.WFM_URL ?? 'https://wfm.collaudo.test';
 const SESSIONS = join(dirname(fileURLToPath(import.meta.url)), '.sessions');
-const COMPOSE = ['compose', '-p', 'wfm-collaudo', '-f', 'docker-compose.yml', '-f', 'collaudo/docker-compose.collaudo.yml'];
+const COMPOSE = ['compose', '-p', 'wfm-collaudo', '--env-file', 'collaudo/collaudo.env', '-f', 'docker-compose.yml', '-f', 'collaudo/docker-compose.collaudo.yml'];
 
 const REQUIRED_SERVICES = ['api', 'worker', 'postgres', 'redis', 'caddy', 'keycloak', 'mailpit', 'ricevitore', 'display', 'loki', 'grafana', 'simulatori'];
 

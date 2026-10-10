@@ -2,7 +2,7 @@
  * Starting data for a collaudo cycle that skips the Access area: organizations A (Acme) and B
  * (Beta) and the people the protocol names, all with the password "Collaudo.2026!".
  *
- *   docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
+ *   docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
  *     exec api node /collaudo/seed.mjs
  *
  * A full cycle does not use it: cases ACC-01 to ACC-03 create these people through the product,

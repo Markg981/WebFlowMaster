@@ -66,12 +66,19 @@ worker, all from `docker-compose.yml`.
 ```bash
 git clone https://github.com/Markg981/WebFlowMaster.git
 cd WebFlowMaster
+cat > .env <<EOF
+POSTGRES_PASSWORD=$(openssl rand -hex 32)
+SESSION_SECRET=$(openssl rand -hex 32)
+ENCRYPTION_KEY=$(openssl rand -hex 32)
+AGENT_RELAY_SECRET=$(openssl rand -hex 32)
+EOF
 docker compose up -d --build
 ```
 
 Open http://localhost:5000 and register: the first account creates the first organization and
-becomes its owner. The secrets in `docker-compose.yml` exist so the stack starts out of the box;
-change them, and put TLS in front, before anyone else can reach it. The
+becomes its owner. The stack refuses to start without the four secrets in `.env`, and the web
+process refuses the public example values in production. Put TLS in front before anyone else
+can reach it. The
 [installation guide](./docs/en/admin/installation.md) covers real deployments.
 
 ## Local development

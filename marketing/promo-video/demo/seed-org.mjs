@@ -1,7 +1,7 @@
 /**
  * The organization the promo video is filmed in: "Northwind Commerce", with one owner, maya.
  *
- *   docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
+ *   docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
  *     exec -T api node --input-type=module < marketing/promo-video/demo/seed-org.mjs
  *
  * The collaudo organizations are full of case names ("PLN09 Flaky Rerun 1790599557623"), which

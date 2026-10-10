@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASE = process.env.WFM_URL ?? 'https://wfm.collaudo.test';
 const JENKINS = 'http://localhost:8088';
-const COMPOSE = ['compose', '-p', 'wfm-collaudo', '-f', 'docker-compose.yml', '-f', 'collaudo/docker-compose.collaudo.yml', '--profile', 'jenkins'];
+const COMPOSE = ['compose', '-p', 'wfm-collaudo', '--env-file', 'collaudo/collaudo.env', '-f', 'docker-compose.yml', '-f', 'collaudo/docker-compose.collaudo.yml', '--profile', 'jenkins'];
 const docker = (args, env = {}) => execFileSync('docker', [...COMPOSE, ...args], { stdio: 'inherit', env: { ...process.env, ...env } });
 
 if (process.argv[2] === 'stop') {

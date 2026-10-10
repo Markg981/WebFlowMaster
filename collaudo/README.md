@@ -122,12 +122,12 @@ Tutti i comandi si danno dalla radice del repository. Per non riscrivere ogni vo
 
 ```bash
 # bash / zsh
-alias wfmc='docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml'
+alias wfmc='docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml'
 ```
 
 ```powershell
 # PowerShell
-function wfmc { docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml @args }
+function wfmc { docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml @args }
 ```
 
 ```bash
@@ -137,6 +137,11 @@ wfmc ps                 # api "healthy", migrate e ca-export "exited (0)"
 
 Il nome di progetto `wfm-collaudo` tiene separati database e volumi da un eventuale stack di
 sviluppo. `wfmc down -v` cancella tutto e riporta l'installazione a vuoto, per un nuovo ciclo.
+
+`docker-compose.yml` non contiene più segreti e rifiuta di partire senza: `collaudo/collaudo.env`
+li fornisce allo stack di collaudo, con valori pubblici validi solo qui. Un database di collaudo
+creato prima di questo file ha i segreti cifrati con la vecchia chiave di soli zeri, che la
+produzione ora rifiuta: va azzerato con `wfmc down -v` e preparato di nuovo.
 
 ## 4. Fidarsi del certificato
 

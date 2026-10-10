@@ -2,7 +2,7 @@
 # protocol needs around it. Always started together with the base file and under its own
 # project name, so its data never mixes with a development stack:
 #
-#   docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml up -d --build
+#   docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml up -d --build
 #
 # What it adds (collaudo/README.md has the whole procedure):
 #   caddy       HTTPS in front of the app and of Keycloak, with its own certificate authority:

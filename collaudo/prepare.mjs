@@ -25,7 +25,7 @@ const BASE = process.env.WFM_URL ?? 'https://wfm.collaudo.test';
 const PASSWORD = 'Collaudo.2026!';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SESSIONS = join(HERE, '.sessions');
-const COMPOSE = ['compose', '-p', 'wfm-collaudo', '-f', 'docker-compose.yml', '-f', 'collaudo/docker-compose.collaudo.yml'];
+const COMPOSE = ['compose', '-p', 'wfm-collaudo', '--env-file', 'collaudo/collaudo.env', '-f', 'docker-compose.yml', '-f', 'collaudo/docker-compose.collaudo.yml'];
 
 const step = (text) => console.log(`\n▸ ${text}`);
 const ok = (text) => console.log(`  ✓ ${text}`);

@@ -110,11 +110,11 @@ the collaudo stack (`collaudo/README.md`), in an organization of its own.
 
 ```bash
 # 1. The demo storefront the tests run against, inside the stack
-docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
+docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
   -f marketing/promo-video/docker-compose.demo.yml up -d shop
 
 # 2. The organization "Northwind Commerce", owner maya / Demo.Video.2026!
-docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
+docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
   exec -T api node --input-type=module < marketing/promo-video/demo/seed-org.mjs
 
 # 3. Tests, plans, a schedule and ~40 real runs, through the product's API (15–20 minutes)
@@ -123,7 +123,7 @@ node marketing/promo-video/demo/build-data.mjs
 ONLY_PLANS="Nightly regression,Checkout smoke,Orders API contract" node marketing/promo-video/demo/build-data.mjs
 
 # 4. Spread the runs over the last two weeks, for the dashboard's trend
-docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
+docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
   exec -T api node --input-type=module < marketing/promo-video/demo/spread-history.mjs
 
 # 5. The screenshots, at 2x

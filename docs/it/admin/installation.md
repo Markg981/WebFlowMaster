@@ -56,8 +56,20 @@ termina, il processo web (`api`) e un worker.
 ```bash
 git clone https://github.com/Markg981/WebFlowMaster.git
 cd WebFlowMaster
+cat > .env <<EOF
+POSTGRES_PASSWORD=$(openssl rand -hex 32)
+SESSION_SECRET=$(openssl rand -hex 32)
+ENCRYPTION_KEY=$(openssl rand -hex 32)
+AGENT_RELAY_SECRET=$(openssl rand -hex 32)
+EOF
 docker compose up -d --build
 ```
+
+I quattro segreti arrivano dal file `.env` accanto a `docker-compose.yml` (o dalla shell): senza
+di essi Compose si ferma con `required variable … is missing a value`. Conservate
+`ENCRYPTION_KEY` insieme ai backup (vedi [Segreti](#segreti)). In produzione il processo web
+rifiuta anche i valori di esempio pubblici (`change-me`, la chiave di soli zeri e i valori che
+le versioni precedenti del file Compose contenevano) e indica la variabile da cambiare.
 
 Aprite `http://localhost:5000` e registratevi: il primo account crea la prima organizzazione e
 ne è owner (vedi [Primo accesso](#primo-accesso)).
@@ -69,12 +81,11 @@ docker compose up -d --scale worker=3
 ```
 
 ::: warning Il file Compose è un punto di partenza, non un deployment
-Parte senza configurazione, quindi contiene valori che nessuno dovrebbe usare in esercizio.
-Prima che lo stack sia raggiungibile da altri:
+Serve per una prima prova su una macchina. Prima che lo stack sia raggiungibile da altri:
 
-1. Sostituite `SESSION_SECRET` e `ENCRYPTION_KEY` in tutti i servizi con valori nuovi (vedi
-   [Segreti](#segreti)). `ENCRYPTION_KEY` deve essere la stessa in `api`, `worker` e `migrate`.
-2. Cambiate la password di PostgreSQL e non pubblicate più le porte `5432` e `6379` sull'host.
+1. Generate i segreti in `.env` come sopra, senza copiarli da una guida o da un'altra
+   installazione. Compose passa la stessa `ENCRYPTION_KEY` ad `api`, `worker` e `migrate`.
+2. Non pubblicate più le porte `5432` e `6379` sull'host.
 3. Mettete TLS davanti alla porta 5000 e togliete `SESSION_COOKIE_SECURE=false`.
 4. Con più di un worker, o con worker su altre macchine, usate `ARTIFACT_STORE=s3`: ogni
    container ha il proprio disco, e il processo web non può servire uno screenshot che un worker
