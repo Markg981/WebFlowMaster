@@ -49,3 +49,26 @@ export function assertStartupConfig(env: NodeJS.ProcessEnv = process.env): void 
     throw new Error(`Invalid configuration:\n  - ${errors.join('\n  - ')}`);
   }
 }
+
+/**
+ * Connects the session store's Redis before the first request. In production a failure stops
+ * the start with the reason Redis gave: the shared store is mandatory there (several web
+ * processes and the worker read the same sessions), and the message "logins will not persist"
+ * that the start used to log hid the cause behind the generic refusal createSessionStore()
+ * raised a moment later. Elsewhere the in-memory store is a local convenience, so it only warns.
+ */
+export async function connectSessionStore(
+  connect: () => Promise<void>,
+  warn: (message: string) => void,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<void> {
+  try {
+    await connect();
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    if (env.NODE_ENV === 'production') {
+      throw new Error(`Session Redis is not reachable (${reason}). Production needs the shared session store: check REDIS_URL and that Redis is up.`);
+    }
+    warn(`Session Redis is not reachable (${reason}); using an in-memory session store: logins will not survive a restart.`);
+  }
+}

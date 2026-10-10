@@ -8323,6 +8323,20 @@
         "Dal worker aprire con Chromium https://keycloak.collaudo.test/realms/acme/.well-known/openid-configuration senza ignoreHTTPSErrors; verificare risposta 200 e issuer del realm acme."
       ],
       "expected": "Worker attivo non-root; certutil presente dall'immagine di Collaudo; CA importata nel database NSS scrivibile dell'utente; Chromium legge il documento OIDC via HTTPS senza errore di certificato. Registrare immagini, UID ed esito. Un test automatico non assegna l'esito manuale."
+    },
+    {
+      "id": "OPS-37",
+      "area": "OPS",
+      "priority": "P1",
+      "actor": "Operatore del Collaudo",
+      "title": "Il processo web non parte in produzione senza Redis",
+      "preconditions": "Stack di collaudo avviato e api healthy. Nessun run attivo.",
+      "steps": [
+        "Fermare Redis: wfmc stop redis.",
+        "Riavviare il processo web: wfmc restart api, poi leggere wfmc logs api.",
+        "Riavviare Redis (wfmc start redis) e poi api (wfmc up -d api); accedere all'applicazione."
+      ],
+      "expected": "Passo 2: api termina con codice 1 e il log riporta Session Redis is not reachable con l'errore di connessione e l'indicazione di controllare REDIS_URL; nessun messaggio \"logins will not persist\", nessun avvio con sessioni in memoria. Passo 3: api healthy e accesso riuscito."
     }
   ],
   "presentation": {
