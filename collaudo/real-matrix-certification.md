@@ -16,7 +16,7 @@ docker exec wfm-matrix-e2e-postgres-1 psql -U postgres -v ON_ERROR_STOP=1 -c "CR
 $env:DATABASE_URL = 'postgresql://wfm_e2e:wfm_e2e@127.0.0.1:5438/wfm_ci_e2e'
 $env:REDIS_URL = 'redis://127.0.0.1:6388'
 $env:SESSION_SECRET = 'matrix-e2e-local-secret'
-$env:ENCRYPTION_KEY = '0000000000000000000000000000000000000000000000000000000000000000'
+$env:ENCRYPTION_KEY = 'c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1'
 npm run build
 node dist/apply-migrations.js
 npx playwright install chromium firefox webkit
