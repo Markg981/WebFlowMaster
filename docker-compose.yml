@@ -6,6 +6,14 @@
 # server bundle imported a pruned dev dependency, the client was built into a directory the
 # server did not look in, and nothing applied the migrations. Each of those only appears in
 # a real production start — none is reachable from the dev server, the tests or a typecheck.
+#
+# The four secrets come from a .env file next to this one (or the shell), and the stack refuses
+# to start without them: the values it used to ship were public, and a stack tried out with
+# them and then exposed kept them. Generate each with
+#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# and put them in .env as POSTGRES_PASSWORD, SESSION_SECRET, ENCRYPTION_KEY and
+# AGENT_RELAY_SECRET. Use hex for POSTGRES_PASSWORD: it is also written into DATABASE_URL.
+# Keep ENCRYPTION_KEY with the database backups: the stored secrets cannot be read without it.
 
 services:
   redis:
@@ -25,7 +33,7 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (see the top of docker-compose.yml)}
       - POSTGRES_DB=webflowmaster
     ports:
       - "5432:5432"
@@ -63,9 +71,8 @@ services:
     command: ["node", "dist/apply-migrations.js"]
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgres://postgres:password@postgres:5432/webflowmaster
-      # Required by server/crypto.ts at import time, even though migrating encrypts nothing.
-      - ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
+      - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/webflowmaster
+      # Required by server/crypto.ts at import time, even though migrating encrypts nothing.      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?set ENCRYPTION_KEY in .env (see the top of docker-compose.yml)}
     depends_on:
       postgres:
         condition: service_healthy
@@ -80,14 +87,12 @@ services:
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=postgres://postgres:password@postgres:5432/webflowmaster
-      # Change all three before this is reachable by anyone else. They are here so the stack
-      # starts out of the box, not because these values are fit to deploy.
-      - SESSION_SECRET=7G823eU1afEmmjSg73Juk_wRoVPt6mqbjBXliA6XXNg
-      - ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
+      - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/webflowmaster
+      - SESSION_SECRET=${SESSION_SECRET:?set SESSION_SECRET in .env (see the top of docker-compose.yml)}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?set ENCRYPTION_KEY in .env (see the top of docker-compose.yml)}
       # Signs the tickets with which a worker borrows a local agent's browser; the worker must
-      # hold the same value. Change it with the other two.
-      - AGENT_RELAY_SECRET=4Qm9zR2vX7cL1pT8wK3nB6yH5dF0sJ
+      # hold the same value.
+      - AGENT_RELAY_SECRET=${AGENT_RELAY_SECRET:?set AGENT_RELAY_SECRET in .env (see the top of docker-compose.yml)}
       # The fallback {{baseUrl}} for a run with no environment selected.
       - APP_BASE_URL=http://localhost:7000
       # Where report links in notifications, issues and commit statuses point: this stack as
@@ -123,8 +128,8 @@ services:
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=postgres://postgres:password@postgres:5432/webflowmaster
-      - ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000
+      - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/webflowmaster
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?set ENCRYPTION_KEY in .env (see the top of docker-compose.yml)}
       - APP_BASE_URL=http://localhost:7000
       # Where report links in notifications, issues and commit statuses point: this stack as
       # its users reach it. Needed by the worker too, which is what sends them.
@@ -133,7 +138,7 @@ services:
       # process. Without these two it looked for the relay on its own localhost and signed with
       # a secret the web process did not share, so every run on an agent failed.
       - AGENT_RELAY_URL=http://api:5000
-      - AGENT_RELAY_SECRET=4Qm9zR2vX7cL1pT8wK3nB6yH5dF0sJ
+      - AGENT_RELAY_SECRET=${AGENT_RELAY_SECRET:?set AGENT_RELAY_SECRET in .env (see the top of docker-compose.yml)}
       # See the api service. Runs execute here, so this is the one the steps use.
       - MAILPIT_URL=http://mailpit:8025
     # The same two volumes as the web process: see there.

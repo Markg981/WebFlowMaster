@@ -39,7 +39,7 @@ After draining and verifying the backup, check ownership of `/app/results` and
 For local acceptance:
 
 ```sh
-docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml run --rm --no-deps --user root api chown -R pwuser:pwuser /app/results /app/data/visual-baselines
+docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml run --rm --no-deps --user root api chown -R pwuser:pwuser /app/results /app/data/visual-baselines
 ```
 
 The command changes ownership while retaining contents; it neither deletes nor recreates volumes.

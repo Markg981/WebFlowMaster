@@ -52,8 +52,20 @@ process (`api`) and one worker.
 ```bash
 git clone https://github.com/Markg981/WebFlowMaster.git
 cd WebFlowMaster
+cat > .env <<EOF
+POSTGRES_PASSWORD=$(openssl rand -hex 32)
+SESSION_SECRET=$(openssl rand -hex 32)
+ENCRYPTION_KEY=$(openssl rand -hex 32)
+AGENT_RELAY_SECRET=$(openssl rand -hex 32)
+EOF
 docker compose up -d --build
 ```
+
+The four secrets come from `.env` next to `docker-compose.yml` (or from the shell): without
+them Compose stops with `required variable … is missing a value`. Keep `ENCRYPTION_KEY` with
+your backups (see [Secrets](#secrets)). In production the web process also refuses the public
+example values (`change-me`, the all-zero key and the values older versions of the Compose file
+shipped) and names the variable to change.
 
 Open `http://localhost:5000` and register: the first account creates the first organization
 and owns it (see [First sign-in](#first-sign-in)).
@@ -65,12 +77,11 @@ docker compose up -d --scale worker=3
 ```
 
 ::: warning The Compose file is a starting point, not a deployment
-It starts out of the box, which means it contains values nobody should deploy. Before the
-stack is reachable by anyone else:
+It is meant for a first look on one machine. Before the stack is reachable by anyone else:
 
-1. Replace `SESSION_SECRET` and `ENCRYPTION_KEY` in every service with fresh values (see
-   [Secrets](#secrets)). `ENCRYPTION_KEY` must be the same in `api`, `worker` and `migrate`.
-2. Change the PostgreSQL password, and stop publishing ports `5432` and `6379` on the host.
+1. Generate the secrets in `.env` as above; never copy them from a guide or another
+   installation. Compose passes the same `ENCRYPTION_KEY` to `api`, `worker` and `migrate`.
+2. Stop publishing ports `5432` and `6379` on the host.
 3. Put TLS in front of port 5000 and remove `SESSION_COOKIE_SECURE=false`.
 4. With more than one worker, or workers on other machines, use `ARTIFACT_STORE=s3`: each
    container has its own disk, and the web process cannot serve a screenshot a worker wrote

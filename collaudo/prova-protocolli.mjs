@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto';
 
 const root = resolve(import.meta.dirname, '..');
 const docker = process.env.DOCKER_BIN || 'docker';
-const compose = ['compose', '-p', 'wfm-collaudo', '-f', 'docker-compose.yml', '-f', 'collaudo/docker-compose.collaudo.yml'];
+const compose = ['compose', '-p', 'wfm-collaudo', '--env-file', 'collaudo/collaudo.env', '-f', 'docker-compose.yml', '-f', 'collaudo/docker-compose.collaudo.yml'];
 const base = process.env.WFM_URL || 'https://wfm.collaudo.test';
 const saved = join(root, 'collaudo/.sessions/agent-interno.json');
 const cookie = JSON.parse(readFileSync(join(root, 'collaudo/.sessions/owner.a.json'), 'utf8')).cookie;

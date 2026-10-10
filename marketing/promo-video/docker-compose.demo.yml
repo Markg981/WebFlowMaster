@@ -1,6 +1,6 @@
 # The storefront the promo video tests, added to the collaudo stack:
 #
-#   docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
+#   docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
 #     -f marketing/promo-video/docker-compose.demo.yml up -d shop
 #
 # Served inside the stack as http://shop.northwind.test, where the api (loading the page in the

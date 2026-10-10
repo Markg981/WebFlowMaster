@@ -1,7 +1,7 @@
 /**
  * Spreads the Northwind Commerce runs over the last two weeks, for the dashboard's 30-day trend.
  *
- *   docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
+ *   docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml \
  *     exec -T api node --input-type=module < marketing/promo-video/demo/spread-history.mjs
  *
  * build-data.mjs makes every run in the same few minutes, so the trend chart is one bar at the

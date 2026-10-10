@@ -39,7 +39,7 @@ Dopo drain e backup verificato, controllare il proprietario di `/app/results` e
 Per il Collaudo locale:
 
 ```sh
-docker compose -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml run --rm --no-deps --user root api chown -R pwuser:pwuser /app/results /app/data/visual-baselines
+docker compose -p wfm-collaudo --env-file collaudo/collaudo.env -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml run --rm --no-deps --user root api chown -R pwuser:pwuser /app/results /app/data/visual-baselines
 ```
 
 Il comando modifica la proprietà conservando i contenuti; non elimina né ricrea i volumi.
