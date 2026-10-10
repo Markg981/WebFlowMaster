@@ -34,7 +34,7 @@ implemented and should not be described as missing development.
 - [Releases](../admin/releases): digest-pinned bases, non-root runtime, reproducible builds,
   SBOMs and security gates are implemented. Publication and upgrade need separate evidence.
 
-The current source catalog is `collaudo/casi.json`: protocol 39, 579 cases. The local 27 September
+The current source catalog is `collaudo/casi.json`: protocol 41, 582 cases. The local 27 September
 cycle holds 299 outcomes (290 pass, 8 blocked, 1 N/A) with its frozen catalog. Local alignment
 loads the current catalog and opens a new pending cycle; automated outcomes do not become
 manual acceptance results.
