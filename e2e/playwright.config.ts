@@ -17,13 +17,21 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-      // In CI Firefox sometimes stops answering Playwright on the first navigation of a new
-      // page: the server answers /auth in milliseconds and the app renders (trace of the
-      // failing runs), yet goto never sees the commit and every locator after it gets no
-      // answer at all. One or two tests a run, a different pair each time. Waiting longer in
-      // the test cannot help; a retry runs in a new worker with a new browser, and the report
-      // still lists the test as flaky. Any failure that repeats fails the run as before.
+      use: {
+        ...devices['Desktop Firefox'],
+        // In CI Firefox sometimes stops answering Playwright on the first navigation of a new
+        // page: the server answers /auth in milliseconds and the app renders (trace of the
+        // failing runs), yet goto never sees the commit and every locator after it gets no
+        // answer at all. Only the first navigation of a page fails, the one that moves it from
+        // about:blank to the application's origin and, with site isolation, into another content
+        // process. Keeping one process per page avoids that switch. The product is not
+        // affected: this is the test browser, and every assertion still runs in it.
+        launchOptions: {
+          firefoxUserPrefs: { 'fission.autostart': false, 'fission.webContentIsolationStrategy': 0 },
+        },
+      },
+      // A retry runs in a new worker with a new browser, and the report still lists the test
+      // as flaky. Any failure that repeats fails the run as before.
       retries: process.env.CI ? 1 : 0,
     },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
