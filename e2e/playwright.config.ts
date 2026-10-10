@@ -15,7 +15,17 @@ export default defineConfig({
   reporter: [['list'], ['html', { outputFolder: '../e2e-artifacts/report', open: 'never' }]],
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+      // In CI Firefox sometimes stops answering Playwright on the first navigation of a new
+      // page: the server answers /auth in milliseconds and the app renders (trace of the
+      // failing runs), yet goto never sees the commit and every locator after it gets no
+      // answer at all. One or two tests a run, a different pair each time. Waiting longer in
+      // the test cannot help; a retry runs in a new worker with a new browser, and the report
+      // still lists the test as flaky. Any failure that repeats fails the run as before.
+      retries: process.env.CI ? 1 : 0,
+    },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
   use: {
