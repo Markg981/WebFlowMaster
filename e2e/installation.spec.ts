@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { distributedWsdl, requestXsd, baseXsd } from '../server/tests/soap-bundle-fixtures';
 import { expandedDocuments, expandedWsdl } from '../server/tests/soap-expanded-fixtures';
-import { openAuth, register } from './helpers';
+import { register } from './helpers';
 
 const password = 'E2e-Installation!2026';
 const target = 'http://127.0.0.1:5081/echo';
@@ -255,7 +255,7 @@ test('multiple configured dashboards persist and are shared read-only with anoth
   const readerContext = await browser.newContext();
   try {
     const reader = await readerContext.newPage();
-    await openAuth(reader, `http://127.0.0.1:5080/auth?invitation=${token}&username=${username}`);
+    await reader.goto(`http://127.0.0.1:5080/auth?invitation=${token}&username=${username}`);
     await reader.getByRole('tab', { name: 'Register', exact: true }).click();
     await reader.locator('#register-password').fill(password);
     await reader.locator('#confirm-password').fill(password);
