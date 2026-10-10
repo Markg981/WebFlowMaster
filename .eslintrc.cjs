@@ -23,7 +23,6 @@ module.exports = {
     'dist/',
     'client/dist/',
     'migrations/',
-    'migrations_old/',
     'allure-results/',
     'results/',
     'coverage/',

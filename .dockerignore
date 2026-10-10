@@ -17,7 +17,6 @@ client/dist
 .github
 .vscode
 .vs
-.jules
 .superpowers
 .claude
 
@@ -30,8 +29,6 @@ uploads
 .observability
 .playwright-mcp
 graphify-out
-attached_assets
-migrations_old
 coverage
 e2e-artifacts
 
