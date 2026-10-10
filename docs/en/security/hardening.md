@@ -21,6 +21,9 @@ people. Each item names the setting or the page that explains it. The
 - `CSRF_TRUSTED_ORIGINS` lists only your own public origins, if it is set at all.
 - `INSECURE_TLS_HOSTS` unset (it is ignored in production anyway).
 - `MFA_ISSUER` set to a name that identifies this installation.
+- A body size limit on the reverse proxy no lower than the server's own: 24 MB for a test
+  bundle import, 20 MB for the API tester's proxy, 12 MB for an API test import, 10 MB for an
+  Excel upload (only `.xlsx`, removed once parsed), 100 kB for every other JSON request.
 
 ## Network {#network}
 

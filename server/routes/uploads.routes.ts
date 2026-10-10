@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 import multer from "multer";
 import { excelService } from "../excel-service";
 import fs from "fs-extra";
@@ -20,7 +20,42 @@ const excelMappingSchema = z.object({
 
 const router = Router();
 const logger = await loggerPromise;
-const upload = multer({ dest: 'uploads/' });
+/** Larger than any sheet of test cases; small enough that no account can fill the disk with them. */
+export const EXCEL_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+
+// ExcelJS reads .xlsx only. Browsers send it with its own type, or as octet-stream when the
+// system knows no type for the extension, so the extension is checked as well as the type.
+const XLSX_TYPES = new Set([
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/octet-stream',
+]);
+
+class UnsupportedUploadError extends Error {}
+
+const upload = multer({
+  dest: 'uploads/',
+  limits: { fileSize: EXCEL_UPLOAD_MAX_BYTES, files: 1, fields: 10 },
+  fileFilter: (_req, file, accept) => {
+    if (/\.xlsx$/i.test(file.originalname) && XLSX_TYPES.has(file.mimetype)) return accept(null, true);
+    accept(new UnsupportedUploadError('Only .xlsx files can be uploaded.'));
+  },
+});
+
+/**
+ * multer's own errors reached the default handler as a 500 with nothing saying the file was
+ * too big. Multer removes the partial file itself when a limit stops the upload.
+ */
+const uploadExcelFile: RequestHandler = (req, res, next) => {
+  upload.single('file')(req, res, (error: unknown) => {
+    if (!error) return next();
+    if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: `The file is larger than ${EXCEL_UPLOAD_MAX_BYTES / 1024 / 1024} MB.` });
+    }
+    if (error instanceof UnsupportedUploadError) return res.status(415).json({ error: error.message });
+    if (error instanceof multer.MulterError) return res.status(400).json({ error: error.message });
+    next(error);
+  });
+};
 
 // POST /api/upload-excel - Parse Excel file
 //
@@ -28,7 +63,7 @@ const upload = multer({ dest: 'uploads/' });
 // tenant-scoped table directly — it only parses an uploaded file — but it is still a
 // mutating endpoint (it writes to disk via multer and reads the file back), so it gets the
 // same requireRole gate as every other mutating route rather than staying the one open door.
-router.post("/api/upload-excel", requireRole('editor'), upload.single('file'), async (req, res) => {
+router.post("/api/upload-excel", requireRole('editor'), uploadExcelFile, async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
@@ -45,15 +80,15 @@ router.post("/api/upload-excel", requireRole('editor'), upload.single('file'), a
       }
 
       const parsedData = await excelService.parseExcel(req.file.path, mappings);
-      
-      // Cleanup uploaded file
-      await fs.unlink(req.file.path).catch(err => logger.warn("Failed to delete uploaded file", err));
 
       res.json(parsedData);
 
     } catch (error: any) {
       logger.error({ message: "Error parsing Excel", error: error.message });
       res.status(500).json({ error: "Failed to parse Excel file" });
+    } finally {
+      // Also when parsing fails: a file that is not a workbook used to stay in uploads/.
+      await fs.unlink(req.file.path).catch(err => logger.warn("Failed to delete uploaded file", err));
     }
 });
 
