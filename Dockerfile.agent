@@ -14,7 +14,6 @@ RUN sh /tmp/wfm-harden-base.sh && rm /tmp/wfm-harden-base.sh
 ARG SOURCE_DATE_EPOCH=0
 WORKDIR /src
 COPY package*.json ./
-COPY scripts/security/apply-braces-patch.cjs ./scripts/security/
 COPY client/package*.json ./client/
 RUN npm ci --include=dev --no-audit --no-fund
 COPY . .
@@ -32,7 +31,6 @@ ENV NODE_ENV=production
 
 # Copy the production dependency tree from npm ci; no second resolution of transitives.
 COPY --from=build /src/package*.json ./
-COPY --from=build /src/scripts/security/apply-braces-patch.cjs ./scripts/security/
 COPY --from=build /src/client/package*.json ./client/
 COPY --from=build /src/node_modules ./node_modules
 # Intentional mismatch fixture for Collaudo AGT-05 only. Release builds leave this empty.

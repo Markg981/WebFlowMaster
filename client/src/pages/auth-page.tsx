@@ -148,7 +148,7 @@ export default function AuthPage() {
     <div className="min-h-screen bg-background flex overflow-hidden">
       {/* Background Decorative Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
         <div className="absolute bottom-[10%] right-[10%] w-[30%] h-[30%] bg-accent/5 rounded-full blur-[100px]" />
       </div>
 
@@ -174,7 +174,7 @@ export default function AuthPage() {
 
           <motion.div variants={itemVariants}>
             <Card className="border-border/50 bg-background/60 backdrop-blur-xl shadow-2xl overflow-hidden">
-              <div className="h-1 w-full bg-gradient-to-r from-primary via-accent to-primary" />
+              <div className="h-1 w-full bg-linear-to-r from-primary via-accent to-primary" />
               <CardHeader className="space-y-1 pt-8">
                 <CardTitle className="text-2xl font-bold">{t('authPage.welcome.title')}</CardTitle>
                 <CardDescription>
@@ -436,7 +436,7 @@ export default function AuthPage() {
               rotate: [0, 90, 0],
             }}
             transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="absolute -top-[20%] -right-[20%] w-[80%] h-[80%] bg-primary/20 rounded-full blur-[120px]" 
+            className="absolute top-[-20%] right-[-20%] w-[80%] h-[80%] bg-primary/20 rounded-full blur-[120px]" 
           />
           <motion.div 
             animate={{ 
@@ -444,7 +444,7 @@ export default function AuthPage() {
               rotate: [0, -90, 0],
             }}
             transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-            className="absolute -bottom-[20%] -left-[20%] w-[60%] h-[60%] bg-accent/20 rounded-full blur-[100px]" 
+            className="absolute bottom-[-20%] left-[-20%] w-[60%] h-[60%] bg-accent/20 rounded-full blur-[100px]" 
           />
         </div>
 

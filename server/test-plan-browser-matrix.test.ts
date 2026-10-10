@@ -533,7 +533,7 @@ describe('the notification a finished run sends', () => {
 
 /** Local helper so the expectations above read as sentences rather than as query builders. */
 function eqId(executionId: string) {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { eq } = require('drizzle-orm');
   return eq(testPlanExecutions.id, executionId);
 }

@@ -617,10 +617,10 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
       }
     }}>
       <DialogContent className="sm:max-w-[600px] md:max-w-[800px] lg:max-w-[900px] max-h-[90vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+        <DialogHeader className="shrink-0">
           {/* Title and Description are now part of renderStepContent */}
         </DialogHeader>
-        <div className="flex items-center justify-center my-4 flex-shrink-0">
+        <div className="flex items-center justify-center my-4 shrink-0">
             {Array.from({ length: totalSteps }, (_, i) => (
               <React.Fragment key={i}>
                 <div
@@ -640,10 +640,10 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({ isOpen, onC
               </React.Fragment>
             ))}
           </div>
-        <div className="flex-grow overflow-y-auto pr-2 pl-1 scrollbar-thin scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent">
+        <div className="grow overflow-y-auto pr-2 pl-1 scrollbar-thin scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent">
           {renderStepContent()}
         </div>
-        <DialogFooter className="mt-6 flex-shrink-0">
+        <DialogFooter className="mt-6 shrink-0">
           <div className="w-full flex justify-between items-center">
             <Button variant="outline" onClick={() => { onClose(); resetForm(); }} disabled={isSubmitting}>
               {t('createTestPlanWizard.cancel', 'Cancel')}

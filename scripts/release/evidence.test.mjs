@@ -61,11 +61,11 @@ test('streaming hash detects changed archive content', async t => {
   writeFileSync(file, 'altered archive');
   assert.notEqual(await fileHash(file), sha256('archive fixture'));
 });
-test('image gate rejects the source-only braces exception and source gate needs actual mitigation', t => {
+test('image and source gates both block a HIGH finding: no source exception remains', t => {
   const { base, run } = fixture(t);
   const path = join(base, 'source-scan.json');
   writeFileSync(path, JSON.stringify({ SchemaVersion: 2, Results: [{ Target: 'package-lock.json', Vulnerabilities: [{ Severity: 'HIGH', VulnerabilityID: 'CVE-2026-93687', PkgName: 'braces', InstalledVersion: '3.0.3' }] }, { Target: 'deployment/lighthouse/package-lock.json' }] }));
   assert.notEqual(run('gate', path).status, 0);
   assert.notEqual(run('source-gate', path).status, 0);
-  assert.match(run('source-gate', path).stderr, /source-exceptions.json/);
+  assert.match(run('source-gate', path).stderr, /braces@3\.0\.3 \[CVE-2026-93687, HIGH\]/);
 });

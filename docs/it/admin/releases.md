@@ -50,9 +50,9 @@ abilita la pubblicazione soltanto quando:
 Trivy produce una SBOM CycloneDX JSON e un rapporto JSON completo per ogni immagine. Sono
 conservati anche versione dello scanner e metadati del database utilizzato. I rapporti mantengono
 i rilievi di gravità inferiore per la valutazione. Non si usano ignore generici o flag
-`ignore-unfixed`. L’unica eccezione approvata è quella temporanea per i sorgenti in
-`deployment/releases/source-exceptions.json`, descritta sotto; non vale per le immagini.
-Gli altri rilievi bloccanti richiedono aggiornamento compatibile fissato, revisione e nuove scansioni.
+`ignore-unfixed`, e non è accettata alcuna eccezione: quella temporanea per i sorgenti su
+braces è stata chiusa a ottobre 2026 (vedi sotto). I rilievi bloccanti richiedono aggiornamento
+compatibile fissato, revisione e nuove scansioni.
 Errori dello scanner o nel download del database fermano la pubblicazione. Nuovi advisory possono
 cambiare l'idoneità di un'immagine anche quando il suo contenuto non cambia.
 
@@ -161,47 +161,32 @@ mancanti, symlink o percorsi esterni interrompono la build. Lo smoke delle immag
 verifica Chromium, Firefox e WebKit: non rimuoviamo librerie multimediali necessarie
 a WebKit per nascondere i rilievi del sistema operativo.
 
-La scansione dei cinque lockfile dopo gli aggiornamenti contiene due occorrenze
-HIGH di **CVE-2026-93687**, entrambe per braces 3.0.3 (lock principale e client).
-Non esiste una versione correttiva pubblicata: vedere
-[la segnalazione upstream](https://github.com/micromatch/braces/issues/73).
-`scripts/security/apply-braces-patch.cjs` applica una mitigazione temporanea alla
-profondità di parsing, con limite 100, mantenendo identità e versione originali.
-Lo script verifica versione e hash del parser, è idempotente ed è eseguito dai
-postinstall principale e client. Cambiamenti upstream inattesi interrompono
-l'installazione per richiedere una revisione della patch.
+La scansione dei cinque lockfile dopo gli aggiornamenti conteneva due occorrenze
+HIGH di **CVE-2026-93687**, entrambe per braces 3.0.3 (lock principale e client), senza una
+versione correttiva upstream ([segnalazione upstream](https://github.com/micromatch/braces/issues/73)).
+Una patch in postinstall limitava la profondità del parser, con un'eccezione limitata ai
+sorgenti approvata fino al 6 novembre 2026.
 
-Eseguire `npm run test:security` dopo `npm ci`: verifica glob normali, rifiuto
-dell'annidamento e composizione email reale. `--ignore-scripts` non applica la
-mitigazione. Il controllo di release include l'impronta della patch e dei manifest
-client.
+### Chiusura dell'eccezione braces (ottobre 2026)
 
-### Eccezione temporanea sorgenti approvata
+braces non è più installato. Arrivava solo da strumenti di build e lint: Tailwind 3 (chokidar
+e micromatch), `@typescript-eslint` 7 (globby e fast-glob) e `@types/jest`, inutilizzato.
+Tailwind 4, `@typescript-eslint` 8 e la rimozione di `@types/jest` e di `eslint-plugin-vitest`,
+anch'esso inutilizzato, non ne lasciano copie in nessuno dei due lock. Con braces sono stati
+rimossi la patch in postinstall, `deployment/releases/source-exceptions.json` e il suo
+valutatore: **non esiste alcuna eccezione sui sorgenti**, e ogni rilievo HIGH o CRITICAL nei
+lockfile blocca il gate dei sorgenti come qualunque altro. `server/tests/dependency-locks.test.ts`
+fallisce se braces o micromatch tornano in un lock.
 
-L’utente ha approvato esplicitamente un’eccezione limitata ai sorgenti per **CVE-2026-93687**,
-pacchetto **braces 3.0.3**, esclusivamente in `package-lock.json` e `client/package-lock.json`,
-con scadenza **6 novembre 2026**. La configurazione revisionabile è
-`deployment/releases/source-exceptions.json`. Il rilievo scanner resta riconosciuto: non si
-dichiara un fix upstream e non si cambia l’identità del pacchetto.
+Nella stessa modifica sono stati chiusi gli altri avvisi di produzione: `moment` 2.31.0 e
+`tedious` 20.3.6 (fissato in `overrides`; non dipende più da `sprintf-js`).
+`npm audit --omit=dev` non riporta vulnerabilità.
 
-L’accettazione richiede installazioni nuove principale e client separato e verifica riuscita
-di integrità e limite di profondità di **ogni copia braces installata nei due alberi**.
-Verificare i parser reali contro patch/hash attesi, comportamento dei glob ordinari e rifiuto
-oltre profondità 100. Copie mancanti, contenuto parser inatteso, validazione fallita, policy
-scaduta, versioni/percorsi non previsti o scansioni incomplete bloccano l’accettazione sorgenti.
-`--ignore-scripts` da solo non soddisfa la condizione.
-
-Il rapporto Trivy sorgenti originale e completo resta un artefatto, inclusi i due rilievi;
-le evidenze dell’eccezione accettata sono separate e identificano policy, validazione e rilievi
-corrispondenti. Nessun rilievo delle immagini è accettato, non si aggiungono ignore generici o
-`ignore-unfixed` e ogni altro HIGH/CRITICAL resta bloccante. Rinnovo o estensione richiedono
-revisione e approvazione esplicite; privilegiare un fix upstream verificato prima della scadenza.
-
-L’approvazione non prova che CI/tag attuale soddisfi le condizioni. L’idoneità della release
-richiede validazione riuscita, scansioni nuove complete e tutti gli altri gate.
-
-Rimuovere la patch soltanto dopo un aggiornamento ufficiale con protezione
-equivalente e nuove prove. Consultare il protocollo Collaudo 28 per le evidenze.
+Tailwind 4 compila tramite lightningcss, il cui binario è un pacchetto opzionale per piattaforma.
+npm 11 lo elimina dal lock del workspace quando lo riscrive, e la build Linux fallisce con
+`Cannot find module ../lightningcss.linux-x64-gnu.node`. Per questo `client/package.json` li
+elenca in `optionalDependencies` alla versione di lightningcss bloccata; lo stesso test verifica
+che coincidano a ogni aggiornamento di Tailwind.
 
 ### Correzioni della base ed evidenze delle immagini
 

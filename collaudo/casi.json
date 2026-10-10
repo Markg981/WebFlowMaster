@@ -7597,15 +7597,16 @@
       "area": "OPS",
       "actor": "operatore sicurezza",
       "id": "OPS-26",
-      "title": "Verifica correzioni dipendenze e mitigazione braces",
+      "title": "Verifica correzioni dipendenze e assenza di braces",
       "priority": "P1",
-      "preconditions": "Checkout completo con dipendenze installate, Docker Linux e rapporti Trivy del candidato. Conservare la baseline precedente.",
+      "preconditions": "Checkout completo, Docker Linux e rapporti Trivy del candidato. Conservare la baseline precedente.",
       "steps": [
-        "Eseguire npm ci e npm run test:security; verificare la mitigazione di profondità e la composizione email reale.",
-        "Ricostruire le tre immagini, produrre SBOM e scansionare sorgenti e immagini con il gate senza ignore.",
-        "Confrontare ID/versioni con baseline e rapporto di remediation; verificare che eventuali HIGH/CRITICAL residui impediscano la pubblicazione."
+        "Eseguire npm ci (anche con --ignore-scripts) e npm audit --omit=dev; verificare con npm ls braces micromatch che nessuna copia sia installata, nella radice e nel client (npm ci in client/ con --workspaces=false).",
+        "Eseguire npm run test:security (composizione email reale) e npx vitest run server/tests/dependency-locks.test.ts.",
+        "Ricostruire le tre immagini, produrre SBOM e scansionare sorgenti e immagini con il gate senza ignore; verificare che deployment/releases/source-exceptions.json non esista e che un HIGH/CRITICAL residuo impedisca la pubblicazione.",
+        "Aprire le pagine principali dell'interfaccia (dashboard, impostazioni, report) e confrontarle con la release precedente: Tailwind 4 non deve cambiare layout, colori, tema scuro e animazioni dei dialoghi."
       ],
-      "expected": "Nodemailer e Lighthouse funzionano; pattern braces ordinari sono preservati e profondità oltre 100 è rifiutata prima della ricorsione. Gli aggiornamenti eliminano i relativi CVE. La mitigazione locale non rinomina braces né sopprime il rilievo upstream: qualunque residuo mantiene la release bloccata."
+      "expected": "npm audit --omit=dev non riporta vulnerabilità; braces e micromatch non sono installati in nessuno dei due alberi; il test dei lock passa; nessuna eccezione sorgenti è applicata e ogni HIGH/CRITICAL blocca il gate. Nodemailer funziona. L'interfaccia è visivamente equivalente alla release precedente."
     },
     {
       "id": "API-49",

@@ -20,7 +20,7 @@ export default function ConfiguredDashboardWidget({ widget }: { widget: Dashboar
   if (query.data?.unavailable) return <div role="status" className="rounded border p-4">{t('dashboards.projectUnavailable', 'Project unavailable. You do not have access to this widget’s project.')}</div>;
   const data = query.data;
   return <>
-    {widget.title && <h2 className="mb-2 break-words font-semibold">{widget.title}</h2>}
+    {widget.title && <h2 className="mb-2 wrap-break-word font-semibold">{widget.title}</h2>}
     {widget.type === 'kpis' && <KpiPanel data={data?.kpis} isLoading={query.isLoading} />}
     {widget.type === 'status' && <TestStatusPieChart data={data?.distribution} isLoading={query.isLoading} />}
     {widget.type === 'trend' && <TestTrendBarChart data={data?.trend} isLoading={query.isLoading} />}

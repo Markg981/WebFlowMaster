@@ -33,7 +33,6 @@ ENV NODE_ENV=production
 # Dependencies first, and as their own layer: application code changes on every build,
 # package-lock.json rarely, so this layer is the one worth caching.
 COPY package*.json ./
-COPY scripts/security/apply-braces-patch.cjs ./scripts/security/
 COPY client/package*.json ./client/
 RUN npm ci --include=dev --no-audit --no-fund && rm -rf /root/.npm /tmp/node-compile-cache
 

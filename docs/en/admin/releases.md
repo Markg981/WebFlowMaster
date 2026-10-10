@@ -48,10 +48,9 @@ publication only when all of these checks pass:
 
 Trivy generates one CycloneDX JSON SBOM and a complete JSON vulnerability report per image.
 The scanner version and database metadata are saved alongside them. Reports retain lower-severity
-findings for assessment. No blanket ignore or `ignore-unfixed` flag is used. The only approved
-exception is the temporary source-only entry in `deployment/releases/source-exceptions.json`,
-described below; image findings cannot use it. Other blocking findings require a compatible
-locked update, review and fresh scans. Scanner DB downloads and scanner errors also stop
+findings for assessment. No blanket ignore or `ignore-unfixed` flag is used, and no exception
+is accepted: the source-only braces exception was closed in October 2026 (see below). Blocking
+findings require a compatible locked update, review and fresh scans. Scanner DB downloads and scanner errors also stop
 publication. A changing advisory database can change eligibility even
 when the image itself is unchanged.
 
@@ -162,44 +161,32 @@ symlinks or external paths fail the build. Image smoke tests cover Chromium,
 Firefox and WebKit; required multimedia libraries are preserved rather than
 removed to hide operating-system findings.
 
-After the updates, scanning the five lockfiles reports two HIGH occurrences of
-**CVE-2026-93687**, both for braces 3.0.3 (root and client locks). No corrected
-upstream release is published; see the
-[upstream issue](https://github.com/micromatch/braces/issues/73).
-`scripts/security/apply-braces-patch.cjs` applies a temporary parser depth limit
-of 100 while retaining the original package identity and version. It verifies
-the parser version/hash, is idempotent, and runs through root and client
-postinstall hooks. Unexpected upstream changes stop installation for patch review.
+After the updates, scanning the five lockfiles reported two HIGH occurrences of
+**CVE-2026-93687**, both for braces 3.0.3 (root and client locks), with no corrected
+upstream release ([upstream issue](https://github.com/micromatch/braces/issues/73)). A
+postinstall patch limited the parser depth, under a source-only exception approved until
+6 November 2026.
 
-Run `npm run test:security` after `npm ci`: it checks ordinary globs, nesting
-rejection, and actual email composition. `--ignore-scripts` does not apply the
-mitigation. Release inputs fingerprint the patch and client manifests.
-### Approved temporary source exception
+### Closing the braces exception (October 2026)
 
-The user explicitly approved a source-only exception for **CVE-2026-93687**, package
-**braces 3.0.3**, in exactly `package-lock.json` and `client/package-lock.json`, expiring
-**6 November 2026**. Its reviewable configuration is
-`deployment/releases/source-exceptions.json`. It acknowledges the scanner finding rather
-than claiming an upstream fix or changing the package identity.
+braces is no longer installed. It arrived only through build and lint tools: Tailwind 3
+(chokidar and micromatch), `@typescript-eslint` 7 (globby and fast-glob) and the unused
+`@types/jest`. Tailwind 4, `@typescript-eslint` 8 and the removal of `@types/jest` and the
+unused `eslint-plugin-vitest` leave no copy in either lock. With it went the postinstall
+patch, `deployment/releases/source-exceptions.json` and its evaluator: **no source
+exception exists**, and every HIGH or CRITICAL finding in the lockfiles blocks the source
+gate like any other. `server/tests/dependency-locks.test.ts` fails if braces or micromatch
+return to a lock.
 
-Acceptance requires fresh root and standalone-client installations and successful integrity
-and depth-limit validation of **every installed braces copy in both trees**. Validate actual
-installed parsers against the expected patch/hash and prove ordinary glob behavior and
-rejection beyond depth 100. Missing copies, unrecognized parser content, failed validation,
-expired policy, unexpected finding versions/paths or incomplete scans block source acceptance.
-`--ignore-scripts` cannot satisfy the condition by itself.
+The other production advisories were closed in the same change: `moment` 2.31.0 and
+`tedious` 20.3.6 (pinned in `overrides`; it no longer depends on `sprintf-js`).
+`npm audit --omit=dev` reports no vulnerabilities.
 
-The complete original Trivy source report remains an artifact, including the two findings;
-accepted-exception evidence is retained separately and identifies the policy, validation and
-matched findings. No image finding is accepted, no blanket ignore or `ignore-unfixed` is added,
-and every other HIGH/CRITICAL remains blocking. Renewing or broadening the exception requires
-explicit review and approval; prefer a verified upstream fix before expiry.
-
-Approval does not prove the current CI/tag satisfies these conditions. Release eligibility
-still depends on successful validation, complete fresh scans and every other release gate.
-
-Remove the patch only after an official update provides equivalent protection
-and passes fresh tests. See Collaudo protocol 28 for validation evidence.
+Tailwind 4 compiles through lightningcss, whose binary is a per-platform optional package.
+npm 11 drops those packages from the workspace lock when it rewrites it, which breaks the
+Linux build with `Cannot find module ../lightningcss.linux-x64-gnu.node`. `client/package.json`
+therefore lists them under `optionalDependencies` at the locked lightningcss version; the same
+test checks that both agree whenever Tailwind is updated.
 
 ### Base hardening and image evidence
 

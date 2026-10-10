@@ -12,7 +12,7 @@ export default function GherkinArguments({ argument }: { argument?: ManualStep['
             {t('bdd.docString', 'Doc string')}
             {argument.docString.mediaType && ` · ${argument.docString.mediaType}`}
           </p>
-          <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded bg-muted p-2 text-xs">
+          <pre className="max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded bg-muted p-2 text-xs">
             {argument.docString.content}
           </pre>
         </div>

@@ -22,17 +22,17 @@ const KpiCard: React.FC<KpiCardProps> = ({ title, value, icon, hint, emphasis })
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="min-w-0 break-words text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
+        <h3 className="min-w-0 wrap-break-word text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
         {icon && <div className="shrink-0 text-muted-foreground/60">{icon}</div>}
       </div>
       <div className="mt-2 min-h-[36px] min-w-0">
         {isScalar ? (
-          <p className="font-mono text-2xl font-semibold leading-tight tracking-tight tabular-nums [overflow-wrap:anywhere] xl:text-[30px]">{value}</p>
+          <p className="font-mono text-2xl font-semibold leading-tight tracking-tight tabular-nums wrap-anywhere xl:text-[30px]">{value}</p>
         ) : (
           value
         )}
       </div>
-      {hint && <div className="mt-2 break-words font-mono text-xs tabular-nums text-muted-foreground">{hint}</div>}
+      {hint && <div className="mt-2 wrap-break-word font-mono text-xs tabular-nums text-muted-foreground">{hint}</div>}
     </div>
   );
 };

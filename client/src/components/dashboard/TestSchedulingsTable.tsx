@@ -37,7 +37,7 @@ const TestSchedulingsTable: React.FC<{ data?: TestPlanScheduleEnhanced[]; isLoad
     return(
     <div className = "bg-card text-card-foreground p-4 rounded-lg border shadow-sm min-w-0 overflow-hidden" >
         <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
-          <h3 className="min-w-0 break-words text-base font-semibold">{t('dashboard.testSchedulingsTable.upcomingActiveSchedules.title')}</h3>
+          <h3 className="min-w-0 wrap-break-word text-base font-semibold">{t('dashboard.testSchedulingsTable.upcomingActiveSchedules.title')}</h3>
           <Link href="/test-suites" className="shrink-0 whitespace-nowrap text-sm text-primary hover:underline flex items-center">
             {t('dashboard.testSchedulingsTable.viewAll.link')} <CalendarDays className="ml-1 h-4 w-4" />
           </Link>
@@ -52,7 +52,7 @@ const TestSchedulingsTable: React.FC<{ data?: TestPlanScheduleEnhanced[]; isLoad
 
 {
   error && (
-    <div className="flex flex-col items-center justify-center min-h-40 text-center text-destructive [overflow-wrap:anywhere]">
+    <div className="flex flex-col items-center justify-center min-h-40 text-center text-destructive wrap-anywhere">
       <AlertCircle className="h-8 w-8 mb-2 shrink-0" />
       <p>{t('dashboard.testSchedulingsTable.error.text')}</p>
       <p className="text-xs">{error.message}</p>

@@ -42,10 +42,10 @@ export const LiveConsole: React.FC<LiveConsoleProps> = ({ logs }) => {
             transition={{ duration: 0.2 }}
             className="mb-1.5 leading-relaxed flex"
           >
-            <span className="text-blue-500/70 mr-3 select-none flex-shrink-0">
+            <span className="text-blue-500/70 mr-3 select-none shrink-0">
               $
             </span>
-            <div className="flex-1 break-words">
+            <div className="flex-1 wrap-break-word">
               {renderLogLine(log)}
             </div>
           </motion.div>

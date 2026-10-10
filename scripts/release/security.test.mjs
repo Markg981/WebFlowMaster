@@ -27,12 +27,11 @@ test('runtime images use Resolute and exclude workspace build tooling and global
     assert.match(source, /rm -rf \/usr\/lib\/node_modules\/npm/);
   }
 });
-test('release inputs fingerprint workspace installation hooks and the security patch', () => {
+test('release inputs fingerprint the client manifests', () => {
   const inputs = readReleaseInputs(process.cwd());
-  for (const path of ['client/package.json', 'client/package-lock.json', 'scripts/security/apply-braces-patch.cjs']) {
+  for (const path of ['client/package.json', 'client/package-lock.json']) {
     assert.ok(inputs.hashes[path], path);
   }
-  assert.match(readFileSync('Dockerfile.agent', 'utf8'), /COPY --from=build \/src\/scripts\/security\/apply-braces-patch.cjs/);
 });
 test('every base stage applies fixed OS packages and preserves the runtime UID', () => {
   const script = readFileSync('deployment/releases/harden-base.sh', 'utf8');

@@ -141,7 +141,7 @@ const TestSuiteSelectorModal: React.FC<TestSuiteSelectorModalProps> = ({ isOpen,
           </div>
         )}
 
-        <ScrollArea className="flex-grow border rounded-md">
+        <ScrollArea className="grow border rounded-md">
           <div className="p-4 space-y-2">
             {isLoading && (
               <div className="flex items-center justify-center py-4">
@@ -160,7 +160,7 @@ const TestSuiteSelectorModal: React.FC<TestSuiteSelectorModalProps> = ({ isOpen,
                   checked={internalSelectedSuites.some(s => s.id === suite.id && s.type === suite.type)}
                   onCheckedChange={() => handleToggleSuiteSelection(suite)}
                 />
-                <label htmlFor={`suite-${suite.type}-${suite.id}`} className="flex-grow text-sm font-medium leading-none cursor-pointer">
+                <label htmlFor={`suite-${suite.type}-${suite.id}`} className="grow text-sm font-medium leading-none cursor-pointer">
                   {suite.name}
                   <span className="ml-2 text-xs uppercase bg-accent px-1.5 py-0.5 rounded-sm text-accent-foreground">{suite.type}</span>
                   {(suite.tags ?? []).map((tag) => (

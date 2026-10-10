@@ -80,7 +80,7 @@ export default function SmsInboxCard({ isOwner }: { isOwner: boolean }) {
               {data.messages.map((m) => (
                 <li key={m.id} className="space-y-0.5 px-3 py-2">
                   <p className="text-muted-foreground">{new Date(m.receivedAt).toLocaleString()} · {m.fromNumber ?? '?'} → {m.toNumber}{m.provider ? ` · ${m.provider}` : ''}</p>
-                  <p className="break-words">{m.body}</p>
+                  <p className="wrap-break-word">{m.body}</p>
                 </li>
               ))}
             </ul>

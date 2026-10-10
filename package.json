@@ -73,7 +73,6 @@
     "test:network:production": "node deployment/saas-network/production-check.mjs",
     "build:network-probe": "esbuild scripts/check-saas-transports.ts --platform=node --packages=external --bundle --format=esm --outfile=tmp/saas-transports.mjs",
     "test:release": "node --test scripts/release/*.test.mjs",
-    "postinstall": "node scripts/security/apply-braces-patch.cjs",
     "test:security": "node --test scripts/security/*.test.mjs",
     "test:matrix:certify": "playwright test --config=e2e/matrix-certification.config.ts"
   },
@@ -162,8 +161,8 @@
     "@types/sanitize-html": "^2.16.2",
     "@types/supertest": "^6.0.3",
     "@types/ws": "^8.5.13",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
+    "@typescript-eslint/eslint-plugin": "^8.71.1",
+    "@typescript-eslint/parser": "^8.71.1",
     "allure-commandline": "^2.36.0",
     "cross-env": "^7.0.3",
     "dotenv-cli": "^8.0.0",
@@ -171,8 +170,7 @@
     "esbuild": "^0.25.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^4.6.2",
-    "eslint-plugin-unused-imports": "^3.2.0",
-    "eslint-plugin-vitest": "^0.5.4",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^16.2.0",
     "mermaid": "^11.17.2",
     "node-html-parser": "^9.0.0",
@@ -194,7 +192,8 @@
     },
     "proxy-addr": "2.0.8",
     "source-map-js": "1.2.2",
-    "vite": "6.4.4"
+    "vite": "6.4.4",
+    "tedious": "20.3.6"
   },
   "workspaces": [
     "client"

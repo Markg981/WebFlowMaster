@@ -45,7 +45,7 @@ test('repository inputs capture ordered journal, all SQL hashes and locked bases
   assert.ok(inputs.migrations.length > 80);
   assert.ok(inputs.sqlFiles['migrations/0000_initial_schema.sql'] || Object.keys(inputs.sqlFiles).length >= inputs.migrations.length);
   assert.match(inputs.hashes['package-lock.json'], /^[a-f0-9]{64}$/);
-  for (const file of ['deployment/releases/source-exceptions.json', 'scripts/release/source-exceptions.mjs', 'scripts/security/braces.test.mjs']) assert.match(inputs.hashes[file], /^[a-f0-9]{64}$/);
+  for (const file of ['client/package.json', 'client/package-lock.json', 'scripts/release/runtime-tools.mjs']) assert.match(inputs.hashes[file], /^[a-f0-9]{64}$/);
 });
 
 test('publication rejects candidates, wrong repositories, versions and commits', () => {

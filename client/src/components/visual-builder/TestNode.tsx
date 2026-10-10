@@ -81,7 +81,7 @@ export function TestNode({ id, data }: NodeProps<Node<TestNodeData>>) {
   }), [id, data.isRecordingActive, data.onSetTarget]);
 
   return (
-    <Card className={`min-w-[250px] p-4 shadow-lg border-2 ${data.targetElement ? 'border-primary' : (needsTarget ? 'border-destructive/50' : 'border-border')} ${data.debugPaused === 'failed' ? 'ring-4 ring-destructive/60' : data.debugPaused === 'before' ? 'ring-4 ring-amber-400/70' : ''} bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75 transition-all`}>
+    <Card className={`min-w-[250px] p-4 shadow-lg border-2 ${data.targetElement ? 'border-primary' : (needsTarget ? 'border-destructive/50' : 'border-border')} ${data.debugPaused === 'failed' ? 'ring-4 ring-destructive/60' : data.debugPaused === 'before' ? 'ring-4 ring-amber-400/70' : ''} bg-card/95 backdrop-blur-sm supports-backdrop-filter:bg-card/75 transition-all`}>
       <Handle type="target" position={Position.Top} className="w-3 h-3 bg-primary" />
       
       <div className="flex justify-between items-start mb-2">

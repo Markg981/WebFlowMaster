@@ -189,7 +189,7 @@ export default function DebugPanel({
       {paused && (
         <div className="space-y-3">
           <p className={`text-sm font-medium ${paused.reason === 'failure' ? 'text-destructive' : ''}`}>{reasonText}</p>
-          {paused.error && <p className="text-xs text-destructive whitespace-pre-line break-words" role="alert">{paused.error}</p>}
+          {paused.error && <p className="text-xs text-destructive whitespace-pre-line wrap-break-word" role="alert">{paused.error}</p>}
           {paused.screenshot && (
             <img src={paused.screenshot} alt={t('debugger.screenshot', 'The page now')} className="w-full rounded border" />
           )}
@@ -269,7 +269,7 @@ export default function DebugPanel({
           {state.outcome.skipped > 0 && ` ${t('debugger.outcome.skipped', '{{count}} step(s) passed over.', { count: state.outcome.skipped })}`}
         </p>
       )}
-      {state.outcome?.error && state.status !== 'stopped' && <p className="text-xs text-destructive break-words">{state.outcome.error}</p>}
+      {state.outcome?.error && state.status !== 'stopped' && <p className="text-xs text-destructive wrap-break-word">{state.outcome.error}</p>}
       {error && <p className="text-xs text-destructive" role="alert">{error}</p>}
 
       {state.steps.length > 0 && (

@@ -47,10 +47,10 @@ const TestStatusPieChart: React.FC<TestStatusPieChartProps> = ({ data, isLoading
     // A minimum height, not a fixed one: the empty state (icon, title, description, button)
     // is taller than 320px on a narrow column or in a longer language, and spilled out.
     <div className="bg-card text-card-foreground p-4 rounded-lg border shadow-sm min-h-80 w-full min-w-0 overflow-hidden flex flex-col">
-      <h3 className="mb-4 text-base font-semibold break-words">
+      <h3 className="mb-4 text-base font-semibold wrap-break-word">
         {t('dashboard.testStatusPieChart.testStatusOverview.title', 'Execution Status Breakdown')}
       </h3>
-      <div className="flex-1 w-full min-w-0 min-h-[14rem]">
+      <div className="flex-1 w-full min-w-0 min-h-56">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
