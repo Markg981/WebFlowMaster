@@ -15,7 +15,7 @@ harm.
 | Variable | Read by | Default | Description |
 |---|---|---|---|
 | `DATABASE_URL` | both | `./data/local-pg` in `.env.example` | A `postgres://` connection string, or a directory path for an embedded PGlite database (development only). |
-| `REDIS_URL` | both | `redis://localhost:6379` | Redis or Valkey: queues, sessions, schedules, the agent relay directory. |
+| `REDIS_URL` | both | `redis://localhost:6379` | Redis or Valkey: queues, sessions, schedules, the agent relay directory. In production the web process does not start if it cannot reach it, and names the error Redis gave; in development it falls back to sessions in memory. |
 | `SESSION_SECRET` | web | none: the web process does not start | Signs session cookies. A long random value; see [Secrets](./installation#secrets). |
 | `ENCRYPTION_KEY` | both, and the migrator | none: fails when a secret is first read or written | Encrypts stored secrets with AES-256-GCM. 64 hexadecimal characters (32 bytes); any other string is hashed with SHA-256 into a key. **Never change it** on an installation with saved secrets. |
 | `NODE_ENV` | both | unset | `production` in any real installation: secure cookies, JSON logs, closed diagnostic endpoints, and no TLS exemptions. |

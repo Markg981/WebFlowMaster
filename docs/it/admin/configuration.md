@@ -15,7 +15,7 @@ processo non legge non fa danni.
 | Variabile | Letta da | Default | Descrizione |
 |---|---|---|---|
 | `DATABASE_URL` | entrambi | `./data/local-pg` in `.env.example` | Una stringa di connessione `postgres://`, oppure il percorso di una cartella per un database PGlite incorporato (solo sviluppo). |
-| `REDIS_URL` | entrambi | `redis://localhost:6379` | Redis o Valkey: code, sessioni, schedulazioni, la directory del relay degli agenti. |
+| `REDIS_URL` | entrambi | `redis://localhost:6379` | Redis o Valkey: code, sessioni, schedulazioni, la directory del relay degli agenti. In produzione il processo web non parte se non lo raggiunge, e riporta l'errore restituito da Redis; in sviluppo ripiega su sessioni in memoria. |
 | `SESSION_SECRET` | web | nessuno: il processo web non parte | Firma i cookie di sessione. Un valore lungo e casuale; vedi [Segreti](./installation#segreti). |
 | `ENCRYPTION_KEY` | entrambi, e il migrator | nessuno: errore alla prima lettura o scrittura di un segreto | Cifra i segreti salvati con AES-256-GCM. 64 caratteri esadecimali (32 byte); qualsiasi altra stringa viene trasformata in chiave con SHA-256. **Non cambiatela mai** su un'installazione con segreti salvati. |
 | `NODE_ENV` | entrambi | non impostata | `production` in ogni installazione reale: cookie sicuri, log JSON, endpoint diagnostici chiusi, nessuna eccezione TLS. |
