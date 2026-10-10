@@ -26,6 +26,7 @@ logs/
 
 # Test / reporting artifacts
 allure-results/
+test-results/
 results/
 coverage/
 e2e-artifacts/
@@ -93,3 +94,8 @@ backups/
 release-artifacts/
 restore-drill-artifacts/
 resilience-artifacts/
+
+# Local scratch: exported kits, temporary archives, cookie jars from curl sessions.
+/outputs/
+/tmp/
+*cookies*.txt
