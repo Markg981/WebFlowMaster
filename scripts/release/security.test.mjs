@@ -4,12 +4,18 @@ import { readFileSync } from 'node:fs';
 import { readReleaseInputs } from './model.mjs';
 
 const json = path => JSON.parse(readFileSync(path, 'utf8'));
+/** At least `minimum`, within the same major: a later patch keeps the fix, a new major needs review. */
+function atLeastSameMajor(actual, minimum) {
+  const [a, m] = [actual, minimum].map(v => v.split('-')[0].split('.').map(Number));
+  return a[0] === m[0] && (a[1] > m[1] || (a[1] === m[1] && a[2] >= m[2]));
+}
+// Exact versions here failed every grouped dependency update that moved one of them a patch.
 test('root lock resolves corrected mail, proxy and source-map dependencies', () => {
   const lock = json('package-lock.json').packages;
-  assert.equal(lock['node_modules/nodemailer'].version, '10.0.15');
-  assert.equal(lock['node_modules/proxy-addr'].version, '2.0.8');
-  assert.equal(lock['node_modules/source-map-js'].version, '1.2.2');
-  assert.equal(lock['node_modules/undici'].version, '6.29.0');
+  for (const [name, minimum] of [['nodemailer', '10.0.15'], ['proxy-addr', '2.0.8'], ['source-map-js', '1.2.2'], ['undici', '6.29.0']]) {
+    const version = lock[`node_modules/${name}`].version;
+    assert.ok(atLeastSameMajor(version, minimum), `${name} ${version}: expected ${minimum} or a later ${minimum.split('.')[0]}.x`);
+  }
   for (const [path, pkg] of Object.entries(lock)) {
     if (path.endsWith('/vite')) assert.ok(!pkg.version.startsWith('5.'), path);
   }
@@ -29,7 +35,7 @@ test('runtime images use Resolute and exclude workspace build tooling and global
 });
 test('release inputs fingerprint the client manifests', () => {
   const inputs = readReleaseInputs(process.cwd());
-  for (const path of ['client/package.json', 'client/package-lock.json']) {
+  for (const path of ['client/package.json']) {
     assert.ok(inputs.hashes[path], path);
   }
 });

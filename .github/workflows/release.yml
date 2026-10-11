@@ -50,10 +50,9 @@ jobs:
         run: node scripts/release/prepare.mjs
         env:
           GITHUB_TOKEN: ${{ github.token }}
-      - name: Install and verify the approved source mitigation
+      - name: Install dependencies
         run: |
           npm ci --include=dev --no-audit --no-fund
-          npm ci --prefix client --workspaces=false --include=dev --no-audit --no-fund
           npm run test:security
       - run: npm run test:release
       - name: Scan locked source dependencies
@@ -245,7 +244,6 @@ jobs:
       - name: Reinstall and reverify the approved source mitigation
         run: |
           npm ci --include=dev --no-audit --no-fund
-          npm ci --prefix client --workspaces=false --include=dev --no-audit --no-fund
           npm run test:security
       - name: Assemble verified references and evidence
         run: |

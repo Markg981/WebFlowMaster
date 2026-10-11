@@ -12,6 +12,7 @@
 #   - lightningcss-*: listed in client/package.json to keep npm 11 from dropping them; they
 #     follow the lightningcss Tailwind brings (server/tests/dependency-locks.test.ts).
 #   - Docker base images: pinned by digest to the Playwright release above.
+#   - mermaid majors: held back by the documentation's vitepress-plugin-mermaid (see below).
 version: 2
 updates:
   - package-ecosystem: npm
@@ -26,6 +27,10 @@ updates:
       - dependency-name: playwright-core
       - dependency-name: "@playwright/test"
       - dependency-name: "lightningcss-*"
+      # vitepress-plugin-mermaid 2.0.17 accepts mermaid 10 and 11 only: 12 stops npm ci with
+      # ERESOLVE. Lift this when the plugin supports it.
+      - dependency-name: mermaid
+        update-types: [version-update:semver-major]
     groups:
       minor-and-patch:
         update-types: [minor, patch]

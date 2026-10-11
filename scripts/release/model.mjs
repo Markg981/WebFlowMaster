@@ -63,13 +63,13 @@ export function assertScanPassed(report) {
 export function assertSourceScanPassed(report) {
   assertScanPassed(report);
   const targets = new Set(report.Results.map(result => result.Target));
-  for (const target of ['package-lock.json', 'deployment/lighthouse/package-lock.json', 'client/package-lock.json']) {
+  for (const target of ['package-lock.json', 'deployment/lighthouse/package-lock.json']) {
     if (!targets.has(target)) throw new Error(`Missing source scan coverage: ${target}`);
   }
 }
 
 export function readReleaseInputs(root) {
-  const files = ['package.json', 'package-lock.json', 'client/package.json', 'client/package-lock.json', 'Dockerfile', 'Dockerfile.worker', 'Dockerfile.agent', '.dockerignore', 'deployment/lighthouse/package.json', 'deployment/lighthouse/package-lock.json', 'deployment/releases/toolchain.json', 'deployment/releases/harden-base.sh', 'scripts/release/runtime-tools.mjs', 'migrations/meta/_journal.json'];
+  const files = ['package.json', 'package-lock.json', 'client/package.json', 'Dockerfile', 'Dockerfile.worker', 'Dockerfile.agent', '.dockerignore', 'deployment/lighthouse/package.json', 'deployment/lighthouse/package-lock.json', 'deployment/releases/toolchain.json', 'deployment/releases/harden-base.sh', 'scripts/release/runtime-tools.mjs', 'migrations/meta/_journal.json'];
   const hashes = Object.fromEntries(files.map(file => [file, sha256(readFileSync(join(root, file)))]));
   const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
   const lock = JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8'));

@@ -45,7 +45,7 @@ test('repository inputs capture ordered journal, all SQL hashes and locked bases
   assert.ok(inputs.migrations.length > 80);
   assert.ok(inputs.sqlFiles['migrations/0000_initial_schema.sql'] || Object.keys(inputs.sqlFiles).length >= inputs.migrations.length);
   assert.match(inputs.hashes['package-lock.json'], /^[a-f0-9]{64}$/);
-  for (const file of ['client/package.json', 'client/package-lock.json', 'scripts/release/runtime-tools.mjs']) assert.match(inputs.hashes[file], /^[a-f0-9]{64}$/);
+  for (const file of ['client/package.json', 'scripts/release/runtime-tools.mjs']) assert.match(inputs.hashes[file], /^[a-f0-9]{64}$/);
 });
 
 test('publication rejects candidates, wrong repositories, versions and commits', () => {
@@ -74,6 +74,6 @@ test('scanner evidence requires the pinned version and actual DB metadata', () =
 test('source gate refuses a clean report that omitted locked build dependencies', () => {
   assert.throws(() => assertSourceScanPassed({ SchemaVersion: 2, Results: [] }), /coverage/);
   assert.throws(() => assertSourceScanPassed({ SchemaVersion: 2, Results: [{ Target: 'package-lock.json' }] }), /lighthouse/);
-  assert.throws(() => assertSourceScanPassed({ SchemaVersion: 2, Results: [{ Target: 'package-lock.json' }, { Target: 'deployment/lighthouse/package-lock.json' }] }), /client/);
-  assert.doesNotThrow(() => assertSourceScanPassed({ SchemaVersion: 2, Results: [{ Target: 'package-lock.json' }, { Target: 'deployment/lighthouse/package-lock.json' }, { Target: 'client/package-lock.json' }] }));
+  // The client workspace is in the root lock; it has no lock of its own.
+  assert.doesNotThrow(() => assertSourceScanPassed({ SchemaVersion: 2, Results: [{ Target: 'package-lock.json' }, { Target: 'deployment/lighthouse/package-lock.json' }] }));
 });
