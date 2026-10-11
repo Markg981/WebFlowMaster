@@ -1,14 +1,16 @@
-import { Agent, ProxyAgent, type Dispatcher } from 'undici';
+import { Agent, ProxyAgent, buildConnector, type Dispatcher } from 'undici';
 import { egressProxy, targetEgressDispatcher } from './egress-proxy';
+import { denialForHostname, denialForUrl, egressDenialCause, vettedLookup } from './egress-policy';
 import { defaultVariables } from './variables';
 import { substituteGenerators } from './generators';
 
 /**
  * Outbound HTTP for the systems under test (DMO and friends).
  *
- * Two concerns live here because both apply to every outbound call, whichever
- * runner makes it: resolving `{{variables}}` in URLs, and deciding whether a
- * host is allowed to present a certificate Node would otherwise reject.
+ * Three concerns live here because all apply to every outbound call, whichever
+ * runner makes it: resolving `{{variables}}` in URLs, deciding whether a
+ * host is allowed to present a certificate Node would otherwise reject, and
+ * refusing the targets the egress policy denies (server/egress-policy.ts).
  */
 
 /**
@@ -88,29 +90,69 @@ export function allowsSelfSignedCertificate(url: string): boolean {
   return insecureHosts().has(host);
 }
 
+/**
+ * How a direct connection to a target is opened: undici's own connector, resolving names
+ * through the policy's lookup, behind a check of the name itself. The check runs for every
+ * connection the dispatcher opens, so a redirect to a denied host is refused at its own hop,
+ * and a name that resolves to a denied address is refused when it is resolved, not only when
+ * the URL was read. With WFM_EGRESS_PROXY the target is never resolved here: the proxy's
+ * firewall decides, and fetchTarget's check of the URL still answers first for the names and
+ * literal addresses the policy denies.
+ */
+export function guardedConnector(
+  options: buildConnector.BuildOptions = {},
+): buildConnector.connector {
+  const connect = buildConnector({ ...options, lookup: vettedLookup() });
+  return (opts, callback) => {
+    const denial = denialForHostname(opts.hostname);
+    if (denial) {
+      queueMicrotask(() => callback(denial, null));
+      return;
+    }
+    connect(opts, callback);
+  };
+}
+
+let guardedAgent: Agent | undefined;
 let insecureAgent: Agent | undefined;
 
-/** The dispatcher to use for a target URL, or undefined for normal verification. */
-export function dispatcherFor(url: string): Dispatcher | undefined {
-  const proxy = targetEgressDispatcher(allowsSelfSignedCertificate(url));
+/** The dispatcher to use for a target URL: the proxy where there is one, else a guarded agent. */
+export function dispatcherFor(url: string): Dispatcher {
+  const insecure = allowsSelfSignedCertificate(url);
+  const proxy = targetEgressDispatcher(insecure);
   if (proxy) return proxy;
-  if (!allowsSelfSignedCertificate(url)) return undefined;
-  insecureAgent ??= new Agent({ connect: { rejectUnauthorized: false } });
-  return insecureAgent;
+  if (insecure) {
+    insecureAgent ??= new Agent({ connect: guardedConnector({ rejectUnauthorized: false }) });
+    return insecureAgent;
+  }
+  guardedAgent ??= new Agent({ connect: guardedConnector() });
+  return guardedAgent;
 }
 
 const urlOf = (input: RequestInfo | URL) =>
   typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
 
-/** fetch() for systems under test: same contract, plus the per-host TLS exemption. */
+/** fetch hides a refused connection behind "fetch failed"; the policy's own message is the useful one. */
+const rethrowDenial = (error: unknown): never => {
+  throw egressDenialCause(error) ?? error;
+};
+
+/**
+ * fetch() for systems under test: same contract, plus the per-host TLS exemption and the egress
+ * policy. A denied URL is refused before anything is sent; a denied redirect or resolution is
+ * refused by the dispatcher, and surfaces here as the policy's error rather than a network one.
+ */
 export const fetchTarget: typeof fetch & {
   oneConnection: () => { fetch: typeof fetch; close: () => Promise<void> };
 } = Object.assign(
   (input: RequestInfo | URL, init: RequestInit = {}) => {
-    const dispatcher = dispatcherFor(urlOf(input));
+    const url = urlOf(input);
+    const denial = denialForUrl(url);
+    if (denial) return Promise.reject(denial);
+    const dispatcher = dispatcherFor(url);
     // `dispatcher` is an undici extension to RequestInit that Node's fetch honours
     // but the DOM typings don't describe.
-    return fetch(input, dispatcher ? ({ ...init, dispatcher } as RequestInit) : init);
+    return fetch(input, { ...init, dispatcher } as RequestInit).catch(rethrowDenial);
   },
   {
     /**
@@ -121,6 +163,8 @@ export const fetchTarget: typeof fetch & {
       let agent: Agent | ProxyAgent | undefined;
       return {
         fetch: ((input: RequestInfo | URL, init: RequestInit = {}) => {
+          const denial = denialForUrl(urlOf(input));
+          if (denial) return Promise.reject(denial);
           const proxy = egressProxy();
           agent ??= proxy
             ? new ProxyAgent({
@@ -134,11 +178,11 @@ export const fetchTarget: typeof fetch & {
             : new Agent({
                 connections: 1,
                 pipelining: 1,
-                ...(allowsSelfSignedCertificate(urlOf(input))
-                  ? { connect: { rejectUnauthorized: false } }
-                  : {}),
+                connect: guardedConnector(
+                  allowsSelfSignedCertificate(urlOf(input)) ? { rejectUnauthorized: false } : {},
+                ),
               });
-          return fetch(input, { ...init, dispatcher: agent } as RequestInit);
+          return fetch(input, { ...init, dispatcher: agent } as RequestInit).catch(rethrowDenial);
         }) as typeof fetch,
         close: async () => {
           await agent?.close();

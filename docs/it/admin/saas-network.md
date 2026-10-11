@@ -64,7 +64,11 @@ da un namespace collegato esclusivamente a reti interne.
 i target, `fetch` Node, WebSocket e gRPC unary nativi, e avvii locali di Chromium/Firefox/WebKit.
 Il bypass implicito del browser per localhost è disabilitato. Configurazioni proxy invalide
 falliscono senza passare alla connessione diretta. Installazioni ordinarie e agenti dei
-clienti mantengono il comportamento esistente quando la variabile non è impostata.
+clienti mantengono il comportamento esistente quando la variabile non è impostata. La
+[policy di egress](../security/hardening#rete) dell'applicazione (`EGRESS_PRIVATE_TARGETS`,
+`EGRESS_ALLOW_HOSTS`) integra il proxy senza sostituirlo: rifiuta i metadati e, se impostata a
+`deny`, le destinazioni private prima che una connessione sia tentata, con un errore che nomina
+la regola, mentre il firewall del proxy resta l'autorità su ciò che esce dalla rete.
 
 ## Limiti e gestione
 

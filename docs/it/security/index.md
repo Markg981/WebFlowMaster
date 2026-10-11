@@ -13,15 +13,15 @@ tramite GitHub, mai in una issue pubblica.
 
 ## Responsabilità condivisa
 
-| Ambito                         | Il prodotto                                                                                | Chi gestisce l'installazione                       | Gli owner dell'organizzazione                                   |
-| ------------------------------ | ------------------------------------------------------------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------- |
-| Isolamento tra organizzazioni  | Imposto dal database su ogni query                                                         | Esegue PostgreSQL con i ruoli richiesti            | —                                                               |
-| Account e accessi              | Ruoli, secondo fattore, scope delle chiavi API, registrazione su invito, registro di audit | Esposizione in rete, l'impostazione `REGISTRATION` | Membri, ruoli, obbligo del secondo fattore, igiene delle chiavi |
-| Segreti salvati per i test     | Cifrati con AES-256-GCM, mai restituiti                                                    | Custodisce `ENCRYPTION_KEY` e ne fa il backup      | Decidono quali segreti salvare                                  |
-| Dati in transito               | Cookie sicuri, controlli sull'origine                                                      | TLS davanti al processo web e tra i servizi        | —                                                               |
-| Dati a riposo                  | Cifratura applicativa dei segreti                                                          | Cifratura di dischi, database, backup e bucket     | —                                                               |
-| Dove possono collegarsi i test | Nulla è bloccato: raggiungere l'applicazione è il compito                                  | Regole di rete per i worker                        | Cosa chiamano i loro test                                       |
-| Aggiornamenti                  | Release con migrazioni                                                                     | Applicarle, aggiornare gli host                    | —                                                               |
+| Ambito                         | Il prodotto                                                                                | Chi gestisce l'installazione                             | Gli owner dell'organizzazione                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------ | -------------------------------------------------------- | --------------------------------------------------------------- |
+| Isolamento tra organizzazioni  | Imposto dal database su ogni query                                                         | Esegue PostgreSQL con i ruoli richiesti                  | —                                                               |
+| Account e accessi              | Ruoli, secondo fattore, scope delle chiavi API, registrazione su invito, registro di audit | Esposizione in rete, l'impostazione `REGISTRATION`       | Membri, ruoli, obbligo del secondo fattore, igiene delle chiavi |
+| Segreti salvati per i test     | Cifrati con AES-256-GCM, mai restituiti                                                    | Custodisce `ENCRYPTION_KEY` e ne fa il backup            | Decidono quali segreti salvare                                  |
+| Dati in transito               | Cookie sicuri, controlli sull'origine                                                      | TLS davanti al processo web e tra i servizi              | —                                                               |
+| Dati a riposo                  | Cifratura applicativa dei segreti                                                          | Cifratura di dischi, database, backup e bucket           | —                                                               |
+| Dove possono collegarsi i test | Metadati cloud sempre rifiutati; indirizzi privati secondo `EGRESS_PRIVATE_TARGETS`        | Regole di rete per i worker, l'impostazione della policy | Cosa chiamano i loro test                                       |
+| Aggiornamenti                  | Release con migrazioni                                                                     | Applicarle, aggiornare gli host                          | —                                                               |
 
 ## Isolamento tra organizzazioni
 
@@ -167,14 +167,31 @@ personali dell'applicazione sotto test e valori digitati nei moduli.
 
 ## Connessioni in uscita
 
-I test esistono per raggiungere altri sistemi, quindi **il prodotto non limita dove si collega
-un test**: uno step del browser o un test API può indirizzare qualsiasi host raggiungibile dal
-worker. In produzione la verifica dei certificati è sempre attiva; le eccezioni di sviluppo
-sono per host e ignorate in produzione.
+I test esistono per raggiungere altri sistemi, quindi **il prodotto limita dove si collega un
+test solo dove un test non ha motivo di andare**: uno step del browser o un test API può
+indirizzare qualsiasi host raggiungibile dal worker, tranne il servizio dei metadati del cloud
+provider, che consegna le credenziali della macchina a chiunque le chieda da lì. In produzione
+la verifica dei certificati è sempre attiva; le eccezioni di sviluppo sono per host e ignorate
+in produzione.
 
-Questo rende la posizione in rete dei worker una decisione di sicurezza. Vedi
+La limitazione è la **policy di egress**, applicata dall'applicazione stessa su ogni
+installazione, e su due livelli nel profilo SaaS, dove il [profilo di isolamento di
+rete](../admin/saas-network) forza inoltre ogni connessione attraverso un proxy con la propria
+allowlist. La policy verifica ogni indirizzo che il server apre per un tenant — test API, step
+del browser, webhook, tracker, stati di commit, l'SMTP di un'organizzazione — per nome e per
+ciò che il nome risolve al momento della connessione, a ogni redirect, che è ciò che vanifica
+una risposta DNS che cambia tra la verifica e la connessione. Gli endpoint dei metadati cloud
+sono sempre rifiutati. Gli indirizzi privati, loopback, link-local e unique-local sono
+raggiungibili per default (`EGRESS_PRIVATE_TARGETS=allow`), perché un'installazione
+self-hosted testa la propria intranet dal server; `deny` rifiuta anche quelli, e
+`EGRESS_ALLOW_HOSTS` esenta host e intervalli nominati. Una richiesta rifiutata fallisce subito
+con un errore che nomina la policy e l'host come lo ha scritto il test, mai l'indirizzo
+risolto.
+
+La posizione in rete dei worker resta una decisione di sicurezza. Vedi
 [Hardening](./hardening#rete) per le regole che un operatore dovrebbe applicare, in particolare
-su un'installazione dove persone di aziende diverse possono scrivere test.
+su un'installazione dove persone di aziende diverse possono scrivere test, e per ciò che la
+policy non copre (il browser di un agente o di una griglia, i protocolli TCP diretti).
 
 **Caselle di test.** Uno step **Attendi email** legge un Mailpit, che per costruzione contiene la
 posta di ogni indirizzo che vi arriva e non ha il concetto di proprietario. Lo step restituisce

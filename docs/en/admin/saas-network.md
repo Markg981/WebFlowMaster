@@ -63,7 +63,11 @@ requests are permitted. Docker does not publish ports from an exclusively intern
 Node `fetch`, native WebSocket and unary gRPC, and local Chromium/Firefox/WebKit launches use
 it. Browser localhost bypasses are disabled. Invalid proxy settings fail instead of
 silently selecting a direct connection. Normal installations and customer agents retain
-their existing behavior when this setting is absent.
+their existing behavior when this setting is absent. The application's own
+[egress policy](../security/hardening#network) (`EGRESS_PRIVATE_TARGETS`, `EGRESS_ALLOW_HOSTS`)
+complements the proxy rather than replacing it: it refuses metadata and, when set to `deny`,
+private destinations before a connection is attempted, with an error that names the rule,
+while the proxy's firewall remains the authority on what leaves the network.
 
 ## Boundaries and operations
 

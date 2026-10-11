@@ -55,6 +55,7 @@ import {
   requestVariables,
   substituteVariables,
 } from './outbound-http';
+import { assertEgressAllowed, throwIfEgressDenied } from './egress-policy';
 import {
   EMAIL_TIMEOUT_MS,
   findOtp,
@@ -598,7 +599,7 @@ const HANDLERS: Record<AdhocActionId, StepHandler> = {
     if (!destination) throw new Error('URL (value) missing for navigate action.');
     const target = resolveValue(destination, rt.vars);
     if ('error' in target) return failed(target.error);
-    await rt.page.goto(target.value, { waitUntil: 'domcontentloaded' });
+    throwIfEgressDenied(await rt.page.goto(target.value, { waitUntil: 'domcontentloaded' }));
     return passed;
   },
 
@@ -1695,6 +1696,8 @@ export async function executeStep(ctx: StepContext, step: ExecutableStep): Promi
     waitForSms:
       ctx.waitForSms ?? ((query, since, timeoutMs) => waitForSmsInInbox(query, since, timeoutMs)),
     inboxGet: async (url, headers) => {
+      // The browser's request context is not routed, so the policy is asked here instead.
+      await assertEgressAllowed(url);
       const response = await page.context().request.get(url, {
         headers,
         ignoreHTTPSErrors: allowsSelfSignedCertificate(url),

@@ -1,5 +1,6 @@
 import playwright, { type Browser } from 'playwright';
 import { browserEgressOptions } from './egress-proxy';
+import { assertEgressAllowed } from './egress-policy';
 import { BROWSER_GRID_LABELS, type BrowserGridProvider } from '@shared/browser-grids';
 import { canEmulateDevice, isMobileDevice } from '@shared/devices';
 
@@ -376,6 +377,8 @@ export async function launchBrowser(
       buildName: session?.build ?? 'WebFlowMaster',
     });
     try {
+      // A tenant's own Playwright server is an address the runner opens: the policy applies.
+      await assertEgressAllowed(connection.wsEndpoint);
       return await playwright[connection.engine].connect(connection.wsEndpoint, {
         timeout: 90_000,
         ...(connection.headers ? { headers: connection.headers } : {}),

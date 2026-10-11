@@ -4,6 +4,7 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { createPrivateKey, X509Certificate } from 'node:crypto';
 import path from 'node:path';
 import os from 'node:os';
+import net from 'node:net';
 import type { ProtocolResponse } from '@shared/agent-protocol';
 import {
   protocolLimits,
@@ -12,7 +13,8 @@ import {
   type ResolvedProtocolConfig,
 } from '@shared/api-protocol-config';
 import { readConversationPlan } from '@shared/protocol-conversation';
-import { grpcEgressTarget } from './egress-proxy';
+import { egressProxy, grpcEgressTarget } from './egress-proxy';
+import { denialForHostname, resolveVetted } from './egress-policy';
 import {
   ProtocolInbox,
   executeConversation,
@@ -105,6 +107,34 @@ export function grpcCredentials(
   }
 }
 
+/**
+ * Where the channel connects. grpc-js resolves names itself and offers no lookup hook, so
+ * without the proxy the name is resolved here through the policy and the channel is pointed
+ * at the vetted address, keeping the name for TLS identity and the :authority header: there
+ * is then no second resolution for a changed answer to slip through. A literal address is
+ * checked as it is; with the proxy the CONNECT target carries the name and the proxy decides.
+ */
+async function grpcConnection(
+  url: URL,
+): Promise<{ address: string; options: grpc.ChannelOptions }> {
+  const denial = denialForHostname(url.hostname);
+  if (denial) throw denial;
+  const direct = grpcEgressTarget(url.host, url.hostname);
+  const hostname = url.hostname.replace(/^\[|\]$/g, '');
+  if (egressProxy() || net.isIP(hostname)) return direct;
+  const [vetted] = await resolveVetted(hostname);
+  if (!vetted) return direct;
+  const port = url.port || '443';
+  return {
+    address:
+      vetted.family === 6 ? `ipv6:[${vetted.address}]:${port}` : `ipv4:${vetted.address}:${port}`,
+    options: {
+      'grpc.ssl_target_name_override': hostname,
+      'grpc.default_authority': url.host,
+    },
+  };
+}
+
 const metadataMap = (metadata?: grpc.Metadata) =>
   Object.fromEntries(Object.entries(metadata?.getMap() ?? {}).map(([k, v]) => [k, String(v)]));
 
@@ -185,7 +215,7 @@ export async function executeGrpc(input: GrpcInput): Promise<ProtocolResponse> {
     )
       throw new Error('Client-streaming conversations cannot receive before the single response.');
     const Client = grpc.makeGenericClientConstructor({ [parts[1]]: method }, parts[0]);
-    const connection = grpcEgressTarget(input.url.host, input.url.hostname);
+    const connection = await grpcConnection(input.url);
     client = new Client(connection.address, credentials, connection.options);
     const metadata = new grpc.Metadata();
     for (const [key, value] of Object.entries(input.headers))

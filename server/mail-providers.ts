@@ -9,6 +9,7 @@ import {
 import { z } from 'zod';
 import type { ProviderMailConfig } from '@shared/mail-settings';
 import { deliveryEventSchema, verifyDeliverySignature, type DeliveryEvent } from './mail-delivery';
+import { fetchTarget } from './outbound-http';
 
 export class ProviderProtocolError extends Error {
   constructor(
@@ -31,12 +32,15 @@ const MAX_EVENTS = 100;
 const MAX_CERT_BYTES = 16 * 1024;
 const certificateCache = new Map<string, { pem: string; expires: number }>();
 
-/** Inputs are always fixed regional SNS URLs, validated before reaching these dependencies. */
+/**
+ * Inputs are always fixed regional SNS URLs, validated before reaching these dependencies;
+ * sent as every outbound request is (egress proxy, egress policy), all the same.
+ */
 async function boundedSnsRequest(url: string, maxBytes: number): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
   try {
-    const response = await fetch(url, { redirect: 'error', signal: controller.signal });
+    const response = await fetchTarget(url, { redirect: 'error', signal: controller.signal });
     if (
       !response.ok ||
       !response.body ||

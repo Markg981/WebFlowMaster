@@ -1,6 +1,9 @@
 import WebSocket from 'ws';
+import net from 'node:net';
+import tls from 'node:tls';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { egressProxy } from './egress-proxy';
+import { denialForUrl, isEgressDenied, vettedLookup } from './egress-policy';
 import type { ProtocolResponse } from '@shared/agent-protocol';
 import { protocolLimits, type ResolvedProtocolConfig } from '@shared/api-protocol-config';
 import { readConversationPlan } from '@shared/protocol-conversation';
@@ -29,6 +32,34 @@ export function readWebSocketPlan(body: string): {
     return { send: [trimmed], waitMs: 2000 };
   }
   return { send: trimmed ? trimmed.split(/\r?\n/).filter((l) => l.trim()) : [], waitMs: 2000 };
+}
+
+/**
+ * How a WebSocket reaches its target: the egress proxy where there is one (the proxy resolves
+ * and decides), else a direct connection resolving through the policy's lookup, so a name that
+ * resolves to a denied address is refused at connect time. ws's own createConnection, with the
+ * lookup added; the TLS branch mirrors ws's servername handling.
+ */
+function webSocketTransport(url: string): Partial<WebSocket.ClientOptions> & {
+  agent?: HttpsProxyAgent<string>;
+} {
+  const proxy = egressProxy();
+  if (proxy) return { agent: new HttpsProxyAgent(proxy) };
+  const secure = url.startsWith('wss:') || url.startsWith('https:');
+  const createConnection = (
+    first: net.NetConnectOpts | number | string,
+    ...rest: unknown[]
+  ): net.Socket => {
+    if (typeof first !== 'object') throw new Error('WebSocket transport expects options.');
+    const options = { ...first, path: undefined, lookup: vettedLookup() } as tls.ConnectionOptions &
+      net.TcpNetConnectOpts;
+    if (!secure) return net.connect(options);
+    if (!options.servername && options.servername !== '')
+      options.servername = net.isIP(options.host ?? '') ? '' : options.host;
+    void rest;
+    return tls.connect(options);
+  };
+  return { createConnection: createConnection as typeof net.createConnection };
 }
 
 const parsed = (text: string): unknown => {
@@ -60,14 +91,16 @@ export async function runWebSocket(input: {
   const plan = readWebSocketPlan(input.body);
   const deadline = Date.now() + limits.timeoutMs;
   const received: string[] = [];
+  const denial = denialForUrl(input.url);
+  if (denial) return Promise.reject(denial);
   return new Promise<ProtocolResponse>((resolve, reject) => {
     let settled = false;
     let closeInfo = { code: 0, reason: '' };
-    const proxy = egressProxy();
-    const agent = proxy ? new HttpsProxyAgent(proxy) : undefined;
+    const { agent, ...transport } = webSocketTransport(input.url);
     const socket = new WebSocket(input.url, {
       headers: input.headers,
       handshakeTimeout: input.timeoutMs,
+      ...transport,
       ...(agent ? { agent } : {}),
     });
     socket.once('close', () => agent?.destroy());
@@ -152,7 +185,7 @@ export async function runWebSocket(input: {
       settled = true;
       clearTimeout(timer);
       agent?.destroy();
-      reject(new Error(`WebSocket error: ${error.message}`));
+      reject(isEgressDenied(error) ? error : new Error(`WebSocket error: ${error.message}`));
     });
   });
 }
@@ -164,12 +197,14 @@ async function runWebSocketConversation(
 ): Promise<ProtocolResponse> {
   const deadline = Date.now() + limits.timeoutMs;
   const inbox = new ProtocolInbox(limits);
-  const proxy = egressProxy();
-  const agent = proxy ? new HttpsProxyAgent(proxy) : undefined;
+  const denial = denialForUrl(input.url);
+  if (denial) return Promise.reject(denial);
+  const { agent, ...transport } = webSocketTransport(input.url);
   const socket = new WebSocket(input.url, {
     headers: input.headers,
     handshakeTimeout: limits.timeoutMs,
     maxPayload: limits.maxBytes,
+    ...transport,
     ...(agent ? { agent } : {}),
   });
   return new Promise((resolve, reject) => {
@@ -207,7 +242,9 @@ async function runWebSocketConversation(
       if (!settled && !opened)
         fail(new Error('Conversation step 1: Protocol closed before conversation completed.'));
     });
-    socket.on('error', () => fail(new Error('WebSocket connection failed.')));
+    socket.on('error', (error) =>
+      fail(isEgressDenied(error) ? error : new Error('WebSocket connection failed.')),
+    );
     socket.on('unexpected-response', (_req, res) =>
       fail(new Error(`The server refused the WebSocket connection: HTTP ${res.statusCode}.`)),
     );
