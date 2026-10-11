@@ -39,7 +39,7 @@ import PlanSuitesDialog from '@/components/suites/PlanSuitesDialog';
 import { fetchFullTestPlansAPI as fetchAllTestPlans } from '@/lib/api/test-plans';
 import { useAuth } from '@/hooks/use-auth';
 
-const TestSuitesPage: React.FC = () => {
+const TestPlansPage: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation(); // Hook for navigation
@@ -361,4 +361,4 @@ const TestSuitesPage: React.FC = () => {
   );
 };
 
-export default TestSuitesPage;
+export default TestPlansPage;

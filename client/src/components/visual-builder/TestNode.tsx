@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { TestAction } from '@/pages/dashboard-page-new';
+import { TestAction } from '@/pages/CreateTestPage';
 import { DetectedElement } from '@/components/drag-drop-provider';
 import {
   ACTION_REQUIREMENTS,

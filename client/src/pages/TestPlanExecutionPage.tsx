@@ -106,7 +106,7 @@ const TestPlanExecutionPage: React.FC = () => {
             : t('testPlanExecutionPage.planNotFound.text')}
         </p>
         <Button variant="link" asChild className="mt-4">
-          <Link href="/test-suites">{t('testPlanExecutionPage.backToTestSuites.button')}</Link>
+          <Link href="/test-plans">{t('testPlanExecutionPage.backToTestSuites.button')}</Link>
         </Button>
       </div>
     );
@@ -118,7 +118,7 @@ const TestPlanExecutionPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Button variant="outline" size="icon" asChild>
-              <Link href="/test-suites">
+              <Link href="/test-plans">
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             </Button>
