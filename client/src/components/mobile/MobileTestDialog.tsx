@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Plus, ScanSearch, Trash2, Upload } from 'lucide-react';
+import { Loader2, ScanSearch, Trash2, Upload } from 'lucide-react';
 import MobileInspectorDialog, { type InspectorRequest } from './MobileInspectorDialog';
 import MobileStepsEditor from './MobileStepsEditor';
 import type { MobileGroupDefinition } from '@shared/mobile-groups';

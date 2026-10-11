@@ -3,13 +3,11 @@ import { z } from "zod";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import {
   AUDIT_ACTIONS,
-  apiTests,
   tags,
   testPlanSuites,
   testPlans,
   testSuiteItems,
   testSuites,
-  tests,
 } from "@shared/schema";
 import { requireRole } from "../middleware/require-role";
 import { withTenantTransaction, getTenantOrgId, type TenantTx } from "../middleware/tenancy";
