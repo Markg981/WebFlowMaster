@@ -134,8 +134,10 @@ function correlated(
   const eventId = `${provider}:${createHash('sha256').update(text(nativeId, 2000)).digest('hex')}`;
   return { event: { eventId, messageId: messageId as string, status }, recipient: recipientText };
 }
-function safeJson(raw: Buffer): unknown {
-  if (!Buffer.isBuffer(raw) || raw.length > 256 * 1024) invalid();
+function safeJson(raw: unknown): unknown {
+  // The body comes from the request. `byteLength` exists only on a Buffer, so the size check
+  // cannot be read off an array or a string that slipped through as the parsed body.
+  if (!Buffer.isBuffer(raw) || raw.byteLength > 256 * 1024) invalid();
   try {
     return JSON.parse(raw.toString('utf8'));
   } catch {
@@ -190,15 +192,20 @@ async function normalizeSns(
   } catch {
     return invalid(401);
   }
+  const certName = /^\/SimpleNotificationService-([a-fA-F0-9]{32,64})\.pem$/.exec(certUrl.pathname);
   if (
     certUrl.origin !== origin ||
     certUrl.username ||
     certUrl.password ||
     certUrl.search ||
     certUrl.hash ||
-    !/^\/SimpleNotificationService-[a-fA-F0-9]{32,64}\.pem$/.test(certUrl.pathname)
+    !certName
   )
     invalid(401);
+  // Fetched from the origin the configured topic ARN dictates plus the validated hex name, never
+  // from the URL the request supplied: a check on that URL is only as good as the parser's view
+  // of it.
+  const trustedCertUrl = `${origin}/SimpleNotificationService-${certName[1]}.pem`;
   const timestamp = Date.parse(text(payload.Timestamp, 100));
   // SNS's HTTP retry policy has a one-hour maximum. Allow five minutes of clock skew;
   // persistent event IDs keep identical signed retries idempotent.
@@ -214,7 +221,7 @@ async function normalizeSns(
   if (!/^[A-Za-z0-9+/]+={0,2}$/.test(signature)) invalid(401);
   let pem: string;
   try {
-    pem = await deps.fetchCertificate(certUrl.href);
+    pem = await deps.fetchCertificate(trustedCertUrl);
   } catch {
     throw new ProviderProtocolError(503, 'Could not retrieve SNS certificate');
   }
