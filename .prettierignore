@@ -20,3 +20,6 @@ collaudo/mobile/apps/
 **/package.json
 # Case catalog edited by hand and by scripts that write JSON.stringify output
 collaudo/casi.json
+
+# Helm templates carry Go template actions, which are not YAML until rendered
+deployment/helm/**/templates/**

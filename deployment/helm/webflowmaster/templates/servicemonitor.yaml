@@ -1,0 +1,69 @@
+{{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled }}
+# For the Prometheus Operator. The jobLabel/relabeling give the targets the job names
+# observability/prometheus-alerts.yml is written for: wfm-api and wfm-worker. The bearer token
+# is read from the chart's Secret (key WFM_METRICS_TOKEN), which Prometheus must be allowed to
+# read in this namespace.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "webflowmaster.fullname" . }}-api
+  labels:
+    {{- include "webflowmaster.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+    {{- with .Values.metrics.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "webflowmaster.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.metrics.serviceMonitor.scrapeTimeout }}
+      authorization:
+        type: Bearer
+        credentials:
+          name: {{ include "webflowmaster.secretName" . }}
+          key: WFM_METRICS_TOKEN
+      relabelings:
+        - targetLabel: job
+          replacement: wfm-api
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "webflowmaster.fullname" . }}-worker
+  labels:
+    {{- include "webflowmaster.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+    {{- with .Values.metrics.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "webflowmaster.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.metrics.serviceMonitor.scrapeTimeout }}
+      authorization:
+        type: Bearer
+        credentials:
+          name: {{ include "webflowmaster.secretName" . }}
+          key: WFM_METRICS_TOKEN
+      relabelings:
+        - targetLabel: job
+          replacement: wfm-worker
+{{- end }}

@@ -1,0 +1,371 @@
+# Default values for the WebFlowMaster chart.
+#
+# The chart deploys what docker-compose.yml runs: the web process (api), the queue workers, a
+# migration Job that runs before each install and upgrade, and optionally an evaluation-only
+# PostgreSQL and Redis. Every variable below maps to one documented in
+# docs/en/admin/configuration.md; the chart adds nothing the application does not read.
+#
+# Required before `helm install`: the five secrets under `secrets` (or `secrets.existingSecret`),
+# `config.publicUrl`, and a database and a Redis to point `secrets.databaseUrl` and
+# `secrets.redisUrl` at (or the evaluation-only `postgresql.enabled` / `redis.enabled`).
+
+nameOverride: ''
+fullnameOverride: ''
+
+image:
+  # The images the release workflow publishes (docs/en/admin/releases.md): one for the web
+  # process, one for the worker. Pin a digest in production: `repository@sha256:...` with an
+  # empty tag is not supported by this chart, so use an immutable version tag instead.
+  repository: ghcr.io/OWNER/REPOSITORY-api
+  workerRepository: ghcr.io/OWNER/REPOSITORY-worker
+  # Empty: the chart's appVersion.
+  tag: ''
+  pullPolicy: IfNotPresent
+
+# Names of existing docker-registry Secrets in the namespace.
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ''
+  annotations: {}
+
+# The Playwright base image runs the application as pwuser (uid/gid 1000, see
+# deployment/releases/harden-base.sh). fsGroup lets the pods write the mounted volumes.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ['ALL']
+  # Not read-only: Playwright writes browser profiles and the application writes
+  # logs/, uploads/ and allure-results/ inside /app (see the Dockerfiles).
+  readOnlyRootFilesystem: false
+
+# Non-secret configuration, rendered into a ConfigMap read by the api, the worker and (where
+# relevant) the migration Job. Names in docs/en/admin/configuration.md.
+config:
+  # WEBFLOW_PUBLIC_URL: the address people reach the installation at. Notifications, commit
+  # statuses and report links point here. Required.
+  publicUrl: https://webflowmaster.example.com
+  # APP_BASE_URL: the fallback {{baseUrl}} for a run with no environment selected. Optional.
+  appBaseUrl: ''
+  # SCHEDULER_BACKEND: `cron` runs schedules inside the web process and is only correct with
+  # one api replica; `bullmq` keeps them in Redis and is required as soon as api.replicaCount
+  # is above 1 or autoscaling is on.
+  schedulerBackend: cron
+  # WORKER_CONCURRENCY: plans one worker pod runs at once.
+  workerConcurrency: 1
+  # WORKER_SHUTDOWN_GRACE_MS: how long a worker waits for its runs after SIGTERM. The worker
+  # pod's terminationGracePeriodSeconds is derived from it (see worker.terminationGracePeriodMarginSeconds).
+  workerShutdownGraceMs: 30000
+  # CSRF_TRUSTED_ORIGINS: comma-separated origins, when the public address differs from the
+  # Host header the pods see.
+  csrfTrustedOrigins: ''
+  # REGISTRATION: `invitation` (default) or `open`.
+  registration: invitation
+  # MAILPIT_URL: the test inbox for "Wait for email" steps when an environment names none.
+  mailpitUrl: ''
+  # Any other non-secret variable from docs/en/admin/configuration.md, as name: value.
+  # Values are rendered as strings; quote numbers and booleans.
+  extraEnv: {}
+  #  RUN_MAX_DURATION_MS: '10800000'
+  #  ORG_MAX_CONCURRENT_RUNS: '4'
+
+# Secrets. Either fill these in (from a values file kept out of version control, or with
+# --set), or create a Secret yourself and name it in existingSecret. The Secret must carry the
+# keys DATABASE_URL, REDIS_URL, SESSION_SECRET, ENCRYPTION_KEY and AGENT_RELAY_SECRET, plus
+# WFM_METRICS_TOKEN when metrics are on, S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY when the S3
+# store uses static credentials, and MIGRATION_DATABASE_URL when migrations.databaseUrlKey
+# names it. Generate each random value with
+#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+secrets:
+  existingSecret: ''
+  # postgres://user:password@host:5432/webflowmaster. Leave empty with postgresql.enabled:
+  # the chart builds it from postgresPassword.
+  databaseUrl: ''
+  # redis://host:6379 (or redis://:password@host:6379). Leave empty with redis.enabled.
+  redisUrl: ''
+  # Signs session cookies. Changing it signs everyone out.
+  sessionSecret: ''
+  # Encrypts stored secrets (AES-256-GCM); 64 hexadecimal characters. There is no rotation
+  # procedure: keep it with the database backups.
+  encryptionKey: ''
+  # Signs the tickets with which a worker borrows a local agent's browser.
+  agentRelaySecret: ''
+  # Bearer token Prometheus presents to /metrics. Required when metrics.enabled.
+  metricsToken: ''
+  # Static S3 credentials. Empty: the AWS default credential chain (IRSA, instance role).
+  s3AccessKeyId: ''
+  s3SecretAccessKey: ''
+  # Only for the evaluation PostgreSQL (postgresql.enabled). Hexadecimal: it is written into
+  # DATABASE_URL.
+  postgresPassword: ''
+  # A connection string with DDL rights for the migration Job, when the runtime role has none
+  # (deployment/releases/installation.env.example). Used when migrations.databaseUrlKey is
+  # MIGRATION_DATABASE_URL.
+  migrationDatabaseUrl: ''
+
+# Where run evidence (screenshots, videos, traces, HAR) and visual baselines live.
+# `local` mounts two volumes that the api serves and the worker writes: every api and worker
+# pod must mount the same volumes, so with more than one replica of either the claims must be
+# ReadWriteMany (an RWX storage class), or you use `s3`. With `s3` nothing is mounted and
+# every replica reads and writes the bucket (ARTIFACT_STORE=s3).
+artifacts:
+  store: local
+  s3:
+    bucket: ''
+    region: us-east-1
+    # For MinIO, Cloudflare R2 or another S3-compatible store.
+    endpoint: ''
+    # Empty: `true` when endpoint is set, the application's own default.
+    forcePathStyle: ''
+    prefix: ''
+  persistence:
+    # Ignored when store is s3.
+    enabled: true
+    results:
+      existingClaim: ''
+      storageClass: ''
+      accessMode: ReadWriteOnce
+      size: 20Gi
+    baselines:
+      existingClaim: ''
+      storageClass: ''
+      accessMode: ReadWriteOnce
+      size: 5Gi
+
+# The web process: Express API plus the built client (Dockerfile, `node dist/index.js`).
+api:
+  replicaCount: 1
+  # PORT. The Service and probes follow it.
+  port: 5000
+  # The web process stops accepting connections on SIGTERM and force-exits after 10 s
+  # (server/index.ts); 30 s lets in-flight requests and WebSocket closes finish first.
+  terminationGracePeriodSeconds: 30
+  resources:
+    requests:
+      cpu: 250m
+      memory: 768Mi
+    limits:
+      memory: 2Gi
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+  # Enough for `npm run build` output to load: the image is large, so the first pull is slow.
+  startupProbe:
+    periodSeconds: 5
+    failureThreshold: 36
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # Extra environment entries for the api container, in Kubernetes form (name/value or
+  # name/valueFrom). For plain variables prefer config.extraEnv.
+  extraEnv: []
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+
+# The queue worker (Dockerfile.worker, `node dist/worker.js`). Scale it for throughput.
+worker:
+  replicaCount: 1
+  # Added to WORKER_SHUTDOWN_GRACE_MS/1000 to form terminationGracePeriodSeconds, so a draining
+  # worker is never killed before the grace it was promised.
+  terminationGracePeriodMarginSeconds: 30
+  # A run opens real browsers: these are per plan at WORKER_CONCURRENCY 1. Raise them with
+  # concurrency and with RUN_MAX_PARALLEL.
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      memory: 3Gi
+  # The worker exposes nothing but /metrics (server/observability/metrics.ts), so its liveness
+  # probe is a TCP check on the metrics port and is only rendered when metrics.enabled.
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 20
+    timeoutSeconds: 3
+    failureThreshold: 3
+  # Shared memory for Chromium. Playwright recommends at least this much; the default 64 MB
+  # of a container crashes tabs with heavy pages.
+  shmSizeLimit: 1Gi
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+  # KEDA (https://keda.sh) scales on the BullMQ wait list of the execution queue instead of on
+  # CPU: `bull:test-execution-queue:wait` in Redis (server/queue.ts). Do not enable both
+  # autoscaling and keda. Requires the KEDA operator in the cluster.
+  keda:
+    enabled: false
+    minReplicaCount: 1
+    maxReplicaCount: 8
+    pollingInterval: 15
+    # Seconds a worker idles before KEDA scales in. Keep it above a plan's usual duration
+    # only if WORKER_SHUTDOWN_GRACE_MS does not already cover it.
+    cooldownPeriod: 300
+    # Waiting jobs per worker replica.
+    listLength: '1'
+    redis:
+      # host:port, not a URL. Empty with redis.enabled: the evaluation Redis service.
+      address: ''
+      # Name of an existing TriggerAuthentication carrying the Redis password, if any.
+      triggerAuthentication: ''
+      # Set with a TLS-only Redis.
+      enableTLS: 'false'
+  podDisruptionBudget:
+    enabled: false
+    maxUnavailable: 1
+
+# Runs `node dist/apply-migrations.js` from the api image as a Helm hook before each install
+# and upgrade; the release is only installed once it succeeds.
+migrations:
+  enabled: true
+  # Empty: pre-install,pre-upgrade; with postgresql.enabled the evaluation database does not
+  # exist yet at that point, so the Job runs post-install,post-upgrade instead and the api
+  # restarts until it has applied the schema.
+  hook: ''
+  # Which key of the Secret becomes DATABASE_URL for the Job: DATABASE_URL, or
+  # MIGRATION_DATABASE_URL for a separate owner role.
+  databaseUrlKey: DATABASE_URL
+  backoffLimit: 2
+  activeDeadlineSeconds: 1800
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+
+service:
+  type: ClusterIP
+  port: 80
+  annotations: {}
+
+# TLS must be terminated in front of the web process (docs/en/admin/installation.md, "Behind a
+# reverse proxy"): with NODE_ENV=production the session cookie is Secure. The annotations
+# below are the nginx ingress controller's; /ws (live logs) and /api/agent/v1/ (the local-agent
+# relay) are long-lived WebSockets, so the read and send timeouts must be generous.
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-body-size: 20m
+    # cert-manager.io/cluster-issuer: letsencrypt
+  hosts:
+    - host: webflowmaster.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: webflowmaster-tls
+  #    hosts:
+  #      - webflowmaster.example.com
+
+# Prometheus: WFM_METRICS_ENABLED on both processes, with the listener bound to the pod
+# address (WFM_METRICS_HOST=0.0.0.0) so Prometheus and the worker's liveness probe reach it.
+# The scrape needs the bearer token from the Secret (key WFM_METRICS_TOKEN).
+metrics:
+  enabled: false
+  apiPort: 9464
+  workerPort: 9465
+  # A ServiceMonitor for the Prometheus Operator, with the job names
+  # observability/prometheus-alerts.yml expects (wfm-api, wfm-worker).
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    # Labels the operator's serviceMonitorSelector matches, e.g. release: prometheus.
+    labels: {}
+
+# A default-deny policy for the api and worker pods with the flows the stack needs: DNS, the
+# database and Redis, the api from the ingress controller and from the workers (the agent
+# relay), and the workers' egress to the applications under test. Needs an enforcing CNI.
+networkPolicy:
+  enabled: false
+  # Namespace label of the ingress controller allowed to reach the api.
+  ingressNamespaceSelector:
+    kubernetes.io/metadata.name: ingress-nginx
+  # Namespace label of the Prometheus allowed to scrape the metrics ports.
+  monitoringNamespaceSelector:
+    kubernetes.io/metadata.name: monitoring
+  # Where PostgreSQL and Redis are when not deployed by this chart: CIDR blocks and ports.
+  # Empty with postgresql.enabled / redis.enabled: the chart allows its own pods.
+  databaseEgress: []
+  #  - cidr: 10.0.0.0/8
+  #    port: 5432
+  # Egress of the worker (browsers) and the api (element detection, previews, notifications)
+  # to the applications under test and to the Internet. 0.0.0.0/0 minus the private ranges is
+  # a reasonable default for a SaaS; an installation testing internal applications lists
+  # their blocks instead.
+  egressCidrs:
+    - cidr: 0.0.0.0/0
+      except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+        - 169.254.169.254/32
+
+# EVALUATION ONLY. A single-replica PostgreSQL with no backups, no replication and no tuning,
+# so the chart can be tried out without any other infrastructure. Run production on a
+# managed PostgreSQL or an operator (CloudNativePG, Crunchy) and set secrets.databaseUrl.
+postgresql:
+  enabled: false
+  image: postgres:15-alpine
+  database: webflowmaster
+  username: postgres
+  persistence:
+    storageClass: ''
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+
+# EVALUATION ONLY. A single Valkey without persistence guarantees or authentication. Sessions
+# and the queue live here: use a managed Redis or an operator in production and set
+# secrets.redisUrl.
+redis:
+  enabled: false
+  image: valkey/valkey:alpine
+  persistence:
+    storageClass: ''
+    size: 2Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi

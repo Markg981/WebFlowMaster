@@ -1,0 +1,65 @@
+{{- if .Values.migrations.enabled }}
+# Applies the database migrations before the release's resources are installed or upgraded,
+# with the same image and command docker-compose.yml's migrate service uses. Helm waits for
+# it; a failed migration leaves the previous release untouched.
+#
+# Rolling back a release does not roll back a migration: see docs/en/admin/releases.md.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "webflowmaster.fullname" . }}-migrate
+  labels:
+    {{- include "webflowmaster.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrate
+  annotations:
+    {{- if .Values.migrations.hook }}
+    helm.sh/hook: {{ .Values.migrations.hook | quote }}
+    {{- else if .Values.postgresql.enabled }}
+    helm.sh/hook: post-install,post-upgrade
+    {{- else }}
+    helm.sh/hook: pre-install,pre-upgrade
+    {{- end }}
+    helm.sh/hook-weight: '0'
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrations.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "webflowmaster.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "webflowmaster.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: migrate
+          image: {{ include "webflowmaster.apiImage" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          command: ['node', 'dist/apply-migrations.js']
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "webflowmaster.secretName" . }}
+                  key: {{ .Values.migrations.databaseUrlKey }}
+            # Required by server/crypto.ts at import time, even though migrating encrypts nothing.
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "webflowmaster.secretName" . }}
+                  key: ENCRYPTION_KEY
+          resources:
+            {{- toYaml .Values.migrations.resources | nindent 12 }}
+{{- end }}

@@ -1,0 +1,110 @@
+# The queue worker: drains the BullMQ queue and runs test plans in real browsers
+# (Dockerfile.worker). Scale with worker.replicaCount, the HPA or the KEDA ScaledObject.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "webflowmaster.fullname" . }}-worker
+  labels:
+    {{- include "webflowmaster.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  {{- if and (not .Values.worker.autoscaling.enabled) (not .Values.worker.keda.enabled) }}
+  replicas: {{ .Values.worker.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "webflowmaster.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  # A worker drains its runs before it stops; let the new one start first so throughput holds.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        {{- include "webflowmaster.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+        {{- with .Values.worker.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.worker.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "webflowmaster.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      # WORKER_SHUTDOWN_GRACE_MS / 1000 + worker.terminationGracePeriodMarginSeconds: the
+      # worker must be allowed the wait it was configured for before SIGKILL.
+      terminationGracePeriodSeconds: {{ include "webflowmaster.workerTerminationGracePeriodSeconds" . }}
+      containers:
+        - name: worker
+          image: {{ include "webflowmaster.workerImage" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          command: ['node', 'dist/worker.js']
+          {{- if .Values.metrics.enabled }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.metrics.workerPort }}
+              protocol: TCP
+          {{- end }}
+          envFrom:
+            {{- include "webflowmaster.sharedEnvFrom" . | nindent 12 }}
+          env:
+            # The relay in the web process, through which a worker borrows a local agent's
+            # browser; the Service, not a pod, so it survives api rollouts.
+            - name: AGENT_RELAY_URL
+              value: {{ printf "http://%s-api:%d" (include "webflowmaster.fullname" .) (int .Values.service.port) | quote }}
+            {{- if .Values.metrics.enabled }}
+            - name: WFM_METRICS_PORT
+              value: {{ .Values.metrics.workerPort | quote }}
+            {{- end }}
+            {{- with .Values.worker.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if .Values.metrics.enabled }}
+          # The worker serves nothing but /metrics; a listener that stops answering is what
+          # the WfmWorkerTargetDown alert fires on, and the same signal restarts the pod.
+          livenessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: {{ .Values.worker.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.worker.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.worker.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.worker.livenessProbe.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          volumeMounts:
+            {{- include "webflowmaster.artifactVolumeMounts" . | nindent 12 }}
+            - name: dshm
+              mountPath: /dev/shm
+      volumes:
+        {{- include "webflowmaster.artifactVolumes" . | nindent 8 }}
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: {{ .Values.worker.shmSizeLimit }}
+      {{- with .Values.worker.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.worker.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.worker.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
