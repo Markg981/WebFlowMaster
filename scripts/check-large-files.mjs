@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // Refuses files over the size limit before they reach the history, where they stay in every
 // clone even after a later commit deletes them.
 //
