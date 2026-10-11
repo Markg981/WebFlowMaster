@@ -1330,8 +1330,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .returning();
 
           if (mainPlanUpdated.length === 0) {
+            // The id goes in the metadata, not the message: it comes from the URL.
             resolvedLogger.warn(
-              `PUT /api/test-plans/${testPlanId} - Test plan not found during main record update.`,
+              'PUT /api/test-plans/:id - Test plan not found during main record update.',
+              { testPlanId },
             );
             throw new Error('Test plan not found or no changes to main record.'); // Will be caught and result in 404 like
           }
