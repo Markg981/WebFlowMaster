@@ -573,7 +573,7 @@ export async function removeScheduleJob(scheduleId: string) {
   if (activeJob) {
     activeJob.job.stop();
     activeCronJobs.delete(scheduleId);
-    resolvedLogger.info(`[SchedulerService] Removed cron job for schedule ${scheduleId}`);
+    resolvedLogger.info('[SchedulerService] Removed cron job for schedule', { scheduleId });
   }
 }
 
