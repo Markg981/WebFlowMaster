@@ -4579,5 +4579,16 @@
     "matched": "Conforme",
     "mismatch": "Non conforme",
     "unverified": "Non vérifiée"
+  },
+  "commandPalette": {
+    "open": "Ouvrir la palette de commandes",
+    "search": "Rechercher",
+    "title": "Palette de commandes",
+    "placeholder": "Aller à une page, exécuter un plan…",
+    "empty": "Aucun résultat.",
+    "plans": "Plans de test",
+    "runPlan": "Exécuter le plan",
+    "runPlanNamed": "Exécuter {{name}}",
+    "actions": "Actions"
   }
 }

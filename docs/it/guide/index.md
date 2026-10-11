@@ -44,6 +44,10 @@ La barra laterale contiene tutto:
 | **Report**            | Ogni run concluso, i test instabili e la quarantena. Vedi [Risultati](./results).                                |
 | **Impostazioni**      | Preferenze e password e, a seconda del ruolo, ambienti, progetti, membri, chiavi e il resto.                     |
 
+**Ctrl+K** (**⌘K** su Mac), oppure **Cerca** nella barra in alto, apre da qualsiasi pagina la palette dei
+comandi: digitando parte di un nome si va a una pagina, si esegue un piano di test, si passa dal tema
+chiaro a quello scuro o si esce. I piani compaiono solo a editor e owner, che possono avviare un run.
+
 Cosa potete fare dipende dal **ruolo**: i viewer leggono test e risultati; gli editor li creano
 anche, li modificano e li eseguono; gli owner gestiscono anche l'organizzazione. I pulsanti che
 non potete usare sono nascosti o disattivati.
