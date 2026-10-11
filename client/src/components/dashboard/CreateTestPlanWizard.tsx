@@ -26,6 +26,8 @@ import TestSuiteSelectorModal from './TestSuiteSelectorModal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { MOBILE_DEVICES, canEmulateDevice } from '@shared/devices';
+import { DESKTOP, EVIDENCE_MODES, MAX_PARALLEL_TESTS } from './plan-settings';
 
 interface CreateTestPlanWizardProps {
   isOpen: boolean;
@@ -54,6 +56,8 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({
     browserName: string;
     browserVersion: string;
     headless: boolean;
+    /** A phone or tablet to emulate (shared/devices.ts); null for the desktop. */
+    device: string | null;
   }
   const [testMachines, setTestMachines] = useState<TestMachineConfig[]>([]);
   const [currentOs, setCurrentOs] = useState('');
@@ -61,6 +65,7 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({
   const [currentBrowserName, setCurrentBrowserName] = useState('chrome');
   const [currentBrowserVersion, setCurrentBrowserVersion] = useState('latest');
   const [currentHeadless, setCurrentHeadless] = useState(false);
+  const [currentDevice, setCurrentDevice] = useState(DESKTOP);
   const [testMachineFormError, setTestMachineFormError] = useState<string | null>(null);
   const [currentOsVersionOptions, setCurrentOsVersionOptions] = useState<string[]>([]);
 
@@ -106,6 +111,9 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({
         browserName: currentBrowserName,
         browserVersion: currentBrowserVersion,
         headless: currentHeadless,
+        // Firefox has no mobile mode: a device chosen before switching to it is dropped.
+        device:
+          currentDevice !== DESKTOP && canEmulateDevice(currentBrowserName) ? currentDevice : null,
       },
     ]);
     setTestMachineFormError(null);
@@ -145,6 +153,11 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({
   // Step 3 Data
   const [captureScreenshots, setCaptureScreenshots] = useState('on_failed_steps');
   const [visualTestingEnabled, setVisualTestingEnabled] = useState(false);
+  /** Whether a video of each run survives it. Same choices as the plan's settings dialog. */
+  const [captureVideo, setCaptureVideo] = useState<string>('never');
+  /** How many of this plan's tests may run at once. 1 is one at a time, as every plan did before. */
+  const [maxParallelTests, setMaxParallelTests] = useState('1');
+  const [maxParallelError, setMaxParallelError] = useState('');
   const [pageLoadTimeout, setPageLoadTimeout] = useState('30');
   const [elementTimeout, setElementTimeout] = useState('30');
   const [onMajorStepFailure, setOnMajorStepFailure] = useState('abort_and_run_next_test_case');
@@ -206,6 +219,17 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({
   };
 
   const validateStep3 = () => {
+    const parallel = Number(maxParallelTests);
+    if (!Number.isInteger(parallel) || parallel < 1 || parallel > MAX_PARALLEL_TESTS) {
+      setMaxParallelError(
+        t(
+          'editTestPlanSettings.validation.parallelInvalid',
+          'Run at most must be a whole number between 1 and 16.',
+        ),
+      );
+      return false;
+    }
+    setMaxParallelError('');
     let isValid = true;
     const pLoadTimeout = parseInt(pageLoadTimeout, 10);
     const elTimeout = parseInt(elementTimeout, 10);
@@ -291,6 +315,8 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({
       testMachinesConfig: testMachines.map(({ id, ...rest }) => rest),
       captureScreenshots,
       visualTestingEnabled,
+      captureVideo,
+      maxParallelTests: Number(maxParallelTests),
       // The form asks in seconds; the plan stores milliseconds, which is what the runner applies.
       pageLoadTimeout: parseInt(pageLoadTimeout, 10) * 1000,
       elementTimeout: parseInt(elementTimeout, 10) * 1000,
@@ -489,6 +515,31 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({
                     </Select>
                   </div>
                   <div className="space-y-1">
+                    <Label htmlFor="device">
+                      {t('editTestPlanSettings.browsers.device', 'Device')}
+                    </Label>
+                    <Select
+                      value={canEmulateDevice(currentBrowserName) ? currentDevice : DESKTOP}
+                      onValueChange={setCurrentDevice}
+                      // Firefox has no mobile mode: the choice is not offered for it.
+                      disabled={!canEmulateDevice(currentBrowserName)}
+                    >
+                      <SelectTrigger id="device">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={DESKTOP}>
+                          {t('editTestPlanSettings.browsers.desktop', 'Desktop')}
+                        </SelectItem>
+                        {MOBILE_DEVICES.map((device) => (
+                          <SelectItem key={device.name} value={device.name}>
+                            {device.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
                     <Label htmlFor="browserVersion">
                       {t('createTestPlanWizard.step2.browserVersion.label', 'Browser Version')}
                     </Label>
@@ -553,13 +604,16 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({
                         >
                           <span>
                             {machine.os} {machine.osVersion} - {machine.browserName}{' '}
-                            {machine.browserVersion} ({machine.headless ? 'Headless' : 'UI'})
+                            {machine.browserVersion}
+                            {machine.device ? ` · ${machine.device}` : ''} (
+                            {machine.headless ? 'Headless' : 'UI'})
                           </span>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
                             onClick={() => handleRemoveTestMachine(machine.id)}
+                            aria-label={t('editTestPlanSettings.browsers.remove', 'Remove browser')}
                           >
                             <XCircle className="h-4 w-4 text-destructive" />
                           </Button>
@@ -675,7 +729,39 @@ const CreateTestPlanWizard: React.FC<CreateTestPlanWizardProps> = ({
                   )}
                 </Label>
               </div>
-              <div></div>
+              <div>
+                <Label htmlFor="captureVideo">
+                  {t('editTestPlanSettings.evidence.video', 'Video')}
+                </Label>
+                <Select value={captureVideo} onValueChange={setCaptureVideo}>
+                  <SelectTrigger id="captureVideo">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EVIDENCE_MODES.map((mode) => (
+                      <SelectItem key={mode.value} value={mode.value}>
+                        {t(`editTestPlanSettings.evidence.modes.${mode.value}`, mode.label)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="maxParallelTests">
+                  {t('editTestPlanSettings.parallel.label', 'Run at most (tests at once)')}
+                </Label>
+                <Input
+                  id="maxParallelTests"
+                  type="number"
+                  min={1}
+                  max={MAX_PARALLEL_TESTS}
+                  value={maxParallelTests}
+                  onChange={(e) => setMaxParallelTests(e.target.value)}
+                />
+                {maxParallelError && (
+                  <p className="text-sm text-destructive mt-1">{maxParallelError}</p>
+                )}
+              </div>
               <div>
                 <Label htmlFor="pageLoadTimeout">
                   {t(

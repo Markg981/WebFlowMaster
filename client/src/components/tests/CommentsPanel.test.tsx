@@ -168,6 +168,8 @@ describe('CommentsPanel', () => {
     state.user = { id: 2, organizationId: 10, role: 'owner' };
     mount();
     fireEvent.click(await screen.findByRole('button', { name: 'Delete comment' }));
+    expect(await screen.findByText('Delete this comment?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         '/api/comments/9',

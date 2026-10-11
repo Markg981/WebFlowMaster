@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import type { TestPlanScheduleEnhanced } from '@/lib/api/schedules';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,6 +12,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { FileEdit, Trash2 } from 'lucide-react';
+import { formatInZone } from '@/lib/dates';
 
 interface SchedulesListProps {
   schedules: TestPlanScheduleEnhanced[];
@@ -21,27 +23,6 @@ interface SchedulesListProps {
   error?: Error | null;
 }
 
-/** A moment as it reads on the wall clock of a given zone. */
-function formatInZone(value: Date | string | number, timeZone?: string | null): string {
-  const date = value instanceof Date ? value : new Date(value);
-  try {
-    return new Intl.DateTimeFormat('sv-SE', {
-      timeZone: timeZone || 'UTC',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hourCycle: 'h23',
-    })
-      .format(date)
-      .replace(',', '');
-  } catch {
-    // An unknown zone should not blank the row; show UTC and let the label say what it is.
-    return date.toISOString().slice(0, 16).replace('T', ' ');
-  }
-}
-
 const SchedulesList: React.FC<SchedulesListProps> = ({
   schedules,
   onEdit,
@@ -49,16 +30,33 @@ const SchedulesList: React.FC<SchedulesListProps> = ({
   isLoading,
   error,
 }) => {
+  const { t } = useTranslation();
+
+  /** "Daily", or "CRON (0 2 * * 1)" for a custom one. */
+  const frequencyLabel = (frequency: string) => {
+    if (frequency.startsWith('cron:')) return `CRON (${frequency.substring(5)})`;
+    const humanized = frequency.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    return t(`schedulingPage.form.frequency.${frequency}`, humanized);
+  };
+
   if (isLoading) {
-    return <p>Loading schedules...</p>;
+    return <p>{t('schedulingPage.list.loading', 'Loading schedules...')}</p>;
   }
 
   if (error) {
-    return <p className="text-destructive">Error loading schedules: {error.message}</p>;
+    return (
+      <p className="text-destructive">
+        {t('schedulingPage.list.loadFailed', 'Error loading schedules: {{message}}', {
+          message: error.message,
+        })}
+      </p>
+    );
   }
 
   if (!schedules || schedules.length === 0) {
-    return <p>No schedules found. Create one to get started!</p>;
+    return (
+      <p>{t('schedulingPage.list.empty', 'No schedules found. Create one to get started!')}</p>
+    );
   }
 
   return (
@@ -66,14 +64,16 @@ const SchedulesList: React.FC<SchedulesListProps> = ({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Test Plan</TableHead>
-            <TableHead>Frequency</TableHead>
-            <TableHead>Next Run At</TableHead>
-            <TableHead>Environment</TableHead>
-            <TableHead>Browsers</TableHead>
-            <TableHead>Status</TableHead>
-            {onEdit && onDelete && <TableHead>Actions</TableHead>}
+            <TableHead>{t('schedulingPage.list.columns.name', 'Name')}</TableHead>
+            <TableHead>{t('schedulingPage.form.testPlan', 'Test Plan')}</TableHead>
+            <TableHead>{t('schedulingPage.form.frequencyLabel', 'Frequency')}</TableHead>
+            <TableHead>{t('schedulingPage.form.nextRunAt', 'Next Run At')}</TableHead>
+            <TableHead>{t('schedulingPage.form.environment', 'Environment')}</TableHead>
+            <TableHead>{t('schedulingPage.form.browsers', 'Browsers')}</TableHead>
+            <TableHead>{t('schedulingPage.list.columns.status', 'Status')}</TableHead>
+            {onEdit && onDelete && (
+              <TableHead>{t('schedulingPage.list.columns.actions', 'Actions')}</TableHead>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -81,11 +81,7 @@ const SchedulesList: React.FC<SchedulesListProps> = ({
             <TableRow key={schedule.id}>
               <TableCell className="font-medium">{schedule.scheduleName}</TableCell>
               <TableCell>{schedule.testPlanName || schedule.testPlanId}</TableCell>
-              <TableCell>
-                {schedule.frequency.startsWith('cron:')
-                  ? `CRON (${schedule.frequency.substring(5)})`
-                  : schedule.frequency.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
-              </TableCell>
+              <TableCell>{frequencyLabel(schedule.frequency)}</TableCell>
               {/* Rendered in the schedule's own zone, and labelled with it. The column
                   used to say "(UTC)" while formatting in the reader's local zone, so the
                   heading and the number disagreed for everyone outside UTC. */}
@@ -106,7 +102,9 @@ const SchedulesList: React.FC<SchedulesListProps> = ({
                   variant={schedule.isActive ? 'default' : 'outline'}
                   className={schedule.isActive ? 'bg-success hover:bg-success/90 text-white' : ''}
                 >
-                  {schedule.isActive ? 'Active' : 'Inactive'}
+                  {schedule.isActive
+                    ? t('schedulingPage.list.active', 'Active')
+                    : t('schedulingPage.list.inactive', 'Inactive')}
                 </Badge>
               </TableCell>
               {onEdit && onDelete && (
@@ -115,7 +113,8 @@ const SchedulesList: React.FC<SchedulesListProps> = ({
                     variant="ghost"
                     size="icon"
                     onClick={() => onEdit(schedule)}
-                    title="Edit Schedule"
+                    title={t('schedulingPage.editSchedule.title', 'Edit Schedule')}
+                    aria-label={t('schedulingPage.editSchedule.title', 'Edit Schedule')}
                   >
                     <FileEdit className="h-4 w-4" />
                   </Button>
@@ -123,7 +122,8 @@ const SchedulesList: React.FC<SchedulesListProps> = ({
                     variant="ghost"
                     size="icon"
                     onClick={() => onDelete(schedule.id)}
-                    title="Delete Schedule"
+                    title={t('schedulingPage.list.deleteSchedule', 'Delete Schedule')}
+                    aria-label={t('schedulingPage.list.deleteSchedule', 'Delete Schedule')}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>

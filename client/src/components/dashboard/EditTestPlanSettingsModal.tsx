@@ -65,7 +65,6 @@ interface GridOption {
 const GRID_PREFIX = 'grid:';
 
 /** The Select cannot hold an empty value: the desktop, no device emulated. */
-const DESKTOP = '__desktop__';
 
 /** The Select cannot hold an empty value: "the grid's default OS". */
 const ANY_OS = '__any__';
@@ -87,12 +86,7 @@ interface EditTestPlanSettingsModalProps {
 
 const BROWSER_OPTIONS = ['chromium', 'chrome', 'firefox', 'webkit', 'edge'];
 
-/** The three answers to "keep a recording?", in the order they escalate. */
-const EVIDENCE_MODES = [
-  { value: 'never', label: 'Never' },
-  { value: 'on_failure', label: 'When the test fails' },
-  { value: 'always', label: 'Always' },
-];
+import { DESKTOP, EVIDENCE_MODES, MAX_PARALLEL_TESTS } from './plan-settings';
 
 /** The Select cannot hold an empty value, and "none" is a real choice here. */
 const NO_TRACKER = 'none';
@@ -311,7 +305,7 @@ const EditTestPlanSettingsModal: React.FC<EditTestPlanSettingsModalProps> = ({
     setWebhookError('');
 
     const parallel = Number(maxParallelTests);
-    if (!Number.isInteger(parallel) || parallel < 1 || parallel > 16) {
+    if (!Number.isInteger(parallel) || parallel < 1 || parallel > MAX_PARALLEL_TESTS) {
       setMaxParallelError(
         t(
           'editTestPlanSettings.validation.parallelInvalid',

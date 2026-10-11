@@ -17,6 +17,7 @@ import { ExecutionLogConsole } from '@/components/ExecutionLogConsole';
 import { apiRequest, ApiError } from '@/lib/queryClient';
 import { fetchTestPlanByIdAPI } from '@/lib/api/test-plans';
 import { useAuth } from '@/hooks/use-auth';
+import { useEnvironments } from '@/hooks/use-environments';
 
 /**
  * Starting a run of one plan, and following it.
@@ -41,13 +42,7 @@ const TestPlanExecutionPage: React.FC = () => {
   const [startError, setStartError] = useState<string | null>(null);
   const [selectedEnvironment, setSelectedEnvironment] = useState<string>('none');
 
-  const { data: environments = [] } = useQuery({
-    queryKey: ['environments'],
-    queryFn: async () => {
-      const res = await apiRequest('GET', '/api/environments');
-      return res.json();
-    },
-  });
+  const { data: environments = [] } = useEnvironments();
 
   const {
     data: plan,
@@ -140,7 +135,7 @@ const TestPlanExecutionPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No Environment</SelectItem>
-                  {environments.map((env: { id: number; name: string }) => (
+                  {environments.map((env) => (
                     <SelectItem key={env.id} value={env.id.toString()}>
                       {env.name}
                     </SelectItem>

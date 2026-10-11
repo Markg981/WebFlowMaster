@@ -23,8 +23,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Copy, KeySquare, Loader2, Trash2 } from 'lucide-react';
 import { API_SCOPES, API_SCOPE_NAMES, type ApiScope } from '@shared/api-scopes';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * The credentials a pipeline authenticates with.
@@ -70,7 +72,7 @@ async function fetchApiKeys(): Promise<ApiKeySummary[]> {
 function formatDate(value: string | null): string {
   if (!value) return '—';
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? '—' : formatDateTime(date);
 }
 
 const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
@@ -86,6 +88,8 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
   /** Shown once, because the server cannot produce it a second time. */
   const [freshKey, setFreshKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  /** The key whose revoke button was pressed, until the person confirms or backs out. */
+  const [revoking, setRevoking] = useState<ApiKeySummary | null>(null);
 
   const {
     data: keys = [],
@@ -142,6 +146,7 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
       return response.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['apiKeys'] }),
+    onSettled: () => setRevoking(null),
   });
 
   const handleCreate = () => {
@@ -401,7 +406,7 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => revokeKey.mutate(key.id)}
+                          onClick={() => setRevoking(key)}
                           disabled={revokeKey.isPending}
                           aria-label={t('settings.apiKeys.revokeAction', 'Revoke key')}
                         >
@@ -416,6 +421,24 @@ const ApiKeysCard: React.FC<{ isOwner?: boolean }> = ({ isOwner = false }) => {
           </div>
         )}
       </CardContent>
+
+      <ConfirmDialog
+        open={revoking !== null}
+        onOpenChange={(open) => {
+          if (!open) setRevoking(null);
+        }}
+        title={t('settings.apiKeys.revokeDialog.title', 'Revoke the key “{{name}}”?', {
+          name: revoking?.name ?? '',
+        })}
+        description={t(
+          'settings.apiKeys.revokeDialog.description',
+          'Every pipeline or script using it stops working at once. This cannot be undone.',
+        )}
+        confirmLabel={t('common.revoke', 'Revoke')}
+        destructive
+        pending={revokeKey.isPending}
+        onConfirm={() => revoking && revokeKey.mutate(revoking.id)}
+      />
     </Card>
   );
 };

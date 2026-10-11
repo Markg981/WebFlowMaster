@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Dialog,
@@ -19,45 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { toast } from '@/hooks/use-toast';
+import { useProjects, type ProjectSummary } from '@/hooks/use-projects';
 
-// Define Project type locally
-interface Project {
-  id: number;
-  name: string;
-  /** What the requester may do in it; a viewer on a restricted project cannot save into it. */
-  access?: 'viewer' | 'editor' | 'owner' | null;
-}
-
-// API function for fetching projects
-const fetchProjects = async (): Promise<Project[]> => {
-  const response = await apiRequest('GET', '/api/projects'); // apiRequest should throw if !response.ok
-
-  // Assuming apiRequest might return a Response object that needs .json()
-  // or it might return already parsed JSON (if it's a more advanced wrapper).
-  if (response && typeof response.json === 'function') {
-    try {
-      const data = await response.json();
-      // Only the projects a test can be saved into: the database refuses the others, and
-      // offering them turns a save into an error after the fact.
-      return (data as unknown as Project[]).filter((project) => project?.access !== 'viewer');
-    } catch (error) {
-      console.error('Failed to parse projects JSON:', error);
-      throw new Error('Failed to parse project data from server.');
-    }
-  } else if (response && Array.isArray(response)) {
-    // This case handles if apiRequest already parsed the JSON and returned the array.
-    return response as unknown as Project[];
-  } else {
-    console.error('Unexpected response type from fetchProjects:', response);
-    throw new Error('Received unexpected data format for projects.');
-  }
-};
+type Project = ProjectSummary;
 
 interface SaveTestModalProps {
   isOpen: boolean;
@@ -82,16 +51,18 @@ const SaveTestModal: React.FC<SaveTestModalProps> = ({
 
   // Fetch projects only when the modal is open
   const {
-    data: projectsData,
+    data: allProjects,
     isLoading: isLoadingProjects,
     isError: isErrorProjects,
     refetch: refetchProjects, // Get refetch function
-    // error: projectsError // Can be used to display specific error messages
-  } = useQuery<Project[], Error>({
-    queryKey: ['projects'],
-    queryFn: fetchProjects,
-    enabled: isOpen, // Only fetch when modal is open
-  });
+  } = useProjects({ enabled: isOpen });
+  // Only the projects a test can be saved into: the database refuses the others, and offering
+  // them turns a save into an error after the fact. Filtered here rather than in the fetcher,
+  // because the cache under 'projects' is shared with screens that list all of them.
+  const projectsData = useMemo(
+    () => allProjects?.filter((project) => project?.access !== 'viewer'),
+    [allProjects],
+  );
 
   const createProjectMutation = useMutation<Project, Error, { name: string }>({
     mutationFn: async (projectData: { name: string }): Promise<Project> => {

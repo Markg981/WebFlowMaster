@@ -22,6 +22,7 @@ import {
 import { CheckCircle2, CircleDashed, ExternalLink, Loader2, Play, XCircle } from 'lucide-react';
 import type { MobileRunStatus, MobileStepResult } from '@shared/mobile';
 import type { GridOption, MobileTestRow } from './MobileTestDialog';
+import { useEnvironments } from '@/hooks/use-environments';
 
 /**
  * Running a mobile test on a grid's device, and following it: the grid finds a device and installs
@@ -71,15 +72,7 @@ export default function MobileRunDialog({ test, grids, onClose, onFinished }: Pr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [test?.id, gridChoices]);
 
-  const { data: environments = [] } = useQuery<Array<{ id: number; name: string }>>({
-    queryKey: ['environments'],
-    queryFn: async () => {
-      const response = await fetch('/api/environments');
-      const rows = response.ok ? await response.json() : [];
-      return Array.isArray(rows) ? rows : [];
-    },
-    enabled: test !== null,
-  });
+  const { data: environments = [] } = useEnvironments({ enabled: test !== null });
 
   const { data: run } = useQuery<Run>({
     queryKey: ['mobileRun', runId],

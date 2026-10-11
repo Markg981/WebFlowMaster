@@ -548,8 +548,11 @@ function CreateTestPage() {
         setWebsiteLoaded(true);
         setWebsiteScreenshot(data.screenshot);
         toast({
-          title: 'Website loaded',
-          description: 'Website loaded successfully in preview',
+          title: t('dashboardPageNew.toasts.websiteLoaded.title', 'Website loaded'),
+          description: t(
+            'dashboardPageNew.toasts.websiteLoaded.description',
+            'Website loaded successfully in preview',
+          ),
         });
       } else {
         throw new Error(data.error || 'Failed to load website');
@@ -559,7 +562,7 @@ function CreateTestPage() {
       setWebsiteLoaded(false);
       setWebsiteScreenshot(null);
       toast({
-        title: 'Failed to load website',
+        title: t('dashboardPageNew.toasts.websiteLoadFailed.title', 'Failed to load website'),
         description: error.message,
         variant: 'destructive',
       });
@@ -588,15 +591,23 @@ function CreateTestPage() {
       }
 
       toast({
-        title: 'Elements detected',
+        title: t('dashboardPageNew.toasts.elementsDetected.title', 'Elements detected'),
         description: data.summary?.truncated
-          ? `Showing ${data.summary.returned} of ${data.summary.totalFound} elements found on the page`
-          : `Found ${data.elements.length} elements on the page`,
+          ? t(
+              'dashboardPageNew.toasts.elementsDetected.truncated',
+              'Showing {{returned}} of {{total}} elements found on the page',
+              { returned: data.summary.returned, total: data.summary.totalFound },
+            )
+          : t(
+              'dashboardPageNew.toasts.elementsDetected.found',
+              'Found {{count}} elements on the page',
+              { count: data.elements.length },
+            ),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: 'Failed to detect elements',
+        title: t('dashboardPageNew.toasts.detectFailed.title', 'Failed to detect elements'),
         description: error.message,
         variant: 'destructive',
       });
@@ -640,8 +651,11 @@ function CreateTestPage() {
       if (!data) return;
 
       toast({
-        title: 'Test saved',
-        description: 'Your test has been saved successfully.',
+        title: t('dashboardPageNew.toasts.testSaved.title', 'Test saved'),
+        description: t(
+          'dashboardPageNew.toasts.testSaved.description',
+          'Your test has been saved successfully.',
+        ),
       });
       setCurrentSavedTestId(data.id); // Store the ID of the saved test
       setTestName(data.name); // Update test name state
@@ -649,7 +663,7 @@ function CreateTestPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: 'Failed to save test',
+        title: t('dashboardPageNew.toasts.saveFailed.title', 'Failed to save test'),
         description: error.message,
         variant: 'destructive',
       });
@@ -669,8 +683,11 @@ function CreateTestPage() {
   const handleSaveTest = () => {
     if (testSequence.length === 0) {
       toast({
-        title: 'No test steps',
-        description: 'Add some test steps before saving',
+        title: t('dashboardPageNew.toasts.noSteps.title', 'No test steps'),
+        description: t(
+          'dashboardPageNew.toasts.noSteps.description',
+          'Add some test steps before saving',
+        ),
         variant: 'destructive',
       });
       return;
@@ -691,8 +708,11 @@ function CreateTestPage() {
     setTestName(newName); // Update the main page's testName state
     if (!projectId) {
       toast({
-        title: 'Project Not Selected',
-        description: 'Please select a project to save the test.',
+        title: t('dashboardPageNew.toasts.projectNotSelected.title', 'Project Not Selected'),
+        description: t(
+          'dashboardPageNew.toasts.projectNotSelected.description',
+          'Please select a project to save the test.',
+        ),
         variant: 'destructive',
       });
       // Re-open modal or indicate error. For now, just preventing save.
@@ -776,13 +796,16 @@ function CreateTestPage() {
       // The picker labels an environment that has one, so refresh it.
       queryClient.invalidateQueries({ queryKey: ['environments'] });
       toast({
-        title: 'Login saved',
-        description: 'Runs against this environment will start already signed in.',
+        title: t('dashboardPageNew.toasts.loginSaved.title', 'Login saved'),
+        description: t(
+          'dashboardPageNew.toasts.loginSaved.description',
+          'Runs against this environment will start already signed in.',
+        ),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: 'Could not save the login',
+        title: t('dashboardPageNew.toasts.loginSaveFailed.title', 'Could not save the login'),
         description: error.message,
         variant: 'destructive',
       });

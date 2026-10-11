@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useProjects } from '@/hooks/use-projects';
 import {
   Dialog,
   DialogContent,
@@ -37,11 +37,6 @@ export interface KeepableElement {
   attributes?: Record<string, string>;
 }
 
-interface Project {
-  id: number;
-  name: string;
-}
-
 interface KeepElementModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -70,15 +65,7 @@ const KeepElementModal: React.FC<KeepElementModalProps> = ({
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  const { data: projects = [] } = useQuery<Project[], Error>({
-    queryKey: ['projects'],
-    queryFn: async () => {
-      const response = await fetch('/api/projects');
-      if (!response.ok) throw new Error('Could not load projects');
-      return response.json();
-    },
-    enabled: isOpen,
-  });
+  const { data: projects = [] } = useProjects({ enabled: isOpen });
 
   useEffect(() => {
     if (!isOpen) return;

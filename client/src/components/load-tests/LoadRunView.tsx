@@ -26,6 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { LoadRunStatus, LoadStats, LoadSummary } from '@shared/load-test';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * One run of a load test, followed while it runs (the runner writes its summary every 2 s) and
@@ -116,9 +117,7 @@ export default function LoadRunView({ runId, canEdit, onFinished }: Props) {
     <div className="space-y-4" data-testid={`load-run-${run.id}`}>
       <div className="flex flex-wrap items-center gap-3">
         <Badge variant={statusVariant(run.status)}>{label(run.status)}</Badge>
-        <span className="text-sm text-muted-foreground">
-          {new Date(run.startedAt).toLocaleString()}
-        </span>
+        <span className="text-sm text-muted-foreground">{formatDateTime(run.startedAt)}</span>
         {summary && (
           <span className="text-sm">
             {t(

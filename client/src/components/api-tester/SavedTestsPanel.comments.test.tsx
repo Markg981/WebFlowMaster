@@ -18,7 +18,7 @@ vi.mock('@/components/tests/CommentsPanel', () => ({
 describe('saved API test discussions', () => {
   it('opens comments for the saved target without loading or editing the request', async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    client.setQueryData(['/api/projects'], []);
+    client.setQueryData(['projects'], []);
     const load = vi.fn();
     render(
       <QueryClientProvider client={client}>
@@ -85,7 +85,7 @@ it('opens API history without loading the request and reloads a restored executa
   }));
   vi.stubGlobal('fetch', fetchMock);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  client.setQueryData(['/api/projects'], []);
+  client.setQueryData(['projects'], []);
   const load = vi.fn();
   render(
     <QueryClientProvider client={client}>

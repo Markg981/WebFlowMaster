@@ -230,7 +230,11 @@
       "loading": "Chargement des clés…",
       "empty": "Aucune clé API pour l'instant. Un pipeline en a besoin pour lancer un plan de test.",
       "revoked": "révoquée",
-      "revokeAction": "Révoquer la clé"
+      "revokeAction": "Révoquer la clé",
+      "revokeDialog": {
+        "title": "Révoquer la clé « {{name}} » ?",
+        "description": "Tout pipeline ou script qui l'utilise cesse de fonctionner immédiatement. Cette action est irréversible."
+      }
     },
     "serviceAccounts": {
       "title": "Comptes de service",
@@ -246,7 +250,11 @@
       "empty": "Aucun compte de service. Créez-en un, puis attribuez-lui une clé ci-dessus.",
       "disabled": "désactivé",
       "disableAction": "Désactiver {{name}}",
-      "nameRequired": "Donnez un nom au compte, par exemple la pipeline à laquelle il sert."
+      "nameRequired": "Donnez un nom au compte, par exemple la pipeline à laquelle il sert.",
+      "disableDialog": {
+        "title": "Désactiver « {{name}} » ?",
+        "description": "Toutes ses clés API sont révoquées et chaque pipeline qui les utilise cesse de fonctionner. Cette action est irréversible."
+      }
     },
     "agents": {
       "title": "Agents locaux",
@@ -388,7 +396,15 @@
       "emailed": "Également envoyé par e-mail à {{username}}.",
       "emailFailed": "Non envoyé par e-mail : {{error}} Envoyez le lien vous-même.",
       "deactivated": "désactivé",
-      "deactivatedHint": "Désactivé par votre fournisseur d'identité : connexion impossible tant qu'il ne le réactive pas."
+      "deactivatedHint": "Désactivé par votre fournisseur d'identité : connexion impossible tant qu'il ne le réactive pas.",
+      "resetMfaDialog": {
+        "title": "Réinitialiser la double authentification de {{username}} ?",
+        "description": "Cette personne se connectera avec son seul mot de passe jusqu'à ce qu'elle la configure à nouveau."
+      },
+      "revokeDialog": {
+        "title": "Révoquer l'invitation de {{username}} ?",
+        "description": "Le lien d'invitation cesse de fonctionner. Vous pourrez inviter cette personne à nouveau plus tard."
+      }
     },
     "customActions": {
       "title": "Actions personnalisées",
@@ -705,6 +721,59 @@
       "loadFailed": {
         "title": "Échec du chargement",
         "description": "Impossible de charger le test d'ID {{id}}."
+      },
+      "historySaveFailed": {
+        "title": "Erreur lors de l'enregistrement de l'historique"
+      },
+      "requestSucceeded": {
+        "titleWithStatus": "Requête réussie : {{status}}",
+        "title": "Requête réussie",
+        "assertions": "Assertions {{summary}}",
+        "status": "L'API a répondu avec le statut {{status}}"
+      },
+      "requestFailed": {
+        "title": "Échec de la requête"
+      },
+      "urlRequired": {
+        "title": "URL obligatoire",
+        "description": "Saisissez une URL de base pour envoyer la requête."
+      },
+      "invalidJson": {
+        "title": "JSON invalide",
+        "description": "Le corps de la requête n'est pas un JSON valide. Envoi en texte brut."
+      },
+      "invalidGraphqlVariables": {
+        "title": "Variables GraphQL invalides",
+        "description": "Les variables ne sont pas un JSON valide. La requête est envoyée sans variables."
+      },
+      "testUpdated": {
+        "title": "Test mis à jour"
+      },
+      "testSaved": {
+        "title": "Test enregistré"
+      },
+      "saveFailed": {
+        "title": "Échec de l'enregistrement du test"
+      },
+      "testDeleted": {
+        "title": "Test supprimé"
+      },
+      "deleteFailed": {
+        "title": "Échec de la suppression du test"
+      },
+      "loadedFromHistory": {
+        "title": "Chargé depuis l'historique"
+      },
+      "formDataFiles": {
+        "title": "Fichiers du formulaire",
+        "description": "Les champs de fichier doivent être resélectionnés."
+      },
+      "loadedSavedTest": {
+        "title": "Test enregistré chargé"
+      },
+      "testExported": {
+        "title": "Test exporté",
+        "description": "{{filename}} a été téléchargé."
       }
     },
     "websocket": {
@@ -1451,6 +1520,43 @@
       "sessionProblem": {
         "title": "Problème avec la session d’enregistrement",
         "description": "Une erreur s’est produite lors de la récupération des actions."
+      },
+      "websiteLoaded": {
+        "title": "Site chargé",
+        "description": "Site chargé dans l'aperçu"
+      },
+      "websiteLoadFailed": {
+        "title": "Impossible de charger le site"
+      },
+      "elementsDetected": {
+        "title": "Éléments détectés",
+        "truncated": "{{returned}} éléments affichés sur {{total}} trouvés dans la page",
+        "found": "{{count}} éléments trouvés dans la page"
+      },
+      "detectFailed": {
+        "title": "Impossible de détecter les éléments"
+      },
+      "testSaved": {
+        "title": "Test enregistré",
+        "description": "Votre test a été enregistré."
+      },
+      "saveFailed": {
+        "title": "Impossible d'enregistrer le test"
+      },
+      "noSteps": {
+        "title": "Aucune étape",
+        "description": "Ajoutez des étapes avant d'enregistrer"
+      },
+      "projectNotSelected": {
+        "title": "Projet non sélectionné",
+        "description": "Sélectionnez un projet pour enregistrer le test."
+      },
+      "loginSaved": {
+        "title": "Connexion enregistrée",
+        "description": "Les exécutions sur cet environnement démarreront déjà connectées."
+      },
+      "loginSaveFailed": {
+        "title": "Impossible d'enregistrer la connexion"
       }
     },
     "stepGroups": {
@@ -1542,6 +1648,25 @@
       "description": "Voulez-vous vraiment supprimer le projet « {{name}} » ? Cette action est irréversible.",
       "cancelButton": "Annuler",
       "deleteButton": "Supprimer"
+    },
+    "toasts": {
+      "projectCreated": {
+        "title": "Projet créé",
+        "description": "Le nouveau projet a été créé."
+      },
+      "projectCreateFailed": {
+        "title": "Erreur lors de la création du projet"
+      },
+      "projectDeleted": {
+        "title": "Projet supprimé",
+        "description": "Le projet a été supprimé."
+      },
+      "projectDeleteFailed": {
+        "title": "Erreur lors de la suppression du projet"
+      },
+      "projectNameEmpty": {
+        "title": "Le nom du projet ne peut pas être vide"
+      }
     }
   },
   "saveTestModal": {
@@ -1758,7 +1883,8 @@
       },
       "xpath": {
         "label": "XPath"
-      }
+      },
+      "remove": "Supprimer l'assertion"
     },
     "authTypeDropdown": {
       "selectAuthType": {
@@ -1983,6 +2109,12 @@
       "nameField": "nom de capture",
       "add": "Ajouter une étape",
       "invalid": "Conversation invalide. Vérifiez l’ordre, les noms des captures, les délais et la limite de 100 étapes. Modifiez le JSON pour corriger les étapes non prises en charge."
+    },
+    "keyValueEditor": {
+      "remove": "Supprimer la ligne"
+    },
+    "requestBodyEditor": {
+      "removeField": "Supprimer le champ"
     }
   },
   "authForms": {
@@ -2582,6 +2714,86 @@
     },
     "delete": {
       "button": "Supprimer"
+    },
+    "form": {
+      "validation": {
+        "nameRequired": "Le nom de la planification est obligatoire",
+        "testPlanRequired": "Le plan de test est obligatoire",
+        "frequencyRequired": "La fréquence est obligatoire",
+        "nextRunRequired": "La date et l'heure de la prochaine exécution sont obligatoires",
+        "timezoneRequired": "Le fuseau horaire est obligatoire",
+        "browsersRequired": "Sélectionnez au moins un navigateur",
+        "invalidJson": "Doit être un JSON valide ou vide",
+        "cronRequired": "L'expression CRON est obligatoire pour la fréquence personnalisée."
+      },
+      "name": "Nom de la planification",
+      "testPlan": "Plan de test",
+      "testPlanPlaceholder": "Sélectionnez un plan de test...",
+      "loadingTestPlans": "Chargement des plans de test...",
+      "frequencyLabel": "Fréquence",
+      "frequencyPlaceholder": "Sélectionnez la fréquence...",
+      "frequency": {
+        "once": "Une fois",
+        "daily": "Quotidienne",
+        "weekly": "Hebdomadaire",
+        "monthly": "Mensuelle",
+        "every_5_minutes": "Toutes les 5 minutes",
+        "every_15_minutes": "Toutes les 15 minutes",
+        "every_30_minutes": "Toutes les 30 minutes",
+        "every_1_hours": "Toutes les heures",
+        "every_6_hours": "Toutes les 6 heures",
+        "every_12_hours": "Toutes les 12 heures",
+        "custom_cron": "CRON personnalisé"
+      },
+      "cron": "Expression CRON",
+      "cronHelp": "Fonctionnement des expressions CRON",
+      "cronHint": "Utilise le format CRON standard (minute, heure, jour du mois, mois, jour de la semaine). Exemple : « 0 2 * * * » pour 2 h chaque jour. Évalué dans le fuseau horaire choisi ci-dessous.",
+      "cronPlaceholder": "p. ex. 0 0 * * *",
+      "timezone": "Fuseau horaire",
+      "timezonePlaceholder": "p. ex. Europe/Paris",
+      "timezoneHint": "La planification s'exécute à cette heure locale toute l'année, heure d'été comprise.",
+      "nextRunAt": "Prochaine exécution",
+      "pickDateTime": "Choisissez une date et une heure",
+      "time": "Heure",
+      "environment": "Environnement",
+      "browsers": "Navigateurs",
+      "retryOnFailure": "Réessayer en cas d'échec",
+      "retryPlaceholder": "Sélectionnez le comportement de réessai...",
+      "retry": {
+        "none": "Aucun",
+        "once": "Une fois",
+        "twice": "Deux fois"
+      },
+      "notifications": "Remplacements de notifications (JSON)",
+      "notificationsHelp": "À propos des remplacements de notifications",
+      "notificationsHint": "Facultatif. Remplace les notifications définies au niveau du plan. Exemple :",
+      "parameters": "Paramètres d'exécution (JSON)",
+      "parametersHelp": "À propos des paramètres d'exécution",
+      "parametersHint": "Facultatif. Objet JSON des paramètres à injecter dans l'exécution. Exemple :",
+      "active": "Planification active",
+      "saving": "Enregistrement...",
+      "saveChanges": "Enregistrer les modifications"
+    },
+    "list": {
+      "loading": "Chargement des planifications...",
+      "loadFailed": "Erreur lors du chargement des planifications : {{message}}",
+      "empty": "Aucune planification. Créez-en une pour commencer !",
+      "columns": {
+        "name": "Nom",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "active": "Active",
+      "inactive": "Inactive",
+      "deleteSchedule": "Supprimer la planification"
+    },
+    "toast": {
+      "success": "Succès",
+      "unexpected": "Une erreur inattendue s'est produite.",
+      "created": "Planification créée.",
+      "updated": "Planification mise à jour.",
+      "deleted": "Planification supprimée.",
+      "deleteFailed": "Erreur lors de la suppression de la planification"
     }
   },
   "environmentSelect": {
@@ -2607,7 +2819,14 @@
     "logout": "Se déconnecter",
     "previousPage": "Page précédente",
     "nextPage": "Page suivante",
-    "clearSearch": "Effacer la recherche"
+    "clearSearch": "Effacer la recherche",
+    "requestFailed": "Une erreur est survenue",
+    "confirm": "Confirmer",
+    "delete": "Supprimer",
+    "revoke": "Révoquer",
+    "disable": "Désactiver",
+    "reset": "Réinitialiser",
+    "skipToContent": "Aller au contenu"
   },
   "environments": {
     "newEnvironmentPlaceholder": "Nouvel environnement (ex. Staging)",
@@ -2626,7 +2845,17 @@
       "deleted": "Environnement supprimé",
       "secretSaved": "Secret enregistré, chiffré",
       "secretDeleted": "Secret supprimé"
-    }
+    },
+    "deleteEnvDialog": {
+      "title": "Supprimer l'environnement « {{name}} » ?",
+      "description": "Ses secrets et sa session de navigateur enregistrée sont supprimés avec lui ; les tests qui l'utilisaient reviendront aux valeurs par défaut. Cette action est irréversible."
+    },
+    "deleteSecretDialog": {
+      "title": "Supprimer le secret {{key}} ?",
+      "description": "Les tests qui utilisent {{key}} dans cet environnement ne pourront plus le résoudre. Cette action est irréversible."
+    },
+    "deleteEnv": "Supprimer l'environnement {{name}}",
+    "deleteSecret": "Supprimer le secret {{key}}"
   },
   "testReportPage": {
     "cancel": {
@@ -3433,7 +3662,8 @@
     "edit": "Modifier les étiquettes",
     "add": "Ajouter des étiquettes",
     "newPlaceholder": "Nouvelle étiquette",
-    "none": "Aucune étiquette pour l'instant. Le premier mot que vous tapez en devient une."
+    "none": "Aucune étiquette pour l'instant. Le premier mot que vous tapez en devient une.",
+    "create": "Créer le tag"
   },
   "issues": {
     "openInTracker": "Ouvrir dans le gestionnaire",
@@ -3442,7 +3672,8 @@
   "testNode": {
     "stepGroup": {
       "badge": "groupe"
-    }
+    },
+    "deleteStep": "Supprimer l'étape"
   },
   "sso": {
     "title": "Authentification unique (SSO)",
@@ -3738,7 +3969,11 @@
     "poolRequired": "Indiquez le pool d'agents locaux qui atteint Appium.",
     "appiumEndpointHint": "L'adresse d'Appium telle que la machine de l'agent l'atteint. Vide : {{url}}, où Appium écoute sans options.",
     "agentPool": "Pool d'agents locaux",
-    "agentPoolHint": "Un agent de ce pool, sur la machine à côté d'Appium, transporte les requêtes : le serveur n'a pas besoin d'accéder à ce réseau."
+    "agentPoolHint": "Un agent de ce pool, sur la machine à côté d'Appium, transporte les requêtes : le serveur n'a pas besoin d'accéder à ce réseau.",
+    "deleteDialog": {
+      "title": "Supprimer la grille « {{name}} » ?",
+      "description": "Les plans qui l'utilisaient reviendront aux runners du serveur. Cette action est irréversible."
+    }
   },
   "requirements": {
     "title": "Exigences",
@@ -4158,7 +4393,36 @@
     "deleteNamed": "Supprimer {{name}}",
     "confirmDelete": "Supprimer {{name}} ?",
     "deleteFailed": "Non supprimé",
-    "size": "{{rows}} ligne(s) · {{columns}} colonne(s)"
+    "size": "{{rows}} ligne(s) · {{columns}} colonne(s)",
+    "dataset": {
+      "sharedTitle": "Lignes de données d'un jeu partagé",
+      "runs_one": "{{count}} exécution",
+      "runs_other": "{{count}} exécutions",
+      "sharedSet": "Jeu de données partagé",
+      "chooseSet": "Choisissez un jeu de données",
+      "useCopy": "Utiliser une copie comme lignes propres à ce test",
+      "sharedExplainRuns": "Le test s'exécute une fois par ligne de",
+      "sharedExplainColumns": ", avec ses colonnes en tant que",
+      "sharedExplainChange": ". Une modification du jeu s'applique à la prochaine exécution ; les jeux se gèrent dans Données de test.",
+      "sharedMissing": "Ce test pointe vers un jeu de données partagé qui n'existe plus (id {{id}}). Choisissez-en un autre, ou donnez-lui ses propres lignes.",
+      "title": "Lignes de données",
+      "intro": "Le test s'exécute une fois par ligne. Chaque nom de colonne est disponible dans une étape sous la forme",
+      "introNoRows": ". Sans lignes, il s'exécute une fois, comme d'habitude.",
+      "useShared": "Utiliser un jeu de données partagé",
+      "paste": "Coller depuis un tableur",
+      "addColumn": "Ajouter une colonne",
+      "pasteHint": "Collez le bloc avec sa ligne d'en-tête — copié directement depuis Excel, cela fonctionne.",
+      "replaceRows": "Remplacer les lignes",
+      "rowsRecognised_one": "{{count}} ligne reconnue",
+      "rowsRecognised_other": "{{count}} lignes reconnues",
+      "pasteNeedsHeader": "Il faut une ligne d'en-tête et au moins une ligne de données.",
+      "empty": "Aucune ligne de données. Ajoutez une colonne ou collez un bloc depuis un tableur.",
+      "columnName": "Nom de colonne {{column}}",
+      "removeColumn": "Supprimer la colonne {{column}}",
+      "cell": "Ligne {{row}} {{column}}",
+      "removeRow": "Supprimer la ligne {{row}}",
+      "addRow": "Ajouter une ligne"
+    }
   },
   "organizationData": {
     "exportTitle": "Tout exporter",
@@ -4267,7 +4531,11 @@
     "reopen": "Rouvrir la conversation",
     "resolve": "Résoudre la conversation",
     "replyMessage": "Message de réponse",
-    "addReply": "Ajouter une réponse"
+    "addReply": "Ajouter une réponse",
+    "deleteDialog": {
+      "title": "Supprimer ce commentaire ?",
+      "description": "Il sera remplacé par une note indiquant qu'il a été supprimé. Cette action est irréversible."
+    }
   },
   "GET": "/api/mail-deliveries?limit=100",
   "emailDelivery": {
@@ -4593,5 +4861,60 @@
     "runPlan": "Exécuter le plan",
     "runPlanNamed": "Exécuter {{name}}",
     "actions": "Actions"
+  },
+  "preconditions": {
+    "moveUp": "Monter",
+    "moveDown": "Descendre",
+    "remove": "Supprimer la précondition"
+  },
+  "executionLogConsole": {
+    "title": "Console",
+    "searchPlaceholder": "Rechercher dans les logs...",
+    "levels": "Niveaux",
+    "autoScroll": "Défilement automatique",
+    "paused": "En pause",
+    "download": "Télécharger les logs",
+    "loading": "Chargement des logs...",
+    "empty": "Aucun log à afficher",
+    "showing": "{{shown}} logs affichés sur {{total}}",
+    "live": "En direct",
+    "stopped": "Arrêté",
+    "socket": {
+      "connecting": "Connexion…",
+      "reconnecting": "Reconnexion…",
+      "disconnected": "Déconnecté"
+    }
+  },
+  "webhooks": {
+    "title": "Webhooks CI/CD - {{plan}}",
+    "description": "Gérez les webhooks qui lancent ce plan de test depuis GitHub Actions ou un autre système CI/CD.",
+    "namePlaceholder": "Nom du webhook (p. ex. GitHub Actions prod)",
+    "nameLabel": "Nom du webhook",
+    "create": "Créer",
+    "shownOnce": "Jeton du webhook « {{name}} » : copiez-le maintenant, il ne sera plus affiché.",
+    "headerHint": "Gardez-le parmi les secrets du pipeline et envoyez-le dans l'en-tête {{header}} : dans l'URL, il finirait dans les journaux des proxys.",
+    "columns": {
+      "name": "Nom",
+      "token": "Jeton",
+      "lastUsed": "Dernière utilisation"
+    },
+    "empty": "Aucun webhook configuré.",
+    "tokenHint": "Le jeton complet n'est affiché qu'à la création",
+    "neverUsed": "Jamais utilisé",
+    "delete": "Supprimer le webhook {{name}}",
+    "deleteDialog": {
+      "title": "Supprimer le webhook « {{name}} » ?",
+      "description": "Les pipelines qui utilisent son jeton ne pourront plus lancer ce plan. Cette action est irréversible."
+    },
+    "toast": {
+      "createFailed": "Le webhook n'a pas pu être créé",
+      "deleted": "Webhook supprimé",
+      "tokenCopied": "Jeton copié dans le presse-papiers",
+      "commandCopied": "Commande copiée dans le presse-papiers"
+    }
+  },
+  "errorBoundary": {
+    "title": "Une erreur s'est produite sur cette page.",
+    "description": "L'erreur a été enregistrée. Rechargez la page pour continuer."
   }
 }

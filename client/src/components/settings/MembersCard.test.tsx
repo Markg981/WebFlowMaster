@@ -189,6 +189,8 @@ describe('MembersCard', () => {
     await screen.findByText('newcomer');
 
     fireEvent.click(screen.getByRole('button', { name: 'Revoke the invitation for newcomer' }));
+    expect(await screen.findByText('Revoke the invitation for newcomer?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
 
     await waitFor(() => expect(calls('DELETE', '/api/organization/invitations/9')).toHaveLength(1));
   });

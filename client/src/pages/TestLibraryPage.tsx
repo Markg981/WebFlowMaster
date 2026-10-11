@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTags } from '@/hooks/use-tags';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ import {
   Search,
   Trash2,
 } from 'lucide-react';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * Every test this organization has, in one place.
@@ -61,11 +63,6 @@ interface LibraryTest {
   sequence?: unknown;
   bdd?: BddTest | null;
   projectId?: number | null;
-}
-
-interface TagSummary extends TagRef {
-  uiCount: number;
-  apiCount: number;
 }
 
 const TestLibraryPage: React.FC = () => {
@@ -107,14 +104,7 @@ const TestLibraryPage: React.FC = () => {
     },
   });
 
-  const { data: tagsData } = useQuery<TagSummary[], Error>({
-    queryKey: ['tags'],
-    queryFn: async () => {
-      const response = await fetch('/api/tags');
-      if (!response.ok) throw new Error('Could not load the tags');
-      return response.json();
-    },
-  });
+  const { data: tagsData } = useTags();
 
   const visible = testsData?.items ?? [];
   const allTags = Array.isArray(tagsData) ? tagsData : [];
@@ -391,7 +381,7 @@ const TestLibraryPage: React.FC = () => {
                       {test.url || '—'}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {test.updatedAt ? new Date(test.updatedAt).toLocaleString() : '—'}
+                      {test.updatedAt ? formatDateTime(test.updatedAt) : '—'}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="sm" onClick={() => setCommentsFor(test)}>

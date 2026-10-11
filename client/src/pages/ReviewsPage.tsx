@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Check, ClipboardCheck, Loader2, X } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * The review queue: versions of tests waiting to be published.
@@ -107,7 +108,7 @@ function ReviewItem({ review, onDecided }: { review: ReviewRow; onDecided: () =>
       <p className="text-xs text-muted-foreground">
         {t('reviews.askedBy', 'Asked by {{name}} on {{date}}', {
           name: review.requestedByName ?? t('reviews.formerMember', 'a former member'),
-          date: new Date(review.requestedAt).toLocaleString(),
+          date: formatDateTime(review.requestedAt),
         })}
       </p>
       {review.canDecide ? (

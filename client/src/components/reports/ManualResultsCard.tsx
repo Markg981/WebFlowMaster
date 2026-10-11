@@ -13,6 +13,7 @@ import {
   type ManualStepOutcome,
   type ManualVerdict,
 } from '@shared/manual-tests';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * The manual tests of a run, and where their results are given.
@@ -155,7 +156,7 @@ function ManualResultEditor({
         <p className="text-xs text-muted-foreground">
           {t('manualResults.recordedBy', 'Recorded by {{name}} on {{when}}', {
             name: log.verdict.byUsername,
-            when: new Date(log.verdict.at).toLocaleString(),
+            when: formatDateTime(log.verdict.at),
           })}
         </p>
       )}

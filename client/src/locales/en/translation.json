@@ -230,7 +230,11 @@
       "loading": "Loading keys…",
       "empty": "No API keys yet. A pipeline needs one to start a test plan.",
       "revoked": "revoked",
-      "revokeAction": "Revoke key"
+      "revokeAction": "Revoke key",
+      "revokeDialog": {
+        "title": "Revoke the key “{{name}}”?",
+        "description": "Every pipeline or script using it stops working at once. This cannot be undone."
+      }
     },
     "serviceAccounts": {
       "title": "Service accounts",
@@ -246,7 +250,11 @@
       "empty": "No service accounts yet. Create one, then issue it a key above.",
       "disabled": "disabled",
       "disableAction": "Disable {{name}}",
-      "nameRequired": "Give the account a name, such as the pipeline it is for."
+      "nameRequired": "Give the account a name, such as the pipeline it is for.",
+      "disableDialog": {
+        "title": "Disable “{{name}}”?",
+        "description": "All of its API keys are revoked and every pipeline using them stops working. This cannot be undone."
+      }
     },
     "agents": {
       "title": "Local agents",
@@ -388,7 +396,15 @@
       "emailed": "Also e-mailed to {{username}}.",
       "emailFailed": "Not e-mailed: {{error}} Send the link yourself.",
       "deactivated": "deactivated",
-      "deactivatedHint": "Deactivated by your identity provider: they cannot sign in until it reactivates them."
+      "deactivatedHint": "Deactivated by your identity provider: they cannot sign in until it reactivates them.",
+      "resetMfaDialog": {
+        "title": "Reset two-factor for {{username}}?",
+        "description": "They will sign in with their password alone until they set it up again."
+      },
+      "revokeDialog": {
+        "title": "Revoke the invitation for {{username}}?",
+        "description": "The invitation link stops working. You can invite them again later."
+      }
     },
     "customActions": {
       "title": "Custom actions",
@@ -705,6 +721,59 @@
       "loadFailed": {
         "title": "Load Failed",
         "description": "Could not load the test with ID {{id}}."
+      },
+      "historySaveFailed": {
+        "title": "Error Saving History"
+      },
+      "requestSucceeded": {
+        "titleWithStatus": "Request Successful: {{status}}",
+        "title": "Request Successful",
+        "assertions": "Assertions {{summary}}",
+        "status": "API returned status {{status}}"
+      },
+      "requestFailed": {
+        "title": "Request Failed"
+      },
+      "urlRequired": {
+        "title": "URL Required",
+        "description": "Please enter a base URL to send the request."
+      },
+      "invalidJson": {
+        "title": "Invalid JSON",
+        "description": "Request body is not valid JSON. Sending as plain text."
+      },
+      "invalidGraphqlVariables": {
+        "title": "Invalid GraphQL Variables",
+        "description": "Variables are not valid JSON. Sending query without variables."
+      },
+      "testUpdated": {
+        "title": "Test Updated Successfully"
+      },
+      "testSaved": {
+        "title": "Test Saved Successfully"
+      },
+      "saveFailed": {
+        "title": "Save Test Failed"
+      },
+      "testDeleted": {
+        "title": "Test Deleted Successfully"
+      },
+      "deleteFailed": {
+        "title": "Delete Test Failed"
+      },
+      "loadedFromHistory": {
+        "title": "Loaded from history"
+      },
+      "formDataFiles": {
+        "title": "Form Data Files",
+        "description": "File entries need to be re-selected."
+      },
+      "loadedSavedTest": {
+        "title": "Loaded saved test"
+      },
+      "testExported": {
+        "title": "Test Exported",
+        "description": "{{filename}} has been downloaded."
       }
     },
     "websocket": {
@@ -1448,6 +1517,43 @@
       "sessionProblem": {
         "title": "Problem with Recording Session",
         "description": "An error occurred while retrieving actions."
+      },
+      "websiteLoaded": {
+        "title": "Website loaded",
+        "description": "Website loaded successfully in preview"
+      },
+      "websiteLoadFailed": {
+        "title": "Failed to load website"
+      },
+      "elementsDetected": {
+        "title": "Elements detected",
+        "truncated": "Showing {{returned}} of {{total}} elements found on the page",
+        "found": "Found {{count}} elements on the page"
+      },
+      "detectFailed": {
+        "title": "Failed to detect elements"
+      },
+      "testSaved": {
+        "title": "Test saved",
+        "description": "Your test has been saved successfully."
+      },
+      "saveFailed": {
+        "title": "Failed to save test"
+      },
+      "noSteps": {
+        "title": "No test steps",
+        "description": "Add some test steps before saving"
+      },
+      "projectNotSelected": {
+        "title": "Project Not Selected",
+        "description": "Please select a project to save the test."
+      },
+      "loginSaved": {
+        "title": "Login saved",
+        "description": "Runs against this environment will start already signed in."
+      },
+      "loginSaveFailed": {
+        "title": "Could not save the login"
       }
     },
     "saveTest": {
@@ -1542,6 +1648,25 @@
       "description": "Are you sure you want to delete project \"{{name}}\"? This action cannot be undone.",
       "cancelButton": "Cancel",
       "deleteButton": "Delete"
+    },
+    "toasts": {
+      "projectCreated": {
+        "title": "Project Created",
+        "description": "The new project has been created successfully."
+      },
+      "projectCreateFailed": {
+        "title": "Error Creating Project"
+      },
+      "projectDeleted": {
+        "title": "Project Deleted",
+        "description": "The project has been deleted successfully."
+      },
+      "projectDeleteFailed": {
+        "title": "Error Deleting Project"
+      },
+      "projectNameEmpty": {
+        "title": "Project name cannot be empty"
+      }
     }
   },
   "saveTestModal": {
@@ -1758,7 +1883,8 @@
       },
       "xpath": {
         "label": "XPath"
-      }
+      },
+      "remove": "Remove assertion"
     },
     "authTypeDropdown": {
       "selectAuthType": {
@@ -1983,6 +2109,12 @@
       "nameField": "capture name",
       "add": "Add step",
       "invalid": "Invalid conversation. Check step order, capture names, timeouts and the 100-step limit. Use JSON editing to repair unsupported steps."
+    },
+    "keyValueEditor": {
+      "remove": "Remove row"
+    },
+    "requestBodyEditor": {
+      "removeField": "Remove field"
     }
   },
   "authForms": {
@@ -2582,6 +2714,86 @@
     },
     "delete": {
       "button": "Delete"
+    },
+    "form": {
+      "validation": {
+        "nameRequired": "Schedule name is required",
+        "testPlanRequired": "Test plan is required",
+        "frequencyRequired": "Frequency is required",
+        "nextRunRequired": "Next run date and time is required",
+        "timezoneRequired": "Timezone is required",
+        "browsersRequired": "At least one browser must be selected",
+        "invalidJson": "Must be valid JSON or empty",
+        "cronRequired": "CRON expression is required for custom frequency."
+      },
+      "name": "Schedule Name",
+      "testPlan": "Test Plan",
+      "testPlanPlaceholder": "Select a test plan...",
+      "loadingTestPlans": "Loading test plans...",
+      "frequencyLabel": "Frequency",
+      "frequencyPlaceholder": "Select frequency...",
+      "frequency": {
+        "once": "Once",
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "every_5_minutes": "Every 5 Minutes",
+        "every_15_minutes": "Every 15 Minutes",
+        "every_30_minutes": "Every 30 Minutes",
+        "every_1_hours": "Every 1 Hour",
+        "every_6_hours": "Every 6 Hours",
+        "every_12_hours": "Every 12 Hours",
+        "custom_cron": "Custom CRON"
+      },
+      "cron": "CRON Expression",
+      "cronHelp": "How CRON expressions work",
+      "cronHint": "Uses standard CRON format (minute, hour, day of month, month, day of week). Example: \"0 2 * * *\" for 2 AM daily. Evaluated in the timezone selected below.",
+      "cronPlaceholder": "e.g., 0 0 * * *",
+      "timezone": "Timezone",
+      "timezonePlaceholder": "e.g. Europe/Rome",
+      "timezoneHint": "The schedule runs at this local time all year — daylight saving included.",
+      "nextRunAt": "Next Run At",
+      "pickDateTime": "Pick a date and time",
+      "time": "Time",
+      "environment": "Environment",
+      "browsers": "Browsers",
+      "retryOnFailure": "Retry on Failure",
+      "retryPlaceholder": "Select retry behavior...",
+      "retry": {
+        "none": "None",
+        "once": "Once",
+        "twice": "Twice"
+      },
+      "notifications": "Notification Overrides (JSON)",
+      "notificationsHelp": "About notification overrides",
+      "notificationsHint": "Optional. Override plan-level notifications. Example:",
+      "parameters": "Execution Parameters (JSON)",
+      "parametersHelp": "About execution parameters",
+      "parametersHint": "Optional. JSON object of parameters to inject into the execution. Example:",
+      "active": "Schedule Active",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes"
+    },
+    "list": {
+      "loading": "Loading schedules...",
+      "loadFailed": "Error loading schedules: {{message}}",
+      "empty": "No schedules found. Create one to get started!",
+      "columns": {
+        "name": "Name",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "active": "Active",
+      "inactive": "Inactive",
+      "deleteSchedule": "Delete Schedule"
+    },
+    "toast": {
+      "success": "Success",
+      "unexpected": "An unexpected error occurred.",
+      "created": "Schedule created successfully.",
+      "updated": "Schedule updated successfully.",
+      "deleted": "Schedule deleted successfully.",
+      "deleteFailed": "Error deleting schedule"
     }
   },
   "environmentSelect": {
@@ -2607,7 +2819,14 @@
     "logout": "Log out",
     "previousPage": "Previous page",
     "nextPage": "Next page",
-    "clearSearch": "Clear search"
+    "clearSearch": "Clear search",
+    "requestFailed": "Something went wrong",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "revoke": "Revoke",
+    "disable": "Disable",
+    "reset": "Reset",
+    "skipToContent": "Skip to content"
   },
   "environments": {
     "newEnvironmentPlaceholder": "New environment (e.g. Staging)",
@@ -2626,7 +2845,17 @@
       "deleted": "Environment deleted",
       "secretSaved": "Secret saved, encrypted",
       "secretDeleted": "Secret deleted"
-    }
+    },
+    "deleteEnvDialog": {
+      "title": "Delete environment “{{name}}”?",
+      "description": "Its secrets and saved browser session go with it, and tests that resolved against it fall back to the defaults. This cannot be undone."
+    },
+    "deleteSecretDialog": {
+      "title": "Delete secret {{key}}?",
+      "description": "Tests that reference {{key}} in this environment will no longer resolve it. This cannot be undone."
+    },
+    "deleteEnv": "Delete environment {{name}}",
+    "deleteSecret": "Delete secret {{key}}"
   },
   "testReportPage": {
     "cancel": {
@@ -3433,7 +3662,8 @@
     "edit": "Edit tags",
     "add": "Add tags",
     "newPlaceholder": "New tag",
-    "none": "No tags yet. The first word you type becomes one."
+    "none": "No tags yet. The first word you type becomes one.",
+    "create": "Create tag"
   },
   "issues": {
     "openInTracker": "Open in the tracker",
@@ -3442,7 +3672,8 @@
   "testNode": {
     "stepGroup": {
       "badge": "group"
-    }
+    },
+    "deleteStep": "Delete step"
   },
   "sso": {
     "title": "Single sign-on",
@@ -3738,7 +3969,11 @@
     "poolRequired": "Name the pool of local agents that reach Appium.",
     "appiumEndpointHint": "Appium's address as the agent's machine reaches it. Empty: {{url}}, where Appium listens when started with no options.",
     "agentPool": "Pool of local agents",
-    "agentPoolHint": "An agent of this pool, on the machine next to Appium, carries the requests: the server needs no way into that network."
+    "agentPoolHint": "An agent of this pool, on the machine next to Appium, carries the requests: the server needs no way into that network.",
+    "deleteDialog": {
+      "title": "Delete grid “{{name}}”?",
+      "description": "Plans that ran on it go back to the server's runners. This cannot be undone."
+    }
   },
   "requirements": {
     "title": "Requirements",
@@ -4158,7 +4393,36 @@
     "deleteNamed": "Delete {{name}}",
     "confirmDelete": "Delete {{name}}?",
     "deleteFailed": "Not deleted",
-    "size": "{{rows}} row(s) · {{columns}} column(s)"
+    "size": "{{rows}} row(s) · {{columns}} column(s)",
+    "dataset": {
+      "sharedTitle": "Data rows from a shared data set",
+      "runs_one": "{{count}} run",
+      "runs_other": "{{count}} runs",
+      "sharedSet": "Shared data set",
+      "chooseSet": "Choose a data set",
+      "useCopy": "Use a copy as this test's own rows",
+      "sharedExplainRuns": "The test runs once per row of",
+      "sharedExplainColumns": ", with its columns as",
+      "sharedExplainChange": ". A change to the set reaches the next run; manage sets in Test data.",
+      "sharedMissing": "This test points at a shared data set that no longer exists (id {{id}}). Choose another, or give it its own rows.",
+      "title": "Data rows",
+      "intro": "The test runs once per row. Each column name is available in a step as",
+      "introNoRows": ". With no rows it runs once, as usual.",
+      "useShared": "Use a shared data set",
+      "paste": "Paste from a spreadsheet",
+      "addColumn": "Add column",
+      "pasteHint": "Paste the block including its header row — copied straight out of Excel works.",
+      "replaceRows": "Replace the rows",
+      "rowsRecognised_one": "{{count}} row recognised",
+      "rowsRecognised_other": "{{count}} rows recognised",
+      "pasteNeedsHeader": "Needs a header row and at least one row of data.",
+      "empty": "No data rows. Add a column, or paste a block from a spreadsheet.",
+      "columnName": "Column name {{column}}",
+      "removeColumn": "Remove column {{column}}",
+      "cell": "Row {{row}} {{column}}",
+      "removeRow": "Remove row {{row}}",
+      "addRow": "Add row"
+    }
   },
   "organizationData": {
     "exportTitle": "Export everything",
@@ -4267,7 +4531,11 @@
     "reopen": "Reopen conversation",
     "resolve": "Resolve conversation",
     "replyMessage": "Reply message",
-    "addReply": "Add reply"
+    "addReply": "Add reply",
+    "deleteDialog": {
+      "title": "Delete this comment?",
+      "description": "It is replaced by a note saying it was deleted. This cannot be undone."
+    }
   },
   "GET": "/api/mail-deliveries?limit=100",
   "emailDelivery": {
@@ -4593,5 +4861,60 @@
     "runPlan": "Run plan",
     "runPlanNamed": "Run {{name}}",
     "actions": "Actions"
+  },
+  "preconditions": {
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "remove": "Remove precondition"
+  },
+  "executionLogConsole": {
+    "title": "Console",
+    "searchPlaceholder": "Search logs...",
+    "levels": "Levels",
+    "autoScroll": "Auto-scroll",
+    "paused": "Paused",
+    "download": "Download logs",
+    "loading": "Loading logs...",
+    "empty": "No logs to display",
+    "showing": "Showing {{shown}} of {{total}} logs",
+    "live": "Live",
+    "stopped": "Stopped",
+    "socket": {
+      "connecting": "Connecting…",
+      "reconnecting": "Reconnecting…",
+      "disconnected": "Disconnected"
+    }
+  },
+  "webhooks": {
+    "title": "CI/CD webhooks - {{plan}}",
+    "description": "Manage the webhooks that start this test plan from GitHub Actions or another CI/CD system.",
+    "namePlaceholder": "Webhook name (e.g. GitHub Actions prod)",
+    "nameLabel": "Webhook name",
+    "create": "Create",
+    "shownOnce": "Token for the webhook “{{name}}”: copy it now, it will not be shown again.",
+    "headerHint": "Keep it among the pipeline’s secrets and send it in the {{header}} header: in the URL it would end up in proxy logs.",
+    "columns": {
+      "name": "Name",
+      "token": "Token",
+      "lastUsed": "Last used"
+    },
+    "empty": "No webhooks configured.",
+    "tokenHint": "The full token is shown only when created",
+    "neverUsed": "Never used",
+    "delete": "Delete webhook {{name}}",
+    "deleteDialog": {
+      "title": "Delete webhook “{{name}}”?",
+      "description": "Pipelines using its token can no longer start this plan. This cannot be undone."
+    },
+    "toast": {
+      "createFailed": "The webhook could not be created",
+      "deleted": "Webhook deleted",
+      "tokenCopied": "Token copied to the clipboard",
+      "commandCopied": "Command copied to the clipboard"
+    }
+  },
+  "errorBoundary": {
+    "title": "Something went wrong on this page.",
+    "description": "The error has been recorded. Reload the page to continue."
   }
 }

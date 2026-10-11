@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import { useEnvironments } from '@/hooks/use-environments';
 import { peakVus, totalDurationSec, type LoadRunStatus } from '@shared/load-test';
 import LoadTestDialog, { type LoadTestRow } from '@/components/load-tests/LoadTestDialog';
 import LoadRunView, {
@@ -41,6 +42,7 @@ import LoadRunView, {
   useLoadRunStatusLabel,
   type LoadRun,
 } from '@/components/load-tests/LoadRunView';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * Load tests (shared/load-test.ts): API tests run by virtual users along a profile of stages,
@@ -87,15 +89,7 @@ function RunsDialog({
     },
     enabled: test !== null,
   });
-  const { data: environments = [] } = useQuery<Array<{ id: number; name: string }>>({
-    queryKey: ['environments'],
-    queryFn: async () => {
-      const response = await fetch('/api/environments', { credentials: 'include' });
-      const rows = response.ok ? await response.json() : [];
-      return Array.isArray(rows) ? rows : [];
-    },
-    enabled: test !== null,
-  });
+  const { data: environments = [] } = useEnvironments({ enabled: test !== null });
 
   const start = async () => {
     if (!test) return;
@@ -178,7 +172,7 @@ function RunsDialog({
                 <Badge variant={statusVariant(run.status)} className="mr-2">
                   {label(run.status)}
                 </Badge>
-                {new Date(run.startedAt).toLocaleString()}
+                {formatDateTime(run.startedAt)}
               </Button>
             ))}
           </div>
@@ -314,7 +308,7 @@ const LoadTestsPage: React.FC = () => {
                           <Badge variant={statusVariant(test.lastRun.status)} className="mr-2">
                             {label(test.lastRun.status)}
                           </Badge>
-                          {new Date(test.lastRun.startedAt).toLocaleString()}
+                          {formatDateTime(test.lastRun.startedAt)}
                         </>
                       ) : (
                         '—'

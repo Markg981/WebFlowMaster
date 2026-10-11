@@ -230,7 +230,11 @@
       "loading": "Schlüssel werden geladen…",
       "empty": "Noch keine API-Schlüssel. Eine Pipeline braucht einen, um einen Testplan zu starten.",
       "revoked": "widerrufen",
-      "revokeAction": "Schlüssel widerrufen"
+      "revokeAction": "Schlüssel widerrufen",
+      "revokeDialog": {
+        "title": "Schlüssel „{{name}}“ widerrufen?",
+        "description": "Jede Pipeline und jedes Skript, das ihn verwendet, funktioniert sofort nicht mehr. Das lässt sich nicht rückgängig machen."
+      }
     },
     "serviceAccounts": {
       "title": "Dienstkonten",
@@ -246,7 +250,11 @@
       "empty": "Noch keine Dienstkonten. Erstellen Sie eines und stellen Sie ihm oben einen Schlüssel aus.",
       "disabled": "deaktiviert",
       "disableAction": "{{name}} deaktivieren",
-      "nameRequired": "Geben Sie dem Konto einen Namen, etwa die Pipeline, für die es gedacht ist."
+      "nameRequired": "Geben Sie dem Konto einen Namen, etwa die Pipeline, für die es gedacht ist.",
+      "disableDialog": {
+        "title": "„{{name}}“ deaktivieren?",
+        "description": "Alle seine API-Schlüssel werden widerrufen und jede Pipeline, die sie verwendet, funktioniert nicht mehr. Das lässt sich nicht rückgängig machen."
+      }
     },
     "agents": {
       "title": "Lokale Agenten",
@@ -388,7 +396,15 @@
       "emailed": "Auch per E-Mail an {{username}} gesendet.",
       "emailFailed": "Nicht per E-Mail gesendet: {{error}} Senden Sie den Link selbst.",
       "deactivated": "deaktiviert",
-      "deactivatedHint": "Von Ihrem Identitätsanbieter deaktiviert: Anmeldung erst wieder möglich, wenn er die Person reaktiviert."
+      "deactivatedHint": "Von Ihrem Identitätsanbieter deaktiviert: Anmeldung erst wieder möglich, wenn er die Person reaktiviert.",
+      "resetMfaDialog": {
+        "title": "Zwei-Faktor-Authentifizierung von {{username}} zurücksetzen?",
+        "description": "Die Person meldet sich nur mit ihrem Passwort an, bis sie sie erneut einrichtet."
+      },
+      "revokeDialog": {
+        "title": "Einladung für {{username}} widerrufen?",
+        "description": "Der Einladungslink funktioniert nicht mehr. Sie können die Person später erneut einladen."
+      }
     },
     "customActions": {
       "title": "Eigene Aktionen",
@@ -705,6 +721,59 @@
       "loadFailed": {
         "title": "Laden fehlgeschlagen",
         "description": "Der Test mit der ID {{id}} konnte nicht geladen werden."
+      },
+      "historySaveFailed": {
+        "title": "Fehler beim Speichern des Verlaufs"
+      },
+      "requestSucceeded": {
+        "titleWithStatus": "Anfrage erfolgreich: {{status}}",
+        "title": "Anfrage erfolgreich",
+        "assertions": "Assertions {{summary}}",
+        "status": "Die API antwortete mit Status {{status}}"
+      },
+      "requestFailed": {
+        "title": "Anfrage fehlgeschlagen"
+      },
+      "urlRequired": {
+        "title": "URL erforderlich",
+        "description": "Geben Sie eine Basis-URL ein, um die Anfrage zu senden."
+      },
+      "invalidJson": {
+        "title": "Ungültiges JSON",
+        "description": "Der Anfragetext ist kein gültiges JSON. Er wird als Klartext gesendet."
+      },
+      "invalidGraphqlVariables": {
+        "title": "Ungültige GraphQL-Variablen",
+        "description": "Die Variablen sind kein gültiges JSON. Die Abfrage wird ohne Variablen gesendet."
+      },
+      "testUpdated": {
+        "title": "Test aktualisiert"
+      },
+      "testSaved": {
+        "title": "Test gespeichert"
+      },
+      "saveFailed": {
+        "title": "Test konnte nicht gespeichert werden"
+      },
+      "testDeleted": {
+        "title": "Test gelöscht"
+      },
+      "deleteFailed": {
+        "title": "Test konnte nicht gelöscht werden"
+      },
+      "loadedFromHistory": {
+        "title": "Aus dem Verlauf geladen"
+      },
+      "formDataFiles": {
+        "title": "Formulardateien",
+        "description": "Dateieinträge müssen erneut ausgewählt werden."
+      },
+      "loadedSavedTest": {
+        "title": "Gespeicherter Test geladen"
+      },
+      "testExported": {
+        "title": "Test exportiert",
+        "description": "{{filename}} wurde heruntergeladen."
       }
     },
     "websocket": {
@@ -1451,6 +1520,43 @@
       "sessionProblem": {
         "title": "Problem mit der Aufzeichnungssitzung",
         "description": "Beim Abrufen der Aktionen ist ein Fehler aufgetreten."
+      },
+      "websiteLoaded": {
+        "title": "Website geladen",
+        "description": "Website in der Vorschau geladen"
+      },
+      "websiteLoadFailed": {
+        "title": "Website konnte nicht geladen werden"
+      },
+      "elementsDetected": {
+        "title": "Elemente erkannt",
+        "truncated": "{{returned}} von {{total}} auf der Seite gefundenen Elementen angezeigt",
+        "found": "{{count}} Elemente auf der Seite gefunden"
+      },
+      "detectFailed": {
+        "title": "Elemente konnten nicht erkannt werden"
+      },
+      "testSaved": {
+        "title": "Test gespeichert",
+        "description": "Ihr Test wurde gespeichert."
+      },
+      "saveFailed": {
+        "title": "Test konnte nicht gespeichert werden"
+      },
+      "noSteps": {
+        "title": "Keine Testschritte",
+        "description": "Fügen Sie vor dem Speichern Testschritte hinzu"
+      },
+      "projectNotSelected": {
+        "title": "Kein Projekt ausgewählt",
+        "description": "Wählen Sie ein Projekt, um den Test zu speichern."
+      },
+      "loginSaved": {
+        "title": "Anmeldung gespeichert",
+        "description": "Durchläufe in dieser Umgebung starten bereits angemeldet."
+      },
+      "loginSaveFailed": {
+        "title": "Anmeldung konnte nicht gespeichert werden"
       }
     },
     "stepGroups": {
@@ -1542,6 +1648,25 @@
       "description": "Möchten Sie das Projekt „{{name}}“ wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
       "cancelButton": "Abbrechen",
       "deleteButton": "Löschen"
+    },
+    "toasts": {
+      "projectCreated": {
+        "title": "Projekt erstellt",
+        "description": "Das neue Projekt wurde erstellt."
+      },
+      "projectCreateFailed": {
+        "title": "Fehler beim Erstellen des Projekts"
+      },
+      "projectDeleted": {
+        "title": "Projekt gelöscht",
+        "description": "Das Projekt wurde gelöscht."
+      },
+      "projectDeleteFailed": {
+        "title": "Fehler beim Löschen des Projekts"
+      },
+      "projectNameEmpty": {
+        "title": "Der Projektname darf nicht leer sein"
+      }
     }
   },
   "saveTestModal": {
@@ -1758,7 +1883,8 @@
       },
       "xpath": {
         "label": "XPath"
-      }
+      },
+      "remove": "Assertion entfernen"
     },
     "authTypeDropdown": {
       "selectAuthType": {
@@ -1983,6 +2109,12 @@
       "nameField": "Erfassungsname",
       "add": "Schritt hinzufügen",
       "invalid": "Ungültige Konversation. Prüfen Sie Reihenfolge, Erfassungsnamen, Zeitlimits und die Grenze von 100 Schritten. Bearbeiten Sie JSON, um nicht unterstützte Schritte zu korrigieren."
+    },
+    "keyValueEditor": {
+      "remove": "Zeile entfernen"
+    },
+    "requestBodyEditor": {
+      "removeField": "Feld entfernen"
     }
   },
   "authForms": {
@@ -2582,6 +2714,86 @@
     },
     "delete": {
       "button": "Löschen"
+    },
+    "form": {
+      "validation": {
+        "nameRequired": "Der Name des Zeitplans ist erforderlich",
+        "testPlanRequired": "Der Testplan ist erforderlich",
+        "frequencyRequired": "Die Häufigkeit ist erforderlich",
+        "nextRunRequired": "Datum und Uhrzeit der nächsten Ausführung sind erforderlich",
+        "timezoneRequired": "Die Zeitzone ist erforderlich",
+        "browsersRequired": "Mindestens ein Browser muss ausgewählt sein",
+        "invalidJson": "Muss gültiges JSON oder leer sein",
+        "cronRequired": "Für die benutzerdefinierte Häufigkeit ist ein CRON-Ausdruck erforderlich."
+      },
+      "name": "Name des Zeitplans",
+      "testPlan": "Testplan",
+      "testPlanPlaceholder": "Testplan auswählen...",
+      "loadingTestPlans": "Testpläne werden geladen...",
+      "frequencyLabel": "Häufigkeit",
+      "frequencyPlaceholder": "Häufigkeit auswählen...",
+      "frequency": {
+        "once": "Einmal",
+        "daily": "Täglich",
+        "weekly": "Wöchentlich",
+        "monthly": "Monatlich",
+        "every_5_minutes": "Alle 5 Minuten",
+        "every_15_minutes": "Alle 15 Minuten",
+        "every_30_minutes": "Alle 30 Minuten",
+        "every_1_hours": "Jede Stunde",
+        "every_6_hours": "Alle 6 Stunden",
+        "every_12_hours": "Alle 12 Stunden",
+        "custom_cron": "Benutzerdefinierter CRON"
+      },
+      "cron": "CRON-Ausdruck",
+      "cronHelp": "So funktionieren CRON-Ausdrücke",
+      "cronHint": "Verwendet das Standard-CRON-Format (Minute, Stunde, Tag des Monats, Monat, Wochentag). Beispiel: „0 2 * * *“ für täglich 2 Uhr. Wird in der unten gewählten Zeitzone ausgewertet.",
+      "cronPlaceholder": "z. B. 0 0 * * *",
+      "timezone": "Zeitzone",
+      "timezonePlaceholder": "z. B. Europe/Berlin",
+      "timezoneHint": "Der Zeitplan läuft das ganze Jahr über zu dieser Ortszeit – Sommerzeit eingeschlossen.",
+      "nextRunAt": "Nächste Ausführung",
+      "pickDateTime": "Datum und Uhrzeit wählen",
+      "time": "Uhrzeit",
+      "environment": "Umgebung",
+      "browsers": "Browser",
+      "retryOnFailure": "Bei Fehler wiederholen",
+      "retryPlaceholder": "Wiederholungsverhalten auswählen...",
+      "retry": {
+        "none": "Keine",
+        "once": "Einmal",
+        "twice": "Zweimal"
+      },
+      "notifications": "Benachrichtigungs-Überschreibungen (JSON)",
+      "notificationsHelp": "Über Benachrichtigungs-Überschreibungen",
+      "notificationsHint": "Optional. Überschreibt die Benachrichtigungen des Plans. Beispiel:",
+      "parameters": "Ausführungsparameter (JSON)",
+      "parametersHelp": "Über Ausführungsparameter",
+      "parametersHint": "Optional. JSON-Objekt mit Parametern, die in die Ausführung eingefügt werden. Beispiel:",
+      "active": "Zeitplan aktiv",
+      "saving": "Wird gespeichert...",
+      "saveChanges": "Änderungen speichern"
+    },
+    "list": {
+      "loading": "Zeitpläne werden geladen...",
+      "loadFailed": "Fehler beim Laden der Zeitpläne: {{message}}",
+      "empty": "Keine Zeitpläne vorhanden. Legen Sie einen an, um zu beginnen!",
+      "columns": {
+        "name": "Name",
+        "status": "Status",
+        "actions": "Aktionen"
+      },
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "deleteSchedule": "Zeitplan löschen"
+    },
+    "toast": {
+      "success": "Erfolg",
+      "unexpected": "Ein unerwarteter Fehler ist aufgetreten.",
+      "created": "Zeitplan erstellt.",
+      "updated": "Zeitplan aktualisiert.",
+      "deleted": "Zeitplan gelöscht.",
+      "deleteFailed": "Fehler beim Löschen des Zeitplans"
     }
   },
   "environmentSelect": {
@@ -2607,7 +2819,14 @@
     "logout": "Abmelden",
     "previousPage": "Vorherige Seite",
     "nextPage": "Nächste Seite",
-    "clearSearch": "Suche zurücksetzen"
+    "clearSearch": "Suche zurücksetzen",
+    "requestFailed": "Etwas ist schiefgelaufen",
+    "confirm": "Bestätigen",
+    "delete": "Löschen",
+    "revoke": "Widerrufen",
+    "disable": "Deaktivieren",
+    "reset": "Zurücksetzen",
+    "skipToContent": "Zum Inhalt springen"
   },
   "environments": {
     "newEnvironmentPlaceholder": "Neue Umgebung (z. B. Staging)",
@@ -2626,7 +2845,17 @@
       "deleted": "Umgebung gelöscht",
       "secretSaved": "Geheimnis verschlüsselt gespeichert",
       "secretDeleted": "Geheimnis gelöscht"
-    }
+    },
+    "deleteEnvDialog": {
+      "title": "Umgebung „{{name}}“ löschen?",
+      "description": "Seine Geheimnisse und die gespeicherte Browsersitzung werden mit gelöscht; Tests, die ihn nutzten, fallen auf die Standardwerte zurück. Das lässt sich nicht rückgängig machen."
+    },
+    "deleteSecretDialog": {
+      "title": "Geheimnis {{key}} löschen?",
+      "description": "Tests, die {{key}} in dieser Umgebung verwenden, können es nicht mehr auflösen. Das lässt sich nicht rückgängig machen."
+    },
+    "deleteEnv": "Umgebung {{name}} löschen",
+    "deleteSecret": "Geheimnis {{key}} löschen"
   },
   "testReportPage": {
     "cancel": {
@@ -3433,7 +3662,8 @@
     "edit": "Tags bearbeiten",
     "add": "Tags hinzufügen",
     "newPlaceholder": "Neuer Tag",
-    "none": "Noch keine Tags. Das erste Wort, das Sie eingeben, wird zu einem."
+    "none": "Noch keine Tags. Das erste Wort, das Sie eingeben, wird zu einem.",
+    "create": "Tag erstellen"
   },
   "issues": {
     "openInTracker": "Im Tracker öffnen",
@@ -3442,7 +3672,8 @@
   "testNode": {
     "stepGroup": {
       "badge": "Gruppe"
-    }
+    },
+    "deleteStep": "Schritt löschen"
   },
   "sso": {
     "title": "Single Sign-on",
@@ -3738,7 +3969,11 @@
     "poolRequired": "Den Pool lokaler Agenten angeben, der Appium erreicht.",
     "appiumEndpointHint": "Die Adresse von Appium, wie der Rechner des Agenten sie erreicht. Leer: {{url}}, wo Appium ohne Optionen lauscht.",
     "agentPool": "Pool lokaler Agenten",
-    "agentPoolHint": "Ein Agent dieses Pools auf dem Rechner neben Appium überträgt die Anfragen: Der Server braucht keinen Zugang zu diesem Netz."
+    "agentPoolHint": "Ein Agent dieses Pools auf dem Rechner neben Appium überträgt die Anfragen: Der Server braucht keinen Zugang zu diesem Netz.",
+    "deleteDialog": {
+      "title": "Grid „{{name}}“ löschen?",
+      "description": "Pläne, die darauf liefen, laufen wieder auf den Runnern des Servers. Das lässt sich nicht rückgängig machen."
+    }
   },
   "requirements": {
     "title": "Anforderungen",
@@ -4158,7 +4393,36 @@
     "deleteNamed": "{{name}} löschen",
     "confirmDelete": "{{name}} löschen?",
     "deleteFailed": "Nicht gelöscht",
-    "size": "{{rows}} Zeile(n) · {{columns}} Spalte(n)"
+    "size": "{{rows}} Zeile(n) · {{columns}} Spalte(n)",
+    "dataset": {
+      "sharedTitle": "Datenzeilen aus einem gemeinsamen Datensatz",
+      "runs_one": "{{count}} Durchlauf",
+      "runs_other": "{{count}} Durchläufe",
+      "sharedSet": "Gemeinsamer Datensatz",
+      "chooseSet": "Datensatz wählen",
+      "useCopy": "Eine Kopie als eigene Zeilen dieses Tests verwenden",
+      "sharedExplainRuns": "Der Test läuft einmal pro Zeile von",
+      "sharedExplainColumns": ", mit seinen Spalten als",
+      "sharedExplainChange": ". Eine Änderung am Datensatz gilt ab dem nächsten Durchlauf; Datensätze werden unter Testdaten verwaltet.",
+      "sharedMissing": "Dieser Test verweist auf einen gemeinsamen Datensatz, den es nicht mehr gibt (ID {{id}}). Wählen Sie einen anderen oder geben Sie ihm eigene Zeilen.",
+      "title": "Datenzeilen",
+      "intro": "Der Test läuft einmal pro Zeile. Jeder Spaltenname steht in einem Schritt zur Verfügung als",
+      "introNoRows": ". Ohne Zeilen läuft er wie gewohnt einmal.",
+      "useShared": "Gemeinsamen Datensatz verwenden",
+      "paste": "Aus einer Tabelle einfügen",
+      "addColumn": "Spalte hinzufügen",
+      "pasteHint": "Fügen Sie den Block mit seiner Kopfzeile ein – direkt aus Excel kopiert funktioniert.",
+      "replaceRows": "Zeilen ersetzen",
+      "rowsRecognised_one": "{{count}} Zeile erkannt",
+      "rowsRecognised_other": "{{count}} Zeilen erkannt",
+      "pasteNeedsHeader": "Es braucht eine Kopfzeile und mindestens eine Datenzeile.",
+      "empty": "Keine Datenzeilen. Fügen Sie eine Spalte hinzu oder fügen Sie einen Block aus einer Tabelle ein.",
+      "columnName": "Spaltenname {{column}}",
+      "removeColumn": "Spalte {{column}} entfernen",
+      "cell": "Zeile {{row}} {{column}}",
+      "removeRow": "Zeile {{row}} entfernen",
+      "addRow": "Zeile hinzufügen"
+    }
   },
   "organizationData": {
     "exportTitle": "Alles exportieren",
@@ -4267,7 +4531,11 @@
     "reopen": "Gespräch wieder öffnen",
     "resolve": "Gespräch als erledigt markieren",
     "replyMessage": "Antwortnachricht",
-    "addReply": "Antwort hinzufügen"
+    "addReply": "Antwort hinzufügen",
+    "deleteDialog": {
+      "title": "Diesen Kommentar löschen?",
+      "description": "Er wird durch einen Hinweis ersetzt, dass er gelöscht wurde. Das lässt sich nicht rückgängig machen."
+    }
   },
   "GET": "/api/mail-deliveries?limit=100",
   "emailDelivery": {
@@ -4593,5 +4861,60 @@
     "runPlan": "Plan ausführen",
     "runPlanNamed": "{{name}} ausführen",
     "actions": "Aktionen"
+  },
+  "preconditions": {
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
+    "remove": "Vorbedingung entfernen"
+  },
+  "executionLogConsole": {
+    "title": "Konsole",
+    "searchPlaceholder": "Logs durchsuchen...",
+    "levels": "Stufen",
+    "autoScroll": "Automatisch scrollen",
+    "paused": "Pausiert",
+    "download": "Logs herunterladen",
+    "loading": "Logs werden geladen...",
+    "empty": "Keine Logs vorhanden",
+    "showing": "{{shown}} von {{total}} Logs angezeigt",
+    "live": "Live",
+    "stopped": "Angehalten",
+    "socket": {
+      "connecting": "Verbinden…",
+      "reconnecting": "Erneut verbinden…",
+      "disconnected": "Getrennt"
+    }
+  },
+  "webhooks": {
+    "title": "CI/CD-Webhooks - {{plan}}",
+    "description": "Verwalten Sie die Webhooks, die diesen Testplan aus GitHub Actions oder einem anderen CI/CD-System starten.",
+    "namePlaceholder": "Webhook-Name (z. B. GitHub Actions prod)",
+    "nameLabel": "Webhook-Name",
+    "create": "Erstellen",
+    "shownOnce": "Token des Webhooks „{{name}}“: jetzt kopieren, es wird nicht mehr angezeigt.",
+    "headerHint": "Bewahren Sie es unter den Geheimnissen der Pipeline auf und senden Sie es im Header {{header}}: in der URL würde es in Proxy-Logs landen.",
+    "columns": {
+      "name": "Name",
+      "token": "Token",
+      "lastUsed": "Zuletzt verwendet"
+    },
+    "empty": "Keine Webhooks konfiguriert.",
+    "tokenHint": "Das vollständige Token wird nur beim Erstellen angezeigt",
+    "neverUsed": "Nie verwendet",
+    "delete": "Webhook {{name}} löschen",
+    "deleteDialog": {
+      "title": "Webhook „{{name}}“ löschen?",
+      "description": "Pipelines, die sein Token verwenden, können diesen Plan nicht mehr starten. Das lässt sich nicht rückgängig machen."
+    },
+    "toast": {
+      "createFailed": "Der Webhook konnte nicht erstellt werden",
+      "deleted": "Webhook gelöscht",
+      "tokenCopied": "Token in die Zwischenablage kopiert",
+      "commandCopied": "Befehl in die Zwischenablage kopiert"
+    }
+  },
+  "errorBoundary": {
+    "title": "Auf dieser Seite ist etwas schiefgelaufen.",
+    "description": "Der Fehler wurde aufgezeichnet. Laden Sie die Seite neu, um fortzufahren."
   }
 }

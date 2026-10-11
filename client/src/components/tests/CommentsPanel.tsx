@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { CommentKind } from '@shared/comments';
+import { formatDateTime } from '@/lib/dates';
 
 interface Comment {
   id: number;
@@ -45,6 +47,8 @@ export default function CommentsPanel({
   const [editedBody, setEditedBody] = useState('');
   const [editedMentions, setEditedMentions] = useState<number[]>([]);
   const [busy, setBusy] = useState(false);
+  /** The comment whose delete button was pressed, until the person confirms or backs out. */
+  const [deleting, setDeleting] = useState<number | null>(null);
   const [failure, setFailure] = useState('');
   useEffect(() => {
     setDraft('');
@@ -53,6 +57,7 @@ export default function CommentsPanel({
     setReplyBody('');
     setReplyMentions([]);
     setEditing(null);
+    setDeleting(null);
     setFailure('');
   }, [user?.id, user?.organizationId, kind, targetId]);
   const { data, isLoading, error } = useQuery<Comment[]>({
@@ -140,7 +145,7 @@ export default function CommentsPanel({
       <div className="space-y-2">
         <p className="text-sm">
           <strong>{comment.authorName || t('comments.formerMember', 'Former member')}</strong>{' '}
-          <time dateTime={comment.createdAt}>{new Date(comment.createdAt).toLocaleString()}</time>
+          <time dateTime={comment.createdAt}>{formatDateTime(comment.createdAt)}</time>
         </p>
         {comment.deletedAt ? (
           <p className="text-sm italic text-muted-foreground">
@@ -212,7 +217,7 @@ export default function CommentsPanel({
               variant="outline"
               size="sm"
               disabled={busy}
-              onClick={() => void mutate('DELETE', `/api/comments/${comment.id}`)}
+              onClick={() => setDeleting(comment.id)}
             >
               {t('comments.delete', 'Delete comment')}
             </Button>
@@ -377,6 +382,24 @@ export default function CommentsPanel({
           </Button>
         </form>
       )}
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+        title={t('comments.deleteDialog.title', 'Delete this comment?')}
+        description={t(
+          'comments.deleteDialog.description',
+          'It is replaced by a note saying it was deleted. This cannot be undone.',
+        )}
+        confirmLabel={t('common.delete', 'Delete')}
+        destructive
+        onConfirm={() => {
+          if (deleting === null) return;
+          setDeleting(null);
+          void mutate('DELETE', `/api/comments/${deleting}`);
+        }}
+      />
     </section>
   );
 }

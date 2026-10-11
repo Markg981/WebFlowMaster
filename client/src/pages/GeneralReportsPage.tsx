@@ -28,8 +28,8 @@ import { Input } from '@/components/ui/input';
 import { Filter, Loader2, AlertCircle, Eye, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import type { TestPlanExecution, TestPlan } from '@shared/schema';
 import { EXECUTION_STATUSES } from '@shared/execution-status';
-import { format } from 'date-fns';
 import { StatusChip } from '@/components/ui/status-chip';
+import { formatDateTime } from '@/lib/dates';
 
 interface TestPlanExecutionWithPlanName extends TestPlanExecution {
   testPlanName?: string;
@@ -320,7 +320,7 @@ const GeneralReportsPage: React.FC = () => {
                           <StatusChip status={exec.status} />
                         </TableCell>
                         <TableCell className="tabular-nums">
-                          {exec.startedAt ? format(exec.startedAt, 'PPpp') : 'N/A'}
+                          {exec.startedAt ? formatDateTime(exec.startedAt) : 'N/A'}
                         </TableCell>
                         <TableCell className="font-mono tabular-nums">
                           {formatDuration(exec.executionDurationMs)}

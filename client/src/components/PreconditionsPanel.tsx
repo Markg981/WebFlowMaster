@@ -97,6 +97,7 @@ const ApiCallsPanel: React.FC<ApiCallsPanelProps> = ({
   idPrefix,
   testId,
 }) => {
+  const { t } = useTranslation();
   const { data: apiTests = [] } = useQuery<ApiTest[]>({ queryKey: ['/api/api-tests'] });
 
   // Group the saved API tests by module for a readable picker.
@@ -179,6 +180,7 @@ const ApiCallsPanel: React.FC<ApiCallsPanelProps> = ({
                   className="h-7 w-7"
                   onClick={() => move(i, -1)}
                   disabled={i === 0}
+                  aria-label={t('preconditions.moveUp', 'Move up')}
                 >
                   <ArrowUp className="h-3.5 w-3.5" />
                 </Button>
@@ -188,6 +190,7 @@ const ApiCallsPanel: React.FC<ApiCallsPanelProps> = ({
                   className="h-7 w-7"
                   onClick={() => move(i, 1)}
                   disabled={i === preconditions.length - 1}
+                  aria-label={t('preconditions.moveDown', 'Move down')}
                 >
                   <ArrowDown className="h-3.5 w-3.5" />
                 </Button>
@@ -196,6 +199,7 @@ const ApiCallsPanel: React.FC<ApiCallsPanelProps> = ({
                   size="icon"
                   className="h-7 w-7"
                   onClick={() => remove(p.id)}
+                  aria-label={t('preconditions.remove', 'Remove precondition')}
                 >
                   <Trash2 className="h-3.5 w-3.5 text-destructive" />
                 </Button>

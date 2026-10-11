@@ -230,7 +230,11 @@
       "loading": "Caricamento chiavi…",
       "empty": "Ancora nessuna chiave API. Una pipeline ne ha bisogno per avviare un piano di test.",
       "revoked": "revocata",
-      "revokeAction": "Revoca chiave"
+      "revokeAction": "Revoca chiave",
+      "revokeDialog": {
+        "title": "Revocare la chiave “{{name}}”?",
+        "description": "Ogni pipeline o script che la usa smette di funzionare immediatamente. L'operazione non può essere annullata."
+      }
     },
     "serviceAccounts": {
       "title": "Account di servizio",
@@ -246,7 +250,11 @@
       "empty": "Nessun account di servizio. Creane uno, poi assegnagli una chiave qui sopra.",
       "disabled": "disattivato",
       "disableAction": "Disattiva {{name}}",
-      "nameRequired": "Dai un nome all'account, ad esempio la pipeline a cui serve."
+      "nameRequired": "Dai un nome all'account, ad esempio la pipeline a cui serve.",
+      "disableDialog": {
+        "title": "Disattivare “{{name}}”?",
+        "description": "Tutte le sue chiavi API vengono revocate e ogni pipeline che le usa smette di funzionare. L'operazione non può essere annullata."
+      }
     },
     "agents": {
       "title": "Agenti locali",
@@ -388,7 +396,15 @@
       "emailed": "Inviato anche per e-mail a {{username}}.",
       "emailFailed": "Non inviato per e-mail: {{error}} Mandate voi il link.",
       "deactivated": "disattivato",
-      "deactivatedHint": "Disattivato dal vostro identity provider: non può accedere finché il provider non lo riattiva."
+      "deactivatedHint": "Disattivato dal vostro identity provider: non può accedere finché il provider non lo riattiva.",
+      "resetMfaDialog": {
+        "title": "Reimpostare l'autenticazione a due fattori di {{username}}?",
+        "description": "Accederà con la sola password finché non la configurerà di nuovo."
+      },
+      "revokeDialog": {
+        "title": "Revocare l'invito per {{username}}?",
+        "description": "Il link di invito smette di funzionare. Potrai invitarli di nuovo in seguito."
+      }
     },
     "customActions": {
       "title": "Azioni personalizzate",
@@ -705,6 +721,59 @@
       "loadFailed": {
         "title": "Caricamento non riuscito",
         "description": "Impossibile caricare il test con ID {{id}}."
+      },
+      "historySaveFailed": {
+        "title": "Errore nel salvataggio della cronologia"
+      },
+      "requestSucceeded": {
+        "titleWithStatus": "Richiesta riuscita: {{status}}",
+        "title": "Richiesta riuscita",
+        "assertions": "Asserzioni {{summary}}",
+        "status": "L'API ha risposto con stato {{status}}"
+      },
+      "requestFailed": {
+        "title": "Richiesta fallita"
+      },
+      "urlRequired": {
+        "title": "URL obbligatorio",
+        "description": "Inserisci un URL di base per inviare la richiesta."
+      },
+      "invalidJson": {
+        "title": "JSON non valido",
+        "description": "Il corpo della richiesta non è JSON valido. Inviato come testo semplice."
+      },
+      "invalidGraphqlVariables": {
+        "title": "Variabili GraphQL non valide",
+        "description": "Le variabili non sono JSON valido. La query viene inviata senza variabili."
+      },
+      "testUpdated": {
+        "title": "Test aggiornato"
+      },
+      "testSaved": {
+        "title": "Test salvato"
+      },
+      "saveFailed": {
+        "title": "Salvataggio del test fallito"
+      },
+      "testDeleted": {
+        "title": "Test eliminato"
+      },
+      "deleteFailed": {
+        "title": "Eliminazione del test fallita"
+      },
+      "loadedFromHistory": {
+        "title": "Caricato dalla cronologia"
+      },
+      "formDataFiles": {
+        "title": "File del form data",
+        "description": "I campi file vanno selezionati di nuovo."
+      },
+      "loadedSavedTest": {
+        "title": "Test salvato caricato"
+      },
+      "testExported": {
+        "title": "Test esportato",
+        "description": "{{filename}} è stato scaricato."
       }
     },
     "websocket": {
@@ -1448,6 +1517,43 @@
       "sessionProblem": {
         "title": "Problema con la Sessione di Registrazione",
         "description": "Si è verificato un errore recuperando le azioni."
+      },
+      "websiteLoaded": {
+        "title": "Sito caricato",
+        "description": "Sito caricato nell'anteprima"
+      },
+      "websiteLoadFailed": {
+        "title": "Impossibile caricare il sito"
+      },
+      "elementsDetected": {
+        "title": "Elementi rilevati",
+        "truncated": "Mostrati {{returned}} dei {{total}} elementi trovati nella pagina",
+        "found": "Trovati {{count}} elementi nella pagina"
+      },
+      "detectFailed": {
+        "title": "Impossibile rilevare gli elementi"
+      },
+      "testSaved": {
+        "title": "Test salvato",
+        "description": "Il test è stato salvato."
+      },
+      "saveFailed": {
+        "title": "Impossibile salvare il test"
+      },
+      "noSteps": {
+        "title": "Nessuno step",
+        "description": "Aggiungi degli step prima di salvare"
+      },
+      "projectNotSelected": {
+        "title": "Progetto non selezionato",
+        "description": "Seleziona un progetto in cui salvare il test."
+      },
+      "loginSaved": {
+        "title": "Accesso salvato",
+        "description": "Le esecuzioni su questo ambiente partiranno già autenticate."
+      },
+      "loginSaveFailed": {
+        "title": "Impossibile salvare l'accesso"
       }
     },
     "saveTest": {
@@ -1542,6 +1648,25 @@
       "description": "Vuoi davvero eliminare il progetto \"{{name}}\"? L'operazione non si può annullare.",
       "cancelButton": "Annulla",
       "deleteButton": "Elimina"
+    },
+    "toasts": {
+      "projectCreated": {
+        "title": "Progetto creato",
+        "description": "Il nuovo progetto è stato creato."
+      },
+      "projectCreateFailed": {
+        "title": "Errore nella creazione del progetto"
+      },
+      "projectDeleted": {
+        "title": "Progetto eliminato",
+        "description": "Il progetto è stato eliminato."
+      },
+      "projectDeleteFailed": {
+        "title": "Errore nell'eliminazione del progetto"
+      },
+      "projectNameEmpty": {
+        "title": "Il nome del progetto non può essere vuoto"
+      }
     }
   },
   "saveTestModal": {
@@ -1758,7 +1883,8 @@
       },
       "xpath": {
         "label": "XPath"
-      }
+      },
+      "remove": "Rimuovi asserzione"
     },
     "authTypeDropdown": {
       "selectAuthType": {
@@ -1983,6 +2109,12 @@
       "nameField": "nome cattura",
       "add": "Aggiungi passo",
       "invalid": "Conversazione non valida. Controllate ordine dei passi, nomi delle catture, timeout e limite di 100 passi. Modificate il JSON per correggere passi non supportati."
+    },
+    "keyValueEditor": {
+      "remove": "Rimuovi riga"
+    },
+    "requestBodyEditor": {
+      "removeField": "Rimuovi campo"
     }
   },
   "createTestPlanWizard": {
@@ -2582,6 +2714,86 @@
     },
     "delete": {
       "button": "Elimina"
+    },
+    "form": {
+      "validation": {
+        "nameRequired": "Il nome della pianificazione è obbligatorio",
+        "testPlanRequired": "Il piano di test è obbligatorio",
+        "frequencyRequired": "La frequenza è obbligatoria",
+        "nextRunRequired": "Data e ora della prossima esecuzione sono obbligatorie",
+        "timezoneRequired": "Il fuso orario è obbligatorio",
+        "browsersRequired": "Seleziona almeno un browser",
+        "invalidJson": "Deve essere JSON valido oppure vuoto",
+        "cronRequired": "L'espressione CRON è obbligatoria per la frequenza personalizzata."
+      },
+      "name": "Nome pianificazione",
+      "testPlan": "Piano di test",
+      "testPlanPlaceholder": "Seleziona un piano di test...",
+      "loadingTestPlans": "Caricamento dei piani di test...",
+      "frequencyLabel": "Frequenza",
+      "frequencyPlaceholder": "Seleziona la frequenza...",
+      "frequency": {
+        "once": "Una volta",
+        "daily": "Ogni giorno",
+        "weekly": "Ogni settimana",
+        "monthly": "Ogni mese",
+        "every_5_minutes": "Ogni 5 minuti",
+        "every_15_minutes": "Ogni 15 minuti",
+        "every_30_minutes": "Ogni 30 minuti",
+        "every_1_hours": "Ogni ora",
+        "every_6_hours": "Ogni 6 ore",
+        "every_12_hours": "Ogni 12 ore",
+        "custom_cron": "CRON personalizzato"
+      },
+      "cron": "Espressione CRON",
+      "cronHelp": "Come funzionano le espressioni CRON",
+      "cronHint": "Usa il formato CRON standard (minuto, ora, giorno del mese, mese, giorno della settimana). Esempio: \"0 2 * * *\" per le 2 di notte ogni giorno. Valutato nel fuso orario scelto qui sotto.",
+      "cronPlaceholder": "es. 0 0 * * *",
+      "timezone": "Fuso orario",
+      "timezonePlaceholder": "es. Europe/Rome",
+      "timezoneHint": "La pianificazione gira a quest'ora locale tutto l'anno, ora legale compresa.",
+      "nextRunAt": "Prossima esecuzione",
+      "pickDateTime": "Scegli data e ora",
+      "time": "Ora",
+      "environment": "Ambiente",
+      "browsers": "Browser",
+      "retryOnFailure": "Riprova in caso di errore",
+      "retryPlaceholder": "Seleziona il comportamento di ripetizione...",
+      "retry": {
+        "none": "Nessuna",
+        "once": "Una volta",
+        "twice": "Due volte"
+      },
+      "notifications": "Override delle notifiche (JSON)",
+      "notificationsHelp": "Informazioni sugli override delle notifiche",
+      "notificationsHint": "Facoltativo. Sostituisce le notifiche impostate sul piano. Esempio:",
+      "parameters": "Parametri di esecuzione (JSON)",
+      "parametersHelp": "Informazioni sui parametri di esecuzione",
+      "parametersHint": "Facoltativo. Oggetto JSON con i parametri da iniettare nell'esecuzione. Esempio:",
+      "active": "Pianificazione attiva",
+      "saving": "Salvataggio...",
+      "saveChanges": "Salva modifiche"
+    },
+    "list": {
+      "loading": "Caricamento delle pianificazioni...",
+      "loadFailed": "Errore nel caricamento delle pianificazioni: {{message}}",
+      "empty": "Nessuna pianificazione. Creane una per iniziare!",
+      "columns": {
+        "name": "Nome",
+        "status": "Stato",
+        "actions": "Azioni"
+      },
+      "active": "Attiva",
+      "inactive": "Inattiva",
+      "deleteSchedule": "Elimina pianificazione"
+    },
+    "toast": {
+      "success": "Operazione riuscita",
+      "unexpected": "Si è verificato un errore imprevisto.",
+      "created": "Pianificazione creata.",
+      "updated": "Pianificazione aggiornata.",
+      "deleted": "Pianificazione eliminata.",
+      "deleteFailed": "Errore nell'eliminazione della pianificazione"
     }
   },
   "environmentSelect": {
@@ -2607,7 +2819,14 @@
     "logout": "Esci",
     "previousPage": "Pagina precedente",
     "nextPage": "Pagina successiva",
-    "clearSearch": "Azzera la ricerca"
+    "clearSearch": "Azzera la ricerca",
+    "requestFailed": "Qualcosa è andato storto",
+    "confirm": "Conferma",
+    "delete": "Elimina",
+    "revoke": "Revoca",
+    "disable": "Disattiva",
+    "reset": "Reimposta",
+    "skipToContent": "Vai al contenuto"
   },
   "environments": {
     "newEnvironmentPlaceholder": "Nuovo ambiente (es. Staging)",
@@ -2626,7 +2845,17 @@
       "deleted": "Ambiente eliminato",
       "secretSaved": "Segreto salvato, cifrato",
       "secretDeleted": "Segreto eliminato"
-    }
+    },
+    "deleteEnvDialog": {
+      "title": "Eliminare l'ambiente “{{name}}”?",
+      "description": "I suoi segreti e la sessione browser salvata vengono eliminati con esso; i test che lo usavano torneranno ai valori predefiniti. L'operazione non può essere annullata."
+    },
+    "deleteSecretDialog": {
+      "title": "Eliminare il segreto {{key}}?",
+      "description": "I test che usano {{key}} in questo ambiente non potranno più risolverlo. L'operazione non può essere annullata."
+    },
+    "deleteEnv": "Elimina l'ambiente {{name}}",
+    "deleteSecret": "Elimina il segreto {{key}}"
   },
   "testReportPage": {
     "cancel": {
@@ -3433,7 +3662,8 @@
     "edit": "Modifica tag",
     "add": "Aggiungi tag",
     "newPlaceholder": "Nuovo tag",
-    "none": "Ancora nessun tag. La prima parola che scrivi diventa un tag."
+    "none": "Ancora nessun tag. La prima parola che scrivi diventa un tag.",
+    "create": "Crea tag"
   },
   "issues": {
     "openInTracker": "Apri nel tracker",
@@ -3442,7 +3672,8 @@
   "testNode": {
     "stepGroup": {
       "badge": "gruppo"
-    }
+    },
+    "deleteStep": "Elimina step"
   },
   "sso": {
     "title": "Single sign-on",
@@ -3738,7 +3969,11 @@
     "poolRequired": "Indicate il pool di agenti locali che raggiunge Appium.",
     "appiumEndpointHint": "L'indirizzo di Appium come lo raggiunge la macchina dell'agente. Vuoto: {{url}}, dove Appium ascolta se avviato senza opzioni.",
     "agentPool": "Pool di agenti locali",
-    "agentPoolHint": "Un agente di questo pool, sulla macchina accanto ad Appium, porta le richieste: il server non ha bisogno di accedere a quella rete."
+    "agentPoolHint": "Un agente di questo pool, sulla macchina accanto ad Appium, porta le richieste: il server non ha bisogno di accedere a quella rete.",
+    "deleteDialog": {
+      "title": "Eliminare la griglia “{{name}}”?",
+      "description": "I piani che la usavano torneranno a girare sui runner del server. L'operazione non può essere annullata."
+    }
   },
   "requirements": {
     "title": "Requisiti",
@@ -4158,7 +4393,36 @@
     "deleteNamed": "Elimina {{name}}",
     "confirmDelete": "Eliminare {{name}}?",
     "deleteFailed": "Non eliminato",
-    "size": "{{rows}} righe · {{columns}} colonne"
+    "size": "{{rows}} righe · {{columns}} colonne",
+    "dataset": {
+      "sharedTitle": "Righe di dati da un set condiviso",
+      "runs_one": "{{count}} esecuzione",
+      "runs_other": "{{count}} esecuzioni",
+      "sharedSet": "Set di dati condiviso",
+      "chooseSet": "Scegli un set di dati",
+      "useCopy": "Usa una copia come righe di questo test",
+      "sharedExplainRuns": "Il test gira una volta per ogni riga di",
+      "sharedExplainColumns": ", con le sue colonne come",
+      "sharedExplainChange": ". Una modifica al set vale dalla prossima esecuzione; i set si gestiscono in Dati di test.",
+      "sharedMissing": "Questo test punta a un set di dati condiviso che non esiste più (id {{id}}). Scegline un altro, o dagli righe proprie.",
+      "title": "Righe di dati",
+      "intro": "Il test gira una volta per riga. Ogni nome di colonna è disponibile in uno step come",
+      "introNoRows": ". Senza righe gira una volta sola, come sempre.",
+      "useShared": "Usa un set di dati condiviso",
+      "paste": "Incolla da un foglio di calcolo",
+      "addColumn": "Aggiungi colonna",
+      "pasteHint": "Incolla il blocco con la riga di intestazione: copiato direttamente da Excel funziona.",
+      "replaceRows": "Sostituisci le righe",
+      "rowsRecognised_one": "{{count}} riga riconosciuta",
+      "rowsRecognised_other": "{{count}} righe riconosciute",
+      "pasteNeedsHeader": "Servono una riga di intestazione e almeno una riga di dati.",
+      "empty": "Nessuna riga di dati. Aggiungi una colonna o incolla un blocco da un foglio di calcolo.",
+      "columnName": "Nome colonna {{column}}",
+      "removeColumn": "Rimuovi la colonna {{column}}",
+      "cell": "Riga {{row}} {{column}}",
+      "removeRow": "Rimuovi la riga {{row}}",
+      "addRow": "Aggiungi riga"
+    }
   },
   "organizationData": {
     "exportTitle": "Esporta tutto",
@@ -4267,7 +4531,11 @@
     "reopen": "Riapri la conversazione",
     "resolve": "Risolvi la conversazione",
     "replyMessage": "Messaggio di risposta",
-    "addReply": "Aggiungi risposta"
+    "addReply": "Aggiungi risposta",
+    "deleteDialog": {
+      "title": "Eliminare questo commento?",
+      "description": "Verrà sostituito da una nota che indica che è stato eliminato. L'operazione non può essere annullata."
+    }
   },
   "GET": "/api/mail-deliveries?limit=100",
   "emailDelivery": {
@@ -4593,5 +4861,60 @@
     "runPlan": "Esegui piano",
     "runPlanNamed": "Esegui {{name}}",
     "actions": "Azioni"
+  },
+  "preconditions": {
+    "moveUp": "Sposta su",
+    "moveDown": "Sposta giù",
+    "remove": "Rimuovi precondizione"
+  },
+  "executionLogConsole": {
+    "title": "Console",
+    "searchPlaceholder": "Cerca nei log...",
+    "levels": "Livelli",
+    "autoScroll": "Scorrimento automatico",
+    "paused": "In pausa",
+    "download": "Scarica i log",
+    "loading": "Caricamento dei log...",
+    "empty": "Nessun log da mostrare",
+    "showing": "{{shown}} di {{total}} log mostrati",
+    "live": "In diretta",
+    "stopped": "Fermo",
+    "socket": {
+      "connecting": "Connessione…",
+      "reconnecting": "Riconnessione…",
+      "disconnected": "Disconnesso"
+    }
+  },
+  "webhooks": {
+    "title": "Webhook CI/CD - {{plan}}",
+    "description": "Gestisci i webhook per lanciare questo piano di test da GitHub Actions o altri sistemi CI/CD.",
+    "namePlaceholder": "Nome webhook (es. GitHub Actions prod)",
+    "nameLabel": "Nome webhook",
+    "create": "Crea",
+    "shownOnce": "Token del webhook “{{name}}”: copialo ora, non sarà più visibile.",
+    "headerHint": "Mettilo tra i segreti della pipeline e invialo nell'header {{header}}: nell'URL finirebbe nei log dei proxy.",
+    "columns": {
+      "name": "Nome",
+      "token": "Token",
+      "lastUsed": "Ultimo utilizzo"
+    },
+    "empty": "Nessun webhook configurato.",
+    "tokenHint": "Il token completo è visibile solo alla creazione",
+    "neverUsed": "Mai usato",
+    "delete": "Elimina il webhook {{name}}",
+    "deleteDialog": {
+      "title": "Eliminare il webhook “{{name}}”?",
+      "description": "Le pipeline che usano il suo token non potranno più avviare questo piano. L'operazione non può essere annullata."
+    },
+    "toast": {
+      "createFailed": "Errore nella creazione del webhook",
+      "deleted": "Webhook eliminato",
+      "tokenCopied": "Token copiato negli appunti",
+      "commandCopied": "Comando copiato negli appunti"
+    }
+  },
+  "errorBoundary": {
+    "title": "Qualcosa è andato storto in questa pagina.",
+    "description": "L'errore è stato registrato. Ricarica la pagina per continuare."
   }
 }

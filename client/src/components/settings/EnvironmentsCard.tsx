@@ -5,9 +5,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Key, Plus, Trash2, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { useEnvironments, type EnvironmentSummary } from '@/hooks/use-environments';
 
 export default function EnvironmentsCard() {
   const { t } = useTranslation();
@@ -16,15 +18,14 @@ export default function EnvironmentsCard() {
   const [expandedEnv, setExpandedEnv] = useState<number | null>(null);
   const [newSecretKey, setNewSecretKey] = useState('');
   const [newSecretValue, setNewSecretValue] = useState('');
+  /** What a delete button was pressed for, until the person confirms or backs out. */
+  const [deletingEnv, setDeletingEnv] = useState<EnvironmentSummary | null>(null);
+  const [deletingSecret, setDeletingSecret] = useState<{ id: number; keyName: string } | null>(
+    null,
+  );
 
   // Queries
-  const { data: environments = [], isLoading: isLoadingEnvs } = useQuery({
-    queryKey: ['environments'],
-    queryFn: async () => {
-      const res = await apiRequest('GET', '/api/environments');
-      return res.json();
-    },
-  });
+  const { data: environments = [], isLoading: isLoadingEnvs } = useEnvironments();
 
   const { data: secrets = [], isLoading: isLoadingSecrets } = useQuery({
     queryKey: ['secrets', expandedEnv],
@@ -60,6 +61,7 @@ export default function EnvironmentsCard() {
       if (expandedEnv === id) setExpandedEnv(null);
       toast({ title: t('environments.toast.deleted') });
     },
+    onSettled: () => setDeletingEnv(null),
   });
 
   const createSecretMutation = useMutation({
@@ -88,6 +90,7 @@ export default function EnvironmentsCard() {
       queryClient.invalidateQueries({ queryKey: ['secrets', expandedEnv] });
       toast({ title: t('environments.toast.secretDeleted') });
     },
+    onSettled: () => setDeletingSecret(null),
   });
 
   const handleAddEnv = () => {
@@ -133,28 +136,32 @@ export default function EnvironmentsCard() {
           <p className="text-sm text-muted-foreground">{t('environments.empty')}</p>
         ) : (
           <div className="space-y-4">
-            {environments.map((env: any) => (
+            {environments.map((env) => (
               <div key={env.id} className="border rounded-md overflow-hidden">
                 {/* Env Header */}
                 <div
-                  className={`flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors ${expandedEnv === env.id ? 'bg-muted/30 border-b' : ''}`}
-                  onClick={() => setExpandedEnv(expandedEnv === env.id ? null : env.id)}
+                  className={`flex items-center justify-between pr-3 hover:bg-muted/50 transition-colors ${expandedEnv === env.id ? 'bg-muted/30 border-b' : ''}`}
                 >
-                  <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    className="flex flex-1 items-center space-x-2 p-3 text-left"
+                    aria-expanded={expandedEnv === env.id}
+                    onClick={() => setExpandedEnv(expandedEnv === env.id ? null : env.id)}
+                  >
                     {expandedEnv === env.id ? (
                       <ChevronDown className="h-4 w-4" />
                     ) : (
                       <ChevronRight className="h-4 w-4" />
                     )}
                     <span className="font-semibold">{env.name}</span>
-                  </div>
+                  </button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteEnvMutation.mutate(env.id);
-                    }}
+                    onClick={() => setDeletingEnv(env)}
+                    aria-label={t('environments.deleteEnv', 'Delete environment {{name}}', {
+                      name: env.name,
+                    })}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
@@ -187,7 +194,16 @@ export default function EnvironmentsCard() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => deleteSecretMutation.mutate(sec.id)}
+                                onClick={() =>
+                                  setDeletingSecret({ id: sec.id, keyName: sec.keyName })
+                                }
+                                aria-label={t(
+                                  'environments.deleteSecret',
+                                  'Delete secret {{key}}',
+                                  {
+                                    key: sec.keyName,
+                                  },
+                                )}
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
@@ -235,6 +251,33 @@ export default function EnvironmentsCard() {
           </div>
         )}
       </CardContent>
+
+      <ConfirmDialog
+        open={deletingEnv !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeletingEnv(null);
+        }}
+        title={t('environments.deleteEnvDialog.title', { name: deletingEnv?.name ?? '' })}
+        description={t('environments.deleteEnvDialog.description')}
+        confirmLabel={t('common.delete')}
+        destructive
+        pending={deleteEnvMutation.isPending}
+        onConfirm={() => deletingEnv && deleteEnvMutation.mutate(deletingEnv.id)}
+      />
+      <ConfirmDialog
+        open={deletingSecret !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeletingSecret(null);
+        }}
+        title={t('environments.deleteSecretDialog.title', { key: deletingSecret?.keyName ?? '' })}
+        description={t('environments.deleteSecretDialog.description', {
+          key: deletingSecret?.keyName ?? '',
+        })}
+        confirmLabel={t('common.delete')}
+        destructive
+        pending={deleteSecretMutation.isPending}
+        onConfirm={() => deletingSecret && deleteSecretMutation.mutate(deletingSecret.id)}
+      />
     </Card>
   );
 }

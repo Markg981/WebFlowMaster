@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { ClipboardList, ExternalLink, Loader2, Upload } from 'lucide-react';
 import { isExecutionInFlight } from '@shared/execution-status';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * Where this run went in TestRail, Xray or Zephyr Scale, and a way to send it again: after the
@@ -151,7 +152,7 @@ export default function PublicationsCard({
                       <span className="font-mono">{row.externalKey}</span>
                     ))}
                   <span className="text-xs text-muted-foreground">
-                    {new Date(row.createdAt).toLocaleString()}
+                    {formatDateTime(row.createdAt)}
                   </span>
                 </div>
                 {row.status === 'published' && (

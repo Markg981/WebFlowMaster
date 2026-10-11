@@ -11,8 +11,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { apiRequest } from '@/lib/queryClient';
-import { Project } from '@shared/schema';
 import {
   Select,
   SelectContent,
@@ -20,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useQuery } from '@tanstack/react-query';
+import { useProjects } from '@/hooks/use-projects';
 
 const NO_PROJECT_SENTINEL = '_no_project_';
 
@@ -54,12 +52,7 @@ export const SaveApiTestModal: React.FC<SaveApiTestModalProps> = ({
     }
   }, [isOpen, initialTestName, initialProjectId]);
 
-  const { data: projectsData, isLoading: isLoadingProjects } = useQuery<Project[], Error>({
-    queryKey: ['projects'],
-    queryFn: async () => (await apiRequest('GET', '/api/projects')).json(),
-    enabled: isOpen, // Only fetch when the modal is open
-    staleTime: 5 * 60 * 1000, // Example: 5 minutes stale time
-  });
+  const { data: projectsData, isLoading: isLoadingProjects } = useProjects({ enabled: isOpen });
 
   const handleSubmit = () => {
     if (testName.trim()) {

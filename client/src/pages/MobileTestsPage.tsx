@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTags } from '@/hooks/use-tags';
 import CatalogPagination from '@/components/catalog/CatalogPagination';
 import { useCatalogControls } from '@/hooks/use-catalog-controls';
 import { Input } from '@/components/ui/input';
@@ -47,6 +48,7 @@ import type { FlakySummary } from '@/components/reports/FlakyTestsCard';
 import TestHistoryDialog from '@/components/tests/TestHistoryDialog';
 import CommentsPanel from '@/components/tests/CommentsPanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * Tests of native Android and iOS apps, run on real devices of the organization's BrowserStack
@@ -153,13 +155,7 @@ const MobileTestsPage: React.FC = () => {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['mobileTests'] });
 
   // Tags as the library has them (migration 0056): what a test is for, and what dynamic suites run.
-  const { data: tagsData } = useQuery<TagRef[]>({
-    queryKey: ['tags'],
-    queryFn: async () => {
-      const response = await fetch('/api/tags');
-      return response.ok ? response.json() : [];
-    },
-  });
+  const { data: tagsData } = useTags();
   const allTags = Array.isArray(tagsData) ? tagsData : [];
 
   // Quarantine (migration 0058): the same list the reports show, so a release there clears it here.
@@ -369,7 +365,7 @@ const MobileTestsPage: React.FC = () => {
                     <TableCell className="text-sm">{test.stepCount}</TableCell>
                     <TableCell className="text-sm">
                       {test.lastRun
-                        ? `${statusLabel(test.lastRun.status)} · ${new Date(test.lastRun.createdAt).toLocaleString()}`
+                        ? `${statusLabel(test.lastRun.status)} · ${formatDateTime(test.lastRun.createdAt)}`
                         : '—'}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap space-x-1">

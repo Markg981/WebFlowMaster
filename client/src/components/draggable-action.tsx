@@ -45,14 +45,6 @@ export function DraggableAction({
           return;
         }
         // When an element is dropped on this action, call onDropElement with this action's stepId and the element data
-        console.log(
-          '[DraggableAction drop] Dropped element:',
-          item.data,
-          'on step:',
-          stepId,
-          'action:',
-          action.name,
-        );
         onDropElement(stepId, item.data);
       },
       collect: (monitor) => ({

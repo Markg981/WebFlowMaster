@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useProjects } from '@/hooks/use-projects';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,11 +32,6 @@ import { Crosshair, Loader2, Save, Trash2 } from 'lucide-react';
  * underneath the suite.
  */
 
-interface Project {
-  id: number;
-  name: string;
-}
-
 interface ProjectElement {
   id: string;
   name: string;
@@ -53,14 +49,7 @@ const ElementRepositoryCard: React.FC = () => {
   const [edited, setEdited] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
 
-  const { data: projects = [] } = useQuery<Project[], Error>({
-    queryKey: ['projects'],
-    queryFn: async () => {
-      const response = await fetch('/api/projects');
-      if (!response.ok) throw new Error('Could not load projects');
-      return response.json();
-    },
-  });
+  const { data: projects = [] } = useProjects();
 
   const { data: elements = [], isLoading } = useQuery<ProjectElement[], Error>({
     queryKey: ['projectElements', projectId],

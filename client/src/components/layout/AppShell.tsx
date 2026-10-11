@@ -277,6 +277,13 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
+      {/* Keyboard and screen-reader users get past the sidebar and header in one Tab. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:shadow focus:ring-2 focus:ring-ring"
+      >
+        {t('common.skipToContent', 'Skip to content')}
+      </a>
       {/* Desktop sidebar */}
       <aside
         className={cn(
@@ -408,7 +415,9 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+        <main id="main-content" tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto">
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -1,6 +1,8 @@
-import { QueryClient, QueryFunction } from '@tanstack/react-query';
+import { MutationCache, QueryClient, QueryFunction } from '@tanstack/react-query';
+import i18n from 'i18next';
 import { clientLogger, setCurrentCorrelationId } from '@/observability/logger';
 import { getSessionId, newCorrelationId } from '@/observability/session';
+import { toast } from '@/hooks/use-toast';
 
 /**
  * An error a caller can act on, not just display.
@@ -133,7 +135,27 @@ export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryF
     }
   };
 
+/**
+ * A failed mutation that nobody handles still gets told to the person.
+ *
+ * Most mutations pass their own `onError` and show a toast worded for what they do; those
+ * are left alone, so nothing shows twice. The rest used to fail silently: the button stopped
+ * spinning and the thing simply did not happen. This is the catch-all for them — a generic
+ * title plus the server's sentence when it sent one.
+ */
+export const mutationCache = new MutationCache({
+  onError: (error, _variables, _context, mutation) => {
+    if (mutation.options.onError) return;
+    toast({
+      title: i18n.t('common.requestFailed', 'Something went wrong'),
+      description: error instanceof ApiError ? errorMessage(error) : undefined,
+      variant: 'destructive',
+    });
+  },
+});
+
 export const queryClient = new QueryClient({
+  mutationCache,
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: 'throw' }),

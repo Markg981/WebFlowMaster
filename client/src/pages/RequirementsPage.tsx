@@ -67,6 +67,7 @@ import {
   Upload,
   XCircle,
 } from 'lucide-react';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * Requirements traceability: epics, user stories and requirements, the tests that cover them, and
@@ -654,9 +655,7 @@ const RequirementsPage: React.FC = () => {
                                 className="underline"
                               >
                                 {test.lastRun.planName ?? t('requirements.run', 'Run')}
-                                {test.lastRun.at
-                                  ? ` · ${new Date(test.lastRun.at).toLocaleString()}`
-                                  : ''}
+                                {test.lastRun.at ? ` · ${formatDateTime(test.lastRun.at)}` : ''}
                               </Link>
                             ) : (
                               '—'

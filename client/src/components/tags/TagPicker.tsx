@@ -133,6 +133,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
                   variant="outline"
                   onClick={create}
                   disabled={isBusy || draft.trim() === ''}
+                  aria-label={t('tags.create', 'Create tag')}
                 >
                   {isBusy ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

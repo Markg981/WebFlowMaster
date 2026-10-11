@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useProjects } from '@/hooks/use-projects';
 import { bddRequest, type AdvertisedBddProfile, type BddProfile } from '@/lib/api/bdd';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,7 @@ export default function BddProfilesCard() {
     queryKey: ['/api/bdd/profiles'],
     queryFn: () => bddRequest('/api/bdd/profiles'),
   });
-  const projects = useQuery<{ id: number; name: string }[]>({ queryKey: ['/api/projects'] });
+  const projects = useProjects();
   const choices = (advertised.data?.profiles ?? []).filter(
     (p) => !editing || (p.pool === editing.pool && p.id === editing.operatorProfileId),
   );

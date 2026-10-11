@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ListTree, Loader2, Lock, PlusCircle, Trash2, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from '@/hooks/use-toast';
@@ -21,26 +21,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import ProjectAccessDialog from '@/components/settings/ProjectAccessDialog';
+import { useProjects, type ProjectSummary } from '@/hooks/use-projects';
 
-interface Project {
-  id: number;
-  name: string;
-  userId: number;
-  createdAt: string;
-  /** Visible only to owners and the project's members. */
-  restricted?: boolean;
-  /** What the signed-in user may do in it. */
-  access?: 'viewer' | 'editor' | 'owner' | null;
-}
-
-const fetchProjects = async (): Promise<Project[]> => {
-  const response = await fetch('/api/projects');
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to fetch projects');
-  }
-  return response.json();
-};
+type Project = ProjectSummary;
 
 const createProject = async (projectName: string): Promise<Project> => {
   const response = await fetch('/api/projects', {
@@ -83,24 +66,24 @@ export default function ProjectsCard() {
     isLoading: isLoadingProjects,
     isError: isErrorProjects,
     error: projectsError,
-  } = useQuery<Project[], Error>({
-    queryKey: ['projects'],
-    queryFn: fetchProjects,
-  });
+  } = useProjects();
 
   const createProjectMutation = useMutation<Project, Error, string>({
     mutationFn: createProject,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast({
-        title: 'Project Created',
-        description: 'The new project has been created successfully.',
+        title: t('settingsPage.toasts.projectCreated.title', 'Project Created'),
+        description: t(
+          'settingsPage.toasts.projectCreated.description',
+          'The new project has been created successfully.',
+        ),
       });
       setNewProjectName('');
     },
     onError: (error) => {
       toast({
-        title: 'Error Creating Project',
+        title: t('settingsPage.toasts.projectCreateFailed.title', 'Error Creating Project'),
         description: error.message,
         variant: 'destructive',
       });
@@ -112,13 +95,16 @@ export default function ProjectsCard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast({
-        title: 'Project Deleted',
-        description: 'The project has been deleted successfully.',
+        title: t('settingsPage.toasts.projectDeleted.title', 'Project Deleted'),
+        description: t(
+          'settingsPage.toasts.projectDeleted.description',
+          'The project has been deleted successfully.',
+        ),
       });
     },
     onError: (error) => {
       toast({
-        title: 'Error Deleting Project',
+        title: t('settingsPage.toasts.projectDeleteFailed.title', 'Error Deleting Project'),
         description: error.message,
         variant: 'destructive',
       });
@@ -127,7 +113,10 @@ export default function ProjectsCard() {
 
   const handleCreateProject = () => {
     if (newProjectName.trim() === '') {
-      toast({ title: 'Project name cannot be empty', variant: 'destructive' });
+      toast({
+        title: t('settingsPage.toasts.projectNameEmpty.title', 'Project name cannot be empty'),
+        variant: 'destructive',
+      });
       return;
     }
     createProjectMutation.mutate(newProjectName.trim());

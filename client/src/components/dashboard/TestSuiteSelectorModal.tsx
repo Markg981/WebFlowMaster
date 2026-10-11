@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import { useTags } from '@/hooks/use-tags';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -58,12 +59,6 @@ const fetchSelectableTests = async (
   return response.json();
 };
 
-const fetchTags = async (): Promise<TagRef[]> => {
-  const response = await fetch('/api/tags');
-  if (!response.ok) throw new Error('Could not load tags');
-  return response.json();
-};
-
 const TestSuiteSelectorModal: React.FC<TestSuiteSelectorModalProps> = ({
   isOpen,
   onClose,
@@ -90,11 +85,7 @@ const TestSuiteSelectorModal: React.FC<TestSuiteSelectorModalProps> = ({
 
   // The search box has always offered to find tests "by name or tag". Until tags existed it
   // could only ever do half of that.
-  const { data: tagsData } = useQuery<TagRef[]>({
-    queryKey: ['tags'],
-    queryFn: fetchTags,
-    enabled: isOpen,
-  });
+  const { data: tagsData } = useTags({ enabled: isOpen });
   const availableTags = Array.isArray(tagsData) ? tagsData : [];
 
   useEffect(() => {

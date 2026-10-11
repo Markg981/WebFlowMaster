@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { PlusCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -29,6 +30,7 @@ export function KeyValueEditor({
   onAdd,
   onRemove,
 }: Props) {
+  const { t } = useTranslation();
   return (
     <>
       {rows.map((row, index) => (
@@ -53,7 +55,13 @@ export function KeyValueEditor({
             className="flex-1"
             disabled={disabled}
           />
-          <Button variant="ghost" size="icon" onClick={() => onRemove(index)} disabled={disabled}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onRemove(index)}
+            disabled={disabled}
+            aria-label={t('apiTester.keyValueEditor.remove', 'Remove row')}
+          >
             <XCircle className="h-4 w-4 text-destructive" />
           </Button>
         </div>

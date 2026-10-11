@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -89,6 +90,7 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
   disabled,
   sharedSets,
 }) => {
+  const { t } = useTranslation();
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasted, setPasted] = useState('');
   const sharedId = sharedSetIdOf(dataset);
@@ -103,10 +105,10 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
       >
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Share2 className="h-4 w-4" />
-          Data rows from a shared data set
+          {t('testData.dataset.sharedTitle', 'Data rows from a shared data set')}
           {set && (
             <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
-              {set.rows.length} run{set.rows.length === 1 ? '' : 's'}
+              {t('testData.dataset.runs', '{{count}} runs', { count: set.rows.length })}
             </span>
           )}
         </div>
@@ -116,8 +118,11 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
             onValueChange={(value) => onChange(sharedSetMarker(Number(value)))}
             disabled={disabled}
           >
-            <SelectTrigger className="h-8 w-60" aria-label="Shared data set">
-              <SelectValue placeholder="Choose a data set" />
+            <SelectTrigger
+              className="h-8 w-60"
+              aria-label={t('testData.dataset.sharedSet', 'Shared data set')}
+            >
+              <SelectValue placeholder={t('testData.dataset.chooseSet', 'Choose a data set')} />
             </SelectTrigger>
             <SelectContent>
               {sharedSets.map((s) => (
@@ -134,24 +139,32 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
             disabled={disabled}
             onClick={() => onChange(set ? set.rows.map((row) => ({ ...row })) : [])}
           >
-            Use a copy as this test's own rows
+            {t('testData.dataset.useCopy', "Use a copy as this test's own rows")}
           </Button>
         </div>
         {set ? (
           <p className="text-xs text-muted-foreground">
-            The test runs once per row of <strong>{set.name}</strong>, with its columns as{' '}
+            {t('testData.dataset.sharedExplainRuns', 'The test runs once per row of')}{' '}
+            <strong>{set.name}</strong>
+            {t('testData.dataset.sharedExplainColumns', ', with its columns as')}{' '}
             {set.columns.map((c, i) => (
               <React.Fragment key={c}>
                 {i > 0 && ', '}
                 <code>{`{{${c}}}`}</code>
               </React.Fragment>
             ))}
-            . A change to the set reaches the next run; manage sets in Test data.
+            {t(
+              'testData.dataset.sharedExplainChange',
+              '. A change to the set reaches the next run; manage sets in Test data.',
+            )}
           </p>
         ) : (
           <p className="text-sm text-destructive" role="alert">
-            This test points at a shared data set that no longer exists (id {sharedId}). Choose
-            another, or give it its own rows.
+            {t(
+              'testData.dataset.sharedMissing',
+              'This test points at a shared data set that no longer exists (id {{id}}). Choose another, or give it its own rows.',
+              { id: sharedId },
+            )}
           </p>
         )}
       </div>
@@ -209,16 +222,20 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
         <div>
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Table2 className="h-4 w-4" />
-            Data rows
+            {t('testData.dataset.title', 'Data rows')}
             {dataset.length > 0 && (
               <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
-                {dataset.length} run{dataset.length === 1 ? '' : 's'}
+                {t('testData.dataset.runs', '{{count}} runs', { count: dataset.length })}
               </span>
             )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            The test runs once per row. Each column name is available in a step as{' '}
-            <code>{'{{name}}'}</code>. With no rows it runs once, as usual.
+            {t(
+              'testData.dataset.intro',
+              'The test runs once per row. Each column name is available in a step as',
+            )}{' '}
+            <code>{'{{name}}'}</code>
+            {t('testData.dataset.introNoRows', '. With no rows it runs once, as usual.')}
           </p>
         </div>
         <div className="flex shrink-0 gap-2">
@@ -228,8 +245,13 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
               onValueChange={(value) => onChange(sharedSetMarker(Number(value)))}
               disabled={disabled}
             >
-              <SelectTrigger className="h-9 w-48" aria-label="Use a shared data set">
-                <SelectValue placeholder="Use a shared data set" />
+              <SelectTrigger
+                className="h-9 w-48"
+                aria-label={t('testData.dataset.useShared', 'Use a shared data set')}
+              >
+                <SelectValue
+                  placeholder={t('testData.dataset.useShared', 'Use a shared data set')}
+                />
               </SelectTrigger>
               <SelectContent>
                 {sharedSets.map((s) => (
@@ -247,11 +269,11 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
             disabled={disabled}
             onClick={() => setPasteOpen((o) => !o)}
           >
-            Paste from a spreadsheet
+            {t('testData.dataset.paste', 'Paste from a spreadsheet')}
           </Button>
           <Button variant="outline" size="sm" type="button" disabled={disabled} onClick={addColumn}>
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add column
+            {t('testData.dataset.addColumn', 'Add column')}
           </Button>
         </div>
       </div>
@@ -259,7 +281,10 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
       {pasteOpen && (
         <div className="space-y-2 rounded-md border border-dashed border-border p-3">
           <Label htmlFor="dataset-paste" className="text-xs">
-            Paste the block including its header row — copied straight out of Excel works.
+            {t(
+              'testData.dataset.pasteHint',
+              'Paste the block including its header row — copied straight out of Excel works.',
+            )}
           </Label>
           <Textarea
             id="dataset-paste"
@@ -277,12 +302,17 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
               onClick={applyPaste}
               disabled={disabled || parsePastedTable(pasted).length === 0}
             >
-              Replace the rows
+              {t('testData.dataset.replaceRows', 'Replace the rows')}
             </Button>
             <span className="text-xs text-muted-foreground">
               {parsePastedTable(pasted).length > 0
-                ? `${parsePastedTable(pasted).length} row(s) recognised`
-                : 'Needs a header row and at least one row of data.'}
+                ? t('testData.dataset.rowsRecognised', '{{count}} row(s) recognised', {
+                    count: parsePastedTable(pasted).length,
+                  })
+                : t(
+                    'testData.dataset.pasteNeedsHeader',
+                    'Needs a header row and at least one row of data.',
+                  )}
             </span>
           </div>
         </div>
@@ -290,7 +320,10 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
 
       {columns.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No data rows. Add a column, or paste a block from a spreadsheet.
+          {t(
+            'testData.dataset.empty',
+            'No data rows. Add a column, or paste a block from a spreadsheet.',
+          )}
         </p>
       ) : (
         <div className="overflow-x-auto">
@@ -303,7 +336,9 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
                       <Input
                         value={column}
                         disabled={disabled}
-                        aria-label={`Column name ${column}`}
+                        aria-label={t('testData.dataset.columnName', 'Column name {{column}}', {
+                          column,
+                        })}
                         className="h-8 font-mono text-xs"
                         onChange={(e) => renameColumn(column, e.target.value)}
                       />
@@ -312,7 +347,9 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
                         size="icon"
                         type="button"
                         disabled={disabled}
-                        aria-label={`Remove column ${column}`}
+                        aria-label={t('testData.dataset.removeColumn', 'Remove column {{column}}', {
+                          column,
+                        })}
                         onClick={() => removeColumn(column)}
                       >
                         <XCircle className="h-4 w-4 text-destructive" />
@@ -331,7 +368,10 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
                       <Input
                         value={row[column] ?? ''}
                         disabled={disabled}
-                        aria-label={`Row ${rowIndex + 1} ${column}`}
+                        aria-label={t('testData.dataset.cell', 'Row {{row}} {{column}}', {
+                          row: rowIndex + 1,
+                          column,
+                        })}
                         className="h-8 text-xs"
                         onChange={(e) => setCell(rowIndex, column, e.target.value)}
                       />
@@ -343,7 +383,9 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
                       size="icon"
                       type="button"
                       disabled={disabled}
-                      aria-label={`Remove row ${rowIndex + 1}`}
+                      aria-label={t('testData.dataset.removeRow', 'Remove row {{row}}', {
+                        row: rowIndex + 1,
+                      })}
                       onClick={() => onChange(dataset.filter((_, i) => i !== rowIndex))}
                     >
                       <XCircle className="h-4 w-4 text-destructive" />
@@ -362,7 +404,7 @@ export const DatasetPanel: React.FC<DatasetPanelProps> = ({
             onClick={addRow}
           >
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add row
+            {t('testData.dataset.addRow', 'Add row')}
           </Button>
         </div>
       )}

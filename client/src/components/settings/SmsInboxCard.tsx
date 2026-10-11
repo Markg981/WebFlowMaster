@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MessageSquareText } from 'lucide-react';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * The organization's test SMS inbox (server/sms-inbox.ts): the address an SMS provider posts the
@@ -93,7 +94,7 @@ export default function SmsInboxCard({ isOwner }: { isOwner: boolean }) {
             {data?.prefix
               ? t('smsInbox.active', 'Inbound address active ({{prefix}}…), issued {{date}}.', {
                   prefix: data.prefix,
-                  date: data.createdAt ? new Date(data.createdAt).toLocaleString() : '',
+                  date: data.createdAt ? formatDateTime(data.createdAt) : '',
                 })
               : t('smsInbox.none', 'No inbound address: no message can arrive.')}
           </p>
@@ -124,7 +125,7 @@ export default function SmsInboxCard({ isOwner }: { isOwner: boolean }) {
               {data.messages.map((m) => (
                 <li key={m.id} className="space-y-0.5 px-3 py-2">
                   <p className="text-muted-foreground">
-                    {new Date(m.receivedAt).toLocaleString()} · {m.fromNumber ?? '?'} → {m.toNumber}
+                    {formatDateTime(m.receivedAt)} · {m.fromNumber ?? '?'} → {m.toNumber}
                     {m.provider ? ` · ${m.provider}` : ''}
                   </p>
                   <p className="wrap-break-word">{m.body}</p>

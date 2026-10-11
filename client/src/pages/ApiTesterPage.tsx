@@ -258,7 +258,7 @@ const ApiTesterForm: React.FC = () => {
     onError: (error: Error) => {
       console.error('Failed to save to history:', error);
       toast({
-        title: 'Error Saving History',
+        title: t('apiTesterPage.notifications.historySaveFailed.title', 'Error Saving History'),
         description: error.message,
         variant: 'destructive',
         duration: 3000,
@@ -314,10 +314,26 @@ const ApiTesterForm: React.FC = () => {
         : '';
 
       toast({
-        title: data.status ? `Request Successful: ${data.status}` : 'Request Successful',
+        title: data.status
+          ? t(
+              'apiTesterPage.notifications.requestSucceeded.titleWithStatus',
+              'Request Successful: {{status}}',
+              {
+                status: data.status,
+              },
+            )
+          : t('apiTesterPage.notifications.requestSucceeded.title', 'Request Successful'),
         description: hasAssertions
-          ? `Assertions ${assertionSummary}`
-          : `API returned status ${data.status}`,
+          ? t('apiTesterPage.notifications.requestSucceeded.assertions', 'Assertions {{summary}}', {
+              summary: assertionSummary,
+            })
+          : t(
+              'apiTesterPage.notifications.requestSucceeded.status',
+              'API returned status {{status}}',
+              {
+                status: data.status,
+              },
+            ),
         variant: hasAssertions && !allAssertionsPassed ? 'destructive' : 'default',
       });
 
@@ -391,7 +407,11 @@ const ApiTesterForm: React.FC = () => {
       });
       setDuration(null);
       setAssertionResults(null);
-      toast({ title: 'Request Failed', description: error.message, variant: 'destructive' });
+      toast({
+        title: t('apiTesterPage.notifications.requestFailed.title', 'Request Failed'),
+        description: error.message,
+        variant: 'destructive',
+      });
       console.error('API Proxy Request Error:', error);
     },
   });
@@ -400,8 +420,11 @@ const ApiTesterForm: React.FC = () => {
     if (!validProtocolConfiguration()) return;
     if (!url.trim()) {
       toast({
-        title: 'URL Required',
-        description: 'Please enter a base URL to send the request.',
+        title: t('apiTesterPage.notifications.urlRequired.title', 'URL Required'),
+        description: t(
+          'apiTesterPage.notifications.urlRequired.description',
+          'Please enter a base URL to send the request.',
+        ),
         variant: 'destructive',
       });
       return;
@@ -422,16 +445,25 @@ const ApiTesterForm: React.FC = () => {
     });
     if (request.warnings.includes('invalid-json-body')) {
       toast({
-        title: 'Invalid JSON',
-        description: 'Request body is not valid JSON. Sending as plain text.',
+        title: t('apiTesterPage.notifications.invalidJson.title', 'Invalid JSON'),
+        description: t(
+          'apiTesterPage.notifications.invalidJson.description',
+          'Request body is not valid JSON. Sending as plain text.',
+        ),
         variant: 'destructive',
         duration: 3000,
       });
     }
     if (request.warnings.includes('invalid-graphql-variables')) {
       toast({
-        title: 'Invalid GraphQL Variables',
-        description: 'Variables are not valid JSON. Sending query without variables.',
+        title: t(
+          'apiTesterPage.notifications.invalidGraphqlVariables.title',
+          'Invalid GraphQL Variables',
+        ),
+        description: t(
+          'apiTesterPage.notifications.invalidGraphqlVariables.description',
+          'Variables are not valid JSON. Sending query without variables.',
+        ),
         variant: 'destructive',
         duration: 3000,
       });
@@ -564,10 +596,18 @@ const ApiTesterForm: React.FC = () => {
       // Clearing it here made the next save of the same test create a copy instead.
       setIsSaveModalOpen(false);
       setCurrentTestToEdit(saved);
-      toast({ title: currentTestToEdit ? 'Test Updated Successfully' : 'Test Saved Successfully' });
+      toast({
+        title: currentTestToEdit
+          ? t('apiTesterPage.notifications.testUpdated.title', 'Test Updated Successfully')
+          : t('apiTesterPage.notifications.testSaved.title', 'Test Saved Successfully'),
+      });
     },
     onError: (error) => {
-      toast({ title: 'Save Test Failed', description: error.message, variant: 'destructive' });
+      toast({
+        title: t('apiTesterPage.notifications.saveFailed.title', 'Save Test Failed'),
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -583,10 +623,16 @@ const ApiTesterForm: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['apiTests'] });
-      toast({ title: 'Test Deleted Successfully' });
+      toast({
+        title: t('apiTesterPage.notifications.testDeleted.title', 'Test Deleted Successfully'),
+      });
     },
     onError: (error) => {
-      toast({ title: 'Delete Test Failed', description: error.message, variant: 'destructive' });
+      toast({
+        title: t('apiTesterPage.notifications.deleteFailed.title', 'Delete Test Failed'),
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -634,7 +680,7 @@ const ApiTesterForm: React.FC = () => {
     setBinaryBodyFile(null);
 
     toast({
-      title: 'Loaded from history',
+      title: t('apiTesterPage.notifications.loadedFromHistory.title', 'Loaded from history'),
       description: `${item.method} ${item.url}`,
       duration: 2000,
     });
@@ -642,36 +688,42 @@ const ApiTesterForm: React.FC = () => {
 
   // Memoized so the "load test from ?testId=" effect below doesn't re-run (and re-fetch)
   // on every render. Body only calls stable setters plus toast.
-  const loadTestState = useCallback((test: ApiTest) => {
-    const loaded = requestFromTest(test);
-    setProtocolConfig(loaded.protocolConfig);
-    setMethod(loaded.method);
-    setUrl(loaded.url);
-    setQueryParams(loaded.queryParams);
-    setRequestHeaders(loaded.requestHeaders);
-    setRequestBodyValue(loaded.rawBody);
-    setAssertions(loaded.assertions);
-    setExtractions(loaded.extractions);
-    setPerformance(loaded.performance);
-    setAuthType(loaded.authType);
-    setAuthParams(loaded.authParams);
-    setSelectedBodyType(loaded.bodyType);
-    setRawContentType(loaded.rawContentType);
-    setGraphqlQuery(loaded.graphqlQuery);
-    setGraphqlVariables(loaded.graphqlVariables);
-    setProtoDefinition(loaded.protoDefinition);
-    setBinaryBodyFile(null); // A file's bytes are not saved: the user picks it again
-    setFormDataBody(loaded.formData);
-    setUrlEncodedBody(loaded.urlEncoded);
-    if (loaded.hasFileFields) {
-      toast({
-        title: 'Form Data Files',
-        description: 'File entries need to be re-selected.',
-        variant: 'default',
-        duration: 4000,
-      });
-    }
-  }, []);
+  const loadTestState = useCallback(
+    (test: ApiTest) => {
+      const loaded = requestFromTest(test);
+      setProtocolConfig(loaded.protocolConfig);
+      setMethod(loaded.method);
+      setUrl(loaded.url);
+      setQueryParams(loaded.queryParams);
+      setRequestHeaders(loaded.requestHeaders);
+      setRequestBodyValue(loaded.rawBody);
+      setAssertions(loaded.assertions);
+      setExtractions(loaded.extractions);
+      setPerformance(loaded.performance);
+      setAuthType(loaded.authType);
+      setAuthParams(loaded.authParams);
+      setSelectedBodyType(loaded.bodyType);
+      setRawContentType(loaded.rawContentType);
+      setGraphqlQuery(loaded.graphqlQuery);
+      setGraphqlVariables(loaded.graphqlVariables);
+      setProtoDefinition(loaded.protoDefinition);
+      setBinaryBodyFile(null); // A file's bytes are not saved: the user picks it again
+      setFormDataBody(loaded.formData);
+      setUrlEncodedBody(loaded.urlEncoded);
+      if (loaded.hasFileFields) {
+        toast({
+          title: t('apiTesterPage.notifications.formDataFiles.title', 'Form Data Files'),
+          description: t(
+            'apiTesterPage.notifications.formDataFiles.description',
+            'File entries need to be re-selected.',
+          ),
+          variant: 'default',
+          duration: 4000,
+        });
+      }
+    },
+    [t],
+  );
 
   const handleOpenSaveModal = (testToEdit?: ApiTest) => {
     if (testToEdit) {
@@ -791,7 +843,11 @@ const ApiTesterForm: React.FC = () => {
     setDuration(null);
     setAssertionResults(null);
     setCurrentTestToEdit(test); // Keep track of the loaded test for "Save Changes" functionality
-    toast({ title: 'Loaded saved test', description: test.name, duration: 2000 });
+    toast({
+      title: t('apiTesterPage.notifications.loadedSavedTest.title', 'Loaded saved test'),
+      description: test.name,
+      duration: 2000,
+    });
   };
 
   const handleDeleteSavedTest = (testId: number) => {
@@ -846,8 +902,14 @@ const ApiTesterForm: React.FC = () => {
     URL.revokeObjectURL(href);
 
     toast({
-      title: 'Test Exported',
-      description: `${filename} has been downloaded.`,
+      title: t('apiTesterPage.notifications.testExported.title', 'Test Exported'),
+      description: t(
+        'apiTesterPage.notifications.testExported.description',
+        '{{filename}} has been downloaded.',
+        {
+          filename,
+        },
+      ),
     });
   };
 

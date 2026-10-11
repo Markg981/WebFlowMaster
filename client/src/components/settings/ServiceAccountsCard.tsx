@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Bot, Loader2, Trash2 } from 'lucide-react';
 import type { ServiceAccountSummary } from './ApiKeysCard';
 
@@ -30,6 +31,8 @@ const ServiceAccountsCard: React.FC = () => {
   const [name, setName] = useState('');
   const [role, setRole] = useState<'viewer' | 'editor'>('editor');
   const [formError, setFormError] = useState('');
+  /** The account whose disable button was pressed, until the person confirms or backs out. */
+  const [disabling, setDisabling] = useState<ServiceAccountSummary | null>(null);
 
   const {
     data: accounts = [],
@@ -75,6 +78,7 @@ const ServiceAccountsCard: React.FC = () => {
       // Its keys were revoked with it.
       queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
     },
+    onSettled: () => setDisabling(null),
   });
 
   const handleCreate = () => {
@@ -181,7 +185,7 @@ const ServiceAccountsCard: React.FC = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => disable.mutate(account.id)}
+                    onClick={() => setDisabling(account)}
                     disabled={disable.isPending}
                     aria-label={t('settings.serviceAccounts.disableAction', 'Disable {{name}}', {
                       name: account.name,
@@ -195,6 +199,24 @@ const ServiceAccountsCard: React.FC = () => {
           </ul>
         )}
       </CardContent>
+
+      <ConfirmDialog
+        open={disabling !== null}
+        onOpenChange={(open) => {
+          if (!open) setDisabling(null);
+        }}
+        title={t('settings.serviceAccounts.disableDialog.title', 'Disable “{{name}}”?', {
+          name: disabling?.name ?? '',
+        })}
+        description={t(
+          'settings.serviceAccounts.disableDialog.description',
+          'All of its API keys are revoked and every pipeline using them stops working. This cannot be undone.',
+        )}
+        confirmLabel={t('common.disable', 'Disable')}
+        destructive
+        pending={disable.isPending}
+        onConfirm={() => disabling && disable.mutate(disabling.id)}
+      />
     </Card>
   );
 };

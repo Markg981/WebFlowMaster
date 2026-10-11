@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { GitCommitHorizontal, Loader2 } from 'lucide-react';
+import { formatDateTime } from '@/lib/dates';
 
 type Provider = 'github' | 'gitlab';
 
@@ -227,7 +228,7 @@ const SourceHostsCard: React.FC<{ isOwner: boolean }> = ({ isOwner }) => {
                         )
                       : host.lastDeliveryAt
                         ? t('settings.sourceHosts.lastDelivered', 'Last status set {{when}}.', {
-                            when: new Date(host.lastDeliveryAt).toLocaleString(),
+                            when: formatDateTime(host.lastDeliveryAt),
                           })
                         : t(
                             'settings.sourceHosts.noneYet',

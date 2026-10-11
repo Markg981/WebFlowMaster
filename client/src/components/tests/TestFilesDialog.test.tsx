@@ -27,6 +27,7 @@ function renderDialog(canEdit = true, onImported = vi.fn()) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity, queryFn: async () => [] } },
   });
+  client.setQueryData(['projects'], []);
   client.setQueryData(['/api/bdd/profiles'], {
     profiles: [
       {
@@ -56,6 +57,7 @@ describe('TestFilesDialog', () => {
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: Infinity, queryFn: async () => [] } },
     });
+    client.setQueryData(['projects'], []);
     client.setQueryData(['/api/bdd/profiles'], { profiles: [profile] });
     fetchMock.mockImplementation(async (_url, options) => ({
       ok: true,

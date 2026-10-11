@@ -20,6 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Download } from 'lucide-react';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * Who changed what, when, and from where.
@@ -150,7 +151,7 @@ export default function AuditLogCard() {
                 {data.entries.map((entry) => (
                   <TableRow key={entry.id} data-testid={`audit-entry-${entry.id}`}>
                     <TableCell className="text-xs whitespace-nowrap">
-                      {new Date(entry.createdAt).toLocaleString()}
+                      {formatDateTime(entry.createdAt)}
                     </TableCell>
                     <TableCell className="text-xs">
                       {entry.actorUsername ?? t('auditLog.system', 'system')}

@@ -16,6 +16,7 @@ import {
   type AnalysisLanguage,
   type FailureAnalysis,
 } from '@shared/failure-analysis';
+import { formatDateTime } from '@/lib/dates';
 
 /**
  * The AI's reading of one failed result: its probable cause, the evidence, what to do next.
@@ -261,7 +262,7 @@ export default function FailureAnalysisDialog({
               {t('failureAnalysis.byline', 'By {{model}}, asked by {{name}} on {{when}}.', {
                 model: analysis.model,
                 name: analysis.byUsername,
-                when: new Date(analysis.at).toLocaleString(),
+                when: formatDateTime(analysis.at),
               })}{' '}
               {analysis.sawScreenshot
                 ? t('failureAnalysis.withScreenshot', 'It saw the screenshot.')
