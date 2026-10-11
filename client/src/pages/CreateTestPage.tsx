@@ -35,6 +35,7 @@ import {
   type CustomActionParameter,
 } from '@shared/custom-actions';
 import SaveStepGroupModal from '@/components/SaveStepGroupModal';
+import StepGroupsManager from '@/components/StepGroupsManager';
 import KeepElementModal from '@/components/KeepElementModal';
 import AuthorStepsModal from '@/components/AuthorStepsModal';
 import { useRecordingSession } from '@/hooks/useRecordingSession';
@@ -49,6 +50,7 @@ import {
   StopCircle, // Add this if not present
   Info,
   XCircle,
+  Settings2,
 } from 'lucide-react';
 // Client-side StepResult interface matching backend
 interface StepResult {
@@ -145,6 +147,7 @@ function CreateTestPage() {
   const [dataset, setDataset] = useState<DatasetRow[]>([]);
   /** Open while naming the sequence that is about to become a reusable group. */
   const [isSaveGroupModalOpen, setIsSaveGroupModalOpen] = useState(false);
+  const [isGroupsManagerOpen, setIsGroupsManagerOpen] = useState(false);
   /** Open while a description is being read into steps. Nothing it proposes is inserted unseen. */
   const [isAuthorModalOpen, setIsAuthorModalOpen] = useState(false);
   /** The detected element about to be kept in a project's repository, if any. */
@@ -1321,9 +1324,23 @@ function CreateTestPage() {
                       any action; what arrives in the test is a reference, not a copy. */}
                   {stepGroupActions.length > 0 && (
                     <>
-                      <h4 className="text-sm font-semibold text-muted-foreground pt-4">
-                        {t('dashboardPageNew.stepGroups.title', 'Step groups')}
-                      </h4>
+                      <div className="flex items-center justify-between pt-4">
+                        <h4 className="text-sm font-semibold text-muted-foreground">
+                          {t('dashboardPageNew.stepGroups.title', 'Step groups')}
+                        </h4>
+                        {/* Where a group is renamed, re-stepped or deleted, and where it says
+                            which tests call it — the question to ask before any of those. */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          aria-label={t('stepGroupsManager.open', 'Manage step groups')}
+                          title={t('stepGroupsManager.open', 'Manage step groups')}
+                          onClick={() => setIsGroupsManagerOpen(true)}
+                        >
+                          <Settings2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                       {stepGroupActions.map((action) => (
                         <DraggableAction
                           key={action.id}
@@ -1642,6 +1659,17 @@ function CreateTestPage() {
         onClose={() => setIsSaveGroupModalOpen(false)}
         stepCount={testSequence.length}
         onSave={handleSaveStepGroup}
+      />
+      <StepGroupsManager
+        open={isGroupsManagerOpen}
+        onOpenChange={setIsGroupsManagerOpen}
+        groups={Array.isArray(stepGroups) ? stepGroups : []}
+        builderSequence={testSequence}
+        // A group's steps have the builder's shape: they were the builder's when it was saved.
+        onOpenInBuilder={(group) => {
+          setTestSequence(group.sequence as DragDropTestStep[]);
+          setLastTestOverallResult(null);
+        }}
       />
       <AuthorStepsModal
         isOpen={isAuthorModalOpen}

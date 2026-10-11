@@ -16,7 +16,9 @@ table, and loading or running an API/mobile test fetches its executable configur
 List responses contain metadata and counts, rather than all steps or dataset values.
 
 **Tags** are your organization's own labels — `smoke`, `checkout`, `nightly` — added from the test's
-row. They are what [dynamic suites](#suites) select by.
+row. They are what [dynamic suites](#suites) select by. **Settings → Tags** lists every tag with how many
+tests carry it; an editor can rename one there (every test follows) or delete it, which takes it off
+every test that carried it.
 
 ## Manual tests {#manual-tests}
 

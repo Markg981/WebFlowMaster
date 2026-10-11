@@ -183,7 +183,39 @@
       "impactMap": "Mappa dell'impatto",
       "impactMapDescription": "Quali file riguardano quali test, così una pipeline esegue i test che un commit tocca invece di tutti.",
       "smsInbox": "Casella SMS",
-      "smsInboxDescription": "Gli SMS ricevuti dai vostri numeri di test, per gli step che attendono un codice via SMS."
+      "smsInboxDescription": "Gli SMS ricevuti dai vostri numeri di test, per gli step che attendono un codice via SMS.",
+      "tags": "Tag",
+      "tagsDescription": "Le parole con cui si classificano i test. Rinominarne uno aggiorna ogni test; eliminarne uno lo toglie da ogni test."
+    },
+    "tags": {
+      "title": "Tag",
+      "description": "Ogni tag usato dall’organizzazione, con quanti test lo portano. Una rinomina raggiunge tutti i test in una volta; un tag su nessun test è un refuso o un avanzo.",
+      "loading": "Caricamento dei tag…",
+      "loadFailed": "Impossibile caricare i tag.",
+      "empty": "Nessun tag ancora. Il primo si aggiunge dalla riga di un test.",
+      "usage_one": "{{count}} test",
+      "usage_other": "{{count}} test",
+      "breakdown": "{{ui}} web, {{api}} API, {{mobile}} mobile",
+      "rename": "Rinomina",
+      "nameLabel": "Nuovo nome",
+      "nameRequired": "Un tag ha bisogno di un nome.",
+      "renamed": {
+        "title": "Tag rinominato",
+        "description": "Ogni test che portava “{{from}}” ora mostra “{{to}}”."
+      },
+      "renameFailed": "Impossibile rinominare il tag.",
+      "delete": "Elimina",
+      "deleteDialog": {
+        "title": "Eliminare il tag “{{name}}”?",
+        "description_one": "Viene tolto dall’unico test che lo porta ({{count}}), e una suite dinamica che seleziona per questo tag non lo trova più. L’operazione non si può annullare.",
+        "description_other": "Viene tolto dai {{count}} test che lo portano, e una suite dinamica che seleziona per questo tag non li trova più. L’operazione non si può annullare."
+      },
+      "deleted": {
+        "title": "Tag eliminato",
+        "description_one": "Tolto da {{count}} test.",
+        "description_other": "Tolto da {{count}} test."
+      },
+      "deleteFailed": "Impossibile eliminare il tag."
     },
     "apiKeys": {
       "openApi": "Riferimento API (OpenAPI)",
@@ -3657,6 +3689,52 @@
     "nameLabel": "Nome",
     "namePlaceholder": "Login",
     "descriptionLabel": "Descrizione"
+  },
+  "stepGroupsManager": {
+    "open": "Gestisci i gruppi di step",
+    "title": "Gruppi di step",
+    "description": "Un test che richiama un gruppo esegue ciò che il gruppo contiene in quel momento, quindi una modifica fatta qui raggiunge ogni test che lo richiama al run successivo.",
+    "empty": "Nessun gruppo di step ancora. Salvate gli step del costruttore come gruppo per crearne uno.",
+    "stepCount_one": "{{count}} step",
+    "stepCount_other": "{{count}} step",
+    "whereUsed": "Dove è usato",
+    "hideUsage": "Nascondi",
+    "usageLoading": "Ricerca dei test che lo richiamano…",
+    "usageFailed": "Impossibile scoprire quali test lo richiamano.",
+    "usageNone": "Nessun test richiama ancora questo gruppo.",
+    "usage_one": "Richiamato da {{count}} test:",
+    "usage_other": "Richiamato da {{count}} test:",
+    "edit": "Modifica",
+    "nameLabel": "Nome",
+    "descriptionLabel": "Descrizione",
+    "nameRequired": "Un gruppo di step ha bisogno di un nome.",
+    "replaceSteps_one": "Sostituisci i suoi step con lo step ora nel costruttore ({{count}})",
+    "replaceSteps_other": "Sostituisci i suoi step con i {{count}} step ora nel costruttore",
+    "replaceStepsEmpty": "Per cambiarne gli step, apritelo nel costruttore, modificateli lì e poi spuntate questa casella.",
+    "openInBuilder": "Apri nel costruttore",
+    "openDialog": {
+      "title": "Aprire “{{name}}” nel costruttore?",
+      "description_one": "Lo step ora nel costruttore viene sostituito da quelli del gruppo. Salvatelo prima come test o come gruppo per conservarlo.",
+      "description_other": "I {{count}} step ora nel costruttore vengono sostituiti da quelli del gruppo. Salvateli prima come test o come gruppo per conservarli."
+    },
+    "opened": {
+      "title": "Gruppo di step aperto",
+      "description": "I suoi step sono nel costruttore. Quando sono a posto, modificate “{{name}}” qui e spuntate “Sostituisci i suoi step”."
+    },
+    "saved": {
+      "title": "Gruppo di step salvato",
+      "description": "Ogni test che richiama “{{name}}” esegue la nuova versione dal run successivo."
+    },
+    "saveFailed": "Impossibile salvare il gruppo di step.",
+    "deleteDialog": {
+      "title": "Eliminare il gruppo di step “{{name}}”?",
+      "description": "Sparisce dalla palette. Nessun test lo richiama, quindi non cambia altro. L’operazione non si può annullare."
+    },
+    "deleted": {
+      "title": "Gruppo di step eliminato"
+    },
+    "deleteFailed": "Impossibile eliminare il gruppo di step.",
+    "blocked": "“{{name}}” non si può eliminare finché dei test lo richiamano: {{tests}}. Togliete prima la chiamata da quei test."
   },
   "tags": {
     "edit": "Modifica tag",

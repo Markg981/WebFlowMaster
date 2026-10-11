@@ -183,7 +183,39 @@
       "impactMap": "Impact map",
       "impactMapDescription": "Which files affect which tests, so a pipeline runs the tests a commit affects instead of all of them.",
       "smsInbox": "SMS inbox",
-      "smsInboxDescription": "Text messages your test numbers receive, for steps that wait for a code sent by SMS."
+      "smsInboxDescription": "Text messages your test numbers receive, for steps that wait for a code sent by SMS.",
+      "tags": "Tags",
+      "tagsDescription": "The words tests are filed under. Rename one and every test follows; delete one and it comes off every test."
+    },
+    "tags": {
+      "title": "Tags",
+      "description": "Every tag the organization uses, with how many tests carry it. A rename reaches every test at once; a tag on no test is a typo or a leftover.",
+      "loading": "Loading tags…",
+      "loadFailed": "Could not load the tags.",
+      "empty": "No tags yet. The first one is added from a test’s row.",
+      "usage_one": "{{count}} test",
+      "usage_other": "{{count}} tests",
+      "breakdown": "{{ui}} web, {{api}} API, {{mobile}} mobile",
+      "rename": "Rename",
+      "nameLabel": "New name",
+      "nameRequired": "A tag needs a name.",
+      "renamed": {
+        "title": "Tag renamed",
+        "description": "Every test that carried “{{from}}” now shows “{{to}}”."
+      },
+      "renameFailed": "Could not rename the tag.",
+      "delete": "Delete",
+      "deleteDialog": {
+        "title": "Delete tag “{{name}}”?",
+        "description_one": "It is removed from the {{count}} test that carries it, and a dynamic suite that selects by it no longer matches that test. This cannot be undone.",
+        "description_other": "It is removed from the {{count}} tests that carry it, and a dynamic suite that selects by it no longer matches them. This cannot be undone."
+      },
+      "deleted": {
+        "title": "Tag deleted",
+        "description_one": "Removed from {{count}} test.",
+        "description_other": "Removed from {{count}} tests."
+      },
+      "deleteFailed": "Could not delete the tag."
     },
     "apiKeys": {
       "openApi": "API reference (OpenAPI)",
@@ -3657,6 +3689,52 @@
     "nameLabel": "Name",
     "namePlaceholder": "Login",
     "descriptionLabel": "Description"
+  },
+  "stepGroupsManager": {
+    "open": "Manage step groups",
+    "title": "Step groups",
+    "description": "A test that calls a group runs whatever the group holds at the time, so a change here reaches every test that calls it on its next run.",
+    "empty": "No step groups yet. Save the builder’s steps as a group to make one.",
+    "stepCount_one": "{{count}} step",
+    "stepCount_other": "{{count}} steps",
+    "whereUsed": "Where used",
+    "hideUsage": "Hide",
+    "usageLoading": "Finding the tests that call it…",
+    "usageFailed": "Could not find out which tests call it.",
+    "usageNone": "No test calls this group yet.",
+    "usage_one": "Called by {{count}} test:",
+    "usage_other": "Called by {{count}} tests:",
+    "edit": "Edit",
+    "nameLabel": "Name",
+    "descriptionLabel": "Description",
+    "nameRequired": "A step group needs a name.",
+    "replaceSteps_one": "Replace its steps with the {{count}} step now in the builder",
+    "replaceSteps_other": "Replace its steps with the {{count}} steps now in the builder",
+    "replaceStepsEmpty": "To change its steps, open it in the builder, edit them there, then tick this.",
+    "openInBuilder": "Open in builder",
+    "openDialog": {
+      "title": "Open “{{name}}” in the builder?",
+      "description_one": "The step now in the builder is replaced by the group’s. Save it as a test or a group first to keep it.",
+      "description_other": "The {{count}} steps now in the builder are replaced by the group’s. Save them as a test or a group first to keep them."
+    },
+    "opened": {
+      "title": "Step group opened",
+      "description": "Its steps are in the builder. When they are right, edit “{{name}}” here and tick “Replace its steps”."
+    },
+    "saved": {
+      "title": "Step group saved",
+      "description": "Every test that calls “{{name}}” runs the new version from its next run."
+    },
+    "saveFailed": "Could not save the step group.",
+    "deleteDialog": {
+      "title": "Delete step group “{{name}}”?",
+      "description": "It leaves the palette. No test calls it, so nothing else changes. This cannot be undone."
+    },
+    "deleted": {
+      "title": "Step group deleted"
+    },
+    "deleteFailed": "Could not delete the step group.",
+    "blocked": "“{{name}}” cannot be deleted while tests still call it: {{tests}}. Take the call out of those tests first."
   },
   "tags": {
     "edit": "Edit tags",

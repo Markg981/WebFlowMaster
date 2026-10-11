@@ -183,7 +183,39 @@
       "impactMap": "Carte d'impact",
       "impactMapDescription": "Quels fichiers concernent quels tests, pour qu'un pipeline exécute les tests qu'un commit touche plutôt que tous.",
       "smsInbox": "Boîte SMS",
-      "smsInboxDescription": "Les SMS reçus par vos numéros de test, pour les étapes qui attendent un code par SMS."
+      "smsInboxDescription": "Les SMS reçus par vos numéros de test, pour les étapes qui attendent un code par SMS.",
+      "tags": "Tags",
+      "tagsDescription": "Les mots sous lesquels les tests sont classés. Renommer un tag met à jour chaque test ; le supprimer le retire de chaque test."
+    },
+    "tags": {
+      "title": "Tags",
+      "description": "Chaque tag utilisé par l'organisation, avec le nombre de tests qui le portent. Un renommage atteint tous les tests d'un coup ; un tag sans test est une faute de frappe ou un reliquat.",
+      "loading": "Chargement des tags…",
+      "loadFailed": "Impossible de charger les tags.",
+      "empty": "Aucun tag pour l'instant. Le premier s'ajoute depuis la ligne d'un test.",
+      "usage_one": "{{count}} test",
+      "usage_other": "{{count}} tests",
+      "breakdown": "{{ui}} web, {{api}} API, {{mobile}} mobile",
+      "rename": "Renommer",
+      "nameLabel": "Nouveau nom",
+      "nameRequired": "Un tag a besoin d'un nom.",
+      "renamed": {
+        "title": "Tag renommé",
+        "description": "Chaque test qui portait « {{from}} » affiche désormais « {{to}} »."
+      },
+      "renameFailed": "Impossible de renommer le tag.",
+      "delete": "Supprimer",
+      "deleteDialog": {
+        "title": "Supprimer le tag « {{name}} » ?",
+        "description_one": "Il est retiré du test qui le porte ({{count}}), et une suite dynamique qui sélectionne par ce tag ne le trouve plus. Cette action est irréversible.",
+        "description_other": "Il est retiré des {{count}} tests qui le portent, et une suite dynamique qui sélectionne par ce tag ne les trouve plus. Cette action est irréversible."
+      },
+      "deleted": {
+        "title": "Tag supprimé",
+        "description_one": "Retiré de {{count}} test.",
+        "description_other": "Retiré de {{count}} tests."
+      },
+      "deleteFailed": "Impossible de supprimer le tag."
     },
     "apiKeys": {
       "openApi": "Référence de l'API (OpenAPI)",
@@ -3657,6 +3689,52 @@
     "nameLabel": "Nom",
     "namePlaceholder": "Connexion",
     "descriptionLabel": "Description"
+  },
+  "stepGroupsManager": {
+    "open": "Gérer les groupes d'étapes",
+    "title": "Groupes d'étapes",
+    "description": "Un test qui appelle un groupe exécute ce que le groupe contient à ce moment-là : une modification faite ici atteint chaque test qui l'appelle dès son prochain run.",
+    "empty": "Aucun groupe d'étapes pour l'instant. Enregistrez les étapes du constructeur comme groupe pour en créer un.",
+    "stepCount_one": "{{count}} étape",
+    "stepCount_other": "{{count}} étapes",
+    "whereUsed": "Où il est utilisé",
+    "hideUsage": "Masquer",
+    "usageLoading": "Recherche des tests qui l'appellent…",
+    "usageFailed": "Impossible de savoir quels tests l'appellent.",
+    "usageNone": "Aucun test n'appelle encore ce groupe.",
+    "usage_one": "Appelé par {{count}} test :",
+    "usage_other": "Appelé par {{count}} tests :",
+    "edit": "Modifier",
+    "nameLabel": "Nom",
+    "descriptionLabel": "Description",
+    "nameRequired": "Un groupe d'étapes a besoin d'un nom.",
+    "replaceSteps_one": "Remplacer ses étapes par l'étape actuellement dans le constructeur ({{count}})",
+    "replaceSteps_other": "Remplacer ses étapes par les {{count}} étapes actuellement dans le constructeur",
+    "replaceStepsEmpty": "Pour changer ses étapes, ouvrez-le dans le constructeur, modifiez-les là, puis cochez cette case.",
+    "openInBuilder": "Ouvrir dans le constructeur",
+    "openDialog": {
+      "title": "Ouvrir « {{name}} » dans le constructeur ?",
+      "description_one": "L'étape actuellement dans le constructeur est remplacée par celles du groupe. Enregistrez-la d'abord comme test ou comme groupe pour la garder.",
+      "description_other": "Les {{count}} étapes actuellement dans le constructeur sont remplacées par celles du groupe. Enregistrez-les d'abord comme test ou comme groupe pour les garder."
+    },
+    "opened": {
+      "title": "Groupe d'étapes ouvert",
+      "description": "Ses étapes sont dans le constructeur. Quand elles sont prêtes, modifiez « {{name}} » ici et cochez « Remplacer ses étapes »."
+    },
+    "saved": {
+      "title": "Groupe d'étapes enregistré",
+      "description": "Chaque test qui appelle « {{name}} » exécute la nouvelle version dès son prochain run."
+    },
+    "saveFailed": "Impossible d'enregistrer le groupe d'étapes.",
+    "deleteDialog": {
+      "title": "Supprimer le groupe d'étapes « {{name}} » ?",
+      "description": "Il disparaît de la palette. Aucun test ne l'appelle, donc rien d'autre ne change. Cette action est irréversible."
+    },
+    "deleted": {
+      "title": "Groupe d'étapes supprimé"
+    },
+    "deleteFailed": "Impossible de supprimer le groupe d'étapes.",
+    "blocked": "« {{name}} » ne peut pas être supprimé tant que des tests l'appellent : {{tests}}. Retirez d'abord l'appel de ces tests."
   },
   "tags": {
     "edit": "Modifier les étiquettes",

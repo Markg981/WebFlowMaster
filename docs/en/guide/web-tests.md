@@ -469,6 +469,12 @@ group**. It then appears under **Step groups** in the palette, and any test can 
 runs the group as it is at the time of the run, so changing the group changes every test that
 uses it.
 
+The gear beside **Step groups** in the palette opens their management: **Where used** names the
+tests that call a group, **Edit** changes its name and description — and, with the box ticked,
+replaces its steps with those now in the builder, after **Open in builder** has put them there to
+be changed — and **Delete** removes a group no test calls; one still called is refused, naming the
+tests.
+
 ## Custom actions {#custom-actions}
 
 When no built-in action does what a test needs, an editor can write one: **Settings → Custom

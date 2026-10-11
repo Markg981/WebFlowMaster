@@ -183,7 +183,39 @@
       "impactMap": "Auswirkungskarte",
       "impactMapDescription": "Welche Dateien welche Tests betreffen, damit eine Pipeline die von einem Commit betroffenen Tests ausführt statt aller.",
       "smsInbox": "SMS-Postfach",
-      "smsInboxDescription": "SMS, die Ihre Testnummern empfangen, für Schritte, die auf einen per SMS gesendeten Code warten."
+      "smsInboxDescription": "SMS, die Ihre Testnummern empfangen, für Schritte, die auf einen per SMS gesendeten Code warten.",
+      "tags": "Tags",
+      "tagsDescription": "Die Wörter, unter denen Tests abgelegt werden. Ein umbenannter Tag ändert sich in jedem Test; ein gelöschter verschwindet aus jedem Test."
+    },
+    "tags": {
+      "title": "Tags",
+      "description": "Jeder Tag der Organisation, mit der Zahl der Tests, die ihn tragen. Eine Umbenennung erreicht alle Tests auf einmal; ein Tag ohne Test ist ein Tippfehler oder ein Überbleibsel.",
+      "loading": "Tags werden geladen…",
+      "loadFailed": "Die Tags konnten nicht geladen werden.",
+      "empty": "Noch keine Tags. Der erste wird in der Zeile eines Tests hinzugefügt.",
+      "usage_one": "{{count}} Test",
+      "usage_other": "{{count}} Tests",
+      "breakdown": "{{ui}} Web, {{api}} API, {{mobile}} Mobil",
+      "rename": "Umbenennen",
+      "nameLabel": "Neuer Name",
+      "nameRequired": "Ein Tag braucht einen Namen.",
+      "renamed": {
+        "title": "Tag umbenannt",
+        "description": "Jeder Test, der „{{from}}“ trug, zeigt jetzt „{{to}}“."
+      },
+      "renameFailed": "Der Tag konnte nicht umbenannt werden.",
+      "delete": "Löschen",
+      "deleteDialog": {
+        "title": "Tag „{{name}}“ löschen?",
+        "description_one": "Er wird aus dem einen Test entfernt, der ihn trägt ({{count}}), und eine dynamische Suite, die nach ihm auswählt, findet diesen Test nicht mehr. Das lässt sich nicht rückgängig machen.",
+        "description_other": "Er wird aus den {{count}} Tests entfernt, die ihn tragen, und eine dynamische Suite, die nach ihm auswählt, findet diese Tests nicht mehr. Das lässt sich nicht rückgängig machen."
+      },
+      "deleted": {
+        "title": "Tag gelöscht",
+        "description_one": "Aus {{count}} Test entfernt.",
+        "description_other": "Aus {{count}} Tests entfernt."
+      },
+      "deleteFailed": "Der Tag konnte nicht gelöscht werden."
     },
     "apiKeys": {
       "openApi": "API-Referenz (OpenAPI)",
@@ -3657,6 +3689,52 @@
     "nameLabel": "Name",
     "namePlaceholder": "Anmeldung",
     "descriptionLabel": "Beschreibung"
+  },
+  "stepGroupsManager": {
+    "open": "Schrittgruppen verwalten",
+    "title": "Schrittgruppen",
+    "description": "Ein Test, der eine Gruppe aufruft, führt aus, was die Gruppe in dem Moment enthält. Eine Änderung hier erreicht also jeden aufrufenden Test bei seinem nächsten Lauf.",
+    "empty": "Noch keine Schrittgruppen. Speichern Sie die Schritte des Builders als Gruppe, um eine anzulegen.",
+    "stepCount_one": "{{count}} Schritt",
+    "stepCount_other": "{{count}} Schritte",
+    "whereUsed": "Wo verwendet",
+    "hideUsage": "Ausblenden",
+    "usageLoading": "Tests, die sie aufrufen, werden gesucht…",
+    "usageFailed": "Es ließ sich nicht feststellen, welche Tests sie aufrufen.",
+    "usageNone": "Noch kein Test ruft diese Gruppe auf.",
+    "usage_one": "Aufgerufen von {{count}} Test:",
+    "usage_other": "Aufgerufen von {{count}} Tests:",
+    "edit": "Bearbeiten",
+    "nameLabel": "Name",
+    "descriptionLabel": "Beschreibung",
+    "nameRequired": "Eine Schrittgruppe braucht einen Namen.",
+    "replaceSteps_one": "Ihre Schritte durch den Schritt ersetzen, der jetzt im Builder ist ({{count}})",
+    "replaceSteps_other": "Ihre Schritte durch die {{count}} Schritte ersetzen, die jetzt im Builder sind",
+    "replaceStepsEmpty": "Um ihre Schritte zu ändern, öffnen Sie sie im Builder, bearbeiten sie dort und setzen dann dieses Häkchen.",
+    "openInBuilder": "Im Builder öffnen",
+    "openDialog": {
+      "title": "„{{name}}“ im Builder öffnen?",
+      "description_one": "Der Schritt, der jetzt im Builder ist, wird durch die der Gruppe ersetzt. Speichern Sie ihn vorher als Test oder Gruppe, um ihn zu behalten.",
+      "description_other": "Die {{count}} Schritte, die jetzt im Builder sind, werden durch die der Gruppe ersetzt. Speichern Sie sie vorher als Test oder Gruppe, um sie zu behalten."
+    },
+    "opened": {
+      "title": "Schrittgruppe geöffnet",
+      "description": "Ihre Schritte sind im Builder. Wenn sie stimmen, bearbeiten Sie „{{name}}“ hier und setzen das Häkchen bei „Ihre Schritte ersetzen“."
+    },
+    "saved": {
+      "title": "Schrittgruppe gespeichert",
+      "description": "Jeder Test, der „{{name}}“ aufruft, führt ab seinem nächsten Lauf die neue Version aus."
+    },
+    "saveFailed": "Die Schrittgruppe konnte nicht gespeichert werden.",
+    "deleteDialog": {
+      "title": "Schrittgruppe „{{name}}“ löschen?",
+      "description": "Sie verschwindet aus der Palette. Kein Test ruft sie auf, also ändert sich sonst nichts. Das lässt sich nicht rückgängig machen."
+    },
+    "deleted": {
+      "title": "Schrittgruppe gelöscht"
+    },
+    "deleteFailed": "Die Schrittgruppe konnte nicht gelöscht werden.",
+    "blocked": "„{{name}}“ kann nicht gelöscht werden, solange Tests sie aufrufen: {{tests}}. Entfernen Sie zuerst den Aufruf aus diesen Tests."
   },
   "tags": {
     "edit": "Tags bearbeiten",
