@@ -1,0 +1,40 @@
+name: CodeQL
+
+# Static analysis of the TypeScript/JavaScript sources. Free for a public repository; findings
+# appear under Security > Code scanning and as annotations on the PR.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, so new CodeQL queries also run against code nobody touched.
+    - cron: '23 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          # The default suite plus the security-extended queries; quality-only queries stay off.
+          queries: security-extended
+          config: |
+            paths-ignore:
+              - '**/*.test.ts'
+              - '**/*.test.tsx'
+              - '**/*.test.mjs'
+              - 'e2e/**'
+              - 'marketing/**'
+              - 'docs/**'
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:javascript-typescript

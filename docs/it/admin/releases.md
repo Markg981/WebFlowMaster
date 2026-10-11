@@ -40,8 +40,9 @@ abilita la pubblicazione soltanto quando:
 
 - Il tag coincide con la versione di `package.json` e `package-lock.json`.
 - Il commit appartiene a `origin/main`.
-- Gli ultimi controlli GitHub Actions `build-and-test`, `network-on-guarded-installation`,
-  `ui-on-real-installation` e `rls-on-real-postgres` sono riusciti sullo stesso commit.
+- Gli ultimi controlli GitHub Actions `static-checks`, `server-tests`, `client-tests`, `collaudo`,
+  `build`, `network-on-guarded-installation`, `ui-on-real-installation` e `rls-on-real-postgres`
+  sono riusciti sullo stesso commit.
 - Le scansioni delle tre immagini non contengono HIGH o CRITICAL, compresi quelli senza fix.
   I rilievi dei lockfile devono essere risolti o soddisfare l’esatta eccezione sorgenti approvata sotto.
   Rapporti mancanti/malformati, copertura sorgenti incompleta o errori scanner bloccano il rilascio.

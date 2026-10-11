@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 export const ROLES = ['api', 'worker', 'agent'];
-export const REQUIRED_CHECKS = ['build-and-test', 'network-on-guarded-installation', 'ui-on-real-installation', 'rls-on-real-postgres'];
+export const REQUIRED_CHECKS = ['static-checks', 'server-tests', 'client-tests', 'collaudo', 'build', 'network-on-guarded-installation', 'ui-on-real-installation', 'rls-on-real-postgres'];
 const DIGEST = /^sha256:[a-f0-9]{64}$/;
 export const sha256 = value => createHash('sha256').update(value).digest('hex');
 
