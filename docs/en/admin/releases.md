@@ -2,7 +2,8 @@
 
 The release workflow builds three application images: API, worker and local agent. It records
 the source commit, locked dependencies, base-image digests, migration SQL checksums, SBOMs,
-vulnerability reports and registry digests. Deployment consumes these digests instead of rebuilding
+vulnerability reports and registry digests, then signs every pushed image by digest with Sigstore
+cosign and attests its SBOM and provenance. Deployment consumes these digests instead of rebuilding
 source or following a moving tag. The initial target is **Linux amd64**.
 
 ## Inputs and reproducibility contract
@@ -62,11 +63,75 @@ same digest. `latest` is never written. Matrix promotion is not a registry trans
 may leave some verified images present. Rerun the same tag to reuse matching content; do not
 deploy until the complete release manifest exists.
 
+Each pushed digest is then signed and attested as described under
+[Verifying a release](#verifying-a-release); the promote job verifies its own signature and
+attestations before it hands the references to the manifest, which fails without them.
+
 After promotion, a **draft GitHub release** holds `release-manifest.json`, `release.env`, source
-reports and each image's SBOM/report/scanner metadata. Review it before publishing the draft.
+reports and each image's SBOM/report/scanner metadata and provenance predicate. Review it before
+publishing the draft.
 Published GitHub releases are not changed by reruns. Candidate evidence is retained 30 days;
 large image archives are retained 7 days. Download evidence before expiry. Published release
 assets provide the durable distribution record; archive them with the installation inventory.
+
+## Verifying a release
+
+Every image the promote job pushes is signed by digest with [Sigstore cosign](https://docs.sigstore.dev/cosign/signing/overview/)
+in keyless mode: Fulcio issues a short-lived certificate to the GitHub OIDC identity of the workflow
+run, and the signature is recorded in the public Rekor transparency log. No signing key exists to
+protect or rotate, and `id-token: write` is granted to the promote job only. The same identity
+attests the Trivy CycloneDX SBOM with `cosign attest --type cyclonedx`: the SBOM becomes a signed
+in-toto statement, whereas `cosign attach sbom` stores an unsigned blob that cosign deprecates. It
+also attests a SLSA v1 provenance predicate built from the inputs the workflow verified: workflow
+and tag, source commit, Dockerfile, platform, build arguments, pinned BuildKit/Trivy digests, input
+hashes, migration journal and the archive/SBOM/report checksums. `release-manifest.json` records,
+under `images.<role>.signing`, the certificate identity and issuer, the Rekor log index of the
+signature and of each attestation, and the exact verify commands. The BuildKit `provenance` and
+`sbom` build options stay off: the docker archive exporter used for the digest comparison carries no
+attestations, and their timestamps would differ between the two clean builds.
+
+Install cosign 2.6 or later, replace the tag, and take each digest reference from `release.env`:
+
+```sh
+IDENTITY="https://github.com/Markg981/WebFlowMaster/.github/workflows/release.yml@refs/tags/v1.2.3"
+ISSUER="https://token.actions.githubusercontent.com"
+# Repeat with WFM_WORKER_IMAGE and WFM_AGENT_IMAGE.
+IMAGE="$(grep '^WFM_API_IMAGE=' release.env | cut -d= -f2-)"
+
+cosign verify --certificate-identity "$IDENTITY" --certificate-oidc-issuer "$ISSUER" "$IMAGE"
+cosign verify-attestation --type cyclonedx --certificate-identity "$IDENTITY" \
+  --certificate-oidc-issuer "$ISSUER" "$IMAGE" > api.cyclonedx.dsse.json
+cosign verify-attestation --type slsaprovenance1 --certificate-identity "$IDENTITY" \
+  --certificate-oidc-issuer "$ISSUER" "$IMAGE" > api.provenance.dsse.json
+```
+
+Each command fails unless a signature or attestation exists for that exact digest, its certificate
+names this workflow at that tag with GitHub Actions as issuer, and its Rekor entry verifies. The
+JSON that `cosign verify` prints carries the Rekor bundle (`optional.Bundle.Payload.logIndex`):
+compare it with `images.<role>.signing.signature.rekorLogIndex` in the manifest.
+
+Check the SBOM: the attestation payload is a base64 in-toto statement whose `predicate` is the SBOM.
+Normalise it and the `<role>-sbom.cdx.json` release asset with `jq -S -c` before hashing, because
+cosign re-serialises the predicate:
+
+```sh
+jq -r '.payload' api.cyclonedx.dsse.json | base64 -d | jq -S -c '.predicate' | sha256sum
+jq -S -c . api-sbom.cdx.json | sha256sum
+```
+
+The two hashes must be equal, and `sha256sum api-sbom.cdx.json` must equal `images.api.sbomSha256`
+in the manifest. Decoding `api.provenance.dsse.json` the same way shows the provenance predicate: its
+`buildDefinition.resolvedDependencies[0].digest.gitCommit` must be the manifest `commit`, and
+`runDetails.metadata.invocationId` points to the workflow run.
+
+Limits: the provenance is generated and signed by the release workflow itself, with the same identity
+as the signature. It is a signed record of verified inputs, not an attestation from an isolated
+SLSA build platform; treat it as evidence of who built what from which commit, not as a SLSA Build
+L3 claim. Rekor is public: it exposes the repository name and image digests of every release, also
+for a private repository. Rerunning a tag appends a fresh signature and attestations; verification
+accepts any valid one. Verifying signatures proves publication by this workflow; it does not prove
+what an installation runs, so reconcile installed digests as described under
+[Upgrade, rollback and evidence](#upgrade-rollback-and-evidence).
 
 ## Operator procedure
 
@@ -79,7 +144,8 @@ assets provide the durable distribution record; archive them with the installati
 3. Merge, wait for the four required checks on the resulting main commit, create and push its
    `vVERSION` tag. If CI is pending or failed, the release must wait; rerun after checks pass.
 4. Inspect the draft, reports, rebuild evidence and manifest. Confirm all roles refer to the intended
-   commit and migration journal before publishing. Retain the previous release's manifest.
+   commit and migration journal, and run the verify commands recorded under `images.<role>.signing`,
+   before publishing. Retain the previous release's manifest.
 5. Download `release.env` from that verified release. Supply installation secrets and database URLs
    in a protected `installation.env` (never commit it). `MIGRATION_DATABASE_URL` uses the migration
    owner; `DATABASE_URL` uses the non-superuser app role, preserving PostgreSQL RLS.
@@ -123,8 +189,8 @@ No automatic downgrade or zero-downtime migration guarantee is provided.
 Local tooling: `npm run test:release` tests packaging and publication guards without a database.
 On a clean committed checkout, `GITHUB_REPOSITORY=owner/repository node scripts/release/prepare.mjs`
 prepares candidate metadata. Full image rebuild/scan verification runs in the release workflow.
-Until the workflow succeeds on a release tag, no registry publication or release certification is
-proven by local unit tests.
+Until the workflow succeeds on a release tag, no registry publication, signature or release
+certification is proven by local unit tests.
 
 The timestamp contract follows the official [Docker reproducible-build guidance](https://docs.docker.com/build/ci/github-actions/reproducible-builds/)
 and [exporter options](https://docs.docker.com/build/exporters/image-registry/).

@@ -2,7 +2,8 @@
 
 Il workflow di rilascio costruisce tre immagini: API, worker e agente locale. Registra commit,
 dipendenze bloccate, digest delle basi, impronte SQL delle migrazioni, SBOM, rapporti di vulnerabilità
-e digest del registry. L'installazione usa questi digest senza ricompilare il codice o seguire tag
+e digest del registry, poi firma per digest ogni immagine pubblicata con Sigstore cosign e ne attesta
+SBOM e provenienza. L'installazione usa questi digest senza ricompilare il codice o seguire tag
 mobili. Il primo target verificabile è **Linux amd64**.
 
 ## Input e contratto di riproducibilità
@@ -64,11 +65,79 @@ stesso digest. Non scrive `latest`. La promozione dei tre ruoli non è una trans
 può lasciare solo alcune immagini verificate. Ripetere sullo stesso tag per riutilizzare il contenuto
 coincidente; installare soltanto quando esiste il manifest completo.
 
+Ogni digest pubblicato viene poi firmato e attestato come descritto in
+[Verifica di una release](#verifica-di-una-release); il job di promozione verifica la propria firma e
+le attestazioni prima di consegnare i riferimenti al manifest, che senza di esse fallisce.
+
 Una **release GitHub draft** raccoglie `release-manifest.json`, `release.env`, rapporti sorgente e
-SBOM/rapporto/metadati scanner di ogni immagine. Revisionarla prima di pubblicarla. Le riesecuzioni
+SBOM/rapporto/metadati scanner e predicato di provenienza di ogni immagine. Revisionarla prima di
+pubblicarla. Le riesecuzioni
 non modificano release GitHub già pubblicate. Le evidenze dei candidati durano 30 giorni; gli
 archivi immagine 7 giorni. Scaricarli prima della scadenza. Gli allegati della release pubblicata
 sono il registro duraturo della distribuzione: archiviarli con l'inventario dell'installazione.
+
+## Verifica di una release
+
+Ogni immagine pubblicata dal job di promozione è firmata per digest con [Sigstore cosign](https://docs.sigstore.dev/cosign/signing/overview/)
+in modalità keyless: Fulcio rilascia un certificato di breve durata all'identità OIDC GitHub
+dell'esecuzione del workflow e la firma è registrata nel log di trasparenza pubblico Rekor. Non
+esiste alcuna chiave di firma da proteggere o ruotare e `id-token: write` è concesso soltanto al
+job di promozione. La stessa identità attesta la SBOM CycloneDX di Trivy con
+`cosign attest --type cyclonedx`: la SBOM diventa una dichiarazione in-toto firmata, mentre
+`cosign attach sbom` caricherebbe un blob non firmato che cosign ha deprecato. Attesta inoltre un
+predicato di provenienza SLSA v1 costruito dagli input verificati dal workflow: workflow e tag,
+commit sorgente, Dockerfile, piattaforma, argomenti di build, digest fissati di BuildKit/Trivy,
+impronte degli input, journal delle migrazioni e checksum di archivio/SBOM/rapporti.
+`release-manifest.json` registra in `images.<ruolo>.signing` identità e issuer del certificato,
+l'indice Rekor della firma e di ciascuna attestazione e i comandi esatti di verifica. Le opzioni di
+build BuildKit `provenance` e `sbom` restano disattivate: l'esportatore in archivio docker usato per
+il confronto dei digest non trasporta attestazioni, e i loro timestamp differirebbero tra le due
+build pulite.
+
+Installare cosign 2.6 o successivo, sostituire il tag e prendere ogni riferimento con digest da
+`release.env`:
+
+```sh
+IDENTITY="https://github.com/Markg981/WebFlowMaster/.github/workflows/release.yml@refs/tags/v1.2.3"
+ISSUER="https://token.actions.githubusercontent.com"
+# Ripetere con WFM_WORKER_IMAGE e WFM_AGENT_IMAGE.
+IMAGE="$(grep '^WFM_API_IMAGE=' release.env | cut -d= -f2-)"
+
+cosign verify --certificate-identity "$IDENTITY" --certificate-oidc-issuer "$ISSUER" "$IMAGE"
+cosign verify-attestation --type cyclonedx --certificate-identity "$IDENTITY" \
+  --certificate-oidc-issuer "$ISSUER" "$IMAGE" > api.cyclonedx.dsse.json
+cosign verify-attestation --type slsaprovenance1 --certificate-identity "$IDENTITY" \
+  --certificate-oidc-issuer "$ISSUER" "$IMAGE" > api.provenance.dsse.json
+```
+
+Ogni comando fallisce se per quel digest esatto non esiste firma o attestazione, se il certificato
+non nomina questo workflow a quel tag con GitHub Actions come issuer o se la voce Rekor non si
+verifica. Il JSON stampato da `cosign verify` contiene il bundle Rekor
+(`optional.Bundle.Payload.logIndex`): confrontarlo con
+`images.<ruolo>.signing.signature.rekorLogIndex` nel manifest.
+
+Controllo della SBOM: il payload dell'attestazione è una dichiarazione in-toto in base64 il cui
+`predicate` è la SBOM. Normalizzarla insieme all'allegato `<ruolo>-sbom.cdx.json` della release con
+`jq -S -c` prima di calcolare l'hash, perché cosign riserializza il predicato:
+
+```sh
+jq -r '.payload' api.cyclonedx.dsse.json | base64 -d | jq -S -c '.predicate' | sha256sum
+jq -S -c . api-sbom.cdx.json | sha256sum
+```
+
+I due hash devono coincidere e `sha256sum api-sbom.cdx.json` deve essere uguale a
+`images.api.sbomSha256` nel manifest. Decodificando allo stesso modo `api.provenance.dsse.json` si
+ottiene il predicato di provenienza: `buildDefinition.resolvedDependencies[0].digest.gitCommit` deve
+essere il `commit` del manifest e `runDetails.metadata.invocationId` punta all'esecuzione del workflow.
+
+Limiti: la provenienza è generata e firmata dal workflow di rilascio stesso, con la stessa identità
+della firma. È un registro firmato degli input verificati, non un'attestazione di una piattaforma di
+build SLSA isolata: considerarla prova di chi ha costruito cosa da quale commit, non una dichiarazione
+SLSA Build L3. Rekor è pubblico: espone nome del repository e digest delle immagini di ogni release,
+anche per un repository privato. Rieseguire un tag aggiunge una nuova firma e nuove attestazioni; la
+verifica accetta qualunque voce valida. Verificare le firme dimostra la pubblicazione da parte di
+questo workflow, non ciò che un'installazione esegue: riconciliare i digest installati come descritto
+in [Aggiornamento, rollback ed evidenze](#aggiornamento-rollback-ed-evidenze).
 
 ## Procedura per l'operatore
 
@@ -82,7 +151,8 @@ sono il registro duraturo della distribuzione: archiviarli con l'inventario dell
    del suo tag `vVERSION`. Se i controlli sono pendenti o falliti, il rilascio attende; rieseguire dopo
    il loro completamento.
 4. Esaminare draft, rapporti, evidenze di ricostruzione e manifest. Controllare commit e journal
-   delle migrazioni prima della pubblicazione e conservare il manifest della versione precedente.
+   delle migrazioni ed eseguire i comandi di verifica registrati in `images.<ruolo>.signing` prima
+   della pubblicazione; conservare il manifest della versione precedente.
 5. Scaricare `release.env` dalla release verificata. Fornire segreti e connessioni in un file protetto
    `installation.env`, mai nel repository. `MIGRATION_DATABASE_URL` usa il proprietario delle
    migrazioni; `DATABASE_URL` usa il ruolo applicativo non-superuser per preservare RLS.
@@ -124,7 +194,7 @@ Non sono garantiti downgrade automatico o migrazioni senza interruzione.
 `npm run test:release` verifica packaging e guardie senza database. Da checkout pulito e committato,
 `GITHUB_REPOSITORY=owner/repository node scripts/release/prepare.mjs` prepara metadati candidati.
 Il workflow esegue ricostruzioni e scansioni complete. Prima di un workflow riuscito sul tag,
-i test locali non dimostrano pubblicazione sul registry o certificazione della release.
+i test locali non dimostrano pubblicazione sul registry, firma o certificazione della release.
 
 Il contratto sui timestamp segue la [guida Docker](https://docs.docker.com/build/ci/github-actions/reproducible-builds/)
 e le [opzioni dell'esportatore](https://docs.docker.com/build/exporters/image-registry/).
