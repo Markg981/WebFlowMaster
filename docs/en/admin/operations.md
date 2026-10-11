@@ -218,7 +218,8 @@ channel that confirms who they are.
 
 | What | Signal |
 |---|---|
-| Web process alive | `GET /api/user` answers `401` to an anonymous request. `5xx` or no answer means down. |
+| Web process alive | `GET /healthz` answers `200` without touching any dependency: use it as a liveness probe, so a database outage does not get the process restarted. |
+| Web process ready | `GET /readyz` answers `200` when PostgreSQL, the Redis behind queues and rate limits, and the session store all answer within 2 seconds; otherwise `503` with the check that failed, e.g. `{"status":"not ready","checks":{"database":"failed","redis":"ok","sessions":"ok"}}`. The image's `HEALTHCHECK` and a load balancer use this one. Neither needs a session or a token. |
 | Workers | **Settings → Runners**: online, draining or offline, with running jobs and version. A runner not heard from for `RUNNER_OFFLINE_AFTER_MS` is offline. |
 | Queue pressure | **Settings → Run usage**: runs in progress and waiting for the organization, against its limits, and how many runners are online. |
 | Lost runs | Runs ending as *error* with reason `worker_lost`: a worker died or was restarted mid-run. |

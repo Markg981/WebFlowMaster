@@ -8,7 +8,7 @@ import 'dotenv/config';
 import loggerPromise, { flushLogs } from './logger'; // Import Winston logger promise
 import { privilegedDb, closeDb, assertTenancyPreconditions } from './db';
 import { systemSettings } from '@shared/schema'; // Import systemSettings table
-import { eq } from 'drizzle-orm'; // Import eq operator
+import { eq, sql } from 'drizzle-orm'; // Import eq operator
 import { setupWebSockets } from './websocket';
 import { setupAgentRelay } from './agents/setup';
 import { registerCommitStatus } from './commit-status';
@@ -19,6 +19,7 @@ import { resolvePort } from './config';
 import { assertStartupConfig, connectSessionStore } from './startup-config';
 import { inspectSchemaState, describeSchemaState } from './schema-state';
 import { redactWebhookPath } from './webhook-tokens';
+import { healthRouter } from './health';
 
 import { startTracing } from '../shared/telemetry';
 import { applicationMetrics, startMetricsServer } from './observability/metrics';
@@ -26,6 +27,12 @@ import { applicationMetrics, startMetricsServer } from './observability/metrics'
 const stopTracing = startTracing('api');
 configureEgressProxy();
 const app = express();
+// First: probes come every few seconds and would otherwise dominate the request metrics.
+app.use(healthRouter({
+  database: () => privilegedDb.execute(sql`SELECT 1`),
+  redis: () => redisConnection.ping(),
+  sessions: () => process.env.NODE_ENV === 'test' || sessionRedis.isReady,
+}));
 app.use(applicationMetrics.middleware);
 app.use(mailProviderBodyParser);
 // The API tester sends form-data files and binary bodies inside its JSON, as base64, so its
