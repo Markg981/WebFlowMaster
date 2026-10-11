@@ -63,6 +63,31 @@ describe('generateRepro', () => {
     expect(contentOf(repro.path)).toContain('"planId": "p1"');
   });
 
+  it('keeps a multi-line error message with quotes a valid TypeScript file', async () => {
+    const title =
+      "Error: browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n\n╔══╗\n║ Set either 'headless: true' or use 'xvfb-run' */ ║";
+    const repro = await generateRepro(
+      incident({ kind: 'runner', title, trigger: { phase: 'recording:browser launch' } }),
+      repoRoot,
+    );
+
+    const content = contentOf(repro.path);
+    const ts = await import('typescript');
+    const { diagnostics } = ts.transpileModule(content, {
+      reportDiagnostics: true,
+      compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+    });
+    expect(diagnostics ?? []).toEqual([]);
+    expect(content).toContain(JSON.stringify(`inc_aaaaaa: ${title}`));
+    // The comment keeps the first line only, and nothing in it can close the comment early.
+    expect(content.split('\n')[1]).toBe(
+      ' * Reproduction for inc_aaaaaa — Error: browserType.launch: Target page, context or browser has been closed',
+    );
+    expect(content.indexOf('*/')).toBe(
+      content.indexOf('*/', content.indexOf('permanent regression test')),
+    );
+  });
+
   it('marks a client-runtime reproduction best-effort and puts it under client/', async () => {
     const repro = await generateRepro(
       incident({

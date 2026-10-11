@@ -12,10 +12,21 @@ export const REPRO_COMMAND = "npx vitest run --include '**/*.repro.ts'";
 
 const json = (value: unknown): string => JSON.stringify(value ?? null, null, 2);
 
+/**
+ * An error message is free text: Playwright's carry several lines and a box drawing, others
+ * carry quotes. Inside the generated file it goes in a JSON string literal, which is a valid
+ * TypeScript string whatever it holds, and in the comment on one line without the sequence
+ * that would end the comment.
+ */
+const describeTitle = (incident: Incident): string => json(`${incident.id}: ${incident.title}`);
+
+const commentTitle = (incident: Incident): string =>
+  incident.title.split(/\r?\n/, 1)[0].replaceAll('*/', '* /');
+
 function header(incident: Incident): string {
   const origin = incident.origin ? `${incident.origin.file}:${incident.origin.line}` : 'unresolved';
   return `/**
- * Reproduction for ${incident.id} — ${incident.title}
+ * Reproduction for ${incident.id} — ${commentTitle(incident)}
  *
  * Origin:  ${origin}
  * Kind:    ${incident.kind}
@@ -57,7 +68,7 @@ beforeAll(async () => {
   app = tempApp;
 });
 
-describe('${incident.id}: ${incident.title}', () => {
+describe(${describeTitle(incident)}, () => {
   it('does not fail with a server error', async () => {
     const response = await request(app)
       .${method}('${trigger.path ?? '/'}')
@@ -78,7 +89,7 @@ import { describe, it, expect } from 'vitest';
 const jobName = ${json(trigger.jobName)};
 const jobData = ${json(trigger.jobData)};
 
-describe('${incident.id}: ${incident.title}', () => {
+describe(${describeTitle(incident)}, () => {
   it('processes the captured job without throwing', async () => {
     // The worker dispatches on job.name; this calls the handler that job reached.
     const { processTestPlanJob } = await import('../test-execution-service');
@@ -106,7 +117,7 @@ import { describe, it, expect } from 'vitest';
  */
 const context = ${json(trigger)};
 
-describe('${incident.id}: ${incident.title}', () => {
+describe(${describeTitle(incident)}, () => {
   // The entry point depends on which phase failed, so the call is left to be written: a
   // generated body that always threw would fail for the wrong reason and teach nothing.
   it.todo('completes the runner phase that failed');
@@ -145,7 +156,7 @@ import { describe, it, expect } from 'vitest';
 
 const capturedProps = ${json(trigger.props)};
 
-describe('${incident.id}: ${incident.title}', () => {
+describe(${describeTitle(incident)}, () => {
   it.todo('renders the failing component with the captured props');
 
   it('keeps the captured context available while the reproduction is written', () => {
