@@ -11,7 +11,8 @@ import { describeCi, type CiContext } from '@shared/ci';
  * learn that was to go and look — which is the thing a scheduled run exists to avoid.
  *
  * The channel is an outgoing webhook, which Slack and Microsoft Teams both accept in the
- * shape below, and so does anything else that can receive a POST. The wizard's existing
+ * shape below (with their native card format added when the address is theirs, see
+ * `nativeFormat`), and so does anything else that can receive a POST. The wizard's existing
  * switches say *when*; the URL says *where*, and was the part nothing ever collected.
  */
 
@@ -152,9 +153,12 @@ export function summaryLine(summary: RunSummary): string {
  * `text` is there because that single field is what Slack and Teams both render; everything
  * else is there for a receiver that wants the numbers rather than the sentence.
  */
-export function buildPayload(summary: RunSummary): Record<string, unknown> {
+export function buildPayload(summary: RunSummary, webhookUrl?: string): Record<string, unknown> {
   const url = reportUrl(summary.planId, summary.executionId);
+  const native = nativeFormat(webhookUrl);
   return {
+    ...(native === 'slack' ? slackMessage(summary, url) : {}),
+    ...(native === 'teams' ? teamsMessage(summary, url) : {}),
     text: summaryLine(summary) + (url ? ` ${url}` : ''),
     event: 'test_plan_execution.completed',
     status: summary.status,
@@ -176,6 +180,112 @@ export function buildPayload(summary: RunSummary): Record<string, unknown> {
       reportPath: reportPathFor(summary.planId, summary.executionId) ?? null,
     },
     report: { url: url ?? null, path: reportPathFor(summary.planId, summary.executionId) ?? null },
+  };
+}
+
+/**
+ * Which native message format the receiving end understands, from its address.
+ *
+ * `text` alone renders as one grey line in both apps. Slack's incoming webhooks and Teams'
+ * (the Workflows/Power Automate ones and the older Office 365 connectors) each have a richer
+ * format: a coloured verdict, the numbers laid out, a button to the report. Anything else gets
+ * the plain payload, unchanged.
+ */
+export function nativeFormat(webhookUrl: string | undefined): 'slack' | 'teams' | null {
+  let host: string;
+  try {
+    host = new URL(webhookUrl ?? '').hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  if (host === 'hooks.slack.com') return 'slack';
+  if (
+    host.endsWith('.webhook.office.com') ||
+    host === 'outlook.office.com' ||
+    host.endsWith('.logic.azure.com') ||
+    host.endsWith('.powerplatform.com') ||
+    host.endsWith('.powerautomate.com')
+  )
+    return 'teams';
+  return null;
+}
+
+type Tone = 'good' | 'bad' | 'neutral';
+
+function toneOf(status: RunStatus): Tone {
+  const which = switchForStatus(status);
+  return which === 'passed'
+    ? 'good'
+    : which === 'failed' || which === 'notExecuted'
+      ? 'bad'
+      : 'neutral';
+}
+
+/** The numbers both formats lay out, as label/value pairs. */
+function facts(summary: RunSummary): Array<[string, string]> {
+  const rows: Array<[string, string]> = [
+    ['Passed', `${summary.passedTests}/${summary.totalTests}`],
+    ['Failed', String(summary.failedTests)],
+  ];
+  if (summary.quarantinedFailures)
+    rows.push(['In quarantine', String(summary.quarantinedFailures)]);
+  if (summary.skippedTests) rows.push(['Skipped', String(summary.skippedTests)]);
+  rows.push(['Duration', formatDuration(summary.durationMs)]);
+  if (summary.browsers?.length) rows.push(['Browsers', summary.browsers.join(', ')]);
+  rows.push(['Triggered by', summary.ci ? describeCi(summary.ci) : summary.triggeredBy]);
+  return rows;
+}
+
+/** Slack Block Kit inside an attachment, which is what draws the coloured bar. */
+function slackMessage(summary: RunSummary, url: string | undefined): Record<string, unknown> {
+  const color = { good: '#2eb67d', bad: '#e01e5a', neutral: '#868686' }[toneOf(summary.status)];
+  // Slack's mrkdwn treats &, < and > as markup; a plan name is the user's text.
+  const escape = (value: string) =>
+    value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const blocks: unknown[] = [
+    { type: 'section', text: { type: 'mrkdwn', text: `*${escape(summaryLine(summary))}*` } },
+    {
+      type: 'section',
+      fields: facts(summary).map(([label, value]) => ({
+        type: 'mrkdwn',
+        text: `*${label}*\n${escape(value)}`,
+      })),
+    },
+  ];
+  if (url) {
+    blocks.push({
+      type: 'actions',
+      elements: [{ type: 'button', text: { type: 'plain_text', text: 'Open report' }, url }],
+    });
+  }
+  return { attachments: [{ color, blocks }] };
+}
+
+/** A Teams message carrying an Adaptive Card, the format Workflows webhooks expect. */
+function teamsMessage(summary: RunSummary, url: string | undefined): Record<string, unknown> {
+  const color = { good: 'Good', bad: 'Attention', neutral: 'Default' }[toneOf(summary.status)];
+  const card: Record<string, unknown> = {
+    $schema: 'http://adaptivecards.io/schemas/adaptive-card.json',
+    type: 'AdaptiveCard',
+    version: '1.4',
+    body: [
+      {
+        type: 'TextBlock',
+        text: summaryLine(summary),
+        weight: 'Bolder',
+        color,
+        wrap: true,
+      },
+      {
+        type: 'FactSet',
+        facts: facts(summary).map(([title, value]) => ({ title, value })),
+      },
+    ],
+    ...(url ? { actions: [{ type: 'Action.OpenUrl', title: 'Open report', url }] } : {}),
+  };
+  return {
+    type: 'message',
+    attachments: [{ contentType: 'application/vnd.microsoft.card.adaptive', content: card }],
   };
 }
 
@@ -240,7 +350,7 @@ export async function sendRunNotification(
     const response = await send(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildPayload(summary)),
+      body: JSON.stringify(buildPayload(summary, url)),
       signal: controller.signal,
     });
     if (!response.ok) {

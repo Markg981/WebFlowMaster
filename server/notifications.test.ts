@@ -3,6 +3,7 @@ import {
   buildPayload,
   describeUnsupported,
   mergeNotificationSettings,
+  nativeFormat,
   sendRunNotification,
   shouldNotify,
   summaryLine,
@@ -219,5 +220,57 @@ describe('describeUnsupported', () => {
     );
     expect(describeUnsupported({ emails: ['qa@example.com'] }, true)).toEqual([]);
     expect(describeUnsupported({})).toEqual([]);
+  });
+});
+
+describe('native Slack and Teams messages', () => {
+  it('recognises the receivers by address and leaves every other one alone', () => {
+    expect(nativeFormat('https://hooks.slack.com/services/T0/B0/x')).toBe('slack');
+    expect(nativeFormat('https://acme.webhook.office.com/webhookb2/x')).toBe('teams');
+    expect(nativeFormat('https://prod-12.westeurope.logic.azure.com:443/workflows/x')).toBe(
+      'teams',
+    );
+    expect(nativeFormat('https://default1.environment.api.powerplatform.com/x')).toBe('teams');
+    expect(nativeFormat('https://ci.example.com/hook')).toBeNull();
+    expect(nativeFormat('https://hooks.slack.com.evil.example/x')).toBeNull();
+    expect(nativeFormat('not a url')).toBeNull();
+  });
+
+  it('gives Slack a coloured attachment with the numbers and a report button', () => {
+    process.env.WEBFLOW_PUBLIC_URL = 'https://wfm.example.com';
+    const payload = buildPayload(
+      { ...summary, planName: 'Checkout <smoke> & co' },
+      'https://hooks.slack.com/services/T0/B0/x',
+    ) as any;
+    const [attachment] = payload.attachments;
+    expect(attachment.color).toBe('#e01e5a');
+    expect(attachment.blocks[0].text.text).toContain('Checkout &lt;smoke&gt; &amp; co');
+    expect(attachment.blocks[1].fields.map((f: any) => f.text)).toContain('*Failed*\n3');
+    expect(attachment.blocks[2].elements[0].url).toMatch(/^https:\/\/wfm\.example\.com\//);
+    // The plain fields stay, for Slack's notification preview and any other reader.
+    expect(payload.text).toContain('FAILED');
+    expect(payload.execution.failedTests).toBe(3);
+  });
+
+  it('gives Teams an Adaptive Card, green for a pass', () => {
+    const payload = buildPayload(
+      { ...summary, status: 'completed', failedTests: 0, passedTests: 10 },
+      'https://acme.webhook.office.com/webhookb2/x',
+    ) as any;
+    expect(payload.type).toBe('message');
+    const card = payload.attachments[0].content;
+    expect(payload.attachments[0].contentType).toBe('application/vnd.microsoft.card.adaptive');
+    expect(card.type).toBe('AdaptiveCard');
+    expect(card.body[0].color).toBe('Good');
+    expect(card.body[1].facts).toContainEqual({ title: 'Passed', value: '10/10' });
+    // No public address configured: no button pointing nowhere.
+    expect(card.actions).toBeUndefined();
+  });
+
+  it('sends the plain payload to any other receiver', () => {
+    const payload = buildPayload(summary, 'https://ci.example.com/hook') as any;
+    expect(payload.attachments).toBeUndefined();
+    expect(payload.type).toBeUndefined();
+    expect(payload.text).toContain('Nightly regression');
   });
 });
