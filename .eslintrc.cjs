@@ -24,7 +24,8 @@ module.exports = {
     'client/dist/',
     'migrations/',
     'allure-results/',
-    // Local scratch output, ignored by git as well.
+    // Local tooling output and scratch, ignored by git as well.
+    '.local/',
     'tmp/',
     'outputs/',
     'results/',

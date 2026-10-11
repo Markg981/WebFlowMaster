@@ -52,6 +52,7 @@ scratch_cookies.txt
 *.log
 
 backups
+.local
 restore-drill-artifacts
 resilience-artifacts
 release-artifacts

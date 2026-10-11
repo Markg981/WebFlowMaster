@@ -71,9 +71,9 @@ an operator needs, from the repository folder on the Docker host. It needs only 
 `pg_dump` and `pg_restore` run in the `postgres` container, `tar` in the `api` container.
 
 ```bash
-npm run backup:create                              # into ./backups/wfm-backup-<UTC time>/
-npm run backup:verify  -- backups/wfm-backup-20261001-020000
-npm run backup:restore -- backups/wfm-backup-20261001-020000 --yes
+npm run backup:create                              # into ./.local/backups/wfm-backup-<UTC time>/
+npm run backup:verify  -- .local/backups/wfm-backup-20261001-020000
+npm run backup:restore -- .local/backups/wfm-backup-20261001-020000 --yes
 ```
 
 With another Compose project or extra files, pass them as to `docker compose`:
@@ -119,7 +119,7 @@ A nightly backup with its drill, keeping fourteen days, from cron on the Docker 
 
 ```bash
 0 2 * * *  cd /opt/webflowmaster && npm run -s backup:create && \
-           npm run -s backup:verify -- "$(ls -d backups/wfm-backup-* | tail -n 1)" && \
+           npm run -s backup:verify -- "$(ls -d .local/backups/wfm-backup-* | tail -n 1)" && \
            find backups -maxdepth 1 -name 'wfm-backup-*' -mtime +14 -exec rm -rf {} +
 ```
 
@@ -141,7 +141,7 @@ SHA-256. Another tenant must receive 404 for report/evidence and see no restored
 started through the UI must decrypt the restored value, pass on the worker and produce new evidence.
 The application connects as a non-superuser role, using `app_user` for tenant queries.
 
-`restore-drill-artifacts/<id>/` holds `recovery.json`, service/operation logs, report screenshots and
+`.local/restore-drill/<id>/` holds `recovery.json`, service/operation logs, report screenshots and
 artifact sizes/hashes. Each phase is measured in milliseconds; `recoveryDurationMs` covers target
 provisioning through the successful new report, and `backupAgeAtRecoveryMs` records backup age.
 Build, fixture setup and backup timings are separate. Backup age is not a measured production RPO;

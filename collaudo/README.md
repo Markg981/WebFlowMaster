@@ -518,7 +518,7 @@ Backup). Sullo stack di collaudo:
 
 ```bash
 npm run backup:create -- -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml
-npm run backup:verify -- backups/wfm-backup-<ora> -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml
+npm run backup:verify -- .local/backups/wfm-backup-<ora> -p wfm-collaudo -f docker-compose.yml -f collaudo/docker-compose.collaudo.yml
 ```
 
 Il ripristino (OPS-13, OPS-14) si prova su un secondo stack usa-e-getta, mai su quello del collaudo: un file
@@ -527,7 +527,7 @@ Il ripristino (OPS-13, OPS-14) si prova su un secondo stack usa-e-getta, mai su 
 
 ```bash
 docker compose -p wfm-drill -f docker-compose.yml -f drill.yml up -d --no-build
-npm run backup:restore -- backups/wfm-backup-<ora> -p wfm-drill -f docker-compose.yml -f drill.yml --yes
+npm run backup:restore -- .local/backups/wfm-backup-<ora> -p wfm-drill -f docker-compose.yml -f drill.yml --yes
 docker compose -p wfm-drill -f docker-compose.yml -f drill.yml down -v     # alla fine
 ```
 

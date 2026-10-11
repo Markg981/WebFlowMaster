@@ -107,7 +107,7 @@ certificate through `NODE_EXTRA_CA_CERTS`; its checked-in private key is public 
 `INSTALLATION_ADMINS=e2e_operator` is confined to this disposable installation, and SSO DNS domain
 verification is disabled here. Open
 registration and HTTP cookies apply only to this disposable installation. The HTML report,
-service logs and failure screenshots/videos/traces are written to ignored `e2e-artifacts/` and
+service logs and failure screenshots/videos/traces are written to ignored `.local/e2e/` and
 uploaded by CI even after failure, with seven-day retention.
 
 Mobile journeys exercise authoring, history and permissions; they do not run a device or Appium.
@@ -225,12 +225,22 @@ one PR for each new major version. Merge the weekly one when CI passes; read the
 major and test the affected area before merging it. Playwright, the `lightningcss-*` binaries and
 the Docker base images are left out: upgrade them by hand, as described above.
 
+### Local output
+
+Tools write what they produce under one ignored folder, `.local/`, instead of a folder each at the
+root: `e2e/` (Playwright report, service logs), `test-results/`, `restore-drill/<id>/`,
+`resilience/<id>/`, `backups/` and `tmp/` (bundles and scratch). Set `WFM_LOCAL_DIR` to move it,
+for example to a larger disk. `data/`, `results/`, `uploads/`, `logs/` and `allure-results/` are
+not tool output but the application's own state, the same folders the image mounts under `/app`,
+and stay where they are. Folders an older checkout left at the root (`e2e-artifacts/`, `backups/`,
+`outputs/`, `tmp/` and the drill folders) are still ignored and can be moved or deleted by hand.
+
 ### Large files
 
 CI refuses any file over 5 MB introduced by a PR, including one that a later commit of the same
 PR deletes: the blob would stay in every clone of the history. Generated output (kits, archives,
-scan reports) belongs in `outputs/` or `tmp/`, which Git ignores. To get the same check before each
-commit, add it to your own hook:
+scan reports) belongs in `.local/`, which Git ignores. To get the same check before each commit,
+add it to your own hook:
 
 ```bash
 # a new hook; with an existing one, append only the second line

@@ -82,10 +82,10 @@ jobs:
         with:
           name: application-restore-evidence
           path: |
-            restore-drill-artifacts/*/recovery.json
-            restore-drill-artifacts/*/operations.log
-            restore-drill-artifacts/*/*-report.png
-            restore-drill-artifacts/*/*-evidence.json
+            .local/restore-drill/*/recovery.json
+            .local/restore-drill/*/operations.log
+            .local/restore-drill/*/*-report.png
+            .local/restore-drill/*/*-evidence.json
           if-no-files-found: warn
           retention-days: 7
 
@@ -320,7 +320,7 @@ jobs:
         run: npm run build:network-probe
       - name: Verify real firewalls, proxy policy and all three browser engines
         env:
-          WFM_SAAS_TRANSPORT_BUNDLE: ${{ github.workspace }}/tmp/saas-transports.mjs
+          WFM_SAAS_TRANSPORT_BUNDLE: ${{ github.workspace }}/.local/tmp/saas-transports.mjs
           WFM_SAAS_NODE_MODULES: ${{ github.workspace }}/node_modules
         run: npm run test:network
       - name: Bootstrap actual API and worker images in the isolated deployment
@@ -389,7 +389,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: installation-e2e-evidence
-          path: e2e-artifacts/
+          path: .local/e2e/
           if-no-files-found: warn
           retention-days: 7
 

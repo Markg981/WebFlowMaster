@@ -8,6 +8,7 @@ import * as grpc from '@grpc/grpc-js';
 import * as loader from '@grpc/proto-loader';
 import { fileURLToPath } from 'node:url';
 import { startOidcProvider } from './oidc-provider.mjs';
+import { localDir } from '../scripts/local-dir.mjs';
 
 const database = new URL(process.env.DATABASE_URL || 'invalid:');
 if (
@@ -22,7 +23,7 @@ if (process.env.REDIS_URL !== 'redis://127.0.0.1:6388') {
   throw new Error('REDIS_URL must be redis://127.0.0.1:6388, the dedicated E2E store.');
 }
 
-mkdirSync('e2e-artifacts/services', { recursive: true });
+mkdirSync(localDir('e2e', 'services'), { recursive: true });
 const env = {
   ...process.env,
   NODE_ENV: 'production',
@@ -62,7 +63,7 @@ function stop(code = 0) {
   process.exitCode = code;
 }
 function start(name, entry) {
-  const log = createWriteStream(`e2e-artifacts/services/${name}.log`);
+  const log = createWriteStream(localDir('e2e', 'services', `${name}.log`));
   const child = spawn(process.execPath, [entry], { env, stdio: ['ignore', 'pipe', 'pipe'] });
   children.push(child);
   for (const stream of [child.stdout, child.stderr]) {

@@ -59,7 +59,10 @@ describe('parseArgs', () => {
 
   it('needs a directory to verify or restore, but not to create', () => {
     expect(parseArgs(['verify'])).toEqual({ error: 'verify needs the backup directory.' });
-    expect(parseArgs(['create'])).toMatchObject({ command: 'create', out: 'backups' });
+    expect(parseArgs(['create'])).toMatchObject({
+      command: 'create',
+      out: path.join('.local', 'backups'),
+    });
   });
 
   it('refuses a database name that would have to be quoted into SQL', () => {

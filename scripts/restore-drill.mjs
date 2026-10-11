@@ -4,6 +4,7 @@ import { spawn, execFileSync } from 'node:child_process';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { localDir } from './local-dir.mjs';
 import { performance } from 'node:perf_hooks';
 import { chromium } from 'playwright';
 import { main as backup, readManifest } from './wfm-backup.ts';
@@ -16,7 +17,7 @@ const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'u
 const workingTreeDirty =
   execFileSync('git', ['diff', '--name-only'], { encoding: 'utf8' }).trim().length > 0;
 const id = randomUUID().replaceAll('-', '').slice(0, 12);
-const directory = path.resolve('restore-drill-artifacts', id);
+const directory = localDir('restore-drill', id);
 fs.mkdirSync(directory, { recursive: true });
 const file = path.join(directory, 'compose.json');
 fs.writeFileSync(

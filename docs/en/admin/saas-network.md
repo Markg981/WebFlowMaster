@@ -93,7 +93,7 @@ To repeat the disposable acceptance check without touching the installation:
 ```sh
 npm run test:network:unit
 npm run build:network-probe
-# Set WFM_SAAS_TRANSPORT_BUNDLE to the absolute tmp/saas-transports.mjs path,
+# Set WFM_SAAS_TRANSPORT_BUNDLE to the absolute .local/tmp/saas-transports.mjs path,
 # and WFM_SAAS_NODE_MODULES to the absolute node_modules path.
 npm run test:network
 ```

@@ -14,7 +14,7 @@ privati e porte API casuali su loopback. Non passare credenziali o riferimenti p
 sono costruite dal checkout corrente. La sorgente viene distrutta dopo il backup; la destinazione
 ripristina DB, archivio results e visual-baselines, con chiave cifratura originale.
 
-Atteso: exit 0; in `restore-drill-artifacts/<id>/recovery.json` tutte le fasi riuscite. Login browser,
+Atteso: exit 0; in `.local/restore-drill/<id>/recovery.json` tutte le fasi riuscite. Login browser,
 report storico con evidenze identiche per dimensione/SHA-256, altro tenant escluso da test/report/artefatti,
 nuovo run browser riuscito sul worker con valore cifrato recuperato e nuove evidenze.
 Allegare JSON, screenshot e log al ciclo. La fixture usa un ruolo applicativo non superuser, con

@@ -221,8 +221,10 @@ describe('dedicated real Cucumber runtime', () => {
     }
   });
   it('executes the bundled distributed child using project-local Cucumber', async () => {
-    await mkdir(path.resolve('tmp'), { recursive: true });
-    const dir = await mkdtemp(path.resolve('tmp/bdd-bundle-'));
+    // Inside the repository, not under WFM_LOCAL_DIR or os.tmpdir(): the bundle has to resolve
+    // Cucumber from this checkout's node_modules.
+    await mkdir(path.resolve('.local/tmp'), { recursive: true });
+    const dir = await mkdtemp(path.resolve('.local/tmp/bdd-bundle-'));
     try {
       await Promise.all([
         build({

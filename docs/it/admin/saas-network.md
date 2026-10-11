@@ -94,7 +94,7 @@ Per ripetere il collaudo temporaneo senza modificare l'installazione:
 ```sh
 npm run test:network:unit
 npm run build:network-probe
-# Impostare WFM_SAAS_TRANSPORT_BUNDLE con il percorso assoluto di tmp/saas-transports.mjs
+# Impostare WFM_SAAS_TRANSPORT_BUNDLE con il percorso assoluto di .local/tmp/saas-transports.mjs
 # e WFM_SAAS_NODE_MODULES con il percorso assoluto di node_modules.
 npm run test:network
 ```

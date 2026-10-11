@@ -89,13 +89,19 @@ collaudo/carico-esito.json
 collaudo/mobile/apps/*.apk
 collaudo/mobile/.keepalive.pid
 
-# Backups made by scripts/wfm-backup.ts: customer data, never in the repository or an image.
-backups/
+# Local tooling output (scripts/local-dir.mjs): E2E reports, drill and resilience evidence,
+# backups (customer data, never in the repository or an image), exported kits and scratch
+# archives. One folder; WFM_LOCAL_DIR moves it.
+/.local/
 release-artifacts/
+
+# Where the same tools wrote before .local/ existed. Kept so an old checkout's folders,
+# backups included, cannot be committed by accident.
+backups/
 restore-drill-artifacts/
 resilience-artifacts/
-
-# Local scratch: exported kits, temporary archives, cookie jars from curl sessions.
 /outputs/
 /tmp/
+
+# Cookie jars from curl sessions.
 *cookies*.txt
