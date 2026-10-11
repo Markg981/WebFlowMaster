@@ -80,7 +80,13 @@ dropdown, select, tooltip), con stile Tailwind CSS e variabili CSS per i temi ch
 ## Internazionalizzazione
 
 `i18n.ts` carica le quattro traduzioni in `locales/{en,it,fr,de}/translation.json`; la lingua viene dalle
-impostazioni dell'utente, l'inglese è il ripiego. Ogni stringa si scrive come
+impostazioni dell'utente, l'inglese è il ripiego. L'inglese fa parte del primo bundle; le altre lingue si
+scaricano quando vengono scelte, mentre il `Suspense` in `main.tsx` tiene lo schermo. Una nuova lingua è
+una cartella qui più una riga in `otherLanguages` in `i18n.ts`.
+
+Il primo bundle contiene solo ciò che serve a ogni visita. Ogni pagina, compresa quella di accesso, si
+carica alla prima apertura (`App.tsx`), e l'editor Monaco quando si mostra il primo editor
+(`components/CodeEditor.tsx`): Monaco si importa solo tramite `CodeEditor`, mai da una pagina. Ogni stringa si scrive come
 `t('area.chiave', 'Testo inglese')`. Tre test in `locales/locales.test.ts` tengono tutto in ordine:
 
 - ogni chiave presente in inglese esiste nelle altre tre lingue, con gli stessi `{{segnaposto}}`;
