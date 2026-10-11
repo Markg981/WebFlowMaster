@@ -34,6 +34,18 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+        # 0.x packages: their "minor" is a breaking change (semver), which Dependabot still files
+        # as minor. In one group they broke everything at once (#336: monaco-editor's new exports
+        # map failed the build, a PGlite minor timed out the BDD tests). Each arrives in a PR of
+        # its own instead, to be read and tested on its own.
+        exclude-patterns:
+          - monaco-editor
+          - "@electric-sql/*"
+          - "@xmldom/xmldom"
+          - esbuild
+          - drizzle-zod
+          - drizzle-kit
+          - "@replit/*"
 
   - package-ecosystem: npm
     directory: /deployment/lighthouse
